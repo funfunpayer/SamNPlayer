@@ -1,1 +1,1 @@
-// will be replaced
+// Package generator - restored, see local artifacts
