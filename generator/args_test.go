@@ -21,7 +21,11 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		{"Region pro Szene", Options{PerSceneROI: true}, []string{"--per-scene-roi"}},
 		{"Profil weich", Options{Profile: "weich"}, []string{"--profile", "weich"}},
 		{"Profil tj", Options{Profile: "tj"}, []string{"--profile", "tj"}},
-		{"ROI2", Options{ROI2: &ROI{X: 10, Y: 20, W: 30, H: 40}}, []string{"--roi2", "10,20,30,40"}},
+		{"Profil tf", Options{Profile: "tf"}, []string{"--profile", "tf"}},
+		{"Zweite Region", Options{ROI2: ROI{X: 10, Y: 20, W: 30, H: 40}},
+			[]string{"--roi2", "10,20,30,40"}},
+		{"tj mit ROI2", Options{Profile: "tj", ROI2: ROI{X: 1, Y: 2, W: 3, H: 4}},
+			[]string{"--profile", "tj", "--roi2", "1,2,3,4"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,7 +38,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			}
 			if tc.want == nil {
 				for _, flag := range []string{"--auto-retry", "--axis", "--max-speed",
-					"--adaptive-keyframes", "--per-scene-roi"} {
+					"--adaptive-keyframes", "--per-scene-roi", "--profile", "--roi2"} {
 					if strings.Contains(joined, flag) {
 						t.Errorf("unerwartetes Argument %q bei Standardoptionen: %s", flag, joined)
 					}
