@@ -1,1 +1,1 @@
-// Package generator - restored, see local artifacts
+PLACEHOLDER_WILL_REPLACE
