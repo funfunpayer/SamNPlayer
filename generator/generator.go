@@ -1,1 +1,2 @@
-PLACEHOLDER_WILL_REPLACE
+package generator
+// TEMP
