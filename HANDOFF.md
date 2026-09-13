@@ -262,6 +262,58 @@ bei Suchraster 4 und läuft binnen weniger Frames an den Anschlag;
 ergibt 1,000); `candidate.Build` bevorzugt dadurch systematisch die
 überglättete Variante – dieselbe Fehlerklasse wie beim Zickzack-Problem.
 
+## Erweiterbarkeit
+
+Analyseverfahren sind austauschbare Bausteine (`generator/backends.py`).
+Vorher war die Wahl eine fest verdrahtete Fallunterscheidung mitten in der
+Pipeline – jedes neue Verfahren hätte dort einen Eingriff bedeutet.
+
+Ein Backend ist eine Funktion mit festem Vertrag:
+
+```
+analyze(video_path, roi, options)
+  -> (timestamps_ms, positions, frame_size, scene_cuts, stats)
+```
+
+Zwei Bedingungen sind nicht Formsache: Positionen kommen in
+**Bildkoordinaten**, nicht normalisiert (sonst würden Dynamik und
+Normalisierung stillschweigend ausgehebelt), und `stats["vertical_range"]`
+ist die Amplitude **in Pixeln** (nach der Normalisierung ist sie
+unwiederbringlich weg, und der Quality Doctor braucht sie, um echte Bewegung
+von hochskaliertem Zittern zu unterscheiden).
+
+Eigene Verfahren kommen als Python-Datei ins Plugin-Verzeichnis und melden
+sich mit `register(name, func, beschreibung)` an. `--list-backends` zeigt
+alle verfügbaren mit Herkunft. Vertragsverstöße scheitern sofort mit einer
+Meldung, die sagt, *was* fehlt – ein Plugin, das eine Zeile zu wenig
+liefert, fiele sonst erst als unerklärlich schlechtes Skript auf.
+
+Absichtlich **keine Sandbox**: ein Plugin läuft mit denselben Rechten wie das
+Programm. Das ehrlich zu sagen ist besser als eine Scheinsicherheit.
+
+## Behobene Fehler mit Außenwirkung
+
+**Unvollständige Einbettung der Python-Module.** Eingebettet waren vier
+Dateien, ins Temp-Verzeichnis geschrieben wurden zwei. Im Entwicklungsbaum
+unsichtbar, weil dort alle Module nebeneinander liegen. In der fertigen
+`.exe` zeigte sich das als **drei scheinbar verschiedene Fehler**:
+`--backend flow` scheiterte, das gelernte Qualitätsmodell wurde nie
+gefunden, und die Geräteprüfung lief still gar nicht – ihr Import steht in
+einem `try/except` und fiel lautlos durch. Jetzt wird das ganze Verzeichnis
+per `go:embed *.py` eingebettet; `generator_embed_test.go` liest die
+tatsächlichen Importe aus dem Quelltext und prüft, dass jedes davon im
+Temp-Verzeichnis landet. Eine gepflegte Liste wäre genau das, was hier schon
+einmal vergessen wurde.
+
+**Keepalive hielt nur einen Kanal.** Es wiederholte das zuletzt gesendete
+Paket. War das Sog, wurde die Vibration nicht gehalten – und umgekehrt.
+Ausgerechnet in Pausen und beim Extended-O, also dort, wo das Keepalive
+überhaupt greifen soll. Jetzt wird der Zustand **beider** Kanäle geführt und
+wiederholt. Zusätzlich werden unveränderte Pakete nicht erneut gesendet: das
+Gerät kennt nur ganzzahlige Stufen, 100 Rampenschritte ergeben höchstens 11
+verschiedene Pakete – der Rest waren Roundtrips ohne Wirkung, bei zwei
+Kanälen alle 50 ms bis zu 40 pro Sekunde.
+
 ## Bekannte Grenzen
 
 **Das Flow-Backend überschätzt die Amplitude auch bei stehender Kamera**
@@ -366,6 +418,18 @@ Diese Punkte haben bereits Zeit gekostet:
   und damit der Benutzername – in der EXE.
 
 ---
+
+## Zusammenarbeit
+
+`CONTRIBUTING.md` beschreibt Ablauf, Zuständigkeitsschnitte und die Regel,
+auf die es ankommt: **jeder Beitrag braucht einen Test, der ohne die
+Änderung fehlschlägt.** Zwei Workflows laufen auf GitHub – `tests.yml` bei
+jedem Push und Pull Request (Go mit Race-Detector, Python, Oberfläche),
+`release.yml` nur bei einem Versions-Tag.
+
+Vorher liefen die Tests **ausschließlich** beim Release. Bei mehreren
+Beteiligten wäre ein Fehler erst beim Ausliefern aufgefallen, in fremdem
+Code, dessen Zusammenhang längst vergessen ist.
 
 ## Tests
 

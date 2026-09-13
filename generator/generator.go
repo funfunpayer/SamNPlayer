@@ -20,7 +20,7 @@ package generator
 
 import (
 	"bufio"
-	_ "embed"
+	"embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -31,15 +31,28 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
-//go:embed generate_funscript.py
-var scriptSource []byte
+// Sämtliche Python-Dateien werden als Verzeichnis eingebettet, nicht
+// einzeln aufgezählt.
+//
+// Der Grund ist ein echter Fehler, der genau so passiert ist: eingebettet
+// waren vier Dateien, ins Temp-Verzeichnis geschrieben wurden zwei. Im
+// Entwicklungsbaum fiel das nie auf, weil dort alle Module nebeneinander
+// liegen. In der fertigen .exe scheiterte dagegen "--backend flow" am
+// fehlenden flow_backend, das gelernte Qualitätsmodell wurde nie gefunden,
+// und die Geräteprüfung lief still gar nicht - sie steht in einem
+// try/except und verschwand damit lautlos.
+//
+// Mit einem Verzeichnismuster kann ein neu hinzugefügtes Modul nicht mehr
+// vergessen werden. Der Test in generator_embed_test.go prüft zusätzlich,
+// dass jedes von generate_funscript.py importierte lokale Modul auch
+// wirklich dabei ist.
+//
+//go:embed *.py requirements.txt
+var pythonFiles embed.FS
 
-//go:embed quality_doctor.py
-var qualityDoctorSource []byte
-
-//go:embed auto_roi.py
-var autoROISource []byte
-
+// requirementsSource bleibt einzeln, weil die Fehlermeldung bei fehlenden
+// Paketen den Inhalt anzeigt.
+//
 //go:embed requirements.txt
 var requirementsSource []byte
 
@@ -301,14 +314,29 @@ func writeScriptToTemp() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("generator: Temp-Verzeichnis: %w", err)
 	}
-	files := map[string][]byte{
-		"generate_funscript.py": scriptSource,
-		"quality_doctor.py":     qualityDoctorSource,
+	entries, err := pythonFiles.ReadDir(".")
+	if err != nil {
+		os.RemoveAll(dir)
+		return "", fmt.Errorf("generator: eingebettete Dateien nicht lesbar: %w", err)
 	}
-	for name, content := range files {
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		// Testdateien sind im Betrieb überflüssig und blähen nur das
+		// Temp-Verzeichnis auf.
+		if strings.HasSuffix(name, "_test.py") {
+			continue
+		}
+		content, err := pythonFiles.ReadFile(name)
+		if err != nil {
+			os.RemoveAll(dir)
+			return "", fmt.Errorf("generator: %s nicht lesbar: %w", name, err)
+		}
 		if err := os.WriteFile(filepath.Join(dir, name), content, 0644); err != nil {
 			os.RemoveAll(dir)
-			return "", fmt.Errorf("generator: Skript konnte nicht geschrieben werden: %w", err)
+			return "", fmt.Errorf("generator: %s konnte nicht geschrieben werden: %w", name, err)
 		}
 	}
 	return filepath.Join(dir, "generate_funscript.py"), nil
@@ -397,11 +425,15 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 		return ROI{}, err
 	}
 
-	scriptPath, err := writeEmbeddedToTemp("auto_roi-*.py", autoROISource)
+	// Auch die Regionssuche läuft aus dem gemeinsamen Temp-Verzeichnis:
+	// einzeln abgelegt fände sie ihre Nachbarmodule nicht. Das war derselbe
+	// Fehler wie beim Hauptskript, nur an zweiter Stelle.
+	mainScript, err := writeScriptToTemp()
 	if err != nil {
 		return ROI{}, err
 	}
-	defer os.Remove(scriptPath)
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "auto_roi.py")
 
 	cmd := exec.Command(py, scriptPath, "--video", videoPath)
 	stderr, err := cmd.StderrPipe()
@@ -515,7 +547,6 @@ func Generate(videoPath string, roi ROI, outputPath string, opts Options, onProg
 	return GenerateWithProgress(videoPath, roi, outputPath, opts, onProgress, nil)
 }
 
-
 // buildArgs setzt die Kommandozeile für generate_funscript.py zusammen.
 // Bewusst als eigene Funktion, damit testbar ist, dass jede Option auch
 // tatsächlich beim Skript ankommt - eine GUI-Checkbox, die nirgends landet,
@@ -610,7 +641,7 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 		args = append(args, "--norm-percentile", "0")
 	}
 
-		return args
+	return args
 }
 
 // BuildArgsForTest macht buildArgs für Tests zugänglich.
@@ -639,7 +670,7 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 
 	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
 
-cmd := exec.Command(py, args...)
+	cmd := exec.Command(py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("generator: stderr-Pipe: %w", err)

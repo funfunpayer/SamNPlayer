@@ -1343,6 +1343,51 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     return np.asarray(timestamps), distances, (width, height), [], stats
 
 
+def _register_builtin_backends():
+    """Meldet die eingebauten Verfahren am Register an.
+
+    Sie laufen über denselben Vertrag wie eigene Erweiterungen - sonst wäre
+    der Vertrag nur eine Behauptung, und die erste Abweichung fiele erst
+    einem fremden Plugin auf.
+    """
+    import backends
+
+    def csrt(video_path, roi, options):
+        return track_roi_cached(
+            video_path, roi,
+            max_frames=options.get("max_frames"),
+            camera_compensation=options.get("camera_compensation", True),
+            scene_cut_detection=options.get("scene_cut_detection", True),
+            cache_dir=options.get("cache_dir"),
+            axis=options.get("axis", "y"),
+            appearance_memory=options.get("appearance_memory", True))
+
+    def flow(video_path, roi, options):
+        import flow_backend
+        return flow_backend.analyze(
+            video_path,
+            max_frames=options.get("max_frames"),
+            camera_compensation=options.get("camera_compensation", True),
+            axis=options.get("axis", "y"))
+
+    def two_point(video_path, roi, options):
+        roi2 = options.get("roi2")
+        if not roi2:
+            raise RuntimeError("Das Verfahren 'two_point' braucht eine zweite Region (--roi2)")
+        return track_two_points(video_path, roi, roi2,
+                                max_frames=options.get("max_frames"))
+
+    backends.register("csrt", csrt,
+                      "Markierte Region mit einem Tracker verfolgen. Robust bei ruhiger "
+                      "Kamera, braucht aber eine Region.")
+    backends.register("flow", flow,
+                      "Bewegungszentrum je Frame aus dichtem Optical Flow. Keine Region "
+                      "nötig, rund 4x schneller, bei Kameraschwenks ungenauer.")
+    backends.register("two_point", two_point,
+                      "Abstand zweier verfolgter Regionen. Von Kamerabewegung "
+                      "mathematisch unabhängig, braucht --roi2.")
+
+
 def select_roi_interactively(video_path):
     cap = cv2.VideoCapture(video_path)
     ok, frame = cap.read()
@@ -1643,7 +1688,11 @@ def main():
     ap.add_argument("--batch", default=None, metavar="ORDNER",
                     help="Alle Videos im Ordner nacheinander verarbeiten. Die Skripte "
                          "werden neben die Videos gelegt. Vorhandene werden übersprungen.")
-    ap.add_argument("--backend", choices=["csrt", "flow"], default="csrt",
+    ap.add_argument("--plugin-dir", default=None, metavar="ORDNER",
+                    help="Verzeichnis mit eigenen Backend-Erweiterungen (Python-Dateien).")
+    ap.add_argument("--list-backends", action="store_true",
+                    help="Verfügbare Analyseverfahren anzeigen und beenden.")
+    ap.add_argument("--backend", default="csrt",
                     help="csrt = markierte Region per Tracker verfolgen (Standard). "
                          "flow = Bewegungszentrum je Frame aus dichtem Optical Flow, "
                          "ohne Tracker und ohne markierte Region - rund 4x schneller.")
@@ -1710,6 +1759,16 @@ def main():
         print("Profil 'weich': Nachschwingungen werden unterdrückt "
               f"(Prominenz {args.peak_prominence}, Mindestabstand "
               f"{args.min_peak_distance_ms}ms)", file=sys.stderr)
+
+    if args.list_backends:
+        import backends
+        backends.load_plugins(args.plugin_dir or None)
+        _register_builtin_backends()
+        for name, info in backends.available().items():
+            print(f"{name}  [{info['quelle']}]")
+            if info["beschreibung"]:
+                print(f"    {info['beschreibung']}")
+        return
 
     if args.hardware_info:
         print(describe_hardware())
@@ -1802,7 +1861,26 @@ def process_one(args, ap):
     print("Tracke ROI durchs Video...", file=sys.stderr)
     cache_dir = None if args.no_cache else (args.cache_dir or default_cache_dir())
     scene_ranges = None
-    if args.roi2:
+    # Verfahren außerhalb der eingebauten Sonderfälle laufen über das
+    # Register. Die Sonderfälle bleiben, weil sie zusätzliche Rückgabewerte
+    # haben (Szenenbereiche) oder Optionen brauchen, die nicht Teil des
+    # Backend-Vertrags sind.
+    if args.backend not in ("csrt", "flow") and not args.roi2 and not args.per_scene_roi:
+        import backends
+        backends.load_plugins(args.plugin_dir or None)
+        _register_builtin_backends()
+        print(f"Backend '{args.backend}' (über Register)", file=sys.stderr)
+        (timestamps_ms, y_positions, frame_size, scene_cuts,
+         track_stats) = backends.run(args.backend, args.video, roi, {
+            "max_frames": args.max_frames,
+            "camera_compensation": not args.no_camera_compensation,
+            "scene_cut_detection": not args.no_scene_cut_detection,
+            "cache_dir": cache_dir,
+            "axis": args.axis,
+            "appearance_memory": not args.no_appearance_memory,
+            "roi2": None,
+         })
+    elif args.roi2:
         try:
             roi2 = tuple(int(v) for v in args.roi2.split(","))
             if len(roi2) != 4:

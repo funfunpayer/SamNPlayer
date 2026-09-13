@@ -52,5 +52,5 @@ func (a *App) ApplyUpdate() error {
 }
 
 func (a *App) CurrentVersion() string {
-	return update.Version
+	return update.Describe()
 }

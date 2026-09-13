@@ -1,6 +1,7 @@
 package device
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -37,9 +38,24 @@ type SamNeo2 struct {
 	ScanTimeout time.Duration
 
 	mu           sync.Mutex
-	lastPacket   []byte
 	lastWriteAt  time.Time
 	keepaliveEnd chan struct{}
+
+	// Zustand BEIDER Kanäle, nicht nur des zuletzt gesendeten Pakets.
+	//
+	// Vorher merkte sich das Keepalive genau ein Paket. War der letzte
+	// Schreibvorgang Sog, wurde die Vibration nicht gehalten - und
+	// umgekehrt. Ausgerechnet in Pausen und beim Extended-O, also genau
+	// dort, wo das Keepalive überhaupt greifen soll, fiel damit ein Kanal
+	// still weg.
+	//
+	// Die Stufen werden zusätzlich verglichen, bevor gesendet wird: das
+	// Gerät kennt nur ganzzahlige Stufen, aufeinanderfolgende Intensitäten
+	// landen häufig auf derselben. Ein Schreibvorgang, der nichts ändert,
+	// kostet trotzdem einen Roundtrip mit Bestätigung - bei zwei Kanälen
+	// alle 50ms sind das bis zu 40 pro Sekunde.
+	lastVibrationPacket []byte
+	lastSuctionPacket   []byte
 
 	// Angaben zum tatsächlich verbundenen Gerät - damit die Oberfläche
 	// zeigen kann, WAS gefunden wurde, statt nur "verbunden". Ein falsch
@@ -199,7 +215,37 @@ func (s *SamNeo2) Disconnect() error {
 }
 
 func (s *SamNeo2) SetVibration(intensity float64) error {
-	return s.write(s.protocol.EncodeVibration(intensity))
+	return s.writeChannel(s.protocol.EncodeVibration(intensity), true)
+}
+
+// writeChannel sendet ein Kanalpaket und merkt es sich für das Keepalive.
+// Ein Paket, das mit dem zuletzt gesendeten dieses Kanals identisch ist,
+// wird übersprungen - es würde am Gerät nichts ändern und kostet doch einen
+// vollen Roundtrip.
+func (s *SamNeo2) writeChannel(packet []byte, vibration bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	previous := s.lastSuctionPacket
+	if vibration {
+		previous = s.lastVibrationPacket
+	}
+	if previous != nil && bytes.Equal(previous, packet) {
+		// Unverändert: nicht senden, aber die Zeit NICHT zurücksetzen -
+		// sonst würde eine lange Folge gleicher Werte das Keepalive
+		// verhindern, und genau dann wird es gebraucht.
+		return nil
+	}
+
+	if err := s.writeLocked(packet); err != nil {
+		return err
+	}
+	if vibration {
+		s.lastVibrationPacket = packet
+	} else {
+		s.lastSuctionPacket = packet
+	}
+	return nil
 }
 
 // SetVibrationRaw und SetSuctionRaw umgehen die Quantisierung und schreiben
@@ -242,7 +288,7 @@ func (s *SamNeo2) SetSuctionRaw(level byte) error {
 // die eine eigene Preset-Auswahl-UI hat - nicht auf dem rohen Protokoll,
 // das wir direkt ansteuern) und wurde darum wieder entfernt.
 func (s *SamNeo2) SetSuction(intensity float64) error {
-	return s.write(s.protocol.EncodeSuction(intensity))
+	return s.writeChannel(s.protocol.EncodeSuction(intensity), false)
 }
 
 func (s *SamNeo2) Stop() error {
@@ -253,7 +299,7 @@ func (s *SamNeo2) Stop() error {
 }
 
 // write schreibt ein Kommando auf die GATT-Characteristic. s.mu schützt hier
-// nicht nur die Buchführung (lastPacket/lastWriteAt), sondern den gesamten
+// nicht nur die Buchführung (Kanalzustand/lastWriteAt), sondern den gesamten
 // Schreibvorgang selbst - ohne das könnten der reguläre Wiedergabe-Pfad und
 // die Keepalive-Goroutine (runKeepalive) gleichzeitig auf dieselbe BLE-
 // Characteristic schreiben, was der zugrundeliegende Treiber nicht als
@@ -278,12 +324,11 @@ func (s *SamNeo2) writeLocked(packet []byte) error {
 		return err
 	}
 	logging.Debug("samneo2: GATT-Write", "bytes", fmt.Sprintf("% x", packet))
-	s.lastPacket = packet
 	s.lastWriteAt = time.Now()
 	return nil
 }
 
-// runKeepalive wiederholt das zuletzt gesendete Paket, wenn seit
+// runKeepalive wiederholt den zuletzt gesendeten Zustand BEIDER Kanäle, wenn seit
 // keepaliveInterval nichts Neues gesendet wurde (siehe Kommentar bei der
 // Konstante). Läuft bis Disconnect() den Kanal schließt.
 func (s *SamNeo2) runKeepalive() {
@@ -301,17 +346,25 @@ func (s *SamNeo2) runKeepalive() {
 			return
 		case <-ticker.C:
 			s.mu.Lock()
-			if s.lastPacket != nil && time.Since(s.lastWriteAt) >= keepaliveInterval {
+			if (s.lastVibrationPacket != nil || s.lastSuctionPacket != nil) &&
+				time.Since(s.lastWriteAt) >= keepaliveInterval {
 				logging.Debug("samneo2: Keepalive-Wiederholung", "idle", time.Since(s.lastWriteAt))
 				// Direkter Write statt writeLocked(): ein Keepalive-Replay
 				// ist kein inhaltlich neues Kommando, lastWriteAt soll darum
 				// NICHT aktualisiert werden - sonst würde ein Dauerstrom aus
 				// Keepalives den Idle-Timer immer wieder zurücksetzen und so
 				// verhindern, dass er je wieder anschlägt.
-				if s.protocol.WriteWithResponse() {
-					_, _ = s.char.Write(s.lastPacket)
-				} else {
-					_, _ = s.char.WriteWithoutResponse(s.lastPacket)
+				// BEIDE Kanäle wiederholen, nicht nur den zuletzt
+				// gesendeten - sonst fällt der andere still weg.
+				for _, packet := range [][]byte{s.lastVibrationPacket, s.lastSuctionPacket} {
+					if packet == nil {
+						continue
+					}
+					if s.protocol.WriteWithResponse() {
+						_, _ = s.char.Write(packet)
+					} else {
+						_, _ = s.char.WriteWithoutResponse(packet)
+					}
 				}
 			}
 			s.mu.Unlock()

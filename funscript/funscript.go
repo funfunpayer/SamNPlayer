@@ -33,8 +33,8 @@ type Action struct {
 type Script struct {
 	Actions  []Action `json:"actions"`
 	Metadata struct {
-		Duration        int64    `json:"duration"`
-		Creator         string   `json:"creator"`
+		Duration     int64    `json:"duration"`
+		Creator      string   `json:"creator"`
 		QualityScore *float64 `json:"quality_score,omitempty"`
 		// QualityPassed ist das Gesamturteil des Quality Doctor. Es ist NICHT
 		// dasselbe wie QualityScore >= 0.5: der Quality Doctor kennt zusätzlich

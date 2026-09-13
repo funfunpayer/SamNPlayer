@@ -41,6 +41,23 @@ const (
 // lokale Builds korrekt ist (sie haben ja keine echte Versionsnummer).
 var Version = "dev"
 
+// BaseVersion ist die im Quelltext festgeschriebene Fassung (Datei VERSION
+// im Projektwurzelverzeichnis). Sie dient als Anhaltspunkt, wenn kein
+// Release-Build vorliegt - dann steht in Version nur "dev", was beim
+// Einordnen eines Fehlerberichts nicht weiterhilft.
+//
+// Bewusst eine Konstante und keine Datei, die zur Laufzeit gelesen wird:
+// die fertige .exe soll eine einzelne Datei bleiben.
+const BaseVersion = "0.2.0"
+
+// Describe liefert die Fassung für Anzeige und Fehlerberichte.
+func Describe() string {
+	if Version != "" && Version != "dev" {
+		return Version
+	}
+	return BaseVersion + "-dev"
+}
+
 // Release ist die für uns relevante Teilmenge der GitHub-Release-API-Antwort.
 type Release struct {
 	TagName string  `json:"tag_name"`

@@ -1,0 +1,116 @@
+name: Tests
+
+# Läuft bei JEDEM Push und jedem Pull Request - nicht erst beim Release.
+#
+# Das ist der Unterschied, der Teamarbeit erst möglich macht: bisher liefen
+# die Tests nur bei einem Versions-Tag. Ein Fehler wäre also erst beim
+# Ausliefern aufgefallen, und dann in fremdem Code, dessen Zusammenhang man
+# längst vergessen hat.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Formatierung prüfen
+        run: |
+          # gofmt meldet nichts, wenn alles passt - deshalb die Ausgabe
+          # auswerten statt auf den Rückgabewert zu vertrauen.
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Diese Dateien sind nicht formatiert (gofmt -w <datei>):"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # Der Race-Detector ist hier wichtiger als anderswo: Wiedergabe,
+      # Keepalive und Geräteansteuerung laufen nebenläufig, und ein
+      # Datenwettlauf zeigt sich sonst als sporadisches Ruckeln, das
+      # niemand reproduzieren kann.
+      - name: Tests mit Race-Detector
+        run: go test -race ./...
+
+  python:
+    name: Python (Generator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhängigkeiten
+        run: pip install opencv-contrib-python scipy numpy
+
+      # Die schnellen Tests zuerst: sie decken die Signalverarbeitung ab und
+      # sind in Sekunden durch. Die Videotests laufen danach, weil sie
+      # Minuten brauchen - so sieht man den häufigsten Fehler früher.
+      - name: Schnelle Tests
+        working-directory: generator
+        run: |
+          for t in backends_test.py quality_doctor_test.py device_profile_test.py \
+                   fusion_test.py report_test.py quality_model_test.py; do
+            echo "== $t"
+            python3 "$t"
+          done
+
+      - name: Videobasierte Tests
+        working-directory: generator
+        run: |
+          for t in flow_backend_test.py track_cache_test.py two_point_test.py \
+                   camera_compensation_test.py motion_signature_test.py \
+                   appearance_memory_test.py per_scene_roi_test.py; do
+            echo "== $t"
+            python3 "$t"
+          done
+
+  frontend:
+    name: Oberfläche
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      # Die Frontend-Tests erzeugen ihre Attrappen aus der generierten
+      # App.js. Ohne diesen Schritt fehlen dort neue Go-Methoden, und die
+      # Tests scheitern mit "does not provide an export named ..." - ein
+      # irreführender Fehler, der nichts mit dem Prüfgegenstand zu tun hat.
+      - name: Wails-Bindings erzeugen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+          cd cmd/gui-wails
+          $(go env GOPATH)/bin/wails build -tags webkit2_41 -skipbindings=false || true
+
+      - name: Tests
+        run: |
+          for t in cmd/gui-wails/frontend/test/*_test.py; do
+            echo "== $t"
+            python3 "$t"
+          done

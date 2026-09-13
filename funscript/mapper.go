@@ -96,7 +96,19 @@ type MapOptions struct {
 	// MinVibration ist eine Grundintensität, die auch in ruhigen Passagen
 	// nicht unterschritten wird (0 = Gerät pausiert komplett zwischen
 	// Bewegungen, was manche Nutzer als abrupt empfinden).
+	//
+	// Der Wert wird HINEINSKALIERT, nicht abgeschnitten: das Signal wird auf
+	// den Bereich [MinVibration, 1] abgebildet. Ein einfaches Abschneiden
+	// hätte jede Abstufung unterhalb der Schwelle eingeebnet - Stillstand,
+	// langsame und mittlere Bewegung ergäben denselben Wert, und gerade in
+	// ruhigen Passagen wäre kein Tempo mehr zu spüren. Bei MinVibration 0.15
+	// und Geschwindigkeiten von 0, 10 und 20 Prozent des Maximums:
+	// abgeschnitten 0.15/0.15/0.20, skaliert 0.15/0.235/0.32.
 	MinVibration float64
+	// MinSuction ist dasselbe für den Sog-Kanal. Getrennt einstellbar, weil
+	// die beiden Kanäle sich unterschiedlich anfühlen und ein gemeinsamer
+	// Wert für einen von beiden immer falsch wäre.
+	MinSuction float64
 	// Smoothing glättet Sprünge zwischen Frames exponentiell (0 = kein
 	// Smoothing, 0.8 = starkes Nachziehen). Reduziert "Knattern" bei sehr
 	// dichten Skripten.
@@ -112,6 +124,7 @@ func DefaultMapOptions() MapOptions {
 		TickMs:       50,
 		MaxSpeed:     0.6,
 		MinVibration: 0.15,
+		MinSuction:   0.0,
 		Smoothing:    0.3,
 		Sync:         SyncIndependent,
 	}
@@ -150,9 +163,6 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		}
 		speed := math.Abs(float64(b.Pos-a.Pos)) / float64(dt)
 		intensity := clamp01(speed / opts.MaxSpeed)
-		if intensity < opts.MinVibration {
-			intensity = opts.MinVibration
-		}
 
 		// Interpolierte Position im Segment (für SyncIndependent).
 		frac := float64(t-a.At) / float64(dt)
@@ -173,6 +183,17 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			vib, suc = intensity, posSignal
 		}
 
+		// Grundintensität hineinskalieren, nicht abschneiden - siehe
+		// MinVibration. Erst NACH der Kanalverteilung, damit ein Kanal, der
+		// in einem Modus bewusst auf 0 liegt (etwa Sog bei
+		// SyncVibrationOnly), nicht künstlich angehoben wird.
+		if opts.Sync != SyncSuctionOnly {
+			vib = liftFloor(vib, opts.MinVibration)
+		}
+		if opts.Sync != SyncVibrationOnly {
+			suc = liftFloor(suc, opts.MinSuction)
+		}
+
 		if opts.Smoothing > 0 && len(frames) > 0 {
 			vib = opts.Smoothing*prevVib + (1-opts.Smoothing)*vib
 			suc = opts.Smoothing*prevSuc + (1-opts.Smoothing)*suc
@@ -183,6 +204,17 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 	}
 
 	return frames
+}
+
+// liftFloor bildet 0..1 auf floor..1 ab. Bei floor <= 0 unverändert.
+func liftFloor(value, floor float64) float64 {
+	if floor <= 0 {
+		return value
+	}
+	if floor >= 1 {
+		return 1
+	}
+	return floor + value*(1-floor)
 }
 
 func clamp01(v float64) float64 {

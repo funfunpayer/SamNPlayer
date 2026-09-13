@@ -121,3 +121,55 @@ func TestSamNeo2NormalEncodingStillQuantizes(t *testing.T) {
 		}
 	}
 }
+
+// Das Gerät kennt nur ganzzahlige Stufen. Aufeinanderfolgende Intensitäten
+// landen deshalb häufig auf derselben Stufe - und ein Schreibvorgang, der
+// am Gerät nichts ändert, kostet trotzdem einen vollen Roundtrip mit
+// Bestätigung. Bei zwei Kanälen alle 50ms wären das bis zu 40 pro Sekunde.
+//
+// Der Test hält fest, wie viele davon überhaupt unterschiedliche Pakete
+// ergeben - das ist die Obergrenze dessen, was das Zusammenfassen sparen
+// kann.
+func TestEncodingCollapsesNearbyIntensities(t *testing.T) {
+	p := SamNeo2Protocol{}
+
+	// Eine typische Rampe, wie sie der Trainingsmodus fährt: 100 Schritte
+	// von 0 auf 1.
+	distinct := map[string]bool{}
+	for i := 0; i <= 100; i++ {
+		packet := p.EncodeVibration(float64(i) / 100.0)
+		distinct[string(packet)] = true
+	}
+	if len(distinct) > 11 {
+		t.Errorf("100 Rampenschritte ergeben %d verschiedene Pakete, "+
+			"erwartet höchstens 11 (Stufen 0-10)", len(distinct))
+	}
+	if len(distinct) < 5 {
+		t.Errorf("nur %d verschiedene Pakete - die Rampe wäre zu grob", len(distinct))
+	}
+
+	// Zwei benachbarte Intensitäten auf derselben Stufe MÜSSEN dasselbe
+	// Paket ergeben, sonst kann die Deduplizierung nicht greifen.
+	a := p.EncodeVibration(0.50)
+	b := p.EncodeVibration(0.504)
+	if string(a) != string(b) {
+		t.Errorf("0.500 und 0.504 ergeben verschiedene Pakete (% x vs % x) - "+
+			"dann lässt sich kein Schreibvorgang einsparen", a, b)
+	}
+}
+
+// Vibration und Sog müssen unterscheidbare Pakete erzeugen. Wären sie
+// gleich, könnte der Kanalzustand sie nicht auseinanderhalten und das
+// Keepalive würde einen Kanal mit dem Paket des anderen überschreiben.
+func TestVibrationAndSuctionPacketsDiffer(t *testing.T) {
+	p := SamNeo2Protocol{}
+	vibration := p.EncodeVibration(0.5)
+	suction := p.EncodeSuction(0.5)
+	if string(vibration) == string(suction) {
+		t.Fatal("Vibration und Sog erzeugen dasselbe Paket")
+	}
+	if vibration[1] == suction[1] {
+		t.Errorf("beide nutzen denselben Kommandotyp %#x - die Kanäle wären "+
+			"nicht unterscheidbar", vibration[1])
+	}
+}
