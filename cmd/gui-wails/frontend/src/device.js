@@ -1,0 +1,266 @@
+import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings } from '../wailsjs/go/main/App';
+
+// Zweck dieses Tabs: sichtbar machen, ob überhaupt ein Gerät gefunden und
+// richtig erkannt wurde, und die Ansteuerung isoliert prüfen zu können -
+// ohne dafür eine Wiedergabe starten zu müssen.
+
+export function initDevice(root) {
+  root.innerHTML = `
+    <h2>Gerät</h2>
+
+    <div id="dev-status" class="row" style="align-items:center; gap:10px; padding:10px;
+         border-radius:4px; border:1px solid var(--border); margin-bottom:12px;">
+      <span id="dev-dot" style="width:12px; height:12px; border-radius:50%; background:#777; flex:none;"></span>
+      <span id="dev-status-text">Status wird geladen...</span>
+    </div>
+
+    <div class="row">
+      <button id="dev-connect" class="primary">Verbinden</button>
+      <button id="dev-disconnect" disabled>Trennen</button>
+      <select id="dev-transport" style="margin-left:12px;">
+        <option value="ble">Direkt per Bluetooth</option>
+        <option value="intiface">Über Intiface Central</option>
+        <option value="mock">Mock-Gerät (ohne Hardware)</option>
+      </select>
+      <input type="text" id="dev-intiface-url" placeholder="z.B. 192.168.1.50 (Handy) oder leer für diesen Rechner"
+             style="display:none; width:200px;" />
+    </div>
+    <p class="hint" id="dev-transport-hint">Sucht bis zu 20 Sekunden nach einem Gerät mit dem
+       Namen "Sam Neo 2". Das Gerät muss eingeschaltet und nicht mit einer anderen App
+       verbunden sein.</p>
+
+    <fieldset id="dev-test" disabled style="margin-top:16px; border:1px solid var(--border);
+              border-radius:4px; padding:12px;">
+      <legend style="padding:0 6px;">Funktionstest</legend>
+
+      <div class="row" style="align-items:center;">
+        <label style="width:110px;">Vibration</label>
+        <input type="range" id="dev-vib" min="0" max="100" value="0" style="flex:1;">
+        <span id="dev-vib-val" style="width:70px; text-align:right;">0 % (Stufe 0)</span>
+      </div>
+
+      <div class="row" style="align-items:center;">
+        <label style="width:110px;">Sog</label>
+        <input type="range" id="dev-suc" min="0" max="100" value="0" style="flex:1;">
+        <span id="dev-suc-val" style="width:70px; text-align:right;">0 % (Stufe 0)</span>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="dev-pulse">Kurzer Testimpuls</button>
+        <button id="dev-stop" class="danger">Alles aus</button>
+      </div>
+      <p class="hint">Der Testimpuls fährt die Vibration zwei Sekunden auf mittlere Stärke
+         und schaltet danach selbst wieder ab.</p>
+    </fieldset>
+
+    <fieldset id="dev-raw" disabled style="margin-top:16px; border:1px solid var(--border);
+              border-radius:4px; padding:12px;">
+      <legend style="padding:0 6px;">Rohwert-Test (Auflösung ermitteln)</legend>
+      <p class="hint" style="margin-top:0;">
+        Sendet den Stufenwert direkt ans Gerät, ohne Umrechnung. Die üblichen Bereiche
+        0–10 (Vibration) und 0–5 (Sog) stammen aus der Buttplug-Gerätekonfiguration,
+        nicht aus einer Untersuchung der Firmware — ob das Gerät feinere oder höhere
+        Werte annimmt, weiß bisher niemand. Probiere z.B. 3 gegen 4 (fühlt sich der
+        Unterschied nach einer Stufe an?) und dann 20, 50, 100 (passiert oberhalb von
+        10 noch etwas?).
+      </p>
+      <div class="row" style="align-items:center;">
+        <select id="dev-raw-channel">
+          <option value="vibration">Vibration</option>
+          <option value="suction">Sog</option>
+        </select>
+        <input type="number" id="dev-raw-value" min="0" max="255" value="0" style="width:90px;" />
+        <button id="dev-raw-send">Senden</button>
+        <span id="dev-raw-hint" class="hint"></span>
+      </div>
+    </fieldset>
+
+    <div id="dev-log" class="hint" style="margin-top:12px; white-space:pre-wrap;"></div>
+  `;
+
+  const el = id => root.querySelector(id);
+  let busy = false;
+
+  function log(msg) {
+    el('#dev-log').textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  }
+
+  // Das Gerät kennt intern feste Stufen (Vibration 0-10, Sog 0-5). Die
+  // Prozentanzeige allein wäre irreführend, weil sich zwischen zwei Stufen
+  // nichts ändert - deshalb wird die tatsächliche Stufe mit angezeigt.
+  const vibStep = pct => Math.round(pct / 100 * 10);
+  const sucStep = pct => Math.round(pct / 100 * 5);
+
+  function render(st) {
+    const dot = el('#dev-dot');
+    const text = el('#dev-status-text');
+    const box = el('#dev-status');
+
+    if (st.sessionActive) {
+      dot.style.background = 'var(--warn, #d9a441)';
+      text.textContent = 'Wiedergabe oder Training läuft - Gerätetest währenddessen nicht möglich.';
+      box.style.borderColor = 'var(--warn, #d9a441)';
+    } else if (st.connected) {
+      dot.style.background = 'var(--ok)';
+      box.style.borderColor = 'var(--ok)';
+      const parts = [st.mock ? 'Mock-Gerät verbunden' : 'Verbunden'];
+      if (st.name) parts.push(st.name);
+      if (st.address) parts.push(st.address);
+      if (st.rssi) parts.push(`Signal ${st.rssi} dBm`);
+      text.textContent = parts.join('  ·  ');
+    } else {
+      dot.style.background = '#777';
+      box.style.borderColor = 'var(--border)';
+      text.textContent = 'Nicht verbunden.';
+    }
+
+    const canTest = st.connected && !st.sessionActive;
+    el('#dev-test').disabled = !canTest;
+    el('#dev-raw').disabled = !canTest;
+    el('#dev-connect').disabled = st.connected || st.sessionActive || busy;
+    el('#dev-disconnect').disabled = !st.connected || busy;
+    el('#dev-transport').disabled = st.connected || busy;
+    el('#dev-intiface-url').disabled = st.connected || busy;
+  }
+
+  async function refresh() {
+    try {
+      render(await GetDeviceStatus());
+    } catch (e) {
+      log('Status nicht abrufbar: ' + e);
+    }
+  }
+
+  // Erklärung und Adressfeld an die gewählte Verbindungsart anpassen.
+  el('#dev-transport').addEventListener('change', e => {
+    const intiface = e.target.value === 'intiface';
+    el('#dev-intiface-url').style.display = intiface ? 'inline-block' : 'none';
+    el('#dev-transport-hint').innerHTML = intiface
+      ? 'Verbindet über einen laufenden Buttplug-Server. Dafür Intiface Central starten, '
+      + 'dort das Gerät verbinden und den Server starten. Vorteil: kein eigener '
+      + 'Bluetooth-Adapter nötig, und es funktioniert mit jedem von Buttplug unterstützten '
+      + 'Gerät. Adresse leer lassen für den Standard ws://127.0.0.1:12345.'
+      : e.target.value === 'mock'
+        ? 'Simuliert ein Gerät, um die Oberfläche ohne Hardware zu prüfen.'
+        : 'Sucht bis zu 20 Sekunden nach einem Gerät mit dem Namen "Sam Neo 2". Das Gerät '
+        + 'muss eingeschaltet und nicht mit einer anderen App verbunden sein.';
+  });
+
+  el('#dev-connect').addEventListener('click', async () => {
+    busy = true;
+    el('#dev-connect').disabled = true;
+    el('#dev-status-text').textContent = 'Suche Gerät... (bis zu 20 Sekunden)';
+    try {
+      const st = await ConnectDeviceVia(el('#dev-transport').value,
+                                        el('#dev-intiface-url').value.trim());
+      busy = false;
+      render(st);
+      log('Verbunden.');
+    } catch (e) {
+      busy = false;
+      await refresh();
+      log('Verbindung fehlgeschlagen: ' + e);
+    }
+  });
+
+  el('#dev-disconnect').addEventListener('click', async () => {
+    busy = true;
+    try {
+      const st = await DisconnectDevice();
+      busy = false;
+      el('#dev-vib').value = 0;
+      el('#dev-suc').value = 0;
+      el('#dev-vib-val').textContent = '0 % (Stufe 0)';
+      el('#dev-suc-val').textContent = '0 % (Stufe 0)';
+      render(st);
+      log('Getrennt.');
+    } catch (e) {
+      busy = false;
+      await refresh();
+      log('Trennen mit Fehler: ' + e);
+    }
+  });
+
+  el('#dev-vib').addEventListener('input', async e => {
+    const pct = Number(e.target.value);
+    el('#dev-vib-val').textContent = `${pct} % (Stufe ${vibStep(pct)})`;
+    try {
+      await TestVibration(pct / 100);
+    } catch (err) {
+      log('Vibration: ' + err);
+    }
+  });
+
+  el('#dev-suc').addEventListener('input', async e => {
+    const pct = Number(e.target.value);
+    el('#dev-suc-val').textContent = `${pct} % (Stufe ${sucStep(pct)})`;
+    try {
+      await TestSuction(pct / 100);
+    } catch (err) {
+      log('Sog: ' + err);
+    }
+  });
+
+  el('#dev-pulse').addEventListener('click', async () => {
+    try {
+      log('Testimpuls läuft...');
+      await TestVibration(0.5);
+      setTimeout(async () => {
+        try {
+          await TestStop();
+          el('#dev-vib').value = 0;
+          el('#dev-vib-val').textContent = '0 % (Stufe 0)';
+          log('Testimpuls beendet.');
+        } catch (e) {
+          log('Abschalten nach Impuls: ' + e);
+        }
+      }, 2000);
+    } catch (e) {
+      log('Testimpuls: ' + e);
+    }
+  });
+
+  el('#dev-raw-send').addEventListener('click', async () => {
+    const channel = el('#dev-raw-channel').value;
+    const value = Number(el('#dev-raw-value').value);
+    const expected = channel === 'vibration' ? 10 : 5;
+    el('#dev-raw-hint').textContent = value > expected
+      ? `über dem dokumentierten Maximum (${expected})`
+      : '';
+    try {
+      await TestRawValue(channel, value);
+      log(`Rohwert ${value} an ${channel} gesendet.`);
+    } catch (err) {
+      log('Rohwert: ' + err);
+    }
+  });
+
+  el('#dev-stop').addEventListener('click', async () => {
+    try {
+      await TestStop();
+      el('#dev-vib').value = 0;
+      el('#dev-suc').value = 0;
+      el('#dev-vib-val').textContent = '0 % (Stufe 0)';
+      el('#dev-suc-val').textContent = '0 % (Stufe 0)';
+      log('Alles aus.');
+    } catch (e) {
+      log('Stop: ' + e);
+    }
+  });
+
+  // Zuletzt benutzte Verbindungsart und Adresse wiederherstellen.
+  GetSettings().then(s => {
+    if (s.deviceTransport) {
+      el('#dev-transport').value = s.deviceTransport;
+      el('#dev-transport').dispatchEvent(new Event('change'));
+    }
+    if (s.intifaceUrl) el('#dev-intiface-url').value = s.intifaceUrl;
+  }).catch(() => {});
+
+  refresh();
+  // Der Zustand kann sich außerhalb dieses Tabs ändern (eine Wiedergabe
+  // startet oder endet), deshalb regelmäßig nachfragen statt nur beim Laden.
+  setInterval(refresh, 2000);
+
+  return { refresh };
+}

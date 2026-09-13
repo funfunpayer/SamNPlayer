@@ -1,0 +1,347 @@
+// Package update prüft gegen die GitHub-Releases-API des Projekts auf eine
+// neuere Version und kann sich selbst ersetzen (Download + Neustart).
+//
+// WICHTIG: Das funktioniert nur, wenn das Projekt tatsächlich auf GitHub
+// liegt und dort Releases mit angehängten Binaries erstellt werden (z.B.
+// über den mitgelieferten .github/workflows/release.yml - der baut bei
+// jedem Versions-Tag automatisch Windows/Linux-Binaries und hängt sie an
+// den Release an). RepoOwner/RepoName unten MÜSSEN auf das echte Repo
+// zeigen, sonst findet CheckLatest schlicht nichts (kein Fallback, keine
+// Annahme - lieber ein klarer Fehler als ein stiller Nicht-Fund).
+package update
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/funfunpayer/SamNPlayer/logging"
+)
+
+// RepoOwner/RepoName: GitHub-Nutzer/Repo, aus dem Releases gezogen werden.
+const (
+	RepoOwner = "funfunpayer"
+	RepoName  = "SamNPlayer"
+)
+
+// Version wird beim Release-Build per -ldflags "-X ...update.Version=v1.2.3"
+// gesetzt (siehe .github/workflows/release.yml). Im lokalen Dev-Build bleibt
+// es "dev" - CheckLatest meldet dann immer "Update verfügbar", was für
+// lokale Builds korrekt ist (sie haben ja keine echte Versionsnummer).
+var Version = "dev"
+
+// Release ist die für uns relevante Teilmenge der GitHub-Release-API-Antwort.
+type Release struct {
+	TagName string  `json:"tag_name"`
+	HTMLURL string  `json:"html_url"`
+	Assets  []Asset `json:"assets"`
+}
+
+type Asset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+	Size               int64  `json:"size"`
+}
+
+// AssetForThisPlatform sucht das zum aktuellen GOOS/GOARCH passende Asset.
+// Erwartet Namensschema wie im Release-Workflow erzeugt:
+// SamNPlayer-gui-windows-amd64.exe, SamNPlayer-gui-linux-amd64.
+// AssetForThisPlatform sucht das Release-Asset für die angegebene
+// Programm-Variante ("gui" oder "cli") und die aktuelle Plattform.
+// Wichtig: der Name muss die Variante enthalten, nicht nur OS/Arch - sonst
+// matchen die GUI- und die CLI-Datei unter Windows beide (beide enden auf
+// "-windows-amd64.exe") und es wäre Zufall/Reihenfolge-abhängig, welche
+// gewinnt. Das hätte dazu führen können, dass sich die GUI beim Update
+// versehentlich durch die CLI-Datei ersetzt.
+func (r *Release) AssetForThisPlatform(kind string) (Asset, bool) {
+	suffix := fmt.Sprintf("-%s-%s-%s", kind, runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		suffix += ".exe"
+	}
+	for _, a := range r.Assets {
+		if strings.HasSuffix(a.Name, suffix) {
+			return a, true
+		}
+	}
+	return Asset{}, false
+}
+
+// ChecksumFor sucht die SHA256-Prüfsumme für ein Asset in der
+// checksums.txt dieses Releases (falls vorhanden). Leerer String + nil
+// bedeutet: keine checksums.txt im Release, kein Fehler.
+func (r *Release) ChecksumFor(assetName string) (string, error) {
+	return checksumForAsset(r, assetName)
+}
+
+// CheckLatest fragt die GitHub-API nach dem neuesten Release. Liefert
+// (nil, nil) wenn RepoOwner noch auf den Platzhalter zeigt - bewusst kein
+// Netzwerk-Aufruf gegen ein Repo, das mit Sicherheit nicht existiert.
+func CheckLatest() (*Release, error) {
+	logging.Info("update: prüfe auf neue Version", "aktuelle_version", Version, "repo", RepoOwner+"/"+RepoName)
+	if RepoOwner == "TODO-github-username" {
+		logging.Warn("update: RepoOwner ist Platzhalter, Check übersprungen")
+		return nil, fmt.Errorf("update: RepoOwner ist noch nicht gesetzt (Platzhalter in update/update.go)")
+	}
+
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", RepoOwner, RepoName)
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "SamNPlayer-updater")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("update: GitHub-Anfrage fehlgeschlagen: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("update: kein Release gefunden (Repo %s/%s hat noch keins, oder Name stimmt nicht)", RepoOwner, RepoName)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("update: GitHub antwortete mit HTTP %d", resp.StatusCode)
+	}
+
+	var rel Release
+	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+		return nil, fmt.Errorf("update: Antwort konnte nicht gelesen werden: %w", err)
+	}
+	logging.Info("update: neuestes Release gefunden", "tag", rel.TagName)
+	return &rel, nil
+}
+
+// IsNewer vergleicht zwei "vX.Y.Z"-Versionsstrings numerisch (kein echtes
+// SemVer mit Suffixen wie -rc1 - für dieses Projekt reicht die einfache
+// Form). "dev" gilt immer als älter als jede echte Version.
+func IsNewer(current, latest string) bool {
+	if current == "dev" {
+		return true
+	}
+	cur := parseVersion(current)
+	lat := parseVersion(latest)
+	for i := 0; i < 3; i++ {
+		if lat[i] != cur[i] {
+			return lat[i] > cur[i]
+		}
+	}
+	return false
+}
+
+func parseVersion(v string) [3]int {
+	v = strings.TrimPrefix(strings.TrimSpace(v), "v")
+	parts := strings.SplitN(v, ".", 3)
+	var out [3]int
+	for i := 0; i < len(parts) && i < 3; i++ {
+		n, _ := strconv.Atoi(parts[i])
+		out[i] = n
+	}
+	return out
+}
+
+// Download lädt ein Asset in eine temporäre Datei und gibt deren Pfad
+// zurück. Prüft dabei:
+//  1. dass die URL tatsächlich von GitHub kommt (nicht irgendwo hin
+//     umgeleitet wurde - relevant, weil dieses Programm die heruntergeladene
+//     Datei später als sich selbst ausführt, siehe ApplyAndRestart),
+//  2. optional die SHA256-Prüfsumme, falls expectedSHA256 nicht leer ist
+//     (siehe CheckLatest/checksumForAsset - die stammt aus einer
+//     checksums.txt, die der Release-Workflow mit veröffentlicht).
+//
+// Ohne Prüfsumme (leerer expectedSHA256, z.B. weil das Release keine
+// checksums.txt hat) wird trotzdem heruntergeladen, aber das ist bewusst
+// schwächer abgesichert - CheckLatest versucht immer, eine Prüfsumme zu
+// finden.
+func Download(a Asset, expectedSHA256 string) (string, error) {
+	if err := validateGitHubAssetURL(a.BrowserDownloadURL); err != nil {
+		return "", err
+	}
+
+	client := &http.Client{Timeout: 5 * time.Minute}
+	req, err := http.NewRequest(http.MethodGet, a.BrowserDownloadURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "SamNPlayer-updater")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("update: Download fehlgeschlagen: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("update: HTTP %d beim Download von %s", resp.StatusCode, a.BrowserDownloadURL)
+	}
+
+	tmp, err := os.CreateTemp("", "SamNPlayer-update-*"+filepath.Ext(a.Name))
+	if err != nil {
+		return "", err
+	}
+	defer tmp.Close()
+
+	hasher := sha256.New()
+	// Downloadgröße begrenzen (Programm-Binaries sind hier immer < 500MB) -
+	// eine kompromittierte oder fehlerhafte Antwort soll nicht unbegrenzt
+	// Speicherplatz füllen können.
+	const maxDownloadBytes = 500 * 1024 * 1024
+	limited := io.LimitReader(resp.Body, maxDownloadBytes+1)
+	written, err := io.Copy(io.MultiWriter(tmp, hasher), limited)
+	if err != nil {
+		os.Remove(tmp.Name())
+		return "", fmt.Errorf("update: Download konnte nicht gespeichert werden: %w", err)
+	}
+	if written > maxDownloadBytes {
+		os.Remove(tmp.Name())
+		return "", fmt.Errorf("update: heruntergeladene Datei überschreitet die erwartete Maximalgröße (%d MB) - abgebrochen", maxDownloadBytes/1024/1024)
+	}
+
+	if expectedSHA256 != "" {
+		actual := hex.EncodeToString(hasher.Sum(nil))
+		if !strings.EqualFold(actual, expectedSHA256) {
+			os.Remove(tmp.Name())
+			logging.Error("update: Prüfsumme stimmt nicht", "erwartet", expectedSHA256, "erhalten", actual)
+			return "", fmt.Errorf("update: SHA256-Prüfsumme stimmt nicht überein (erwartet %s, erhalten %s) - Download verworfen, KEIN Update angewendet", expectedSHA256, actual)
+		}
+		logging.Info("update: Prüfsumme verifiziert", "sha256", actual)
+	} else {
+		logging.Warn("update: keine Prüfsumme verfügbar (Release hat keine checksums.txt) - Integrität nicht verifiziert")
+	}
+
+	return tmp.Name(), nil
+}
+
+// validateGitHubAssetURL stellt sicher, dass eine Asset-URL tatsächlich von
+// GitHub bedient wird, bevor sie heruntergeladen und (nach Prüfsummen-Check)
+// als neue Programmversion ausgeführt wird. GitHub liefert Release-Assets
+// entweder direkt von github.com oder über objects.githubusercontent.com aus.
+func validateGitHubAssetURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("update: ungültige Asset-URL: %w", err)
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("update: Asset-URL nutzt kein HTTPS (%s) - abgelehnt", u.Scheme)
+	}
+	host := strings.ToLower(u.Hostname())
+	allowed := host == "github.com" ||
+		strings.HasSuffix(host, ".github.com") ||
+		strings.HasSuffix(host, ".githubusercontent.com")
+	if !allowed {
+		return fmt.Errorf("update: Asset-URL zeigt nicht auf github.com (%s) - abgelehnt, um keine Datei von einer unerwarteten Quelle auszuführen", host)
+	}
+	return nil
+}
+
+// checksumForAsset lädt checksums.txt aus dem Release (falls vorhanden) und
+// sucht die Zeile für assetName. Format wie von "sha256sum" erzeugt:
+// "<hex-hash>  <dateiname>" pro Zeile. Liefert ("", nil) wenn es keine
+// checksums.txt im Release gibt - das ist kein Fehler, nur ein schwächer
+// abgesichertes Release (z.B. weil der Workflow das noch nicht erzeugt).
+func checksumForAsset(rel *Release, assetName string) (string, error) {
+	var checksumsAsset *Asset
+	for i := range rel.Assets {
+		if rel.Assets[i].Name == "checksums.txt" {
+			checksumsAsset = &rel.Assets[i]
+			break
+		}
+	}
+	if checksumsAsset == nil {
+		return "", nil
+	}
+	if err := validateGitHubAssetURL(checksumsAsset.BrowserDownloadURL); err != nil {
+		return "", err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(checksumsAsset.BrowserDownloadURL)
+	if err != nil {
+		return "", fmt.Errorf("update: checksums.txt konnte nicht geladen werden: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("update: checksums.txt HTTP %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1MB reicht für eine Textliste bei weitem
+	if err != nil {
+		return "", fmt.Errorf("update: checksums.txt konnte nicht gelesen werden: %w", err)
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		hash, name := fields[0], strings.TrimPrefix(fields[1], "*")
+		if name == assetName {
+			return hash, nil
+		}
+	}
+	return "", fmt.Errorf("update: kein Eintrag für %q in checksums.txt gefunden", assetName)
+}
+
+// ApplyAndRestart ersetzt die aktuell laufende Programmdatei durch die unter
+// newPath heruntergeladene und startet sie neu. Eine laufende .exe kann sich
+// unter Windows nicht selbst überschreiben, während sie läuft - deshalb wird
+// ein kurzlebiger Hilfsprozess gestartet, der wartet, bis der aktuelle
+// Prozess beendet ist, dann die Datei ersetzt und neu startet. Diese
+// Funktion kehrt im Erfolgsfall NICHT zurück - sie beendet den Prozess
+// (os.Exit), damit der Hilfsprozess die Datei freigeben kann.
+func ApplyAndRestart(newPath string) error {
+	logging.Info("update: wende Update an und starte neu", "neue_datei", newPath)
+	self, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("update: eigener Pfad nicht ermittelbar: %w", err)
+	}
+	self, err = filepath.EvalSymlinks(self)
+	if err != nil {
+		return fmt.Errorf("update: eigener Pfad nicht auflösbar: %w", err)
+	}
+
+	if err := os.Chmod(newPath, 0755); err != nil {
+		return fmt.Errorf("update: Ausführungsrecht konnte nicht gesetzt werden: %w", err)
+	}
+
+	pid := os.Getpid()
+
+	switch runtime.GOOS {
+	case "windows":
+		// cmd /C wartet über einen Ping-Trick auf den eigenen Prozess (kein
+		// eingebautes "sleep" in cmd), ersetzt dann die Datei und startet neu.
+		script := fmt.Sprintf(
+			`ping 127.0.0.1 -n 2 > nul & taskkill /PID %d /F > nul 2>&1 & move /Y "%s" "%s" & start "" "%s"`,
+			pid, newPath, self, self,
+		)
+		cmd := exec.Command("cmd", "/C", script)
+		cmd.SysProcAttr = detachedSysProcAttr()
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("update: Hilfsprozess konnte nicht gestartet werden: %w", err)
+		}
+	default: // linux, darwin
+		script := fmt.Sprintf(
+			`while kill -0 %d 2>/dev/null; do sleep 0.2; done; mv -f "%s" "%s"; chmod +x "%s"; exec "%s"`,
+			pid, newPath, self, self, self,
+		)
+		cmd := exec.Command("sh", "-c", script)
+		cmd.SysProcAttr = detachedSysProcAttr()
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("update: Hilfsprozess konnte nicht gestartet werden: %w", err)
+		}
+	}
+
+	os.Exit(0)
+	return nil // unreachable
+}

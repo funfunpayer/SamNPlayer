@@ -1,0 +1,313 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"github.com/funfunpayer/SamNPlayer/device"
+	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/player"
+)
+
+// App ist der zentrale Zustand hinter der Wails-Bindung. Alle exportierten
+// Methoden (Großbuchstabe) sind automatisch aus dem Frontend per
+// window.go.main.App.<Methode>(...) aufrufbar.
+type App struct {
+	ctx      context.Context
+	settings *settingsStore
+
+	// Wiedergabe-Zustand
+	currentScript *funscript.Script
+	currentFrames []funscript.Frame
+	scriptPath    string
+
+	stateMu         sync.RWMutex
+	videoPath       string
+	videoServerPort int
+	sessionActive   bool // true solange eine Wiedergabe ODER ein Training läuft
+
+	activePlayer    *player.Player
+	activeDevice    device.Device
+	playCancel      context.CancelFunc
+	videoPositionCh chan int64
+
+	// Dauerhafte Verbindung aus dem Geräte-Tab, bewusst getrennt von
+	// activeDevice: activeDevice gehört einer laufenden Session und wird mit
+	// ihr verworfen. Beides gleichzeitig ist nicht möglich (BLE erlaubt nur
+	// eine Verbindung) und wird in app_device.go explizit abgelehnt.
+	testDevice     device.Device
+	testDeviceMock bool
+
+	// trainingControl erlaubt es, den laufenden Trainingszyklus zu
+	// unterbrechen, ohne die Session zu beenden.
+	trainingControl *player.TrainingControl
+
+	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
+	// gespeichert, weil er am Videoschnitt hängt und nicht an einer
+	// allgemeinen Vorliebe.
+	scriptOffsetMs    int64
+	currentScriptPath string
+}
+
+func NewApp() *App {
+	s, err := newSettingsStore()
+	if err != nil {
+		logging.Warn("app: Einstellungen konnten nicht geladen werden", "fehler", err)
+		s = &settingsStore{data: map[string]any{}}
+	}
+	return &App{settings: s}
+}
+
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	logging.Info("gui-wails gestartet")
+	a.registerFileDrop()
+}
+
+// --- Datei-Dialoge ---
+
+func (a *App) PickFunscriptFile() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Funscript wählen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Funscript (*.funscript)", Pattern: "*.funscript"},
+		},
+	})
+}
+
+func (a *App) PickVideoFile() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Video wählen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Videos", Pattern: "*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.m4v;*.webm"},
+		},
+	})
+}
+
+// --- Video-Auto-Match (dieselbe Logik wie vorher in der Fyne-GUI) ---
+
+func findMatchingVideo(scriptPath string) (string, bool) {
+	dir := filepath.Dir(scriptPath)
+	base := strings.TrimSuffix(filepath.Base(scriptPath), filepath.Ext(scriptPath))
+	for _, ext := range []string{".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".webm"} {
+		candidate := filepath.Join(dir, base+ext)
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+// ScriptInfo wird als JSON ans Frontend zurückgegeben.
+type ScriptInfo struct {
+	Path        string `json:"path"`
+	ActionCount int    `json:"actionCount"`
+	DurationMs  int64  `json:"durationMs"`
+	VideoPath   string `json:"videoPath"`
+	HasVideo    bool   `json:"hasVideo"`
+}
+
+func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
+	script, err := funscript.Load(path)
+	if err != nil {
+		return ScriptInfo{}, err
+	}
+	a.currentScript = script
+	// Gespeicherten Offset dieses Skripts wiederherstellen. Ohne das müsste
+	// er nach jedem Neuladen erneut gesucht werden - und er hängt am
+	// Videoschnitt, ändert sich also nicht.
+	a.stateMu.Lock()
+	a.currentScriptPath = path
+	a.scriptOffsetMs = int64(a.settings.GetFloat(offsetKeyFor(path), 0))
+	a.stateMu.Unlock()
+	a.scriptPath = path
+
+	info := ScriptInfo{
+		Path:        path,
+		ActionCount: len(script.Actions),
+		DurationMs:  script.Duration(),
+	}
+	a.stateMu.Lock()
+	if video, ok := findMatchingVideo(path); ok {
+		a.videoPath = video
+		info.VideoPath = video
+		info.HasVideo = true
+	} else {
+		a.videoPath = ""
+	}
+	a.stateMu.Unlock()
+	return info, nil
+}
+
+// fileURL wandelt einen lokalen Pfad in eine file://-URL um - für Dinge wie
+// den Log-Ordner (per OpenLogFolder/BrowserOpenURL geöffnet vom System, kein
+// Cross-Origin-Problem). NICHT für <video src="...">  geeignet, siehe
+// VideoFileURL für den Grund.
+func fileURL(path string) string {
+	return "file://" + filepath.ToSlash(path)
+}
+
+// VideoFileURL liefert die URL für das <video>-Element im Frontend.
+//
+// WICHTIG (getestet, nicht angenommen): eine direkte file://-URL wird von
+// WebView2/WebKitGTK als <video src="..."> abgelehnt (Cross-Origin - die
+// Wails-Oberfläche läuft unter einem eigenen internen Ursprung, nicht
+// file://). darum läuft ein winziger lokaler HTTP-Server (127.0.0.1, fester
+// Port pro Programmlauf), der die aktuell gewählte Videodatei mit
+// Range-Request-Unterstützung ausliefert (nötig fürs Spulen im Video) -
+// http.ServeFile() übernimmt Range-Handling automatisch korrekt.
+func (a *App) VideoFileURL() string {
+	a.stateMu.RLock()
+	path := a.videoPath
+	a.stateMu.RUnlock()
+	if path == "" {
+		return ""
+	}
+	port, err := a.ensureVideoServer()
+	if err != nil {
+		logging.Error("app: lokaler Videoserver konnte nicht gestartet werden", "fehler", err)
+		return ""
+	}
+	return fmt.Sprintf("http://127.0.0.1:%d/video", port)
+}
+
+// ensureVideoServer startet (einmalig, beim ersten Bedarf) einen lokalen
+// HTTP-Server, der ausschließlich an localhost lauscht und nur die aktuell
+// in a.videoPath hinterlegte Datei ausliefert - kein offener Dateiserver,
+// da der Pfad serverseitig bestimmt wird, nicht vom Client.
+func (a *App) ensureVideoServer() (int, error) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
+	if a.videoServerPort != 0 {
+		return a.videoServerPort, nil
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/video", func(w http.ResponseWriter, r *http.Request) {
+		a.stateMu.RLock()
+		path := a.videoPath
+		a.stateMu.RUnlock()
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeFile(w, r, path)
+	})
+	srv := &http.Server{Handler: mux}
+	go func() {
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			logging.Error("app: Videoserver beendet", "fehler", err)
+		}
+	}()
+
+	a.videoServerPort = port
+	logging.Info("app: lokaler Videoserver gestartet", "port", port)
+	return port, nil
+}
+
+// tryStartSession sorgt dafür, dass Wiedergabe und Training sich nicht
+// gegenseitig überschreiben können - beide nutzen dasselbe physische Gerät,
+// zwei gleichzeitig laufende Sitzungen ergeben keinen Sinn und würden sich
+// sonst denselben playCancel teilen (die zuerst gestartete Sitzung wäre
+// dann über die UI nicht mehr stoppbar). Gibt bei Erfolg einen neuen,
+// abbrechbaren Context zurück.
+func (a *App) tryStartSession() (context.Context, error) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
+	if a.sessionActive {
+		return nil, fmt.Errorf("es läuft bereits eine Wiedergabe oder ein Training - bitte erst stoppen")
+	}
+	// Die Testverbindung aus dem Geräte-Tab belegt dasselbe physische Gerät.
+	// BLE lässt nur eine Verbindung zu, also würde der Verbindungsaufbau der
+	// Session ohnehin scheitern - hier aber mit einer Meldung, die sagt, wo
+	// das Problem liegt.
+	if a.testDevice != nil {
+		return nil, fmt.Errorf("das Gerät ist im Geräte-Tab verbunden - dort zuerst trennen")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.sessionActive = true
+	a.playCancel = cancel
+	return ctx, nil
+}
+
+// endSession markiert die aktuelle Sitzung als beendet - muss von JEDEM
+// Beendigungspfad aufgerufen werden (normales Ende, Fehler, Stop-Klick),
+// sonst bleibt die App fälschlich im "sessionActive"-Zustand hängen und
+// lehnt jede weitere Wiedergabe/jedes Training ab.
+func (a *App) endSession() {
+	a.stateMu.Lock()
+	a.sessionActive = false
+	a.playCancel = nil
+	a.stateMu.Unlock()
+}
+
+// stopSession bricht die laufende Sitzung ab (falls eine läuft) - von
+// StopPlayback/StopTraining aufgerufen. Beide dürfen dieselbe Methode
+// nutzen, da ohnehin nur eine Sitzungsart gleichzeitig laufen kann.
+func (a *App) stopSession() {
+	a.stateMu.Lock()
+	cancel := a.playCancel
+	a.stateMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+}
+
+// shutdown läuft beim Schließen des Fensters. Zwei Dinge müssen hier
+// passieren: ein noch verbundenes Gerät abschalten und trennen - sonst läuft
+// es nach dem Schließen weiter -, und der Cache leeren, falls eingestellt.
+// registerFileDrop meldet fallengelassene Dateien ans Frontend.
+//
+// Die Zuordnung passiert bewusst hier und nicht im Frontend: nur Go kennt
+// den echten Dateipfad. Die Webview bekämme aus einem Drop lediglich einen
+// Blob ohne Pfad, mit dem der Generator nichts anfangen kann.
+func (a *App) registerFileDrop() {
+	runtime.OnFileDrop(a.ctx, func(x, y int, paths []string) {
+		if len(paths) == 0 {
+			return
+		}
+		var videos, scripts []string
+		for _, path := range paths {
+			switch strings.ToLower(filepath.Ext(path)) {
+			case ".funscript":
+				scripts = append(scripts, path)
+			case ".mp4", ".mkv", ".avi", ".mov", ".m4v", ".webm", ".wmv", ".mpg", ".mpeg":
+				videos = append(videos, path)
+			}
+		}
+		logging.Info("app: Dateien fallengelassen", "videos", len(videos), "skripte", len(scripts))
+		runtime.EventsEmit(a.ctx, "files:dropped", map[string]any{
+			"videos":  videos,
+			"scripts": scripts,
+			"ignored": len(paths) - len(videos) - len(scripts),
+		})
+	})
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	a.stateMu.Lock()
+	dev := a.testDevice
+	a.testDevice = nil
+	a.stateMu.Unlock()
+	if dev != nil {
+		_ = dev.Stop()
+		_ = dev.Disconnect()
+		logging.Info("app: Testverbindung beim Beenden getrennt")
+	}
+	a.clearCacheIfRequested()
+}

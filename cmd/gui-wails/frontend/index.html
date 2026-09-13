@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>SamNPlayer</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="tabbar">
+      <button class="tab-btn active" data-tab="playback">Wiedergabe</button>
+      <button class="tab-btn" data-tab="training">Training</button>
+      <button class="tab-btn" data-tab="generator">Skript erzeugen</button>
+      <button class="tab-btn" data-tab="device">Gerät</button>
+      <button class="tab-btn" data-tab="settings">Einstellungen</button>
+      <span id="version-label"></span>
+    </nav>
+
+    <section id="tab-playback" class="tab-panel active"></section>
+    <section id="tab-training" class="tab-panel"></section>
+    <section id="tab-generator" class="tab-panel"></section>
+    <section id="tab-device" class="tab-panel"></section>
+    <section id="tab-settings" class="tab-panel"></section>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
