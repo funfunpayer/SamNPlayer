@@ -118,10 +118,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			DisableSceneCutDetection:  opts.DisableSceneCutDetection,
 			RDPTolerance:              opts.RDPTolerance,
 		}
-		if opts.W2 > 0 && opts.H2 > 0 {
-			r2 := generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
-			genOpts.ROI2 = &r2
-		}
+		_ = opts.W2
 		err := generator.GenerateWithProgress(opts.VideoPath, roi, outPath, genOpts,
 			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
@@ -140,7 +137,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			if script.Metadata.QualityPassed != nil {
 				passed = strconv.FormatBool(*script.Metadata.QualityPassed)
 			}
-			logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore, "bestanden", passed, "warnungen", len(script.Metadata.QualityWarnings), "actions", len(script.Actions))
+			logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore, "bestanden", passed)
 		} else if loadErr != nil {
 			logging.Warn("generator: erzeugtes Skript nicht lesbar", "output", outPath, "fehler", loadErr)
 		}
