@@ -65,7 +65,7 @@ type GenerateOptions struct {
 	UseOpenCL                 bool    `json:"useOpenCl"`
 	DynamicRangeMs            float64 `json:"dynamicRangeMs"`
 	Profile                   string  `json:"profile"`
-	// Zweite Region für Distanzprofile (tf/tj). Alle 0 = nicht gesetzt.
+	// Zweite Region für tf/tj (Abstand). 0-Werte = nicht gesetzt.
 	X2                        int     `json:"x2"`
 	Y2                        int     `json:"y2"`
 	W2                        int     `json:"w2"`
@@ -165,6 +165,10 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			if script.Metadata.QualityPassed != nil {
 				payload["qualityPassed"] = *script.Metadata.QualityPassed
 			}
+			// Eine dauerhafte Zeile pro erzeugtem Video auf Info-Level: beim
+			// Durchtesten mehrerer Videos ist genau das die Information, die
+			// man hinterher sucht. Der ausführliche Bericht steht auf
+			// Debug-Level daneben (siehe generator.Generate).
 			passed := "unbekannt"
 			if script.Metadata.QualityPassed != nil {
 				passed = strconv.FormatBool(*script.Metadata.QualityPassed)
