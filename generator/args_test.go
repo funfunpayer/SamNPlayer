@@ -38,7 +38,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			}
 			if tc.want == nil {
 				for _, flag := range []string{"--auto-retry", "--axis", "--max-speed",
-					"--adaptive-keyframes", "--per-scene-roi"} {
+					"--adaptive-keyframes", "--per-scene-roi", "--profile", "--roi2"} {
 					if strings.Contains(joined, flag) {
 						t.Errorf("unerwartetes Argument %q bei Standardoptionen: %s", flag, joined)
 					}
