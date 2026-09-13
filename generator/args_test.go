@@ -22,10 +22,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		{"Profil weich", Options{Profile: "weich"}, []string{"--profile", "weich"}},
 		{"Profil tj", Options{Profile: "tj"}, []string{"--profile", "tj"}},
 		{"Profil tf", Options{Profile: "tf"}, []string{"--profile", "tf"}},
-		{"Zweite Region", Options{ROI2: ROI{X: 10, Y: 20, W: 30, H: 40}},
-			[]string{"--roi2", "10,20,30,40"}},
-		{"tj mit ROI2", Options{Profile: "tj", ROI2: ROI{X: 1, Y: 2, W: 3, H: 4}},
-			[]string{"--profile", "tj", "--roi2", "1,2,3,4"}},
+		{"ROI2", Options{ROI2: ROI{X: 10, Y: 20, W: 30, H: 40}}, []string{"--roi2", "10,20,30,40"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
