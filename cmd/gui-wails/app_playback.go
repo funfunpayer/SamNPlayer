@@ -13,7 +13,6 @@ import (
 	"github.com/funfunpayer/SamNPlayer/player"
 )
 
-// PlaybackOptions kommt als JSON vom Frontend-Formular.
 type PlaybackOptions struct {
 	Mock               bool    `json:"mock"`
 	SyncMode           string  `json:"syncMode"`
@@ -32,7 +31,6 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if a.currentScript == nil {
 		return fmt.Errorf("kein Skript geladen")
 	}
-
 	mapOpts := funscript.DefaultMapOptions()
 	profile := a.currentScript.Metadata.Profile
 	if funscript.IsDistanceProfile(profile) {
@@ -52,13 +50,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if !funscript.IsDistanceProfile(profile) || (opts.SyncMode != "" && opts.SyncMode != "independent") {
 		mapOpts.Sync = syncMode
 	}
-
 	frames := a.currentScript.ToIntensityCurve(mapOpts)
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
 	a.currentFrames = frames
-
 	var dev device.Device
 	if opts.Mock {
 		dev = device.NewMock(false)
@@ -66,19 +62,13 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
 	}
 	a.activeDevice = dev
-
 	p := player.New(dev)
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
-	p.OnLog = func(line string) {
-		runtime.EventsEmit(a.ctx, "playback:log", line)
-	}
+	p.OnLog = func(line string) { runtime.EventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
 		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
-			"atMs":      f.At,
-			"vibration": f.Vibration,
-			"suction":   f.Suction,
-			"totalMs":   frames[len(frames)-1].At,
+			"atMs": f.At, "vibration": f.Vibration, "suction": f.Suction, "totalMs": frames[len(frames)-1].At,
 		})
 	}
 	if opts.UseVideoSync {
@@ -86,15 +76,12 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.ResumeVideo = func() { runtime.EventsEmit(a.ctx, "video:resume") }
 	}
 	a.activePlayer = p
-
 	ctx, err := a.tryStartSession()
 	if err != nil {
 		return err
 	}
-
 	go func() {
 		defer a.endSession()
-
 		connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer connectCancel()
 		runtime.EventsEmit(a.ctx, "playback:log", "Verbinde...")
@@ -105,9 +92,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			return
 		}
 		defer dev.Disconnect()
-
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
-
 		var playErr error
 		if opts.UseVideoSync {
 			positions := make(chan int64, 4)
@@ -116,12 +101,161 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		} else {
 			playErr = p.Play(ctx, frames)
 		}
-
 		if playErr != nil && playErr != context.Canceled {
 			runtime.EventsEmit(a.ctx, "playback:error", playErr.Error())
 		}
 		runtime.EventsEmit(a.ctx, "playback:done")
 	}()
-
 	return nil
+}
+
+func (a *App) StopPlayback() {
+	a.stopSession()
+	if a.videoPositionCh != nil {
+		close(a.videoPositionCh)
+		a.videoPositionCh = nil
+	}
+}
+
+func (a *App) ReportVideoPosition(ms int64) {
+	if a.videoPositionCh == nil {
+		return
+	}
+	a.stateMu.RLock()
+	offset := a.scriptOffsetMs
+	a.stateMu.RUnlock()
+	ms -= offset
+	if ms < 0 {
+		ms = 0
+	}
+	select {
+	case a.videoPositionCh <- ms:
+	default:
+	}
+}
+
+func (a *App) TriggerExtendedO(minLevel, holdSeconds, restoreMs float64) {
+	if a.activePlayer == nil {
+		return
+	}
+	a.activePlayer.TriggerExtendedO(player.ExtendedOOptions{
+		MinLevel:        minLevel,
+		HoldDuration:    time.Duration(holdSeconds * float64(time.Second)),
+		RestoreDuration: time.Duration(restoreMs * float64(time.Millisecond)),
+	})
+}
+
+type HeatmapPoint struct {
+	AtMs      int64   `json:"atMs"`
+	Intensity float64 `json:"intensity"`
+}
+
+type CurvePoint struct {
+	AtMs int64 `json:"atMs"`
+	Pos  int   `json:"pos"`
+}
+
+func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
+	if a.currentScript == nil {
+		return nil, fmt.Errorf("kein Skript geladen")
+	}
+	actions := a.currentScript.Actions
+	if len(actions) == 0 {
+		return nil, fmt.Errorf("skript enthält keine Actions")
+	}
+	if maxPoints < 100 {
+		maxPoints = 100
+	}
+	if len(actions) <= maxPoints {
+		out := make([]CurvePoint, len(actions))
+		for i, act := range actions {
+			out[i] = CurvePoint{AtMs: act.At, Pos: act.Pos}
+		}
+		return out, nil
+	}
+	windows := maxPoints / 2
+	span := actions[len(actions)-1].At - actions[0].At
+	if span <= 0 {
+		span = 1
+	}
+	out := make([]CurvePoint, 0, maxPoints)
+	start := 0
+	for w := 0; w < windows && start < len(actions); w++ {
+		endAt := actions[0].At + span*int64(w+1)/int64(windows)
+		minIdx, maxIdx := start, start
+		i := start
+		for ; i < len(actions) && (actions[i].At <= endAt || i == start); i++ {
+			if actions[i].Pos < actions[minIdx].Pos {
+				minIdx = i
+			}
+			if actions[i].Pos > actions[maxIdx].Pos {
+				maxIdx = i
+			}
+		}
+		lo, hi := minIdx, maxIdx
+		if lo > hi {
+			lo, hi = hi, lo
+		}
+		out = append(out, CurvePoint{AtMs: actions[lo].At, Pos: actions[lo].Pos})
+		if hi != lo {
+			out = append(out, CurvePoint{AtMs: actions[hi].At, Pos: actions[hi].Pos})
+		}
+		start = i
+	}
+	return out, nil
+}
+
+func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
+	if a.currentScript == nil {
+		return nil, fmt.Errorf("kein Skript geladen")
+	}
+	if buckets < 10 {
+		buckets = 10
+	}
+	duration := a.currentScript.Duration()
+	if duration <= 0 {
+		return nil, fmt.Errorf("skript hat keine gültige Dauer")
+	}
+	opts := funscript.DefaultMapOptions()
+	opts.TickMs = duration / int64(buckets)
+	if opts.TickMs < 10 {
+		opts.TickMs = 10
+	}
+	frames := a.currentScript.ToIntensityCurve(opts)
+	points := make([]HeatmapPoint, len(frames))
+	for i, f := range frames {
+		intensity := f.Vibration
+		if f.Suction > intensity {
+			intensity = f.Suction
+		}
+		points[i] = HeatmapPoint{AtMs: f.At, Intensity: intensity}
+	}
+	return points, nil
+}
+
+func (a *App) SetScriptOffset(ms int64) {
+	if ms < -10000 {
+		ms = -10000
+	}
+	if ms > 10000 {
+		ms = 10000
+	}
+	a.stateMu.Lock()
+	a.scriptOffsetMs = ms
+	path := a.currentScriptPath
+	a.stateMu.Unlock()
+	if path != "" {
+		_ = a.settings.Set(offsetKeyFor(path), ms)
+	}
+	logging.Info("wiedergabe: Skript-Offset gesetzt", "ms", ms, "skript", path)
+}
+
+func (a *App) GetScriptOffset() int64 {
+	a.stateMu.RLock()
+	defer a.stateMu.RUnlock()
+	return a.scriptOffsetMs
+}
+
+func offsetKeyFor(scriptPath string) string {
+	return "playback.offset." + scriptPath
 }
