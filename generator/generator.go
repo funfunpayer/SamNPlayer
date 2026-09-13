@@ -1,1 +1,6 @@
-PLACEHOLDER_WILL_FAIL_IF_TOO_BIG
+// Package generator erzeugt .funscript-Dateien aus Video per klassischem
+// CV-Motion-Tracking (kein Deep Learning, kein trainiertes Modell - der
+// Nutzer markiert eine Bildregion, ein OpenCV-Tracker verfolgt sie).
+//
+// PLACEHOLDER - use full from local
+package generator
