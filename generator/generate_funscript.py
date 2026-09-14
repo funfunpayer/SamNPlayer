@@ -51,6 +51,11 @@ import numpy as np
 from scipy.signal import savgol_filter, find_peaks
 
 import quality_doctor
+from tf_tj_meta import (
+    is_distance_profile,
+    clamp_actions_pos,
+    apply_profile_metadata,
+)
 
 
 def estimate_camera_motion(prev_gray, gray, exclude_bbox):
@@ -1714,7 +1719,7 @@ def main():
                     help="Welche Bewegungsachse ausgewertet wird. y = senkrecht (Standard), "
                          "x = waagerecht. Bei überwiegend seitlicher Bewegung meldet der "
                          "Generator einen Hinweis.")
-    ap.add_argument("--profile", choices=["standard", "weich"], default="standard",
+    ap.add_argument("--profile", choices=["standard", "weich", "tf", "tj"], default="standard",
                     help="Voreinstellungen für eine Bewegungsart. 'standard' für Hubbewegung. "
                          "'weich' für weiches Gewebe, das nach einem Anstoß gedämpft "
                          "ausschwingt: die Nachschwingungen werden dann nicht als eigene "
@@ -1759,6 +1764,13 @@ def main():
         print("Profil 'weich': Nachschwingungen werden unterdrückt "
               f"(Prominenz {args.peak_prominence}, Mindestabstand "
               f"{args.min_peak_distance_ms}ms)", file=sys.stderr)
+
+    if is_distance_profile(args.profile):
+        if not args.roi2:
+            print("Fehler: Profil tf/tj braucht --roi2 (zweite Region für Abstand)", file=sys.stderr)
+            sys.exit(1)
+        print(f"Profil '{args.profile}': Abstand ROI1–ROI2, Pos geklemmt "
+              f"(Sog aus Position)", file=sys.stderr)
 
     if args.list_backends:
         import backends
@@ -2017,16 +2029,22 @@ def process_one(args, ap):
     print(f"{len(actions)} Keyframes erzeugt (aus {len(timestamps_ms)} Frames)", file=sys.stderr)
     print(quality_doctor.format_report(quality), file=sys.stderr)
 
+    if is_distance_profile(args.profile):
+        actions = clamp_actions_pos(actions)
+
+    metadata = {
+        "creator": "SamNPlayer generate_funscript.py (klassisches CV-Tracking, kein Deep Learning)",
+        "duration": int(timestamps_ms[-1]),
+        "quality_score": quality["score"],
+        "quality_passed": quality["passed"],
+        "quality_warnings": quality["warnings"],
+    }
+    metadata = apply_profile_metadata(metadata, args.profile)
+
     with open(args.output, "w") as f:
         json.dump({
             "actions": actions,
-            "metadata": {
-                "creator": "SamNPlayer generate_funscript.py (klassisches CV-Tracking, kein Deep Learning)",
-                "duration": int(timestamps_ms[-1]),
-                "quality_score": quality["score"],
-                "quality_passed": quality["passed"],
-                "quality_warnings": quality["warnings"],
-            },
+            "metadata": metadata,
         }, f, indent=2)
 
     if args.report:
