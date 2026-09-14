@@ -229,6 +229,70 @@ Matches the vision doc's own "Nicht jetzt" list, restated for this repo:
   existing players, scripts, and the wider ecosystem keep working, full
   stop.
 
+## Decision: staying in Go, no C#/.NET/Avalonia migration
+
+The user shared a much larger, more formal 16-file documentation package
+("SamNPlayer GitHub Leitbild", September 14, 2026) proposing this same SAM
+direction at a bigger scale, including a phased migration of the whole
+application from Go/Wails to C#/.NET with Avalonia UI, OpenCvSharp for
+computer vision, a dedicated Training Lab and Device Lab, and full
+multi-source perception fusion (CSRT + optical flow + pose + depth +
+audio). Reviewed and discussed the same day; the outcome:
+
+**No language/framework migration.** The user's own reasoning, in their
+words: they want a "hochprofessionelle Sprache" and to build the system
+themselves rather than just glue libraries together - not a preference for
+C# specifically. Go already satisfies that: it's a production-proven,
+professional language (Docker, Kubernetes, Cloudflare, Uber all ship
+production systems in it), this repo already has a working cross-platform
+desktop shell in it (Wails), and none of `ARCHITEKTUR_TECHSTACK.md`'s
+concrete technical reasons for C# (interfaces, modular boundaries, SQLite,
+ONNX inference, cross-platform packaging) are things Go can't do -
+Go has SQLite drivers, an ONNX Runtime Go binding exists, and interfaces/
+package boundaries are exactly as expressible in Go as in C#. The fusion
+engine, perception-source abstractions, and everything else the Leitbild
+package describes in C# get built the same way, in Go - "selbst
+entwickeln, nicht nur nutzen" applies regardless of language.
+
+**Also confirmed staying out: webcam/live input**, per the same reasoning
+as earlier in this document (measured CSRT cost, no GPU path) - the
+Leitbild package's own roadmap had quietly reintroduced it as milestone
+M8, which the user did not intend; explicitly re-confirmed still out.
+
+**What's worth carrying forward from the Leitbild package despite
+rejecting its language choice** - these are language-independent and
+genuinely good practice, expressed in Go instead of C#:
+
+- **Go/No-Go gates per milestone** (`MACHBARKEIT.md`'s Gate A-F pattern) -
+  a concrete, checkable bar before calling a milestone done, sharper than
+  this document's current prose-only "Definition of Done" sections.
+- **Golden Clip test suite** (`TESTSTRATEGIE.md`) - fixed, version-
+  controlled synthetic test clips with known ground truth (linear motion,
+  approach/recede, occlusion, scene cuts, low confidence) that every
+  generator/perception change is checked against - this repo already does
+  pieces of this ad hoc (`two_point_test.py`'s `sine()` fixtures,
+  `fungen_compare_test.py`'s synthetic clips) but not as one organized,
+  reusable suite. Worth formalizing later, not urgent.
+- **Explicit module boundaries as Go packages with real interfaces**
+  (`ARCHITEKTUR_TECHSTACK.md`'s `IPerceptionSource`/`ITracker`/
+  `IFusionEngine` idea) - translates directly to Go interfaces, useful
+  once there's more than one perception source to actually abstract over
+  (not yet - today there's still just CSRT/flow, an interface with one
+  real implementation is premature per this repo's own "no interface
+  without a second implementation" instinct already visible in the
+  codebase).
+- **Benchmark reproducibility metadata** (commit, OS, CPU/GPU, dataset
+  version, settings) - cheap to add whenever a real benchmark harness
+  exists, worth keeping in mind.
+
+**Rejected outright, not just deferred:** the C#/.NET/Avalonia stack
+itself, OpenCvSharp (would still hit the exact same CSRT cost ceiling
+measured in `docs/NEXT.md` priority 8 - it's a binding around the same
+native OpenCV, not a different implementation), and the Leitbild
+package's SQLite-backed "Knowledge Base with ADRs" as a near-term
+priority (plain markdown docs, as this repo already uses, are sufficient
+at the current scale).
+
 ## Privacy / architecture principles (the user's own wording, unchanged)
 
 Local-first stays the default: no cloud required for core functionality,
