@@ -573,11 +573,27 @@ Not yet evaluated: whether a cheaper OpenCV tracker (KCF, MOSSE) gives
 acceptable tracking quality for a real speed trade - CSRT was chosen
 for accuracy, not speed, and this repo's own real-clip investigation
 (priority 2, above) already shows tracking-quality tradeoffs need
-measuring per clip, not assuming. For single-ROI (no `--roi2`) work,
-`--backend flow` already exists and is documented as ~4x faster than
-CSRT with no accuracy tradeoff reported so far (`generator.js`'s own
-hint text) - underused by default; worth checking whether more users
-should be steered to it.
+measuring per clip, not assuming.
+
+**Checked the flow-backend idea directly, same session - real, but
+smaller and costlier than the existing docs claimed.** `--backend flow`
+on the same real clip: 25.1s wall vs. the CSRT hub run's ~48s - a real
+~1.9x speedup, not the "~4x" the code comment/GUI hint text claims
+(that figure describes per-frame cost on a different, presumably
+larger-ROI case; this clip's CSRT is unusually cheap at 256x144, so the
+*relative* advantage of flow shrinks here). More importantly, **it cost
+real quality on this clip**: Quality Doctor dropped from 1.00 (CSRT) to
+0.55 ("PRÜFEN" - signal noisy rather than rhythmic, spectral
+concentration only 16%), with a hint that the motion-center estimators
+disagree - this is a busy, multi-subject scene (hands, two breasts,
+the tip) where flow's automatic center-of-motion detection has more to
+get confused by than a single clean tracked region does. So: steering
+more users to flow-by-default is **not** the free win the existing
+hint text implies, at least not for this kind of scene - it's a real
+speed/quality tradeoff that depends on scene complexity, not a
+strictly-better option. Worth keeping as an opt-in for simple,
+single-subject scenes (where the existing hint text's premise likely
+does hold) rather than promoting it as a general default.
 
 ### Later
 
