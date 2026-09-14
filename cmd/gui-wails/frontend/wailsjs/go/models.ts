@@ -122,6 +122,7 @@ export namespace main {
 	    profile: string;
 	    overwrite: boolean;
 	    aiQualityOpinion: boolean;
+	    contactVibration: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new GenerateOptions(source);
@@ -155,6 +156,7 @@ export namespace main {
 	        this.profile = source["profile"];
 	        this.overwrite = source["overwrite"];
 	        this.aiQualityOpinion = source["aiQualityOpinion"];
+	        this.contactVibration = source["contactVibration"];
 	    }
 	}
 	export class HeatmapPoint {

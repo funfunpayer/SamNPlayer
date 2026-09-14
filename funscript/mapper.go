@@ -65,7 +65,30 @@ type MapOptions struct {
 	MinSuction   float64
 	Smoothing    float64
 	Sync         SyncMode
+
+	// ContactVibration: nur bei Sync == SyncSuctionPosition (tf/tj) wirksam.
+	// Statt Vibration fest auf 0 zu halten, folgt sie dem Positionssignal
+	// selbst, sobald es nahe sein eigenes, über das ganze Skript beobachtetes
+	// Maximum steigt (ROI1 berührt/streift ROI2 - je nach ROI-Wahl z.B.
+	// Eichel an Brustwarze oder Zunge). Dauer und Stärke der Vibration
+	// ergeben sich so direkt aus dem gemessenen Abstandsverlauf dieses
+	// Videos, statt aus einem festen Impuls - siehe docs/NEXT.md, Priorität
+	// "Contact-triggered vibration for Tf/Tj". Reine Abstandsmessung, kein
+	// Akt-Detektor.
+	ContactVibration bool
 }
+
+// contactVibrationSpan (0-1) legt fest, welcher Anteil des in diesem Skript
+// beobachteten Positions-Spektrums als "Kontakt" zählt: nur das oberste
+// Viertel. Bewusst hoch gewählt statt eines festen Pixel-/Positionswerts,
+// damit die Erkennung pro Video adaptiv bleibt (siehe ToIntensityCurve).
+const contactVibrationSpan = 0.75
+
+// contactVibrationMinSpan: liegt das gesamte Positions-Spektrum des Skripts
+// darunter, gibt es zu wenig Variation, um "Kontakt" von normaler Bewegung
+// zu unterscheiden - Vibration bleibt dann komplett aus, statt durchgehend
+// zu brummen.
+const contactVibrationMinSpan = 5.0
 
 func DefaultMapOptions() MapOptions {
 	return MapOptions{
@@ -88,6 +111,30 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 	frames := make([]Frame, 0, duration/opts.TickMs+1)
 	segIdx := 0
 	var prevVib, prevSuc float64
+
+	// Kontakt-Schwelle einmal über das ganze Skript bestimmen (nicht pro
+	// Frame neu), aus den rohen Pos-Werten (0-100, bei tf/tj auf 20-90
+	// geklemmt) - siehe contactVibrationSpan.
+	var contactMin, contactMax float64
+	contactEnabled := opts.ContactVibration && opts.Sync == SyncSuctionPosition
+	if contactEnabled {
+		posMin, posMax := float64(s.Actions[0].Pos), float64(s.Actions[0].Pos)
+		for _, a := range s.Actions[1:] {
+			p := float64(a.Pos)
+			if p < posMin {
+				posMin = p
+			}
+			if p > posMax {
+				posMax = p
+			}
+		}
+		if posMax-posMin < contactVibrationMinSpan {
+			contactEnabled = false
+		} else {
+			contactMin = posMin + contactVibrationSpan*(posMax-posMin)
+			contactMax = posMax
+		}
+	}
 	for t := int64(0); t <= duration; t += opts.TickMs {
 		for segIdx < len(s.Actions)-2 && s.Actions[segIdx+1].At <= t {
 			segIdx++
@@ -114,6 +161,12 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			vib, suc = 0, intensity
 		case SyncSuctionPosition:
 			vib, suc = 0, posSignal
+			if contactEnabled && pos >= contactMin {
+				vib = clamp01((pos - contactMin) / (contactMax - contactMin))
+				if vib > 0 && opts.MinVibration > 0 {
+					vib = liftFloor(vib, opts.MinVibration)
+				}
+			}
 		default:
 			vib, suc = intensity, posSignal
 		}

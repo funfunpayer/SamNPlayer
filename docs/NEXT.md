@@ -263,39 +263,74 @@ with a `command()` wrapper (`generator/exec_windows.go`/`exec_unix.go`,
 same pattern as `update/update_windows.go`'s existing `detachedSysProcAttr`)
 used everywhere `exec.Command` was called directly in that file.
 
-### 5. Contact-triggered vibration for Tf/Tj
+### 5. Contact-triggered vibration for Tf/Tj — implemented, opt-in
 
-The user's direction (September 14, 2026): when the tracked tip (ROI1,
-e.g. the glans) touches or grazes the reference point (ROI2, e.g. a
-nipple) - i.e. the ROI1↔ROI2 distance drops near its minimum - vibration
-should pulse proportionally to how close/strong the contact is; suction
-is not needed at that moment. Wanted "whether with AI or without" - i.e.
+The user's direction (September 14, 2026, refined twice the same day):
+when the tracked tip (ROI1, e.g. the glans) touches or grazes the
+reference point (ROI2 - nipple **or** tongue, either works, same
+mechanic) - i.e. the ROI1↔ROI2 distance drops near its minimum -
+vibration should pulse proportionally to how close/strong the contact
+is, "not just brief, it should fit the material" (duration/strength
+should track the actual clip, not a fixed blip); suction keeps its
+existing mapping unchanged. Wanted "whether with AI or without" -
 independent of which engine found the regions, this is a mapping/recipe
-change, not a detection change.
+change, not a detection change. Explicitly asked to research the
+approach before building it ("am besten recherchieren dazu").
 
-**Refined the same day, still not designed/implemented:** the reference
-point isn't necessarily a nipple - it could be a tongue too (same
-mechanic: ROI1↔ROI2 distance near its minimum = contact). The pulse
-shape itself is left open by the user ("strong then weaker" was floated
-as one option, "that's your call") - i.e. the exact envelope is an
-implementation choice once the feature is designed, not a fixed spec to
-match.
+**Research finding that shaped the design:** the "material fit"
+requirement turned out to already be answerable from data the pipeline
+already has. For tf/tj, `pos` (0-100, clamped 20-90 by
+`clamp_actions_pos`) **is** the inverted, per-video-normalized ROI1↔ROI2
+distance ("Enge Distanz = hohe pos", `tf_tj_meta.py`) - `positions_to_
+funscript`'s percentile normalization already scales it to that specific
+clip's own observed range. So "contact" doesn't need a new signal or a
+fixed pixel/percent threshold: it's the top slice of that script's own
+`pos` range, and deriving the vibration envelope directly from `pos`
+itself during that slice - instead of a fixed-length pulse - makes
+duration and intensity inherit exactly how long/deep contact actually
+lasts in that clip. A short graze produces a short blip; a lingering
+deep stroke produces a longer, stronger one.
 
-This is a new requirement, not yet designed: today's Tf/Tj recipe
-(`tf_tj_meta.py`, `player/`) holds vibration at a fixed 0 the whole time
-(`sync: suction_position`, "kein Akt-Detektor" - see `generator.js`'s own
-hint text and `docs/NEXT.md`'s product requirements) precisely so no
-detector guesses when to add vibration. Introducing one is worth doing
-carefully: define "contact" from the already-tracked ROI1↔ROI2 distance
-(e.g. within some fraction of its observed minimum, not an absolute
-pixel threshold, since box sizes vary per video), decide whether the
-pulse comes from the classical distance signal alone or needs the
-motion/quality data to avoid false positives on tracker jitter, and keep
-suction's existing mapping unchanged elsewhere. Needs a design decision
-with the user before implementation, not just a mapping tweak - it
-changes a documented, deliberate `vibration = 0` invariant that existing
-tests likely assert on (check `generator/tf_tj_meta_test.py`,
-`player/*_test.go` before touching this).
+**Implemented as an opt-in "Kontakt-Vibration" checkbox** (generator
+tab, shown only for tf/tj, next to the existing Tf/Tj hint - default
+off, so the existing no-vibration behavior is unchanged unless
+explicitly requested):
+- `generator/tf_tj_meta.py`: `device_recipe_for`/`apply_profile_metadata`
+  take `contact_vibration=False`; when true, `device_recipe.contact_
+  vibration = True` is written into the funscript's metadata (field
+  omitted entirely when false, so older players that don't know the
+  field see the same file they always would).
+- `generate_funscript.py --contact-vibration` (CLI flag) → `generator.
+  Options.ContactVibration` (Go) → `GenerateOptions.contactVibration`
+  (Wails binding) → the checkbox in `generator.js`.
+- `funscript.MapOptions.ContactVibration` (new field, `mapper.go`):
+  when set and `Sync == SyncSuctionPosition`, `ToIntensityCurve` first
+  scans the whole script's own `pos` min/max once, then - only above the
+  top quarter of that per-script range (`contactVibrationSpan = 0.75`) -
+  ramps vibration from 0 to 1 as `pos` approaches its peak, and back to
+  0 as it recedes. A script with too little `pos` variation overall
+  (`contactVibrationMinSpan`, <5 points) disables the effect entirely
+  rather than buzzing on ordinary movement. Below the threshold,
+  vibration stays exactly 0, same as before - the change is additive,
+  gated, and doesn't touch suction's mapping.
+- `app_playback.go`: reads `Metadata.DeviceRecipe.ContactVibration` from
+  the loaded script (not a playback-time toggle - the choice is baked in
+  at generation time, matching how `profile` itself already flows) and
+  sets it on `mapOpts` before building the intensity curve.
+- The pre-existing invariant test (`TestRecipeTJSuctionOnlyNoVibration`,
+  `funscript/recipe_test.go`) is untouched and still passes - it exercises
+  the default (flag off) path. New tests cover: off-by-default behavior
+  unchanged even with a peak that would otherwise register as contact,
+  vibration tracking a simulated contact window and returning to 0
+  outside it, and the low-span guard. Mirrored on the Python side
+  (`tf_tj_meta_test.py`).
+
+Not yet done: the pulse *shape* was deliberately left open by the user
+("their call") - the current envelope is a straight linear ramp against
+distance-to-peak, the simplest option consistent with "fits the
+material." No real-clip listening/feel test has happened yet (needs
+actual Tf/Tj source video with genuine touching contact, and ideally
+real hardware per priority 1).
 
 ### 6. Climax ("cum") detection — new AI feature, user marked urgent
 
@@ -340,11 +375,37 @@ additional, non-standard data alongside the standard fields - i.e.
 extending `metadata` with a SamNPlayer-specific optional field (e.g. a
 list of `{startMs, endMs, kind}` markers) would be consistent with how
 other tools already do this, and wouldn't break compatibility with
-plain `.funscript` consumers that only read `actions`. Needs a design
-decision (field shape, how the player consumes it, how it's authored -
-manually? from priority 6's detection?) before implementation; likely
-depends on priority 6 being designed first since "cum detection" is the
-stated source of the marker.
+plain `.funscript` consumers that only read `actions`.
+
+**Refined the same day:** the marker pattern itself is now specified -
+one primary marker shortly before the climax point, plus optionally one
+or two secondary markers earlier in the scene at lower intensity ("nicht
+so doll" - not as strong). Generation-time opt-in, same UI pattern as
+priority 5's checkbox and the existing AI-quality-opinion checkbox: a
+toggle to include or omit O-markers in the script, decided when the
+script is created, off by default.
+
+This placement logic is well-specified and simple to implement *once a
+climax timestamp exists to place it relative to* - but that timestamp is
+exactly what priority 6 (cum detection) would have to supply, and that
+detector doesn't exist yet. So priority 7's own implementation is
+blocked on priority 6's detection-approach decision, not on anything
+about the marker format or UI, both of which are now clear enough to
+build as soon as an input timestamp is available (even a manually placed
+one, see priority 6). Needs a design decision (field shape, exact
+secondary-marker count/placement/intensity) before implementation.
+
+**Answered the same day (September 14, 2026), asked directly: how should
+the climax timestamp be found for now?** The user wants both AI detection
+*and* manual placement, not one or the other ("KI-Erkennung und manuelle
+setzen") - and flagged that manual placement needs "a proper editor"
+first, not a one-click button. This changes priority 6/7's status: they
+now depend on the manual funscript editor (see "Later" below), which
+was previously scoped as independent, deferred polish - it is now a
+real prerequisite for the manual half of this feature, not just a nice-
+to-have. AI detection (priority 6's own open design question: model,
+signal shape, false-positive handling) remains separately open and
+still needs its own design pass regardless of the editor.
 
 ### Later
 
@@ -353,7 +414,17 @@ stated source of the marker.
   not now:** a manual funscript editor (edit/drag individual points on the
   curve, not just automated repair) with the video alongside it - scope
   for "the video too" not yet clarified (trimming/selecting a range?
-  frame-accurate scrubbing while editing?). Also: generation is slower
+  frame-accurate scrubbing while editing?). **No longer purely deferred
+  polish as of the same day:** the user now wants manual O-marker
+  placement (priority 7) too, and said that needs "a proper editor" -
+  so this item is a real prerequisite for finishing priority 7's manual
+  path, not just a nice-to-have. Still needs scoping before starting: at
+  minimum, a video-synced timeline where existing points can be seen,
+  dragged, added, and deleted, likely reusing the curve-drawing code
+  already in `playback.js` (see `curve_display_test.py`) rather than
+  building a second renderer from scratch - not yet discussed with the
+  user which parts of "proper editor" are must-have for a first version
+  versus later refinement. Also: generation is slower
   than FunGen2 and should use CPU/RAM/GPU better regardless of which
   card is present - no baseline measurement exists yet to say where the
   time actually goes (Python startup, frame decode, CSRT tracking,

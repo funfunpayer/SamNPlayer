@@ -38,11 +38,18 @@ export function initGenerator(root, playback) {
     <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">„Weiches Gewebe" behandelt Nachschwingungen
       nicht als eigene Hübe. An einem Testvideo mit Anstoß alle 800 ms: 81 Keyframes werden
       zu 42 — den Anstößen selbst. Saubere Hubsignale bleiben davon unberührt.</p>
-    <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 10px 0;">
+    <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Tf/Tj (Abstand + Sog): zwei Regionen markieren (erste Region ziehen, dann Shift+Ziehen
       oder „2. Region“ für die zweite, violett). Der Abstand zwischen beiden steuert den Hub;
-      Sog folgt der Position. Vibration bleibt 0 — kein Akt-Detektor.
+      Sog folgt der Position. Vibration bleibt 0, außer „Kontakt-Vibration" unten ist
+      aktiviert — kein Akt-Detektor, reine Abstandsmessung.
     </p>
+    <div class="checkbox-row" id="gen-contact-vibration-row" style="display:none;">
+      <input type="checkbox" id="gen-contact-vibration" />
+      <label for="gen-contact-vibration">Kontakt-Vibration: vibriert zusätzlich zum Sog, sobald
+        ROI1 nahe an ROI2 herankommt (z.B. Eichel an Brustwarze oder Zunge) - Dauer/Stärke
+        richten sich nach dem gemessenen Abstand in diesem Video, kein fester Impuls</label>
+    </div>
 
     <div class="row" style="align-items:center;">
       <button id="gen-suggest-profile" disabled>Profil vorschlagen</button>
@@ -187,6 +194,7 @@ export function initGenerator(root, playback) {
   function updateProfileUi() {
     const tftj = isTfTj();
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
+    el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
     if (tftj && videoPath) {
@@ -370,6 +378,7 @@ export function initGenerator(root, playback) {
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
+      contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;
