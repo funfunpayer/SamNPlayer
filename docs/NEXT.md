@@ -74,11 +74,40 @@ and looks like bad tracking rather than a sign-convention mismatch).
 `generator/fungen_compare_test.py` has a regression test and gegenprobe
 for each, using the synthetic fixtures the brief asked for (known phase,
 irregular cycles, pauses, amplitude changes, offset timestamps, constant
-signals). **Not yet done:** running it against the real dataset — it
-needs `--dataset` pointed at the user's `funscript-tests` folder, which
-is local to their machine; the persisted manifest (hashes, generator
+signals).
+
+**Run against real clips, shared in chat rather than on disk here (two of
+the three valid moving references from `compare-fungen-manual.md`, plus
+their SamNPlayer outputs):** correlation stayed weak (r≈0.05–0.13) even
+after lag and orientation search, including on a single continuous
+chapter with no timing gaps. The four benchmark bugs were real but do not
+explain the whole gap. The persisted manifest (hashes, generator
 versions, ROIs) from the brief's "Reproduce before changing the
-algorithm" section is also still open.
+algorithm" section is still open; a proper scan of `--dataset` against
+the user's full `funscript-tests` folder has not happened (local to their
+machine).
+
+**Work Package 2 (isolate the mismatch) found a real, fixed bug:**
+`track_two_points()` measured the two-region distance using only the Y
+coordinate of each box's center, not a full 2D distance (the brief's
+zoom-invariance concern, section "Investigate ... test that claim and
+correct it", also flagged the underlying formula). This is harmless when
+ROI1/ROI2 sit at different heights, but produces a near-zero, tracking
+quality-independent signal whenever they sit at the same height — exactly
+what issue #8 describes the batch's ROI2 heuristic doing ("shift ROI1 by
+~1.2× width", i.e. no height change). Confirmed on the real BBW/Entladen
+`tj` outputs shared in chat: both sit flat at one extreme for most of
+their length, then move briefly - the signature of a distance metric
+seeing no variation until tracker drift accidentally introduces some.
+Fixed: `two_point_distance()` now computes the full 2D center-to-center
+distance (`np.hypot`), a strict generalization that keeps the existing
+vertical-signal test (`two_point_test.py`) passing and adds
+`two_point_axis_test.py` for the horizontal case, with a gegenprobe
+(reverting to the Y-only formula reproduces the near-dead signal:
+amplitude 1.0px instead of the true 80px). **Not yet done:** re-running
+the actual batch with the fix to see how much of the real-clip
+correlation gap it closes - needs the source videos, not just the
+`.funscript` outputs shared so far.
 
 ### 3. Improve automatic two-ROI suggestions
 
