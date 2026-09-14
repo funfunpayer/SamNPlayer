@@ -148,7 +148,8 @@ for suction. The original generator-card proposal was Standard / Breast / Oral.
 - Remove the Python runtime dependency, connecting `videox` only after
   measuring a benefit.
 - AI as an adapter that suggests ROIs/profiles for human confirmation.
-  It must outperform fixed rules in cross-validation.
+  It must outperform fixed rules in cross-validation. Concrete plan and
+  first implementation (ROI proposal via ONNX): `docs/AI_ADAPTER.md`.
 
 ---
 

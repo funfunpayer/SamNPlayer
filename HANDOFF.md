@@ -452,6 +452,13 @@ Tf/Tj, the second GUI region, and `suction_position` are integrated into
 `main` through PRs #2–#4. This establishes build and integration status,
 not performance on real hardware.
 
+A local AI adapter for the generator is in progress: it proposes results
+(currently region-of-interest detection via a local ONNX model), and the
+existing classical pipeline still measures and validates — the AI never
+writes a `.funscript` on its own path. See `docs/AI_ADAPTER.md` for the
+architecture and the planned order (region, then profile, then quality
+judgment).
+
 ## Environment setup
 
 Cloning, dependencies, and build instructions are maintained in

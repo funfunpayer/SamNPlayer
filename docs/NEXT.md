@@ -2,14 +2,15 @@
 
 ## Verified baseline · September 14, 2026
 
-- `main`: `5988203`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
-- PRs #2, #3, and #4 are integrated: the Tf/Tj recipe, generator integration,
-  second GUI region, and `suction_position` playback mode.
+- `main`: `3984ec7`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
+- PRs #2, #3, #4, and #5 are integrated: the Tf/Tj recipe, generator
+  integration, second GUI region, `suction_position` playback mode, version
+  validation, and the English translation of project documentation.
 - Tests and the release workflow succeeded for that commit.
-- No issues or PRs were open at the initial inspection, before PR #5 was created.
-- [PR #5](https://github.com/funfunpayer/SamNPlayer/pull/5) updates versions
-  and guides, adds version validation, and translates project documentation
-  into English. Review and merge remain pending; check GitHub for current CI status.
+- [PR #6](https://github.com/funfunpayer/SamNPlayer/pull/6) adds an optional
+  local-AI adapter for the generator (ONNX-based region proposal, see
+  `docs/AI_ADAPTER.md`). Review and merge remain pending; check GitHub for
+  current CI status.
 
 This is the short-term task list. Architecture and measurements belong in
 `HANDOFF.md`, contribution rules in `CONTRIBUTING.md`, and setup instructions
@@ -51,7 +52,9 @@ is offered with an explanation and can be declined.
 - Script Doctor for imported `.funscript` files.
 - Training history across multiple sessions.
 - AI as a replaceable analysis backend, reusing raw data, parameters,
-  quality reports, and confirmed ratings.
+  quality reports, and confirmed ratings. Region proposal is implemented
+  (PR #6); profile and quality-judgment proposals remain open. See
+  `docs/AI_ADAPTER.md` for the architecture and order.
 
 ## Product requirements
 

@@ -1646,6 +1646,17 @@ def main():
                     help="Nach jedem Szenenschnitt die Bewegungsregion NEU suchen, statt "
                          "die Region der ersten Szene weiterzuverwenden. Deutlich besser bei "
                          "geschnittenem Material, kostet aber einen zusätzlichen Durchlauf.")
+    ap.add_argument("--roi-finder", choices=["auto", "ai"], default="auto",
+                    help="Verfahren für --per-scene-roi: auto = Rhythmus-Heuristik ohne "
+                         "Modell (Standard, siehe auto_roi.py). ai = lokaler ONNX-"
+                         "Objekterkenner (siehe ai_roi.py) - braucht onnxruntime und ein "
+                         "Modell unter --ai-model-path. Schlägt die Suche für eine Szene "
+                         "fehl (Modell fehlt, keine Erkennung), gilt wie bei 'auto' die "
+                         "Region der vorherigen Szene weiter - kein Wechsel zwischen den "
+                         "Verfahren mitten im Video.")
+    ap.add_argument("--ai-model-path", default=None, metavar="DATEI",
+                    help="Pfad zur .onnx-Regionsmodell-Datei für --roi-finder ai. Ohne "
+                         "Angabe der plattformübliche Modellordner (siehe ai_roi.default_model_path).")
     ap.add_argument("--cache-dir", default=None,
                     help="Verzeichnis für zwischengespeicherte Trackingergebnisse. "
                          "Ohne Angabe wird ein plattformüblicher Ort verwendet.")
@@ -1921,10 +1932,18 @@ def process_one(args, ap):
                   f"(Streuung {track_stats['center_disagreement']:.1f}px) - das deutet "
                   "auf kein klar dominierendes Bewegungsmuster hin", file=sys.stderr)
     elif args.per_scene_roi:
+        roi_finder = None
+        if args.roi_finder == "ai":
+            import ai_roi
+
+            def roi_finder(path, start, end):
+                return ai_roi.find_roi(path, start_frame=start, end_frame=end,
+                                       report_progress=False, model_path=args.ai_model_path)
         (timestamps_ms, y_positions, frame_size, scene_cuts,
          track_stats, scene_ranges) = track_by_scenes(
             args.video, roi, max_frames=args.max_frames,
-            camera_compensation=not args.no_camera_compensation)
+            camera_compensation=not args.no_camera_compensation,
+            roi_finder=roi_finder)
     else:
         timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_roi_cached(
             args.video, roi, args.max_frames,
