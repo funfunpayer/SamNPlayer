@@ -551,12 +551,25 @@ doesn't support it. Ruled out: a persistent-thread-pool CSRT
 parallelization of `track_two_points`, implemented exactly as described
 above, is not a win as measured on this clip's resolution.
 
-**Not yet tried:** a lower-overhead handoff than `ThreadPoolExecutor`
-per frame (e.g. two persistent threads synchronized with
-`threading.Event`/`Condition` instead of creating a `Future` per call)
-might recover the isolated benchmark's 1.68x - the overhead source is
-suspected but not confirmed to be `Future` object creation specifically.
-Also not evaluated: whether a cheaper OpenCV tracker (KCF, MOSSE) gives
+**Also tried, same session: a lower-overhead handoff - same negative
+result, now confirmed robust rather than a `ThreadPoolExecutor`
+artifact.** Two persistent worker threads synchronized with
+`threading.Event` (submit a frame, wait for a "done" signal - no
+`Future` object, no executor queue, the overhead this was meant to
+rule out) gave the same result as the `ThreadPoolExecutor` version:
+~33s for 1200 frames, same as sequential, no measurable win. Since two
+independently-implemented parallelization strategies both failed to
+reproduce the isolated benchmark's 1.68x in the real pipeline, the
+cause is not implementation overhead in either approach - something
+about the full pipeline (frame decode interleaved with tracking, real
+per-frame memory allocation instead of a reused static buffer, or
+OpenCV's own internal thread pool behaving differently under real
+conditions than in a tight synthetic loop) evidently negates the
+theoretical gain. Parallelizing the two `tj`/`tf` tracker calls is not
+a productive lever at this clip's resolution; not worth another attempt
+without a new hypothesis for *why* the isolated result doesn't transfer.
+
+Not yet evaluated: whether a cheaper OpenCV tracker (KCF, MOSSE) gives
 acceptable tracking quality for a real speed trade - CSRT was chosen
 for accuracy, not speed, and this repo's own real-clip investigation
 (priority 2, above) already shows tracking-quality tradeoffs need
