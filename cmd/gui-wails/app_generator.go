@@ -119,8 +119,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			RDPTolerance:              opts.RDPTolerance,
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
-			r2 := generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
-			genOpts.ROI2 = &r2
+			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
 		}
 		err := generator.GenerateWithProgress(opts.VideoPath, roi, outPath, genOpts,
 			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
