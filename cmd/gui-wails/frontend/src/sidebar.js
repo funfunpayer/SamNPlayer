@@ -1,4 +1,3 @@
-import { GetDeviceStatus } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
 // initSidebar baut das rechte Panel (Gerät / Skript / Qualität) aus dem
@@ -35,20 +34,18 @@ export function initSidebar(root) {
 
   const el = id => root.querySelector(id);
 
-  async function refreshDevice() {
-    try {
-      const st = await GetDeviceStatus();
-      if (st.connected) {
-        el('#sb-led').style.background = 'var(--ok)';
-        el('#sb-led').style.boxShadow = '0 0 8px var(--ok)';
-        el('#sb-dev-name').textContent = st.mock ? 'Mock-Gerät verbunden' : (st.name || 'Verbunden');
-      } else {
-        el('#sb-led').style.background = '#555';
-        el('#sb-led').style.boxShadow = 'none';
-        el('#sb-dev-name').textContent = 'Nicht verbunden';
-      }
-    } catch (err) {
-      el('#sb-dev-name').textContent = 'Status nicht abrufbar';
+  // Liest denselben Status, den device.js ohnehin alle 2s beim Backend
+  // abfragt und als 'device:status'-Event verteilt, statt ihn hier ein
+  // zweites Mal per GetDeviceStatus() abzufragen.
+  function renderDevice(st) {
+    if (st.connected) {
+      el('#sb-led').style.background = 'var(--ok)';
+      el('#sb-led').style.boxShadow = '0 0 8px var(--ok)';
+      el('#sb-dev-name').textContent = st.mock ? 'Mock-Gerät verbunden' : (st.name || 'Verbunden');
+    } else {
+      el('#sb-led').style.background = '#555';
+      el('#sb-led').style.boxShadow = 'none';
+      el('#sb-dev-name').textContent = 'Nicht verbunden';
     }
   }
 
@@ -100,12 +97,12 @@ export function initSidebar(root) {
     el('#sb-suc-bar').style.width = suc + '%';
   });
   EventsOn('playback:done', resetMeters);
+  window.addEventListener('device:status', e => renderDevice(e.detail));
 
-  refreshDevice();
-  setInterval(refreshDevice, 2000);
-  // Gerätestatus ändert sich auch außerhalb dieses Panels (Gerät-Tab,
-  // Wiedergabe startet/endet) - regelmäßiges Nachsehen statt eines
-  // fehleranfälligen Netzes aus Cross-Modul-Events.
+  // Skript-/Qualitätsanzeige ändert sich auch außerhalb dieses Panels -
+  // regelmäßiges Nachsehen statt eines fehleranfälligen Netzes aus
+  // Cross-Modul-Events. Der Gerätestatus kommt jetzt per Event von
+  // device.js, das ihn ohnehin schon im selben Takt abfragt.
   setInterval(refreshRecipe, 1000);
   setInterval(refreshQuality, 1000);
   refreshRecipe();
