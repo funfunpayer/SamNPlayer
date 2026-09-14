@@ -1,60 +1,61 @@
-# Nächste Arbeiten
+# Next steps
 
-## Verifizierter Ausgangsstand · 14. September 2026
+## Verified baseline · September 14, 2026
 
-- `main`: `5988203`, Release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
-- PRs #2, #3 und #4 sind integriert: Tf/Tj-Rezept, Generator-Anbindung,
-  zweite Region in der GUI und `suction_position` im Playback.
-- Tests und Release-Workflow für diesen Commit sind erfolgreich.
-- Zum Zeitpunkt der Prüfung keine offenen Issues oder Pull Requests.
-- Dieser Arbeitsstand korrigiert Versionen und Anleitungen und ergänzt die
-  Versionsprüfung. Merge und CI des zugehörigen PR stehen noch aus.
+- `main`: `5988203`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
+- PRs #2, #3, and #4 are integrated: the Tf/Tj recipe, generator integration,
+  second GUI region, and `suction_position` playback mode.
+- Tests and the release workflow succeeded for that commit.
+- No issues or PRs were open at the initial inspection, before PR #5 was created.
+- [PR #5](https://github.com/funfunpayer/SamNPlayer/pull/5) updates versions
+  and guides, adds version validation, and translates project documentation
+  into English. Review and merge remain pending; check GitHub for current CI status.
 
-Diese Datei führt die kurzfristigen Aufgaben. Architektur und Messergebnisse
-stehen in `HANDOFF.md`, Arbeitsregeln in `CONTRIBUTING.md` und Setup in
-`WIEDERAUFNAHME.md`. GitHub-Status vor jeder Fortsetzung erneut prüfen.
+This is the short-term task list. Architecture and measurements belong in
+`HANDOFF.md`, contribution rules in `CONTRIBUTING.md`, and setup instructions
+in `WIEDERAUFNAHME.md`. Recheck GitHub status before resuming work.
 
-## Prioritäten und Abnahme
+## Priorities and acceptance criteria
 
-### 1. Echtes Gerät validieren · benötigt Sam Neo 2 und Anwender
+### 1. Validate real hardware · requires a Sam Neo 2 and an operator
 
-BLE und Intiface getrennt prüfen: Verbinden, Wiedergabe, Pause/Stop,
-Wiederverbinden und Training. Rohwert-Auflösung beider Kanäle protokollieren.
-Für Tf/Tj prüfen, dass Vibration aus bleibt und die Sog-Ausgabe zum Signal passt.
-Abnahme: Geräte-/Adapterdaten, App-Version, Schritte und beobachtetes Ergebnis
-festhalten; Abweichungen als reproduzierbare Fehler erfassen.
+Test BLE and Intiface separately: connection, playback, pause/stop,
+reconnection, and training. Record raw-value resolution for both channels.
+For Tf/Tj, verify that vibration stays off and suction output matches the signal.
+Acceptance: record device/adapter details, app version, steps, and observed
+results; report deviations as reproducible bugs.
 
-### 2. Generatorqualität messen · benötigt bewertetes Testmaterial
+### 2. Measure generator quality · requires rated test material
 
-Reproduzierbare Clips mit Sollsignal plus repräsentative reale Testclips
-verwenden. Standard und Tf/Tj mit dokumentierten ROIs/Parametern vergleichen.
-Rohsignal, Ergebnis, Qualitätsbericht und menschliches Urteil zusammenhalten.
-Abnahme: begründete Verbesserungen an Rhythmus, Amplitude und Tracking;
-synthetische Testergebnisse und reale Bewertungen getrennt ausweisen.
+Use reproducible clips with known reference signals alongside representative
+real clips. Compare standard and Tf/Tj profiles with documented ROIs and
+parameters. Keep raw signals, output, quality reports, and human ratings together.
+Acceptance: demonstrate improvements in rhythm, amplitude, and tracking;
+report synthetic results separately from real-material ratings.
 
-### 3. Automatische Zwei-ROI-Vorschläge verbessern
+### 3. Improve automatic two-ROI suggestions
 
-Vor Änderungen `find_two_rois` und vorhandene Tests prüfen. Automatische
-Vorschläge gegen manuell gesetzte Regionen und bekanntes Sollsignal messen.
-Abnahme: nachgewiesener Nutzen und erkennbare Unsicherheit; manuelle
-Korrektur bleibt möglich. Kein ungeprüftes automatisches Profil-Umschalten.
+Inspect `find_two_rois` and existing tests before making changes. Compare
+automatic suggestions against manually selected regions and known ground truth.
+Acceptance: measurable benefit, visible uncertainty, and manual correction.
+Do not switch profiles automatically without validation.
 
-### 4. Bewegungssignaturen und Profile in der GUI vervollständigen
+### 4. Complete motion-signature and profile integration in the GUI
 
-Zuerst vorhandene Benennungs-/Speicherpfade gegen den Code prüfen.
-Abnahme: Benennung und Parameter über Neustarts erhalten; Wiederverwendung
-bei ähnlichen Szenen nachvollziehbar anbieten und ablehnen können.
+First inspect existing naming and persistence paths in the code.
+Acceptance: names and parameters survive restarts; reuse for similar scenes
+is offered with an explanation and can be declined.
 
-### Später
+### Later
 
-- Script Doctor für importierte `.funscript`-Dateien.
-- Trainingsverlauf über mehrere Sessions auswerten.
-- KI als austauschbares Analyse-Backend: vorhandene Rohdaten, Parameter,
-  Qualitätsberichte und bestätigte Urteile weiterverwenden.
+- Script Doctor for imported `.funscript` files.
+- Training history across multiple sessions.
+- AI as a replaceable analysis backend, reusing raw data, parameters,
+  quality reports, and confirmed ratings.
 
-## Produktvorgaben
+## Product requirements
 
-Allgemeine Generatorqualität und das Ergebnis am Sam Neo 2 stehen im Zentrum.
-Die Profile heißen `tf`/`tj`; ihr Rezept nutzt `suction_position` mit
-Vibration aus. Weitere Parameter erst nach Messung kalibrieren. Bestehende
-klassische Analyse bleibt als Grundlage für spätere KI erhalten.
+General generator quality and the result on the Sam Neo 2 are the priorities.
+Profiles are named `tf`/`tj`; their recipe uses `suction_position` with
+vibration off. Calibrate further parameters only after measurement.
+Keep classical analysis as the foundation for later AI integration.

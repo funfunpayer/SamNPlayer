@@ -1,146 +1,146 @@
-# Mitarbeiten
+# Contributing
 
-Diese Datei beschreibt, wie mehrere Leute an SamNPlayer arbeiten können,
-ohne sich gegenseitig zu blockieren. Sie ist kurz gehalten – alles, was
-darüber hinausgeht, steht in `HANDOFF.md` (was das Projekt ist und warum es
-so gebaut ist) und `WIEDERAUFNAHME.md` (wie man die Umgebung aufsetzt).
+This guide explains how multiple contributors can work on SamNPlayer
+without blocking one another. Further detail lives in `HANDOFF.md`
+(what the project is and why it is designed this way) and
+`WIEDERAUFNAHME.md` (setting up the environment).
 
-## Welche Anleitung ist maßgeblich?
+## Which document is authoritative?
 
-- `README.md`: Installation, Bedienung und Einstieg.
-- `HANDOFF.md`: Architektur, belegte Ergebnisse, Grenzen und verworfene Ansätze.
-- `WIEDERAUFNAHME.md`: Arbeitsumgebung wiederherstellen, bauen und prüfen.
-- `docs/NEXT.md`: einzige operative Aufgabenliste mit Prioritäten und Abnahmekriterien.
+- `README.md`: installation, usage, and getting started.
+- `HANDOFF.md`: architecture, measured results, limitations, and rejected approaches.
+- `WIEDERAUFNAHME.md`: restoring the environment, building, and verification.
+- `docs/NEXT.md`: the single operational task list, with priorities and acceptance criteria.
 
-Vor Arbeitsbeginn aktuellen Code, `git status`, `docs/NEXT.md` und den
-zugehörigen PR prüfen. Alte Chatprotokolle sind Kontext; dort genannte
-Fehler, Berechtigungen und erledigte Arbeiten am aktuellen Stand verifizieren.
-Bei Widersprüchen zählen Code und reproduzierbare Tests. Messwerte ohne
-Hardwarebeleg nicht als getestete Geräteeigenschaft darstellen.
+Before starting work, check the current code, `git status`, `docs/NEXT.md`,
+and the relevant PR. Old chat logs provide context; verify their bug
+reports, permission claims, and completion claims against the current
+state. When sources disagree, rely on code and reproducible tests. Do not
+present values without hardware evidence as verified device properties.
 
-## Wo lässt sich parallel arbeiten
+Write project documentation in English. Preserve code identifiers, CLI
+flags, file paths, and exact UI labels when they are needed to identify
+an existing control.
 
-Die Schnitte sind so gewählt, dass mehrere Leute sich nicht ins Gehege
-kommen. Wer an einem dieser Bereiche arbeitet, fasst die anderen nicht an:
+## Areas that can be worked on independently
 
-| Bereich | Was dort passiert | Berührt |
+The boundaries allow contributors to avoid editing the same files.
+Keep changes within the agreed area unless the task requires crossing a
+boundary:
+
+| Area | Responsibility | Scope |
 |---|---|---|
-| `device/` | BLE-Protokoll, Intiface, Geräteansteuerung | nichts anderes |
-| `generator/*.py` | Analyse, Signalverarbeitung, Qualitätsbewertung | nur Python |
-| `cmd/gui-wails/frontend/` | Oberfläche | nur JS/CSS |
-| `player/` | Wiedergabe, Synchronisation, Training | Go-Kern |
-| `motionx/`, `videox/` | eigenständige Hilfspakete | nichts anderes |
+| `device/` | BLE protocol, Intiface, device control | Device layer |
+| `generator/*.py` | Analysis, signal processing, quality assessment | Python |
+| `cmd/gui-wails/frontend/` | User interface | JS/CSS |
+| `player/` | Playback, synchronization, training | Go core |
+| `motionx/`, `videox/` | Standalone helper packages | Package internals |
 
-**Neue Analyseverfahren brauchen keinen Eingriff in die Pipeline.** Dafür
-gibt es das Backend-Register (`generator/backends.py`): eine Funktion
-schreiben, mit `register()` anmelden, fertig. Zwei Leute können so
-gleichzeitig an verschiedenen Verfahren arbeiten, ohne dieselbe Datei zu
-berühren. Der Vertrag steht im Kopf von `backends.py`.
+**New analysis methods do not require pipeline edits.** Use the backend
+registry in `generator/backends.py`: write a function and register it with
+`register()`. Contributors can implement different methods without
+modifying the same file. The contract is documented at the top of
+`backends.py`.
 
-## Nach dem Klonen
+## After cloning
 
-`cmd/gui-wails` bindet `frontend/dist` per `go:embed` ein. Das Verzeichnis
-ist ein Bauartefakt und liegt nicht im Repository – ein frischer Klon
-scheitert deshalb zunächst an
+`cmd/gui-wails` embeds `frontend/dist` using `go:embed`. This build artifact
+is not tracked in the repository, so a fresh clone initially reports:
 
-```
+```text
 pattern all:frontend/dist: no matching files found
 ```
 
-Das ist kein Fehler, sondern ein fehlender erster Schritt:
+Build the frontend first:
 
 ```bash
 cd cmd/gui-wails/frontend && npm install && npm run build && cd ../../..
 go build ./...
 ```
 
-Danach läuft alles wie gewohnt. `wails build` erledigt diesen Schritt
-ohnehin mit.
+After that, normal development can proceed. `wails build` also performs
+this frontend build step.
 
-## Ablauf
+## Workflow
 
-1. Arbeitsziel und Abnahme festhalten: in `docs/NEXT.md` oder einem verlinkten
-   Issue. Einen überschaubaren Punkt übernehmen; betroffene Bereiche nennen.
-2. Aktuelles `main` holen und eigenen Branch erstellen, für Codex-Arbeit
-   beispielsweise `codex/project-workflow-cleanup`. Vorher lokale Änderungen
-   prüfen; fremde Änderungen weder überschreiben noch zurücksetzen.
-3. Änderung umsetzen und passende Tests ausführen. Bei Verhaltensänderungen
-   einen Regressionstest mit Gegenprobe ergänzen. Reine Dokumentationsänderungen
-   brauchen keine künstlichen Tests; Angaben, Links und Befehle prüfen.
-4. Pull Request mit Problem, Ergebnis, ausgeführten Prüfungen und offenen
-   Einschränkungen erstellen. Keine leeren Dateien oder Platzhalter als
-   Zwischenlösung veröffentlichen. Vor dem Commit den vollständigen Diff prüfen.
-5. CI abwarten und Review einholen. Bei Änderungen an `device/` einen
-   Hardwaretest vorsehen; Mock-Tests ausdrücklich als solche benennen.
-6. Nach dem Merge `docs/NEXT.md` abgleichen. Erledigte Arbeiten mit PR oder
-   Commit belegen; neue Erkenntnisse zur Architektur in `HANDOFF.md` eintragen.
-   Alte Branches erst löschen, wenn ihre Änderungen nachweislich integriert sind.
+1. Record the objective and acceptance criteria in `docs/NEXT.md` or a linked
+   issue. Take on one manageable task and identify the affected areas.
+2. Fetch the current `main` and create a branch, for example
+   `codex/project-workflow-cleanup` for Codex work. Check local changes first;
+   do not overwrite or reset another contributor's work.
+3. Implement the change and run appropriate tests. Behavior changes need a
+   regression test with a negative check. Documentation-only changes do not
+   need artificial tests; verify facts, links, and commands instead.
+4. Open a pull request describing the problem, result, checks performed,
+   and remaining limitations. Never publish empty files or placeholders as
+   an intermediate solution. Review the complete diff before committing.
+5. Wait for CI and obtain a review. Changes to `device/` should include a
+   hardware test; clearly identify mock-only testing.
+6. After merging, reconcile `docs/NEXT.md`. Reference a PR or commit for
+   completed work and record architectural findings in `HANDOFF.md`.
+   Delete old branches only after verifying that their changes are integrated.
 
-## Was ein Beitrag mitbringen muss
+## What a contribution must include
 
-**Bei Verhaltensänderungen einen Test, der ohne die Änderung fehlschlägt.**
-Zweimal wurde in diesem Projekt eine
-Funktion gebaut, die nachweislich gar nichts tat – einmal landete eine
-Einfügung in der falschen Datei, einmal wirkte ein Parameter nirgends.
-Beides fiel nur auf, weil gemessen wurde. Also: Test schreiben, grün sehen,
-Änderung testweise zurücknehmen, **rot sehen**, Änderung wiederherstellen.
+**For behavior changes, a test that fails without the change.** Twice in
+this project a feature was implemented but did nothing: once an insertion
+landed in the wrong file, and once a parameter had no effect anywhere.
+Measurements exposed both problems. Write the test, see it pass, temporarily
+revert the change, **see it fail**, then restore the change.
 
-**Zahlen statt Einschätzungen.** Wer behauptet, etwas sei besser, belegt es
-mit einer Messung im Kommentar oder im Test. Mehrfach hat sich eine
-plausible Erklärung als falsch erwiesen – die Kamerakompensation war nicht
-kaputt, sondern das Testmaterial; die Glättung fraß keine Amplitude; ein
-naheliegender zusätzlicher Schätzer machte das Ergebnis schlechter.
+**Measurements instead of impressions.** Support improvement claims with
+numbers in a comment or test. Plausible explanations have repeatedly turned
+out to be wrong: camera compensation was not broken, the test material was;
+smoothing did not destroy amplitude; an additional estimator made the
+result worse.
 
-**Auch negative Ergebnisse dokumentieren.** `HANDOFF.md` hat den Abschnitt
-"Geprüft und verworfen" mit den jeweiligen Messwerten. Wer eine Idee
-verwirft, trägt sie dort ein – sonst probiert sie in drei Monaten jemand
-erneut.
+**Document negative results too.** Record rejected ideas and measurements
+in the “Tested and rejected” section of `HANDOFF.md`, so someone does not
+repeat the same experiment three months later.
 
-**Nichts einbauen, was nicht gebraucht wird.** Zwei Module liegen derzeit
-ungenutzt im Baum (`fusion.py`, `videox/`), beide mit begründetem Vermerk,
-warum sie noch nicht verdrahtet sind. Das ist die Ausnahme, nicht das
-Muster.
+**Do not add unused functionality.** Two modules currently remain unused
+in the tree (`fusion.py`, `videox/`), each with a documented reason for not
+being connected. This is an exception, not the intended pattern.
 
-## Fallstricke, die Zeit gekostet haben
+## Pitfalls that have cost time
 
-- **Testvideos mit Rauschhintergrund** taugen nicht für Kamerakompensation:
-  `goodFeaturesToTrack` findet dort keine stabilen Merkmale, und die
-  Schätzung wird zum Zufallsprozess. Immer texturierte Hintergründe.
-- **Bewegte Objekte im Testvideo** müssen in Weltkoordinaten liegen, sonst
-  machen sie einen Kameraschwenk nicht mit – und die Kompensation sieht
-  fälschlich kaputt aus.
-- **`TRACK_CACHE_VERSION` erhöhen**, wenn sich `track_roi` oder die
-  Kamerakompensation ändert. Sonst liefert der Cache still Ergebnisse der
-  alten Fassung.
-- **`wails build` nach jeder neuen Go-Methode**, sonst fehlen die Bindings
-  und die Frontend-Tests scheitern mit einer irreführenden Meldung.
-- **`-trimpath` beim Bauen.** Ohne das landet der Pfad des Build-Rechners –
-  und damit der Benutzername – in der fertigen Datei.
+- **Noise-background test videos** are unsuitable for camera compensation:
+  `goodFeaturesToTrack` cannot find stable features and the estimate becomes
+  random. Always use textured backgrounds.
+- **Moving objects in test videos** must use world coordinates so they
+  follow camera pans; otherwise compensation appears incorrectly broken.
+- **Increment `TRACK_CACHE_VERSION`** when changing `track_roi` or camera
+  compensation, or the cache silently returns results from the old version.
+- **Run `wails build` after adding a Go method**, or missing bindings will
+  cause misleading frontend-test failures.
+- **Use `-trimpath` when building.** Otherwise the build machine's path,
+  including the username, ends up in the executable.
 
-## Fremder Code
+## Third-party code
 
-Vor jeder Übernahme aus einem anderen Projekt die Lizenz prüfen. Die Tabelle
-in `HANDOFF.md` hält den Stand fest. Besonders: **FunGen steht unter
-PolyForm Strict** – keine kommerzielle Nutzung und keine abgeleiteten Werke.
-Den Quelltext zu lesen und Funktionen strukturgleich zu übertragen wäre ein
-abgeleitetes Werk. Ideen und beschriebenes Verhalten sind dagegen frei.
+Check the license before reusing anything from another project. The table
+in `HANDOFF.md` records the project's assessment. In particular, the project
+excludes FunGen source-code reuse and structurally equivalent ports because
+of its PolyForm Strict licensing and the intended commercial use of
+SamNPlayer. Publicly described behavior may inform independent designs.
 
-## Versionen
+## Versions
 
-`VERSION` und `update.BaseVersion` müssen dieselbe Version ohne `v` enthalten.
-`go test ./update` prüft diese Übereinstimmung. Entwicklungs-Binaries zeigen
-`BaseVersion-dev`; Release-Binaries erhalten die Tag-Version über `-ldflags`.
+`VERSION` and `update.BaseVersion` must contain the same version without a
+`v` prefix. `go test ./update` checks this. Development binaries display
+`BaseVersion-dev`; release binaries receive the tag version through `-ldflags`.
 
-Vor einem neuen Release:
+Before a new release:
 
-1. Beide Versionsangaben im selben PR erhöhen, relevante Dokumentation und
-   `docs/NEXT.md` aktualisieren und die CI erfolgreich abschließen.
-2. Den geprüften Commit auf `main` mit `vX.Y.Z` taggen und genau diesen Tag pushen.
-3. Der Release-Workflow prüft vor dem Build Tag, `VERSION` und `BaseVersion`.
-   Bei Abweichungen bricht er ab. Go und die Wails-CLI kommen aus `go.mod`.
-4. Workflow-Ergebnis, vier Binaries (GUI/CLI für Windows/Linux) und
-   `checksums.txt` kontrollieren. Ein erfolgreicher Build ersetzt keinen
-   Hardwaretest und keinen Test der Selbstaktualisierung am installierten Programm.
+1. Update both version values in the same PR, revise relevant documentation
+   and `docs/NEXT.md`, and complete CI successfully.
+2. Tag the verified commit on `main` with `vX.Y.Z` and push that specific tag.
+3. Before building, the release workflow checks the tag, `VERSION`, and
+   `BaseVersion`. It stops on a mismatch. Go and Wails CLI versions come from
+   `go.mod`.
+4. Verify the workflow result, four binaries (GUI/CLI for Windows/Linux),
+   and `checksums.txt`. A successful build does not replace a hardware test
+   or a self-update test using the installed application.
 
-Veröffentlichte Tags nicht nachträglich verschieben. Die Korrektur des
-Quellstands auf 0.2.1 verändert das bereits veröffentlichte Release nicht.
+Do not move published tags. Correcting the source version to 0.2.1 does not
+modify the already published release.
