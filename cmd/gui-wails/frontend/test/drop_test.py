@@ -33,6 +33,7 @@ PAGE = """<!doctype html><html><body>
   <section id="tab-generator" class="tab-panel"></section>
   <section id="tab-device" class="tab-panel"></section>
   <section id="tab-settings" class="tab-panel"></section>
+  <aside id="sidebar"></aside>
 </div>
 <script type="module">
   window.__dropped = [];
