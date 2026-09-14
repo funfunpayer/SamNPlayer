@@ -214,18 +214,44 @@ pinned at the -1000ms boundary, the same "coincidental match on a short
 overlap" warning sign the lag-search-window methodology fix (earlier in
 this section) was written to catch. Own tracking robustness and match-
 to-FunGen-reference look like two largely independent axes on this
-clip, not two views of the same underlying quality. The likely
-explanation: `tj`'s distance signal is only as meaningful as the choice
-of ROI2 (what counts as "the fixed reference point") - and there is no
-guarantee FunGen's own reference is built from anything resembling a
-two-region anchor distance at all (it may use a completely different
-internal representation for a titjob scene). Chasing tighter CSRT
-tracking further is not obviously the right lever for closing the
-FunGen gap; which ROI2 anchor point (or whether the two-point-distance
-framing is right at all for this profile) looks like the more promising
-next question, but needs more real clips - and ideally some way to
-compare candidate ROI2 choices against each other on the same clip -
-before drawing a firm conclusion from one data point.
+clip, not two views of the same underlying quality.
+
+**Follow-up ablation, same session:** tested whether the choice of ROI2
+anchor - not tracking quality - is the actual lever, by holding ROI1
+(the tip, `115,42,22,28` in this clip's 256x144 frame) fixed and varying
+only ROI2, plus a single-point `standard` (hub) run with no ROI2 at all
+as a baseline for "is two-point distance even the right framing":
+
+| run | ROI2 | own quality | r vs. FunGen | lag |
+|---|---|---|---|---|
+| precise-ROI tj (above) | lower cleavage, `110,92,35,25` | 0.95 | 0.070 | -1000ms (boundary) |
+| single-point hub, tip only | none | 1.00 | 0.129 | **0ms** (confident) |
+| tj, neck/collarbone anchor | `110,5,35,22` | 0.85 | 0.123 | +600ms |
+
+Switching only the ROI2 anchor point (lower cleavage -> neck) nearly
+doubled the correlation (0.070 -> 0.123) with everything else held
+fixed - direct evidence that ROI2 choice, not tracking robustness, is
+the dominant lever for this profile on this clip. The single-point hub
+signal (no second region at all) did comparably well to the *better* of
+the two two-point attempts, with the most trustworthy lag of the three
+(0ms, not pinned to the search boundary) - some real signal is being
+captured by simple tip motion alone, without needing a distance at all.
+None of these three, however, beat the two older/messier runs from the
+row above (r=0.336, r=0.356) - so this still doesn't identify a
+reliably better ROI2 heuristic, only that ROI2 choice matters a lot and
+"lower, mostly-static point near the target" is not obviously the right
+default intuition (neck clearly beat lower-cleavage here).
+
+**Net conclusion, still one clip:** chasing tighter CSRT tracking
+further is not obviously the right lever for closing the FunGen gap;
+which ROI2 anchor point (or whether the two-point-distance framing is
+right at all for this profile) is the more promising open question, but
+needs more real clips - and ideally more than 2-3 candidate anchors per
+clip - before drawing a firm conclusion. The ablation method itself
+(hold ROI1 fixed, vary ROI2, compare via `fungen_compare.
+best_lag_correlation`) is cheap and reusable for whoever picks this up
+next with more clips - no new tooling needed, `generate_funscript.py`
+and `fungen_compare.py` already cover it end to end.
 
 ### 3. Improve automatic two-ROI suggestions
 
