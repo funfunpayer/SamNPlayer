@@ -143,10 +143,38 @@ Also added: `fungen_compare.py --dataset` now scans subfolders
 each came in their own subfolder tree, which the original top-level-only
 scan would have silently found nothing in.
 
-**Not yet done:** re-running the *original* real (non-synthetic) batch
-clips with the 2D-distance fix - needs the source videos, not just the
-`.funscript` outputs shared so far, to see how much of the real-clip gap
-it closes there specifically.
+**Done for one real clip (September 14, 2026):** a real 42s titjob clip
+was shared with its source video, its FunGen 2.6.3 reference, and an
+already-existing SamNPlayer `tj` output. The video is AV1 in an unusually
+low 256x144 resolution (transcoded to H.264 with `ffmpeg`/`libdav1d`
+first - the OpenCV build here has no working AV1 decode path); this alone
+is a plausible confound, since CSRT tracks small, blurry frames worse
+than a normal-resolution source would. ROI1/ROI2 were placed by hand on
+the first frame (tip vs. a lower, mostly-static anchor point) and run
+through the current (post-fix) `generate_funscript.py --profile tj`.
+
+Both the pre-existing output and the fresh run land far above the
+r=0.05-0.13 range from the earlier real clips: r=0.336 (existing output)
+and r=0.356 (fresh run), both against an inverted polarity match (FunGen
+and SamNPlayer disagree on which direction is "up" for this clip - a
+sign-convention question, not a tracking-quality one; `fungen_compare.py`
+already detects and reports this rather than scoring it as a mismatch).
+That is a real improvement over the earlier real-clip numbers, but this
+one data point does not by itself prove the fix generalizes: the fresh
+run's own Quality Doctor score was 0.60 ("PRÜFEN") because the CSRT
+tracker lost at least one of the two regions in 75% of frames (holding
+the last known position while lost, per `track_two_points`'s documented
+behavior), and shape-normalized error stayed high (~0.93) despite the
+respectable correlation - a sign that phase/direction line up passably
+but the matched amplitude does not. Likely explanation: the very low
+source resolution plus heavy motion blur, not the two-point distance
+formula itself (which is what the earlier fix targeted). A higher-
+resolution source video would be needed to tell tracking-quality
+limitations apart from resolution limitations on this specific clip.
+
+**Still not done:** running this same check across more than one real
+clip - one data point does not establish a trend, and every clip shared
+so far except this one still lacks its source video.
 
 ### 3. Improve automatic two-ROI suggestions
 
