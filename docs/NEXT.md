@@ -575,6 +575,50 @@ for accuracy, not speed, and this repo's own real-clip investigation
 (priority 2, above) already shows tracking-quality tradeoffs need
 measuring per clip, not assuming.
 
+**Asked directly (September 14, 2026): why not just use more CPU/RAM to
+go faster? Checked all three - CPU is already used, RAM doesn't apply,
+GPU is a dead end for CSRT specifically:**
+
+- **CPU is already heavily used per call, which is exactly why the
+  threading attempts above didn't help.** Measured: a single CSRT
+  `update()` call, with zero Python-level parallelism, already uses
+  ~2.2 of this sandbox's 4 cores on average (`time.process_time()` /
+  `time.time()` ratio over 300 calls) - OpenCV parallelizes the
+  correlation-filter math internally (`cv2.getNumThreads()` defaults to
+  `nproc`). That's why running two trackers "in parallel" at the Python
+  level didn't add real capacity: each call was already using most of
+  the available cores by itself, so two concurrent calls mostly
+  contended for the same 4 cores instead of getting 2x the resources.
+  On a real user machine with more physical cores, OpenCV's own internal
+  parallelism should scale up automatically with no code change needed -
+  not verified here (this sandbox only has 4 cores to test with), but a
+  reasonable, evidence-backed expectation given how `cv2.getNumThreads()`
+  works.
+- **RAM doesn't apply to this bottleneck.** This is compute-bound (CPU
+  cycles spent on correlation-filter matching), not memory-bound - more
+  RAM only helps a workload that's swapping to disk from memory
+  pressure, which a 256x144 video and two small tracker boxes never
+  approach. Not a lever here.
+- **GPU is a dead end for CSRT specifically, checked directly rather
+  than assumed.** `cv2.getBuildInformation()` shows this environment's
+  OpenCV has no CUDA support at all (every `cuda*` module listed
+  "Unavailable") - consistent with `settings.js`'s existing hint that
+  the usual pip OpenCV wheels aren't CUDA-built. But even a CUDA build
+  wouldn't help here: OpenCV's own tracker API has no GPU-accelerated
+  CSRT (`cv2.cuda` exists, `cv2.cuda.TrackerCSRT_create` does not) -
+  only some other operations (e.g. optical flow, used by the flow
+  backend and camera-motion estimation, not by CSRT) have CUDA
+  variants, also unavailable in this build. A stronger GPU would not
+  speed up the part of the pipeline that actually dominates runtime.
+
+Net: none of "more CPU," "more RAM," or "more GPU" moves the needle
+further here - the CPU is already close to saturated per call, RAM was
+never the constraint, and GPU acceleration doesn't exist for this
+specific algorithm in OpenCV. A real speedup needs either a different,
+GPU-capable or cheaper algorithm (with its own quality trade to
+measure, see above) or accepting CSRT's cost as roughly fixed per
+frame.
+
 **Checked the flow-backend idea directly, same session - real, but
 smaller and costlier than the existing docs claimed.** `--backend flow`
 on the same real clip: 25.1s wall vs. the CSRT hub run's ~48s - a real
