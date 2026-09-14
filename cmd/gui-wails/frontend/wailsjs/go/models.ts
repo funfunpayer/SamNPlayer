@@ -1,5 +1,28 @@
+export namespace funscript {
+
+	export class OMarker {
+	    startMs: number;
+	    endMs: number;
+	    kind: string;
+	    intensity: number;
+
+	    static createFrom(source: any = {}) {
+	        return new OMarker(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.startMs = source["startMs"];
+	        this.endMs = source["endMs"];
+	        this.kind = source["kind"];
+	        this.intensity = source["intensity"];
+	    }
+	}
+
+}
+
 export namespace generator {
-	
+
 	export class ProfileSuggestion {
 	    Found: boolean;
 	    Label: string;

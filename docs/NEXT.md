@@ -524,6 +524,27 @@ to-have. AI detection (priority 6's own open design question: model,
 signal shape, false-positive handling) remains separately open and
 still needs its own design pass regardless of the editor.
 
+**Manual half implemented (September 14, 2026):** rather than wait for
+the full curve-point-dragging editor (still "Later", see below - a much
+larger, less-scoped undertaking), the manual-placement half of this
+priority turned out to be independently buildable on its own: mark a
+region on the existing timeline (the drag gesture already used for the
+Extended-O sidecar marker), then promote it to an O-marker with a
+kind (primary/secondary) and, for secondary, an intensity - exactly the
+"primary marker + optional weaker secondary markers" shape specified
+above. Implemented as `funscript.OMarker`/`LoadOMarkers`/`SaveOMarkers`
+(`funscript/omarker.go`) - written into the funscript's own `metadata`
+field as `oMarkers`, per this section's own field-shape proposal, using
+a raw-JSON merge rather than the typed `Script` struct specifically so a
+field another tool (e.g. FunGen) may have added to the same file's
+`metadata` is never silently dropped on save (proven by
+`TestSaveOMarkersPreservesUnknownFields`, not just claimed) - and GUI
+bindings (`GetOMarkers`/`SaveOMarkers` in `app_markers.go`) plus a
+Player-tab panel (`playback.js`: add/list/remove, colored bands on the
+existing heatmap/curve canvases, `omarker_test.py`). AI-assisted
+placement (priority 6) still needs its own design pass and is not
+started; this only closes the manual path.
+
 ### 8. Generator performance vs. FunGen2
 
 The user's direction (September 14, 2026, explicitly prioritized this

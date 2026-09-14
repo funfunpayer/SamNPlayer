@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"os"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
 )
 
 // Marker ist ein vom Nutzer markierter Zeitbereich im Skript (z.B. der
@@ -54,4 +56,25 @@ func (a *App) GetMarker(scriptPath string) (*Marker, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+// GetOMarkers/SaveOMarkers sind dünne Bindungen um funscript.LoadOMarkers/
+// SaveOMarkers (siehe dort für das Format und warum es NICHT über den
+// typisierten Script-Typ läuft) - im Unterschied zu Marker oben liegen
+// O-Marker direkt IM Skript, nicht in einer Sidecar-Datei: sie sind
+// authored data, die mit dem Skript geteilt/exportiert werden soll
+// (docs/NEXT.md Priorität 7), nicht nur lokaler Player-Zustand.
+func (a *App) GetOMarkers(scriptPath string) ([]funscript.OMarker, error) {
+	markers, err := funscript.LoadOMarkers(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	if markers == nil {
+		markers = []funscript.OMarker{}
+	}
+	return markers, nil
+}
+
+func (a *App) SaveOMarkers(scriptPath string, markers []funscript.OMarker) error {
+	return funscript.SaveOMarkers(scriptPath, markers)
 }
