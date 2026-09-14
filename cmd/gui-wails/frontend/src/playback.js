@@ -1,6 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
+  ReportVideoPosition,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -509,7 +510,7 @@ export function initPlayback(root) {
     }
     if (!playing) { redrawHeatmap(); redrawCurve(); }
     if (playing && el('#pb-use-video-sync').checked) {
-      import('../wailsjs/go/main/App').then(m => m.ReportVideoPosition(Math.round(videoEl.currentTime * 1000)));
+      ReportVideoPosition(Math.round(videoEl.currentTime * 1000));
     }
   });
 
