@@ -1245,6 +1245,15 @@ def create_tracker():
     unterschiedlichen Stellen führt - in 5.x ist cv2.legacy weiterhin
     vorhanden, könnte aber wegfallen. Dann greift der Rückfall auf die
     Hauptschnittstelle, statt dass das ganze Skript scheitert.
+
+    GEMESSEN (September 14, 2026, echter 256x144-Clip, docs/NEXT.md
+    Priorität 2): Frames vor dem Tracking hochzuskalieren, in der Annahme
+    das helfe CSRT bei sehr kleinen/unscharfen Regionen, macht es messbar
+    SCHLECHTER statt besser - verlorene Frames stiegen von 2 % (Original-
+    auflösung, eng gesetzte ROIs) auf 6 % (2x) und 34 % (3x). CSRT verliert
+    offenbar öfter die Zuordnung, je größer das Korrelationsfenster wird,
+    nicht seltener. Nicht implementieren, ohne das an neuem Material zu
+    widerlegen.
     """
     if hasattr(cv2, "legacy") and hasattr(cv2.legacy, "TrackerCSRT_create"):
         return cv2.legacy.TrackerCSRT_create()
