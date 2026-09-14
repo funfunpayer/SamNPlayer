@@ -43,18 +43,21 @@ Do not switch profiles automatically without validation.
 
 ### 4. Complete motion-signature and profile integration in the GUI
 
-First inspect existing naming and persistence paths in the code.
-Acceptance: names and parameters survive restarts; reuse for similar scenes
-is offered with an explanation and can be declined.
+The naming and persistence paths now exist at the CLI level
+(`--label-scene`, `--suggest-profile` in `generate_funscript.py`, PR #6) —
+this item is now specifically the GUI wiring: a "name this scene" control
+and a suggestion display, not building the underlying mechanism from
+scratch. Acceptance: names and parameters survive restarts; reuse for
+similar scenes is offered with an explanation and can be declined.
 
 ### Later
 
 - Script Doctor for imported `.funscript` files.
 - Training history across multiple sessions.
 - AI as a replaceable analysis backend, reusing raw data, parameters,
-  quality reports, and confirmed ratings. Region proposal is implemented
-  (PR #6); profile and quality-judgment proposals remain open. See
-  `docs/AI_ADAPTER.md` for the architecture and order.
+  quality reports, and confirmed ratings. Region proposal and profile
+  proposal are implemented (PR #6); quality-judgment proposal remains
+  open. See `docs/AI_ADAPTER.md` for the architecture and order.
 
 ## Product requirements
 

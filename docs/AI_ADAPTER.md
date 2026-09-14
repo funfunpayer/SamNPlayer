@@ -68,19 +68,43 @@ export format.
   `generator/generator.go` targeting `ai_roi.py` instead of `auto_roi.py` —
   the `ROI x y w h` stdout contract is already kept identical).
 
-### 2. Propose a profile (standard/tf/tj/…) — **open**
+### 2. Propose a profile (standard/tf/tj/…) — **implemented**
 
-Builds on the motion signature, which exists but is not yet wired up
-(`HANDOFF.md`: naming in the UI and reusing saved parameters is not
-connected). Two possible directions, not yet decided:
+Decided in favor of the Colibri direction, and only as a fallback behind
+the existing classical tool — not a replacement for it:
 
-- Purely from the eight signature metrics via a small local model (would
-  stay on ONNX, the same engine as step 1).
-- Or as a text justification via Colibri ("this scene resembles the scene
-  named 'tj', because …") — this would restore, in a different form, the
-  explainability that `quality_model.py` deliberately buys by avoiding
-  neural networks: not readable weights, but a model that can justify its
-  decision in prose.
+- `generator/motion_signature.py` already had `extract()`, `save_labelled()`,
+  `load_labelled()`, and `find_similar()`, but nothing called them
+  (`HANDOFF.md` listed this as "not yet connected"). `--label-scene NAME`
+  and `--suggest-profile` in `generate_funscript.py` now wire them up.
+- `--suggest-profile` tries the classical, deterministic tool **first**:
+  `find_similar()` against saved examples. Below its distance threshold
+  (0.15) that alone decides the suggestion — `ai_profile.py` is not even
+  imported, let alone called.
+- Only when no saved example is close enough does it ask a local Colibri
+  server (`ai_profile.suggest_profile`) to judge the same eight signature
+  numbers plus the nearest saved examples, and return a profile guess with
+  a one-sentence reason — or `"unsure"` rather than force a guess.
+- No trained classifier was added: there is currently no labelled corpus
+  at all (nobody has run `--label-scene` yet), and training one on too few
+  examples would repeat the mistake `quality_model.py` guards against. A
+  zero-shot LLM judgment needs no training data and can admit uncertainty.
+- Neither path touches `--profile` automatically — both print a suggestion
+  only, matching `docs/NEXT.md`'s "do not switch profiles automatically
+  without validation".
+- Colibri's `/v1/chat/completions` is called with the stdlib
+  `urllib.request` — no new pip dependency. `ai_profile.available()`
+  returns `False` (not an exception) when no server is reachable at
+  `--ai-base-url` (default `http://127.0.0.1:8080`), which is the expected
+  state until someone runs `coli serve` locally.
+- Tests: `generator/ai_profile_test.py` (prompt building and response
+  parsing, no network) and `generator/profile_suggestion_test.py` (the CLI
+  wiring end to end via a real subprocess call, proving the classical path
+  wins when it has a confident match and that the AI path is skipped
+  entirely in that case).
+- **Still open:** GUI wiring (a "Name this scene" control and a suggestion
+  display), and no field data yet on how useful the AI fallback actually is
+  — nobody has run it against a real Colibri server.
 
 ### 3. Quality judgment — **open**
 

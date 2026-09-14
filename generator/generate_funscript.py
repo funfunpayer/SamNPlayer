@@ -1698,6 +1698,25 @@ def main():
                     help="Gelerntes Modell ignorieren und nur die festen Regeln anwenden.")
     ap.add_argument("--model-info", action="store_true",
                     help="Das gelernte Modell beschreiben und beenden.")
+    ap.add_argument("--label-scene", default=None, metavar="NAME",
+                    help="Bewegungssignatur von --video unter NAME speichern (Wiedererkennung "
+                         "ähnlicher Szenen, siehe motion_signature.py). Braucht --video, "
+                         "verarbeitet das Video sonst nicht, beendet danach.")
+    ap.add_argument("--suggest-profile", action="store_true",
+                    help="Bewegungssignatur von --video gegen gespeicherte Szenen (siehe "
+                         "--label-scene) vergleichen und ein Profil vorschlagen. Findet sich "
+                         "keine ähnliche Szene, wird zusätzlich ein KI-Vorschlag versucht "
+                         "(siehe ai_profile.py, --ai-base-url) - beides bleibt ein Vorschlag, "
+                         "nichts hiervon setzt --profile automatisch. Braucht --video, "
+                         "verarbeitet das Video sonst nicht, beendet danach.")
+    ap.add_argument("--signature-path", default=None, metavar="DATEI",
+                    help="Wo gespeicherte Szenensignaturen liegen (Standard: "
+                         "plattformüblicher Ort, siehe motion_signature.default_labels_path).")
+    ap.add_argument("--ai-base-url", default=None, metavar="URL",
+                    help="Adresse eines lokal laufenden Colibri-Servers (`coli serve`) für "
+                         "--suggest-profile, falls die gespeicherten Szenen keinen sicheren "
+                         "Treffer liefern (Standard: http://127.0.0.1:8080). Nicht erreichbar "
+                         "-> kein KI-Vorschlag, kein Fehler.")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -1858,6 +1877,44 @@ def process_one(args, ap):
         w, h = dump_first_frame(args.video, args.dump_first_frame)
         print(f"FRAME_SIZE {w} {h}", file=sys.stderr)
         print(f"Geschrieben: {args.dump_first_frame}", file=sys.stderr)
+        return
+
+    if args.label_scene:
+        import motion_signature
+        signature = motion_signature.extract(args.video)
+        path = args.signature_path or motion_signature.default_labels_path()
+        motion_signature.save_labelled(path, args.label_scene, signature)
+        print(f"Szene als '{args.label_scene}' gespeichert unter {path}", file=sys.stderr)
+        return
+
+    if args.suggest_profile:
+        import motion_signature
+        signature = motion_signature.extract(args.video)
+        path = args.signature_path or motion_signature.default_labels_path()
+        known = motion_signature.load_labelled(path)
+        match, dist = motion_signature.find_similar(signature, known)
+        if match is not None:
+            print(f"Vorschlag (gemessen, keine KI): '{match['label']}' "
+                  f"(Abstand {dist:.3f})", file=sys.stderr)
+            print(f"PROFILE_SUGGESTION {match['label']} measured {dist:.3f}")
+            return
+        print(f"Keine gespeicherte Szene nah genug (kleinster Abstand {dist:.3f}) - "
+              "versuche KI-Vorschlag", file=sys.stderr)
+        import ai_profile
+        base_url = args.ai_base_url or ai_profile.DEFAULT_BASE_URL
+        if not ai_profile.available(base_url=base_url):
+            print(f"Kein Colibri-Server unter {base_url} erreichbar - kein Vorschlag",
+                  file=sys.stderr)
+            return
+        nearest = sorted(known, key=lambda e: motion_signature.distance(
+            signature, e.get("signature", {})))[:3]
+        result = ai_profile.suggest_profile(signature, known_examples=nearest, base_url=base_url)
+        if result is None:
+            print("KI lieferte keinen verwertbaren Vorschlag", file=sys.stderr)
+            return
+        print(f"Vorschlag (KI, unverifiziert): '{result['profile']}' "
+              f"(Konfidenz {result['confidence']:.2f}) - {result['reason']}", file=sys.stderr)
+        print(f"PROFILE_SUGGESTION {result['profile']} ai {result['confidence']:.2f}")
         return
 
     if not args.output:
