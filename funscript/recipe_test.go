@@ -81,8 +81,8 @@ func TestRecipeTJContactVibrationTracksPosition(t *testing.T) {
 	script := scriptFrom(
 		Action{At: 0, Pos: 20}, // fern
 		Action{At: 500, Pos: 20},
-		Action{At: 600, Pos: 90}, // Kontakt: nahe am beobachteten Maximum
-		Action{At: 900, Pos: 90}, // Kontakt hält an - lange Berührung
+		Action{At: 600, Pos: 90},  // Kontakt: nahe am beobachteten Maximum
+		Action{At: 900, Pos: 90},  // Kontakt hält an - lange Berührung
 		Action{At: 1000, Pos: 20}, // wieder fern
 		Action{At: 1500, Pos: 20},
 	)
