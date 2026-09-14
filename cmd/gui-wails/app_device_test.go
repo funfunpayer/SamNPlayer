@@ -55,3 +55,26 @@ func TestDeviceTabFlow(t *testing.T) {
 	}
 	a.endSession()
 }
+
+// TestClaimTestDeviceConnectSerializes prüft die eigentliche Absicherung
+// hinter ConnectDevice/ConnectDeviceVia direkt: solange ein Connect-Versuch
+// als laufend markiert ist (testDevice selbst ist bis zum Erfolg noch nil),
+// muss ein zweiter claimTestDeviceConnect()-Aufruf abgelehnt werden - sonst
+// könnten zwei nahezu gleichzeitige Connect-Aufrufe beide die alte
+// Nil-Prüfung bestehen und am Ende überschreibt der zuletzt fertige den
+// anderen, dessen Verbindung dann offen, aber unerreichbar bliebe.
+func TestClaimTestDeviceConnectSerializes(t *testing.T) {
+	a := NewApp()
+
+	if err := a.claimTestDeviceConnect(); err != nil {
+		t.Fatalf("erster Claim muss gelingen: %v", err)
+	}
+	if err := a.claimTestDeviceConnect(); err == nil {
+		t.Error("zweiter Claim während des ersten muss abgelehnt werden")
+	}
+	a.releaseTestDeviceConnect()
+	if err := a.claimTestDeviceConnect(); err != nil {
+		t.Errorf("Claim nach dem Freigeben muss wieder gelingen: %v", err)
+	}
+	a.releaseTestDeviceConnect()
+}
