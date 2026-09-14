@@ -88,23 +88,34 @@ The vision doc's "Reihenfolge der nächsten Implementierung" lists ten
 steps; steps 1-4 are well-scoped, low-risk, and useful independent of how
 far the rest of the vision goes, so they're the actual next block:
 
-1. **SAM Motion Model** - a versioned Go data model, richer than
-   `funscript.Action{At, Pos}`: motion type, direction, velocity,
-   acceleration, range/depth, intensity, energy, tempo, smoothness,
-   variation, tension, anticipation, confidence. Not every field needs a
-   producer on day one; the schema must tolerate fields it doesn't know
-   yet (unknown-field tolerance, so an old reader doesn't break on a
-   newer file - the same spirit as `Metadata`'s existing `omitempty`
-   fields in `funscript.go`).
-2. **SAM Script v0.1** - the file format carrying that model, versioned
-   (`"version": "0.1"`), describing both continuous state and discrete
-   events. Intent-based ("rhythmic, energy 0.72"), not just raw device
-   positions - the vision doc's own framing.
-3. **Funscript → SAM converter.**
-4. **SAM → Funscript converter**, with roundtrip tests: import an
-   existing `.funscript`, export it back, and verify timing and
-   positions survive (existing players, existing scripts, the existing
-   ecosystem all keep working un-migrated).
+1. **SAM Motion Model - implemented** (`sam/sam.go`): a versioned Go data
+   model, richer than `funscript.Action{At, Pos}`: motion type, direction,
+   velocity, acceleration, range/depth, intensity, energy, tempo,
+   smoothness, variation, tension, anticipation, confidence. Not every
+   field has a producer yet (only `Position` and `Type` are populated
+   today, by `FromFunscript`) - the schema tolerates fields it doesn't
+   know yet, verified by a test that unmarshals a file with fields this
+   version has never seen and confirms the known fields still parse
+   correctly (`TestParseIgnoresUnknownFutureFields`).
+2. **SAM Script v0.1 - implemented** (`sam/sam.go`): the file format
+   carrying that model, versioned (`"version": "0.1"`, `sam.ScriptVersion`),
+   frames keyed by `"time"` per the vision doc's own example. `Parse`
+   rejects a missing version or empty frame list, clamps out-of-range
+   normalized fields the same way `funscript.Parse` already clamps `Pos`,
+   and sorts frames by time since source order isn't guaranteed.
+3. **Funscript → SAM converter - implemented** (`sam.FromFunscript`).
+4. **SAM → Funscript converter - implemented** (`sam.ToFunscript`), with
+   roundtrip tests (`sam/funscript_test.go`): a synthetic 10,000-action
+   file roundtrips with every sampled action identical, confirming timing
+   and positions survive intact (existing players, existing scripts, the
+   existing ecosystem all keep working un-migrated).
+
+Not yet done from this milestone's own DoD: no producer sets any field
+besides `Position`/`Type` yet (motion classification etc. stay deferred,
+see below), and nothing in the GUI or CLI creates or reads a `.sam` file
+yet - `sam/` exists as a library, not wired into any user-facing flow.
+That wiring is intentionally a separate, later step so this slice stays
+reviewable on its own.
 
 ### Definition of Done for this milestone
 
@@ -134,6 +145,35 @@ playback of a SAM Script, without rewriting the underlying file - the same
 "correction on top, original data unchanged" principle the vision doc
 describes for P1.2. Only attempted once milestone 1 is solid; not
 scheduled yet.
+
+## Non-negotiable: contact vibration and O-markers must carry forward
+
+The user's direction (September 14, 2026, repeated explicitly while this
+milestone was being built): contact-triggered vibration for Tf/Tj (`docs/
+NEXT.md` priority 5, shipped in PR #20) and O-function event markers
+(priority 7, not yet implemented, blocked on the manual editor and climax
+detection) are **not optional extras SAM is allowed to drop** - "muss
+weiter drin sein... das ist wichtig." Whatever milestone 2's runtime ends
+up looking like, it must have an equivalent or better path for both, not
+silently lose them in the transition away from `funscript.MapOptions`.
+
+Concretely, both already fit SAM's existing field set without needing new
+schema design:
+
+- **Contact vibration** maps onto `Motion.Range` (the ROI1↔ROI2 distance
+  that already drives it in `mapper.go`) plus `Motion.Intensity` for the
+  resulting pulse strength - the same relationship
+  `ToIntensityCurve`'s `contactEnabled` branch already encodes, just
+  expressed as SAM fields instead of being computed inline from raw `pos`.
+- **O-markers** are events, not continuous state - exactly the "both
+  continuous state and events" requirement the vision doc's own P0.2
+  already calls for in SAM Script. A marker is a `Frame` (or a short
+  run of frames) with elevated `Anticipation`/`Intensity` and a `Type`
+  that says so, not a new top-level concept.
+
+This is a constraint on milestone 2's design, not new work for milestone 1
+(this commit) - noted here so it isn't forgotten by the time the runtime
+is actually built.
 
 ## Deferred, no fixed schedule - pursue only when a concrete use case justifies it
 
