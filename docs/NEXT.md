@@ -196,6 +196,26 @@ clip using `track_two_points` and `fungen_compare.best_lag_correlation`:
   were marked* than about the clip's resolution or blur, which is the
   more actionable/generalizable lesson of the two.
 
+**Follow-up (September 14, 2026), testing the user's own idea of
+improving a poor-quality source video before tracking rather than
+after:** unsharp masking (`cv2.GaussianBlur` + `addWeighted`, directly
+targeting the clip's documented motion blur, unlike upscaling which
+targeted resolution) applied to every frame before CSRT tracking, same
+tip/lower-cleavage ROI pair as the 2%-baseline above. Small, one-
+directional improvement, not the regression upscaling caused: lost
+frames dropped from 51/2527 (2.0%) at amount=0 to 48/2527 (1.9%) at
+amount=0.5 to 45/2527 (1.8%) at amount=1.0 - real but modest, since this
+ROI pair was already performing well and had little room to improve.
+**Incomplete:** the amount=2.0 run and a FunGen-correlation check (the
+metric that actually mattered in the ROI2 ablation above - lower
+lost-frame count did NOT predict better correlation there) were not
+finished before this investigation was cut short for time. Before
+shipping sharpening as a preprocessing step: confirm the trend holds on
+a clip that's actually struggling (this one wasn't, so there's limited
+signal here), and check FunGen correlation, not just lost-frame count,
+given what the ROI2 ablation already taught about that gap. Not
+implemented in the pipeline - measurement only, script not kept.
+
 **But this did NOT translate into a better FunGen match - if anything
 the opposite, and this is the more important finding to carry forward.**
 Three attempts on the identical clip, ranked by own tracking quality
@@ -618,6 +638,19 @@ specific algorithm in OpenCV. A real speedup needs either a different,
 GPU-capable or cheaper algorithm (with its own quality trade to
 measure, see above) or accepting CSRT's cost as roughly fixed per
 frame.
+
+**Asked again (same day): what about GPU for a preprocessing step
+(sharpen/denoise before tracking) instead of for CSRT itself?**
+Different question, different answer - unlike CSRT, filters like
+`cv2.GaussianBlur`/unsharp masking or denoising do have CUDA-accelerated
+OpenCV variants (`cv2.cuda.*`) in principle. Still needs a CUDA-enabled
+OpenCV build, which this repo doesn't ship (see above) - packaging one
+(matching the user's own NVIDIA card, "vielleicht keine größere aber
+vielleicht später") is a separate, real effort (CUDA version matching,
+a much larger wheel, platform-specific builds) worth doing only once a
+preprocessing step is proven to actually help - see the unsharp-masking
+result just above this section, which is promising but not yet proven
+enough to justify that investment.
 
 **Checked the flow-backend idea directly, same session - real, but
 smaller and costlier than the existing docs claimed.** `--backend flow`
