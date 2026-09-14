@@ -504,6 +504,97 @@ to-have. AI detection (priority 6's own open design question: model,
 signal shape, false-positive handling) remains separately open and
 still needs its own design pass regardless of the editor.
 
+### 8. Generator performance vs. FunGen2
+
+The user's direction (September 14, 2026, explicitly prioritized this
+session): generation is slower than FunGen2 and should use CPU/RAM/GPU
+better regardless of which card is present. Per the repo's own standing
+rule, profiled before touching anything.
+
+**Baseline established (September 14, 2026, real clip, `cProfile`):** for
+a single-ROI (`standard`/hub) run on the 256x144/42s real clip (2527
+frames, no cache), total wall time was ~49s. `cv2.legacy.Tracker.update`
+(CSRT) alone accounted for 44.4s - **~90% of total runtime**. Frame
+decode (`cv2.VideoCapture.read`, 0.54s), camera-motion estimation
+(`goodFeaturesToTrack` + `calcOpticalFlowPyrLK`, ~2.2s), and one-time
+Python/scipy import overhead (~1.4s) are all minor by comparison. This
+directly answers the open question from the previous version of this
+note ("Python startup, frame decode, CSRT tracking, camera-motion
+compensation, I/O?") - it's CSRT, overwhelmingly, not the other
+candidates. Any optimization that doesn't touch CSRT's own cost is
+chasing at most ~10% of total runtime.
+
+**Tried and measured, reverted - a real negative result:** CSRT's
+`update()` releases the GIL (confirmed: two trackers running in Python
+threads instead of sequentially measured **1.68x faster in isolation**,
+a tight loop on a static frame with no other work). For `tj`/`tf`
+(two trackers per frame, fully independent - no shared state, no
+inter-dependency), this looked like a clean, safe win, so it was
+implemented (`concurrent.futures.ThreadPoolExecutor(max_workers=2)`
+created once, both `tracker.update()` calls submitted per frame) and
+verified correct (identical output to the sequential version: same
+lost-frame count, same keyframes, same Quality Doctor score, all
+existing tests green).
+
+**But measured against the real end-to-end pipeline (not the isolated
+microbenchmark), it gave no net benefit** - four timed runs (1200
+frames each, alternating threaded/sequential to control for system-load
+drift): threaded 34.4s/35.2s vs. sequential 33.0s/33.6s. The threaded
+version was, if anything, marginally *slower*. Likely explanation: the
+isolated benchmark only measured the tracker calls in a tight loop;
+the real pipeline adds per-frame `ThreadPoolExecutor.submit()`/
+`.result()` overhead (two of each, every frame, ~2500 times) plus frame
+decode and Python bookkeeping in between, and that overhead was enough
+to cancel out the parallel savings. Reverted rather than shipped -
+this repo's standing rule is not to ship a change whose own measurement
+doesn't support it. Ruled out: a persistent-thread-pool CSRT
+parallelization of `track_two_points`, implemented exactly as described
+above, is not a win as measured on this clip's resolution.
+
+**Also tried, same session: a lower-overhead handoff - same negative
+result, now confirmed robust rather than a `ThreadPoolExecutor`
+artifact.** Two persistent worker threads synchronized with
+`threading.Event` (submit a frame, wait for a "done" signal - no
+`Future` object, no executor queue, the overhead this was meant to
+rule out) gave the same result as the `ThreadPoolExecutor` version:
+~33s for 1200 frames, same as sequential, no measurable win. Since two
+independently-implemented parallelization strategies both failed to
+reproduce the isolated benchmark's 1.68x in the real pipeline, the
+cause is not implementation overhead in either approach - something
+about the full pipeline (frame decode interleaved with tracking, real
+per-frame memory allocation instead of a reused static buffer, or
+OpenCV's own internal thread pool behaving differently under real
+conditions than in a tight synthetic loop) evidently negates the
+theoretical gain. Parallelizing the two `tj`/`tf` tracker calls is not
+a productive lever at this clip's resolution; not worth another attempt
+without a new hypothesis for *why* the isolated result doesn't transfer.
+
+Not yet evaluated: whether a cheaper OpenCV tracker (KCF, MOSSE) gives
+acceptable tracking quality for a real speed trade - CSRT was chosen
+for accuracy, not speed, and this repo's own real-clip investigation
+(priority 2, above) already shows tracking-quality tradeoffs need
+measuring per clip, not assuming.
+
+**Checked the flow-backend idea directly, same session - real, but
+smaller and costlier than the existing docs claimed.** `--backend flow`
+on the same real clip: 25.1s wall vs. the CSRT hub run's ~48s - a real
+~1.9x speedup, not the "~4x" the code comment/GUI hint text claims
+(that figure describes per-frame cost on a different, presumably
+larger-ROI case; this clip's CSRT is unusually cheap at 256x144, so the
+*relative* advantage of flow shrinks here). More importantly, **it cost
+real quality on this clip**: Quality Doctor dropped from 1.00 (CSRT) to
+0.55 ("PRÜFEN" - signal noisy rather than rhythmic, spectral
+concentration only 16%), with a hint that the motion-center estimators
+disagree - this is a busy, multi-subject scene (hands, two breasts,
+the tip) where flow's automatic center-of-motion detection has more to
+get confused by than a single clean tracked region does. So: steering
+more users to flow-by-default is **not** the free win the existing
+hint text implies, at least not for this kind of scene - it's a real
+speed/quality tradeoff that depends on scene complexity, not a
+strictly-better option. Worth keeping as an opt-in for simple,
+single-subject scenes (where the existing hint text's premise likely
+does hold) rather than promoting it as a general default.
+
 ### Later
 
 - Script Doctor for imported `.funscript` files.
@@ -521,14 +612,10 @@ still needs its own design pass regardless of the editor.
   already in `playback.js` (see `curve_display_test.py`) rather than
   building a second renderer from scratch - not yet discussed with the
   user which parts of "proper editor" are must-have for a first version
-  versus later refinement. Also: generation is slower
-  than FunGen2 and should use CPU/RAM/GPU better regardless of which
-  card is present - no baseline measurement exists yet to say where the
-  time actually goes (Python startup, frame decode, CSRT tracking,
-  camera-motion compensation, I/O?); profile before optimizing blindly.
-  Also general asks for a more stable, professional-looking, polished
-  system - continue the direction already started with the dark reskin
-  (PR #11) and sidebar (PR #12), not a one-off task.
+  versus later refinement. Also general asks for a more stable,
+  professional-looking, polished system - continue the direction already
+  started with the dark reskin (PR #11) and sidebar (PR #12), not a
+  one-off task.
 - Training history across multiple sessions.
 - AI as a replaceable analysis backend, reusing raw data, parameters,
   quality reports, and confirmed ratings. Region proposal, profile
