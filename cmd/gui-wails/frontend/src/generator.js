@@ -26,14 +26,6 @@ export function initGenerator(root, playback) {
     </div>
     <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
 
-    <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert">Bewegungsrichtung umkehren</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp">Kamerabewegungs-Kompensation (empfohlen bei Kameraschwenks)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut">Szenenschnitt-Erkennung (verankert Tracker bei harten Schnitten neu)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-flow" /><label for="gen-flow">Flow-Backend verwenden (keine Region nötig, ca. 4x schneller)</label></div>
-    <p class="hint" style="margin:0 0 6px 24px;">Bei ruhiger Kamera gleichwertig. Bei
-      Kameraschwenks trifft der Tracker-Weg die Bewegungsstärke besser gemessen 113 gegen
-      145 bei 110 tatsächlicher Bewegung —, weil dort die Kamerabewegung über
-      Hintergrundmerkmale herausgerechnet wird.</p>
     <div class="row" style="align-items:center;">
       <label style="width:auto;">Bewegungsart</label>
       <select id="gen-profile">
@@ -67,16 +59,30 @@ export function initGenerator(root, playback) {
       gegen einen lokalen KI-Server (Einstellungen → KI-Server-Adresse). Beides ein
       Vorschlag zum Bestätigen, nichts wird automatisch übernommen.
     </p>
-    <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
-    <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
-    <div class="field-row"><label>Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
-    <div class="field-row"><label>Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
-    <div class="field-row"><label>RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+
+    <details id="gen-advanced" style="margin:6px 0 10px 0;">
+      <summary style="cursor:pointer;">Erweiterte Einstellungen</summary>
+      <div style="margin-top:8px;">
+        <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert">Bewegungsrichtung umkehren</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp">Kamerabewegungs-Kompensation (empfohlen bei Kameraschwenks)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut">Szenenschnitt-Erkennung (verankert Tracker bei harten Schnitten neu)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-flow" /><label for="gen-flow">Flow-Backend verwenden (keine Region nötig, ca. 4x schneller)</label></div>
+        <p class="hint" style="margin:0 0 6px 24px;">Bei ruhiger Kamera gleichwertig. Bei
+          Kameraschwenks trifft der Tracker-Weg die Bewegungsstärke besser gemessen 113 gegen
+          145 bei 110 tatsächlicher Bewegung —, weil dort die Kamerabewegung über
+          Hintergrundmerkmale herausgerechnet wird.</p>
+        <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
+        <div class="field-row"><label>Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
+        <div class="field-row"><label>Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+        <div class="field-row"><label>RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+      </div>
+    </details>
 
     <div class="row"><button id="gen-generate" class="primary" disabled>Funscript generieren</button></div>
     <div class="path-label" id="gen-status"></div>

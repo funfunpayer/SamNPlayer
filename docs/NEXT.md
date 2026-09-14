@@ -273,6 +273,14 @@ is not needed at that moment. Wanted "whether with AI or without" - i.e.
 independent of which engine found the regions, this is a mapping/recipe
 change, not a detection change.
 
+**Refined the same day, still not designed/implemented:** the reference
+point isn't necessarily a nipple - it could be a tongue too (same
+mechanic: ROI1↔ROI2 distance near its minimum = contact). The pulse
+shape itself is left open by the user ("strong then weaker" was floated
+as one option, "that's your call") - i.e. the exact envelope is an
+implementation choice once the feature is designed, not a fixed spec to
+match.
+
 This is a new requirement, not yet designed: today's Tf/Tj recipe
 (`tf_tj_meta.py`, `player/`) holds vibration at a fixed 0 the whole time
 (`sync: suction_position`, "kein Akt-Detektor" - see `generator.js`'s own
@@ -288,6 +296,55 @@ with the user before implementation, not just a mapping tweak - it
 changes a documented, deliberate `vibration = 0` invariant that existing
 tests likely assert on (check `generator/tf_tj_meta_test.py`,
 `player/*_test.go` before touching this).
+
+### 6. Climax ("cum") detection — new AI feature, user marked urgent
+
+The user's direction (September 14, 2026, called it "dringend" - urgent):
+detect the climax/ejaculation moment in the source video and use it to
+drive playback (presumably feeding priority 5's contact-vibration idea
+and/or the "O-function" in priority 7 below - the user did not fully spec
+how the three connect, only that all three are wanted).
+
+Not designed and not started. This is a content-classification problem,
+materially different from the existing region/profile/quality AI slices
+(`docs/AI_ADAPTER.md`) which measure motion, not scene content - it would
+need its own model (or a Colibri vision-judgment call, same pattern as
+`ai_quality.py`'s second opinion) and, like priority 5, a deliberate
+design pass before implementation: what signal it outputs (a single
+timestamp? a confidence curve? an event marker written into the
+funscript, tying into priority 7?), how false positives/negatives are
+handled (a wrong or missed detection changes device output, not just a
+displayed label), and whether it's AI-only or has a classical fallback
+signal too (consistent with `docs/AI_ADAPTER.md`'s "AI proposes, classical
+system always measures/decides" rule - needs an answer for what the
+classical measurement would even be here). Needs a design decision with
+the user before implementation.
+
+### 7. Author "O-function" event markers into the funscript itself
+
+The user's direction (September 14, 2026): today's Extended-O behavior
+(`prefPlaybackEOEnabled` and related settings in `app_settings.go`/
+`settings.js`) is detected live by the *player* from the played signal.
+The user wants an additional option: mark/select an "O-function" region
+directly in the funscript at generation/edit time - so it's authored data
+carried in the script, selectable by the user, instead of only inferred
+at playback. Explicit: the existing player-side detection should stay
+("da soll es drin bleiben, aber erkannt werden") - this is additive, not
+a replacement.
+
+Raises a real format question, also not decided: the standard
+`.funscript` JSON (`actions: [{at, pos}]` + a free-form `metadata` object,
+see `funscript/funscript.go`) has no standard field for named
+event/chapter markers. The user pointed out FunGen also carries its own
+additional, non-standard data alongside the standard fields - i.e.
+extending `metadata` with a SamNPlayer-specific optional field (e.g. a
+list of `{startMs, endMs, kind}` markers) would be consistent with how
+other tools already do this, and wouldn't break compatibility with
+plain `.funscript` consumers that only read `actions`. Needs a design
+decision (field shape, how the player consumes it, how it's authored -
+manually? from priority 6's detection?) before implementation; likely
+depends on priority 6 being designed first since "cum detection" is the
+stated source of the marker.
 
 ### Later
 
