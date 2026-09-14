@@ -139,7 +139,8 @@ Standard / Busen / Oral.
 - Python aus der .exe werfen (`videox` verdrahten, wenn der Vorteil gemessen
   ist).
 - KI nur als Adapter: schlägt ROI/Profil vor, Mensch bestätigt. Muss die
-  festen Regeln in Kreuzvalidierung schlagen.
+  festen Regeln in Kreuzvalidierung schlagen. Konkreter Plan und erste
+  Umsetzung (ROI-Vorschlag per ONNX): `docs/AI_ADAPTER.md`.
 
 ---
 

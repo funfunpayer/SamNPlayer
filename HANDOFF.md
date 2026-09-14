@@ -457,6 +457,8 @@ schon gebraucht würden.
 
 ## Offene Punkte
 
+0. Lokale KI als Adapter (ROI vorgeschlagen, Profil/Qualität offen) –
+   Architektur und Stand in `docs/AI_ADAPTER.md`
 1. Hardwaretest am echten Gerät – Verbindung, Rohwert-Auflösung, Training
 2. Qualitätsschwellen an echtem Material nachziehen – Messbericht führen,
    Urteile abgeben, dann „Aus Urteilen lernen"
