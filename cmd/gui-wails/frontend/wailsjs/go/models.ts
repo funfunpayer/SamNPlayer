@@ -1,3 +1,26 @@
+export namespace generator {
+	
+	export class ProfileSuggestion {
+	    Found: boolean;
+	    Label: string;
+	    Kind: string;
+	    Confidence: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProfileSuggestion(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Found = source["Found"];
+	        this.Label = source["Label"];
+	        this.Kind = source["Kind"];
+	        this.Confidence = source["Confidence"];
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class CacheInfo {
@@ -98,6 +121,7 @@ export namespace main {
 	    dynamicRangeMs: number;
 	    profile: string;
 	    overwrite: boolean;
+	    aiQualityOpinion: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new GenerateOptions(source);
@@ -130,6 +154,7 @@ export namespace main {
 	        this.dynamicRangeMs = source["dynamicRangeMs"];
 	        this.profile = source["profile"];
 	        this.overwrite = source["overwrite"];
+	        this.aiQualityOpinion = source["aiQualityOpinion"];
 	    }
 	}
 	export class HeatmapPoint {
@@ -313,6 +338,7 @@ export namespace main {
 	    deviceTransport: string;
 	    intifaceUrl: string;
 	    aiRoiModelPath: string;
+	    aiBaseUrl: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -349,6 +375,7 @@ export namespace main {
 	        this.deviceTransport = source["deviceTransport"];
 	        this.intifaceUrl = source["intifaceUrl"];
 	        this.aiRoiModelPath = source["aiRoiModelPath"];
+	        this.aiBaseUrl = source["aiBaseUrl"];
 	    }
 	}
 	export class TrainingRequest {

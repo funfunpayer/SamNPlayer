@@ -65,6 +65,7 @@ type GenerateOptions struct {
 	DynamicRangeMs            float64 `json:"dynamicRangeMs"`
 	Profile                   string  `json:"profile"`
 	Overwrite                 bool    `json:"overwrite"`
+	AIQualityOpinion          bool    `json:"aiQualityOpinion"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -103,6 +104,21 @@ func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
 }
 
+// SuggestProfile vergleicht die Bewegungssignatur des Videos gegen zuvor mit
+// LabelScene benannte Szenen und, falls keine nah genug ist, gegen einen
+// optionalen Colibri-Server. Found=false ist ein normales Ergebnis (kein
+// Fehler) - keine passende Szene, kein KI-Server erreichbar.
+func (a *App) SuggestProfile(videoPath string) (generator.ProfileSuggestion, error) {
+	return generator.SuggestProfile(videoPath, a.settings.GetString(prefAIBaseURL, ""))
+}
+
+// LabelScene merkt sich die Bewegungssignatur des Videos unter label, damit
+// spätere ähnliche Szenen darüber ein Profil vorgeschlagen bekommen
+// (SuggestProfile).
+func (a *App) LabelScene(videoPath, label string) error {
+	return generator.LabelScene(videoPath, label)
+}
+
 func (a *App) ScriptExistsForVideo(videoPath string) bool {
 	_, err := os.Stat(scriptPathForVideo(videoPath))
 	return err == nil
@@ -137,6 +153,8 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			DisableCameraCompensation: opts.DisableCameraCompensation,
 			DisableSceneCutDetection:  opts.DisableSceneCutDetection,
 			RDPTolerance:              opts.RDPTolerance,
+			AIQualityOpinion:          opts.AIQualityOpinion,
+			AIBaseURL:                 a.settings.GetString(prefAIBaseURL, ""),
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
@@ -156,6 +174,10 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				payload["qualityPassed"] = *script.Metadata.QualityPassed
 			}
 			logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore)
+			if script.Metadata.AIOpinion != nil {
+				payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
+				payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
+			}
 		} else if loadErr != nil {
 			logging.Warn("generator: erzeugtes Skript nicht lesbar", "output", outPath, "fehler", loadErr)
 		}

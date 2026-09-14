@@ -2156,6 +2156,13 @@ def process_one(args, ap):
         "quality_passed": quality["passed"],
         "quality_warnings": quality["warnings"],
     }
+    # Wie im --report-Eintrag: rein informativ, verändert quality_score/
+    # quality_passed nicht und wird nicht automatisch zu einem Feedback-
+    # Urteil. Zusätzlich hier (nicht nur im Bericht) hinterlegt, damit die
+    # GUI sie direkt aus der erzeugten Datei lesen kann, auch ohne
+    # aktivierte Messwert-Aufzeichnung (--report).
+    if ai_opinion is not None:
+        metadata["ai_opinion"] = ai_opinion
     metadata = apply_profile_metadata(metadata, args.profile)
 
     with open(args.output, "w") as f:

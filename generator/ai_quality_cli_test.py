@@ -71,6 +71,10 @@ def main():
               entry1["quality"]["ai_opinion"] is None, str(entry1["quality"]))
         check("quality.passed/score bleiben die normalen Doctor-Werte",
               "passed" in entry1["quality"] and "score" in entry1["quality"], "")
+        funscript1 = json.loads(out1.read_text())
+        check("ai_opinion fehlt in der .funscript-Metadata, wenn es keins gibt "
+              "(kein leerer/erfundener Eintrag)",
+              "ai_opinion" not in funscript1["metadata"], str(funscript1["metadata"]))
 
         # --- mit --ai-quality-opinion, aber ohne laufenden Server ---------------
         report2 = Path(tmp) / "report2.jsonl"
@@ -84,6 +88,10 @@ def main():
         entry2 = json.loads(report2.read_text().splitlines()[-1])
         check("ai_opinion bleibt None, statt einen Vorschlag zu erfinden",
               entry2["quality"]["ai_opinion"] is None, str(entry2["quality"]))
+        funscript2 = json.loads(out2.read_text())
+        check("auch mit --ai-quality-opinion fehlt ai_opinion in der Metadata, "
+              "wenn kein Server erreichbar war",
+              "ai_opinion" not in funscript2["metadata"], str(funscript2["metadata"]))
         check("quality.passed/score sind identisch zum Lauf ohne KI-Option "
               "(die Zweitmeinung verändert die Doctor-Bewertung nicht)",
               (entry1["quality"]["passed"], entry1["quality"]["score"]) ==

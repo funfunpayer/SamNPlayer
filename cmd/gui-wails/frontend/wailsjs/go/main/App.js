@@ -82,6 +82,10 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function LabelScene(arg1, arg2) {
+  return window['go']['main']['App']['LabelScene'](arg1, arg2);
+}
+
 export function LoadFirstFrame(arg1) {
   return window['go']['main']['App']['LoadFirstFrame'](arg1);
 }
@@ -164,6 +168,10 @@ export function StopTrainingCycle() {
 
 export function SubmitFeedback(arg1) {
   return window['go']['main']['App']['SubmitFeedback'](arg1);
+}
+
+export function SuggestProfile(arg1) {
+  return window['go']['main']['App']['SuggestProfile'](arg1);
 }
 
 export function TestRawValue(arg1, arg2) {

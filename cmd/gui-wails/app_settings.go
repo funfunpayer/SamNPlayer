@@ -18,6 +18,7 @@ const (
 	prefDeviceTransport      = "device.transport"
 	prefIntifaceURL          = "device.intifaceUrl"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
+	prefAIBaseURL            = "generator.aiBaseUrl"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -90,6 +91,11 @@ type Settings struct {
 	// nutzbar ist, prüft CheckAIRoiAvailable() bei Bedarf separat (kostet
 	// einen Python-Start, gehört darum nicht in dieses Massen-Get).
 	AIRoiModelPath string `json:"aiRoiModelPath"`
+
+	// AIBaseURL: Adresse eines lokalen Colibri-Servers (coli serve) für
+	// Profil-Vorschlag und KI-Zweitmeinung zur Qualität (docs/AI_ADAPTER.md).
+	// Leer = colibri_client.DEFAULT_BASE_URL (Standard-Localhost-Port).
+	AIBaseURL string `json:"aiBaseUrl"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -126,6 +132,7 @@ func (a *App) GetSettings() Settings {
 		DeviceTransport:   s.GetString(prefDeviceTransport, "ble"),
 		IntifaceURL:       s.GetString(prefIntifaceURL, ""),
 		AIRoiModelPath:    s.GetString(prefAIRoiModelPath, ""),
+		AIBaseURL:         s.GetString(prefAIBaseURL, ""),
 	}
 }
 

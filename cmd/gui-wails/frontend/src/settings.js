@@ -38,6 +38,7 @@ export function saveSetting(key, value) {
       'training.plateau_fraction': 'trainingPlateauFraction',
       'training.progression_per_cycle': 'trainingProgressionPerCycle',
       'generator.aiRoiModelPath': 'aiRoiModelPath',
+      'generator.aiBaseUrl': 'aiBaseUrl',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;
@@ -70,12 +71,22 @@ export function initSettings(root) {
       Rhythmus-Heuristik im Generator-Tab ("Region automatisch finden"). Kein Modell liegt
       diesem Programm bei und keins wird heruntergeladen - ohne eigene .onnx-Datei bleibt
       es bei der klassischen Erkennung. Leer lassen nutzt den Standardordner
-      (<code>%LOCALAPPDATA%\SamNPlayer\models\roi_detector.onnx</code> unter Windows).</p>
+      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> unter Windows).</p>
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(Standardordner)" style="flex:1;" />
       <button id="st-ai-roi-check">Verfügbarkeit prüfen</button>
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
+
+    <h3>KI-Server für Profil-Vorschlag &amp; Qualitäts-Zweitmeinung (lokal, optional)</h3>
+    <p class="hint">Adresse eines lokal laufenden Colibri-Servers (<code>coli serve</code>,
+      siehe docs/AI_ADAPTER.md) für den "Profil vorschlagen"-Knopf und die
+      KI-Zweitmeinung im Generator-Tab. Beides funktioniert auch ohne diesen Server -
+      die gemessene Szenen-Ähnlichkeit (ohne KI) bleibt dann die einzige Quelle für
+      Profil-Vorschläge. Leer lassen nutzt die Standardadresse.</p>
+    <div class="row">
+      <input type="text" id="st-ai-base-url" placeholder="(Standardadresse)" style="flex:1;" />
+    </div>
 
     <h3>Hardware</h3>
     <p class="hint">Welche Beschleunigung der Generator tatsächlich nutzen kann. Eine
@@ -131,6 +142,7 @@ export function initSettings(root) {
     el('#st-cache-exit').checked = !!s.clearCacheOnExit;
     el('#st-report-path').dataset.default = s.defaultReportPath || '';
     el('#st-ai-roi-path').value = s.aiRoiModelPath || '';
+    el('#st-ai-base-url').value = s.aiBaseUrl || '';
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
@@ -160,6 +172,9 @@ export function initSettings(root) {
 
   el('#st-ai-roi-path').addEventListener('change', e =>
     saveSetting('generator.aiRoiModelPath', e.target.value.trim()));
+
+  el('#st-ai-base-url').addEventListener('change', e =>
+    saveSetting('generator.aiBaseUrl', e.target.value.trim()));
 
   el('#st-ai-roi-check').addEventListener('click', async () => {
     const status = el('#st-ai-roi-status');
