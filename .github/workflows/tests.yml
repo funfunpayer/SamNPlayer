@@ -23,6 +23,21 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # cmd/gui-wails bindet frontend/dist per go:embed ein. Das Verzeichnis
+      # ist ein Bauartefakt und liegt zu Recht nicht im Repository - ohne
+      # diesen Schritt scheitert aber schon "go build" auf einem frischen
+      # Checkout mit "pattern all:frontend/dist: no matching files found".
+      #
+      # Genau daran ist der erste Testklon dieses Projekts gescheitert.
+      - name: Frontend bauen
+        working-directory: cmd/gui-wails/frontend
+        run: |
+          npm install
+          npm run build
 
       - name: Formatierung prüfen
         run: |

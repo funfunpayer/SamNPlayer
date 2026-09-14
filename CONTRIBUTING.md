@@ -24,6 +24,26 @@ schreiben, mit `register()` anmelden, fertig. Zwei Leute können so
 gleichzeitig an verschiedenen Verfahren arbeiten, ohne dieselbe Datei zu
 berühren. Der Vertrag steht im Kopf von `backends.py`.
 
+## Nach dem Klonen
+
+`cmd/gui-wails` bindet `frontend/dist` per `go:embed` ein. Das Verzeichnis
+ist ein Bauartefakt und liegt nicht im Repository – ein frischer Klon
+scheitert deshalb zunächst an
+
+```
+pattern all:frontend/dist: no matching files found
+```
+
+Das ist kein Fehler, sondern ein fehlender erster Schritt:
+
+```bash
+cd cmd/gui-wails/frontend && npm install && npm run build && cd ../../..
+go build ./...
+```
+
+Danach läuft alles wie gewohnt. `wails build` erledigt diesen Schritt
+ohnehin mit.
+
 ## Ablauf
 
 1. Branch von `main`, benannt nach dem Bereich: `device/keepalive-fix`,

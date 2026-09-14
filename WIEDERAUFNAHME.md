@@ -26,6 +26,13 @@ go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
+Aus einem frischen Klon (nicht aus der ZIP) fehlt zusätzlich das
+Frontend-Bauartefakt, das `go:embed` erwartet:
+
+```bash
+cd cmd/gui-wails/frontend && npm install && npm run build && cd ../../..
+```
+
 Danach **erst prüfen, was tatsächlich da ist**, bevor irgendetwas gebaut
 wird:
 
