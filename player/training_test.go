@@ -2,6 +2,7 @@ package player
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -51,6 +52,12 @@ func (d *recordingDevice) max() float64 {
 		}
 	}
 	return m
+}
+
+func (d *recordingDevice) count() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return len(d.vibrations)
 }
 
 func fastOptions(cycles int) TrainingOptions {
@@ -315,5 +322,57 @@ func TestArousalReachesRunningSession(t *testing.T) {
 	}
 	if results[1].ArousalBefore != 0 {
 		t.Errorf("Rückmeldung wirkte in den zweiten Zyklus nach: %d", results[1].ArousalBefore)
+	}
+}
+
+// TestContextCancelDuringHoldStopsImmediately prüft, dass ein Context-
+// Abbruch während der Haltezeit sofort wirkt - kein weiterer Gerätebefehl
+// mehr, sobald ctx.Done() ausgelöst wurde. Anders als beim StopCycle-Pfad
+// oben (der bewusst weiterläuft und geordnet auf 0 fährt) ist ein
+// Context-Abbruch ein härterer Stopp (App schließt, Session wird
+// verworfen) - waitInterruptible wartete zwar auch dabei kürzer als die
+// volle Haltezeit, verschluckte den ctx-Fehler aber und ließ
+// RunTrainingWithControl in den normalen Rampe-Pfad weiterlaufen, der dort
+// noch einen SetVibration-Aufruf absetzte, bevor der Fehler eine Ebene
+// später (in rampChannel) doch noch bemerkt wurde.
+func TestContextCancelDuringHoldStopsImmediately(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	opts := TrainingOptions{
+		Technique:     TechniqueStopStart,
+		Channel:       ChannelVibration,
+		Cycles:        1,
+		RampUpMs:      100,
+		HoldMs:        5000,
+		RestMs:        100,
+		PeakIntensity: 1.0,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- RunTrainingWithControl(ctx, dev, opts, control, nil)
+	}()
+
+	// Warten, bis die Rampe fertig ist (Höhepunkt erreicht), dann mitten in
+	// die Haltezeit hinein abbrechen.
+	time.Sleep(300 * time.Millisecond)
+	countAtCancel := dev.count()
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("erwartet context.Canceled, bekam: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("RunTrainingWithControl hat auf den Context-Abbruch nicht reagiert")
+	}
+
+	if got := dev.count(); got != countAtCancel {
+		t.Errorf("nach dem Context-Abbruch während der Haltezeit wurden noch %d "+
+			"weitere SetVibration-Aufrufe gemacht (erwartet 0) - waitInterruptible "+
+			"hat den ctx-Fehler verschluckt statt ihn sofort weiterzugeben",
+			got-countAtCancel)
 	}
 }

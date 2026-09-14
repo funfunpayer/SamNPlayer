@@ -279,7 +279,11 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 		// Halten - hier wird in kleinen Schritten gewartet, damit ein Druck
 		// auf "Stopp" sofort wirkt statt erst am Ende der Haltezeit.
 		if !stopped {
-			stopped = waitInterruptible(ctx, time.Duration(holdMs)*time.Millisecond, control)
+			var err error
+			stopped, err = waitInterruptible(ctx, time.Duration(holdMs)*time.Millisecond, control)
+			if err != nil {
+				return err
+			}
 		}
 		result.ReachedPeakAfterMs = int(time.Since(result.StartedAt).Milliseconds())
 		result.StoppedByUser = stopped
@@ -385,22 +389,29 @@ func rampChannel(ctx context.Context, dev trainingDevice, channel TrainingChanne
 // Stopp-Wunsch. Ein einfaches time.After würde den Druck erst nach Ablauf
 // der gesamten Haltezeit bemerken - bei mehreren Sekunden Haltezeit wäre
 // der Knopf damit praktisch wirkungslos.
-func waitInterruptible(ctx context.Context, d time.Duration, control *TrainingControl) bool {
+//
+// Gibt den ctx-Fehler zurück statt ihn zu verschlucken: der Aufrufer hat
+// sonst keine Möglichkeit zu erkennen, dass die Wartezeit wegen eines
+// Context-Abbruchs (nicht wegen StopCycle) vorzeitig endete, und würde in
+// den normalen Rampe-Pfad weiterlaufen - der dort noch mindestens einen
+// weiteren Gerätebefehl absetzt, bevor der Fehler eine Ebene später doch
+// noch bemerkt wird (gefunden über TestContextCancelDuringHoldStopsImmediately).
+func waitInterruptible(ctx context.Context, d time.Duration, control *TrainingControl) (bool, error) {
 	const tick = 50 * time.Millisecond
 	deadline := time.Now().Add(d)
 	for time.Now().Before(deadline) {
 		if control.requested() {
-			return true
+			return true, nil
 		}
 		remaining := time.Until(deadline)
 		if remaining > tick {
 			remaining = tick
 		}
 		if err := waitOrDone(ctx, remaining); err != nil {
-			return false
+			return false, err
 		}
 	}
-	return control.requested()
+	return control.requested(), nil
 }
 
 func waitOrDone(ctx context.Context, d time.Duration) error {
