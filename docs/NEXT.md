@@ -232,6 +232,25 @@ what needs to improve is which ones are visible by default.
   proposal, and quality second-opinion are all implemented at the
   CLI/generator level. GUI wiring for all three remains open. See
   `docs/AI_ADAPTER.md` for the architecture and order.
+- **The user's direction (September 14, 2026), noted for later, not
+  decided:** whether to stay with Go + Python long-term, and what "our
+  own AI" should mean. Discussed, not started:
+  - Language: no case to switch the Go shell (app/device/GUI backend) to
+    anything else. The actual complaint is that Python is an *external*
+    install, not that it's the wrong language for CV work. Two ways to
+    fix that without a rewrite: bundle a portable/frozen Python runtime
+    with the app (removes the separate `pip install` step, keeps all
+    current generator code); or, bigger and later, port the classical
+    tracker to Go (`gocv`) and drop Python entirely. Prefer the first if
+    "no separate install" is the actual goal.
+  - "Our own AI": `quality_model.py` already *is* this pattern - it
+    trains a small model from the user's own accept/reject judgments and
+    only adopts it if it beats the fixed rules in cross-validation, no
+    external dataset needed. Extending that same approach to profile
+    suggestion and ROI refinement (learn from accumulated tracking
+    signals + confirmed ratings) fits "specific to our system" better
+    than adopting a generic pretrained detector, and doesn't need a
+    large labeled dataset to start from.
 
 ## Product requirements
 
