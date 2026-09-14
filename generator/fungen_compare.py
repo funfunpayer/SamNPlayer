@@ -77,6 +77,14 @@ import numpy as np
 
 BATCH_SUFFIX_RE = re.compile(r"__(hub|tf|tj)\.funscript$")
 MIN_OVERLAP_SAMPLES = 10
+# Unterhalb dieser Sample-Zahl (bei 100ms Schrittweite: 3s Überlappung)
+# markiert das Ergebnis als "low confidence" statt es unkommentiert wie
+# jede andere Zeile zu präsentieren - ein weiter Lag-Bereich kann sonst auf
+# sehr kurzen, zufällig gut passenden Ausschnitten eine hohe Korrelation
+# "finden", die auf einem längeren Überlappungsfenster verschwindet (beim
+# echten Datensatz beobachtet: r stieg von 0.696 auf 0.486 Mittelwert, als
+# das Lag-Fenster von 3s auf 500ms verkleinert wurde).
+LOW_CONFIDENCE_SAMPLES = 30
 
 
 def _content_hash(path):
@@ -154,7 +162,7 @@ def shape_normalized_error(a, b):
     return float(np.mean(np.abs(za - zb)))
 
 
-def best_lag_correlation(actions_a, actions_b, max_lag_ms=3000, lag_step_ms=100,
+def best_lag_correlation(actions_a, actions_b, max_lag_ms=1000, lag_step_ms=100,
                           resample_step_ms=100):
     """Searches lag and orientation for the best-matching alignment of two
     funscripts (fixes bugs 2 and 4). Returns a dict:
@@ -166,6 +174,16 @@ def best_lag_correlation(actions_a, actions_b, max_lag_ms=3000, lag_step_ms=100,
                         for comparison against the old method
         n_samples       samples used at the best lag
         shape_error     shape_normalized_error() at the best lag/orientation
+        low_confidence  True if n_samples < LOW_CONFIDENCE_SAMPLES - a wide
+                        lag search over a short clip can "find" a high
+                        correlation on a small, coincidentally-matching
+                        overlap window that a longer window would not
+                        support; see LOW_CONFIDENCE_SAMPLES. The default
+                        max_lag_ms is deliberately conservative (1000ms, not
+                        docs/FUNGEN_PARITY_PLAN.md's exploratory ±2-3s) for
+                        the same reason - widen it deliberately, not as the
+                        default, and read low_confidence rows skeptically
+                        either way.
 
     None fields mean "undefined" (e.g. a constant series), never 0.0 -
     see pearson().
@@ -210,6 +228,7 @@ def best_lag_correlation(actions_a, actions_b, max_lag_ms=3000, lag_step_ms=100,
 
     if best is not None:
         best["r_zero_lag"] = zero_lag_r
+        best["low_confidence"] = best["n_samples"] < LOW_CONFIDENCE_SAMPLES
     return best
 
 
@@ -238,7 +257,7 @@ def match_batch_stem(reference_path, batch_stems):
 def collect_batch_stems(dataset_dir):
     """stem -> {"hub"|"tf"|"tj": Path}, deduplicated by content first so a
     copied batch output doesn't create a phantom second stem entry."""
-    all_variants = list(dataset_dir.glob("*.funscript"))
+    all_variants = list(dataset_dir.rglob("*.funscript"))
     variant_paths = [p for p in all_variants if BATCH_SUFFIX_RE.search(p.name)]
     variant_paths = dedupe_by_content(variant_paths)
     stems = {}
@@ -254,15 +273,15 @@ def collect_references(dataset_dir):
     FunGen reference exports. `.fungen` binaries are listed as explicit
     skips, never parsed (see module docstring)."""
     references, skipped = [], []
-    for path in sorted(dataset_dir.glob("*.fungen")):
+    for path in sorted(dataset_dir.rglob("*.fungen")):
         skipped.append((path, "fungen_binary_not_read"))
-    ref_candidates = [p for p in dataset_dir.glob("*.funscript")
+    ref_candidates = [p for p in dataset_dir.rglob("*.funscript")
                        if not BATCH_SUFFIX_RE.search(p.name)]
     references = dedupe_by_content(ref_candidates)
     return references, skipped
 
 
-def compare_dataset(dataset_dir, max_lag_ms=3000):
+def compare_dataset(dataset_dir, max_lag_ms=1000):
     """Runs the full comparison over one dataset directory. Returns a dict
     with `rows` (one per reference x kind), `excluded` (constant/undefined
     references, reported not hidden), and `skipped` (unreadable files)."""
@@ -312,10 +331,12 @@ def format_report(result):
         orient_note = " INVERTED" if row["orientation"] == "inverted" else ""
         shape = f"{row['shape_error']:.3f}" if row["shape_error"] is not None else "n/a"
         zero = f"{row['r_zero_lag']:.3f}" if row["r_zero_lag"] is not None else "n/a"
+        low_conf_note = " [LOW CONFIDENCE: short overlap]" if row.get("low_confidence") else ""
         lines.append(
             f"- {row['reference']} vs **{row['kind']}**: "
             f"r={row['r']:.3f} @ lag {lag_note}{orient_note} "
-            f"(r at zero-lag/normal: {zero}) shape_err={shape} n={row['n_samples']}")
+            f"(r at zero-lag/normal: {zero}) shape_err={shape} n={row['n_samples']}"
+            f"{low_conf_note}")
     if result["excluded"]:
         lines.append("")
         lines.append("## Excluded (undefined correlation, not counted in any mean)")
@@ -328,14 +349,23 @@ def format_report(result):
             name = path.name if hasattr(path, "name") else path
             lines.append(f"- {name}: {reason}")
     by_kind = {}
+    confident_by_kind = {}
     for row in result["rows"]:
         by_kind.setdefault(row["kind"], []).append(row["r"])
+        if not row.get("low_confidence"):
+            confident_by_kind.setdefault(row["kind"], []).append(row["r"])
     if by_kind:
         lines.append("")
         lines.append("## Summary")
         for kind in sorted(by_kind):
             values = by_kind[kind]
-            lines.append(f"- mean r ({kind}, n={len(values)}): {sum(values)/len(values):.3f}")
+            lines.append(f"- mean r ({kind}, all, n={len(values)}): {sum(values)/len(values):.3f}")
+            confident = confident_by_kind.get(kind, [])
+            if confident:
+                lines.append(f"  - excluding low-confidence rows (n={len(confident)}): "
+                              f"{sum(confident)/len(confident):.3f}")
+            else:
+                lines.append("  - no rows above the low-confidence sample threshold")
     return "\n".join(lines) + "\n"
 
 
@@ -347,8 +377,12 @@ def main():
                           "SamNPlayer *__hub/tf/tj.funscript batch output.")
     ap.add_argument("--output", default=None, metavar="DATEI",
                      help="Write the report here. Default: print to stdout.")
-    ap.add_argument("--max-lag-ms", type=int, default=3000,
-                     help="Lag search window in each direction (default 3000ms).")
+    ap.add_argument("--max-lag-ms", type=int, default=1000,
+                     help="Lag search window in each direction (default 1000ms). "
+                          "Widening this trades false negatives (a real but larger "
+                          "delay scored as a mismatch) for false positives on short "
+                          "clips (see LOW_CONFIDENCE_SAMPLES in the module docstring) "
+                          "- prefer widening deliberately over raising the default.")
     args = ap.parse_args()
 
     result = compare_dataset(args.dataset, max_lag_ms=args.max_lag_ms)

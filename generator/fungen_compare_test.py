@@ -166,6 +166,42 @@ def main():
               "lag" in report, "")
         check("Bericht nennt den Ausschlussgrund statt ihn zu verschweigen",
               "Excluded" in report and "undefined" in report, report)
+        check("die lange Referenz-Übereinstimmung gilt NICHT als Low-Confidence",
+              not any(r["kind"] == "hub" and r["low_confidence"] for r in result["rows"]),
+              str(result["rows"]))
+
+    # --- Low-Confidence-Kennzeichnung bei kurzer Überlappung ------------------
+    # Eine weite Lag-Suche über einen kurzen Clip kann zufällig eine hohe
+    # Korrelation auf einem winzigen Ausschnitt "finden" - genau das beim
+    # echten Datensatz beobachtete Problem (Mittelwert 0.696 bei 3s
+    # Suchfenster gegen 0.486 bei 500ms). Ergebnisse mit wenig Overlap
+    # müssen das markieren, statt unkommentiert wie jede andere Zeile zu
+    # erscheinen.
+    short_ref = sine_actions(2000, 500, t0=0)
+    short_match = sine_actions(2000, 500, t0=50)
+    result_short = fc.best_lag_correlation(short_ref, short_match, max_lag_ms=1000, lag_step_ms=50)
+    check("kurze Überlappung wird als 'low_confidence' markiert",
+          result_short is not None and result_short["low_confidence"] is True,
+          str(result_short))
+    check("lange Überlappung (obiger hub-Fall) bleibt bei False",
+          fc.best_lag_correlation(reference, same_shape_shifted, max_lag_ms=2000,
+                                   lag_step_ms=50)["low_confidence"] is False, "")
+
+    # --- rekursives Einlesen von Unterordnern ----------------------------------
+    # Der reale Datensatz lag in Unterordnern (funscript_test_clips/,
+    # funscript_motion_tracking/, ...) - ein Scan nur der obersten Ebene
+    # hätte dort schlicht nichts gefunden.
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "clips_a").mkdir()
+        (tmp / "clips_b").mkdir()
+        write_funscript(tmp / "clips_a" / "nested.funscript", reference)
+        write_funscript(tmp / "clips_b" / "nested__hub.funscript", same_shape_shifted)
+
+        result_nested = fc.compare_dataset(str(tmp), max_lag_ms=2000)
+        check("findet Referenz und Batch-Ausgabe auch in verschiedenen Unterordnern",
+              any(r["kind"] == "hub" and r["r"] > 0.9 for r in result_nested["rows"]),
+              str(result_nested["rows"]))
 
     print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
     return 1 if failures else 0

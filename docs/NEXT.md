@@ -104,10 +104,49 @@ distance (`np.hypot`), a strict generalization that keeps the existing
 vertical-signal test (`two_point_test.py`) passing and adds
 `two_point_axis_test.py` for the horizontal case, with a gegenprobe
 (reverting to the Y-only formula reproduces the near-dead signal:
-amplitude 1.0px instead of the true 80px). **Not yet done:** re-running
-the actual batch with the fix to see how much of the real-clip
-correlation gap it closes - needs the source videos, not just the
-`.funscript` outputs shared so far.
+amplitude 1.0px instead of the true 80px).
+
+**Run against a large synthetic dataset (48 clips, both a FunGen 2 export
+and a SamNPlayer hub+tf run per clip, shared in chat as `fungen2.7z` /
+`samnplayer_test_funscripts.7z`, generated the same day with the 2D-distance
+fix and `auto_roi.find_two_rois` for ROI2, not the invented-shift
+heuristic):** far stronger than the real-clip result — mean r ≈ 0.52 (hub)
+/ 0.58 (tf) across ~30 valid clips (walk cycles, sine/triangle/square
+waves, camera pans/zooms, occlusion, irregular events; 28 of 60 rows were
+excluded as undefined, mostly constant FunGen references for clips FunGen
+itself found nothing scriptable in). This is a large jump from the
+real-clip r≈0.05–0.13 - clean, single-subject synthetic motion is
+evidently far easier for both tools than real material with occlusion,
+non-rigid deformation and multiple bodies. Confirms the earlier read: the
+comparison-methodology bugs and the two_point axis bug were real and
+worth fixing, but real-material tracking quality is its own, still largely
+open problem - synthetic-clip success does not by itself predict
+real-clip success.
+
+**A methodology risk found while checking this:** the first pass used the
+tool's old 3000ms default lag search window, which pushed several
+short-clip correlations toward the search boundary (lag=±2800-3000ms) -
+the sign of a wide search "finding" a coincidental match on a small
+overlap window rather than a real delay. Narrowing to 500ms dropped the
+mean from 0.696 to 0.486. Fixed in `fungen_compare.py`: the default
+`--max-lag-ms` is now 1000 (was 3000), every result carries a
+`low_confidence` flag when fewer than `LOW_CONFIDENCE_SAMPLES` (30, i.e.
+under 3s of overlap at the 100ms resample step) samples were used, and
+`format_report()` prints a confidence-excluded mean alongside the plain
+one so a few short, lucky clips cannot quietly carry the average. On this
+dataset the two means come out close (hub 0.517 vs 0.518, tf 0.581 vs
+0.564), which is itself a good sign - the result isn't an artifact of a
+handful of short overlaps.
+
+Also added: `fungen_compare.py --dataset` now scans subfolders
+(`rglob`, not `glob`) - the real dataset's references and batch output
+each came in their own subfolder tree, which the original top-level-only
+scan would have silently found nothing in.
+
+**Not yet done:** re-running the *original* real (non-synthetic) batch
+clips with the 2D-distance fix - needs the source videos, not just the
+`.funscript` outputs shared so far, to see how much of the real-clip gap
+it closes there specifically.
 
 ### 3. Improve automatic two-ROI suggestions
 
