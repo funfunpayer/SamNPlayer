@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -50,6 +50,24 @@ export function initPlayback(root) {
       <input type="checkbox" id="pb-marker-auto" />
       <label for="pb-marker-auto">Extended-O automatisch im markierten Bereich auslösen</label>
     </div>
+
+    <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;">
+      O-Marker: authored im Skript gespeichert (nicht nur lokal wie die Markierung oben) -
+      ein primärer Marker für den Höhepunkt, optional sekundäre für schwächere Stellen davor.
+      Erst oben einen Bereich markieren (ziehen), dann hier übernehmen.
+    </div>
+    <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+      <select id="pb-omarker-kind">
+        <option value="primary">Primär (Höhepunkt)</option>
+        <option value="secondary">Sekundär (früher, schwächer)</option>
+      </select>
+      <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
+        <label style="width:auto;">Intensität</label>
+        <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
+      </span>
+      <button id="pb-omarker-add" disabled>Markierung als O-Marker übernehmen</button>
+    </div>
+    <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
 
     <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
       <input type="checkbox" id="pb-use-video-sync" checked />
@@ -108,6 +126,7 @@ export function initPlayback(root) {
   let marker = null; // {startMs, endMs} oder null
   let markerDragStartMs = null;
   let markerDragMoved = false;
+  let oMarkers = []; // [{startMs, endMs, kind, intensity}], im Skript gespeichert (siehe funscript.OMarker)
   let autoEOTriggeredForMarker = false;
   let currentPosMs = 0;
 
@@ -133,6 +152,62 @@ export function initPlayback(root) {
     } else {
       el('#pb-marker-label').textContent = '(keine Markierung)';
     }
+    el('#pb-omarker-add').disabled = !marker;
+  }
+
+  // drawOMarkerBands zeichnet die gespeicherten O-Marker als farbige Bänder
+  // unter/hinter der weißen Live-Markierung - primär kräftiger als
+  // sekundär, damit auf einen Blick klar ist, welcher der Höhepunkt ist.
+  function drawOMarkerBands(ctx, w, h) {
+    if (!oMarkers.length || totalMs <= 0) return;
+    for (const m of oMarkers) {
+      const x0 = (m.startMs / totalMs) * w;
+      const x1 = (m.endMs / totalMs) * w;
+      const isPrimary = m.kind === 'primary';
+      const alpha = isPrimary ? 0.35 : 0.18 + m.intensity * 0.15;
+      ctx.fillStyle = isPrimary ? `rgba(255,60,60,${alpha})` : `rgba(255,160,40,${alpha})`;
+      ctx.fillRect(x0, 0, Math.max(1, x1 - x0), h);
+    }
+  }
+
+  function renderOMarkerList() {
+    const box = el('#pb-omarker-list');
+    box.innerHTML = '';
+    if (!scriptPath || oMarkers.length === 0) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    oMarkers.forEach((m, index) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.cssText = 'align-items:center; gap:8px; margin-top:2px;';
+      const label = document.createElement('span');
+      const kindLabel = m.kind === 'primary' ? 'Primär' : 'Sekundär';
+      const intensityLabel = m.kind === 'secondary' ? ` · ${Math.round(m.intensity * 100)}%` : '';
+      label.textContent = `${kindLabel}: ${(m.startMs / 1000).toFixed(1)}s - ${(m.endMs / 1000).toFixed(1)}s${intensityLabel}`;
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Entfernen';
+      removeBtn.addEventListener('click', () => removeOMarker(index));
+      row.appendChild(label);
+      row.appendChild(removeBtn);
+      box.appendChild(row);
+    });
+  }
+
+  async function removeOMarker(index) {
+    const previous = oMarkers;
+    oMarkers = oMarkers.filter((_, i) => i !== index);
+    try {
+      await SaveOMarkers(scriptPath, oMarkers);
+    } catch (err) {
+      oMarkers = previous;
+      log('O-Marker entfernen: ' + err);
+      return;
+    }
+    renderOMarkerList();
+    redrawHeatmap();
+    redrawCurve();
   }
 
   // drawHeatmap zeichnet die grob gerasterte Intensitätskurve als
@@ -151,6 +226,7 @@ export function initPlayback(root) {
       ctx.fillStyle = `hsl(${hue}, 75%, ${35 + intensity * 20}%)`;
       ctx.fillRect(i * barWidth, 0, barWidth + 1, h);
     }
+    drawOMarkerBands(ctx, w, h);
     if (marker && totalMs > 0) {
       const x0 = (marker.startMs / totalMs) * w;
       const x1 = (marker.endMs / totalMs) * w;
@@ -199,6 +275,7 @@ export function initPlayback(root) {
       ctx.stroke();
     }
 
+    drawOMarkerBands(ctx, w, h);
     // Markierter Bereich (dieselbe Markierung wie in der Heatmap).
     if (marker) {
       ctx.fillStyle = 'rgba(0,200,255,0.12)';
@@ -377,6 +454,29 @@ export function initPlayback(root) {
     if (scriptPath) SaveMarker(scriptPath, 0, 0).catch(() => {});
   });
 
+  el('#pb-omarker-kind').addEventListener('change', e => {
+    el('#pb-omarker-intensity-row').style.display = e.target.value === 'secondary' ? 'flex' : 'none';
+  });
+
+  el('#pb-omarker-add').addEventListener('click', async () => {
+    if (!marker || !scriptPath) return;
+    const kind = el('#pb-omarker-kind').value;
+    const intensity = kind === 'primary'
+      ? 1.0
+      : Math.max(0, Math.min(1, Number(el('#pb-omarker-intensity').value) || 0));
+    const next = [...oMarkers, { startMs: marker.startMs, endMs: marker.endMs, kind, intensity }];
+    try {
+      await SaveOMarkers(scriptPath, next);
+    } catch (err) {
+      log('O-Marker hinzufügen: ' + err);
+      return;
+    }
+    oMarkers = next;
+    renderOMarkerList();
+    redrawHeatmap();
+    redrawCurve();
+  });
+
   // checkAutoExtendedO wird bei jedem Fortschritts-Update aufgerufen -
   // löst Extended-O einmal pro Wiedergabe aus, sobald die Position in den
   // markierten Bereich eintritt (falls aktiviert).
@@ -438,7 +538,16 @@ export function initPlayback(root) {
     } catch (err) {
       marker = null;
     }
+    try {
+      const result = await GetOMarkers(scriptPath);
+      oMarkers = Array.isArray(result) ? result : [];
+    } catch (err) {
+      oMarkers = [];
+    }
+    el('#pb-omarker-hint').style.display = 'block';
+    el('#pb-omarker-add-row').style.display = 'flex';
     updateMarkerHint();
+    renderOMarkerList();
     drawHeatmap();
     drawCurve();
     describeScript();
