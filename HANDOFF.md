@@ -1,488 +1,459 @@
-# SamNPlayer – Projektübersicht
+# SamNPlayer — project overview
 
-Diese Datei liegt bewusst **im Repository** und nicht als PDF daneben: sie
-wandert mit dem Code mit und veraltet nicht getrennt von ihm. Wer hier etwas
-ändert, ändert es zusammen mit der Änderung am Code.
+This document deliberately lives **inside the repository**, rather than
+in a separate PDF. It travels with the code and should be updated alongside
+code changes so the two do not drift apart.
 
-Stand: September 2026
-
----
-
-## Was das Projekt ist
-
-Native Desktop-Anwendung (Go + Wails) zur Steuerung eines SVAKOM Sam Neo 2
-per Bluetooth, synchron zu einer `.funscript`-Datei. Dazu ein Generator, der
-`.funscript`-Dateien mit klassischer Bildverarbeitung aus Videos erzeugt –
-ohne neuronale Netze.
-
-Durchgehendes Prinzip: **Was nicht gebraucht wird, kommt nicht rein.** Und:
-Jede Aussage über Qualität oder Geschwindigkeit wird gemessen, nicht
-geschätzt.
-
-**Stack:** Go 1.23, Wails v2.15, Vanilla JS (kein Framework),
-Python 3.9+ mit OpenCV/scipy/numpy (per `go:embed` eingebettet, zur Laufzeit
-als Unterprozess gestartet).
+Status: September 2026.
 
 ---
 
-## Aufbau
+## What the project is
 
+A native desktop application (Go + Wails) that controls a SVAKOM Sam Neo 2
+over Bluetooth, synchronized with a `.funscript` file. It also includes a
+generator that creates `.funscript` files from video using classical
+computer vision, without neural networks.
+
+Guiding principles: **do not add what is not needed**, and support every
+claim about quality or speed with measurements rather than estimates.
+
+**Stack:** Go 1.25.0 or later (see `go.mod`), Wails v2.15, vanilla JavaScript
+(no framework), and Python 3.9+ with OpenCV/scipy/numpy. Python scripts are
+embedded with `go:embed` and launched as a subprocess at runtime.
+
+---
+
+## Structure
+
+```text
+cmd/gui-wails/     Wails GUI (main product), five tabs
+cmd/cli/           CLI version (without generator)
+device/            BLE protocol and transport, mock device
+player/            Playback, synchronization, training mode
+funscript/         Parser, metadata, mapping
+generator/         Python pipeline and Go wrapper
+motionx/           RDP reduction and motion-state classification (salvaged)
+videox/            ffprobe/ffmpeg wrappers (salvaged, not yet connected)
+logging/ update/   Logging, automatic updates through GitHub releases
 ```
-cmd/gui-wails/     Wails-GUI (Hauptprodukt), fünf Tabs
-cmd/cli/           CLI-Variante (ohne Generator)
-device/            BLE-Protokoll und -Transport, Mock-Gerät
-player/            Wiedergabe, Synchronisation, Trainingsmodus
-funscript/         Parser, Metadata, Mapping
-generator/         Python-Pipeline + Go-Wrapper
-motionx/           RDP-Reduktion und Bewegungszustands-Klassifikation (Salvage)
-videox/            ffprobe/ffmpeg-Wrapper (Salvage, noch nicht verdrahtet)
-logging/ update/   Protokollierung, Auto-Update über GitHub-Releases
-```
 
 ---
 
-## Was funktioniert
+## What works
 
-**Wiedergabe:** Skript laden, Video synchron abspielen, Funscript-Kurve mit
-mitlaufendem Positionszeiger unter dem Video, Heatmap-Leiste, Markierungen.
-Dazu **Skript-Offset** (je Skript gespeichert, wirkt sofort auch während der
-Wiedergabe – fremde Skripte passen fast nie exakt zum eigenen Videoschnitt),
-**Abschnittswiederholung** und Tastaturbedienung: Leertaste, ←/→ 5 s bzw.
-1 s mit Shift, `,`/`.` Feinschritt, 1–9 springen, `+`/`−` Offset, `L`
-Wiederholung, `E` Extended-O.
+**Playback:** load a script, play a synchronized video, display the
+Funscript curve with a moving playhead below the video, heatmap, and markers.
+Includes **script offset**, saved per script and applied immediately during
+playback, because imported scripts rarely match the user's video cut
+exactly. Also includes **section looping** and keyboard controls: Space,
+←/→ for 5-second seeks or 1 second with Shift, `,`/`.` for fine stepping,
+1–9 for jumps, `+`/`−` for offset, `L` for looping, and `E` for Extended-O.
 
-Der Offset wird an genau **einer** Stelle angewendet – dort, wo Videozeit auf
-Skriptzeit trifft (`ReportVideoPosition`). Würde er zusätzlich im Frontend
-auf die Anzeige gerechnet, liefen Kurve und Gerät auseinander.
+The offset is applied in exactly **one** place: where video time maps to
+script time (`ReportVideoPosition`). Applying it again to the frontend
+display would make the curve and device drift apart.
 
-**Zwei Verbindungswege zum Gerät:** direkt per Bluetooth (eigener Adapter,
-keine Zusatzsoftware) oder über einen laufenden **Buttplug-Server**
-(Intiface Central) per WebSocket. Der zweite Weg braucht keinen eigenen
-Bluetooth-Adapter und funktioniert mit jedem von Buttplug unterstützten
-Gerät; Verbindung, Pairing und Wiederverbindung übernimmt Intiface, und das
-sind erfahrungsgemäß die fehleranfälligsten Teile. Umgesetzt nach der
-offenen Protokollbeschreibung, nicht durch Codeübernahme; `gorilla/websocket`
-war über Wails ohnehin im Baum, es kam also keine neue Abhängigkeit dazu.
-Der Server darf auch **auf einem anderen Gerät** laufen – etwa Intiface
-Central auf dem Handy, der Player auf dem Rechner. Dafür genügt die IP im
-Adressfeld; `192.168.1.50`, `192.168.1.50:12345` und die vollständige
-ws://-Adresse werden gleichermaßen angenommen. Verbindungsart und Adresse
-werden nach erfolgreicher Verbindung gemerkt. Fehlermeldungen unterscheiden
-lokal und Netzwerk, weil die Ursachen andere sind (Server nicht gestartet
-gegen falsches WLAN, falsche IP oder Firewall).
+**Two device connection options:** direct Bluetooth using the local adapter
+without additional software, or WebSocket access to a running
+**Buttplug server** (Intiface Central). The latter requires no Bluetooth
+adapter on the player computer and works with devices supported by Buttplug.
+Intiface handles connection, pairing, and reconnection, which are often the
+most error-prone parts. The implementation follows the open protocol
+specification without copying source code. `gorilla/websocket` was already
+present through Wails, so no new dependency was needed.
 
-Getestet gegen einen nachgebauten Buttplug-Server: sieben Prüfungen,
-inklusive Gerät ohne Sog-Kanal, fehlendem Server, Adressumformung und der
-Unterscheidung lokaler und netzwerkbezogener Fehlerursachen.
+The server can run **on another device**, for example Intiface Central on a
+phone with the player on a computer. The address field accepts an IP such
+as `192.168.1.50`, a host and port such as `192.168.1.50:12345`, or a complete
+`ws://` address. Connection type and address are remembered after a
+successful connection. Errors distinguish local from network connections
+because likely causes differ: a server that has not started versus the
+wrong Wi-Fi network, IP address, or a firewall.
 
-**Der direkte Bluetooth-Weg bleibt unverändert und ist die Voreinstellung.**
-Intiface ist eine zusätzliche Möglichkeit, kein Ersatz.
+Tested against a simulated Buttplug server in seven checks, including a
+device without a suction channel, a missing server, address normalization,
+and the distinction between local and network errors.
 
-**Gerät:** Eigener Tab mit Verbinden/Trennen, Gerätename, BLE-Adresse und
-Signalstärke, Funktionstest für Vibration und Sog, Rohwert-Test.
+**Direct Bluetooth remains the default.** Intiface is an additional option.
 
-**Training:** Stop-Start nach Semans und Plateau-Variante, „Jetzt
-unterbrechen" (unterbricht den Zyklus, nicht die Session), Erregungsskala
-1–10 mit Regelwirkung auf den nächsten Zyklus, Sessionprotokoll.
+**Device:** a dedicated tab provides connect/disconnect, device name, BLE
+address, signal strength, vibration/suction function tests, and a raw-value test.
 
-**Generator:** Zwei Backends – CSRT-Tracker mit markierter Region, oder
-Optical Flow ohne Region. Automatische Regionssuche, Szenenschnitt-Erkennung
-mit Regionssuche je Szene, Kamerakompensation, adaptive Keyframes, RDP,
-Geschwindigkeitsbegrenzung, Achsenwahl, Auto-Retry, Stapelverarbeitung mit
-Parallelbetrieb, Zwischenspeicher, Messbericht mit Rückmeldefunktion.
+**Training:** Semans stop-start and a plateau variant; an interrupt control
+ends the current cycle rather than the entire session. An arousal scale
+from 1–10 adjusts the next cycle. Sessions are logged.
 
-**Erscheinungsgedächtnis:** Der Tracker merkt sich das Aussehen der Region
-und sucht sie nach einem Verlust oder Szenenschnitt im ganzen Bild wieder,
-statt blind an der letzten Position neu zu verankern. Das bildet die eine
-Fähigkeit klassisch nach, die ein Objekterkenner praktisch liefert. Am
-Drei-Szenen-Testvideo gemessen (echte Bewegung 90/100/80 px): ohne
-Gedächtnis 90,5 / **1,5** / **5,0** px, mit Gedächtnis 90,5 / **101,0** /
-**80,0** px. Am Verdeckungsvideo fiel der Trackerverlust von 323 auf 148 von
-500 Frames – die verbleibenden 148 sind die Frames, in denen das Objekt
-tatsächlich fehlt, und werden als erfolglose Suche gemeldet statt versteckt.
-Unterhalb einer Mindestübereinstimmung wird bewusst NICHT neu verankert:
-eine geratene Position sieht aus wie eine Messung, ist aber keine.
+**Generator:** two backends — CSRT tracking with a marked region, or optical
+flow without a region. Includes automatic region selection, scene-cut
+detection with region selection per scene, camera compensation, adaptive
+keyframes, RDP, speed limiting, axis selection, automatic retry, parallel
+batch processing, caching, and measurement reports with user feedback.
 
-**Zwei-Punkt-Messung:** Statt einer Region werden zwei verfolgt; das Signal
-ist ihr **Abstand**. Ein Abstand zwischen zwei Punkten im selben Bild ist von
-Kamerabewegung mathematisch unabhängig – schwenkt oder zoomt die Kamera,
-verschieben sich beide gemeinsam. Das Problem entsteht gar nicht erst,
-statt nachträglich herausgerechnet zu werden. Ebenso fällt gemeinsame
-Bewegung beider Objekte heraus. An einem Testvideo mit Schwenk, gemeinsamer
-Bewegung und schwingendem Abstand gemessen: ein Tracker −0,01, zwei Tracker
-+0,62 Korrelation zum echten Abstand.
+**Appearance memory:** the tracker remembers what the region looks like
+and searches the whole frame after tracking loss or a scene cut instead
+of blindly reinitializing at the last position. This reproduces one useful
+capability of object detectors using classical methods. On a three-scene
+test video with true motion of 90/100/80 px, the measured ranges were
+90.5 / **1.5** / **5.0** px without memory and
+90.5 / **101.0** / **80.0** px with memory. On the occlusion video, tracking
+loss fell from 323 to 148 out of 500 frames. The remaining 148 frames are
+those where the object is actually absent; they are reported as unsuccessful
+searches rather than hidden. Below the minimum similarity threshold the
+tracker deliberately does not reinitialize: a guessed position would look
+like a measurement without being one.
 
-**Bewegungsart-Profile:** `--profile standard` (Hubbewegung) und
-`--profile weich` (weiches Gewebe). Der Unterschied ist physikalisch, nicht
-kosmetisch: ein starrer Hub ist eine einzelne Bewegung, weiches Gewebe
-schwingt nach dem Anstoß gedämpft aus – diese Nachschwingung ist die *Folge*
-des Anstoßes, kein eigener Hub. Ohne Prominenzbedingung wird jede davon ein
-Keyframe.
+**Two-point measurement:** tracks two regions and uses their **distance**
+as the signal. Common translation of both points, whether caused by camera
+panning or shared object motion, cancels out instead of needing to be
+removed afterward. Zoom can still change image-space distance and must not
+be treated as inherently canceled. On a test video combining panning,
+shared movement, and an oscillating gap, correlation with the true distance
+was −0.01 for one tracker and +0.62 for two trackers.
 
-Gemessen an einem Testvideo mit Anstoß alle 800 ms und Ausschwingen bei
-4 Hz: 81 Keyframes ohne, 42 mit Prominenz 0,35 – das entspricht den rund 40
-Anstößen. Der Rekonstruktionsfehler steigt dabei von 0,094 auf 0,176, weil
-die Nachschwingungen bewusst nicht mehr abgebildet werden. Deshalb
-Profilwahl und keine Voreinstellung. **Saubere Hubsignale bleiben exakt
-unverändert** (42 bzw. 80 Keyframes, identischer Fehler).
+**Motion profiles:** `--profile standard` for stroke motion and
+`--profile weich` for soft tissue. The difference is physical: a rigid
+stroke is one movement, whereas soft tissue exhibits damped oscillation
+after an impulse. That ringing is the *result* of the impulse, not another
+stroke. Without a prominence requirement, each oscillation becomes a keyframe.
 
-**Bewegungssignatur (Szenen-Wiedererkennung):** Acht messbare Größen je
-Szene – Hauptrichtung, Lage und Streuung des Bewegungsschwerpunkts, Zahl
-getrennter Regionen, Kameraunruhe, Hubsymmetrie, Rhythmusstärke. Damit lässt
-sich *wiedererkennen, dass eine Szene derselben Art ist wie eine früher
-benannte*, und die dort bewährten Parameter übernehmen.
+On a test video with impulses every 800 ms and ringing at 4 Hz, the output
+contained 81 keyframes without prominence filtering and 42 with prominence
+0.35, matching roughly 40 impulses. Reconstruction error rose from 0.094
+to 0.176 because ringing was deliberately excluded. This is why it is a
+selectable profile rather than the default. **Clean stroke signals remain
+exactly unchanged:** 42 or 80 keyframes, with identical error.
 
-**Wichtige Abgrenzung:** Es wird NICHT erkannt, *was* zu sehen ist. Eine
-Stellung als solche zu benennen wäre Bedeutungserkennung und bräuchte ein
-trainiertes Modell mit beschrifteten Daten. Benannt wird vom Anwender; das
-Programm überträgt die Benennung nur auf ähnliche Signaturen.
+**Motion signature (scene recognition):** eight measurable scene features:
+main direction, motion-center location and spread, number of separate
+regions, camera instability, stroke symmetry, and rhythm strength. These
+allow the app to recognize similarity to a previously named scene and reuse
+parameters that worked there.
 
-Gemessen: zwei senkrechte Szenen mit unterschiedlichem Tempo liegen 0,075
-auseinander, senkrecht gegen waagerecht 0,26–0,32, gegen Kameraschwenk
-0,28–0,29. Die Schwelle von 0,15 trennt beides sauber. Oberhalb wird
-bewusst *nichts* zugeordnet – falsch übertragene Parameter sind schlechter
-als gar keine und fallen später schwerer auf.
+**Important distinction:** this does not identify *what* the scene depicts.
+Naming an action from its content would require semantic recognition and
+a trained model with labeled data. The user supplies the name; the program
+transfers it only to similar signatures.
 
-Noch nicht verdrahtet: Benennen in der Oberfläche und die Übernahme der
-Parameter in den Erzeugungslauf. Die Regionenzählung liefert derzeit auf
-allen Testvideos denselben Wert und trägt damit nichts zur Unterscheidung
-bei.
+Measured distances: two vertical-motion scenes at different speeds were
+0.075 apart; vertical versus horizontal was 0.26–0.32, and versus camera
+panning 0.28–0.29. A threshold of 0.15 separated these examples. Above the
+threshold, no assignment is made: incorrectly transferred parameters are
+worse than no assignment and harder to notice later.
 
-**Lernende Qualitätsbewertung:** Aus den Urteilen im Messbericht
-(brauchbar / grenzwertig / unbrauchbar) lässt sich eine logistische
-Regression über sieben Kennzahlen lernen – bewusst kein neuronales Netz,
-sondern reines numpy, damit die Gewichte lesbar bleiben und man nachsehen
-kann, *warum* das Modell so entscheidet. Das Modell wird nur übernommen,
-wenn es die festen Regeln in einer Leave-one-out-Kreuzvalidierung schlägt;
-mindestens 12 beurteilte Läufe, mindestens 4 je Klasse. Gespeichert unter
-`qualitaetsmodell.json` im Konfigurationsordner. „grenzwertig" zählt als
-nicht bestanden – lieber eine Rückfrage zu viel.
+Not yet connected: naming through the UI and applying saved parameters to
+generation runs. Region counting currently returns the same value for all
+test videos, so it contributes nothing to distinguishing them.
 
-**Skriptanalyse:** Zerlegt ein geladenes Skript in Bewegungszustände
-(Stillstand, Anfahren, beschleunigend, gleichmäßig, abbremsend, Auslaufen)
-und schreibt eine Zeile darunter, woraus es besteht. Das schließt eine
-Lücke: viel Stillstand fällt den übrigen Prüfungen **nicht** auf, weil eine
-flache Strecke weder verrauscht noch unrhythmisch ist.
+**Learned quality assessment:** user ratings in the measurement report
+(usable / borderline / unusable) can train logistic regression over seven
+metrics. This deliberately uses plain numpy rather than a neural network,
+so weights remain readable and decisions can be inspected. A model is
+accepted only if it outperforms the fixed rules in leave-one-out
+cross-validation, using at least 12 rated runs and at least 4 per class.
+It is stored as `qualitaetsmodell.json` in the configuration directory.
+Borderline counts as a failure, favoring an extra user check.
 
-**Mindestabstand zwischen Actions:** Wird beim Erzeugen durchgesetzt, nicht
-nur gemeldet. Zu dichte Actions entstehen systematisch, weil Hoch- und
-Tiefpunkte getrennt gesucht werden – der Mindestabstand gilt damit nicht
-zwischen einem Hochpunkt und dem folgenden Tiefpunkt. Bei verrauschten
-Signalen lagen dadurch bis zu 45 % der Actions unter 100 ms. Entfernt wird
-jeweils der Punkt mit der kleineren Abweichung zur Verbindungslinie seiner
-Nachbarn, damit die Scheitel erhalten bleiben; der Rekonstruktionsfehler
-steigt dabei von 0,084 auf 0,086, saubere Signale bleiben unberührt.
+**Script analysis:** divides a loaded script into motion states — stationary,
+starting, accelerating, steady, decelerating, and stopping — and displays
+a description below it. This catches a gap in other checks: a long flat
+section is neither noisy nor arrhythmic, so those checks miss inactivity.
 
-**Geräteverträglichkeit:** Prüft die erzeugte Datei gegen die in der
-Funscript-Gemeinschaft etablierten Grenzwerte – damit sie auch auf fremder
-Hardware und in fremden Playern brauchbar ist, nicht nur im eigenen Player.
-Alle Zahlen sind übernommen, nicht selbst gesetzt: Mindestabstand 100 ms
-zwischen Actions (Launchcontrol-Sendeschwelle), langsamster sinnvoller
-Vollhub 900 ms, nutzbarer Positionsbereich 5–95, und die Intensität
-`500 × |Δpos| / |Δt|` als Tempo-Kennzahl (Definition aus funscript-utils,
-dieselbe Größe wie in OpenFunscripter, Funscript.io und XBVR).
+**Minimum spacing between actions:** enforced during generation rather
+than merely reported. Peaks and valleys are found separately, so minimum
+spacing within either list does not enforce spacing between a peak and the
+next valley. On noisy signals, up to 45% of actions were less than 100 ms
+apart. The point with the smaller deviation from the line joining its
+neighbors is removed, preserving extrema. Reconstruction error rose only
+from 0.084 to 0.086; clean signals were unaffected.
 
-**Quality Doctor:** Bewertet Zeitstempel, Wertebereich, Lücken,
-Geschwindigkeitsausreißer, Rhythmus (spektrale Konzentration am dichten,
-**detrendeten** Signal), Tracker-Objektverlust, tatsächliche Bewegungs-
-amplitude, den **aktiven Zeitanteil** und den **Rekonstruktionsfehler** – wie gut die exportierten
-Actions den gemessenen Verlauf noch wiedergeben.
+**Device compatibility:** checks generated files against limits established
+in the Funscript community so results remain useful on other hardware and
+in other players. These values come from existing projects: 100 ms minimum
+action spacing (the Launchcontrol transmission threshold), 900 ms for the
+slowest useful full stroke, position range 5–95, and intensity
+`500 × |Δpos| / |Δt|` as a speed metric (the funscript-utils definition,
+also used in OpenFunscripter, Funscript.io, and XBVR).
+
+**Quality Doctor:** evaluates timestamps, value range, gaps, speed outliers,
+rhythm (spectral concentration of the dense, **detrended** signal), tracking
+loss, actual motion amplitude, **active time fraction**, and
+**reconstruction error**: how faithfully exported actions represent the
+measured signal.
 
 ---
 
-## Gemessene Kennzahlen
+## Measured performance
 
-Alle Zahlen stammen aus tatsächlichen Läufen, nicht aus Schätzungen.
+All figures below come from actual runs rather than estimates.
 
-| Was | Wert |
+| Measurement | Value |
 |---|---|
-| CSRT-Tracker | ~100 ms/Frame (97,5 % der Gesamtzeit) |
-| Dichter Optical Flow (Farneback) | ~18 ms/Frame |
-| Videodekodierung | 0,7 % der Gesamtzeit |
-| Zwischenspeicher-Treffer | 31,7 s → 0,88 s (Faktor 36) |
-| Flow-Backend gegen CSRT | 12 s statt 51 s je Testvideo |
+| CSRT tracker | ~100 ms/frame (97.5% of total runtime) |
+| Dense optical flow (Farneback) | ~18 ms/frame |
+| Video decoding | 0.7% of total runtime |
+| Cache hit | 31.7 s → 0.88 s (36× faster) |
+| Flow backend versus CSRT | 12 s instead of 51 s per test video |
 
-**Amplitudentreue** (echte Objektbewegung 110 px, realistisch texturierter
-Hintergrund):
+**Amplitude fidelity**, with 110 px of true object motion and a realistically
+textured background:
 
-| | stehende Kamera | Schwenk |
+| Method | Stationary camera | Panning |
 |---|---|---|
-| CSRT + Merkmalskompensation | 112,2 px | 112,8 px |
-| Flow-Backend (Vektorkorrektur, alt) | 137,8 px | 145,2 px |
-| Flow-Backend (Positionskorrektur) | 137,8 px | **100,2 px** |
+| CSRT + feature-based compensation | 112.2 px | 112.8 px |
+| Flow backend (old vector correction) | 137.8 px | 145.2 px |
+| Flow backend (position correction) | 137.8 px | **100.2 px** |
 
-Die Kamerakorrektur im Flow-Backend arbeitet inzwischen merkmalsbasiert auf
-der Position statt auf den Flow-Vektoren; beim Schwenk stieg die Korrelation
-dadurch von 0,744 auf 0,805.
+Camera correction in the flow backend now uses features to correct
+positions rather than flow vectors. Panning correlation improved from
+0.744 to 0.805.
 
 ---
 
-## Fremder Code: was benutzt werden darf
+## Third-party code policy
 
-Für ein Projekt, das verkauft werden soll, ist die Lizenz der Vorlage
-entscheidend – nicht nur die Frage, ob kopiert wurde.
+For a project intended for commercial distribution, the source project's
+license matters as well as whether code was copied. The following table
+records the project's existing license assessment.
 
-| Projekt | Lizenz | Nutzbar |
+| Project | License | Project policy |
 |---|---|---|
-| Funscript Flow | Apache-2.0 | ja, auch Code (mit Attribution) |
-| funscript-utils, launchcontrol | permissiv | ja, Kennzahlen und Grenzwerte übernommen |
-| Buttplug (Protokollwissen) | BSD-3 | Protokollfakten ja; bei Codeübernahme Vermerk nötig |
-| **FunGen 1** | **PolyForm Strict 1.0.0** | **nein** – nichtkommerziell UND keine abgeleiteten Werke |
-| FunGen 2 | geschlossenes Binary | nichts zu lesen |
+| Funscript Flow | Apache-2.0 | Code reuse permitted with attribution |
+| funscript-utils, launchcontrol | Permissive | Metrics and limits adopted |
+| Buttplug (protocol knowledge) | BSD-3 | Protocol facts may be used; code reuse requires attribution |
+| **FunGen 1** | **PolyForm Strict 1.0.0** | **Do not reuse** in this project |
+| FunGen 2 | Closed binary | No source available to review |
 
-PolyForm Strict verbietet abgeleitete Werke. Den Quellcode zu lesen und
-seine Funktionen strukturgleich zu übertragen wäre ein abgeleitetes Werk –
-in einem MIT-lizenzierten, verkäuflichen Projekt ein Risiko, das sich später
-am Code nachweisen ließe. Ideen und beschriebenes Verhalten sind dagegen
-nicht schutzfähig: aus öffentlichen Beschreibungen darf gelernt werden, was
-ein Programm leistet.
+The project excludes FunGen source-code reuse and structurally equivalent
+ports because of licensing concerns around derivative works and commercial
+use in an MIT-licensed product. Public descriptions of behavior may inform
+independent designs. This records the development policy, not a fresh legal
+assessment of third-party licenses.
 
-## Übernommen aus fse-generator (Salvage)
+## Code salvaged from fse-generator
 
-Zwei Pakete aus einem Vorgängerprojekt, einzeln geprüft statt als Merge:
+Two packages from an earlier project were reviewed individually instead
+of merged wholesale:
 
-| Paket | Inhalt | Zustand |
+| Package | Contents | Status |
 |---|---|---|
-| `motionx` | RDP (iterativ, gibt Indizes zurück, plus `Dedup`), Zustandsklassifikation | **verdrahtet** – Klassifikation in der Skriptanalyse |
-| `videox` | `ffprobe`-Wrapper, ffmpeg-Graustufen-Reader | vorhanden, **nicht verdrahtet** |
+| `motionx` | Iterative RDP returning indices, `Dedup`, motion-state classification | **Connected:** classification is used in script analysis |
+| `videox` | `ffprobe` wrapper and ffmpeg grayscale reader | Present, **not connected** |
 
-`motionx` ist abhängigkeitsfrei (nur Standardbibliothek). `videox` dagegen
-setzt **ffmpeg und ffprobe im PATH** voraus – eine Anforderung, die das
-Projekt bisher nicht hat, weil die Videodekodierung über OpenCV in Python
-läuft. Deshalb liegt es bei, ist aber an nichts angeschlossen: es einzubauen
-hieße, allen Nutzern eine zusätzliche Installation aufzuerlegen, ohne dass
-heute ein Vorteil gegenübersteht. Sinnvoll würde es erst, wenn die Python-
-Abhängigkeit insgesamt entfallen soll – das ist eine Architekturentscheidung,
-keine Dateiübernahme.
+`motionx` uses only the standard library. `videox` requires **ffmpeg and
+ffprobe on PATH**, a dependency the current project avoids by decoding
+video through Python/OpenCV. Connecting it now would require every user
+to install more software without a demonstrated benefit. It becomes useful
+if removing Python altogether is the goal; that is an architectural
+decision, not simply copying another file.
 
-Ausdrücklich **nicht** übernommen (Begründungen aus der Salvage-Analyse):
-`EstimateTranslation` integriert das Kamerasignal statt des Subjektsignals
-bei Suchraster 4 und läuft binnen weniger Frames an den Anschlag;
-`pattern.Periodicity` misst Glattheit statt Periodizität (linearer Drift
-ergibt 1,000); `candidate.Build` bevorzugt dadurch systematisch die
-überglättete Variante – dieselbe Fehlerklasse wie beim Zickzack-Problem.
+Explicitly **not** salvaged, based on the original analysis:
+`EstimateTranslation` integrates the camera signal rather than the subject
+signal with search grid 4 and reaches its limit within a few frames;
+`pattern.Periodicity` measures smoothness instead of periodicity (linear
+drift scores 1.000); `candidate.Build` therefore systematically favors the
+over-smoothed candidate, the same class of error as the zigzag problem.
 
-## Erweiterbarkeit
+## Extensibility
 
-Analyseverfahren sind austauschbare Bausteine (`generator/backends.py`).
-Vorher war die Wahl eine fest verdrahtete Fallunterscheidung mitten in der
-Pipeline – jedes neue Verfahren hätte dort einen Eingriff bedeutet.
+Analysis methods are replaceable components (`generator/backends.py`).
+Previously, selection was hard-coded inside the pipeline, requiring a
+pipeline edit for every new method.
 
-Ein Backend ist eine Funktion mit festem Vertrag:
+A backend is a function with a fixed contract:
 
-```
+```text
 analyze(video_path, roi, options)
   -> (timestamps_ms, positions, frame_size, scene_cuts, stats)
 ```
 
-Zwei Bedingungen sind nicht Formsache: Positionen kommen in
-**Bildkoordinaten**, nicht normalisiert (sonst würden Dynamik und
-Normalisierung stillschweigend ausgehebelt), und `stats["vertical_range"]`
-ist die Amplitude **in Pixeln** (nach der Normalisierung ist sie
-unwiederbringlich weg, und der Quality Doctor braucht sie, um echte Bewegung
-von hochskaliertem Zittern zu unterscheiden).
+Two requirements are essential: positions must use **image coordinates**,
+not normalized values, otherwise dynamic-range processing and normalization
+would silently be bypassed. Also, `stats["vertical_range"]` must contain
+amplitude **in pixels**. Normalization permanently removes that information,
+but the Quality Doctor needs it to distinguish real motion from amplified
+jitter.
 
-Eigene Verfahren kommen als Python-Datei ins Plugin-Verzeichnis und melden
-sich mit `register(name, func, beschreibung)` an. `--list-backends` zeigt
-alle verfügbaren mit Herkunft. Vertragsverstöße scheitern sofort mit einer
-Meldung, die sagt, *was* fehlt – ein Plugin, das eine Zeile zu wenig
-liefert, fiele sonst erst als unerklärlich schlechtes Skript auf.
+Custom methods are Python files in the plugin directory, registered with
+`register(name, func, description)`. `--list-backends` lists available
+methods and their origins. Contract violations fail immediately with a
+message identifying what is missing; otherwise a plugin returning one row
+too few would appear merely to produce an inexplicably poor script.
 
-Absichtlich **keine Sandbox**: ein Plugin läuft mit denselben Rechten wie das
-Programm. Das ehrlich zu sagen ist besser als eine Scheinsicherheit.
+There is deliberately **no sandbox**: plugins run with the same permissions
+as the application.
 
-## Behobene Fehler mit Außenwirkung
+## Fixed bugs affecting users
 
-**Unvollständige Einbettung der Python-Module.** Eingebettet waren vier
-Dateien, ins Temp-Verzeichnis geschrieben wurden zwei. Im Entwicklungsbaum
-unsichtbar, weil dort alle Module nebeneinander liegen. In der fertigen
-`.exe` zeigte sich das als **drei scheinbar verschiedene Fehler**:
-`--backend flow` scheiterte, das gelernte Qualitätsmodell wurde nie
-gefunden, und die Geräteprüfung lief still gar nicht – ihr Import steht in
-einem `try/except` und fiel lautlos durch. Jetzt wird das ganze Verzeichnis
-per `go:embed *.py` eingebettet; `generator_embed_test.go` liest die
-tatsächlichen Importe aus dem Quelltext und prüft, dass jedes davon im
-Temp-Verzeichnis landet. Eine gepflegte Liste wäre genau das, was hier schon
-einmal vergessen wurde.
+**Incomplete Python-module embedding:** four files were embedded but only
+two were written to the temporary directory. This was invisible in the
+source tree, where all modules sit together. In the packaged executable it
+caused **three apparently unrelated failures**: `--backend flow` failed,
+the learned quality model was never found, and device checking silently
+never ran because its import was wrapped in `try/except`. The entire
+Python directory is now embedded with `go:embed *.py`.
+`generator_embed_test.go` reads actual imports from the source and verifies
+that each module reaches the temporary directory. A manually maintained
+list would repeat the original mistake.
 
-**Keepalive hielt nur einen Kanal.** Es wiederholte das zuletzt gesendete
-Paket. War das Sog, wurde die Vibration nicht gehalten – und umgekehrt.
-Ausgerechnet in Pausen und beim Extended-O, also dort, wo das Keepalive
-überhaupt greifen soll. Jetzt wird der Zustand **beider** Kanäle geführt und
-wiederholt. Zusätzlich werden unveränderte Pakete nicht erneut gesendet: das
-Gerät kennt nur ganzzahlige Stufen, 100 Rampenschritte ergeben höchstens 11
-verschiedene Pakete – der Rest waren Roundtrips ohne Wirkung, bei zwei
-Kanälen alle 50 ms bis zu 40 pro Sekunde.
+**Keepalive maintained only one channel:** it repeated only the last sent
+packet. If that packet controlled suction, vibration was not maintained,
+and vice versa, particularly during pauses and Extended-O, when keepalive
+is needed most. Both channels' states are now stored and repeated.
+Unchanged packets are also suppressed: integer levels mean 100 ramp steps
+produce at most 11 distinct packets. The rest were ineffective round trips,
+potentially up to 40 per second for two channels updated every 50 ms.
 
-## Bekannte Grenzen
+## Known limitations
 
-**Das Flow-Backend überschätzt die Amplitude auch bei stehender Kamera**
-(137,8 px statt 110). Das ist kein Kamerafehler – die Korrektur greift dort
-gar nicht – sondern eine Eigenschaft des Zentrumsschätzers. Nach der
-Normalisierung auf 0–100 fällt es weniger ins Gewicht als es aussieht; die
-Form stimmt (Korrelation 0,941).
+**The flow backend overestimates amplitude even with a stationary camera:**
+137.8 px instead of 110. This is not a camera-correction bug, because no
+correction applies in that case; it is a property of the center estimator.
+After normalization to 0–100 the effect is smaller than the raw numbers
+suggest, and the shape is accurate (correlation 0.941).
 
-**Alle Qualitätsschwellen sind an synthetischen Videos kalibriert.** Saubere
-Sinusbewegungen, deren Wahrheit per Konstruktion bekannt war. Echtes Material
-ist unregelmäßiger und liegt systematisch niedriger. Deshalb gibt es den
-Messbericht: erst mit echten Läufen **und** menschlichem Urteil lassen sich
-die Schwellen belastbar nachziehen.
+**All quality thresholds were calibrated on synthetic videos:** clean sine
+motions with known ground truth. Real material is less regular and
+systematically scores lower. The measurement report exists so thresholds
+can be recalibrated using real runs **and** human ratings.
 
-**Der Generator liefert schwächere Bewegung als FunGen – teilweise geklärt.**
-Am selben Film gemessen: Sprunghöhe im Median 6,5 gegen 44,5, Sprünge über
-50 Punkte 0,0 % gegen 34,7 %, Zeit im Mittelband 40–60 bei 33,3 % gegen
-14,2 %. Unser Skript zappelte in der Mitte, statt zwischen den Extremen zu
-wechseln.
+**The generator produces weaker motion than FunGen — partly explained.**
+On the same film, median action jump was 6.5 versus 44.5, jumps greater than
+50 points were 0.0% versus 34.7%, and time in the 40–60 middle band was 33.3%
+versus 14.2%. Our script jittered around the middle instead of alternating
+between extremes.
 
-Eine Ursache ist gefunden und behoben: In der Hälfte aller 6-Sekunden-Fenster
-wurden nur 30 von 100 Punkten genutzt, weil global normalisiert wurde. Die
-gleitende Dynamik hebt die mittlere Bewegungsstärke von 10,1 auf 26,2.
+One cause was identified and fixed: global normalization used only 30 out
+of 100 points in half of all 6-second windows. Moving-window dynamic-range
+processing raises average motion strength from 10.1 to 26.2.
 
-Der Rest ist **nicht** die Nachverarbeitung – das ist inzwischen gemessen.
-An einem synthetischen Video mit realistisch wechselndem Tempo (1,2–2,2 Hz)
-erreicht die Pipeline Intensität 162,1 gegen ideal 161,4, also praktisch
-verlustfrei. Auch die Größe der markierten Region ändert nichts (112, 111,
-110 px bei 40×40, 70×70 und 120×120). Die Glättung dämpft bei allen
-realistischen Hubfrequenzen nur 0–8 %.
+The remaining cause is **not post-processing**, as measurements now show.
+On synthetic video with realistically varying speed (1.2–2.2 Hz), the
+pipeline reaches intensity 162.1 versus an ideal 161.4, effectively without
+loss. Marked-region size makes no difference either: 112, 111, and 110 px
+for 40×40, 70×70, and 120×120 regions. Smoothing attenuates realistic stroke
+frequencies by only 0–8%.
 
-Bleibt als Erklärung die Messgröße selbst: eine einzelne verfolgte Region
-misst, wie weit sich dieser Bildbereich verschiebt. Bei echtem Material ist
-aber meist die **relative** Bewegung zweier Körper das Signal, und die kann
-deutlich größer sein als die absolute Verschiebung eines der beiden. Dafür
-gibt es die Zwei-Punkt-Messung (`--roi2`); die automatische Erkennung beider
-Regionen ist gemessen noch nicht gut genug (siehe `find_two_rois`).
+The remaining explanation is the measured quantity itself. A single region
+measures that image area's displacement, while real material often depends
+on the **relative** motion between two bodies, which can be much larger
+than either one's absolute displacement. Two-point measurement (`--roi2`)
+addresses this. Automatic detection of both regions is not yet good enough
+according to measurements (see `find_two_rois`).
 
-Zur endgültigen Klärung wird das Originalvideo gebraucht; aus dem
-exportierten Skript allein lässt sich das ursprüngliche Signal nicht
-zurückgewinnen.
+The original video is needed to settle this; the exported script alone
+cannot recover the original signal.
 
-**Nie an echter Hardware getestet.** Verbindung, Wiedergabe und Training
-sind ausschließlich gegen `device.Mock` verifiziert.
+**Not tested on real hardware:** connection, playback, and training have
+only been verified against `device.Mock` and simulated protocol behavior.
 
-**Auflösung des Geräts unbekannt.** Die Bereiche 0–10 (Vibration) und 0–5
-(Sog) stammen aus der Buttplug-Gerätekonfiguration – das ist die Stufenzahl,
-auf die *Buttplug* quantisiert, nicht notwendigerweise eine Grenze der
-Firmware. Der Rohwert-Test im Geräte-Tab existiert, um das zu klären.
+**Actual device resolution is unknown:** the 0–10 vibration and 0–5 suction
+ranges come from Buttplug's device configuration. They describe Buttplug's
+quantization, not necessarily firmware limits. The device tab's raw-value
+test is intended to resolve this.
 
-**Das gelernte Modell hat noch keine echten Daten gesehen.** Die Mechanik ist
-mit synthetischen Beispielen geprüft (Trefferquote 50 % → 100 % in einem
-konstruierten Fall), aber ob sie an realem Material trägt, ist offen. Bis
-genügend Urteile vorliegen, gelten unverändert die festen Regeln.
+**The learned model has not seen real data:** its mechanics were tested
+with synthetic examples, improving accuracy from 50% to 100% in a
+constructed case. Real-world performance remains unknown. Fixed rules
+remain in use until enough ratings are available.
 
-**Auto-Retry ist unbelegt.** Die Funktion ist gebaut und getestet, aber im
-gesamten Kalibrierungssatz gibt es keinen Fall, den sie verbessert – alle
-Fehlschläge dort sind Tracking-Probleme, die sie korrekt überspringt.
+**Automatic retry has no demonstrated benefit yet:** it is implemented and
+tested, but no case in the calibration set improves with retry. All failures
+in that set are tracking problems, which retry correctly skips.
 
 ---
 
-## Geprüft und verworfen
+## Tested and rejected
 
-Damit niemand dieselbe Arbeit zweimal macht:
+Recorded so the same unsuccessful approaches are not repeated:
 
-| Idee | Ergebnis |
+| Idea | Result |
 |---|---|
-| Divergenz als Motion-Center-Schätzer (Funscript Flow) | 41 px statt 110, Korrelation 0,829 gegen 0,904/0,917. Verschlechtert die Kombination. |
-| Symmetrische Projektionsgewichtung (Funscript Flow) | Kein messbarer Unterschied (110,5 gegen 110,1). |
-| Optical Flow als Fusionspartner (integriert) | Korrelation 0,27–0,78, Amplitude bis Faktor 2,4 daneben. Integration summiert Schätzfehler. |
-| Kamerakorrektur über Median des Flow-Felds | Korrigiert Vektoren, nicht Positionen – wirkungslos für dieses Backend. Ersetzt durch merkmalsbasierte Positionskorrektur. |
-| Fusion von CSRT und Flow-Backend | Landet immer **zwischen** den Quellen, schlägt nie die beste (clean 1,000/0,926 → 0,985; occluded 0,293/0,747 → 0,620). Bei zwei Quellen ist die gegenseitige Übereinstimmung symmetrisch: sie sagt, DASS sie uneinig sind, nicht WER recht hat. `fusion.py` liegt getestet bei, ist aber nicht verdrahtet. |
-| Mindestzyklenzahl als Periodizitätskriterium | Bestraft langsame, aber gültige Bewegung: zwei saubere Zyklen wären „unbelastbar". Der **aktive Zeitanteil** trennt besser – Einzelausschlag 0,27, zwei langsame Zyklen 0,86, durchgehend 1,00. |
-| Rhythmus global über das ganze Video messen | Setzt EINEN durchgehenden Rhythmus voraus. An zwei echten Skripten desselben Films (77 s): global 0,203 und 0,039 – **beide** als verrauscht eingestuft, eines davon aus einem etablierten Fremdprogramm. Fensterweise (8 s, Median): 0,396 und 0,324. |
-| Rhythmusmaß ohne Detrending | Linearer Drift bekam 0,289 – über der Ausschlussschwelle 0,20, wäre also durchgegangen. Umgekehrt fiel ein gültiger Sinus **mit** Drift von 1,000 auf 0,425. Detrending behebt beides. |
-| Absolute Zahl der RANSAC-Übereinstimmungen als Gütemaß | Auf Rauschhintergrund reichlich Zufallstreffer; Amplitude stieg auf 233 px. Der **Anteil** trennt sauber (0,24 gegen 0,84–0,90). |
-| Feinere Trainingsrampen | Zuerst mit falscher Begründung verworfen; die Auflösungsfrage ist offen, siehe Rohwert-Test. |
-| CUDA über pip-OpenCV | `opencv-python`/`opencv-contrib-python` werden **ohne CUDA** gebaut. Nur über Eigenbau oder OpenCL. |
+| Divergence as a motion-center estimator (Funscript Flow) | 41 px instead of 110; correlation 0.829 versus 0.904/0.917. Makes the combination worse. |
+| Symmetric projection weighting (Funscript Flow) | No measurable difference: 110.5 versus 110.1. |
+| Integrated optical flow as a fusion input | Correlation 0.27–0.78; amplitude off by up to 2.4×. Integration accumulates estimation errors. |
+| Camera correction using the median flow field | Corrects vectors rather than positions; ineffective for this backend. Replaced with feature-based position correction. |
+| Fusion of CSRT and flow backend | Always falls **between** the sources, never beats the best: clean 1.000/0.926 → 0.985; occluded 0.293/0.747 → 0.620. Agreement between two sources is symmetric: it reveals disagreement, not which is right. `fusion.py` is tested but not connected. |
+| Minimum cycle count as a periodicity criterion | Penalizes slow but valid motion: two clean cycles would appear unreliable. **Active time fraction** separates cases better: one excursion 0.27, two slow cycles 0.86, continuous motion 1.00. |
+| Measuring rhythm globally across a video | Assumes a single continuous rhythm. Two real scripts for the same 77 s film scored 0.203 and 0.039 globally, classifying **both** as noisy, including one from an established tool. Windowed measurement (8 s, median): 0.396 and 0.324. |
+| Rhythm measurement without detrending | Linear drift scored 0.289, above the 0.20 rejection threshold, and would pass. A valid sine wave with drift fell from 1.000 to 0.425. Detrending fixes both. |
+| Absolute RANSAC match count as a quality metric | Random matches on noise backgrounds increased amplitude to 233 px. The **fraction** separates cases cleanly: 0.24 versus 0.84–0.90. |
+| Finer training ramps | Initially rejected for the wrong reason; actual resolution remains unknown. See the raw-value test. |
+| CUDA through pip-installed OpenCV | `opencv-python` and `opencv-contrib-python` are built **without CUDA**. Requires a custom build or OpenCL instead. |
 
 ---
 
-## Wo Fallstricke lauern
+## Pitfalls
 
-Diese Punkte haben bereits Zeit gekostet:
+These issues have already cost development time:
 
-- **Testvideos mit Rauschhintergrund taugen nicht für Kamerakompensation.**
-  `goodFeaturesToTrack` findet dort keine stabilen Merkmale, die Schätzung
-  wird zum Random Walk, und die Kompensation sieht fälschlich kaputt aus.
-  Immer texturierte Hintergründe verwenden.
-- **Bewegte Objekte in Testvideos müssen in Weltkoordinaten liegen.** An
-  fester Bildschirmposition gezeichnet machen sie einen Kameraschwenk nicht
-  mit, und die Kompensation sieht fälschlich falsch aus.
-- **`TRACK_CACHE_VERSION` erhöhen**, wenn sich `track_roi` oder die
-  Kamerakompensation ändert. Sonst liefert der Cache still Ergebnisse der
-  alten Implementierung.
-- **Wails-Bindings neu erzeugen** (`wails build`) nach jeder neuen
-  Go-Methode. Die Frontend-Tests erzeugen ihre Attrappen inzwischen aus
-  `App.js`, fallen also sofort auf.
-- **Rhythmusprüfung nur am dichten Signal.** Die Peak/Valley-Reduktion macht
-  aus jedem Signal einen Zickzack, der rhythmisch aussieht.
-- **`-trimpath` beim Bauen.** Ohne das landet der Pfad des Build-Rechners –
-  und damit der Benutzername – in der EXE.
+- **Noise-background test videos do not work for camera compensation.**
+  `goodFeaturesToTrack` finds no stable features, turning the estimate into
+  a random walk and making compensation appear broken. Use textured backgrounds.
+- **Moving objects in test videos must use world coordinates.** Objects
+  drawn at fixed screen positions do not follow camera pans, making correct
+  compensation appear wrong.
+- **Increment `TRACK_CACHE_VERSION`** when changing `track_roi` or camera
+  compensation, otherwise cached results silently come from the old code.
+- **Regenerate Wails bindings** with `wails build` after adding a Go method.
+  Frontend mocks are generated from `App.js`, so missing bindings surface quickly.
+- **Measure rhythm only on the dense signal.** Peak/valley reduction turns
+  any signal into a zigzag that appears rhythmic.
+- **Build with `-trimpath`.** Otherwise the build machine's path, including
+  the username, is embedded in the executable.
 
 ---
 
-## Zusammenarbeit
+## Collaboration
 
-`CONTRIBUTING.md` beschreibt Ablauf, Zuständigkeitsschnitte und die Regel,
-auf die es ankommt: **jeder Beitrag braucht einen Test, der ohne die
-Änderung fehlschlägt.** Zwei Workflows laufen auf GitHub – `tests.yml` bei
-jedem Push und Pull Request (Go mit Race-Detector, Python, Oberfläche),
-`release.yml` nur bei einem Versions-Tag.
+`CONTRIBUTING.md` defines the workflow, boundaries, and central rule:
+**behavior changes need a regression test verified to fail without the
+change**. Documentation-only changes require factual checks.
+GitHub runs `tests.yml` on every push and pull request (Go with the race
+detector, Python, and frontend tests), and `release.yml` on version tags.
 
-Vorher liefen die Tests **ausschließlich** beim Release. Bei mehreren
-Beteiligten wäre ein Fehler erst beim Ausliefern aufgefallen, in fremdem
-Code, dessen Zusammenhang längst vergessen ist.
+Previously, tests ran **only during releases**. With multiple contributors,
+that would reveal problems only during delivery, long after the context
+of another contributor's code had been forgotten.
 
 ## Tests
 
-18 Testdateien. Vollständiger Durchlauf:
-
-```
-go vet ./... && go test ./...
-cd generator && for t in *_test.py; do python3 $t; done
-for t in cmd/gui-wails/frontend/test/*_test.py; do python3 $t; done
-```
-
-Die Frontend-Tests laden das echte JavaScript in Headless-Chromium und
-ersetzen nur die Wails-Bindings; die Attrappen entstehen automatisch aus
-`App.js` (siehe `test/_harness.py`).
-
----
-
-## Warum `fusion.py` und `videox` nicht verdrahtet sind
-
-Beide erfüllen die harte Regel aus Abschnitt 16 des Zielkonzepts derzeit
-nicht („kein Modul ohne verbesserten Pfad"). Sie liegen mit Tests im Baum,
-weil die Voraussetzung für ihren Nutzen absehbar ist – eine dritte Messquelle
-beziehungsweise der Verzicht auf die Python-Abhängigkeit –, nicht weil sie
-schon gebraucht würden.
-
-## Offene Punkte
-
-1. Hardwaretest am echten Gerät – Verbindung, Rohwert-Auflösung, Training
-2. Qualitätsschwellen an echtem Material nachziehen – Messbericht führen,
-   Urteile abgeben, dann „Aus Urteilen lernen"
-4. Automatische Erkennung der zwei Regionen für die Zwei-Punkt-Messung
-   (heute müssen beide angegeben werden)
-5. Script Doctor für fremde `.funscript`-Dateien
-6. Trainingsfortschritt über Wochen sichtbar machen
-7. LICENSE-Datei liegt bei (MIT); Release-Workflow nie mit echtem Tag erprobt
-
----
-
-## Umgebung einrichten
+After completing the setup in `WIEDERAUFNAHME.md`, run the full suite (Bash):
 
 ```bash
-# Go ist in einer frischen Umgebung meist nicht vorhanden
-curl -sL https://go.dev/dl/go1.23.4.linux-amd64.tar.gz -o go.tar.gz
-tar -C /usr/local -xzf go.tar.gz
-export PATH=$PATH:/usr/local/go/bin GOTOOLCHAIN=auto
-
-pip install opencv-contrib-python scipy numpy
-go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-
-# Windows-Binary bauen (immer mit -trimpath)
-cd cmd/gui-wails && wails build -platform windows/amd64 -trimpath
+go vet ./... && go test ./...
+(cd generator && for t in *_test.py; do python3 "$t" || exit 1; done)
+for t in cmd/gui-wails/frontend/test/*_test.py; do python3 "$t" || exit 1; done
 ```
 
-Unter Ubuntu 24.04 für einen Linux-Build: Wails sucht `webkit2gtk-4.0`,
-vorhanden ist `4.1` – Alias-`.pc`-Dateien anlegen oder mit
-`-tags webkit2_41` bauen.
+Frontend tests load the real JavaScript in headless Chromium and replace
+only the Wails bindings. Mocks are generated automatically from `App.js`
+(see `test/_harness.py`).
+
+---
+
+## Why `fusion.py` and `videox` are not connected
+
+Neither currently meets the rule from section 16 of the target concept:
+no module without a demonstrably improved processing path. They remain in
+the tree with tests because their prerequisites are foreseeable — a third
+measurement source and removal of the Python dependency, respectively —
+not because they are currently needed.
+
+## Project status and next steps
+
+The prioritized operational task list lives exclusively in
+[docs/NEXT.md](docs/NEXT.md). Hardware and quality limitations above remain
+open until measurement reports resolve them.
+
+The release workflow ran successfully for `v0.2.1` on September 14, 2026,
+publishing GUI and CLI binaries for Windows/Linux plus `checksums.txt`.
+Tf/Tj, the second GUI region, and `suction_position` are integrated into
+`main` through PRs #2–#4. This establishes build and integration status,
+not performance on real hardware.
+
+## Environment setup
+
+Cloning, dependencies, and build instructions are maintained in
+[WIEDERAUFNAHME.md](WIEDERAUFNAHME.md). Go and Wails versions follow
+`go.mod`; CI and release builds use that same source for tool versions.

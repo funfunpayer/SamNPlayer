@@ -1,105 +1,111 @@
-# Team-Stand und nächste Änderungen
+# Historical team plan and proposed changes
 
-Stand: 13. September 2026.
-Geschrieben nach Durchsicht des Repos `funfunpayer/SamNPlayer` (Branch `main`),
-der vorhandenen HANDOFF/README und öffentlicher FunGen-2-Beschreibungen
-(Website, Changelog, README). **Kein FunGen-Quellcode gelesen, nichts übernommen.**
+Snapshot: September 13, 2026.
+Written after reviewing `funfunpayer/SamNPlayer` on `main`, the existing
+HANDOFF/README, and public FunGen 2 descriptions (website, changelog, README).
+**No FunGen source code was read or copied.**
 
-Diese Datei ist die gemeinsame Arbeitsspur. Code-Änderungen gehören in Branches
-und Pull Requests, nicht nur in den Chat.
+> Historical record: the findings, proposed names, and parameter tables
+> below reflect that snapshot, not the current implementation. Some work
+> has since been completed or superseded. Use [NEXT.md](NEXT.md) for current
+> tasks, [TF_TJ.md](TF_TJ.md) for the implemented Tf/Tj recipe, and
+> [CONTRIBUTING.md](../CONTRIBUTING.md) for current collaboration rules.
 
----
-
-## Ziel
-
-Besser als FunGen 2 **auf dem SVAKOM Sam Neo 2**, nicht Feature-Parität.
-
-Zuerst klassisch (gemessen). KI später als Vorschlag auf denselben
-Zwischenständen (Tracks, Signaturen, Urteile, Rezepte).
-
-Kein Akt-Detektor in der ersten Stufe. Der Nutzer benennt
-(`titjob` / `blowjob`); das Programm überträgt Parameter auf ähnliche
-Bewegungssignaturen.
-
-FunGen 1 steht unter PolyForm Strict. Dessen Code nicht lesen, nicht
-strukturgleich nachbauen. Öffentlich beschriebenes *Verhalten* darf Vorbild
-sein.
+This was the shared development record. Code changes belong in branches
+and pull requests, not only in chat.
 
 ---
 
-## Was schon gut ist (nicht umbauen)
+## Goal
 
-- Schichten: `device` / `funscript` / `player` / `generator` / GUI.
-- BLE-Protokoll gegen Buttplug-Rust festgehalten (`device/protocol.go`).
-- `Sync()` an der Videouhr, Skript-Offset an einer Stelle.
-- Generator-Optionen mit Messung begründet (HANDOFF).
-- Zwei-Punkt-Abstand (`--roi2`), Bewegungssignatur, Quality Doctor.
-- MIT-Lizenz. `update.RepoOwner` / `RepoName` stehen auf `funfunpayer/SamNPlayer`.
+Outperform FunGen 2 **on the SVAKOM Sam Neo 2**, rather than pursue feature parity.
+
+Start with measured classical methods. Add AI later as a suggestion layer
+using the same intermediate data: tracks, signatures, ratings, and recipes.
+
+No action detector in the first stage. The user supplies a name
+(`titjob` / `blowjob` in the original proposal); the application transfers
+parameters to similar motion signatures.
+
+The original plan excludes FunGen 1 source-code reuse and structurally
+equivalent ports because of its PolyForm Strict license. Publicly described
+*behavior* may inspire an independent implementation.
 
 ---
 
-## Was sich ändern soll – Reihenfolge
+## Existing strengths to preserve
 
-Nicht UI und nicht Titjob zuerst. Der Go-Kern ist der wunde Punkt fürs
-Gerätegefühl.
+- Layers: `device` / `funscript` / `player` / `generator` / GUI.
+- BLE protocol documented against Buttplug Rust (`device/protocol.go`).
+- `Sync()` follows the video clock; script offset is applied in one place.
+- Generator options supported by measurements in HANDOFF.
+- Two-point distance (`--roi2`), motion signatures, Quality Doctor.
+- MIT license; `update.RepoOwner` / `RepoName` point to `funfunpayer/SamNPlayer`.
 
-### 1. BLE-Schreibweg (zuerst)
+---
 
-Dateien: `device/samneo2.go`, Tests dazu.
+## Proposed order of changes
 
-Heute: jedes Tick `SetVibration` + `SetSuction` = zwei GATT-Writes mit
-Response (bis ~40/s bei 50 ms). Keepalive speichert nur `lastPacket` – der
-andere Kanal wird in Pausen nicht gehalten.
+The original review prioritized the Go core's effect on device output
+before UI work or specialized profiles.
 
-Soll:
+### 1. BLE write path
 
-- Gerätezustand `{vibration, suction}` halten.
-- Keepalive **beide** Kanäle wiederholen.
-- Unveränderte Stufe nicht nochmal senden.
-- Writes zusammenfassen, wo das Protokoll das hergibt.
+Files: `device/samneo2.go` and related tests.
 
-Ohne das bleiben Rezepte und Profile Theorie.
+At the time of the review, every tick called `SetVibration` and `SetSuction`,
+producing two GATT writes with response, up to approximately 40/s at 50 ms.
+Keepalive stored only `lastPacket`, so the other channel was not maintained
+during pauses.
 
-### 2. Mapper testbar + Rezeptfelder
+Proposed changes:
 
-Dateien: `funscript/mapper.go`, neue `funscript/mapper_test.go`,
-`funscript/funscript.go` (Metadata).
+- Maintain device state as `{vibration, suction}`.
+- Repeat **both** channels during keepalive.
+- Do not resend an unchanged level.
+- Combine writes where the protocol supports it.
 
-Heute: `ToIntensityCurve` ohne eigene Tests. `MinVibration` wirkt auf das
-Tempo-Signal. Es gibt keinen `suction_floor` / Peak-Gate.
+Without reliable output, recipes and profiles remain theoretical.
 
-Soll: Tests für Independent, Stillstand, schnellen Hub. Danach optionale
-Felder für Geräterezepte (siehe unten). Metadata `profile` und
-`device_recipe` durchreichen, Player liest sie.
+### 2. Mapper tests and recipe fields
 
-### 3. Generator-Embed vollständig
+Files: `funscript/mapper.go`, a new `funscript/mapper_test.go`, and
+`funscript/funscript.go` for metadata.
 
-Datei: `generator/generator.go` (`writeScriptToTemp`).
+At the time, `ToIntensityCurve` had no dedicated tests. `MinVibration`
+affected the speed signal, and there was no `suction_floor` or peak gate.
 
-Heute landen in der Temp-Kopie nur `generate_funscript.py` und
-`quality_doctor.py`. `flow_backend`, `quality_model` und weitere Imports
-fehlen. Im Repo beim Entwickeln oft unsichtbar, in der **fertigen .exe**
-bricht `--backend flow` und das gelernte Modell.
+Proposed changes: test independent mapping, stationary input, and fast
+strokes, then add optional device-recipe fields (see below). Pass through
+`profile` and `device_recipe` metadata and read them in the player.
 
-Soll: alle Module einbetten, die der Generator zur Laufzeit importiert.
+### 3. Complete generator embedding
 
-### 4. Profile `titjob` / `blowjob`
+File: `generator/generator.go`, specifically `writeScriptToTemp`.
 
-Kein Detektor. Parameterpaket + GUI-Karten + zweite ROI.
+At the time, the temporary copy contained only `generate_funscript.py` and
+`quality_doctor.py`. Imports such as `flow_backend` and `quality_model`
+were missing. This was often invisible during source-tree development,
+but broke `--backend flow` and the learned model in the **packaged executable**.
 
-Generator-Startwerte (nach Hardware nachziehen):
+Proposed change: embed every module imported by the generator at runtime.
 
-| | standard | titjob (Peak+Grund) | titjob_peak | blowjob |
+### 4. Original `titjob` / `blowjob` profile proposal
+
+A parameter package, GUI cards, and a second ROI, rather than a detector.
+These were proposed starting values, to be recalibrated after hardware tests:
+
+| Parameter | standard | titjob (peak + baseline) | titjob_peak | blowjob |
 |---|---|---|---|---|
-| Signal | 1 ROI | Abstand ROI1–ROI2 Pflicht | wie titjob | Achse Mund/Kopf, optional Abstand zur Basis |
+| Signal | 1 ROI | ROI1–ROI2 distance required | Same as titjob | Mouth/head axis; optional distance to base |
 | pos_floor / pos_ceil | 5–95 | 20–90 | 15–92 | 8–95 |
-| hold_contact | aus | an | an | aus |
+| hold_contact | Off | On | On | Off |
 | norm_window_s | 6 | 4 | 4 | 5 |
-| Sog-Quelle | Position | invertierter Abstand + Boden 0.20 | nur pos > 70 | Tiefe, Tal darf 0 |
+| Suction source | Position | Inverted distance + floor 0.20 | Only pos > 70 | Depth; valleys may reach 0 |
 
-`MapOptions`-Startwerte:
+Proposed `MapOptions` starting values:
 
-| | standard | titjob | titjob_peak | blowjob |
+| Parameter | standard | titjob | titjob_peak | blowjob |
 |---|---|---|---|---|
 | Sync | independent | independent | independent | independent |
 | TickMs | 50 | 50 | 50 | 40 |
@@ -107,89 +113,95 @@ Generator-Startwerte (nach Hardware nachziehen):
 | MinVibration | 0.15 | 0.20 | 0.12 | 0.10 |
 | Smoothing | 0.30 | 0.22 | 0.18 | 0.20 |
 | suction_floor | 0 | 0.20 | 0 | 0 |
-| suction_peak_gate | aus | aus | an | aus |
+| suction_peak_gate | Off | Off | On | Off |
 
-Default Titjob: **Peak plus Grunddruck**. Variante nur Peak als Checkbox.
+The original Titjob default was **peak plus baseline pressure**, with a
+peak-only checkbox variant. The proposed internal names were `titjob` /
+`blowjob`, with no silently assigned action classes. These historical names
+and values are not the current Tf/Tj contract; see [TF_TJ.md](TF_TJ.md).
 
-Profilname intern `titjob` / `blowjob`. Keine stillen Akt-Klassen.
+### 5. Allow the Doctor to repair output
 
-### 5. Doctor darf ändern
+Quality Doctor checks results. Public FunGen descriptions include repairs
+for speed and gaps. Proposed first steps here: enforce minimum spacing and
+speed caps (partly implemented), then provide an explicit repair step with
+a before/after diff.
 
-Quality Doctor prüft. FunGen-öffentlich: Doctor **repariert** (Tempo, Lücken).
-Bei uns zuerst: Mindestabstand und Speed-Cap schon erzwingen (teilweise da),
-dann ein expliziter Fix-Schritt mit Diff „vorher/nachher“.
+### 6. Small editor
 
-### 6. Mini-Editor, nicht OFS-Klon
+After generation, show the curve, allow peaks to be dragged and sections
+to be deleted or repeated, and retain the existing offset control. An
+overlay of the most recent generated curve is enough for the first version.
+A full OFS clone or multi-axis OSR studio is outside this proposal.
 
-Nach dem Generieren: Kurve sehen, Peaks ziehen, Abschnitt löschen/wiederholen,
-Offset (habt ihr). Geist der letzten Erzeugung über der Kurve reicht.
-Kein Multi-Axis-Studio für OSR.
+### 7. UI afterward
 
-### 7. UI (danach)
+Dark layout, icon sidebar, large video, curve and heatmap below it, and
+persistent device information on the right. Amber for vibration, violet
+for suction. The original generator-card proposal was Standard / Breast / Oral.
 
-Dunkles Layout, Icon-Leiste, Video groß, Kurve+Heatmap unten, Gerät rechts
-immer sichtbar. Vibration Amber, Sog Violett. Generator: drei Karten
-Standard / Busen / Oral.
+### 8. Later
 
-### 8. Später
-
-- Kapitel aus vorhandenen Scene-Cuts, Abschnitt neu erzeugen.
-- Audio-Takt als Fallback, wenn das Bild lügt (Idee aus FunGen-Changelog,
-  eigene Implementierung).
-- Python aus der .exe werfen (`videox` verdrahten, wenn der Vorteil gemessen
-  ist).
-- KI nur als Adapter: schlägt ROI/Profil vor, Mensch bestätigt. Muss die
-  festen Regeln in Kreuzvalidierung schlagen.
-
----
-
-## Von FunGen 2 öffentlich gelernt (Verhalten, kein Code)
-
-Quellen: fungen.app, GitHub-README/Changelog von ack00gar/FunGen (Binary),
-nicht das archivierte FunGen-1-Python-Repo.
-
-Übernehmen als *Idee*:
-
-- Erzeugen → sehen → flicken → auf **dieses** Gerät spielen.
-- Latenz / Interpolation pro Gerät.
-- Provenienz in der Datei (`creator`, Herkunft, bei uns zusätzlich Rezept).
-- Tracking-Cache nach außen: Parameter ändern, Video nicht nochmal.
-- Kapitel/Marker als Schnitt.
-
-Nicht übernehmen:
-
-- YOLO-/Körperteil-Pipeline, VR-Pro-Modelle.
-- Sechs Achsen für OSR.
-- Stash/XBVR als erstes Produktziel.
-- Strukturgleiche Nachbildung ihrer Tracker.
+- Chapters from existing scene cuts, with regeneration of individual sections.
+- Audio rhythm as a fallback when visual tracking is unreliable: an idea
+  from the FunGen changelog, independently implemented.
+- Remove the Python runtime dependency, connecting `videox` only after
+  measuring a benefit.
+- AI as an adapter that suggests ROIs/profiles for human confirmation.
+  It must outperform fixed rules in cross-validation.
 
 ---
 
-## Testclips
+## Lessons from public FunGen 2 behavior
 
-Synthetische Clips (kein Adult-Content, bekannte Wahrheit):
+Sources reviewed at the time: fungen.app and the GitHub README/changelog
+for ack00gar/FunGen binaries, not the archived FunGen 1 Python source.
 
-- Hub still / mit Schwenk
-- Zwei-Punkt-Abstand (Titjob-Physik)
-- Takt mit Pausen (Blowjob-Physik)
-- Szenenwechsel, Verdeckung, wechselnde Amplitude
+Ideas to consider:
 
-Echte Titjob-/Blowjob-Takes dreht das Team selbst (15–40 s, H.264, erst
-Stativ). Urteil in den Messbericht, Vergleich gegen ein Fremdskript desselben
-Films wenn vorhanden.
+- Generate → inspect → repair → play on **this** device.
+- Device-specific latency handling and interpolation.
+- Provenance in the file: `creator`, origin, and our device recipe.
+- Make tracking-cache reuse visible: change parameters without reprocessing video.
+- Chapters and markers as editing boundaries.
+
+Excluded from the proposal:
+
+- Reusing its YOLO/body-part pipeline or VR Pro models.
+- Six axes for OSR devices.
+- Stash/XBVR as the first product goal.
+- Structurally equivalent reimplementations of its trackers.
 
 ---
 
-## Zusammenarbeit auf GitHub
+## Test clips
 
-Repo: https://github.com/funfunpayer/SamNPlayer
+Synthetic clips without adult content and with known ground truth:
 
-- `main` bleibt lauffähig.
-- Arbeit an `feat/…` oder `fix/…`.
-- Jede Code-Änderung als Pull Request, auch kleine.
-- In den PR: was gemessen wurde, nicht nur was sich anfühlt.
-- HANDOFF.md nur ändern, wenn der *Code* sich ändert.
-- Diese Datei aktualisieren, wenn die Reihenfolge oder ein Rezept kippt.
+- Strokes with a stationary camera and with panning.
+- Two-point distance for relative-motion testing.
+- Rhythmic motion with pauses.
+- Scene changes, occlusion, and changing amplitude.
 
-Wenn hier (Grok) Code geschrieben wird, kommt er in einen Branch und einen PR
-in genau diesem Repo – nicht nur als Chat-Snippet.
+The original plan called for the team to provide real 15–40 s H.264 clips,
+starting with a tripod. Record human ratings in the measurement report and,
+where available, compare against an externally generated script of the
+same film.
+
+---
+
+## Original GitHub collaboration notes
+
+Repository: [funfunpayer/SamNPlayer](https://github.com/funfunpayer/SamNPlayer).
+
+- Keep `main` runnable.
+- Work on `feat/…` or `fix/…` branches.
+- Submit every code change as a pull request, including small changes.
+- Include measurements in the PR rather than impressions alone.
+- Update HANDOFF.md alongside code changes.
+- Update the shared plan when priorities or recipes change.
+
+Work produced in the original Grok chat was intended to go into a branch
+and PR in this repository, not remain a chat snippet. Current workflow
+rules are maintained in [CONTRIBUTING.md](../CONTRIBUTING.md), and the
+active task list is [NEXT.md](NEXT.md).
