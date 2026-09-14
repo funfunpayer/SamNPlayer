@@ -216,6 +216,46 @@ signal here), and check FunGen correlation, not just lost-frame count,
 given what the ROI2 ablation already taught about that gap. Not
 implemented in the pipeline - measurement only, script not kept.
 
+**Revisited the same day, user asked again about gentle upscaling
+specifically** (a smaller factor than the already-rejected 2x/3x,
+possibly combined with the sharpening above) - measured via a
+background agent on a small, deliberately hard 18x16px tip ROI (the
+larger ROIs used elsewhere floor at 0% lost frames, leaving no room to
+see any effect): **no clean, trustworthy signal, and the completed
+amount=2.0 sharpening run from above.**
+
+| condition | lost-frame rate |
+|---|---|
+| baseline (no preprocessing) | 16.90% (427/2526) |
+| upscale 1.15x only | 52.30% (1321/2526) |
+| upscale 1.3x only | 1.58% (40/2526) |
+| unsharp amount=2.0 only | 18.05% (456/2526) |
+| upscale 1.3x + unsharp amount=1.0 | 1.23% (31/2526) |
+
+The headline is the *instability*, not a direction: 1.15x more than
+tripled the loss rate while 1.3x cut it to a tenth - the opposite of a
+smooth dose-response, and inconsistent with the earlier 2x/3x result's
+clean monotonic trend. Most likely explanation: a tiny 18x16 ROI is
+very sensitive to sub-pixel resampling artifacts specific to each exact
+scale factor, not a real property of "upscaling" as a technique. Single
+run per condition, single ROI, no repeats - this does not rule out a
+real effect at some untested factor, it rules out treating "gentle
+upscaling helps" as established. The amount=2.0 sharpening result
+completes the interrupted sweep from above and is a real, if small,
+regression rather than a continuation of the 0/0.5/1.0 improving trend
+(18.05% vs. the 1.8% at amount=1.0) - suggesting the earlier trend
+overshoots somewhere before 2.0, another reason not to pick a sharpening
+amount from three points without checking the curve bends back. The
+upscale+sharpen combo numerically beat both single-technique runs, but
+given how erratic the upscale-alone result was, that reads as riding
+the same 1.3x instability rather than a proven synergy - **not enough
+to ship**, same bar as the rest of this section. Verdict for the user's
+question: gentle upscaling is not shown to help, and given how the
+result flipped between two nearby factors on this one ROI, it would
+need a proper multi-ROI, multi-clip sweep (matching this document's own
+`Golden Clip test suite` idea, see `docs/SAM_ARCHITECTURE.md`) before
+trusting any specific factor, not a quick re-test.
+
 **But this did NOT translate into a better FunGen match - if anything
 the opposite, and this is the more important finding to carry forward.**
 Three attempts on the identical clip, ranked by own tracking quality
