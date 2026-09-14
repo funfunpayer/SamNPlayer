@@ -5,6 +5,19 @@ ohne sich gegenseitig zu blockieren. Sie ist kurz gehalten – alles, was
 darüber hinausgeht, steht in `HANDOFF.md` (was das Projekt ist und warum es
 so gebaut ist) und `WIEDERAUFNAHME.md` (wie man die Umgebung aufsetzt).
 
+## Welche Anleitung ist maßgeblich?
+
+- `README.md`: Installation, Bedienung und Einstieg.
+- `HANDOFF.md`: Architektur, belegte Ergebnisse, Grenzen und verworfene Ansätze.
+- `WIEDERAUFNAHME.md`: Arbeitsumgebung wiederherstellen, bauen und prüfen.
+- `docs/NEXT.md`: einzige operative Aufgabenliste mit Prioritäten und Abnahmekriterien.
+
+Vor Arbeitsbeginn aktuellen Code, `git status`, `docs/NEXT.md` und den
+zugehörigen PR prüfen. Alte Chatprotokolle sind Kontext; dort genannte
+Fehler, Berechtigungen und erledigte Arbeiten am aktuellen Stand verifizieren.
+Bei Widersprüchen zählen Code und reproduzierbare Tests. Messwerte ohne
+Hardwarebeleg nicht als getestete Geräteeigenschaft darstellen.
+
 ## Wo lässt sich parallel arbeiten
 
 Die Schnitte sind so gewählt, dass mehrere Leute sich nicht ins Gehege
@@ -46,21 +59,27 @@ ohnehin mit.
 
 ## Ablauf
 
-1. Branch von `main`, benannt nach dem Bereich: `device/keepalive-fix`,
-   `generator/zwei-punkt-auto`.
-2. Ändern, **Tests dazuschreiben**, lokal laufen lassen.
-3. Pull Request. Die Prüfung in `.github/workflows/tests.yml` läuft
-   automatisch – Go mit Race-Detector, Python, Oberfläche.
-4. Jemand anderes schaut drüber. Bei Änderungen an `device/` möglichst
-   jemand mit echter Hardware.
-
-Direkt auf `main` zu schieben ist technisch möglich, aber in einem Team der
-schnellste Weg zu einem Stand, den niemand mehr nachvollziehen kann.
+1. Arbeitsziel und Abnahme festhalten: in `docs/NEXT.md` oder einem verlinkten
+   Issue. Einen überschaubaren Punkt übernehmen; betroffene Bereiche nennen.
+2. Aktuelles `main` holen und eigenen Branch erstellen, für Codex-Arbeit
+   beispielsweise `codex/project-workflow-cleanup`. Vorher lokale Änderungen
+   prüfen; fremde Änderungen weder überschreiben noch zurücksetzen.
+3. Änderung umsetzen und passende Tests ausführen. Bei Verhaltensänderungen
+   einen Regressionstest mit Gegenprobe ergänzen. Reine Dokumentationsänderungen
+   brauchen keine künstlichen Tests; Angaben, Links und Befehle prüfen.
+4. Pull Request mit Problem, Ergebnis, ausgeführten Prüfungen und offenen
+   Einschränkungen erstellen. Keine leeren Dateien oder Platzhalter als
+   Zwischenlösung veröffentlichen. Vor dem Commit den vollständigen Diff prüfen.
+5. CI abwarten und Review einholen. Bei Änderungen an `device/` einen
+   Hardwaretest vorsehen; Mock-Tests ausdrücklich als solche benennen.
+6. Nach dem Merge `docs/NEXT.md` abgleichen. Erledigte Arbeiten mit PR oder
+   Commit belegen; neue Erkenntnisse zur Architektur in `HANDOFF.md` eintragen.
+   Alte Branches erst löschen, wenn ihre Änderungen nachweislich integriert sind.
 
 ## Was ein Beitrag mitbringen muss
 
-**Einen Test, der ohne die Änderung fehlschlägt.** Das ist die einzige
-Regel, die hier wirklich zählt. Zweimal wurde in diesem Projekt eine
+**Bei Verhaltensänderungen einen Test, der ohne die Änderung fehlschlägt.**
+Zweimal wurde in diesem Projekt eine
 Funktion gebaut, die nachweislich gar nichts tat – einmal landete eine
 Einfügung in der falschen Datei, einmal wirkte ein Parameter nirgends.
 Beides fiel nur auf, weil gemessen wurde. Also: Test schreiben, grün sehen,
@@ -108,6 +127,20 @@ abgeleitetes Werk. Ideen und beschriebenes Verhalten sind dagegen frei.
 
 ## Versionen
 
-`VERSION` und `update.BaseVersion` müssen übereinstimmen. Ein Release
-entsteht durch einen Tag `vX.Y.Z`; der Workflow baut dann die Binaries und
-hängt sie an den Release, gegen den die Selbstaktualisierung prüft.
+`VERSION` und `update.BaseVersion` müssen dieselbe Version ohne `v` enthalten.
+`go test ./update` prüft diese Übereinstimmung. Entwicklungs-Binaries zeigen
+`BaseVersion-dev`; Release-Binaries erhalten die Tag-Version über `-ldflags`.
+
+Vor einem neuen Release:
+
+1. Beide Versionsangaben im selben PR erhöhen, relevante Dokumentation und
+   `docs/NEXT.md` aktualisieren und die CI erfolgreich abschließen.
+2. Den geprüften Commit auf `main` mit `vX.Y.Z` taggen und genau diesen Tag pushen.
+3. Der Release-Workflow prüft vor dem Build Tag, `VERSION` und `BaseVersion`.
+   Bei Abweichungen bricht er ab. Go und die Wails-CLI kommen aus `go.mod`.
+4. Workflow-Ergebnis, vier Binaries (GUI/CLI für Windows/Linux) und
+   `checksums.txt` kontrollieren. Ein erfolgreicher Build ersetzt keinen
+   Hardwaretest und keinen Test der Selbstaktualisierung am installierten Programm.
+
+Veröffentlichte Tags nicht nachträglich verschieben. Die Korrektur des
+Quellstands auf 0.2.1 verändert das bereits veröffentlichte Release nicht.

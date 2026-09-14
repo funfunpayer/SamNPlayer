@@ -78,11 +78,10 @@ Zustimmung selbst herunterladen (mit SHA256-Verifikation gegen die
 Prüfsummen-Datei und einer Herkunfts-Prüfung, dass die Download-URL
 tatsächlich von github.com kommt) und neu starten.
 
-**Setup, einmalig:**
-1. Repo auf GitHub anlegen, Code pushen.
-2. `RepoOwner`/`RepoName` in `update/update.go` auf das echte Repo setzen
-   (aktuell Platzhalter `TODO-github-username`).
-3. `git tag v0.1.0 && git push --tags` - der Workflow übernimmt den Rest.
+Das Release-Repository ist bereits auf `funfunpayer/SamNPlayer` eingestellt.
+[v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1)
+wurde am 14. September 2026 erfolgreich für Windows und Linux gebaut.
+Für kommende Releases gilt der Ablauf in [CONTRIBUTING.md](CONTRIBUTING.md#versionen).
 
 ## Skript aus Video erzeugen (eigener Generator)
 

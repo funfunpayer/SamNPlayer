@@ -19,7 +19,7 @@ Durchgehendes Prinzip: **Was nicht gebraucht wird, kommt nicht rein.** Und:
 Jede Aussage über Qualität oder Geschwindigkeit wird gemessen, nicht
 geschätzt.
 
-**Stack:** Go 1.23, Wails v2.15, Vanilla JS (kein Framework),
+**Stack:** Go ab 1.25.0 (siehe `go.mod`), Wails v2.15, Vanilla JS (kein Framework),
 Python 3.9+ mit OpenCV/scipy/numpy (per `go:embed` eingebettet, zur Laufzeit
 als Unterprozess gestartet).
 
@@ -422,8 +422,9 @@ Diese Punkte haben bereits Zeit gekostet:
 ## Zusammenarbeit
 
 `CONTRIBUTING.md` beschreibt Ablauf, Zuständigkeitsschnitte und die Regel,
-auf die es ankommt: **jeder Beitrag braucht einen Test, der ohne die
-Änderung fehlschlägt.** Zwei Workflows laufen auf GitHub – `tests.yml` bei
+auf die es ankommt: **Verhaltensänderungen brauchen einen Regressionstest
+mit Gegenprobe.** Für reine Dokumentation gilt die Prüfung der Angaben.
+Zwei Workflows laufen auf GitHub – `tests.yml` bei
 jedem Push und Pull Request (Go mit Race-Detector, Python, Oberfläche),
 `release.yml` nur bei einem Versions-Tag.
 
@@ -433,12 +434,12 @@ Code, dessen Zusammenhang längst vergessen ist.
 
 ## Tests
 
-18 Testdateien. Vollständiger Durchlauf:
+Vollständiger Durchlauf nach dem Setup aus `WIEDERAUFNAHME.md` (Bash):
 
 ```
 go vet ./... && go test ./...
-cd generator && for t in *_test.py; do python3 $t; done
-for t in cmd/gui-wails/frontend/test/*_test.py; do python3 $t; done
+(cd generator && for t in *_test.py; do python3 "$t" || exit 1; done)
+for t in cmd/gui-wails/frontend/test/*_test.py; do python3 "$t" || exit 1; done
 ```
 
 Die Frontend-Tests laden das echte JavaScript in Headless-Chromium und
@@ -455,34 +456,20 @@ weil die Voraussetzung für ihren Nutzen absehbar ist – eine dritte Messquelle
 beziehungsweise der Verzicht auf die Python-Abhängigkeit –, nicht weil sie
 schon gebraucht würden.
 
-## Offene Punkte
+## Projektstatus und Weiterarbeit
 
-1. Hardwaretest am echten Gerät – Verbindung, Rohwert-Auflösung, Training
-2. Qualitätsschwellen an echtem Material nachziehen – Messbericht führen,
-   Urteile abgeben, dann „Aus Urteilen lernen"
-4. Automatische Erkennung der zwei Regionen für die Zwei-Punkt-Messung
-   (heute müssen beide angegeben werden)
-5. Script Doctor für fremde `.funscript`-Dateien
-6. Trainingsfortschritt über Wochen sichtbar machen
-7. LICENSE-Datei liegt bei (MIT); Release-Workflow nie mit echtem Tag erprobt
+Die operative Aufgabenliste mit Prioritäten steht ausschließlich in
+[docs/NEXT.md](docs/NEXT.md). Die oben beschriebenen Hardware- und
+Qualitätsgrenzen bleiben bestehen, bis Messberichte sie nachweislich klären.
 
----
+Der Release-Workflow wurde am 14. September 2026 mit `v0.2.1` erfolgreich
+ausgeführt: GUI und CLI für Windows/Linux sowie `checksums.txt` wurden
+veröffentlicht. Tf/Tj, zweite GUI-Region und `suction_position` sind auf
+`main` integriert (PRs #2–#4). Das belegt Build und Integration, nicht die
+Wirkung an echter Hardware.
 
 ## Umgebung einrichten
 
-```bash
-# Go ist in einer frischen Umgebung meist nicht vorhanden
-curl -sL https://go.dev/dl/go1.23.4.linux-amd64.tar.gz -o go.tar.gz
-tar -C /usr/local -xzf go.tar.gz
-export PATH=$PATH:/usr/local/go/bin GOTOOLCHAIN=auto
-
-pip install opencv-contrib-python scipy numpy
-go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-
-# Windows-Binary bauen (immer mit -trimpath)
-cd cmd/gui-wails && wails build -platform windows/amd64 -trimpath
-```
-
-Unter Ubuntu 24.04 für einen Linux-Build: Wails sucht `webkit2gtk-4.0`,
-vorhanden ist `4.1` – Alias-`.pc`-Dateien anlegen oder mit
-`-tags webkit2_41` bauen.
+Die Anleitung für Klonen, Abhängigkeiten und Builds steht in
+[WIEDERAUFNAHME.md](WIEDERAUFNAHME.md). Go und Wails richten sich nach
+`go.mod`; CI und Release verwenden dieselbe Quelle für ihre Tool-Versionen.

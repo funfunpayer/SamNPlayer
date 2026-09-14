@@ -6,61 +6,59 @@ Arbeitsverzeichnis war weg, einschließlich der Go-Installation. Sie steht
 bewusst getrennt von `HANDOFF.md`: dort steht, *was* das Projekt ist und
 warum es so gebaut ist, hier steht, *wie man weitermacht*.
 
-**Fassung: 0.2.0** (siehe Datei `VERSION` und `update.BaseVersion`)
+Die Quellversion steht in `VERSION` und `update.BaseVersion`; den zuletzt
+veröffentlichten Stand zeigen die GitHub-Releases. Offene Arbeit steht
+nur in [docs/NEXT.md](docs/NEXT.md).
 
----
+## Umgebung wiederherstellen
 
-## Sofort nach einem Verlust
+Quellcode aus `https://github.com/funfunpayer/SamNPlayer` klonen. Für einen
+exakten veröffentlichten Stand den entsprechenden Tag auschecken. Eine ZIP
+ist ein ergänzendes Backup, GitHub enthält die nachvollziehbare Historie.
+Vor dem Weiterarbeiten `git status`, Branch, letzte Commits und `docs/NEXT.md`
+prüfen. Die ausführbaren Programme gibt es unter den GitHub-Releases.
 
-Die letzte ausgelieferte ZIP ist die Sicherung. Entpacken, dann:
+Voraussetzungen:
 
-```bash
-# Go ist in einer frischen Umgebung meist nicht vorhanden
-curl -sL https://go.dev/dl/go1.23.4.linux-amd64.tar.gz -o /tmp/go.tar.gz
-tar -C /usr/local -xzf /tmp/go.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-export GOTOOLCHAIN=auto
+- Go gemäß `go.mod` (aktuell mindestens 1.25.0; automatischer Toolchain-Download
+  kann für Abhängigkeiten eine neuere Fassung benötigen).
+- Node.js ab 22.12 mit npm für das Vite-Frontend.
+- Python mit Paketen aus `generator/requirements.txt`; CI nutzt Python 3.12.
+- Windows: WebView2 für die GUI. Ubuntu 24.04: `libgtk-3-dev` und
+  `libwebkit2gtk-4.1-dev`, beim Wails-Build `-tags webkit2_41` verwenden.
 
-pip install opencv-contrib-python scipy numpy
-go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-export PATH=$PATH:$(go env GOPATH)/bin
+Im Repository die zum Modul passende Wails-CLI installieren (PowerShell):
+
+```powershell
+$wailsVersion = go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2
+go install "github.com/wailsapp/wails/v2/cmd/wails@$wailsVersion"
+python -m pip install -r generator/requirements.txt
+Push-Location cmd/gui-wails/frontend
+npm install
+npm run build
+Pop-Location
+go vet ./...
+go test ./...
 ```
 
-Aus einem frischen Klon (nicht aus der ZIP) fehlt zusätzlich das
-Frontend-Bauartefakt, das `go:embed` erwartet:
-
-```bash
-cd cmd/gui-wails/frontend && npm install && npm run build && cd ../../..
-```
-
-Danach **erst prüfen, was tatsächlich da ist**, bevor irgendetwas gebaut
-wird:
-
-```bash
-go vet ./... && go test ./...
-ls generator/*.py | wc -l      # sollte über 20 sein
-```
-
-Ein häufiger Irrtum an dieser Stelle: der Zustand *sieht* vollständig aus,
-weil die Verzeichnisse existieren. Der Test ist der Beweis, nicht die
-Verzeichnisliste.
-
----
+`wails` liegt danach im `bin`-Ordner von `go env GOPATH`; diesen dem PATH
+hinzufügen. Im frischen Klon muss `frontend/dist` vor den Go-Prüfungen
+gebaut werden, weil `go:embed` das Verzeichnis benötigt.
 
 ## Vollständiger Testdurchlauf
 
 Es gibt keinen einzelnen Befehl dafür – bewusst, weil die drei Gruppen
-unterschiedlich lange brauchen:
+unterschiedlich lange brauchen (folgende Befehle für Bash):
 
 ```bash
 # Go: Sekunden
 go vet ./... && go test ./...
 
 # Python: die Videotests brauchen je 1-3 Minuten
-cd generator && for t in *_test.py; do echo "== $t"; python3 "$t"; done
+(cd generator && for t in *_test.py; do echo "== $t"; python3 "$t" || exit 1; done)
 
 # Frontend: braucht Headless-Chromium
-for t in cmd/gui-wails/frontend/test/*_test.py; do python3 "$t"; done
+for t in cmd/gui-wails/frontend/test/*_test.py; do python3 "$t" || exit 1; done
 ```
 
 Die Frontend-Tests erzeugen ihre Attrappen automatisch aus
@@ -127,31 +125,8 @@ ihn misst, wartet unnötig.
 
 ---
 
-## Woran zuletzt gearbeitet wurde
+## Weiterarbeiten
 
-Reihenfolge aus einer externen Code-Durchsicht, die sich als zutreffend
-erwiesen hat:
-
-1. ~~BLE: Zustand beider Kanäle, Keepalive für beide, weniger Writes~~ **erledigt**
-2. ~~Mapper-Tests und Grundintensität als Skalierung statt Abschneiden~~ **erledigt**
-3. ~~Alle Python-Module einbetten~~ **erledigt** – erklärte zwei gemeldete Fehler
-4. Rezeptfelder für Bewegungsarten im Mapper, dann Oberfläche
-
----
-
-## Was aussteht und nur der Anwender liefern kann
-
-Diese Punkte blockieren echten Fortschritt und lassen sich nicht durch mehr
-Code ersetzen:
-
-- **Hardwaretest.** Verbindung, Wiedergabe und Training sind ausschließlich
-  gegen `device.Mock` und einen nachgebauten Buttplug-Server geprüft.
-- **Rohwert-Auflösung des Geräts.** Die Bereiche 0–10 und 0–5 stammen aus
-  der Buttplug-Konfiguration, nicht aus einer Untersuchung der Firmware.
-  Der Rohwert-Test im Geräte-Tab klärt das in fünf Minuten.
-- **Echte Videos mit Urteilen.** Sämtliche Qualitätsschwellen und das
-  lernende Modell beruhen auf synthetischen Sinusvideos. Der Messbericht
-  sammelt bereits alles Nötige; es fehlen die Urteile.
-- **Ein 20-Sekunden-Ausschnitt** des Films, zu dem beide Skripte vorliegen.
-  Damit ließe sich der verbleibende Intensitätsunterschied zu FunGen in
-  einem Durchgang klären.
+[docs/NEXT.md](docs/NEXT.md) enthält den verifizierten Ausgangsstand,
+Prioritäten und Abnahmekriterien. Vorhandene Hardware- und Qualitätsgrenzen
+stehen in `HANDOFF.md`. Neue Arbeitsstände nicht zusätzlich hier pflegen.
