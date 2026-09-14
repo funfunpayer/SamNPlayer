@@ -176,6 +176,57 @@ limitations apart from resolution limitations on this specific clip.
 clip - one data point does not establish a trend, and every clip shared
 so far except this one still lacks its source video.
 
+**Follow-up on this same clip (September 14, 2026):** the 75%-lost-frame
+result was suspected to be a resolution/motion-blur limitation. Tested
+that directly with two changes, both measured against the same 256x144
+clip using `track_two_points` and `fungen_compare.best_lag_correlation`:
+
+- **Upscaling frames before tracking, to test the "CSRT needs more
+  pixels" hypothesis: measured WRONG.** 2x/3x upscale (`INTER_CUBIC`)
+  made lost-frame rate markedly *worse* (2% baseline -> 6% at 2x -> 34%
+  at 3x), not better - CSRT's correlation filter apparently loses lock
+  more often as its search window grows on a blurry source, the opposite
+  of the hypothesis. Documented as a negative result in `create_tracker`'s
+  own docstring so nobody re-tries it without new evidence. Not shipped
+  anywhere (this was a standalone measurement, not a pipeline change).
+- **Tighter, more deliberately placed ROI1/ROI2 (same resolution, same
+  CSRT): lost-frame rate dropped from 75% to 2%, Quality Doctor score
+  from 0.60 to 0.95.** This alone is a strong result - it means the
+  earlier 75% figure was much more about *how precisely the two regions
+  were marked* than about the clip's resolution or blur, which is the
+  more actionable/generalizable lesson of the two.
+
+**But this did NOT translate into a better FunGen match - if anything
+the opposite, and this is the more important finding to carry forward.**
+Three attempts on the identical clip, ranked by own tracking quality
+(Quality Doctor / lost-frame rate) next to their correlation against the
+FunGen `.funscript` reference:
+
+| run | own quality | lost frames | r vs. FunGen | lag |
+|---|---|---|---|---|
+| pre-existing output | 1.0 | (not re-measured) | 0.336 | -600ms |
+| earlier session's "fresh run" | 0.60 | 75% | 0.356 | (not recorded) |
+| this session's precise-ROI run | 0.95 | 2% | **0.070** | -1000ms (search boundary) |
+
+The run with by far the *best* own tracking quality has by far the
+*worst* correlation to FunGen's reference - and its best-lag search
+pinned at the -1000ms boundary, the same "coincidental match on a short
+overlap" warning sign the lag-search-window methodology fix (earlier in
+this section) was written to catch. Own tracking robustness and match-
+to-FunGen-reference look like two largely independent axes on this
+clip, not two views of the same underlying quality. The likely
+explanation: `tj`'s distance signal is only as meaningful as the choice
+of ROI2 (what counts as "the fixed reference point") - and there is no
+guarantee FunGen's own reference is built from anything resembling a
+two-region anchor distance at all (it may use a completely different
+internal representation for a titjob scene). Chasing tighter CSRT
+tracking further is not obviously the right lever for closing the
+FunGen gap; which ROI2 anchor point (or whether the two-point-distance
+framing is right at all for this profile) looks like the more promising
+next question, but needs more real clips - and ideally some way to
+compare candidate ROI2 choices against each other on the same clip -
+before drawing a firm conclusion from one data point.
+
 ### 3. Improve automatic two-ROI suggestions
 
 Inspect `find_two_rois` and existing tests before making changes. Compare
