@@ -7,20 +7,46 @@
 </head>
 <body>
   <div id="app">
-    <nav id="tabbar">
-      <button class="tab-btn active" data-tab="playback">Wiedergabe</button>
-      <button class="tab-btn" data-tab="training">Training</button>
-      <button class="tab-btn" data-tab="generator">Skript erzeugen</button>
-      <button class="tab-btn" data-tab="device">Gerät</button>
-      <button class="tab-btn" data-tab="settings">Einstellungen</button>
-      <span id="version-label"></span>
+    <nav id="rail">
+      <div class="brand">S</div>
+      <button class="tab-btn active" data-tab="playback" title="Wiedergabe">
+        <svg viewBox="0 0 24 24"><polygon points="8,6 18,12 8,18"/></svg>
+        <span>Play</span><i class="dot"></i>
+      </button>
+      <button class="tab-btn" data-tab="training" title="Training">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+        <span>Training</span><i class="dot"></i>
+      </button>
+      <button class="tab-btn" data-tab="generator" title="Skript erzeugen">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+        <span>Erzeugen</span><i class="dot"></i>
+      </button>
+      <button class="tab-btn" data-tab="device" title="Gerät">
+        <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="3"/><path d="M12 17h.01"/></svg>
+        <span>Gerät</span><i class="dot"></i>
+      </button>
+      <button class="tab-btn" data-tab="settings" title="Einstellungen">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M18.4 5.6l-1.4 1.4M7 17l-1.4 1.4M18.4 18.4L17 17M7 7 5.6 5.6"/></svg>
+        <span>Einstell.</span><i class="dot"></i>
+      </button>
     </nav>
 
-    <section id="tab-playback" class="tab-panel active"></section>
-    <section id="tab-training" class="tab-panel"></section>
-    <section id="tab-generator" class="tab-panel"></section>
-    <section id="tab-device" class="tab-panel"></section>
-    <section id="tab-settings" class="tab-panel"></section>
+    <div class="app-main">
+      <header id="topbar">
+        <h1>SamNPlayer</h1>
+        <div class="pills">
+          <span id="version-label" class="pill"></span>
+        </div>
+      </header>
+
+      <div class="stage">
+        <section id="tab-playback" class="tab-panel active"></section>
+        <section id="tab-training" class="tab-panel"></section>
+        <section id="tab-generator" class="tab-panel"></section>
+        <section id="tab-device" class="tab-panel"></section>
+        <section id="tab-settings" class="tab-panel"></section>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

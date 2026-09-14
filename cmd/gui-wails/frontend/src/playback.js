@@ -205,8 +205,7 @@ export function initPlayback(root) {
     }
 
     // Die Kurve selbst.
-    ctx.strokeStyle = 'var(--accent)';
-    ctx.strokeStyle = '#00c8ff';
+    ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
