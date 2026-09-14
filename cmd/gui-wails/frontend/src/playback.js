@@ -65,6 +65,7 @@ export function initPlayback(root) {
         <option value="alternating">alternating</option>
         <option value="vibration_only">nur Vibration</option>
         <option value="suction_only">nur Sog</option>
+        <option value="suction_position">Sog aus Position</option>
       </select>
     </div>
     <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
