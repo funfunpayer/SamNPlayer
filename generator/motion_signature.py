@@ -189,6 +189,19 @@ def distance(a, b):
     return float(np.sqrt(total / len(SIGNATURE_FIELDS)))
 
 
+def default_labels_path():
+    """Ablageort analog zu backends.default_plugin_dir() /
+    quality_model.default_model_path() - ein Nutzerkonfigurationsordner,
+    kein Pfad im Repository/Binary."""
+    import os
+
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        return os.path.join(local, "SamNPlayer", "szenensignaturen.jsonl")
+    xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(xdg, "SamNPlayer", "szenensignaturen.jsonl")
+
+
 def save_labelled(path, label, signature, parameters=None):
     """Merkt sich eine benannte Szene samt der Parameter, die dort
     funktioniert haben.
