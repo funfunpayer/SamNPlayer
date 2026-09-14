@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
 export function initGenerator(root, playback) {
@@ -51,9 +51,26 @@ export function initGenerator(root, playback) {
       oder „2. Region“ für die zweite, violett). Der Abstand zwischen beiden steuert den Hub;
       Sog folgt der Position. Vibration bleibt 0 — kein Akt-Detektor.
     </p>
+
+    <div class="row" style="align-items:center;">
+      <button id="gen-suggest-profile" disabled>Profil vorschlagen</button>
+      <span class="hint" id="gen-suggest-status" style="margin:0"></span>
+    </div>
+    <div class="row" style="align-items:center;">
+      <input type="text" id="gen-scene-label" placeholder="Name für diese Szene (optional)" style="flex:1;" />
+      <button id="gen-label-scene" disabled>Szene merken</button>
+    </div>
+    <p class="hint" style="margin:0 0 10px 0">
+      „Szene merken" speichert die Bewegungssignatur unter diesem Namen - spätere ähnliche
+      Videos bekommen dann automatisch dieses Profil vorgeschlagen (gemessen, ohne KI).
+      „Profil vorschlagen" vergleicht zuerst gegen gemerkte Szenen, erst danach optional
+      gegen einen lokalen KI-Server (Einstellungen → KI-Server-Adresse). Beides ein
+      Vorschlag zum Bestätigen, nichts wird automatisch übernommen.
+    </p>
     <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
@@ -86,10 +103,11 @@ export function initGenerator(root, playback) {
     <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
     <p class="hint">
-      Klassisches CV-Tracking (kein KI-Modell) - im Vorschaubild eine Region über
-      das zu verfolgende Motiv ziehen, dann generieren. Für deutlich bessere
-      Ergebnisse (KI-Objekterkennung, VR, ganze Ordner automatisch): fungen.app -
-      erzeugt ebenfalls .funscript-Dateien, die dieser Player direkt abspielen kann.
+      Klassisches CV-Tracking als Grundlage - im Vorschaubild eine Region über
+      das zu verfolgende Motiv ziehen, dann generieren. Optional dabei die lokale
+      KI-Regionserkennung nutzen (Häkchen oben) oder ein gemerktes/vorgeschlagenes
+      Profil übernehmen (unten) - beides bleibt ein Vorschlag, den du bestätigst
+      oder korrigierst.
     </p>
   `;
 
@@ -280,6 +298,9 @@ export function initGenerator(root, playback) {
       img.onload = redraw;
       img.src = 'data:image/png;base64,' + preview.pngBase64;
       el('#gen-autoroi').disabled = false;
+      el('#gen-suggest-profile').disabled = false;
+      el('#gen-label-scene').disabled = false;
+      el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = isTfTj()
         ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite.'
         : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).';
@@ -342,6 +363,7 @@ export function initGenerator(root, playback) {
       axis: el('#gen-axis-x').checked ? 'x' : 'y',
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       overwrite,
+      aiQualityOpinion: el('#gen-ai-quality').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;
@@ -466,6 +488,12 @@ export function initGenerator(root, playback) {
         html += '<ul style="margin:6px 0 0 18px; padding:0;">' +
           result.qualityWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
       }
+      if (result.aiOpinionVerdict) {
+        html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
+          + `<b>KI-Zweitmeinung: ${result.aiOpinionVerdict}</b>`
+          + (result.aiOpinionReason ? `<br>${result.aiOpinionReason}` : '')
+          + `</div>`;
+      }
       qualityBox.innerHTML = html;
     } else {
       qualityBox.style.display = 'none';
@@ -494,5 +522,60 @@ export function initGenerator(root, playback) {
       ? 'KI-Regionssuche läuft (ONNX-Modell)...'
       : 'Analysiere Bewegung im Video (dauert einige Sekunden)...';
     AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+  });
+
+  const PROFILE_VALUES = ['standard', 'weich', 'tf', 'tj'];
+
+  el('#gen-suggest-profile').addEventListener('click', async () => {
+    if (!videoPath) return;
+    const status = el('#gen-suggest-status');
+    status.textContent = 'Vergleiche mit gemerkten Szenen...';
+    el('#gen-suggest-profile').disabled = true;
+    try {
+      const result = await SuggestProfile(videoPath);
+      if (!result.found) {
+        status.textContent = 'Kein Vorschlag (keine ähnliche gemerkte Szene, kein KI-Server erreichbar).';
+        return;
+      }
+      const via = result.kind === 'ai'
+        ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
+        : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
+      if (PROFILE_VALUES.includes(result.label)) {
+        status.textContent = `Vorschlag: "${result.label}" (${via}) — `;
+        const applyBtn = document.createElement('button');
+        applyBtn.textContent = 'übernehmen';
+        applyBtn.addEventListener('click', () => {
+          el('#gen-profile').value = result.label;
+          updateProfileUi();
+          status.textContent = `Profil "${result.label}" übernommen (${via}).`;
+        });
+        status.appendChild(applyBtn);
+      } else {
+        status.textContent = `Ähnlich zu gemerkter Szene "${result.label}" (${via}) - kein `
+          + 'direkter Profilname, keine automatische Übernahme.';
+      }
+    } catch (err) {
+      status.textContent = 'Fehler: ' + err;
+    } finally {
+      el('#gen-suggest-profile').disabled = false;
+    }
+  });
+
+  el('#gen-label-scene').addEventListener('click', async () => {
+    if (!videoPath) return;
+    const label = el('#gen-scene-label').value.trim();
+    if (!label) {
+      alert('Bitte einen Namen für die Szene eingeben.');
+      return;
+    }
+    el('#gen-label-scene').disabled = true;
+    try {
+      await LabelScene(videoPath, label);
+      el('#gen-suggest-status').textContent = `Szene als "${label}" gemerkt.`;
+    } catch (err) {
+      alert('Fehler: ' + err);
+    } finally {
+      el('#gen-label-scene').disabled = false;
+    }
   });
 }

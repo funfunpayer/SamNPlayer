@@ -25,7 +25,16 @@ type Script struct {
 		QualityWarnings []string      `json:"quality_warnings,omitempty"`
 		Profile         string        `json:"profile,omitempty"`
 		DeviceRecipe    *DeviceRecipe `json:"device_recipe,omitempty"`
+		AIOpinion       *AIOpinion    `json:"ai_opinion,omitempty"`
 	} `json:"metadata,omitempty"`
+}
+
+// AIOpinion ist die optionale KI-Zweitmeinung zur Qualität (--ai-quality-
+// opinion, generator/ai_quality.py) - rein informativ, verändert
+// QualityScore/QualityPassed nicht.
+type AIOpinion struct {
+	Verdict string `json:"verdict"`
+	Reason  string `json:"reason"`
 }
 
 func Load(path string) (*Script, error) {

@@ -59,6 +59,8 @@ type Options struct {
 	RDPTolerance              float64
 	DisableSceneCutDetection  bool
 	ROI2                      ROI
+	AIQualityOpinion          bool
+	AIBaseURL                 string
 }
 
 func pythonCandidates() []string {
@@ -378,6 +380,88 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 	return 0, 0, fmt.Errorf("generator: Framegröße nicht aus Skript-Ausgabe lesbar: %s", string(out))
 }
 
+// ProfileSuggestion ist das Ergebnis von SuggestProfile. Found=false ist ein
+// normales Ergebnis (keine gespeicherte Szene nah genug, kein KI-Server
+// erreichbar), kein Fehler - der Aufrufer entscheidet, was er anzeigt.
+type ProfileSuggestion struct {
+	Found bool
+	Label string
+	Kind  string // "measured" (motion_signature, kein KI) oder "ai" (Colibri)
+	// Confidence: bei Kind=="ai" eine 0..1-Konfidenz (höher = sicherer).
+	// Bei Kind=="measured" stattdessen der Signaturabstand zur nächsten
+	// gespeicherten Szene (niedriger = ähnlicher) - andere Skala, gleiches
+	// Feld, weil beide Fälle nie gleichzeitig auftreten.
+	Confidence float64
+}
+
+// SuggestProfile fragt --suggest-profile ab (generate_funscript.py, siehe
+// motion_signature.py/ai_profile.py): vergleicht die Bewegungssignatur des
+// Videos zuerst gegen mit LabelScene benannte Szenen (gemessen, keine KI),
+// und nur wenn keine nah genug ist, gegen einen optionalen Colibri-Server.
+// baseURL == "" nutzt colibri_client.DEFAULT_BASE_URL.
+func SuggestProfile(videoPath, baseURL string) (ProfileSuggestion, error) {
+	py, err := FindPython()
+	if err != nil {
+		return ProfileSuggestion{}, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return ProfileSuggestion{}, err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return ProfileSuggestion{}, err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	args := []string{scriptPath, "--video", videoPath, "--suggest-profile"}
+	if baseURL != "" {
+		args = append(args, "--ai-base-url", baseURL)
+	}
+	out, err := command(py, args...).Output()
+	if err != nil {
+		return ProfileSuggestion{}, fmt.Errorf("generator: Profilvorschlag fehlgeschlagen: %w", err)
+	}
+	// "PROFILE_SUGGESTION <label> <measured|ai> <confidence>" - Label kann
+	// selbst Leerzeichen enthalten (freier Szenenname), darum von den festen
+	// letzten beiden Feldern her parsen statt von vorne zu zählen.
+	for _, line := range splitLines(string(out)) {
+		fields := strings.Fields(line)
+		if len(fields) < 4 || fields[0] != "PROFILE_SUGGESTION" {
+			continue
+		}
+		confidence, _ := strconv.ParseFloat(fields[len(fields)-1], 64)
+		return ProfileSuggestion{
+			Found:      true,
+			Label:      strings.Join(fields[1:len(fields)-2], " "),
+			Kind:       fields[len(fields)-2],
+			Confidence: confidence,
+		}, nil
+	}
+	return ProfileSuggestion{}, nil
+}
+
+// LabelScene speichert die Bewegungssignatur des Videos unter label (siehe
+// --label-scene, motion_signature.py) - die Grundlage, gegen die
+// SuggestProfile spätere, ähnliche Szenen misst.
+func LabelScene(videoPath, label string) error {
+	py, err := FindPython()
+	if err != nil {
+		return err
+	}
+	if err := CheckDependencies(); err != nil {
+		return err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	out, err := command(py, scriptPath, "--video", videoPath, "--label-scene", label).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("generator: Szene konnte nicht gespeichert werden: %w\n%s", err, string(out))
+	}
+	return nil
+}
+
 func splitLines(s string) []string {
 	var lines []string
 	start := 0
@@ -484,6 +568,12 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 		args = append(args, "--norm-percentile", strconv.FormatFloat(opts.NormPercentile, 'f', -1, 64))
 	} else if opts.NormPercentile < 0 {
 		args = append(args, "--norm-percentile", "0")
+	}
+	if opts.AIQualityOpinion {
+		args = append(args, "--ai-quality-opinion")
+	}
+	if opts.AIBaseURL != "" {
+		args = append(args, "--ai-base-url", opts.AIBaseURL)
 	}
 	return args
 }
