@@ -1,0 +1,113 @@
+import { GetDeviceStatus } from '../wailsjs/go/main/App';
+import { EventsOn } from '../wailsjs/runtime/runtime';
+
+// initSidebar baut das rechte Panel (Gerät / Skript / Qualität) aus dem
+// UI-Mock. Es hält keinen eigenen fachlichen Zustand, sondern liest ihn aus
+// dem bereits vorhandenen Zustand der anderen Tabs (deren DOM bleibt immer
+// gemountet, nur mit display:none) bzw. denselben Backend-Events, die
+// playback.js/device.js schon empfangen - Wails' EventsOn erlaubt mehrere
+// Abonnenten pro Ereignis. Das vermeidet eine zweite Zustandsverwaltung, die
+// mit der ersten auseinanderlaufen könnte.
+export function initSidebar(root) {
+  root.innerHTML = `
+    <div class="card">
+      <h2>Gerät</h2>
+      <div class="dev-name"><i class="led" id="sb-led"></i><span id="sb-dev-name">Status wird geladen...</span></div>
+      <div class="meter">
+        <div class="row" style="margin:0"><span>Vibration</span><span id="sb-vib-pct">-</span></div>
+        <div class="bar"><span id="sb-vib-bar" style="width:0%;background:var(--accent)"></span></div>
+      </div>
+      <div class="meter">
+        <div class="row" style="margin:0"><span>Sog</span><span id="sb-suc-pct">-</span></div>
+        <div class="bar"><span id="sb-suc-bar" style="width:0%;background:var(--violet)"></span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Skript</h2>
+      <div class="chip" id="sb-recipe-chip">Kein Skript geladen</div>
+      <p class="hint" id="sb-recipe-hint" style="margin-top:8px"></p>
+    </div>
+    <div class="card">
+      <h2>Qualität</h2>
+      <p class="hint" id="sb-quality-hint" style="margin:0">Noch keine Analyse.</p>
+    </div>
+  `;
+
+  const el = id => root.querySelector(id);
+
+  async function refreshDevice() {
+    try {
+      const st = await GetDeviceStatus();
+      if (st.connected) {
+        el('#sb-led').style.background = 'var(--ok)';
+        el('#sb-led').style.boxShadow = '0 0 8px var(--ok)';
+        el('#sb-dev-name').textContent = st.mock ? 'Mock-Gerät verbunden' : (st.name || 'Verbunden');
+      } else {
+        el('#sb-led').style.background = '#555';
+        el('#sb-led').style.boxShadow = 'none';
+        el('#sb-dev-name').textContent = 'Nicht verbunden';
+      }
+    } catch (err) {
+      el('#sb-dev-name').textContent = 'Status nicht abrufbar';
+    }
+  }
+
+  function resetMeters() {
+    el('#sb-vib-pct').textContent = '-';
+    el('#sb-vib-bar').style.width = '0%';
+    el('#sb-suc-pct').textContent = '-';
+    el('#sb-suc-bar').style.width = '0%';
+  }
+
+  // Skript-/Rezept-Info: liest, was der Wiedergabe-Tab bereits anzeigt,
+  // statt den Ladezustand ein zweites Mal zu verwalten.
+  function refreshRecipe() {
+    const pathLabel = document.getElementById('pb-script-path');
+    const syncSelect = document.getElementById('pb-sync');
+    if (!pathLabel || pathLabel.textContent === 'Kein Skript gewählt') {
+      el('#sb-recipe-chip').textContent = 'Kein Skript geladen';
+      el('#sb-recipe-hint').textContent = '';
+      return;
+    }
+    const name = pathLabel.textContent.split(/[\\/]/).pop();
+    el('#sb-recipe-chip').textContent = name;
+    el('#sb-recipe-hint').textContent = syncSelect
+      ? `Sync-Modus: ${syncSelect.value} (Wiedergabe-Tab)`
+      : '';
+  }
+
+  // Qualität: übernimmt die Quality-Doctor-Ausgabe des letzten Generator-
+  // laufs, sonst die Skript-Analyse aus dem Wiedergabe-Tab.
+  function refreshQuality() {
+    const genQuality = document.getElementById('gen-quality');
+    const pbAnalysis = document.getElementById('pb-analysis');
+    const box = el('#sb-quality-hint');
+    if (genQuality && genQuality.style.display !== 'none' && genQuality.innerHTML.trim()) {
+      box.innerHTML = genQuality.innerHTML;
+    } else if (pbAnalysis && pbAnalysis.style.display !== 'none' && pbAnalysis.textContent.trim()) {
+      box.textContent = pbAnalysis.textContent;
+    } else {
+      box.textContent = 'Noch keine Analyse.';
+    }
+  }
+
+  EventsOn('playback:frame', f => {
+    const vib = Math.round(f.vibration * 100);
+    const suc = Math.round(f.suction * 100);
+    el('#sb-vib-pct').textContent = vib + '%';
+    el('#sb-vib-bar').style.width = vib + '%';
+    el('#sb-suc-pct').textContent = suc + '%';
+    el('#sb-suc-bar').style.width = suc + '%';
+  });
+  EventsOn('playback:done', resetMeters);
+
+  refreshDevice();
+  setInterval(refreshDevice, 2000);
+  // Gerätestatus ändert sich auch außerhalb dieses Panels (Gerät-Tab,
+  // Wiedergabe startet/endet) - regelmäßiges Nachsehen statt eines
+  // fehleranfälligen Netzes aus Cross-Modul-Events.
+  setInterval(refreshRecipe, 1000);
+  setInterval(refreshQuality, 1000);
+  refreshRecipe();
+  refreshQuality();
+}

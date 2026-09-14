@@ -6,6 +6,7 @@ import { initGenerator } from './generator.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { initDevice } from './device.js';
 import { initSettings } from './settings.js';
+import { initSidebar } from './sidebar.js';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -21,6 +22,7 @@ initTraining(document.getElementById('tab-training'));
 initGenerator(document.getElementById('tab-generator'), playback);
 initDevice(document.getElementById('tab-device'));
 initSettings(document.getElementById('tab-settings'));
+initSidebar(document.getElementById('sidebar'));
 
 CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
