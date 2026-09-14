@@ -402,12 +402,32 @@ explicitly requested):
   outside it, and the low-span guard. Mirrored on the Python side
   (`tf_tj_meta_test.py`).
 
+**Real-clip visual validation done (September 14, 2026), same session as
+the ROI2 ablation above:** ran `--contact-vibration` on the same real
+clip (tip + lower-cleavage ROI2, the pair from the ablation table) and
+cross-checked the resulting vibration curve against the actual video
+frames. Strong match: at a low-vibration timestamp (vib=0.22 @ 950ms)
+the tip sits pulled back, visible above the breasts; at a
+vibration=1.00 timestamp (2700ms) the tip has fully disappeared into
+the cleavage, right at the ROI2 anchor - exactly the "deep contact"
+state the feature is meant to detect. The design (envelope derived
+directly from the distance signal, not a fixed pulse) also showed up
+as intended in the data: this clip's rhythm keeps the tip near the
+cleavage for a large share of its length (not a brief instant), and
+the vibration curve tracks that faithfully rather than firing a short
+blip - confirming "fits the material" rather than assuming contact is
+always brief.
+
 Not yet done: the pulse *shape* was deliberately left open by the user
 ("their call") - the current envelope is a straight linear ramp against
 distance-to-peak, the simplest option consistent with "fits the
-material." No real-clip listening/feel test has happened yet (needs
-actual Tf/Tj source video with genuine touching contact, and ideally
-real hardware per priority 1).
+material," and is now visually validated as tracking genuine contact
+rather than firing on tracker noise. Still open: no listening/feel test
+on real hardware yet (needs priority 1), and no check yet on a clip
+where "contact" really is a brief instant (this one clip's rhythm
+happens to keep contact sustained for a large fraction of its length -
+untested whether the envelope also reads as natural on a quicker,
+grazing-contact clip).
 
 ### 6. Climax ("cum") detection — new AI feature, user marked urgent
 
