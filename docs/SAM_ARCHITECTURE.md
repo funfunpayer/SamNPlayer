@@ -88,23 +88,34 @@ The vision doc's "Reihenfolge der nächsten Implementierung" lists ten
 steps; steps 1-4 are well-scoped, low-risk, and useful independent of how
 far the rest of the vision goes, so they're the actual next block:
 
-1. **SAM Motion Model** - a versioned Go data model, richer than
-   `funscript.Action{At, Pos}`: motion type, direction, velocity,
-   acceleration, range/depth, intensity, energy, tempo, smoothness,
-   variation, tension, anticipation, confidence. Not every field needs a
-   producer on day one; the schema must tolerate fields it doesn't know
-   yet (unknown-field tolerance, so an old reader doesn't break on a
-   newer file - the same spirit as `Metadata`'s existing `omitempty`
-   fields in `funscript.go`).
-2. **SAM Script v0.1** - the file format carrying that model, versioned
-   (`"version": "0.1"`), describing both continuous state and discrete
-   events. Intent-based ("rhythmic, energy 0.72"), not just raw device
-   positions - the vision doc's own framing.
-3. **Funscript → SAM converter.**
-4. **SAM → Funscript converter**, with roundtrip tests: import an
-   existing `.funscript`, export it back, and verify timing and
-   positions survive (existing players, existing scripts, the existing
-   ecosystem all keep working un-migrated).
+1. **SAM Motion Model - implemented** (`sam/sam.go`): a versioned Go data
+   model, richer than `funscript.Action{At, Pos}`: motion type, direction,
+   velocity, acceleration, range/depth, intensity, energy, tempo,
+   smoothness, variation, tension, anticipation, confidence. Not every
+   field has a producer yet (only `Position` and `Type` are populated
+   today, by `FromFunscript`) - the schema tolerates fields it doesn't
+   know yet, verified by a test that unmarshals a file with fields this
+   version has never seen and confirms the known fields still parse
+   correctly (`TestParseIgnoresUnknownFutureFields`).
+2. **SAM Script v0.1 - implemented** (`sam/sam.go`): the file format
+   carrying that model, versioned (`"version": "0.1"`, `sam.ScriptVersion`),
+   frames keyed by `"time"` per the vision doc's own example. `Parse`
+   rejects a missing version or empty frame list, clamps out-of-range
+   normalized fields the same way `funscript.Parse` already clamps `Pos`,
+   and sorts frames by time since source order isn't guaranteed.
+3. **Funscript → SAM converter - implemented** (`sam.FromFunscript`).
+4. **SAM → Funscript converter - implemented** (`sam.ToFunscript`), with
+   roundtrip tests (`sam/funscript_test.go`): a synthetic 10,000-action
+   file roundtrips with every sampled action identical, confirming timing
+   and positions survive intact (existing players, existing scripts, the
+   existing ecosystem all keep working un-migrated).
+
+Not yet done from this milestone's own DoD: no producer sets any field
+besides `Position`/`Type` yet (motion classification etc. stay deferred,
+see below), and nothing in the GUI or CLI creates or reads a `.sam` file
+yet - `sam/` exists as a library, not wired into any user-facing flow.
+That wiring is intentionally a separate, later step so this slice stays
+reviewable on its own.
 
 ### Definition of Done for this milestone
 
