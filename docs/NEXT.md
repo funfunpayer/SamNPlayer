@@ -1,17 +1,23 @@
-# Weiter ohne Neu-Erklärung
+# Weiter
 
-Quelle der Wahrheit: Branch `feat/tf-tj-suction`, PR #2.
-Befehl an Grok in diesem Projekt-Chat: **weiter**.
+Branch `feat/tf-tj-suction`, PR #2. Chat: **weiter**.
 
-## Offen (Reihenfolge)
-1. ~~`generator/generator.go`: Options.ROI2 + `--profile tf|tj` + `--roi2` in buildArgs~~ **erledigt**
-2. ~~`generator/generate_funscript.py`: choices tf/tj, Pos 20-90, metadata.device_recipe~~ **erledigt**
-3. ~~`frontend/src/generator.js`: Profil Tf/Tj, 2. Region (Shift/Knopf)~~ **erledigt**
-4. ~~`frontend/src/playback.js`: Option suction_position~~ **erledigt**
-5. `go test ./...` auf dem Branch — erst dann mergen
+## Status
+- Rezept `tf`/`tj` + `SyncSuctionPosition` + Playback-Metadata: da
+- `generator.go`: `--profile tf|tj` + `--roi2` da; ROI2 muss Wert-Typ sein (wie app_generator)
+- `generate_funscript.py`: auf dem Branch nur Placeholder — von **main** holen, dann Tf/Tj-Diff
+- `generator.js`: 0 Byte — von **main** holen, dann Profil + 2. Region
+- `playback.js`: `suction_position` fehlt noch
+
+## Restore (einmal)
+```
+git checkout feat/tf-tj-suction
+git checkout origin/main -- generator/generate_funscript.py cmd/gui-wails/frontend/src/generator.js
+git commit -m "restore py+js von main" && git push
+```
+Danach wieder **weiter**.
 
 ## Fest
-- tf = tj, nur Sog, Vibration 0, MinSuction 0.20
-- Keine ausgeschriebenen Akt-Wörter in UI
-- GitHub connected, nicht main direkt anfassen
-- Kern-Dateien nie durch Placeholder ersetzen
+- tf = tj, Sog=Position, Vib=0, MinSuction 0.20
+- keine ausgeschriebenen Akt-Wörter
+- keine Placeholder in Kern-Dateien
