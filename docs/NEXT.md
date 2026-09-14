@@ -395,6 +395,18 @@ build as soon as an input timestamp is available (even a manually placed
 one, see priority 6). Needs a design decision (field shape, exact
 secondary-marker count/placement/intensity) before implementation.
 
+**Answered the same day (September 14, 2026), asked directly: how should
+the climax timestamp be found for now?** The user wants both AI detection
+*and* manual placement, not one or the other ("KI-Erkennung und manuelle
+setzen") - and flagged that manual placement needs "a proper editor"
+first, not a one-click button. This changes priority 6/7's status: they
+now depend on the manual funscript editor (see "Later" below), which
+was previously scoped as independent, deferred polish - it is now a
+real prerequisite for the manual half of this feature, not just a nice-
+to-have. AI detection (priority 6's own open design question: model,
+signal shape, false-positive handling) remains separately open and
+still needs its own design pass regardless of the editor.
+
 ### Later
 
 - Script Doctor for imported `.funscript` files.
@@ -402,7 +414,17 @@ secondary-marker count/placement/intensity) before implementation.
   not now:** a manual funscript editor (edit/drag individual points on the
   curve, not just automated repair) with the video alongside it - scope
   for "the video too" not yet clarified (trimming/selecting a range?
-  frame-accurate scrubbing while editing?). Also: generation is slower
+  frame-accurate scrubbing while editing?). **No longer purely deferred
+  polish as of the same day:** the user now wants manual O-marker
+  placement (priority 7) too, and said that needs "a proper editor" -
+  so this item is a real prerequisite for finishing priority 7's manual
+  path, not just a nice-to-have. Still needs scoping before starting: at
+  minimum, a video-synced timeline where existing points can be seen,
+  dragged, added, and deleted, likely reusing the curve-drawing code
+  already in `playback.js` (see `curve_display_test.py`) rather than
+  building a second renderer from scratch - not yet discussed with the
+  user which parts of "proper editor" are must-have for a first version
+  versus later refinement. Also: generation is slower
   than FunGen2 and should use CPU/RAM/GPU better regardless of which
   card is present - no baseline measurement exists yet to say where the
   time actually goes (Python startup, frame decode, CSRT tracking,
