@@ -1,0 +1,199 @@
+# SAM: a richer internal motion model, funscript kept as compatibility layer
+
+This file records a long-term architecture direction proposed by the user
+(September 14, 2026, pasted as a 10-phase vision document) and scoped down
+to what this repo will actually commit to next, after discussion the same
+day. It follows the same pattern as `docs/AI_ADAPTER.md`: keep what already
+works, add new capability alongside it, never on top of a rewrite.
+
+## Leitprinzip (the user's own wording, kept as-is)
+
+> `.funscript` beschreibt, wo ein Gerät zu einem Zeitpunkt stehen soll.
+> SAM soll beschreiben, was für eine Bewegung stattfinden soll.
+
+`.funscript` is a position curve. SAM is meant to be a richer description of
+*what kind of motion is happening* (rhythmic, linear, oscillating; how
+intense, how smooth, how confident the measurement is) - a superset, not a
+replacement. The runtime turns that description into device output, the
+same way `funscript.MapOptions`/`ToIntensityCurve` already turn a position
+curve into `Frame{Vibration, Suction}` today.
+
+## What this is not: webcam/live is explicitly out of scope here
+
+The user's own direction, the same day the vision doc was discussed: **real-
+time webcam input and live correction (the vision doc's Phase 3, "Webcam /
+Live Vision") is not part of this product's near-term plan** - "vielleicht
+Letzte Sache oder für ein neues eigenes Produkt" (maybe the last thing, or
+for a separate future product). Two independent reasons back this up, not
+just preference:
+
+1. **Not requested for this product's actual use case.** SamNPlayer
+   generates from pre-recorded video; nothing in the current feature set
+   needs a live camera feed.
+2. **Measured evidence from the same day (`docs/NEXT.md` priority 8) makes
+   30-60Hz real-time perception look infeasible with today's stack, not
+   just unbuilt.** A single CSRT tracker call alone already costs ~17ms on
+   a 256x144 clip and internally uses ~2.2 of 4 available cores; this
+   OpenCV build has no CUDA and OpenCV has no GPU-accelerated CSRT at all
+   even if it did. Reaching a 100-500ms look-ahead at 30-60Hz update (the
+   vision doc's own target numbers) needs either a fundamentally different,
+   much cheaper perception algorithm than classical CSRT/optical-flow
+   tracking, or a real feasibility spike to find out what's actually
+   achievable - not something to architect around before that spike
+   exists. Building runtime/prediction infrastructure for a perception
+   layer that can't yet hit real-time on this hardware would be building on
+   an unproven foundation.
+
+Everything below is scoped assuming **offline analysis of pre-recorded
+video** (today's actual model) unless stated otherwise. Live input, if it
+happens, is a later, separately-evaluated effort - possibly its own
+product, per the user's own framing.
+
+## What stays exactly as it is
+
+Per the user's explicit instruction: improve, never dilute or regress what
+already works. This is not a rewrite. The classical, measurable pipeline
+(CSRT tracking, camera-motion compensation, two-point distance, Quality
+Doctor, the cache, the whole `funscript` Go package) keeps working exactly
+as today throughout every step below - the acceptance bar for every
+milestone includes "existing `.funscript` generation and playback are
+unaffected."
+
+The vision doc's own Phase 2 (P2.1) already states this directly: *"Vorhandene
+Funktionen nicht neu entwickeln, sondern in SAM Perception überführen... Keine
+große Umbenennung durchführen, bevor Schnittstellen und Tests stehen."*
+Existing components, mapped to what a future `perception` layer would wrap
+rather than replace:
+
+| Vision doc's term | Already exists as |
+|---|---|
+| Optical Flow | `generator/flow_backend.py` |
+| CSRT | `generator/generate_funscript.py` (`create_tracker`, `track_roi`, `track_two_points`) |
+| automatische Regionssuche | `generator/auto_roi.py` (classical), `generator/ai_roi.py` (ONNX, opt-in) |
+| Szenenerkennung | scene-cut detection in `generate_funscript.py` |
+| Kamerakompensation | `estimate_camera_motion` in `generate_funscript.py` |
+| Zwei-Punkt-Messung | `track_two_points` (see `docs/NEXT.md` priority 2/5 for its real, measured limits) |
+| Bewegungsprofile | `generator/tf_tj_meta.py`, `funscript/recipe.go` |
+| Qualitätsanalyse | `generator/quality_doctor.py`, `generator/quality_model.py` |
+| Cache | `generator/track_cache.py` |
+| Batch-Verarbeitung | batch mode in `generate_funscript.py` |
+| Device Abstraction (Phase 7) | already substantial: `device/` (BLE, Intiface, `SamNeo2Protocol`) - extend, don't rebuild |
+
+Renaming `generator/` to `perception/` is explicitly **not** part of the
+first milestone, matching the vision doc's own instruction above.
+
+## First milestone - concrete, scoped, matches the vision doc's own steps 1-4
+
+The vision doc's "Reihenfolge der nächsten Implementierung" lists ten
+steps; steps 1-4 are well-scoped, low-risk, and useful independent of how
+far the rest of the vision goes, so they're the actual next block:
+
+1. **SAM Motion Model** - a versioned Go data model, richer than
+   `funscript.Action{At, Pos}`: motion type, direction, velocity,
+   acceleration, range/depth, intensity, energy, tempo, smoothness,
+   variation, tension, anticipation, confidence. Not every field needs a
+   producer on day one; the schema must tolerate fields it doesn't know
+   yet (unknown-field tolerance, so an old reader doesn't break on a
+   newer file - the same spirit as `Metadata`'s existing `omitempty`
+   fields in `funscript.go`).
+2. **SAM Script v0.1** - the file format carrying that model, versioned
+   (`"version": "0.1"`), describing both continuous state and discrete
+   events. Intent-based ("rhythmic, energy 0.72"), not just raw device
+   positions - the vision doc's own framing.
+3. **Funscript → SAM converter.**
+4. **SAM → Funscript converter**, with roundtrip tests: import an
+   existing `.funscript`, export it back, and verify timing and
+   positions survive (existing players, existing scripts, the existing
+   ecosystem all keep working un-migrated).
+
+### Definition of Done for this milestone
+
+Trimmed from the vision doc's own DoD list to what steps 1-4 actually cover:
+
+- SAM Motion Model exists as a Go type, schema versioned.
+- SAM files can be saved and loaded.
+- An existing `.funscript` can be imported to SAM and exported back
+  (roundtrip test: timing preserved, positions preserved, large files
+  tested).
+- Unit tests exist for the model, the schema validation, and both
+  converter directions.
+- Documentation (this file, extended) matches what's actually built.
+- CI is green.
+- Existing `.funscript` generation and playback are provably unaffected -
+  no behavior change to anything currently shipped.
+
+## Second milestone (not started, sequenced after the first proves out)
+
+The vision doc's P1.1/P1.2 (runtime, live correction) applied to **existing,
+already-generated scripts** - no webcam, no prediction yet. This is a
+natural extension of what `funscript.MapOptions`/`ToIntensityCurve` and the
+player already do (map a curve to device output, with `Smoothing`,
+`MinVibration`, floor/ceiling behavior) rather than a new runtime built from
+scratch: let intensity/range/smoothness/offset be adjusted *during*
+playback of a SAM Script, without rewriting the underlying file - the same
+"correction on top, original data unchanged" principle the vision doc
+describes for P1.2. Only attempted once milestone 1 is solid; not
+scheduled yet.
+
+## Deferred, no fixed schedule - pursue only when a concrete use case justifies it
+
+Per the user's own steer ("alles was nützt und das System besser macht,
+ohne das Gute zu verwässern... aber professionell, nicht auf Teufel komm
+raus testen"): these stay as long-term direction, not near-term
+commitments, and each needs its own scoping/feasibility pass before
+starting, the same way the AI adapter and the CSRT/FunGen work this session
+were each measured before being trusted:
+
+- **Prediction** (P1.3) - needs the runtime (milestone 2) first, and a real
+  measured error signal to calibrate against, not a guess.
+- **Motion classification** (P2.2) and **confidence scoring** (P2.4) - this
+  session's own real-clip work (`docs/NEXT.md` priority 2) already found
+  that even the *existing*, much simpler two-point distance measurement is
+  hard to get right (ROI2 anchor choice dominates match quality, no
+  reliable heuristic found yet on one real clip). Classifying motion *type*
+  automatically, with a trustworthy confidence number, is a harder version
+  of a problem that isn't solved yet at the simpler level - treat as
+  research, not an engineering task with a known solution.
+- **Multi-ROI candidate correlation** (P2.3) - same caveat; `auto_roi.
+  find_two_rois` already has a documented, measured "not good enough"
+  verdict for the current, simpler approach (see `docs/NEXT.md` priority
+  3) - a more ambitious version of the same idea inherits that risk.
+- **Emotion Engine** (Phase 5) - an abstraction layer over Motion; useful
+  concept, but downstream of Motion Model + real usage data, not before.
+- **Adaptive Learning / Context Memory** (Phase 6) - the vision doc's own
+  P5.4 already gets this right: start simple (feature vectors, similarity
+  search, weighted history), only reach for a trained model once it beats
+  the simple approach - exactly `quality_model.py`'s existing, proven
+  pattern (`docs/AI_ADAPTER.md`). Needs real correction data to exist
+  first, which needs the runtime (milestone 2) shipped and used first.
+- **Audio/external events** (Phase 8) - additional input sources, sensible
+  once the SAM model exists to feed; not before.
+- **Additional device protocols beyond what `device/` already supports** -
+  the vision doc's own "Nicht jetzt" list agrees.
+
+## Not part of this change
+
+Matches the vision doc's own "Nicht jetzt" list, restated for this repo:
+
+- No webcam or other live input (see above - deferred, possibly a separate
+  product).
+- No complex neural network, no cloud training - anything Colibri/ONNX-
+  adjacent follows `docs/AI_ADAPTER.md`'s existing "AI proposes, classical
+  system measures" rule; SAM's Motion Model is a data format, not an AI
+  system by itself.
+- No full Emotion AI, no new device protocols, no GUI redesign forced by
+  this work, no smartphone app, no plugin marketplace.
+- No renaming of `generator/` to `perception/` yet (needs interfaces and
+  tests first, per the vision doc's own instruction).
+- `.funscript` is never removed or deprioritized as an output format -
+  existing players, scripts, and the wider ecosystem keep working, full
+  stop.
+
+## Privacy / architecture principles (the user's own wording, unchanged)
+
+Local-first stays the default: no cloud required for core functionality,
+no automatic media upload, learning data (once it exists, per the deferred
+Adaptive Learning item above) stays local, is deletable, and learning
+itself must be possible to switch off. Matches `docs/AI_ADAPTER.md`'s
+existing principle for the AI engines almost exactly - same rule, restated
+for SAM.
