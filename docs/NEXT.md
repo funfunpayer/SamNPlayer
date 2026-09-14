@@ -734,11 +734,22 @@ FunGen and performance investigations above (priorities 2 and 8).
   started with the dark reskin (PR #11) and sidebar (PR #12), not a
   one-off task.
 - Training history across multiple sessions.
-- AI as a replaceable analysis backend, reusing raw data, parameters,
-  quality reports, and confirmed ratings. Region proposal, profile
-  proposal, and quality second-opinion are all implemented at the
-  CLI/generator level. GUI wiring for all three remains open. See
-  `docs/AI_ADAPTER.md` for the architecture and order.
+- ~~AI as a replaceable analysis backend... GUI wiring for all three
+  remains open~~ **Stale as of September 14, 2026, corrected while
+  auditing what's still missing from the GUI:** this was true when
+  written, no longer is. All three are fully wired end-to-end in
+  `generator.js` - region proposal (`#gen-ai-roi` checkbox, greyed out
+  via `CheckAIRoiAvailable` when no local ONNX model is available,
+  `AutoDetectROI(video, 'ai')` when checked), profile proposal
+  (`SuggestProfile`, used by the "Profil vorschlagen" flow), and quality
+  second-opinion (`#gen-ai-quality` checkbox -> `aiQualityOpinion` in
+  `GenerateOptions` -> `aiOpinionVerdict`/`aiOpinionReason` shown in the
+  result). See `docs/AI_ADAPTER.md` for the underlying architecture,
+  still accurate. Reusing raw data/parameters/quality reports/confirmed
+  ratings as actual training input (as opposed to just proposing and
+  measuring, which already works) is the part that's genuinely still
+  open - see `quality_model.py`'s existing pattern and the Training Lab-
+  adjacent asks elsewhere in this document.
 - **The user's direction (September 14, 2026), noted for later, not
   decided:** whether to stay with Go + Python long-term, and what "our
   own AI" should mean. Discussed, not started:

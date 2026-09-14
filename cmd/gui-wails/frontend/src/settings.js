@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -120,6 +120,7 @@ export function initSettings(root) {
       <button id="st-pick-report">Wählen…</button>
       <button id="st-default-report">Standard</button>
     </div>
+    <p class="hint" id="st-report-status" style="margin-top:2px;"></p>
     <div class="row">
       <button id="st-report-summary">Auswertung anzeigen</button>
       <button id="st-model-info">Modell anzeigen</button>
@@ -134,6 +135,26 @@ export function initSettings(root) {
 
   const el = id => root.querySelector(id);
 
+  // Ohne das war unsichtbar, ob unter dem eingestellten Pfad schon Messwerte
+  // stehen - "Auswertung anzeigen" beantwortete das zwar auch, aber erst
+  // nach einem Klick und mit einer Fehlermeldung statt eines einfachen
+  // Hinweises, wenn (noch) nichts drin ist.
+  async function updateReportStatus() {
+    const status = el('#st-report-status');
+    const path = el('#st-report-path').value.trim();
+    if (!path) {
+      status.textContent = '';
+      return;
+    }
+    try {
+      status.textContent = (await ReportExists())
+        ? '✓ Enthält bereits Messwerte.'
+        : 'Noch keine Messwerte aufgezeichnet (wird beim nächsten Generatorlauf angelegt).';
+    } catch (err) {
+      status.textContent = '';
+    }
+  }
+
   getSettingsCache().then(s => {
     el('#st-update-check').checked = s.updateCheckOnStartup;
     el('#st-log-level').value = s.logLevel;
@@ -143,6 +164,7 @@ export function initSettings(root) {
     el('#st-report-path').dataset.default = s.defaultReportPath || '';
     el('#st-ai-roi-path').value = s.aiRoiModelPath || '';
     el('#st-ai-base-url').value = s.aiBaseUrl || '';
+    updateReportStatus();
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
@@ -150,24 +172,26 @@ export function initSettings(root) {
   el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => alert('Fehler: ' + err)));
 
   el('#st-report-path').addEventListener('change', e =>
-    saveSetting('generator.reportPath', e.target.value.trim()));
+    saveSetting('generator.reportPath', e.target.value.trim()).then(updateReportStatus));
 
   el('#st-pick-report').addEventListener('click', async () => {
     try {
       const path = await PickReportPath();
       if (path) {
         el('#st-report-path').value = path;
-        saveSetting('generator.reportPath', path);
+        await saveSetting('generator.reportPath', path);
+        updateReportStatus();
       }
     } catch (err) {
       alert('Fehler: ' + err);
     }
   });
 
-  el('#st-default-report').addEventListener('click', () => {
+  el('#st-default-report').addEventListener('click', async () => {
     const fallback = el('#st-report-path').dataset.default || '';
     el('#st-report-path').value = fallback;
-    saveSetting('generator.reportPath', fallback);
+    await saveSetting('generator.reportPath', fallback);
+    updateReportStatus();
   });
 
   el('#st-ai-roi-path').addEventListener('change', e =>
