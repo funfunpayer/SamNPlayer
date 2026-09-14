@@ -1717,6 +1717,12 @@ def main():
                          "--suggest-profile, falls die gespeicherten Szenen keinen sicheren "
                          "Treffer liefern (Standard: http://127.0.0.1:8080). Nicht erreichbar "
                          "-> kein KI-Vorschlag, kein Fehler.")
+    ap.add_argument("--ai-quality-opinion", action="store_true",
+                    help="Zusätzlich zum Quality Doctor eine Zweitmeinung von einem lokalen "
+                         "Colibri-Server einholen (siehe ai_quality.py, --ai-base-url) - "
+                         "Fließtext mit Begründung, wird ausgegeben und bei --report mit "
+                         "abgelegt. Ändert NICHT quality.passed und trägt kein --feedback "
+                         "automatisch nach. Nicht erreichbar -> kein Eintrag, kein Fehler.")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -1901,7 +1907,8 @@ def process_one(args, ap):
         print(f"Keine gespeicherte Szene nah genug (kleinster Abstand {dist:.3f}) - "
               "versuche KI-Vorschlag", file=sys.stderr)
         import ai_profile
-        base_url = args.ai_base_url or ai_profile.DEFAULT_BASE_URL
+        import colibri_client
+        base_url = args.ai_base_url or colibri_client.DEFAULT_BASE_URL
         if not ai_profile.available(base_url=base_url):
             print(f"Kein Colibri-Server unter {base_url} erreichbar - kein Vorschlag",
                   file=sys.stderr)
@@ -2105,6 +2112,22 @@ def process_one(args, ap):
     print(f"{len(actions)} Keyframes erzeugt (aus {len(timestamps_ms)} Frames)", file=sys.stderr)
     print(quality_doctor.format_report(quality), file=sys.stderr)
 
+    ai_opinion = None
+    if args.ai_quality_opinion:
+        import ai_quality
+        import colibri_client
+        base_url = args.ai_base_url or colibri_client.DEFAULT_BASE_URL
+        if ai_quality.available(base_url=base_url):
+            ai_opinion = ai_quality.suggest_quality(
+                quality.get("metrics", {}), warnings=quality["warnings"],
+                score=quality["score"], rule_passed=quality["passed"], base_url=base_url)
+            if ai_opinion is not None:
+                print(f"KI-Zweitmeinung: '{ai_opinion['verdict']}' - {ai_opinion['reason']}",
+                      file=sys.stderr)
+        else:
+            print(f"Kein Colibri-Server unter {base_url} erreichbar - keine Zweitmeinung",
+                  file=sys.stderr)
+
     if is_distance_profile(args.profile):
         actions = clamp_actions_pos(actions)
 
@@ -2151,7 +2174,11 @@ def process_one(args, ap):
             "tracking": track_stats,
             "quality": {"score": quality["score"], "passed": quality["passed"],
                         "warnings": quality["warnings"],
-                        "metrics": quality.get("metrics", {})},
+                        "metrics": quality.get("metrics", {}),
+                        # Fließtext-Zweitmeinung, nur mit --ai-quality-opinion gefüllt.
+                        # Informativ - beeinflusst "passed"/"score" oben nicht und wird
+                        # NICHT automatisch zu "feedback" (siehe ai_quality.py).
+                        "ai_opinion": ai_opinion},
             "runtime_seconds": round(time.monotonic() - started_at, 1),
             # Platz für dein Urteil. Wird von der GUI bzw. per
             # add_feedback() nachgetragen - siehe --feedback.

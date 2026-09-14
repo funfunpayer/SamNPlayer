@@ -55,9 +55,10 @@ similar scenes is offered with an explanation and can be declined.
 - Script Doctor for imported `.funscript` files.
 - Training history across multiple sessions.
 - AI as a replaceable analysis backend, reusing raw data, parameters,
-  quality reports, and confirmed ratings. Region proposal and profile
-  proposal are implemented (PR #6); quality-judgment proposal remains
-  open. See `docs/AI_ADAPTER.md` for the architecture and order.
+  quality reports, and confirmed ratings. Region proposal, profile
+  proposal, and quality second-opinion are all implemented at the
+  CLI/generator level. GUI wiring for all three remains open. See
+  `docs/AI_ADAPTER.md` for the architecture and order.
 
 ## Product requirements
 

@@ -30,20 +30,18 @@ LLM judgment needs no training data and can say "unsure" outright, so it
 is the honest option until enough labelled examples exist to train and
 cross-validate a real classifier the way quality_model.py does.
 
-TRANSPORT: Colibri's `coli serve` speaks the OpenAI `/v1/chat/completions`
-API (see docs/AI_ADAPTER.md), so a plain stdlib HTTP client is enough - no
-new pip dependency, matching requirements-ai.txt staying minimal.
+TRANSPORT: `colibri_client.py` talks to Colibri's `coli serve` (OpenAI
+`/v1/chat/completions`, see docs/AI_ADAPTER.md) - a plain stdlib HTTP
+client, no new pip dependency, matching requirements-ai.txt staying
+minimal. `ai_quality.py` (step 3) shares the same client.
 """
 
 import json
 import sys
-import urllib.error
-import urllib.request
+
+import colibri_client
 
 KNOWN_PROFILES = ("standard", "weich", "tf", "tj")
-
-DEFAULT_BASE_URL = "http://127.0.0.1:8080"
-DEFAULT_TIMEOUT_S = 5.0
 
 _SYSTEM_PROMPT = (
     "You classify a short video scene's motion signature into one of a "
@@ -111,46 +109,22 @@ def parse_response(raw_text):
     return {"profile": profile, "confidence": max(0.0, min(1.0, confidence)), "reason": reason}
 
 
-def _default_post(base_url, payload, timeout):
-    req = urllib.request.Request(
-        base_url.rstrip("/") + "/v1/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
-
-
 def available(base_url=None, timeout=1.5):
-    """True if a Colibri-compatible server answers at base_url. Never
-    raises - an unreachable local server is the expected default state,
-    not an error the caller needs to handle."""
-    base_url = base_url or DEFAULT_BASE_URL
-    try:
-        req = urllib.request.Request(base_url.rstrip("/") + "/v1/models")
-        with urllib.request.urlopen(req, timeout=timeout):
-            return True
-    except (urllib.error.URLError, OSError, ValueError):
-        return False
+    """Re-exported for convenience so callers only need `import ai_profile`.
+    See colibri_client.available() for the actual behavior."""
+    return colibri_client.available(base_url=base_url, timeout=timeout)
 
 
 def suggest_profile(signature, known_examples=None, base_url=None, model=None,
-                     timeout=DEFAULT_TIMEOUT_S, _post_fn=None):
+                     timeout=colibri_client.DEFAULT_TIMEOUT_S, _post_fn=None):
     """Ask the local LLM for a profile suggestion. Returns None on ANY
     failure (server down, bad reply, timeout) - this is an optional,
     informational fallback, never something the pipeline depends on.
     """
-    base_url = base_url or DEFAULT_BASE_URL
-    post_fn = _post_fn or (lambda payload: _default_post(base_url, payload, timeout))
-    payload = {
-        "model": model or "default",
-        "messages": build_prompt(signature, known_examples),
-        "temperature": 0.0,
-    }
     try:
-        response = post_fn(payload)
-        content = response["choices"][0]["message"]["content"]
+        content = colibri_client.chat(
+            build_prompt(signature, known_examples),
+            base_url=base_url, model=model, timeout=timeout, _post_fn=_post_fn)
     except Exception as exc:
         print(f"KI-Profilvorschlag nicht verfügbar: {exc}", file=sys.stderr)
         return None

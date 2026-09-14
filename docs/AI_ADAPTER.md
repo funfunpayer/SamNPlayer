@@ -106,14 +106,41 @@ the existing classical tool — not a replacement for it:
   display), and no field data yet on how useful the AI fallback actually is
   — nobody has run it against a real Colibri server.
 
-### 3. Quality judgment — **open**
+### 3. Quality judgment — **implemented**
 
-Extends, does not replace, `quality_model.py`. Same safeguard already in
-place there: an AI judgment is only adopted if it beats leave-one-out
-cross-validation against both the fixed rules AND the existing learned
-model (`MIN_SAMPLES`/`MIN_PER_CLASS` as the template). Colibri's
-`/v1/chat/completions` could additionally supply a plain-text justification
-to sit next to the number in the measurement report.
+Extends, does not replace, `quality_model.py` — and does not try to beat
+its cross-validation gate, because it isn't a trained classifier and isn't
+competing with one:
+
+- `--ai-quality-opinion` runs `quality_doctor.evaluate()` exactly as
+  before, then — only if a Colibri server answers at `--ai-base-url` —
+  asks it to read the SAME `passed`/`score`/`metrics`/`warnings` output
+  and reply with one verdict from the project's own existing vocabulary
+  (`REPORT_VERDICTS` in `generate_funscript.py`: `brauchbar` /
+  `grenzwertig` / `unbrauchbar`) plus one sentence of reasoning.
+- The opinion is printed and, with `--report`, stored as
+  `quality.ai_opinion` next to the Doctor's own numbers — it never writes
+  `quality["passed"]` or `quality["score"]`, and it does not call
+  `--feedback` or `quality_model.train()` on its own. Turning an opinion
+  into real training data stays a human decision, same as today.
+- `generator/colibri_client.py` is a small shared HTTP client
+  (`/v1/chat/completions`, stdlib `urllib`) that both `ai_profile.py` and
+  `ai_quality.py` now use, instead of each opening its own connection.
+- Tests: `generator/colibri_client_test.py` (the shared transport),
+  `generator/ai_quality_test.py` (prompt building and response parsing,
+  no network), and `generator/ai_quality_cli_test.py` (the CLI wiring
+  through the real pipeline via subprocess, proving `quality.passed`/
+  `quality.score` stay identical with and without the flag when no server
+  answers).
+- **Still open:** GUI display for the opinion, and — same caveat as step
+  2 — no field data yet on how useful it actually is without a running
+  Colibri server to test against.
+
+All three steps from the original plan (region, profile, quality) are now
+implemented at the CLI/generator level. What remains for the adapter as a
+whole: GUI wiring for all three, a bundled/recommended ONNX region model,
+and real usage data once someone runs a local Colibri server against real
+video material.
 
 ## Not part of this change
 
