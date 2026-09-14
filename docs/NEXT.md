@@ -2,21 +2,21 @@
 
 ## Verified baseline · September 14, 2026
 
-- `main`: `bd8fe13`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
-- PRs #2–#6 are integrated: the Tf/Tj recipe, generator integration, second
+- `main`: `a53bb32`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
+- PRs #2–#7 are integrated: the Tf/Tj recipe, generator integration, second
   GUI region, `suction_position` playback mode, version validation, the
-  English translation of project documentation, and the optional local-AI
-  ROI adapter (`docs/AI_ADAPTER.md` step 1).
+  English translation of project documentation, and the full local-AI
+  adapter (region/profile/quality, `docs/AI_ADAPTER.md`).
 - Tests and the release workflow succeeded for that commit.
-- [PR #7](https://github.com/funfunpayer/SamNPlayer/pull/7) adds the
-  remaining two AI-adapter steps (profile suggestion, quality second
-  opinion). Review and merge remain pending; check GitHub for current CI
-  status.
-- [Issue #8](https://github.com/funfunpayer/SamNPlayer/issues/8): real
-  Hub/Tf/Tj batch (22 clips, stopped ~10/22) found near-zero correlation
-  against manual FunGen references. Root cause pointed at ROI quality
-  (Auto-ROI + an invented, heuristic ROI2 for Tf/Tj), not filter/parameter
-  tuning — see priorities 2 and 3 below, which now fold in those findings.
+- [Issue #8](https://github.com/funfunpayer/SamNPlayer/issues/8) and
+  [`docs/FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md) (from
+  `codex/fungen-reference-plan`, merged into this branch) independently
+  found the same thing from real Hub/Tf/Tj batches: near-zero correlation
+  against manual FunGen references. The parity plan has a measured
+  baseline (mean r ≈ -0.07 hub / 0.02 tf·tj on 3 valid moving references)
+  and points at ROI quality, not filter/parameter tuning — see priority 2.
+  `compare-fungen-manual.md` (7 rows, 4 distinct clips after removing
+  duplicate matches) is consistent: mean r ≈ -0.05 hub / 0.01 tf·tj.
 
 This is the short-term task list. Architecture and measurements belong in
 `HANDOFF.md`, contribution rules in `CONTRIBUTING.md`, and setup instructions
@@ -56,6 +56,29 @@ alone: a correctly-shaped signal shifted in time scores as a total mismatch
 otherwise. Only tune `smooth-window`/peaks/`per-scene-roi` after ROI quality
 is confirmed. FunGen exports are reference signal only (`.funscript`, not
 `.fungen`/`FGPROJ`) — same license boundary as everywhere else in this repo.
+
+**Work Package 1 (benchmark correctness) is implemented:**
+`generator/fungen_compare.py` (`python3 fungen_compare.py --dataset DIR
+--output report.md`) replaces the local, not-in-repository comparison
+script that produced the `compare-fungen-manual.md` baseline. Reviewing
+that script's logic (its source was shared in chat, not committed) found
+four bugs that independently push correlation toward zero regardless of
+tracking quality: it de-duplicated candidate files by path instead of
+content (inflating `compare-fungen-manual.md`'s sample count), it aligned
+the two files by INDEX after resampling instead of on a shared absolute
+timeline or searching for the best lag (so a correctly-shaped but
+time-shifted match scored as a mismatch), it returned `0.0` instead of
+"undefined" for a constant reference, and it never checked for a
+polarity-inverted match (which reads as a strongly negative correlation
+and looks like bad tracking rather than a sign-convention mismatch).
+`generator/fungen_compare_test.py` has a regression test and gegenprobe
+for each, using the synthetic fixtures the brief asked for (known phase,
+irregular cycles, pauses, amplitude changes, offset timestamps, constant
+signals). **Not yet done:** running it against the real dataset — it
+needs `--dataset` pointed at the user's `funscript-tests` folder, which
+is local to their machine; the persisted manifest (hashes, generator
+versions, ROIs) from the brief's "Reproduce before changing the
+algorithm" section is also still open.
 
 ### 3. Improve automatic two-ROI suggestions
 
