@@ -26,7 +26,13 @@ For Tf/Tj, verify that vibration stays off and suction output matches the signal
 Acceptance: record device/adapter details, app version, steps, and observed
 results; report deviations as reproducible bugs.
 
-### 2. Measure generator quality · requires rated test material
+### 2. Match user-rated FunGen2 references · active code assignment
+
+Follow [the implementation brief](FUNGEN_PARITY_PLAN.md): establish the
+benchmark, isolate tracking errors, improve the shared Tf/Tj path, and retain
+both names as compatible aliases for one profile. The user rates FunGen2
+closer to the source motion and wants SamNPlayer to approach it. Identical
+Tf/Tj output is intentional.
 
 Use reproducible clips with known reference signals alongside representative
 real clips. Compare standard and Tf/Tj profiles with documented ROIs and
