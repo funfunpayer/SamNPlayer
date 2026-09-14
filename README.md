@@ -1,238 +1,229 @@
 # SamNPlayer
 
-Steuert einen SVAKOM Sam Neo 2 / Sam Neo 2 Pro per BLE anhand einer
-`.funscript`-Datei. Läuft als CLI (`cmd/cli`) oder native Desktop-GUI
-(`cmd/gui-wails`, gebaut mit [Wails](https://wails.io) - Go-Backend +
-schlankes Vanilla-JS-Frontend über die im Betriebssystem bereits vorhandene
-Web-Engine: WebView2 unter Windows 11 bereits eingebaut, WebKitGTK unter
-Linux, WKWebView unter macOS. Kein Electron, keine gebündelte
-Browser-Engine).
+Controls a SVAKOM Sam Neo 2 / Sam Neo 2 Pro over BLE using a `.funscript`
+file. Available as a CLI (`cmd/cli`) or a native desktop GUI
+(`cmd/gui-wails`, built with [Wails](https://wails.io)): a Go backend and a
+lightweight vanilla JavaScript frontend using the operating system's web
+engine. Windows 11 includes WebView2; Linux uses WebKitGTK and macOS uses
+WKWebView. No Electron or bundled browser engine.
 
-## Fertige Windows-.exe
+## Ready-to-run binaries
 
-Fertige Binaries für Windows und Linux hängen an jedem
-[Release](https://github.com/funfunpayer/SamNPlayer/releases) - inklusive
-`checksums.txt`. Die GUI-.exe ist rund 13 MB, deutlich schlanker als
-klassische Electron-Apps, da keine eigene Browser-Engine mitgeliefert werden
-muss. Herunterladen und doppelklicken, keine Installation nötig.
+Windows and Linux binaries are attached to each
+[release](https://github.com/funfunpayer/SamNPlayer/releases), together with
+`checksums.txt`. The GUI executable is approximately 13 MB, considerably
+smaller than typical Electron applications because it does not include its
+own browser engine. Download and double-click; no installation is required.
 
-Binaries werden bewusst **nicht** im Repository mitgeführt (siehe
-`.gitignore`): sie ändern sich bei jedem Build vollständig und werden vom
-Release-Workflow ohnehin automatisch gebaut.
+Binaries are deliberately **not** tracked in the repository (see
+`.gitignore`): they change completely with each build and are generated
+by the release workflow.
 
-**Bluetooth-Adapter unter Windows 11:** laut den Buttplug/Intiface-Entwicklern
-(dieselbe Community, aus der das Geräteprotokoll stammt) empfohlen: **TP-Link
-UB500** oder **Asus USB-BT500**. Eingebaute Mainboard-/Laptop-Bluetooth-Radios
-ohne externe Antenne werden für Windows/Linux explizit *nicht* empfohlen.
-Quelle: https://intiface.com/docs/intiface-central/hardware/bluetooth/
+**Bluetooth adapters on Windows 11:** the Buttplug/Intiface developers
+(the community behind the device protocol reference) recommend the
+**TP-Link UB500** or **Asus USB-BT500**. Their guidance explicitly advises
+against built-in motherboard/laptop Bluetooth radios without an external
+antenna on Windows/Linux.
+[Source: Intiface Bluetooth hardware guidance](https://intiface.com/docs/intiface-central/hardware/bluetooth/).
 
-## Video-Wiedergabe mit echtem Sync
+## Video playback with real synchronization
 
-Der Wiedergabe-Tab bettet ein echtes `<video>`-Element ein (kein separates
-Fenster, kein VLC-Prozess) und sucht automatisch nach einer gleichnamigen
-Videodatei neben dem gewählten Funscript (`szene.mp4` + `szene.funscript`,
-dieselbe Konvention wie bei MultiFunPlayer/ScriptPlayer). Mit aktiviertem
-"Gerät folgt der echten Videoposition" treibt die tatsächliche
-Video-Abspielposition (nicht eine eigene Uhr) die Geräte-Ausgabe an
-(`player.Sync()`, siehe `player/sync.go`) - Pausieren, Spulen und die
-Video-eigene Geschwindigkeit wirken sich direkt und korrekt aus. Extended-O
-pausiert dabei optional auch das Video für die Haltezeit.
+The playback tab embeds a real `<video>` element, without a separate window
+or VLC process. It automatically looks for a video with the same basename
+next to the selected Funscript (`szene.mp4` + `szene.funscript`, the same
+convention used by MultiFunPlayer/ScriptPlayer). When the option to follow
+the actual video position is enabled, the video's playback position drives
+the device output (`player.Sync()` in `player/sync.go`), rather than an
+independent clock. Pausing, seeking, and changing the video's playback speed
+therefore affect the device directly. Extended-O can optionally pause the
+video for its hold duration as well.
 
-Technischer Hinweis, falls du selbst daran weiterbaust: eine direkte
-`file://`-URL im `<video>`-Tag wird von WebView2/WebKitGTK aus
-Cross-Origin-Gründen abgelehnt (getestet, nicht angenommen). Die App startet
-darum beim ersten Laden eines Videos einen winzigen lokalen HTTP-Server
-(nur `127.0.0.1`, liefert ausschließlich die aktuell gewählte Datei mit
-Range-Request-Unterstützung fürs Spulen) und bindet darüber ein.
+Implementation note: WebView2/WebKitGTK reject direct `file://` URLs in the
+`<video>` tag for cross-origin reasons; this was tested, not assumed. When
+loading the first video, the app starts a small local HTTP server bound to
+`127.0.0.1`. It serves only the selected file and supports range requests for
+seeking. The video is embedded through that server.
 
-## Selbst bauen
+## Building from source
 
-Braucht Node.js/npm (fürs Frontend-Bundling) zusätzlich zu Go.
+Requires Node.js/npm for frontend bundling in addition to Go.
 
-```
+```bash
 go build ./cmd/cli                              # CLI
 cd cmd/gui-wails && wails build -tags webkit2_41 # GUI (Linux/macOS)
 ```
 
-Das `webkit2_41`-Tag ist unter Ubuntu 24.04+ nötig, weil dort nur noch
-WebKitGTK 4.1 (nicht mehr 4.0) verfügbar ist - auf älteren Systemen ohne
-diesen Tag bauen.
+The `webkit2_41` tag is required on Ubuntu 24.04+, which provides WebKitGTK
+4.1 rather than 4.0. On older systems, build without this tag.
 
-Cross-Build nach Windows von Linux/Mac aus (so wurde die mitgelieferte .exe
-gebaut) - für den Windows-Zielcode selbst wird kein C-Compiler gebraucht
-(reines Go), nur für lokale Linux-GUI-Abhängigkeiten:
+Cross-compiling for Windows from Linux/macOS (the method used for the
+supplied executable): the Windows target itself is pure Go and does not
+need a C compiler; local Linux GUI dependencies do.
 
-```
+```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
   -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.1.0"
 ```
 
-## Releases & Auto-Update
+## Releases and automatic updates
 
-`.github/workflows/release.yml` baut bei jedem Tag `vX.Y.Z` automatisch
-Windows- und Linux-Binaries (GUI + CLI) und veröffentlicht sie als GitHub
-Release inkl. `checksums.txt`. Die App selbst (`update/update.go`) prüft im
-Einstellungen-Tab konfigurierbar beim Start dagegen und kann sich bei
-Zustimmung selbst herunterladen (mit SHA256-Verifikation gegen die
-Prüfsummen-Datei und einer Herkunfts-Prüfung, dass die Download-URL
-tatsächlich von github.com kommt) und neu starten.
+For each `vX.Y.Z` tag, `.github/workflows/release.yml` builds Windows and
+Linux binaries for both GUI and CLI and publishes a GitHub release with
+`checksums.txt`. The app (`update/update.go`) can check for updates at
+startup, configured in the settings tab. With the user's consent it can
+download the update and restart, verifying SHA256 against the checksum
+file and checking that the download URL actually comes from github.com.
 
-**Setup, einmalig:**
-1. Repo auf GitHub anlegen, Code pushen.
-2. `RepoOwner`/`RepoName` in `update/update.go` auf das echte Repo setzen
-   (aktuell Platzhalter `TODO-github-username`).
-3. `git tag v0.1.0 && git push --tags` - der Workflow übernimmt den Rest.
+The release repository is already configured as `funfunpayer/SamNPlayer`.
+[v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1)
+was successfully built for Windows and Linux on September 14, 2026.
+For future releases, follow [CONTRIBUTING.md](CONTRIBUTING.md#versions).
 
-## Skript aus Video erzeugen (eigener Generator)
+## Generating scripts from video
 
-Tab "Skript erzeugen": Video wählen, im ersten Frame (per `<canvas>`, Maus
-ziehen) eine Region über das zu verfolgende Motiv markieren, generieren.
-Nutzt klassisches CV-Tracking (OpenCV CSRT-Tracker + Savitzky-Golay-Glättung
-+ Peak-Erkennung, `generator/generate_funscript.py`) - **kein** trainiertes
-KI-Modell, dafür komplett selbst enthalten (Skript ist per `go:embed` im
-Go-Binary, keine externe Installation nötig außer Python selbst).
+In the script-generation tab, choose a video, drag a region over the target
+in the first frame using the `<canvas>` preview, and generate the script.
+The generator uses classical computer vision: OpenCV CSRT tracking,
+Savitzky–Golay smoothing, and peak detection
+(`generator/generate_funscript.py`). It uses **no trained AI model**.
+The script is embedded in the Go binary using `go:embed`; Python and its
+packages are the external runtime requirements.
 
-**Braucht Python 3.9+** mit den Paketen aus `generator/requirements.txt`
-(`pip install -r generator/requirements.txt`, oder der Button
-"Abhängigkeiten prüfen" sagt genau, was fehlt).
+**Requires Python 3.9+** and the packages in `generator/requirements.txt`.
+Run `pip install -r generator/requirements.txt`, or use the dependency-check
+button to find out what is missing.
 
-**Für deutlich bessere Ergebnisse** (KI-Objekterkennung statt manueller
-ROI, VR-Support, automatische Szenenerkennung, ganze Ordner auf einmal):
-[FunGen 2](https://fungen.app) - kostenlos für Privatgebrauch, läuft lokal.
-FunGen ist **nicht Open Source** (PolyForm Strict License), darum keine
-Integration hier - aber dessen Ausgabe ist eine ganz normale
-`.funscript`-Datei, die dieser Player direkt abspielt.
+For stronger generation capabilities such as AI object detection instead
+of manual ROIs, VR support, automatic scene detection, and processing entire
+folders, the existing project documentation recommends
+[FunGen 2](https://fungen.app), which runs locally and is free for personal
+use. FunGen is **not open source** (PolyForm Strict License), so it is not
+integrated here. Its output is a normal `.funscript` file that this player
+can play directly.
 
 ## Logging
 
-Strukturiertes Logging (`logging/`, `log/slog`) schreibt in
-`<Nutzerkonfigurationsordner>/SamNPlayer/logs/SamNPlayer.log`
-(Windows: `%AppData%\SamNPlayer\logs\`), Rotation bei 5MB. Level im
-Einstellungen-Tab umschaltbar (debug/info/warn/error), wirkt sofort und
-bleibt über Neustarts erhalten.
+Structured logging (`logging/`, `log/slog`) writes to
+`<user configuration directory>/SamNPlayer/logs/SamNPlayer.log`
+(on Windows: `%AppData%\SamNPlayer\logs\`), with rotation at 5 MB.
+The log level (debug/info/warn/error) can be changed in the settings tab;
+changes take effect immediately and persist across restarts.
 
-## Einstellungen (persistiert)
+## Persistent settings
 
-Eigene schlanke JSON-Persistenz (`settings.json` im selben Ordner wie die
-Logdatei - Wails hat kein eingebautes Preferences-API wie manche andere
-GUI-Toolkits). Bleibt über Programmstarts erhalten:
-- Automatischer Update-Check beim Start (an/aus)
-- Log-Level
-- Alle Wiedergabe-Standardwerte (Mock/Sync-Modus/Tick/Max-Speed/Extended-O)
+A small JSON store (`settings.json` in the same directory as the log file)
+provides persistence; Wails does not have a built-in preferences API like
+some other GUI toolkits. The following settings survive restarts:
 
-## Neu: Community-inspirierte Verbesserungen
+- Automatic update checks at startup.
+- Log level.
+- All playback defaults: mock mode, sync mode, tick, maximum speed, and Extended-O.
 
-Nach Durchsicht des größten Community-Players (MultiFunPlayer) ergänzt:
+## Community-inspired improvements
 
-- **Skript-Heatmap**: farbcodierte Intensitätsleiste (blau=ruhig, rot=
-  intensiv) über die ganze Skriptlänge, direkt unter der Videovorschau.
-- **Soft-Start**: beim Loslegen wird nicht sofort auf den vollen
-  Skriptwert gesprungen, sondern in konfigurierbarer Zeit (Standard 500ms)
-  sanft hochgefahren.
-- **Glättung im Wiedergabe-Tab einstellbar** - vorher nur im Generator
-  vorhanden, jetzt auch beim Abspielen selbst tunbar (0 = aus).
-- **Tastenkürzel**: Leertaste = Abspielen/Stop, E = Extended-O auslösen.
-- **Sync-Modi "nur Vibration" / "nur Sog"** (`funscript/mapper.go`): für
-  fremde/importierte Skripte, die gezielt nur auf einen Kanal gelegt
-  werden sollen, statt immer beide zu nutzen.
+Added after reviewing MultiFunPlayer, a major community player:
 
-Sowohl Vibration als auch Sog sind beim Sam Neo 2 stufenlos steuerbar -
-nachgeprüft im Buttplug-Rust-Quellcode (`OutputCommand::Constrict` nutzt
-denselben generischen Skalar-Werttyp wie `OutputCommand::Vibrate`, nur mit
-6 statt 11 Stufen). Eine frühere Annahme hier, der Sog sei auf 5 feste
-Rhythmus-Muster begrenzt, war falsch (beruhte auf einem Forenbericht zur
-*offiziellen SVAKOM-App* mit eigener Preset-UI, nicht auf dem rohen
-Protokoll) und wurde wieder entfernt - keine künstliche Verzögerung mehr
-beim Sog, er verhält sich jetzt genau wie die Vibration.
+- **Script heatmap:** a color-coded intensity bar covering the entire script,
+  directly below the video preview (blue = calm, red = intense).
+- **Soft start:** ramps up over a configurable interval (500 ms by default)
+  instead of immediately jumping to the full script value.
+- **Playback smoothing:** adjustable in the playback tab as well as the
+  generator; 0 disables it.
+- **Keyboard shortcuts:** Space starts/stops playback; E triggers Extended-O.
+- **Vibration-only and suction-only sync modes** (`funscript/mapper.go`):
+  route imported scripts to a specific channel instead of always using both.
 
-## Trainings-Modus
+Both vibration and suction on the Sam Neo 2 accept scalar control, as
+checked against the Buttplug Rust source: `OutputCommand::Constrict` uses
+the same generic scalar value type as `OutputCommand::Vibrate`, with 6
+rather than 11 levels. An earlier assumption that suction was limited to
+five fixed rhythm patterns was incorrect. It came from a forum report about
+the official SVAKOM app's preset UI, not the raw protocol. The resulting
+artificial suction delay was removed; suction now follows the same control
+approach as vibration. Actual firmware resolution still requires hardware
+validation, as described in `HANDOFF.md`.
 
-Eigener Tab, unabhängig von Video/Skript - eigenständige Auf/Ab-Zyklen zum
-Ausdauer-/Kontrolltraining mit dem Gerät (`player/training.go`). Zwei
-Techniken, beide klinisch/community-beschrieben, nicht selbst erfunden:
-- **Stop-Start**: hochfahren, kurz halten, komplett auf ~0, Pause, von
-  vorn. Die klassische Methode (Semans, 1950er).
-- **Plateau/Edging**: bleibt nach dem Hochfahren auf einem hohen Niveau
-  statt ganz abzufallen.
+## Training mode
 
-Beide mit konfigurierbarer Zyklenzahl, Zeiten, optionaler Steigerung von
-Zyklus zu Zyklus, und frei wählbarem Kanal (Vibration, Sog, oder beide -
-beide sind stufenlos steuerbar, siehe oben). Jede Session wird komplett
-mitgeschrieben: `<Log-Ordner>/sessions/training-<technik>-<zeitstempel>.jsonl`
-(ein JSON-Objekt pro Zyklus: Zeitstempel, Kanal, Spitzenwert, Haltezeit,
-Dauer) - Grundlage für spätere Feinabstimmung.
+A separate tab provides standalone ramp-up/ramp-down cycles, independent of
+video or script (`player/training.go`). The two techniques come from
+clinical/community descriptions rather than being invented for the app:
 
-## Markierter Bereich + automatisches Extended-O
+- **Stop-start:** ramp up, hold briefly, drop to approximately zero, pause,
+  and repeat; the classic method described by Semans in the 1950s.
+- **Plateau/edging:** remain at a high level after ramping up instead of
+  dropping all the way down.
 
-Auf der Heatmap-Leiste im Wiedergabe-Tab lässt sich per Maus-Ziehen ein
-Zeitbereich markieren (z.B. der Höhepunkt gegen Ende). Mit aktivierter
-Checkbox "Extended-O automatisch im markierten Bereich auslösen" springt
-Extended-O von selbst an, sobald die Wiedergabe (Video-Sync oder eigene
-Uhr) diesen Bereich erreicht - einmal pro Wiedergabe. Die Markierung liegt
-als kleine JSON-Datei neben dem Skript (`szene.funscript.marker.json`,
-nicht im funscript selbst, um andere Player nicht zu stören) und lässt
-sich jederzeit über "Markierung löschen" wieder entfernen.
+Both support configurable cycle counts and timings, optional increases
+between cycles, and a choice of vibration, suction, or both channels.
+Each session is logged to
+`<log directory>/sessions/training-<technique>-<timestamp>.jsonl`, with one
+JSON object per cycle containing timestamp, channel, peak value, hold time,
+and duration. These logs support later tuning.
 
-## Stabilität (Fixes für den produktiven Einsatz)
+## Marked range and automatic Extended-O
 
-- **Kein stilles Überschreiben im Generator**: liegt neben dem Video
-  bereits ein `.funscript` (von Hand erstellt, heruntergeladen oder aus
-  einem früheren Lauf), fragt der Generator jetzt nach, statt es
-  kommentarlos zu ersetzen. Beim Testen war genau das passiert - ein
-  Datenverlust, der sich nicht rückgängig machen lässt.
-- **Tastaturfokus nach Datei-Dialogen**: nach dem Schließen des nativen
-  Auswahl-Dialogs blieb der Fokus am Button hängen, wodurch die
-  Tastenkürzel (Leertaste/E) scheinbar wirkungslos waren. Wird jetzt
-  aktiv ins Fenster zurückgeholt.
-- **Wiedergabe/Training schließen sich gegenseitig aus**: beide steuern
-  dasselbe physische Gerät - ohne Absicherung hätte ein gleichzeitiger
-  Start auf beiden Tabs dazu führen können, dass die zuerst gestartete
-  Sitzung nicht mehr stoppbar war (überschriebene Abbruchfunktion). Jetzt
-  meldet die zweite Sitzung einen klaren Fehler, statt die erste zu
-  verwaisen. Live getestet: Training mit langer Haltezeit gestartet,
-  während es lief Wiedergabe versucht - korrekt abgelehnt; nach Stop lief
-  eine neue Sitzung sofort wieder an.
-- **Update-Erkennung GUI vs. CLI**: `AssetForThisPlatform()` unterschied
-  nur nach Betriebssystem/Architektur, nicht nach Programmvariante - unter
-  Windows enden aber sowohl die GUI- als auch die CLI-Datei auf
-  "-windows-amd64.exe". Die GUI hätte sich beim Update abhängig von der
-  Reihenfolge der Server-Antwort versehentlich durch die CLI-Datei
-  ersetzen können. Jetzt wird explizit nach "gui"/"cli" unterschieden.
+Drag on the playback heatmap to mark a time range, such as a section near
+the end. With automatic Extended-O for the marked range enabled, Extended-O
+triggers once per playback when the video-synchronized or clock-driven
+position reaches that range. The marker is stored in a small JSON file
+beside the script (`szene.funscript.marker.json`), rather than modifying the
+Funscript and affecting other players. It can be removed with the
+clear-marker control.
 
-## Automatische Regionssuche (Generator)
+## Stability fixes
 
-Statt die Bewegungsregion von Hand zu markieren, kann der Generator sie
-selbst finden (`generator/auto_roi.py`, Button "Region automatisch
-finden"). Das Verfahren entspricht Abschnitt 5-6 der Projekt-Dokumentation:
+- **No silent overwrites in the generator:** if a `.funscript` already exists
+  beside the video, whether handmade, downloaded, or generated earlier, the
+  generator asks before replacing it. Testing previously caused exactly
+  this kind of irreversible data loss.
+- **Keyboard focus after file dialogs:** native file dialogs could leave
+  focus on a button, making Space/E shortcuts appear unresponsive. Focus is
+  now explicitly returned to the window.
+- **Playback and training are mutually exclusive:** both control the same
+  physical device. Starting both could previously overwrite the cancellation
+  function and make the first session impossible to stop. The second session
+  now receives a clear error. An interactive test started training with a
+  long hold, attempted playback, confirmed rejection, and then verified that
+  a new session could start immediately after stopping.
+- **GUI versus CLI update selection:** `AssetForThisPlatform()` previously
+  distinguished only OS/architecture, although both Windows binaries end in
+  `-windows-amd64.exe`. Depending on server response order, the GUI could
+  replace itself with the CLI. Selection now explicitly distinguishes
+  `gui` and `cli`.
 
-1. Dichter Optical Flow (Farneback) über ein Raster von Bildzellen.
-2. **Kamerabewegungs-Kompensation**: die globale Bewegung wird per
-   Feature-Tracking + affinem Modell (RANSAC) geschätzt und vom Flussfeld
-   abgezogen - ohne das würde ein Kameraschwenk als "Bewegung überall"
-   erscheinen und die Regionswahl wäre Zufall.
-3. Bewertung nicht nach *stärkster*, sondern nach **periodischster**
-   Bewegung: per FFT wird gemessen, wie stark eine einzelne Frequenz im
-   Band 0.1-4 Hz dominiert. Rhythmisches gewinnt gegen zufälliges Zappeln.
-4. Die besten Zellen werden zu einer zusammenhängenden Region vereinigt.
+## Automatic region selection
 
-Bewusst **ohne trainiertes Erkennungsmodell**: der Ansatz sucht Rhythmus,
-nicht bestimmte Objekte. Dadurch ist er inhaltsunabhängig, braucht keine
-Modellgewichte im Programm und funktioniert auch bei Material, für das
-kein passendes Modell existiert. Getestet gegen Videos mit gezielten
-Störern (statisches Objekt, zufällig zappelndes Objekt, Kameraschwenk) -
-in allen Fällen wurde die rhythmisch bewegte Region gefunden.
+The generator can find a motion region automatically
+(`generator/auto_roi.py`, the automatic-region button) instead of requiring
+a manually marked region. The method follows sections 5–6 of the project
+specification:
 
-Das Ergebnis ist ein Vorschlag: die gefundene Region lässt sich im
-Vorschaubild weiterhin von Hand korrigieren.
+1. Dense Farneback optical flow over a grid of image cells.
+2. **Camera-motion compensation:** feature tracking and an affine RANSAC
+   model estimate global motion, which is subtracted from the flow field.
+   Without this, a camera pan would look like motion everywhere and region
+   selection would become arbitrary.
+3. Rank motion by **periodicity**, not magnitude. FFT measures how strongly
+   one frequency dominates within 0.1–4 Hz. Rhythmic motion outranks random
+   movement.
+4. Merge the best cells into a connected region.
 
-## Bekannte Grenzen
+This deliberately uses **no trained detection model**: it looks for rhythm,
+not particular objects. It is content-independent, needs no model weights,
+and can work with material for which no suitable model exists. Tests with
+static objects, random motion, and camera pans found the rhythmic region
+in each case.
 
-- **Sam-Neo-2-Protokoll** ist gegen den offiziellen Buttplug-Rust-Quellcode
-  verifiziert (siehe Kommentare in `device/protocol.go`), aber nicht an
-  echter Hardware getestet.
-- **Video-Codec:** `<video>` spielt nur ab, was die jeweilige Webview-Engine
-  nativ kann (H.264/MP4, WebM/VP9, AV1 - deckt praktisch alles ab, was
-  gängige Kamera-/Konvertierungs-Software erzeugt). Exotische alte Codecs
-  (z.B. MPEG-4 Part 2 / "mp4v", Xvid) werden nicht abgespielt - mit
-  `ffmpeg -c:v libx264` neu kodieren, falls das mal vorkommt.
+The result is a suggestion: the region can still be adjusted manually in
+the preview.
+
+## Known limitations
+
+- **Sam Neo 2 protocol:** checked against the official Buttplug Rust source
+  (see comments in `device/protocol.go`), but not tested on real hardware.
+- **Video codecs:** `<video>` supports the codecs available in the webview
+  engine, such as H.264/MP4, WebM/VP9, and AV1. Older or unusual codecs such
+  as MPEG-4 Part 2 (`mp4v`) and Xvid are not supported; re-encode with
+  `ffmpeg -c:v libx264` if necessary.

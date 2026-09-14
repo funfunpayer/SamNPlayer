@@ -1,19 +1,28 @@
 # Tf / Tj
 
-Intern `tf` und `tj` – dasselbe Rezept.
+Internally named `tf` and `tj`; both use the same recipe.
 
 ## Signal
-Zwei Regionen, Abstand. Enge Distanz = hohe pos = starker Sog.
+
+Track two regions and measure their distance. A smaller distance means a
+higher position value and stronger suction.
 
 ## Neo 2
-- Sync: `suction_position` (Sog = Position, Vibration = 0)
-- MinSuction 0.20
-- Tick 50 ms, Smoothing 0.22
-- Pos-Klammer 20–90
 
-## Bedienung
-Generator: Profil „Tf / Tj“, 1. und 2. Region (Shift oder Knopf).
-Playback: Rezept aus Metadata, UI-Default `independent` ändert das nicht.
+- Sync: `suction_position` (suction follows position; vibration = 0).
+- MinSuction: 0.20.
+- Tick: 50 ms; smoothing: 0.22.
+- Position clamp: 20–90.
+
+## Usage
+
+Generator: select the Tf / Tj profile, then mark the first and second regions
+using Shift or the region-selection button.
+Playback: uses the recipe from metadata; the UI default `independent`
+does not override it.
 
 ## CLI
-`--profile tj --roi x,y,w,h --roi2 x,y,w,h`
+
+```text
+--profile tj --roi x,y,w,h --roi2 x,y,w,h
+```

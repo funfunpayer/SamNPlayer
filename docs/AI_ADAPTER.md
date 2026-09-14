@@ -1,108 +1,101 @@
-# Lokale KI als Adapter auf dem bestehenden System
+# Local AI as an adapter on top of the existing system
 
-Diese Datei hält fest, wie eine lokale KI in den Generator einzieht, ohne
-das messbare, nicht-KI-basierte System zu ersetzen - Auftrag aus dem Chat
-vom 14. September 2026: "der Generator soll mit lokaler KI laufen und dafür
-die Ergebnisse/Werkzeuge des Systems ohne KI nutzen, das sollte
-zusammenarbeiten."
+This file records how a local AI enters the generator without replacing the
+measurable, non-AI system — a request from the chat on September 14, 2026:
+"the generator should run with local AI, and for that should be able to use
+the results/tools of the non-AI system; they should work together."
 
-## Grundsatz
+## Principle
 
-Die KI schlägt vor, das bestehende System misst. Das ist keine neue Regel,
-sondern die bereits in `docs/TEAM_STAND.md` (Abschnitt 8) und
-`quality_model.py` gelebte Linie: ein gelerntes Modell wird nur benutzt,
-wenn es in Kreuzvalidierung besser abschneidet als die festen Regeln, und
-der Mensch bestätigt am Ende. Für die KI-Erweiterung gilt dasselbe:
+The AI proposes, the existing system measures. This is not a new rule but
+the line already followed in `docs/TEAM_STAND.md` (section 8) and
+`quality_model.py`: a learned model is only used once it outperforms the
+fixed rules in cross-validation, and a human confirms the result. The same
+applies to the AI extension:
 
-- Die KI liefert einen **Vorschlag** (Region, Profil, Urteil).
-- Der Vorschlag läuft durch **dieselbe** klassische Pipeline (CSRT/Flow-
-  Tracking, Quality Doctor, Mapper) wie ein von Hand markierter Vorschlag -
-  es gibt keinen zweiten, KI-eigenen Ausgabepfad, der am Rest vorbei ein
-  `.funscript` erzeugt.
-- Schlägt die KI fehl (kein Modell, keine Erkennung, Server nicht
-  erreichbar), fällt das System auf das nicht-KI-Verfahren zurück, so wie
-  `track_by_scenes()` heute schon jeden `roi_finder`-Fehler auffängt und die
-  vorherige Region weiterverwendet.
-- Beide Engines sind **optional** und laufen **lokal** - kein Modell im
-  Repository, kein automatischer Download, keine Telemetrie. Wer sie nicht
-  installiert/startet, merkt nichts von ihrer Existenz.
+- The AI produces a **proposal** (region, profile, judgment).
+- The proposal runs through **the same** classical pipeline (CSRT/flow
+  tracking, Quality Doctor, mapper) as a manually marked one — there is no
+  second, AI-only output path that produces a `.funscript` on its own.
+- If the AI fails (no model, no detection, server unreachable), the system
+  falls back to the non-AI method, the same way `track_by_scenes()` already
+  catches any `roi_finder` failure and reuses the previous region.
+- Both engines are **optional** and run **locally** — no model in the
+  repository, no automatic download, no telemetry. Anyone who does not
+  install or start them notices nothing of their existence.
 
-## Zwei Engines, zwei Aufgaben
+## Two engines, two jobs
 
-Auf Wunsch ausdrücklich **nicht** über eine Gateway-Infrastruktur (Bifrost/
-LM Studio), sondern zwei eigenständige, leichtgewichtige lokale Engines -
-jede für die Aufgabe, für die sie gebaut ist:
+Deliberately **not** routed through a gateway (Bifrost/LM Studio), but two
+independent, lightweight local engines — each for the job it is built for:
 
-| Engine | Aufgabe | Warum diese |
+| Engine | Job | Why this one |
 |---|---|---|
-| **ONNX Runtime** | Bildverarbeitung: Region vorschlagen (später: Profil aus Bewegungssignatur) | Klein (wenige MB Modell + Laufzeit), CPU/GPU, kein Python-Zwang zur Laufzeit - passt zum Ziel "Python irgendwann aus der .exe werfen" (HANDOFF.md, Abschnitt "Später") |
-| **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Große lokale Sprachmodelle für Urteile mit Begründung (Qualität, Profilwahl in Textform) | Reines C, kein CUDA/PyTorch nötig, läuft auf normaler Hardware, `coli serve` spricht die OpenAI-`/v1/chat/completions`-API - ein simpler HTTP-Client genügt als Anbindung, kein SDK |
+| **ONNX Runtime** | Vision: propose a region (later: propose a profile from the motion signature) | Small (a few MB of model plus runtime), CPU/GPU, no Python requirement at inference time — fits the stated goal of eventually removing Python from the .exe (`HANDOFF.md`, "Project status and next steps") |
+| **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Large local language models for judgments with a reason attached (quality, profile choice in prose) | Pure C, no CUDA/PyTorch needed, runs on ordinary hardware, `coli serve` speaks the OpenAI `/v1/chat/completions` API — a plain HTTP client is enough to connect it, no SDK required |
 
-Beide sind austauschbar: das Backend-Register (`backends.py`) und der
-`roi_finder`-Injektionspunkt in `track_by_scenes()` sind genau für diesen
-Zweck da - eine Funktion mit festem Vertrag anmelden, an der Pipeline ändert
-sich nichts.
+Both are swappable: the backend register (`backends.py`) and the
+`roi_finder` injection point in `track_by_scenes()` exist for exactly this
+purpose — register a function with a fixed contract, nothing in the
+pipeline changes.
 
-## Woher die Idee "ONNX wie FunGen 2" kommt - und was NICHT übernommen wurde
+## Where "ONNX like FunGen 2" comes from — and what was NOT taken from it
 
-FunGen 2 ist geschlossenes Binary (PolyForm Strict für FunGen 1), siehe
-`docs/HANDOFF.md`, Abschnitt "Fremder Code". Es wurde kein Code gelesen.
-Öffentlich beschrieben (fungen.app, GitHub-README) ist: FunGen erkennt
-Objekte per YOLO-Modell und trackt darauf aufbauend. Übernommen ist davon
-ausschließlich die **Idee** "Erkennung schlägt Region vor, Tracking misst
-weiter" - der Modellvertrag in `ai_roi.py` (Eingabe `1x3xHxW`, Ausgabe
-`(N,6)` normalisiert) ist eine eigene, unabhängig entworfene Schnittstelle,
-kein Nachbau eines bestimmten Exportformats.
+FunGen 2 is a closed binary (FunGen 1 is PolyForm Strict), see
+`HANDOFF.md`, "Third-party code policy". No source code was read. Publicly
+described (fungen.app, GitHub README): FunGen detects objects with a YOLO
+model and tracks from there. Only the **idea** — "detection proposes a
+region, tracking measures from it" — was carried over. The model contract
+in `ai_roi.py` (input `1x3xHxW`, output `(N,6)` normalized) is an
+independently designed interface, not a reimplementation of a specific
+export format.
 
-## Reihenfolge (mit dem Nutzer abgestimmt: ROI → Profil → Qualität)
+## Order (agreed with the user: region → profile → quality)
 
-### 1. Region vorschlagen - **umgesetzt**
+### 1. Propose a region — **implemented**
 
-- `generator/ai_roi.py`: `find_roi(video, start_frame, end_frame)` mit
-  demselben Vertrag wie `auto_roi.find_roi` - beide sind gegeneinander
-  austauschbare `roi_finder`.
-- CLI: `--per-scene-roi --roi-finder ai --ai-model-path modell.onnx`
-  (Standard bleibt `auto`, also unverändertes Verhalten ohne die neue
-  Option).
-- `decode_detections()` und `select_best_box()` sind reine Funktionen und
-  ohne Modell/onnxruntime testbar (`generator/ai_roi_test.py`).
-- `onnxruntime` steht in `generator/requirements-ai.txt`, NICHT in
+- `generator/ai_roi.py`: `find_roi(video, start_frame, end_frame)` with the
+  same contract as `auto_roi.find_roi` — both are interchangeable
+  `roi_finder` implementations.
+- CLI: `--per-scene-roi --roi-finder ai --ai-model-path model.onnx`
+  (default stays `auto`, so behavior is unchanged without the new option).
+- `decode_detections()` and `select_best_box()` are pure functions and
+  testable without a model or onnxruntime (`generator/ai_roi_test.py`).
+- `onnxruntime` lives in `generator/requirements-ai.txt`, NOT in
   `requirements.txt`.
-- **Noch offen:** kein mitgeliefertes/empfohlenes ONNX-Modell, keine
-  GUI-Anbindung (Go-seitig wäre das eine Kopie von `FindROIWithProgress` in
-  `generator/generator.go` mit `ai_roi.py` statt `auto_roi.py` als
-  Zielskript - der Rückgabevertrag `ROI x y w h` auf stdout ist bereits
-  identisch gehalten).
+- **Still open:** no bundled/recommended ONNX model, no GUI wiring (on the
+  Go side this would be a copy of `FindROIWithProgress` in
+  `generator/generator.go` targeting `ai_roi.py` instead of `auto_roi.py` —
+  the `ROI x y w h` stdout contract is already kept identical).
 
-### 2. Profil vorschlagen (standard/tf/tj/…) - **offen**
+### 2. Propose a profile (standard/tf/tj/…) — **open**
 
-Setzt auf der bereits vorhandenen, aber unverdrahteten
-Bewegungssignatur auf (`HANDOFF.md`: "Noch nicht verdrahtet: Benennen in der
-Oberfläche und die Übernahme der Parameter"). Zwei mögliche Wege, noch nicht
-entschieden:
+Builds on the motion signature, which exists but is not yet wired up
+(`HANDOFF.md`: naming in the UI and reusing saved parameters is not
+connected). Two possible directions, not yet decided:
 
-- Rein aus den acht Signatur-Kennzahlen per kleinem lokalem Modell
-  (bliebe bei ONNX, gleiche Engine wie Schritt 1).
-- Oder als Textbegründung über Colibri ("diese Szene ähnelt der als 'tj'
-  benannten Szene X, weil …") - das würde die Erklärbarkeit, die
-  `quality_model.py` durch den Verzicht auf neuronale Netze bewusst
-  erkauft, auf andere Weise zurückbringen: nicht lesbare Gewichte, aber ein
-  Modell, das seine Entscheidung in Prosa begründen kann.
+- Purely from the eight signature metrics via a small local model (would
+  stay on ONNX, the same engine as step 1).
+- Or as a text justification via Colibri ("this scene resembles the scene
+  named 'tj', because …") — this would restore, in a different form, the
+  explainability that `quality_model.py` deliberately buys by avoiding
+  neural networks: not readable weights, but a model that can justify its
+  decision in prose.
 
-### 3. Qualitätsurteil - **offen**
+### 3. Quality judgment — **open**
 
-Ergänzt, nicht ersetzt `quality_model.py`. Gleiche Sicherung wie dort
-bereits vorhanden: ein KI-Urteil wird nur übernommen, wenn es die
-Leave-one-out-Kreuzvalidierung gegen die festen Regeln UND das bestehende
-gelernte Modell schlägt (`MIN_SAMPLES`/`MIN_PER_CLASS` als Vorbild). Über
-Colibris `/v1/chat/completions` ließe sich zusätzlich eine
-Klartext-Begründung einholen, die im Messbericht neben der Zahl steht.
+Extends, does not replace, `quality_model.py`. Same safeguard already in
+place there: an AI judgment is only adopted if it beats leave-one-out
+cross-validation against both the fixed rules AND the existing learned
+model (`MIN_SAMPLES`/`MIN_PER_CLASS` as the template). Colibri's
+`/v1/chat/completions` could additionally supply a plain-text justification
+to sit next to the number in the measurement report.
 
-## Nicht Teil dieser Änderung
+## Not part of this change
 
-- Kein Akt-Detektor - unverändert Grundsatz aus `docs/TEAM_STAND.md`.
-- Kein Zwang, KI zu installieren - beide Engines bleiben Zusatzangebote wie
-  der Intiface-Weg beim Gerät (`device/intiface.go`): eine zweite
-  Möglichkeit, kein Ersatz für den bestehenden Weg.
-- Keine Cloud-Anbindung, kein Gateway - beide Engines laufen ausschließlich
-  lokal auf `127.0.0.1`.
+- No action detector — unchanged principle from `docs/TEAM_STAND.md`.
+- No requirement to install AI — both engines remain optional additions,
+  like the Intiface path for the device (`device/intiface.go`): a second
+  option, not a replacement for the existing one.
+- No cloud connection, no gateway — both engines run exclusively on
+  `127.0.0.1`.
