@@ -45,8 +45,8 @@ Do not optimize absolute correlation: opposite phase is not equivalent.
 
 ## Reproduce before changing the algorithm
 
-The user-provided dataset remains at
-`C:\Users\Christian\Downloads\funscript-tests` on the user's machine.
+The user-provided dataset remains in a local `Downloads\funscript-tests`
+folder on the user's machine.
 The earlier local analysis and full filename/hash mapping are in
 `docs/chatgpt-context/script-comparison.json` and `compare_local_scripts.py`
 in the original local workspace; these are local artifacts, not repository
