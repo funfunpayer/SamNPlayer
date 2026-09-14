@@ -146,6 +146,35 @@ playback of a SAM Script, without rewriting the underlying file - the same
 describes for P1.2. Only attempted once milestone 1 is solid; not
 scheduled yet.
 
+## Non-negotiable: contact vibration and O-markers must carry forward
+
+The user's direction (September 14, 2026, repeated explicitly while this
+milestone was being built): contact-triggered vibration for Tf/Tj (`docs/
+NEXT.md` priority 5, shipped in PR #20) and O-function event markers
+(priority 7, not yet implemented, blocked on the manual editor and climax
+detection) are **not optional extras SAM is allowed to drop** - "muss
+weiter drin sein... das ist wichtig." Whatever milestone 2's runtime ends
+up looking like, it must have an equivalent or better path for both, not
+silently lose them in the transition away from `funscript.MapOptions`.
+
+Concretely, both already fit SAM's existing field set without needing new
+schema design:
+
+- **Contact vibration** maps onto `Motion.Range` (the ROI1↔ROI2 distance
+  that already drives it in `mapper.go`) plus `Motion.Intensity` for the
+  resulting pulse strength - the same relationship
+  `ToIntensityCurve`'s `contactEnabled` branch already encodes, just
+  expressed as SAM fields instead of being computed inline from raw `pos`.
+- **O-markers** are events, not continuous state - exactly the "both
+  continuous state and events" requirement the vision doc's own P0.2
+  already calls for in SAM Script. A marker is a `Frame` (or a short
+  run of frames) with elevated `Anticipation`/`Intensity` and a `Type`
+  that says so, not a new top-level concept.
+
+This is a constraint on milestone 2's design, not new work for milestone 1
+(this commit) - noted here so it isn't forgotten by the time the runtime
+is actually built.
+
 ## Deferred, no fixed schedule - pursue only when a concrete use case justifies it
 
 Per the user's own steer ("alles was nützt und das System besser macht,
