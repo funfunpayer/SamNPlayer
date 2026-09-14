@@ -40,10 +40,18 @@ type DeviceRecipe struct {
 	TickMs     int64   `json:"tick_ms"`
 	MaxSpeed   float64 `json:"max_speed"`
 	Smoothing  float64 `json:"smoothing"`
+
+	// ContactVibration: bei tf/tj optional gesetzt (generator/tf_tj_meta.py,
+	// --contact-vibration) - Vibration folgt dann zusätzlich zum Sog dem
+	// Abstandssignal, sobald es nahe sein eigenes, in diesem Skript
+	// beobachtetes Minimum fällt (siehe MapOptions.ContactVibration).
+	// Fehlt/false: unverändertes Verhalten, keine Vibration bei tf/tj.
+	ContactVibration bool `json:"contact_vibration,omitempty"`
 }
 
 // RecipeFor liefert MapOptions für ein Profil.
-// tf/tj: Sog folgt der Position (Kompression), Vibration = 0,
+// tf/tj: Sog folgt der Position (Kompression), Vibration bleibt 0, außer der
+// Aufrufer setzt zusätzlich MapOptions.ContactVibration (siehe dort) -
 // leichter Sog-Boden damit der Kontakt nicht abreisst.
 func RecipeFor(name string) MapOptions {
 	opts := DefaultMapOptions()

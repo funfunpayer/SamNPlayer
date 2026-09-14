@@ -35,6 +35,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	profile := a.currentScript.Metadata.Profile
 	if funscript.IsDistanceProfile(profile) {
 		mapOpts = funscript.RecipeFor(profile)
+		if dr := a.currentScript.Metadata.DeviceRecipe; dr != nil {
+			mapOpts.ContactVibration = dr.ContactVibration
+		}
 	}
 	if opts.TickMs > 0 {
 		mapOpts.TickMs = opts.TickMs

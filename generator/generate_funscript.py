@@ -1741,6 +1741,16 @@ def main():
                          "Fließtext mit Begründung, wird ausgegeben und bei --report mit "
                          "abgelegt. Ändert NICHT quality.passed und trägt kein --feedback "
                          "automatisch nach. Nicht erreichbar -> kein Eintrag, kein Fehler.")
+    ap.add_argument("--contact-vibration", action="store_true",
+                    help="Nur Profil tf/tj: Vibration am Gerät folgt zusätzlich zum Sog dem "
+                         "gemessenen Abstand ROI1<->ROI2 - sobald der Abstand nahe sein "
+                         "eigenes Minimum in diesem Video fällt (ROI1 berührt/streift ROI2, "
+                         "z.B. Eichel an Brustwarze oder Zunge), steigt die Vibration "
+                         "proportional zur Nähe und fällt mit ihr wieder ab. Dauer/Stärke "
+                         "kommen direkt aus dem gemessenen Signal, nicht aus einem festen "
+                         "Impuls - das passt sich von selbst an, wie lang/eng der Kontakt im "
+                         "Video tatsächlich ist. Kein Akt-Detektor, reine Abstandsmessung. "
+                         "Ohne diese Option bleibt tf/tj wie bisher ohne Vibration.")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -2163,7 +2173,11 @@ def process_one(args, ap):
     # aktivierte Messwert-Aufzeichnung (--report).
     if ai_opinion is not None:
         metadata["ai_opinion"] = ai_opinion
-    metadata = apply_profile_metadata(metadata, args.profile)
+    if args.contact_vibration and not is_distance_profile(args.profile):
+        print("Hinweis: --contact-vibration wirkt nur bei --profile tf/tj, wird ignoriert.",
+              file=sys.stderr)
+    metadata = apply_profile_metadata(metadata, args.profile,
+                                       contact_vibration=args.contact_vibration)
 
     with open(args.output, "w") as f:
         json.dump({

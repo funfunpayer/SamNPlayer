@@ -61,6 +61,7 @@ type Options struct {
 	ROI2                      ROI
 	AIQualityOpinion          bool
 	AIBaseURL                 string
+	ContactVibration          bool
 }
 
 func pythonCandidates() []string {
@@ -574,6 +575,9 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.AIBaseURL != "" {
 		args = append(args, "--ai-base-url", opts.AIBaseURL)
+	}
+	if opts.ContactVibration {
+		args = append(args, "--contact-vibration")
 	}
 	return args
 }
