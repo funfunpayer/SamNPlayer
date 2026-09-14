@@ -211,10 +211,24 @@ def find_roi(video_path, start_frame=0, end_frame=None, report_progress=True,
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--video", required=True)
+    ap.add_argument("--video", help="Pfad zum Video (nicht nötig mit --check)")
     ap.add_argument("--model", default=None, help="Pfad zur .onnx-Datei (sonst Standardordner)")
     ap.add_argument("--confidence", type=float, default=0.35)
+    ap.add_argument("--check", action="store_true",
+                     help="Nur prüfen, ob KI-Erkennung nutzbar ist (onnxruntime + Modell "
+                          "vorhanden), ohne Video zu öffnen - für die GUI, um den KI-Knopf "
+                          "zu aktivieren/auszublenden, ohne selbst eine Erkennung anzustoßen.")
     args = ap.parse_args()
+
+    if args.check:
+        ok = available(args.model)
+        path = args.model or default_model_path()
+        print("AVAILABLE" if ok else "UNAVAILABLE")
+        print(f"model_path={path}", file=sys.stderr)
+        return
+
+    if not args.video:
+        ap.error("--video ist erforderlich, außer bei --check")
 
     try:
         x, y, w, h = find_roi(args.video, model_path=args.model,

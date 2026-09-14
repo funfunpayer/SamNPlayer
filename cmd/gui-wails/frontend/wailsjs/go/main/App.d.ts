@@ -6,7 +6,9 @@ export function AnalyzeScript():Promise<main.ScriptAnalysis>;
 
 export function ApplyUpdate():Promise<void>;
 
-export function AutoDetectROI(arg1:string):Promise<void>;
+export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
+
+export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
 

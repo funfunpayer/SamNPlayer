@@ -17,6 +17,7 @@ const (
 	prefClearCacheOnExit     = "cache.clearOnExit"
 	prefDeviceTransport      = "device.transport"
 	prefIntifaceURL          = "device.intifaceUrl"
+	prefAIRoiModelPath       = "generator.aiRoiModelPath"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -81,6 +82,14 @@ type Settings struct {
 	// laufen lässt, tippt sonst bei jedem Start dieselbe IP neu ein.
 	DeviceTransport string `json:"deviceTransport"`
 	IntifaceURL     string `json:"intifaceUrl"`
+
+	// AIRoiModelPath: Pfad zur .onnx-Modelldatei für die KI-Regionssuche
+	// (generator/ai_roi.py). Leer = Standardordner (siehe
+	// ai_roi.default_model_path()) - die meisten Nutzer legen die Datei
+	// einfach dort ab, statt hier einen Pfad einzutragen. Ob die KI-Suche
+	// nutzbar ist, prüft CheckAIRoiAvailable() bei Bedarf separat (kostet
+	// einen Python-Start, gehört darum nicht in dieses Massen-Get).
+	AIRoiModelPath string `json:"aiRoiModelPath"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -116,6 +125,7 @@ func (a *App) GetSettings() Settings {
 		ClearCacheOnExit:  s.GetBool(prefClearCacheOnExit, false),
 		DeviceTransport:   s.GetString(prefDeviceTransport, "ble"),
 		IntifaceURL:       s.GetString(prefIntifaceURL, ""),
+		AIRoiModelPath:    s.GetString(prefAIRoiModelPath, ""),
 	}
 }
 

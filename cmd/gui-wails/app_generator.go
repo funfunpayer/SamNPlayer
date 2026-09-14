@@ -67,19 +67,40 @@ type GenerateOptions struct {
 	Overwrite                 bool    `json:"overwrite"`
 }
 
-func (a *App) AutoDetectROI(videoPath string) {
+// AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
+// ONNX-Objekterkenner (ai_roi.py, siehe docs/AI_ADAPTER.md); jeder andere
+// Wert (leer, "auto", ...) bleibt bei der klassischen Rhythmus-Heuristik
+// (auto_roi.py) - so bricht ein alter Frontend-Aufruf ohne engine-Argument
+// nicht, er bekommt nur weiterhin das klassische Verhalten.
+func (a *App) AutoDetectROI(videoPath string, engine string) {
 	go func() {
-		roi, err := generator.FindROIWithProgress(videoPath,
-			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
-			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
+		var roi generator.ROI
+		var err error
+		if engine == "ai" {
+			roi, err = generator.FindROIAIWithProgress(videoPath, a.settings.GetString(prefAIRoiModelPath, ""),
+				func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
+				func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
+		} else {
+			roi, err = generator.FindROIWithProgress(videoPath,
+				func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
+				func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
+		}
 		if err != nil {
 			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 			return
 		}
 		runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
-			"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H,
+			"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
 		})
 	}()
+}
+
+// CheckAIRoiAvailable meldet, ob die KI-Regionssuche grundsätzlich nutzbar
+// ist (onnxruntime installiert + Modell vorhanden) - ohne selbst ein Video zu
+// öffnen. Die GUI nutzt das, um den KI-Knopf zu aktivieren/auszublenden statt
+// ihn anzubieten und dann bei jedem Versuch scheitern zu lassen.
+func (a *App) CheckAIRoiAvailable() bool {
+	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
 }
 
 func (a *App) ScriptExistsForVideo(videoPath string) bool {

@@ -10,8 +10,12 @@ export function ApplyUpdate() {
   return window['go']['main']['App']['ApplyUpdate']();
 }
 
-export function AutoDetectROI(arg1) {
-  return window['go']['main']['App']['AutoDetectROI'](arg1);
+export function AutoDetectROI(arg1, arg2) {
+  return window['go']['main']['App']['AutoDetectROI'](arg1, arg2);
+}
+
+export function CheckAIRoiAvailable() {
+  return window['go']['main']['App']['CheckAIRoiAvailable']();
 }
 
 export function CheckForUpdate() {

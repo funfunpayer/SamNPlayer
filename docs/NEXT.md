@@ -195,11 +195,30 @@ The user's direction (September 14, 2026): automatic detection for both
 ROI1 and ROI2 should become the *default* path in the GUI once it is
 measurably good enough (per the acceptance criteria above), manual dragging
 becoming the fallback/correction instead of the everyday first step. This
-does not mean building object detection from scratch — `generator/ai_roi.py`
-(local ONNX, PR #6) already implements exactly the "detection proposes a
-region" idea; what is missing is GUI wiring (priority 4) and, for the
-two-region Tf/Tj case specifically, validating that its proposals are good
-enough to default to.
+does not mean building object detection from scratch for ROI1 —
+`generator/ai_roi.py` (local ONNX, PR #6) already implements exactly the
+"detection proposes a region" idea, and just needs GUI wiring (priority 4).
+
+**Correction, found while starting that wiring:** `find_two_rois()` in
+`auto_roi.py` already carries its own measured verdict, in the docstring -
+"GEMESSEN UNZUREICHEND, NICHT IM ERZEUGUNGSPFAD VERDRAHTET" ("measured
+insufficient, not wired into the generation path"). On a real two-object
+test clip: manually chosen regions correlate at +0.62 with the known
+distance signal; the automatic grid-based pairing manages only +0.17 to
++0.28 across three grid resolutions, because the two points sit close
+enough (~25px apart in that test) to fall into the same or adjacent grid
+cells, and a finer grid barely helps. So ROI2 (the ROI1↔ROI2 distance
+pair Tf/Tj needs) is **not** a "wire it and validate" situation like
+ROI1 - it is already validated and found not good enough. Making it the
+GUI default now would be a regression, not an improvement, and would
+violate issue #8's already-learned lesson (never auto-commit an
+unvalidated guess for either ROI). Two directions worth trying before
+revisiting "default on": (a) the AI detector proposing ROI2 too, once it
+can find distinct objects instead of a rhythm-scored grid cell - untried,
+plausible since it doesn't share the grid-resolution problem; (b) improving
+`find_two_rois`'s candidate search past a fixed grid. Until either is
+itself measured against manually chosen regions, ROI2 stays manual-first
+with AI/heuristic suggestions as an opt-in aid, not swapped roles.
 
 ### 4. Complete motion-signature and profile integration in the GUI
 
@@ -223,9 +242,68 @@ rarely changed, e.g. tick rate, smoothing, RDP tolerance, behind an
 settings available, not removing configurability. More options are good;
 what needs to improve is which ones are visible by default.
 
+**First slice done:** `generator/ai_roi.py` gained `--check` (reports
+availability without opening a video, for the GUI to enable/disable the
+option). `generator.go` gained `FindROIAIWithProgress`/`AIRoiAvailable`,
+sharing the existing stdout/stderr protocol with the classical path via a
+new `findROIViaScript` helper (`AutoDetectROI` and `FindROIWithProgress`
+are behavior-preserving refactors, not rewrites). The generator tab shows
+a "KI-Erkennung (ONNX)" checkbox next to "Region automatisch finden",
+enabled only when `CheckAIRoiAvailable()` says so; Settings gained an
+optional model-path field. Region proposal only (not profile/quality yet,
+and not the two-region case - see the ROI2 correction above). Not
+end-to-end tested with a real model (none available to test with); the
+`--check`/unavailable path and the classical path are what's verified.
+
+**Also fixed while wiring this (found by the user, September 14, 2026):**
+every one of the ~11 Python subprocess calls in `generator.go` (dependency
+check, first-frame preview, ROI search, generation itself, ...) flashed a
+console window on Windows - `exec.Command` never set `HideWindow`. Fixed
+with a `command()` wrapper (`generator/exec_windows.go`/`exec_unix.go`,
+same pattern as `update/update_windows.go`'s existing `detachedSysProcAttr`)
+used everywhere `exec.Command` was called directly in that file.
+
+### 5. Contact-triggered vibration for Tf/Tj
+
+The user's direction (September 14, 2026): when the tracked tip (ROI1,
+e.g. the glans) touches or grazes the reference point (ROI2, e.g. a
+nipple) - i.e. the ROI1↔ROI2 distance drops near its minimum - vibration
+should pulse proportionally to how close/strong the contact is; suction
+is not needed at that moment. Wanted "whether with AI or without" - i.e.
+independent of which engine found the regions, this is a mapping/recipe
+change, not a detection change.
+
+This is a new requirement, not yet designed: today's Tf/Tj recipe
+(`tf_tj_meta.py`, `player/`) holds vibration at a fixed 0 the whole time
+(`sync: suction_position`, "kein Akt-Detektor" - see `generator.js`'s own
+hint text and `docs/NEXT.md`'s product requirements) precisely so no
+detector guesses when to add vibration. Introducing one is worth doing
+carefully: define "contact" from the already-tracked ROI1↔ROI2 distance
+(e.g. within some fraction of its observed minimum, not an absolute
+pixel threshold, since box sizes vary per video), decide whether the
+pulse comes from the classical distance signal alone or needs the
+motion/quality data to avoid false positives on tracker jitter, and keep
+suction's existing mapping unchanged elsewhere. Needs a design decision
+with the user before implementation, not just a mapping tweak - it
+changes a documented, deliberate `vibration = 0` invariant that existing
+tests likely assert on (check `generator/tf_tj_meta_test.py`,
+`player/*_test.go` before touching this).
+
 ### Later
 
 - Script Doctor for imported `.funscript` files.
+- **The user's direction (September 14, 2026), explicitly noted for later,
+  not now:** a manual funscript editor (edit/drag individual points on the
+  curve, not just automated repair) with the video alongside it - scope
+  for "the video too" not yet clarified (trimming/selecting a range?
+  frame-accurate scrubbing while editing?). Also: generation is slower
+  than FunGen2 and should use CPU/RAM/GPU better regardless of which
+  card is present - no baseline measurement exists yet to say where the
+  time actually goes (Python startup, frame decode, CSRT tracking,
+  camera-motion compensation, I/O?); profile before optimizing blindly.
+  Also general asks for a more stable, professional-looking, polished
+  system - continue the direction already started with the dark reskin
+  (PR #11) and sidebar (PR #12), not a one-off task.
 - Training history across multiple sessions.
 - AI as a replaceable analysis backend, reusing raw data, parameters,
   quality reports, and confirmed ratings. Region proposal, profile

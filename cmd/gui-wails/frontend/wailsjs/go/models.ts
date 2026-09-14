@@ -78,6 +78,10 @@ export namespace main {
 	    y: number;
 	    w: number;
 	    h: number;
+	    x2: number;
+	    y2: number;
+	    w2: number;
+	    h2: number;
 	    invert: boolean;
 	    smoothWindow: number;
 	    minPeakDistanceMs: number;
@@ -106,6 +110,10 @@ export namespace main {
 	        this.y = source["y"];
 	        this.w = source["w"];
 	        this.h = source["h"];
+	        this.x2 = source["x2"];
+	        this.y2 = source["y2"];
+	        this.w2 = source["w2"];
+	        this.h2 = source["h2"];
 	        this.invert = source["invert"];
 	        this.smoothWindow = source["smoothWindow"];
 	        this.minPeakDistanceMs = source["minPeakDistanceMs"];
@@ -304,6 +312,7 @@ export namespace main {
 	    clearCacheOnExit: boolean;
 	    deviceTransport: string;
 	    intifaceUrl: string;
+	    aiRoiModelPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -339,6 +348,7 @@ export namespace main {
 	        this.clearCacheOnExit = source["clearCacheOnExit"];
 	        this.deviceTransport = source["deviceTransport"];
 	        this.intifaceUrl = source["intifaceUrl"];
+	        this.aiRoiModelPath = source["aiRoiModelPath"];
 	    }
 	}
 	export class TrainingRequest {

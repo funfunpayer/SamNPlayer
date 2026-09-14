@@ -19,6 +19,17 @@ var pythonFiles embed.FS
 //go:embed requirements.txt
 var requirementsSource []byte
 
+// command ersetzt exec.Command in diesem Paket: gleiches Verhalten, aber mit
+// hiddenSysProcAttr() (siehe exec_windows.go/exec_unix.go) - ohne das blitzt
+// unter Windows für jeden der vielen Python-Unterprozesse (Vorschau laden,
+// Abhängigkeiten prüfen, Region suchen, Skript erzeugen, ...) kurz ein
+// Konsolenfenster auf.
+func command(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = hiddenSysProcAttr()
+	return cmd
+}
+
 type ROI struct {
 	X, Y, W, H int
 }
@@ -83,7 +94,7 @@ func pythonCandidates() []string {
 }
 
 func hasPackages(py string) (bool, string) {
-	out, err := exec.Command(py, "-c", "import cv2, scipy, numpy").CombinedOutput()
+	out, err := command(py, "-c", "import cv2, scipy, numpy").CombinedOutput()
 	return err == nil, string(out)
 }
 
@@ -99,7 +110,7 @@ func FindPython() (string, error) {
 			return py, nil
 		}
 		if firstRunnable == "" {
-			if err := exec.Command(py, "-c", "pass").Run(); err == nil {
+			if err := command(py, "-c", "pass").Run(); err == nil {
 				firstRunnable = py
 			}
 		}
@@ -226,6 +237,58 @@ func FindROI(videoPath string, onProgress func(line string)) (ROI, error) {
 }
 
 func FindROIWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return findROIViaScript("auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
+}
+
+// FindROIAIWithProgress ist die KI-Variante von FindROIWithProgress: gleicher
+// Vertrag (stdout "ROI x y w h", stderr Fortschritt/Log), aber ai_roi.py
+// (lokales ONNX-Modell) statt auto_roi.py (Rhythmus-Heuristik ohne Modell).
+// modelPath == "" nutzt ai_roi.defaultModelPath() (siehe dort).
+func FindROIAIWithProgress(videoPath, modelPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	var extraArgs []string
+	if modelPath != "" {
+		extraArgs = append(extraArgs, "--model", modelPath)
+	}
+	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+}
+
+// AIRoiAvailable prüft (ohne ein Video zu öffnen), ob die KI-Regionssuche
+// grundsätzlich nutzbar ist - onnxruntime installiert UND ein Modell unter
+// modelPath (oder ai_roi.py's Standardordner) vorhanden. Für die GUI, um den
+// KI-Knopf zu aktivieren/auszublenden. Liefert false bei jedem Fehler
+// (fehlendes Python, fehlende Pakete, ...) statt den Fehler durchzureichen -
+// die Verfügbarkeitsprüfung soll nie selbst scheitern können.
+func AIRoiAvailable(modelPath string) bool {
+	py, err := FindPython()
+	if err != nil {
+		return false
+	}
+	if err := CheckDependencies(); err != nil {
+		return false
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return false
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "ai_roi.py")
+	args := []string{scriptPath, "--check"}
+	if modelPath != "" {
+		args = append(args, "--model", modelPath)
+	}
+	out, err := command(py, args...).Output()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(out)) == "AVAILABLE"
+}
+
+// findROIViaScript führt eines der beiden austauschbaren ROI-Finder-Skripte
+// (auto_roi.py, ai_roi.py) aus - beide erfüllen denselben Vertrag: stdout
+// "ROI x y w h", stderr optional "PROGRESS done total"-Zeilen plus Logtext.
+// logPrefix kennzeichnet nur die Logzeilen, ändert das Protokoll nicht.
+func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, error) {
 	py, err := FindPython()
 	if err != nil {
 		return ROI{}, err
@@ -238,8 +301,9 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 		return ROI{}, err
 	}
 	defer cleanupScriptTemp(mainScript)
-	scriptPath := filepath.Join(filepath.Dir(mainScript), "auto_roi.py")
-	cmd := exec.Command(py, scriptPath, "--video", videoPath)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
+	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
+	cmd := command(py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -261,7 +325,7 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 				}
 				continue
 			}
-			logging.Debug("auto_roi: " + line)
+			logging.Debug(logPrefix + ": " + line)
 			if onProgress != nil {
 				onProgress(line)
 			}
@@ -300,7 +364,7 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 		return 0, 0, err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	cmd := exec.Command(py, scriptPath, "--video", videoPath, "--dump-first-frame", outputPNG)
+	cmd := command(py, scriptPath, "--video", videoPath, "--dump-first-frame", outputPNG)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0, 0, fmt.Errorf("generator: Frame-Extraktion fehlgeschlagen: %w\n%s", err, string(out))
@@ -443,7 +507,7 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 	}
 	defer cleanupScriptTemp(scriptPath)
 	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
-	cmd := exec.Command(py, args...)
+	cmd := command(py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -500,7 +564,7 @@ func AddFeedback(reportPath, outputPath, verdict, comment string) error {
 	if comment != "" {
 		args = append(args, comment)
 	}
-	out, err := exec.Command(py, args...).CombinedOutput()
+	out, err := command(py, args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("generator: Urteil konnte nicht gespeichert werden: %w\n%s", err, string(out))
 	}
@@ -517,7 +581,7 @@ func ReportSummary(reportPath string) (string, error) {
 		return "", err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	out, err := exec.Command(py, scriptPath, "--report", reportPath, "--report-summary").Output()
+	out, err := command(py, scriptPath, "--report", reportPath, "--report-summary").Output()
 	if err != nil {
 		return "", fmt.Errorf("generator: Bericht konnte nicht ausgewertet werden: %w", err)
 	}
@@ -534,7 +598,7 @@ func HardwareInfo() (string, error) {
 		return "", err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	out, err := exec.Command(py, scriptPath, "--hardware-info").Output()
+	out, err := command(py, scriptPath, "--hardware-info").Output()
 	if err != nil {
 		return "", fmt.Errorf("generator: Hardware-Abfrage fehlgeschlagen: %w", err)
 	}
@@ -551,7 +615,7 @@ func TrainQualityModel(reportPath string) (string, error) {
 		return "", err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	cmd := exec.Command(py, scriptPath, "--report", reportPath, "--train-model")
+	cmd := command(py, scriptPath, "--report", reportPath, "--train-model")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
@@ -572,7 +636,7 @@ func QualityModelInfo() (string, error) {
 		return "", err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	out, err := exec.Command(py, scriptPath, "--model-info").Output()
+	out, err := command(py, scriptPath, "--model-info").Output()
 	if err != nil {
 		return "", fmt.Errorf("generator: Modellabfrage fehlgeschlagen: %w", err)
 	}
