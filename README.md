@@ -84,23 +84,20 @@ For future releases, follow [CONTRIBUTING.md](CONTRIBUTING.md#versions).
 
 In the script-generation tab, choose a video, drag a region over the target
 in the first frame using the `<canvas>` preview, and generate the script.
-The generator uses classical computer vision: OpenCV CSRT tracking,
-Savitzky–Golay smoothing, and peak detection
-(`generator/generate_funscript.py`). It uses **no trained AI model**.
+The generator's foundation is classical computer vision: OpenCV CSRT
+tracking, Savitzky–Golay smoothing, and peak detection
+(`generator/generate_funscript.py`) - this always works, with no AI
+runtime dependency. On top of that, an optional local-AI adapter can
+propose the region, the profile, and a quality second opinion (local
+ONNX model, no cloud service); the classical system always makes the
+final measurement and decision. See [docs/AI_ADAPTER.md](docs/AI_ADAPTER.md)
+for the architecture.
 The script is embedded in the Go binary using `go:embed`; Python and its
 packages are the external runtime requirements.
 
 **Requires Python 3.9+** and the packages in `generator/requirements.txt`.
 Run `pip install -r generator/requirements.txt`, or use the dependency-check
 button to find out what is missing.
-
-For stronger generation capabilities such as AI object detection instead
-of manual ROIs, VR support, automatic scene detection, and processing entire
-folders, the existing project documentation recommends
-[FunGen 2](https://fungen.app), which runs locally and is free for personal
-use. FunGen is **not open source** (PolyForm Strict License), so it is not
-integrated here. Its output is a normal `.funscript` file that this player
-can play directly.
 
 ## Logging
 

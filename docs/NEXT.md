@@ -191,6 +191,16 @@ placed second mark, or the AI ROI adapter's suggestion (`--roi-finder ai`,
 `docs/AI_ADAPTER.md`) with a human confirming or correcting it — never a
 silently auto-committed guess for either ROI.
 
+The user's direction (September 14, 2026): automatic detection for both
+ROI1 and ROI2 should become the *default* path in the GUI once it is
+measurably good enough (per the acceptance criteria above), manual dragging
+becoming the fallback/correction instead of the everyday first step. This
+does not mean building object detection from scratch — `generator/ai_roi.py`
+(local ONNX, PR #6) already implements exactly the "detection proposes a
+region" idea; what is missing is GUI wiring (priority 4) and, for the
+two-region Tf/Tj case specifically, validating that its proposals are good
+enough to default to.
+
 ### 4. Complete motion-signature and profile integration in the GUI
 
 The naming and persistence paths now exist at the CLI level
@@ -199,6 +209,19 @@ this item is now specifically the GUI wiring: a "name this scene" control
 and a suggestion display, not building the underlying mechanism from
 scratch. Acceptance: names and parameters survive restarts; reuse for
 similar scenes is offered with an explanation and can be declined.
+
+The user's direction (September 14, 2026), same priority as above: wire
+`--roi-finder ai` / `AutoDetectROI` (already implemented, see #6/#7 and
+`docs/AI_ADAPTER.md`) into the generator tab so AI-proposed regions,
+profile, and quality opinion appear automatically as soon as a video is
+loaded, with one-click accept and the existing manual drag as correction —
+not a separate step the user has to remember to trigger. General direction
+for the player/generator GUI: reduce how much the user has to configure by
+hand for the common case (progressive disclosure - move settings that are
+rarely changed, e.g. tick rate, smoothing, RDP tolerance, behind an
+"Advanced" section instead of a flat list), while keeping all existing
+settings available, not removing configurability. More options are good;
+what needs to improve is which ones are visible by default.
 
 ### Later
 
