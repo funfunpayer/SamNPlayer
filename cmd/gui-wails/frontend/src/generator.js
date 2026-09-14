@@ -18,6 +18,11 @@ export function initGenerator(root, playback) {
       <canvas id="roi-canvas"></canvas>
     </div>
     <div class="path-label" id="gen-roi-label">Keine Region markiert</div>
+    <div class="row" style="align-items:center; margin-top:6px;">
+      <button id="gen-roi2-toggle" type="button">2. Region</button>
+      <span class="hint" id="gen-roi2-hint" style="margin:0">Shift+Ziehen oder Knopf: zweite Region (orange). Für Tf/Tj (Abstand + Sog) nötig.</span>
+    </div>
+    <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
 
     <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert">Bewegungsrichtung umkehren</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp">Kamerabewegungs-Kompensation (empfohlen bei Kameraschwenks)</label></div>
@@ -32,11 +37,18 @@ export function initGenerator(root, playback) {
       <select id="gen-profile">
         <option value="standard">Hubbewegung (Standard)</option>
         <option value="weich">Weiches Gewebe (schwingt nach)</option>
+        <option value="tf">Tf (Abstand + Sog)</option>
+        <option value="tj">Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" style="margin:0 0 10px 0;">„Weiches Gewebe" behandelt Nachschwingungen
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">„Weiches Gewebe" behandelt Nachschwingungen
       nicht als eigene Hübe. An einem Testvideo mit Anstoß alle 800 ms: 81 Keyframes werden
       zu 42 — den Anstößen selbst. Saubere Hubsignale bleiben davon unberührt.</p>
+    <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 10px 0;">
+      Tf/Tj (Abstand + Sog): zwei Regionen markieren (erste Region ziehen, dann Shift+Ziehen
+      oder „2. Region“ für die zweite, orange). Der Abstand zwischen beiden steuert den Hub;
+      Sog folgt der Position. Vibration bleibt 0 — kein Akt-Detektor.
+    </p>
     <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
     <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
@@ -87,27 +99,91 @@ export function initGenerator(root, playback) {
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in Videopixeln
-  let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
+  let roi2 = null; // zweite Region für Tf/Tj (Abstand + Sog)
+  let roi2Mode = false; // Knopf „2. Region“ aktiv
+  let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
 
   const DISPLAY_W = 560;
+
+  const ROI1_STROKE = '#00c8ff';
+  const ROI1_FILL = 'rgba(0,200,255,0.15)';
+  const ROI2_STROKE = '#ff9800';
+  const ROI2_FILL = 'rgba(255,152,0,0.18)';
+
+  function isTfTj() {
+    const p = el('#gen-profile').value;
+    return p === 'tf' || p === 'tj';
+  }
+
+  function setRoi2Mode(on) {
+    roi2Mode = !!on;
+    const btn = el('#gen-roi2-toggle');
+    btn.style.outline = roi2Mode ? '2px solid #ff9800' : '';
+    btn.style.background = roi2Mode ? 'rgba(255,152,0,0.28)' : '';
+  }
+
+  function updateRoiLabels() {
+    el('#gen-roi-label').textContent = roi
+      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`
+      : 'Keine Region markiert';
+    el('#gen-roi2-label').textContent = roi2
+      ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, orange)`
+      : 'Keine 2. Region markiert';
+  }
+
+  function updateGenerateEnabled() {
+    if (!roi) {
+      el('#gen-generate').disabled = true;
+      return;
+    }
+    if (isTfTj() && !roi2) {
+      el('#gen-generate').disabled = true;
+      return;
+    }
+    el('#gen-generate').disabled = false;
+  }
+
+  function updateProfileUi() {
+    const tftj = isTfTj();
+    el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
+    if (tftj) setRoi2Mode(true);
+    updateGenerateEnabled();
+    if (tftj && videoPath) {
+      el('#gen-status').textContent = roi2
+        ? 'Tf/Tj: beide Regionen gesetzt — generieren möglich.'
+        : 'Tf/Tj (Abstand + Sog): zweite Region markieren (Shift+Ziehen oder „2. Region“).';
+    }
+  }
+
+  function drawNativeRect(r, stroke, fill) {
+    if (!r || !nativeW || !nativeH) return;
+    const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
+    const dx0 = r.x * scaleX, dy0 = r.y * scaleY, dw = r.w * scaleX, dh = r.h * scaleY;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(dx0, dy0, dw, dh);
+    ctx.fillStyle = fill;
+    ctx.fillRect(dx0, dy0, dw, dh);
+  }
+
+  function drawDragRect(stroke, fill) {
+    const dx0 = Math.min(startX, curX), dy0 = Math.min(startY, curY);
+    const dw = Math.abs(curX - startX), dh = Math.abs(curY - startY);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(dx0, dy0, dw, dh);
+    ctx.fillStyle = fill;
+    ctx.fillRect(dx0, dy0, dw, dh);
+  }
 
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    if (dragging || roi) {
-      const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
-      let dx0, dy0, dw, dh;
-      if (dragging) {
-        dx0 = Math.min(startX, curX); dy0 = Math.min(startY, curY);
-        dw = Math.abs(curX - startX); dh = Math.abs(curY - startY);
-      } else {
-        dx0 = roi.x * scaleX; dy0 = roi.y * scaleY; dw = roi.w * scaleX; dh = roi.h * scaleY;
-      }
-      ctx.strokeStyle = '#00c8ff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(dx0, dy0, dw, dh);
-      ctx.fillStyle = 'rgba(0,200,255,0.15)';
-      ctx.fillRect(dx0, dy0, dw, dh);
+    if (roi && !(dragging && !draggingSecond)) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
+    if (roi2 && !(dragging && draggingSecond)) drawNativeRect(roi2, ROI2_STROKE, ROI2_FILL);
+    if (dragging) {
+      if (draggingSecond) drawDragRect(ROI2_STROKE, ROI2_FILL);
+      else drawDragRect(ROI1_STROKE, ROI1_FILL);
     }
   }
 
@@ -116,6 +192,7 @@ export function initGenerator(root, playback) {
     startX = curX = e.clientX - r.left;
     startY = curY = e.clientY - r.top;
     dragging = true;
+    draggingSecond = roi2Mode || e.shiftKey;
   });
   canvas.addEventListener('mousemove', e => {
     if (!dragging) return;
@@ -127,16 +204,28 @@ export function initGenerator(root, playback) {
   window.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
+    const wasSecond = draggingSecond;
+    draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
     if (w < 4 || h < 4) { redraw(); return; }
     const scaleX = nativeW / canvas.width, scaleY = nativeH / canvas.height;
     const x0 = Math.min(startX, curX), y0 = Math.min(startY, curY);
-    roi = {
+    const box = {
       x: Math.round(x0 * scaleX), y: Math.round(y0 * scaleY),
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
-    el('#gen-roi-label').textContent = `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`;
-    el('#gen-generate').disabled = false;
+    if (wasSecond) {
+      roi2 = box;
+      setRoi2Mode(false);
+    } else {
+      roi = box;
+      if (isTfTj() && !roi2) setRoi2Mode(true);
+    }
+    updateRoiLabels();
+    updateGenerateEnabled();
+    if (isTfTj() && videoPath && !roi2) {
+      el('#gen-status').textContent = 'Erste Region gesetzt — jetzt 2. Region markieren (Shift+Ziehen oder „2. Region“).';
+    }
     redraw();
   });
 
@@ -162,8 +251,10 @@ export function initGenerator(root, playback) {
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
     el('#gen-status').textContent = 'Lade Vorschau-Frame...';
     roi = null;
+    roi2 = null;
+    setRoi2Mode(isTfTj());
     el('#gen-generate').disabled = true;
-    el('#gen-roi-label').textContent = 'Keine Region markiert';
+    updateRoiLabels();
     try {
       const preview = await LoadFirstFrame(path);
       nativeW = preview.width; nativeH = preview.height;
@@ -172,7 +263,9 @@ export function initGenerator(root, playback) {
       img.onload = redraw;
       img.src = 'data:image/png;base64,' + preview.pngBase64;
       el('#gen-autoroi').disabled = false;
-      el('#gen-status').textContent = 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).';
+      el('#gen-status').textContent = isTfTj()
+        ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite.'
+        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).';
     } catch (err) {
       el('#gen-status').textContent = '';
       alert('Fehler: ' + err);
@@ -190,6 +283,10 @@ export function initGenerator(root, playback) {
 
   async function generate() {
     if (!videoPath || !roi) return;
+    if (isTfTj() && !roi2) {
+      alert('Tf/Tj (Abstand + Sog) braucht eine zweite Region. Shift+Ziehen oder Knopf „2. Region“.');
+      return;
+    }
 
     // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
     // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
@@ -210,7 +307,7 @@ export function initGenerator(root, playback) {
 
     el('#gen-generate').disabled = true;
     el('#gen-status').textContent = 'Generiere...';
-    GenerateScript({
+    const payload = {
       videoPath,
       x: roi.x, y: roi.y, w: roi.w, h: roi.h,
       invert: el('#gen-invert').checked,
@@ -228,7 +325,14 @@ export function initGenerator(root, playback) {
       axis: el('#gen-axis-x').checked ? 'x' : 'y',
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       overwrite,
-    });
+    };
+    if (roi2) {
+      payload.x2 = roi2.x;
+      payload.y2 = roi2.y;
+      payload.w2 = roi2.w;
+      payload.h2 = roi2.h;
+    }
+    GenerateScript(payload);
   }
 
   EventsOn('generate:progress', line => { el('#gen-status').textContent = line; });
@@ -245,9 +349,15 @@ export function initGenerator(root, playback) {
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
-    el('#gen-roi-label').textContent = `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, automatisch gefunden)`;
-    el('#gen-generate').disabled = false;
-    el('#gen-status').textContent = 'Region automatisch gefunden - bei Bedarf von Hand korrigieren.';
+    updateRoiLabels();
+    if (roi) {
+      el('#gen-roi-label').textContent =
+        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, automatisch gefunden)`;
+    }
+    updateGenerateEnabled();
+    el('#gen-status').textContent = isTfTj() && !roi2
+      ? 'Region automatisch gefunden — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).'
+      : 'Region automatisch gefunden - bei Bedarf von Hand korrigieren.';
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -313,7 +423,7 @@ export function initGenerator(root, playback) {
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
-    el('#gen-generate').disabled = false;
+    updateGenerateEnabled();
     if (result.error) {
       el('#gen-status').textContent = 'Fehlgeschlagen.';
       alert('Fehler: ' + result.error);
@@ -351,6 +461,13 @@ export function initGenerator(root, playback) {
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
+  el('#gen-roi2-toggle').addEventListener('click', () => {
+    setRoi2Mode(!roi2Mode);
+    if (roi2Mode) {
+      el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird orange).';
+    }
+  });
+  el('#gen-profile').addEventListener('change', updateProfileUi);
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     el('#gen-autoroi').disabled = true;

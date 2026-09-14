@@ -1,23 +1,18 @@
 # Weiter
 
-Branch `feat/tf-tj-suction`, PR #2. Chat: **weiter**.
+## Stand
+- `generate_funscript.py` ist wieder vollständig (kein Placeholder).
+- `generator.js` ist wieder da (nicht leer).
+- Backend: Tf/Tj (Abstand + Sog), ROI2, `suction_position`.
 
-## Status
-- Rezept `tf`/`tj` + `SyncSuctionPosition` + Playback-Metadata: da
-- `generator.go`: `--profile tf|tj` + `--roi2` da; ROI2 muss Wert-Typ sein (wie app_generator)
-- `generate_funscript.py`: auf dem Branch nur Placeholder — von **main** holen, dann Tf/Tj-Diff
-- `generator.js`: 0 Byte — von **main** holen, dann Profil + 2. Region
-- `playback.js`: `suction_position` fehlt noch
+## Dieses PR (`feat/tf-tj-gui`)
+- GUI: Profil Tf/Tj, zweite Region (roi2, Shift+Ziehen oder „2. Region“), Payload `x2/y2/w2/h2`
+- Playback: Sync-Option `suction_position` („Sog aus Position“)
 
-## Restore (einmal)
-```
-git checkout feat/tf-tj-suction
-git checkout origin/main -- generator/generate_funscript.py cmd/gui-wails/frontend/src/generator.js
-git commit -m "restore py+js von main" && git push
-```
-Danach wieder **weiter**.
+## Noch offen
+- CI: PR #3 (ungenutztes `strconv` + `per_scene_roi_test` OpenCV-Baseline)
+- Optional: Branch-Aufräumen (`feat/tf-tj-suction` und alte Placeholder-Reste)
 
 ## Fest
-- tf = tj, Sog=Position, Vib=0, MinSuction 0.20
-- keine ausgeschriebenen Akt-Wörter
-- keine Placeholder in Kern-Dateien
+- tf = tj, nur Abstand + Sog (`suction_position`), Vib konzeptionell 0
+- kein Akt-Detektor, keine ausgeschriebenen Akt-Wörter
