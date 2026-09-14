@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
@@ -318,7 +319,19 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	if err := cmd.Start(); err != nil {
 		return ROI{}, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
 	}
+	// cmd.Wait() schließt die Pipes, sobald der Prozess beendet ist - laut
+	// os/exec-Doku "incorrect to call Wait before all reads from the pipe
+	// have completed". stdout enthält hier nur eine kurze "ROI ..."-Zeile
+	// und ist meist sofort fertig gelesen, während stderr (Fortschritt/Log,
+	// oft viel mehr Text) noch in der Goroutine läuft - ohne WaitGroup
+	// konnte Wait() die stderr-Pipe schließen, bevor die Goroutine
+	// überhaupt zu lesen begonnen hatte, und praktisch der gesamte
+	// Fortschritt/Log ging verloren (reproduziert: 0 von 20000 Testzeilen
+	// empfangen).
+	var stderrDone sync.WaitGroup
+	stderrDone.Add(1)
 	go func() {
+		defer stderrDone.Done()
 		sc := bufio.NewScanner(stderr)
 		for sc.Scan() {
 			line := sc.Text()
@@ -344,6 +357,7 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 			found = true
 		}
 	}
+	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
 		return ROI{}, fmt.Errorf("generator: automatische Regionssuche fehlgeschlagen: %w", err)
 	}
