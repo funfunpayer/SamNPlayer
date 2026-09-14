@@ -99,7 +99,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		var playErr error
 		if opts.UseVideoSync {
 			positions := make(chan int64, 4)
+			a.stateMu.Lock()
 			a.videoPositionCh = positions
+			a.stateMu.Unlock()
 			playErr = p.Sync(ctx, frames, positions)
 		} else {
 			playErr = p.Play(ctx, frames)
@@ -114,20 +116,31 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 
 func (a *App) StopPlayback() {
 	a.stopSession()
-	if a.videoPositionCh != nil {
-		close(a.videoPositionCh)
-		a.videoPositionCh = nil
+	// Lock() statt RLock(), und zwar über den ganzen close() hinweg: eine
+	// laufende ReportVideoPosition() hält für ihren send bereits RLock() -
+	// Lock() blockiert also so lange, bis dieser send fertig ist, und kann
+	// den Kanal nie schließen, während gleichzeitig darauf gesendet wird
+	// ("panic: send on closed channel", reproduziert mit go test -race und
+	// ohne -race unter Last).
+	a.stateMu.Lock()
+	ch := a.videoPositionCh
+	a.videoPositionCh = nil
+	a.stateMu.Unlock()
+	if ch != nil {
+		close(ch)
 	}
 }
 
 func (a *App) ReportVideoPosition(ms int64) {
+	// RLock() muss den send mit abdecken, nicht nur das Lesen des Kanals -
+	// sonst kann StopPlayback() den Kanal zwischen Prüfung und send
+	// schließen (siehe Kommentar dort).
+	a.stateMu.RLock()
+	defer a.stateMu.RUnlock()
 	if a.videoPositionCh == nil {
 		return
 	}
-	a.stateMu.RLock()
-	offset := a.scriptOffsetMs
-	a.stateMu.RUnlock()
-	ms -= offset
+	ms -= a.scriptOffsetMs
 	if ms < 0 {
 		ms = 0
 	}
