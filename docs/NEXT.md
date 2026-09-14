@@ -639,6 +639,25 @@ strictly-better option. Worth keeping as an opt-in for simple,
 single-subject scenes (where the existing hint text's premise likely
 does hold) rather than promoting it as a general default.
 
+### 9. SAM: long-term architecture direction — first milestone scoped
+
+The user's direction (September 14, 2026): a 10-phase vision document for
+evolving toward a richer internal motion model ("SAM"), with `.funscript`
+kept as a compatibility layer rather than the primary internal format.
+Discussed and scoped the same day - full detail, the existing-component
+mapping, what's explicitly deferred (webcam/live input, per the user's own
+"vielleicht für ein neues eigenes Produkt"), and the concrete first
+milestone (SAM Motion Model, SAM Script v0.1, bidirectional funscript
+converter) are all in **`docs/SAM_ARCHITECTURE.md`** - not duplicated here.
+Not started yet; this entry exists so the direction isn't lost, same as
+every other priority in this file.
+
+Guiding constraint from the same conversation, worth restating because it
+governs every step of this: improve, never regress or dilute what already
+works, and go about it "professionell, nicht auf Teufel komm raus testen" -
+the same measured, evidence-first discipline already used for the CSRT/
+FunGen and performance investigations above (priorities 2 and 8).
+
 ### Later
 
 - Script Doctor for imported `.funscript` files.
