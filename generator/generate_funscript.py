@@ -1252,16 +1252,28 @@ def create_tracker():
 
 
 def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
-    """Verfolgt zwei Regionen und liefert ihren vertikalen ABSTAND als Signal.
+    """Verfolgt zwei Regionen und liefert ihren ABSTAND (2D) als Signal.
 
     Der Grund für dieses Verfahren ist mathematisch, nicht heuristisch: ein
-    Abstand zwischen zwei Punkten im selben Bild ist von Kamerabewegung
-    unabhängig. Schwenkt oder zoomt die Kamera, verschieben sich BEIDE Punkte
-    gemeinsam - ihr Abstand bleibt. Das Problem entsteht also gar nicht erst
-    und muss nicht nachträglich herausgerechnet werden.
+    Abstand zwischen zwei Punkten im selben Bild ist von gemeinsamer
+    Verschiebung (Kameraschwenk) unabhängig - schwenkt die Kamera, verschieben
+    sich BEIDE Punkte gemeinsam, ihr Abstand bleibt. Das Problem entsteht also
+    gar nicht erst und muss nicht nachträglich herausgerechnet werden. Das
+    gilt NICHT für Zoom: dabei ändert sich der Pixelabstand mit dem
+    Zoomfaktor, auch bei unverändertem echtem Abstand. Die ursprüngliche
+    Formulierung hier behauptete fälschlich Zoom-Unabhängigkeit
+    (docs/FUNGEN_PARITY_PLAN.md, Arbeitspaket 2, hat das zu Recht angemahnt).
 
     Ebenso fällt gemeinsame Bewegung beider Objekte heraus, die eine
     Einzelpunktmessung fälschlich als Signal sähe.
+
+    Der Abstand wird als vollständiger 2D-Abstand der Boxmittelpunkte
+    berechnet, NICHT nur über die Y-Koordinate (siehe two_point_axis_test.py).
+    Vorher war es nur der Unterschied der Y-Mittelpunkte - für eine Tf/Tj-
+    Konfiguration mit gleicher Höhe für ROI1/ROI2 (etwa aus einer
+    automatischen Regionssuche, die ROI2 nur seitlich neben ROI1 setzt, ohne
+    Höhenversatz) lieferte das ein Signal nahe Null unabhängig vom
+    tatsächlichen Abstand - dieselbe Fehlerklasse, die 2D-Abstand behebt.
 
     An einem Testvideo mit Kameraschwenk, gemeinsamer Auf-Ab-Bewegung und
     einem schwingenden Abstand gemessen (Korrelation zum echten Abstand):
@@ -1295,8 +1307,14 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     tracker_b.init(first, tuple(int(v) for v in roi_b))
 
     box_a, box_b = tuple(roi_a), tuple(roi_b)
-    center = lambda box: box[1] + box[3] / 2.0
-    distances = [abs(center(box_b) - center(box_a))]
+    center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
+
+    def two_point_distance(a, b):
+        ax, ay = center(a)
+        bx, by = center(b)
+        return float(np.hypot(bx - ax, by - ay))
+
+    distances = [two_point_distance(box_a, box_b)]
     timestamps = [0.0]
     lost = 0
     idx = 1
@@ -1327,7 +1345,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
             # Tracker, wo eine fortgeschriebene Position noch halbwegs
             # brauchbar sein kann.
             lost += 1
-        distances.append(abs(center(box_b) - center(box_a)))
+        distances.append(two_point_distance(box_a, box_b))
         timestamps.append(idx * 1000.0 / fps)
         idx += 1
 
