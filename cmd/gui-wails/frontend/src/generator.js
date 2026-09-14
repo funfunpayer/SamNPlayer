@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
 export function initGenerator(root, playback) {
@@ -9,10 +9,12 @@ export function initGenerator(root, playback) {
       <span class="path-label" id="gen-video-path">Kein Video gewählt</span>
       <button id="gen-check-deps">Abhängigkeiten prüfen</button>
     </div>
-    <div class="row">
+    <div class="row" style="align-items:center;">
       <button id="gen-autoroi" class="primary" disabled>Region automatisch finden</button>
-      <span class="hint" style="margin:0">Analysiert die Bewegung im Video - danach lässt sich die Region trotzdem von Hand korrigieren.</span>
+      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
+        <label for="gen-ai-roi" style="width:auto">KI-Erkennung (ONNX)</label></span>
     </div>
+    <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analysiert die Bewegung im Video - danach lässt sich die Region trotzdem von Hand korrigieren.</p>
 
     <div id="roi-canvas-wrap">
       <canvas id="roi-canvas"></canvas>
@@ -114,6 +116,21 @@ export function initGenerator(root, playback) {
     const p = el('#gen-profile').value;
     return p === 'tf' || p === 'tj';
   }
+
+  // KI-Regionssuche (ai_roi.py, lokales ONNX-Modell) ist optional - ohne
+  // installiertes onnxruntime oder ohne Modelldatei bleibt es bei der
+  // klassischen Rhythmus-Heuristik (auto_roi.py). Einmal beim Öffnen des
+  // Tabs geprüft (kostet einen Python-Start), nicht bei jedem Videoladen.
+  CheckAIRoiAvailable().then(available => {
+    const checkbox = el('#gen-ai-roi');
+    checkbox.disabled = !available;
+    el('#gen-autoroi-hint').textContent = available
+      ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
+        + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
+      : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
+        + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
+        + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
+  }).catch(() => {});
 
   function setRoi2Mode(on) {
     roi2Mode = !!on;
@@ -350,14 +367,15 @@ export function initGenerator(root, playback) {
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     updateRoiLabels();
+    const via = result.engine === 'ai' ? 'KI-Erkennung' : 'klassisch, automatisch';
     if (roi) {
       el('#gen-roi-label').textContent =
-        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, automatisch gefunden)`;
+        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, ${via} gefunden)`;
     }
     updateGenerateEnabled();
     el('#gen-status').textContent = isTfTj() && !roi2
-      ? 'Region automatisch gefunden — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).'
-      : 'Region automatisch gefunden - bei Bedarf von Hand korrigieren.';
+      ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
+      : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`;
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -470,8 +488,11 @@ export function initGenerator(root, playback) {
   el('#gen-profile').addEventListener('change', updateProfileUi);
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
+    const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     el('#gen-autoroi').disabled = true;
-    el('#gen-status').textContent = 'Analysiere Bewegung im Video (dauert einige Sekunden)...';
-    AutoDetectROI(videoPath);
+    el('#gen-status').textContent = useAI
+      ? 'KI-Regionssuche läuft (ONNX-Modell)...'
+      : 'Analysiere Bewegung im Video (dauert einige Sekunden)...';
+    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   });
 }

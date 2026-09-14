@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -37,6 +37,7 @@ export function saveSetting(key, value) {
       'training.peak_intensity': 'trainingPeakIntensity',
       'training.plateau_fraction': 'trainingPlateauFraction',
       'training.progression_per_cycle': 'trainingProgressionPerCycle',
+      'generator.aiRoiModelPath': 'aiRoiModelPath',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;
@@ -63,6 +64,18 @@ export function initSettings(root) {
       <span class="path-label" id="st-log-path"></span>
       <button id="st-open-log">Log-Ordner öffnen</button>
     </div>
+
+    <h3>KI-Regionserkennung (lokal, optional)</h3>
+    <p class="hint">Lokales ONNX-Objekterkennungsmodell als Alternative zur klassischen
+      Rhythmus-Heuristik im Generator-Tab ("Region automatisch finden"). Kein Modell liegt
+      diesem Programm bei und keins wird heruntergeladen - ohne eigene .onnx-Datei bleibt
+      es bei der klassischen Erkennung. Leer lassen nutzt den Standardordner
+      (<code>%LOCALAPPDATA%\SamNPlayer\models\roi_detector.onnx</code> unter Windows).</p>
+    <div class="row">
+      <input type="text" id="st-ai-roi-path" placeholder="(Standardordner)" style="flex:1;" />
+      <button id="st-ai-roi-check">Verfügbarkeit prüfen</button>
+    </div>
+    <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
     <h3>Hardware</h3>
     <p class="hint">Welche Beschleunigung der Generator tatsächlich nutzen kann. Eine
@@ -117,6 +130,7 @@ export function initSettings(root) {
     el('#st-report-path').value = s.reportPath || '';
     el('#st-cache-exit').checked = !!s.clearCacheOnExit;
     el('#st-report-path').dataset.default = s.defaultReportPath || '';
+    el('#st-ai-roi-path').value = s.aiRoiModelPath || '';
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
@@ -142,6 +156,23 @@ export function initSettings(root) {
     const fallback = el('#st-report-path').dataset.default || '';
     el('#st-report-path').value = fallback;
     saveSetting('generator.reportPath', fallback);
+  });
+
+  el('#st-ai-roi-path').addEventListener('change', e =>
+    saveSetting('generator.aiRoiModelPath', e.target.value.trim()));
+
+  el('#st-ai-roi-check').addEventListener('click', async () => {
+    const status = el('#st-ai-roi-status');
+    status.textContent = 'Prüfe...';
+    try {
+      const available = await CheckAIRoiAvailable();
+      status.textContent = available
+        ? 'Verfügbar - der Generator-Tab bietet die KI-Erkennung jetzt an.'
+        : 'Nicht verfügbar - onnxruntime fehlt oder es liegt keine .onnx-Datei am '
+          + '(angegebenen oder Standard-) Pfad.';
+    } catch (err) {
+      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+    }
   });
 
   async function refreshCache() {
