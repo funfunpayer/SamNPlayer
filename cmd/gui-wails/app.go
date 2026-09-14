@@ -46,6 +46,11 @@ type App struct {
 	// eine Verbindung) und wird in app_device.go explizit abgelehnt.
 	testDevice     device.Device
 	testDeviceMock bool
+	// testDeviceConnecting reserviert die Testverbindung, solange ein
+	// ConnectDevice/ConnectDeviceVia-Aufruf noch läuft (siehe
+	// claimTestDeviceConnect in app_device.go) - testDevice selbst bleibt
+	// bis zum Erfolg nil.
+	testDeviceConnecting bool
 
 	// trainingControl erlaubt es, den laufenden Trainingszyklus zu
 	// unterbrechen, ohne die Session zu beenden.

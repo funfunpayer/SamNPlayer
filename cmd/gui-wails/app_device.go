@@ -76,19 +76,41 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 // Der Intiface-Weg braucht keinen eigenen Bluetooth-Adapter und funktioniert
 // mit jedem von Buttplug unterstützten Gerät. Der direkte BLE-Weg bleibt
 // daneben bestehen, weil er ohne Zusatzsoftware auskommt.
-func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
+// claimTestDeviceConnect prüft und reserviert die Testverbindung atomar unter
+// stateMu, bevor der (mehrere Sekunden dauernde) BLE-/Intiface-Connect
+// beginnt. Ohne das bestünden ConnectDevice/ConnectDeviceVia aus Prüfen und
+// spätem Setzen von a.testDevice mit einer unverriegelten Lücke dazwischen:
+// zwei nahezu gleichzeitige Aufrufe (die Oberfläche verhindert das zwar
+// schon durch das sofortige Deaktivieren des Verbinden-Knopfs, aber die
+// Wails-Bindung selbst ist trotzdem direkt aufrufbar) würden beide die
+// Prüfung bestehen, während der jeweils andere Connect noch läuft - danach
+// überschreibt der zuletzt fertige a.testDevice, und die Verbindung des
+// anderen bleibt offen, aber unerreichbar (Leak).
+func (a *App) claimTestDeviceConnect() error {
 	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	if a.sessionActive {
-		a.stateMu.Unlock()
-		return a.GetDeviceStatus(), fmt.Errorf("es läuft gerade eine Wiedergabe oder ein " +
-			"Training - bitte zuerst beenden, das Gerät kann nur eine Verbindung " +
-			"gleichzeitig halten")
+		return fmt.Errorf("es läuft gerade eine Wiedergabe oder ein Training - " +
+			"bitte zuerst beenden, das Gerät kann nur eine Verbindung gleichzeitig halten")
 	}
-	if a.testDevice != nil {
-		a.stateMu.Unlock()
-		return a.GetDeviceStatus(), fmt.Errorf("es besteht bereits eine Verbindung - zuerst trennen")
+	if a.testDevice != nil || a.testDeviceConnecting {
+		return fmt.Errorf("es besteht bereits eine Verbindung - zuerst trennen")
 	}
+	a.testDeviceConnecting = true
+	return nil
+}
+
+func (a *App) releaseTestDeviceConnect() {
+	a.stateMu.Lock()
+	a.testDeviceConnecting = false
 	a.stateMu.Unlock()
+}
+
+func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
+	if err := a.claimTestDeviceConnect(); err != nil {
+		return a.GetDeviceStatus(), err
+	}
+	defer a.releaseTestDeviceConnect()
 
 	var dev device.Device
 	switch transport {
@@ -130,17 +152,10 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 }
 
 func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
-	a.stateMu.Lock()
-	if a.sessionActive {
-		a.stateMu.Unlock()
-		return a.GetDeviceStatus(), fmt.Errorf("es läuft gerade eine Wiedergabe oder ein Training - " +
-			"bitte zuerst beenden, das Gerät kann nur eine Verbindung gleichzeitig halten")
+	if err := a.claimTestDeviceConnect(); err != nil {
+		return a.GetDeviceStatus(), err
 	}
-	if a.testDevice != nil {
-		a.stateMu.Unlock()
-		return a.GetDeviceStatus(), fmt.Errorf("es besteht bereits eine Verbindung - zuerst trennen")
-	}
-	a.stateMu.Unlock()
+	defer a.releaseTestDeviceConnect()
 
 	var dev device.Device
 	if mock {
