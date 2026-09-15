@@ -537,11 +537,22 @@ Not yet done: the pulse *shape* was deliberately left open by the user
 distance-to-peak, the simplest option consistent with "fits the
 material," and is now visually validated as tracking genuine contact
 rather than firing on tracker noise. Still open: no listening/feel test
-on real hardware yet (needs priority 1), and no check yet on a clip
-where "contact" really is a brief instant (this one clip's rhythm
-happens to keep contact sustained for a large fraction of its length -
-untested whether the envelope also reads as natural on a quicker,
-grazing-contact clip).
+on real hardware yet (needs priority 1).
+
+**Brief/grazing contact, checked (September 15, 2026):** the other open
+question - whether the envelope also reads as natural on a quick
+touch-and-release rather than the one real clip's sustained contact -
+didn't need new video material to answer, since the envelope is derived
+purely from the script's own `pos` values, not from wall-clock duration.
+Added `TestRecipeTJContactVibrationBriefGraze` (`funscript/recipe_test.go`):
+a synthetic script with a 50ms touch-and-release next to one with the
+existing 300ms sustained contact, both reaching the same observed peak
+position. Confirmed rather than assumed: both reach the same peak
+vibration (≥0.9, as designed - strength comes from *how close* to the
+peak, not from *how long*), but the brief touch stays above 0.5 for far
+fewer frames than the sustained one, and produces a real, non-zero pulse
+rather than being missed entirely by the threshold. Closes this open
+question; only the real-hardware feel test above remains.
 
 ### 6. Climax ("cum") detection — new AI feature, user marked urgent
 
