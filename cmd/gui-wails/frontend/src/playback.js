@@ -1,10 +1,11 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
+import { applyHotkeyOMarker } from './ozone_ui.js';
 
 const HEATMAP_BUCKETS = 300;
 
@@ -46,7 +47,7 @@ export function initPlayback(root) {
       Wird je Skript gespeichert. Zum Einstellen: Abschnitt markieren, Wiederholung
       einschalten und mit + / − nachjustieren.<br>
       <b>Tasten:</b> Leertaste Start/Stop · ←/→ 5 s (mit Shift 1 s) · , und . Feinschritt ·
-      1–9 springen · + / − Offset · L Wiederholung · E Extended-O</p>
+      1–9 springen · + / − Offset · L Wiederholung · E Extended-O · O O-Marker 4s</p>
     <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
     <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
     <div class="hint" id="pb-marker-hint" style="display:none">
@@ -116,7 +117,7 @@ export function initPlayback(root) {
       <span>Vibration: <b id="pb-vib">-</b></span>
       <span>Sog: <b id="pb-suc">-</b></span>
     </div>
-    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv).</p>
+    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv), O = O-Marker 4s.</p>
     <div id="pb-log"></div>
   `;
 
@@ -442,15 +443,37 @@ export function initPlayback(root) {
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
 
+  const CHAPTER_LABELS = {
+    pause: 'Pause', build: 'Aufbau', steady: 'gleichmäßig',
+    crescendo: 'Steigerung', winddown: 'Auslaufen',
+  };
+
+  function formatMs(ms) {
+    const s = Math.round(ms / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
   async function describeScript() {
     const box = el('#pb-analysis');
+    let text = '';
     try {
       const analysis = await AnalyzeScript();
-      box.textContent = analysis.summary || '';
-      box.style.display = analysis.summary ? 'block' : 'none';
+      text = analysis.summary || '';
     } catch (err) {
-      box.style.display = 'none';
+      // kein Skript geladen - Kapitel unten trotzdem versuchen (eigene Mindestlänge)
     }
+    try {
+      const chapters = await ScriptChapters();
+      if (Array.isArray(chapters) && chapters.length > 0) {
+        const parts = chapters.map(c =>
+          (CHAPTER_LABELS[c.kind] || c.kind) + ' ' + formatMs(c.startMs) + '–' + formatMs(c.endMs));
+        text += (text ? ' · Kapitel: ' : 'Kapitel: ') + parts.join(', ');
+      }
+    } catch (err) {
+      // zu wenige Punkte o.ä. - kein Kapitelabschnitt, nicht fatal
+    }
+    box.textContent = text;
+    box.style.display = text ? 'block' : 'none';
   }
 
   async function drawCurve() {
@@ -954,6 +977,47 @@ export function initPlayback(root) {
   el('#pb-eo-min').addEventListener('change', e => saveSetting('playback.extended_o_min', parseFloat(e.target.value)));
   el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));
   el('#pb-eo-restore').addEventListener('change', e => saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value)));
+
+  async function refreshScriptVisuals() {
+    if (!scriptPath) return;
+    try {
+      const [heat, curve, markers] = await Promise.all([
+        GetHeatmap(HEATMAP_BUCKETS),
+        GetScriptCurve(CURVE_MAX_POINTS),
+        GetOMarkers(scriptPath),
+      ]);
+      heatmapPoints = heat;
+      curvePoints = curve;
+      oMarkers = Array.isArray(markers) ? markers : [];
+      if (el('#pb-curve-edit').checked) {
+        const acts = await GetScriptActions();
+        rawActions = Array.isArray(acts) ? acts : rawActions;
+      }
+      redrawHeatmap();
+      redrawCurve();
+      renderOMarkerList();
+      describeScript();
+    } catch (err) {
+      log('Aktualisieren: ' + err);
+    }
+  }
+
+  window.addEventListener('ozone:hotkey', async (ev) => {
+    if (!scriptPath) return;
+    const nowMs = (ev.detail && ev.detail.nowMs) || 0;
+    try {
+      oMarkers = await applyHotkeyOMarker(scriptPath, nowMs, oMarkers);
+      renderOMarkerList();
+      redrawHeatmap();
+      redrawCurve();
+      log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
+    } catch (err) {
+      log('O-Taste: ' + err);
+    }
+  });
+  window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
+  window.addEventListener('polarity:inverted', () => { refreshScriptVisuals(); });
+  window.addEventListener('ringdown:applied', () => { refreshScriptVisuals(); });
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.

@@ -3,8 +3,13 @@
 import {main} from '../models';
 import {generator} from '../models';
 import {funscript} from '../models';
+import {motionx} from '../models';
 
 export function AnalyzeScript():Promise<main.ScriptAnalysis>;
+
+export function ApplyRingDown(arg1:number,arg2:number):Promise<void>;
+
+export function ApplySuggestedOZone():Promise<funscript.OZoneSuggestion>;
 
 export function ApplyUpdate():Promise<void>;
 
@@ -48,6 +53,10 @@ export function GetScriptOffset():Promise<number>;
 
 export function GetSettings():Promise<main.Settings>;
 
+export function InvertLoadedScript():Promise<void>;
+
+export function InvertScriptAtPath(arg1:string):Promise<void>;
+
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
 
 export function LoadFirstFrame(arg1:string):Promise<main.FramePreview>;
@@ -72,11 +81,15 @@ export function ReportSummary():Promise<string>;
 
 export function ReportVideoPosition(arg1:number):Promise<void>;
 
+export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>;
+
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function SaveOMarkers(arg1:string,arg2:Array<funscript.OMarker>):Promise<void>;
 
 export function SaveScriptActions(arg1:Array<funscript.Action>):Promise<void>;
+
+export function ScriptChapters():Promise<Array<motionx.Chapter>>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 
@@ -95,6 +108,12 @@ export function StopTraining():Promise<void>;
 export function StopTrainingCycle():Promise<void>;
 
 export function SubmitFeedback(arg1:main.ReportFeedback):Promise<void>;
+
+export function SuggestBackend(arg1:number,arg2:number):Promise<string>;
+
+export function SuggestOZone():Promise<funscript.OZoneSuggestion>;
+
+export function SuggestPolarity():Promise<funscript.PolarityHint>;
 
 export function SuggestProfile(arg1:string):Promise<generator.ProfileSuggestion>;
 

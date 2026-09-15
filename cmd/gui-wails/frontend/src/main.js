@@ -7,6 +7,9 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { initDevice } from './device.js';
 import { initSettings } from './settings.js';
 import { initSidebar } from './sidebar.js';
+import { enhanceGeneratorPreview } from './roi_help.js';
+import { enhancePlaybackOZone } from './ozone_ui.js';
+import { initPostGenerateReview } from './postgen.js';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -23,6 +26,9 @@ initGenerator(document.getElementById('tab-generator'), playback);
 initDevice(document.getElementById('tab-device'));
 initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));
+enhanceGeneratorPreview(document.getElementById('tab-generator'));
+enhancePlaybackOZone(document.getElementById('tab-playback'));
+initPostGenerateReview();
 
 CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
