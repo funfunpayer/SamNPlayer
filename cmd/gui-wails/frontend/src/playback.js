@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -21,6 +21,14 @@ export function initPlayback(root) {
 
     <canvas id="pb-curve" height="110" style="width:100%; display:none; border-radius:4px;
             margin-top:8px; background:rgba(255,255,255,0.04); cursor:crosshair;"></canvas>
+    <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
+      <input type="checkbox" id="pb-curve-edit" />
+      <label for="pb-curve-edit">Kurve bearbeiten</label>
+    </div>
+    <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;">
+      Klick auf einen Punkt und ziehen = verschieben. Klick auf freie Stelle = neuer Punkt.
+      Doppelklick auf einen Punkt = löschen (mindestens 2 Punkte bleiben). Jede Änderung wird
+      sofort im Skript gespeichert.</p>
     <div class="row" id="pb-offset-row" style="display:none; align-items:center; margin-top:8px;">
       <label style="width:auto;">Skript-Offset</label>
       <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
@@ -128,6 +136,17 @@ export function initPlayback(root) {
   let markerDragMoved = false;
   let oMarkers = []; // [{startMs, endMs, kind, intensity}], im Skript gespeichert (siehe funscript.OMarker)
   let autoEOTriggeredForMarker = false;
+  // Kurven-Editor: bearbeitet die vollen, nicht resampleten Punkte
+  // (rawActions), nicht curvePoints - curvePoints ist nur eine
+  // Anzeige-Kompromisskurve (siehe GetScriptCurve), ein Speichern daraus
+  // würde ein Skript mit mehr Punkten als CURVE_MAX_POINTS stillschweigend
+  // ausdünnen.
+  let editMode = false;
+  let rawActions = null; // [{atMs, pos}] voller Auflösung, nur während editMode gesetzt
+  let editDragIndex = null;
+  let editDragStartValue = null; // {atMs, pos} des gegriffenen Punkts vor dem Ziehen, null bei neuem Punkt
+  const CURVE_PAD = 6;
+  const EDIT_HIT_RADIUS_PX = 12;
   let currentPosMs = 0;
 
   function log(line) {
@@ -143,6 +162,14 @@ export function initPlayback(root) {
     el('#pb-eo-trigger').disabled = !isPlaying || !el('#pb-eo-enabled').checked;
     if (!isPlaying) el('#pb-progress').style.width = '0%';
     if (isPlaying) autoEOTriggeredForMarker = false;
+    // Bearbeiten während der Wiedergabe wäre verwirrend (die Kurve bewegt
+    // sich durch den Positionszeiger mit) - beim Start aus, Checkbox bis
+    // zum Stop gesperrt.
+    el('#pb-curve-edit').disabled = isPlaying;
+    if (isPlaying && editMode) {
+      el('#pb-curve-edit').checked = false;
+      setEditMode(false);
+    }
   }
 
   function updateMarkerHint() {
@@ -248,20 +275,62 @@ export function initPlayback(root) {
   }
 
 
+  // Pixel-Umrechnung der Kurve - eigene Funktionen statt lokal in
+  // redrawCurve, weil der Editor (Punkt treffen, Ziehen) exakt dieselbe
+  // Umrechnung braucht; eine zweite, leicht abweichende Kopie würde Klicks
+  // neben die gezeichneten Punkte treffen lassen.
+  function curveXOf(ms) { return (ms / Math.max(1, totalMs)) * curveCanvas.width; }
+  function curveYOf(pos) {
+    const usableH = curveCanvas.height - CURVE_PAD * 2;
+    return CURVE_PAD + (1 - pos / 100) * usableH;
+  }
+  function curveMsOfX(clientX) {
+    const rect = curveCanvas.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(frac * totalMs);
+  }
+  function curvePosOfY(clientY) {
+    const rect = curveCanvas.getBoundingClientRect();
+    const usableH = curveCanvas.height - CURVE_PAD * 2;
+    const y = (clientY - rect.top) * (curveCanvas.height / rect.height);
+    return Math.max(0, Math.min(100, Math.round((1 - (y - CURVE_PAD) / usableH) * 100)));
+  }
+  // Mausposition in Canvas-Pixeln (nicht CSS-Pixeln) - für den
+  // Punkt-Trefftest, der dieselbe Skala wie curveXOf/curveYOf braucht.
+  function curveMouseXY(e) {
+    const rect = curveCanvas.getBoundingClientRect();
+    return [
+      (e.clientX - rect.left) * (curveCanvas.width / rect.width),
+      (e.clientY - rect.top) * (curveCanvas.height / rect.height),
+    ];
+  }
+  function findNearestActionIndex(mx, my) {
+    if (!rawActions) return -1;
+    let best = -1, bestDist = EDIT_HIT_RADIUS_PX;
+    for (let i = 0; i < rawActions.length; i++) {
+      const dx = curveXOf(rawActions[i].atMs) - mx;
+      const dy = curveYOf(rawActions[i].pos) - my;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
+    return best;
+  }
+
   // --- Funscript-Kurve unter dem Video -----------------------------------
   // Zeigt den tatsächlichen Positionsverlauf (0-100) über die Zeit, plus
   // einen mitlaufenden Positionszeiger. Die Heatmap-Leiste darunter bleibt
-  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form.
+  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form. Im
+  // Editiermodus werden die vollen Punkte (rawActions) statt der
+  // resampleten Anzeigekurve gezeichnet, plus je ein Punktmarker - sonst
+  // gäbe es nichts, worauf man klicken könnte.
   function redrawCurve() {
-    if (!curvePoints || curvePoints.length < 2) return;
+    const points = (editMode && rawActions) ? rawActions : curvePoints;
+    if (!points || points.length < 2) return;
     const ctx = curveCanvas.getContext('2d');
     const w = curveCanvas.width, h = curveCanvas.height;
-    const pad = 6;
-    const usableH = h - pad * 2;
     ctx.clearRect(0, 0, w, h);
 
-    const xOf = ms => (ms / Math.max(1, totalMs)) * w;
-    const yOf = pos => pad + (1 - pos / 100) * usableH;
+    const xOf = curveXOf, yOf = curveYOf;
 
     // Hilfslinien bei 0 / 50 / 100 - ohne Bezug ist die Amplitude nicht
     // einzuschätzen.
@@ -287,11 +356,21 @@ export function initPlayback(root) {
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(xOf(curvePoints[0].atMs), yOf(curvePoints[0].pos));
-    for (let i = 1; i < curvePoints.length; i++) {
-      ctx.lineTo(xOf(curvePoints[i].atMs), yOf(curvePoints[i].pos));
+    ctx.moveTo(xOf(points[0].atMs), yOf(points[0].pos));
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(xOf(points[i].atMs), yOf(points[i].pos));
     }
     ctx.stroke();
+
+    if (editMode) {
+      for (let i = 0; i < points.length; i++) {
+        const isDragged = i === editDragIndex;
+        ctx.beginPath();
+        ctx.arc(xOf(points[i].atMs), yOf(points[i].pos), isDragged ? 5 : 3, 0, Math.PI * 2);
+        ctx.fillStyle = isDragged ? '#ffcc55' : '#ffffff';
+        ctx.fill();
+      }
+    }
 
     // Positionszeiger.
     if (currentPosMs > 0 && totalMs > 0) {
@@ -348,25 +427,132 @@ export function initPlayback(root) {
     } catch (err) {
       curvePoints = null;
       curveCanvas.style.display = 'none';
+      el('#pb-curve-edit-row').style.display = 'none';
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
       curveCanvas.style.display = 'none';
+      el('#pb-curve-edit-row').style.display = 'none';
       return;
     }
     curveCanvas.style.display = 'block';
+    el('#pb-curve-edit-row').style.display = 'flex';
     curveCanvas.width = curveCanvas.clientWidth || 800;
     redrawCurve();
   }
 
   // Klick in die Kurve springt an die Stelle - gleiche Bedienung wie die
   // Heatmap darunter, damit man nicht überlegen muss, welche Leiste was tut.
+  // Im Editiermodus übernehmen die Punkt-Handler unten die Klicks/Züge -
+  // sonst würde jeder Punkt-Zug hinterher zusätzlich einen Sprung auslösen
+  // (ein 'click' feuert nach mouseup auf demselben Element auch nach
+  // vorheriger Bewegung).
   curveCanvas.addEventListener('click', (e) => {
-    if (!totalMs) return;
+    if (!totalMs || editMode) return;
     const rect = curveCanvas.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     seekTo(Math.round(frac * totalMs));
   });
+
+  // --- Kurven-Editor: Punkte ziehen, hinzufügen, löschen -----------------
+  curveCanvas.addEventListener('mousedown', (e) => {
+    if (!editMode || !rawActions) return;
+    const [mx, my] = curveMouseXY(e);
+    const idx = findNearestActionIndex(mx, my);
+    if (idx >= 0) {
+      editDragIndex = idx;
+      editDragStartValue = { ...rawActions[idx] };
+    } else {
+      // Freie Stelle getroffen - neuer Punkt genau dort, sofort greifbar
+      // für dieselbe Zieh-Geste (Setzen und Feinjustieren in einem Zug).
+      rawActions.push({ atMs: curveMsOfX(e.clientX), pos: curvePosOfY(e.clientY) });
+      editDragIndex = rawActions.length - 1;
+      editDragStartValue = null; // neuer Punkt - immer speichern, nichts zum Vergleichen
+    }
+    redrawCurve();
+  });
+
+  curveCanvas.addEventListener('mousemove', (e) => {
+    if (!editMode || editDragIndex === null) return;
+    rawActions[editDragIndex] = {
+      atMs: Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX))),
+      pos: curvePosOfY(e.clientY),
+    };
+    redrawCurve();
+  });
+
+  window.addEventListener('mouseup', async () => {
+    if (!editMode || editDragIndex === null) return;
+    const idx = editDragIndex, startValue = editDragStartValue;
+    editDragIndex = null;
+    editDragStartValue = null;
+    redrawCurve();
+    // Ein Doppelklick zum Löschen (siehe unten) besteht browserseitig aus
+    // zwei normalen mousedown/mouseup-Paaren VOR dem eigentlichen
+    // 'dblclick' - ohne diesen Vergleich würde jeder reine Klick auf einen
+    // bestehenden Punkt (ohne Bewegung) unnötig zweimal denselben,
+    // unveränderten Stand speichern.
+    const current = rawActions[idx];
+    const unchanged = startValue && current
+      && current.atMs === startValue.atMs && current.pos === startValue.pos;
+    if (unchanged) return;
+    await persistRawActions();
+  });
+
+  curveCanvas.addEventListener('dblclick', async (e) => {
+    if (!editMode || !rawActions) return;
+    const [mx, my] = curveMouseXY(e);
+    const idx = findNearestActionIndex(mx, my);
+    if (idx < 0) return;
+    if (rawActions.length <= 2) {
+      log('Editor: mindestens 2 Punkte müssen im Skript bleiben.');
+      return;
+    }
+    rawActions.splice(idx, 1);
+    redrawCurve();
+    await persistRawActions();
+  });
+
+  // persistRawActions speichert den aktuellen Punktstand sofort - keine
+  // separate "Speichern"-Aktion, dieselbe Sofort-Speicher-Logik wie bei
+  // den O-Markern oben. Bei Fehler (z.B. Datei zwischenzeitlich entfernt)
+  // bleibt der bearbeitete Stand im Editor sichtbar, wird aber nicht als
+  // gespeichert angenommen - ein erneuter Zug versucht es wieder.
+  async function persistRawActions() {
+    if (!scriptPath || !rawActions) return;
+    const sorted = [...rawActions].sort((a, b) => a.atMs - b.atMs);
+    try {
+      await SaveScriptActions(sorted.map(p => ({ at: p.atMs, pos: p.pos })));
+    } catch (err) {
+      log('Kurve speichern: ' + err);
+      return;
+    }
+    rawActions = sorted;
+    redrawCurve();
+    drawHeatmap();
+  }
+
+  async function setEditMode(on) {
+    if (on) {
+      try {
+        const actions = await GetScriptActions();
+        rawActions = actions.map(a => ({ atMs: a.at, pos: a.pos }));
+      } catch (err) {
+        log('Editor: Punkte laden fehlgeschlagen: ' + err);
+        el('#pb-curve-edit').checked = false;
+        return;
+      }
+      editMode = true;
+    } else {
+      editMode = false;
+      editDragIndex = null;
+      rawActions = null;
+    }
+    el('#pb-curve-edit-hint').style.display = editMode ? 'block' : 'none';
+    redrawCurve();
+  }
+
+  el('#pb-curve-edit').addEventListener('change', e => setEditMode(e.target.checked));
 
   async function drawHeatmap() {
     try {
@@ -548,6 +734,11 @@ export function initPlayback(root) {
     el('#pb-omarker-add-row').style.display = 'flex';
     updateMarkerHint();
     renderOMarkerList();
+    // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
+    // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
+    // rawActions weiterbenutzen.
+    el('#pb-curve-edit').checked = false;
+    setEditMode(false);
     drawHeatmap();
     drawCurve();
     describeScript();

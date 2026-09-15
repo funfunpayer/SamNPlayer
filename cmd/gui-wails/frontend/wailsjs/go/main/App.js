@@ -74,6 +74,10 @@ export function GetOMarkers(arg1) {
   return window['go']['main']['App']['GetOMarkers'](arg1);
 }
 
+export function GetScriptActions() {
+  return window['go']['main']['App']['GetScriptActions']();
+}
+
 export function GetScriptCurve(arg1) {
   return window['go']['main']['App']['GetScriptCurve'](arg1);
 }
@@ -140,6 +144,10 @@ export function SaveMarker(arg1, arg2, arg3) {
 
 export function SaveOMarkers(arg1, arg2) {
   return window['go']['main']['App']['SaveOMarkers'](arg1, arg2);
+}
+
+export function SaveScriptActions(arg1) {
+  return window['go']['main']['App']['SaveScriptActions'](arg1);
 }
 
 export function ScriptExistsForVideo(arg1) {

@@ -40,6 +40,8 @@ export function GetMarker(arg1:string):Promise<main.Marker>;
 
 export function GetOMarkers(arg1:string):Promise<Array<funscript.OMarker>>;
 
+export function GetScriptActions():Promise<Array<funscript.Action>>;
+
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
 
 export function GetScriptOffset():Promise<number>;
@@ -73,6 +75,8 @@ export function ReportVideoPosition(arg1:number):Promise<void>;
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function SaveOMarkers(arg1:string,arg2:Array<funscript.OMarker>):Promise<void>;
+
+export function SaveScriptActions(arg1:Array<funscript.Action>):Promise<void>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 

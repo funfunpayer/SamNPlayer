@@ -1,5 +1,20 @@
 export namespace funscript {
 
+	export class Action {
+	    at: number;
+	    pos: number;
+
+	    static createFrom(source: any = {}) {
+	        return new Action(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.at = source["at"];
+	        this.pos = source["pos"];
+	    }
+	}
+
 	export class OMarker {
 	    startMs: number;
 	    endMs: number;
