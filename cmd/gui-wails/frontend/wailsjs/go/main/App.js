@@ -23,6 +23,7 @@ export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetSc
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
 export function GetSettings() { return window['go']['main']['App']['GetSettings'](); }
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
+export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }
@@ -35,6 +36,7 @@ export function ReportArousal(arg1) { return window['go']['main']['App']['Report
 export function ReportExists() { return window['go']['main']['App']['ReportExists'](); }
 export function ReportSummary() { return window['go']['main']['App']['ReportSummary'](); }
 export function ReportVideoPosition(arg1) { return window['go']['main']['App']['ReportVideoPosition'](arg1); }
+export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
