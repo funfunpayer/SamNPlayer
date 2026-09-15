@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -49,6 +49,11 @@ export function initPlayback(root) {
       <b>Tasten:</b> Leertaste Start/Stop · ←/→ 5 s (mit Shift 1 s) · , und . Feinschritt ·
       1–9 springen · + / − Offset · L Wiederholung · E Extended-O · O O-Marker 4s</p>
     <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+    <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
+      <button id="pb-script-doctor" type="button">Skript prüfen (Script Doctor)</button>
+      <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
+    </div>
+    <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
     <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
     <div class="hint" id="pb-marker-hint" style="display:none">
       Klick auf die Leiste = an diese Stelle springen. Ziehen = Bereich markieren, in dem Extended-O automatisch auslöst.
@@ -800,6 +805,9 @@ export function initPlayback(root) {
     drawHeatmap();
     drawCurve();
     describeScript();
+    el('#pb-script-doctor-row').style.display = 'flex';
+    el('#pb-script-doctor-result').style.display = 'none';
+    el('#pb-script-doctor-status').textContent = '';
     el('#pb-offset-row').style.display = 'flex';
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
@@ -912,6 +920,34 @@ export function initPlayback(root) {
     }
   });
 
+  el('#pb-script-doctor').addEventListener('click', async () => {
+    const status = el('#pb-script-doctor-status');
+    const box = el('#pb-script-doctor-result');
+    const btn = el('#pb-script-doctor');
+    btn.disabled = true;
+    status.textContent = 'Prüfe...';
+    try {
+      const result = await ScriptQuality();
+      status.textContent = '';
+      const pct = Math.round((result.score || 0) * 100);
+      box.style.display = 'block';
+      box.style.background = result.passed ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
+      box.style.border = `1px solid ${result.passed ? 'var(--ok)' : 'var(--danger)'}`;
+      let html = `<b>Script Doctor: ${pct}% ${result.passed ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
+      html += '<br><span style="opacity:0.7;">Geschätzt nur aus dem Skript, ohne Video - '
+        + 'trackingbasierte Prüfungen (Tracker-Verlust, Bewegungsspielraum) fehlen hier, '
+        + 'anders als direkt nach einer Generierung.</span>';
+      if (result.warnings && result.warnings.length > 0) {
+        html += '<ul style="margin:6px 0 0 18px; padding:0;">'
+          + result.warnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
+      }
+      box.innerHTML = html;
+    } catch (err) {
+      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+    } finally {
+      btn.disabled = false;
+    }
+  });
   el('#pb-choose').addEventListener('click', chooseScript);
   el('#pb-play').addEventListener('click', play);
   el('#pb-stop').addEventListener('click', stop);

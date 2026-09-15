@@ -43,6 +43,7 @@ export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['S
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
 export function ScriptChapters() { return window['go']['main']['App']['ScriptChapters'](); }
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
+export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
 export function SetSetting(arg1, arg2) { return window['go']['main']['App']['SetSetting'](arg1, arg2); }
 export function StartPlayback(arg1) { return window['go']['main']['App']['StartPlayback'](arg1); }

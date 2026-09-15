@@ -93,6 +93,8 @@ export function ScriptChapters():Promise<Array<motionx.Chapter>>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 
+export function ScriptQuality():Promise<generator.ScriptQualityResult>;
+
 export function SetScriptOffset(arg1:number):Promise<void>;
 
 export function SetSetting(arg1:string,arg2:any):Promise<void>;
