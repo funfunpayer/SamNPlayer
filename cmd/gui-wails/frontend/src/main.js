@@ -78,10 +78,12 @@ EventsOn('files:dropped', data => {
 
   if (data.videos && data.videos.length) {
     switchTab('generator');
-    window.dispatchEvent(new CustomEvent('drop:video', { detail: data.videos[0] }));
-    if (data.videos.length > 1) {
-      window.dispatchEvent(new CustomEvent('drop:videos', { detail: data.videos }));
-    }
+    // Nur das erste Video wird geladen - Stapelverarbeitung mehrerer Videos
+    // gibt es noch nicht. Der Generator zeigt das explizit an (extraCount),
+    // statt die übrigen Dateien einfach stillschweigend zu verwerfen.
+    window.dispatchEvent(new CustomEvent('drop:video', {
+      detail: { path: data.videos[0], extraCount: data.videos.length - 1 },
+    }));
     return;
   }
   if (data.scripts && data.scripts.length) {
