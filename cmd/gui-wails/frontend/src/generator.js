@@ -73,11 +73,21 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert">Bewegungsrichtung umkehren</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp">Kamerabewegungs-Kompensation (empfohlen bei Kameraschwenks)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut">Szenenschnitt-Erkennung (verankert Tracker bei harten Schnitten neu)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-flow" /><label for="gen-flow">Flow-Backend verwenden (keine Region nötig, ca. 4x schneller)</label></div>
-        <p class="hint" style="margin:0 0 6px 24px;">Bei ruhiger Kamera gleichwertig. Bei
-          Kameraschwenks trifft der Tracker-Weg die Bewegungsstärke besser gemessen 113 gegen
-          145 bei 110 tatsächlicher Bewegung —, weil dort die Kamerabewegung über
-          Hintergrundmerkmale herausgerechnet wird.</p>
+        <div class="row" style="align-items:center;">
+          <label style="width:auto;">Tracking-Verfahren</label>
+          <select id="gen-backend">
+            <option value="csrt">CSRT (Standard, robust)</option>
+            <option value="flow">Flow (keine Region nötig, ca. 4x schneller)</option>
+            <option value="grid_lk">Gitter/Optical-Flow (braucht Region wie CSRT, ca. 15x schneller)</option>
+          </select>
+        </div>
+        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT: bei ruhiger Kamera
+          gleichwertig zu Flow, bei Kameraschwenks trifft es die Bewegungsstärke besser (gemessen
+          113 gegen 145 bei 110 tatsächlicher Bewegung), weil dort die Kamerabewegung über
+          Hintergrundmerkmale herausgerechnet wird. Gitter/Optical-Flow: verfolgt ein Raster aus
+          Einzelpunkten statt einer Box - GEMESSEN auf einem realen Clip mindestens gleich gute
+          Qualität wie CSRT bei ~15x der Geschwindigkeit, robuster als CSRT bei schwierigen
+          (kleinen/unscharfen) Regionen (siehe docs/NEXT.md Abschnitt 8).</p>
         <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
@@ -370,7 +380,7 @@ export function initGenerator(root, playback) {
       perSceneRoi: el('#gen-perscene').checked,
       adaptiveKeyframeError: el('#gen-adaptive').checked ? 6 : 0,
       autoRetry: el('#gen-retry').checked,
-      backend: el('#gen-flow').checked ? 'flow' : 'csrt',
+      backend: el('#gen-backend').value,
       useOpenCl: el('#gen-opencl').checked,
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
       profile: el('#gen-profile').value,
