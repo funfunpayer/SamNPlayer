@@ -291,11 +291,37 @@ func (s *SamNeo2) SetSuction(intensity float64) error {
 	return s.writeChannel(s.protocol.EncodeSuction(intensity), false)
 }
 
+// Stop schaltet beide Kanäle sofort ab. Schreibt IMMER, anders als
+// writeChannel() (kein "unverändert -> überspringen"): Stop muss auch dann
+// wirken, wenn der zuletzt gemerkte Zustand zufällig schon Null war.
+//
+// Aktualisiert lastVibrationPacket/lastSuctionPacket - vorher schrieb Stop()
+// direkt über write()/writeLocked() an writeChannel() vorbei, sodass beide
+// Felder weiter das zuletzt gesendete NICHT-Null-Paket enthielten. Zwei
+// sichtbare Folgen: (1) ein SetVibration()/SetSuction()-Aufruf mit exakt
+// demselben Wert wie vor dem Stop wurde von writeChannel()'s
+// Unverändert-Prüfung fälschlich als "keine Änderung" übersprungen - das
+// Gerät blieb still, obwohl der Aufruf ohne Fehler zurückkam. (2) schwerer:
+// runKeepalive() sendet nach keepaliveInterval ungefragt den zuletzt
+// gemerkten Zustand erneut - blieb die Verbindung nach Stop() offen (z.B.
+// "Test Stop" im Geräte-Tab, das NICHT trennt), setzte sich das Gerät nach
+// wenigen Sekunden von selbst wieder in Bewegung. Gefunden beim Testen mit
+// echten Werten über den Geräte-Tab-Pfad.
 func (s *SamNeo2) Stop() error {
-	if err := s.write(s.protocol.EncodeVibration(0)); err != nil {
+	vibrationOff := s.protocol.EncodeVibration(0)
+	suctionOff := s.protocol.EncodeSuction(0)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.writeLocked(vibrationOff); err != nil {
 		return err
 	}
-	return s.write(s.protocol.EncodeSuction(0))
+	s.lastVibrationPacket = vibrationOff
+	if err := s.writeLocked(suctionOff); err != nil {
+		return err
+	}
+	s.lastSuctionPacket = suctionOff
+	return nil
 }
 
 // write schreibt ein Kommando auf die GATT-Characteristic. s.mu schützt hier
