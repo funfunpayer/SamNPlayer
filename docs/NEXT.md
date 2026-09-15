@@ -325,6 +325,48 @@ best_lag_correlation`) is cheap and reusable for whoever picks this up
 next with more clips - no new tooling needed, `generate_funscript.py`
 and `fungen_compare.py` already cover it end to end.
 
+**Same clip, September 15, 2026 - the auto-detected "hub" region beats
+the manually-placed tip-only point.** Asked directly to test this clip
+again and look for FunGen parity, so re-ran the single-ROI (`standard`)
+case with the region `auto_roi.find_roi()` actually proposes on this
+clip's first frame (`61,63,154,72`, a much larger 154x72px area than the
+hand-placed tip-only `115,42,22,28` from the ablation above) through
+`generate_funscript.py` at the GUI's own defaults (`--adaptive-keyframes
+6`), then compared with `fungen_compare.py --max-lag-ms 300` - narrow on
+purpose, per this section's own "a wide search finds a coincidental
+match" risk, against the same FunGen 2.6.3 reference used throughout this
+clip's prior measurements.
+
+Result: **r=0.310 at lag=0ms**, `n=150` samples, not low-confidence,
+orientation normal (not inverted, unlike the `tj` result above), own
+Quality Doctor score 0.55. That beats the tip-only single-point hub
+result from the ROI2 ablation above (r=0.129, same clip, same 0ms
+lag-confidence) by a wide margin, and sits well above the general
+real-clip range (r=0.05-0.13) from the top of this section - though
+still below the two messier/hand-tuned two-point runs (r=0.336/0.356),
+and shape error stayed high (0.933): phase/direction line up
+respectably, matched amplitude still does not, the same gap noted
+throughout this clip's measurements.
+
+Also re-ran `tj` on the same clip with a deliberately careless,
+unplaced ROI2 (`20,20,40,30`, picked without looking at the frame) as an
+honest negative control, not a real attempt: r=0.167 - clearly worse
+than the careful hand-placed ROI2 sweep above, consistent with (not a
+new data point beyond) this section's already-established "ROI2 choice
+is the dominant lever" finding.
+
+**Reading, still one clip:** the current auto-`find_roi()` region does
+noticeably better than a hand-picked tip-only point for the single-ROI
+case here - real, if single-clip, evidence in favor of priority 3/4's
+direction (auto-detection as the GUI default for ROI1), on top of the
+acceptance-criteria discussion already there. Not "ship it as default"
+by itself (one clip, and priority 3's bar is broader than one number),
+but a genuinely encouraging result rather than a null one - worth
+re-running this same `find_roi()`-vs-manual comparison on the other real
+clips already shared in chat this session (the BBW and Entladen clips,
+both with a FunGen reference already available) before drawing a firmer
+conclusion.
+
 ### 3. Improve automatic two-ROI suggestions
 
 Inspect `find_two_rois` and existing tests before making changes. Compare
