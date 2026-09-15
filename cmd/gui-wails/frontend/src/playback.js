@@ -304,6 +304,43 @@ export function initPlayback(root) {
       (e.clientY - rect.top) * (curveCanvas.height / rect.height),
     ];
   }
+  // Zeichnet eine Catmull-Rom-Spline durch die Punkte statt gerader
+  // Liniensegmente - kein rein kosmetischer Wunsch: die reale Bewegung
+  // eines Geräts hat eine physische Anstiegs-/Abfallzeit (siehe
+  // docs/SAM_NEO_2_RESEARCH.md §11/§12), springt also nie tatsächlich in
+  // scharfen Ecken zwischen Punkten - eine weiche Kurve bildet das eher ab
+  // als der gezackte Linienzug. Die Kontrollpunkte werden im Positions-
+  // raum (0-100), nicht im Pixelraum, geklemmt, damit die Spline nicht
+  // über den gültigen Wertebereich hinaus überschwingt und einen Punkt
+  // zeigt, der so nie im Skript stünde. Die Punkte selbst (und die
+  // Editor-Trefferpunkte) bleiben exakt an ihrer echten Position - nur
+  // die verbindende Linie wird weich, die Daten ändern sich nicht.
+  function drawSmoothCurve(ctx, points, xOf, yOf) {
+    if (points.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(xOf(points[0].atMs), yOf(points[0].pos));
+    if (points.length === 2) {
+      ctx.lineTo(xOf(points[1].atMs), yOf(points[1].pos));
+      ctx.stroke();
+      return;
+    }
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i - 1)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(points.length - 1, i + 2)];
+      const cp1Ms = p1.atMs + (p2.atMs - p0.atMs) / 6;
+      const cp1Pos = Math.max(0, Math.min(100, p1.pos + (p2.pos - p0.pos) / 6));
+      const cp2Ms = p2.atMs - (p3.atMs - p1.atMs) / 6;
+      const cp2Pos = Math.max(0, Math.min(100, p2.pos - (p3.pos - p1.pos) / 6));
+      ctx.bezierCurveTo(
+        xOf(cp1Ms), yOf(cp1Pos),
+        xOf(cp2Ms), yOf(cp2Pos),
+        xOf(p2.atMs), yOf(p2.pos));
+    }
+    ctx.stroke();
+  }
+
   function findNearestActionIndex(mx, my) {
     if (!rawActions) return -1;
     let best = -1, bestDist = EDIT_HIT_RADIUS_PX;
@@ -351,16 +388,11 @@ export function initPlayback(root) {
       ctx.fillRect(xOf(marker.startMs), 0, xOf(marker.endMs) - xOf(marker.startMs), h);
     }
 
-    // Die Kurve selbst.
+    // Die Kurve selbst - als weiche Spline statt gerader Segmente.
     ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(xOf(points[0].atMs), yOf(points[0].pos));
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(xOf(points[i].atMs), yOf(points[i].pos));
-    }
-    ctx.stroke();
+    drawSmoothCurve(ctx, points, xOf, yOf);
 
     if (editMode) {
       for (let i = 0; i < points.length; i++) {
