@@ -1019,6 +1019,71 @@ wie es die Aufgabe verlangte) - ein Kontrollkästchen analog zu
 `#gen-flow` in `generator.js` wäre ein naheliegender nächster Schritt,
 nicht Teil dieser Änderung.
 
+**Follow-up (September 15, 2026), user's question: does the grid-of-points
+idea also help Tf/Tj's two-point distance measurement, not just single-ROI
+tracking? Found a real bug on the way, then a real negative result.**
+
+**Bug found first: `--backend` was silently ignored whenever `--roi2` was
+set.** `generate_funscript.py`'s dispatch routed straight to
+`track_two_points()` (hardcoded `create_tracker()`, i.e. always CSRT) any
+time `--roi2` was given, regardless of `--backend` - the exact same "silent
+backend drop" class this section's own grid_lk GUI-wiring commit (#46)
+already fixed once for the single-ROI path, just not caught here. Verified
+directly: two runs with `--backend csrt` and `--backend grid_lk`, same
+`--roi`/`--roi2`, produced byte-identical output files. Fixed:
+`grid_lk_backend.py`'s tracking loop was split into `_track_grid()` (shared
+core, raw uncompensated x/y per frame) with `analyze()` (single-ROI, unchanged
+public contract - `grid_lk_backend_test.py` still passes byte-for-byte)
+and a new `analyze_two_point()` (two independent grids, one per region, full
+2D distance between their medians - mirrors `track_two_points()`'s own
+contract and reasoning, deliberately skips camera compensation for the same
+reason `track_two_points()` does: a common pan cancels in the distance by
+construction, applying two independent per-region estimates would only add
+uncorrelated noise). `generate_funscript.py` now branches on `--backend
+grid_lk` before falling through to the CSRT path. New test:
+`grid_lk_two_point_test.py`, same synthetic pan+common-motion+real-signal
+video as `two_point_test.py`, added to CI's video-test job.
+
+**Now that grid_lk genuinely runs in two-point mode, measured against the
+real 42s clip's FunGen `tj` reference (same ROI1 tip `115,42,22,28` as the
+priority-2 ablation above, two ROI2 anchors already on record there):**
+
+| ROI2 anchor | backend | own quality | lost frames | time | r vs FunGen (best) | r at lag=0 |
+|---|---|---:|---:|---:|---:|---:|
+| neck `110,5,35,22` | grid_lk | 0.90 | 10/2527 (0.4%) | 3.7s | 0.070 (boundary) | -0.045 |
+| lower cleavage `110,92,35,25` | grid_lk | 1.00 | 9/2527 (0.4%) | 3.8s | 0.077 (boundary) | 0.030 |
+| neck `110,5,35,22` | csrt (fresh) | 0.80 | 222/2527 (9%) | 95s | **0.524**, inverted, n=422 | 0.524 (not boundary) |
+
+**Grid_lk is not a win for two-point tj tracking - if anything the opposite,
+the same "own quality ≠ FunGen match" pattern already on record twice in
+this document.** Both grid_lk runs have far better own-quality numbers
+(0.90-1.00 score, <1% lost frames, ~25x faster) than CSRT, and both still
+score near zero against the FunGen reference, pinned to the lag-search
+boundary even at that - the same "coincidental match on a shrinking overlap"
+warning sign this document's own lag-search-window fix exists to catch, i.e.
+not a trustworthy match at all. Reading: grid_lk's per-region median is a
+good ROBUSTNESS improvement (rarely loses lock) but that robustness doesn't
+translate into agreeing with FunGen's judgment of where the real motion is -
+consistent with the standing finding that own-quality metrics and FunGen
+agreement are largely independent axes. Not shipped as a `tj`/`tf` default;
+`--backend grid_lk --roi2` stays available (now genuinely, not silently
+ignored) but the CLI help text was updated to say plainly that it measured
+worse here.
+
+**The fresh CSRT number is the more interesting result, with an honest
+caveat.** r=0.524 at lag=0 (not boundary-pinned, full n=422 overlap,
+independently re-verified by hand outside `fungen_compare.py` too) is the
+best tj correlation recorded anywhere in this document - clearly better
+than the two older hand-tuned runs (0.336/0.356) and far better than this
+same ROI pair's own previously documented figure of r=0.123. Both figures
+are real measurements, not reconciled: the ROI1/ROI2 pixel values match
+exactly what's on record, but the exact original CLI invocation (this run
+used `--adaptive-keyframes 6`; unclear if the original did) wasn't
+preserved verbatim, so the discrepancy's cause isn't established - flagged
+rather than silently picking one number. Worth a deliberate re-run with a
+pinned, written-down command before trusting r=0.524 as the new baseline
+for this ROI pair.
+
 ### 9. SAM: long-term architecture direction — first milestone scoped
 
 The user's direction (September 14, 2026): a 10-phase vision document for

@@ -1786,7 +1786,11 @@ def main():
                          "ohne Tracker und ohne markierte Region - rund 4x schneller. "
                          "grid_lk = Gitter aus Punkten in der Region per Sparse Optical "
                          "Flow verfolgt (Median als Position) - braucht eine Region wie "
-                         "csrt, rund 15x schneller, siehe docs/NEXT.md Abschnitt 8.")
+                         "csrt, rund 15x schneller, siehe docs/NEXT.md Abschnitt 8. Mit "
+                         "--roi2 (Zwei-Punkt-Messung) trackt grid_lk je Region ein "
+                         "eigenes Gitter statt csrt's Einzel-Tracker - GEMESSEN "
+                         "schlechter für die FunGen-Übereinstimmung als csrt trotz "
+                         "besserer eigener Tracking-Güte, siehe docs/NEXT.md Abschnitt 8.")
     ap.add_argument("--auto-retry", action="store_true",
                     help="Bei nicht bestandener Qualitätsprüfung alternative "
                          "Signalparameter durchprobieren und das beste Ergebnis behalten. "
@@ -2026,8 +2030,23 @@ def process_one(args, ap):
             print('Fehler: --roi2 muss "x,y,w,h" sein', file=sys.stderr)
             sys.exit(1)
         print(f"Zwei-Punkt-Messung: {roi} und {roi2}", file=sys.stderr)
-        timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_two_points(
-            args.video, roi, roi2, max_frames=args.max_frames)
+        if args.backend == "grid_lk":
+            # --backend wurde für die Zwei-Punkt-Messung bisher komplett
+            # ignoriert (immer CSRT über track_two_points) - derselbe
+            # "stille Backend-Fall" wie schon einmal bei der GUI-Anbindung
+            # (siehe #45/#46), hier für den CLI-Zweipunktpfad. grid_lk hat
+            # keinen cv2.Tracker, braucht daher einen eigenen Zweipunkt-Pfad
+            # statt track_two_points()'s festverdrahteten create_tracker().
+            import grid_lk_backend
+            print("Backend 'grid_lk' (Zwei-Punkt, je ROI ein Gitter)", file=sys.stderr)
+            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = grid_lk_backend.analyze_two_point(
+                args.video, roi, roi2, {
+                    "max_frames": args.max_frames,
+                    "scene_cut_detection": not args.no_scene_cut_detection,
+                })
+        else:
+            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_two_points(
+                args.video, roi, roi2, max_frames=args.max_frames)
     elif args.backend == "flow":
         # Flow-Backend: kein Tracker, keine markierte Region. Deutlich
         # schneller (dichter Farneback ~18ms/Frame gegen ~100ms für CSRT)
