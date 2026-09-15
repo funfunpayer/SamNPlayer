@@ -1,5 +1,6 @@
 // @ts-check
 export function AnalyzeScript() { return window['go']['main']['App']['AnalyzeScript'](); }
+export function ApplyRingDown(arg1, arg2) { return window['go']['main']['App']['ApplyRingDown'](arg1, arg2); }
 export function ApplySuggestedOZone() { return window['go']['main']['App']['ApplySuggestedOZone'](); }
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
