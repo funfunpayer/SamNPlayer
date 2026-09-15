@@ -273,9 +273,20 @@ func (a *App) stopSession() {
 	}
 }
 
-// shutdown läuft beim Schließen des Fensters. Zwei Dinge müssen hier
-// passieren: ein noch verbundenes Gerät abschalten und trennen - sonst läuft
-// es nach dem Schließen weiter -, und der Cache leeren, falls eingestellt.
+// shutdown läuft beim Schließen des Fensters. Drei Dinge müssen hier
+// passieren: ein noch verbundenes Testgerät abschalten und trennen, eine
+// noch laufende Wiedergabe-/Trainings-Sitzung ebenso beenden - sonst läuft
+// das Gerät nach dem Schließen weiter, und die BLE-Verbindung bleibt offen,
+// bis das Gerät manuell aus- und wieder eingeschaltet wird - und der Cache
+// leeren, falls eingestellt.
+//
+// Der Sitzungs-Zweig fehlte vorher komplett: shutdown() kümmerte sich nur um
+// a.testDevice (die Geräte-Tab-Testverbindung), nie um a.activeDevice/
+// a.playCancel. Schloss man das Fenster während einer laufenden Wiedergabe
+// oder eines Trainings, lief die Hintergrund-Goroutine (StartPlayback/
+// StartTraining) einfach weiter, auch nachdem der Prozess beendet werden
+// sollte - das Gerät blieb aktiv, die Verbindung offen.
+//
 // registerFileDrop meldet fallengelassene Dateien ans Frontend.
 //
 // Die Zuordnung passiert bewusst hier und nicht im Frontend: nur Go kennt
@@ -308,11 +319,30 @@ func (a *App) shutdown(ctx context.Context) {
 	a.stateMu.Lock()
 	dev := a.testDevice
 	a.testDevice = nil
+	activeDev := a.activeDevice
+	cancel := a.playCancel
 	a.stateMu.Unlock()
+
+	// Erst den Kontext abbrechen, damit die Sitzungs-Goroutine (falls noch
+	// aktiv) selbst zu unwinden beginnt - ihre eigenen defer dev.Stop()/
+	// dev.Disconnect() laufen dann ohnehin. Das direkte Stop()/Disconnect()
+	// unten ist trotzdem nötig: shutdown() wartet nicht auf die Goroutine
+	// (Wails erwartet hier keine Blockierung), das Gerät soll aber schon
+	// jetzt sicher abgeschaltet sein, nicht erst "irgendwann danach". Beide
+	// Aufrufe auf demselben Gerät sind unproblematisch - Disconnect() ist
+	// idempotent (SamNeo2.Disconnect prüft, ob überhaupt noch verbunden).
+	if cancel != nil {
+		cancel()
+	}
 	if dev != nil {
 		_ = dev.Stop()
 		_ = dev.Disconnect()
 		logging.Info("app: Testverbindung beim Beenden getrennt")
+	}
+	if activeDev != nil {
+		_ = activeDev.Stop()
+		_ = activeDev.Disconnect()
+		logging.Info("app: aktive Sitzung beim Beenden getrennt")
 	}
 	a.clearCacheIfRequested()
 }

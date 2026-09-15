@@ -64,7 +64,6 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	} else {
 		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
 	}
-	a.activeDevice = dev
 	p := player.New(dev)
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
@@ -78,7 +77,15 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.PauseVideo = func() { runtime.EventsEmit(a.ctx, "video:pause") }
 		p.ResumeVideo = func() { runtime.EventsEmit(a.ctx, "video:resume") }
 	}
+	// Unter stateMu wie jedes andere geteilte Feld auf App (siehe dessen
+	// eigene Deklaration) - vorher unguarded gesetzt, während
+	// TriggerExtendedO a.activePlayer ebenso unguarded liest: eine echte
+	// Datenwettlauf zwischen einem Wiedergabe-Start und einem Klick auf
+	// "Extended-O auslösen" kurz danach.
+	a.stateMu.Lock()
+	a.activeDevice = dev
 	a.activePlayer = p
+	a.stateMu.Unlock()
 	ctx, err := a.tryStartSession()
 	if err != nil {
 		return err
@@ -151,10 +158,13 @@ func (a *App) ReportVideoPosition(ms int64) {
 }
 
 func (a *App) TriggerExtendedO(minLevel, holdSeconds, restoreMs float64) {
-	if a.activePlayer == nil {
+	a.stateMu.RLock()
+	p := a.activePlayer
+	a.stateMu.RUnlock()
+	if p == nil {
 		return
 	}
-	a.activePlayer.TriggerExtendedO(player.ExtendedOOptions{
+	p.TriggerExtendedO(player.ExtendedOOptions{
 		MinLevel:        minLevel,
 		HoldDuration:    time.Duration(holdSeconds * float64(time.Second)),
 		RestoreDuration: time.Duration(restoreMs * float64(time.Millisecond)),

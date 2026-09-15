@@ -72,7 +72,13 @@ func (a *App) StartTraining(req TrainingRequest) error {
 	} else {
 		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
 	}
+	// Unter stateMu wie in StartPlayback (siehe dessen Kommentar) - Training
+	// hat kein Gegenstück zu TriggerExtendedO, das a.activeDevice läse, aber
+	// shutdown() liest es (app.go) und muss denselben Schutz sehen wie jeden
+	// anderen Schreibzugriff auf dieses Feld.
+	a.stateMu.Lock()
 	a.activeDevice = dev
+	a.stateMu.Unlock()
 
 	sessionFile, sessionErr := a.openSessionLog(req.Technique)
 	if sessionErr != nil {
@@ -153,7 +159,9 @@ func (a *App) StartTraining(req TrainingRequest) error {
 					RestMs:             result.RestMs,
 				}
 				if b, err := json.Marshal(entry); err == nil {
-					sessionFile.Write(append(b, '\n'))
+					if _, writeErr := sessionFile.Write(append(b, '\n')); writeErr != nil {
+						logging.Warn("app: Trainings-Zyklus konnte nicht ins Session-Log geschrieben werden", "fehler", writeErr)
+					}
 				}
 			}
 		})
