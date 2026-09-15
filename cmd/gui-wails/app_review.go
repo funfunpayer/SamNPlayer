@@ -8,9 +8,9 @@ import (
 
 // GeneratedReview is the post-generate check that does not need a loaded player script.
 type GeneratedReview struct {
-	Path     string                     `json:"path"`
-	Polarity funscript.PolarityHint     `json:"polarity"`
-	OZone    funscript.OZoneSuggestion  `json:"ozone"`
+	Path     string                    `json:"path"`
+	Polarity funscript.PolarityHint    `json:"polarity"`
+	OZone    funscript.OZoneSuggestion `json:"ozone"`
 }
 
 // ReviewGeneratedScript liest eine gerade erzeugte Datei und liefert

@@ -33,6 +33,40 @@ export namespace funscript {
 	        this.intensity = source["intensity"];
 	    }
 	}
+	export class OZoneSuggestion {
+	    startMs: number;
+	    endMs: number;
+	    reason: string;
+	    ok: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new OZoneSuggestion(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.startMs = source["startMs"];
+	        this.endMs = source["endMs"];
+	        this.reason = source["reason"];
+	        this.ok = source["ok"];
+	    }
+	}
+	export class PolarityHint {
+	    suggestInvert: boolean;
+	    firstHalfMean: number;
+	    reason: string;
+
+	    static createFrom(source: any = {}) {
+	        return new PolarityHint(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.suggestInvert = source["suggestInvert"];
+	        this.firstHalfMean = source["firstHalfMean"];
+	        this.reason = source["reason"];
+	    }
+	}
 
 }
 
@@ -60,7 +94,7 @@ export namespace generator {
 }
 
 export namespace main {
-	
+
 	export class CacheInfo {
 	    path: string;
 	    files: number;
@@ -196,6 +230,40 @@ export namespace main {
 	        this.aiQualityOpinion = source["aiQualityOpinion"];
 	        this.contactVibration = source["contactVibration"];
 	    }
+	}
+	export class GeneratedReview {
+	    path: string;
+	    polarity: funscript.PolarityHint;
+	    ozone: funscript.OZoneSuggestion;
+
+	    static createFrom(source: any = {}) {
+	        return new GeneratedReview(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.polarity = this.convertValues(source["polarity"], funscript.PolarityHint);
+	        this.ozone = this.convertValues(source["ozone"], funscript.OZoneSuggestion);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class HeatmapPoint {
 	    atMs: number;
@@ -483,6 +551,27 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace motionx {
+
+	export class Chapter {
+	    kind: string;
+	    startMs: number;
+	    endMs: number;
+
+	    static createFrom(source: any = {}) {
+	        return new Chapter(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.startMs = source["startMs"];
+	        this.endMs = source["endMs"];
+	    }
 	}
 
 }

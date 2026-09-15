@@ -34,6 +34,9 @@ CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
 });
 
+// Stiller Update-Check beim Start - respektiert die Einstellung, die
+// settings.js beim Laden aus GetSettings() liest; hier zusätzlich einmal
+// direkt geprüft, damit main.js nicht auf settings.js warten muss.
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
@@ -45,9 +48,20 @@ GetSettings().then(s => {
   }).catch(() => {});
 });
 
+
+// --- Dateien per Drag & Drop -------------------------------------------
+//
+// Go liefert die echten Dateipfade (siehe registerFileDrop in app.go) - die
+// Webview allein bekäme aus einem Drop nur einen Blob ohne Pfad, mit dem
+// der Generator nichts anfangen kann.
+//
+// Die fallengelassene Datei bestimmt den Tab: ein Video gehört in den
+// Generator, ein Skript in die Wiedergabe. Das erspart es, vorher den
+// richtigen Tab zu suchen.
 EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
   if (overlay) overlay.classList.remove('visible');
+
   if (data.videos && data.videos.length) {
     switchTab('generator');
     window.dispatchEvent(new CustomEvent('drop:video', { detail: data.videos[0] }));
@@ -62,19 +76,31 @@ EventsOn('files:dropped', data => {
     return;
   }
   if (data.ignored) {
-    alert('Damit kann ich nichts anfangen. Zieh eine Videodatei oder eine .funscript-Datei ins Fenster.');
+    alert('Damit kann ich nichts anfangen. Zieh eine Videodatei oder eine '
+        + '.funscript-Datei ins Fenster.');
   }
 });
 
+// Sichtbare Rückmeldung, solange etwas über dem Fenster schwebt.
 const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
 overlay.innerHTML = '<div>Video oder .funscript hier ablegen</div>';
 document.body.appendChild(overlay);
+
 let dragDepth = 0;
-window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; overlay.classList.add('visible'); });
+window.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dragDepth++;
+  overlay.classList.add('visible');
+});
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('dragleave', () => {
+  // dragleave feuert auch beim Wechsel zwischen Kindelementen - deshalb
+  // zählen statt einfach auszublenden, sonst flackert die Anzeige.
   dragDepth = Math.max(0, dragDepth - 1);
   if (dragDepth === 0) overlay.classList.remove('visible');
 });
-window.addEventListener('drop', () => { dragDepth = 0; overlay.classList.remove('visible'); });
+window.addEventListener('drop', () => {
+  dragDepth = 0;
+  overlay.classList.remove('visible');
+});
