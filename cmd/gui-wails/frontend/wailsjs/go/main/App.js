@@ -41,6 +41,7 @@ export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
+export function ScriptChapters() { return window['go']['main']['App']['ScriptChapters'](); }
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
 export function SetSetting(arg1, arg2) { return window['go']['main']['App']['SetSetting'](arg1, arg2); }
@@ -50,6 +51,7 @@ export function StopPlayback() { return window['go']['main']['App']['StopPlaybac
 export function StopTraining() { return window['go']['main']['App']['StopTraining'](); }
 export function StopTrainingCycle() { return window['go']['main']['App']['StopTrainingCycle'](); }
 export function SubmitFeedback(arg1) { return window['go']['main']['App']['SubmitFeedback'](arg1); }
+export function SuggestBackend(arg1, arg2) { return window['go']['main']['App']['SuggestBackend'](arg1, arg2); }
 export function SuggestOZone() { return window['go']['main']['App']['SuggestOZone'](); }
 export function SuggestPolarity() { return window['go']['main']['App']['SuggestPolarity'](); }
 export function SuggestProfile(arg1) { return window['go']['main']['App']['SuggestProfile'](arg1); }
