@@ -84,11 +84,17 @@ address, signal strength, vibration/suction function tests, and a raw-value test
 ends the current cycle rather than the entire session. An arousal scale
 from 1–10 adjusts the next cycle. Sessions are logged.
 
-**Generator:** two backends — CSRT tracking with a marked region, or optical
-flow without a region. Includes automatic region selection, scene-cut
-detection with region selection per scene, camera compensation, adaptive
-keyframes, RDP, speed limiting, axis selection, automatic retry, parallel
-batch processing, caching, and measurement reports with user feedback.
+**Generator:** three interchangeable tracking backends (`generator/backends.py`)
+— CSRT (default, one bounding box), flow (no region, dense optical flow,
+~4x faster), and grid_lk (a grid of independently tracked points, median
+as position, ~15x faster than CSRT and measurably more robust on small
+regions — see "Measured performance" below). Includes automatic region
+selection, scene-cut detection with region selection per scene, camera
+compensation, adaptive keyframes, RDP, speed limiting, axis selection,
+automatic retry, parallel batch processing, caching, and measurement
+reports with user feedback. Optional contact-triggered vibration for
+Tf/Tj: pulses proportional to the ROI1-ROI2 distance's own top slice,
+derived from the script's own `pos` range rather than a fixed pulse.
 
 **Appearance memory:** the tracker remembers what the region looks like
 and searches the whole frame after tracking loss or a scene cut instead
@@ -158,6 +164,28 @@ Borderline counts as a failure, favoring an extra user check.
 starting, accelerating, steady, decelerating, and stopping — and displays
 a description below it. This catches a gap in other checks: a long flat
 section is neither noisy nor arrhythmic, so those checks miss inactivity.
+The same classification also drives a coarser chapter timeline
+(pause/build/steady/crescendo/winddown) shown alongside it.
+
+**Manual funscript editing:** the playback curve doubles as a point editor
+(drag to move, click to add, double-click to delete), with the video
+following the point being dragged during a drag. **Script Doctor** runs
+Quality Doctor's actions-only checks (timestamps, range, gaps, spikes,
+device compatibility, rhythm with reduced confidence) against an imported
+file that never went through generation, so has no tracking data — marked
+`estimatedFromScriptOnly` so it's never confused with a post-generation run.
+
+**Polarity, O-zones, ring-down:** `SuggestPolarity` compares the first and
+second half of a script's mean position and offers to invert (`100 - pos`)
+on a mismatch — a sign-convention check, not a tracking-quality one.
+`SuggestOZone` proposes a primary marker in the script's last eighth at
+its highest-mean window (classical, signal-only), appliable manually or
+automatically at generation time. `RingDown` appends damped half-cycles
+after a chosen point instead of dropping straight to zero.
+
+**Training history:** past sessions (already logged as JSONL per-session,
+see below) are now read back and summarized in the training tab - cycles,
+mean peak intensity, how many were interrupted, mean arousal feedback.
 
 **Minimum spacing between actions:** enforced during generation rather
 than merely reported. Peaks and valleys are found separately, so minimum
@@ -194,6 +222,16 @@ All figures below come from actual runs rather than estimates.
 | Video decoding | 0.7% of total runtime |
 | Cache hit | 31.7 s → 0.88 s (36× faster) |
 | Flow backend versus CSRT | 12 s instead of 51 s per test video |
+| grid_lk versus CSRT, easy region | ~15x faster, same or better own-quality score |
+| grid_lk versus CSRT, hard/small region | CSRT: real but fragile (own quality dropped 0.95→0.45 on an 800-frame slice); grid_lk: no measured collapse at 4x4 grid density or denser (see rejected KCF/MOSSE below for the failure mode grid_lk avoids) |
+
+grid_lk's own tracking robustness does **not** transfer to Tf/Tj's two-point
+distance measurement: measured against a real FunGen reference on the same
+clip/ROIs, grid_lk scored near zero (r=0.07-0.08, boundary-pinned lag
+search) versus a fresh CSRT run's r=0.52 (real, zero-lag) on the same pair
+— own-quality metrics and reference agreement are not the same axis, the
+same lesson as the flow-backend/Quality-Doctor gap below. `docs/NEXT.md`
+priority 8 has the full clip-by-clip numbers.
 
 **Amplitude fidelity**, with 110 px of true object motion and a realistically
 textured background:
@@ -237,7 +275,7 @@ of merged wholesale:
 
 | Package | Contents | Status |
 |---|---|---|
-| `motionx` | Iterative RDP returning indices, `Dedup`, motion-state classification | **Connected:** classification is used in script analysis |
+| `motionx` | Iterative RDP returning indices, `Dedup`, motion-state classification | **Connected:** classification drives both script analysis and the chapter timeline |
 | `videox` | `ffprobe` wrapper and ffmpeg grayscale reader | Present, **not connected** |
 
 `motionx` uses only the standard library. `videox` requires **ffmpeg and
@@ -295,6 +333,21 @@ Python directory is now embedded with `go:embed *.py`.
 `generator_embed_test.go` reads actual imports from the source and verifies
 that each module reaches the temporary directory. A manually maintained
 list would repeat the original mistake.
+
+**Update check failed silently:** `CheckForUpdate()`'s startup check had
+an empty `.catch(() => {})` - any failure (network, GitHub rate-limit, a
+non-200 response) vanished with no log and no UI feedback, indistinguishable
+from "no update available." Fixed: the swallowed error now at least logs,
+and a "Jetzt nach Updates suchen" button in settings shows the actual
+result (current version, the new version, or the error) on demand.
+
+**Dropping multiple videos silently discarded all but the first:** a
+`drop:videos` (plural) event carried the full dropped-file list, but
+nothing ever listened for it - a dead event, so extra files vanished with
+no indication anything beyond the first was received. Fixed: the ignored
+count now travels with the loaded path in a single `drop:video` event and
+shows in the generator's status line, rather than pretending batch
+generation (still unbuilt) handled them.
 
 **Keepalive maintained only one channel:** it repeated only the last sent
 packet. If that packet controlled suction, vibration was not maintained,
@@ -380,6 +433,10 @@ Recorded so the same unsuccessful approaches are not repeated:
 | Absolute RANSAC match count as a quality metric | Random matches on noise backgrounds increased amplitude to 233 px. The **fraction** separates cases cleanly: 0.24 versus 0.84–0.90. |
 | Finer training ramps | Initially rejected for the wrong reason; actual resolution remains unknown. See the raw-value test. |
 | CUDA through pip-installed OpenCV | `opencv-python` and `opencv-contrib-python` are built **without CUDA**. Requires a custom build or OpenCL instead. |
+| KCF/MOSSE trackers as a faster CSRT replacement | Real speedup (4-14x) and matching quality on easy regions, but **collapse** (near-total lock loss, not gradual noise) on a small/hard 18x16px region: 99%+ frames lost. Unlike the flow-backend tradeoff, a user has no way to judge in advance whether their marked region will hit this. Not shipped; `grid_lk`'s multi-point median (below) reaches similar speed without this failure mode. |
+| Two-tracker CSRT parallelization for Tf/Tj (`ThreadPoolExecutor`, then a lower-overhead `threading.Event` handoff) | An isolated microbenchmark showed 1.68x from releasing the GIL, but the real end-to-end pipeline showed no net gain (33-35s either way) with two independently-implemented approaches. OpenCV's own internal parallelism (already ~2.2/4 cores per CSRT call) leaves little headroom Python-level threading can add. Reverted, not shipped. |
+| Gentle upscaling (1.15x-1.3x) before tracking a very small/hard ROI | No clean signal: 1.15x nearly tripled the lost-frame rate, 1.3x cut it to a tenth of baseline on the same ROI - opposite of a smooth dose-response. Reads as sub-pixel resampling sensitivity specific to that exact scale factor, not a real "upscaling helps" effect. Not established as beneficial. |
+| WebGL/Canvas 2D sharpening of the `<video>` element for low-resolution source clips | The loss happens the moment a frame is pulled out of `<video>` into ANY canvas (`texImage2D` or `drawImage`), before any shader runs - measured via Laplacian variance on identical screenshots (native video 331 vs. plain `drawImage` 5.3). A control test with a static PNG showed no such loss, ruling out generic canvas scaling. Not shipped even as an opt-in: shipping "sharper" while it measurably makes the image less sharp would be a regression, not a feature. Unclear whether this is a general video-decode-pipeline property or specific to this headless/software-decode environment - untested on real hardware. |
 
 ---
 
@@ -446,18 +503,22 @@ The prioritized operational task list lives exclusively in
 [docs/NEXT.md](docs/NEXT.md). Hardware and quality limitations above remain
 open until measurement reports resolve them.
 
-The release workflow ran successfully for `v0.2.1` on September 14, 2026,
-publishing GUI and CLI binaries for Windows/Linux plus `checksums.txt`.
-Tf/Tj, the second GUI region, and `suction_position` are integrated into
-`main` through PRs #2–#4. This establishes build and integration status,
-not performance on real hardware.
+The release workflow has run successfully through `v0.2.2`
+(September 14, 2026), publishing GUI and CLI binaries for Windows/Linux
+plus `checksums.txt`; the source version (`VERSION`/`update.BaseVersion`)
+can run ahead of the last published tag between releases. Dozens of PRs
+have merged since the original Tf/Tj integration (#2-#4) — see `git log`
+or GitHub for the current list; this file's own sections above are kept
+current with what's actually shipped, `docs/NEXT.md` with what's still open.
 
-A local AI adapter for the generator is in progress: it proposes results
-(currently region-of-interest detection via a local ONNX model), and the
-existing classical pipeline still measures and validates — the AI never
-writes a `.funscript` on its own path. See `docs/AI_ADAPTER.md` for the
-architecture and the planned order (region, then profile, then quality
-judgment).
+The local AI adapter for the generator is implemented and GUI-wired for
+all three planned steps (region proposal, profile suggestion, quality
+second opinion) — the existing classical pipeline still measures and
+validates in every case; the AI never writes a `.funscript` on its own
+path. Still open: no bundled/recommended ONNX region model, and no field
+data yet on how useful the profile/quality steps are without someone
+running a real local Colibri server against real material. See
+`docs/AI_ADAPTER.md` for the architecture.
 
 ## Environment setup
 

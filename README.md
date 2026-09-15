@@ -76,9 +76,13 @@ download the update and restart, verifying SHA256 against the checksum
 file and checking that the download URL actually comes from github.com.
 
 The release repository is already configured as `funfunpayer/SamNPlayer`.
-[v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1)
-was successfully built for Windows and Linux on September 14, 2026.
-For future releases, follow [CONTRIBUTING.md](CONTRIBUTING.md#versions).
+[v0.2.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.2) is
+the latest published release; see `VERSION`/`update.BaseVersion` for the
+current source version, which may be ahead of it. The settings tab also
+has a "Jetzt nach Updates suchen" button for an on-demand check that shows
+its result (or the reason it failed) instead of only checking silently at
+startup. For future releases, follow
+[CONTRIBUTING.md](CONTRIBUTING.md#versions).
 
 ## Generating scripts from video
 
@@ -157,7 +161,40 @@ between cycles, and a choice of vibration, suction, or both channels.
 Each session is logged to
 `<log directory>/sessions/training-<technique>-<timestamp>.jsonl`, with one
 JSON object per cycle containing timestamp, channel, peak value, hold time,
-and duration. These logs support later tuning.
+and duration. The training tab shows a "Verlauf" (history) list summarizing
+past sessions (cycles, mean peak intensity, how many were interrupted, mean
+feedback), read back from these same logs.
+
+## Manual funscript editing and review
+
+The playback tab's curve display doubles as a point editor: drag an
+existing point to move it, click empty space to add one, double-click to
+delete (with a minimum-point floor). While editing, the video follows the
+point being dragged so its timing is visible directly, not just its number.
+An imported `.funscript` — from another tool, without the tracking data a
+fresh generation has — can be checked with the "Skript prüfen (Script
+Doctor)" button: it runs the same quality checks that work from the action
+list alone (timestamps, position range, gaps, speed spikes, device
+compatibility), explicitly marked as an estimate since the checks that need
+video/tracking data are unavailable.
+
+## Polarity, O-zones, and chapters
+
+- **Polarity check:** compares the first half of a script's mean position
+  against the second half and, when they look inverted, offers to flip the
+  whole script (`100 - pos`) rather than guessing silently — SamNPlayer and
+  a reference tool can legitimately disagree on which direction is "up".
+- **O-zone suggestion:** proposes a primary marker in the last eighth of
+  the script, at the window with the highest mean position — a classical,
+  signal-only heuristic, not a trained detector. It can be applied manually
+  from the playback tab, or automatically at generation time via the
+  "O-Marker automatisch vorschlagen" checkbox.
+- **Ring-down:** appends one or two damped half-cycles after a chosen point
+  so playback doesn't drop straight to zero from a high hold.
+- **Chapters:** the playback analysis line also shows a coarse timeline
+  (pause/build/steady/crescendo/winddown) derived from the same movement-
+  state classification `motionx` already uses elsewhere — informational
+  only, nothing is auto-applied to the device.
 
 ## Marked range and automatic Extended-O
 
@@ -215,6 +252,21 @@ in each case.
 
 The result is a suggestion: the region can still be adjusted manually in
 the preview.
+
+## Tracking backends
+
+The advanced settings expose three interchangeable tracking methods for a
+marked region (`generator/backends.py`): **CSRT** (the default, one
+bounding box per region), **flow** (no region needed, dense optical flow,
+~4x faster), and **grid_lk** (a grid of independently tracked points, the
+region's median as position — ~15x faster than CSRT and measurably more
+robust on small/difficult regions, since one lost point doesn't collapse
+the whole signal the way a single lost bounding box does). `grid_lk` is
+available for the Tf/Tj two-point distance measurement too, but measured
+*worse* there against a real FunGen reference despite better own-quality
+numbers — own tracking quality and reference agreement are not the same
+axis. See `docs/NEXT.md` priority 8 for the full measurements behind these
+tradeoffs.
 
 ## Known limitations
 

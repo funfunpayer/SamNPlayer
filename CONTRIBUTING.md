@@ -142,5 +142,5 @@ Before a new release:
    and `checksums.txt`. A successful build does not replace a hardware test
    or a self-update test using the installed application.
 
-Do not move published tags. Correcting the source version to 0.2.1 does not
-modify the already published release.
+Do not move published tags. Correcting the source version does not modify
+an already published release.

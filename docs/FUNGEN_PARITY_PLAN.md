@@ -1,5 +1,16 @@
 # Implementation brief: match user-rated FunGen2 motion references
 
+**Status:** this brief's own job is done — Work Package 1 (a trustworthy
+benchmark, `generator/fungen_compare.py`) shipped, and Work Package 2's
+concrete bug (`track_two_points`'s Y-only distance) was found and fixed.
+The baseline table below is the brief's *original* measurement on a local,
+never-published dataset; it is superseded by real-clip numbers gathered
+since — see `docs/NEXT.md` priority 2 for the current, still-growing
+measurement record (real clips, synthetic-dataset run, the grid_lk
+two-point result, all with sources). Keep this file for the rationale and
+work-package structure; treat its own baseline table as historical, not
+current.
+
 ## Objective and product decision
 
 The user reports that FunGen2 follows the source motion substantially better

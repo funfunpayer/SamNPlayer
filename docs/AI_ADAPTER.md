@@ -63,10 +63,12 @@ export format.
   testable without a model or onnxruntime (`generator/ai_roi_test.py`).
 - `onnxruntime` lives in `generator/requirements-ai.txt`, NOT in
   `requirements.txt`.
-- **Still open:** no bundled/recommended ONNX model, no GUI wiring (on the
-  Go side this would be a copy of `FindROIWithProgress` in
-  `generator/generator.go` targeting `ai_roi.py` instead of `auto_roi.py` —
-  the `ROI x y w h` stdout contract is already kept identical).
+- **GUI wiring done:** `generator.go` gained `FindROIAIWithProgress`/
+  `AIRoiAvailable`, sharing the stdout/stderr protocol with the classical
+  path via `findROIViaScript`. The generator tab shows a "KI-Erkennung
+  (ONNX)" checkbox next to "Region automatisch finden", enabled only when
+  `CheckAIRoiAvailable()` says so. **Still open:** no bundled/recommended
+  ONNX model — the checkbox stays disabled until someone provides one.
 
 ### 2. Propose a profile (standard/tf/tj/…) — **implemented**
 
@@ -102,9 +104,10 @@ the existing classical tool — not a replacement for it:
   wiring end to end via a real subprocess call, proving the classical path
   wins when it has a confident match and that the AI path is skipped
   entirely in that case).
-- **Still open:** GUI wiring (a "Name this scene" control and a suggestion
-  display), and no field data yet on how useful the AI fallback actually is
-  — nobody has run it against a real Colibri server.
+- **GUI wiring done:** the generator tab has a "Profil vorschlagen" button
+  plus a status line, and a scene-name field with "Szene merken" next to
+  it. **Still open:** no field data yet on how useful the AI fallback
+  actually is — nobody has run it against a real Colibri server.
 
 ### 3. Quality judgment — **implemented**
 
@@ -132,15 +135,17 @@ competing with one:
   through the real pipeline via subprocess, proving `quality.passed`/
   `quality.score` stay identical with and without the flag when no server
   answers).
-- **Still open:** GUI display for the opinion, and — same caveat as step
-  2 — no field data yet on how useful it actually is without a running
-  Colibri server to test against.
+- **GUI display done:** a "KI-Zweitmeinung zur Qualität einholen" checkbox
+  feeds `aiQualityOpinion` into `GenerateOptions`; the result shows as
+  `aiOpinionVerdict`/`aiOpinionReason` in the generation result. **Still
+  open:** — same caveat as step 2 — no field data yet on how useful it
+  actually is without a running Colibri server to test against.
 
 All three steps from the original plan (region, profile, quality) are now
-implemented at the CLI/generator level. What remains for the adapter as a
-whole: GUI wiring for all three, a bundled/recommended ONNX region model,
-and real usage data once someone runs a local Colibri server against real
-video material.
+implemented AND wired into the GUI end-to-end (region proposal, profile
+suggestion, quality second opinion). What remains for the adapter as a
+whole: a bundled/recommended ONNX region model, and real usage data once
+someone runs a local Colibri server against real video material.
 
 ## Not part of this change
 
