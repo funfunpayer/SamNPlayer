@@ -367,6 +367,47 @@ clips already shared in chat this session (the BBW and Entladen clips,
 both with a FunGen reference already available) before drawing a firmer
 conclusion.
 
+**Correction, found the same day while investigating `grid_lk`'s own
+FunGen correlation:** the r=0.310 hub result just above is wrong - not a
+methodology flaw in `fungen_compare.py` this time, but a stale CLI flag.
+The generation run behind it still carried `--max-frames 900` left over
+from an unrelated earlier task in the same session (checking curve
+smoothness on a quick sample) - so it only covered the FIRST 15 OF THE
+CLIP'S 42 SECONDS, not the whole thing (`n=150` samples above is the
+tell: 150 * 100ms ≈ 15s, not the ~421 a full-clip comparison at this
+resampling step actually produces). Caught while generating a matching
+`grid_lk` run on the SAME roi for comparison and noticing its `n=421`
+didn't match the hub row's `n=150` from the same clip.
+
+**Re-measured on the actual full clip** (same ROI `61,63,154,72`, same
+`--adaptive-keyframes 6`, same `fungen_compare.py --max-lag-ms 300`):
+**r=0.179 at lag=0ms**, `n=421`, shape_err=1.063 - real and still above
+the tip-only single-point result (r=0.129) and the general real-clip
+floor (r=0.05-0.13), but by a much smaller margin than the withdrawn
+0.310 figure suggested. The qualitative reading from above (auto-detected
+hub region beats hand-picked tip point, still one clip, not enough to
+flip priority 3/4's default) still holds - the number behind it was just
+wrong. The `tj` row above (r=0.167, careless ROI2 negative control) has
+the same `--max-frames 900` flaw and is likewise short-window, but since
+that row was already flagged as "not a real attempt, not written up as a
+finding," it wasn't re-run - nothing rests on that number.
+
+**`grid_lk`'s own FunGen correlation, same full clip, same ROI, same
+`--adaptive-keyframes 6` (the actual reason this correction was found):
+r=0.125 at lag=0ms**, `n=421`, shape_err=1.089 - noticeably *worse* than
+CSRT's corrected 0.179, despite `grid_lk`'s own Quality Doctor score
+being *higher* on this run (1.00 vs CSRT's 0.55). Same pattern already on
+record from the ROI2 ablation earlier in this section ("lower lost-frame
+count did NOT predict better correlation") - this project's own internal
+quality signals (smoothness, lost-frame rate) and actual agreement with a
+human-made FunGen reference are evidently two different things, not
+proxies for each other. Not a reason to reconsider shipping `grid_lk`
+(that decision rested on speed and the KCF/MOSSE-style collapse risk, not
+on FunGen correlation, and CSRT itself only reaches 0.179 here - neither
+backend is close to matching FunGen on this clip), but a real data point
+for whoever next asks "does X track more like FunGen": own-quality
+metrics are not a substitute for measuring that directly.
+
 ### 3. Improve automatic two-ROI suggestions
 
 Inspect `find_two_rois` and existing tests before making changes. Compare
