@@ -1,3 +1,5 @@
+import { SuggestBackend } from '../wailsjs/go/main/App';
+
 export function enhanceGeneratorPreview(root) {
   const canvas = root.querySelector('#roi-canvas');
   const wrap = root.querySelector('#roi-canvas-wrap');
@@ -36,13 +38,15 @@ export function enhanceGeneratorPreview(root) {
   overlay.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;';
   wrap.appendChild(overlay);
 
+  let lastBackendHint = '';
+
   function parseBox(text) {
     const m = text && text.match(/x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)/);
     if (!m) return null;
     return { x: +m[1], y: +m[2], w: +m[3], h: +m[4] };
   }
 
-  function backendHint(r1) {
+  function backendHintLocal(r1) {
     if (!r1) return '';
     if (r1.w * r1.h < 800 || r1.w < 24 || r1.h < 24) {
       return 'Kleine ROI: Tracking-Verfahren Gitter/Optical-Flow ist meist robuster als CSRT.';
@@ -50,12 +54,29 @@ export function enhanceGeneratorPreview(root) {
     return 'ROI-Groesse spricht fuer CSRT.';
   }
 
+  async function refreshBackendHint(r1) {
+    if (!r1) { lastBackendHint = ''; return; }
+    try {
+      const name = await SuggestBackend(r1.w, r1.h);
+      if (name && typeof name === 'string') {
+        if (name.toLowerCase().includes('grid') || name.toLowerCase().includes('flow') || name.toLowerCase().includes('lk')) {
+          lastBackendHint = 'SuggestBackend: ' + name + ' (kleine ROI).';
+        } else {
+          lastBackendHint = 'SuggestBackend: ' + name + '.';
+        }
+        return;
+      }
+    } catch (_) { /* fallback below */ }
+    lastBackendHint = backendHintLocal(r1);
+  }
+
   function coachText(r1, r2) {
     const bits = [];
     if (r1) {
       if (r1.w * r1.h < 400) bits.push('ROI1 ist sehr klein — Tracking verliert leicht den Halt.');
       if (r1.x < 4 || r1.y < 4) bits.push('ROI1 klebt am Bildrand.');
-      bits.push(backendHint(r1));
+      if (lastBackendHint) bits.push(lastBackendHint);
+      else bits.push(backendHintLocal(r1));
     } else {
       bits.push('ROI1 setzen: bewegter Hub, nicht nur die Spitze.');
     }
@@ -80,7 +101,8 @@ export function enhanceGeneratorPreview(root) {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     const r1 = parseBox(roiLabel && roiLabel.textContent);
     const r2 = parseBox(roi2Label && roi2Label.textContent);
-    hint.textContent = coachText(r1, r2);
+    if (r1) refreshBackendHint(r1).then(() => { hint.textContent = coachText(r1, r2); });
+    else hint.textContent = coachText(r1, r2);
     const nw = Number(canvas.dataset.nativeW || 0);
     const nh = Number(canvas.dataset.nativeH || 0);
     if (!r1 || !r2 || !nw || !nh) return;
