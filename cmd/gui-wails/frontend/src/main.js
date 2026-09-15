@@ -9,6 +9,7 @@ import { initSettings } from './settings.js';
 import { initSidebar } from './sidebar.js';
 import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
+import { initPostGenerateReview } from './postgen.js';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -27,6 +28,7 @@ initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));
 enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
+initPostGenerateReview();
 
 CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
@@ -46,7 +48,6 @@ GetSettings().then(s => {
 EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
   if (overlay) overlay.classList.remove('visible');
-
   if (data.videos && data.videos.length) {
     switchTab('generator');
     window.dispatchEvent(new CustomEvent('drop:video', { detail: data.videos[0] }));
@@ -61,8 +62,7 @@ EventsOn('files:dropped', data => {
     return;
   }
   if (data.ignored) {
-    alert('Damit kann ich nichts anfangen. Zieh eine Videodatei oder eine '
-        + '.funscript-Datei ins Fenster.');
+    alert('Damit kann ich nichts anfangen. Zieh eine Videodatei oder eine .funscript-Datei ins Fenster.');
   }
 });
 
@@ -70,19 +70,11 @@ const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
 overlay.innerHTML = '<div>Video oder .funscript hier ablegen</div>';
 document.body.appendChild(overlay);
-
 let dragDepth = 0;
-window.addEventListener('dragenter', e => {
-  e.preventDefault();
-  dragDepth++;
-  overlay.classList.add('visible');
-});
+window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; overlay.classList.add('visible'); });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('dragleave', () => {
   dragDepth = Math.max(0, dragDepth - 1);
   if (dragDepth === 0) overlay.classList.remove('visible');
 });
-window.addEventListener('drop', () => {
-  dragDepth = 0;
-  overlay.classList.remove('visible');
-});
+window.addEventListener('drop', () => { dragDepth = 0; overlay.classList.remove('visible'); });
