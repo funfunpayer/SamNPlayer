@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -443,15 +443,37 @@ export function initPlayback(root) {
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
 
+  const CHAPTER_LABELS = {
+    pause: 'Pause', build: 'Aufbau', steady: 'gleichmäßig',
+    crescendo: 'Steigerung', winddown: 'Auslaufen',
+  };
+
+  function formatMs(ms) {
+    const s = Math.round(ms / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
   async function describeScript() {
     const box = el('#pb-analysis');
+    let text = '';
     try {
       const analysis = await AnalyzeScript();
-      box.textContent = analysis.summary || '';
-      box.style.display = analysis.summary ? 'block' : 'none';
+      text = analysis.summary || '';
     } catch (err) {
-      box.style.display = 'none';
+      // kein Skript geladen - Kapitel unten trotzdem versuchen (eigene Mindestlänge)
     }
+    try {
+      const chapters = await ScriptChapters();
+      if (Array.isArray(chapters) && chapters.length > 0) {
+        const parts = chapters.map(c =>
+          (CHAPTER_LABELS[c.kind] || c.kind) + ' ' + formatMs(c.startMs) + '–' + formatMs(c.endMs));
+        text += (text ? ' · Kapitel: ' : 'Kapitel: ') + parts.join(', ');
+      }
+    } catch (err) {
+      // zu wenige Punkte o.ä. - kein Kapitelabschnitt, nicht fatal
+    }
+    box.textContent = text;
+    box.style.display = text ? 'block' : 'none';
   }
 
   async function drawCurve() {
@@ -974,6 +996,7 @@ export function initPlayback(root) {
       redrawHeatmap();
       redrawCurve();
       renderOMarkerList();
+      describeScript();
     } catch (err) {
       log('Aktualisieren: ' + err);
     }
