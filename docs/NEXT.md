@@ -1179,8 +1179,50 @@ mapping, what's explicitly deferred (webcam/live input, per the user's own
 "vielleicht für ein neues eigenes Produkt"), and the concrete first
 milestone (SAM Motion Model, SAM Script v0.1, bidirectional funscript
 converter) are all in **`docs/SAM_ARCHITECTURE.md`** - not duplicated here.
-Not started yet; this entry exists so the direction isn't lost, same as
-every other priority in this file.
+
+**First milestone shipped** (`sam/` package: `Script`/`Frame`/`Motion`
+types, `Load`/`Parse`/`Save`, `FromFunscript`/`ToFunscript`), but not
+wired into any GUI/CLI flow - nothing produces or consumes `.sam` files
+yet, on purpose (see below).
+
+**Tested with real project data (September 15, 2026), at the user's
+request** ("die Daten die wir schon haben einfließen lassen, gerade im
+Bezug auf die Hardware"): ran an actual tj-profiled `.funscript` this
+session already generated from the real clip (`--profile tj
+--contact-vibration`, `sam/funscript_test.go`'s
+`TestRoundtripPreservesProfileAndDeviceRecipe` embeds a real excerpt)
+through a full file roundtrip - `FromFunscript` → `Script.Save()` → disk →
+`sam.Load()` → `ToFunscript()` - and diffed against the original.
+
+**Found a real bug this way, not a hypothetical one:** `Profile` and
+`DeviceRecipe` were never carried into `sam.Metadata` at all - a Tf/Tj
+script roundtripped through SAM would silently lose `profile: "tj"` and
+its `device_recipe` (including `contact_vibration`), so
+`funscript.IsDistanceProfile()` would read false afterward and playback
+would fall back to the Hub-style position mapping on real hardware
+instead of the Abstand/Sog one - no error, just the wrong actuator
+behavior. Also found `ToFunscript` truncated `Motion.Position` to an int
+instead of rounding (harmless today since the only producer always writes
+whole numbers, but would bias any future fractional-position producer
+downward). Both fixed: `sam.Metadata` now carries `Profile` and a
+`sam.DeviceRecipe` (own type, not `funscript.DeviceRecipe`, to keep this
+package independent of `funscript`'s shape - see package docstring),
+`ToFunscript`/`FromFunscript` convert both ways, rounding replaces
+truncation. Verified with the same real clip's data: actions, profile,
+and device recipe all identical after the full file roundtrip, and the
+resulting `.funscript` loads correctly through
+`fungen_compare.py::load_actions` - so a SAM-roundtripped script stays as
+comparable against FunGen references as any other output.
+
+**Still correctly not wired into GUI/CLI:** this closes a real
+correctness gap in the existing converter, it doesn't create a reason to
+expose SAM to users yet. No motion classifier exists (every field besides
+Position stays `MotionUnknown`/empty for every producer today), so a
+"save/load .sam" button would just be a differently-shaped `.funscript`
+with no new information - not a feature, surface area without payoff. A
+GUI/CLI flow is worth building once there's a concrete consumer for the
+richer fields (a classifier, or another producer that needs them) - see
+this section's own guiding constraint below.
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already

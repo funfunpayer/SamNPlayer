@@ -69,6 +69,28 @@ func TestToFunscriptPreservesTimingAndPosition(t *testing.T) {
 	}
 }
 
+// ToFunscript rundet statt abzuschneiden: ein reiner funscript-Import hat
+// immer ganzzahlige Positionen (siehe FromFunscript), aber ein künftiger
+// SAM-Producer könnte echte Zwischenwerte schreiben - Abschneiden würde die
+// dann systematisch nach unten verzerren statt zum nächsten Punkt zu runden.
+func TestToFunscriptRoundsFractionalPosition(t *testing.T) {
+	s := &Script{
+		Version: ScriptVersion,
+		Frames: []Frame{
+			{Time: 0, Motion: Motion{Position: 20.4}},
+			{Time: 100, Motion: Motion{Position: 20.6}},
+			{Time: 200, Motion: Motion{Position: 99.5}},
+		},
+	}
+	fs := ToFunscript(s)
+	want := []int{20, 21, 100}
+	for i, w := range want {
+		if fs.Actions[i].Pos != w {
+			t.Errorf("Action %d: erwartet gerundet %d, ist %d", i, w, fs.Actions[i].Pos)
+		}
+	}
+}
+
 // Roundtrip: .funscript -> SAM -> .funscript muss Timing und Positionen
 // exakt erhalten (docs/SAM_ARCHITECTURE.md, Meilenstein-1-Akzeptanzkriterium
 // "bestehende Player, Skripte funktionieren weiter, ohne SAM zu kennen").
@@ -102,6 +124,51 @@ func TestRoundtripFunscriptSAMFunscript(t *testing.T) {
 	if roundtripped.Metadata.Creator != original.Metadata.Creator {
 		t.Errorf("Creator nach Roundtrip verändert: %q vs %q",
 			roundtripped.Metadata.Creator, original.Metadata.Creator)
+	}
+}
+
+// Roundtrip mit einem echten tj-Skript (Ausschnitt eines tatsächlich mit
+// generate_funscript.py --profile tj --contact-vibration erzeugten Skripts
+// aus diesem Projekt, nicht ausgedacht): Profile und DeviceRecipe müssen
+// erhalten bleiben, sonst würde die Wiedergabe nach einem SAM-Roundtrip
+// stillschweigend auf die Hub-statt-Abstand-Zuordnung zurückfallen
+// (funscript.IsDistanceProfile prüft genau dieses Feld) und die
+// Kontakt-Vibration verlieren - beides ohne jede Fehlermeldung.
+func TestRoundtripPreservesProfileAndDeviceRecipe(t *testing.T) {
+	original, err := funscript.Parse([]byte(`{"actions":[
+		{"at":0,"pos":82},{"at":350,"pos":90},{"at":833,"pos":77},{"at":983,"pos":76}
+	],"metadata":{
+		"creator":"SamNPlayer generate_funscript.py",
+		"profile":"tj",
+		"device_recipe":{"sync":"suction_position","min_suction":0.2,"tick_ms":50,
+			"max_speed":0.5,"smoothing":0.22,"contact_vibration":true}
+	}}`))
+	if err != nil {
+		t.Fatalf("funscript.Parse fehlgeschlagen: %v", err)
+	}
+	if !funscript.IsDistanceProfile(original.Metadata.Profile) {
+		t.Fatalf("Testdaten-Voraussetzung verletzt: Original sollte ein Distanzprofil sein")
+	}
+
+	roundtripped := ToFunscript(FromFunscript(original))
+
+	if roundtripped.Metadata.Profile != original.Metadata.Profile {
+		t.Errorf("Profile nach Roundtrip verändert: %q vs %q",
+			roundtripped.Metadata.Profile, original.Metadata.Profile)
+	}
+	if !funscript.IsDistanceProfile(roundtripped.Metadata.Profile) {
+		t.Error("Skript ist nach dem Roundtrip kein Distanzprofil mehr - " +
+			"die Wiedergabe würde auf die falsche (Hub- statt Abstands-) Zuordnung zurückfallen")
+	}
+	dr := roundtripped.Metadata.DeviceRecipe
+	if dr == nil {
+		t.Fatal("DeviceRecipe ist nach dem Roundtrip nil")
+	}
+	if *dr != *original.Metadata.DeviceRecipe {
+		t.Errorf("DeviceRecipe nach Roundtrip verändert: %+v vs %+v", *dr, *original.Metadata.DeviceRecipe)
+	}
+	if !dr.ContactVibration {
+		t.Error("ContactVibration ist nach dem Roundtrip verloren gegangen")
 	}
 }
 
