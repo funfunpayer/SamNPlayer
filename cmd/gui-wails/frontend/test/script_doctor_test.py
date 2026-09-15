@@ -47,7 +47,7 @@ def main():
     harness.write_text(PAGE)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+        browser = p.chromium.launch()
         page = browser.new_page()
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_script_doctor_harness.html")
