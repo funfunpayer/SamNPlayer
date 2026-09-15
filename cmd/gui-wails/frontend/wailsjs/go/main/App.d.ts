@@ -127,6 +127,8 @@ export function TestVibration(arg1:number):Promise<void>;
 
 export function TrainQualityModel():Promise<string>;
 
+export function TrainingHistory():Promise<Array<main.TrainingSessionSummary>>;
+
 export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<void>;
 
 export function VideoFileURL():Promise<string>;

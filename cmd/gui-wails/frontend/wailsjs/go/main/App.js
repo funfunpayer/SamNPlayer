@@ -60,5 +60,6 @@ export function TestStop() { return window['go']['main']['App']['TestStop'](); }
 export function TestSuction(arg1) { return window['go']['main']['App']['TestSuction'](arg1); }
 export function TestVibration(arg1) { return window['go']['main']['App']['TestVibration'](arg1); }
 export function TrainQualityModel() { return window['go']['main']['App']['TrainQualityModel'](); }
+export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }
