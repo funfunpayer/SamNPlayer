@@ -2056,6 +2056,19 @@ def process_one(args, ap):
             print('Fehler: --roi2 muss "x,y,w,h" sein', file=sys.stderr)
             sys.exit(1)
         print(f"Zwei-Punkt-Messung: {roi} und {roi2}", file=sys.stderr)
+        # Zwei-Punkt-Messung hat einen eigenen Dispatch-Zweig (braucht zwei
+        # ROIs statt einer und andere Rückgabewerte) und läuft NICHT über
+        # das Backend-Register oder track_by_scenes - beide Optionen unten
+        # wurden bisher kommentarlos ignoriert, sobald --roi2 gesetzt war.
+        # Sichtbar machen statt stillschweigend wirkungslos bleiben (dieselbe
+        # Art Fehler wie beim --backend-Fall direkt darunter, siehe #45/#46).
+        if args.per_scene_roi:
+            print("Hinweis: --per-scene-roi hat bei --roi2 (Zwei-Punkt-Messung) "
+                  "keine Wirkung - die Region wird nach Schnitten nicht neu gesucht",
+                  file=sys.stderr)
+        if args.backend not in ("csrt", "grid_lk"):
+            print(f"Hinweis: --backend {args.backend!r} unterstützt keine Zwei-Punkt-Messung, "
+                  "verwende CSRT (track_two_points) stattdessen", file=sys.stderr)
         if args.backend == "grid_lk":
             # --backend wurde für die Zwei-Punkt-Messung bisher komplett
             # ignoriert (immer CSRT über track_two_points) - derselbe

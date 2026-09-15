@@ -677,7 +677,8 @@ export function initPlayback(root) {
     updateMarkerHint();
     redrawHeatmap();
     if (scriptPath) {
-      SaveMarker(scriptPath, marker ? marker.startMs : 0, marker ? marker.endMs : 0).catch(() => {});
+      SaveMarker(scriptPath, marker ? marker.startMs : 0, marker ? marker.endMs : 0)
+        .catch(err => log('Markierung speichern: ' + err));
     }
   });
 
@@ -700,7 +701,7 @@ export function initPlayback(root) {
     marker = null;
     updateMarkerHint();
     redrawHeatmap();
-    if (scriptPath) SaveMarker(scriptPath, 0, 0).catch(() => {});
+    if (scriptPath) SaveMarker(scriptPath, 0, 0).catch(err => log('Markierung speichern: ' + err));
   });
 
   el('#pb-omarker-kind').addEventListener('change', e => {
@@ -741,7 +742,7 @@ export function initPlayback(root) {
 
   // Fallengelassenes Skript übernehmen - gleicher Ladeweg wie die
   // Dateiauswahl.
-  window.addEventListener('drop:script', e => loadScript(e.detail));
+  window.addEventListener('drop:script', e => loadScript(e.detail.path, e.detail.extraCount || 0));
 
   async function chooseScript() {
     const path = await PickFunscriptFile();
@@ -765,11 +766,18 @@ export function initPlayback(root) {
     window.focus();
   }
 
-  async function loadScript(path) {
+  async function loadScript(path, extraCount = 0) {
     const info = await LoadFunscript(path);
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
-    el('#pb-script-path').textContent = scriptPath;
+    // Stapelverarbeitung mehrerer Skripte gibt es noch nicht - vorher
+    // wurden weitere abgelegte Skripte einfach stillschweigend verworfen,
+    // ohne dass sichtbar war, dass überhaupt mehr als eins ankam (siehe
+    // dieselbe Behandlung für Videos in generator.js).
+    const batchNote = extraCount > 0
+      ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Skript${extraCount === 1 ? '' : 'e'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
+      : '';
+    el('#pb-script-path').textContent = scriptPath + batchNote;
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();

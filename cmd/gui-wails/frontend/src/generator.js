@@ -188,6 +188,22 @@ export function initGenerator(root, playback) {
     el('#gen-roi2-label').textContent = roi2
       ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, violett)`
       : 'Keine 2. Region markiert';
+
+    // Zwei-Punkt-Messung (2. Region gesetzt) hat einen eigenen Pfad in
+    // generate_funscript.py, der weder die Schnitt-Neuerkennung noch das
+    // Flow-Backend kennt - beide unten sichtbar abschalten, statt sie
+    // anzubieten und dann stillschweigend zu ignorieren.
+    const twoPoint = !!roi2;
+    const perScene = el('#gen-perscene');
+    perScene.disabled = twoPoint;
+    if (twoPoint) perScene.checked = false;
+    perScene.title = twoPoint
+      ? 'Bei Zwei-Punkt-Messung (2. Region gesetzt) nicht verfügbar - die Region wird dort nicht neu gesucht.'
+      : '';
+    const flowOption = el('#gen-backend').querySelector('option[value="flow"]');
+    flowOption.disabled = twoPoint;
+    flowOption.title = twoPoint ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Tracker/keine Region).' : '';
+    if (twoPoint && el('#gen-backend').value === 'flow') el('#gen-backend').value = 'csrt';
   }
 
   function updateGenerateEnabled() {

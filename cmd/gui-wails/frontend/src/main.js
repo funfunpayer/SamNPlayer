@@ -88,7 +88,12 @@ EventsOn('files:dropped', data => {
   }
   if (data.scripts && data.scripts.length) {
     switchTab('playback');
-    window.dispatchEvent(new CustomEvent('drop:script', { detail: data.scripts[0] }));
+    // Nur das erste Skript wird geladen - dieselbe Stapelverarbeitungslücke
+    // wie beim Video-Drop oben, hier für Skripte. Zeigt es sichtbar an,
+    // statt weitere abgelegte Dateien stillschweigend zu verwerfen.
+    window.dispatchEvent(new CustomEvent('drop:script', {
+      detail: { path: data.scripts[0], extraCount: data.scripts.length - 1 },
+    }));
     return;
   }
   if (data.ignored) {
