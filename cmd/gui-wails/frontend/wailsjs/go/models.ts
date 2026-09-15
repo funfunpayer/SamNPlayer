@@ -518,6 +518,36 @@ export namespace main {
 	        this.progressionPerCycle = source["progressionPerCycle"];
 	    }
 	}
+	export class TrainingSessionSummary {
+	    fileName: string;
+	    startedAt: string;
+	    technique: string;
+	    channel: string;
+	    cyclesCompleted: number;
+	    cyclesStoppedEarly: number;
+	    meanPeakIntensity: number;
+	    meanReachedPeakAfterMs: number;
+	    meanArousalReported: number;
+	    arousalReportsCount: number;
+
+	    static createFrom(source: any = {}) {
+	        return new TrainingSessionSummary(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.fileName = source["fileName"];
+	        this.startedAt = source["startedAt"];
+	        this.technique = source["technique"];
+	        this.channel = source["channel"];
+	        this.cyclesCompleted = source["cyclesCompleted"];
+	        this.cyclesStoppedEarly = source["cyclesStoppedEarly"];
+	        this.meanPeakIntensity = source["meanPeakIntensity"];
+	        this.meanReachedPeakAfterMs = source["meanReachedPeakAfterMs"];
+	        this.meanArousalReported = source["meanArousalReported"];
+	        this.arousalReportsCount = source["arousalReportsCount"];
+	    }
+	}
 	export class UpdateCheckResult {
 	    available: boolean;
 	    release?: update.Release;

@@ -1,4 +1,13 @@
-import { StartTraining, StopTraining, StopTrainingCycle, ReportArousal } from '../wailsjs/go/main/App';
+import { StartTraining, StopTraining, StopTrainingCycle, ReportArousal, TrainingHistory } from '../wailsjs/go/main/App';
+
+const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
+const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Sog', both: 'Beide' };
+
+function formatHistoryDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso || '?';
+  return d.toLocaleString();
+}
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 
@@ -64,6 +73,11 @@ export function initTraining(root) {
       <span>Aktuelle Spitze: <b id="tr-peak-label">-</b></span>
     </div>
     <div id="tr-log" style="background:var(--bg-alt); border:1px solid var(--border); border-radius:4px; padding:8px; height:100px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--text-dim); white-space:pre-wrap;"></div>
+
+    <h3 style="margin-top:16px;">Verlauf</h3>
+    <p class="hint" style="margin-top:0;">Jede Session wird mitgeschrieben (siehe oben) -
+      hier eine Zeile je vergangener Session, neueste zuerst.</p>
+    <div id="tr-history" class="hint">Lädt...</div>
   `;
 
   const el = id => root.querySelector(id);
@@ -86,6 +100,30 @@ export function initTraining(root) {
 
   function updateTechniqueVisibility() {
     el('#tr-plateau-row').style.display = el('#tr-technique').value === 'plateau' ? 'flex' : 'none';
+  }
+
+  async function refreshHistory() {
+    const box = el('#tr-history');
+    try {
+      const history = await TrainingHistory();
+      if (!Array.isArray(history) || history.length === 0) {
+        box.textContent = 'Noch keine abgeschlossene Session.';
+        return;
+      }
+      box.innerHTML = history.map(s => {
+        const technique = TECHNIQUE_LABELS[s.technique] || s.technique;
+        const channel = CHANNEL_LABELS[s.channel] || s.channel;
+        const stopped = s.cyclesStoppedEarly > 0
+          ? `, ${s.cyclesStoppedEarly}x unterbrochen` : '';
+        const arousal = s.arousalReportsCount > 0
+          ? `, Ø-Rückmeldung ${s.meanArousalReported.toFixed(1)}` : '';
+        return `<div>${formatHistoryDate(s.startedAt)} — ${technique}/${channel}: `
+          + `${s.cyclesCompleted} Zyklen, Ø-Spitze ${Math.round(s.meanPeakIntensity * 100)}%`
+          + `${stopped}${arousal}</div>`;
+      }).join('');
+    } catch (err) {
+      box.textContent = 'Verlauf konnte nicht geladen werden: ' + err;
+    }
   }
 
   async function start() {
@@ -118,7 +156,7 @@ export function initTraining(root) {
 
   EventsOn('training:log', log);
   EventsOn('training:error', msg => log('FEHLER: ' + msg));
-  EventsOn('training:done', () => { setRunningState(false); log('Training beendet.'); });
+  EventsOn('training:done', () => { setRunningState(false); log('Training beendet.'); refreshHistory(); });
   EventsOn('training:cycle', c => {
     el('#tr-cycle-label').textContent = `${c.cycleIndex + 1} / ${c.cyclesTotal}`;
     el('#tr-peak-label').textContent = Math.round(c.peakIntensity * 100) + '%';
@@ -163,6 +201,7 @@ export function initTraining(root) {
   });
   el('#tr-technique').addEventListener('change', updateTechniqueVisibility);
   updateTechniqueVisibility();
+  refreshHistory();
 
   getSettingsCache().then(s => {
     el('#tr-mock').checked = s.trainingMock;
