@@ -77,7 +77,7 @@ rather than replace:
 | Qualitätsanalyse | `generator/quality_doctor.py`, `generator/quality_model.py` |
 | Cache | `generator/track_cache.py` |
 | Batch-Verarbeitung | batch mode in `generate_funscript.py` |
-| Device Abstraction (Phase 7) | already substantial: `device/` (BLE, Intiface, `SamNeo2Protocol`) - extend, don't rebuild |
+| Device Abstraction (Phase 7) | already substantial: `device/` (BLE, Intiface, `SamNeo2Protocol`) - extend, don't rebuild; hardware research and the Device Response Model this phase needs are in `docs/SAM_NEO_2_RESEARCH.md` |
 
 Renaming `generator/` to `perception/` is explicitly **not** part of the
 first milestone, matching the vision doc's own instruction above.
