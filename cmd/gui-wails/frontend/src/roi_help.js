@@ -42,11 +42,20 @@ export function enhanceGeneratorPreview(root) {
     return { x: +m[1], y: +m[2], w: +m[3], h: +m[4] };
   }
 
+  function backendHint(r1) {
+    if (!r1) return '';
+    if (r1.w * r1.h < 800 || r1.w < 24 || r1.h < 24) {
+      return 'Kleine ROI: Tracking-Verfahren Gitter/Optical-Flow ist meist robuster als CSRT.';
+    }
+    return 'ROI-Groesse spricht fuer CSRT.';
+  }
+
   function coachText(r1, r2) {
     const bits = [];
     if (r1) {
       if (r1.w * r1.h < 400) bits.push('ROI1 ist sehr klein — Tracking verliert leicht den Halt.');
       if (r1.x < 4 || r1.y < 4) bits.push('ROI1 klebt am Bildrand.');
+      bits.push(backendHint(r1));
     } else {
       bits.push('ROI1 setzen: bewegter Hub, nicht nur die Spitze.');
     }
@@ -61,7 +70,7 @@ export function enhanceGeneratorPreview(root) {
     } else if (r1 && !r2) {
       bits.push('Fuer Tf/Tj zweiten Anker setzen — nicht ROI1 seitlich kopieren.');
     }
-    return bits.join(' ');
+    return bits.filter(Boolean).join(' ');
   }
 
   function draw() {

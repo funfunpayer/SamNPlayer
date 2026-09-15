@@ -1,22 +1,23 @@
 # Ideas backlog (not on main)
 
-Recorded 2026-09-15. Branch `feat/polarity-roi2-o-zone`. Draft PR #50.
+Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 
-## Done on this branch
+## Done without operator files or hardware
 
-- C polarity + ROI2 coach
-- D O-zone suggest/apply
-- Post-generate `ReviewGeneratedScript` + optional invert confirm
+- C polarity + ROI2 coach + backend-size hint
+- D O-zone suggest/apply + post-generate review/invert confirm
 - Golden-clip protocol (`docs/GOLDEN_CLIPS.md`)
+- Chapter labels from motionx (`pause|build|steady|crescendo|winddown`)
+- Ring-down helper (`funscript.RingDown`) — not wired into live EO yet
+- `SuggestBackend` from ROI area (grid_lk if small, else CSRT)
 
-## Still needs the operator
+## Blocked on you
 
-- 2–3 golden clips with video + FunGen reference + fixed ROIs
-- Hardware checklist (`docs/SAM_NEO_2_RESEARCH.md` §11/§12)
-- Naming scenes in the UI (LabelScene exists; you pick the names)
+- Golden clips (video + FunGen .funscript + fixed ROIs)
+- Scene names for LabelScene
+- Sam Neo 2 measurements
 
-## Still only ideas
+## Deliberately not built
 
-GUI pipeline, live periodicity, curve undo, packet-lag meter, motion
-signature auto-apply below distance 0.15, backend-per-scene, two-phase O
-(build vs hold). No upscale/sharpen/fusion without a new sweep.
+Upscale, sharpen, backend fusion, auto-apply chapters to the device,
+changing Extended-O hold times, FunGen source, pipeline GUI.
