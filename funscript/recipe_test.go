@@ -125,6 +125,68 @@ func TestRecipeTJContactVibrationTracksPosition(t *testing.T) {
 	}
 }
 
+// docs/NEXT.md Priorität 5 nannte das offen: bisher nur an einem Clip
+// geprüft, dessen Rhythmus Kontakt über einen großen Teil der Laufzeit hält
+// - ungetestet, ob die Hüllkurve auch bei einer kurzen, flüchtigen Berührung
+// (ein rascher Antippen-und-Loslassen statt eines anhaltenden Kontakts)
+// noch natürlich wirkt. Da die Hüllkurve rein aus der Position abgeleitet
+// wird, nicht aus einer festen Impulsdauer, ist die Erwartung: derselbe
+// Spitzenwert (Position erreicht dasselbe beobachtete Maximum) soll
+// dieselbe Spitzen-Vibration ergeben, aber über deutlich weniger Frames -
+// "Dauer/Stärke kommen aus dem Signal selbst" muss für kurze Berührungen
+// genauso gelten wie für lange, nicht nur für lange.
+func TestRecipeTJContactVibrationBriefGraze(t *testing.T) {
+	sustained := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 20},
+		Action{At: 600, Pos: 90},
+		Action{At: 900, Pos: 90}, // anhaltender Kontakt: 300ms auf dem Maximum
+		Action{At: 1000, Pos: 20},
+		Action{At: 1500, Pos: 20},
+	)
+	brief := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 20},
+		Action{At: 600, Pos: 90}, // kurzes Antippen: sofort wieder los
+		Action{At: 650, Pos: 20},
+		Action{At: 1500, Pos: 20},
+	)
+
+	countAndPeak := func(script *Script) (framesAboveHalf int, peak float64) {
+		opts := RecipeFor("tj")
+		opts.ContactVibration = true
+		opts.Smoothing = 0
+		for _, f := range script.ToIntensityCurve(opts) {
+			if f.Vibration > peak {
+				peak = f.Vibration
+			}
+			if f.Vibration > 0.5 {
+				framesAboveHalf++
+			}
+		}
+		return
+	}
+
+	sustainedFrames, sustainedPeak := countAndPeak(sustained)
+	briefFrames, briefPeak := countAndPeak(brief)
+
+	if briefPeak < 0.9 {
+		t.Errorf("kurzes Antippen erreicht dasselbe beobachtete Maximum wie der anhaltende Kontakt - "+
+			"Spitzen-Vibration sollte trotzdem hoch sein, ist %.3f", briefPeak)
+	}
+	if sustainedPeak < 0.9 {
+		t.Fatalf("Testannahme verletzt: anhaltender Kontakt sollte nahe 1.0 erreichen, ist %.3f", sustainedPeak)
+	}
+	if briefFrames == 0 {
+		t.Error("kurzes Antippen löst gar keine spürbare Vibration aus - Feature reagiert nicht auf kurze Berührungen")
+	}
+	if briefFrames >= sustainedFrames {
+		t.Errorf("kurzes Antippen (%d Frames über 0.5) sollte deutlich kürzer nachwirken als der anhaltende "+
+			"Kontakt (%d Frames) - die Hüllkurve darf eine flüchtige Berührung nicht künstlich in die Länge ziehen",
+			briefFrames, sustainedFrames)
+	}
+}
+
 // Ein Skript ohne nennenswerte Positions-Spannweite (z.B. nur ein kurzer,
 // flacher Ausschlag) darf nicht dauerhaft vibrieren - sonst würde jede
 // normale Bewegung als "Kontakt" fehlinterpretiert.
