@@ -7,6 +7,8 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { initDevice } from './device.js';
 import { initSettings } from './settings.js';
 import { initSidebar } from './sidebar.js';
+import { enhanceGeneratorPreview } from './roi_help.js';
+import { enhancePlaybackOZone } from './ozone_ui.js';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -23,14 +25,13 @@ initGenerator(document.getElementById('tab-generator'), playback);
 initDevice(document.getElementById('tab-device'));
 initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));
+enhanceGeneratorPreview(document.getElementById('tab-generator'));
+enhancePlaybackOZone(document.getElementById('tab-playback'));
 
 CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
 });
 
-// Stiller Update-Check beim Start - respektiert die Einstellung, die
-// settings.js beim Laden aus GetSettings() liest; hier zusätzlich einmal
-// direkt geprüft, damit main.js nicht auf settings.js warten muss.
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
@@ -42,16 +43,6 @@ GetSettings().then(s => {
   }).catch(() => {});
 });
 
-
-// --- Dateien per Drag & Drop -------------------------------------------
-//
-// Go liefert die echten Dateipfade (siehe registerFileDrop in app.go) - die
-// Webview allein bekäme aus einem Drop nur einen Blob ohne Pfad, mit dem
-// der Generator nichts anfangen kann.
-//
-// Die fallengelassene Datei bestimmt den Tab: ein Video gehört in den
-// Generator, ein Skript in die Wiedergabe. Das erspart es, vorher den
-// richtigen Tab zu suchen.
 EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
   if (overlay) overlay.classList.remove('visible');
@@ -75,7 +66,6 @@ EventsOn('files:dropped', data => {
   }
 });
 
-// Sichtbare Rückmeldung, solange etwas über dem Fenster schwebt.
 const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
 overlay.innerHTML = '<div>Video oder .funscript hier ablegen</div>';
@@ -89,8 +79,6 @@ window.addEventListener('dragenter', e => {
 });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('dragleave', () => {
-  // dragleave feuert auch beim Wechsel zwischen Kindelementen - deshalb
-  // zählen statt einfach auszublenden, sonst flackert die Anzeige.
   dragDepth = Math.max(0, dragDepth - 1);
   if (dragDepth === 0) overlay.classList.remove('visible');
 });
