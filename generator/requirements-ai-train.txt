@@ -1,0 +1,19 @@
+# Optionale Abhängigkeiten NUR zum eigenen Trainieren/Exportieren eines
+# ROI-Erkennungsmodells (generator/bootstrap_yolo_dataset.py,
+# generator/export_yolo_onnx.py) - siehe docs/AI_ADAPTER.md.
+#
+# Getrennt von requirements-ai.txt: das ist die deutlich schwerere
+# Werkzeugkette fürs TRAINIEREN (ultralytics zieht u.a. PyTorch nach sich,
+# mehrere hundert MB), nicht fürs bloße AUSFÜHREN eines fertigen Modells in
+# ai_roi.py - wer nur ein bereits trainiertes .onnx-Modell nutzen will,
+# braucht weiterhin nur requirements-ai.txt (onnxruntime).
+#
+#   pip install -r generator/requirements-ai-train.txt
+#
+# Training auf der CPU funktioniert, ist aber für echte Datensätze sehr
+# langsam - siehe generator/export_yolo_onnx.py's Modul-Docstring zum
+# empfohlenen Ablauf (Bootstrap/Export hier vorbereiten, das eigentliche
+# `yolo detect train ... device=cuda` auf einer Maschine mit GPU laufen
+# lassen).
+onnx>=1.15
+ultralytics>=8.3

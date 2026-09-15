@@ -67,8 +67,51 @@ export format.
   `AIRoiAvailable`, sharing the stdout/stderr protocol with the classical
   path via `findROIViaScript`. The generator tab shows a "KI-Erkennung
   (ONNX)" checkbox next to "Region automatisch finden", enabled only when
-  `CheckAIRoiAvailable()` says so. **Still open:** no bundled/recommended
-  ONNX model — the checkbox stays disabled until someone provides one.
+  `CheckAIRoiAvailable()` says so. Still no bundled/recommended ONNX model
+  in the repository or the binary — that stays deliberate (see "Two
+  engines, two jobs" above) — but tooling now exists to produce one
+  yourself:
+
+  - `generator/bootstrap_yolo_dataset.py` turns the CSRT tracking the
+    project already has into a YOLO-format training set — no manual
+    annotation needed for the bootstrap pass. `--class-name` tags each
+    clip with a content category (e.g. `blowjob`, `tf_tj_mix`); repeated
+    calls into the same `--output-dir` accumulate across clips AND
+    categories (`classes.json` remembers name→ID, `data.yaml` is
+    regenerated from it each time), so a mixed dataset spanning several
+    categories builds up one clip at a time instead of one run
+    overwriting the last.
+  - `generator/export_yolo_onnx.py` exports a trained checkpoint (any
+    Ultralytics YOLO version — the script only calls `YOLO(pt_path)`, it
+    is not tied to a specific release) to ONNX and rewrites the graph so
+    coordinates are normalized 0..1, matching `ai_roi.py`'s contract
+    exactly. This step is necessary: verified empirically that
+    Ultralytics' own `export(nms=True)` output has the right `(N,6)`
+    shape but pixel-space coordinates, not normalized ones.
+  - Both scripts are dev-time tooling, not part of the shipped
+    generator — `onnx`/`ultralytics` live in the new, separate
+    `generator/requirements-ai-train.txt`, not in `requirements-ai.txt`
+    (which stays just `onnxruntime`, needed only to *run* a finished
+    model).
+  - **Required convention:** train and export at `imgsz=640` — `ai_roi.py`
+    hardcodes `input_size=640` in `_run_model()` and does not expose it
+    via `find_roi()`.
+  - CPU-only training works for small smoke tests but is impractical for
+    a real dataset; the intended flow is bootstrap/export on any machine,
+    then `yolo detect train data=data.yaml model=yolo11n.pt epochs=... \
+    imgsz=640 device=cuda` on a machine with a GPU (e.g. the user's own
+    Windows 11 PC). Manual annotation refinement (correcting frames where
+    CSRT lost or misjudged the region — see the module docstring for why
+    that matters more than raw frame count) works with any standard
+    YOLO-format tool (LabelImg, CVAT, makesense.ai).
+  - No pretrained/bundled weights are provided or planned — training
+    remains something each user runs against their own material, matching
+    this file's "no model in the repository" principle. FunGen's own
+    trained weights were deliberately not considered as a shortcut here:
+    FunGen 1 is PolyForm Strict-licensed (personal/noncommercial only, no
+    redistribution) and FunGen 2 is closed-source, so their weights
+    aren't ours to reuse — only the freely available open-source
+    Ultralytics tooling they also build on was used.
 
 ### 2. Propose a profile (standard/tf/tj/…) — **implemented**
 
@@ -144,8 +187,12 @@ competing with one:
 All three steps from the original plan (region, profile, quality) are now
 implemented AND wired into the GUI end-to-end (region proposal, profile
 suggestion, quality second opinion). What remains for the adapter as a
-whole: a bundled/recommended ONNX region model, and real usage data once
-someone runs a local Colibri server against real video material.
+whole: nobody has yet trained a real region model with the new bootstrap/
+export tooling (step 1) on a real, multi-clip, manually-refined dataset —
+the tooling was only proven against a tiny CPU smoke run — and there is
+still no field data on step 2/3 usefulness from a real Colibri server. No
+bundled ONNX model is planned regardless (see step 1 above): training stays
+something each user runs locally against their own material.
 
 ## Not part of this change
 
