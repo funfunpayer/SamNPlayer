@@ -291,7 +291,7 @@ export function initGenerator(root, playback) {
 
   // Fallengelassenes Video übernehmen. Teilt sich den Ladeweg mit der
   // Dateiauswahl, damit beide Wege garantiert dasselbe tun.
-  window.addEventListener('drop:video', e => loadVideo(e.detail));
+  window.addEventListener('drop:video', e => loadVideo(e.detail.path, e.detail.extraCount || 0));
 
   async function chooseVideo() {
     const path = await PickVideoFile();
@@ -306,7 +306,7 @@ export function initGenerator(root, playback) {
     await loadVideo(path);
   }
 
-  async function loadVideo(path) {
+  async function loadVideo(path, extraCount = 0) {
     videoPath = path;
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
     el('#gen-status').textContent = 'Lade Vorschau-Frame...';
@@ -315,6 +315,12 @@ export function initGenerator(root, playback) {
     setRoi2Mode(isTfTj());
     el('#gen-generate').disabled = true;
     updateRoiLabels();
+    // Stapelverarbeitung mehrerer Videos gibt es noch nicht - vorher wurden
+    // weitere abgelegte Videos einfach stillschweigend verworfen, ohne dass
+    // sichtbar war, dass überhaupt mehr als eins ankam.
+    const batchNote = extraCount > 0
+      ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Video${extraCount === 1 ? '' : 's'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
+      : '';
     try {
       const preview = await LoadFirstFrame(path);
       nativeW = preview.width; nativeH = preview.height;
@@ -326,9 +332,9 @@ export function initGenerator(root, playback) {
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
-      el('#gen-status').textContent = isTfTj()
+      el('#gen-status').textContent = (isTfTj()
         ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite.'
-        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).';
+        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).') + batchNote;
     } catch (err) {
       el('#gen-status').textContent = '';
       alert('Fehler: ' + err);
