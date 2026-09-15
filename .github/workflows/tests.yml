@@ -118,7 +118,11 @@ jobs:
       - name: Wails-Bindings erzeugen
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          # ffmpeg gehört inhaltlich nicht zu den Wails-Bindings, hängt hier
+          # nur am ohnehin schon laufenden apt-get update/install - wird von
+          # curve_editor_video_sync_test.py gebraucht, das sich sein
+          # Test-Video selbst erzeugt statt eine Binärdatei mitzuführen.
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
           cd cmd/gui-wails
           $(go env GOPATH)/bin/wails build -tags webkit2_41 -skipbindings=false || true
