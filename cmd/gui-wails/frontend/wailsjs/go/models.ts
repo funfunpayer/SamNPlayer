@@ -195,7 +195,8 @@ export namespace main {
 	    overwrite: boolean;
 	    aiQualityOpinion: boolean;
 	    contactVibration: boolean;
-	
+	    autoOZoneMarker: boolean;
+
 	    static createFrom(source: any = {}) {
 	        return new GenerateOptions(source);
 	    }
@@ -229,6 +230,7 @@ export namespace main {
 	        this.overwrite = source["overwrite"];
 	        this.aiQualityOpinion = source["aiQualityOpinion"];
 	        this.contactVibration = source["contactVibration"];
+	        this.autoOZoneMarker = source["autoOZoneMarker"];
 	    }
 	}
 	export class GeneratedReview {

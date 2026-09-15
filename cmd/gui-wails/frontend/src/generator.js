@@ -92,6 +92,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone">O-Marker automatisch vorschlagen (letztes Achtel, höchste mittlere Position - klassisch aus dem Signal, kein KI-Modell; nur gesetzt, wenn das Ende deutlich hoch liegt)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
@@ -389,6 +390,7 @@ export function initGenerator(root, playback) {
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
+      autoOZoneMarker: el('#gen-auto-ozone').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;
@@ -495,6 +497,11 @@ export function initGenerator(root, playback) {
       return;
     }
     el('#gen-status').textContent = 'Fertig: ' + result.path;
+    if (typeof result.oZoneMarkerStartMs === 'number') {
+      const s = Math.round(result.oZoneMarkerStartMs / 1000);
+      const e = Math.round(result.oZoneMarkerEndMs / 1000);
+      el('#gen-status').textContent += ` — O-Marker gesetzt: ${s}s–${e}s`;
+    }
 
     const qualityBox = el('#gen-quality');
     if (typeof result.qualityScore === 'number') {

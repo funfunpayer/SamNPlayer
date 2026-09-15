@@ -67,6 +67,7 @@ type GenerateOptions struct {
 	Overwrite                 bool    `json:"overwrite"`
 	AIQualityOpinion          bool    `json:"aiQualityOpinion"`
 	ContactVibration          bool    `json:"contactVibration"`
+	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -169,22 +170,51 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			return
 		}
 		payload := map[string]any{"path": outPath}
-		if script, loadErr := funscript.Load(outPath); loadErr == nil && script.Metadata.QualityScore != nil {
-			payload["qualityScore"] = *script.Metadata.QualityScore
-			payload["qualityWarnings"] = script.Metadata.QualityWarnings
-			if script.Metadata.QualityPassed != nil {
-				payload["qualityPassed"] = *script.Metadata.QualityPassed
+		if script, loadErr := funscript.Load(outPath); loadErr == nil {
+			if script.Metadata.QualityScore != nil {
+				payload["qualityScore"] = *script.Metadata.QualityScore
+				payload["qualityWarnings"] = script.Metadata.QualityWarnings
+				if script.Metadata.QualityPassed != nil {
+					payload["qualityPassed"] = *script.Metadata.QualityPassed
+				}
+				logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore)
+				if script.Metadata.AIOpinion != nil {
+					payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
+					payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
+				}
 			}
-			logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore)
-			if script.Metadata.AIOpinion != nil {
-				payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
-				payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
+			if opts.AutoOZoneMarker {
+				zone, err := applyAutoOZoneMarker(outPath, script.Actions)
+				if err != nil {
+					logging.Warn("generator: O-Marker konnte nicht gespeichert werden", "output", outPath, "fehler", err)
+				} else if zone.OK {
+					payload["oZoneMarkerStartMs"] = zone.StartMs
+					payload["oZoneMarkerEndMs"] = zone.EndMs
+				}
 			}
-		} else if loadErr != nil {
+		} else {
 			logging.Warn("generator: erzeugtes Skript nicht lesbar", "output", outPath, "fehler", loadErr)
 		}
 		runtime.EventsEmit(a.ctx, "generate:done", payload)
 	}()
+}
+
+// applyAutoOZoneMarker schreibt einen automatisch aus dem Positionssignal
+// vorgeschlagenen O-Marker (funscript.SuggestOZone, letztes Achtel mit der
+// höchsten mittleren Position) in die gerade erzeugte Datei, falls die
+// Suggestion greift - klassisch aus dem Signal, kein eigenes KI-Modell
+// (docs/NEXT.md Priorität 6/7). Eigene Funktion statt Inline-Code in
+// GenerateScript, damit sie ohne echten Video-Generierungslauf testbar ist.
+func applyAutoOZoneMarker(outPath string, actions []funscript.Action) (funscript.OZoneSuggestion, error) {
+	zone := funscript.SuggestOZone(actions)
+	if !zone.OK {
+		return zone, nil
+	}
+	marker := funscript.OMarker{
+		StartMs: zone.StartMs, EndMs: zone.EndMs,
+		Kind: funscript.OMarkerPrimary, Intensity: 1,
+	}
+	return zone, funscript.SaveOMarkers(outPath, []funscript.OMarker{marker})
 }
 
 func scriptPathForVideo(videoPath string) string {
