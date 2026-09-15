@@ -533,8 +533,8 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	if opts.ReportPath != "" {
 		args = append(args, "--report", opts.ReportPath)
 	}
-	if opts.Backend == "flow" {
-		args = append(args, "--backend", "flow")
+	if opts.Backend != "" && opts.Backend != "csrt" {
+		args = append(args, "--backend", opts.Backend)
 	}
 	if opts.Profile == "weich" || opts.Profile == "tf" || opts.Profile == "tj" {
 		args = append(args, "--profile", opts.Profile)

@@ -14,6 +14,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		want []string
 	}{
 		{"Standard ohne Extras", Options{}, nil},
+		{"Backend csrt explizit (Standard, kein Flag nötig)", Options{Backend: "csrt"}, nil},
 		{"Auto-Retry", Options{AutoRetry: true}, []string{"--auto-retry"}},
 		{"waagerechte Achse", Options{Axis: "x"}, []string{"--axis", "x"}},
 		{"Geschwindigkeitsgrenze", Options{MaxSpeed: 400}, []string{"--max-speed", "400"}},
@@ -28,6 +29,8 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			[]string{"--profile", "tj", "--roi2", "1,2,3,4"}},
 		{"Kontakt-Vibration", Options{Profile: "tj", ContactVibration: true},
 			[]string{"--contact-vibration"}},
+		{"Backend flow", Options{Backend: "flow"}, []string{"--backend", "flow"}},
+		{"Backend grid_lk", Options{Backend: "grid_lk"}, []string{"--backend", "grid_lk"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -41,7 +44,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			if tc.want == nil {
 				for _, flag := range []string{"--auto-retry", "--axis", "--max-speed",
 					"--adaptive-keyframes", "--per-scene-roi", "--profile", "--roi2",
-					"--contact-vibration"} {
+					"--contact-vibration", "--backend"} {
 					if strings.Contains(joined, flag) {
 						t.Errorf("unerwartetes Argument %q bei Standardoptionen: %s", flag, joined)
 					}
