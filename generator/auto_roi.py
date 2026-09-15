@@ -30,6 +30,7 @@ Nutzung (eigenständig oder aus generate_funscript.py importiert):
 """
 
 import argparse
+import heapq
 import sys
 
 import cv2
@@ -95,15 +96,18 @@ def periodicity_score(signal, fps):
     return float(concentration * amplitude)
 
 
-def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6):
+def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6, max_cells=None,
+                   max_row_span=None, max_col_span=None):
     """Findet nacheinander die stärksten lokalen Bewegungsregionen.
 
     Nimmt die stärkste noch verfügbare Zelle als Kern und wächst von dort
-    per Breitensuche nur in Nachbarzellen, deren Wert mindestens `decay`-mal
-    den des Kerns erreicht; die gefundene Region wird dann aus der Menge
-    entfernt, bevor die nächste gesucht wird. Das gibt jedem Objekt seine
-    eigene Region, auch wenn zwei Objekte nah beieinander liegen - siehe
-    find_two_rois()'s Docstring für die Messung, die das nötig gemacht hat.
+    aus, immer zuerst in die höchstbewertete noch verfügbare Nachbarzelle
+    (Bestensuche statt Breitensuche - siehe max_cells unten für den Grund),
+    solange ihr Wert mindestens `decay`-mal den des Kerns erreicht; die
+    gefundene Region wird dann aus der Menge entfernt, bevor die nächste
+    gesucht wird. Das gibt jedem Objekt seine eigene Region, auch wenn zwei
+    Objekte nah beieinander liegen - siehe find_two_rois()'s Docstring für
+    die Messung, die das nötig gemacht hat.
 
     decay=0.4 ist GEMESSEN, nicht geraten, aber der Parameter reagiert
     unruhig statt glatt: an denselben zwei Testszenen schnitt 0.6 zahlenmäßig
@@ -116,8 +120,29 @@ def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6):
     "gentle upscaling"-Abschnitt für dieselbe Lehre (nicht von drei Punkten
     auf eine Kurve schließen). Deshalb hier der sichere Wert, nicht der
     zahlenmäßig beste einer einzelnen Messung.
+
+    max_cells (Standard: 1/8 des Rasters) allein GENÜGTE NICHT an echtem
+    Material (docs/NEXT.md Priorität 3, "Run against the real clip"): auf
+    einem sauberen synthetischen Testvideo bleibt eine Region von selbst
+    kompakt, weil außerhalb der beiden Objekte kaum etwas über der Schwelle
+    liegt. Echtes Material hat dagegen verbreitete, kamerakompensierte
+    Restbewegung über viele Zellen hinweg - eine reine Zellenzahl-Obergrenze
+    ließ die Bestensuche trotzdem quer über weite Teile des Bildes springen
+    (zur nächsten hochbewerteten, aber weit entfernten Zelle), sodass die
+    UMGEBENDE Box einer 12-Zellen-Region fast das ganze Bild abdeckte, obwohl
+    nur 12 von ~96 Zellen tatsächlich Teil davon waren. max_row_span/
+    max_col_span (Standard: je 1/3 der Rasterdimension) begrenzen deshalb
+    zusätzlich die räumliche AUSDEHNUNG: eine Zelle, die die bisherige
+    Bounding-Box der Region sprengen würde, wird übersprungen (bleibt für
+    eine spätere Region verfügbar) statt aufgenommen.
     """
     rows, cols = scores.shape
+    if max_cells is None:
+        max_cells = max(4, (rows * cols) // 8)
+    if max_row_span is None:
+        max_row_span = max(2, rows // 3)
+    if max_col_span is None:
+        max_col_span = max(2, cols // 3)
     available = np.ones_like(scores, dtype=bool)
     regions = []
     for _ in range(max_regions):
@@ -127,11 +152,26 @@ def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6):
         if not np.isfinite(peak) or peak <= 0:
             break
         core = peak * decay
-        stack = [(r0, c0)]
-        available[r0, c0] = False
+        heap = [(-float(peak), r0, c0)]
         cells = []
-        while stack:
-            r, c = stack.pop()
+        rmin = rmax = r0
+        cmin = cmax = c0
+        # Zellen werden erst beim tatsächlichen Aufnehmen (pop) als vergeben
+        # markiert, nicht schon beim Einreihen (push) - sonst gingen Zellen,
+        # die wegen max_cells/max_*_span nie an der Reihe waren, für
+        # spätere Regionen verloren, obwohl sie nie wirklich Teil dieser
+        # Region wurden.
+        while heap and len(cells) < max_cells:
+            _, r, c = heapq.heappop(heap)
+            if not available[r, c]:
+                continue
+            new_rmin, new_rmax = min(rmin, r), max(rmax, r)
+            new_cmin, new_cmax = min(cmin, c), max(cmax, c)
+            if (new_rmax - new_rmin + 1 > max_row_span
+                    or new_cmax - new_cmin + 1 > max_col_span):
+                continue
+            rmin, rmax, cmin, cmax = new_rmin, new_rmax, new_cmin, new_cmax
+            available[r, c] = False
             cells.append((r, c))
             for dr in (-1, 0, 1):
                 for dc in (-1, 0, 1):
@@ -140,8 +180,7 @@ def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6):
                     nr, nc = r + dr, c + dc
                     if (0 <= nr < rows and 0 <= nc < cols and available[nr, nc]
                             and scores[nr, nc] >= core):
-                        available[nr, nc] = False
-                        stack.append((nr, nc))
+                        heapq.heappush(heap, (-float(scores[nr, nc]), nr, nc))
         if len(cells) >= min_cells:
             regions.append(cells)
     return regions
@@ -203,6 +242,23 @@ def find_two_rois(video_path, **kwargs):
     Bestätigung, docs/AI_ADAPTER.md): eine Messung an synthetischem
     Material allein reicht laut Priorität 3's Abnahmekriterien nicht, um
     das zum automatischen Standard zu machen.
+
+    GEFUNDEN AM ECHTEN CLIP (docs/NEXT.md Priorität 3, 15. September 2026):
+    auf `clip_h264.mp4` wuchs eine Region ohne Größenbegrenzung auf das
+    GESAMTE Bild (verbreitete, kamerakompensierte Restbewegung über fast
+    das ganze Raster - anders als bei den sauberen synthetischen Szenen
+    oben). `_peak_regions()` begrenzt seitdem sowohl Zellenzahl als auch
+    räumliche Ausdehnung (siehe deren Docstring). Nach dieser Korrektur
+    lieferten die jetzt kompakten, objektgroßen Vorschläge auf demselben
+    Clip aber eine SCHLECHTERE FunGen-Korrelation (r=+0.04, praktisch
+    kein Signal) als die zufällig glimpflich ausgegangene Ganzbild-Region
+    davor (r=+0.25) - kein Widerspruch zur Korrektur (eine unbegrenzt
+    wachsende Region ist unabhängig vom Ergebnis ein Fehler), aber ein
+    ernüchterndes Ergebnis: die kompakten automatischen Vorschläge selbst
+    sind auf diesem Clip nicht gut, decken sich mit der schon bestehenden
+    "GEMESSEN UNZUREICHEND"-Einschätzung. Ein einzelner echter Clip, siehe
+    docs/NEXT.md für die vollständigen Zahlen und die offene Frage, die
+    daraus folgt.
     """
     result = find_roi(video_path, _return_series=True, **kwargs)
     scores, series, geometry = result

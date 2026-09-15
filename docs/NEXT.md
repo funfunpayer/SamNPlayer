@@ -510,15 +510,65 @@ both scenes) rather than 0.6's marginally higher single-run number,
 following this document's own "gentle upscaling" lesson (priority 8) about
 not trusting a narrow parameter sweep's best point over its shape.
 
-**Still not enough to flip the GUI default:** this is real, measured
-improvement on synthetic material, not the "validated against manually
-chosen regions on real clips" bar priority 3's acceptance criteria and the
-user's own direction above require before ROI2 auto-detection can become
-the default. `find_two_rois` remains unwired from the generation path.
-Next step for whoever picks this up: run it against the real two-point
-clips already available in this session's dataset (or new ones) the same
-way priority 2 measures `track_two_points`/`grid_lk_backend`, and compare
-against the manually-placed ROI2 anchors already on record there.
+This alone was real, measured improvement on synthetic material only - not
+yet the "validated against manually chosen regions on real clips" bar
+priority 3's acceptance criteria and the user's own direction above
+require before ROI2 auto-detection can become the default.
+
+**Run against the real clip (September 15, 2026), the very next step this
+section itself called for:** `find_two_rois()` on the actual `clip_h264.mp4`
+(the one real clip with its own source video in this session's dataset)
+first proposed `ROI1=(0,0,256,144)` - the **entire frame** - and
+`ROI2=(149,0,106,72)`. That is a real limitation found on real material,
+not a synthetic-scene artifact: real footage has widespread camera-motion-
+compensated residual movement across many cells, and `_peak_regions()`'s
+best-first growth had no cap and kept absorbing weakly-elevated neighbors
+across nearly the whole grid - the failure mode the two clean synthetic
+scenes above didn't exercise at all, because outside their two objects
+almost nothing sat above the threshold.
+
+**Fixed the same day**, not left as a known issue: `_peak_regions()` now
+caps both cell count (`max_cells`, default 1/8 of the grid) and bounding-
+box span (`max_row_span`/`max_col_span`, default 1/3 of each grid
+dimension) - a candidate cell that would blow either budget is skipped
+(left available for a later region) rather than absorbed. New
+`generator/auto_roi_region_bounds_test.py` reproduces the real clip's
+"diffuse near-threshold background + two clear peaks" pattern directly on
+a synthetic score grid (no video needed) and asserts both regions stay
+compact. Re-ran on the real clip after the fix: `ROI1=(213,108,42,36)`
+(4% of frame area), `ROI2=(106,36,85,36)` (8%) - both now plausible,
+object-sized regions, matching the two clean synthetic scenes' behavior.
+
+Compared both the buggy (whole-frame) and fixed (compact) proposals
+through `generate_funscript.py --profile tj` (both backends) against the
+same FunGen 2.6.3 reference this clip's other measurements use
+(`fungen_compare.py --max-lag-ms 300`):
+
+| run | r vs. FunGen | lag |
+|---|---:|---:|
+| whole-frame ROI1 (pre-fix), CSRT | +0.246 | 0ms (confident) |
+| whole-frame ROI1 (pre-fix), grid_lk | +0.075 | -200ms |
+| compact ROI1/ROI2 (post-fix), CSRT | **+0.038**, inverted match | -100ms |
+| compact ROI1/ROI2 (post-fix), grid_lk | **+0.044**, inverted match | -200ms |
+
+**Not the outcome that would make a clean story, and reported as such:**
+the buggy whole-frame version scored *higher* than the fixed, properly-
+bounded one. This is not a reason to keep the bug - an unboundedly
+growing region is wrong regardless of outcome, and the whole-frame
+result's +0.246 rode on `ROI1` being too large to move at all (so the
+"distance" degenerated toward `ROI2`'s own motion against a fixed point),
+not on the method correctly separating two objects. But it does mean the
+fix did not reveal a good automatic ROI2 result on this clip - both
+backends land near zero (practically no signal, and an inverted-polarity
+best match) with the now-compact, sane-looking proposals. This lines up
+with, rather than overturns, `find_two_rois`'s existing "GEMESSEN
+UNZUREICHEND" verdict: one more real clip confirming automatic ROI2
+placement isn't there yet, not a real clip that flips the picture.
+
+**Still not enough to change the GUI-default question either way** - one
+real clip, the same "needs more real clips" ceiling every measurement in
+this section runs into. `find_two_rois` remains unwired from the
+generation path.
 
 ### 4. Complete motion-signature and profile integration in the GUI
 

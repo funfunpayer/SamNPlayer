@@ -90,7 +90,8 @@ jobs:
           for t in flow_backend_test.py grid_lk_backend_test.py grid_lk_two_point_test.py \
                    track_cache_test.py two_point_test.py camera_compensation_test.py \
                    motion_signature_test.py appearance_memory_test.py per_scene_roi_test.py \
-                   roi2_dispatch_warnings_test.py auto_roi_two_point_test.py; do
+                   roi2_dispatch_warnings_test.py auto_roi_two_point_test.py \
+                   auto_roi_region_bounds_test.py; do
             echo "== $t"
             python3 "$t"
           done
