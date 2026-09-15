@@ -733,6 +733,66 @@ strictly-better option. Worth keeping as an opt-in for simple,
 single-subject scenes (where the existing hint text's premise likely
 does hold) rather than promoting it as a general default.
 
+**Closed the "not yet evaluated" item from above (September 15, 2026):
+KCF and MOSSE were measured against CSRT on the same real clip, with the
+same `quality_doctor` scoring used everywhere else in this section - real
+speedup, but not shipped, because the quality cost is a cliff, not a
+slope.** `cv2.legacy.TrackerKCF_create()` and
+`cv2.legacy.TrackerMOSSE_create()` both exist in this environment's
+OpenCV build and were swapped in for `track_roi()`'s tracker (both the
+direct `cv2.legacy.TrackerCSRT_create()` call and the `create_tracker()`
+reacquire path patch identically, since both resolve through the same
+attribute), everything else - ROI, clip, camera compensation, scene-cut
+handling, appearance memory, signal path - left untouched, run through
+the real CLI end to end (`--report`, not a synthetic microbenchmark).
+
+On the clip's `find_roi()`-suggested hub region (154x72px, the same kind
+of "standard/hub" ROI the baseline above used) across the full 2527
+frames: CSRT 88.2s / Score 0.90, KCF 17.6s (**~5.0x faster**) / Score
+0.90, MOSSE 6.4s (**~13.8x faster**) / Score **1.00** - matching or
+slightly beating CSRT's quality, not just close to it. A second,
+order-alternated run at 1200 frames (to rule out system-load drift, same
+method as the threading measurement above) reproduced the same ratios
+(CSRT 42.8s, KCF 9.9s = 4.3x, MOSSE 3.2s = 13.5x) with all three at
+Score 1.00. Taken alone, this would look like a clean win, better than
+`flow`'s.
+
+But the same swap on a small, deliberately hard 18x16px ROI (a tracked
+tip region already on record, from the gentle-upscale investigation
+above/priority 2, as the kind of target CSRT itself struggles with) tells
+a different story. On the first 800 frames: CSRT itself already fails
+this ROI (Score 0.40, "PRÜFEN" - noisy, a speed spike, 41% near-motionless
+- but its own `update()` confidence never drops, so `tracker_lost_fraction`
+reads 0.0 even while it's wrong). KCF and MOSSE do not degrade
+gracefully alongside it - they **collapse**: KCF lost the object in 795
+of 800 frames (99.4%), MOSSE in 798 of 800 (99.8%), both falling back to
+"hold last known position" almost the entire clip - a functionally dead
+signal, not a noisier one. Both finished in ~1.5s (49-56x "faster",
+meaningless at that point) and both were also flagged `passed: false` by
+Quality Doctor, so the failure doesn't slip through unnoticed - but the
+mechanism of failure (near-total loss of lock, not gradual noise) is
+qualitatively worse than what `flow` does on a hard scene.
+
+**Verdict: not shipped, no production code touched.** This is a sharper
+version of the same tradeoff `flow` presented, with one important
+difference that rules out the same "opt-in for the right scene" answer:
+`flow`'s cost is legible to a user before they commit to it (scene
+complexity - "is this a busy, multi-subject shot?" - is something a
+person can judge by watching the clip). KCF/MOSSE's cost is tied to ROI
+size and target appearance stability in a way a user marking a box in the
+GUI has no way to judge in advance, and the failure mode when it goes
+wrong is a near-complete tracking collapse rather than a merely noisier
+signal. Since this project's own selection of CSRT was explicitly for
+accuracy over speed, and per the standing rule tracking-quality tradeoffs
+need measuring per clip rather than assumed, offering KCF/MOSSE as a
+silent opt-in would reintroduce exactly the unpredictable quality trap
+the rule exists to avoid - a small/subtle ROI (common in this domain, per
+the same "hands, two breasts, the tip" busy-scene note above) is a
+realistic case, not an edge case. Revisit only if a cheap, reliable
+"will this ROI track acceptably" pre-check becomes available (so the
+choice could be made automatically rather than left to the user's guess),
+not before.
+
 ### 9. SAM: long-term architecture direction — first milestone scoped
 
 The user's direction (September 14, 2026): a 10-phase vision document for
