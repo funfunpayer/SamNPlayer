@@ -32,6 +32,18 @@ For Tf/Tj, verify that vibration stays off and suction output matches the signal
 Acceptance: record device/adapter details, app version, steps, and observed
 results; report deviations as reproducible bugs.
 
+**Research doc added (September 15, 2026):** `docs/SAM_NEO_2_RESEARCH.md` -
+the user's own source-tiered research (SVAKOM/FCC/Buttplug/IoST/community,
+each tagged by evidence strength) plus a cross-reference note (§9a) that
+two of its "not yet known" points - BLE GATT UUIDs and the raw command
+bytes - already have PROTOCOL-tier evidence in this repo
+(`device/protocol.go`'s `SamNeo2Protocol`, sourced from buttplug-rust's
+own maintained code, not guessed). The full measurement plan in that
+document (§11/§12: connection timing, per-channel resolution/rise/fall
+time, channel interaction, a `SamNeo2DeviceProfile`) is this priority's
+concrete acceptance criteria, spelled out in more detail than the summary
+above - use it as the checklist once real hardware is available.
+
 ### 2. Match user-rated FunGen2 references · active code assignment
 
 Follow [the implementation brief](FUNGEN_PARITY_PLAN.md): establish the
