@@ -15,22 +15,15 @@ type ExtendedOOptions struct {
 	// RestoreDuration ist die Zeit, um von MinLevel zurück auf das vorherige
 	// Niveau zu rampen. 0 = sofort (kein Ramping).
 	RestoreDuration time.Duration
-	// RingDownCycles: 0 = lineares Restore (bisheriges Verhalten).
-	// 1 oder 2 = gedämpfte Halbzyklen analog zu funscript.RingDown, damit
-	// der Rücksprung von MinLevel nicht in einem Schritt erfolgt.
-	// Andere Werte werden auf 1 bzw. 2 geklemmt.
-	RingDownCycles int
 }
 
 // DefaultExtendedOOptions liefert plausible Startwerte, angelehnt an das
 // Referenzprojekt (minimumLevel 0.1, holdDuration 10s, restoreDuration 500ms).
-// RingDownCycles bleibt 0, damit bestehende Aufrufer unverändert bleiben.
 func DefaultExtendedOOptions() ExtendedOOptions {
 	return ExtendedOOptions{
 		MinLevel:        0.1,
 		HoldDuration:    10 * time.Second,
 		RestoreDuration: 500 * time.Millisecond,
-		RingDownCycles:  0,
 	}
 }
 
