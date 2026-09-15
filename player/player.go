@@ -166,6 +166,10 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 // damit der Aufrufer die Skript-Timeline entsprechend verschieben kann.
 // atMs ist die "eingefrorene" Skript-Position (für OnFrame/Fortschrittsanzeigen -
 // die Timeline pausiert ja während des gesamten Zyklus).
+//
+// RingDownCycles > 0 ersetzt das lineare Restore durch gedämpfte Halbzyklen
+// analog zu funscript.RingDown (gleiche Amplitudenformel, skaliert auf
+// Intensitätsniveaus 0–1).
 func (p *Player) runExtendedO(ctx context.Context, opts ExtendedOOptions, curVib, curSuc float64, atMs int64) (time.Duration, error) {
 	t0 := time.Now()
 	p.logf("[extended-o] halte bei %.0f%% für %s...", opts.MinLevel*100, opts.HoldDuration)
@@ -186,7 +190,19 @@ func (p *Player) runExtendedO(ctx context.Context, opts ExtendedOOptions, curVib
 		return time.Since(t0), ctx.Err()
 	}
 
-	if opts.RestoreDuration <= 0 {
+	cycles := opts.RingDownCycles
+	if cycles < 0 {
+		cycles = 0
+	}
+	if cycles > 2 {
+		cycles = 2
+	}
+
+	if cycles > 0 {
+		if err := p.ringDownRestore(ctx, opts, curVib, curSuc, atMs, cycles); err != nil {
+			return time.Since(t0), err
+		}
+	} else if opts.RestoreDuration <= 0 {
 		if err := p.Device.SetVibration(curVib); err != nil {
 			return time.Since(t0), err
 		}
@@ -222,4 +238,53 @@ func (p *Player) runExtendedO(ctx context.Context, opts ExtendedOOptions, curVib
 
 	p.logf("[extended-o] wiederhergestellt, Wiedergabe läuft weiter")
 	return time.Since(t0), nil
+}
+
+// ringDownRestore fährt von MinLevel in gedämpften Halbzyklen auf (curVib, curSuc).
+// Formel analog zu funscript.RingDown: abnehmende Amplitude, ungerade Schritte
+// stärker gedämpft. Dauer pro Schritt ~180 ms (wie im Script-Helper).
+func (p *Player) ringDownRestore(ctx context.Context, opts ExtendedOOptions, curVib, curSuc float64, atMs int64, cycles int) error {
+	n := cycles * 2
+	stepDur := 180 * time.Millisecond
+	if opts.RestoreDuration > 0 {
+		stepDur = opts.RestoreDuration / time.Duration(n+1)
+		if stepDur < 40*time.Millisecond {
+			stepDur = 40 * time.Millisecond
+		}
+	}
+	deltaV := curVib - opts.MinLevel
+	deltaS := curSuc - opts.MinLevel
+	for i := 1; i <= n; i++ {
+		amp := float64(n-i+1) / float64(n+1)
+		if i%2 == 1 {
+			amp = amp / 3
+		}
+		v := opts.MinLevel + amp*deltaV
+		s := opts.MinLevel + amp*deltaS
+		if err := p.Device.SetVibration(v); err != nil {
+			return err
+		}
+		if err := p.Device.SetSuction(s); err != nil {
+			return err
+		}
+		if p.OnFrame != nil {
+			p.OnFrame(funscript.Frame{At: atMs, Vibration: v, Suction: s})
+		}
+		select {
+		case <-time.After(stepDur):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	// Finaler Schritt auf Zielniveau.
+	if err := p.Device.SetVibration(curVib); err != nil {
+		return err
+	}
+	if err := p.Device.SetSuction(curSuc); err != nil {
+		return err
+	}
+	if p.OnFrame != nil {
+		p.OnFrame(funscript.Frame{At: atMs, Vibration: curVib, Suction: curSuc})
+	}
+	return nil
 }
