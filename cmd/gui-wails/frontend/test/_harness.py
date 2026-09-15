@@ -13,6 +13,7 @@ App.js gelesen. Neue Bindings sind damit automatisch enthalten.
 
 import functools
 import http.server
+import os
 import pathlib
 import re
 import threading
@@ -75,7 +76,71 @@ def make_handler(app_stub_code):
                 self.end_headers()
                 self.wfile.write(body)
                 return
-            super().do_GET()
+            self.serve_file_with_range_support()
+
+        def serve_file_with_range_support(self):
+            """Wie SimpleHTTPRequestHandler.do_GET, aber mit HTTP-Range-
+            Unterstützung (RFC 7233) - ohne die reagiert ein <video>-Element
+            im Browser gar nicht auf Suchen/Seeken: seekable bleibt leer
+            ([0, 0]), weil der Browser dafür gezielt Byte-Bereiche
+            nachladen muss, nicht die ganze Datei. Betraf zuerst einen
+            neuen Test, der prüfen wollte, ob der Kurven-Editor beim Ziehen
+            eines Punkts das Video mitspult - stellte sich als Lücke in
+            dieser gemeinsamen Testinfrastruktur heraus, nicht im
+            geprüften Code, und betrifft daher jeden künftigen
+            video-seitigen Test genauso.
+            """
+            path = self.translate_path(self.path)
+            if os.path.isdir(path):
+                super().do_GET()
+                return
+            if not os.path.isfile(path):
+                self.send_error(404)
+                return
+            file_size = os.path.getsize(path)
+            ctype = self.guess_type(path)
+            start, end, status = 0, file_size - 1, 200
+            range_header = self.headers.get("Range")
+            if range_header:
+                match = re.match(r"bytes=(\d*)-(\d*)", range_header)
+                if not match:
+                    self.send_error(416)
+                    return
+                start_s, end_s = match.groups()
+                if start_s == "" and end_s != "":
+                    # Suffix-Bereich: die letzten N Bytes.
+                    length = int(end_s)
+                    start, end = max(0, file_size - length), file_size - 1
+                else:
+                    start = int(start_s) if start_s else 0
+                    end = int(end_s) if end_s else file_size - 1
+                end = min(end, file_size - 1)
+                if start > end or start >= file_size:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{file_size}")
+                    self.end_headers()
+                    return
+                status = 206
+            length = end - start + 1
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Accept-Ranges", "bytes")
+            if status == 206:
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+            self.send_header("Content-Length", str(length))
+            self.end_headers()
+            with open(path, "rb") as f:
+                f.seek(start)
+                remaining = length
+                while remaining > 0:
+                    chunk = f.read(min(65536, remaining))
+                    if not chunk:
+                        break
+                    try:
+                        self.wfile.write(chunk)
+                    except (BrokenPipeError, ConnectionResetError):
+                        return
+                    remaining -= len(chunk)
 
         def log_message(self, *args):
             pass
