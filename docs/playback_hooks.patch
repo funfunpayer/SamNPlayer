@@ -1,0 +1,75 @@
+--- a/cmd/gui-wails/frontend/src/playback.js
++++ b/cmd/gui-wails/frontend/src/playback.js
+@@ -5,6 +5,7 @@
+ } from '../wailsjs/go/main/App';
+ import { EventsOn } from '../wailsjs/runtime/runtime';
+ import { getSettingsCache, saveSetting } from './settings.js';
++import { applyHotkeyOMarker } from './ozone_ui.js';
+ 
+ const HEATMAP_BUCKETS = 300;
+ 
+@@ -46,7 +47,7 @@
+       Wird je Skript gespeichert. Zum Einstellen: Abschnitt markieren, Wiederholung
+       einschalten und mit + / − nachjustieren.<br>
+       <b>Tasten:</b> Leertaste Start/Stop · ←/→ 5 s (mit Shift 1 s) · , und . Feinschritt ·
+-      1–9 springen · + / − Offset · L Wiederholung · E Extended-O</p>
++      1–9 springen · + / − Offset · L Wiederholung · E Extended-O · O O-Marker 4s</p>
+     <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+     <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
+     <div class="hint" id="pb-marker-hint" style="display:none">
+@@ -116,7 +117,7 @@
+       <span>Vibration: <b id="pb-vib">-</b></span>
+       <span>Sog: <b id="pb-suc">-</b></span>
+     </div>
+-    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv).</p>
++    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv), O = O-Marker 4s.</p>
+     <div id="pb-log"></div>
+   `;
+ 
+@@ -955,6 +956,46 @@
+   el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));
+   el('#pb-eo-restore').addEventListener('change', e => saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value)));
+ 
++  async function refreshScriptVisuals() {
++    if (!scriptPath) return;
++    try {
++      const [heat, curve, markers] = await Promise.all([
++        GetHeatmap(HEATMAP_BUCKETS),
++        GetScriptCurve(CURVE_MAX_POINTS),
++        GetOMarkers(scriptPath),
++      ]);
++      heatmapPoints = heat;
++      curvePoints = curve;
++      oMarkers = Array.isArray(markers) ? markers : [];
++      if (el('#pb-curve-edit').checked) {
++        const acts = await GetScriptActions();
++        rawActions = Array.isArray(acts) ? acts : rawActions;
++      }
++      redrawHeatmap();
++      redrawCurve();
++      renderOMarkerList();
++    } catch (err) {
++      log('Aktualisieren: ' + err);
++    }
++  }
++
++  window.addEventListener('ozone:hotkey', async (ev) => {
++    if (!scriptPath) return;
++    const nowMs = (ev.detail && ev.detail.nowMs) || 0;
++    try {
++      oMarkers = await applyHotkeyOMarker(scriptPath, nowMs, oMarkers);
++      renderOMarkerList();
++      redrawHeatmap();
++      redrawCurve();
++      log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
++    } catch (err) {
++      log('O-Taste: ' + err);
++    }
++  });
++  window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
++  window.addEventListener('polarity:inverted', () => { refreshScriptVisuals(); });
++  window.addEventListener('ringdown:applied', () => { refreshScriptVisuals(); });
++
+   return {
+     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
+     loadScriptPath: (path) => loadScript(path).then(() => switchToPlaybackTab()),
