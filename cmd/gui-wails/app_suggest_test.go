@@ -64,3 +64,29 @@ func TestSuggestOZoneOnLoadedScript(t *testing.T) {
 		t.Fatalf("unerwartete Zone: %+v", zone)
 	}
 }
+
+func TestApplyRingDownOnLoadedScript(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "r.funscript")
+	body := `{"actions":[{"at":0,"pos":20},{"at":1000,"pos":85},{"at":2000,"pos":90}]}`
+	if err := os.WriteFile(path, []byte(body), 0644); err != nil {
+		t.Fatal(err)
+	}
+	a := NewApp()
+	if _, err := a.LoadFunscript(path); err != nil {
+		t.Fatal(err)
+	}
+	nBefore := len(a.currentScript.Actions)
+	if err := a.ApplyRingDown(2000, 2); err != nil {
+		t.Fatal(err)
+	}
+	if len(a.currentScript.Actions) <= nBefore {
+		t.Fatalf("erwartete zusätzliche Punkte, vorher %d nachher %d", nBefore, len(a.currentScript.Actions))
+	}
+	last := a.currentScript.Actions[len(a.currentScript.Actions)-1]
+	if last.Pos != 0 {
+		t.Fatalf("Ring-down muss mit 0 enden: %+v", last)
+	}
+	if last.At <= 2000 {
+		t.Fatalf("Ring-down muss nach atMs liegen: %+v", last)
+	}
+}
