@@ -502,15 +502,18 @@ export function initPlayback(root) {
       editDragStartValue = null; // neuer Punkt - immer speichern, nichts zum Vergleichen
     }
     redrawCurve();
+    seekTo(rawActions[editDragIndex].atMs);
   });
 
   curveCanvas.addEventListener('mousemove', (e) => {
     if (!editMode || editDragIndex === null) return;
-    rawActions[editDragIndex] = {
-      atMs: Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX))),
-      pos: curvePosOfY(e.clientY),
-    };
+    const atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
+    rawActions[editDragIndex] = { atMs, pos: curvePosOfY(e.clientY) };
     redrawCurve();
+    // Video folgt beim Ziehen mit - man sieht, welcher Moment gerade
+    // markiert wird, statt blind auf Zeitwerte zu vertrauen. seekTo() ist
+    // bereits ein no-op ohne Video, also kein zusätzlicher Guard nötig.
+    seekTo(atMs);
   });
 
   window.addEventListener('mouseup', async () => {
