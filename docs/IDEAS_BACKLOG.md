@@ -11,10 +11,14 @@ Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 - Ring-down helper (`funscript.RingDown`) — wired via `ApplyRingDown` + playback button (confirmation required)
 - `SuggestBackend` from ROI area (grid_lk if small, else CSRT) — Go + binding + ROI coach call
 - ozone_ui.js: Taste O dispatches `ozone:hotkey`, buttons for suggest/invert/ring-down
-- playback.js: full module restored; O-key listener, ozone/polarity/ringdown refresh hooks, keyboard hints
 
-## Open on this branch (code)
+## Open on this branch (code) — priority
 
+- **playback.js is a placeholder again** (concurrent push regression). Must restore the full module from `main` and add:
+  - `import { applyHotkeyOMarker } from './ozone_ui.js'`
+  - `window` listener for `ozone:hotkey` → `applyHotkeyOMarker` (4s primary) + list/heatmap/curve refresh
+  - listeners for `ozone:suggested` / `polarity:inverted` / `ringdown:applied`
+  - keyboard hints mention Taste O
 - Optional: show `ScriptChapters()` labels on the heatmap/curve (binding exists; no auto-apply to device — deliberate)
 - Optional: regenerate full Wails `App.d.ts` so TypeScript matches App.js
 
