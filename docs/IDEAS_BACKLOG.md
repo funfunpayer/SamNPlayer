@@ -10,7 +10,17 @@ Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 - Chapter labels from motionx (`pause|build|steady|crescendo|winddown`)
 - Ring-down helper (`funscript.RingDown`) — wired via `ApplyRingDown` + playback button (confirmation required)
 - `SuggestBackend` from ROI area (grid_lk if small, else CSRT)
-- Taste O hotkey path: `ozone:hotkey` → `applyHotkeyOMarker` (4s primary) + UI refresh; polarity/ring-down/ozone listeners reload curve/heatmap
+- ozone_ui.js: Taste O dispatches `ozone:hotkey`, buttons for suggest/invert/ring-down
+
+## Open on this branch (code)
+
+- **Restore `cmd/gui-wails/frontend/src/playback.js` from main** and re-apply:
+  1. `import { applyHotkeyOMarker } from './ozone_ui.js'`
+  2. listener `ozone:hotkey` → `applyHotkeyOMarker(scriptPath, nowMs, oMarkers)` + UI refresh
+  3. listeners for `ozone:suggested` / `polarity:inverted` / `ringdown:applied` → reload curve/heatmap/markers
+  4. keyboard-hint texts mention Taste O
+  Current file is an explicit stub so the breakage is visible. Full ~40k module
+  could not be pushed through the agent path (payload truncation).
 
 ## Blocked on you
 
