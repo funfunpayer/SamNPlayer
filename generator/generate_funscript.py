@@ -175,6 +175,7 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
 
     ok, first_frame = cap.read()
     if not ok:
+        cap.release()
         raise RuntimeError("Erster Frame konnte nicht gelesen werden")
 
     tracker = cv2.legacy.TrackerCSRT_create()
