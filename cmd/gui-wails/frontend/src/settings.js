@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate } from '../wailsjs/go/main/App';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -52,6 +52,10 @@ export function initSettings(root) {
     <div class="checkbox-row">
       <input type="checkbox" id="st-update-check" />
       <label for="st-update-check">Beim Start automatisch nach Updates suchen</label>
+    </div>
+    <div class="row" style="align-items:center;">
+      <button id="st-update-now" type="button">Jetzt nach Updates suchen</button>
+      <span class="hint" id="st-update-status" style="margin:0"></span>
     </div>
     <div class="field-row"><label>Log-Level</label>
       <select id="st-log-level">
@@ -168,6 +172,35 @@ export function initSettings(root) {
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
+  el('#st-update-now').addEventListener('click', async () => {
+    const status = el('#st-update-status');
+    const btn = el('#st-update-now');
+    btn.disabled = true;
+    status.textContent = 'Prüfe...';
+    try {
+      const version = await CurrentVersion();
+      const res = await CheckForUpdate();
+      if (res.error) {
+        status.textContent = 'Prüfung fehlgeschlagen: ' + res.error;
+      } else if (!res.available) {
+        status.textContent = `Kein Update verfügbar (aktuell: ${version}).`;
+      } else {
+        const tag = res.release ? res.release.tag_name : '?';
+        status.textContent = `Version ${tag} verfügbar (aktuell: ${version}).`;
+        if (confirm(`Version ${tag} ist verfügbar (aktuell: ${version}).\n\nJetzt herunterladen und neu starten?`)) {
+          try {
+            await ApplyUpdate();
+          } catch (err) {
+            status.textContent = 'Update fehlgeschlagen: ' + err;
+          }
+        }
+      }
+    } catch (err) {
+      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+    } finally {
+      btn.disabled = false;
+    }
+  });
   el('#st-log-level').addEventListener('change', e => saveSetting('log.level', e.target.value));
   el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => alert('Fehler: ' + err)));
 
