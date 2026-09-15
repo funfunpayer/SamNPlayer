@@ -87,8 +87,8 @@ jobs:
       - name: Videobasierte Tests
         working-directory: generator
         run: |
-          for t in flow_backend_test.py track_cache_test.py two_point_test.py \
-                   camera_compensation_test.py motion_signature_test.py \
+          for t in flow_backend_test.py grid_lk_backend_test.py track_cache_test.py \
+                   two_point_test.py camera_compensation_test.py motion_signature_test.py \
                    appearance_memory_test.py per_scene_roi_test.py; do
             echo "== $t"
             python3 "$t"

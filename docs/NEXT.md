@@ -805,6 +805,126 @@ realistic case, not an edge case. Revisit only if a cheap, reliable
 choice could be made automatically rather than left to the user's guess),
 not before.
 
+**Follow-up (September 15, 2026), the user's own idea: a grid of Lucas-Kanade
+points instead of one bounding box - built, measured, and this time SHIPPED
+as an opt-in backend, because the measurement genuinely supports it.** The
+reasoning behind the idea: CSRT/KCF/MOSSE all put "every egg in one basket" -
+a single tracked box that either holds or is lost outright, which is exactly
+why KCF/MOSSE collapsed above. `estimate_camera_motion()` in this same file
+already tracks a scattered set of background points with
+`cv2.calcOpticalFlowPyrLK` for camera-motion compensation; the idea was to
+seed a grid of points *inside* the user's ROI instead, track each one
+independently, and take the MEDIAN of the surviving points as the position
+signal each frame - so a few lost points degrade the median a little instead
+of collapsing the whole signal to a frozen position.
+
+Built as `generator/grid_lk_backend.py` (`--backend grid_lk`), registered
+through the same `backends.py` register used by `flow`/`two_point` - unlike
+the KCF/MOSSE eval (which patched `create_tracker()` in-process without
+touching production code first), this one earned its way into the tree only
+after the numbers below came in. Re-seeding policy: every frame, points with
+`status==0` are dropped; if the survivor count is below the target grid
+size, fresh corners are pulled via `cv2.goodFeaturesToTrack`, masked to a
+region around the CURRENT median position (not the whole frame - a
+reacquisition anywhere in the image would be worthless). If ALL points are
+lost in one frame, or a hard scene cut is detected (`detect_scene_cut`,
+reused, not reimplemented), the entire grid is reseeded from scratch at the
+last known position - the same idea as CSRT's own scene-cut reanchor in
+`track_roi()`, just without an appearance memory (this backend has none).
+
+Measured on the same real clip, same `quality_doctor` scoring, full CLI end
+to end (`--report` methodology), a FRESH CSRT baseline re-established on
+this session's hardware first (same discipline as the KCF/MOSSE eval, cross-
+run absolute numbers aren't trusted) - and at least two grid densities per
+ROI, as planned:
+
+*Easy "hub" ROI (154x72px, same region as the KCF/MOSSE measurement, full
+2527 frames):*
+
+| Verfahren | Zeit | Speedup | Score | komplett verlorene Frames |
+|---|---:|---:|---:|---:|
+| CSRT (frisch gemessen) | 92.3s | 1x | 0.90 | - |
+| Grid-LK 3x3 (9 Punkte) | 6.2s | 14.9x | 1.00 | 9/2527 (0.4%) |
+| Grid-LK 4x4 (16 Punkte) | 5.9s | 15.6x | 0.90 | 9/2527 (0.4%) |
+| Grid-LK 6x6 (36 Punkte) | 6.2s | 14.9x | 0.90 | 9/2527 (0.4%) |
+
+Matches or beats CSRT's own quality at every density tested, at roughly the
+same speed MOSSE reached on this ROI in the earlier measurement (~14x) -
+without MOSSE's failure mode on the hard ROI, see below.
+
+*Hard "tip" ROI (18x16px, same documented size as the ROI the KCF/MOSSE
+collapse was measured on from the gentle-upscale investigation - the exact
+pixel coordinates were never written down in this file, only the 18x16
+size, so a same-size region was re-derived this session by eye from the
+clip's first frame, tightly boxing the tip; CSRT's behaviour on it - Score
+0.45 "PRÜFEN", 2 extreme speed spikes, spectral concentration 25%, on the
+first 800 frames - lines up closely enough with the originally-documented
+Score 0.40/"41% near-motionless" to treat as a fair stand-in, honestly noted
+as a substitution rather than the exact original crop):*
+
+800-Frame-Ausschnitt (dieselbe Fenstergröße wie die KCF/MOSSE-Messung):
+
+| Verfahren | Zeit | Score | komplett verlorene Frames |
+|---|---:|---:|---:|
+| CSRT | 82.3s | 0.45 PRÜFEN | 0 (aber falsch - CSRTs eigene Konfidenz sinkt nicht) |
+| Grid-LK 3x3/4x4/6x6 (alle drei) | 2.8-2.9s | 0.55 OK | 1/800 (0.1%) |
+
+Voller Clip (2527 Frames) - hier zeigt sich der eigentliche Befund, den der
+kurze Ausschnitt verdeckt:
+
+| Verfahren | Zeit | Score | komplett verlorene Frames |
+|---|---:|---:|---:|
+| CSRT | 269.5s | 0.95 OK (1 Geschwindigkeitsspitze) | - |
+| Grid-LK 3x3 (9 Punkte) | 6.0s | 0.64 PRÜFEN, **hard_fail** | 1498/2527 (59.3%) |
+| Grid-LK 4x4 (16 Punkte) | 6.2s | 1.00 OK | 10/2527 (0.4%) |
+| Grid-LK 6x6 (36 Punkte) | 6.8-7.6s | 1.00 OK | 10/2527 (0.4%) |
+
+**Die Hypothese trägt - aber nur ab einer Mindestdichte, und das ist der
+eigentlich interessante Befund.** Das 3x3-Gitter (9 Punkte) bricht auf
+diesem Clip WIRKLICH zusammen, nicht nur "etwas mehr Rauschen": von den
+1498 komplett verlorenen Frames liegen 1488 als EIN zusammenhängender Block
+ab Frame 1039 - über die Hälfte des restlichen Clips am Stück, nicht
+kurzzeitig, ohne Erholung bis Clip-Ende. Das ist qualitativ derselbe
+Fehlermodus wie bei KCF/MOSSE (dauerhafter Verlust statt zunehmendem
+Rauschen), nur nicht ganz so vollständig (59% statt 99%) - kein sauberer
+Beleg für "graceful degradation", eher ein Beleg dafür, dass ein zu
+kleines Gitter dieselbe Falle wie eine einzelne Bounding Box ist. Das
+4x4-Gitter (16 Punkte) und das 6x6-Gitter (36 Punkte) zeigen dagegen GENAU
+in diesem Abschnitt (Frame 1039-2527, wo 3x3 kollabiert) keinen einzigen
+Aussetzer - beide bleiben durchgehend bei 0.4% verlorenen Frames, exakt
+dieselbe Rate wie auf der leichten Hub-ROI. Das ist die tatsächliche
+"graceful degradation": genug unabhängige Punkte, und der Median der
+Überlebenden trägt durch eine schwierige Passage, die eine einzelne Box
+(CSRT MIT Mühe, KCF/MOSSE gar nicht) nicht sauber übersteht.
+
+Entscheidend für die Ausliefer-Entscheidung: der Mehrpreis für mehr Punkte
+ist auf diesem Clip vernachlässigbar (6.0s bei 9 Punkten gegen 6.2-7.6s bei
+16-36 Punkten - Frame-Dekodierung und Kamerakompensation dominieren die
+Kosten, nicht die Punktzahl). Anders als bei KCF/MOSSE - wo es keinen Hebel
+gab, das Kollaps-Risiko zu senken, ohne den ganzen Ansatz aufzugeben - gibt
+es hier einen fast kostenlosen Hebel (mehr Punkte), der das gemessene
+Kollaps-Risiko auf diesem Clip vollständig beseitigt hat.
+
+**Verdikt: geshippt, als Opt-in.** `--backend grid_lk` ist jetzt verfügbar
+(`generator/grid_lk_backend.py`, über das bestehende `backends.py`-Register
+angemeldet wie `flow`/`two_point`, `csrt` bleibt Standard). Die Gitterdichte
+ist FEST auf 6x6 (36 Punkte) codiert und bewusst NICHT als CLI-Option
+freigegeben - eine ungeeignete Dichte zu wählen wäre genau die unsichtbare
+Falle, die bei KCF/MOSSE zum Nicht-Ausliefern führte, nur dass es hier
+einen kostenlosen sicheren Ausweg gibt (einfach immer die höhere Dichte
+nehmen) statt eines Nutzer-Ratespiels. Ehrlich zu benennen bleibt: das ist
+Evidenz von einem Clip und einer (nachgebildeten, nicht exakt
+identischen) ROI - derselbe evidenzielle Standard, auf dem auch `flow`
+seinerzeit als Opt-in geshippt wurde, keine stärkere Garantie. Getestet:
+volle `generator/*_test.py`-Suite (23 Dateien, alle grün) plus neue
+`generator/grid_lk_backend_test.py` (Vertragsform, Amplitude, graceful
+degradation bei teilweise texturloser ROI, Szenenschnitt-Erholung,
+Kamerakompensation, Achsenwahl, `max_frames`) sowie `backends_test.py`
+unverändert grün. Kein GUI-Wiring in diesem Durchgang (nur die CLI-Option,
+wie es die Aufgabe verlangte) - ein Kontrollkästchen analog zu
+`#gen-flow` in `generator.js` wäre ein naheliegender nächster Schritt,
+nicht Teil dieser Änderung.
+
 ### 9. SAM: long-term architecture direction — first milestone scoped
 
 The user's direction (September 14, 2026): a 10-phase vision document for

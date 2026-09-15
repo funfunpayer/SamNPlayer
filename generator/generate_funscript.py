@@ -1410,6 +1410,10 @@ def _register_builtin_backends():
         return track_two_points(video_path, roi, roi2,
                                 max_frames=options.get("max_frames"))
 
+    def grid_lk(video_path, roi, options):
+        import grid_lk_backend
+        return grid_lk_backend.analyze(video_path, roi, options)
+
     backends.register("csrt", csrt,
                       "Markierte Region mit einem Tracker verfolgen. Robust bei ruhiger "
                       "Kamera, braucht aber eine Region.")
@@ -1419,6 +1423,11 @@ def _register_builtin_backends():
     backends.register("two_point", two_point,
                       "Abstand zweier verfolgter Regionen. Von Kamerabewegung "
                       "mathematisch unabhängig, braucht --roi2.")
+    backends.register("grid_lk", grid_lk,
+                      "Gitter aus Punkten in der Region, einzeln per Sparse Optical Flow "
+                      "verfolgt, Median als Position. Braucht eine Region wie csrt, rund "
+                      "15x schneller, GEMESSEN robuster bei kleinen/schwierigen Regionen "
+                      "als KCF/MOSSE (siehe docs/NEXT.md Abschnitt 8).")
 
 
 def select_roi_interactively(video_path):
@@ -1774,7 +1783,10 @@ def main():
     ap.add_argument("--backend", default="csrt",
                     help="csrt = markierte Region per Tracker verfolgen (Standard). "
                          "flow = Bewegungszentrum je Frame aus dichtem Optical Flow, "
-                         "ohne Tracker und ohne markierte Region - rund 4x schneller.")
+                         "ohne Tracker und ohne markierte Region - rund 4x schneller. "
+                         "grid_lk = Gitter aus Punkten in der Region per Sparse Optical "
+                         "Flow verfolgt (Median als Position) - braucht eine Region wie "
+                         "csrt, rund 15x schneller, siehe docs/NEXT.md Abschnitt 8.")
     ap.add_argument("--auto-retry", action="store_true",
                     help="Bei nicht bestandener Qualitätsprüfung alternative "
                          "Signalparameter durchprobieren und das beste Ergebnis behalten. "
