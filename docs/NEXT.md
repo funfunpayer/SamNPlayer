@@ -752,6 +752,84 @@ works, and go about it "professionell, nicht auf Teufel komm raus testen" -
 the same measured, evidence-first discipline already used for the CSRT/
 FunGen and performance investigations above (priorities 2 and 8).
 
+### 10. Player: sharper video display — investigated, not shipped
+
+The user's direction (September 15, 2026): the Player tab's `<video>` is
+stretched via CSS (`width:100%`, see `style.css`) - for low-resolution
+source clips this can mean a real, visible upscale (e.g. this session's
+256x144 test clip shown at ~900px wide, a ~3.5x stretch) using only the
+browser's plain bilinear scaling, no sharpening. Asked whether a real
+upscaling/sharpening improvement could be built into the Player.
+
+**Built, then measured, then reverted - a real, if unwelcome, finding.**
+A CSS-only fix (a sharpen filter, `image-rendering` tricks) can't work:
+CSS has no unsharp-mask filter, and `image-rendering: crisp-edges` trades
+smoothness for blockiness, which is worse for photographic video. The
+only technique that can genuinely add detail beyond plain bilinear
+upscaling at video framerate is a WebGL shader pass, so that's what was
+built: a `<canvas>` alongside the `<video>`, an opt-in checkbox, a
+Laplacian/unsharp-mask fragment shader (`center*4 - sum(4 neighbors)`,
+added back scaled by an adjustable amount), each frame uploaded via
+`texImage2D(video)` and rendered with `object-fit:contain`-equivalent
+letterboxing to match `<video>`'s own sizing behavior exactly (an
+earlier version of this that skipped the letterboxing step visibly
+distorted the image - caught by the same verification, not shipped
+separately).
+
+**Verified before shipping, per this session's own standing rule, using
+the real test clip transcoded to VP9/WebM** (this environment's headless
+Chromium build has no H.264 decode) **and an objective sharpness metric
+(Laplacian variance) on same-size, same-position screenshots, not a
+subjective look:**
+
+| rendering path | Laplacian variance (higher = sharper) |
+|---|---:|
+| native `<video>`, plain CSS bilinear upscale | 331 (fixed-crop measurement) |
+| WebGL canvas, shader amount=0 (no sharpening) | 126 |
+| WebGL canvas, shader amount=0.8 | 154 |
+| WebGL canvas, shader amount=1.5 (top of the allowed range) | 203 |
+
+The sharpening formula itself works as designed - variance rises
+monotonically with the amount slider, confirming the shader compiles,
+links, and runs correctly (also checked directly: zero shader
+compile/link errors in the console). **But the baseline is already far
+below plain video before any sharpening is applied at all**, and even
+the strongest tested setting doesn't close the gap. Isolated further to
+find out why: a plain **Canvas 2D `drawImage` of the same video frame**
+(no WebGL, no shader) scored even lower (5.3) - so the loss isn't in the
+shader or in WebGL, it happens the moment a video frame is pulled out of
+`<video>` into any canvas at all. A **control test with a static PNG**
+(same clip, one exported frame) showed canvas `drawImage` and CSS-scaled
+`<img>` scoring near-identically (6.44 vs 6.45) - so generic canvas
+scaling is not the problem either. The loss is specific to *video frame
+extraction* (`texImage2D`/`drawImage` from a live `<video>` element),
+not to canvas rendering or to this particular shader.
+
+**Not shipped, changes fully reverted** (`playback.js`, the new
+`sharpen_test.py`) - shipping a feature billed as "sharper" while having
+direct, measured evidence it currently makes the image measurably
+*less* sharp than doing nothing would be shipping a placebo at best, a
+regression at worst, exactly what "professionell, nicht auf Teufel komm
+raus" rules out. Honest uncertainty about *why*, worth recording instead
+of guessing: this might be a genuine, general result (video decoding
+platforms commonly use a specialized compositor/scaling path for live
+`<video>` display, separate from generic frame-extraction APIs, so this
+could reproduce on real hardware too) or it might be an artifact of this
+specific environment (headless Chromium, software VP9 decode via
+SwiftShader, no real GPU) - there is no way to tell apart from here, and
+that uncertainty is the honest reason this isn't shipped even as an
+opt-in, off-by-default toggle: an "improvement" that might just be
+broken everywhere isn't worth exposing to the user at all until it's
+been tried on real hardware.
+
+If revisited later: test on a real machine with real GPU/video decode
+first, before writing any shader code - if the same frame-extraction
+loss reproduces there, this whole approach (canvas/WebGL video
+post-processing) is a dead end and not worth attempting again; if it
+does *not* reproduce, the already-built shader and letterboxing logic
+above are a reasonable starting point to resurrect from this entry's
+git history rather than rebuilding from scratch.
+
 ### Later
 
 - Script Doctor for imported `.funscript` files.
