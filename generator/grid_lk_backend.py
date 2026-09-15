@@ -108,14 +108,23 @@ def _reseed(gray, cx, cy, roi_w, roi_h, n_needed):
         minDistance=min_dist, blockSize=5, mask=mask)
 
 
-def analyze(video_path, roi, options):
-    """Verfolgt ein Punktgitter in roi=(x,y,w,h) durchs Video. Rückgabe:
-    (timestamps_ms, positions, (width, height), scene_cuts, stats) -
-    derselbe Vertrag wie backends.py ihn verlangt."""
+def _track_grid(video_path, roi, options):
+    """Kern der Gitterverfolgung - liefert BEIDE Achsen roh (ohne
+    Kamerakompensation, ohne Achsenwahl). analyze() (Einzel-ROI, siehe dort)
+    und analyze_two_point() (siehe unten, für --roi2) sind dünne Wrapper
+    darüber, damit die eigentliche Tracking-Schleife nur einmal existiert
+    und beide Aufrufer exakt dasselbe, bereits gemessene Verhalten teilen.
+
+    Rückgabe: (timestamps_ms, x_positions, y_positions, camera_dy_cumulative,
+    lost_flags, (width, height), scene_cuts, stats_ohne_range,
+    camera_frames_lost, frame_idx). camera_dy_cumulative ist die
+    (bei camera_compensation=True bereits geglättete) laufende
+    Kamera-Schätzung, roh angewendet auf y_positions nur vom Aufrufer -
+    der entscheidet, ob/wie er sie anwendet (analyze_two_point() lässt sie
+    bewusst aus, siehe dort)."""
     max_frames = options.get("max_frames")
     camera_compensation = options.get("camera_compensation", True)
     scene_cut_detection = options.get("scene_cut_detection", True)
-    axis = options.get("axis", "y")
 
     target_n = GRID_N * GRID_M
     quorum = max(2, int(np.ceil(target_n * DEGRADED_QUORUM_FRACTION)))
@@ -149,6 +158,7 @@ def analyze(video_path, roi, options):
     survivor_counts = []
     camera_frames_lost = 0
     scene_cuts = []
+    lost_flags = [False]  # je Frame: 0 Überlebende - für analyze_two_point()
 
     frame_idx = 1
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
@@ -189,6 +199,7 @@ def analyze(video_path, roi, options):
 
         if n_survivors == 0:
             tracker_lost_frames += 1
+            lost_flags.append(True)
             y_positions.append(y_positions[-1])
             x_positions.append(x_positions[-1])
             if pts is None or len(pts) == 0:
@@ -197,6 +208,7 @@ def analyze(video_path, roi, options):
         else:
             if n_survivors < quorum:
                 degraded_frames += 1
+            lost_flags.append(False)
             med_x = float(np.median(survivors_xy[:, 0]))
             med_y = float(np.median(survivors_xy[:, 1]))
             cur_cx, cur_cy = med_x, med_y
@@ -238,18 +250,14 @@ def analyze(video_path, roi, options):
 
     y_positions = np.array(y_positions)
     x_positions = np.array(x_positions)
+    camera_dy = np.array(camera_dy_cumulative)
     if camera_compensation:
-        camera_dy = np.array(camera_dy_cumulative)
         segment_bounds = [0] + list(scene_cuts) + [len(camera_dy)]
         for seg_start, seg_end in zip(segment_bounds[:-1], segment_bounds[1:]):
             seg_len = seg_end - seg_start
             if seg_len >= 9:
                 camera_dy[seg_start:seg_end] = savgol_filter(
                     camera_dy[seg_start:seg_end], 9, polyorder=2)
-        y_positions = y_positions - camera_dy
-        if camera_frames_lost > 0:
-            print(f"Kamerakompensation: {camera_frames_lost}/{frame_idx} Frames ohne "
-                  "verlässliche Hintergrund-Features (unverändert übernommen)", file=sys.stderr)
 
     if scene_cuts:
         print(f"{len(scene_cuts)} Szenenschnitt(e) erkannt und Gitter dort neu gesät "
@@ -262,21 +270,81 @@ def analyze(video_path, roi, options):
               f"({share*100:.0f}%) verloren - dort wurde die letzte bekannte Position "
               "fortgeschrieben", file=sys.stderr)
 
-    vertical_range = float(np.ptp(y_positions)) if len(y_positions) else 0.0
-    horizontal_range = float(np.ptp(x_positions)) if len(x_positions) else 0.0
     mean_survivors = float(np.mean(survivor_counts)) if survivor_counts else 0.0
-
     stats = {
         "tracker_lost_frames": tracker_lost_frames,
         "camera_frames_lost": camera_frames_lost,
         "total_frames": frame_idx,
-        "vertical_range": round(vertical_range, 1),
-        "horizontal_range": round(horizontal_range, 1),
         "grid_target_points": target_n,
         "grid_quorum": quorum,
         "grid_degraded_frames": degraded_frames,
         "grid_mean_survivors": round(mean_survivors, 2),
     }
-    return (np.array(timestamps_ms),
-            x_positions if axis == "x" else y_positions,
-            (width, height), scene_cuts, stats)
+    return (np.array(timestamps_ms), x_positions, y_positions, camera_dy,
+            np.array(lost_flags), (width, height), scene_cuts, stats,
+            camera_frames_lost, frame_idx)
+
+
+def analyze(video_path, roi, options):
+    """Verfolgt ein Punktgitter in roi=(x,y,w,h) durchs Video. Rückgabe:
+    (timestamps_ms, positions, (width, height), scene_cuts, stats) -
+    derselbe Vertrag wie backends.py ihn verlangt. Dünner Wrapper um
+    _track_grid() - wendet Kamerakompensation (nur Y) und Achsenwahl an."""
+    axis = options.get("axis", "y")
+    camera_compensation = options.get("camera_compensation", True)
+    (timestamps_ms, x_positions, y_positions, camera_dy, _lost_flags,
+     frame_size, scene_cuts, stats, camera_frames_lost, frame_idx) = _track_grid(video_path, roi, options)
+
+    if camera_compensation:
+        y_positions = y_positions - camera_dy
+        if camera_frames_lost > 0:
+            print(f"Kamerakompensation: {camera_frames_lost}/{frame_idx} Frames ohne "
+                  "verlässliche Hintergrund-Features (unverändert übernommen)", file=sys.stderr)
+
+    stats = dict(stats)
+    stats["vertical_range"] = round(float(np.ptp(y_positions)) if len(y_positions) else 0.0, 1)
+    stats["horizontal_range"] = round(float(np.ptp(x_positions)) if len(x_positions) else 0.0, 1)
+
+    return (timestamps_ms, x_positions if axis == "x" else y_positions,
+            frame_size, scene_cuts, stats)
+
+
+def analyze_two_point(video_path, roi_a, roi_b, options):
+    """Grid-LK-Gegenstück zu generate_funscript.track_two_points(): verfolgt
+    ZWEI unabhängige Punktgitter (eines je ROI) und liefert ihren vollen
+    2D-Abstand als Signal - dieselbe Idee, derselbe Rückgabe-Vertrag wie
+    track_two_points(), nur mit dem Gitter aus analyze() statt einem
+    einzelnen CSRT-Tracker je Region (docs/NEXT.md Abschnitt 8: Gitter ist
+    robuster als eine einzelne Box, insbesondere bei kleinen/schwierigen
+    ROIs - hier getestet, ob das auch für die Tf/Tj-Abstandsmessung gilt).
+
+    Keine Kamerakompensation: wie bei track_two_points() hebt sich eine
+    gemeinsame Kameraverschiebung im Abstand zweier Punkte ohnehin auf
+    (siehe dessen Docstring) - sie hier trotzdem anzuwenden würde nur zwei
+    UNABHÄNGIGE Schätzfehler einführen, die sich NICHT mehr zwangsläufig
+    aufheben.
+    """
+    opts_a = dict(options, camera_compensation=False)
+    opts_b = dict(options, camera_compensation=False)
+    (ts_a, xa, ya, _dy_a, lost_a, frame_size, cuts_a, stats_a, _cfl_a, idx_a) = _track_grid(
+        video_path, roi_a, opts_a)
+    (ts_b, xb, yb, _dy_b, lost_b, _frame_size_b, cuts_b, stats_b, _cfl_b, idx_b) = _track_grid(
+        video_path, roi_b, opts_b)
+
+    n = min(len(xa), len(xb))
+    distances = np.hypot(xa[:n] - xb[:n], ya[:n] - yb[:n])
+    lost = int(np.count_nonzero(lost_a[:n] | lost_b[:n]))
+    if lost:
+        print(f"Zwei-Punkt-Messung (Grid-LK): in {lost}/{n} Frames hat mindestens ein "
+              "Gitter alle Punkte verloren", file=sys.stderr)
+
+    stats = {
+        "tracker_lost_frames": lost,
+        "camera_frames_lost": 0,
+        "total_frames": n,
+        "vertical_range": round(float(np.ptp(distances)) if n else 0.0, 1),
+        "horizontal_range": 0.0,
+        "grid_target_points_a": stats_a["grid_target_points"],
+        "grid_target_points_b": stats_b["grid_target_points"],
+    }
+    return ts_a[:n], distances, frame_size, sorted(set(cuts_a) | set(cuts_b)), stats
