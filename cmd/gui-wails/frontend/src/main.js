@@ -30,22 +30,36 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 initPostGenerateReview();
 
+let currentVersion = 'dev';
 CurrentVersion().then(v => {
+  currentVersion = v;
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
 });
 
 // Stiller Update-Check beim Start - respektiert die Einstellung, die
 // settings.js beim Laden aus GetSettings() liest; hier zusätzlich einmal
 // direkt geprüft, damit main.js nicht auf settings.js warten muss.
+//
+// "Still" heißt: kein Dialog bei "kein Update"/Fehler, nicht "Fehler
+// verschwinden lassen" - ein CheckForUpdate()-Fehlschlag wurde hier bisher
+// komplett verschluckt (leeres .catch), nicht mal geloggt. Von außen war
+// "kein Update gefunden, weil es keins gibt" nicht von "die Prüfung ist
+// stillschweigend gescheitert" zu unterscheiden - dafür gibt es jetzt den
+// Knopf "Jetzt nach Updates suchen" in den Einstellungen (settings.js), der
+// das Ergebnis (auch einen Fehler) explizit anzeigt.
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
-    if (res.error || !res.available) return;
+    if (res.error) {
+      console.warn('Update-Prüfung beim Start fehlgeschlagen:', res.error);
+      return;
+    }
+    if (!res.available) return;
     const tag = res.release ? res.release.tag_name : '?';
-    if (confirm(`Version ${tag} ist verfügbar (aktuell: ${'dev'}).\n\nJetzt herunterladen und neu starten?`)) {
+    if (confirm(`Version ${tag} ist verfügbar (aktuell: ${currentVersion}).\n\nJetzt herunterladen und neu starten?`)) {
       ApplyUpdate().catch(err => alert('Update fehlgeschlagen: ' + err));
     }
-  }).catch(() => {});
+  }).catch(err => console.warn('Update-Prüfung beim Start fehlgeschlagen:', err));
 });
 
 
