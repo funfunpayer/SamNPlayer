@@ -90,6 +90,24 @@ export namespace generator {
 	        this.Confidence = source["Confidence"];
 	    }
 	}
+	export class ScriptQualityResult {
+	    score: number;
+	    passed: boolean;
+	    warnings: string[];
+	    estimatedFromScriptOnly: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new ScriptQualityResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.score = source["score"];
+	        this.passed = source["passed"];
+	        this.warnings = source["warnings"];
+	        this.estimatedFromScriptOnly = source["estimatedFromScriptOnly"];
+	    }
+	}
 
 }
 

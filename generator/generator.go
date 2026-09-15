@@ -3,6 +3,7 @@ package generator
 import (
 	"bufio"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -656,6 +657,55 @@ func joinLines(lines []string) string {
 		out += l + "\n"
 	}
 	return out
+}
+
+// ScriptQualityResult ist die Antwort von --script-quality (siehe
+// generate_funscript.py) - derselbe Vertrag wie quality_doctor.evaluate()
+// selbst zurückgibt, plus EstimatedFromScriptOnly als Warnhinweis: ohne
+// Video fehlen die trackingbasierten Prüfungen (aktiver Zeitanteil,
+// Rekonstruktionsfehler, Tracker-Verlust, Bewegungsspielraum), das Ergebnis
+// ist darum vorsichtiger zu lesen als nach einer echten Generierung.
+type ScriptQualityResult struct {
+	Score                   float64  `json:"score"`
+	Passed                  bool     `json:"passed"`
+	Warnings                []string `json:"warnings"`
+	EstimatedFromScriptOnly bool     `json:"estimatedFromScriptOnly"`
+}
+
+// ScriptQuality wendet Quality Doctor auf eine bereits vorhandene
+// .funscript-Datei an, ohne Video - z.B. eine aus einem anderen Werkzeug
+// importierte Datei ("Script Doctor", docs/NEXT.md "Later"). Nur die
+// Actions-only-Prüfungen laufen (siehe --script-quality's eigene
+// Beschreibung).
+func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
+	py, err := FindPython()
+	if err != nil {
+		return ScriptQualityResult{}, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return ScriptQualityResult{}, err
+	}
+	genScriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return ScriptQualityResult{}, err
+	}
+	defer cleanupScriptTemp(genScriptPath)
+	out, err := command(py, genScriptPath, "--script-quality", funscriptPath).Output()
+	if err != nil {
+		return ScriptQualityResult{}, fmt.Errorf("generator: Skript-Prüfung fehlgeschlagen: %w", err)
+	}
+	for _, line := range splitLines(string(out)) {
+		payload, ok := strings.CutPrefix(line, "SCRIPT_QUALITY ")
+		if !ok {
+			continue
+		}
+		var result ScriptQualityResult
+		if err := json.Unmarshal([]byte(payload), &result); err != nil {
+			return ScriptQualityResult{}, fmt.Errorf("generator: Antwort der Skript-Prüfung unlesbar: %w", err)
+		}
+		return result, nil
+	}
+	return ScriptQualityResult{}, fmt.Errorf("generator: keine Antwort von der Skript-Prüfung erhalten")
 }
 
 func AddFeedback(reportPath, outputPath, verdict, comment string) error {

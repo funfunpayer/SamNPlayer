@@ -1773,6 +1773,16 @@ def main():
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
+    ap.add_argument("--script-quality", default=None, metavar="FUNSCRIPT_DATEI",
+                    help="Quality Doctor auf eine BEREITS VORHANDENE .funscript-Datei "
+                         "anwenden, ohne Video - z.B. eine importierte Datei aus einem "
+                         "anderen Werkzeug. Nur die Actions-only-Prüfungen laufen "
+                         "(Zeitstempel, Wertebereich, Lücken, Geschwindigkeitsspitzen, "
+                         "Keyframe-Dichte, Geräte-Kompatibilität, Rhythmus mit reduzierter "
+                         "Verlässlichkeit) - ohne Video fehlen die trackingbasierten "
+                         "Prüfungen (aktiver Zeitanteil, Rekonstruktionsfehler, "
+                         "Tracker-Verlust, Bewegungsspielraum in Pixeln), das Ergebnis ist "
+                         "darum vorsichtiger zu lesen als nach einer echten Generierung.")
     ap.add_argument("--batch", default=None, metavar="ORDNER",
                     help="Alle Videos im Ordner nacheinander verarbeiten. Die Skripte "
                          "werden neben die Videos gelegt. Vorhandene werden übersprungen.")
@@ -1900,6 +1910,22 @@ def main():
             print("Fehler: --report-summary braucht --report DATEI", file=sys.stderr)
             sys.exit(1)
         print(summarize_report(args.report))
+        return
+
+    if args.script_quality:
+        import json as _json
+        from pathlib import Path as _Path
+        import fungen_compare
+        import quality_doctor
+        actions, failure_reason = fungen_compare.load_actions(_Path(args.script_quality))
+        if actions is None:
+            print(f"Fehler: {args.script_quality} konnte nicht gelesen werden "
+                  f"({failure_reason})", file=sys.stderr)
+            sys.exit(1)
+        duration_ms = max(float(a["at"]) for a in actions) - min(float(a["at"]) for a in actions)
+        result = quality_doctor.evaluate(actions, video_duration_ms=duration_ms)
+        result["estimatedFromScriptOnly"] = True
+        print(f"SCRIPT_QUALITY {_json.dumps(result)}")
         return
 
     if args.feedback:
