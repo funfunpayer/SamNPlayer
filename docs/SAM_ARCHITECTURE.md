@@ -150,12 +150,14 @@ scheduled yet.
 
 The user's direction (September 14, 2026, repeated explicitly while this
 milestone was being built): contact-triggered vibration for Tf/Tj (`docs/
-NEXT.md` priority 5, shipped in PR #20) and O-function event markers
-(priority 7, not yet implemented, blocked on the manual editor and climax
-detection) are **not optional extras SAM is allowed to drop** - "muss
-weiter drin sein... das ist wichtig." Whatever milestone 2's runtime ends
-up looking like, it must have an equivalent or better path for both, not
-silently lose them in the transition away from `funscript.MapOptions`.
+NEXT.md` priority 5) and O-function event markers (priority 7) are **not
+optional extras SAM is allowed to drop** - "muss weiter drin sein... das
+ist wichtig." Both now ship: manual O-marker placement (the curve editor),
+classical auto-suggestion (`SuggestOZone`, no separate detection model,
+per the user's own September 15 direction), and an opt-in auto-apply at
+generation time. Whatever milestone 2's runtime ends up looking like, it
+must have an equivalent or better path for both, not silently lose them in
+the transition away from `funscript.MapOptions`.
 
 Concretely, both already fit SAM's existing field set without needing new
 schema design:

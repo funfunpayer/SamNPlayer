@@ -1,22 +1,44 @@
 # Next steps
 
-## Verified baseline · September 14, 2026
+## Status at a glance · September 15, 2026
 
-- `main`: `a53bb32`, release [v0.2.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.1).
-- PRs #2–#7 are integrated: the Tf/Tj recipe, generator integration, second
-  GUI region, `suction_position` playback mode, version validation, the
-  English translation of project documentation, and the full local-AI
-  adapter (region/profile/quality, `docs/AI_ADAPTER.md`).
-- Tests and the release workflow succeeded for that commit.
-- [Issue #8](https://github.com/funfunpayer/SamNPlayer/issues/8) and
-  [`docs/FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md) (from
-  `codex/fungen-reference-plan`, merged into this branch) independently
-  found the same thing from real Hub/Tf/Tj batches: near-zero correlation
-  against manual FunGen references. The parity plan has a measured
-  baseline (mean r ≈ -0.07 hub / 0.02 tf·tj on 3 valid moving references)
-  and points at ROI quality, not filter/parameter tuning — see priority 2.
-  `compare-fungen-manual.md` (7 rows, 4 distinct clips after removing
-  duplicate matches) is consistent: mean r ≈ -0.05 hub / 0.01 tf·tj.
+This file grew into a research journal as well as a task list — the
+priorities below keep their full measurement history (this project's own
+convention: document what was tried and why, not just the conclusion), but
+if you only need **what's actually still open**, start here:
+
+| # | Priority | Status |
+|---|---|---|
+| 1 | Validate real hardware | **Blocked on you** — needs a Sam Neo 2 and an operator |
+| 2 | Match FunGen2 references | **Open, ongoing measurement** — real gains found (2D-distance fix, tighter ROI placement), no closed answer yet; needs more real clips |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` measured insufficient, not wired in |
+| 4 | Motion-signature/profile GUI integration | **Done** — AI region/profile/quality proposal all wired into the generator tab |
+| 5 | Contact-triggered vibration for Tf/Tj | **Done, shipped opt-in** — real-clip visual validation passed |
+| 6 | Climax ("cum") detection | **Partly answered** — classical-signal-only approach chosen (no separate AI model), see priority 7; full auto-detection at generation time not built |
+| 7 | Author O-function markers into the funscript | **Primary marker done** (manual + auto-suggest + opt-in auto-apply at generation); secondary/weaker markers still unspecified and unbuilt |
+| 8 | Generator performance vs. FunGen2 | **Open-ended, several closed sub-questions** — grid_lk backend shipped for single-ROI (15x, measurably robust); grid_lk for Tf/Tj two-point measured *not* an improvement; threaded CSRT, gentle upscaling, WebGL sharpening all measured and rejected |
+| 9 | SAM long-term architecture | **First milestone shipped** (`sam/` package, funscript roundtrip) — not wired into any GUI/CLI flow yet |
+| 10 | Player: sharper video display | **Closed as a negative result** — investigated, measured worse, reverted |
+| — | Training history across sessions | **Done** |
+| — | Script Doctor for imported files | **Done** |
+| — | Manual funscript editor | **Done** (curve editor, with video-follow) |
+
+## Verified baseline · September 15, 2026
+
+- `main` has merged PRs through #57 (see `git log --oneline` for the exact
+  list); latest published release
+  [v0.2.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.2),
+  source version (`VERSION`/`update.BaseVersion`) at `0.3.0` — the v0.3.0
+  tag itself is still unpushed (blocked in the agent environment that
+  prepared it; push it manually: `git tag v0.3.0 <sha> && git push origin
+  v0.3.0`).
+- Tests (Go race detector, Python, frontend/Playwright) and CI are green
+  on `main` as of the last merge.
+- The original FunGen near-zero-correlation finding
+  ([Issue #8](https://github.com/funfunpayer/SamNPlayer/issues/8),
+  [`docs/FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes
+  the *general* real-clip gap; priority 2 below has since found concrete,
+  real improvements on individual clips (not yet a closed, general fix).
 
 This is the short-term task list. Architecture and measurements belong in
 `HANDOFF.md`, contribution rules in `CONTRIBUTING.md`, and setup instructions
@@ -691,6 +713,23 @@ existing heatmap/curve canvases, `omarker_test.py`). AI-assisted
 placement (priority 6) still needs its own design pass and is not
 started; this only closes the manual path.
 
+**Classical auto-placement added (September 15, 2026), answering priority
+6's open design question directly: asked the user "no separate system, but
+detect as cleanly as possible" - and `funscript.SuggestOZone` (last eighth
+of the script, highest-mean-position window) already served exactly that
+purpose for the manual "O-Zone vorschlagen" button.** Extended it to
+generation time: an opt-in "O-Marker automatisch vorschlagen" checkbox
+(same pattern as the contact-vibration/AI-quality checkboxes) writes the
+primary marker automatically when the signal is confident, nothing written
+when it isn't (PR #52, `applyAutoOZoneMarker` in `app_generator.go`).
+**Still open:** the secondary/weaker markers this section's own field
+shape supports were never built for either the manual or automatic path -
+count, placement, and intensity heuristic are still unspecified. A true
+content-based climax *detector* (watching the video, not just the already-
+generated position signal) remains unbuilt and would need its own design
+pass if ever wanted - the classical signal-only approach above was judged
+sufficient for now.
+
 ### 8. Generator performance vs. FunGen2
 
 The user's direction (September 14, 2026, explicitly prioritized this
@@ -1183,26 +1222,22 @@ git history rather than rebuilding from scratch.
 
 ### Later
 
-- Script Doctor for imported `.funscript` files.
-- **The user's direction (September 14, 2026), explicitly noted for later,
-  not now:** a manual funscript editor (edit/drag individual points on the
-  curve, not just automated repair) with the video alongside it - scope
-  for "the video too" not yet clarified (trimming/selecting a range?
-  frame-accurate scrubbing while editing?). **No longer purely deferred
-  polish as of the same day:** the user now wants manual O-marker
-  placement (priority 7) too, and said that needs "a proper editor" -
-  so this item is a real prerequisite for finishing priority 7's manual
-  path, not just a nice-to-have. Still needs scoping before starting: at
-  minimum, a video-synced timeline where existing points can be seen,
-  dragged, added, and deleted, likely reusing the curve-drawing code
-  already in `playback.js` (see `curve_display_test.py`) rather than
-  building a second renderer from scratch - not yet discussed with the
-  user which parts of "proper editor" are must-have for a first version
-  versus later refinement. Also general asks for a more stable,
-  professional-looking, polished system - continue the direction already
-  started with the dark reskin (PR #11) and sidebar (PR #12), not a
-  one-off task.
-- Training history across multiple sessions.
+- ~~Script Doctor for imported `.funscript` files.~~ **Done (PR #57,
+  September 15, 2026):** reuses Quality Doctor's own actions-only fallback
+  path (never exercised before this, since the generator's own call site
+  always supplied full tracking data) via a new `--script-quality` CLI
+  flag and a "Skript prüfen" button in the playback tab, explicitly marked
+  `estimatedFromScriptOnly` so it's never confused with a post-generation run.
+- ~~A manual funscript editor (edit/drag individual points on the curve)
+  with the video alongside it~~ **Done:** the playback curve is now a
+  point editor (drag to move, click to add, double-click to delete), and
+  the video follows the point being dragged during a drag - closing this
+  and unblocking priority 7's manual O-marker path.
+- ~~Training history across multiple sessions.~~ **Done (PR #55,
+  September 15, 2026):** sessions were already logged as JSONL
+  (`app_training.go`'s `openSessionLog`) but never read back - a "Verlauf"
+  section in the training tab now summarizes past sessions (cycles, mean
+  peak intensity, interruptions, mean feedback) from those same logs.
 - ~~AI as a replaceable analysis backend... GUI wiring for all three
   remains open~~ **Stale as of September 14, 2026, corrected while
   auditing what's still missing from the GUI:** this was true when
