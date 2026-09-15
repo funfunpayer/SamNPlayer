@@ -7,20 +7,16 @@ Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 - C polarity + ROI2 coach + backend-size hint
 - D O-zone suggest/apply + post-generate review/invert confirm
 - Golden-clip protocol (`docs/GOLDEN_CLIPS.md`)
-- Chapter labels from motionx (`pause|build|steady|crescendo|winddown`)
+- Chapter labels from motionx (`pause|build|steady|crescendo|winddown`) — pure + `ScriptChapters` App method + Wails binding
 - Ring-down helper (`funscript.RingDown`) — wired via `ApplyRingDown` + playback button (confirmation required)
-- `SuggestBackend` from ROI area (grid_lk if small, else CSRT)
+- `SuggestBackend` from ROI area (grid_lk if small, else CSRT) — Go + binding + ROI coach call
 - ozone_ui.js: Taste O dispatches `ozone:hotkey`, buttons for suggest/invert/ring-down
+- playback.js: full module restored; O-key listener, ozone/polarity/ringdown refresh hooks, keyboard hints
 
 ## Open on this branch (code)
 
-- **Restore `cmd/gui-wails/frontend/src/playback.js` from main** and re-apply:
-  1. `import { applyHotkeyOMarker } from './ozone_ui.js'`
-  2. listener `ozone:hotkey` → `applyHotkeyOMarker(scriptPath, nowMs, oMarkers)` + UI refresh
-  3. listeners for `ozone:suggested` / `polarity:inverted` / `ringdown:applied` → reload curve/heatmap/markers
-  4. keyboard-hint texts mention Taste O
-  Current file is an explicit stub so the breakage is visible. Full ~40k module
-  could not be pushed through the agent path (payload truncation).
+- Optional: show `ScriptChapters()` labels on the heatmap/curve (binding exists; no auto-apply to device — deliberate)
+- Optional: regenerate full Wails `App.d.ts` so TypeScript matches App.js
 
 ## Blocked on you
 
