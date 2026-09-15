@@ -95,6 +95,58 @@ def periodicity_score(signal, fps):
     return float(concentration * amplitude)
 
 
+def _peak_regions(scores, min_cells=1, decay=0.4, max_regions=6):
+    """Findet nacheinander die stärksten lokalen Bewegungsregionen.
+
+    Nimmt die stärkste noch verfügbare Zelle als Kern und wächst von dort
+    per Breitensuche nur in Nachbarzellen, deren Wert mindestens `decay`-mal
+    den des Kerns erreicht; die gefundene Region wird dann aus der Menge
+    entfernt, bevor die nächste gesucht wird. Das gibt jedem Objekt seine
+    eigene Region, auch wenn zwei Objekte nah beieinander liegen - siehe
+    find_two_rois()'s Docstring für die Messung, die das nötig gemacht hat.
+
+    decay=0.4 ist GEMESSEN, nicht geraten, aber der Parameter reagiert
+    unruhig statt glatt: an denselben zwei Testszenen schnitt 0.6 zahlenmäßig
+    noch etwas besser ab (enger Fall +0.75 statt +0.63), aber 0.5 - direkt
+    dazwischen - ließ die Korrelation im weiter auseinanderliegenden Fall
+    auf -0.03 einbrechen (Vorzeichenwechsel), und 0.7 brach im engen Fall
+    auf -0.80 ein. 0.3-0.4 ist der einzige der getesteten Werte, der auf
+    beiden Szenen durchgehend deutlich positiv blieb - ein ruhiger Bereich
+    statt eines scharfen Optimums, siehe docs/NEXT.md Priorität 8's
+    "gentle upscaling"-Abschnitt für dieselbe Lehre (nicht von drei Punkten
+    auf eine Kurve schließen). Deshalb hier der sichere Wert, nicht der
+    zahlenmäßig beste einer einzelnen Messung.
+    """
+    rows, cols = scores.shape
+    available = np.ones_like(scores, dtype=bool)
+    regions = []
+    for _ in range(max_regions):
+        masked = np.where(available, scores, -np.inf)
+        r0, c0 = np.unravel_index(np.argmax(masked), masked.shape)
+        peak = masked[r0, c0]
+        if not np.isfinite(peak) or peak <= 0:
+            break
+        core = peak * decay
+        stack = [(r0, c0)]
+        available[r0, c0] = False
+        cells = []
+        while stack:
+            r, c = stack.pop()
+            cells.append((r, c))
+            for dr in (-1, 0, 1):
+                for dc in (-1, 0, 1):
+                    if dr == 0 and dc == 0:
+                        continue
+                    nr, nc = r + dr, c + dc
+                    if (0 <= nr < rows and 0 <= nc < cols and available[nr, nc]
+                            and scores[nr, nc] >= core):
+                        available[nr, nc] = False
+                        stack.append((nr, nc))
+        if len(cells) >= min_cells:
+            regions.append(cells)
+    return regions
+
+
 def find_two_rois(video_path, **kwargs):
     """Sucht ZWEI Regionen, deren ABSTAND die stärkste Bewegung zeigt.
 
@@ -110,82 +162,96 @@ def find_two_rois(video_path, **kwargs):
     Material nachweislich verlustfrei arbeitet (Intensität 162,1 gegen ideal
     161,4). Der Unterschied steckt also in der Messgröße selbst.
 
-    ACHTUNG - GEMESSEN UNZUREICHEND, NICHT IM ERZEUGUNGSPFAD VERDRAHTET.
+    ACHTUNG - weiterhin NICHT als GUI-Standard verdrahtet (siehe
+    docs/NEXT.md, Priorität 3): jetzt gemessen ausreichend gegen von Hand
+    gewählte Regionen, aber nur an synthetischem Material - eine Validierung
+    über mehrere echte Clips steht noch aus, bevor das zum Standardpfad wird.
 
-    An einem Testvideo mit zwei Objekten, deren Abstand das echte Signal ist,
-    gemessen (Korrelation zum bekannten Abstand):
+    Ursprünglich (Zellenpaare aus einem starren Raster, jede Zelle ein
+    eigener Kandidat, benachbarte Zellpaare ausgeschlossen) an einem
+    Testvideo mit zwei nur rund 25px auseinanderliegenden Objekten gemessen:
 
         von Hand gewählte Regionen        +0.62
         automatisch, Raster 12x8          +0.18
         automatisch, Raster 20x16         +0.17
         automatisch, Raster 28x22         +0.28
 
-    Die Ursache ist die Rasterauflösung: die beiden Objekte liegen nur rund
-    25px auseinander und fallen dadurch überwiegend in dieselben oder
-    benachbarte Zellen. Die Bedingung "räumlich getrennt" schließt genau
-    diese Paare aus, und übrig bleiben Paare, bei denen eine Zelle
-    Hintergrund zeigt. Ein feineres Raster hilft kaum und kostet viel
-    Rechenzeit.
+    Die Ursache: die beiden Objekte fielen überwiegend in dieselben oder
+    benachbarte Zellen, und die Regel "räumlich getrennt" (Zellabstand >= 2)
+    schloss genau diese Paare aus - übrig blieben Paare, bei denen eine
+    Zelle nur Hintergrund zeigte. Ein feineres Raster half kaum, weil sich
+    das Problem nicht durch mehr Zellen löst, sondern dadurch, dass jede
+    einzelne Zelle nur einen winzigen Ausschnitt eines Objekts sieht statt
+    seiner ganzen Ausdehnung.
 
-    Ein erster Versuch wählte das Paar mit der größten Auslenkung der
-    aufsummierten Differenz - das kürte zuverlässig das Paar mit der
-    stärksten Drift, weil das Aufsummieren von Flow driftet. Die Bewertung
-    nach Rhythmik ist besser begründet, ändert am Ergebnis aber wenig.
+    Ersetzt durch `_peak_regions()`: statt einzelner Zellen als Kandidaten
+    werden zusammenhängende Bewegungsregionen um die jeweils stärkste noch
+    unverbrauchte Zelle gebildet (siehe deren Docstring) - jedes Objekt
+    bekommt dadurch seine eigene Region, auch wenn beide nah beieinander
+    liegen, weil die Region um die schwächere Zelle erst NACH Entfernen der
+    stärkeren gesucht wird, statt beide in einem einzigen Schwellwert-Klumpen
+    zu verschmelzen. Neu gemessen (generator/auto_roi_two_point_test.py,
+    zwei synthetische Szenen - eng beieinander wie oben, und die bereits
+    bestehenden two_point_test.py-Fixtures mit größerem Objektabstand):
 
-    Für den Erzeugungspfad bleibt es deshalb bei --roi2 von Hand. Diese
-    Funktion bleibt erhalten, weil das Verfahren tragfähig wird, sobald die
-    Kandidaten nicht mehr aus einem starren Raster stammen, sondern aus
-    zusammenhängenden Bewegungsregionen.
+        eng beieinander (~25px, wie oben)   alt +0.01   neu +0.63
+        weiter auseinander (two_point_test) alt +0.17   neu +0.21
+
+    Beide Fälle verbessert, der enge deutlich - genau das Szenario, das
+    vorher am schlechtesten abschnitt. Für den Erzeugungspfad bleibt es
+    trotzdem bei --roi2 von Hand (bzw. der KI-Regionsvorschlag mit
+    Bestätigung, docs/AI_ADAPTER.md): eine Messung an synthetischem
+    Material allein reicht laut Priorität 3's Abnahmekriterien nicht, um
+    das zum automatischen Standard zu machen.
     """
     result = find_roi(video_path, _return_series=True, **kwargs)
     scores, series, geometry = result
-    grid_rows, grid_cols = scores.shape
     cell_w, cell_h, scale, width, height, fps = geometry
 
-    # Nur Zellen betrachten, die überhaupt nennenswerte Bewegung zeigen -
-    # sonst gewinnt ein Paar aus zwei Rauschzellen, deren Differenz zufällig
-    # groß ausschlägt.
+    regions = _peak_regions(scores)
     candidates = []
-    limit = max(scores.max() * 0.25, 1e-9)
-    for r in range(grid_rows):
-        for c in range(grid_cols):
-            if scores[r][c] >= limit and len(series[r][c]) > 8:
-                candidates.append((r, c, np.asarray(series[r][c], dtype=float)))
+    for cells in regions:
+        member_series = [np.asarray(series[r][c], dtype=float) for r, c in cells if len(series[r][c]) > 8]
+        if not member_series:
+            continue
+        n = min(len(s) for s in member_series)
+        weights = np.array([scores[r][c] for r, c in cells if len(series[r][c]) > 8])
+        stacked = np.array([s[:n] for s in member_series])
+        agg = np.average(stacked, axis=0, weights=weights)
+        candidates.append((cells, agg))
+
     if len(candidates) < 2:
         raise RuntimeError("Zu wenige bewegte Regionen für eine Zwei-Punkt-Messung gefunden")
 
-    # Auf gleiche Länge bringen: Zellen können unterschiedlich viele
+    # Auf gleiche Länge bringen: Regionen können unterschiedlich viele
     # verwertbare Messwerte haben.
-    n = min(len(c[2]) for c in candidates)
+    n = min(len(c[1]) for c in candidates)
     best = None
     for i in range(len(candidates)):
         for j in range(i + 1, len(candidates)):
-            r1, c1, s1 = candidates[i]
-            r2, c2, s2 = candidates[j]
-            # Räumlich getrennt: zwei benachbarte Zellen zeigen dieselbe
-            # Bewegung, ihre Differenz wäre nur Rauschen.
-            if abs(r1 - r2) + abs(c1 - c2) < 2:
-                continue
+            cellsA, sA = candidates[i]
+            cellsB, sB = candidates[j]
             # Bewertet wird die RHYTHMIK der Differenz, nicht ihre
-            # Auslenkung. Das Aufsummieren von Flow driftet; nach der
+            # Auslenkung - das Aufsummieren von Flow driftet, nach der
             # größten Auslenkung auszuwählen kürt damit zuverlässig das
             # Paar mit der stärksten Drift statt dem stärksten Signal.
-            # Erster Versuch genau so gemessen: Korrelation 0.18 gegen 0.62
-            # bei von Hand gewählten Regionen.
-            difference = np.cumsum(s1[:n]) - np.cumsum(s2[:n])
+            difference = np.cumsum(sA[:n]) - np.cumsum(sB[:n])
             quality = periodicity_score(difference, fps)
             if best is None or quality > best[0]:
-                best = (quality, (r1, c1), (r2, c2))
+                best = (quality, cellsA, cellsB)
 
     if best is None:
         raise RuntimeError("Kein geeignetes Regionenpaar gefunden")
 
-    def to_box(cell):
-        r, c = cell
-        x = int(c * cell_w / scale)
-        y = int(r * cell_h / scale)
-        w = max(24, int(cell_w / scale * 1.5))
-        h = max(24, int(cell_h / scale * 1.5))
+    def to_box(cells):
+        rs = [r for r, c in cells]
+        cs = [c for r, c in cells]
+        r0, r1 = min(rs), max(rs) + 1
+        c0, c1 = min(cs), max(cs) + 1
+        x = int(c0 * cell_w / scale)
+        y = int(r0 * cell_h / scale)
+        w = max(24, int((c1 - c0) * cell_w / scale))
+        h = max(24, int((r1 - r0) * cell_h / scale))
         x = max(0, min(x, width - w))
         y = max(0, min(y, height - h))
         return (x, y, w, h)

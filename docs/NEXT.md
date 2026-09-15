@@ -474,6 +474,52 @@ plausible since it doesn't share the grid-resolution problem; (b) improving
 itself measured against manually chosen regions, ROI2 stays manual-first
 with AI/heuristic suggestions as an opt-in aid, not swapped roles.
 
+**Direction (b) tried (September 15, 2026):** replaced the grid-cell-pair
+candidate search with `_peak_regions()` - grows a connected region around
+each strongest still-unused cell in turn (removing it before searching for
+the next), instead of treating single grid cells as candidates and
+rejecting adjacent-cell pairs. That rejection rule was the actual cause of
+the old +0.17-0.28 result: two close objects mostly fell into the same or
+neighboring cells, and "spatially separated" threw out exactly the pairs
+that best represented each object.
+
+Measured on two synthetic scenes (`generator/auto_roi_two_point_test.py`,
+both with camera pan + shared vertical motion + a swinging distance as the
+real signal, matching this project's established two-point test
+construction): the original ~25px-apart case from the docstring above
+(worst case for the old method) and the wider-apart case
+`two_point_test.py` already uses for `track_two_points` itself.
+
+| scene | old (grid-cell pairs) | new (`_peak_regions`) |
+|---|---:|---:|
+| close (~25px apart) | +0.01 | **+0.63** |
+| further apart | +0.17 | **+0.21** |
+
+Both improved, the close case by far the most - the case the old method
+handled worst. The close case even edges past the docstring's own
+hand-picked-region baseline (+0.62) on this synthetic scene, though that
+is not a claim the automatic method now beats manual placement in
+general - one synthetic scene, not real material.
+
+**Caveat found while tuning:** the growth parameter (`decay`, how far a
+region extends from its peak cell) is NOT a smooth dial - 0.4 and 0.6
+both scored well, but 0.5 (between them) collapsed the wider-apart case to
+-0.03 and 0.7 collapsed the close case to -0.80. Shipped 0.4 as the
+center of the wider stable range (0.3-0.4 both stayed clearly positive on
+both scenes) rather than 0.6's marginally higher single-run number,
+following this document's own "gentle upscaling" lesson (priority 8) about
+not trusting a narrow parameter sweep's best point over its shape.
+
+**Still not enough to flip the GUI default:** this is real, measured
+improvement on synthetic material, not the "validated against manually
+chosen regions on real clips" bar priority 3's acceptance criteria and the
+user's own direction above require before ROI2 auto-detection can become
+the default. `find_two_rois` remains unwired from the generation path.
+Next step for whoever picks this up: run it against the real two-point
+clips already available in this session's dataset (or new ones) the same
+way priority 2 measures `track_two_points`/`grid_lk_backend`, and compare
+against the manually-placed ROI2 anchors already on record there.
+
 ### 4. Complete motion-signature and profile integration in the GUI
 
 The naming and persistence paths now exist at the CLI level
