@@ -69,3 +69,39 @@ func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
 	})
 	return zone, a.SaveOMarkers(path, markers)
 }
+
+// ApplyRingDown hängt gedämpfte Halbzyklen nach atMs an das geladene Skript
+// und speichert. cycles 1 oder 2. Prefix bleibt unverändert; Ende ist 0.
+// Nicht automatisch während live Extended-O — nur explizit vom UI.
+func (a *App) ApplyRingDown(atMs int64, cycles int) error {
+	if a.currentScript == nil {
+		return fmt.Errorf("kein Skript geladen")
+	}
+	if a.scriptPath == "" {
+		return fmt.Errorf("kein Skriptpfad")
+	}
+	if cycles < 1 {
+		cycles = 1
+	}
+	if cycles > 2 {
+		cycles = 2
+	}
+	actions := a.currentScript.Actions
+	lastPos := 50
+	for _, act := range actions {
+		if act.At > atMs {
+			break
+		}
+		lastPos = act.Pos
+	}
+	newActions := funscript.RingDown(actions, atMs, lastPos, cycles)
+	if err := funscript.SaveActions(a.scriptPath, newActions); err != nil {
+		return err
+	}
+	script, err := funscript.Load(a.scriptPath)
+	if err != nil {
+		return err
+	}
+	a.currentScript = script
+	return nil
+}

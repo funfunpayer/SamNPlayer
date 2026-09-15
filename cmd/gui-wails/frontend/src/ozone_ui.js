@@ -1,4 +1,4 @@
-import { ApplySuggestedOZone, SuggestPolarity, InvertLoadedScript, SaveOMarkers, GetOMarkers } from '../wailsjs/go/main/App';
+import { ApplySuggestedOZone, SuggestPolarity, InvertLoadedScript, SaveOMarkers, GetOMarkers, ApplyRingDown } from '../wailsjs/go/main/App';
 
 export function enhancePlaybackOZone(root) {
   const oRow = root.querySelector('#pb-omarker-add-row');
@@ -15,6 +15,13 @@ export function enhancePlaybackOZone(root) {
   invertBtn.type = 'button';
   invertBtn.textContent = 'Richtung prüfen / umkehren';
   oRow.appendChild(invertBtn);
+
+  const ringBtn = document.createElement('button');
+  ringBtn.id = 'pb-ringdown';
+  ringBtn.type = 'button';
+  ringBtn.textContent = 'Ring-down anwenden';
+  ringBtn.title = 'Gedämpfte Halbzyklen nach aktueller Position anhängen (Skript speichern)';
+  oRow.appendChild(ringBtn);
 
   const status = document.createElement('span');
   status.id = 'pb-ozone-status';
@@ -51,6 +58,25 @@ export function enhancePlaybackOZone(root) {
       } else {
         status.textContent = msg;
       }
+    } catch (err) {
+      status.textContent = String(err);
+    }
+  });
+
+  ringBtn.addEventListener('click', async () => {
+    try {
+      const video = root.querySelector('#pb-video');
+      let atMs = 0;
+      if (video && Number.isFinite(video.currentTime)) {
+        atMs = Math.round(video.currentTime * 1000);
+      }
+      if (!confirm('Ring-down nach t=' + atMs + ' ms anhängen und Skript speichern? (2 Zyklen, endet bei 0)')) {
+        status.textContent = 'Ring-down abgebrochen.';
+        return;
+      }
+      await ApplyRingDown(atMs, 2);
+      status.textContent = 'Ring-down gespeichert (nach ' + atMs + ' ms).';
+      window.dispatchEvent(new CustomEvent('script:ringdown', { detail: { atMs } }));
     } catch (err) {
       status.textContent = String(err);
     }

@@ -8,7 +8,8 @@ Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 - D O-zone suggest/apply + post-generate review/invert confirm
 - Golden-clip protocol (`docs/GOLDEN_CLIPS.md`)
 - Chapter labels from motionx (`pause|build|steady|crescendo|winddown`)
-- Ring-down helper (`funscript.RingDown`) — not wired into live EO yet
+- Ring-down helper (`funscript.RingDown`) + `ApplyRingDown` + playback button
+  (explicit only; not auto during live Extended-O)
 - `SuggestBackend` from ROI area (grid_lk if small, else CSRT)
 
 ## Blocked on you
@@ -20,4 +21,5 @@ Branch `feat/polarity-roi2-o-zone`, draft PR #50. Updated 2026-09-15.
 ## Deliberately not built
 
 Upscale, sharpen, backend fusion, auto-apply chapters to the device,
-changing Extended-O hold times, FunGen source, pipeline GUI.
+changing Extended-O hold times, FunGen source, pipeline GUI,
+auto RingDown inside live Extended-O restore.
