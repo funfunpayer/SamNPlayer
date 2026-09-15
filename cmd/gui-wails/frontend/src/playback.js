@@ -568,7 +568,7 @@ export function initPlayback(root) {
     if (on) {
       try {
         const actions = await GetScriptActions();
-        rawActions = actions.map(a => ({ atMs: a.at, pos: a.pos }));
+        rawActions = (Array.isArray(actions) ? actions : []).map(a => ({ atMs: a.at, pos: a.pos }));
       } catch (err) {
         log('Editor: Punkte laden fehlgeschlagen: ' + err);
         el('#pb-curve-edit').checked = false;
