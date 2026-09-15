@@ -112,6 +112,31 @@ type Metadata struct {
 	// Source nennt die Herkunft, z.B. "funscript-import" - informativ,
 	// keine feste Werteliste in v0.1.
 	Source string `json:"source,omitempty"`
+	// Profile spiegelt funscript.Script.Metadata.Profile (z.B. "tj") -
+	// bestimmt beim Zurückwandeln (funscript.go, ToFunscript), ob die
+	// Wiedergabe die Abstand- statt Hub-Zuordnung verwendet
+	// (funscript.IsDistanceProfile). Ohne dieses Feld würde ein
+	// SAM-Roundtrip die Hardware-Zuordnung eines Tf/Tj-Skripts
+	// stillschweigend verlieren - gefunden beim Testen mit echten
+	// tj-Skripten aus diesem Projekt.
+	Profile string `json:"profile,omitempty"`
+	// DeviceRecipe spiegelt funscript.DeviceRecipe. Eigener Typ statt
+	// Wiederverwendung von funscript.DeviceRecipe, damit dieses Paket
+	// unabhängig vom funscript-Paket bleibt (siehe Paket-Docstring) -
+	// funscript.go übernimmt die Feld-für-Feld-Umwandlung.
+	DeviceRecipe *DeviceRecipe `json:"device_recipe,omitempty"`
+}
+
+// DeviceRecipe spiegelt funscript.DeviceRecipe für den Roundtrip - siehe
+// dortige Feldkommentare (funscript/recipe.go) für die Bedeutung der
+// einzelnen Werte.
+type DeviceRecipe struct {
+	Sync             string  `json:"sync"`
+	MinSuction       float64 `json:"min_suction"`
+	TickMs           int64   `json:"tick_ms"`
+	MaxSpeed         float64 `json:"max_speed"`
+	Smoothing        float64 `json:"smoothing"`
+	ContactVibration bool    `json:"contact_vibration,omitempty"`
 }
 
 // Script ist das geparste SAM-Motion-Script-Dokument.
