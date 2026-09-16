@@ -1455,6 +1455,10 @@ def _register_builtin_backends():
         import grid_lk_backend
         return grid_lk_backend.analyze(video_path, roi, options)
 
+    def region_fusion(video_path, roi, options):
+        import region_fusion_backend
+        return region_fusion_backend.analyze(video_path, roi, options)
+
     backends.register("csrt", csrt,
                       "Markierte Region mit einem Tracker verfolgen. Robust bei ruhiger "
                       "Kamera, braucht aber eine Region.")
@@ -1469,6 +1473,12 @@ def _register_builtin_backends():
                       "verfolgt, Median als Position. Braucht eine Region wie csrt, rund "
                       "15x schneller, GEMESSEN robuster bei kleinen/schwierigen Regionen "
                       "als KCF/MOSSE (siehe docs/NEXT.md Abschnitt 8).")
+    backends.register("region_fusion", region_fusion,
+                      "Teilt die Region in ein 2x2-Gitter (4 Teilregionen), verfolgt jede "
+                      "einzeln und gewichtet sie je Frame nach aktueller Bewegungsstärke "
+                      "zu einem Signal - vermeidet, dass ruhige Teile der Region die "
+                      "Bewegung in einem aktiven Teil verwässern. Braucht eine Region wie "
+                      "csrt/grid_lk.")
 
 
 def select_roi_interactively(video_path):
@@ -1849,7 +1859,11 @@ def main():
                          "--roi2 (Zwei-Punkt-Messung) trackt grid_lk je Region ein "
                          "eigenes Gitter statt csrt's Einzel-Tracker - GEMESSEN "
                          "schlechter für die FunGen-Übereinstimmung als csrt trotz "
-                         "besserer eigener Tracking-Güte, siehe docs/NEXT.md Abschnitt 8.")
+                         "besserer eigener Tracking-Güte, siehe docs/NEXT.md Abschnitt 8. "
+                         "region_fusion = Region in ein 2x2-Gitter (4 Teilregionen) "
+                         "geteilt, jede einzeln getrackt und je Frame nach aktueller "
+                         "Bewegungsstärke gewichtet zu einem Signal verschmolzen - "
+                         "braucht eine Region wie csrt/grid_lk, kein --roi2.")
     ap.add_argument("--auto-retry", action="store_true",
                     help="Bei nicht bestandener Qualitätsprüfung alternative "
                          "Signalparameter durchprobieren und das beste Ergebnis behalten. "

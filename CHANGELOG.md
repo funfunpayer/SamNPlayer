@@ -8,6 +8,21 @@ measurement history behind each entry; this file is the short version for
 
 ## [Unreleased] — since v0.4.2 (September 16, 2026)
 
+### Added
+
+- **`region_fusion` tracking backend**: splits the marked region into a
+  2x2 grid (4 sub-regions), tracks each independently, and fuses them
+  per-frame into one signal weighted by each sub-region's current motion
+  strength — instead of a single box (`csrt`) or one point grid spanning
+  the whole region (`grid_lk`) that implicitly averages in whatever part
+  of the region is currently still. Selectable via "Tracking-Verfahren"
+  in the Generator tab, or `--backend region_fusion` on the CLI. Not
+  available for two-point (Tf/Tj) measurement — falls back to CSRT there,
+  same as `flow`. GEMESSEN on real material against a FunGen2 reference:
+  at least on par with `csrt`, clearly ahead of both `csrt` and `grid_lk`
+  in one of two tested segments — see docs/NEXT.md for the numbers and an
+  important caveat about clip/reference timing alignment.
+
 ### Fixed
 
 - **CSRT tracker crash, second variant.** The earlier fix only covered two
