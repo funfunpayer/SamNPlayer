@@ -2274,6 +2274,8 @@ def process_one(args, ap):
     # aktivierte Messwert-Aufzeichnung (--report).
     if ai_opinion is not None:
         metadata["ai_opinion"] = ai_opinion
+    if audio_check_result is not None and audio_check_result.get("available"):
+        metadata["audio_check"] = audio_check_result
     if args.contact_vibration and not is_distance_profile(args.profile):
         print("Hinweis: --contact-vibration wirkt nur bei --profile tf/tj, wird ignoriert.",
               file=sys.stderr)

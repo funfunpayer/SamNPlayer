@@ -5,6 +5,7 @@ export function ApplySuggestedOZone() { return window['go']['main']['App']['Appl
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
+export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }

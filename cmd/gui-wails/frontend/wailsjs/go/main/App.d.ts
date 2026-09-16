@@ -17,6 +17,8 @@ export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 
 export function CheckAIRoiAvailable():Promise<boolean>;
 
+export function CheckAudioCheckAvailable():Promise<boolean>;
+
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
 
 export function CheckGeneratorDependencies():Promise<void>;

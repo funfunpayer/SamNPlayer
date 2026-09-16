@@ -64,6 +64,7 @@ type Options struct {
 	AIQualityOpinion          bool
 	AIBaseURL                 string
 	ContactVibration          bool
+	AudioCheck                bool
 }
 
 func pythonCandidates() []string {
@@ -286,6 +287,17 @@ func AIRoiAvailable(modelPath string) bool {
 		return false
 	}
 	return strings.TrimSpace(string(out)) == "AVAILABLE"
+}
+
+// AudioCheckAvailable prüft, ob --audio-check grundsätzlich nutzbar ist -
+// nur ffmpeg auf dem PATH nötig (siehe generator/audio_check.py), kein
+// Python-Unterprozess wie bei AIRoiAvailable, weil ffmpeg die einzige
+// zusätzliche Voraussetzung gegenüber der normalen Generierung ist. Für die
+// GUI, um die Checkbox zu aktivieren/auszublenden statt sie anzubieten und
+// dann bei jedem Versuch mit "nicht möglich" scheitern zu lassen.
+func AudioCheckAvailable() bool {
+	_, err := exec.LookPath("ffmpeg")
+	return err == nil
 }
 
 // findROIViaScript führt eines der beiden austauschbaren ROI-Finder-Skripte
@@ -593,6 +605,9 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.ContactVibration {
 		args = append(args, "--contact-vibration")
+	}
+	if opts.AudioCheck {
+		args = append(args, "--audio-check")
 	}
 	return args
 }

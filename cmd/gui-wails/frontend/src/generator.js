@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
 export function initGenerator(root, playback) {
@@ -92,6 +92,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check">Skript-Tempo gegen die Tonspur prüfen (braucht ffmpeg, rein klassisch - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone">O-Marker automatisch vorschlagen (letztes Achtel, höchste mittlere Position - klassisch aus dem Signal, kein KI-Modell; nur gesetzt, wenn das Ende deutlich hoch liegt)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
@@ -172,6 +173,18 @@ export function initGenerator(root, playback) {
       : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
         + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
         + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
+  }).catch(() => {});
+
+  // Audio-Tempo-Prüfung (audio_check.py) braucht nur ffmpeg auf dem PATH -
+  // kein Modell, kein separates Python-Paket. Gleiches Muster wie oben:
+  // einmal beim Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei
+  // jedem Versuch mit "nicht möglich" zu scheitern.
+  CheckAudioCheckAvailable().then(available => {
+    const checkbox = el('#gen-audio-check');
+    checkbox.disabled = !available;
+    if (!available) {
+      checkbox.title = 'ffmpeg wurde nicht auf dem PATH gefunden';
+    }
   }).catch(() => {});
 
   function setRoi2Mode(on) {
@@ -413,6 +426,7 @@ export function initGenerator(root, playback) {
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
       autoOZoneMarker: el('#gen-auto-ozone').checked,
+      audioCheck: el('#gen-audio-check').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;
@@ -546,6 +560,13 @@ export function initGenerator(root, playback) {
         html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
           + `<b>KI-Zweitmeinung: ${result.aiOpinionVerdict}</b>`
           + (result.aiOpinionReason ? `<br>${result.aiOpinionReason}` : '')
+          + `</div>`;
+      }
+      if (result.audioCheckWarnings && result.audioCheckWarnings.length > 0) {
+        html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
+          + `<b>Audio-Tempo-Prüfung:</b>`
+          + '<ul style="margin:6px 0 0 18px; padding:0;">'
+          + result.audioCheckWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>'
           + `</div>`;
       }
       qualityBox.innerHTML = html;

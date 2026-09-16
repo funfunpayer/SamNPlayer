@@ -214,6 +214,7 @@ export namespace main {
 	    aiQualityOpinion: boolean;
 	    contactVibration: boolean;
 	    autoOZoneMarker: boolean;
+	    audioCheck: boolean;
 
 	    static createFrom(source: any = {}) {
 	        return new GenerateOptions(source);
@@ -249,6 +250,7 @@ export namespace main {
 	        this.aiQualityOpinion = source["aiQualityOpinion"];
 	        this.contactVibration = source["contactVibration"];
 	        this.autoOZoneMarker = source["autoOZoneMarker"];
+	        this.audioCheck = source["audioCheck"];
 	    }
 	}
 	export class GeneratedReview {
