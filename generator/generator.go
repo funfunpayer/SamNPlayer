@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -712,38 +713,20 @@ type ScriptQualityResult struct {
 
 // ScriptQuality wendet Quality Doctor auf eine bereits vorhandene
 // .funscript-Datei an, ohne Video - z.B. eine aus einem anderen Werkzeug
-// importierte Datei ("Script Doctor", docs/NEXT.md "Later"). Nur die
-// Actions-only-Prüfungen laufen (siehe --script-quality's eigene
-// Beschreibung).
+// importierte Datei ("Script Doctor"). Pure Go (funscript.EvaluateScriptQuality);
+// no Python install required for this check.
 func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
-	py, err := FindPython()
+	script, err := funscript.Load(funscriptPath)
 	if err != nil {
 		return ScriptQualityResult{}, err
 	}
-	if err := CheckDependencies(); err != nil {
-		return ScriptQualityResult{}, err
-	}
-	genScriptPath, err := writeScriptToTemp()
-	if err != nil {
-		return ScriptQualityResult{}, err
-	}
-	defer cleanupScriptTemp(genScriptPath)
-	out, err := command(py, genScriptPath, "--script-quality", funscriptPath).Output()
-	if err != nil {
-		return ScriptQualityResult{}, fmt.Errorf("generator: Skript-Prüfung fehlgeschlagen: %w", err)
-	}
-	for _, line := range splitLines(string(out)) {
-		payload, ok := strings.CutPrefix(line, "SCRIPT_QUALITY ")
-		if !ok {
-			continue
-		}
-		var result ScriptQualityResult
-		if err := json.Unmarshal([]byte(payload), &result); err != nil {
-			return ScriptQualityResult{}, fmt.Errorf("generator: Antwort der Skript-Prüfung unlesbar: %w", err)
-		}
-		return result, nil
-	}
-	return ScriptQualityResult{}, fmt.Errorf("generator: keine Antwort von der Skript-Prüfung erhalten")
+	got := funscript.EvaluateScriptQuality(script.Actions)
+	return ScriptQualityResult{
+		Score:                   got.Score,
+		Passed:                  got.Passed,
+		Warnings:                got.Warnings,
+		EstimatedFromScriptOnly: true,
+	}, nil
 }
 
 func AddFeedback(reportPath, outputPath, verdict, comment string) error {
