@@ -217,16 +217,23 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 // Suggestion greift - klassisch aus dem Signal, kein eigenes KI-Modell
 // (docs/NEXT.md Priorität 6/7). Eigene Funktion statt Inline-Code in
 // GenerateScript, damit sie ohne echten Video-Generierungslauf testbar ist.
+// Schreibt zusätzlich bis zu zwei schwächere, frühere Marker, falls das
+// Signal welche hergibt (funscript.SuggestSecondaryOZones) - derselbe
+// "primary + optionale sekundäre" Vorschlag wie beim manuellen
+// "O-Zone vorschlagen"-Knopf (app_suggest.go), hier am Generierungspfad.
 func applyAutoOZoneMarker(outPath string, actions []funscript.Action) (funscript.OZoneSuggestion, error) {
 	zone := funscript.SuggestOZone(actions)
 	if !zone.OK {
 		return zone, nil
 	}
-	marker := funscript.OMarker{
+	markers := []funscript.OMarker{{
 		StartMs: zone.StartMs, EndMs: zone.EndMs,
 		Kind: funscript.OMarkerPrimary, Intensity: 1,
+	}}
+	for _, sec := range funscript.SuggestSecondaryOZones(actions, zone, 2) {
+		markers = append(markers, secondaryMarkerFromSuggestion(sec, zone))
 	}
-	return zone, funscript.SaveOMarkers(outPath, []funscript.OMarker{marker})
+	return zone, funscript.SaveOMarkers(outPath, markers)
 }
 
 func scriptPathForVideo(videoPath string) string {

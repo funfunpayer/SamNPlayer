@@ -55,6 +55,60 @@ func TestApplyAutoOZoneMarkerWritesPrimaryMarker(t *testing.T) {
 	}
 }
 
+func TestApplyAutoOZoneMarkerWritesSecondaryMarkerWhenPresent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "g2.funscript")
+	actions := make([]funscript.Action, 0, 1001)
+	for i := 0; i <= 1000; i++ {
+		at := int64(i * 100) // 0..100000ms
+		pos := 10
+		switch {
+		case at >= 90000:
+			pos = 90 // Hauptmarker im letzten Achtel
+		case at >= 20000 && at < 25000:
+			pos = 55 // schwächere, frühere Erhebung
+		}
+		actions = append(actions, funscript.Action{At: at, Pos: pos})
+	}
+	writeTestScript(t, path, actions)
+
+	zone, err := applyAutoOZoneMarker(path, actions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !zone.OK {
+		t.Fatalf("erwartete Zone bei hohem Ende: %+v", zone)
+	}
+
+	markers, err := funscript.LoadOMarkers(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(markers) < 2 {
+		t.Fatalf("erwartete Haupt- plus mindestens einen sekundären Marker, got %d: %+v", len(markers), markers)
+	}
+	var primaryCount, secondaryCount int
+	for _, m := range markers {
+		switch m.Kind {
+		case funscript.OMarkerPrimary:
+			primaryCount++
+		case funscript.OMarkerSecondary:
+			secondaryCount++
+			if m.Intensity <= 0 || m.Intensity >= 1 {
+				t.Fatalf("sekundärer Marker sollte schwächer als der Hauptmarker sein (Intensität in (0,1)): %+v", m)
+			}
+			if m.EndMs > zone.StartMs {
+				t.Fatalf("sekundärer Marker darf nicht in/nach den Hauptmarker reichen: %+v vs primary %+v", m, zone)
+			}
+		}
+	}
+	if primaryCount != 1 {
+		t.Fatalf("erwartete genau einen primary-Marker, got %d", primaryCount)
+	}
+	if secondaryCount == 0 {
+		t.Fatalf("erwartete mindestens einen secondary-Marker bei der markierten Erhebung")
+	}
+}
+
 func TestApplyAutoOZoneMarkerFlatScriptWritesNothing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "flat.funscript")
 	actions := make([]funscript.Action, 0, 51)
