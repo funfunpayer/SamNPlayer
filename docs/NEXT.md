@@ -1,6 +1,6 @@
 # Next steps
 
-## Status at a glance · September 15, 2026
+## Status at a glance · September 16, 2026
 
 This file grew into a research journal as well as a task list — the
 priorities below keep their full measurement history (this project's own
@@ -15,7 +15,7 @@ if you only need **what's actually still open**, start here:
 | 4 | Motion-signature/profile GUI integration | **Done** — AI region/profile/quality proposal all wired into the generator tab |
 | 5 | Contact-triggered vibration for Tf/Tj | **Done, shipped opt-in** — real-clip visual validation passed |
 | 6 | Climax ("cum") detection | **Partly answered** — classical-signal-only approach chosen (no separate AI model), see priority 7; full auto-detection at generation time not built |
-| 7 | Author O-function markers into the funscript | **Primary marker done** (manual + auto-suggest + opt-in auto-apply at generation); secondary/weaker markers still unspecified and unbuilt |
+| 7 | Author O-function markers into the funscript | **Done** (PR #67, September 16, 2026) — primary + optional secondary markers, both manual and auto-suggest paths |
 | 8 | Generator performance vs. FunGen2 | **Open-ended, several closed sub-questions** — grid_lk backend shipped for single-ROI (15x, measurably robust); grid_lk for Tf/Tj two-point measured *not* an improvement; threaded CSRT, gentle upscaling, WebGL sharpening all measured and rejected |
 | 9 | SAM long-term architecture | **First milestone shipped** (`sam/` package, funscript roundtrip) — not wired into any GUI/CLI flow yet |
 | 10 | Player: sharper video display | **Closed as a negative result** — investigated, measured worse, reverted |
@@ -818,13 +818,26 @@ generation time: an opt-in "O-Marker automatisch vorschlagen" checkbox
 (same pattern as the contact-vibration/AI-quality checkboxes) writes the
 primary marker automatically when the signal is confident, nothing written
 when it isn't (PR #52, `applyAutoOZoneMarker` in `app_generator.go`).
-**Still open:** the secondary/weaker markers this section's own field
-shape supports were never built for either the manual or automatic path -
-count, placement, and intensity heuristic are still unspecified. A true
-content-based climax *detector* (watching the video, not just the already-
-generated position signal) remains unbuilt and would need its own design
-pass if ever wanted - the classical signal-only approach above was judged
-sufficient for now.
+
+**Secondary markers implemented (PR #67, September 16, 2026), closing this
+priority's last open piece.** The manual UI already supported adding a
+secondary marker by hand (`playback.js`'s kind/intensity controls) - what
+was missing was the suggestion algorithm. `funscript.SuggestSecondaryOZones`
+extends `SuggestOZone`'s own approach: scans strictly before the primary
+window for windows whose mean position stands out from their own local
+baseline (the region's median, not a fixed number - a uniformly elevated
+but flat lead-in isn't an "Erhebung") while staying clearly weaker than the
+primary (below 85% of its mean). Up to two non-overlapping candidates,
+`Intensity` derived from the actual mean-position ratio to the primary
+marker (clamped 0.2-0.8) - "nicht so doll" comes from the measured signal,
+not an invented constant. Wired into both existing entry points (the
+playback tab's "O-Zone vorschlagen" button and the generation-time
+auto-apply checkbox) - no frontend changes needed, since both already
+render whatever `OMarker`s are present generically. A true content-based
+climax *detector* (watching the video, not just the already-generated
+position signal) remains unbuilt and would need its own design pass if
+ever wanted - the classical signal-only approach above was judged
+sufficient for now, and stays the whole of priority 6/7's answer.
 
 ### 8. Generator performance vs. FunGen2
 
@@ -1154,6 +1167,13 @@ wie es die Aufgabe verlangte) - ein Kontrollkästchen analog zu
 `#gen-flow` in `generator.js` wäre ein naheliegender nächster Schritt,
 nicht Teil dieser Änderung.
 
+**Korrektur (16. September 2026, beim GUI-Audit für #66 gefunden):** dieser
+nächste Schritt war zu diesem Zeitpunkt bereits erledigt - `#gen-backend`
+ist seit einer früheren Änderung ein Dropdown mit allen drei Verfahren
+(`csrt`/`flow`/`grid_lk`), nicht nur eine `#gen-flow`-Checkbox. Der obige
+Absatz blieb bis heute unkorrigiert im Dokument stehen, obwohl der
+beschriebene nächste Schritt längst erledigt war.
+
 **Follow-up (September 15, 2026), user's question: does the grid-of-points
 idea also help Tf/Tj's two-point distance measurement, not just single-ROI
 tracking? Found a real bug on the way, then a real negative result.**
@@ -1360,6 +1380,14 @@ git history rather than rebuilding from scratch.
 
 ### Later
 
+- **New this session (September 15-16, 2026), not previously listed here:**
+  bootstrap/export tooling to train a custom ROI YOLO model for `ai_roi.py`
+  (PRs #64/#65/#66, see `docs/AI_ADAPTER.md`'s "Still open: no
+  bundled/recommended ONNX model" section for the full writeup) - no
+  trained/bundled model shipped, this only builds the tooling; a classical
+  audio-tempo plausibility check (`--audio-check`, `generator/
+  audio_check.py`) fully wired into the GUI alongside the existing
+  AI-quality-opinion checkbox.
 - ~~Script Doctor for imported `.funscript` files.~~ **Done (PR #57,
   September 15, 2026):** reuses Quality Doctor's own actions-only fallback
   path (never exercised before this, since the generator's own call site
