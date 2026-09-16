@@ -68,6 +68,7 @@ type GenerateOptions struct {
 	AIQualityOpinion          bool    `json:"aiQualityOpinion"`
 	ContactVibration          bool    `json:"contactVibration"`
 	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
+	AudioCheck                bool    `json:"audioCheck"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -104,6 +105,13 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 // ihn anzubieten und dann bei jedem Versuch scheitern zu lassen.
 func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
+}
+
+// CheckAudioCheckAvailable meldet, ob --audio-check grundsätzlich nutzbar
+// ist (ffmpeg auf dem PATH) - die GUI nutzt das, um die Checkbox zu
+// aktivieren/auszublenden statt sie anzubieten und dann scheitern zu lassen.
+func (a *App) CheckAudioCheckAvailable() bool {
+	return generator.AudioCheckAvailable()
 }
 
 // SuggestProfile vergleicht die Bewegungssignatur des Videos gegen zuvor mit
@@ -158,6 +166,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			AIQualityOpinion:          opts.AIQualityOpinion,
 			AIBaseURL:                 a.settings.GetString(prefAIBaseURL, ""),
 			ContactVibration:          opts.ContactVibration,
+			AudioCheck:                opts.AudioCheck,
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
@@ -181,6 +190,9 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				if script.Metadata.AIOpinion != nil {
 					payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
 					payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
+				}
+				if script.Metadata.AudioCheck != nil {
+					payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
 				}
 			}
 			if opts.AutoOZoneMarker {

@@ -84,6 +84,10 @@ def main():
               (entry1["quality"]["passed"], entry1["quality"]["score"]) ==
               (entry2["quality"]["passed"], entry2["quality"]["score"]),
               f"{entry1['quality']} vs {entry2['quality']}")
+        funscript2 = json.loads(out2.read_text())
+        check("audio_check fehlt in der .funscript-Metadata, wenn die Prüfung "
+              "nicht möglich war (kein leerer/erfundener Eintrag, wie bei ai_opinion)",
+              "audio_check" not in funscript2["metadata"], str(funscript2["metadata"]))
 
     print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
     return 1 if failures else 0
