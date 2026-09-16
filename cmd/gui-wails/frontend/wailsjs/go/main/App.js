@@ -7,6 +7,7 @@ export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
+export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }

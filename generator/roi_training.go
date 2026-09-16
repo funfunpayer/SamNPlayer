@@ -5,9 +5,40 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
+
+// RoiTrainingAvailable prüft, ob das Trainieren eines eigenen Modells
+// grundsätzlich möglich ist - ultralytics installiert (siehe
+// requirements-ai-train.txt, bewusst NICHT Teil der Basis-Installation, da
+// es u.a. PyTorch nachzieht). Für die GUI, um den "Training starten"-Knopf
+// zu aktivieren/auszublenden, statt ihn anzubieten und dann mit einem
+// rohen ModuleNotFoundError-Traceback scheitern zu lassen - dasselbe Muster
+// wie AIRoiAvailable für die kleinere onnxruntime-Abhängigkeit. Bootstrap
+// (Datensammeln, braucht nur die Basis-Installation) ist davon nicht
+// betroffen, nur das eigentliche Trainieren.
+func RoiTrainingAvailable() bool {
+	py, err := FindPython()
+	if err != nil {
+		return false
+	}
+	if err := CheckDependencies(); err != nil {
+		return false
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return false
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
+	out, err := command(py, scriptPath, "--check").Output()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(out)) == "AVAILABLE"
+}
 
 // RoiTrainingRegion ist eine markierte Region samt Klassenname für den
 // Bootstrap-Datensatz (siehe bootstrap_yolo_dataset.py) - ROI1 ist immer
