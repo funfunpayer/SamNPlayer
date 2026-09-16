@@ -1478,6 +1478,68 @@ git history rather than rebuilding from scratch.
   range - see CHANGELOG.md. Unrelated to the Tf/Tj finding above (that's
   single- vs. two-region tracking; this is single-region axis choice) but
   found via the same round of real-clip testing.
+- **`region_fusion` backend added and measured (September 16, 2026)**,
+  the user's "Gitter + Abtastung" (grid + sampling) proposal from the
+  same conversation: split the marked region into a 2x2 grid (4
+  sub-regions), track each independently (same `_seed_grid`/`_reseed`
+  point-tracking primitives as `grid_lk`), and fuse them PER FRAME into
+  one signal weighted by each sub-region's own EMA-smoothed motion
+  strength - the idea being that a single box/grid spanning the whole
+  region implicitly averages in whatever part is currently still,
+  diluting real motion confined to one part of it. Blending absolute
+  positions (not switching to a single "winning" region) is deliberate:
+  the four sub-regions all sit inside the already-localized, user-marked
+  ROI, not spread across the whole frame, so a weighted average of their
+  positions stays physically meaningful - no jump between distant image
+  areas to smooth over.
+
+  Synthetic test (`region_fusion_backend_test.py`) confirms the core
+  mechanism: when motion is confined to one of the four sub-regions, the
+  fused output keeps most of the true amplitude (`np.ptp(pos_quad) >
+  quad_amplitude/4 * 2`) instead of being diluted toward a naive
+  four-way average, and `mean_weight_spread` (how unevenly the fusion
+  weighted the sub-regions) comes out clearly above 0 in that case,
+  confirming the weighting actually engaged rather than just defaulting
+  to a uniform average.
+
+  GEMESSEN on real material - a newly uploaded reference for a different
+  clip ("Fucking a MILF...", FunGen 2.6.3 run WITH ITS OWN YOLO DISABLED,
+  i.e. FunGen2's own classical fallback, not its AI mode - a fairer
+  apples-to-apples comparison than the Tf/Tj measurement above, which
+  compared our classical tracking against FunGen2's full AI pipeline).
+  Two 90-second segments, same ROI, `csrt`/`grid_lk`/`region_fusion` all
+  run and correlated against the same reference window
+  (`fungen_compare.best_lag_correlation`, ±2s lag search):
+
+  | segment (clip time) | csrt | grid_lk | region_fusion |
+  |---|---|---|---|
+  | 580-670s | r=0.250 | r=0.130 | r=0.251 |
+  | 880-970s | r=0.286 | r=0.335 | r=0.368 |
+
+  region_fusion was at least on par with csrt in both segments and
+  clearly ahead of both csrt and grid_lk in the second - a real,
+  measured (not assumed) improvement, though modest, not a dramatic
+  closing of the gap to FunGen2's numbers seen elsewhere in this
+  document.
+
+  IMPORTANT CAVEAT, found while running this comparison: the reference
+  funscript's total duration (~1519s) and the uploaded video's duration
+  (~1573.5s) differ by ~54 seconds, and widening the lag search well
+  past ±2s (`max_lag_ms=10000`) still pushed the best-fit lag to the
+  search boundary on segment 2 instead of settling - meaning clip and
+  reference are not a precise 1:1 time match (different source cut,
+  or FunGen2 skipped a chapter its own logic considered non-sexual).
+  The r-values above should be read as directional, not exact - a
+  precisely time-aligned comparison (matching source cut, or deriving
+  the true offset e.g. via audio cross-correlation) would be needed
+  before treating region_fusion as conclusively better than csrt rather
+  than "at least competitive, sometimes clearly better." Also observed
+  independent of backend choice: this specific clip triggers `--axis
+  auto`'s scene-cut detector on roughly 10% of frames in both tested
+  segments - unusually high, and shared by all three backends equally
+  (so not a backend quality difference), worth a separate look if it
+  turns out to be a genuine over-triggering issue rather than actually
+  cut-heavy source material.
 
 ## Product requirements
 

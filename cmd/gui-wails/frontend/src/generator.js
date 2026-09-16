@@ -80,6 +80,7 @@ export function initGenerator(root, playback) {
             <option value="csrt">CSRT (Standard, robust)</option>
             <option value="flow">Flow (keine Region nötig, ca. 4x schneller)</option>
             <option value="grid_lk">Gitter/Optical-Flow (braucht Region wie CSRT, ca. 15x schneller)</option>
+            <option value="region_fusion">Region-Fusion (4 Teilregionen, gewichtet verschmolzen)</option>
           </select>
         </div>
         <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT: bei ruhiger Kamera
@@ -88,7 +89,10 @@ export function initGenerator(root, playback) {
           Hintergrundmerkmale herausgerechnet wird. Gitter/Optical-Flow: verfolgt ein Raster aus
           Einzelpunkten statt einer Box - GEMESSEN auf einem realen Clip mindestens gleich gute
           Qualität wie CSRT bei ~15x der Geschwindigkeit, robuster als CSRT bei schwierigen
-          (kleinen/unscharfen) Regionen (siehe docs/NEXT.md Abschnitt 8).</p>
+          (kleinen/unscharfen) Regionen (siehe docs/NEXT.md Abschnitt 8). Region-Fusion: teilt
+          die Region in 4 Teilregionen und gewichtet sie je Frame nach aktueller
+          Bewegungsstärke - GEMESSEN an echtem Material mindestens gleichauf mit CSRT, in
+          einem von zwei getesteten Abschnitten deutlich besser als beide (siehe docs/NEXT.md).</p>
         <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
@@ -226,7 +230,14 @@ export function initGenerator(root, playback) {
     const flowOption = el('#gen-backend').querySelector('option[value="flow"]');
     flowOption.disabled = twoPoint;
     flowOption.title = twoPoint ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Tracker/keine Region).' : '';
-    if (twoPoint && el('#gen-backend').value === 'flow') el('#gen-backend').value = 'csrt';
+    const regionFusionOption = el('#gen-backend').querySelector('option[value="region_fusion"]');
+    regionFusionOption.disabled = twoPoint;
+    regionFusionOption.title = twoPoint
+      ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Zwei-Punkt-Pfad für dieses Verfahren) - CSRT wird stattdessen verwendet.'
+      : '';
+    if (twoPoint && (el('#gen-backend').value === 'flow' || el('#gen-backend').value === 'region_fusion')) {
+      el('#gen-backend').value = 'csrt';
+    }
   }
 
   function updateGenerateEnabled() {
