@@ -1254,10 +1254,29 @@ def enforce_min_interval(timestamps_ms, pos, keyframe_idx, min_interval_ms):
 def create_tracker():
     """Erzeugt einen CSRT-Tracker.
 
-    Gekapselt, weil OpenCV die Legacy-API je nach Version an
-    unterschiedlichen Stellen führt - in 5.x ist cv2.legacy weiterhin
-    vorhanden, könnte aber wegfallen. Dann greift der Rückfall auf die
-    Hauptschnittstelle, statt dass das ganze Skript scheitert.
+    Gekapselt, weil OpenCV die CSRT-Erzeugung je nach opencv-contrib-python-
+    Version an einer von DREI verschiedenen Stellen anbietet, und welche
+    davon existiert nicht zuverlässig an cv2.__version__ hängt (zwei
+    Nutzer mit demselben "pip install opencv-contrib-python" zu
+    unterschiedlichen Zeitpunkten können unterschiedliche Stellen haben):
+
+      1. cv2.legacy.TrackerCSRT_create() - die "Legacy"-API, ab ca. 4.5.2
+         eingeführt, als die klassischen Tracker aus dem Hauptmodul in
+         einen eigenen Unterordner verschoben wurden.
+      2. cv2.TrackerCSRT_create() - die ältere freie Funktion direkt im
+         Hauptmodul (vor der Legacy-Aufspaltung, oder falls das cv2.legacy-
+         Modul in einer Version doch mal fehlt).
+      3. cv2.TrackerCSRT.create() - die neuere, klassenbasierte API
+         (Klassenmethode statt freier Funktion) - GEMESSEN (16. September
+         2026, echter Nutzerbericht): mindestens eine reale
+         opencv-contrib-python-Installation hatte WEDER 1 noch 2, nur
+         diese dritte Variante.
+
+    Probiert alle drei der Reihe nach, statt nur die ersten zwei zu kennen
+    und beim dritten Fall mit einem rohen AttributeError abzustürzen. Wirft
+    erst dann einen eigenen, sprechenden Fehler, wenn keine der drei
+    existiert - das nennt die installierte Version, statt nur zu sagen,
+    welches EINE Attribut fehlte.
 
     GEMESSEN (September 14, 2026, echter 256x144-Clip, docs/NEXT.md
     Priorität 2): Frames vor dem Tracking hochzuskalieren, in der Annahme
@@ -1270,7 +1289,17 @@ def create_tracker():
     """
     if hasattr(cv2, "legacy") and hasattr(cv2.legacy, "TrackerCSRT_create"):
         return cv2.legacy.TrackerCSRT_create()
-    return cv2.TrackerCSRT_create()
+    if hasattr(cv2, "TrackerCSRT_create"):
+        return cv2.TrackerCSRT_create()
+    if hasattr(cv2, "TrackerCSRT") and hasattr(cv2.TrackerCSRT, "create"):
+        return cv2.TrackerCSRT.create()
+    raise RuntimeError(
+        "CSRT-Tracker nicht gefunden - keine der bekannten OpenCV-APIs "
+        "(cv2.legacy.TrackerCSRT_create, cv2.TrackerCSRT_create, "
+        f"cv2.TrackerCSRT.create) existiert in dieser opencv-contrib-python-"
+        f"Version ({getattr(cv2, '__version__', '?')}). Bitte "
+        "opencv-contrib-python aktualisieren (pip install -U "
+        "opencv-contrib-python).")
 
 
 def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):

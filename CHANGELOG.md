@@ -6,6 +6,19 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## [Unreleased] — since v0.4.2 (September 16, 2026)
+
+### Fixed
+
+- **CSRT tracker crash, second variant.** The earlier fix only covered two
+  of the three known OpenCV API shapes for creating a CSRT tracker
+  (`cv2.legacy.TrackerCSRT_create()` and `cv2.TrackerCSRT_create()`). A
+  real `opencv-contrib-python` install had neither, only the newer
+  class-based `cv2.TrackerCSRT.create()` — `create_tracker()` now tries
+  all three in order and raises a clear error naming the installed
+  OpenCV version (instead of a raw `AttributeError`) only if none of them
+  exist.
+
 ## [0.4.2] — September 16, 2026
 
 ### Fixed
