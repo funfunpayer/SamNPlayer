@@ -7,7 +7,6 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/funfunpayer/SamNPlayer/device"
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
@@ -58,12 +57,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
 	a.currentFrames = frames
-	var dev device.Device
-	if opts.Mock {
-		dev = device.NewMock(false)
-	} else {
-		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
-	}
+	dev, reusedDevice := a.claimSessionDevice(opts.Mock)
 	p := player.New(dev)
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
@@ -92,16 +86,23 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	}
 	go func() {
 		defer a.endSession()
-		connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
-		defer connectCancel()
-		runtime.EventsEmit(a.ctx, "playback:log", "Verbinde...")
-		if err := dev.Connect(connectCtx); err != nil {
-			logging.Error("app: Verbindung fehlgeschlagen", "fehler", err)
-			runtime.EventsEmit(a.ctx, "playback:error", err.Error())
-			runtime.EventsEmit(a.ctx, "playback:done")
-			return
+		if reusedDevice {
+			// Bereits über den Geräte-Tab verbunden - nicht erneut
+			// verbinden und am Ende NICHT trennen, das bleibt dessen
+			// Sache (siehe claimSessionDevice).
+			runtime.EventsEmit(a.ctx, "playback:log", "Nutze die bestehende Verbindung aus dem Geräte-Tab.")
+		} else {
+			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
+			defer connectCancel()
+			runtime.EventsEmit(a.ctx, "playback:log", "Verbinde...")
+			if err := dev.Connect(connectCtx); err != nil {
+				logging.Error("app: Verbindung fehlgeschlagen", "fehler", err)
+				runtime.EventsEmit(a.ctx, "playback:error", err.Error())
+				runtime.EventsEmit(a.ctx, "playback:done")
+				return
+			}
+			defer dev.Disconnect()
 		}
-		defer dev.Disconnect()
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
 		var playErr error
 		if opts.UseVideoSync {

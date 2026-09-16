@@ -6,6 +6,35 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## [Unreleased] — since v0.4.0 (September 16, 2026)
+
+### Fixed
+
+- **"Training starten" crashed with a raw `ModuleNotFoundError` traceback**
+  when `ultralytics` wasn't installed (it's a separate, heavy optional
+  install on top of the base requirements — `requirements-ai-train.txt`,
+  pulls in PyTorch). The button now checks availability up front (same
+  `--check` pattern the KI-Erkennung region finder already uses for
+  `onnxruntime`) and stays disabled with a clear `pip install` hint instead
+  of offering something that then fails.
+- **Bootstrapping training samples with two regions crashed on Windows**
+  with `AttributeError: module 'cv2.legacy' has no attribute
+  'TrackerCSRT_create'`. `track_roi()`'s initial tracker creation called
+  `cv2.legacy.TrackerCSRT_create()` directly instead of going through the
+  existing `create_tracker()` helper (which already handles this exact
+  OpenCV version difference and is used everywhere else a tracker gets
+  re-created, e.g. after a scene cut) — the one remaining unguarded call
+  site.
+- **Starting playback/training while a device was connected via the Device
+  tab required manually disconnecting there first**, even though both use
+  the same physical device and BLE only allows one connection anyway.
+  Playback/training now reuse that exact connection instead of demanding a
+  redundant disconnect-and-reconnect cycle; disconnecting from the Device
+  tab while a session is actively using that connection is now itself
+  rejected (rather than silently pulling the connection out from under a
+  running session), symmetric to the existing rule that a session can't
+  start a competing test connection.
+
 ## [0.4.0] — September 16, 2026
 
 ### Added

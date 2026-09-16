@@ -10,7 +10,6 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/funfunpayer/SamNPlayer/device"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
 )
@@ -66,12 +65,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 		return fmt.Errorf("mindestens 1 Zyklus nötig")
 	}
 
-	var dev device.Device
-	if req.Mock {
-		dev = device.NewMock(false)
-	} else {
-		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
-	}
+	dev, reusedDevice := a.claimSessionDevice(req.Mock)
 	// Unter stateMu wie in StartPlayback (siehe dessen Kommentar) - Training
 	// hat kein Gegenstück zu TriggerExtendedO, das a.activeDevice läse, aber
 	// shutdown() liest es (app.go) und muss denselben Schutz sehen wie jeden
@@ -108,16 +102,23 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			defer sessionFile.Close()
 		}
 
-		connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
-		defer connectCancel()
-		runtime.EventsEmit(a.ctx, "training:log", "Verbinde...")
-		if err := dev.Connect(connectCtx); err != nil {
-			logging.Error("app: Verbindung fehlgeschlagen (Training)", "fehler", err)
-			runtime.EventsEmit(a.ctx, "training:error", err.Error())
-			runtime.EventsEmit(a.ctx, "training:done")
-			return
+		if reusedDevice {
+			// Bereits über den Geräte-Tab verbunden - nicht erneut
+			// verbinden und am Ende NICHT trennen, das bleibt dessen
+			// Sache (siehe claimSessionDevice).
+			runtime.EventsEmit(a.ctx, "training:log", "Nutze die bestehende Verbindung aus dem Geräte-Tab.")
+		} else {
+			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
+			defer connectCancel()
+			runtime.EventsEmit(a.ctx, "training:log", "Verbinde...")
+			if err := dev.Connect(connectCtx); err != nil {
+				logging.Error("app: Verbindung fehlgeschlagen (Training)", "fehler", err)
+				runtime.EventsEmit(a.ctx, "training:error", err.Error())
+				runtime.EventsEmit(a.ctx, "training:done")
+				return
+			}
+			defer dev.Disconnect()
 		}
-		defer dev.Disconnect()
 
 		runtime.EventsEmit(a.ctx, "training:log", "Training startet...")
 

@@ -33,21 +33,48 @@ func TestDeviceTabFlow(t *testing.T) {
 		t.Errorf("Stop: %v", err)
 	}
 
-	// Kern: Testverbindung und Session dürfen sich nicht überlagern.
-	if _, err := a.tryStartSession(); err == nil {
-		t.Error("Session-Start bei offener Testverbindung muss abgelehnt werden")
+	// Kern: eine Session darf die bestehende Testverbindung wiederverwenden
+	// (claimSessionDevice), statt dass man vorher im Geräte-Tab trennen muss.
+	if _, err := a.tryStartSession(); err != nil {
+		t.Errorf("Session-Start bei offener Testverbindung sollte die Verbindung wiederverwenden: %v", err)
+	}
+	dev, reused := a.claimSessionDevice(false)
+	if !reused {
+		t.Error("claimSessionDevice sollte die Testverbindung wiederverwenden (reused=true)")
+	}
+	if dev != a.testDevice {
+		t.Error("claimSessionDevice sollte GENAU das testDevice-Objekt liefern, keine Kopie/neues Gerät")
 	}
 
+	// Trennen während eine Session diese Verbindung nutzt muss abgelehnt
+	// werden - sonst würde die laufende Wiedergabe/das Training mitten im
+	// Senden abgewürgt.
+	if _, err := a.DisconnectDevice(); err == nil {
+		t.Error("Trennen bei laufender Session (wiederverwendete Verbindung) muss abgelehnt werden")
+	}
+	if st := a.GetDeviceStatus(); !st.Connected {
+		t.Error("abgelehntes Trennen darf die Verbindung nicht trennen")
+	}
+	a.endSession()
+
+	// Nach Sessionende ist die Testverbindung weiterhin verbunden (sie
+	// gehört dem Geräte-Tab, nicht der Session) und lässt sich jetzt trennen.
+	if st := a.GetDeviceStatus(); !st.Connected {
+		t.Error("nach Sessionende sollte die Testverbindung noch bestehen")
+	}
 	if _, err := a.DisconnectDevice(); err != nil {
-		t.Errorf("Trennen: %v", err)
+		t.Errorf("Trennen nach Sessionende: %v", err)
 	}
 	if st := a.GetDeviceStatus(); st.Connected {
 		t.Error("nach dem Trennen darf nichts verbunden sein")
 	}
 
-	// Nach dem Trennen muss eine Session wieder starten können.
+	// Ohne Testverbindung erzeugt eine Session ihr eigenes Gerät.
 	if _, err := a.tryStartSession(); err != nil {
 		t.Errorf("Session nach Trennen: %v", err)
+	}
+	if _, reused := a.claimSessionDevice(true); reused {
+		t.Error("ohne Testverbindung sollte claimSessionDevice ein neues Gerät erzeugen (reused=false)")
 	}
 	// Und dann sperrt die Session umgekehrt den Gerätetest.
 	if _, err := a.ConnectDevice(true); err == nil {

@@ -254,17 +254,40 @@ func (a *App) tryStartSession() (context.Context, error) {
 	if a.sessionActive {
 		return nil, fmt.Errorf("es läuft bereits eine Wiedergabe oder ein Training - bitte erst stoppen")
 	}
-	// Die Testverbindung aus dem Geräte-Tab belegt dasselbe physische Gerät.
-	// BLE lässt nur eine Verbindung zu, also würde der Verbindungsaufbau der
-	// Session ohnehin scheitern - hier aber mit einer Meldung, die sagt, wo
-	// das Problem liegt.
-	if a.testDevice != nil {
-		return nil, fmt.Errorf("das Gerät ist im Geräte-Tab verbunden - dort zuerst trennen")
-	}
+	// Eine bestehende Testverbindung aus dem Geräte-Tab wird NICHT mehr
+	// abgelehnt, sondern von claimSessionDevice() für die Sitzung
+	// wiederverwendet (dasselbe *device.Device-Objekt, keine zweite BLE-
+	// Verbindung) - siehe dessen Kommentar. Früher musste man hier erst im
+	// Geräte-Tab trennen, nur um dieselbe Verbindung sofort danach für
+	// Wiedergabe/Training neu aufzubauen.
 	ctx, cancel := context.WithCancel(context.Background())
 	a.sessionActive = true
 	a.playCancel = cancel
 	return ctx, nil
+}
+
+// claimSessionDevice liefert das Gerät, das eine neue Wiedergabe-/
+// Trainingssitzung nutzen soll. Ist im Geräte-Tab bereits eine Testverbindung
+// aufgebaut, wird GENAU dieses *device.Device-Objekt wiederverwendet
+// (reused=true) - BLE erlaubt ohnehin nur eine Verbindung zum Gerät, eine
+// zweite eigene Verbindung würde scheitern oder die erste stumm ersetzen.
+// Der Aufrufer darf ein wiederverwendetes Gerät dann NICHT selbst verbinden
+// oder trennen - das bleibt Sache des Geräte-Tabs (ConnectDevice/
+// DisconnectDevice), das dieselbe Sperre gegen einen laufenden Session-Zugriff
+// hat (siehe DisconnectDevice). Ohne bestehende Testverbindung wird wie
+// bisher ein neues, eigenes Gerät erzeugt (reused=false), das der Aufrufer
+// selbst verbindet und am Ende der Sitzung wieder trennt.
+func (a *App) claimSessionDevice(mock bool) (dev device.Device, reused bool) {
+	a.stateMu.RLock()
+	testDev := a.testDevice
+	a.stateMu.RUnlock()
+	if testDev != nil {
+		return testDev, true
+	}
+	if mock {
+		return device.NewMock(false), false
+	}
+	return device.NewSamNeo2(device.SamNeo2Protocol{}), false
 }
 
 // endSession markiert die aktuelle Sitzung als beendet - muss von JEDEM
