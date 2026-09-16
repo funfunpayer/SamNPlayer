@@ -14,6 +14,7 @@ export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App'
 export function CurrentVersion() { return window['go']['main']['App']['CurrentVersion'](); }
 export function DisconnectDevice() { return window['go']['main']['App']['DisconnectDevice'](); }
 export function GenerateScript(arg1) { return window['go']['main']['App']['GenerateScript'](arg1); }
+export function GetBenchmarkHistory() { return window['go']['main']['App']['GetBenchmarkHistory'](); }
 export function GetCacheInfo() { return window['go']['main']['App']['GetCacheInfo'](); }
 export function GetDeviceStatus() { return window['go']['main']['App']['GetDeviceStatus'](); }
 export function GetHardwareInfo() { return window['go']['main']['App']['GetHardwareInfo'](); }
@@ -30,6 +31,7 @@ export function LabelScene(arg1, arg2) { return window['go']['main']['App']['Lab
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }
 export function OpenLogFolder() { return window['go']['main']['App']['OpenLogFolder'](); }
+export function PickBenchmarkManifest() { return window['go']['main']['App']['PickBenchmarkManifest'](); }
 export function PickFunscriptFile() { return window['go']['main']['App']['PickFunscriptFile'](); }
 export function PickReportPath() { return window['go']['main']['App']['PickReportPath'](); }
 export function PickVideoFile() { return window['go']['main']['App']['PickVideoFile'](); }
@@ -39,6 +41,7 @@ export function ReportExists() { return window['go']['main']['App']['ReportExist
 export function ReportSummary() { return window['go']['main']['App']['ReportSummary'](); }
 export function ReportVideoPosition(arg1) { return window['go']['main']['App']['ReportVideoPosition'](arg1); }
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
+export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }

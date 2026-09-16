@@ -72,6 +72,132 @@ export namespace funscript {
 
 export namespace generator {
 
+	export class BenchmarkCorrelation {
+	    r: number;
+	    lag_ms: number;
+	    orientation: string;
+	    n_samples: number;
+	    shape_error?: number;
+	    low_confidence: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkCorrelation(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.r = source["r"];
+	        this.lag_ms = source["lag_ms"];
+	        this.orientation = source["orientation"];
+	        this.n_samples = source["n_samples"];
+	        this.shape_error = source["shape_error"];
+	        this.low_confidence = source["low_confidence"];
+	    }
+	}
+	export class BenchmarkClipResult {
+	    name: string;
+	    ok: boolean;
+	    error?: string;
+	    quality_score?: number;
+	    quality_passed?: boolean;
+	    quality_warnings: string[];
+	    correlation?: BenchmarkCorrelation;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkClipResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.ok = source["ok"];
+	        this.error = source["error"];
+	        this.quality_score = source["quality_score"];
+	        this.quality_passed = source["quality_passed"];
+	        this.quality_warnings = source["quality_warnings"];
+	        this.correlation = this.convertValues(source["correlation"], BenchmarkCorrelation);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class BenchmarkSummary {
+	    total: number;
+	    ok: number;
+	    failed: number;
+	    quality_passed: number;
+	    mean_quality_score?: number;
+	    mean_correlation?: number;
+	    clips_with_reference: number;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkSummary(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.total = source["total"];
+	        this.ok = source["ok"];
+	        this.failed = source["failed"];
+	        this.quality_passed = source["quality_passed"];
+	        this.mean_quality_score = source["mean_quality_score"];
+	        this.mean_correlation = source["mean_correlation"];
+	        this.clips_with_reference = source["clips_with_reference"];
+	    }
+	}
+	export class BenchmarkResult {
+	    timestamp: string;
+	    git_commit: string;
+	    manifest: string;
+	    clips: BenchmarkClipResult[];
+	    summary: BenchmarkSummary;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.timestamp = source["timestamp"];
+	        this.git_commit = source["git_commit"];
+	        this.manifest = source["manifest"];
+	        this.clips = this.convertValues(source["clips"], BenchmarkClipResult);
+	        this.summary = this.convertValues(source["summary"], BenchmarkSummary);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ProfileSuggestion {
 	    Found: boolean;
 	    Label: string;
@@ -469,7 +595,10 @@ export namespace main {
 	    intifaceUrl: string;
 	    aiRoiModelPath: string;
 	    aiBaseUrl: string;
-	
+	    benchmarkManifestPath: string;
+	    benchmarkHistoryPath: string;
+	    defaultBenchmarkHistoryPath: string;
+
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
 	    }
@@ -506,6 +635,9 @@ export namespace main {
 	        this.intifaceUrl = source["intifaceUrl"];
 	        this.aiRoiModelPath = source["aiRoiModelPath"];
 	        this.aiBaseUrl = source["aiBaseUrl"];
+	        this.benchmarkManifestPath = source["benchmarkManifestPath"];
+	        this.benchmarkHistoryPath = source["benchmarkHistoryPath"];
+	        this.defaultBenchmarkHistoryPath = source["defaultBenchmarkHistoryPath"];
 	    }
 	}
 	export class TrainingRequest {

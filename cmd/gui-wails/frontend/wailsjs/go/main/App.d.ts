@@ -35,6 +35,8 @@ export function DisconnectDevice():Promise<main.DeviceStatus>;
 
 export function GenerateScript(arg1:main.GenerateOptions):Promise<void>;
 
+export function GetBenchmarkHistory():Promise<Array<generator.BenchmarkResult>>;
+
 export function GetCacheInfo():Promise<main.CacheInfo>;
 
 export function GetDeviceStatus():Promise<main.DeviceStatus>;
@@ -67,6 +69,8 @@ export function LoadFunscript(arg1:string):Promise<main.ScriptInfo>;
 
 export function OpenLogFolder():Promise<void>;
 
+export function PickBenchmarkManifest():Promise<string>;
+
 export function PickFunscriptFile():Promise<string>;
 
 export function PickReportPath():Promise<string>;
@@ -84,6 +88,8 @@ export function ReportSummary():Promise<string>;
 export function ReportVideoPosition(arg1:number):Promise<void>;
 
 export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>;
+
+export function RunGoldenClipBenchmark(arg1:string):Promise<void>;
 
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;
 

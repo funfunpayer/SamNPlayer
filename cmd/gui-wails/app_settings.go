@@ -19,6 +19,8 @@ const (
 	prefIntifaceURL          = "device.intifaceUrl"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
 	prefAIBaseURL            = "generator.aiBaseUrl"
+	prefBenchmarkManifest    = "generator.benchmarkManifestPath"
+	prefBenchmarkHistoryPath = "generator.benchmarkHistoryPath"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -96,6 +98,17 @@ type Settings struct {
 	// Profil-Vorschlag und KI-Zweitmeinung zur Qualität (docs/AI_ADAPTER.md).
 	// Leer = colibri_client.DEFAULT_BASE_URL (Standard-Localhost-Port).
 	AIBaseURL string `json:"aiBaseUrl"`
+
+	// BenchmarkManifestPath: Pfad zur Manifest-Datei des Golden-Clip-
+	// Benchmarks (siehe generator/golden_clip_benchmark.py) - zeigt auf
+	// lokale Videos/Referenzen des Nutzers, liegt darum nicht im Repository
+	// und hat keinen sinnvollen Standardwert.
+	BenchmarkManifestPath string `json:"benchmarkManifestPath"`
+
+	// BenchmarkHistoryPath: JSONL-Datei, an die jeder Benchmark-Lauf
+	// angehängt wird - Standardort analog zu DefaultReportPath.
+	BenchmarkHistoryPath        string `json:"benchmarkHistoryPath"`
+	DefaultBenchmarkHistoryPath string `json:"defaultBenchmarkHistoryPath"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -133,6 +146,10 @@ func (a *App) GetSettings() Settings {
 		IntifaceURL:       s.GetString(prefIntifaceURL, ""),
 		AIRoiModelPath:    s.GetString(prefAIRoiModelPath, ""),
 		AIBaseURL:         s.GetString(prefAIBaseURL, ""),
+
+		BenchmarkManifestPath:       s.GetString(prefBenchmarkManifest, ""),
+		BenchmarkHistoryPath:        s.GetString(prefBenchmarkHistoryPath, ""),
+		DefaultBenchmarkHistoryPath: defaultBenchmarkHistoryPath(),
 	}
 }
 
@@ -180,4 +197,14 @@ func defaultReportPath() string {
 		return ""
 	}
 	return filepath.Join(dir, "SamNPlayer", "messwerte.jsonl")
+}
+
+// defaultBenchmarkHistoryPath schlägt einen Ort neben den übrigen
+// Nutzerdaten vor - analog zu defaultReportPath.
+func defaultBenchmarkHistoryPath() string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, "SamNPlayer", "golden_clip_history.jsonl")
 }
