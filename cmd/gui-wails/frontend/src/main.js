@@ -3,6 +3,7 @@ import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings } from '../wai
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
+import { initBenchmark } from './benchmark.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { initDevice } from './device.js';
 import { initSettings } from './settings.js';
@@ -23,6 +24,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 const playback = initPlayback(document.getElementById('tab-playback'));
 initTraining(document.getElementById('tab-training'));
 initGenerator(document.getElementById('tab-generator'), playback);
+initBenchmark(document.getElementById('tab-benchmark'));
 initDevice(document.getElementById('tab-device'));
 initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));

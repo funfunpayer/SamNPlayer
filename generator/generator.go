@@ -815,3 +815,124 @@ func QualityModelInfo() (string, error) {
 	}
 	return string(out), nil
 }
+
+// BenchmarkCorrelation ist das Ergebnis von fungen_compare.best_lag_correlation()
+// für einen Golden-Clip-Eintrag mit hinterlegter FunGen-Referenz - nur
+// vorhanden, wenn der Manifest-Eintrag ein reference_funscript trägt.
+type BenchmarkCorrelation struct {
+	R             float64  `json:"r"`
+	LagMs         int      `json:"lag_ms"`
+	Orientation   string   `json:"orientation"`
+	NSamples      int      `json:"n_samples"`
+	ShapeError    *float64 `json:"shape_error"`
+	LowConfidence bool     `json:"low_confidence"`
+}
+
+// BenchmarkClipResult ist ein einzelner Clip aus golden_clip_benchmark.py's
+// run_clip(). OK=false bedeutet: dieser Clip ist fehlgeschlagen (siehe
+// Error), hat den restlichen Lauf aber nicht abgebrochen.
+type BenchmarkClipResult struct {
+	Name            string                `json:"name"`
+	OK              bool                  `json:"ok"`
+	Error           string                `json:"error,omitempty"`
+	QualityScore    *float64              `json:"quality_score"`
+	QualityPassed   *bool                 `json:"quality_passed"`
+	QualityWarnings []string              `json:"quality_warnings"`
+	Correlation     *BenchmarkCorrelation `json:"correlation"`
+}
+
+// BenchmarkSummary fasst einen ganzen Lauf zusammen - siehe
+// golden_clip_benchmark.summarize().
+type BenchmarkSummary struct {
+	Total              int      `json:"total"`
+	OK                 int      `json:"ok"`
+	Failed             int      `json:"failed"`
+	QualityPassed      int      `json:"quality_passed"`
+	MeanQualityScore   *float64 `json:"mean_quality_score"`
+	MeanCorrelation    *float64 `json:"mean_correlation"`
+	ClipsWithReference int      `json:"clips_with_reference"`
+}
+
+// BenchmarkResult ist ein vollständiger Golden-Clip-Benchmark-Lauf - jede
+// Zeile der Verlaufsdatei (--history) ist genau eine BenchmarkResult als
+// JSON, siehe golden_clip_benchmark.run_benchmark()/append_history().
+type BenchmarkResult struct {
+	Timestamp string                `json:"timestamp"`
+	GitCommit string                `json:"git_commit"`
+	Manifest  string                `json:"manifest"`
+	Clips     []BenchmarkClipResult `json:"clips"`
+	Summary   BenchmarkSummary      `json:"summary"`
+}
+
+// RunGoldenClipBenchmark führt generator/golden_clip_benchmark.py gegen ein
+// Manifest fester Vergleichs-Clips aus (docs/NEXT.md Priorität 2: "Reproduce
+// before changing the algorithm" - eine feste, wiederholbare Vergleichsbasis
+// statt Einzelmessungen). historyPath="" bedeutet: kein Verlaufseintrag,
+// nur der aktuelle Lauf.
+func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(line string), onPercent func(pct int)) (BenchmarkResult, error) {
+	var result BenchmarkResult
+	py, err := FindPython()
+	if err != nil {
+		return result, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return result, err
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return result, err
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "golden_clip_benchmark.py")
+
+	jsonOut, err := os.CreateTemp("", "golden-clip-result-*.json")
+	if err != nil {
+		return result, fmt.Errorf("generator: Temp-Datei für Benchmark-Ergebnis: %w", err)
+	}
+	jsonOutPath := jsonOut.Name()
+	jsonOut.Close()
+	defer os.Remove(jsonOutPath)
+
+	args := []string{scriptPath, "--manifest", manifestPath, "--json-output", jsonOutPath}
+	if historyPath != "" {
+		args = append(args, "--history", historyPath)
+	}
+	cmd := command(py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return result, fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return result, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+	}
+	scanner := bufio.NewScanner(stderr)
+	var lastLines []string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if done, total, ok := parseProgress(line); ok {
+			if onPercent != nil {
+				onPercent(percentOf(done, total))
+			}
+			continue
+		}
+		lastLines = append(lastLines, line)
+		if len(lastLines) > 20 {
+			lastLines = lastLines[1:]
+		}
+		logging.Debug("generator: " + line)
+		if onProgress != nil {
+			onProgress(line)
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return result, fmt.Errorf("generator: Golden-Clip-Benchmark fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
+	}
+	data, err := os.ReadFile(jsonOutPath)
+	if err != nil {
+		return result, fmt.Errorf("generator: Benchmark-Ergebnis nicht lesbar: %w", err)
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return result, fmt.Errorf("generator: Benchmark-Ergebnis ungültig: %w", err)
+	}
+	return result, nil
+}

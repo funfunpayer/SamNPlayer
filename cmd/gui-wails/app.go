@@ -98,6 +98,18 @@ func (a *App) PickVideoFile() (string, error) {
 	})
 }
 
+// PickBenchmarkManifest wählt die Manifest-Datei des Golden-Clip-Benchmarks
+// (siehe generator/golden_clip_benchmark.py) - persönliches Nutzermaterial,
+// darum eine Dateiauswahl statt eines im Repository mitgelieferten Pfads.
+func (a *App) PickBenchmarkManifest() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Golden-Clip-Manifest wählen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Manifest (*.json)", Pattern: "*.json"},
+		},
+	})
+}
+
 // --- Video-Auto-Match (dieselbe Logik wie vorher in der Fyne-GUI) ---
 
 func findMatchingVideo(scriptPath string) (string, bool) {
