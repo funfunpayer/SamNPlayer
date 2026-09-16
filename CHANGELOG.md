@@ -10,6 +10,24 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **`generator/posttrack` + optional Go generation path (experimental)**:
+  second step of the "more Go, less Python" move. Pure-Go port of
+  `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
+  dynamic-range lift, peak/valley + prominence, adaptive keyframes, min
+  action interval, RDP via `motionx`, speed limit). GEMESSEN against
+  committed Python goldens (`posttrack/testdata/positions_goldens.json`):
+  identical action lists and dense-curve max abs diff < 0.05 on every
+  fixture. Opt-in via `Options.NativePipeline` / GUI "Go-Pipeline
+  (experimentell)" — runs `trackcv` + `posttrack` without a Python
+  subprocess for CSRT + single ROI only; otherwise falls back to Python.
+  Quality Doctor, AI opinion, audio check, Tf/Tj, other backends stay on
+  Python. Windows builds keep the stub (`NativeTrackingAvailable() ==
+  false`) so the cross-compile stays CGO-free; Linux/macOS with OpenCV
+  link the real path. Also fixed a latent Python bug: `process_one`'s
+  `build()` never forwarded `--peak-prominence` / `--dynamic-range-ms` /
+  `--min-action-interval-ms` into `positions_to_funscript` (so
+  `--profile weich` was a no-op for those knobs) — guarded by
+  `process_one_kwargs_test.py`.
 - **Playback tab: pressing the native video Play control now also starts
   funscript/device playback**, instead of these being two separate actions
   (the dedicated "Abspielen" button and the video's own play control).
@@ -17,32 +35,12 @@ measurement history behind each entry; this file is the short version for
   `videoEl.play()`. Doesn't reset the video to the start, unlike the
   dedicated button - the video is already running at its current position
   when this fires.
-- **`generator/trackcv`, a Go-native CSRT tracking package (experimental,
-  not yet wired into the app)**: the first step of an evaluation, per the
-  user's request, of writing more of the generator in Go instead of
-  Python where it measurably helps. Ports `track_roi()` (CSRT + scene-cut
-  detection + camera compensation + appearance memory) to Go via a small
-  custom cgo wrapper around the system OpenCV C++ library - not the
-  `gocv` package, whose bundled `contrib` bindings don't compile against
-  Ubuntu's OpenCV build (it excludes `xfeatures2d` for patent reasons,
-  and `gocv` couples that into the same compilation unit as the tracker
-  it also needs). GEMESSEN before writing a line of the real port: a
-  minimal feasibility test (CSRT alone, same synthetic clip, same ROI,
-  Python's `create_tracker()` vs. this Go wrapper) gave r=0.9996
-  correlation, max. 3px difference, ~15% less wall time (same C++ tracking
-  work either way, just without a Python interpreter per frame) - see
-  docs/NEXT.md for the numbers. Own Go test suite (no Python/ffmpeg
-  dependency) with the same "synthetic video, known ground truth" pattern
-  already used by the Python backend tests. Two real memory bugs were
-  caught and fixed while getting that suite green: a missing `channels`
-  array in a `cv::calcHist` call (undefined behavior, not a "works on my
-  machine" issue) and a tracker double-free from Go's `defer` capturing a
-  pointer value at the `defer` statement rather than at the deferred
-  call. Deliberately NOT the generation path yet - `generator.go` still
-  calls `generate_funscript.py` for everything (smoothing, keyframes,
-  Quality Doctor, funscript writing stay Python); this package covers
-  only the single most expensive sub-step. CI's Go job now installs
-  `libopencv-dev` to build/test it.
+- **`generator/trackcv`, a Go-native CSRT tracking package (experimental)**:
+  first step of writing more of the generator in Go. Ports `track_roi()`
+  (CSRT + scene-cut + camera compensation + appearance memory) via a small
+  custom cgo OpenCV wrapper (not `gocv`). GEMESSEN: r=0.9996 vs Python,
+  ~15% less wall time. Now reachable through the native pipeline above
+  when opted in; still not the default.
 - **`region_fusion_auto` tracking backend**: like `region_fusion`, but
   without a marked region - automatically divides the whole frame into a
   2x2 grid (4 zones), the way `flow` needs no marked region either.

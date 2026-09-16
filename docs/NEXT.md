@@ -19,6 +19,7 @@ if you only need **what's actually still open**, start here:
 | 8 | Generator performance vs. FunGen2 | **Open-ended, several closed sub-questions** — grid_lk backend shipped for single-ROI (15x, measurably robust); grid_lk for Tf/Tj two-point measured *not* an improvement; threaded CSRT, gentle upscaling, WebGL sharpening all measured and rejected |
 | 9 | SAM long-term architecture | **First milestone shipped** (`sam/` package, funscript roundtrip) — not wired into any GUI/CLI flow yet |
 | 10 | Player: sharper video display | **Closed as a negative result** — investigated, measured worse, reverted |
+| — | Go-native generator path | **In progress** — `trackcv` (#84) + `posttrack` + opt-in `NativePipeline` (CSRT only); Quality Doctor / other backends still Python |
 | — | Training history across sessions | **Done** |
 | — | Script Doctor for imported files | **Done** |
 | — | Manual funscript editor | **Done** (curve editor, with video-follow) |
@@ -1714,6 +1715,47 @@ git history rather than rebuilding from scratch.
   worth re-checking the moment something DOES import it, since cross-
   compiling cgo against a Windows OpenCV build is a real, separate
   problem this milestone hasn't had to solve.
+
+- **Go-native post-tracking + opt-in pipeline (September 16, 2026)** —
+  the open question above was answered explicitly: the goal is **more Go
+  / less Python** (not "bundle a frozen Python"), so the next piece is
+  the downstream signal path, not only wiring trackcv into a Python
+  remainder.
+
+  `generator/posttrack` ports `positions_to_funscript` and `limit_speed`
+  to pure Go (no cgo, no OpenCV): Savitzky-Golay (same `mode="interp"`
+  implementation family as trackcv's camera-shift smoother, polyorder 3
+  for the position curve), percentile / min-max normalisation, optional
+  dynamic-range lift, scipy-compatible peak/valley detection with
+  distance + prominence, adaptive keyframe densification, minimum action
+  interval, RDP via the existing `motionx.Simplify`, speed limiting, and
+  tf/tj position clamping. GEMESSEN against committed Python goldens
+  (`posttrack/testdata/positions_goldens.json`, regenerated from the
+  live `generate_funscript.py` functions): every fixture matches the
+  Python action list exactly, and the dense normalised curve stays within
+  0.05 position units abs — well under half a funscript step.
+
+  Wiring: `Options.NativePipeline` (GUI: "Go-Pipeline (experimentell)"
+  under Erweiterte Einstellungen). When set and eligible (CSRT, one ROI,
+  no Tf/Tj / per-scene / AI opinion / audio / auto-retry / OpenCL),
+  `GenerateWithProgress` calls `GenerateNativeCSRT` (`trackcv` +
+  `posttrack` + JSON write) and never starts Python. Otherwise it logs
+  and falls back to the existing Python path. Build tags keep Windows
+  cross-compiles CGO-free: `native_track_opencv.go` (`cgo && !windows`)
+  imports trackcv; `native_track_stub.go` returns
+  `NativeTrackingAvailable() == false` on Windows / non-cgo builds so
+  `cmd/gui-wails` does not pull OpenCV into the Windows binary.
+
+  Also fixed while doing this: `process_one`'s inner `build()` never
+  passed `peak_prominence` / `dynamic_range_ms` / `min_action_interval_ms`
+  into `positions_to_funscript`, so `--profile weich` (and any explicit
+  CLI values for those flags) were silently ignored on the Python path.
+  Guarded by `process_one_kwargs_test.py` (AST check on the call site).
+
+  Still Python: Quality Doctor, learned quality model, AI opinion, audio
+  check, flow/grid_lk/region_fusion backends, two-point Tf/Tj, per-scene
+  ROI, tracking cache, auto-retry. Native is opt-in and unmarked as
+  default until real-clip Quality Doctor parity exists in Go.
 
 ## Product requirements
 

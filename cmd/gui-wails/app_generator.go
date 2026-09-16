@@ -69,6 +69,7 @@ type GenerateOptions struct {
 	ContactVibration          bool    `json:"contactVibration"`
 	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
 	AudioCheck                bool    `json:"audioCheck"`
+	NativePipeline            bool    `json:"nativePipeline"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -167,6 +168,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			AIBaseURL:                 a.settings.GetString(prefAIBaseURL, ""),
 			ContactVibration:          opts.ContactVibration,
 			AudioCheck:                opts.AudioCheck,
+			NativePipeline:            opts.NativePipeline,
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}

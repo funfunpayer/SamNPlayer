@@ -115,6 +115,7 @@ export function initGenerator(root, playback) {
           Spannweite. Nur bei einer erkennbar falschen automatischen Wahl fest erzwingen.</p>
         <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-native" /><label for="gen-native">Go-Pipeline (experimentell): CSRT-Tracking + Signalpfad ohne Python — nur CSRT, eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry. Sonst Fallback auf Python.</label></div>
         <div class="field-row"><label>Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
         <div class="field-row"><label>Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label>RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
@@ -484,6 +485,7 @@ export function initGenerator(root, playback) {
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
+      nativePipeline: el('#gen-native').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;

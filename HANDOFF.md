@@ -32,9 +32,11 @@ cmd/cli/           CLI version (without generator)
 device/            BLE protocol and transport, mock device
 player/            Playback, synchronization, training mode
 funscript/         Parser, metadata, mapping
-generator/         Python pipeline and Go wrapper
+generator/         Python pipeline and Go wrapper; trackcv (CSRT/cgo) +
+                   posttrack (pure-Go signal path); opt-in NativePipeline
 motionx/           RDP reduction and motion-state classification (salvaged)
-videox/            ffprobe/ffmpeg wrappers (salvaged, not yet connected)
+videox/            ffprobe/ffmpeg wrappers (salvaged, not yet connected —
+                   trackcv covers decode for the native CSRT path)
 logging/ update/   Logging, automatic updates through GitHub releases
 ```
 
@@ -494,8 +496,11 @@ only the Wails bindings. Mocks are generated automatically from `App.js`
 Neither currently meets the rule from section 16 of the target concept:
 no module without a demonstrably improved processing path. They remain in
 the tree with tests because their prerequisites are foreseeable — a third
-measurement source and removal of the Python dependency, respectively —
-not because they are currently needed.
+measurement source for fusion, and (for videox) a need for ffmpeg-based
+decode. Removal of the Python dependency is now an active goal via
+`trackcv` + `posttrack` (OpenCV decode, not ffmpeg), so connecting
+`videox` would add a second external binary without a demonstrated
+benefit over the OpenCV path already used by the native CSRT pipeline.
 
 ## Project status and next steps
 

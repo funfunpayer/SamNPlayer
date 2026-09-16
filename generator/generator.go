@@ -65,6 +65,9 @@ type Options struct {
 	AIBaseURL                 string
 	ContactVibration          bool
 	AudioCheck                bool
+	// NativePipeline: opt-in Go path (trackcv + posttrack) for CSRT + single
+	// ROI. Falls back to Python when unavailable or ineligible. Experimental.
+	NativePipeline bool
 }
 
 func pythonCandidates() []string {
@@ -620,6 +623,24 @@ func BuildArgsForTest(opts Options) []string {
 
 func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
+
+	if opts.NativePipeline {
+		if NativePipelineEligible(opts, roi) {
+			if err := GenerateNativeCSRT(videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
+				return err
+			}
+			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+			return nil
+		}
+		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
+			"available", NativeTrackingAvailable(),
+			"backend", opts.Backend,
+			"roi2", opts.ROI2.W > 0)
+		if onProgress != nil {
+			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
+		}
+	}
+
 	py, err := FindPython()
 	if err != nil {
 		return err
