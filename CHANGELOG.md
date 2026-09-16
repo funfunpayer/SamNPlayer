@@ -6,10 +6,33 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
-## [Unreleased] — since v0.2.2 (September 14, 2026)
+## [Unreleased] — since v0.3.0 (September 16, 2026)
 
-Source version (`VERSION`/`update.BaseVersion`) is `0.3.0`; not yet tagged
-as a release.
+### Added
+
+- **Device-Diagnostics tool** (`device/diagnostics.go`, "Geräte-Diagnose"
+  section in the Device tab): an automated test sequence against the
+  connected device — raw-value acceptance sweep per channel, maximum
+  stable update rate, channel interaction (alone/simultaneous/offset/
+  rapid-switching) — logging every command's time, latency, and errors to
+  a history. Only measures what's objectively obtainable without a sensor
+  at the device (write-round-trip latency, value acceptance); the report
+  says explicitly what it did not measure (felt intensity, true physical
+  rise/fall time) instead of faking a number nobody collected.
+
+### Changed
+
+- **Tf and Tj merged into a single profile** in the generator's dropdown
+  (`Tf/Tj (Abstand + Sog)`) — both were already the identical recipe
+  internally (`funscript/recipe.go`'s `NormalizeProfile` always collapsed
+  them), so offering two identical-behaving options was pure friction.
+  Marking a second region in the generator now auto-selects this profile
+  (no other tracking method evaluates a second region, so drawing one
+  already *is* the selection) instead of requiring a separate manual
+  dropdown pick. The CLI's `--profile` still accepts both `tf` and `tj`
+  for backward compatibility.
+
+## [0.3.0] — September 16, 2026
 
 ### Added
 

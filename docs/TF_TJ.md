@@ -1,6 +1,9 @@
 # Tf / Tj
 
-Internally named `tf` and `tj`; both use the same recipe.
+Internally named `tf` and `tj`; both use the same recipe. The generator's
+profile dropdown shows a single "Tf/Tj (Abstand + Sog)" entry (`value="tf"`)
+rather than two identical-behaving options - the CLI's `--profile` still
+accepts either name for backward compatibility.
 
 ## Signal
 
@@ -16,8 +19,11 @@ higher position value and stronger suction.
 
 ## Usage
 
-Generator: select the Tf / Tj profile, then mark the first and second regions
-using Shift or the region-selection button.
+Generator: mark the first and second regions using Shift or the
+region-selection button - marking a second region automatically selects the
+Tf/Tj profile (no other tracking method evaluates a second region, so
+marking one already is the selection). Selecting the profile by hand still
+works and pre-selects the second-region-drawing mode either way.
 Playback: uses the recipe from metadata; the UI default `independent`
 does not override it.
 

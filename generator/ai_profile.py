@@ -41,7 +41,13 @@ import sys
 
 import colibri_client
 
-KNOWN_PROFILES = ("standard", "weich", "tf", "tj")
+# "tj" used to be a fourth choice here, identical to "tf" in every respect
+# (funscript/recipe.go's NormalizeProfile always collapsed both to the same
+# recipe) - dropped so the model is never asked to pick between two options
+# that mean the same thing. generate_funscript.py's --profile still accepts
+# "tj" for old scripts/commands; this suggestion contract just never offers
+# it as a fresh choice anymore.
+KNOWN_PROFILES = ("standard", "weich", "tf")
 
 _SYSTEM_PROMPT = (
     "You classify a short video scene's motion signature into one of a "
