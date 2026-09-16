@@ -1760,6 +1760,14 @@ def main():
                          "Fließtext mit Begründung, wird ausgegeben und bei --report mit "
                          "abgelegt. Ändert NICHT quality.passed und trägt kein --feedback "
                          "automatisch nach. Nicht erreichbar -> kein Eintrag, kein Fehler.")
+    ap.add_argument("--audio-check", action="store_true",
+                    help="Skript-Tempo gegen das Tempo der Audio-Energiehüllkurve des Videos "
+                         "prüfen (siehe audio_check.py) - klassische Plausibilitätsprüfung, "
+                         "kein KI-Baustein, braucht ffmpeg auf dem PATH. Weicht das Tempo von "
+                         "jedem erwarteten Vielfachen (0.5x/1x/2x) ab, wird eine Warnung "
+                         "ausgegeben und bei --report mit abgelegt. Ändert NICHT quality.passed "
+                         "und korrigiert nichts automatisch. Kein ffmpeg/keine Audiospur -> "
+                         "kein Eintrag, kein Fehler.")
     ap.add_argument("--contact-vibration", action="store_true",
                     help="Nur Profil tf/tj: Vibration am Gerät folgt zusätzlich zum Sog dem "
                          "gemessenen Abstand ROI1<->ROI2 - sobald der Abstand nahe sein "
@@ -2236,6 +2244,19 @@ def process_one(args, ap):
             print(f"Kein Colibri-Server unter {base_url} erreichbar - keine Zweitmeinung",
                   file=sys.stderr)
 
+    audio_check_result = None
+    if args.audio_check:
+        import audio_check
+        audio_check_result = audio_check.check(args.video, actions)
+        if audio_check_result["available"]:
+            print(f"Audio-Tempo-Prüfung: Skript {audio_check_result['script_hz']}, "
+                  f"Audio {audio_check_result['audio_hz']}", file=sys.stderr)
+            for w in audio_check_result["warnings"]:
+                print(f"WARNUNG (Audio-Tempo-Prüfung): {w}", file=sys.stderr)
+        else:
+            print(f"Audio-Tempo-Prüfung nicht möglich: {audio_check_result['reason']}",
+                  file=sys.stderr)
+
     if is_distance_profile(args.profile):
         actions = clamp_actions_pos(actions)
 
@@ -2297,7 +2318,10 @@ def process_one(args, ap):
                         # Fließtext-Zweitmeinung, nur mit --ai-quality-opinion gefüllt.
                         # Informativ - beeinflusst "passed"/"score" oben nicht und wird
                         # NICHT automatisch zu "feedback" (siehe ai_quality.py).
-                        "ai_opinion": ai_opinion},
+                        "ai_opinion": ai_opinion,
+                        # Nur mit --audio-check gefüllt (siehe audio_check.py) - ebenso
+                        # rein informativ, ändert "passed"/"score" oben nicht.
+                        "audio_check": audio_check_result},
             "runtime_seconds": round(time.monotonic() - started_at, 1),
             # Platz für dein Urteil. Wird von der GUI bzw. per
             # add_feedback() nachgetragen - siehe --feedback.
