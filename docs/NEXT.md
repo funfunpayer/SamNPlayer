@@ -1595,6 +1595,126 @@ git history rather than rebuilding from scratch.
   compared to `flow`'s whole-frame dense approach before recommending it
   over `flow` for no-ROI use.
 
+- **Go-native tracking, first step: `generator/trackcv` (September 16,
+  2026)** - the user's standing complaint about Python's install burden
+  ("man muss so viel nach installieren", comparing unfavorably to FunGen2's
+  move to C#) came up again; asked directly whether to start moving parts
+  of the generator to Go, on one condition: only where it's a measured
+  win, not a rewrite for its own sake ("ich will das wir mehr selber
+  schreiben als irgend was nutzen was dann kein gute Ergebnis bringt" - I
+  don't want us writing more ourselves than using something that then
+  gives a worse result).
+
+  FIRST MEASURED BEFORE WRITING THE REAL PORT: a throwaway feasibility
+  test - a ~60-line cgo wrapper around `cv::TrackerCSRT`, the SAME
+  synthetic test video and ROI fed to both it and Python's
+  `create_tracker()`. Result: r=0.9996 Pearson correlation, max. 3px
+  absolute difference, mean 0.48px (both trackers ran on a 200-frame
+  clip; the small per-frame differences are ordinary floating-point/
+  threading nondeterminism inside CSRT itself, not a binding quality
+  issue). Amplitude: Go 77.0px vs. Python 78.0px against a true 80px.
+  Performance on a larger 640x480/600-frame clip: Go ~13.6s wall time,
+  Python ~16.0s (both include video decode) - ~15% faster, from the
+  removed per-frame Python/ctypes marshalling overhead; the actual CSRT
+  computation is identical C++ code either way, so this is NOT a
+  multiplicative "Go is N times faster" story - most of the cost is the
+  algorithm itself, not the language wrapping it.
+
+  WHY NOT `gocv`: the obvious first choice, but its `contrib` Go package
+  (where `TrackerCSRT` lives in every gocv version checked, v0.30.0
+  through v0.43.0) bundles ALL contrib bindings - including
+  `xfeatures2d.cpp` - into one cgo compilation unit. Ubuntu's
+  `libopencv-contrib-dev` doesn't ship `xfeatures2d` (SIFT/SURF, excluded
+  for patent reasons), so the whole package fails to compile with "fatal
+  error: opencv2/xfeatures2d.hpp: No such file or directory" even though
+  only the unrelated tracker binding was needed. Newer gocv (v0.43.0)
+  separately failed for a different reason: its `aruco.cpp` targets a
+  newer OpenCV `ArucoDetectorParameters` API than Ubuntu's packaged 4.6.0
+  provides. Rather than pin to some in-between gocv version and hope both
+  problems stay avoided, `generator/trackcv/cv.h`+`cv.cpp` binds only the
+  ~10 OpenCV functions actually needed (`VideoCapture`, `TrackerCSRT`,
+  `goodFeaturesToTrack`+`calcOpticalFlowPyrLK`+`estimateAffinePartial2D`
+  for camera compensation, `calcHist`+`compareHist` and a resized-frame
+  mean-diff for scene-cut detection, `matchTemplate` for appearance
+  memory) - no unrelated contrib modules dragged in.
+
+  THE REAL PORT (`track.go`, `appearance_memory.go`, `savgol.go`): a
+  frame-for-frame port of `track_roi()` - same scene-cut thresholds
+  (histogram correlation < 0.5 OR resized-frame mean-diff > 12.0), same
+  appearance-memory behavior (remember every 25 frames, keep 8 templates,
+  index 0 - the user-confirmed start region - never evicted, 0.55 minimum
+  match score to reacquire), same segment-wise Savitzky-Golay smoothing
+  of the cumulative camera-shift signal (window 9, order 2) before
+  subtracting it from the position curve. The Savitzky-Golay filter has
+  no Go stdlib/small-dependency equivalent, so it's implemented directly
+  (a tiny per-point least-squares polynomial fit, window shifted rather
+  than shrunk or mirrored at the array edges - matching
+  `scipy.signal.savgol_filter`'s default `mode="interp"`, not the more
+  common "mirror at the edge" behavior another implementation might
+  reach for).
+
+  TWO REAL BUGS CAUGHT BY THE TEST SUITE, not by inspection:
+  1. `Gray_HistCorrelation` passed a bare `0` where `cv::calcHist` expects
+     a `const int*` channels array - undefined behavior that happened to
+     not crash in isolation but corrupted the heap enough to abort much
+     later, inside an unrelated `VideoCapture` close call ("corrupted
+     double-linked list" / SIGABRT) - a textbook case of a memory bug
+     surfacing far from its actual cause. Fixed by passing a real
+     `int channels[] = {0}`.
+  2. A tracker double-free: `defer tracker.Close()` right after creating
+     the tracker captures the POINTER VALUE at the `defer` statement, not
+     at the deferred call - but the scene-cut path reassigns `tracker` to
+     a fresh one on every cut (closing the old one explicitly first).
+     The deferred call still held the very first tracker, so function
+     return closed it a second time ("double free or corruption").
+     Fixed by deferring a closure (`defer func() { tracker.Close() }()`)
+     that reads the current value of `tracker` when it actually runs.
+     Both bugs only manifested with `SceneCutDetection`/`AppearanceMemory`
+     enabled - exactly the one test exercising those paths (the other
+     four passed cleanly, which is itself a reminder that a green build
+     with narrow option coverage proves less than it looks like it does).
+
+  OWN TEST SUITE, no cross-language dependency: `track_test.go` generates
+  its own synthetic videos via the package's own `VideoWriter` binding
+  (no ffmpeg, no Python) - matching the "Go"/"Python (Generator)" CI
+  split already in place, and the same "known ground truth, measure
+  against it" pattern the Python backend tests use (`*_backend_test.py`).
+  Checks: contract shape, amplitude accuracy on clean material, camera
+  compensation measurably improving amplitude accuracy on a panning
+  clip, scene-cut detection + recovery, axis selection, `max_frames`.
+  Passes clean under `go test -race`, stable across repeated runs (no
+  flakiness left over from the two bugs above).
+
+  NOT YET the default or even reachable from the app: nothing imports
+  `generator/trackcv` - `generator.go` still shells out to
+  `generate_funscript.py` for the entire pipeline (tracking AND
+  smoothing AND keyframe extraction AND Quality Doctor AND funscript
+  writing). Wiring it in for real raises a bigger, still-open question
+  this entry deliberately does NOT answer: the Python pipeline downstream
+  of tracking (savgol/find_peaks-equivalent smoothing, keyframe
+  extraction, the Quality Doctor heuristics, funscript I/O) would either
+  need its own Go port - real additional work, since those aren't as
+  cleanly separable as the tracking loop and have no obvious Go
+  numerical-library equivalent to scipy - or Go's tracker would need to
+  hand its output BACK to Python for the rest, which keeps Python as a
+  hard runtime requirement and gets none of the "avoid installing
+  Python" benefit the user's original complaint was actually about (only
+  the "wenn es Performance bringt" half of their stated condition, not
+  the underlying motivation). That tradeoff needs a decision before the
+  next piece is picked, not a silent default.
+
+  CI: `.github/workflows/tests.yml`'s `go` job and
+  `.github/workflows/release.yml`'s dependency step both now install
+  `libopencv-dev`/`pkg-config` - without it, `go vet`/`go test ./...`
+  (which reaches `generator/trackcv` even though nothing imports it,
+  since Go tests every matched package) fails with "opencv2/opencv.hpp:
+  No such file". The Windows cross-build is unaffected: nothing in
+  `cmd/gui-wails`'s or `cmd/cli`'s import graph reaches
+  `generator/trackcv` yet, so Go's build simply never touches it there -
+  worth re-checking the moment something DOES import it, since cross-
+  compiling cgo against a Windows OpenCV build is a real, separate
+  problem this milestone hasn't had to solve.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

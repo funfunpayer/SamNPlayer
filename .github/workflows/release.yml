@@ -31,11 +31,12 @@ jobs:
           SAMNPLAYER_RELEASE_TAG: ${{ github.ref_name }}
         run: go test ./update -run TestSourceVersion -count=1
 
-      - name: Systemabhängigkeiten (WebKitGTK für Linux-Build + mingw fürs Windows-Cross-Build)
+      - name: Systemabhängigkeiten (WebKitGTK für Linux-Build + mingw fürs Windows-Cross-Build + OpenCV für generator/trackcv)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
-            libgtk-3-dev libwebkit2gtk-4.1-dev gcc-mingw-w64-x86-64
+            libgtk-3-dev libwebkit2gtk-4.1-dev gcc-mingw-w64-x86-64 \
+            libopencv-dev pkg-config
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
 
       - name: Versionsnummer aus dem Tag lesen
