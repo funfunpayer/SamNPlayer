@@ -821,8 +821,14 @@ export function initPlayback(root) {
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
   }
 
-  async function play() {
-    if (!scriptPath) { alert('Bitte zuerst eine .funscript-Datei wählen.'); return; }
+  // startScriptPlayback startet nur das Funscript/Gerät (StartPlayback +
+  // Statuswechsel), ohne das <video>-Element anzufassen - gemeinsamer Kern
+  // für den App-eigenen "Abspielen"-Knopf (play(), der zusätzlich das
+  // Video von vorn startet) und den nativen Video-Play-Listener weiter
+  // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
+  // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
+  async function startScriptPlayback() {
+    if (!scriptPath) { alert('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
     el('#pb-log').textContent = '';
 
     const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
@@ -844,9 +850,15 @@ export function initPlayback(root) {
       await StartPlayback(opts);
     } catch (err) {
       alert('Fehler: ' + err);
-      return;
+      return false;
     }
     setPlayingState(true);
+    return true;
+  }
+
+  async function play() {
+    const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
+    if (!(await startScriptPlayback())) return;
 
     if (useVideoSync) {
       videoEl.currentTime = 0;
@@ -898,6 +910,21 @@ export function initPlayback(root) {
   // die nach Videoende nicht mehr kommen).
   videoEl.addEventListener('ended', () => {
     if (playing && el('#pb-use-video-sync').checked) stop();
+  });
+
+  // Das native Play im <video>-Element (Browser-eigene Steuerung, per
+  // Klick oder Leertaste mit Fokus auf dem Video) soll das Funscript
+  // gleich mitstarten, statt zwei getrennte Aktionen zu verlangen. Die
+  // playing-Prüfung verhindert eine Rückkopplungsschleife: play() selbst
+  // ruft bei aktivem Video-Sync videoEl.play() auf, was dieses 'play'
+  // erneut auslösen würde - zu dem Zeitpunkt steht playing aber schon auf
+  // true (setPlayingState lief vor dem videoEl.play()-Aufruf), also bricht
+  // die Prüfung hier sofort ab. currentTime wird bewusst NICHT
+  // zurückgesetzt (anders als play()) - das Video läuft hier schon an
+  // seiner aktuellen Position, ein Sprung auf 0 wäre ein sichtbarer Bug.
+  videoEl.addEventListener('play', () => {
+    if (playing || !scriptPath) return;
+    startScriptPlayback();
   });
 
   EventsOn('playback:log', log);
