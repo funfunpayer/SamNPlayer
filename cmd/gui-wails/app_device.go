@@ -130,14 +130,17 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	connectStart := time.Now()
 	if err := dev.Connect(ctx); err != nil {
 		logging.Warn("geraet: Verbindung fehlgeschlagen", "weg", transport, "fehler", err)
 		return a.GetDeviceStatus(), err
 	}
+	connectLatencyMs := float64(time.Since(connectStart).Microseconds()) / 1000.0
 
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = transport == "mock"
+	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
 	// Erfolgreiche Wahl merken - beim nächsten Start ist sie voreingestellt.
@@ -166,14 +169,17 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), testConnectTimeout)
 	defer cancel()
+	connectStart := time.Now()
 	if err := dev.Connect(ctx); err != nil {
 		logging.Warn("geraet: Verbindung fehlgeschlagen", "mock", mock, "fehler", err)
 		return a.GetDeviceStatus(), err
 	}
+	connectLatencyMs := float64(time.Since(connectStart).Microseconds()) / 1000.0
 
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = mock
+	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
 	st := a.GetDeviceStatus()
@@ -187,6 +193,7 @@ func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	dev := a.testDevice
 	a.testDevice = nil
 	a.testDeviceMock = false
+	a.testDeviceConnectLatencyMs = 0
 	a.stateMu.Unlock()
 
 	if dev == nil {

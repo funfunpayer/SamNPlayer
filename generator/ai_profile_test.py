@@ -45,12 +45,15 @@ def main():
           '"tj-szene-1"' in messages_with_known[1]["content"], messages_with_known[1]["content"])
 
     # --- parse_response: strikter Vertrag ------------------------------------
-    ok = ai_profile.parse_response('{"profile": "tj", "confidence": 0.8, "reason": "eng"}')
+    ok = ai_profile.parse_response('{"profile": "tf", "confidence": 0.8, "reason": "eng"}')
     check("gültige Antwort wird geparst",
-          ok == {"profile": "tj", "confidence": 0.8, "reason": "eng"}, str(ok))
+          ok == {"profile": "tf", "confidence": 0.8, "reason": "eng"}, str(ok))
 
     check("unbekanntes Profil wird verworfen, nicht geraten",
           ai_profile.parse_response('{"profile": "erfunden", "confidence": 0.9}') is None, "")
+    check("'tj' wird verworfen - seit dem Dropdown-Merge kein eigenständiges Profil mehr,"
+          " nur noch 'tf' (siehe KNOWN_PROFILES)",
+          ai_profile.parse_response('{"profile": "tj", "confidence": 0.9}') is None, "")
     check("kaputtes JSON wird verworfen, nicht geraten",
           ai_profile.parse_response("das ist kein JSON") is None, "")
     check("Liste statt Objekt wird verworfen",
@@ -70,12 +73,12 @@ def main():
         check("Payload enthält die System+User-Nachrichten",
               len(payload["messages"]) == 2, str(payload))
         return {"choices": [{"message": {
-            "content": '{"profile": "tj", "confidence": 0.7, "reason": "hoher vertical_share"}'
+            "content": '{"profile": "tf", "confidence": 0.7, "reason": "hoher vertical_share"}'
         }}]}
 
     result = ai_profile.suggest_profile(sig, _post_fn=fake_post_ok)
     check("suggest_profile liefert die geparste Antwort der Attrappe",
-          result is not None and result["profile"] == "tj", str(result))
+          result is not None and result["profile"] == "tf", str(result))
 
     def fake_post_malformed(payload):
         return {"choices": [{"message": {"content": "nicht JSON"}}]}

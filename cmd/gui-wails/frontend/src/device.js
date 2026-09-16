@@ -1,4 +1,5 @@
-import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings } from '../wailsjs/go/main/App';
+import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory } from '../wailsjs/go/main/App';
+import { EventsOn } from '../wailsjs/runtime/runtime';
 
 // Zweck dieses Tabs: sichtbar machen, ob überhaupt ein Gerät gefunden und
 // richtig erkannt wurde, und die Ansteuerung isoliert prüfen zu können -
@@ -75,6 +76,25 @@ export function initDevice(root) {
       </div>
     </fieldset>
 
+    <fieldset id="dev-diag" disabled style="margin-top:16px; border:1px solid var(--border);
+              border-radius:4px; padding:12px;">
+      <legend style="padding:0 6px;">Geräte-Diagnose</legend>
+      <p class="hint" style="margin-top:0;">
+        Fährt automatisch eine feste Testreihe (Rohwert-Annahme pro Kanal, maximale
+        stabile Update-Rate, Kanalinteraktion: allein/gleichzeitig/zeitversetzt/schnelle
+        Wechsel) und protokolliert jedes Kommando mit Zeit und Latenz - die Messreihe aus
+        docs/SAM_NEO_2_RESEARCH.md §11/§12. Das Gerät bewegt sich dabei mehrfach kurz.
+        Gemessen wird nur, was sich ohne einen Sensor am Gerät objektiv feststellen lässt
+        (Schreib-Latenz, angenommene Werte, Fehler) - keine gefühlte Intensität und keine
+        echte physische Anstiegs-/Abfallzeit, das kann nur der Nutzer selbst beurteilen.
+      </p>
+      <div class="row"><button id="diag-run">Diagnose starten</button></div>
+      <div id="diag-status" class="path-label"></div>
+      <div id="diag-result" style="margin-top:8px;"></div>
+      <h4 style="margin:14px 0 4px;">Verlauf</h4>
+      <div id="diag-history" class="hint">Lädt...</div>
+    </fieldset>
+
     <div id="dev-log" class="hint" style="margin-top:12px; white-space:pre-wrap;"></div>
   `;
 
@@ -117,6 +137,7 @@ export function initDevice(root) {
     const canTest = st.connected && !st.sessionActive;
     el('#dev-test').disabled = !canTest;
     el('#dev-raw').disabled = !canTest;
+    el('#dev-diag').disabled = !canTest;
     el('#dev-connect').disabled = st.connected || st.sessionActive || busy;
     el('#dev-disconnect').disabled = !st.connected || busy;
     el('#dev-transport').disabled = st.connected || busy;
@@ -253,6 +274,82 @@ export function initDevice(root) {
       log('Stop: ' + e);
     }
   });
+
+  // Geräte-Diagnose: siehe app_diagnostics.go/device/diagnostics.go.
+  function phaseLabel(phase) {
+    return phase.replace(/_/g, ' ');
+  }
+
+  function renderDiagReport(report) {
+    if (!report) return '';
+    const rows = (report.phases || []).map(p => `
+      <tr><td>${phaseLabel(p.phase)}</td><td>${p.commands}</td>
+        <td>${p.errors > 0 ? `<span style="color:var(--danger)">${p.errors}</span>` : '0'}</td>
+        <td>${p.meanLatencyMs.toFixed(1)} ms</td><td>${p.maxLatencyMs.toFixed(1)} ms</td></tr>
+    `).join('');
+    const interrupted = report.interrupted
+      ? '<p style="color:var(--warn, #d9a441)">Lauf wurde abgebrochen, unvollständig.</p>' : '';
+    const notes = (report.notes || []).map(n => `<p class="hint">${n}</p>`).join('');
+    return `
+      ${interrupted}
+      <table class="bench-table">
+        <thead><tr><th>Phase</th><th>Kommandos</th><th>Fehler</th><th>Ø Latenz</th><th>Max Latenz</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${notes}
+    `;
+  }
+
+  function renderDiagHistoryRow(entry) {
+    const r = entry.report || {};
+    const errors = (r.phases || []).reduce((sum, p) => sum + p.errors, 0);
+    const commands = (r.phases || []).reduce((sum, p) => sum + p.commands, 0);
+    const when = new Date(entry.timestamp);
+    const whenText = isNaN(when.getTime()) ? entry.timestamp : when.toLocaleString();
+    return `<div>${whenText}${entry.mock ? ' (Mock)' : entry.deviceName ? ` (${entry.deviceName})` : ''} — `
+      + `${commands} Kommandos, ${errors} Fehler${r.interrupted ? ', abgebrochen' : ''}</div>`;
+  }
+
+  async function refreshDiagHistory() {
+    const box = el('#diag-history');
+    try {
+      const history = await GetDiagnosticsHistory();
+      if (!Array.isArray(history) || history.length === 0) {
+        box.textContent = 'Noch kein Diagnoselauf aufgezeichnet.';
+        return;
+      }
+      box.innerHTML = history.map(renderDiagHistoryRow).join('');
+    } catch (err) {
+      box.textContent = 'Verlauf konnte nicht geladen werden: ' + err;
+    }
+  }
+
+  el('#diag-run').addEventListener('click', async () => {
+    el('#diag-run').disabled = true;
+    el('#diag-status').textContent = 'Läuft… (Vibration/Sog bewegen sich kurz mehrfach)';
+    el('#diag-result').innerHTML = '';
+    try {
+      await RunDeviceDiagnostics();
+    } catch (err) {
+      el('#diag-run').disabled = false;
+      el('#diag-status').textContent = 'Fehlgeschlagen: ' + err;
+    }
+  });
+
+  EventsOn('diagnostics:entry', e => {
+    const value = typeof e.sentRaw === 'number' ? e.sentRaw : e.wantedValue;
+    el('#diag-status').textContent =
+      `Läuft… ${phaseLabel(e.phase)}${e.channel ? ' · ' + e.channel : ''}${value !== undefined ? ' · ' + value : ''}`
+      + (e.error ? ` · Fehler: ${e.error}` : '');
+  });
+  EventsOn('diagnostics:done', entry => {
+    el('#diag-run').disabled = false;
+    el('#diag-status').textContent = 'Fertig.';
+    el('#diag-result').innerHTML = renderDiagReport(entry.report);
+    refreshDiagHistory();
+  });
+
+  refreshDiagHistory();
 
   // Zuletzt benutzte Verbindungsart und Adresse wiederherstellen.
   GetSettings().then(s => {

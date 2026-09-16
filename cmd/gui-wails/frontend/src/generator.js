@@ -31,11 +31,12 @@ export function initGenerator(root, playback) {
       <select id="gen-profile">
         <option value="standard">Hubbewegung (Standard)</option>
         <option value="weich">Weiches Gewebe (schwingt nach)</option>
-        <option value="tf">Tf (Abstand + Sog)</option>
-        <option value="tj">Tj (Abstand + Sog)</option>
+        <option value="tf">Tf/Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">„Weiches Gewebe" behandelt Nachschwingungen
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf und Tj sind intern dasselbe
+      Rezept (Abstand zweier Regionen, Sog folgt) - darum nur ein Eintrag. Wird automatisch
+      ausgewählt, sobald eine 2. Region markiert wird. „Weiches Gewebe" behandelt Nachschwingungen
       nicht als eigene Hübe. An einem Testvideo mit Anstoß alle 800 ms: 81 Keyframes werden
       zu 42 — den Anstößen selbst. Saubere Hubsignale bleiben davon unberührt.</p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
@@ -306,6 +307,14 @@ export function initGenerator(root, playback) {
     if (wasSecond) {
       roi2 = box;
       setRoi2Mode(false);
+      // Eine 2. Region ergibt nur im Tf/Tj-Modus (Abstand + Sog) einen Sinn
+      // - kein anderes Verfahren wertet sie aus (siehe generate_funscript.py).
+      // Automatisch erkennen statt den Nutzer zusätzlich noch die Dropdown
+      // umstellen zu lassen: das Markieren der 2. Region IST die Auswahl.
+      if (!isTfTj()) {
+        el('#gen-profile').value = 'tf';
+        updateProfileUi();
+      }
     } else {
       roi = box;
       if (isTfTj() && !roi2) setRoi2Mode(true);
@@ -599,7 +608,7 @@ export function initGenerator(root, playback) {
     AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   });
 
-  const PROFILE_VALUES = ['standard', 'weich', 'tf', 'tj'];
+  const PROFILE_VALUES = ['standard', 'weich', 'tf'];
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
@@ -615,14 +624,21 @@ export function initGenerator(root, playback) {
       const via = result.kind === 'ai'
         ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
         : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
-      if (PROFILE_VALUES.includes(result.label)) {
-        status.textContent = `Vorschlag: "${result.label}" (${via}) — `;
+      // "tj" war früher ein zweiter, identisch behandelter Dropdown-Eintrag
+      // (siehe funscript/recipe.go NormalizeProfile) - inzwischen zu einem
+      // Eintrag "tf" zusammengelegt. Ältere, lokal gemerkte Szenen können
+      // noch mit "tj" beschriftet sein; hier auf den verbliebenen Wert
+      // abbilden, statt beim Übernehmen an einer verschwundenen Option
+      // stillschweigend hängenzubleiben.
+      const label = result.label === 'tj' ? 'tf' : result.label;
+      if (PROFILE_VALUES.includes(label)) {
+        status.textContent = `Vorschlag: "${label}" (${via}) — `;
         const applyBtn = document.createElement('button');
         applyBtn.textContent = 'übernehmen';
         applyBtn.addEventListener('click', () => {
-          el('#gen-profile').value = result.label;
+          el('#gen-profile').value = label;
           updateProfileUi();
-          status.textContent = `Profil "${result.label}" übernommen (${via}).`;
+          status.textContent = `Profil "${label}" übernommen (${via}).`;
         });
         status.appendChild(applyBtn);
       } else {

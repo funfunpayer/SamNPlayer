@@ -58,6 +58,8 @@ def main():
                             "state.name = transport === 'intiface' ? 'Testgeraet (ueber Intiface)' "
                             ": 'Sam Neo 2 Pro'; state.address = 'AA:BB:CC:DD:EE:FF'; "
                             "state.rssi = -58; return { ...state }; }",
+        "RunDeviceDiagnostics": "async () => { window.__calls.push(['diagnose']); }",
+        "GetDiagnosticsHistory": "async () => ([])",
     }))
     (FRONTEND / "test" / "_device_harness.html").write_text(PAGE)
 
@@ -143,11 +145,48 @@ def main():
               "Maximum" in page.locator("#dev-raw-hint").inner_text(),
               page.locator("#dev-raw-hint").inner_text())
 
+        # --- Geräte-Diagnose: nur bei bestehender Verbindung bedienbar ----
+        check("Diagnose-Bereich bei Verbindung frei", not disabled("#dev-diag"))
+        page.click("#diag-run")
+        page.wait_for_function("window.__calls.some(c => c[0] === 'diagnose')")
+        check("Diagnose-Knopf während des Laufs gesperrt", disabled("#diag-run"))
+        check("Status zeigt 'Läuft'", "Läuft" in page.locator("#diag-status").inner_text(),
+              page.locator("#diag-status").inner_text())
+
+        page.evaluate("window.__triggerEvent('diagnostics:entry', "
+                       "{ phase: 'raw_sweep_vibration', channel: 'vibration', sentRaw: 128, latencyMs: 12.5 })")
+        page.wait_for_function(
+            "document.querySelector('#diag-status').textContent.includes('raw sweep vibration')")
+        check("Live-Log zeigt Kanal und Wert der laufenden Phase",
+              "vibration" in page.locator("#diag-status").inner_text()
+              and "128" in page.locator("#diag-status").inner_text(),
+              page.locator("#diag-status").inner_text())
+
+        page.evaluate("""window.__triggerEvent('diagnostics:done', {
+            timestamp: new Date().toISOString(), mock: true, deviceName: 'Mock-Geraet',
+            report: {
+                startedAt: new Date().toISOString(), durationMs: 500, rawCapable: true,
+                interrupted: false,
+                phases: [{ phase: 'raw_sweep_vibration', commands: 32, errors: 0,
+                           meanLatencyMs: 3.2, maxLatencyMs: 9.1 }],
+                log: [], notes: ['Nicht gemessen: gefühlte Intensität.'],
+            },
+        })""")
+        page.wait_for_function("document.querySelector('#diag-run').disabled === false")
+        check("Nach Abschluss: Knopf wieder frei", not disabled("#diag-run"))
+        check("Ergebnis zeigt die Phase aus dem Bericht",
+              "raw sweep vibration" in page.locator("#diag-result").inner_text(),
+              page.locator("#diag-result").inner_text())
+        check("Ergebnis zeigt die Nicht-gemessen-Notiz",
+              "gefühlte Intensität" in page.locator("#diag-result").inner_text(),
+              page.locator("#diag-result").inner_text())
+
         # --- Laufende Session sperrt den Test ---
         page.evaluate("window.__setState({ sessionActive: true })")
         page.wait_for_function("document.querySelector('#dev-test').disabled === true", timeout=5000)
         check("Session läuft: Testbereich gesperrt", disabled("#dev-test"))
         check("Session läuft: Rohwert-Bereich gesperrt", disabled("#dev-raw"))
+        check("Session läuft: Diagnose-Bereich gesperrt", disabled("#dev-diag"))
         check("Session läuft: Hinweis sichtbar", "nicht möglich" in status(), status())
         page.evaluate("window.__setState({ sessionActive: false })")
 
