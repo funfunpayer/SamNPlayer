@@ -1540,6 +1540,60 @@ git history rather than rebuilding from scratch.
   (so not a backend quality difference), worth a separate look if it
   turns out to be a genuine over-triggering issue rather than actually
   cut-heavy source material.
+- **`region_fusion_auto` backend added (September 16, 2026)** - the user
+  clarified after the above that they hadn't meant subdividing a
+  hand-marked region: "ich meinte nicht zwei Stellen markieren sondern das
+  Bild des Videos automatisch immer in 4 Zonen teilen und dann mehrere
+  Punkte verteilen" (I didn't mean marking two spots, but automatically
+  always dividing the video image into 4 zones and distributing several
+  points). `region_fusion` (above) does need a marked region; this is the
+  actually-requested no-marking variant, analogous to how `flow` needs no
+  ROI.
+
+  NOT simply `region_fusion_backend.analyze()` called with a full-frame
+  ROI - that would blend the four zones' ABSOLUTE pixel positions, which
+  `region_fusion`'s own module comment explicitly justifies only because
+  its four sub-regions sit inside an already-small, localized marked ROI.
+  Four zones covering the whole frame sit at opposite corners; blending
+  their raw pixel coordinates would produce a meaningless jump across the
+  image whenever the activity weighting shifts from one zone to another.
+  Caught this before shipping by re-reading `region_fusion_backend.py`'s
+  own rationale rather than assuming the same code would generalize.
+
+  Fix: each zone's tracked position is normalized to its OWN box (0..1,
+  top/left to bottom/right of that zone) before fusing - comparable across
+  zones regardless of where on screen the zone sits - then the
+  activity-weighted fusion scales back to a pixel-like range (×frame
+  height/width) for downstream stats. New file
+  `region_fusion_auto_backend.py` (not an edit to `region_fusion_backend.py`,
+  to avoid any risk to its already-measured, shipped behavior above).
+
+  Camera compensation runs PER ZONE, not once for the whole frame: the
+  existing `estimate_camera_motion` needs background outside the tracked
+  area to sample from, and a single "region" spanning the whole frame
+  would leave none. Per zone, the other three zones (75% of the frame)
+  remain as background, so it still works - at roughly 4x the camera-comp
+  cost of `region_fusion`.
+
+  Point density had to be raised from `region_fusion`'s 3x3 per sub-region
+  to 6x6 (same as `grid_lk`'s whole-ROI density) after the synthetic test
+  first failed: a zone here is a quarter of the WHOLE frame (often
+  hundreds of pixels), not a quarter of an already-tight marked ROI, so a
+  3x3 grid left gaps wide enough for a moderately-sized moving object to
+  fall between every seed point and register ~0px of measured motion (a
+  320x240 test video, 160x120 zone, 15px object: 0.1px measured instead of
+  the true 30px). 6x6 fixed it in the same test.
+
+  Synthetic test (`region_fusion_auto_backend_test.py`) confirms motion
+  confined to one screen corner produces a real, bounded signal - clearly
+  above what the previous (too-sparse) grid measured, and clearly below a
+  frame-spanning jump, i.e. neither of the two failure modes above.
+
+  NOT YET measured against a FunGen2 reference (unlike `region_fusion`
+  above) - a candidate, not a result. Worth checking specifically whether
+  the per-zone normalization trades away some real amplitude information
+  compared to `flow`'s whole-frame dense approach before recommending it
+  over `flow` for no-ROI use.
 
 ## Product requirements
 

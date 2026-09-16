@@ -6,6 +6,27 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## Unreleased
+
+### Added
+
+- **Playback tab: pressing the native video Play control now also starts
+  funscript/device playback**, instead of these being two separate actions
+  (the dedicated "Abspielen" button and the video's own play control).
+  Guarded against re-triggering itself when video-sync makes the app call
+  `videoEl.play()`. Doesn't reset the video to the start, unlike the
+  dedicated button - the video is already running at its current position
+  when this fires.
+- **`region_fusion_auto` tracking backend**: like `region_fusion`, but
+  without a marked region - automatically divides the whole frame into a
+  2x2 grid (4 zones), the way `flow` needs no marked region either.
+  Normalizes each zone's tracked position to that zone's own box before
+  fusing (not the raw pixel blend `region_fusion` uses, which only makes
+  sense for a small, already-localized marked region) - see docs/NEXT.md
+  for why. Not available for two-point (Tf/Tj) measurement, same as
+  `flow`/`region_fusion`. NOT yet measured against a reference - a
+  candidate, not a result.
+
 ## [0.5.0] — September 16, 2026
 
 ### Added
