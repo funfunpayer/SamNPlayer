@@ -3,6 +3,13 @@
 Needed for FunGen parity. This file is the checklist; the clips stay on
 the operator machine (license + size).
 
+**Automated as of `generator/golden_clip_benchmark.py`** (GUI: the "Bench"
+tab) — point its manifest at clips following this checklist and it runs
+them through the real pipeline, computes Quality Doctor + FunGen
+agreement per clip, and tracks results over time. This file stays the
+checklist for *building* the clip set by hand; the tool is what runs it
+repeatably. See `docs/ROADMAP.md` for how this fits the wider task list.
+
 ## What one clip must include
 
 1. Source video (same cut FunGen used), note codec and resolution.

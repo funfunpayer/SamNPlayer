@@ -1,0 +1,239 @@
+# Roadmap — consolidated task list
+
+Single source of truth for "what's left to do", merging `docs/NEXT.md`'s
+priority list with the user's "Perception & Motion System 2.0" concept
+(16 September 2026) into one actionable checklist. Written in English per
+this project's documentation convention (see `HANDOFF.md`); day-to-day
+discussion stays German.
+
+**Relationship to the other planning docs, so they stop drifting apart:**
+
+- **This file** — the current checklist. Check items off here as they ship.
+- `docs/NEXT.md` — the detailed research journal: every measurement, every
+  rejected approach, the *why* behind each entry below. Keep adding
+  measurements there; keep this file as the short, current status.
+- `HANDOFF.md` — architecture, what already works, guiding principles,
+  the "tested and rejected" table (don't retry those without new evidence).
+- `CHANGELOG.md` — new: what shipped, release by release.
+- `docs/AI_ADAPTER.md`, `docs/SAM_ARCHITECTURE.md`, `docs/GOLDEN_CLIPS.md`,
+  `docs/TF_TJ.md` — deep dives on their own subsystem, unchanged in scope.
+
+---
+
+## Principles (recap — see `HANDOFF.md` for the full rationale)
+
+1. **Don't add what isn't needed.** No dependency, module, or feature
+   ships speculatively — `fusion.py`/`videox` sit tested but unconnected
+   for exactly this reason.
+2. **Every quality/speed claim needs a measurement, not an estimate.**
+   Reproduce before changing an algorithm; keep the raw numbers, not just
+   the conclusion.
+3. **Behavior changes need a regression test that fails without the
+   change** (`CONTRIBUTING.md`'s central rule).
+4. **AI proposes, the classical system always measures and decides.**
+   No second, AI-only output path ever writes a `.funscript` on its own
+   (`docs/AI_ADAPTER.md`).
+5. **Nothing bundled, nothing automatic.** No model, no download, no
+   telemetry, no cloud call the user didn't opt into.
+6. **Never auto-commit an unvalidated guess** — classical or AI — for a
+   region, ROI2, or parameter (issue #8's lesson, learned the hard way).
+7. **Definition of Done for a new technique**: it has to beat the current
+   production path on a fixed benchmark, stay within its
+   latency/memory budget, run reproducibly on the target platforms, and
+   have a documented fallback — not "it's newer" (this is also section 23
+   of the Perception 2.0 concept; same rule, independently arrived at
+   twice).
+
+---
+
+## Done (Finishing)
+
+Everything below is shipped and merged to `main`. Grouped, not one line
+per PR — see `CHANGELOG.md` for the fuller list and `git log` for exact
+commits.
+
+**Core generator**
+- [x] Three interchangeable tracking backends: CSRT (default), flow
+      (~4x faster, no region needed), `grid_lk` (~15x faster, more robust
+      on small/hard regions) — all GUI-wired via `#gen-backend`.
+- [x] Automatic region selection (classical, rhythm-based), scene-cut
+      detection with per-scene region search, camera-motion compensation,
+      appearance memory, adaptive keyframes, RDP reduction, speed
+      limiting, axis selection, caching.
+- [x] Two-point distance measurement (`--roi2`) for Tf/Tj, contact-
+      triggered vibration (opt-in).
+- [x] Motion profiles (`standard`/`weich`), motion-signature scene
+      matching for parameter reuse.
+- [x] Quality Doctor (timestamps, range, gaps, speed, rhythm, tracking
+      loss, amplitude, active-time fraction, reconstruction error) and
+      the learned quality model (adopted only if it beats fixed rules in
+      cross-validation).
+- [x] Device-compatibility checks against community-established limits.
+- [x] **Golden-Clip Benchmark**, with its own GUI tab — the fixed,
+      repeatable comparison basis this list itself kept asking for.
+
+**Local AI adapter** (`docs/AI_ADAPTER.md`)
+- [x] Region proposal (`ai_roi.py`, ONNX), profile suggestion, quality
+      second opinion — all GUI-wired, all gated behind the classical
+      pipeline.
+- [x] Bootstrap/export tooling to train your own ROI model — no model
+      bundled.
+- [x] AI can propose a *second*, separated region too (`find_two_rois`)
+      — built and tested, **not yet wired into generation** (see Open
+      tasks below, this is deliberate per principle 6).
+- [x] Audio-tempo plausibility check (`--audio-check`) — classical, not
+      AI, but shipped alongside the AI-quality-opinion checkbox.
+
+**O-markers / Extended-O**
+- [x] Manual placement, classical auto-suggestion (primary + secondary),
+      both wired into the manual button and the generation-time checkbox.
+
+**Player / editor**
+- [x] Manual funscript curve editor (drag/add/delete, video follows the
+      dragged point).
+- [x] Script Doctor for imported files without tracking data.
+- [x] Heatmap, chapters, bookmarks, training-session history.
+
+**Device / playback**
+- [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
+      unchanged-packet suppression.
+- [x] Training tab (Stop-Start, Plateau), session logging + history view.
+
+**SAM long-term architecture** (`docs/SAM_ARCHITECTURE.md`)
+- [x] First milestone: `sam/` package, funscript roundtrip — correctness
+      verified against real Tf/Tj output. **Deliberately not wired into
+      any GUI/CLI flow yet** — no consumer for the richer fields exists,
+      so a save/load button would add surface area without payoff.
+
+---
+
+## Open tasks
+
+Merged from `docs/NEXT.md`'s priority list and the Perception 2.0
+concept's phases. Status tags: 🔒 blocked on you · 📏 needs measurement
+first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
+
+### Near-term, buildable without new heavy dependencies
+
+- [ ] 🔓 **Wire the AI two-region proposal into `--roi2`/the GUI** — the
+      building block (`find_two_rois`) exists; still needs real-clip
+      measurement (per principle 6/7) before it can become even an opt-in
+      suggestion, let alone a default.
+- [ ] 🔓 **Populate the Golden-Clip manifest with real clips** and run a
+      first baseline — the tool is built, nobody has fed it real material
+      yet. This unblocks *every* future "did X help" question on this
+      list.
+- [ ] 📏 **Persist the reproduction manifest** `docs/NEXT.md` priority 2
+      already called for (hashes, generator version, ROIs per clip) —
+      the Golden-Clip Benchmark's manifest format is most of this already;
+      close the gap between the two.
+- [ ] 🧭 **Secondary/weaker O-marker count and intensity heuristic** —
+      shipped with a first reasonable heuristic (median-baseline peak
+      detection); revisit only if real usage shows it's off.
+- [ ] 🔓 **`videox`/native tracker port** — still gated on "removal of the
+      Python dependency" being an actual goal, not assumed (principle 1).
+
+### Needs real hardware (blocked on you)
+
+- [ ] 🔒 **Validate on a real Sam Neo 2**: BLE + Intiface separately,
+      connection/playback/pause/stop/reconnect/training, raw-value
+      resolution per channel. Checklist: `docs/SAM_NEO_2_RESEARCH.md`
+      §11/§12.
+
+### FunGen parity (open-ended, ongoing measurement)
+
+- [ ] 📏 Keep closing the real-clip correlation gap (`docs/NEXT.md`
+      priority 2) — synthetic-clip results (r≈0.5) don't predict real-clip
+      results (r≈0.05–0.36) yet; needs more real clips, ideally through
+      the Golden-Clip Benchmark once populated.
+- [ ] 📏 Settle whether ROI2 anchor choice or tracking quality is the
+      dominant lever (current evidence: anchor choice, by a wide margin —
+      needs more clips to generalize).
+
+### Perception 2.0 concept — later phases, each needs its own go/no-go
+
+Every item here is explicitly **not started**, and per principle 7 none of
+them ships without first winning against the Golden-Clip Benchmark.
+Ordered as the concept itself proposed:
+
+- [ ] 🧭 Multi-ROI + relative-motion framing as the default measurement
+      unit (concept's own "biggest structural win" — this is the direction
+      the two-region AI work above is already a piece of).
+- [ ] 🧭 Camera Motion Compensation 2.0 (explicit confidence value,
+      geometric models beyond the current feature-based correction).
+- [ ] 🧭 Track memory / occlusion recovery as a first-class concept
+      (partially exists via appearance memory; not the full track-state
+      model the concept describes).
+- [ ] 🧭 **ByteTrack/BoT-SORT adapter** — ⚠️ needs its own hard-ROI/
+      small-region measurement first, the same way KCF/MOSSE was tried
+      and rejected for exactly that failure mode. Not a safe default
+      assumption just because it's a newer tracker family.
+- [ ] 🧭 Confidence + disagreement fusion across multiple signal sources
+      — `fusion.py` already exists and is tested, deliberately
+      unconnected until a genuine third independent source exists (own
+      docstring is explicit about this).
+- [ ] 🧭 Auto-Evaluator (run multiple candidate pipelines, pick or defer
+      to "unsure").
+- [ ] 🧭 **Segmentation precision layer** (concept calls it "SAM 3.1")
+      — ⚠️ naming collision, see decisions below before this goes any
+      further. Also a materially heavier dependency than anything shipped
+      so far.
+- [ ] 🧭 Monocular depth as a supporting signal (Depth Anything V2 class
+      of model) — unproven relevance to a largely-2D problem; benchmark
+      before adopting.
+- [ ] 🧭 Prediction/look-ahead (kinematic first, temporal model later)
+      for device-latency compensation.
+- [ ] 🧭 Active learning / similarity memory for parameter reuse — the
+      "our own AI" direction already scoped in `HANDOFF.md`'s "Later"
+      section (extend `quality_model.py`'s existing pattern, not a new
+      architecture).
+
+### Explicitly deferred, not forgotten
+
+- [ ] 🧭 Climax ("cum") detection — needs a design decision on signal
+      shape and false-positive handling before any implementation; the
+      classical, signal-only O-marker suggestion was judged sufficient
+      for now.
+- [ ] 🔒 Real-hardware "does contact-vibration feel right" check —
+      blocked on the same hardware item above.
+
+---
+
+## Explicitly rejected — don't retry without new evidence
+
+Full table with numbers: `HANDOFF.md`, "Tested and rejected". Short list:
+KCF/MOSSE trackers (collapse on hard ROIs), two-tracker CSRT
+parallelization (no net gain), gentle upscaling before tracking
+(unstable), WebGL/Canvas video sharpening (measurably worse), fusion of
+CSRT+flow with only two sources (always lands between them, never beats
+the best), a C#/.NET/Avalonia rewrite.
+
+---
+
+## Decisions needed from you
+
+Things this file can't resolve on its own — flagging rather than guessing:
+
+1. **Open source or not, going forward.** Current license is MIT
+   (`TEAM_STAND.md`). Moving away from that later is a real decision with
+   consequences for existing contributions, distribution, and any code
+   already shared publicly — needs a deliberate conversation, not a
+   quiet file edit. What's the actual goal (protecting a commercial
+   product, stopping copies, something else)? That changes which license
+   (or "source-available, not open") actually fits.
+2. **"Drei-Experten-Regel"** — mentioned once, not found in any existing
+   doc (`TEAM_STAND.md`, `HANDOFF.md`, `NEXT.md`, `CONTRIBUTING.md`). Is
+   this a new principle to adopt (e.g. "don't ship a design call without
+   three independent opinions/checks agreeing"), or a reference to
+   something from earlier that didn't make it into this file? Want it
+   captured correctly in the principles list above, not guessed at.
+3. **Naming: "SAM 3.1" (Meta's Segment Anything, from the Perception 2.0
+   concept) vs. this project's own internal "SAM"** (`sam/` package, SAM
+   Motion Model, `docs/SAM_ARCHITECTURE.md`). These are two unrelated
+   things that will collide in every future conversation and commit
+   message if both keep the name. Needs a different name for one of them
+   before that segmentation phase goes any further.
+4. **Which Perception 2.0 phase to greenlight next**, if any, beyond the
+   Golden-Clip Benchmark already shipped — each remaining phase pulls in
+   real new dependencies (SAM-equivalent segmentation, ByteTrack/BoT-SORT,
+   depth models) that need individual sign-off, per principle 7.
