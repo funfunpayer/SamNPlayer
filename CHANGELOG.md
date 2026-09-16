@@ -46,15 +46,15 @@ measurement history behind each entry; this file is the short version for
   `fungen_compare_test.py`. Full 8-point PTS→device pipeline still
   deferred.
 - **Research pack** archived at `docs/perception_update_2026-09/`
-  (docs 01–10, findings CSV, ADR) with implementation status in
-  `docs/FINDINGS_TIMING_TF.md`.
+  (docs 01–10, findings CSV, ADR) with implementation status and a
+  full open/Go-migration inventory in `docs/FINDINGS_TIMING_TF.md`.
 - **Script Doctor in pure Go** (`funscript.EvaluateScriptQuality` +
   `EvaluateDeviceCompat`): playback-tab “Skript prüfen” no longer needs
   a Python install. Same actions-only checks as Quality Doctor without
   dense tracking data; `EstimatedFromScriptOnly` remains set.
 - **Research triage** of timing / 4-zone / accelerator / 63-BPM notes:
   `docs/FINDINGS_TIMING_TF.md` — what was fixed, what waits on
-  measurement, what stays deferred.
+  measurement, what stays deferred, what the next Go slices are.
 - **Playback tab: pressing the native video Play control now also starts
   funscript/device playback**, instead of these being two separate actions
   (the dedicated "Abspielen" button and the video's own play control).
