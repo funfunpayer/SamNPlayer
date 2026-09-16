@@ -76,6 +76,78 @@ Agreed: Python-vs-Go is not the Tf/Tj correlation problem. Fix
 perception/timing/ROI semantics first; Go removes install burden and
 makes the pipeline deterministic to package.
 
+## Open inventory (September 16, 2026)
+
+What is still open, what belongs in Go next, and what is blocked.
+Companion checklist: `docs/ROADMAP.md`. Research source:
+`docs/perception_update_2026-09/`.
+
+### Already in Go (shipped / in open PRs)
+
+| Piece | Where | Notes |
+|---|---|---|
+| CSRT tracker (experimental) | `generator/trackcv` (#84, merged) | Not default generation path; Linux OpenCV/cgo; Windows not solved |
+| Post-tracking signal path | `generator/posttrack` (#85, open) | Savgol → normalize → peaks → keyframes → RDP → speed limit; goldens vs Python |
+| Opt-in native CSRT generate | `generator/native*.go` (#85) | GUI checkbox; still falls back to Python for Quality Doctor / AI / audio / other backends |
+| Script Doctor (actions-only) | `funscript.EvaluateScriptQuality` (#86) | Playback “Skript prüfen”; no dense-signal checks |
+| Device-compat checks | `funscript.EvaluateDeviceCompat` (#86) | Same Go path |
+| Phase Analyzer core | `funscript.BestLagCorrelation` / `DiagnosePhase` (#86) | Port of `best_lag_ms`; not the 8-point PTS chain |
+| Funscript I/O, recipes, O-markers, polarity, ozone, mapper, player, device, BLE | existing packages | Already Go |
+
+### Still Python (end-user or tooling that generation still shells to)
+
+| Piece | Why it still matters | Go candidate? |
+|---|---|---|
+| `generate_funscript.py` orchestration | Default generate path | Partially replaced by #85 native CSRT only |
+| Quality Doctor **dense** checks | Rhythm/noise, reconstruction error, tracker-lost, active-time | **Yes — next clear Go slice** once dense curve is available from posttrack |
+| Backends: flow, grid_lk, region_fusion(_auto), two-point Tf/Tj | Most users / Tf/Tj | Later; each needs goldens; Tf/Tj two-point is high value |
+| auto_roi / scene-cut ROI / camera compensation (full path) | Classical auto region | Partial in trackcv; rest later |
+| AI ROI / profile / quality opinion | Opt-in ONNX | Keep Python or ONNX-from-Go later; training stays Python |
+| audio_check | ffmpeg + tempo | Possible in Go (ffmpeg CLI already); low urgency |
+| quality_model train/infer | Learned Quality Doctor | Training-only → stay Python; inference could move later |
+| golden_clip_benchmark + fungen_compare CLI | Benchmark / FunGen parity | **Yes — thin Go CLI** on top of `BestLagCorrelation` (compare half); generate half still needs Python until native path covers backends |
+| YOLO bootstrap / export / train | Research tooling | Stay Python |
+
+### P0 research findings — status
+
+| ID | Topic | Status |
+|---|---|---|
+| F-001 | Phase / `best_lag_ms` | **Core done (Go)**; 8-point PTS pipeline open |
+| F-002 | Suction double-floor | **Software done**; hardware feel 🔒 |
+| F-003 | Real PTS | Open — media/VFR; trackcv still frame-index |
+| F-004 | Missing-data / valid/confidence | Open — belongs with trackcv provenance |
+| F-005/6 | 4-zone relative graph + confidence | Deferred — needs golden-clip win vs two-ROI |
+| F-007 | P05/P95 + MAD normalize | Open — A/B vs current percentile path (#85 normalize) |
+| F-008 | Filter phase lag | Covered by Phase Analyzer diagnostics; change filter only with benchmark |
+| F-012 | Device suction-first | Recipe/mapper done; feel 🔒 |
+| F-018 | Golden-clip gate | Tool exists; **manifest empty** — biggest process blocker |
+| F-020 | Deadband / refractory | Open — signal polish after goldens |
+
+### Next Go slices (priority order, quality-first)
+
+1. **Land / keep #85** (`posttrack` + opt-in native CSRT) — prerequisite for Python-light generate on CSRT.
+2. **Dense Quality Doctor in Go** — port rhythm / reconstruction / lost-fraction checks with Python goldens; wire into native path so “Skript prüfen” and generate-time doctor match.
+3. **FunGen compare CLI in Go** — `compare_dataset` / report on top of `BestLagCorrelation` (no Python for the comparison half).
+4. **Tf/Tj two-point distance path in Go** — only with goldens; highest product value after CSRT hub.
+5. **Observation contract** (`valid` / `confidence` / `reason`) on trackcv output — enables F-004 without a speculative module.
+6. **Other backends / Windows OpenCV** — after CSRT native is measured default-worthy.
+
+### Not Go-now (blocked or wrong lever)
+
+- Populate golden clips / real FunGen refs — 🔒 you (content), unblocks everything else
+- Sam Neo 2 feel-check (suction floor, contact vibration) — 🔒 hardware
+- Full 8-point PTS→device pipeline — media + runtime instrumentation
+- 4-zone relative-motion as default — measurement first
+- Accelerator abstraction / SAM 2 / depth / ByteTrack — Perception 2.0 later phases
+- Forced 63 BPM — recovery prior only after SAM consumer exists
+- Rust rewrite — profiler gate only
+
+### Language reminder
+
+Python-vs-Go is not the Tf/Tj correlation problem. Go removes install
+burden and packages a deterministic runtime; perception/timing/ROI
+semantics still decide quality.
+
 ## Research pack location
 
 Canonical copy: `docs/perception_update_2026-09/` (README + 01–10 +

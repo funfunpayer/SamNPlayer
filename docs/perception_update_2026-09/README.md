@@ -29,12 +29,16 @@ Dieses Paket sammelt die neuen Erkenntnisse, Architekturentscheidungen und Ablä
 
 ## Umsetzungsstand (Repo)
 
-Triage und Status: `docs/FINDINGS_TIMING_TF.md`.
+Triage und Status: `docs/FINDINGS_TIMING_TF.md` (inkl. Open-Inventory /
+nächste Go-Slices).
 
 | Item | Status |
 |---|---|
 | Tf/Tj Sog-Floor (Doppel-Floor) | **Done** — `SyncSuctionPosition` ohne zweiten `liftFloor` |
 | Phase Analyzer Kern (`best_lag_ms`, raw/aligned, Diagnose) | **Done** — `funscript.BestLagCorrelation` / `DiagnosePhase` |
 | Script Doctor pure Go | **Done** — `funscript.EvaluateScriptQuality` |
-| trackcv / posttrack | **Done** (#84 / #85) |
+| trackcv | **Done** (#84, experimental, nicht Default) |
+| posttrack + opt-in native CSRT | **PR #85 offen** — noch nicht in `main` |
+| Dense Quality Doctor / FunGen-Compare-CLI / Tf/Tj in Go | **nächste Go-Slices** — siehe FINDINGS |
+| Golden-Clip-Manifest mit echten Clips | **offen, blockiert Messungen** |
 | 8-Punkt-PTS-Pipeline, 4-Zonen-Graph, Accelerator, 63-BPM-Zwang | deferred — siehe FINDINGS |

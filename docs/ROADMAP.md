@@ -145,12 +145,14 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       detection); revisit only if real usage shows it's off.
 - [x] 🔓 **`videox`/native tracker port** — goal confirmed (more Go / less
       Python). `generator/trackcv` (#84) + `generator/posttrack` + opt-in
-      `NativePipeline` now cover CSRT tracking and the signal path without
-      Python on Linux/macOS. Still open: dense Quality Doctor in Go, other
-      backends, Windows OpenCV/cgo, making native the default once measured
-      on real clips. `videox` (ffmpeg) remains unconnected — OpenCV decode
-      in trackcv covers the need without a second external binary. Script
-      Doctor is now pure Go (this change).
+      `NativePipeline` (#85, merged) cover CSRT tracking and the signal
+      path without Python on Linux/macOS. Script Doctor + Phase Analyzer
+      core are pure Go (#86). Still open (see `docs/FINDINGS_TIMING_TF.md`
+      inventory): dense Quality Doctor, FunGen-compare CLI, Tf/Tj
+      two-point with goldens; Windows OpenCV/cgo; making native the
+      default once measured on real clips. `videox` (ffmpeg) remains
+      unconnected — OpenCV decode in trackcv covers the need without a
+      second external binary.
 - [x] 🔓 **Tf/Tj suction double-floor** — fixed: no second `liftFloor` on
       `SyncSuctionPosition`; see `docs/FINDINGS_TIMING_TF.md`.
 - [x] 🔓 **Phase Analyzer core** — `funscript.BestLagCorrelation` /

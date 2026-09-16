@@ -19,7 +19,6 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-<<<<<<< HEAD
 - **`generator/posttrack` + optional Go generation path (experimental)**:
   second step of the "more Go, less Python" move. Pure-Go port of
   `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
@@ -40,7 +39,6 @@ measurement history behind each entry; this file is the short version for
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by
   `process_one_kwargs_test.py`.
-=======
 - **Phase Analyzer core in pure Go** (`funscript.BestLagCorrelation` +
   `DiagnosePhase`): port of `fungen_compare.best_lag_correlation`
   (lag search, orientation, shape-normalized error, low-confidence)
@@ -50,7 +48,6 @@ measurement history behind each entry; this file is the short version for
 - **Research pack** archived at `docs/perception_update_2026-09/`
   (docs 01–10, findings CSV, ADR) with implementation status in
   `docs/FINDINGS_TIMING_TF.md`.
->>>>>>> 8e15302 (feat(funscript): Go Phase Analyzer + archive research pack)
 - **Script Doctor in pure Go** (`funscript.EvaluateScriptQuality` +
   `EvaluateDeviceCompat`): playback-tab “Skript prüfen” no longer needs
   a Python install. Same actions-only checks as Quality Doctor without

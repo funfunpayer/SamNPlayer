@@ -16,7 +16,8 @@
 
 ## P1
 - Golden Clips Standard + Tf/Tj
-- Benchmark CLI in Go
+- Benchmark / FunGen-Compare CLI in Go (Kern `BestLagCorrelation` liegt)
+- Dense Quality Doctor in Go (nach #85)
 - Relative Motion Graph in Go
 - Cycle/Phase/Tempo in Go
 - 63-BPM Policy
@@ -24,10 +25,11 @@
 - Jerk Limiter/Motion Inertia
 
 ## P2
-- Python-Inventar: Keep / Go / Native / Training-only / Remove
+- ~~Python-Inventar~~ **gestartet** in `docs/FINDINGS_TIMING_TF.md`
+  (Open inventory) — Keep/Go/Native/Training-only pflegen
 - Monolith modularisieren
 - Ports benchmarken
-- Python-freie Runtime vorbereiten
+- Python-freie Runtime vorbereiten (#85 CSRT-Pfad ist der erste Schnitt)
 
 ## P3
 - Accelerator Interface
