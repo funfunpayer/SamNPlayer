@@ -81,6 +81,7 @@ export function initGenerator(root, playback) {
             <option value="flow">Flow (keine Region nötig, ca. 4x schneller)</option>
             <option value="grid_lk">Gitter/Optical-Flow (braucht Region wie CSRT, ca. 15x schneller)</option>
             <option value="region_fusion">Region-Fusion (4 Teilregionen, gewichtet verschmolzen)</option>
+            <option value="region_fusion_auto">Region-Fusion Automatisch (4 Zonen, keine Region nötig)</option>
           </select>
         </div>
         <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT: bei ruhiger Kamera
@@ -92,7 +93,10 @@ export function initGenerator(root, playback) {
           (kleinen/unscharfen) Regionen (siehe docs/NEXT.md Abschnitt 8). Region-Fusion: teilt
           die Region in 4 Teilregionen und gewichtet sie je Frame nach aktueller
           Bewegungsstärke - GEMESSEN an echtem Material mindestens gleichauf mit CSRT, in
-          einem von zwei getesteten Abschnitten deutlich besser als beide (siehe docs/NEXT.md).</p>
+          einem von zwei getesteten Abschnitten deutlich besser als beide (siehe docs/NEXT.md).
+          Region-Fusion Automatisch: wie Region-Fusion, aber ohne markierte Region - teilt
+          automatisch das ganze Bild in 4 Zonen, wie Flow also ohne Markier-Schritt. Noch nicht
+          gegen eine Referenz gemessen, ein Kandidat.</p>
         <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
@@ -235,13 +239,33 @@ export function initGenerator(root, playback) {
     regionFusionOption.title = twoPoint
       ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Zwei-Punkt-Pfad für dieses Verfahren) - CSRT wird stattdessen verwendet.'
       : '';
-    if (twoPoint && (el('#gen-backend').value === 'flow' || el('#gen-backend').value === 'region_fusion')) {
+    const regionFusionAutoOption = el('#gen-backend').querySelector('option[value="region_fusion_auto"]');
+    regionFusionAutoOption.disabled = twoPoint;
+    regionFusionAutoOption.title = twoPoint
+      ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Zwei-Punkt-Pfad für dieses Verfahren) - CSRT wird stattdessen verwendet.'
+      : '';
+    if (twoPoint && ['flow', 'region_fusion', 'region_fusion_auto'].includes(el('#gen-backend').value)) {
       el('#gen-backend').value = 'csrt';
     }
+    updateGenerateEnabled();
+  }
+
+  // Nur csrt/grid_lk/region_fusion/two_point (Tf/Tj) brauchen eine von Hand
+  // markierte Region - flow und region_fusion_auto bestimmen ihre Zonen
+  // selbst aus dem ganzen Bild, siehe generate_funscript.py/backends.py.
+  function backendNeedsRoi() {
+    return !['flow', 'region_fusion_auto'].includes(el('#gen-backend').value);
   }
 
   function updateGenerateEnabled() {
-    if (!roi) {
+    // Ohne Video kein Ziel zum Generieren - bisher deckte "kein roi" das
+    // implizit mit ab (roi startet null), das gilt seit backendNeedsRoi()
+    // für flow/region_fusion_auto nicht mehr automatisch.
+    if (!videoPath) {
+      el('#gen-generate').disabled = true;
+      return;
+    }
+    if (backendNeedsRoi() && !roi) {
       el('#gen-generate').disabled = true;
       return;
     }
@@ -409,7 +433,7 @@ export function initGenerator(root, playback) {
   }
 
   async function generate() {
-    if (!videoPath || !roi) return;
+    if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
       alert('Tf/Tj (Abstand + Sog) braucht eine zweite Region. Shift+Ziehen oder Knopf „2. Region“.');
       return;
@@ -434,9 +458,13 @@ export function initGenerator(root, playback) {
 
     el('#gen-generate').disabled = true;
     el('#gen-status').textContent = 'Generiere...';
+    // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
+    // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
+    // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
+    const effectiveRoi = roi || { x: 0, y: 0, w: 0, h: 0 };
     const payload = {
       videoPath,
-      x: roi.x, y: roi.y, w: roi.w, h: roi.h,
+      x: effectiveRoi.x, y: effectiveRoi.y, w: effectiveRoi.w, h: effectiveRoi.h,
       invert: el('#gen-invert').checked,
       smoothWindow: parseInt(el('#gen-smooth').value, 10) || 11,
       minPeakDistanceMs: parseInt(el('#gen-peakdist').value, 10) || 150,
@@ -618,6 +646,7 @@ export function initGenerator(root, playback) {
     }
   });
   el('#gen-profile').addEventListener('change', updateProfileUi);
+  el('#gen-backend').addEventListener('change', updateGenerateEnabled);
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;

@@ -986,10 +986,10 @@ def run_batch(args, parser):
         sys.exit(1)
 
     print(f"Stapelverarbeitung: {len(videos)} Video(s) in {folder}", file=sys.stderr)
-    if args.backend != "flow" and not args.roi:
-        print("Hinweis: ohne --roi wird im Stapelbetrieb --backend flow empfohlen - "
-              "sonst müsste für jedes Video von Hand eine Region markiert werden.",
-              file=sys.stderr)
+    if args.backend not in ("flow", "region_fusion_auto") and not args.roi:
+        print("Hinweis: ohne --roi wird im Stapelbetrieb --backend flow oder "
+              "region_fusion_auto empfohlen - sonst müsste für jedes Video von Hand "
+              "eine Region markiert werden.", file=sys.stderr)
 
     pending = []
     skipped = 0
@@ -1459,6 +1459,10 @@ def _register_builtin_backends():
         import region_fusion_backend
         return region_fusion_backend.analyze(video_path, roi, options)
 
+    def region_fusion_auto(video_path, roi, options):
+        import region_fusion_auto_backend
+        return region_fusion_auto_backend.analyze(video_path, roi, options)
+
     backends.register("csrt", csrt,
                       "Markierte Region mit einem Tracker verfolgen. Robust bei ruhiger "
                       "Kamera, braucht aber eine Region.")
@@ -1479,6 +1483,13 @@ def _register_builtin_backends():
                       "zu einem Signal - vermeidet, dass ruhige Teile der Region die "
                       "Bewegung in einem aktiven Teil verwässern. Braucht eine Region wie "
                       "csrt/grid_lk.")
+    backends.register("region_fusion_auto", region_fusion_auto,
+                      "Wie region_fusion, aber ohne markierte Region: teilt automatisch das "
+                      "GANZE Bild in ein 2x2-Gitter (4 Zonen) - kein Markier-Schritt nötig, "
+                      "wie flow. Arbeitet mit je Zone normalisierten Positionen statt "
+                      "absoluten Pixelkoordinaten (die vier Zonen liegen an "
+                      "entgegengesetzten Bildecken, anders als bei region_fusion). Noch "
+                      "nicht gegen eine Referenz gemessen, siehe docs/NEXT.md.")
 
 
 def select_roi_interactively(video_path):
@@ -1863,7 +1874,11 @@ def main():
                          "region_fusion = Region in ein 2x2-Gitter (4 Teilregionen) "
                          "geteilt, jede einzeln getrackt und je Frame nach aktueller "
                          "Bewegungsstärke gewichtet zu einem Signal verschmolzen - "
-                         "braucht eine Region wie csrt/grid_lk, kein --roi2.")
+                         "braucht eine Region wie csrt/grid_lk, kein --roi2. "
+                         "region_fusion_auto = wie region_fusion, aber ohne markierte "
+                         "Region - teilt automatisch das GANZE Bild in 4 Zonen, wie flow "
+                         "also ohne Markier-Schritt, noch nicht gegen eine Referenz "
+                         "gemessen.")
     ap.add_argument("--auto-retry", action="store_true",
                     help="Bei nicht bestandener Qualitätsprüfung alternative "
                          "Signalparameter durchprobieren und das beste Ergebnis behalten. "
@@ -2081,10 +2096,11 @@ def process_one(args, ap):
         except ValueError:
             print('Fehler: --roi muss "x,y,w,h" sein, z.B. "120,80,60,60"', file=sys.stderr)
             sys.exit(1)
-    elif args.backend == "flow":
-        # Das Flow-Backend bestimmt das Bewegungszentrum selbst - eine
-        # markierte Region wäre nicht nur überflüssig, sondern würde den
-        # Nutzer zu einer Angabe zwingen, die gar nicht verwendet wird.
+    elif args.backend in ("flow", "region_fusion_auto"):
+        # Beide Backends bestimmen ihre Zonen/ihr Bewegungszentrum selbst
+        # aus dem ganzen Bild - eine markierte Region wäre nicht nur
+        # überflüssig, sondern würde den Nutzer zu einer Angabe zwingen,
+        # die gar nicht verwendet wird.
         roi = (0, 0, 0, 0)
     else:
         roi = select_roi_interactively(args.video)
