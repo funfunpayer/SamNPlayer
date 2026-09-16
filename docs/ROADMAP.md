@@ -153,6 +153,10 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       Doctor is now pure Go (this change).
 - [x] 🔓 **Tf/Tj suction double-floor** — fixed: no second `liftFloor` on
       `SyncSuctionPosition`; see `docs/FINDINGS_TIMING_TF.md`.
+- [x] 🔓 **Phase Analyzer core** — `funscript.BestLagCorrelation` /
+      `DiagnosePhase` (Go port of `best_lag_ms` + timing/shape verdict).
+      Full 8-point PTS pipeline still open; research pack at
+      `docs/perception_update_2026-09/`.
 
 ### Needs real hardware (blocked on you)
 

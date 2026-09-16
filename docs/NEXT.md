@@ -1768,6 +1768,14 @@ git history rather than rebuilding from scratch.
   accelerator abstraction, 63 BPM attractor) stay deferred until golden-
   clip / hardware evidence supports them.
 
+- **Research pack + Go Phase Analyzer (September 16, 2026)** — remaining
+  notes (07–10, findings CSV, ADR) live under
+  `docs/perception_update_2026-09/`. Measurable P0 follow-up shipped:
+  `funscript.BestLagCorrelation` / `DiagnosePhase` port the FunGen
+  parity lag search to Go so timing-vs-shape diagnosis needs no Python.
+  The 8-point PTS→device chain stays deferred (tooling, not a generator
+  fix) until a concrete clip set needs it.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.
