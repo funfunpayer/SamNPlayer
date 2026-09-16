@@ -1441,6 +1441,43 @@ git history rather than rebuilding from scratch.
     signals + confirmed ratings) fits "specific to our system" better
     than adopting a generic pretrained detector, and doesn't need a
     large labeled dataset to start from.
+- ~~Reusing raw data/parameters/quality reports/confirmed ratings as
+  actual training input... is the part that's genuinely still open~~
+  **Partially done (September 16, 2026):** a "KI-Trainingssystem" GUI tab
+  now wraps `bootstrap_yolo_dataset.py`/`train_yolo_model.py` end-to-end -
+  mark one or two regions in a video run through the app, classical
+  tracking labels frames automatically, a review grid lets wrongly-tracked
+  samples be discarded before training, and "Training starten" runs the
+  real `ultralytics` training + ONNX export locally (GPU required for
+  realistic times), dropping the model straight at the AI model path. This
+  closes the "collect labeled data from real usage" half of the gap for
+  the YOLO region detector specifically; `quality_model.py`-style
+  continuous learning from accept/reject judgments for profile/ROI
+  refinement (the other half of that paragraph) is still open.
+- **Measured, real-clip finding (September 16, 2026):** on a real titjob
+  POV clip, Tf/Tj (two-point distance) scored r≈0.055-0.095 against a
+  FunGen reference regardless of backend (CSRT/grid_lk) or ROI-selection
+  quality, while single-region Standard mode scored r≈0.178-0.263 (2-4x
+  better) on the *same* clip with the *same* backends. Ruled out via
+  direct experiment, not guessed: bad backend choice (tried CSRT, grid_lk,
+  flow - none closed the gap), bad ROI selection (auto vs. hand-picked
+  made no measurable difference), and coarse aggregation (extended
+  grid_lk to a mesh-of-points minimum-pairwise-distance signal instead of
+  centroid-distance - still no improvement). Contact-vibration inherits
+  this same unreliability, since it only activates under Tf/Tj's distance
+  signal (`funscript/mapper.go`'s `contactEnabled`). Conclusion: the
+  remaining gap needs class-aware detection (the FunGen2 screenshot the
+  user shared shows trained "breast"/"hand"/"penis" object classes, not a
+  motion heuristic), which is exactly what the KI-Trainingssystem above
+  now builds toward - motion-only two-point tracking has been tried from
+  several angles and does not close it further.
+- Also fixed the same day: `--axis` used to be a fixed manual choice
+  (`x` or `y`) even though every backend already tracks both axes for
+  free (kept for the "is there any horizontal motion at all" hint). Now
+  defaults to `auto`, picking whichever axis has the clearly larger
+  range - see CHANGELOG.md. Unrelated to the Tf/Tj finding above (that's
+  single- vs. two-region tracking; this is single-region axis choice) but
+  found via the same round of real-clip testing.
 
 ## Product requirements
 

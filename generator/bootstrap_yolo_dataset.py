@@ -60,6 +60,7 @@ import json
 import os
 import random
 import sys
+from pathlib import Path
 
 import cv2
 
@@ -114,19 +115,56 @@ def _video_stem(video_path):
     return f"{safe}_{h}"
 
 
-def build_dataset(video_path, roi, output_dir, class_id=0, sample_every=12,
-                   max_frames=None, cache_dir=None, val_fraction=0.15, seed=0):
-    """Trackt roi durchs Video, schreibt jeden sample_every-ten Frame plus
-    YOLO-Label (feste Boxgröße = roi[2],roi[3], Mittelpunkt = getrackte
-    Position) in output_dir. sample_every=12 ist ein Kompromiss: bei 25fps
-    etwa alle 0.5s ein Bild - benachbarte Videoframes sind sich fast
-    identisch, zu dichte Abtastung bläht den Datensatz nur mit redundanten,
-    stark korrelierten Beispielen auf, ohne das Modell robuster zu machen."""
-    roi = tuple(int(v) for v in roi)
-    print(f"Tracke {video_path} (Referenz-ROI {roi})...", file=sys.stderr)
-    _ts, x_centers, y_centers, (width, height) = track_center_path(
-        video_path, roi, max_frames=max_frames, cache_dir=cache_dir)
-    n = min(len(x_centers), len(y_centers))
+def _frame_label_lines(regions_at_frame, width, height):
+    """Reiner Teil des Mehrregionen-Labelns: regions_at_frame ist eine Liste
+    (class_id, cx, cy, box_w, box_h) - eine je Region IM SELBEN Frame - und
+    liefert die fertigen YOLO-Zeilen (als Strings) dafür. Regionen, deren
+    geklammerte Box entartet (siehe _box_to_yolo_label), werden einzeln
+    übersprungen statt den ganzen Frame zu verwerfen - eine Region kann kurz
+    aus dem Bild laufen, während die andere weiter sichtbar bleibt.
+
+    Der Grund, das als eigene Funktion herauszuziehen: mehrere Regionen pro
+    Bild (z.B. Eichel UND Brustwarze für Tf/Tj) sind der springende Punkt,
+    warum das hier überhaupt gebraucht wird - ein Detektor, der beide
+    Kontaktpunkte gleichzeitig in einem Bild erkennt, wie im FunGen2-
+    Vergleichsscreenshot (Chat, 16. September 2026: "breast"/"hand"/"penis"
+    gleichzeitig erkannt) - und das lässt sich so ohne Video/Tracking testen."""
+    lines = []
+    for class_id, cx, cy, box_w, box_h in regions_at_frame:
+        label = _box_to_yolo_label(cx, cy, box_w, box_h, width, height)
+        if label is None:
+            continue
+        xc_n, yc_n, w_n, h_n = label
+        lines.append(f"{class_id} {xc_n:.6f} {yc_n:.6f} {w_n:.6f} {h_n:.6f}")
+    return lines
+
+
+def build_dataset(video_path, regions, output_dir, sample_every=12,
+                   max_frames=None, cache_dir=None, val_fraction=0.15, seed=0,
+                   sample_prefix=None):
+    """Trackt eine oder mehrere Regionen durchs Video, schreibt jeden
+    sample_every-ten Frame plus ein YOLO-Label JE Region (feste Boxgröße,
+    Mittelpunkt = getrackte Position) in output_dir.
+
+    regions: Liste aus (roi, class_id)-Paaren. EINE Region wie bisher, ZWEI
+    für Tf/Tj-artigen Content (Eichel + Brustwarze/Zunge als je eigene
+    Klasse) - beide landen als zwei Zeilen in derselben Labeldatei, damit der
+    Detektor lernt, beide gleichzeitig in einem Bild zu finden, statt zwei
+    unabhängige Einzelobjekt-Modelle zu brauchen.
+
+    sample_every=12 ist ein Kompromiss: bei 25fps etwa alle 0.5s ein Bild -
+    benachbarte Videoframes sind sich fast identisch, zu dichte Abtastung
+    bläht den Datensatz nur mit redundanten, stark korrelierten Beispielen
+    auf, ohne das Modell robuster zu machen."""
+    regions = [(tuple(int(v) for v in roi), class_id) for roi, class_id in regions]
+    print(f"Tracke {video_path} ({len(regions)} Region(en))...", file=sys.stderr)
+    tracks = []
+    width = height = None
+    for roi, class_id in regions:
+        _ts, x_centers, y_centers, (width, height) = track_center_path(
+            video_path, roi, max_frames=max_frames, cache_dir=cache_dir)
+        tracks.append((roi, class_id, x_centers, y_centers))
+    n = min(len(xc) for (_roi, _cid, xc, _yc) in tracks)
     print(f"{n} Frames getrackt, Videogröße {width}x{height}", file=sys.stderr)
 
     img_train_dir = os.path.join(output_dir, "images", "train")
@@ -136,9 +174,8 @@ def build_dataset(video_path, roi, output_dir, class_id=0, sample_every=12,
     for d in (img_train_dir, img_val_dir, lbl_train_dir, lbl_val_dir):
         os.makedirs(d, exist_ok=True)
 
-    stem = _video_stem(video_path)
+    stem = sample_prefix or _video_stem(video_path)
     rng = random.Random(seed)
-    box_w, box_h = roi[2], roi[3]
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -153,21 +190,23 @@ def build_dataset(video_path, roi, output_dir, class_id=0, sample_every=12,
             if not ok:
                 break
             if frame_idx % sample_every == 0:
+                regions_at_frame = [
+                    (class_id, xc[frame_idx], yc[frame_idx], roi[2], roi[3])
+                    for roi, class_id, xc, yc in tracks
+                ]
+                lines = _frame_label_lines(regions_at_frame, width, height)
+                if not lines:
+                    frame_idx += 1
+                    continue
+
                 is_val = rng.random() < val_fraction
                 img_dir = img_val_dir if is_val else img_train_dir
                 lbl_dir = lbl_val_dir if is_val else lbl_train_dir
 
-                cx, cy = x_centers[frame_idx], y_centers[frame_idx]
-                label = _box_to_yolo_label(cx, cy, box_w, box_h, width, height)
-                if label is None:
-                    frame_idx += 1
-                    continue
-                xc_n, yc_n, w_n, h_n = label
-
                 name = f"{stem}_{sample_idx:06d}"
                 cv2.imwrite(os.path.join(img_dir, name + ".jpg"), frame)
                 with open(os.path.join(lbl_dir, name + ".txt"), "w") as f:
-                    f.write(f"{class_id} {xc_n:.6f} {yc_n:.6f} {w_n:.6f} {h_n:.6f}\n")
+                    f.write("\n".join(lines) + "\n")
                 written += 1
                 sample_idx += 1
             frame_idx += 1
@@ -227,6 +266,104 @@ def register_class(output_dir, class_name, class_id=None):
     return resolved_id
 
 
+# --- Kontrolle/Korrektur bereits geschriebener Beispiele --------------------
+#
+# build_dataset() schreibt Labels aus CSRT-/Grid-Tracking - laut Moduldoc wird
+# der Detektor nie zuverlässiger als dieser Tracker. Gemessen (16. September
+# 2026, echter Clip, docs/NEXT.md): unser Zwei-Punkt-Tracking greift auf
+# echtem Material teils daneben (falsches Objekt, Drift nach Kamerazoom).
+# Blind bootstrappen würde diese Fehler direkt in die Trainingsdaten
+# übernehmen. Die folgenden Funktionen sind reine Datei-Operationen (kein
+# Video/Tracking nötig, darum ohne echtes Material testbar) für eine
+# Kontrollansicht: Beispiele aus einem Bootstrap-Lauf auflisten, einzelne
+# Boxen von Hand korrigieren oder verwerfen, bevor trainiert wird.
+
+def _label_path_for_image(image_path):
+    """images/<split>/name.jpg -> labels/<split>/name.txt - reine Pfadregel,
+    kein Dateizugriff."""
+    parts = list(Path(image_path).parts)
+    try:
+        idx = len(parts) - 1 - parts[::-1].index("images")
+    except ValueError:
+        raise ValueError(f"kein 'images'-Ordner im Pfad: {image_path}")
+    parts[idx] = "labels"
+    return str(Path(*parts).with_suffix(".txt"))
+
+
+def read_label_file(label_path):
+    """Liest eine YOLO-Labeldatei -> Liste aus (class_id:int, xc,yc,w,h:float).
+    Fehlt die Datei (z.B. der Frame hatte keine gültige Box, siehe
+    build_dataset), wird eine leere Liste geliefert statt eines Fehlers."""
+    if not os.path.exists(label_path):
+        return []
+    boxes = []
+    with open(label_path) as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) != 5:
+                continue
+            cid, xc, yc, w, h = parts
+            boxes.append((int(cid), float(xc), float(yc), float(w), float(h)))
+    return boxes
+
+
+def write_label_file(label_path, boxes):
+    """Schreibt boxes (dieselbe Form wie read_label_file liefert) zurück -
+    für Korrekturen aus der Kontrollansicht. Eine leere Liste schreibt eine
+    leere Datei (der Frame bleibt Teil des Datensatzes, nur ohne Box - YOLO
+    behandelt das als Negativbeispiel), löscht die Datei aber NICHT - dafür
+    ist discard_sample() da, das auch das Bild mit entfernt."""
+    os.makedirs(os.path.dirname(label_path), exist_ok=True)
+    with open(label_path, "w") as f:
+        for cid, xc, yc, w, h in boxes:
+            f.write(f"{int(cid)} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}\n")
+
+
+def discard_sample(image_path):
+    """Entfernt ein Beispiel vollständig (Bild + Labeldatei) - für Frames,
+    die die Kontrollansicht als falsch verwirft (z.B. Box auf dem falschen
+    Objekt), statt sie mit einer leeren/falschen Box im Datensatz zu lassen."""
+    label_path = _label_path_for_image(image_path)
+    for path in (image_path, label_path):
+        if os.path.exists(path):
+            os.remove(path)
+
+
+def list_samples(output_dir, video_path=None, prefix=None):
+    """Listet Beispiele aus <output_dir>/images/{train,val} auf, mit ihren
+    Boxen - Grundlage der Kontrollansicht nach einem Bootstrap-Lauf.
+    Schränkt die Liste ein auf die Beispiele GENAU eines Aufrufs, damit die
+    Kontrolle nicht jedes Mal den gesamten - möglicherweise über viele
+    Videos gewachsenen - Datensatz zeigt, sondern nur das gerade frisch
+    Hinzugekommene: entweder über einen direkt übergebenen prefix (die GUI
+    kennt ihren eigenen --sample-prefix aus dem Bootstrap-Aufruf bereits und
+    muss ihn nicht neu herleiten) oder über video_path (leitet denselben
+    Namenspräfix her, den _video_stem() beim Schreiben vergeben hat - nur
+    für den CLI-Fall ohne festen --sample-prefix)."""
+    if prefix is None and video_path:
+        prefix = _video_stem(video_path)
+    samples = []
+    for split in ("train", "val"):
+        img_dir = os.path.join(output_dir, "images", split)
+        if not os.path.isdir(img_dir):
+            continue
+        for name in sorted(os.listdir(img_dir)):
+            if not name.lower().endswith((".jpg", ".jpeg", ".png")):
+                continue
+            if prefix and not name.startswith(prefix):
+                continue
+            image_path = os.path.join(img_dir, name)
+            label_path = _label_path_for_image(image_path)
+            samples.append({
+                "split": split,
+                "name": name,
+                "image": image_path,
+                "label": label_path,
+                "boxes": read_label_file(label_path),
+            })
+    return samples
+
+
 def write_data_yaml(output_dir, class_names=None):
     """Ultralytics-Datensatzkonfiguration - siehe
     https://docs.ultralytics.com/datasets/detect/#dataset-yaml-format.
@@ -271,6 +408,16 @@ def main():
     ap.add_argument("--class-name", default="motion_region",
                      help="Inhaltskategorie dieses Clips (z.B. 'blowjob', 'tf_tj_mix') - "
                           "mehrere Kategorien im selben --output-dir werden zu eigenen Klassen kombiniert")
+    ap.add_argument("--roi2", default=None, metavar="x,y,w,h",
+                     help="Zweite Region (z.B. Eichel+Brustwarze für Tf/Tj) - optional, beide landen "
+                          "als zwei Klassen im selben Bild statt zwei getrennten Datensätzen")
+    ap.add_argument("--class-name2", default=None,
+                     help="Klasse der zweiten Region (--roi2) - erforderlich, wenn --roi2 gesetzt ist")
+    ap.add_argument("--sample-prefix", default=None,
+                     help="Fester Dateinamenspräfix statt des automatischen Video-Hash-Präfix - "
+                          "so kann ein Aufrufer (z.B. die GUI) den Präfix vorher selbst bestimmen "
+                          "und später list_samples()/Kontrollansicht ohne erneute Hash-Berechnung "
+                          "genau auf diesen Lauf eingrenzen")
     args = ap.parse_args()
 
     try:
@@ -280,10 +427,23 @@ def main():
     except ValueError:
         ap.error('--roi muss "x,y,w,h" sein')
 
-    class_id = register_class(args.output_dir, args.class_name, class_id=args.class_id)
-    build_dataset(args.video, roi, args.output_dir, class_id=class_id,
+    regions = [(roi, register_class(args.output_dir, args.class_name, class_id=args.class_id))]
+
+    if args.roi2:
+        if not args.class_name2:
+            ap.error("--roi2 braucht --class-name2")
+        try:
+            roi2 = tuple(int(v) for v in args.roi2.split(","))
+            if len(roi2) != 4:
+                raise ValueError
+        except ValueError:
+            ap.error('--roi2 muss "x,y,w,h" sein')
+        regions.append((roi2, register_class(args.output_dir, args.class_name2)))
+
+    build_dataset(args.video, regions, args.output_dir,
                   sample_every=args.sample_every, max_frames=args.max_frames,
-                  cache_dir=args.cache_dir, val_fraction=args.val_fraction)
+                  cache_dir=args.cache_dir, val_fraction=args.val_fraction,
+                  sample_prefix=args.sample_prefix)
     write_data_yaml(args.output_dir)
 
 

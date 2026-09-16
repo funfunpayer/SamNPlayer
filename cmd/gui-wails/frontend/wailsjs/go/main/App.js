@@ -4,6 +4,7 @@ export function ApplyRingDown(arg1, arg2) { return window['go']['main']['App']['
 export function ApplySuggestedOZone() { return window['go']['main']['App']['ApplySuggestedOZone'](); }
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
+export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
@@ -12,6 +13,7 @@ export function ClearCache() { return window['go']['main']['App']['ClearCache'](
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
 export function CurrentVersion() { return window['go']['main']['App']['CurrentVersion'](); }
+export function DiscardRoiTrainingSample(arg1, arg2, arg3) { return window['go']['main']['App']['DiscardRoiTrainingSample'](arg1, arg2, arg3); }
 export function DisconnectDevice() { return window['go']['main']['App']['DisconnectDevice'](); }
 export function GenerateScript(arg1) { return window['go']['main']['App']['GenerateScript'](arg1); }
 export function GetBenchmarkHistory() { return window['go']['main']['App']['GetBenchmarkHistory'](); }
@@ -22,6 +24,8 @@ export function GetHardwareInfo() { return window['go']['main']['App']['GetHardw
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
+export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App']['GetRoiDatasetSummary'](arg1); }
+export function GetRoiTrainingSampleImage(arg1) { return window['go']['main']['App']['GetRoiTrainingSampleImage'](arg1); }
 export function GetScriptActions() { return window['go']['main']['App']['GetScriptActions'](); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
@@ -29,6 +33,7 @@ export function GetSettings() { return window['go']['main']['App']['GetSettings'
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
+export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }
 export function OpenLogFolder() { return window['go']['main']['App']['OpenLogFolder'](); }
@@ -44,6 +49,7 @@ export function ReportVideoPosition(arg1) { return window['go']['main']['App']['
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
 export function RunDeviceDiagnostics() { return window['go']['main']['App']['RunDeviceDiagnostics'](); }
 export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }
+export function RunRoiModelTraining(arg1, arg2) { return window['go']['main']['App']['RunRoiModelTraining'](arg1, arg2); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
@@ -69,4 +75,5 @@ export function TestVibration(arg1) { return window['go']['main']['App']['TestVi
 export function TrainQualityModel() { return window['go']['main']['App']['TrainQualityModel'](); }
 export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
+export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['UpdateRoiTrainingSample'](arg1, arg2, arg3, arg4); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }

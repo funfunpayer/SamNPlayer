@@ -15,6 +15,8 @@ export function ApplyUpdate():Promise<void>;
 
 export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 
+export function BootstrapRoiTrainingSample(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:string,arg5:string):Promise<string>;
+
 export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckAudioCheckAvailable():Promise<boolean>;
@@ -30,6 +32,8 @@ export function ConnectDevice(arg1:boolean):Promise<main.DeviceStatus>;
 export function ConnectDeviceVia(arg1:string,arg2:string):Promise<main.DeviceStatus>;
 
 export function CurrentVersion():Promise<string>;
+
+export function DiscardRoiTrainingSample(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function DisconnectDevice():Promise<main.DeviceStatus>;
 
@@ -51,6 +55,10 @@ export function GetMarker(arg1:string):Promise<main.Marker>;
 
 export function GetOMarkers(arg1:string):Promise<Array<funscript.OMarker>>;
 
+export function GetRoiDatasetSummary(arg1:string):Promise<main.RoiDatasetSummary>;
+
+export function GetRoiTrainingSampleImage(arg1:string):Promise<string>;
+
 export function GetScriptActions():Promise<Array<funscript.Action>>;
 
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
@@ -64,6 +72,8 @@ export function InvertLoadedScript():Promise<void>;
 export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
+
+export function ListRoiTrainingSamples(arg1:string,arg2:string):Promise<Array<main.RoiTrainingSample>>;
 
 export function LoadFirstFrame(arg1:string):Promise<main.FramePreview>;
 
@@ -94,6 +104,8 @@ export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>
 export function RunDeviceDiagnostics():Promise<void>;
 
 export function RunGoldenClipBenchmark(arg1:string):Promise<void>;
+
+export function RunRoiModelTraining(arg1:number,arg2:string):Promise<void>;
 
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;
 
@@ -144,5 +156,7 @@ export function TrainQualityModel():Promise<string>;
 export function TrainingHistory():Promise<Array<main.TrainingSessionSummary>>;
 
 export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<void>;
+
+export function UpdateRoiTrainingSample(arg1:string,arg2:string,arg3:string,arg4:Array<main.RoiTrainingBox>):Promise<void>;
 
 export function VideoFileURL():Promise<string>;

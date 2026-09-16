@@ -95,7 +95,16 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check">Skript-Tempo gegen die Tonspur prüfen (braucht ffmpeg, rein klassisch - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone">O-Marker automatisch vorschlagen (letztes Achtel, höchste mittlere Position - klassisch aus dem Signal, kein KI-Modell; nur gesetzt, wenn das Ende deutlich hoch liegt)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-axis-x" /><label for="gen-axis-x">Waagerechte Bewegung auswerten statt senkrechter</label></div>
+        <div class="field-row"><label>Bewegungsachse</label>
+          <select id="gen-axis">
+            <option value="" selected>Automatisch (empfohlen)</option>
+            <option value="x">Waagerecht erzwingen</option>
+            <option value="y">Senkrecht erzwingen</option>
+          </select>
+        </div>
+        <p class="hint" style="margin:0 0 6px 0;">Waagerecht und senkrecht werden immer
+          beide verfolgt - "Automatisch" wählt danach die Achse mit der deutlich größeren
+          Spannweite. Nur bei einer erkennbar falschen automatischen Wahl fest erzwingen.</p>
         <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
         <div class="field-row"><label>Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
@@ -429,7 +438,7 @@ export function initGenerator(root, playback) {
       useOpenCl: el('#gen-opencl').checked,
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
       profile: el('#gen-profile').value,
-      axis: el('#gen-axis-x').checked ? 'x' : 'y',
+      axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,

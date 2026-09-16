@@ -150,7 +150,7 @@ def detect_scene_cut(prev_gray, gray, threshold=0.5, prev_signature=None,
 
 
 def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
-              scene_cut_detection=True, start_frame=0, axis="y",
+              scene_cut_detection=True, start_frame=0, axis="auto",
               appearance_memory=True):
     """Verfolgt roi=(x,y,w,h) durchs Video, gibt (timestamps_ms, y_positions,
     frame_size, scene_cuts) zurück. y_positions ist die vertikale Mitte der
@@ -333,14 +333,26 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
     x_positions = np.asarray(x_positions, dtype=float)
     vertical_range = float(np.ptp(y_positions)) if len(y_positions) else 0.0
     horizontal_range = float(np.ptp(x_positions)) if len(x_positions) else 0.0
-    # Hinweis, wenn die Bewegung überwiegend seitlich verläuft: dann findet
-    # die vertikale Auswertung wenig, und ohne diese Meldung sieht es
-    # einfach nach "keine Bewegung" aus.
-    if horizontal_range > vertical_range * 1.5 and horizontal_range > 5:
-        print(f"Hinweis: Bewegung verläuft überwiegend waagerecht "
-              f"({horizontal_range:.0f}px waagerecht vs {vertical_range:.0f}px senkrecht). "
-              "Mit --axis x auswerten, falls das die gewünschte Bewegung ist.",
-              file=sys.stderr)
+    # Waagerecht und senkrecht werden immer BEIDE getrackt (kostet nichts
+    # zusätzlich, siehe oben) - welche Achse ins Funscript geht, wird erst
+    # hier entschieden, nicht vorab über ein starres Flag erzwungen. axis=
+    # "x"/"y" bleiben als expliziter Zwang erhalten (z.B. wenn ein Nutzer
+    # eine bekannt falsche Auto-Wahl korrigieren will), "auto" (Standard)
+    # nimmt die Achse mit der deutlich größeren Spannweite - dieselbe
+    # Schwelle, die vorher nur einen Hinweis auslöste, entscheidet jetzt
+    # tatsächlich.
+    axis_is_horizontal = horizontal_range > vertical_range * 1.5 and horizontal_range > 5
+    if axis == "x":
+        chosen_positions = x_positions
+    elif axis == "y":
+        chosen_positions = y_positions
+    else:
+        chosen_positions = x_positions if axis_is_horizontal else y_positions
+        if axis_is_horizontal:
+            print(f"Automatische Achsenwahl: waagerecht "
+                  f"({horizontal_range:.0f}px waagerecht vs {vertical_range:.0f}px senkrecht). "
+                  "Mit --axis y erzwingen, falls die senkrechte Bewegung gemeint war.",
+                  file=sys.stderr)
 
     stats = {"tracker_lost_frames": tracker_lost_frames,
              "camera_frames_lost": camera_frames_lost,
@@ -350,7 +362,7 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
              "vertical_range": round(vertical_range, 1),
              "horizontal_range": round(horizontal_range, 1)}
     return (np.array(timestamps_ms),
-            x_positions if axis == "x" else y_positions,
+            chosen_positions,
             (width, height), scene_cuts, stats)
 
 
@@ -384,7 +396,7 @@ def default_cache_dir():
 
 
 def _track_cache_key(video_path, roi, max_frames, camera_compensation, scene_cut_detection,
-                     axis="y", appearance_memory=True):
+                     axis="auto", appearance_memory=True):
     """Schlüssel über alles, was das Trackingergebnis beeinflusst.
 
     Enthält Größe und Änderungszeit der Videodatei: wird das Video ersetzt,
@@ -412,7 +424,7 @@ def _track_cache_key(video_path, roi, max_frames, camera_compensation, scene_cut
 
 
 def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
-                     scene_cut_detection=True, cache_dir=None, axis="y",
+                     scene_cut_detection=True, cache_dir=None, axis="auto",
                      appearance_memory=True):
     """track_roi mit Zwischenspeicherung. cache_dir=None schaltet den Cache ab."""
     if not cache_dir:
@@ -1392,7 +1404,7 @@ def _register_builtin_backends():
             camera_compensation=options.get("camera_compensation", True),
             scene_cut_detection=options.get("scene_cut_detection", True),
             cache_dir=options.get("cache_dir"),
-            axis=options.get("axis", "y"),
+            axis=options.get("axis", "auto"),
             appearance_memory=options.get("appearance_memory", True))
 
     def flow(video_path, roi, options):
@@ -1401,7 +1413,7 @@ def _register_builtin_backends():
             video_path,
             max_frames=options.get("max_frames"),
             camera_compensation=options.get("camera_compensation", True),
-            axis=options.get("axis", "y"))
+            axis=options.get("axis", "auto"))
 
     def two_point(video_path, roi, options):
         roi2 = options.get("roi2")
@@ -1823,10 +1835,12 @@ def main():
                          "ABSTAND beider Regionen. Ein Abstand ist von Kamerabewegung "
                          "mathematisch unabhängig - das Problem entsteht gar nicht erst, "
                          "statt nachträglich herausgerechnet zu werden.")
-    ap.add_argument("--axis", choices=["y", "x"], default="y",
-                    help="Welche Bewegungsachse ausgewertet wird. y = senkrecht (Standard), "
-                         "x = waagerecht. Bei überwiegend seitlicher Bewegung meldet der "
-                         "Generator einen Hinweis.")
+    ap.add_argument("--axis", choices=["auto", "y", "x"], default="auto",
+                    help="Welche Bewegungsachse ausgewertet wird. Waagerecht und senkrecht "
+                         "werden immer BEIDE getrackt (kostet nichts zusätzlich) - auto "
+                         "(Standard) wählt danach automatisch die Achse mit der deutlich "
+                         "größeren Spannweite. y/x erzwingen stattdessen fest eine Achse, "
+                         "falls die automatische Wahl im Einzelfall falsch liegt.")
     ap.add_argument("--profile", choices=["standard", "weich", "tf", "tj"], default="standard",
                     help="Voreinstellungen für eine Bewegungsart. 'standard' für Hubbewegung. "
                          "'weich' für weiches Gewebe, das nach einem Anstoß gedämpft "

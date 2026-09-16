@@ -569,8 +569,10 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	if opts.MaxSpeed > 0 {
 		args = append(args, "--max-speed", strconv.FormatFloat(opts.MaxSpeed, 'f', -1, 64))
 	}
-	if opts.Axis == "x" {
-		args = append(args, "--axis", "x")
+	if opts.Axis == "x" || opts.Axis == "y" {
+		// Leer bleibt "auto" (Pythons Standard seit der automatischen
+		// Achsenwahl) - nur eine explizite Erzwingung wird weitergereicht.
+		args = append(args, "--axis", opts.Axis)
 	}
 	if opts.AutoRetry {
 		args = append(args, "--auto-retry")

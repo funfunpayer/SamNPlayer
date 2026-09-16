@@ -289,8 +289,13 @@ def analyze(video_path, roi, options):
     """Verfolgt ein Punktgitter in roi=(x,y,w,h) durchs Video. Rückgabe:
     (timestamps_ms, positions, (width, height), scene_cuts, stats) -
     derselbe Vertrag wie backends.py ihn verlangt. Dünner Wrapper um
-    _track_grid() - wendet Kamerakompensation (nur Y) und Achsenwahl an."""
-    axis = options.get("axis", "y")
+    _track_grid() - wendet Kamerakompensation (nur Y) und Achsenwahl an.
+
+    axis="auto" (Standard, siehe generate_funscript.track_roi für die
+    Begründung) wertet beide ohnehin schon getrackten Achsen aus und nimmt
+    die mit deutlich größerer Spannweite. "x"/"y" erzwingen weiterhin fest
+    eine Achse."""
+    axis = options.get("axis", "auto")
     camera_compensation = options.get("camera_compensation", True)
     (timestamps_ms, x_positions, y_positions, camera_dy, _lost_flags,
      frame_size, scene_cuts, stats, camera_frames_lost, frame_idx) = _track_grid(video_path, roi, options)
@@ -301,12 +306,21 @@ def analyze(video_path, roi, options):
             print(f"Kamerakompensation: {camera_frames_lost}/{frame_idx} Frames ohne "
                   "verlässliche Hintergrund-Features (unverändert übernommen)", file=sys.stderr)
 
+    vertical_range = float(np.ptp(y_positions)) if len(y_positions) else 0.0
+    horizontal_range = float(np.ptp(x_positions)) if len(x_positions) else 0.0
     stats = dict(stats)
-    stats["vertical_range"] = round(float(np.ptp(y_positions)) if len(y_positions) else 0.0, 1)
-    stats["horizontal_range"] = round(float(np.ptp(x_positions)) if len(x_positions) else 0.0, 1)
+    stats["vertical_range"] = round(vertical_range, 1)
+    stats["horizontal_range"] = round(horizontal_range, 1)
 
-    return (timestamps_ms, x_positions if axis == "x" else y_positions,
-            frame_size, scene_cuts, stats)
+    if axis == "x":
+        positions = x_positions
+    elif axis == "y":
+        positions = y_positions
+    else:
+        positions = (x_positions if horizontal_range > vertical_range * 1.5
+                     and horizontal_range > 5 else y_positions)
+
+    return (timestamps_ms, positions, frame_size, scene_cuts, stats)
 
 
 def analyze_two_point(video_path, roi_a, roi_b, options):
