@@ -41,6 +41,8 @@ export function GetCacheInfo():Promise<main.CacheInfo>;
 
 export function GetDeviceStatus():Promise<main.DeviceStatus>;
 
+export function GetDiagnosticsHistory():Promise<Array<main.DiagnosticsHistoryEntry>>;
+
 export function GetHardwareInfo():Promise<string>;
 
 export function GetHeatmap(arg1:number):Promise<Array<main.HeatmapPoint>>;
@@ -88,6 +90,8 @@ export function ReportSummary():Promise<string>;
 export function ReportVideoPosition(arg1:number):Promise<void>;
 
 export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>;
+
+export function RunDeviceDiagnostics():Promise<void>;
 
 export function RunGoldenClipBenchmark(arg1:string):Promise<void>;
 

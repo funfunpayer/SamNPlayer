@@ -46,6 +46,11 @@ type App struct {
 	// eine Verbindung) und wird in app_device.go explizit abgelehnt.
 	testDevice     device.Device
 	testDeviceMock bool
+	// testDeviceConnectLatencyMs: wie lange der letzte erfolgreiche
+	// Connect() gedauert hat - fließt als erster Eintrag in den
+	// Geräte-Diagnoselauf ein (app_diagnostics.go), statt die Verbindung
+	// dafür extra zu trennen und neu aufzubauen.
+	testDeviceConnectLatencyMs float64
 	// testDeviceConnecting reserviert die Testverbindung, solange ein
 	// ConnectDevice/ConnectDeviceVia-Aufruf noch läuft (siehe
 	// claimTestDeviceConnect in app_device.go) - testDevice selbst bleibt

@@ -21,6 +21,7 @@ const (
 	prefAIBaseURL            = "generator.aiBaseUrl"
 	prefBenchmarkManifest    = "generator.benchmarkManifestPath"
 	prefBenchmarkHistoryPath = "generator.benchmarkHistoryPath"
+	prefDiagnosticsHistory   = "device.diagnosticsHistoryPath"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -109,6 +110,12 @@ type Settings struct {
 	// angehängt wird - Standardort analog zu DefaultReportPath.
 	BenchmarkHistoryPath        string `json:"benchmarkHistoryPath"`
 	DefaultBenchmarkHistoryPath string `json:"defaultBenchmarkHistoryPath"`
+
+	// DiagnosticsHistoryPath: JSONL-Datei, an die jeder Geräte-Diagnoselauf
+	// angehängt wird (siehe app_diagnostics.go) - Standardort analog zu
+	// DefaultBenchmarkHistoryPath.
+	DiagnosticsHistoryPath        string `json:"diagnosticsHistoryPath"`
+	DefaultDiagnosticsHistoryPath string `json:"defaultDiagnosticsHistoryPath"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -150,6 +157,9 @@ func (a *App) GetSettings() Settings {
 		BenchmarkManifestPath:       s.GetString(prefBenchmarkManifest, ""),
 		BenchmarkHistoryPath:        s.GetString(prefBenchmarkHistoryPath, ""),
 		DefaultBenchmarkHistoryPath: defaultBenchmarkHistoryPath(),
+
+		DiagnosticsHistoryPath:        s.GetString(prefDiagnosticsHistory, ""),
+		DefaultDiagnosticsHistoryPath: defaultDiagnosticsHistoryPath(),
 	}
 }
 
@@ -207,4 +217,14 @@ func defaultBenchmarkHistoryPath() string {
 		return ""
 	}
 	return filepath.Join(dir, "SamNPlayer", "golden_clip_history.jsonl")
+}
+
+// defaultDiagnosticsHistoryPath schlägt einen Ort neben den übrigen
+// Nutzerdaten vor - analog zu defaultBenchmarkHistoryPath.
+func defaultDiagnosticsHistoryPath() string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, "SamNPlayer", "device_diagnostics_history.jsonl")
 }

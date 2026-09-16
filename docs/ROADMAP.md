@@ -98,6 +98,19 @@ commits.
 - [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
       unchanged-packet suppression.
 - [x] Training tab (Stop-Start, Plateau), session logging + history view.
+- [x] **Device-Diagnostics tool** (`device/diagnostics.go`, "Geräte-Diagnose"
+      in the Device tab) — an automated test sequence against the connected
+      device (raw-value acceptance sweep per channel, maximum stable
+      update rate, channel-interaction cases: alone/simultaneous/offset/
+      rapid-switching), logging every command with monotone time, wanted
+      vs. sent value, write latency, and errors to a JSONL history. This
+      is the automation of the measurement plan in
+      `docs/SAM_NEO_2_RESEARCH.md` §11/§12 - but only the part that's
+      actually measurable in software: write-round-trip latency and value
+      acceptance, not felt intensity or true physical rise/fall time
+      (the report says so explicitly, no number is faked). Still needs a
+      real device to produce a real profile - see "Needs real hardware"
+      below.
 
 **SAM long-term architecture** (`docs/SAM_ARCHITECTURE.md`)
 - [x] First milestone: `sam/` package, funscript roundtrip — correctness
@@ -136,9 +149,12 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
 ### Needs real hardware (blocked on you)
 
 - [ ] 🔒 **Validate on a real Sam Neo 2**: BLE + Intiface separately,
-      connection/playback/pause/stop/reconnect/training, raw-value
-      resolution per channel. Checklist: `docs/SAM_NEO_2_RESEARCH.md`
-      §11/§12.
+      connection/playback/pause/stop/reconnect/training. The Device-
+      Diagnostics tool (see "Done" above) now automates the raw-value/
+      update-rate/channel-interaction part of this - connect in the
+      Device tab, click "Diagnose starten", the resulting profile lands
+      in the history. What it can't tell you: whether it actually *feels*
+      right - that's still yours to judge and note down separately.
 
 ### FunGen parity (open-ended, ongoing measurement)
 

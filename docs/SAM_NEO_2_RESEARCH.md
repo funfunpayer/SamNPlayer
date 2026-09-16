@@ -318,6 +318,15 @@ von Befehlen.
 Wert, tatsächlich gesendeter Wert, Kanal, Transport, Verbindungsstatus,
 Fehler, Wiederholungen, beobachtete Antwort, sofern messbar.
 
+*Automatisiert in `device/diagnostics.go`, bedienbar über den "Geräte-
+Diagnose"-Abschnitt im Geräte-Tab: Rohwert-Annahme pro Kanal, maximale
+stabile Update-Rate, Kanalinteraktion (allein/gleichzeitig/zeitversetzt/
+schnelle Wechsel), vollständiges Transport-Log als JSONL-Verlauf. Deckt
+genau das ab, was sich ohne einen Sensor am Gerät objektiv messen lässt
+(Schreib-Latenz, angenommene Werte, Fehler) - NICHT die gefühlte
+Intensität oder die echte physische Anstiegs-/Abfallzeit weiter unten in
+§12, die bleiben Sache des Nutzers am echten Gerät.*
+
 ## 12. Device Response Model
 
 Nach der Messung soll nicht nur eine Liste unterstützter Funktionen

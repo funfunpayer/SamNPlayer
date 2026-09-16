@@ -10,7 +10,7 @@ if you only need **what's actually still open**, start here:
 | # | Priority | Status |
 |---|---|---|
 | 1 | Validate real hardware | **Blocked on you** — needs a Sam Neo 2 and an operator |
-| 2 | Match FunGen2 references | **Open, ongoing measurement** — real gains found (2D-distance fix, tighter ROI placement), no closed answer yet; needs more real clips |
+| 2 | Match FunGen2 references | **Open, ongoing measurement** — Golden-Clip Benchmark + GUI tab shipped (PR #70); real gains found (2D-distance fix, tighter ROI placement); needs more real clips fed into the benchmark |
 | 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` measured insufficient, not wired in |
 | 4 | Motion-signature/profile GUI integration | **Done** — AI region/profile/quality proposal all wired into the generator tab |
 | 5 | Contact-triggered vibration for Tf/Tj | **Done, shipped opt-in** — real-clip visual validation passed |
@@ -117,8 +117,10 @@ after lag and orientation search, including on a single continuous
 chapter with no timing gaps. The four benchmark bugs were real but do not
 explain the whole gap. The persisted manifest (hashes, generator
 versions, ROIs) from the brief's "Reproduce before changing the
-algorithm" section is still open; a proper scan of `--dataset` against
-the user's full `funscript-tests` folder has not happened (local to their
+algorithm" section is **implemented** as the Golden-Clip Benchmark
+(`generator/golden_clip_benchmark.py` + GUI "Bench" tab, PR #70);
+a proper scan against the user's full `funscript-tests` folder still
+needs the operator to point the manifest at real clips (local to their
 machine).
 
 **Work Package 2 (isolate the mismatch) found a real, fixed bug:**

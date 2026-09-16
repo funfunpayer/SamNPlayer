@@ -17,6 +17,7 @@ export function GenerateScript(arg1) { return window['go']['main']['App']['Gener
 export function GetBenchmarkHistory() { return window['go']['main']['App']['GetBenchmarkHistory'](); }
 export function GetCacheInfo() { return window['go']['main']['App']['GetCacheInfo'](); }
 export function GetDeviceStatus() { return window['go']['main']['App']['GetDeviceStatus'](); }
+export function GetDiagnosticsHistory() { return window['go']['main']['App']['GetDiagnosticsHistory'](); }
 export function GetHardwareInfo() { return window['go']['main']['App']['GetHardwareInfo'](); }
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
@@ -41,6 +42,7 @@ export function ReportExists() { return window['go']['main']['App']['ReportExist
 export function ReportSummary() { return window['go']['main']['App']['ReportSummary'](); }
 export function ReportVideoPosition(arg1) { return window['go']['main']['App']['ReportVideoPosition'](arg1); }
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
+export function RunDeviceDiagnostics() { return window['go']['main']['App']['RunDeviceDiagnostics'](); }
 export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
