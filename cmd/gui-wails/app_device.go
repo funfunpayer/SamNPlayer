@@ -190,6 +190,19 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 // DisconnectDevice trennt die Testverbindung wieder.
 func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	a.stateMu.Lock()
+	// Eine laufende Wiedergabe/ein laufendes Training kann diese Verbindung
+	// gerade wiederverwenden (siehe claimSessionDevice) - a.testDevice bleibt
+	// dabei bewusst gesetzt, damit der Geräte-Tab den Zustand weiter korrekt
+	// anzeigt. Sie hier trotzdem zu trennen würde die laufende Sitzung mitten
+	// im Senden abwürgen, ohne dass die Oberfläche das erwartet. Also
+	// ablehnen, mit einer Meldung, die sagt, was zuerst zu tun ist -
+	// symmetrisch zu claimTestDeviceConnect(), das aus demselben Grund keine
+	// neue Verbindung während einer laufenden Sitzung zulässt.
+	if a.sessionActive {
+		a.stateMu.Unlock()
+		return a.GetDeviceStatus(), fmt.Errorf(
+			"eine Wiedergabe oder ein Training nutzt diese Verbindung gerade - zuerst dort stoppen")
+	}
 	dev := a.testDevice
 	a.testDevice = nil
 	a.testDeviceMock = false
