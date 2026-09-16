@@ -76,6 +76,30 @@ def main():
             check("Fehlermeldung verweist auf bootstrap_yolo_dataset.py",
                   "bootstrap_yolo_dataset.py" in str(exc), str(exc))
 
+    # --- train_and_export ruft model.train() mit batch=-1 auf --------------
+    # (Autobatch statt fester Batchgröße 16 - sonst laufen Karten mit wenig
+    # VRAM, z.B. eine GTX 1650 mit 4GB, beim Training leicht in ein "CUDA
+    # out of memory", obwohl yolov8n mit kleinerer Batchgröße passen würde).
+    # ultralytics.YOLO wird gepatcht statt eines echten Trainingslaufs - der
+    # Fake bricht danach bewusst ab (keine best.pt), das Training selbst ist
+    # nicht Teil dieses Tests.
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, "data.yaml"), "w") as f:
+            f.write("path: .\ntrain: images/train\nval: images/val\nnames:\n  0: x\n")
+        captured_train_kwargs = {}
+
+        class FakeModel:
+            def train(self, **kwargs):
+                captured_train_kwargs.update(kwargs)
+
+        with patch("ultralytics.YOLO", return_value=FakeModel()):
+            try:
+                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
+            except RuntimeError:
+                pass  # erwartet - der Fake schreibt keine best.pt, s.o.
+        check("model.train() bekommt batch=-1 (Autobatch statt fester Größe)",
+              captured_train_kwargs.get("batch") == -1, str(captured_train_kwargs))
+
     # --- main(): CLI-Argumente erreichen train_and_export mit den erwarteten Werten ---
     captured = {}
 

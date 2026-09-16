@@ -6,6 +6,18 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## [Unreleased] — since v0.4.1 (September 16, 2026)
+
+### Fixed
+
+- **YOLO training used a fixed batch size (16)** regardless of the GPU's
+  actual VRAM. On a lower-VRAM card (e.g. a 4GB GTX 1650) this could hit
+  "CUDA out of memory" even though the default model (`yolov8n`, the
+  smallest) would fit fine with a smaller batch. Now passes `batch=-1` to
+  ultralytics, which auto-sizes the batch to target ~60% of the free GPU
+  memory instead of a hardcoded value. No effect on CPU training (falls
+  back to the same fixed default there).
+
 ## [0.4.1] — September 16, 2026
 
 ### Fixed
