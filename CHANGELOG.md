@@ -6,7 +6,7 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
-## [Unreleased] — since v0.3.0 (September 16, 2026)
+## [0.4.0] — September 16, 2026
 
 ### Added
 
