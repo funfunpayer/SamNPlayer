@@ -1,7 +1,7 @@
 import {
   PickVideoFile, LoadFirstFrame, BootstrapRoiTrainingSample, RunRoiModelTraining,
   ListRoiTrainingSamples, DiscardRoiTrainingSample, GetRoiDatasetSummary,
-  GetRoiTrainingSampleImage,
+  GetRoiTrainingSampleImage, CheckRoiTrainingAvailable,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -84,7 +84,12 @@ export function initRoiTraining(root) {
         <option value="cpu">CPU (sehr langsam)</option>
       </select>
     </div>
-    <div class="row"><button id="rt-train" class="primary" type="button">Training starten</button></div>
+    <div class="row"><button id="rt-train" class="primary" type="button" disabled>Training starten</button></div>
+    <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
+      ultralytics ist nicht installiert (nur fürs Trainieren nötig, nicht fürs Sammeln von
+      Trainingsdaten oben) - im Terminal einmalig:
+      <code>pip install -r generator/requirements-ai-train.txt</code>
+    </p>
     <div class="path-label" id="rt-train-status"></div>
     <pre id="rt-train-log" class="hint" style="max-height:240px; overflow:auto; white-space:pre-wrap;"></pre>
   `;
@@ -422,5 +427,17 @@ export function initRoiTraining(root) {
     datasetDir = s.roiDatasetDir || s.defaultRoiDatasetDir || '';
     el('#rt-dataset-dir').value = datasetDir;
     refreshClassList();
+  });
+
+  // ultralytics ist eine schwere, separate Installation (zieht u.a. PyTorch
+  // nach sich, siehe requirements-ai-train.txt) - den Knopf anzubieten und
+  // dann mit einem rohen ModuleNotFoundError-Traceback scheitern zu lassen
+  // wäre schlechter als ihn vorher zu sperren (gleiches Muster wie
+  // CheckAIRoiAvailable im Generator-Tab).
+  CheckRoiTrainingAvailable().then(available => {
+    el('#rt-train').disabled = !available;
+    el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
+  }).catch(() => {
+    el('#rt-train-unavailable').style.display = 'block';
   });
 }

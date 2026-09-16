@@ -21,6 +21,8 @@ export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckAudioCheckAvailable():Promise<boolean>;
 
+export function CheckRoiTrainingAvailable():Promise<boolean>;
+
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
 
 export function CheckGeneratorDependencies():Promise<void>;

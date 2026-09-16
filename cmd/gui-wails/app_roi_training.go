@@ -65,6 +65,16 @@ func roiTrainingSamplePrefix(videoPath string) string {
 	return fmt.Sprintf("%s_%x", safeName, h[:5])
 }
 
+// CheckRoiTrainingAvailable meldet, ob das eigentliche Trainieren (nicht das
+// Sammeln von Trainingsdaten - das braucht nur die Basis-Installation)
+// grundsätzlich nutzbar ist, also ob ultralytics installiert ist. Die GUI
+// nutzt das, um den "Training starten"-Knopf zu aktivieren/auszublenden
+// statt ihn anzubieten und dann mit einem rohen Python-Traceback scheitern
+// zu lassen (siehe CheckAIRoiAvailable für dasselbe Muster).
+func (a *App) CheckRoiTrainingAvailable() bool {
+	return generator.RoiTrainingAvailable()
+}
+
 // BootstrapRoiTrainingSample trackt roi (und optional roi2) durchs Video und
 // hängt die Ergebnisse an den Datensatz an - siehe
 // generator.BootstrapRoiTrainingSample/bootstrap_yolo_dataset.py. Läuft

@@ -62,6 +62,7 @@ def main():
         "GetRoiDatasetSummary": f"async () => ({json.dumps(SUMMARY)})",
         "RunRoiModelTraining": "async (epochs, device) => { window.__calls.push(['train', epochs, device]); }",
         "GetSettings": "async () => ({ roiDatasetDir: '/data', defaultRoiDatasetDir: '/data' })",
+        "CheckRoiTrainingAvailable": "async () => true",
     }))
     harness = FRONTEND / "test" / "_roi_training_harness.html"
     harness.write_text(PAGE)
@@ -148,6 +149,9 @@ def main():
         check("Übersicht zeigt die Train-Anzahl", "2" in page.locator("#rt-summary").inner_text())
 
         # --- Training ------------------------------------------------------------
+        # CheckRoiTrainingAvailable() löst asynchron auf - warten, bis der Knopf
+        # freigegeben ist, statt gegen einen deaktivierten Knopf zu klicken.
+        page.wait_for_function("!document.querySelector('#rt-train').disabled", timeout=5000)
         page.fill("#rt-epochs", "50")
         page.select_option("#rt-device", "cpu")
         page.click("#rt-train")
@@ -170,6 +174,24 @@ def main():
         browser.close()
 
     shutdown()
+
+    # --- ohne ultralytics: Knopf bleibt gesperrt, Hinweis mit pip-Befehl -------
+    base2, shutdown2 = serve(app_stub({"CheckRoiTrainingAvailable": "async () => false"}))
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.on("dialog", lambda d: d.dismiss())
+        page.goto(f"{base2}/test/_roi_training_harness.html")
+        page.wait_for_function("window.__ready === true")
+        page.wait_for_function(
+            "document.querySelector('#rt-train-unavailable').style.display === 'block'", timeout=5000)
+        check("Ohne ultralytics bleibt der Training-Knopf gesperrt",
+              page.locator("#rt-train").is_disabled())
+        check("Hinweis nennt den pip-install-Befehl",
+              "requirements-ai-train.txt" in page.locator("#rt-train-unavailable").inner_text())
+        browser.close()
+    shutdown2()
+
     harness.unlink(missing_ok=True)
 
     return check.report()

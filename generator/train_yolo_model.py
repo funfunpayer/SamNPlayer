@@ -33,6 +33,20 @@ import os
 import sys
 
 
+def available():
+    """True, wenn ultralytics installiert ist. Reine Prüffunktion, löst
+    nichts aus - die GUI nutzt sie, um den Training-Knopf zu aktivieren/
+    auszublenden, statt ihn anzubieten und dann mit einem rohen
+    ModuleNotFoundError-Traceback (Temp-Skriptpfad, kein Hinweis auf den
+    fehlenden pip install) scheitern zu lassen. Siehe ai_roi.available()
+    für dasselbe Muster bei der kleineren onnxruntime-Abhängigkeit."""
+    try:
+        import ultralytics  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def train_and_export(dataset_dir, output_path, epochs=100, device="cuda",
                       imgsz=640, base_model="yolov8n.pt", project_dir=None,
                       run_name="samnplayer_roi"):
@@ -40,7 +54,18 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="cuda",
     Ergebnis als normalisiertes ONNX nach output_path. Wirft, statt ein
     kaputtes/fehlendes Modell stillschweigend als Erfolg zu melden - der
     Aufrufer (GUI) soll einen echten Fehler sehen, keinen leeren Erfolg."""
-    from ultralytics import YOLO
+    try:
+        from ultralytics import YOLO
+    except ImportError as exc:
+        # Die GUI prüft das vorher per available()/--check und sperrt den
+        # Knopf entsprechend - dieser Zweig ist nur für den direkten
+        # CLI-Aufruf ohne diese Prüfung (z.B. von Hand auf der
+        # Kommandozeile), damit auch der einen klaren Hinweis statt eines
+        # rohen ModuleNotFoundError-Tracebacks bekommt.
+        raise RuntimeError(
+            "ultralytics ist nicht installiert - für das Training nötig "
+            "(nicht Teil der Basis-Installation, siehe requirements-ai-train.txt): "
+            "pip install -r generator/requirements-ai-train.txt") from exc
 
     data_yaml = os.path.join(dataset_dir, "data.yaml")
     if not os.path.isfile(data_yaml):
@@ -74,16 +99,27 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="cuda",
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--dataset-dir", required=True,
-                     help="Von bootstrap_yolo_dataset.py angelegter Ordner (enthält data.yaml)")
-    ap.add_argument("--output", required=True, help="Zielpfad für die fertige .onnx-Datei")
+    ap.add_argument("--dataset-dir", help="Von bootstrap_yolo_dataset.py angelegter Ordner "
+                                          "(enthält data.yaml) - nicht nötig mit --check")
+    ap.add_argument("--output", help="Zielpfad für die fertige .onnx-Datei - nicht nötig mit --check")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--device", default="cuda", help="'cuda', 'cpu', oder eine GPU-Nummer wie '0'")
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--base-model", default="yolov8n.pt",
                      help="Ultralytics-Basismodell - 'n' (nano) ist der kleinste/schnellste, "
                           "reicht für ein einzelnes ROI-Erkennungsproblem üblicherweise aus")
+    ap.add_argument("--check", action="store_true",
+                     help="Nur prüfen, ob Training grundsätzlich möglich ist (ultralytics "
+                          "installiert), ohne etwas zu trainieren - für die GUI, um den "
+                          "Training-Knopf zu aktivieren/auszublenden.")
     args = ap.parse_args()
+
+    if args.check:
+        print("AVAILABLE" if available() else "UNAVAILABLE")
+        return
+
+    if not args.dataset_dir or not args.output:
+        ap.error("--dataset-dir und --output sind erforderlich, außer bei --check")
 
     train_and_export(args.dataset_dir, args.output, epochs=args.epochs,
                       device=args.device, imgsz=args.imgsz, base_model=args.base_model)

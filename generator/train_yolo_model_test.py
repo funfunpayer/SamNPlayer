@@ -11,9 +11,12 @@ dort nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
 Ausführen: python3 generator/train_yolo_model_test.py
 """
 
+import io
 import os
 import sys
 import tempfile
+from contextlib import redirect_stdout
+from unittest.mock import patch
 
 import train_yolo_model
 
@@ -25,6 +28,43 @@ def main():
         print(("  OK   " if cond else "  FAIL ") + name + (f"  [{detail}]" if not cond else ""))
         if not cond:
             failures.append(name)
+
+    # --- available()/--check: ehrliche Antwort, kein roher Traceback -----------
+    # ultralytics ist in dieser Testumgebung installiert - available() prüft
+    # das also tatsächlich, nicht nur formal.
+    check("available() meldet True, wenn ultralytics installiert ist",
+          train_yolo_model.available() is True, "")
+
+    with patch.dict(sys.modules, {"ultralytics": None}):
+        # sys.modules[name] = None lässt 'import ultralytics' zuverlässig mit
+        # ImportError scheitern (Python-eigener Mechanismus), ohne das Paket
+        # in dieser Testumgebung wirklich deinstallieren zu müssen.
+        check("available() meldet False, wenn ultralytics fehlt (simuliert)",
+              train_yolo_model.available() is False, "")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
+                check("train_and_export wirft bei fehlendem ultralytics", False)
+            except RuntimeError as exc:
+                check("train_and_export wirft eine klare RuntimeError statt eines rohen "
+                      "ModuleNotFoundError-Tracebacks", "ultralytics" in str(exc), str(exc))
+                check("Fehlermeldung nennt den pip-install-Befehl",
+                      "requirements-ai-train.txt" in str(exc), str(exc))
+
+        out = io.StringIO()
+        with redirect_stdout(out):
+            sys.argv = ["train_yolo_model.py", "--check"]
+            train_yolo_model.main()
+        check("--check meldet UNAVAILABLE ohne ultralytics",
+              out.getvalue().strip() == "UNAVAILABLE", repr(out.getvalue()))
+
+    out = io.StringIO()
+    with redirect_stdout(out):
+        sys.argv = ["train_yolo_model.py", "--check"]
+        train_yolo_model.main()
+    check("--check meldet AVAILABLE mit installiertem ultralytics",
+          out.getvalue().strip() == "AVAILABLE", repr(out.getvalue()))
 
     # --- train_and_export: klare Fehlermeldung statt stillem Ultralytics-Rauschen ---
     with tempfile.TemporaryDirectory() as tmp:
