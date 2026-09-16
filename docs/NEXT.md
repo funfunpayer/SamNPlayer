@@ -1757,6 +1757,17 @@ git history rather than rebuilding from scratch.
   ROI, tracking cache, auto-retry. Native is opt-in and unmarked as
   default until real-clip Quality Doctor parity exists in Go.
 
+- **Tf/Tj suction double-floor + Go Script Doctor (September 16, 2026)** —
+  operator research notes (timing/phase, 4-zone Tf/Tj, accelerators,
+  63 BPM) triaged in `docs/FINDINGS_TIMING_TF.md`. Only the concrete,
+  code-verified suction bug was fixed now: `SyncSuctionPosition` no
+  longer stacks `liftFloor(MinSuction=0.20)` on top of the 20–90 script
+  clamp (0.20→0.36 / 0.90→0.92). Script Doctor (`generator.ScriptQuality`)
+  now runs in pure Go via `funscript.EvaluateScriptQuality` — no Python
+  for “Skript prüfen”. Larger ideas (4-zone relative graph, PTS timeline,
+  accelerator abstraction, 63 BPM attractor) stay deferred until golden-
+  clip / hardware evidence supports them.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

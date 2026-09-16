@@ -19,7 +19,6 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-<<<<<<< HEAD
 - **`generator/posttrack` + optional Go generation path (experimental)**:
   second step of the "more Go, less Python" move. Pure-Go port of
   `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
@@ -40,7 +39,6 @@ measurement history behind each entry; this file is the short version for
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by
   `process_one_kwargs_test.py`.
-=======
 - **Script Doctor in pure Go** (`funscript.EvaluateScriptQuality` +
   `EvaluateDeviceCompat`): playback-tab “Skript prüfen” no longer needs
   a Python install. Same actions-only checks as Quality Doctor without
@@ -48,7 +46,6 @@ measurement history behind each entry; this file is the short version for
 - **Research triage** of timing / 4-zone / accelerator / 63-BPM notes:
   `docs/FINDINGS_TIMING_TF.md` — what was fixed, what waits on
   measurement, what stays deferred.
->>>>>>> ebaef65 (fix(tf/tj): remove suction double-floor; Script Doctor in pure Go)
 - **Playback tab: pressing the native video Play control now also starts
   funscript/device playback**, instead of these being two separate actions
   (the dedicated "Abspielen" button and the video's own play control).

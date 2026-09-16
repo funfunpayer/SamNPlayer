@@ -143,21 +143,16 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
 - [ ] 🧭 **Secondary/weaker O-marker count and intensity heuristic** —
       shipped with a first reasonable heuristic (median-baseline peak
       detection); revisit only if real usage shows it's off.
-<<<<<<< HEAD
 - [x] 🔓 **`videox`/native tracker port** — goal confirmed (more Go / less
       Python). `generator/trackcv` (#84) + `generator/posttrack` + opt-in
       `NativePipeline` now cover CSRT tracking and the signal path without
-      Python on Linux/macOS. Still open: Quality Doctor in Go, other
+      Python on Linux/macOS. Still open: dense Quality Doctor in Go, other
       backends, Windows OpenCV/cgo, making native the default once measured
       on real clips. `videox` (ffmpeg) remains unconnected — OpenCV decode
-      in trackcv covers the need without a second external binary.
-=======
-- [ ] 🔓 **`videox`/native tracker port** — goal confirmed; trackcv (#84) +
-      posttrack (#85) in flight. Script Doctor now pure Go (this change).
-      Remaining: dense Quality Doctor, other backends, Windows OpenCV.
+      in trackcv covers the need without a second external binary. Script
+      Doctor is now pure Go (this change).
 - [x] 🔓 **Tf/Tj suction double-floor** — fixed: no second `liftFloor` on
       `SyncSuctionPosition`; see `docs/FINDINGS_TIMING_TF.md`.
->>>>>>> ebaef65 (fix(tf/tj): remove suction double-floor; Script Doctor in pure Go)
 
 ### Needs real hardware (blocked on you)
 
