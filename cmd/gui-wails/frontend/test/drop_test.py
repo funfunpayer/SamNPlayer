@@ -31,6 +31,7 @@ PAGE = """<!doctype html><html><body>
   <section id="tab-playback" class="tab-panel active"></section>
   <section id="tab-training" class="tab-panel"></section>
   <section id="tab-generator" class="tab-panel"></section>
+  <section id="tab-benchmark" class="tab-panel"></section>
   <section id="tab-device" class="tab-panel"></section>
   <section id="tab-settings" class="tab-panel"></section>
   <aside id="sidebar"></aside>
