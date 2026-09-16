@@ -81,6 +81,32 @@ def main():
     check("keine Detektion -> None statt Absturz",
           ai_roi.select_best_box([], 100, 100) is None, "")
 
+    # --- select_two_best_boxes: zwei getrennte Objekte ----------------------
+    two_dets = [
+        {"x0": 0.05, "y0": 0.05, "x1": 0.15, "y1": 0.15, "confidence": 0.9, "class_id": 0},
+        {"x0": 0.70, "y0": 0.70, "x1": 0.80, "y1": 0.80, "confidence": 0.7, "class_id": 0},
+    ]
+    b1, b2 = ai_roi.select_two_best_boxes(two_dets, frame_w=1000, frame_h=1000)
+    check("box1 ist die höchste Konfidenz", b1 == (50, 50, 100, 100), str((b1, b2)))
+    check("box2 ist das zweite, getrennte Objekt", b2 == (700, 700, 100, 100), str((b1, b2)))
+
+    # --- select_two_best_boxes: überlappende zweite Detektion wird verworfen
+    overlapping = [
+        {"x0": 0.10, "y0": 0.10, "x1": 0.30, "y1": 0.30, "confidence": 0.9, "class_id": 0},
+        {"x0": 0.12, "y0": 0.12, "x1": 0.32, "y1": 0.32, "confidence": 0.6, "class_id": 0},
+    ]
+    b1o, b2o = ai_roi.select_two_best_boxes(overlapping, frame_w=1000, frame_h=1000)
+    check("stark überlappende zweite Detektion (dasselbe Objekt) wird NICHT als box2 übernommen",
+          b2o is None, str((b1o, b2o)))
+
+    # --- select_two_best_boxes: nur eine Detektion -> box2 ist None ---------
+    b1s, b2s = ai_roi.select_two_best_boxes(two_dets[:1], frame_w=1000, frame_h=1000)
+    check("eine einzelne Detektion liefert box2=None statt einer erfundenen zweiten Box",
+          b1s is not None and b2s is None, str((b1s, b2s)))
+
+    check("keine Detektion -> (None, None) statt Absturz",
+          ai_roi.select_two_best_boxes([], 100, 100) == (None, None), "")
+
     # --- available(): ehrliche Antwort ohne onnxruntime/Modell ---------------
     check("available() meldet False ohne Modell/Laufzeit unter erfundenem Pfad",
           ai_roi.available(model_path="/nicht/vorhanden.onnx") is False, "")
@@ -119,6 +145,40 @@ def main():
                                           report_progress=False, _run_model_fn=fake_model)
         check("find_roi nimmt start_frame/end_frame wie auto_roi.find_roi entgegen",
               (x2, y2, w2, h2) == expected, f"{(x2, y2, w2, h2)} != {expected}")
+
+        # --- find_two_rois() Ende-zu-Ende: zwei getrennte Objekte -------------
+        SECOND_OBJECT_NORM = (0.05, 0.05, 0.15, 0.15)
+
+        def two_object_model(frame_bgr):
+            x0, y0, x1, y1 = OBJECT_NORM
+            sx0, sy0, sx1, sy1 = SECOND_OBJECT_NORM
+            return np.array([
+                [x0, y0, x1, y1, 0.95, 0.0],
+                [sx0, sy0, sx1, sy1, 0.80, 0.0],
+            ])
+
+        roi1, roi2 = ai_roi.find_two_rois(str(video), report_progress=False,
+                                           _run_model_fn=two_object_model)
+        expected2 = ai_roi.select_best_box(
+            ai_roi.decode_detections([[*SECOND_OBJECT_NORM, 0.80, 0.0]]), W, H)
+        check("find_two_rois liefert roi1 wie find_roi", roi1 == expected, f"{roi1} != {expected}")
+        check("find_two_rois liefert das zweite, getrennte Objekt als roi2",
+              roi2 == expected2, f"{roi2} != {expected2}")
+
+        # --- find_two_rois() mit nur einem Objekt: roi2 ist None ehrlich ------
+        roi1_only, roi2_only = ai_roi.find_two_rois(str(video), report_progress=False,
+                                                      _run_model_fn=fake_model)
+        check("find_two_rois liefert roi2=None statt einer erfundenen Box, "
+              "wenn nur ein Objekt erkannt wird", roi2_only is None, str(roi2_only))
+
+        raised_two = False
+        try:
+            ai_roi.find_two_rois(str(video), report_progress=False,
+                                  _run_model_fn=no_detection_model)
+        except RuntimeError:
+            raised_two = True
+        check("find_two_rois wirft einen klaren Fehler ohne jede Detektion",
+              raised_two, "")
 
     # --- ohne echtes Modell: klarer Fehler statt Absturz ----------------------
     raised = False
