@@ -27,6 +27,15 @@ jobs:
         with:
           node-version: "22"
 
+      # generator/trackcv bindet per cgo an die System-OpenCV-Bibliothek an
+      # (siehe dortiger Paketkommentar) - ohne die Header/lib schlägt schon
+      # "go vet"/"go test" mit "opencv2/opencv.hpp: No such file" fehl, weil
+      # cgo-Pakete zur Typprüfung kompiliert werden müssen.
+      - name: OpenCV-Entwicklungspakete installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopencv-dev pkg-config
+
       # cmd/gui-wails bindet frontend/dist per go:embed ein. Das Verzeichnis
       # ist ein Bauartefakt und liegt zu Recht nicht im Repository - ohne
       # diesen Schritt scheitert aber schon "go build" auf einem frischen

@@ -26,6 +26,9 @@ Prerequisites:
 - Python with the packages in `generator/requirements.txt`; CI uses Python 3.12.
 - Windows: WebView2 for the GUI. Ubuntu 24.04: `libgtk-3-dev` and
   `libwebkit2gtk-4.1-dev`; use `-tags webkit2_41` for Wails builds.
+- OpenCV C++ development files (`libopencv-dev` + `pkg-config` on Ubuntu) for
+  `generator/trackcv`, a cgo package - without them, `go build`/`go vet`/
+  `go test` fail on that package with "opencv2/opencv.hpp: No such file".
 
 From the repository, install the Wails CLI matching the module version
 (PowerShell):
