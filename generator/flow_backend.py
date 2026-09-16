@@ -116,7 +116,7 @@ def estimate_centers(magnitude, ys, xs, min_motion=0.5):
 
 
 def estimate_camera_shift(prev_gray, gray, exclude_center, exclude_radius):
-    """Vertikale Kameraverschiebung zwischen zwei Frames, aus verfolgten
+    """Kameraverschiebung (dx, dy) zwischen zwei Frames, aus verfolgten
     Hintergrundmerkmalen.
 
     Das ersetzt den Median des Flow-Felds, und zwar aus einem gemessenen
@@ -128,14 +128,18 @@ def estimate_camera_shift(prev_gray, gray, exclude_center, exclude_radius):
     Hier wird stattdessen dasselbe Verfahren benutzt, das im Tracker-Weg
     nachweislich funktioniert (dort 112.8px): Merkmale AUSSERHALB der
     Bewegungsregion per Lucas-Kanade verfolgen, daraus per RANSAC eine
-    affine Transformation schätzen und deren y-Translation als
+    affine Transformation schätzen und deren x-/y-Translation als
     Kameraverschiebung nehmen. Diese Verschiebung wird von der gemessenen
     Position abgezogen - Position gegen Position, nicht Vektor gegen Vektor.
+    Beide Achsen werden zurückgegeben (nicht nur die bis dahin allein
+    genutzte y-Translation), weil analyze() seit der automatischen
+    Achsenwahl beide Positionsreihen parallel führt und je nach erkannter
+    Bewegungsrichtung die eine oder andere kamerakorrigiert.
 
-    Gibt 0.0 zurück, wenn zu wenige verlässliche Punkte gefunden wurden. Eine
-    geratene Korrektur wäre schlechter als keine: auf strukturlosem
-    Hintergrund liefert die Schätzung Zufallswerte, die sich über die Frames
-    zu einem Random Walk aufsummieren würden.
+    Gibt (0.0, 0.0) zurück, wenn zu wenige verlässliche Punkte gefunden
+    wurden. Eine geratene Korrektur wäre schlechter als keine: auf
+    strukturlosem Hintergrund liefert die Schätzung Zufallswerte, die sich
+    über die Frames zu einem Random Walk aufsummieren würden.
     """
     h, w = prev_gray.shape[:2]
     mask = np.full((h, w), 255, dtype=np.uint8)
@@ -150,20 +154,20 @@ def estimate_camera_shift(prev_gray, gray, exclude_center, exclude_radius):
         prev_gray, maxCorners=200, qualityLevel=0.01, minDistance=20,
         blockSize=7, mask=mask)
     if prev_pts is None or len(prev_pts) < 10:
-        return 0.0, False
+        return 0.0, 0.0, False
 
     curr_pts, status, _ = cv2.calcOpticalFlowPyrLK(prev_gray, gray, prev_pts, None)
     if curr_pts is None or status is None:
-        return 0.0, False
+        return 0.0, 0.0, False
     good_prev = prev_pts[status.ravel() == 1]
     good_curr = curr_pts[status.ravel() == 1]
     if len(good_prev) < 10:
-        return 0.0, False
+        return 0.0, 0.0, False
 
     matrix, inliers = cv2.estimateAffinePartial2D(
         good_prev, good_curr, method=cv2.RANSAC, ransacReprojThreshold=3.0)
     if matrix is None or inliers is None or int(inliers.sum()) < 8:
-        return 0.0, False
+        return 0.0, 0.0, False
 
     # Der ANTEIL übereinstimmender Punkte entscheidet, nicht ihre Anzahl.
     # Auf strukturlosem Hintergrund findet goodFeaturesToTrack reichlich
@@ -178,8 +182,8 @@ def estimate_camera_shift(prev_gray, gray, exclude_center, exclude_radius):
     # Kameraschwenk. Die Schwelle liegt mit Abstand dazwischen.
     ratio = float(inliers.sum()) / len(good_prev)
     if ratio < MIN_INLIER_RATIO:
-        return 0.0, False
-    return float(matrix[1, 2]), True
+        return 0.0, 0.0, False
+    return float(matrix[0, 2]), float(matrix[1, 2]), True
 
 
 def estimate_global_flow(flow):
@@ -207,8 +211,14 @@ def estimate_global_flow(flow):
 
 
 def analyze(video_path, max_frames=None, camera_compensation=True,
-            downscale=1.0, on_progress=None, axis="y"):
+            downscale=1.0, on_progress=None, axis="auto"):
     """Analysiert das Video und liefert dieselbe Form wie track_roi().
+
+    axis="auto" (Standard) verfolgt waagerechte UND senkrechte Position
+    parallel und entscheidet erst am Ende anhand der jeweiligen Spannweite,
+    welche Achse die eigentliche Bewegung trägt - siehe track_roi() für die
+    Begründung, warum das keine feste Voreinstellung sein soll. "x"/"y"
+    erzwingen weiterhin eine Achse.
 
     Rückgabe: (timestamps_ms, positions, (width, height), scene_cuts, stats)
     """
@@ -241,14 +251,19 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
     # gelten als bewegungslos. Dadurch passt sich die Schwelle an das
     # Material an, statt einen festen Pixelwert zu erzwingen.
     strength_history = []
-    # Aufsummierte Kameraverschiebung. Sie wird von der gemessenen Position
-    # abgezogen, damit die Kurve die Bewegung des Objekts beschreibt und
-    # nicht die der Kamera.
-    camera_shift = 0.0
+    # Aufsummierte Kameraverschiebung je Achse. Sie wird von der gemessenen
+    # Position abgezogen, damit die Kurve die Bewegung des Objekts
+    # beschreibt und nicht die der Kamera. Beide Achsen laufen mit, nicht
+    # nur die aktuell gewählte - axis="auto" entscheidet sich erst nach dem
+    # kompletten Durchlauf für eine Achse (siehe unten), und dann muss die
+    # dazugehörige Kamerakorrektur bereits vorliegen.
+    camera_shift_x = 0.0
+    camera_shift_y = 0.0
     camera_frames_lost = 0
     last_center = None
     timestamps = [0.0]
-    positions = [h / 2.0 * scale_back]
+    positions_y = [h / 2.0 * scale_back]
+    positions_x = [w / 2.0 * scale_back]
     spreads = [0.0]
     no_signal_frames = 0
     idx = 1
@@ -268,10 +283,11 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         if camera_compensation:
             # Merkmalsbasiert und auf der POSITION - siehe
             # estimate_camera_shift zur Begründung.
-            shift, ok_shift = estimate_camera_shift(
+            shift_x, shift_y, ok_shift = estimate_camera_shift(
                 prev, gray, last_center, max(h, w) // 6)
             if ok_shift:
-                camera_shift += shift
+                camera_shift_x += shift_x
+                camera_shift_y += shift_y
             else:
                 camera_frames_lost += 1
 
@@ -283,16 +299,17 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         min_motion = (float(np.median(strength_history)) * 0.25
                       if len(strength_history) >= 25 else 0.0)
         cy, cx, spread = estimate_centers(magnitude, ys, xs, min_motion=min_motion)
-        chosen = cx if axis == "x" else cy
-        if chosen is None:
+        if cy is None:
             # Kein verwertbares Zentrum (praktisch bewegungsloser Frame):
             # letzte Position fortschreiben und mitzählen, statt zu raten.
             no_signal_frames += 1
-            positions.append(positions[-1])
+            positions_y.append(positions_y[-1])
+            positions_x.append(positions_x[-1])
             spreads.append(spreads[-1])
         else:
             last_center = (cy, cx)
-            positions.append((chosen - camera_shift) * scale_back)
+            positions_y.append((cy - camera_shift_y) * scale_back)
+            positions_x.append((cx - camera_shift_x) * scale_back)
             spreads.append(spread)
 
         timestamps.append(idx * 1000.0 / fps)
@@ -303,7 +320,21 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
 
     cap.release()
 
-    positions = np.asarray(positions, dtype=float)
+    positions_y = np.asarray(positions_y, dtype=float)
+    positions_x = np.asarray(positions_x, dtype=float)
+    vertical_range = float(np.ptp(positions_y))
+    horizontal_range = float(np.ptp(positions_x))
+    # Gleiche Schwelle wie track_roi(): erst bei deutlichem, nicht nur
+    # geringfügigem Übergewicht der waagerechten Bewegung die Achse
+    # wechseln - siehe dort für die Begründung.
+    if axis == "x":
+        positions = positions_x
+    elif axis == "y":
+        positions = positions_y
+    else:
+        positions = (positions_x if horizontal_range > vertical_range * 1.5
+                     and horizontal_range > 5 else positions_y)
+
     stats = {
         # Gleiche Schlüssel wie track_roi, damit der Quality Doctor beide
         # Backends ohne Sonderfall bewerten kann. Der Flow-Weg kann das
@@ -312,8 +343,8 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         "tracker_lost_frames": no_signal_frames,
         "camera_frames_lost": camera_frames_lost,
         "total_frames": idx,
-        "vertical_range": round(float(np.ptp(positions)), 1),
-        "horizontal_range": 0.0,
+        "vertical_range": round(vertical_range, 1),
+        "horizontal_range": round(horizontal_range, 1),
         # Streuung zwischen den Schätzern: hoher Wert bedeutet, dass sie sich
         # uneinig sind - ein direktes Vertrauensmaß, das der CSRT-Weg nicht
         # liefern kann.

@@ -26,6 +26,7 @@ PAGE = """<!doctype html><html><body>
     <button class="tab-btn" data-tab="generator">Skript erzeugen</button>
     <button class="tab-btn" data-tab="device">Gerät</button>
     <button class="tab-btn" data-tab="settings">Einstellungen</button>
+    <button class="tab-btn" data-tab="roi-training">KI-Train.</button>
     <span id="version-label"></span>
   </nav>
   <section id="tab-playback" class="tab-panel active"></section>
@@ -34,6 +35,7 @@ PAGE = """<!doctype html><html><body>
   <section id="tab-benchmark" class="tab-panel"></section>
   <section id="tab-device" class="tab-panel"></section>
   <section id="tab-settings" class="tab-panel"></section>
+  <section id="tab-roi-training" class="tab-panel"></section>
   <aside id="sidebar"></aside>
 </div>
 <script type="module">

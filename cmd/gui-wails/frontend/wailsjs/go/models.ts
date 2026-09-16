@@ -163,6 +163,24 @@ export namespace funscript {
 
 export namespace generator {
 
+	export class ROI {
+	    X: number;
+	    Y: number;
+	    W: number;
+	    H: number;
+
+	    static createFrom(source: any = {}) {
+	        return new ROI(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.X = source["X"];
+	        this.Y = source["Y"];
+	        this.W = source["W"];
+	        this.H = source["H"];
+	    }
+	}
 	export class BenchmarkCorrelation {
 	    r: number;
 	    lag_ms: number;
@@ -402,6 +420,114 @@ export namespace main {
 	        this.mock = source["mock"];
 	        this.deviceName = source["deviceName"];
 	        this.report = this.convertValues(source["report"], device.DiagnosticsReport);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RoiTrainingBox {
+	    classId: number;
+	    className: string;
+	    xc: number;
+	    yc: number;
+	    w: number;
+	    h: number;
+
+	    static createFrom(source: any = {}) {
+	        return new RoiTrainingBox(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.classId = source["classId"];
+	        this.className = source["className"];
+	        this.xc = source["xc"];
+	        this.yc = source["yc"];
+	        this.w = source["w"];
+	        this.h = source["h"];
+	    }
+	}
+	export class RoiTrainingSample {
+	    split: string;
+	    name: string;
+	    imagePath: string;
+	    boxes: RoiTrainingBox[];
+
+	    static createFrom(source: any = {}) {
+	        return new RoiTrainingSample(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.split = source["split"];
+	        this.name = source["name"];
+	        this.imagePath = source["imagePath"];
+	        this.boxes = this.convertValues(source["boxes"], RoiTrainingBox);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RoiClassCount {
+	    className: string;
+	    classId: number;
+	    trainCount: number;
+	    valCount: number;
+
+	    static createFrom(source: any = {}) {
+	        return new RoiClassCount(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.className = source["className"];
+	        this.classId = source["classId"];
+	        this.trainCount = source["trainCount"];
+	        this.valCount = source["valCount"];
+	    }
+	}
+	export class RoiDatasetSummary {
+	    datasetDir: string;
+	    classes: RoiClassCount[];
+
+	    static createFrom(source: any = {}) {
+	        return new RoiDatasetSummary(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.datasetDir = source["datasetDir"];
+	        this.classes = this.convertValues(source["classes"], RoiClassCount);
 	    }
 
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -727,6 +853,8 @@ export namespace main {
 	    defaultBenchmarkHistoryPath: string;
 	    diagnosticsHistoryPath: string;
 	    defaultDiagnosticsHistoryPath: string;
+	    roiDatasetDir: string;
+	    defaultRoiDatasetDir: string;
 
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -769,6 +897,8 @@ export namespace main {
 	        this.defaultBenchmarkHistoryPath = source["defaultBenchmarkHistoryPath"];
 	        this.diagnosticsHistoryPath = source["diagnosticsHistoryPath"];
 	        this.defaultDiagnosticsHistoryPath = source["defaultDiagnosticsHistoryPath"];
+	        this.roiDatasetDir = source["roiDatasetDir"];
+	        this.defaultRoiDatasetDir = source["defaultRoiDatasetDir"];
 	    }
 	}
 	export class TrainingRequest {

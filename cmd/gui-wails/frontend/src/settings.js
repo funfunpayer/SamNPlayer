@@ -39,6 +39,7 @@ export function saveSetting(key, value) {
       'training.progression_per_cycle': 'trainingProgressionPerCycle',
       'generator.aiRoiModelPath': 'aiRoiModelPath',
       'generator.aiBaseUrl': 'aiBaseUrl',
+      'generator.roiTrainingDatasetDir': 'roiDatasetDir',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;

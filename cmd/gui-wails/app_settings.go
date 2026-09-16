@@ -7,6 +7,7 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -22,6 +23,7 @@ const (
 	prefBenchmarkManifest    = "generator.benchmarkManifestPath"
 	prefBenchmarkHistoryPath = "generator.benchmarkHistoryPath"
 	prefDiagnosticsHistory   = "device.diagnosticsHistoryPath"
+	prefRoiDatasetDir        = "generator.roiTrainingDatasetDir"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -116,6 +118,12 @@ type Settings struct {
 	// DefaultBenchmarkHistoryPath.
 	DiagnosticsHistoryPath        string `json:"diagnosticsHistoryPath"`
 	DefaultDiagnosticsHistoryPath string `json:"defaultDiagnosticsHistoryPath"`
+
+	// RoiDatasetDir: Ordner, in dem der Bootstrap-Trainingsdatensatz für die
+	// KI-Regionserkennung wächst (siehe app_roi_training.go) - Standardort
+	// analog zu DefaultBenchmarkHistoryPath.
+	RoiDatasetDir        string `json:"roiDatasetDir"`
+	DefaultRoiDatasetDir string `json:"defaultRoiDatasetDir"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -160,6 +168,9 @@ func (a *App) GetSettings() Settings {
 
 		DiagnosticsHistoryPath:        s.GetString(prefDiagnosticsHistory, ""),
 		DefaultDiagnosticsHistoryPath: defaultDiagnosticsHistoryPath(),
+
+		RoiDatasetDir:        s.GetString(prefRoiDatasetDir, ""),
+		DefaultRoiDatasetDir: generator.DefaultRoiDatasetDir(),
 	}
 }
 
@@ -217,6 +228,27 @@ func defaultBenchmarkHistoryPath() string {
 		return ""
 	}
 	return filepath.Join(dir, "SamNPlayer", "golden_clip_history.jsonl")
+}
+
+// defaultAIRoiModelPath bildet ai_roi.py's default_model_path() 1:1 in Go
+// nach - GLEICHE Umgebungsvariablen, gleiche Fallback-Reihenfolge (NICHT
+// os.UserConfigDir(), das unter Windows %AppData% statt %LOCALAPPDATA%
+// liefert). CheckAIRoiAvailable() prüft am Ende genau den Pfad, den die
+// Python-Funktion berechnet - ein frisch trainiertes Modell muss exakt
+// dort landen, sonst findet die App ihr eigenes Trainingsergebnis nicht.
+func defaultAIRoiModelPath() string {
+	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+		return filepath.Join(local, "SamNPlayer", "models", "roi_detector.onnx")
+	}
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if xdg == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		xdg = filepath.Join(home, ".config")
+	}
+	return filepath.Join(xdg, "SamNPlayer", "models", "roi_detector.onnx")
 }
 
 // defaultDiagnosticsHistoryPath schlägt einen Ort neben den übrigen

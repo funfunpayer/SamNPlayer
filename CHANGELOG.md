@@ -20,7 +20,37 @@ measurement history behind each entry; this file is the short version for
   says explicitly what it did not measure (felt intensity, true physical
   rise/fall time) instead of faking a number nobody collected.
 
+- **KI-Trainingssystem tab**: collects training data for a custom YOLO
+  region-detection model directly from videos run through the app, instead
+  of only via the standalone `bootstrap_yolo_dataset.py`/`train_yolo_model.py`
+  CLI scripts. Mark one or two regions in a video (with a class name each,
+  e.g. "brust"/"hand") to bootstrap labeled samples via classical tracking;
+  a review grid (image + box overlay) lets you discard wrongly tracked
+  samples before they reach training — `bootstrap_yolo_dataset.py` itself
+  documents that a detector trained on unreviewed tracking output never
+  gets more reliable than the tracker that produced it, so this review step
+  is not optional. A dataset-summary table shows sample counts per class
+  and split; "Training starten" runs `train_yolo_model.py` (needs a
+  CUDA-capable GPU for realistic training times) and drops the exported
+  model directly at the AI model path, where it's usable in the Generator
+  tab's "KI-Erkennung" without any further step. Purely additive — the
+  existing manual region-marking and Tf/Tj workflow in the Generator tab is
+  unchanged.
+
 ### Changed
+
+- **Motion-axis selection is automatic by default** (`--axis auto`, GUI:
+  "Bewegungsachse" now defaults to "Automatisch"). Horizontal and vertical
+  position were already tracked in parallel in every backend (CSRT,
+  grid_lk, and now flow too — see below); only which one made it into the
+  funscript was a fixed, manually-chosen flag, which made no sense once
+  both are measured for free. `auto` now picks whichever axis has the
+  clearly larger range of motion; forcing `x`/`y` by hand remains available
+  for the rare case where the automatic choice is wrong. The `flow`
+  backend's camera-shift correction was extended to track both axes of the
+  RANSAC-estimated shift (previously only the vertical translation was
+  read from the affine matrix) — needed so a horizontal auto-selection
+  gets the matching camera correction instead of none.
 
 - **Tf and Tj merged into a single profile** in the generator's dropdown
   (`Tf/Tj (Abstand + Sog)`) — both were already the identical recipe
