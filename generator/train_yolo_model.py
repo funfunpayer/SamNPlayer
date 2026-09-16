@@ -77,8 +77,16 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="cuda",
     print(f"Training: {base_model} auf {data_yaml}, {epochs} Epochen, device={device}",
           file=sys.stderr)
     model = YOLO(base_model)
+    # batch=-1 lässt ultralytics die Batchgröße automatisch an die freie
+    # GPU-Speichergröße anpassen (Ziel ~60% Auslastung), statt den festen
+    # Standardwert (16) zu erzwingen. Ohne das läuft eine Karte mit wenig
+    # VRAM (z.B. eine GTX 1650 mit 4GB) beim Training leicht in ein "CUDA
+    # out of memory", obwohl yolov8n (der Standard hier) mit kleinerer
+    # Batchgröße problemlos passen würde. Auf der CPU wirkungslos (fällt
+    # dort automatisch auf den festen Standardwert zurück, siehe
+    # ultralytics.utils.autobatch.autobatch).
     model.train(data=data_yaml, epochs=epochs, device=device, imgsz=imgsz,
-                project=project_dir, name=run_name, exist_ok=True)
+                batch=-1, project=project_dir, name=run_name, exist_ok=True)
 
     weights_path = os.path.join(project_dir, run_name, "weights", "best.pt")
     if not os.path.isfile(weights_path):
