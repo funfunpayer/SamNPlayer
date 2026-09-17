@@ -715,12 +715,25 @@ type ScriptQualityResult struct {
 // .funscript-Datei an, ohne Video - z.B. eine aus einem anderen Werkzeug
 // importierte Datei ("Script Doctor"). Pure Go (funscript.EvaluateScriptQuality);
 // no Python install required for this check.
+//
+// Actions are read in file order (not via Load/Parse, which sorts) so that
+// unsorted timestamps are still flagged — same as quality_doctor on the
+// Python --script-quality path.
 func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
-	script, err := funscript.Load(funscriptPath)
+	data, err := os.ReadFile(funscriptPath)
 	if err != nil {
-		return ScriptQualityResult{}, err
+		return ScriptQualityResult{}, fmt.Errorf("generator: Skript konnte nicht gelesen werden: %w", err)
 	}
-	got := funscript.EvaluateScriptQuality(script.Actions)
+	var doc struct {
+		Actions []funscript.Action `json:"actions"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return ScriptQualityResult{}, fmt.Errorf("generator: ungültiges JSON: %w", err)
+	}
+	if len(doc.Actions) == 0 {
+		return ScriptQualityResult{}, fmt.Errorf("generator: keine actions im Skript gefunden")
+	}
+	got := funscript.EvaluateScriptQuality(doc.Actions)
 	return ScriptQualityResult{
 		Score:                   got.Score,
 		Passed:                  got.Passed,

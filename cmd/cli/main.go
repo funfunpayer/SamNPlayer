@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +23,12 @@ import (
 )
 
 func main() {
+	// Subcommand: phase <a.funscript> <b.funscript> — FunGen/SamNPlayer
+	// lag search without Python (funscript.BestLagCorrelation).
+	if len(os.Args) >= 2 && os.Args[1] == "phase" {
+		os.Exit(runPhase(os.Args[2:]))
+	}
+
 	scriptPath := flag.String("script", "", "Pfad zur .funscript-Datei (Pflicht)")
 	mock := flag.Bool("mock", false, "Kein BLE - Befehle nur auf der Konsole ausgeben")
 	verbose := flag.Bool("v", false, "Ausführliche Statusausgaben während der Wiedergabe")
@@ -37,10 +44,16 @@ func main() {
 	extendedORestore := flag.Duration("extended-o-restore", 500*time.Millisecond,
 		"Rampzeit zurück auf vorheriges Niveau nach Extended-O (0 = sofort)")
 
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n\n", os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, "Playback options:\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	if *scriptPath == "" {
-		fmt.Fprintln(os.Stderr, "Fehler: --script ist erforderlich")
+		fmt.Fprintln(os.Stderr, "Fehler: --script ist erforderlich (oder: phase A.funscript B.funscript)")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -118,4 +131,70 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("Fertig.")
+}
+
+// runPhase compares two funscripts (reference vs candidate) via
+// BestLagCorrelation + DiagnosePhase. Args: A.funscript B.funscript
+// [--max-lag-ms N] [--lag-step-ms N]. Paths may come before or after flags.
+func runPhase(args []string) int {
+	fs := flag.NewFlagSet("phase", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	maxLag := fs.Int("max-lag-ms", funscript.DefaultMaxLagMs, "Lag-Suchfenster ±ms")
+	lagStep := fs.Int("lag-step-ms", funscript.DefaultLagStepMs, "Lag-Schrittweite ms")
+	resample := fs.Int("resample-ms", funscript.DefaultResampleStepMs, "Resample-Schrittweite ms")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s phase A.funscript B.funscript [options]\n", os.Args[0])
+		fs.PrintDefaults()
+	}
+
+	var paths, flagArgs []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") {
+			flagArgs = append(flagArgs, a)
+			// boolean-free flags always take a following value when present
+			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				flagArgs = append(flagArgs, args[i+1])
+				i++
+			}
+			continue
+		}
+		paths = append(paths, a)
+	}
+	if err := fs.Parse(flagArgs); err != nil {
+		return 2
+	}
+	if len(paths) != 2 {
+		fs.Usage()
+		return 2
+	}
+	a, err := funscript.Load(paths[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fehler A: %v\n", err)
+		return 1
+	}
+	b, err := funscript.Load(paths[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fehler B: %v\n", err)
+		return 1
+	}
+	corr := funscript.BestLagCorrelation(a.Actions, b.Actions, *maxLag, *lagStep, *resample)
+	diag := funscript.DiagnosePhase(corr, 0, 0)
+	if corr == nil {
+		fmt.Printf("verdict=%s\n%s\n", diag.Verdict, diag.Detail)
+		return 0
+	}
+	r0 := "n/a"
+	if corr.RZeroLag != nil {
+		r0 = fmt.Sprintf("%.4f", *corr.RZeroLag)
+	}
+	shape := "n/a"
+	if corr.ShapeError != nil {
+		shape = fmt.Sprintf("%.4f", *corr.ShapeError)
+	}
+	fmt.Printf("verdict=%s\n", diag.Verdict)
+	fmt.Printf("detail=%s\n", diag.Detail)
+	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s n_samples=%d shape_error=%s low_confidence=%v\n",
+		corr.R, r0, corr.LagMs, corr.Orientation, corr.NSamples, shape, corr.LowConfidence)
+	return 0
 }

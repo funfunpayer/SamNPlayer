@@ -34,7 +34,18 @@ func EvaluateScriptQuality(actions []Action) ScriptQualityResult {
 		}
 	}
 
-	// Work on a time-sorted copy; unsorted input is still flagged.
+	// Flag unsorted input on the original order, then work on a time-sorted
+	// copy for the remaining checks (gaps, speed, device compat).
+	var warnings []string
+	penalty := 0.0
+	for i := 1; i < len(actions); i++ {
+		if actions[i].At < actions[i-1].At {
+			warnings = append(warnings, "Zeitstempel nicht aufsteigend sortiert")
+			penalty += 0.3
+			break
+		}
+	}
+
 	sorted := append([]Action(nil), actions...)
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].At < sorted[j].At })
 
@@ -45,17 +56,6 @@ func EvaluateScriptQuality(actions []Action) ScriptQualityResult {
 		pos[i] = float64(a.Pos)
 	}
 
-	var warnings []string
-	penalty := 0.0
-
-	// Timestamps
-	for i := 1; i < len(at); i++ {
-		if at[i] < at[i-1] {
-			warnings = append(warnings, "Zeitstempel nicht aufsteigend sortiert")
-			penalty += 0.3
-			break
-		}
-	}
 	dup := 0
 	for i := 1; i < len(at); i++ {
 		if at[i] == at[i-1] {

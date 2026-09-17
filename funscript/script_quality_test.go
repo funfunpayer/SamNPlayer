@@ -64,6 +64,30 @@ func TestEvaluateScriptQualityFlagsOutOfRange(t *testing.T) {
 	}
 }
 
+func TestEvaluateScriptQualityFlagsUnsorted(t *testing.T) {
+	// Deliberately out of time order — classic splice error. Must be
+	// flagged on the original order, not after sorting away the defect.
+	actions := []Action{
+		{At: 0, Pos: 20},
+		{At: 800, Pos: 90},
+		{At: 400, Pos: 50}, // goes backwards
+		{At: 1200, Pos: 20},
+	}
+	r := EvaluateScriptQuality(actions)
+	found := false
+	for _, w := range r.Warnings {
+		if contains(w, "nicht aufsteigend sortiert") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected unsorted warning, got score=%.3f warnings=%v", r.Score, r.Warnings)
+	}
+	if r.Score >= 1.0 {
+		t.Fatalf("unsorted input must not score a perfect 1.0, got %.3f", r.Score)
+	}
+}
+
 func TestEvaluateScriptQualityAcceptsCleanStroke(t *testing.T) {
 	actions := make([]Action, 0, 20)
 	for i := 0; i < 20; i++ {
