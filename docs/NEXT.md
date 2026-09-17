@@ -15,7 +15,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
 | 9 | SAM runtime wiring | **Milestone in package** — not GUI/CLI default yet |
 | 10 | Sharper video display | **Closed** (negative) |
-| — | Go-native generator | **Shipped opt-in** (CSRT or simpletrack + dense doctor + compare CLI); not default |
+| — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
