@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 // cv.h - minimaler C-Wrapper um genau die OpenCV-Funktionen, die
 // track.go für einen CSRT-Tracking-Durchlauf braucht (siehe
 // generate_funscript.py's track_roi(), dessen Verhalten dieses Paket

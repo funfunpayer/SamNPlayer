@@ -2235,6 +2235,9 @@ def process_one(args, ap):
             norm_percentile=norm_percentile,
             scene_ranges=scene_ranges,
             adaptive_error=adaptive_error,
+            min_interval_ms=args.min_action_interval_ms,
+            dynamic_range_ms=args.dynamic_range_ms,
+            peak_prominence=args.peak_prominence,
         )
         limited = 0
         if args.max_speed > 0:

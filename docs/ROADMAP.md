@@ -143,8 +143,13 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
 - [ ] 🧭 **Secondary/weaker O-marker count and intensity heuristic** —
       shipped with a first reasonable heuristic (median-baseline peak
       detection); revisit only if real usage shows it's off.
-- [ ] 🔓 **`videox`/native tracker port** — still gated on "removal of the
-      Python dependency" being an actual goal, not assumed (principle 1).
+- [x] 🔓 **`videox`/native tracker port** — goal confirmed (more Go / less
+      Python). `generator/trackcv` (#84) + `generator/posttrack` + opt-in
+      `NativePipeline` now cover CSRT tracking and the signal path without
+      Python on Linux/macOS. Still open: Quality Doctor in Go, other
+      backends, Windows OpenCV/cgo, making native the default once measured
+      on real clips. `videox` (ffmpeg) remains unconnected — OpenCV decode
+      in trackcv covers the need without a second external binary.
 
 ### Needs real hardware (blocked on you)
 
