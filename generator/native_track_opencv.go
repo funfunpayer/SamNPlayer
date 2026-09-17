@@ -1,4 +1,4 @@
-//go:build cgo && !windows
+//go:build cgo && opencv && !windows
 
 package generator
 
@@ -8,12 +8,12 @@ import (
 	"github.com/funfunpayer/SamNPlayer/generator/trackcv"
 )
 
-// NativeTrackingAvailable is true when this binary was built with cgo against
-// system OpenCV (Linux/macOS). Windows release builds keep CGO off for the
-// cross-compile, so the stub returns false there.
+// NativeTrackingAvailable is true when this binary was built with
+// `-tags opencv` and cgo against system OpenCV (Linux/macOS). Default
+// builds and Windows cross-compiles use the stub (false).
 func NativeTrackingAvailable() bool { return true }
 
-var errNativeUnavailable = errors.New("generator: native CSRT tracking is not available in this build (needs cgo + OpenCV)")
+var errNativeUnavailable = errors.New("generator: native CSRT tracking is not available in this build (needs -tags opencv + cgo + OpenCV)")
 
 func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
 	tr, err := trackcv.TrackROI(videoPath, trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, trackcv.Options{

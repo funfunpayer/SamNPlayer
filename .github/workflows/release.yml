@@ -46,13 +46,16 @@ jobs:
       - name: Linux-Binary bauen (GUI)
         working-directory: cmd/gui-wails
         run: |
-          wails build -trimpath -tags webkit2_41 \
+          # opencv tag enables generator/trackcv native CSRT; Windows stays
+          # on the stub (no OpenCV in the mingw cross-build).
+          wails build -trimpath -tags "webkit2_41,opencv" \
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer ../../SamNPlayer-gui-linux-amd64
 
       - name: Linux-Binary bauen (CLI)
         run: |
-          go build -trimpath -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
+          go build -trimpath -tags opencv \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-linux-amd64 ./cmd/cli
 
       - name: Windows-Binary cross-kompilieren (GUI)

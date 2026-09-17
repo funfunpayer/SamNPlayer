@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 #include "cv.h"
 
 #include <opencv2/opencv.hpp>

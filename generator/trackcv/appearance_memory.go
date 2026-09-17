@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 package trackcv
 
 // appearanceMemory ist die Go-Entsprechung von generate_funscript.py's

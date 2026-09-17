@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 // Package trackcv bindet genau den Ausschnitt von OpenCV per cgo an, den
 // track.go für eine Go-native Entsprechung von generate_funscript.py's
 // track_roi() braucht. Siehe cv.h für die Begründung, warum das ein

@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 package trackcv
 
 // savgol ist eine Savitzky-Golay-Glättung, kompatibel mit

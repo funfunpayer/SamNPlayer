@@ -1,3 +1,5 @@
+//go:build cgo && opencv && !windows
+
 package trackcv
 
 // Regressionstest für TrackROI, nach demselben Muster wie die

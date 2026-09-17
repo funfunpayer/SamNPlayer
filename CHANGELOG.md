@@ -21,9 +21,11 @@ measurement history behind each entry; this file is the short version for
   (experimentell)" — runs `trackcv` + `posttrack` without a Python
   subprocess for CSRT + single ROI only; otherwise falls back to Python.
   Quality Doctor, AI opinion, audio check, Tf/Tj, other backends stay on
-  Python. Windows builds keep the stub (`NativeTrackingAvailable() ==
-  false`) so the cross-compile stays CGO-free; Linux/macOS with OpenCV
-  link the real path. Also fixed a latent Python bug: `process_one`'s
+  Python. Native OpenCV linking is opt-in via `-tags opencv` (not merely
+  `CGO_ENABLED=1`): default builds and Windows cross-compiles use the
+  stub (`NativeTrackingAvailable() == false`) so a fresh clone without
+  `libopencv-dev` still builds. Linux release binaries pass `-tags opencv`.
+  Also fixed a latent Python bug: `process_one`'s
   `build()` never forwarded `--peak-prominence` / `--dynamic-range-ms` /
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by

@@ -24,10 +24,3 @@ func TestNativePipelineEligible(t *testing.T) {
 		t.Fatal("empty ROI must not be eligible")
 	}
 }
-
-func TestNativeTrackingAvailabilityMatchesBuild(t *testing.T) {
-	// Just documents the build-tag split: on this Linux+cgo CI/dev box it
-	// should be true; the Windows stub returns false. No assertion on the
-	// value beyond "function is callable".
-	_ = NativeTrackingAvailable()
-}

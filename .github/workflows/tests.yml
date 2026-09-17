@@ -27,14 +27,10 @@ jobs:
         with:
           node-version: "22"
 
-      # generator/trackcv bindet per cgo an die System-OpenCV-Bibliothek an
-      # (siehe dortiger Paketkommentar) - ohne die Header/lib schlägt schon
-      # "go vet"/"go test" mit "opencv2/opencv.hpp: No such file" fehl, weil
-      # cgo-Pakete zur Typprüfung kompiliert werden müssen.
-      - name: OpenCV-Entwicklungspakete installieren
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopencv-dev pkg-config
+      # Default build is WITHOUT `-tags opencv`: a fresh clone must compile
+      # with CGO_ENABLED=1 even when libopencv-dev is missing. Native CSRT
+      # (generator/trackcv + native_track_opencv.go) is opt-in via the
+      # opencv build tag — see the go-opencv job below.
 
       # cmd/gui-wails bindet frontend/dist per go:embed ein. Das Verzeichnis
       # ist ein Bauartefakt und liegt zu Recht nicht im Repository - ohne
@@ -68,6 +64,42 @@ jobs:
       # niemand reproduzieren kann.
       - name: Tests mit Race-Detector
         run: go test -race ./...
+
+      # Regression: cgo on, no OpenCV headers — must still build (stub path).
+      - name: Build ohne OpenCV (CGO an)
+        run: |
+          go build ./generator/ ./cmd/cli/
+          go test ./generator/ -run 'NativePipeline|NativeTracking' -count=1
+          go test ./generator/trackcv/ -count=1
+
+  go-opencv:
+    name: Go (OpenCV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: OpenCV-Entwicklungspakete installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopencv-dev pkg-config
+
+      - name: Frontend bauen
+        working-directory: cmd/gui-wails/frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: go vet (-tags opencv)
+        run: go vet -tags opencv ./...
+
+      - name: Tests mit Race-Detector (-tags opencv)
+        run: go test -tags opencv -race ./...
 
   python:
     name: Python (Generator)
