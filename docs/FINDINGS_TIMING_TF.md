@@ -76,6 +76,15 @@ Agreed: Python-vs-Go is not the Tf/Tj correlation problem. Fix
 perception/timing/ROI semantics first; Go removes install burden and
 makes the pipeline deterministic to package.
 
+## Signal Quality ≠ Motion Fidelity (17 Sep 2026 review)
+
+Script Doctor / Quality Doctor measure **Signal Quality**. FunGen /
+`best_lag_ms` / Phase CLI measure **Motion Fidelity**. Canonical doc:
+`docs/SIGNAL_VS_FIDELITY.md`. Next architecture milestone is **SAM
+Perception v1** (multi-observer measure → fuse → motion model), not
+another backend — see `docs/ROADMAP.md` and
+`docs/REVIEW_SCRIPTQUALITAET_2026-09-17.md`. Blocked on real golden clips.
+
 ## Open inventory (September 16, 2026)
 
 What is still open, what belongs in Go next, and what is blocked.
