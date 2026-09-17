@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -196,7 +197,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
 		if err != nil {
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generierung abgebrochen", "cancelled": true})
 				return
 			}

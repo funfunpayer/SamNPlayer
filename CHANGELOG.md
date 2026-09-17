@@ -15,6 +15,9 @@ measurement history behind each entry; this file is the short version for
   Auto-Retry varies signal params in Go (same idea as Python). Special cases
   (other backends, Tf/Tj, per-scene, AI/audio, OpenCL) still use Python.
   `PreferPython` forces the old path for tests/CLI.
+- **Native failure soft-falls back to Python** when a Python install is
+  available (cancel/deadline still abort). GUI cancel detection uses
+  `errors.Is`.
 
 ## [0.5.2] — September 17, 2026
 
