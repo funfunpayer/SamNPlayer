@@ -2,8 +2,10 @@ package generator
 
 import (
 	"bufio"
+	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,6 +31,14 @@ var requirementsSource []byte
 // Konsolenfenster auf.
 func command(name string, args ...string) *exec.Cmd {
 	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = hiddenSysProcAttr()
+	return cmd
+}
+
+// commandContext is command() with a cancellable context — used by long
+// generate runs so the GUI can abort without leaving an orphan Python.
+func commandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.SysProcAttr = hiddenSysProcAttr()
 	return cmd
 }
@@ -513,6 +523,99 @@ func Generate(videoPath string, roi ROI, outputPath string, opts Options, onProg
 	return GenerateWithProgress(videoPath, roi, outputPath, opts, onProgress, nil)
 }
 
+func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
+	return GenerateWithContext(context.Background(), videoPath, roi, outputPath, opts, onProgress, onPercent)
+}
+
+// GenerateWithContext runs generation under ctx. Cancel ctx to kill the
+// Python subprocess (review: generation must be abortable). Returns
+// context.Canceled when aborted. When opts.NativePipeline is set and
+// eligible, uses trackcv+posttrack without Python (see #85).
+func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
+
+	if opts.NativePipeline {
+		if NativePipelineEligible(opts, roi) {
+			if err := GenerateNativeCSRT(videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
+				return err
+			}
+			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+			return nil
+		}
+		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
+			"available", NativeTrackingAvailable(),
+			"backend", opts.Backend,
+			"roi2", opts.ROI2.W > 0)
+		if onProgress != nil {
+			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
+		}
+	}
+
+	py, err := FindPython()
+	if err != nil {
+		return err
+	}
+	if err := CheckDependencies(); err != nil {
+		return err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
+	cmd := commandContext(ctx, py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+	}
+	scanner := bufio.NewScanner(stderr)
+	var lastLines []string
+	for scanner.Scan() {
+		if err := ctx.Err(); err != nil {
+			_ = cmd.Wait()
+			return err
+		}
+		line := scanner.Text()
+		if done, total, ok := parseProgress(line); ok {
+			if onPercent != nil {
+				onPercent(percentOf(done, total))
+			}
+			continue
+		}
+		lastLines = append(lastLines, line)
+		if len(lastLines) > 20 {
+			lastLines = lastLines[1:]
+		}
+		logging.Debug("generator: " + line)
+		if onProgress != nil {
+			onProgress(line)
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) {
+			logging.Info("generator: Generierung abgebrochen")
+			return context.Canceled
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+			return context.DeadlineExceeded
+		}
+		logging.Error("generator: Generierung fehlgeschlagen", "fehler", err)
+		return fmt.Errorf("generator: Generierung fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	logging.Info("generator: Generierung abgeschlossen", "output", outputPath)
+	return nil
+}
+
 func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) []string {
 	args := []string{
 		scriptPath,
@@ -620,74 +723,6 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 
 func BuildArgsForTest(opts Options) []string {
 	return buildArgs("script.py", "v.mp4", "o.funscript", ROI{}, opts)
-}
-
-func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
-	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
-
-	if opts.NativePipeline {
-		if NativePipelineEligible(opts, roi) {
-			if err := GenerateNativeCSRT(videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
-				return err
-			}
-			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
-			return nil
-		}
-		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
-			"available", NativeTrackingAvailable(),
-			"backend", opts.Backend,
-			"roi2", opts.ROI2.W > 0)
-		if onProgress != nil {
-			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
-		}
-	}
-
-	py, err := FindPython()
-	if err != nil {
-		return err
-	}
-	if err := CheckDependencies(); err != nil {
-		return err
-	}
-	scriptPath, err := writeScriptToTemp()
-	if err != nil {
-		return err
-	}
-	defer cleanupScriptTemp(scriptPath)
-	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
-	cmd := command(py, args...)
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("generator: stderr-Pipe: %w", err)
-	}
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
-	}
-	scanner := bufio.NewScanner(stderr)
-	var lastLines []string
-	for scanner.Scan() {
-		line := scanner.Text()
-		if done, total, ok := parseProgress(line); ok {
-			if onPercent != nil {
-				onPercent(percentOf(done, total))
-			}
-			continue
-		}
-		lastLines = append(lastLines, line)
-		if len(lastLines) > 20 {
-			lastLines = lastLines[1:]
-		}
-		logging.Debug("generator: " + line)
-		if onProgress != nil {
-			onProgress(line)
-		}
-	}
-	if err := cmd.Wait(); err != nil {
-		logging.Error("generator: Generierung fehlgeschlagen", "fehler", err)
-		return fmt.Errorf("generator: Generierung fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
-	}
-	logging.Info("generator: Generierung abgeschlossen", "output", outputPath)
-	return nil
 }
 
 func joinLines(lines []string) string {

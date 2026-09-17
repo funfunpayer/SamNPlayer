@@ -11,10 +11,11 @@ import (
 // Anzeige auf maxPoints herunterrechnet. Grundlage für den Kurven-Editor:
 // bearbeitet werden muss der echte Punkt, nicht ein Anzeige-Kompromiss.
 func (a *App) GetScriptActions() ([]funscript.Action, error) {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return nil, fmt.Errorf("kein Skript geladen")
 	}
-	return a.currentScript.Actions, nil
+	return script.Actions, nil
 }
 
 // SaveScriptActions schreibt eine im Editor geänderte Punktliste zurück und
@@ -23,16 +24,17 @@ func (a *App) GetScriptActions() ([]funscript.Action, error) {
 // Positionswerte, sortierte Reihenfolge), statt dass Speicher- und
 // Dateizustand leicht auseinanderlaufen.
 func (a *App) SaveScriptActions(actions []funscript.Action) error {
-	if a.scriptPath == "" {
+	path := a.loadedScriptPath()
+	if path == "" {
 		return fmt.Errorf("kein Skript geladen")
 	}
-	if err := funscript.SaveActions(a.scriptPath, actions); err != nil {
+	if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
-	reloaded, err := funscript.Load(a.scriptPath)
+	reloaded, err := funscript.Load(path)
 	if err != nil {
 		return err
 	}
-	a.currentScript = reloaded
+	a.setLoadedScript(path, reloaded)
 	return nil
 }

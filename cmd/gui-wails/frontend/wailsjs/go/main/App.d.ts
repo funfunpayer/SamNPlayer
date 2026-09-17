@@ -17,6 +17,8 @@ export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 
 export function BootstrapRoiTrainingSample(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:string,arg5:string):Promise<string>;
 
+export function CancelGenerate():Promise<void>;
+
 export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckAudioCheckAvailable():Promise<boolean>;

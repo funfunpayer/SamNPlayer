@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -173,10 +174,32 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
 		}
-		err := generator.GenerateWithProgress(opts.VideoPath, roi, outPath, genOpts,
+		ctx, cancel := context.WithCancel(context.Background())
+		a.stateMu.Lock()
+		prev := a.genCancel
+		a.genSeq++
+		mySeq := a.genSeq
+		a.genCancel = cancel
+		a.stateMu.Unlock()
+		if prev != nil {
+			prev()
+		}
+		defer func() {
+			a.stateMu.Lock()
+			if a.genSeq == mySeq {
+				a.genCancel = nil
+			}
+			a.stateMu.Unlock()
+			cancel()
+		}()
+		err := generator.GenerateWithContext(ctx, opts.VideoPath, roi, outPath, genOpts,
 			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
 		if err != nil {
+			if err == context.Canceled {
+				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generierung abgebrochen", "cancelled": true})
+				return
+			}
 			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
 			return
 		}
@@ -244,4 +267,15 @@ func scriptPathForVideo(videoPath string) string {
 
 func (a *App) GetHardwareInfo() (string, error) {
 	return generator.HardwareInfo()
+}
+
+// CancelGenerate bricht die laufende Generierung ab (GenerateWithContext).
+// Idempotent, wenn gerade nichts läuft.
+func (a *App) CancelGenerate() {
+	a.stateMu.Lock()
+	cancel := a.genCancel
+	a.stateMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }

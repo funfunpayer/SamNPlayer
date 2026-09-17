@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
 export function initGenerator(root, playback) {
@@ -122,7 +122,10 @@ export function initGenerator(root, playback) {
       </div>
     </details>
 
-    <div class="row"><button id="gen-generate" class="primary" disabled>Funscript generieren</button></div>
+    <div class="row">
+      <button id="gen-generate" class="primary" disabled>Funscript generieren</button>
+      <button id="gen-cancel" type="button" disabled>Abbrechen</button>
+    </div>
     <div class="path-label" id="gen-status"></div>
     <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
       <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
@@ -458,6 +461,7 @@ export function initGenerator(root, playback) {
     }
 
     el('#gen-generate').disabled = true;
+    el('#gen-cancel').disabled = false;
     el('#gen-status').textContent = 'Generiere...';
     // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
     // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
@@ -495,6 +499,11 @@ export function initGenerator(root, playback) {
     }
     GenerateScript(payload);
   }
+
+  el('#gen-cancel').addEventListener('click', () => {
+    CancelGenerate();
+    el('#gen-status').textContent = 'Abbruch angefordert...';
+  });
 
   EventsOn('generate:progress', line => { el('#gen-status').textContent = line; });
 
@@ -582,11 +591,16 @@ export function initGenerator(root, playback) {
 
   EventsOn('generate:done', result => {
     hideProgress();
+    el('#gen-cancel').disabled = true;
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
     if (result.error) {
+      if (result.cancelled) {
+        el('#gen-status').textContent = 'Abgebrochen.';
+        return;
+      }
       el('#gen-status').textContent = 'Fehlgeschlagen.';
       alert('Fehler: ' + result.error);
       return;

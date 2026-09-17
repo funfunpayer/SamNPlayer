@@ -132,22 +132,30 @@ func (r *FrameReader) Next(index int) (GrayFrame, error) {
 //
 // It is safe to call Close before the stream is exhausted; the original
 // implementation deadlocked in that case because it only called Wait.
+//
+// After a normal EOF drain, Close still cancels the CommandContext. That
+// makes Wait return context.Canceled even when ffmpeg already finished
+// cleanly — treat cancel/deadline as success unless stderr shows a real
+// decoder failure (review finding: TestGrayReaderScalesAndCounts).
 func (r *FrameReader) Close() error {
 	r.once.Do(func() {
 		r.cancel()
 		err := r.cmd.Wait()
-		if err != nil {
-			// A killed process is the expected outcome of an early Close.
-			if msg := strings.TrimSpace(r.stderr.String()); msg != "" {
-				r.closeErr = fmt.Errorf("ffmpeg: %s", msg)
-				return
-			}
-			var exit *exec.ExitError
-			if errors.As(err, &exit) && runCancelled(r.cmd) {
-				return
-			}
-			r.closeErr = err
+		if err == nil {
+			return
 		}
+		if msg := strings.TrimSpace(r.stderr.String()); msg != "" {
+			r.closeErr = fmt.Errorf("ffmpeg: %s", msg)
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		var exit *exec.ExitError
+		if errors.As(err, &exit) && runCancelled(r.cmd) {
+			return
+		}
+		r.closeErr = err
 	})
 	return r.closeErr
 }

@@ -47,12 +47,12 @@ func (a *App) InvertScriptAtPath(path string) error {
 	if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
-	if a.scriptPath == path {
+	if a.loadedScriptPath() == path {
 		reloaded, err := funscript.Load(path)
 		if err != nil {
 			return err
 		}
-		a.currentScript = reloaded
+		a.setLoadedScript(path, reloaded)
 	}
 	return nil
 }

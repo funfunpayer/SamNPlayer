@@ -61,6 +61,11 @@ type App struct {
 	// unterbrechen, ohne die Session zu beenden.
 	trainingControl *player.TrainingControl
 
+	// genCancel / genSeq: abort in-flight GenerateWithContext. genSeq
+	// identifies the owner so a finished run does not clear a newer cancel.
+	genCancel context.CancelFunc
+	genSeq    uint64
+
 	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
 	// gespeichert, weil er am Videoschnitt hängt und nicht an einer
 	// allgemeinen Vorliebe.
@@ -143,15 +148,7 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 	if err != nil {
 		return ScriptInfo{}, err
 	}
-	a.currentScript = script
-	// Gespeicherten Offset dieses Skripts wiederherstellen. Ohne das müsste
-	// er nach jedem Neuladen erneut gesucht werden - und er hängt am
-	// Videoschnitt, ändert sich also nicht.
-	a.stateMu.Lock()
-	a.currentScriptPath = path
-	a.scriptOffsetMs = int64(a.settings.GetFloat(offsetKeyFor(path), 0))
-	a.stateMu.Unlock()
-	a.scriptPath = path
+	a.setLoadedScript(path, script)
 
 	info := ScriptInfo{
 		Path:        path,

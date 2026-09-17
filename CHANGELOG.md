@@ -10,6 +10,16 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **`videox.FrameReader.Close` after normal EOF:** cancelling the
+  CommandContext made `Wait` return `context.Canceled` even when ffmpeg
+  finished cleanly — `TestGrayReaderScalesAndCounts` failed. Close now
+  treats cancel/deadline as success unless stderr reports a real error.
+- **App script-state race:** `currentScript` / `scriptPath` /
+  `currentFrames` go through `stateMu` accessors (`app_script_state.go`);
+  locked by `TestLoadedScriptStateNoRace` under `-race`.
+- **Generation not abortable:** `GenerateWithContext` + GUI
+  `CancelGenerate` / Abbrechen button kill the Python subprocess via
+  `CommandContext`.
 - **Script Doctor unsorted-timestamp check:** `EvaluateScriptQuality`
   now inspects the original action order before sorting (was dead code
   after `sort.SliceStable`). `generator.ScriptQuality` reads file-order
@@ -25,6 +35,8 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **`update` package unit tests** (`IsNewer`, `AssetForThisPlatform`,
+  `Describe`, URL validation) — coverage was previously ~0%.
 - **`generator/posttrack` + optional Go generation path (experimental)**:
   second step of the "more Go, less Python" move. Pure-Go port of
   `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
@@ -45,6 +57,11 @@ measurement history behind each entry; this file is the short version for
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by
   `process_one_kwargs_test.py`.
+- **Signal Quality ≠ Motion Fidelity** (`docs/SIGNAL_VS_FIDELITY.md`):
+  Script Doctor / Quality Doctor labeled as Signal Quality (`kind:
+  signal_quality`); Phase CLI / `EvaluateMotionFidelity` as Motion
+  Fidelity. GUI copy updated so a high doctor score is never read as
+  “matches the video”. SAM Perception v1 ordered in `docs/ROADMAP.md`.
 - **CLI `phase` subcommand** (`SamNPlayer-cli phase A.funscript B.funscript`):
   runs `BestLagCorrelation` / `DiagnosePhase` without Python.
 - **Phase Analyzer core in pure Go** (`funscript.BestLagCorrelation` +
