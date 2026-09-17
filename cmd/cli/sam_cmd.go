@@ -13,8 +13,10 @@ import (
 
 // runSam: erste Stufe SAM — Funscript → angereichertes .sam
 // (Confidence/Intensity/Range/Velocity aus Gaps + Tf/Contact-Rezept).
+// Paths may appear before or after flags (same as phase/compare).
 func runSam(args []string) int {
-	fs := flag.NewFlagSet("sam", flag.ExitOnError)
+	fs := flag.NewFlagSet("sam", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
 	out := fs.String("output", "", "Ausgabe-.sam (Default: Eingabe mit .sam)")
 	thin := fs.Bool("thin", false, "Nur Position (FromFunscript), ohne Enrich")
 	fs.Usage = func() {
@@ -23,14 +25,15 @@ func runSam(args []string) int {
 		fmt.Fprintf(os.Stderr, "bei Tf/Tj+Kontakt auch Intensity/Range — ohne GUI-Umbau.\n")
 		fs.PrintDefaults()
 	}
-	if err := fs.Parse(args); err != nil {
+	paths, flagArgs := splitCLIArgs(args)
+	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
-	if fs.NArg() < 1 {
+	if len(paths) != 1 {
 		fs.Usage()
 		return 2
 	}
-	inPath := fs.Arg(0)
+	inPath := paths[0]
 	script, err := funscript.Load(inPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fehler: %v\n", err)

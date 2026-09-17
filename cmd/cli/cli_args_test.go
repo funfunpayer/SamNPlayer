@@ -42,3 +42,14 @@ func TestSplitCLIArgsDoubleDash(t *testing.T) {
 		t.Fatalf("paths=%v", paths)
 	}
 }
+
+func TestSplitCLIArgsSamOutputAfterFile(t *testing.T) {
+	// Regression: sam FILE --output OUT must keep --output (not swallow into default sidecar).
+	paths, flags := splitCLIArgs([]string{"clip.funscript", "--output", "custom.sam", "--thin"})
+	if len(paths) != 1 || paths[0] != "clip.funscript" {
+		t.Fatalf("paths=%v", paths)
+	}
+	if len(flags) != 3 || flags[0] != "--output" || flags[1] != "custom.sam" || flags[2] != "--thin" {
+		t.Fatalf("flags=%v", flags)
+	}
+}
