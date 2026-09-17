@@ -78,30 +78,69 @@ type GenerateOptions struct {
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
-// ONNX-Objekterkenner (ai_roi.py, siehe docs/AI_ADAPTER.md); jeder andere
+// ONNX-Objekterkenner (ai_roi.py, siehe docs/AI_ADAPTER.md); "auto_two" /
+// "ai_two" schlagen ROI1+ROI2 für Tf/Tj vor (nur Vorschlag). Jeder andere
 // Wert (leer, "auto", ...) bleibt bei der klassischen Rhythmus-Heuristik
 // (auto_roi.py) - so bricht ein alter Frontend-Aufruf ohne engine-Argument
 // nicht, er bekommt nur weiterhin das klassische Verhalten.
 func (a *App) AutoDetectROI(videoPath string, engine string) {
 	go func() {
-		var roi generator.ROI
-		var err error
-		if engine == "ai" {
-			roi, err = generator.FindROIAIWithProgress(videoPath, a.settings.GetString(prefAIRoiModelPath, ""),
-				func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
-				func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
-		} else {
-			roi, err = generator.FindROIWithProgress(videoPath,
-				func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
-				func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
+		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
+		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
+		switch engine {
+		case "ai_two":
+			roi, roi2, err := generator.FindTwoROIsAIWithProgress(videoPath,
+				a.settings.GetString(prefAIRoiModelPath, ""), onLine, onPct)
+			if err != nil {
+				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				return
+			}
+			payload := map[string]any{
+				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": "ai",
+			}
+			if roi2.W > 0 && roi2.H > 0 {
+				payload["x2"] = roi2.X
+				payload["y2"] = roi2.Y
+				payload["w2"] = roi2.W
+				payload["h2"] = roi2.H
+			}
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+		case "auto_two":
+			roi, roi2, err := generator.FindTwoROIsWithProgress(videoPath, onLine, onPct)
+			if err != nil {
+				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				return
+			}
+			payload := map[string]any{
+				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": "auto",
+			}
+			if roi2.W > 0 && roi2.H > 0 {
+				payload["x2"] = roi2.X
+				payload["y2"] = roi2.Y
+				payload["w2"] = roi2.W
+				payload["h2"] = roi2.H
+			}
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+		case "ai":
+			roi, err := generator.FindROIAIWithProgress(videoPath, a.settings.GetString(prefAIRoiModelPath, ""),
+				onLine, onPct)
+			if err != nil {
+				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				return
+			}
+			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
+			})
+		default:
+			roi, err := generator.FindROIWithProgress(videoPath, onLine, onPct)
+			if err != nil {
+				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				return
+			}
+			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
+			})
 		}
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
-			return
-		}
-		runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
-			"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
-		})
 	}()
 }
 

@@ -59,12 +59,25 @@ type Frame struct {
 	Suction   float64
 }
 
+// TrackingGap is a time window where at least one of the two Tf/Tj trackers
+// lost its target. Contact vibration must stay off there — holding the last
+// known distance would otherwise keep buzzing as if contact continued.
+type TrackingGap struct {
+	StartMs int64 `json:"start_ms"`
+	EndMs   int64 `json:"end_ms"`
+}
+
 // Contact-curve names persisted in device_recipe.contact_vibration_curve.
 const (
 	ContactCurveLinear = "linear"
 	ContactCurveSoft   = "soft" // weicher Einstieg: t²
 	ContactCurvePeak   = "peak" // stärkerer Peak: √t
 )
+
+// DefaultContactEnvelopeSmooth: kurze Extra-Glättung nur für die
+// Kontakt-Vibrationshüllkurve (Tracker-Jitter), unabhängig vom Sog-
+// Smoothing der Recipe. Höher = träger.
+const DefaultContactEnvelopeSmooth = 0.45
 
 type MapOptions struct {
 	TickMs       int64
@@ -92,6 +105,13 @@ type MapOptions struct {
 
 	// ContactVibrationCurve: "linear" (default), "soft", "peak".
 	ContactVibrationCurve string
+
+	// ContactVibrationEnvelope: 0 → DefaultContactEnvelopeSmooth. Nur für
+	// die Vibrationsspur bei Kontakt (Sog behält Smoothing).
+	ContactVibrationEnvelope float64
+
+	// TrackingGaps: Tracker-Verlustfenster — Vibration aus, Sog unverändert.
+	TrackingGaps []TrackingGap
 }
 
 // DefaultContactVibrationSpan: oberstes Viertel des beobachteten
@@ -166,6 +186,14 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 	frames := make([]Frame, 0, duration/opts.TickMs+1)
 	segIdx := 0
 	var prevVib, prevSuc float64
+	var prevContactVib float64
+	envelope := opts.ContactVibrationEnvelope
+	envelopeOn := true
+	if envelope < 0 {
+		envelopeOn = false
+	} else if envelope == 0 || envelope >= 1 {
+		envelope = DefaultContactEnvelopeSmooth
+	}
 
 	// Kontakt-Schwelle einmal über das ganze Skript bestimmen (nicht pro
 	// Frame neu), aus den rohen Pos-Werten (0-100, bei tf/tj auf 20-90
@@ -174,6 +202,7 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 	contactEnabled := opts.ContactVibration && opts.Sync == SyncSuctionPosition
 	contactSpan := EffectiveContactSpan(opts.ContactVibrationSpan)
 	contactCurve := NormalizeContactCurve(opts.ContactVibrationCurve)
+	gaps := opts.TrackingGaps
 	if contactEnabled {
 		posMin, posMax := float64(s.Actions[0].Pos), float64(s.Actions[0].Pos)
 		for _, a := range s.Actions[1:] {
@@ -191,6 +220,14 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			contactMin = posMin + contactSpan*(posMax-posMin)
 			contactMax = posMax
 		}
+	}
+	inGap := func(t int64) bool {
+		for _, g := range gaps {
+			if t >= g.StartMs && t <= g.EndMs {
+				return true
+			}
+		}
+		return false
 	}
 	for t := int64(0); t <= duration; t += opts.TickMs {
 		for segIdx < len(s.Actions)-2 && s.Actions[segIdx+1].At <= t {
@@ -218,12 +255,20 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			vib, suc = 0, intensity
 		case SyncSuctionPosition:
 			vib, suc = 0, posSignal
-			if contactEnabled && pos >= contactMin {
+			if contactEnabled && pos >= contactMin && !inGap(t) {
 				linear := clamp01((pos - contactMin) / (contactMax - contactMin))
 				vib = applyContactCurve(linear, contactCurve)
 				if vib > 0 && opts.MinVibration > 0 {
 					vib = liftFloor(vib, opts.MinVibration)
 				}
+			}
+			// Kurze Envelope-Glättung nur für Kontakt-Vib (Tracker-Jitter),
+			// bevor die allgemeine Recipe-Glättung auf Sog+Vib wirkt.
+			if contactEnabled && envelopeOn {
+				if len(frames) > 0 {
+					vib = envelope*prevContactVib + (1-envelope)*vib
+				}
+				prevContactVib = vib
 			}
 		default:
 			vib, suc = intensity, posSignal

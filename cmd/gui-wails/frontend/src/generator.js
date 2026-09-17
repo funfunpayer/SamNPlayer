@@ -12,7 +12,7 @@ export function initGenerator(root, playback) {
     </div>
     <div class="row" style="align-items:center;">
       <button id="gen-autoroi" class="primary" disabled
-        data-help="Findet eine Startregion über Bewegung im Bild. Danach kannst du die Box von Hand korrigieren.">Region automatisch finden</button>
+        data-help="Findet eine Startregion über Bewegung im Bild (bei Tf/Tj beide Regionen als Vorschlag). Danach kannst du die Box von Hand korrigieren — nie stillschweigend übernommen.">Region automatisch finden</button>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
         <label for="gen-ai-roi" style="width:auto"
           data-help="Nutzt ein lokales ONNX-Modell statt der klassischen Bewegungssuche. Braucht ein trainiertes Modell unter Einstellungen → KI-Regionserkennung. Bleibt aus, wenn onnxruntime oder die Modelldatei fehlen.">KI-Erkennung (ONNX)</label></span>
@@ -574,16 +574,29 @@ export function initGenerator(root, playback) {
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
+    const hasRoi2 = result.w2 > 0 && result.h2 > 0;
+    if (hasRoi2) {
+      roi2 = { x: result.x2, y: result.y2, w: result.w2, h: result.h2 };
+      setRoi2Mode(true);
+      if (!isTfTj()) el('#gen-profile').value = 'tf';
+    }
     updateRoiLabels();
     const via = result.engine === 'ai' ? 'KI-Erkennung' : 'klassisch, automatisch';
     if (roi) {
       el('#gen-roi-label').textContent =
         `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, ${via} gefunden)`;
     }
+    if (hasRoi2 && roi2) {
+      el('#gen-roi2-label').textContent =
+        `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, ${via} — bitte prüfen)`;
+    }
+    updateProfileUi();
     updateGenerateEnabled();
-    el('#gen-status').textContent = isTfTj() && !roi2
-      ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
-      : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`;
+    el('#gen-status').textContent = hasRoi2
+      ? `Beide Regionen gefunden (${via}) — Vorschlag, bitte prüfen/korrigieren.`
+      : (isTfTj() && !roi2
+        ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
+        : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`);
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -734,11 +747,14 @@ export function initGenerator(root, playback) {
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const two = isTfTj();
     el('#gen-autoroi').disabled = true;
     el('#gen-status').textContent = useAI
-      ? 'KI-Regionssuche läuft (ONNX-Modell)...'
-      : 'Analysiere Bewegung im Video (dauert einige Sekunden)...';
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+      ? (two ? 'KI sucht beide Regionen (ONNX)...' : 'KI-Regionssuche läuft (ONNX-Modell)...')
+      : (two ? 'Suche beide Regionen (Abstand/Tf/Tj-Vorschlag)...'
+        : 'Analysiere Bewegung im Video (dauert einige Sekunden)...');
+    const engine = useAI ? (two ? 'ai_two' : 'ai') : (two ? 'auto_two' : 'auto');
+    AutoDetectROI(videoPath, engine);
   });
 
   const PROFILE_VALUES = ['standard', 'weich', 'tf'];

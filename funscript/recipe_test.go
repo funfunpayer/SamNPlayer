@@ -133,6 +133,7 @@ func TestRecipeTJContactVibrationTracksPosition(t *testing.T) {
 	)
 	opts := RecipeFor("tj")
 	opts.ContactVibration = true
+	opts.ContactVibrationEnvelope = -1 // präzise Assertions ohne Envelope
 	opts.Smoothing = 0
 	frames := script.ToIntensityCurve(opts)
 	if len(frames) == 0 {
@@ -200,6 +201,7 @@ func TestRecipeTJContactVibrationBriefGraze(t *testing.T) {
 	countAndPeak := func(script *Script) (framesAboveHalf int, peak float64) {
 		opts := RecipeFor("tj")
 		opts.ContactVibration = true
+		opts.ContactVibrationEnvelope = -1 // präzise Assertions ohne Envelope
 		opts.Smoothing = 0
 		for _, f := range script.ToIntensityCurve(opts) {
 			if f.Vibration > peak {
@@ -243,6 +245,7 @@ func TestRecipeTJContactVibrationNeedsSpan(t *testing.T) {
 	)
 	opts := RecipeFor("tj")
 	opts.ContactVibration = true
+	opts.ContactVibrationEnvelope = -1 // präzise Assertions ohne Envelope
 	opts.Smoothing = 0
 	frames := script.ToIntensityCurve(opts)
 	for _, f := range frames {
@@ -264,6 +267,7 @@ func TestRecipeTJContactVibrationSpanEarlier(t *testing.T) {
 	atMid := func(span float64) float64 {
 		opts := RecipeFor("tj")
 		opts.ContactVibration = true
+		opts.ContactVibrationEnvelope = -1 // präzise Assertions ohne Envelope
 		opts.ContactVibrationSpan = span
 		opts.Smoothing = 0
 		var max float64
@@ -295,6 +299,7 @@ func TestRecipeTJContactVibrationCurves(t *testing.T) {
 	vibAt := func(curve string) float64 {
 		opts := RecipeFor("tj")
 		opts.ContactVibration = true
+		opts.ContactVibrationEnvelope = -1 // präzise Assertions ohne Envelope
 		opts.ContactVibrationCurve = curve
 		opts.Smoothing = 0
 		var max float64
@@ -314,6 +319,41 @@ func TestRecipeTJContactVibrationCurves(t *testing.T) {
 	}
 	if peak <= linear {
 		t.Errorf("peak (stärkerer Peak) sollte über linear liegen: peak=%.3f linear=%.3f", peak, linear)
+	}
+}
+
+// Tracker-Verlustfenster: Vibration muss aus, auch wenn die gehaltene
+// Position noch im Kontaktbereich liegt (sonst brummt es weiter).
+func TestRecipeTJContactVibrationMutedInTrackingGap(t *testing.T) {
+	script := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 90},
+		Action{At: 1000, Pos: 90},
+		Action{At: 1500, Pos: 20},
+	)
+	opts := RecipeFor("tj")
+	opts.ContactVibration = true
+	opts.ContactVibrationEnvelope = -1
+	opts.Smoothing = 0
+	opts.TrackingGaps = []TrackingGap{{StartMs: 600, EndMs: 900}}
+	var vibInGap, vibOutside float64
+	for _, f := range script.ToIntensityCurve(opts) {
+		if f.At >= 650 && f.At <= 850 {
+			if f.Vibration > vibInGap {
+				vibInGap = f.Vibration
+			}
+		}
+		if f.At >= 950 && f.At <= 1000 {
+			if f.Vibration > vibOutside {
+				vibOutside = f.Vibration
+			}
+		}
+	}
+	if vibInGap > 0.001 {
+		t.Errorf("im Tracking-Gap sollte Vibration 0 sein, ist %.3f", vibInGap)
+	}
+	if vibOutside < 0.5 {
+		t.Errorf("außerhalb des Gaps bei Pos 90 sollte Vibration hoch sein, ist %.3f", vibOutside)
 	}
 }
 

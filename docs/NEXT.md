@@ -709,6 +709,16 @@ track when the recipe has it; log emits „Kontakt-Vibration aktiv“.
 Still open: no listening/feel test on real hardware yet (needs
 priority 1).
 
+**Signal quality for contact vibration (September 17, 2026):** when either
+Tf/Tj tracker loses its target, the held last-known distance would keep
+buzzing — generation now writes `metadata.tracking_gaps` and the mapper
+forces vibration to 0 inside those windows (suction unchanged). A short
+dedicated contact-envelope smooth (default 0.45) damps tracker jitter on
+the vib channel only. Tf/Tj „Region automatisch finden“ now calls
+`find_two_rois` / `ai_roi --two` as an opt-in **suggestion** (fills ROI1+ROI2
+for the user to correct; never silently committed — still not the default
+path for batch/auto without confirmation).
+
 **Brief/grazing contact, checked (September 15, 2026):** the other open
 question - whether the envelope also reads as natural on a quick
 touch-and-release rather than the one real clip's sustained contact -

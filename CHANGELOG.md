@@ -14,6 +14,9 @@ measurement history behind each entry; this file is the short version for
   „nur tief“), curve shape (linear / soft / peak), playback checkbox
   „Kontakt-Vibration ab“ (no regenerate), orange second track on the
   position curve, and log line „Kontakt-Vibration aktiv“.
+- **Kontakt-Vibration signal quality:** mute vibration during tracker-loss
+  windows (`metadata.tracking_gaps`), short contact-envelope smoothing,
+  and opt-in two-ROI auto-suggest on Tf/Tj (classic or AI — suggestion only).
 
 ## [0.5.3] — September 17, 2026
 

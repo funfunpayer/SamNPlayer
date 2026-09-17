@@ -42,6 +42,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
 			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
 		}
+		if len(script.Metadata.TrackingGaps) > 0 {
+			mapOpts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
+		}
 		if opts.DisableContactVibration {
 			mapOpts.ContactVibration = false
 		}
@@ -273,7 +276,9 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	opts.ContactVibration = true
 	opts.ContactVibrationSpan = dr.ContactVibrationSpan
 	opts.ContactVibrationCurve = dr.ContactVibrationCurve
+	opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
 	opts.Smoothing = 0
+	opts.ContactVibrationEnvelope = -1
 	duration := script.Duration()
 	if duration <= 0 {
 		return nil, nil
