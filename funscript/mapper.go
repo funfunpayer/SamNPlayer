@@ -3,6 +3,7 @@ package funscript
 import (
 	"fmt"
 	"math"
+	"strings"
 )
 
 type SyncMode int
@@ -58,6 +59,13 @@ type Frame struct {
 	Suction   float64
 }
 
+// Contact-curve names persisted in device_recipe.contact_vibration_curve.
+const (
+	ContactCurveLinear = "linear"
+	ContactCurveSoft   = "soft" // weicher Einstieg: t²
+	ContactCurvePeak   = "peak" // stärkerer Peak: √t
+)
+
 type MapOptions struct {
 	TickMs       int64
 	MaxSpeed     float64
@@ -76,13 +84,20 @@ type MapOptions struct {
 	// "Contact-triggered vibration for Tf/Tj". Reine Abstandsmessung, kein
 	// Akt-Detektor.
 	ContactVibration bool
+
+	// ContactVibrationSpan (0-1): welcher Anteil des Positions-Spektrums
+	// als "Kontakt" zählt. 0 / außerhalb → DefaultContactVibrationSpan.
+	// Niedriger = früher an; höher = nur tief.
+	ContactVibrationSpan float64
+
+	// ContactVibrationCurve: "linear" (default), "soft", "peak".
+	ContactVibrationCurve string
 }
 
-// contactVibrationSpan (0-1) legt fest, welcher Anteil des in diesem Skript
-// beobachteten Positions-Spektrums als "Kontakt" zählt: nur das oberste
-// Viertel. Bewusst hoch gewählt statt eines festen Pixel-/Positionswerts,
-// damit die Erkennung pro Video adaptiv bleibt (siehe ToIntensityCurve).
-const contactVibrationSpan = 0.75
+// DefaultContactVibrationSpan: oberstes Viertel des beobachteten
+// Positions-Spektrums. Bewusst hoch gewählt statt eines festen
+// Pixel-/Positionswerts, damit die Erkennung pro Video adaptiv bleibt.
+const DefaultContactVibrationSpan = 0.75
 
 // contactVibrationMinSpan: liegt das gesamte Positions-Spektrum des Skripts
 // darunter, gibt es zu wenig Variation, um "Kontakt" von normaler Bewegung
@@ -94,6 +109,46 @@ func DefaultMapOptions() MapOptions {
 	return MapOptions{
 		TickMs: 50, MaxSpeed: 0.6, MinVibration: 0.15,
 		MinSuction: 0, Smoothing: 0.3, Sync: SyncIndependent,
+	}
+}
+
+// NormalizeContactCurve liefert einen kanonischen Kurvennamen.
+func NormalizeContactCurve(name string) string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case ContactCurveSoft, "soft_entry", "weicher":
+		return ContactCurveSoft
+	case ContactCurvePeak, "strong_peak", "peaky":
+		return ContactCurvePeak
+	default:
+		return ContactCurveLinear
+	}
+}
+
+// EffectiveContactSpan klammert die Empfindlichkeit in einen sinnvollen
+// Bereich; 0 oder ungültig → Default.
+func EffectiveContactSpan(span float64) float64 {
+	if span <= 0 || span >= 1 {
+		return DefaultContactVibrationSpan
+	}
+	if span < 0.4 {
+		return 0.4
+	}
+	if span > 0.95 {
+		return 0.95
+	}
+	return span
+}
+
+// applyContactCurve formt den linearen Nähe-Anteil t∈[0,1] um.
+func applyContactCurve(t float64, curve string) float64 {
+	t = clamp01(t)
+	switch NormalizeContactCurve(curve) {
+	case ContactCurveSoft:
+		return t * t
+	case ContactCurvePeak:
+		return math.Sqrt(t)
+	default:
+		return t
 	}
 }
 
@@ -114,9 +169,11 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 
 	// Kontakt-Schwelle einmal über das ganze Skript bestimmen (nicht pro
 	// Frame neu), aus den rohen Pos-Werten (0-100, bei tf/tj auf 20-90
-	// geklemmt) - siehe contactVibrationSpan.
+	// geklemmt) - siehe ContactVibrationSpan.
 	var contactMin, contactMax float64
 	contactEnabled := opts.ContactVibration && opts.Sync == SyncSuctionPosition
+	contactSpan := EffectiveContactSpan(opts.ContactVibrationSpan)
+	contactCurve := NormalizeContactCurve(opts.ContactVibrationCurve)
 	if contactEnabled {
 		posMin, posMax := float64(s.Actions[0].Pos), float64(s.Actions[0].Pos)
 		for _, a := range s.Actions[1:] {
@@ -131,7 +188,7 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		if posMax-posMin < contactVibrationMinSpan {
 			contactEnabled = false
 		} else {
-			contactMin = posMin + contactVibrationSpan*(posMax-posMin)
+			contactMin = posMin + contactSpan*(posMax-posMin)
 			contactMax = posMax
 		}
 	}
@@ -162,7 +219,8 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		case SyncSuctionPosition:
 			vib, suc = 0, posSignal
 			if contactEnabled && pos >= contactMin {
-				vib = clamp01((pos - contactMin) / (contactMax - contactMin))
+				linear := clamp01((pos - contactMin) / (contactMax - contactMin))
+				vib = applyContactCurve(linear, contactCurve)
 				if vib > 0 && opts.MinVibration > 0 {
 					vib = liftFloor(vib, opts.MinVibration)
 				}

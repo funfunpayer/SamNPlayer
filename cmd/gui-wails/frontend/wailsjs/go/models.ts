@@ -398,6 +398,20 @@ export namespace main {
 	        this.pos = source["pos"];
 	    }
 	}
+	export class VibrationCurvePoint {
+	    atMs: number;
+	    vibration: number;
+
+	    static createFrom(source: any = {}) {
+	        return new VibrationCurvePoint(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.atMs = source["atMs"];
+	        this.vibration = source["vibration"];
+	    }
+	}
 	export class DeviceStatus {
 	    connected: boolean;
 	    mock: boolean;
@@ -608,6 +622,8 @@ export namespace main {
 	    overwrite: boolean;
 	    aiQualityOpinion: boolean;
 	    contactVibration: boolean;
+	    contactVibrationSpan: number;
+	    contactVibrationCurve: string;
 	    autoOZoneMarker: boolean;
 	    audioCheck: boolean;
 
@@ -644,6 +660,8 @@ export namespace main {
 	        this.overwrite = source["overwrite"];
 	        this.aiQualityOpinion = source["aiQualityOpinion"];
 	        this.contactVibration = source["contactVibration"];
+	        this.contactVibrationSpan = source["contactVibrationSpan"];
+	        this.contactVibrationCurve = source["contactVibrationCurve"];
 	        this.autoOZoneMarker = source["autoOZoneMarker"];
 	        this.audioCheck = source["audioCheck"];
 	    }
@@ -722,6 +740,7 @@ export namespace main {
 	    extendedOMin: number;
 	    extendedOHoldS: number;
 	    extendedORestoreMs: number;
+	    disableContactVibration: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new PlaybackOptions(source);
@@ -740,6 +759,7 @@ export namespace main {
 	        this.extendedOMin = source["extendedOMin"];
 	        this.extendedOHoldS = source["extendedOHoldS"];
 	        this.extendedORestoreMs = source["extendedORestoreMs"];
+	        this.disableContactVibration = source["disableContactVibration"];
 	    }
 	}
 	export class ReportFeedback {
@@ -818,6 +838,8 @@ export namespace main {
 	    durationMs: number;
 	    videoPath: string;
 	    hasVideo: boolean;
+	    profile: string;
+	    contactVibration: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new ScriptInfo(source);
@@ -830,6 +852,8 @@ export namespace main {
 	        this.durationMs = source["durationMs"];
 	        this.videoPath = source["videoPath"];
 	        this.hasVideo = source["hasVideo"];
+	        this.profile = source["profile"];
+	        this.contactVibration = source["contactVibration"];
 	    }
 	}
 	

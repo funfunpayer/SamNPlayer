@@ -1840,6 +1840,14 @@ def main():
                          "Impuls - das passt sich von selbst an, wie lang/eng der Kontakt im "
                          "Video tatsächlich ist. Kein Akt-Detektor, reine Abstandsmessung. "
                          "Ohne diese Option bleibt tf/tj wie bisher ohne Vibration.")
+    ap.add_argument("--contact-vibration-span", type=float, default=None, metavar="0.4-0.95",
+                    help="Nur mit --contact-vibration: Anteil des Positions-Spektrums, der "
+                         "als Kontakt zählt (Default 0.75). Niedriger = früher an; "
+                         "höher = nur tief.")
+    ap.add_argument("--contact-vibration-curve", default=None,
+                    choices=["linear", "soft", "peak"],
+                    help="Nur mit --contact-vibration: Hüllkurve linear (Default), "
+                         "soft (weicher Einstieg, t²) oder peak (stärkerer Peak, √t).")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -2355,8 +2363,11 @@ def process_one(args, ap):
     if args.contact_vibration and not is_distance_profile(args.profile):
         print("Hinweis: --contact-vibration wirkt nur bei --profile tf/tj, wird ignoriert.",
               file=sys.stderr)
-    metadata = apply_profile_metadata(metadata, args.profile,
-                                       contact_vibration=args.contact_vibration)
+    metadata = apply_profile_metadata(
+        metadata, args.profile,
+        contact_vibration=args.contact_vibration,
+        contact_vibration_span=args.contact_vibration_span,
+        contact_vibration_curve=args.contact_vibration_curve)
 
     with open(args.output, "w") as f:
         json.dump({

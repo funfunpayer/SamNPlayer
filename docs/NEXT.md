@@ -695,12 +695,19 @@ the vibration curve tracks that faithfully rather than firing a short
 blip - confirming "fits the material" rather than assuming contact is
 always brief.
 
-Not yet done: the pulse *shape* was deliberately left open by the user
+Not yet done: ~~the pulse *shape* was deliberately left open by the user
 ("their call") - the current envelope is a straight linear ramp against
 distance-to-peak, the simplest option consistent with "fits the
 material," and is now visually validated as tracking genuine contact
-rather than firing on tracker noise. Still open: no listening/feel test
-on real hardware yet (needs priority 1).
+rather than firing on tracker noise.~~ **Done as product controls
+(September 17, 2026):** generator tab now exposes Empfindlichkeit
+(ContactVibrationSpan, default 0.75) and Kurve (linear / soft=t² /
+peak=√t); values land in `device_recipe` and drive `ToIntensityCurve`.
+Playback can disable contact vibration for one session without
+regenerating; the curve canvas draws vibration as a second (orange)
+track when the recipe has it; log emits „Kontakt-Vibration aktiv“.
+Still open: no listening/feel test on real hardware yet (needs
+priority 1).
 
 **Brief/grazing contact, checked (September 15, 2026):** the other open
 question - whether the envelope also reads as natural on a quick

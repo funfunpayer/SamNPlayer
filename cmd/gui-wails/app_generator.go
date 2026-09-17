@@ -70,6 +70,8 @@ type GenerateOptions struct {
 	Overwrite                 bool    `json:"overwrite"`
 	AIQualityOpinion          bool    `json:"aiQualityOpinion"`
 	ContactVibration          bool    `json:"contactVibration"`
+	ContactVibrationSpan      float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve     string  `json:"contactVibrationCurve"`
 	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
 	AudioCheck                bool    `json:"audioCheck"`
 	NativePipeline            bool    `json:"nativePipeline"`
@@ -170,6 +172,8 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			AIQualityOpinion:          opts.AIQualityOpinion,
 			AIBaseURL:                 a.settings.GetString(prefAIBaseURL, ""),
 			ContactVibration:          opts.ContactVibration,
+			ContactVibrationSpan:      opts.ContactVibrationSpan,
+			ContactVibrationCurve:     opts.ContactVibrationCurve,
 			AudioCheck:                opts.AudioCheck,
 			NativePipeline:            opts.NativePipeline,
 		}

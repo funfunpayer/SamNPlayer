@@ -252,6 +252,71 @@ func TestRecipeTJContactVibrationNeedsSpan(t *testing.T) {
 	}
 }
 
+// Niedrigerer ContactVibrationSpan = früher an: bei derselben Position
+// mittig im Spektrum muss soft-span Vib auslösen, default-span noch nicht.
+func TestRecipeTJContactVibrationSpanEarlier(t *testing.T) {
+	script := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 55}, // mittig: bei span=0.75 unter Schwelle, bei 0.45 darüber
+		Action{At: 1000, Pos: 55},
+		Action{At: 1500, Pos: 90},
+	)
+	atMid := func(span float64) float64 {
+		opts := RecipeFor("tj")
+		opts.ContactVibration = true
+		opts.ContactVibrationSpan = span
+		opts.Smoothing = 0
+		var max float64
+		for _, f := range script.ToIntensityCurve(opts) {
+			if f.At >= 500 && f.At <= 1000 && f.Vibration > max {
+				max = f.Vibration
+			}
+		}
+		return max
+	}
+	if v := atMid(0.75); v > 0.001 {
+		t.Errorf("Default-Span 0.75 sollte bei Pos 55 noch still sein, vib=%.3f", v)
+	}
+	if v := atMid(0.45); v < 0.05 {
+		t.Errorf("Span 0.45 (früher an) sollte bei Pos 55 schon vibrieren, vib=%.3f", v)
+	}
+}
+
+// soft (t²) bleibt unter linear, peak (√t) darüber - bei gleicher Position
+// im Kontaktfenster, damit die Kurvenwahl spürbar und video-treu bleibt.
+func TestRecipeTJContactVibrationCurves(t *testing.T) {
+	script := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 80}, // im Kontaktfenster, aber nicht am Peak
+		Action{At: 800, Pos: 80},
+		Action{At: 1200, Pos: 90},
+		Action{At: 1500, Pos: 20},
+	)
+	vibAt := func(curve string) float64 {
+		opts := RecipeFor("tj")
+		opts.ContactVibration = true
+		opts.ContactVibrationCurve = curve
+		opts.Smoothing = 0
+		var max float64
+		for _, f := range script.ToIntensityCurve(opts) {
+			if f.At >= 550 && f.At <= 750 && f.Vibration > max {
+				max = f.Vibration
+			}
+		}
+		return max
+	}
+	linear, soft, peak := vibAt("linear"), vibAt("soft"), vibAt("peak")
+	if linear < 0.1 {
+		t.Fatalf("Testannahme: Pos 80 sollte im Kontaktfenster liegen, linear=%.3f", linear)
+	}
+	if soft >= linear {
+		t.Errorf("soft (weicher Einstieg) sollte unter linear liegen: soft=%.3f linear=%.3f", soft, linear)
+	}
+	if peak <= linear {
+		t.Errorf("peak (stärkerer Peak) sollte über linear liegen: peak=%.3f linear=%.3f", peak, linear)
+	}
+}
+
 func TestRecipeTFEqualsTJ(t *testing.T) {
 	a, b := RecipeFor("tf"), RecipeFor("tj")
 	if a.Sync != b.Sync || a.MinSuction != b.MinSuction {

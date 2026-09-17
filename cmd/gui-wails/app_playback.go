@@ -13,17 +13,18 @@ import (
 )
 
 type PlaybackOptions struct {
-	Mock               bool    `json:"mock"`
-	SyncMode           string  `json:"syncMode"`
-	TickMs             int64   `json:"tickMs"`
-	MaxSpeed           float64 `json:"maxSpeed"`
-	Smoothing          float64 `json:"smoothing"`
-	SoftStartMs        int     `json:"softStartMs"`
-	UseVideoSync       bool    `json:"useVideoSync"`
-	ExtendedOEnabled   bool    `json:"extendedOEnabled"`
-	ExtendedOMin       float64 `json:"extendedOMin"`
-	ExtendedOHoldS     float64 `json:"extendedOHoldS"`
-	ExtendedORestoreMs float64 `json:"extendedORestoreMs"`
+	Mock                   bool    `json:"mock"`
+	SyncMode               string  `json:"syncMode"`
+	TickMs                 int64   `json:"tickMs"`
+	MaxSpeed               float64 `json:"maxSpeed"`
+	Smoothing              float64 `json:"smoothing"`
+	SoftStartMs            int     `json:"softStartMs"`
+	UseVideoSync           bool    `json:"useVideoSync"`
+	ExtendedOEnabled       bool    `json:"extendedOEnabled"`
+	ExtendedOMin           float64 `json:"extendedOMin"`
+	ExtendedOHoldS         float64 `json:"extendedOHoldS"`
+	ExtendedORestoreMs     float64 `json:"extendedORestoreMs"`
+	DisableContactVibration bool   `json:"disableContactVibration"`
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
@@ -33,11 +34,18 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	}
 	mapOpts := funscript.DefaultMapOptions()
 	profile := script.Metadata.Profile
+	contactOn := false
 	if funscript.IsDistanceProfile(profile) {
 		mapOpts = funscript.RecipeFor(profile)
 		if dr := script.Metadata.DeviceRecipe; dr != nil {
 			mapOpts.ContactVibration = dr.ContactVibration
+			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
+			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
 		}
+		if opts.DisableContactVibration {
+			mapOpts.ContactVibration = false
+		}
+		contactOn = mapOpts.ContactVibration
 	}
 	if opts.TickMs > 0 {
 		mapOpts.TickMs = opts.TickMs
@@ -105,6 +113,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			defer dev.Disconnect()
 		}
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
+		if contactOn {
+			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv")
+		}
 		var playErr error
 		if opts.UseVideoSync {
 			positions := make(chan int64, 4)
@@ -183,6 +194,15 @@ type CurvePoint struct {
 	Pos  int   `json:"pos"`
 }
 
+// VibrationCurvePoint is the contact-vibration intensity (0-1) over time —
+// second track under the position curve when device_recipe.contact_vibration
+// is set. Derived from the same distance/pos signal as playback, so it lines
+// up with the video timeline.
+type VibrationCurvePoint struct {
+	AtMs      int64   `json:"atMs"`
+	Vibration float64 `json:"vibration"`
+}
+
 func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
@@ -230,6 +250,49 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 			out = append(out, CurvePoint{AtMs: actions[hi].At, Pos: actions[hi].Pos})
 		}
 		start = i
+	}
+	return out, nil
+}
+
+// GetVibrationCurve returns the contact-vibration envelope for the loaded
+// script (empty if none). Uses the baked-in device_recipe so the second
+// curve track matches what playback would send without a disable override.
+func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
+	script := a.loadedScript()
+	if script == nil {
+		return nil, fmt.Errorf("kein Skript geladen")
+	}
+	dr := script.Metadata.DeviceRecipe
+	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
+		return nil, nil
+	}
+	if maxPoints < 50 {
+		maxPoints = 50
+	}
+	opts := funscript.RecipeFor(script.Metadata.Profile)
+	opts.ContactVibration = true
+	opts.ContactVibrationSpan = dr.ContactVibrationSpan
+	opts.ContactVibrationCurve = dr.ContactVibrationCurve
+	opts.Smoothing = 0
+	duration := script.Duration()
+	if duration <= 0 {
+		return nil, nil
+	}
+	opts.TickMs = duration / int64(maxPoints)
+	if opts.TickMs < 10 {
+		opts.TickMs = 10
+	}
+	frames := script.ToIntensityCurve(opts)
+	out := make([]VibrationCurvePoint, 0, len(frames))
+	any := false
+	for _, f := range frames {
+		if f.Vibration > 0.001 {
+			any = true
+		}
+		out = append(out, VibrationCurvePoint{AtMs: f.At, Vibration: f.Vibration})
+	}
+	if !any {
+		return nil, nil
 	}
 	return out, nil
 }

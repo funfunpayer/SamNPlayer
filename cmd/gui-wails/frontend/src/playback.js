@@ -1,6 +1,6 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
-  TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
+  TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
@@ -82,6 +82,11 @@ export function initPlayback(root) {
       <input type="checkbox" id="pb-use-video-sync" checked />
       <label for="pb-use-video-sync">Gerät folgt der echten Videoposition (empfohlen, statt eigener Uhr)</label>
     </div>
+    <div class="checkbox-row" id="pb-contact-off-row" style="display:none">
+      <input type="checkbox" id="pb-contact-off" />
+      <label for="pb-contact-off"
+        data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
+    </div>
 
     <div class="field-row"><label>Gerät</label>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät testen)</label></span>
@@ -131,6 +136,8 @@ export function initPlayback(root) {
   let playing = false;
   let heatmapPoints = null;
   let curvePoints = null;
+  let vibrationCurvePoints = null;
+  let scriptHasContactVibration = false;
   const curveCanvas = el('#pb-curve');
   const CURVE_MAX_POINTS = 1200;
   let marker = null; // {startMs, endMs} oder null
@@ -396,6 +403,20 @@ export function initPlayback(root) {
     ctx.lineJoin = 'round';
     drawSmoothCurve(ctx, points, xOf, yOf);
 
+    // Zweite Spur: Kontakt-Vibration (0–1 → 0–100), aus demselben
+    // Abstandssignal wie die Wiedergabe — liegt unter der Positionsspur.
+    if (vibrationCurvePoints && vibrationCurvePoints.length >= 2) {
+      const vibPts = vibrationCurvePoints.map(p => ({
+        atMs: p.atMs,
+        pos: Math.max(0, Math.min(100, (p.vibration || 0) * 100)),
+      }));
+      ctx.strokeStyle = 'rgba(255, 170, 80, 0.85)';
+      ctx.lineWidth = 1.25;
+      ctx.setLineDash([4, 3]);
+      drawSmoothCurve(ctx, vibPts, xOf, yOf);
+      ctx.setLineDash([]);
+    }
+
     if (editMode) {
       for (let i = 0; i < points.length; i++) {
         const isDragged = i === editDragIndex;
@@ -482,14 +503,23 @@ export function initPlayback(root) {
       curvePoints = await GetScriptCurve(CURVE_MAX_POINTS);
     } catch (err) {
       curvePoints = null;
+      vibrationCurvePoints = null;
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
+      vibrationCurvePoints = null;
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
+    }
+    try {
+      vibrationCurvePoints = scriptHasContactVibration
+        ? await GetVibrationCurve(CURVE_MAX_POINTS)
+        : null;
+    } catch (err) {
+      vibrationCurvePoints = null;
     }
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
@@ -774,6 +804,9 @@ export function initPlayback(root) {
       ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Skript${extraCount === 1 ? '' : 'e'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
       : '';
     el('#pb-script-path').textContent = scriptPath + batchNote;
+    scriptHasContactVibration = !!info.contactVibration;
+    el('#pb-contact-off-row').style.display = scriptHasContactVibration ? 'flex' : 'none';
+    if (!scriptHasContactVibration) el('#pb-contact-off').checked = false;
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();
@@ -840,6 +873,7 @@ export function initPlayback(root) {
       extendedOMin: parseFloat(el('#pb-eo-min').value) || 0.1,
       extendedOHoldS: parseFloat(el('#pb-eo-hold').value) || 10,
       extendedORestoreMs: parseFloat(el('#pb-eo-restore').value) || 500,
+      disableContactVibration: scriptHasContactVibration && el('#pb-contact-off').checked,
     };
 
     try {
@@ -1049,13 +1083,15 @@ export function initPlayback(root) {
   async function refreshScriptVisuals() {
     if (!scriptPath) return;
     try {
-      const [heat, curve, markers] = await Promise.all([
+      const [heat, curve, vib, markers] = await Promise.all([
         GetHeatmap(HEATMAP_BUCKETS),
         GetScriptCurve(CURVE_MAX_POINTS),
+        scriptHasContactVibration ? GetVibrationCurve(CURVE_MAX_POINTS) : Promise.resolve(null),
         GetOMarkers(scriptPath),
       ]);
       heatmapPoints = heat;
       curvePoints = curve;
+      vibrationCurvePoints = vib;
       oMarkers = Array.isArray(markers) ? markers : [];
       if (el('#pb-curve-edit').checked) {
         const acts = await GetScriptActions();

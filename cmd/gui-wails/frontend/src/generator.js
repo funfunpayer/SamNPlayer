@@ -42,10 +42,27 @@ export function initGenerator(root, playback) {
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position. Vibration nur mit „Kontakt-Vibration“.
     </p>
-    <div class="checkbox-row" id="gen-contact-vibration-row" style="display:none;">
-      <input type="checkbox" id="gen-contact-vibration" />
-      <label for="gen-contact-vibration"
-        data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+    <div id="gen-contact-vibration-wrap" style="display:none;">
+      <div class="checkbox-row" id="gen-contact-vibration-row">
+        <input type="checkbox" id="gen-contact-vibration" />
+        <label for="gen-contact-vibration"
+          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+      </div>
+      <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
+        <div class="field-row" style="align-items:center;">
+          <label style="width:auto;" data-help="Niedriger = früher an (größeres Kontaktfenster). Höher = nur tief (nur nahe am Minimumabstand). Default 0,75 = oberstes Viertel des Videosignals.">Empfindlichkeit</label>
+          <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
+          <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">nur tief</span>
+        </div>
+        <div class="field-row" style="align-items:center;">
+          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²). peak = stärkerer Peak (√t). Immer aus demselben Videosignal.">Kurve</label>
+          <select id="gen-contact-curve">
+            <option value="linear" selected>Linear</option>
+            <option value="soft">Weicher Einstieg</option>
+            <option value="peak">Stärkerer Peak</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="row" style="align-items:center;">
@@ -276,10 +293,25 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = false;
   }
 
+  function updateContactVibrationOpts() {
+    const on = isTfTj() && el('#gen-contact-vibration').checked;
+    el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
+  }
+
+  function updateContactSpanLabel() {
+    const v = parseInt(el('#gen-contact-span').value, 10) || 75;
+    const label = el('#gen-contact-span-label');
+    if (v <= 50) label.textContent = 'früher an';
+    else if (v >= 85) label.textContent = 'nur tief';
+    else label.textContent = (v / 100).toFixed(2);
+  }
+
   function updateProfileUi() {
     const tftj = isTfTj();
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
+    el('#gen-contact-vibration-wrap').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
+    updateContactVibrationOpts();
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
     if (tftj && videoPath) {
@@ -493,6 +525,12 @@ export function initGenerator(root, playback) {
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
+      contactVibrationSpan: (isTfTj() && el('#gen-contact-vibration').checked)
+        ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
+        : 0,
+      contactVibrationCurve: (isTfTj() && el('#gen-contact-vibration').checked)
+        ? (el('#gen-contact-curve').value || 'linear')
+        : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
     };
@@ -689,6 +727,9 @@ export function initGenerator(root, playback) {
     }
   });
   el('#gen-profile').addEventListener('change', updateProfileUi);
+  el('#gen-contact-vibration').addEventListener('change', updateContactVibrationOpts);
+  el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
+  updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', updateGenerateEnabled);
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;

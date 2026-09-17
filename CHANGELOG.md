@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Kontakt-Vibration product controls:** sensitivity slider („früher an“ /
+  „nur tief“), curve shape (linear / soft / peak), playback checkbox
+  „Kontakt-Vibration ab“ (no regenerate), orange second track on the
+  position curve, and log line „Kontakt-Vibration aktiv“.
+
 ## [0.5.3] — September 17, 2026
 
 ### Added

@@ -73,3 +73,52 @@ func TestGetScriptCurveWithoutScript(t *testing.T) {
 		t.Error("ohne geladenes Skript muss ein Fehler kommen")
 	}
 }
+
+func TestGetVibrationCurveContactRecipe(t *testing.T) {
+	a := NewApp()
+	script := &funscript.Script{Actions: []funscript.Action{
+		{At: 0, Pos: 20}, {At: 500, Pos: 20},
+		{At: 600, Pos: 90}, {At: 900, Pos: 90},
+		{At: 1000, Pos: 20}, {At: 1500, Pos: 20},
+	}}
+	script.Metadata.Profile = "tj"
+	script.Metadata.DeviceRecipe = &funscript.DeviceRecipe{
+		Sync: "suction_position", ContactVibration: true,
+		ContactVibrationCurve: "peak", ContactVibrationSpan: 0.5,
+	}
+	a.currentScript = script
+
+	pts, err := a.GetVibrationCurve(100)
+	if err != nil {
+		t.Fatalf("GetVibrationCurve: %v", err)
+	}
+	if len(pts) < 2 {
+		t.Fatal("erwartete Vibrationsspur")
+	}
+	var max float64
+	for _, p := range pts {
+		if p.Vibration > max {
+			max = p.Vibration
+		}
+	}
+	if max < 0.5 {
+		t.Errorf("Kontaktfenster sollte spürbare Vibration liefern, max=%.3f", max)
+	}
+}
+
+func TestGetVibrationCurveAbsentWithoutFlag(t *testing.T) {
+	a := NewApp()
+	script := &funscript.Script{Actions: []funscript.Action{
+		{At: 0, Pos: 20}, {At: 500, Pos: 90}, {At: 1000, Pos: 20},
+	}}
+	script.Metadata.Profile = "tj"
+	script.Metadata.DeviceRecipe = &funscript.DeviceRecipe{Sync: "suction_position"}
+	a.currentScript = script
+	pts, err := a.GetVibrationCurve(100)
+	if err != nil {
+		t.Fatalf("GetVibrationCurve: %v", err)
+	}
+	if pts != nil {
+		t.Errorf("ohne contact_vibration sollte keine Spur kommen, bekam %d Punkte", len(pts))
+	}
+}

@@ -75,6 +75,8 @@ type Options struct {
 	AIQualityOpinion          bool
 	AIBaseURL                 string
 	ContactVibration          bool
+	ContactVibrationSpan      float64
+	ContactVibrationCurve     string
 	AudioCheck                bool
 	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
 	// Default false: GenerateWithContext uses trackcv or simpletrack when
@@ -739,6 +741,13 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.ContactVibration {
 		args = append(args, "--contact-vibration")
+		if opts.ContactVibrationSpan > 0 {
+			args = append(args, "--contact-vibration-span",
+				strconv.FormatFloat(opts.ContactVibrationSpan, 'f', -1, 64))
+		}
+		if opts.ContactVibrationCurve != "" && opts.ContactVibrationCurve != "linear" {
+			args = append(args, "--contact-vibration-curve", opts.ContactVibrationCurve)
+		}
 	}
 	if opts.AudioCheck {
 		args = append(args, "--audio-check")

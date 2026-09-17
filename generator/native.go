@@ -170,6 +170,16 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 		recipe := funscript.RecipeMeta(opts.Profile)
 		if opts.ContactVibration && funscript.IsDistanceProfile(opts.Profile) {
 			recipe.ContactVibration = true
+			if opts.ContactVibrationSpan > 0 {
+				span := funscript.EffectiveContactSpan(opts.ContactVibrationSpan)
+				if span != funscript.DefaultContactVibrationSpan {
+					recipe.ContactVibrationSpan = span
+				}
+			}
+			curve := funscript.NormalizeContactCurve(opts.ContactVibrationCurve)
+			if curve != funscript.ContactCurveLinear {
+				recipe.ContactVibrationCurve = curve
+			}
 		}
 		meta["profile"] = funscript.NormalizeProfile(opts.Profile)
 		if funscript.IsDistanceProfile(opts.Profile) {

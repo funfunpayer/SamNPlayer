@@ -32,12 +32,14 @@ func FromFunscript(fs *funscript.Script) *Script {
 	}
 	if dr := fs.Metadata.DeviceRecipe; dr != nil {
 		meta.DeviceRecipe = &DeviceRecipe{
-			Sync:             dr.Sync,
-			MinSuction:       dr.MinSuction,
-			TickMs:           dr.TickMs,
-			MaxSpeed:         dr.MaxSpeed,
-			Smoothing:        dr.Smoothing,
-			ContactVibration: dr.ContactVibration,
+			Sync:                  dr.Sync,
+			MinSuction:            dr.MinSuction,
+			TickMs:                dr.TickMs,
+			MaxSpeed:              dr.MaxSpeed,
+			Smoothing:             dr.Smoothing,
+			ContactVibration:      dr.ContactVibration,
+			ContactVibrationSpan:  dr.ContactVibrationSpan,
+			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
 	}
 	return &Script{
@@ -71,12 +73,14 @@ func ToFunscript(s *Script) *funscript.Script {
 	fs.Metadata.Profile = s.Metadata.Profile
 	if dr := s.Metadata.DeviceRecipe; dr != nil {
 		fs.Metadata.DeviceRecipe = &funscript.DeviceRecipe{
-			Sync:             dr.Sync,
-			MinSuction:       dr.MinSuction,
-			TickMs:           dr.TickMs,
-			MaxSpeed:         dr.MaxSpeed,
-			Smoothing:        dr.Smoothing,
-			ContactVibration: dr.ContactVibration,
+			Sync:                  dr.Sync,
+			MinSuction:            dr.MinSuction,
+			TickMs:                dr.TickMs,
+			MaxSpeed:              dr.MaxSpeed,
+			Smoothing:             dr.Smoothing,
+			ContactVibration:      dr.ContactVibration,
+			ContactVibrationSpan:  dr.ContactVibrationSpan,
+			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
 	}
 	if len(actions) > 0 {
