@@ -704,11 +704,15 @@ func joinLines(lines []string) string {
 // Video fehlen die trackingbasierten Prüfungen (aktiver Zeitanteil,
 // Rekonstruktionsfehler, Tracker-Verlust, Bewegungsspielraum), das Ergebnis
 // ist darum vorsichtiger zu lesen als nach einer echten Generierung.
+//
+// Kind is always "signal_quality" (docs/SIGNAL_VS_FIDELITY.md) — not Motion
+// Fidelity against video/reference.
 type ScriptQualityResult struct {
 	Score                   float64  `json:"score"`
 	Passed                  bool     `json:"passed"`
 	Warnings                []string `json:"warnings"`
 	EstimatedFromScriptOnly bool     `json:"estimatedFromScriptOnly"`
+	Kind                    string   `json:"kind"`
 }
 
 // ScriptQuality wendet Quality Doctor auf eine bereits vorhandene
@@ -739,6 +743,7 @@ func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
 		Passed:                  got.Passed,
 		Warnings:                got.Warnings,
 		EstimatedFromScriptOnly: true,
+		Kind:                    "signal_quality",
 	}, nil
 }
 

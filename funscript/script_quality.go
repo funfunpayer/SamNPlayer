@@ -9,11 +9,17 @@ import (
 // ScriptQualityResult is the Go-side Script Doctor verdict (actions-only).
 // Matches generator.ScriptQualityResult / quality_doctor.evaluate without
 // dense tracking data — EstimatedFromScriptOnly is always true here.
+//
+// This is Signal Quality only (docs/SIGNAL_VS_FIDELITY.md), never Motion
+// Fidelity against video/reference.
 type ScriptQualityResult struct {
 	Score                   float64  `json:"score"`
 	Passed                  bool     `json:"passed"`
 	Warnings                []string `json:"warnings"`
 	EstimatedFromScriptOnly bool     `json:"estimatedFromScriptOnly"`
+	// Kind is always "signal_quality" so GUI/reports can label correctly
+	// next to Motion Fidelity results without guessing.
+	Kind string `json:"kind"`
 }
 
 // EvaluateScriptQuality runs the actions-only Quality Doctor checks in pure
@@ -31,6 +37,7 @@ func EvaluateScriptQuality(actions []Action) ScriptQualityResult {
 			Passed:                  false,
 			Warnings:                []string{"Weniger als 2 Actions - kein verwertbares Skript"},
 			EstimatedFromScriptOnly: true,
+			Kind:                    "signal_quality",
 		}
 	}
 
@@ -146,6 +153,7 @@ func EvaluateScriptQuality(actions []Action) ScriptQualityResult {
 		Passed:                  passed,
 		Warnings:                warnings,
 		EstimatedFromScriptOnly: true,
+		Kind:                    "signal_quality",
 	}
 }
 

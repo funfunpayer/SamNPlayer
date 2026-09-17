@@ -178,23 +178,20 @@ func runPhase(args []string) int {
 		fmt.Fprintf(os.Stderr, "Fehler B: %v\n", err)
 		return 1
 	}
-	corr := funscript.BestLagCorrelation(a.Actions, b.Actions, *maxLag, *lagStep, *resample)
-	diag := funscript.DiagnosePhase(corr, 0, 0)
-	if corr == nil {
-		fmt.Printf("verdict=%s\n%s\n", diag.Verdict, diag.Detail)
+	mf := funscript.EvaluateMotionFidelity(a.Actions, b.Actions, *maxLag, *lagStep, *resample)
+	diag := mf.Diagnosis
+	if mf.R == nil {
+		fmt.Printf("kind=motion_fidelity\nverdict=%s\n%s\n", diag.Verdict, diag.Detail)
 		return 0
 	}
 	r0 := "n/a"
-	if corr.RZeroLag != nil {
-		r0 = fmt.Sprintf("%.4f", *corr.RZeroLag)
+	if mf.RZeroLag != nil {
+		r0 = fmt.Sprintf("%.4f", *mf.RZeroLag)
 	}
-	shape := "n/a"
-	if corr.ShapeError != nil {
-		shape = fmt.Sprintf("%.4f", *corr.ShapeError)
-	}
+	fmt.Printf("kind=motion_fidelity\n")
 	fmt.Printf("verdict=%s\n", diag.Verdict)
 	fmt.Printf("detail=%s\n", diag.Detail)
-	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s n_samples=%d shape_error=%s low_confidence=%v\n",
-		corr.R, r0, corr.LagMs, corr.Orientation, corr.NSamples, shape, corr.LowConfidence)
+	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s low_confidence=%v\n",
+		*mf.R, r0, *mf.LagMs, mf.Orientation, mf.LowConfidence)
 	return 0
 }

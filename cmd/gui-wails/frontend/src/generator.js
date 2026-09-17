@@ -610,7 +610,9 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'block';
       qualityBox.style.background = ok ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       qualityBox.style.border = `1px solid ${ok ? 'var(--ok)' : 'var(--danger)'}`;
-      let html = `<b>Quality Doctor: ${pct}% ${ok ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
+      let html = `<b>Signal Quality (Quality Doctor): ${pct}% ${ok ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
+      html += '<br><span style="opacity:0.7;">Technische Signalqualität — nicht Motion Fidelity '
+        + '(Passt die Kurve zum Video?).</span>';
       if (result.qualityWarnings && result.qualityWarnings.length > 0) {
         html += '<ul style="margin:6px 0 0 18px; padding:0;">' +
           result.qualityWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>';

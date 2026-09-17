@@ -25,7 +25,6 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-<<<<<<< HEAD
 - **`generator/posttrack` + optional Go generation path (experimental)**:
   second step of the "more Go, less Python" move. Pure-Go port of
   `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
@@ -46,10 +45,8 @@ measurement history behind each entry; this file is the short version for
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by
   `process_one_kwargs_test.py`.
-=======
 - **CLI `phase` subcommand** (`SamNPlayer-cli phase A.funscript B.funscript`):
   runs `BestLagCorrelation` / `DiagnosePhase` without Python.
->>>>>>> 597c7e1 (docs(CHANGELOG): Script Doctor review fixes)
 - **Phase Analyzer core in pure Go** (`funscript.BestLagCorrelation` +
   `DiagnosePhase`): port of `fungen_compare.best_lag_correlation`
   (lag search, orientation, shape-normalized error, low-confidence)

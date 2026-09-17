@@ -64,6 +64,28 @@ func TestEvaluateScriptQualityFlagsOutOfRange(t *testing.T) {
 	}
 }
 
+func TestEvaluateScriptQualityKind(t *testing.T) {
+	r := EvaluateScriptQuality([]Action{{At: 0, Pos: 20}, {At: 400, Pos: 80}})
+	if r.Kind != "signal_quality" {
+		t.Fatalf("kind=%q", r.Kind)
+	}
+}
+
+func TestEvaluateMotionFidelityKind(t *testing.T) {
+	ref := sineActions(8000, 2000, 40, 0, 40, 50)
+	cand := sineActions(8000, 2000, 40, 200, 40, 50)
+	mf := EvaluateMotionFidelity(ref, cand, 1000, 50, 100)
+	if mf.Kind != "motion_fidelity" {
+		t.Fatalf("kind=%q", mf.Kind)
+	}
+	if mf.R == nil || *mf.R < 0.9 {
+		t.Fatalf("expected high motion fidelity, got %+v", mf)
+	}
+	if mf.Diagnosis.Verdict == "" {
+		t.Fatal("missing verdict")
+	}
+}
+
 func TestEvaluateScriptQualityFlagsUnsorted(t *testing.T) {
 	// Deliberately out of time order — classic splice error. Must be
 	// flagged on the original order, not after sorting away the defect.

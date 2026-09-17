@@ -968,9 +968,10 @@ export function initPlayback(root) {
       box.style.display = 'block';
       box.style.background = result.passed ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       box.style.border = `1px solid ${result.passed ? 'var(--ok)' : 'var(--danger)'}`;
-      let html = `<b>Script Doctor: ${pct}% ${result.passed ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
-      html += '<br><span style="opacity:0.7;">Geschätzt nur aus dem Skript, ohne Video - '
-        + 'trackingbasierte Prüfungen (Tracker-Verlust, Bewegungsspielraum) fehlen hier, '
+      let html = `<b>Signal Quality (Script Doctor): ${pct}% ${result.passed ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
+      html += '<br><span style="opacity:0.7;">Nur Signalqualität — Jitter, Sprünge, Lücken, Geräte-Dichte. '
+        + 'Kein Beweis, dass die Kurve zum Video passt (das wäre Motion Fidelity / Phase-Vergleich). '
+        + 'Geschätzt nur aus dem Skript, ohne Video; trackingbasierte Prüfungen fehlen hier, '
         + 'anders als direkt nach einer Generierung.</span>';
       if (result.warnings && result.warnings.length > 0) {
         html += '<ul style="margin:6px 0 0 18px; padding:0;">'

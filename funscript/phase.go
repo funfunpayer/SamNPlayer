@@ -49,6 +49,40 @@ type PhaseDiagnosis struct {
 	Detail      string          `json:"detail"`
 }
 
+// MotionFidelityResult is a labeled Motion Fidelity report
+// (docs/SIGNAL_VS_FIDELITY.md) — reference vs candidate via BestLagCorrelation.
+// Distinct from ScriptQualityResult (Signal Quality only).
+type MotionFidelityResult struct {
+	Kind          string         `json:"kind"` // always "motion_fidelity"
+	Diagnosis     PhaseDiagnosis `json:"diagnosis"`
+	R             *float64       `json:"r"`
+	RZeroLag      *float64       `json:"r_zero_lag"`
+	LagMs         *int           `json:"lag_ms"`
+	Orientation   string         `json:"orientation,omitempty"`
+	LowConfidence bool           `json:"low_confidence"`
+}
+
+// EvaluateMotionFidelity compares reference A against candidate B.
+// Defaults for lag search match BestLagCorrelation / fungen_compare.
+func EvaluateMotionFidelity(reference, candidate []Action, maxLagMs, lagStepMs, resampleStepMs int) MotionFidelityResult {
+	corr := BestLagCorrelation(reference, candidate, maxLagMs, lagStepMs, resampleStepMs)
+	diag := DiagnosePhase(corr, 0, 0)
+	out := MotionFidelityResult{
+		Kind:      "motion_fidelity",
+		Diagnosis: diag,
+	}
+	if corr != nil {
+		r := corr.R
+		out.R = &r
+		out.RZeroLag = corr.RZeroLag
+		lag := corr.LagMs
+		out.LagMs = &lag
+		out.Orientation = corr.Orientation
+		out.LowConfidence = corr.LowConfidence
+	}
+	return out
+}
+
 // BestLagCorrelation searches lag and orientation for the best match of
 // two action lists. Port of generator/fungen_compare.best_lag_correlation:
 // shared absolute timeline, ±maxLagMs search, normal + inverted (100-pos).
