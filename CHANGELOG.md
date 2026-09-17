@@ -19,7 +19,9 @@ measurement history behind each entry; this file is the short version for
   and opt-in two-ROI auto-suggest on Tf/Tj (classic or AI — suggestion only).
 - **SAM first enrich stage:** `sam.FromFunscriptEnriched` + CLI
   `SamNPlayer sam FILE.funscript` fills Velocity/Confidence/Intensity/Range
-  from tracking gaps + Tf/contact recipe (no GUI playback change yet).
+  from tracking gaps + Tf/contact recipe; Tf/contact **playback** consumes
+  SAM Intensity (`PlaybackFramesFromFunscript`). `.funscript` remains the
+  file format — SAM is the motion model, not a new Funscript format.
 
 ## [0.5.3] — September 17, 2026
 

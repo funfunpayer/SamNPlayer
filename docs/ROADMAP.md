@@ -270,10 +270,12 @@ Things this file can't resolve on its own — flagging rather than guessing:
    captured correctly in the principles list above, not guessed at.
 3. **Naming: "SAM 3.1" (Meta's Segment Anything, from the Perception 2.0
    concept) vs. this project's own internal "SAM"** (`sam/` package, SAM
-   Motion Model, `docs/SAM_ARCHITECTURE.md`). These are two unrelated
-   things that will collide in every future conversation and commit
-   message if both keep the name. Needs a different name for one of them
-   before that segmentation phase goes any further.
+   Motion Model, `docs/SAM_ARCHITECTURE.md`). **Settled for the motion
+   model (17 Sep 2026):** keep **SAM** = internal motion model; **never**
+   call a Funscript variant “SAM”; `.funscript` stays the interchange
+   format. Meta Segment Anything (if ever) needs a **different** name
+   before that segmentation phase starts — collision still open for that
+   future phase only.
 4. **Which Perception 2.0 phase to greenlight next**, if any, beyond the
    Golden-Clip Benchmark already shipped — each remaining phase pulls in
    real new dependencies (SAM-equivalent segmentation, ByteTrack/BoT-SORT,

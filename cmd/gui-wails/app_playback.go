@@ -10,6 +10,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
+	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
 type PlaybackOptions struct {
@@ -64,7 +65,13 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if !funscript.IsDistanceProfile(profile) || (opts.SyncMode != "" && opts.SyncMode != "independent") {
 		mapOpts.Sync = syncMode
 	}
-	frames := script.ToIntensityCurve(mapOpts)
+	// Tf/Tj + Kontakt: SAM-Modell dazwischen (Intensity/Gaps), Datei bleibt .funscript.
+	var frames []funscript.Frame
+	if contactOn {
+		frames = sam.PlaybackFramesFromFunscript(script, mapOpts)
+	} else {
+		frames = script.ToIntensityCurve(mapOpts)
+	}
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
@@ -117,7 +124,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		}
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
 		if contactOn {
-			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv")
+			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv (SAM-Intensity)")
 		}
 		var playErr error
 		if opts.UseVideoSync {
@@ -287,7 +294,10 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	if opts.TickMs < 10 {
 		opts.TickMs = 10
 	}
-	frames := script.ToIntensityCurve(opts)
+	frames := sam.PlaybackFramesFromFunscript(script, opts)
+	if len(frames) == 0 {
+		frames = script.ToIntensityCurve(opts)
+	}
 	out := make([]VibrationCurvePoint, 0, len(frames))
 	any := false
 	for _, f := range frames {

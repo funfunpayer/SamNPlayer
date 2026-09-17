@@ -1305,20 +1305,16 @@ resulting `.funscript` loads correctly through
 `fungen_compare.py::load_actions` - so a SAM-roundtripped script stays as
 comparable against FunGen references as any other output.
 
-**Still correctly not wired into GUI playback:** this closes a real
-correctness gap in the existing converter and adds a first Enrich
-producer, it doesn't replace `.funscript` playback. A "save/load .sam"
-button in the GUI is still deferred until playback can *consume*
-`Motion.Intensity`/`Confidence` for contact (instead of recomputing from
-pos) — library + CLI `sam` convert are the first stage.
+**Still correctly not a new on-disk Funscript format:** `.funscript` stays
+the user-facing file. SAM is the internal motion model; Enrich +
+`PlaybackFramesFromFunscript` now sit between load and device output for
+Tf/Tj contact (Intensity/Gaps). Optional `.sam` via CLI is tooling only.
 
-**First Enrich producer (September 17, 2026):** `sam.FromFunscriptEnriched`
-uses generation metadata we already have (`tracking_gaps`, Tf/Tj
-`device_recipe.contact_vibration` + span/curve) to fill SAM fields that
-map onto contact vibration (`Intensity`/`Range`/`Confidence`) and basic
-kinematics (`Velocity`). CLI: `SamNPlayer sam script.funscript`. Next
-stage when useful: playback optionally reads Intensity from a loaded
-`.sam` for contact instead of the mapper's pos ramp.
+**First Enrich + playback consumer (September 17, 2026):**
+`sam.FromFunscriptEnriched` fills Velocity/Confidence/Intensity/Range;
+GUI playback for contact uses `sam.PlaybackFramesFromFunscript` (log:
+„Kontakt-Vibration aktiv (SAM-Intensity)“). CLI: `SamNPlayer sam
+script.funscript`.
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already
