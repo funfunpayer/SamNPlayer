@@ -673,7 +673,9 @@ export function initGenerator(root, playback) {
       alert('Fehler: ' + result.error);
       return;
     }
-    el('#gen-status').textContent = 'Fertig: ' + result.path;
+    el('#gen-status').textContent = result.samPath
+      ? `Fertig: ${result.path} (+ SAM-Modell)`
+      : 'Fertig: ' + result.path;
     const pipe = el('#gen-pipeline');
     if (pipe) {
       if (result.pipeline === 'go') {

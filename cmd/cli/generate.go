@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
 // runGenerate is the headless generate path for release testing
@@ -77,5 +79,12 @@ func runGenerate(args []string) int {
 		return 1
 	}
 	fmt.Println(out)
+	if script, err := funscript.Load(out); err == nil && funscript.IsDistanceProfile(script.Metadata.Profile) {
+		if err := sam.WriteEnrichedSidecar(out, script); err != nil {
+			fmt.Fprintln(os.Stderr, "sam sidecar:", err)
+		} else {
+			fmt.Fprintln(os.Stderr, "sam:", sam.SidecarPath(out))
+		}
+	}
 	return 0
 }

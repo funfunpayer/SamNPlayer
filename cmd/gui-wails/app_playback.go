@@ -68,7 +68,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	// Tf/Tj + Kontakt: SAM-Modell dazwischen (Intensity/Gaps), Datei bleibt .funscript.
 	var frames []funscript.Frame
 	if contactOn {
-		frames = sam.PlaybackFramesFromFunscript(script, mapOpts)
+		frames = a.contactFrames(script, mapOpts)
 	} else {
 		frames = script.ToIntensityCurve(mapOpts)
 	}
@@ -124,7 +124,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		}
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
 		if contactOn {
-			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv (SAM-Intensity)")
+			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv (SAM)")
 		}
 		var playErr error
 		if opts.UseVideoSync {
@@ -294,10 +294,7 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	if opts.TickMs < 10 {
 		opts.TickMs = 10
 	}
-	frames := sam.PlaybackFramesFromFunscript(script, opts)
-	if len(frames) == 0 {
-		frames = script.ToIntensityCurve(opts)
-	}
+	frames := a.contactFrames(script, opts)
 	out := make([]VibrationCurvePoint, 0, len(frames))
 	any := false
 	for _, f := range frames {
@@ -339,6 +336,22 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 		points[i] = HeatmapPoint{AtMs: f.At, Intensity: intensity}
 	}
 	return points, nil
+}
+
+// contactFrames: bevorzugt vorhandenes .sam-Sidecar, sonst Enrich aus dem Funscript.
+func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
+	if path := a.loadedScriptPath(); path != "" {
+		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil {
+			if frames := sam.ToDeviceFrames(s, mapOpts); len(frames) > 0 {
+				return frames
+			}
+		}
+	}
+	frames := sam.PlaybackFramesFromFunscript(script, mapOpts)
+	if len(frames) == 0 {
+		return script.ToIntensityCurve(mapOpts)
+	}
+	return frames
 }
 
 func (a *App) SetScriptOffset(ms int64) {

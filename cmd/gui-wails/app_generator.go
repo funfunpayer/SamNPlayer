@@ -13,6 +13,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
 func (a *App) CheckGeneratorDependencies() error {
@@ -288,6 +289,15 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				} else if zone.OK {
 					payload["oZoneMarkerStartMs"] = zone.StartMs
 					payload["oZoneMarkerEndMs"] = zone.EndMs
+				}
+			}
+			// Tf/Tj: SAM-Sidecar neben dem Funscript (Modell, kein Format-Ersatz).
+			if funscript.IsDistanceProfile(script.Metadata.Profile) {
+				if err := sam.WriteEnrichedSidecar(outPath, script); err != nil {
+					logging.Warn("generator: SAM-Sidecar nicht geschrieben", "output", outPath, "fehler", err)
+				} else {
+					payload["samPath"] = sam.SidecarPath(outPath)
+					logging.Info("generator: SAM-Sidecar geschrieben", "path", payload["samPath"])
 				}
 			}
 		} else {

@@ -22,6 +22,8 @@ measurement history behind each entry; this file is the short version for
   from tracking gaps + Tf/contact recipe; Tf/contact **playback** consumes
   SAM Intensity (`PlaybackFramesFromFunscript`). `.funscript` remains the
   file format — SAM is the motion model, not a new Funscript format.
+  Tf/Tj generate also writes a `.sam` sidecar; playback prefers it when
+  present.
 
 ## [0.5.3] — September 17, 2026
 
