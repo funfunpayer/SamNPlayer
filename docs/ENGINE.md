@@ -27,8 +27,8 @@ end-user runtime should eventually need no Python install.
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)
 - Phase Analyzer core + CLI (`phase`, `compare`)
 - Script Doctor (Go) + dense Quality Doctor on native CSRT / simpletrack
-- Opt-in Go pipeline (`trackcv` CSRT when OpenCV linked; else
-  `simpletrack` NCC/SAD over ffmpeg — Windows without Python)
+- Opt-in Go pipeline → **automatic** for single-ROI CSRT (`trackcv` when
+  OpenCV linked; else `simpletrack` — Windows without Python)
 - Tf/Tj suction double-floor fix; trackcv `valid`/`confidence`/`reason`
 - Device diagnostics (software-measurable only)
 - `GenerateWithContext` cancel tests (Python + native)

@@ -23,8 +23,8 @@ func NativeGoGenerateAvailable() bool {
 }
 
 // GenerateNativeSimple runs simpletrack (videox NCC) + posttrack without
-// Python/OpenCV. Used when NativePipeline is on and CSRT/OpenCV is not
-// linked — notably Windows release builds.
+// Python/OpenCV. Used automatically when NativePipeline is eligible and
+// CSRT/OpenCV is not linked — notably Windows release builds.
 func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -97,86 +97,152 @@ func finishNativeGenerate(
 		ts[i] = float64(v)
 	}
 
-	postOpts := posttrack.DefaultOptions()
-	postOpts.Invert = opts.Invert
-	if opts.SmoothWindow > 0 {
-		postOpts.SmoothWindow = opts.SmoothWindow
-	}
-	if opts.MinPeakDistanceMs > 0 {
-		postOpts.MinPeakDistanceMs = opts.MinPeakDistanceMs
-	}
-	postOpts.RDPTolerance = opts.RDPTolerance
-	if opts.NormPercentile > 0 {
-		postOpts.NormPercentile = opts.NormPercentile
-	} else if opts.NormPercentile < 0 {
-		postOpts.NormPercentile = 0
-	}
-	postOpts.AdaptiveError = opts.AdaptiveKeyframeError
-	if opts.MinActionIntervalMs > 0 {
-		postOpts.MinIntervalMs = opts.MinActionIntervalMs
-	} else if opts.MinActionIntervalMs < 0 {
-		postOpts.MinIntervalMs = 0
-	}
-	postOpts.DynamicRangeMs = opts.DynamicRangeMs
-	postOpts.PeakProminence = opts.PeakProminence
-	if opts.Profile == "weich" {
-		if postOpts.PeakProminence == 0 {
-			postOpts.PeakProminence = 0.35
+	buildPost := func(smooth, peakDist int, adaptive, normPct float64) (posttrack.Options, error) {
+		postOpts := posttrack.DefaultOptions()
+		postOpts.Invert = opts.Invert
+		if smooth > 0 {
+			postOpts.SmoothWindow = smooth
 		}
-		if opts.MinPeakDistanceMs == 0 {
-			postOpts.MinPeakDistanceMs = 200
+		if peakDist > 0 {
+			postOpts.MinPeakDistanceMs = peakDist
 		}
-		if postOpts.DynamicRangeMs == 0 {
-			postOpts.DynamicRangeMs = 3000
+		postOpts.RDPTolerance = opts.RDPTolerance
+		if normPct > 0 {
+			postOpts.NormPercentile = normPct
+		} else if normPct < 0 {
+			postOpts.NormPercentile = 0
 		}
+		postOpts.AdaptiveError = adaptive
+		if opts.MinActionIntervalMs > 0 {
+			postOpts.MinIntervalMs = opts.MinActionIntervalMs
+		} else if opts.MinActionIntervalMs < 0 {
+			postOpts.MinIntervalMs = 0
+		}
+		postOpts.DynamicRangeMs = opts.DynamicRangeMs
+		postOpts.PeakProminence = opts.PeakProminence
+		if opts.Profile == "weich" {
+			if postOpts.PeakProminence == 0 {
+				postOpts.PeakProminence = 0.35
+			}
+			if peakDist == 0 {
+				postOpts.MinPeakDistanceMs = 200
+			}
+			if postOpts.DynamicRangeMs == 0 {
+				postOpts.DynamicRangeMs = 3000
+			}
+		}
+		return postOpts, nil
 	}
 
-	result, err := posttrack.PositionsToActions(ts, tr.Positions, postOpts)
+	smooth := opts.SmoothWindow
+	peakDist := opts.MinPeakDistanceMs
+	adaptive := opts.AdaptiveKeyframeError
+	normPct := opts.NormPercentile
+
+	runSignal := func(smooth, peakDist int, adaptive, normPct float64) ([]funscript.Action, posttrack.Result, funscript.ScriptQualityResult, error) {
+		postOpts, _ := buildPost(smooth, peakDist, adaptive, normPct)
+		result, err := posttrack.PositionsToActions(ts, tr.Positions, postOpts)
+		if err != nil {
+			return nil, posttrack.Result{}, funscript.ScriptQualityResult{}, err
+		}
+		actions := result.Actions
+		if opts.MaxSpeed > 0 {
+			actions, _ = posttrack.LimitSpeed(actions, opts.MaxSpeed)
+		}
+		if funscript.IsDistanceProfile(opts.Profile) {
+			actions = posttrack.ClampActionsPos(actions, 20, 90)
+		}
+		var lostFrac *float64
+		if tr.TotalFrames > 0 {
+			f := float64(tr.LostFrames) / float64(tr.TotalFrames)
+			lostFrac = &f
+		}
+		var motionFrac *float64
+		if tr.Height > 0 && tr.VertRange > 0 {
+			f := tr.VertRange / float64(tr.Height)
+			motionFrac = &f
+		}
+		var durationMs *float64
+		if len(actions) > 0 {
+			d := float64(actions[len(actions)-1].At)
+			durationMs = &d
+		}
+		quality := funscript.EvaluateDenseQuality(actions, funscript.DenseQualityInput{
+			DenseAt:             result.DenseAt,
+			DensePos:            result.DensePos,
+			TrackerLostFraction: lostFrac,
+			MotionRangeFraction: motionFrac,
+			VideoDurationMs:     durationMs,
+			ValidFrames:         tr.ValidFrames,
+			Confidence:          tr.Confidence,
+			Reason:              tr.Reason,
+		})
+		return actions, result, quality, nil
+	}
+
+	actions, _, quality, err := runSignal(smooth, peakDist, adaptive, normPct)
 	if err != nil {
 		return fmt.Errorf("generator/native: signal path: %w", err)
 	}
-	actions := result.Actions
 	if opts.MaxSpeed > 0 {
-		var changed int
-		actions, changed = posttrack.LimitSpeed(actions, opts.MaxSpeed)
-		if changed > 0 {
-			progress(fmt.Sprintf("%d Aktion(en) auf %.0f Einheiten/s begrenzt", changed, opts.MaxSpeed))
+		progress(fmt.Sprintf("Geschwindigkeitsbegrenzung aktiv (%.0f Einheiten/s)", opts.MaxSpeed))
+	}
+
+	// Auto-Retry: vary signal params only (same as Python). Tracking issues
+	// are not retriable here.
+	if opts.AutoRetry && !quality.Passed {
+		lostHeavy := tr.TotalFrames > 0 && float64(tr.LostFrames)/float64(tr.TotalFrames) > 0.5
+		motionTiny := tr.Height > 0 && tr.VertRange/float64(tr.Height) < 0.03
+		if lostHeavy || motionTiny {
+			progress("Auto-Retry übersprungen: Problem liegt im Tracking, nicht in der Signalverarbeitung")
+		} else {
+			type cand struct {
+				smooth, peakDist int
+				adaptive, norm   float64
+			}
+			baseSmooth := smooth
+			if baseSmooth <= 0 {
+				baseSmooth = 11
+			}
+			basePeak := peakDist
+			if basePeak <= 0 {
+				basePeak = 150
+			}
+			candidates := []cand{
+				{max(5, baseSmooth-4), basePeak, adaptive, normPct},
+				{baseSmooth + 10, basePeak, adaptive, normPct},
+				{baseSmooth + 20, max(250, basePeak*2), adaptive, normPct},
+				{baseSmooth, basePeak, adaptive, 0},
+			}
+			progress(fmt.Sprintf("Qualitätsprüfung nicht bestanden (Score %.2f) — probiere %d alternative Signalparameter",
+				quality.Score, len(candidates)))
+			bestActions, bestQuality := actions, quality
+			for _, c := range candidates {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				acts, _, q, err := runSignal(c.smooth, c.peakDist, c.adaptive, c.norm)
+				if err != nil {
+					continue
+				}
+				if q.Score > bestQuality.Score {
+					bestActions, bestQuality = acts, q
+				}
+				if q.Passed {
+					break
+				}
+			}
+			actions, quality = bestActions, bestQuality
+			progress(fmt.Sprintf("Bestes Ergebnis nach Auto-Retry: Score %.2f passed=%v", quality.Score, quality.Passed))
 		}
 	}
-	if funscript.IsDistanceProfile(opts.Profile) {
-		actions = posttrack.ClampActionsPos(actions, 20, 90)
-	}
+
 	progress(fmt.Sprintf("%d Keyframes aus %d Frames", len(actions), len(tr.TimestampsMs)))
 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	var lostFrac *float64
-	if tr.TotalFrames > 0 {
-		f := float64(tr.LostFrames) / float64(tr.TotalFrames)
-		lostFrac = &f
-	}
-	var motionFrac *float64
-	if tr.Height > 0 && tr.VertRange > 0 {
-		f := tr.VertRange / float64(tr.Height)
-		motionFrac = &f
-	}
-	var durationMs *float64
-	if len(actions) > 0 {
-		d := float64(actions[len(actions)-1].At)
-		durationMs = &d
-	}
-	quality := funscript.EvaluateDenseQuality(actions, funscript.DenseQualityInput{
-		DenseAt:             result.DenseAt,
-		DensePos:            result.DensePos,
-		TrackerLostFraction: lostFrac,
-		MotionRangeFraction: motionFrac,
-		VideoDurationMs:     durationMs,
-		ValidFrames:         tr.ValidFrames,
-		Confidence:          tr.Confidence,
-		Reason:              tr.Reason,
-	})
 	progress(fmt.Sprintf("Quality Doctor (dense): score=%.2f passed=%v", quality.Score, quality.Passed))
 
 	if err := writeNativeFunscriptNamed(outputPath, actions, opts, tr, quality, tracking, backend); err != nil {
