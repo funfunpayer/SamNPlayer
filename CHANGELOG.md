@@ -48,6 +48,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **CI installs ffmpeg in the Go jobs** so `videox` tests actually run
+  instead of `t.Skip("ffmpeg not available")` — that skip made the Go
+  job permanently green while the same tests caught `FrameReader.Close`
+  locally. Both `go` and `go-opencv` install ffmpeg now.
 - **`update` package unit tests** (`IsNewer`, `AssetForThisPlatform`,
   `Describe`, URL validation) — coverage was previously ~0%.
 - **`generator/posttrack` + optional Go generation path (experimental)**:

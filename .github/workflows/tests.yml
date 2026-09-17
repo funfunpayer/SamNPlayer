@@ -32,6 +32,17 @@ jobs:
       # (generator/trackcv + native_track_opencv.go) is opt-in via the
       # opencv build tag — see the go-opencv job below.
 
+      # ffmpeg: videox_test.go skips with t.Skip("ffmpeg not available") when
+      # missing — so the Go job stayed green in CI while the same test
+      # reliably caught FrameReader.Close bugs locally. Without ffmpeg the
+      # whole video path is untested in CI.
+      - name: ffmpeg installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          command -v ffmpeg
+          ffmpeg -version | head -1
+
       # cmd/gui-wails bindet frontend/dist per go:embed ein. Das Verzeichnis
       # ist ein Bauartefakt und liegt zu Recht nicht im Repository - ohne
       # diesen Schritt scheitert aber schon "go build" auf einem frischen
@@ -84,10 +95,14 @@ jobs:
         with:
           node-version: "22"
 
-      - name: OpenCV-Entwicklungspakete installieren
+      - name: OpenCV + ffmpeg installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopencv-dev pkg-config
+          # libopencv-dev: native CSRT (-tags opencv).
+          # ffmpeg: videox tests must actually run (see go job comment).
+          sudo apt-get install -y libopencv-dev pkg-config ffmpeg
+          command -v ffmpeg
+          ffmpeg -version | head -1
 
       - name: Frontend bauen
         working-directory: cmd/gui-wails/frontend
