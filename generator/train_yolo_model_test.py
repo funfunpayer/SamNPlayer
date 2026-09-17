@@ -1,24 +1,39 @@
 """Test für train_yolo_model.py.
 
-Läuft OHNE echtes Training (kein GPU-Zeitbudget, kein Netzzugriff für
-Gewichte-Downloads) - geprüft werden die beiden Teile, die ohne ein
-laufendes Training testbar UND es wert sind: der Fail-Fast-Schutz bei
-fehlendem Datensatz (feuert VOR dem teuren YOLO(base_model)-Aufruf, siehe
-train_and_export) und dass main() die CLI-Argumente mit den richtigen
-Standardwerten an train_and_export durchreicht - eine GUI/CLI-Option, die
-dort nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
+Läuft OHNE echtes Training und OHNE dass ultralytics installiert sein muss
+- geprüfte Teile: Fail-Fast, Geräteauflösung (auto/cuda/directml/mps/cpu),
+--list-devices, CLI-Defaults. ultralytics wird wo nötig per sys.modules
+simuliert (wie beim available()-Negativtest).
 
 Ausführen: python3 generator/train_yolo_model_test.py
 """
 
 import io
+import json
 import os
 import sys
 import tempfile
+import types
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
 import train_yolo_model
+
+
+def _fake_ultralytics(train_fn=None):
+    """Minimales ultralytics-Modul, damit 'from ultralytics import YOLO' geht."""
+    mod = types.ModuleType("ultralytics")
+
+    class YOLO:
+        def __init__(self, *a, **k):
+            pass
+
+        def train(self, **kwargs):
+            if train_fn:
+                train_fn(kwargs)
+
+    mod.YOLO = YOLO
+    return mod
 
 
 def main():
@@ -29,16 +44,8 @@ def main():
         if not cond:
             failures.append(name)
 
-    # --- available()/--check: ehrliche Antwort, kein roher Traceback -----------
-    # ultralytics ist in dieser Testumgebung installiert - available() prüft
-    # das also tatsächlich, nicht nur formal.
-    check("available() meldet True, wenn ultralytics installiert ist",
-          train_yolo_model.available() is True, "")
-
+    # --- available()/--check -------------------------------------------------
     with patch.dict(sys.modules, {"ultralytics": None}):
-        # sys.modules[name] = None lässt 'import ultralytics' zuverlässig mit
-        # ImportError scheitern (Python-eigener Mechanismus), ohne das Paket
-        # in dieser Testumgebung wirklich deinstallieren zu müssen.
         check("available() meldet False, wenn ultralytics fehlt (simuliert)",
               train_yolo_model.available() is False, "")
 
@@ -59,51 +66,103 @@ def main():
         check("--check meldet UNAVAILABLE ohne ultralytics",
               out.getvalue().strip() == "UNAVAILABLE", repr(out.getvalue()))
 
+    with patch.dict(sys.modules, {"ultralytics": _fake_ultralytics()}):
+        check("available() meldet True mit simuliertem ultralytics",
+              train_yolo_model.available() is True, "")
+        out = io.StringIO()
+        with redirect_stdout(out):
+            sys.argv = ["train_yolo_model.py", "--check"]
+            train_yolo_model.main()
+        check("--check meldet AVAILABLE mit simuliertem ultralytics",
+              out.getvalue().strip() == "AVAILABLE", repr(out.getvalue()))
+
+    # --- list_devices / --list-devices ---------------------------------------
+    devices = train_yolo_model.list_devices()
+    ids = [d["id"] for d in devices]
+    check("list_devices enthält auto/cuda/directml/mps/cpu",
+          ids == ["auto", "cuda", "directml", "mps", "cpu"], str(ids))
+    check("auto und cpu sind immer available",
+          devices[0]["available"] is True and devices[-1]["available"] is True, str(devices))
+
     out = io.StringIO()
     with redirect_stdout(out):
-        sys.argv = ["train_yolo_model.py", "--check"]
+        sys.argv = ["train_yolo_model.py", "--list-devices"]
         train_yolo_model.main()
-    check("--check meldet AVAILABLE mit installiertem ultralytics",
-          out.getvalue().strip() == "AVAILABLE", repr(out.getvalue()))
+    parsed = json.loads(out.getvalue())
+    check("--list-devices liefert JSON-Liste", isinstance(parsed, list) and len(parsed) == 5,
+          repr(out.getvalue()[:200]))
 
-    # --- train_and_export: klare Fehlermeldung statt stillem Ultralytics-Rauschen ---
-    with tempfile.TemporaryDirectory() as tmp:
+    # --- resolve_device ------------------------------------------------------
+    with patch.object(train_yolo_model, "_cuda_available", return_value=True), \
+         patch.object(train_yolo_model, "_mps_available", return_value=False), \
+         patch.object(train_yolo_model, "_directml_device", return_value=None):
+        check("auto → cuda wenn CUDA da", train_yolo_model.resolve_device("auto") == "0")
+        check("cuda → 0", train_yolo_model.resolve_device("cuda") == "0")
+
+    with patch.object(train_yolo_model, "_cuda_available", return_value=False), \
+         patch.object(train_yolo_model, "_mps_available", return_value=False), \
+         patch.object(train_yolo_model, "_directml_device", return_value="dml-fake"):
+        check("auto → directml ohne CUDA/MPS",
+              train_yolo_model.resolve_device("auto") == "dml-fake")
+        check("directml explizit", train_yolo_model.resolve_device("directml") == "dml-fake")
+
+    with patch.object(train_yolo_model, "_cuda_available", return_value=False), \
+         patch.object(train_yolo_model, "_mps_available", return_value=False), \
+         patch.object(train_yolo_model, "_directml_device", return_value=None):
+        check("auto → cpu ohne GPU", train_yolo_model.resolve_device("auto") == "cpu")
         try:
-            train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
-            check("wirft bei fehlender data.yaml", False)
+            train_yolo_model.resolve_device("cuda")
+            check("cuda ohne GPU wirft", False)
         except RuntimeError as exc:
-            check("wirft RuntimeError bei fehlender data.yaml", "data.yaml" in str(exc), str(exc))
-            check("Fehlermeldung verweist auf bootstrap_yolo_dataset.py",
-                  "bootstrap_yolo_dataset.py" in str(exc), str(exc))
+            check("cuda ohne GPU nennt DirectML als Alternative",
+                  "directml" in str(exc).lower(), str(exc))
+        try:
+            train_yolo_model.resolve_device("directml")
+            check("directml ohne torch-directml wirft", False)
+        except RuntimeError as exc:
+            check("directml-Fehler nennt torch-directml",
+                  "torch-directml" in str(exc), str(exc))
 
-    # --- train_and_export ruft model.train() mit batch=-1 auf --------------
-    # (Autobatch statt fester Batchgröße 16 - sonst laufen Karten mit wenig
-    # VRAM, z.B. eine GTX 1650 mit 4GB, beim Training leicht in ein "CUDA
-    # out of memory", obwohl yolov8n mit kleinerer Batchgröße passen würde).
-    # ultralytics.YOLO wird gepatcht statt eines echten Trainingslaufs - der
-    # Fake bricht danach bewusst ab (keine best.pt), das Training selbst ist
-    # nicht Teil dieses Tests.
+    check("cpu passthrough", train_yolo_model.resolve_device("cpu") == "cpu")
+    check("numerischer Index passthrough", train_yolo_model.resolve_device("1") == "1")
+
+    # --- train_and_export: data.yaml Fail-Fast (ultralytics simuliert) -------
+    with patch.dict(sys.modules, {"ultralytics": _fake_ultralytics()}):
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
+                check("wirft bei fehlender data.yaml", False)
+            except RuntimeError as exc:
+                check("wirft RuntimeError bei fehlender data.yaml",
+                      "data.yaml" in str(exc), str(exc))
+                check("Fehlermeldung verweist auf bootstrap_yolo_dataset.py",
+                      "bootstrap_yolo_dataset.py" in str(exc), str(exc))
+
+    # --- train_and_export: batch=-1 + resolved device ------------------------
+    captured_train_kwargs = {}
+
+    def capture_train(kwargs):
+        captured_train_kwargs.update(kwargs)
+
     with tempfile.TemporaryDirectory() as tmp:
         with open(os.path.join(tmp, "data.yaml"), "w") as f:
             f.write("path: .\ntrain: images/train\nval: images/val\nnames:\n  0: x\n")
-        captured_train_kwargs = {}
-
-        class FakeModel:
-            def train(self, **kwargs):
-                captured_train_kwargs.update(kwargs)
-
-        with patch("ultralytics.YOLO", return_value=FakeModel()):
+        with patch.dict(sys.modules, {"ultralytics": _fake_ultralytics(capture_train)}), \
+             patch.object(train_yolo_model, "resolve_device", return_value="cpu"):
             try:
-                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
+                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"),
+                                                   device="auto")
             except RuntimeError:
-                pass  # erwartet - der Fake schreibt keine best.pt, s.o.
+                pass  # erwartet - Fake schreibt keine best.pt
         check("model.train() bekommt batch=-1 (Autobatch statt fester Größe)",
               captured_train_kwargs.get("batch") == -1, str(captured_train_kwargs))
+        check("model.train() bekommt aufgelöstes Gerät",
+              captured_train_kwargs.get("device") == "cpu", str(captured_train_kwargs))
 
-    # --- main(): CLI-Argumente erreichen train_and_export mit den erwarteten Werten ---
+    # --- main(): CLI-Argumente -----------------------------------------------
     captured = {}
 
-    def fake_train_and_export(dataset_dir, output_path, epochs=100, device="cuda",
+    def fake_train_and_export(dataset_dir, output_path, epochs=100, device="auto",
                                imgsz=640, base_model="yolov8n.pt", project_dir=None,
                                run_name="samnplayer_roi"):
         captured.clear()
@@ -119,16 +178,19 @@ def main():
               captured.get("dataset_dir") == "/tmp/ds" and captured.get("output_path") == "/tmp/out.onnx",
               str(captured))
         check("Standard-Epochen 100", captured.get("epochs") == 100, str(captured))
-        check("Standard-Gerät cuda (Nvidia-GPU vorausgesetzt)", captured.get("device") == "cuda", str(captured))
+        check("Standard-Gerät auto (CUDA→MPS→DirectML→CPU)",
+              captured.get("device") == "auto", str(captured))
         check("Standard-Bildgröße 640", captured.get("imgsz") == 640, str(captured))
         check("Standard-Basismodell yolov8n.pt (kleinstes/schnellstes)",
               captured.get("base_model") == "yolov8n.pt", str(captured))
 
         sys.argv = ["train_yolo_model.py", "--dataset-dir", "/tmp/ds", "--output", "/tmp/out.onnx",
-                    "--epochs", "5", "--device", "cpu", "--imgsz", "320", "--base-model", "yolov8s.pt"]
+                    "--epochs", "5", "--device", "directml", "--imgsz", "320",
+                    "--base-model", "yolov8s.pt"]
         train_yolo_model.main()
         check("--epochs überschreibt den Standardwert", captured.get("epochs") == 5, str(captured))
-        check("--device überschreibt den Standardwert", captured.get("device") == "cpu", str(captured))
+        check("--device überschreibt den Standardwert",
+              captured.get("device") == "directml", str(captured))
         check("--imgsz überschreibt den Standardwert", captured.get("imgsz") == 320, str(captured))
         check("--base-model überschreibt den Standardwert",
               captured.get("base_model") == "yolov8s.pt", str(captured))

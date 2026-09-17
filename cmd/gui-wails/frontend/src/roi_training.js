@@ -1,10 +1,11 @@
 import {
   PickVideoFile, LoadFirstFrame, BootstrapRoiTrainingSample, RunRoiModelTraining,
   ListRoiTrainingSamples, DiscardRoiTrainingSample, GetRoiDatasetSummary,
-  GetRoiTrainingSampleImage, CheckRoiTrainingAvailable,
+  GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, ListRoiTrainingDevices,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
+import { wireDataHelp } from './help.js';
 
 // KI-Trainingssystem: sammelt Trainingsdaten für ein YOLO-Regionserkennungs-
 // modell direkt aus Videos, die durch die App laufen (statt nur über die
@@ -26,11 +27,8 @@ export function initRoiTraining(root) {
   root.innerHTML = `
     <h2>KI-Trainingssystem</h2>
     <p class="hint">
-      Sammelt Trainingsbeispiele für ein eigenes YOLO-Regionserkennungsmodell aus Videos,
-      die hier durchlaufen - klassisches Tracking markiert die Region automatisch, die
-      Kontrollansicht darunter lässt falsch getrackte Beispiele vor dem Training aussortieren.
-      Das bestehende manuelle Markieren im Generator-Tab bleibt davon unberührt und weiterhin
-      der zuverlässige Weg.
+      Trainingsbeispiele aus Videos sammeln → falsch Getracktes aussortieren → lokal trainieren.
+      Das manuelle Markieren im Generator-Tab bleibt der zuverlässige Weg ohne eigenes Modell.
     </p>
 
     <h3>1. Trainingsdaten sammeln</h3>
@@ -42,29 +40,32 @@ export function initRoiTraining(root) {
       <canvas id="rt-canvas"></canvas>
     </div>
     <div class="row" style="align-items:center;">
-      <button id="rt-roi2-toggle" type="button">2. Region</button>
-      <span class="hint" style="margin:0">Shift+Ziehen oder Knopf: zweite Region (violett), optional.</span>
+      <button id="rt-roi2-toggle" type="button"
+        data-help="Zweite Region (violett) für mehrklassige Beispiele, z.B. Eichel + Brustwarze. Auch per Shift+Ziehen.">2. Region</button>
+      <span class="hint" style="margin:0">Optional, zweite Klasse.</span>
     </div>
-    <div class="field-row"><label>Klasse (Region 1)</label>
+    <div class="field-row"><label data-help="Klassenname für Region 1 im YOLO-Datensatz (z.B. brust).">Klasse (Region 1)</label>
       <input type="text" id="rt-class1" list="rt-class-list" placeholder="z.B. brust" />
     </div>
-    <div class="field-row"><label>Klasse (Region 2)</label>
+    <div class="field-row"><label data-help="Klassenname für Region 2, nur wenn eine zweite Box markiert ist.">Klasse (Region 2)</label>
       <input type="text" id="rt-class2" list="rt-class-list" placeholder="z.B. hand" disabled />
     </div>
     <datalist id="rt-class-list"></datalist>
     <div class="path-label" id="rt-roi-label">Keine Region markiert</div>
     <div class="path-label" id="rt-roi2-label">Keine 2. Region markiert</div>
-    <div class="row"><button id="rt-bootstrap" class="primary" disabled>Für Training verwenden</button></div>
+    <div class="row"><button id="rt-bootstrap" class="primary" disabled
+      data-help="Trackt die markierte(n) Region(en) durchs Video und hängt die Frames als YOLO-Beispiele an den Datensatz an.">Für Training verwenden</button></div>
     <div class="path-label" id="rt-bootstrap-status"></div>
     <pre id="rt-bootstrap-log" class="hint" style="max-height:120px; overflow:auto; white-space:pre-wrap; margin:0 0 10px;"></pre>
 
     <h3>2. Kontrollansicht</h3>
-    <div class="field-row"><label>Datensatzordner</label>
+    <div class="field-row"><label data-help="Ordner mit images/ und labels/ aus dem Bootstrap. Standard liegt unter den App-Einstellungen.">Datensatzordner</label>
       <input type="text" id="rt-dataset-dir" style="flex:1" />
     </div>
     <div class="row" style="align-items:center;">
       <button id="rt-refresh-review" type="button">Aktualisieren</button>
-      <label class="hint" style="margin:0"><input type="checkbox" id="rt-only-new" checked /> nur zuletzt hinzugekommene</label>
+      <label class="hint" style="margin:0"
+        data-help="Zeigt nur Beispiele des letzten Bootstrap-Laufs statt den ganzen Datensatz."><input type="checkbox" id="rt-only-new" checked /> nur zuletzt hinzugekommene</label>
     </div>
     <div id="rt-review-grid" class="hint">Noch keine Beispiele geladen.</div>
 
@@ -73,17 +74,20 @@ export function initRoiTraining(root) {
     <div id="rt-summary" class="hint"></div>
 
     <h3>4. Modell trainieren</h3>
-    <p class="hint">Läuft lokal auf dieser Maschine (braucht eine CUDA-fähige GPU für
-      brauchbare Trainingszeiten - auf der CPU dauert selbst ein kleiner Datensatz sehr lange).
-      Das trainierte Modell landet direkt am KI-Modellpfad der Einstellungen und ist danach
-      ohne weiteren Schritt im Generator-Tab nutzbar (Häkchen "KI-Erkennung").</p>
-    <div class="field-row"><label>Epochen</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
-    <div class="field-row"><label>Gerät</label>
+    <p class="hint">Lokal auf dieser Maschine. Gerät: Auto wählt CUDA → MPS → DirectML → CPU.
+      Unter Windows ohne NVIDIA: DirectML (pip install torch-directml). Fertiges Modell landet
+      am KI-Modellpfad und ist danach unter „KI-Erkennung“ nutzbar.</p>
+    <div class="field-row"><label data-help="Anzahl Trainingsdurchläufe über den Datensatz. 50–100 ist für kleine Sets üblich.">Epochen</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
+    <div class="field-row"><label data-help="auto = bestes verfügbares Backend. CUDA = NVIDIA. DirectML = Windows AMD/Intel (torch-directml). MPS = Apple Silicon. CPU immer möglich, aber sehr langsam.">Gerät</label>
       <select id="rt-device">
-        <option value="cuda" selected>GPU (CUDA)</option>
+        <option value="auto" selected>Automatisch</option>
+        <option value="cuda">NVIDIA CUDA</option>
+        <option value="directml">DirectML (Windows)</option>
+        <option value="mps">Apple MPS</option>
         <option value="cpu">CPU (sehr langsam)</option>
       </select>
     </div>
+    <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Training starten</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
       ultralytics ist nicht installiert (nur fürs Trainieren nötig, nicht fürs Sammeln von
@@ -93,6 +97,8 @@ export function initRoiTraining(root) {
     <div class="path-label" id="rt-train-status"></div>
     <pre id="rt-train-log" class="hint" style="max-height:240px; overflow:auto; white-space:pre-wrap;"></pre>
   `;
+
+  wireDataHelp(root);
 
   const el = sel => root.querySelector(sel);
   const canvas = el('#rt-canvas');
@@ -439,5 +445,26 @@ export function initRoiTraining(root) {
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
   }).catch(() => {
     el('#rt-train-unavailable').style.display = 'block';
+  });
+
+  // Geräteauswahl aus train_yolo_model --list-devices (CUDA/DirectML/MPS/CPU).
+  // Nicht verfügbare Einträge bleiben wählbar (klare Fehlermeldung beim Start),
+  // werden aber im Label markiert — Auto bleibt Standard.
+  ListRoiTrainingDevices().then(devices => {
+    if (!Array.isArray(devices) || !devices.length) return;
+    const sel = el('#rt-device');
+    const current = sel.value || 'auto';
+    sel.innerHTML = devices.map(d => {
+      const mark = d.available ? '' : ' — nicht erkannt';
+      return `<option value="${d.id}">${d.label}${mark}</option>`;
+    }).join('');
+    if ([...sel.options].some(o => o.value === current)) sel.value = current;
+    else sel.value = 'auto';
+    const avail = devices.filter(d => d.available && d.id !== 'auto').map(d => d.id);
+    el('#rt-device-status').textContent = avail.length
+      ? ('Erkannt: ' + avail.join(', '))
+      : 'Kein GPU-Backend erkannt — Auto fällt auf CPU zurück.';
+  }).catch(() => {
+    el('#rt-device-status').textContent = '';
   });
 }

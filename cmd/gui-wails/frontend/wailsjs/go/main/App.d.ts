@@ -77,6 +77,8 @@ export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
 
+export function ListRoiTrainingDevices():Promise<Array<generator.RoiTrainingDevice>>;
+
 export function ListRoiTrainingSamples(arg1:string,arg2:string):Promise<Array<main.RoiTrainingSample>>;
 
 export function LoadFirstFrame(arg1:string):Promise<main.FramePreview>;

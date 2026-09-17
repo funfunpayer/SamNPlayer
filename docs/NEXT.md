@@ -1765,8 +1765,10 @@ git history rather than rebuilding from scratch.
   clamp (0.20→0.36 / 0.90→0.92). Script Doctor (`generator.ScriptQuality`)
   now runs in pure Go via `funscript.EvaluateScriptQuality` — no Python
   for “Skript prüfen”. Larger ideas (4-zone relative graph, PTS timeline,
-  accelerator abstraction, 63 BPM attractor) stay deferred until golden-
-  clip / hardware evidence supports them.
+  full WinML inference stack, 63 BPM attractor) stay deferred until
+  golden-clip / hardware evidence supports them. Practical training-side
+  device switch shipped: `train_yolo_model --device auto|cuda|directml|mps|cpu`
+  + GUI dropdown (`ListRoiTrainingDevices`).
 
 - **Research pack + Go Phase Analyzer (September 16, 2026)** — remaining
   notes (07–10, findings CSV, ADR) live under

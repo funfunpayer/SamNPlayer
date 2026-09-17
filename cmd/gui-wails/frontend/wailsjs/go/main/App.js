@@ -35,6 +35,7 @@ export function GetSettings() { return window['go']['main']['App']['GetSettings'
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
+export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }

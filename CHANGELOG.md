@@ -8,6 +8,19 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **GUI help chips („?“):** Generator- and KI-Training options show a short
+  popover explaining what each toggle/setting does (`help.js` + `data-help`).
+  Long wall-of-text hints in advanced settings were shortened; details live
+  behind the chip. Advanced options grouped (Tracking / Signal / Keyframes).
+- **KI-Training device switch (auto / CUDA / DirectML / MPS / CPU):**
+  `train_yolo_model.py` defaults to `--device auto` (CUDA → MPS → DirectML →
+  CPU). DirectML needs optional `torch-directml` on Windows. GUI dropdown +
+  `ListRoiTrainingDevices` / `--list-devices`. Full WinML inference stack
+  still deferred (`docs/perception_update_2026-09/05_accelerator.md`); this
+  is the practical training-side switch.
+
 ### Fixed
 
 - **`videox.FrameReader.Close` after normal EOF:** cancelling the

@@ -37,7 +37,7 @@ func TestBuildBootstrapArgsTwoRegionsAndPrefix(t *testing.T) {
 
 func TestBuildTrainArgsDefaults(t *testing.T) {
 	// epochs<=0 und device="" sollen kein Flag erzeugen - train_yolo_model.py
-	// hat dafür eigene Standardwerte (100 Epochen, device="cuda"), die dann
+	// hat dafür eigene Standardwerte (100 Epochen, device="auto"), die dann
 	// nicht durch ein leeres/nullwertiges Flag überschrieben werden sollen.
 	args := buildTrainArgs("script.py", "/data", "/models/roi.onnx", 0, "")
 	joined := strings.Join(args, " ")

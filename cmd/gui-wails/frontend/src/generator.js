@@ -1,5 +1,6 @@
 import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
   root.innerHTML = `
@@ -10,9 +11,11 @@ export function initGenerator(root, playback) {
       <button id="gen-check-deps">Abhängigkeiten prüfen</button>
     </div>
     <div class="row" style="align-items:center;">
-      <button id="gen-autoroi" class="primary" disabled>Region automatisch finden</button>
+      <button id="gen-autoroi" class="primary" disabled
+        data-help="Findet eine Startregion über Bewegung im Bild. Danach kannst du die Box von Hand korrigieren.">Region automatisch finden</button>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
-        <label for="gen-ai-roi" style="width:auto">KI-Erkennung (ONNX)</label></span>
+        <label for="gen-ai-roi" style="width:auto"
+          data-help="Nutzt ein lokales ONNX-Modell statt der klassischen Bewegungssuche. Braucht ein trainiertes Modell unter Einstellungen → KI-Regionserkennung. Bleibt aus, wenn onnxruntime oder die Modelldatei fehlen.">KI-Erkennung (ONNX)</label></span>
     </div>
     <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analysiert die Bewegung im Video - danach lässt sich die Region trotzdem von Hand korrigieren.</p>
 
@@ -21,61 +24,53 @@ export function initGenerator(root, playback) {
     </div>
     <div class="path-label" id="gen-roi-label">Keine Region markiert</div>
     <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="gen-roi2-toggle" type="button">2. Region</button>
-      <span class="hint" id="gen-roi2-hint" style="margin:0">Shift+Ziehen oder Knopf: zweite Region (violett). Für Tf/Tj (Abstand + Sog) nötig.</span>
+      <button id="gen-roi2-toggle" type="button"
+        data-help="Zweite Region (violett) für Tf/Tj: Abstand zwischen beiden steuert den Hub, Sog folgt der Position. Auch per Shift+Ziehen.">2. Region</button>
+      <span class="hint" id="gen-roi2-hint" style="margin:0">Für Tf/Tj nötig.</span>
     </div>
     <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
 
     <div class="row" style="align-items:center;">
-      <label style="width:auto;">Bewegungsart</label>
+      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Tf/Tj braucht zwei Regionen und steuert Sog über den Abstand.">Bewegungsart</label>
       <select id="gen-profile">
         <option value="standard">Hubbewegung (Standard)</option>
         <option value="weich">Weiches Gewebe (schwingt nach)</option>
         <option value="tf">Tf/Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf und Tj sind intern dasselbe
-      Rezept (Abstand zweier Regionen, Sog folgt) - darum nur ein Eintrag. Wird automatisch
-      ausgewählt, sobald eine 2. Region markiert wird. „Weiches Gewebe" behandelt Nachschwingungen
-      nicht als eigene Hübe. An einem Testvideo mit Anstoß alle 800 ms: 81 Keyframes werden
-      zu 42 — den Anstößen selbst. Saubere Hubsignale bleiben davon unberührt.</p>
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf/Tj = Abstand + Sog. „Weiches Gewebe“ filtert Nachschwingen.</p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-      Tf/Tj (Abstand + Sog): zwei Regionen markieren (erste Region ziehen, dann Shift+Ziehen
-      oder „2. Region“ für die zweite, violett). Der Abstand zwischen beiden steuert den Hub;
-      Sog folgt der Position. Vibration bleibt 0, außer „Kontakt-Vibration" unten ist
-      aktiviert — kein Akt-Detektor, reine Abstandsmessung.
+      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position. Vibration nur mit „Kontakt-Vibration“.
     </p>
     <div class="checkbox-row" id="gen-contact-vibration-row" style="display:none;">
       <input type="checkbox" id="gen-contact-vibration" />
-      <label for="gen-contact-vibration">Kontakt-Vibration: vibriert zusätzlich zum Sog, sobald
-        ROI1 nahe an ROI2 herankommt (z.B. Eichel an Brustwarze oder Zunge) - Dauer/Stärke
-        richten sich nach dem gemessenen Abstand in diesem Video, kein fester Impuls</label>
+      <label for="gen-contact-vibration"
+        data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
     </div>
 
     <div class="row" style="align-items:center;">
-      <button id="gen-suggest-profile" disabled>Profil vorschlagen</button>
+      <button id="gen-suggest-profile" disabled
+        data-help="Vergleicht die Bewegungssignatur zuerst mit gemerkten Szenen, optional danach mit einem lokalen KI-Server. Nur Vorschlag — nichts wird automatisch übernommen.">Profil vorschlagen</button>
       <span class="hint" id="gen-suggest-status" style="margin:0"></span>
     </div>
     <div class="row" style="align-items:center;">
       <input type="text" id="gen-scene-label" placeholder="Name für diese Szene (optional)" style="flex:1;" />
-      <button id="gen-label-scene" disabled>Szene merken</button>
+      <button id="gen-label-scene" disabled
+        data-help="Speichert die Bewegungssignatur unter diesem Namen. Spätere ähnliche Videos bekommen dieses Profil als Vorschlag (klassisch gemessen, ohne KI).">Szene merken</button>
     </div>
-    <p class="hint" style="margin:0 0 10px 0">
-      „Szene merken" speichert die Bewegungssignatur unter diesem Namen - spätere ähnliche
-      Videos bekommen dann automatisch dieses Profil vorgeschlagen (gemessen, ohne KI).
-      „Profil vorschlagen" vergleicht zuerst gegen gemerkte Szenen, erst danach optional
-      gegen einen lokalen KI-Server (Einstellungen → KI-Server-Adresse). Beides ein
-      Vorschlag zum Bestätigen, nichts wird automatisch übernommen.
-    </p>
 
     <details id="gen-advanced" style="margin:6px 0 10px 0;">
       <summary style="cursor:pointer;">Erweiterte Einstellungen</summary>
       <div style="margin-top:8px;">
-        <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert">Bewegungsrichtung umkehren</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp">Kamerabewegungs-Kompensation (empfohlen bei Kameraschwenks)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut">Szenenschnitt-Erkennung (verankert Tracker bei harten Schnitten neu)</label></div>
+        <div class="opt-group">Tracking</div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
+          data-help="Dreht die Bewegungsrichtung um (Polarität). Oft der Unterschied zu FunGen — kein Trackingfehler.">Bewegungsrichtung umkehren</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
+          data-help="Rechnet Kameraschwenks über Hintergrundmerkmale heraus. Empfohlen bei bewegter Kamera.">Kamerabewegungs-Kompensation</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
+          data-help="Erkennt harte Schnitte und verankert den Tracker danach neu.">Szenenschnitt-Erkennung</label></div>
         <div class="row" style="align-items:center;">
-          <label style="width:auto;">Tracking-Verfahren</label>
+          <label style="width:auto;" data-help="CSRT: robust, gut bei Schwenks. Flow: schnell, keine Region nötig. Gitter/Optical-Flow: ~15× schneller als CSRT, gut bei kleinen ROIs. Region-Fusion: 4 Teilregionen gewichtet. Region-Fusion Auto: wie Fusion ohne Markierung.">Tracking-Verfahren</label>
           <select id="gen-backend">
             <option value="csrt">CSRT (Standard, robust)</option>
             <option value="flow">Flow (keine Region nötig, ca. 4x schneller)</option>
@@ -84,41 +79,39 @@ export function initGenerator(root, playback) {
             <option value="region_fusion_auto">Region-Fusion Automatisch (4 Zonen, keine Region nötig)</option>
           </select>
         </div>
-        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT: bei ruhiger Kamera
-          gleichwertig zu Flow, bei Kameraschwenks trifft es die Bewegungsstärke besser (gemessen
-          113 gegen 145 bei 110 tatsächlicher Bewegung), weil dort die Kamerabewegung über
-          Hintergrundmerkmale herausgerechnet wird. Gitter/Optical-Flow: verfolgt ein Raster aus
-          Einzelpunkten statt einer Box - GEMESSEN auf einem realen Clip mindestens gleich gute
-          Qualität wie CSRT bei ~15x der Geschwindigkeit, robuster als CSRT bei schwierigen
-          (kleinen/unscharfen) Regionen (siehe docs/NEXT.md Abschnitt 8). Region-Fusion: teilt
-          die Region in 4 Teilregionen und gewichtet sie je Frame nach aktueller
-          Bewegungsstärke - GEMESSEN an echtem Material mindestens gleichauf mit CSRT, in
-          einem von zwei getesteten Abschnitten deutlich besser als beide (siehe docs/NEXT.md).
-          Region-Fusion Automatisch: wie Region-Fusion, aber ohne markierte Region - teilt
-          automatisch das ganze Bild in 4 Zonen, wie Flow also ohne Markier-Schritt. Noch nicht
-          gegen eine Referenz gemessen, ein Kandidat.</p>
-        <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange">Gleitende Dynamik (hebt schwache Abschnitte auf nutzbare Stärke)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl">GPU-Beschleunigung nutzen, falls verfügbar (OpenCL)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry">Auto-Retry (bei schlechter Qualität andere Signalparameter probieren)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality">KI-Zweitmeinung zur Qualität einholen (lokaler KI-Server, optional - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check">Skript-Tempo gegen die Tonspur prüfen (braucht ffmpeg, rein klassisch - beeinflusst den Quality-Doctor-Wert nicht)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone">O-Marker automatisch vorschlagen (letztes Achtel, höchste mittlere Position - klassisch aus dem Signal, kein KI-Modell; nur gesetzt, wenn das Ende deutlich hoch liegt)</label></div>
-        <div class="field-row"><label>Bewegungsachse</label>
+        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">Kurzhilfe über „?“ am Label — Messung in docs/NEXT.md.</p>
+
+        <div class="opt-group">Signal &amp; Qualität</div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
+          data-help="Hebt schwache Abschnitte gleitend auf nutzbare Stärke.">Gleitende Dynamik</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl"
+          data-help="Nutzt OpenCL für Teile des Trackings, falls die Treiber es anbieten. Unabhängig vom KI-Training-Gerät (CUDA/DirectML).">GPU-Beschleunigung (OpenCL)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
+          data-help="Bei schlechter Qualität andere Signalparameter automatisch erneut versuchen.">Auto-Retry</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
+          data-help="Holt optional eine Zweitmeinung vom lokalen KI-Server. Beeinflusst den Quality-Doctor-Wert nicht.">KI-Zweitmeinung zur Qualität</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
+          data-help="Vergleicht Skript-Tempo mit der Tonspur (ffmpeg). Klassisch, beeinflusst den Quality-Doctor-Wert nicht.">Skript-Tempo gegen Tonspur prüfen</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
+          data-help="Schlägt O-Marker im letzten Achtel vor (höchste mittlere Position), nur wenn das Ende deutlich hoch liegt. Klassisch aus dem Signal, kein KI-Modell.">O-Marker automatisch vorschlagen</label></div>
+
+        <div class="opt-group">Keyframes</div>
+        <div class="field-row"><label data-help="Beide Achsen werden verfolgt; Automatisch wählt die mit der größeren Spannweite. Nur bei klar falscher Wahl fest erzwingen.">Bewegungsachse</label>
           <select id="gen-axis">
             <option value="" selected>Automatisch (empfohlen)</option>
             <option value="x">Waagerecht erzwingen</option>
             <option value="y">Senkrecht erzwingen</option>
           </select>
         </div>
-        <p class="hint" style="margin:0 0 6px 0;">Waagerecht und senkrecht werden immer
-          beide verfolgt - "Automatisch" wählt danach die Achse mit der deutlich größeren
-          Spannweite. Nur bei einer erkennbar falschen automatischen Wahl fest erzwingen.</p>
-        <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive">Adaptive Keyframes (zusätzliche Punkte bei asymmetrischen Bewegungen)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene">Region nach jedem Schnitt neu suchen (besser bei geschnittenem Material, dauert länger)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-native" /><label for="gen-native">Go-Pipeline (experimentell): CSRT-Tracking + Signalpfad ohne Python — nur CSRT, eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry. Sonst Fallback auf Python.</label></div>
-        <div class="field-row"><label>Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
-        <div class="field-row"><label>Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
-        <div class="field-row"><label>RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
+          data-help="Setzt zusätzliche Keyframes bei asymmetrischen Bewegungen.">Adaptive Keyframes</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
+          data-help="Sucht nach jedem Schnitt die Region neu. Besser bei stark geschnittenem Material, dauert länger.">Region nach jedem Schnitt neu suchen</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="gen-native" /><label for="gen-native"
+          data-help="Experimentell: CSRT-Tracking + Signalpfad in Go ohne Python. Nur CSRT, eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry — sonst Fallback auf Python.">Go-Pipeline (experimentell)</label></div>
+        <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
+        <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+        <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
       </div>
     </details>
 
@@ -157,6 +150,8 @@ export function initGenerator(root, playback) {
       oder korrigierst.
     </p>
   `;
+
+  wireDataHelp(root);
 
   const el = id => root.querySelector(id);
   const canvas = el('#roi-canvas');
