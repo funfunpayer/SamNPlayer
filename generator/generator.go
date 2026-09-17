@@ -540,14 +540,21 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 
 	if opts.NativePipeline {
 		if NativePipelineEligible(opts, roi) {
-			if err := GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
+			var err error
+			if NativeTrackingAvailable() {
+				err = GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			} else {
+				err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			}
+			if err != nil {
 				return err
 			}
 			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
 			return nil
 		}
 		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
-			"available", NativeTrackingAvailable(),
+			"csrt", NativeTrackingAvailable(),
+			"simple", SimpleTrackingAvailable(),
 			"backend", opts.Backend,
 			"roi2", opts.ROI2.W > 0)
 		if onProgress != nil {

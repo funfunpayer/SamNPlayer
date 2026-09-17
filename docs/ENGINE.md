@@ -26,10 +26,12 @@ end-user runtime should eventually need no Python install.
 
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)
 - Phase Analyzer core + CLI (`phase`, `compare`)
-- Script Doctor (Go) + dense Quality Doctor on native CSRT
-- Opt-in Go CSRT path (`trackcv` + `posttrack`)
+- Script Doctor (Go) + dense Quality Doctor on native CSRT / simpletrack
+- Opt-in Go pipeline (`trackcv` CSRT when OpenCV linked; else
+  `simpletrack` NCC/SAD over ffmpeg — Windows without Python)
 - Tf/Tj suction double-floor fix; trackcv `valid`/`confidence`/`reason`
 - Device diagnostics (software-measurable only)
+- `GenerateWithContext` cancel tests (Python + native)
 
 ## What still needs you / measurement (do not invent)
 
@@ -41,6 +43,7 @@ end-user runtime should eventually need no Python install.
 | P1 | SAM as live Intent layer | wire after goldens |
 | P1 | Real Sam Neo 2 feel / BLE+Intiface | hardware |
 | P1 | Native CSRT as default | measured win on goldens |
+| P1 | Windows native OpenCV (CSRT) | optional; simpletrack covers no-Python path |
 | P2 | 4-zone relative graph as default | bake-off vs two-ROI |
 | P2 | Depth / pose / spatial | per-variant benchmark |
 | P2 | Prediction / look-ahead | only after measured latency |
