@@ -12,6 +12,7 @@ export function CheckRoiTrainingAvailable() { return window['go']['main']['App']
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
+export function ClearLogEntries() { return window['go']['main']['App']['ClearLogEntries'](); }
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
 export function CurrentVersion() { return window['go']['main']['App']['CurrentVersion'](); }
@@ -24,6 +25,7 @@ export function GetDeviceStatus() { return window['go']['main']['App']['GetDevic
 export function GetDiagnosticsHistory() { return window['go']['main']['App']['GetDiagnosticsHistory'](); }
 export function GetHardwareInfo() { return window['go']['main']['App']['GetHardwareInfo'](); }
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
+export function GetLogEntries() { return window['go']['main']['App']['GetLogEntries'](); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
 export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App']['GetRoiDatasetSummary'](arg1); }
