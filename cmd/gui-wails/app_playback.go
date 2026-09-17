@@ -338,10 +338,12 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	return points, nil
 }
 
-// contactFrames: bevorzugt vorhandenes .sam-Sidecar, sonst Enrich aus dem Funscript.
+// contactFrames: bevorzugt vorhandenes .sam-Sidecar mit Kontakt-Intensity,
+// sonst Enrich aus dem Funscript. Dünne Sidecars (nur Position) werden
+// übersprungen — sonst bliebe Vibration still auf 0.
 func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
 	if path := a.loadedScriptPath(); path != "" {
-		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil {
+		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil && sam.HasContactIntensity(s) {
 			if frames := sam.ToDeviceFrames(s, mapOpts); len(frames) > 0 {
 				return frames
 			}

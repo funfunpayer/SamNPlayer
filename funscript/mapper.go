@@ -255,20 +255,25 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			vib, suc = 0, intensity
 		case SyncSuctionPosition:
 			vib, suc = 0, posSignal
-			if contactEnabled && pos >= contactMin && !inGap(t) {
+			inTrackingGap := inGap(t)
+			if contactEnabled && pos >= contactMin && !inTrackingGap {
 				linear := clamp01((pos - contactMin) / (contactMax - contactMin))
 				vib = applyContactCurve(linear, contactCurve)
 				if vib > 0 && opts.MinVibration > 0 {
 					vib = liftFloor(vib, opts.MinVibration)
 				}
 			}
-			// Kurze Envelope-Glättung nur für Kontakt-Vib (Tracker-Jitter),
-			// bevor die allgemeine Recipe-Glättung auf Sog+Vib wirkt.
-			if contactEnabled && envelopeOn {
+			// Kurze Envelope-Glättung nur für Kontakt-Vib außerhalb von
+			// Tracking-Gaps. Im Gap hart aus — sonst sickert prevContactVib
+			// über die Envelope in den Tracker-Verlust hinein.
+			if contactEnabled && envelopeOn && !inTrackingGap {
 				if len(frames) > 0 {
 					vib = envelope*prevContactVib + (1-envelope)*vib
 				}
 				prevContactVib = vib
+			} else if inTrackingGap {
+				vib = 0
+				prevContactVib = 0
 			}
 		default:
 			vib, suc = intensity, posSignal
@@ -289,6 +294,10 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		if opts.Smoothing > 0 && len(frames) > 0 {
 			vib = opts.Smoothing*prevVib + (1-opts.Smoothing)*vib
 			suc = opts.Smoothing*prevSuc + (1-opts.Smoothing)*suc
+		}
+		// Tracking-Gap gewinnt über Recipe-Smoothing (sonst sickert prevVib nach).
+		if opts.Sync == SyncSuctionPosition && inGap(t) {
+			vib = 0
 		}
 		prevVib, prevSuc = vib, suc
 		frames = append(frames, Frame{At: t, Vibration: vib, Suction: suc})

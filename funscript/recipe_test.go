@@ -357,6 +357,26 @@ func TestRecipeTJContactVibrationMutedInTrackingGap(t *testing.T) {
 	}
 }
 
+func TestRecipeTJContactGapWinsOverEnvelopeAndSmoothing(t *testing.T) {
+	// Envelope/Smoothing dürfen prevVib nicht in den Gap tragen.
+	script := scriptFrom(
+		Action{At: 0, Pos: 90},
+		Action{At: 200, Pos: 90},
+		Action{At: 800, Pos: 90},
+		Action{At: 1000, Pos: 20},
+	)
+	opts := RecipeFor("tj")
+	opts.ContactVibration = true
+	opts.ContactVibrationEnvelope = 0.45
+	opts.Smoothing = 0.3
+	opts.TrackingGaps = []TrackingGap{{StartMs: 250, EndMs: 700}}
+	for _, f := range script.ToIntensityCurve(opts) {
+		if f.At >= 350 && f.At <= 650 && f.Vibration > 0.001 {
+			t.Fatalf("Gap-Mute muss Envelope/Smoothing schlagen: at=%d vib=%.4f", f.At, f.Vibration)
+		}
+	}
+}
+
 func TestRecipeTFEqualsTJ(t *testing.T) {
 	a, b := RecipeFor("tf"), RecipeFor("tj")
 	if a.Sync != b.Sync || a.MinSuction != b.MinSuction {
