@@ -741,6 +741,8 @@ export namespace main {
 	    extendedOHoldS: number;
 	    extendedORestoreMs: number;
 	    disableContactVibration: boolean;
+	    contactIntensityScale: number;
+	    contactExtraSmooth: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PlaybackOptions(source);
@@ -760,6 +762,8 @@ export namespace main {
 	        this.extendedOHoldS = source["extendedOHoldS"];
 	        this.extendedORestoreMs = source["extendedORestoreMs"];
 	        this.disableContactVibration = source["disableContactVibration"];
+	        this.contactIntensityScale = source["contactIntensityScale"];
+	        this.contactExtraSmooth = source["contactExtraSmooth"];
 	    }
 	}
 	export class ReportFeedback {

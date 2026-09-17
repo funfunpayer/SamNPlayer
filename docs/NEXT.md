@@ -13,7 +13,8 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in) |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
 | 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
-| 9 | SAM runtime wiring | **Milestone in package** — not GUI/CLI default yet |
+| 9 | SAM runtime wiring | **Started** — Densify + RuntimeAdjust + CLI/GUI live scale |
+
 | 10 | Sharper video display | **Closed** (negative) |
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
@@ -1313,8 +1314,17 @@ Tf/Tj contact (Intensity/Gaps). Optional `.sam` via CLI is tooling only.
 **First Enrich + playback consumer (September 17, 2026):**
 `sam.FromFunscriptEnriched` fills Velocity/Confidence/Intensity/Range;
 GUI playback for contact uses `sam.PlaybackFramesFromFunscript` (log:
-„Kontakt-Vibration aktiv (SAM-Intensity)“). CLI: `SamNPlayer sam
+„Kontakt-Vibration aktiv (SAM)“). CLI: `SamNPlayer sam
 script.funscript`.
+
+**SAM runtime (milestone 2 start, September 17, 2026):**
+- `sam.Densify` — tick-grid Intensity from interpolated Position (classic
+  parity; no keyframe-lerp pre-buzz).
+- `sam.RuntimeAdjust` — live IntensityScale / Mute / ExtraSmooth without
+  rewriting `.funscript`/`.sam`.
+- CLI playback for Tf/Tj+contact uses SAM path; flags
+  `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`.
+- GUI: „Kontakt-Stärke“ slider on the player tab.
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already

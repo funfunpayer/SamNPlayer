@@ -87,6 +87,11 @@ export function initPlayback(root) {
       <label for="pb-contact-off"
         data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
     </div>
+    <div class="field-row" id="pb-contact-intensity-row" style="display:none">
+      <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
+      <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+      <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
+    </div>
 
     <div class="field-row"><label>Gerät</label>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät testen)</label></span>
@@ -464,6 +469,10 @@ export function initPlayback(root) {
   el('#pb-offset-plus').addEventListener('click',
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
+  el('#pb-contact-intensity').addEventListener('input', e => {
+    const v = Number(e.target.value) || 0;
+    el('#pb-contact-intensity-val').textContent = v.toFixed(2);
+  });
 
   const CHAPTER_LABELS = {
     pause: 'Pause', build: 'Aufbau', steady: 'gleichmäßig',
@@ -806,7 +815,12 @@ export function initPlayback(root) {
     el('#pb-script-path').textContent = scriptPath + batchNote;
     scriptHasContactVibration = !!info.contactVibration;
     el('#pb-contact-off-row').style.display = scriptHasContactVibration ? 'flex' : 'none';
-    if (!scriptHasContactVibration) el('#pb-contact-off').checked = false;
+    el('#pb-contact-intensity-row').style.display = scriptHasContactVibration ? 'flex' : 'none';
+    if (!scriptHasContactVibration) {
+      el('#pb-contact-off').checked = false;
+      el('#pb-contact-intensity').value = '1';
+      el('#pb-contact-intensity-val').textContent = '1.00';
+    }
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();
@@ -874,6 +888,10 @@ export function initPlayback(root) {
       extendedOHoldS: parseFloat(el('#pb-eo-hold').value) || 10,
       extendedORestoreMs: parseFloat(el('#pb-eo-restore').value) || 500,
       disableContactVibration: scriptHasContactVibration && el('#pb-contact-off').checked,
+      contactIntensityScale: scriptHasContactVibration
+        ? parseFloat(el('#pb-contact-intensity').value) || 1
+        : 1,
+      contactExtraSmooth: 0,
     };
 
     try {

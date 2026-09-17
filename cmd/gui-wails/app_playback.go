@@ -14,18 +14,22 @@ import (
 )
 
 type PlaybackOptions struct {
-	Mock                   bool    `json:"mock"`
-	SyncMode               string  `json:"syncMode"`
-	TickMs                 int64   `json:"tickMs"`
-	MaxSpeed               float64 `json:"maxSpeed"`
-	Smoothing              float64 `json:"smoothing"`
-	SoftStartMs            int     `json:"softStartMs"`
-	UseVideoSync           bool    `json:"useVideoSync"`
-	ExtendedOEnabled       bool    `json:"extendedOEnabled"`
-	ExtendedOMin           float64 `json:"extendedOMin"`
-	ExtendedOHoldS         float64 `json:"extendedOHoldS"`
-	ExtendedORestoreMs     float64 `json:"extendedORestoreMs"`
-	DisableContactVibration bool   `json:"disableContactVibration"`
+	Mock                    bool    `json:"mock"`
+	SyncMode                string  `json:"syncMode"`
+	TickMs                  int64   `json:"tickMs"`
+	MaxSpeed                float64 `json:"maxSpeed"`
+	Smoothing               float64 `json:"smoothing"`
+	SoftStartMs             int     `json:"softStartMs"`
+	UseVideoSync            bool    `json:"useVideoSync"`
+	ExtendedOEnabled        bool    `json:"extendedOEnabled"`
+	ExtendedOMin            float64 `json:"extendedOMin"`
+	ExtendedOHoldS          float64 `json:"extendedOHoldS"`
+	ExtendedORestoreMs      float64 `json:"extendedORestoreMs"`
+	DisableContactVibration bool    `json:"disableContactVibration"`
+	// ContactIntensityScale: live SAM-Korrektur 0–2 (1=Rezept), Datei unverändert.
+	ContactIntensityScale float64 `json:"contactIntensityScale"`
+	// ContactExtraSmooth: zusätzliche EMA nach dem Mapping (0=aus).
+	ContactExtraSmooth float64 `json:"contactExtraSmooth"`
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
@@ -72,6 +76,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	} else {
 		frames = script.ToIntensityCurve(mapOpts)
 	}
+	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
+		IntensityScale: opts.ContactIntensityScale,
+		ExtraSmooth:    opts.ContactExtraSmooth,
+		MuteContact:    opts.DisableContactVibration,
+	})
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
@@ -341,10 +350,13 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 // contactFrames: bevorzugt vorhandenes .sam-Sidecar mit Kontakt-Intensity,
 // sonst Enrich aus dem Funscript. Dünne Sidecars (nur Position) werden
 // übersprungen — sonst bliebe Vibration still auf 0.
+// Sidecar/Enrich werden vor dem Geräte-Mapping verdichtet (Densify), damit
+// Intensity der Classic-Per-Tick-Auswertung entspricht.
 func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
 	if path := a.loadedScriptPath(); path != "" {
 		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil && sam.HasContactIntensity(s) {
-			if frames := sam.ToDeviceFrames(s, mapOpts); len(frames) > 0 {
+			dense := sam.Densify(s, mapOpts.TickMs, mapOpts)
+			if frames := sam.ToDeviceFrames(dense, mapOpts); len(frames) > 0 {
 				return frames
 			}
 		}

@@ -186,7 +186,9 @@ func PlaybackFramesFromFunscript(fs *funscript.Script, opts funscript.MapOptions
 		fs = cloneScriptMetaGaps(fs, mergeFunscriptGaps(fs.Metadata.TrackingGaps, opts.TrackingGaps))
 	}
 	enriched := FromFunscriptEnriched(fs)
-	out := ToDeviceFrames(enriched, opts)
+	// Tick-dichte Intensity aus Pos (Classic-Parity), dann Geräte-Mapping.
+	dense := Densify(enriched, opts.TickMs, opts)
+	out := ToDeviceFrames(dense, opts)
 	if out == nil {
 		return fs.ToIntensityCurve(opts)
 	}
