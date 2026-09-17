@@ -3,6 +3,7 @@
 package generator
 
 import (
+	"context"
 	"math"
 	"math/rand"
 	"path/filepath"
@@ -38,7 +39,7 @@ func TestGenerateNativeCSRTEndToEnd(t *testing.T) {
 		MinActionIntervalMs:       100,
 		NormPercentile:            2,
 	}
-	if err := GenerateNativeCSRT(video, roi, out, opts, nil, nil); err != nil {
+	if err := GenerateNativeCSRT(context.Background(), video, roi, out, opts, nil, nil); err != nil {
 		t.Fatalf("GenerateNativeCSRT: %v", err)
 	}
 	script, err := funscript.Load(out)
@@ -50,6 +51,9 @@ func TestGenerateNativeCSRTEndToEnd(t *testing.T) {
 	}
 	if script.Metadata.Creator == "" || script.Metadata.Duration <= 0 {
 		t.Fatalf("unexpected metadata: %+v", script.Metadata)
+	}
+	if script.Metadata.QualityScore == nil {
+		t.Fatalf("expected native dense Quality Doctor score in metadata")
 	}
 }
 

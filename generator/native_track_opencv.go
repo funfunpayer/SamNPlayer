@@ -22,8 +22,12 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		SceneCutDetection:  opts.SceneCutDetection,
 		AppearanceMemory:   opts.AppearanceMemory,
 		Axis:               opts.Axis,
+		Cancel:             opts.Cancel,
 	})
 	if err != nil {
+		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
+			return nativeTrackResult{}, errNativeCanceled
+		}
 		return nativeTrackResult{}, err
 	}
 	if onPercent != nil && tr.Stats.TotalFrames > 0 {
@@ -38,5 +42,8 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		LostFrames:   tr.Stats.TrackerLostFrames,
 		TotalFrames:  tr.Stats.TotalFrames,
 		VertRange:    tr.Stats.VerticalRange,
+		ValidFrames:  tr.Stats.ValidFrames,
+		Confidence:   tr.Stats.Confidence,
+		Reason:       tr.Stats.Reason,
 	}, nil
 }

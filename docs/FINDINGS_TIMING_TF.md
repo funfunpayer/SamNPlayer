@@ -99,8 +99,10 @@ Companion checklist: `docs/ROADMAP.md`. Research source:
 | Post-tracking signal path | `generator/posttrack` (#85, open) | Savgol → normalize → peaks → keyframes → RDP → speed limit; goldens vs Python |
 | Opt-in native CSRT generate | `generator/native*.go` (#85) | GUI checkbox; still falls back to Python for Quality Doctor / AI / audio / other backends |
 | Script Doctor (actions-only) | `funscript.EvaluateScriptQuality` (#86) | Playback “Skript prüfen”; no dense-signal checks |
+| Dense Quality Doctor | `funscript.EvaluateDenseQuality` (#86) | Native CSRT path; rhythm/recon/lost/active/motion |
 | Device-compat checks | `funscript.EvaluateDeviceCompat` (#86) | Same Go path |
 | Phase Analyzer core | `funscript.BestLagCorrelation` / `DiagnosePhase` (#86) | Port of `best_lag_ms`; not the 8-point PTS chain |
+| FunGen-compare CLI | `SamNPlayer compare` / `CompareDataset` (#86) | Thin Go report; generate half still Python for other backends |
 | Funscript I/O, recipes, O-markers, polarity, ozone, mapper, player, device, BLE | existing packages | Already Go |
 
 ### Still Python (end-user or tooling that generation still shells to)
@@ -108,13 +110,13 @@ Companion checklist: `docs/ROADMAP.md`. Research source:
 | Piece | Why it still matters | Go candidate? |
 |---|---|---|
 | `generate_funscript.py` orchestration | Default generate path | Partially replaced by #85 native CSRT only |
-| Quality Doctor **dense** checks | Rhythm/noise, reconstruction error, tracker-lost, active-time | **Yes — next clear Go slice** once dense curve is available from posttrack |
+| Quality Doctor **dense** checks | Rhythm/noise, reconstruction error, tracker-lost, active-time | **Done in Go** (`EvaluateDenseQuality`); still Python on default generate path |
 | Backends: flow, grid_lk, region_fusion(_auto), two-point Tf/Tj | Most users / Tf/Tj | Later; each needs goldens; Tf/Tj two-point is high value |
 | auto_roi / scene-cut ROI / camera compensation (full path) | Classical auto region | Partial in trackcv; rest later |
 | AI ROI / profile / quality opinion | Opt-in ONNX | Keep Python or ONNX-from-Go later; training stays Python |
 | audio_check | ffmpeg + tempo | Possible in Go (ffmpeg CLI already); low urgency |
 | quality_model train/infer | Learned Quality Doctor | Training-only → stay Python; inference could move later |
-| golden_clip_benchmark + fungen_compare CLI | Benchmark / FunGen parity | **Yes — thin Go CLI** on top of `BestLagCorrelation` (compare half); generate half still needs Python until native path covers backends |
+| golden_clip_benchmark + fungen_compare CLI | Benchmark / FunGen parity | **Compare half in Go** (`compare` CLI); generate half still needs Python until native path covers backends |
 | YOLO bootstrap / export / train | Research tooling | Stay Python |
 
 ### P0 research findings — status
@@ -124,7 +126,7 @@ Companion checklist: `docs/ROADMAP.md`. Research source:
 | F-001 | Phase / `best_lag_ms` | **Core done (Go)**; 8-point PTS pipeline open |
 | F-002 | Suction double-floor | **Software done**; hardware feel 🔒 |
 | F-003 | Real PTS | Open — media/VFR; trackcv still frame-index |
-| F-004 | Missing-data / valid/confidence | Open — belongs with trackcv provenance |
+| F-004 | Missing-data / valid/confidence | **Done on trackcv** (`ValidFrames`/`Confidence`/`Reason` + native metadata) |
 | F-005/6 | 4-zone relative graph + confidence | Deferred — needs golden-clip win vs two-ROI |
 | F-007 | P05/P95 + MAD normalize | Open — A/B vs current percentile path (#85 normalize) |
 | F-008 | Filter phase lag | Covered by Phase Analyzer diagnostics; change filter only with benchmark |
@@ -135,10 +137,10 @@ Companion checklist: `docs/ROADMAP.md`. Research source:
 ### Next Go slices (priority order, quality-first)
 
 1. **Land / keep #85** (`posttrack` + opt-in native CSRT) — prerequisite for Python-light generate on CSRT.
-2. **Dense Quality Doctor in Go** — port rhythm / reconstruction / lost-fraction checks with Python goldens; wire into native path so “Skript prüfen” and generate-time doctor match.
-3. **FunGen compare CLI in Go** — `compare_dataset` / report on top of `BestLagCorrelation` (no Python for the comparison half).
+2. **Dense Quality Doctor in Go** — **done** (`EvaluateDenseQuality` + native wire).
+3. **FunGen compare CLI in Go** — **done** (`SamNPlayer compare`).
 4. **Tf/Tj two-point distance path in Go** — only with goldens; highest product value after CSRT hub.
-5. **Observation contract** (`valid` / `confidence` / `reason`) on trackcv output — enables F-004 without a speculative module.
+5. **Observation contract** (`valid` / `confidence` / `reason`) on trackcv — **done**.
 6. **Other backends / Windows OpenCV** — after CSRT native is measured default-worthy.
 
 ### Not Go-now (blocked or wrong lever)

@@ -528,9 +528,10 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 }
 
 // GenerateWithContext runs generation under ctx. Cancel ctx to kill the
-// Python subprocess (review: generation must be abortable). Returns
-// context.Canceled when aborted. When opts.NativePipeline is set and
-// eligible, uses trackcv+posttrack without Python (see #85).
+// Python subprocess (review: generation must be abortable) or abort native
+// CSRT mid-loop via trackcv.Options.Cancel. Returns context.Canceled when
+// aborted. When opts.NativePipeline is set and eligible, uses
+// trackcv+posttrack without Python (see #85) including dense Quality Doctor.
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -539,7 +540,7 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 
 	if opts.NativePipeline {
 		if NativePipelineEligible(opts, roi) {
-			if err := GenerateNativeCSRT(videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
+			if err := GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
 				return err
 			}
 			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)

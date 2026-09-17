@@ -70,10 +70,10 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
           data-help="Erkennt harte Schnitte und verankert den Tracker danach neu.">Szenenschnitt-Erkennung</label></div>
         <div class="row" style="align-items:center;">
-          <label style="width:auto;" data-help="CSRT: robust, gut bei Schwenks. Flow: schnell, keine Region nötig. Gitter/Optical-Flow: ~15× schneller als CSRT, gut bei kleinen ROIs. Region-Fusion: 4 Teilregionen gewichtet. Region-Fusion Auto: wie Fusion ohne Markierung.">Tracking-Verfahren</label>
+          <label style="width:auto;" data-help="CSRT: robust, gut bei Schwenks. Flow: ~1,9× schneller (nicht 4×), keine Region nötig. Gitter/Optical-Flow: ~15× schneller als CSRT, gut bei kleinen ROIs. Region-Fusion: 4 Teilregionen gewichtet. Region-Fusion Auto: wie Fusion ohne Markierung.">Tracking-Verfahren</label>
           <select id="gen-backend">
             <option value="csrt">CSRT (Standard, robust)</option>
-            <option value="flow">Flow (keine Region nötig, ca. 4x schneller)</option>
+            <option value="flow">Flow (keine Region nötig, ~2× schneller)</option>
             <option value="grid_lk">Gitter/Optical-Flow (braucht Region wie CSRT, ca. 15x schneller)</option>
             <option value="region_fusion">Region-Fusion (4 Teilregionen, gewichtet verschmolzen)</option>
             <option value="region_fusion_auto">Region-Fusion Automatisch (4 Zonen, keine Region nötig)</option>
@@ -416,6 +416,16 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = (isTfTj()
         ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite.'
         : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).') + batchNote;
+      // Soft-Vorschlag: Profil nur anzeigen, nie automatisch übernehmen.
+      SuggestProfile(path).then(result => {
+        if (!result || !videoPath || videoPath !== path) return;
+        const status = el('#gen-suggest-status');
+        const via = result.via || 'Signatur';
+        const label = result.label === 'tj' ? 'tf' : result.label;
+        if (label && ['standard', 'weich', 'tf'].includes(label)) {
+          status.textContent = `Vorschlag: „${label}“ (${via}) — Knopf „Profil vorschlagen“ zum Übernehmen.`;
+        }
+      }).catch(() => {});
     } catch (err) {
       el('#gen-status').textContent = '';
       alert('Fehler: ' + err);

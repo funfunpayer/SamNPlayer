@@ -28,6 +28,9 @@ func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "phase" {
 		os.Exit(runPhase(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && (os.Args[1] == "compare" || os.Args[1] == "fungen-compare") {
+		os.Exit(runCompare(os.Args[2:]))
+	}
 
 	scriptPath := flag.String("script", "", "Pfad zur .funscript-Datei (Pflicht)")
 	mock := flag.Bool("mock", false, "Kein BLE - Befehle nur auf der Konsole ausgeben")
@@ -45,7 +48,7 @@ func main() {
 		"Rampzeit zurück auf vorheriges Niveau nach Extended-O (0 = sofort)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n\n", os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n\n", os.Args[0], os.Args[0], os.Args[0])
 		fmt.Fprintf(os.Stderr, "Playback options:\n")
 		flag.PrintDefaults()
 	}
@@ -193,5 +196,42 @@ func runPhase(args []string) int {
 	fmt.Printf("detail=%s\n", diag.Detail)
 	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s low_confidence=%v\n",
 		*mf.R, r0, *mf.LagMs, mf.Orientation, mf.LowConfidence)
+	return 0
+}
+
+// runCompare is the thin FunGen-compare CLI (fungen_compare.py compare half)
+// on top of funscript.CompareDataset / BestLagCorrelation.
+func runCompare(args []string) int {
+	fs := flag.NewFlagSet("compare", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	dataset := fs.String("dataset", "", "Folder with FunGen .funscript refs and *__hub/tf/tj.funscript batch output")
+	output := fs.String("output", "", "Write markdown report here (default: stdout)")
+	maxLag := fs.Int("max-lag-ms", funscript.DefaultMaxLagMs, "Lag search window ±ms")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n", os.Args[0])
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if *dataset == "" {
+		fs.Usage()
+		return 2
+	}
+	result, err := funscript.CompareDataset(*dataset, *maxLag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fehler: %v\n", err)
+		return 1
+	}
+	report := funscript.FormatCompareReport(result)
+	if *output != "" {
+		if err := os.WriteFile(*output, []byte(report), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Schreiben fehlgeschlagen: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(os.Stderr, "Geschrieben: %s\n", *output)
+		return 0
+	}
+	fmt.Print(report)
 	return 0
 }

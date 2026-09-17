@@ -1,5 +1,6 @@
 import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import { wireDataHelp } from './help.js';
 
 // Zweck dieses Tabs: sichtbar machen, ob überhaupt ein Gerät gefunden und
 // richtig erkannt wurde, und die Ansteuerung isoliert prüfen zu können -
@@ -9,62 +10,61 @@ export function initDevice(root) {
   root.innerHTML = `
     <h2>Gerät</h2>
 
-    <div id="dev-status" class="row" style="align-items:center; gap:10px; padding:10px;
-         border-radius:4px; border:1px solid var(--border); margin-bottom:12px;">
-      <span id="dev-dot" style="width:12px; height:12px; border-radius:50%; background:#777; flex:none;"></span>
-      <span id="dev-status-text">Status wird geladen...</span>
+    <div id="dev-status" class="row">
+      <div class="dev-visual" aria-hidden="true">
+        <div class="dev-shell">
+          <div class="dev-fill-suc" id="dev-fill-suc" style="height:0%"></div>
+          <div class="dev-fill-vib" id="dev-fill-vib" style="height:0%"></div>
+        </div>
+      </div>
+      <div class="dev-status-meta">
+        <div class="dev-status-line">
+          <span id="dev-dot"></span>
+          <span id="dev-status-text">Status wird geladen...</span>
+        </div>
+        <p class="hint" id="dev-status-sub" style="margin:0">Noch nicht verbunden.</p>
+      </div>
     </div>
 
     <div class="row">
       <button id="dev-connect" class="primary">Verbinden</button>
       <button id="dev-disconnect" disabled>Trennen</button>
-      <select id="dev-transport" style="margin-left:12px;">
+      <select id="dev-transport" style="margin-left:12px;"
+        data-help="BLE = direkt per Bluetooth. Intiface = über Buttplug-Server (auch andere Geräte). Mock = Oberfläche ohne Hardware prüfen.">
         <option value="ble">Direkt per Bluetooth</option>
         <option value="intiface">Über Intiface Central</option>
         <option value="mock">Mock-Gerät (ohne Hardware)</option>
       </select>
-      <input type="text" id="dev-intiface-url" placeholder="z.B. 192.168.1.50 (Handy) oder leer für diesen Rechner"
-             style="display:none; width:200px;" />
+      <input type="text" id="dev-intiface-url" placeholder="z.B. 192.168.1.50 oder leer = dieser Rechner"
+             style="display:none; width:220px;" />
     </div>
-    <p class="hint" id="dev-transport-hint">Sucht bis zu 20 Sekunden nach einem Gerät mit dem
-       Namen "Sam Neo 2". Das Gerät muss eingeschaltet und nicht mit einer anderen App
-       verbunden sein.</p>
+    <p class="hint" id="dev-transport-hint">Sucht bis zu 20 s nach „Sam Neo 2“.</p>
 
     <fieldset id="dev-test" disabled style="margin-top:16px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
       <legend style="padding:0 6px;">Funktionstest</legend>
 
       <div class="row" style="align-items:center;">
-        <label style="width:110px;">Vibration</label>
+        <label style="width:110px;" data-help="Intern 11 Stufen (0–10). Prozent dazwischen ändert nichts.">Vibration</label>
         <input type="range" id="dev-vib" min="0" max="100" value="0" style="flex:1;">
         <span id="dev-vib-val" style="width:70px; text-align:right;">0 % (Stufe 0)</span>
       </div>
 
       <div class="row" style="align-items:center;">
-        <label style="width:110px;">Sog</label>
+        <label style="width:110px;" data-help="Intern 6 Stufen (0–5). Prozent dazwischen ändert nichts.">Sog</label>
         <input type="range" id="dev-suc" min="0" max="100" value="0" style="flex:1;">
         <span id="dev-suc-val" style="width:70px; text-align:right;">0 % (Stufe 0)</span>
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <button id="dev-pulse">Kurzer Testimpuls</button>
+        <button id="dev-pulse" data-help="Zwei Sekunden mittlere Vibration, dann aus.">Kurzer Testimpuls</button>
         <button id="dev-stop" class="danger">Alles aus</button>
       </div>
-      <p class="hint">Der Testimpuls fährt die Vibration zwei Sekunden auf mittlere Stärke
-         und schaltet danach selbst wieder ab.</p>
     </fieldset>
 
     <fieldset id="dev-raw" disabled style="margin-top:16px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
-      <legend style="padding:0 6px;">Rohwert-Test (Auflösung ermitteln)</legend>
-      <p class="hint" style="margin-top:0;">
-        Sendet den Stufenwert direkt ans Gerät, ohne Umrechnung. Die üblichen Bereiche
-        0–10 (Vibration) und 0–5 (Sog) stammen aus der Buttplug-Gerätekonfiguration,
-        nicht aus einer Untersuchung der Firmware — ob das Gerät feinere oder höhere
-        Werte annimmt, weiß bisher niemand. Probiere z.B. 3 gegen 4 (fühlt sich der
-        Unterschied nach einer Stufe an?) und dann 20, 50, 100 (passiert oberhalb von
-        10 noch etwas?).
-      </p>
+      <legend style="padding:0 6px;" data-help="Sendet den Stufenwert ohne Umrechnung. 0–10 / 0–5 stammen aus Buttplug — ob die Firmware mehr annimmt, ist unklar. Probiere 3 vs 4, dann 20/50/100.">Rohwert-Test</legend>
       <div class="row" style="align-items:center;">
         <select id="dev-raw-channel">
           <option value="vibration">Vibration</option>
@@ -78,16 +78,7 @@ export function initDevice(root) {
 
     <fieldset id="dev-diag" disabled style="margin-top:16px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
-      <legend style="padding:0 6px;">Geräte-Diagnose</legend>
-      <p class="hint" style="margin-top:0;">
-        Fährt automatisch eine feste Testreihe (Rohwert-Annahme pro Kanal, maximale
-        stabile Update-Rate, Kanalinteraktion: allein/gleichzeitig/zeitversetzt/schnelle
-        Wechsel) und protokolliert jedes Kommando mit Zeit und Latenz - die Messreihe aus
-        docs/SAM_NEO_2_RESEARCH.md §11/§12. Das Gerät bewegt sich dabei mehrfach kurz.
-        Gemessen wird nur, was sich ohne einen Sensor am Gerät objektiv feststellen lässt
-        (Schreib-Latenz, angenommene Werte, Fehler) - keine gefühlte Intensität und keine
-        echte physische Anstiegs-/Abfallzeit, das kann nur der Nutzer selbst beurteilen.
-      </p>
+      <legend style="padding:0 6px;" data-help="Automatische Testreihe (Rohwert-Annahme, Update-Rate, Kanalinteraktion). Misst Schreib-Latenz und angenommene Werte — nicht gefühlte Intensität. Gerät bewegt sich dabei mehrfach kurz.">Geräte-Diagnose</legend>
       <div class="row"><button id="diag-run">Diagnose starten</button></div>
       <div id="diag-status" class="path-label"></div>
       <div id="diag-result" style="margin-top:8px;"></div>
@@ -98,11 +89,19 @@ export function initDevice(root) {
     <div id="dev-log" class="hint" style="margin-top:12px; white-space:pre-wrap;"></div>
   `;
 
+  wireDataHelp(root);
+
   const el = id => root.querySelector(id);
   let busy = false;
+  let searching = false;
 
   function log(msg) {
     el('#dev-log').textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  }
+
+  function setFills(vibPct, sucPct) {
+    el('#dev-fill-vib').style.height = Math.max(0, Math.min(100, vibPct)) + '%';
+    el('#dev-fill-suc').style.height = Math.max(0, Math.min(100, sucPct * 0.85)) + '%';
   }
 
   // Das Gerät kennt intern feste Stufen (Vibration 0-10, Sog 0-5). Die
@@ -114,24 +113,38 @@ export function initDevice(root) {
   function render(st) {
     const dot = el('#dev-dot');
     const text = el('#dev-status-text');
+    const sub = el('#dev-status-sub');
     const box = el('#dev-status');
+    box.classList.remove('is-connected', 'is-searching', 'is-session');
 
     if (st.sessionActive) {
+      box.classList.add('is-session');
       dot.style.background = 'var(--warn, #d9a441)';
-      text.textContent = 'Wiedergabe oder Training läuft - Gerätetest währenddessen nicht möglich.';
+      text.textContent = 'Wiedergabe/Training aktiv';
+      sub.textContent = 'Gerätetest währenddessen nicht möglich.';
+      box.style.borderColor = 'var(--warn, #d9a441)';
+    } else if (searching) {
+      box.classList.add('is-searching');
+      dot.style.background = 'var(--warn, #d9a441)';
+      text.textContent = 'Suche Gerät…';
+      sub.textContent = 'Bis zu 20 Sekunden.';
       box.style.borderColor = 'var(--warn, #d9a441)';
     } else if (st.connected) {
+      box.classList.add('is-connected');
       dot.style.background = 'var(--ok)';
       box.style.borderColor = 'var(--ok)';
-      const parts = [st.mock ? 'Mock-Gerät verbunden' : 'Verbunden'];
+      text.textContent = st.mock ? 'Mock verbunden' : 'Verbunden';
+      const parts = [];
       if (st.name) parts.push(st.name);
       if (st.address) parts.push(st.address);
       if (st.rssi) parts.push(`Signal ${st.rssi} dBm`);
-      text.textContent = parts.join('  ·  ');
+      sub.textContent = parts.length ? parts.join(' · ') : (st.mock ? 'Simuliertes Gerät' : 'Sam Neo 2');
     } else {
       dot.style.background = '#777';
       box.style.borderColor = 'var(--border)';
-      text.textContent = 'Nicht verbunden.';
+      text.textContent = 'Nicht verbunden';
+      sub.textContent = 'Verbindung wählen und Verbinden tippen.';
+      setFills(0, 0);
     }
 
     const canTest = st.connected && !st.sessionActive;
@@ -175,15 +188,18 @@ export function initDevice(root) {
 
   el('#dev-connect').addEventListener('click', async () => {
     busy = true;
+    searching = true;
     el('#dev-connect').disabled = true;
-    el('#dev-status-text').textContent = 'Suche Gerät... (bis zu 20 Sekunden)';
+    render({ connected: false, sessionActive: false });
     try {
       const st = await ConnectDeviceVia(el('#dev-transport').value,
                                         el('#dev-intiface-url').value.trim());
+      searching = false;
       busy = false;
       render(st);
       log('Verbunden.');
     } catch (e) {
+      searching = false;
       busy = false;
       await refresh();
       log('Verbindung fehlgeschlagen: ' + e);
@@ -199,6 +215,7 @@ export function initDevice(root) {
       el('#dev-suc').value = 0;
       el('#dev-vib-val').textContent = '0 % (Stufe 0)';
       el('#dev-suc-val').textContent = '0 % (Stufe 0)';
+      setFills(0, 0);
       render(st);
       log('Getrennt.');
     } catch (e) {
@@ -211,6 +228,7 @@ export function initDevice(root) {
   el('#dev-vib').addEventListener('input', async e => {
     const pct = Number(e.target.value);
     el('#dev-vib-val').textContent = `${pct} % (Stufe ${vibStep(pct)})`;
+    setFills(pct, Number(el('#dev-suc').value));
     try {
       await TestVibration(pct / 100);
     } catch (err) {
@@ -221,6 +239,7 @@ export function initDevice(root) {
   el('#dev-suc').addEventListener('input', async e => {
     const pct = Number(e.target.value);
     el('#dev-suc-val').textContent = `${pct} % (Stufe ${sucStep(pct)})`;
+    setFills(Number(el('#dev-vib').value), pct);
     try {
       await TestSuction(pct / 100);
     } catch (err) {

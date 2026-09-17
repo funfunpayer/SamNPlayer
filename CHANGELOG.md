@@ -10,6 +10,21 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **GUI polish (no hardware):** Nunito + brand logo in hero chrome, soft
+  page gradients, tab fade/slide transitions, device silhouette (shell +
+  fill states including searching), help chips on Device/Playback, shorter
+  Flow copy (~2×), soft `SuggestProfile` on generator load.
+- **Native Go pipeline cancel:** `GenerateWithContext` aborts CSRT via
+  `trackcv.Options.Cancel` (same Abbrechen path as Python `CommandContext`).
+- **Trackcv observation contract (F-004):** `Stats.ValidFrames` /
+  `Confidence` / `Reason` (+ `Result.Canceled`); written into native
+  funscript metadata.
+- **Dense Quality Doctor in pure Go** (`funscript.EvaluateDenseQuality`):
+  rhythm / active-time / reconstruction / tracker-lost / motion-amplitude
+  on the posttrack dense curve — wired into `GenerateNativeCSRT` metadata.
+- **FunGen-compare CLI in Go:** `SamNPlayer compare --dataset DIR`
+  (`fungen-compare` alias) — thin report on `CompareDataset` /
+  `BestLagCorrelation` (Python compare half no longer required).
 - **GUI help chips („?“):** Generator- and KI-Training options show a short
   popover explaining what each toggle/setting does (`help.js` + `data-help`).
   Long wall-of-text hints in advanced settings were shortened; details live
@@ -32,7 +47,7 @@ measurement history behind each entry; this file is the short version for
   locked by `TestLoadedScriptStateNoRace` under `-race`.
 - **Generation not abortable:** `GenerateWithContext` + GUI
   `CancelGenerate` / Abbrechen button kill the Python subprocess via
-  `CommandContext`.
+  `CommandContext`; native CSRT also checks `ctx` each frame.
 - **Script Doctor unsorted-timestamp check:** `EvaluateScriptQuality`
   now inspects the original action order before sorting (was dead code
   after `sort.SliceStable`). `generator.ScriptQuality` reads file-order
