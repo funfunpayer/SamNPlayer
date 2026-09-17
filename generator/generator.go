@@ -551,13 +551,23 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 		} else {
 			err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
 		}
-		if err != nil {
+		if err == nil {
+			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+			return nil
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return err
 		}
-		logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
-		return nil
-	}
-	if !opts.PreferPython && opts.NativePipeline {
+		// Soft-fail to Python when available — better UX than a hard error
+		// if simpletrack/CSRT chokes on a clip the Python path can still do.
+		if _, pyErr := FindPython(); pyErr != nil {
+			return err
+		}
+		logging.Warn("generator: Go-Pipeline fehlgeschlagen — Fallback auf Python", "fehler", err)
+		if onProgress != nil {
+			onProgress("Go-Pipeline fehlgeschlagen — Fallback auf Python: " + err.Error())
+		}
+	} else if !opts.PreferPython && opts.NativePipeline {
 		logging.Warn("generator: Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python",
 			"csrt", NativeTrackingAvailable(),
 			"simple", SimpleTrackingAvailable(),
