@@ -179,14 +179,14 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		durationMs = &d
 	}
 	quality := funscript.EvaluateDenseQuality(actions, funscript.DenseQualityInput{
-		DenseAt:              result.DenseAt,
-		DensePos:             result.DensePos,
-		TrackerLostFraction:  lostFrac,
-		MotionRangeFraction:  motionFrac,
-		VideoDurationMs:      durationMs,
-		ValidFrames:          tr.ValidFrames,
-		Confidence:           tr.Confidence,
-		Reason:               tr.Reason,
+		DenseAt:             result.DenseAt,
+		DensePos:            result.DensePos,
+		TrackerLostFraction: lostFrac,
+		MotionRangeFraction: motionFrac,
+		VideoDurationMs:     durationMs,
+		ValidFrames:         tr.ValidFrames,
+		Confidence:          tr.Confidence,
+		Reason:              tr.Reason,
 	})
 	progress(fmt.Sprintf("Quality Doctor (dense): score=%.2f passed=%v", quality.Score, quality.Passed))
 
@@ -244,13 +244,13 @@ func writeNativeFunscript(path string, actions []funscript.Action, opts Options,
 		nativeMeta["reason"] = tr.Reason
 	}
 	meta := map[string]any{
-		"creator":           "SamNPlayer generator/native (trackcv+posttrack, kein Python)",
-		"duration":          duration,
-		"native_pipeline":   nativeMeta,
-		"quality_score":     quality.Score,
-		"quality_passed":    quality.Passed,
-		"quality_warnings":  quality.Warnings,
-		"quality_kind":      quality.Kind,
+		"creator":                    "SamNPlayer generator/native (trackcv+posttrack, kein Python)",
+		"duration":                   duration,
+		"native_pipeline":            nativeMeta,
+		"quality_score":              quality.Score,
+		"quality_passed":             quality.Passed,
+		"quality_warnings":           quality.Warnings,
+		"quality_kind":               quality.Kind,
 		"estimated_from_script_only": quality.EstimatedFromScriptOnly,
 	}
 	if opts.Profile != "" && opts.Profile != "standard" {

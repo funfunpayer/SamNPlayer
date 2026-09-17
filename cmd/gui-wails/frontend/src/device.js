@@ -120,8 +120,8 @@ export function initDevice(root) {
     if (st.sessionActive) {
       box.classList.add('is-session');
       dot.style.background = 'var(--warn, #d9a441)';
-      text.textContent = 'Wiedergabe/Training aktiv';
-      sub.textContent = 'Gerätetest währenddessen nicht möglich.';
+      text.textContent = 'Wiedergabe oder Training läuft - Gerätetest währenddessen nicht möglich.';
+      sub.textContent = 'Test erst nach Ende der Session.';
       box.style.borderColor = 'var(--warn, #d9a441)';
     } else if (searching) {
       box.classList.add('is-searching');
@@ -133,12 +133,14 @@ export function initDevice(root) {
       box.classList.add('is-connected');
       dot.style.background = 'var(--ok)';
       box.style.borderColor = 'var(--ok)';
-      text.textContent = st.mock ? 'Mock verbunden' : 'Verbunden';
-      const parts = [];
+      // Name/Adresse/RSSI stay in #dev-status-text — Playwright + sidebar
+      // contract (device_display_test.py). Sub line is a short caption only.
+      const parts = [st.mock ? 'Mock-Gerät verbunden' : 'Verbunden'];
       if (st.name) parts.push(st.name);
       if (st.address) parts.push(st.address);
       if (st.rssi) parts.push(`Signal ${st.rssi} dBm`);
-      sub.textContent = parts.length ? parts.join(' · ') : (st.mock ? 'Simuliertes Gerät' : 'Sam Neo 2');
+      text.textContent = parts.join('  ·  ');
+      sub.textContent = st.mock ? 'Simuliertes Gerät' : 'Bereit für Funktionstest.';
     } else {
       dot.style.background = '#777';
       box.style.borderColor = 'var(--border)';
