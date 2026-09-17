@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.0] — September 17, 2026
+
 ### Added
 
 - **GUI polish (no hardware):** Nunito + brand logo in hero chrome, soft
