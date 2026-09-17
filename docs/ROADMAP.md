@@ -9,14 +9,11 @@ discussion stays German.
 **Relationship to the other planning docs, so they stop drifting apart:**
 
 - **This file** — the current checklist. Check items off here as they ship.
-- `docs/NEXT.md` — the detailed research journal: every measurement, every
-  rejected approach, the *why* behind each entry below. Keep adding
-  measurements there; keep this file as the short, current status.
-- `HANDOFF.md` — architecture, what already works, guiding principles,
-  the "tested and rejected" table (don't retry those without new evidence).
-- `CHANGELOG.md` — new: what shipped, release by release.
-- `docs/AI_ADAPTER.md`, `docs/SAM_ARCHITECTURE.md`, `docs/GOLDEN_CLIPS.md`,
-  `docs/TF_TJ.md` — deep dives on their own subsystem, unchanged in scope.
+- `docs/NEXT.md` — research journal (measurements / rejected approaches).
+- `docs/ENGINE.md` — lean engine direction (phases + DoD).
+- `docs/FINDINGS_TIMING_TF.md` — Go-migration / timing inventory.
+- `HANDOFF.md` — architecture and “tested and rejected”.
+- `CHANGELOG.md` — what shipped, release by release.
 
 ---
 
@@ -143,26 +140,14 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
 - [ ] 🧭 **Secondary/weaker O-marker count and intensity heuristic** —
       shipped with a first reasonable heuristic (median-baseline peak
       detection); revisit only if real usage shows it's off.
-- [x] 🔓 **`videox`/native tracker port** — goal confirmed (more Go / less
-      Python). `generator/trackcv` (#84) + `generator/posttrack` + opt-in
-      `NativePipeline` (#85, merged) cover CSRT tracking and the signal
-      path without Python on Linux/macOS. Script Doctor + Phase Analyzer
-      core are pure Go (#86). Still open (see `docs/FINDINGS_TIMING_TF.md`
-      inventory): dense Quality Doctor, FunGen-compare CLI, Tf/Tj
-      two-point with goldens; Windows OpenCV/cgo; making native the
-      default once measured on real clips. `videox` (ffmpeg) remains
-      unconnected — OpenCV decode in trackcv covers the need without a
-      second external binary.
-- [x] 🔓 **Tf/Tj suction double-floor** — fixed: no second `liftFloor` on
-      `SyncSuctionPosition`; see `docs/FINDINGS_TIMING_TF.md`.
-- [x] 🔓 **Phase Analyzer core** — `funscript.BestLagCorrelation` /
-      `DiagnosePhase` (Go port of `best_lag_ms` + timing/shape verdict).
-      Full 8-point PTS pipeline still open; research pack at
-      `docs/perception_update_2026-09/`.
-- [x] 🔓 **Signal Quality ≠ Motion Fidelity** — documented and labeled in
-      API/GUI (`docs/SIGNAL_VS_FIDELITY.md`); Script Doctor / Quality
-      Doctor = Signal Quality; Phase CLI / FunGen correlate = Motion
-      Fidelity.
+- [x] 🔓 **`videox`/native tracker port** — `generator/trackcv` +
+      `posttrack` + opt-in `NativePipeline` (CSRT). Dense Quality Doctor +
+      FunGen-compare CLI in Go (v0.5.0). Still open: Tf/Tj two-point with
+      goldens; Windows OpenCV; native as default after real-clip win.
+- [x] 🔓 **Tf/Tj suction double-floor** — fixed; see `FINDINGS_TIMING_TF.md`.
+- [x] 🔓 **Phase Analyzer core** — `BestLagCorrelation` / `DiagnosePhase`
+      + CLI. Full 8-point PTS pipeline still open (`docs/ENGINE.md`).
+- [x] 🔓 **Signal Quality ≠ Motion Fidelity** — `SIGNAL_VS_FIDELITY.md`.
 
 ### SAM Perception v1 (next architecture milestone)
 

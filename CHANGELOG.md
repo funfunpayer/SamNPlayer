@@ -8,6 +8,21 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.1] — September 17, 2026
+
+### Fixed
+
+- **CLI `phase` negative flag values:** `--max-lag-ms -500` no longer
+  drops the value (custom split treated leading `-` as another option).
+  Shared `splitCLIArgs` + tests; paths may still precede or follow flags.
+
+### Changed
+
+- **Doc cleanup (review feedback):** removed dated review dumps
+  (`REVIEW_*.md`) and the multi-file `perception_update_2026-09/` pack.
+  Direction lives in lean `docs/ENGINE.md`; open work in `ROADMAP.md` /
+  `NEXT.md`; shipped history in `CHANGELOG.md` + code comments.
+
 ## [0.5.0] — September 17, 2026
 
 ### Added
@@ -35,7 +50,7 @@ measurement history behind each entry; this file is the short version for
   `train_yolo_model.py` defaults to `--device auto` (CUDA → MPS → DirectML →
   CPU). DirectML needs optional `torch-directml` on Windows. GUI dropdown +
   `ListRoiTrainingDevices` / `--list-devices`. Full WinML inference stack
-  still deferred (`docs/perception_update_2026-09/05_accelerator.md`); this
+  still deferred (`docs/ENGINE.md`); this
   is the practical training-side switch.
 
 ### Fixed
@@ -107,9 +122,9 @@ measurement history behind each entry; this file is the short version for
 - **Script Doctor ↔ Python goldens:** `TestEvaluateScriptQualityMatchesPythonGoldens`
   locks actions-only scores against `quality_doctor.evaluate()`.
 
-- **Research pack** archived at `docs/perception_update_2026-09/`
-  (docs 01–10, findings CSV, ADR) with implementation status and a
-  full open/Go-migration inventory in `docs/FINDINGS_TIMING_TF.md`.
+- **Engine direction** summarized in `docs/ENGINE.md` (replaces the
+  dated multi-file research pack); full open/Go-migration inventory in
+  `docs/FINDINGS_TIMING_TF.md`.
 - **Script Doctor in pure Go** (`funscript.EvaluateScriptQuality` +
   `EvaluateDeviceCompat`): playback-tab “Skript prüfen” no longer needs
   a Python install. Same actions-only checks as Quality Doctor without

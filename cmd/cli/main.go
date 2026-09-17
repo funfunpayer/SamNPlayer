@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -151,19 +150,7 @@ func runPhase(args []string) int {
 	}
 
 	var paths, flagArgs []string
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		if strings.HasPrefix(a, "-") {
-			flagArgs = append(flagArgs, a)
-			// boolean-free flags always take a following value when present
-			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-				flagArgs = append(flagArgs, args[i+1])
-				i++
-			}
-			continue
-		}
-		paths = append(paths, a)
-	}
+	paths, flagArgs = splitCLIArgs(args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
@@ -211,7 +198,13 @@ func runCompare(args []string) int {
 		fmt.Fprintf(os.Stderr, "Usage: %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n", os.Args[0])
 		fs.PrintDefaults()
 	}
-	if err := fs.Parse(args); err != nil {
+	paths, flagArgs := splitCLIArgs(args)
+	if err := fs.Parse(flagArgs); err != nil {
+		return 2
+	}
+	if len(paths) > 0 {
+		fmt.Fprintln(os.Stderr, "Unerwartete Positionsargumente:", paths)
+		fs.Usage()
 		return 2
 	}
 	if *dataset == "" {

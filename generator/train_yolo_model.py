@@ -12,7 +12,7 @@ Dieses Skript ruft beides hintereinander auf, damit "Video(s) rein, Modell
 raus" ein einziger Schritt ist (Chat, 16. September 2026: "brauchen wir
 Trainingssystem fest drin").
 
-Gerätewahl (Accelerator-Strategie, docs/perception_update_2026-09/05):
+Gerätewahl (Accelerator-Strategie, docs/ENGINE.md Phase 7):
   --device auto|cuda|directml|mps|cpu  (Standard: auto)
   auto wählt der Reihe nach CUDA → MPS → DirectML → CPU.
   DirectML braucht unter Windows zusätzlich torch-directml

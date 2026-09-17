@@ -1,40 +1,40 @@
 # Next steps
 
-## Status at a glance · September 16, 2026
+## Status at a glance · September 17, 2026 (v0.5.x)
 
-This file grew into a research journal as well as a task list — the
-priorities below keep their full measurement history (this project's own
-convention: document what was tried and why, not just the conclusion), but
-if you only need **what's actually still open**, start here:
+Operational checklist. Measurement history stays below; **what's open now**:
 
 | # | Priority | Status |
 |---|---|---|
-| 1 | Validate real hardware | **Blocked on you** — needs a Sam Neo 2 and an operator |
-| 2 | Match FunGen2 references | **Open, ongoing measurement** — Golden-Clip Benchmark + GUI tab shipped (PR #70); real gains found (2D-distance fix, tighter ROI placement); needs more real clips fed into the benchmark |
-| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` measured insufficient, not wired in |
-| 4 | Motion-signature/profile GUI integration | **Done** — AI region/profile/quality proposal all wired into the generator tab |
-| 5 | Contact-triggered vibration for Tf/Tj | **Done, shipped opt-in** — real-clip visual validation passed |
-| 6 | Climax ("cum") detection | **Partly answered** — classical-signal-only approach chosen (no separate AI model), see priority 7; full auto-detection at generation time not built |
-| 7 | Author O-function markers into the funscript | **Done** (PR #67, September 16, 2026) — primary + optional secondary markers, both manual and auto-suggest paths |
-| 8 | Generator performance vs. FunGen2 | **Open-ended, several closed sub-questions** — grid_lk backend shipped for single-ROI (15x, measurably robust); grid_lk for Tf/Tj two-point measured *not* an improvement; threaded CSRT, gentle upscaling, WebGL sharpening all measured and rejected |
-| 9 | SAM long-term architecture | **First milestone shipped** (`sam/` package, funscript roundtrip) — not wired into any GUI/CLI flow yet |
-| 10 | Player: sharper video display | **Closed as a negative result** — investigated, measured worse, reverted |
-| — | Go-native generator path | **In progress** — `trackcv` (#84) + `posttrack` + opt-in `NativePipeline` (CSRT only); Quality Doctor / other backends still Python |
-| — | Training history across sessions | **Done** |
-| — | Script Doctor for imported files | **Done** |
-| — | Manual funscript editor | **Done** (curve editor, with video-follow) |
+| 1 | Validate real hardware | **Blocked on you** — Sam Neo 2 + operator |
+| 2 | Match FunGen2 references | **Open** — Golden-Clip tool shipped; need real clips |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient) |
+| 4 | Motion-signature/profile GUI | **Done** |
+| 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in) |
+| 6–7 | O-markers | **Done** (manual + auto-suggest) |
+| 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
+| 9 | SAM runtime wiring | **Milestone in package** — not GUI/CLI default yet |
+| 10 | Sharper video display | **Closed** (negative) |
+| — | Go-native generator | **Shipped opt-in** (CSRT + dense doctor + compare CLI); not default |
+| — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 
-## Verified baseline · September 15, 2026
+Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
-- `main` has merged PRs through #57 (see `git log --oneline` for the exact
-  list); latest published release
-  [v0.2.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.2),
-  source version (`VERSION`/`update.BaseVersion`) at `0.3.0` — the v0.3.0
-  tag itself is still unpushed (blocked in the agent environment that
-  prepared it; push it manually: `git tag v0.3.0 <sha> && git push origin
-  v0.3.0`).
-- Tests (Go race detector, Python, frontend/Playwright) and CI are green
-  on `main` as of the last merge.
+## Verified baseline · September 17, 2026
+
+- Latest published release **[v0.5.0](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.0)**;
+  source on this branch targets **0.5.1** (doc cleanup + CLI flag fix).
+- CI green on `main` through #86 (Go, Go-OpenCV, Python, Oberfläche).
+- FunGen near-zero-correlation finding (issue #8,
+  [`FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes the
+  *general* real-clip gap; priority 2 has found clip-level improvements.
+
+## Verified baseline · September 15, 2026 (historical)
+
+- `main` had merged PRs through #57; source version was advancing toward
+  0.3.0 while published tags lagged — superseded by the baseline above.
+- Tests (Go race detector, Python, frontend/Playwright) and CI were green
+  on `main` as of that merge window.
 - The original FunGen near-zero-correlation finding
   ([Issue #8](https://github.com/funfunpayer/SamNPlayer/issues/8),
   [`docs/FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes
@@ -1770,13 +1770,11 @@ git history rather than rebuilding from scratch.
   device switch shipped: `train_yolo_model --device auto|cuda|directml|mps|cpu`
   + GUI dropdown (`ListRoiTrainingDevices`).
 
-- **Research pack + Go Phase Analyzer (September 16, 2026)** — remaining
-  notes (07–10, findings CSV, ADR) live under
-  `docs/perception_update_2026-09/`. Measurable P0 follow-up shipped:
-  `funscript.BestLagCorrelation` / `DiagnosePhase` port the FunGen
-  parity lag search to Go so timing-vs-shape diagnosis needs no Python.
-  The 8-point PTS→device chain stays deferred (tooling, not a generator
-  fix) until a concrete clip set needs it.
+- **Research pack → lean ENGINE.md (September 17, 2026)** — dated
+  multi-file research dumps removed; direction in `docs/ENGINE.md`.
+  Measurable P0 follow-up shipped: `BestLagCorrelation` / `DiagnosePhase`
+  (+ CLI). The 8-point PTS→device chain stays deferred until a concrete
+  clip set needs it.
 
 ## Product requirements
 
