@@ -30,9 +30,8 @@ type LagCorrelation struct {
 	LowConfidence bool     `json:"low_confidence"`
 }
 
-// PhaseVerdict is the diagnose step from docs/perception_update_2026-09/
-// 03_timing_phase_analyzer.md: after best-lag, decide whether to fix
-// timing or perception/shape.
+// PhaseVerdict is the diagnose step from docs/ENGINE.md (timing vs shape):
+// after best-lag, decide whether to fix timing or perception/shape.
 type PhaseVerdict string
 
 const (

@@ -305,8 +305,7 @@ existing principle for the AI engines almost exactly - same rule, restated
 for SAM.
 ## SAM Perception v1 (17 September 2026)
 
-Architecture decision from the script-quality review
-(`docs/REVIEW_SCRIPTQUALITAET_2026-09-17.md`):
+Architecture decision (`docs/SIGNAL_VS_FIDELITY.md`, `docs/ENGINE.md`):
 
 > The next milestone is **not** “another tracker”, but **SAM Perception
 > v1**: measure the observers we already have (CSRT, grid_lk,
