@@ -695,12 +695,29 @@ the vibration curve tracks that faithfully rather than firing a short
 blip - confirming "fits the material" rather than assuming contact is
 always brief.
 
-Not yet done: the pulse *shape* was deliberately left open by the user
+Not yet done: ~~the pulse *shape* was deliberately left open by the user
 ("their call") - the current envelope is a straight linear ramp against
 distance-to-peak, the simplest option consistent with "fits the
 material," and is now visually validated as tracking genuine contact
-rather than firing on tracker noise. Still open: no listening/feel test
-on real hardware yet (needs priority 1).
+rather than firing on tracker noise.~~ **Done as product controls
+(September 17, 2026):** generator tab now exposes Empfindlichkeit
+(ContactVibrationSpan, default 0.75) and Kurve (linear / soft=t² /
+peak=√t); values land in `device_recipe` and drive `ToIntensityCurve`.
+Playback can disable contact vibration for one session without
+regenerating; the curve canvas draws vibration as a second (orange)
+track when the recipe has it; log emits „Kontakt-Vibration aktiv“.
+Still open: no listening/feel test on real hardware yet (needs
+priority 1).
+
+**Signal quality for contact vibration (September 17, 2026):** when either
+Tf/Tj tracker loses its target, the held last-known distance would keep
+buzzing — generation now writes `metadata.tracking_gaps` and the mapper
+forces vibration to 0 inside those windows (suction unchanged). A short
+dedicated contact-envelope smooth (default 0.45) damps tracker jitter on
+the vib channel only. Tf/Tj „Region automatisch finden“ now calls
+`find_two_rois` / `ai_roi --two` as an opt-in **suggestion** (fills ROI1+ROI2
+for the user to correct; never silently committed — still not the default
+path for batch/auto without confirmation).
 
 **Brief/grazing contact, checked (September 15, 2026):** the other open
 question - whether the envelope also reads as natural on a quick
@@ -1288,15 +1305,16 @@ resulting `.funscript` loads correctly through
 `fungen_compare.py::load_actions` - so a SAM-roundtripped script stays as
 comparable against FunGen references as any other output.
 
-**Still correctly not wired into GUI/CLI:** this closes a real
-correctness gap in the existing converter, it doesn't create a reason to
-expose SAM to users yet. No motion classifier exists (every field besides
-Position stays `MotionUnknown`/empty for every producer today), so a
-"save/load .sam" button would just be a differently-shaped `.funscript`
-with no new information - not a feature, surface area without payoff. A
-GUI/CLI flow is worth building once there's a concrete consumer for the
-richer fields (a classifier, or another producer that needs them) - see
-this section's own guiding constraint below.
+**Still correctly not a new on-disk Funscript format:** `.funscript` stays
+the user-facing file. SAM is the internal motion model; Enrich +
+`PlaybackFramesFromFunscript` now sit between load and device output for
+Tf/Tj contact (Intensity/Gaps). Optional `.sam` via CLI is tooling only.
+
+**First Enrich + playback consumer (September 17, 2026):**
+`sam.FromFunscriptEnriched` fills Velocity/Confidence/Intensity/Range;
+GUI playback for contact uses `sam.PlaybackFramesFromFunscript` (log:
+„Kontakt-Vibration aktiv (SAM-Intensity)“). CLI: `SamNPlayer sam
+script.funscript`.
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already

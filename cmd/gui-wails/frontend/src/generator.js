@@ -12,7 +12,7 @@ export function initGenerator(root, playback) {
     </div>
     <div class="row" style="align-items:center;">
       <button id="gen-autoroi" class="primary" disabled
-        data-help="Findet eine Startregion über Bewegung im Bild. Danach kannst du die Box von Hand korrigieren.">Region automatisch finden</button>
+        data-help="Findet eine Startregion über Bewegung im Bild (bei Tf/Tj beide Regionen als Vorschlag). Danach kannst du die Box von Hand korrigieren — nie stillschweigend übernommen.">Region automatisch finden</button>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
         <label for="gen-ai-roi" style="width:auto"
           data-help="Nutzt ein lokales ONNX-Modell statt der klassischen Bewegungssuche. Braucht ein trainiertes Modell unter Einstellungen → KI-Regionserkennung. Bleibt aus, wenn onnxruntime oder die Modelldatei fehlen.">KI-Erkennung (ONNX)</label></span>
@@ -42,10 +42,27 @@ export function initGenerator(root, playback) {
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position. Vibration nur mit „Kontakt-Vibration“.
     </p>
-    <div class="checkbox-row" id="gen-contact-vibration-row" style="display:none;">
-      <input type="checkbox" id="gen-contact-vibration" />
-      <label for="gen-contact-vibration"
-        data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+    <div id="gen-contact-vibration-wrap" style="display:none;">
+      <div class="checkbox-row" id="gen-contact-vibration-row">
+        <input type="checkbox" id="gen-contact-vibration" />
+        <label for="gen-contact-vibration"
+          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+      </div>
+      <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
+        <div class="field-row" style="align-items:center;">
+          <label style="width:auto;" data-help="Niedriger = früher an (größeres Kontaktfenster). Höher = nur tief (nur nahe am Minimumabstand). Default 0,75 = oberstes Viertel des Videosignals.">Empfindlichkeit</label>
+          <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
+          <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">nur tief</span>
+        </div>
+        <div class="field-row" style="align-items:center;">
+          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²). peak = stärkerer Peak (√t). Immer aus demselben Videosignal.">Kurve</label>
+          <select id="gen-contact-curve">
+            <option value="linear" selected>Linear</option>
+            <option value="soft">Weicher Einstieg</option>
+            <option value="peak">Stärkerer Peak</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="row" style="align-items:center;">
@@ -276,10 +293,25 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = false;
   }
 
+  function updateContactVibrationOpts() {
+    const on = isTfTj() && el('#gen-contact-vibration').checked;
+    el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
+  }
+
+  function updateContactSpanLabel() {
+    const v = parseInt(el('#gen-contact-span').value, 10) || 75;
+    const label = el('#gen-contact-span-label');
+    if (v <= 50) label.textContent = 'früher an';
+    else if (v >= 85) label.textContent = 'nur tief';
+    else label.textContent = (v / 100).toFixed(2);
+  }
+
   function updateProfileUi() {
     const tftj = isTfTj();
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
+    el('#gen-contact-vibration-wrap').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
+    updateContactVibrationOpts();
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
     if (tftj && videoPath) {
@@ -493,6 +525,12 @@ export function initGenerator(root, playback) {
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
+      contactVibrationSpan: (isTfTj() && el('#gen-contact-vibration').checked)
+        ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
+        : 0,
+      contactVibrationCurve: (isTfTj() && el('#gen-contact-vibration').checked)
+        ? (el('#gen-contact-curve').value || 'linear')
+        : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
     };
@@ -536,16 +574,29 @@ export function initGenerator(root, playback) {
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
+    const hasRoi2 = result.w2 > 0 && result.h2 > 0;
+    if (hasRoi2) {
+      roi2 = { x: result.x2, y: result.y2, w: result.w2, h: result.h2 };
+      setRoi2Mode(true);
+      if (!isTfTj()) el('#gen-profile').value = 'tf';
+    }
     updateRoiLabels();
     const via = result.engine === 'ai' ? 'KI-Erkennung' : 'klassisch, automatisch';
     if (roi) {
       el('#gen-roi-label').textContent =
         `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, ${via} gefunden)`;
     }
+    if (hasRoi2 && roi2) {
+      el('#gen-roi2-label').textContent =
+        `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, ${via} — bitte prüfen)`;
+    }
+    updateProfileUi();
     updateGenerateEnabled();
-    el('#gen-status').textContent = isTfTj() && !roi2
-      ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
-      : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`;
+    el('#gen-status').textContent = hasRoi2
+      ? `Beide Regionen gefunden (${via}) — Vorschlag, bitte prüfen/korrigieren.`
+      : (isTfTj() && !roi2
+        ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
+        : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`);
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -622,7 +673,9 @@ export function initGenerator(root, playback) {
       alert('Fehler: ' + result.error);
       return;
     }
-    el('#gen-status').textContent = 'Fertig: ' + result.path;
+    el('#gen-status').textContent = result.samPath
+      ? `Fertig: ${result.path} (+ SAM-Modell)`
+      : 'Fertig: ' + result.path;
     const pipe = el('#gen-pipeline');
     if (pipe) {
       if (result.pipeline === 'go') {
@@ -689,15 +742,21 @@ export function initGenerator(root, playback) {
     }
   });
   el('#gen-profile').addEventListener('change', updateProfileUi);
+  el('#gen-contact-vibration').addEventListener('change', updateContactVibrationOpts);
+  el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
+  updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', updateGenerateEnabled);
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const two = isTfTj();
     el('#gen-autoroi').disabled = true;
     el('#gen-status').textContent = useAI
-      ? 'KI-Regionssuche läuft (ONNX-Modell)...'
-      : 'Analysiere Bewegung im Video (dauert einige Sekunden)...';
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+      ? (two ? 'KI sucht beide Regionen (ONNX)...' : 'KI-Regionssuche läuft (ONNX-Modell)...')
+      : (two ? 'Suche beide Regionen (Abstand/Tf/Tj-Vorschlag)...'
+        : 'Analysiere Bewegung im Video (dauert einige Sekunden)...');
+    const engine = useAI ? (two ? 'ai_two' : 'ai') : (two ? 'auto_two' : 'auto');
+    AutoDetectROI(videoPath, engine);
   });
 
   const PROFILE_VALUES = ['standard', 'weich', 'tf'];

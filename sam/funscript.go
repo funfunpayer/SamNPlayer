@@ -32,13 +32,18 @@ func FromFunscript(fs *funscript.Script) *Script {
 	}
 	if dr := fs.Metadata.DeviceRecipe; dr != nil {
 		meta.DeviceRecipe = &DeviceRecipe{
-			Sync:             dr.Sync,
-			MinSuction:       dr.MinSuction,
-			TickMs:           dr.TickMs,
-			MaxSpeed:         dr.MaxSpeed,
-			Smoothing:        dr.Smoothing,
-			ContactVibration: dr.ContactVibration,
+			Sync:                  dr.Sync,
+			MinSuction:            dr.MinSuction,
+			TickMs:                dr.TickMs,
+			MaxSpeed:              dr.MaxSpeed,
+			Smoothing:             dr.Smoothing,
+			ContactVibration:      dr.ContactVibration,
+			ContactVibrationSpan:  dr.ContactVibrationSpan,
+			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
+	}
+	if len(fs.Metadata.TrackingGaps) > 0 {
+		meta.TrackingGaps = fromFunscriptGaps(fs.Metadata.TrackingGaps)
 	}
 	return &Script{
 		Version:  ScriptVersion,
@@ -71,13 +76,18 @@ func ToFunscript(s *Script) *funscript.Script {
 	fs.Metadata.Profile = s.Metadata.Profile
 	if dr := s.Metadata.DeviceRecipe; dr != nil {
 		fs.Metadata.DeviceRecipe = &funscript.DeviceRecipe{
-			Sync:             dr.Sync,
-			MinSuction:       dr.MinSuction,
-			TickMs:           dr.TickMs,
-			MaxSpeed:         dr.MaxSpeed,
-			Smoothing:        dr.Smoothing,
-			ContactVibration: dr.ContactVibration,
+			Sync:                  dr.Sync,
+			MinSuction:            dr.MinSuction,
+			TickMs:                dr.TickMs,
+			MaxSpeed:              dr.MaxSpeed,
+			Smoothing:             dr.Smoothing,
+			ContactVibration:      dr.ContactVibration,
+			ContactVibrationSpan:  dr.ContactVibrationSpan,
+			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
+	}
+	if len(s.Metadata.TrackingGaps) > 0 {
+		fs.Metadata.TrackingGaps = toFunscriptGaps(s.Metadata.TrackingGaps)
 	}
 	if len(actions) > 0 {
 		fs.Metadata.Duration = actions[len(actions)-1].At

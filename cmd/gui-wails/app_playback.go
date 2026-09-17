@@ -10,20 +10,22 @@ import (
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
+	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
 type PlaybackOptions struct {
-	Mock               bool    `json:"mock"`
-	SyncMode           string  `json:"syncMode"`
-	TickMs             int64   `json:"tickMs"`
-	MaxSpeed           float64 `json:"maxSpeed"`
-	Smoothing          float64 `json:"smoothing"`
-	SoftStartMs        int     `json:"softStartMs"`
-	UseVideoSync       bool    `json:"useVideoSync"`
-	ExtendedOEnabled   bool    `json:"extendedOEnabled"`
-	ExtendedOMin       float64 `json:"extendedOMin"`
-	ExtendedOHoldS     float64 `json:"extendedOHoldS"`
-	ExtendedORestoreMs float64 `json:"extendedORestoreMs"`
+	Mock                   bool    `json:"mock"`
+	SyncMode               string  `json:"syncMode"`
+	TickMs                 int64   `json:"tickMs"`
+	MaxSpeed               float64 `json:"maxSpeed"`
+	Smoothing              float64 `json:"smoothing"`
+	SoftStartMs            int     `json:"softStartMs"`
+	UseVideoSync           bool    `json:"useVideoSync"`
+	ExtendedOEnabled       bool    `json:"extendedOEnabled"`
+	ExtendedOMin           float64 `json:"extendedOMin"`
+	ExtendedOHoldS         float64 `json:"extendedOHoldS"`
+	ExtendedORestoreMs     float64 `json:"extendedORestoreMs"`
+	DisableContactVibration bool   `json:"disableContactVibration"`
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
@@ -33,11 +35,21 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	}
 	mapOpts := funscript.DefaultMapOptions()
 	profile := script.Metadata.Profile
+	contactOn := false
 	if funscript.IsDistanceProfile(profile) {
 		mapOpts = funscript.RecipeFor(profile)
 		if dr := script.Metadata.DeviceRecipe; dr != nil {
 			mapOpts.ContactVibration = dr.ContactVibration
+			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
+			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
 		}
+		if len(script.Metadata.TrackingGaps) > 0 {
+			mapOpts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
+		}
+		if opts.DisableContactVibration {
+			mapOpts.ContactVibration = false
+		}
+		contactOn = mapOpts.ContactVibration
 	}
 	if opts.TickMs > 0 {
 		mapOpts.TickMs = opts.TickMs
@@ -53,7 +65,13 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if !funscript.IsDistanceProfile(profile) || (opts.SyncMode != "" && opts.SyncMode != "independent") {
 		mapOpts.Sync = syncMode
 	}
-	frames := script.ToIntensityCurve(mapOpts)
+	// Tf/Tj + Kontakt: SAM-Modell dazwischen (Intensity/Gaps), Datei bleibt .funscript.
+	var frames []funscript.Frame
+	if contactOn {
+		frames = a.contactFrames(script, mapOpts)
+	} else {
+		frames = script.ToIntensityCurve(mapOpts)
+	}
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
@@ -105,6 +123,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			defer dev.Disconnect()
 		}
 		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
+		if contactOn {
+			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv (SAM)")
+		}
 		var playErr error
 		if opts.UseVideoSync {
 			positions := make(chan int64, 4)
@@ -183,6 +204,15 @@ type CurvePoint struct {
 	Pos  int   `json:"pos"`
 }
 
+// VibrationCurvePoint is the contact-vibration intensity (0-1) over time —
+// second track under the position curve when device_recipe.contact_vibration
+// is set. Derived from the same distance/pos signal as playback, so it lines
+// up with the video timeline.
+type VibrationCurvePoint struct {
+	AtMs      int64   `json:"atMs"`
+	Vibration float64 `json:"vibration"`
+}
+
 func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
@@ -234,6 +264,51 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 	return out, nil
 }
 
+// GetVibrationCurve returns the contact-vibration envelope for the loaded
+// script (empty if none). Uses the baked-in device_recipe so the second
+// curve track matches what playback would send without a disable override.
+func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
+	script := a.loadedScript()
+	if script == nil {
+		return nil, fmt.Errorf("kein Skript geladen")
+	}
+	dr := script.Metadata.DeviceRecipe
+	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
+		return nil, nil
+	}
+	if maxPoints < 50 {
+		maxPoints = 50
+	}
+	opts := funscript.RecipeFor(script.Metadata.Profile)
+	opts.ContactVibration = true
+	opts.ContactVibrationSpan = dr.ContactVibrationSpan
+	opts.ContactVibrationCurve = dr.ContactVibrationCurve
+	opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
+	opts.Smoothing = 0
+	opts.ContactVibrationEnvelope = -1
+	duration := script.Duration()
+	if duration <= 0 {
+		return nil, nil
+	}
+	opts.TickMs = duration / int64(maxPoints)
+	if opts.TickMs < 10 {
+		opts.TickMs = 10
+	}
+	frames := a.contactFrames(script, opts)
+	out := make([]VibrationCurvePoint, 0, len(frames))
+	any := false
+	for _, f := range frames {
+		if f.Vibration > 0.001 {
+			any = true
+		}
+		out = append(out, VibrationCurvePoint{AtMs: f.At, Vibration: f.Vibration})
+	}
+	if !any {
+		return nil, nil
+	}
+	return out, nil
+}
+
 func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	script := a.loadedScript()
 	if script == nil {
@@ -261,6 +336,22 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 		points[i] = HeatmapPoint{AtMs: f.At, Intensity: intensity}
 	}
 	return points, nil
+}
+
+// contactFrames: bevorzugt vorhandenes .sam-Sidecar, sonst Enrich aus dem Funscript.
+func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
+	if path := a.loadedScriptPath(); path != "" {
+		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil {
+			if frames := sam.ToDeviceFrames(s, mapOpts); len(frames) > 0 {
+				return frames
+			}
+		}
+	}
+	frames := sam.PlaybackFramesFromFunscript(script, mapOpts)
+	if len(frames) == 0 {
+		return script.ToIntensityCurve(mapOpts)
+	}
+	return frames
 }
 
 func (a *App) SetScriptOffset(ms int64) {

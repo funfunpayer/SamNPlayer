@@ -94,6 +94,14 @@ def main():
               page.locator("#gen-tftj-hint").evaluate("e => e.style.display") == "block")
         check("Kontakt-Vibration-Zeile sichtbar",
               page.locator("#gen-contact-vibration-row").evaluate("e => e.style.display") == "flex")
+        # Empfindlichkeit/Kurve erst nach Aktivieren der Checkbox
+        page.check("#gen-contact-vibration")
+        check("Kontakt-Vibration-Optionen sichtbar",
+              page.locator("#gen-contact-vibration-opts").evaluate("e => e.style.display") == "block")
+        check("Empfindlichkeits-Slider vorhanden",
+              page.locator("#gen-contact-span").count() == 1)
+        check("Kurvenwahl vorhanden",
+              page.locator("#gen-contact-curve").count() == 1)
 
         browser.close()
 

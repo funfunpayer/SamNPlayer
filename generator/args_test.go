@@ -30,6 +30,10 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			[]string{"--profile", "tj", "--roi2", "1,2,3,4"}},
 		{"Kontakt-Vibration", Options{Profile: "tj", ContactVibration: true},
 			[]string{"--contact-vibration"}},
+		{"Kontakt-Vibration Span+Kurve", Options{Profile: "tj", ContactVibration: true,
+			ContactVibrationSpan: 0.55, ContactVibrationCurve: "soft"},
+			[]string{"--contact-vibration", "--contact-vibration-span", "0.55",
+				"--contact-vibration-curve", "soft"}},
 		{"Backend flow", Options{Backend: "flow"}, []string{"--backend", "flow"}},
 		{"Backend grid_lk", Options{Backend: "grid_lk"}, []string{"--backend", "grid_lk"}},
 		{"Audio-Tempo-Prüfung", Options{AudioCheck: true}, []string{"--audio-check"}},
@@ -46,7 +50,8 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			if tc.want == nil {
 				for _, flag := range []string{"--auto-retry", "--axis", "--max-speed",
 					"--adaptive-keyframes", "--per-scene-roi", "--profile", "--roi2",
-					"--contact-vibration", "--backend", "--audio-check"} {
+					"--contact-vibration", "--contact-vibration-span",
+					"--contact-vibration-curve", "--backend", "--audio-check"} {
 					if strings.Contains(joined, flag) {
 						t.Errorf("unerwartetes Argument %q bei Standardoptionen: %s", flag, joined)
 					}

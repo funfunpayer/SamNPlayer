@@ -71,6 +71,8 @@ export function GetScriptActions():Promise<Array<funscript.Action>>;
 
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
 
+export function GetVibrationCurve(arg1:number):Promise<Array<main.VibrationCurvePoint>>;
+
 export function GetScriptOffset():Promise<number>;
 
 export function GetSettings():Promise<main.Settings>;

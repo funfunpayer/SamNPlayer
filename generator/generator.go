@@ -75,6 +75,8 @@ type Options struct {
 	AIQualityOpinion          bool
 	AIBaseURL                 string
 	ContactVibration          bool
+	ContactVibrationSpan      float64
+	ContactVibrationCurve     string
 	AudioCheck                bool
 	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
 	// Default false: GenerateWithContext uses trackcv or simpletrack when
@@ -264,6 +266,12 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 	return findROIViaScript("auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
 }
 
+// FindTwoROIsWithProgress schlägt ROI1+ROI2 vor (auto_roi --two). Nur
+// Vorschlag — GUI muss bestätigen/korrigieren (docs/NEXT.md Priorität 3).
+func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return findTwoROIsViaScript("auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
+}
+
 // FindROIAIWithProgress ist die KI-Variante von FindROIWithProgress: gleicher
 // Vertrag (stdout "ROI x y w h", stderr Fortschritt/Log), aber ai_roi.py
 // (lokales ONNX-Modell) statt auto_roi.py (Rhythmus-Heuristik ohne Modell).
@@ -274,6 +282,16 @@ func FindROIAIWithProgress(videoPath, modelPath string, onProgress func(line str
 		extraArgs = append(extraArgs, "--model", modelPath)
 	}
 	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+}
+
+// FindTwoROIsAIWithProgress ist die KI-Variante von FindTwoROIsWithProgress
+// (ai_roi.py --two). roi2 darf leer sein, wenn kein zweites Objekt gefunden.
+func FindTwoROIsAIWithProgress(videoPath, modelPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	extraArgs := []string{"--two"}
+	if modelPath != "" {
+		extraArgs = append(extraArgs, "--model", modelPath)
+	}
+	return findTwoROIsViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
 // AIRoiAvailable prüft (ohne ein Video zu öffnen), ob die KI-Regionssuche
@@ -397,6 +415,82 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	}
 	logging.Info("generator: Region automatisch gefunden", "roi", fmt.Sprintf("%+v", roi))
 	return roi, nil
+}
+
+// findTwoROIsViaScript wie findROIViaScript, liest zusätzlich optional
+// "ROI2 x y w h". Fehlt ROI2, ist der zweite Rückgabewert leer (W=0).
+func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	py, err := FindPython()
+	if err != nil {
+		return ROI{}, ROI{}, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return ROI{}, ROI{}, err
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return ROI{}, ROI{}, err
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
+	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
+	cmd := command(py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return ROI{}, ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return ROI{}, ROI{}, fmt.Errorf("generator: stdout-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return ROI{}, ROI{}, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+	}
+	var stderrDone sync.WaitGroup
+	stderrDone.Add(1)
+	go func() {
+		defer stderrDone.Done()
+		sc := bufio.NewScanner(stderr)
+		for sc.Scan() {
+			line := sc.Text()
+			if done, total, ok := parseProgress(line); ok {
+				if onPercent != nil {
+					onPercent(percentOf(done, total))
+				}
+				continue
+			}
+			logging.Debug(logPrefix + ": " + line)
+			if onProgress != nil {
+				onProgress(line)
+			}
+		}
+	}()
+	var roi, roi2 ROI
+	found := false
+	sc := bufio.NewScanner(stdout)
+	for sc.Scan() {
+		line := sc.Text()
+		var x, y, w, h int
+		if n, _ := fmt.Sscanf(line, "ROI2 %d %d %d %d", &x, &y, &w, &h); n == 4 {
+			roi2 = ROI{X: x, Y: y, W: w, H: h}
+			continue
+		}
+		if n, _ := fmt.Sscanf(line, "ROI %d %d %d %d", &x, &y, &w, &h); n == 4 {
+			roi = ROI{X: x, Y: y, W: w, H: h}
+			found = true
+		}
+	}
+	stderrDone.Wait()
+	if err := cmd.Wait(); err != nil {
+		return ROI{}, ROI{}, fmt.Errorf("generator: automatische Zwei-Regionen-Suche fehlgeschlagen: %w", err)
+	}
+	if !found {
+		return ROI{}, ROI{}, fmt.Errorf("generator: keine Region gefunden - bitte von Hand markieren")
+	}
+	logging.Info("generator: Regionen automatisch gefunden",
+		"roi", fmt.Sprintf("%+v", roi), "roi2", fmt.Sprintf("%+v", roi2))
+	return roi, roi2, nil
 }
 
 func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) {
@@ -739,6 +833,13 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.ContactVibration {
 		args = append(args, "--contact-vibration")
+		if opts.ContactVibrationSpan > 0 {
+			args = append(args, "--contact-vibration-span",
+				strconv.FormatFloat(opts.ContactVibrationSpan, 'f', -1, 64))
+		}
+		if opts.ContactVibrationCurve != "" && opts.ContactVibrationCurve != "linear" {
+			args = append(args, "--contact-vibration-curve", opts.ContactVibrationCurve)
+		}
 	}
 	if opts.AudioCheck {
 		args = append(args, "--audio-check")

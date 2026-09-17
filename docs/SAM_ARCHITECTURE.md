@@ -6,6 +6,19 @@ to what this repo will actually commit to next, after discussion the same
 day. It follows the same pattern as `docs/AI_ADAPTER.md`: keep what already
 works, add new capability alongside it, never on top of a rewrite.
 
+## Naming (settled September 17, 2026)
+
+- **`.funscript`** = the on-disk / interchange **position format**. There is
+  **no** “new funscript format called SAM.” Files users generate and share
+  stay `.funscript`.
+- **SAM** = this project’s **internal motion model** (`sam/` package): richer
+  fields (Intensity, Confidence, Velocity, …) describing *what kind of
+  motion* is happening. Optional `.sam` is a serialization of that model
+  for tooling (`SamNPlayer sam …`), not a Funscript replacement.
+- **Not** Meta’s Segment Anything (sometimes also abbreviated “SAM” in
+  Perception 2.0 notes). If a segmentation layer is ever added, it needs
+  a different name — see `docs/ROADMAP.md` open decision #3.
+
 ## Leitprinzip (the user's own wording, kept as-is)
 
 > `.funscript` beschreibt, wo ein Gerät zu einem Zeitpunkt stehen soll.
@@ -110,12 +123,15 @@ far the rest of the vision goes, so they're the actual next block:
    and positions survive intact (existing players, existing scripts, the
    existing ecosystem all keep working un-migrated).
 
-Not yet done from this milestone's own DoD: no producer sets any field
-besides `Position`/`Type` yet (motion classification etc. stay deferred,
-see below), and nothing in the GUI or CLI creates or reads a `.sam` file
-yet - `sam/` exists as a library, not wired into any user-facing flow.
-That wiring is intentionally a separate, later step so this slice stays
-reviewable on its own.
+Not yet done from this milestone's own DoD: ~~no producer sets any field
+besides `Position`/`Type` yet~~ **first producer + contact consumer
+shipped (September 17, 2026):** `sam.Enrich` / `FromFunscriptEnriched`
+fills `Velocity`, `Confidence` (from `tracking_gaps`), and for Tf/Tj +
+contact also `Intensity`/`Range`. Playback for contact uses
+`sam.PlaybackFramesFromFunscript` (SAM Intensity → vibration). CLI:
+`SamNPlayer sam FILE.funscript`. Plain `FromFunscript` stays thin. User
+files remain `.funscript` — SAM is not a replacement format. Motion
+classification etc. stay deferred.
 
 ### Definition of Done for this milestone
 

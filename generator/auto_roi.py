@@ -449,7 +449,25 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--video", required=True)
     ap.add_argument("--max-seconds", type=int, default=45)
+    ap.add_argument("--two", action="store_true",
+                    help="Zwei Regionen vorschlagen (find_two_rois) für Tf/Tj. "
+                         "Nur Vorschlag — nie automatisch übernommen (docs/NEXT.md Priorität 3).")
     args = ap.parse_args()
+
+    if args.two:
+        try:
+            roi1, roi2 = find_two_rois(args.video, max_seconds=args.max_seconds)
+        except RuntimeError as exc:
+            print(f"Zwei-Regionen-Suche fehlgeschlagen: {exc}", file=sys.stderr)
+            sys.exit(1)
+        x, y, w, h = roi1
+        print(f"ROI {x} {y} {w} {h}")
+        print(f"Automatisch gefundene Region 1: x={x} y={y} w={w} h={h}", file=sys.stderr)
+        if roi2 is not None:
+            x2, y2, w2, h2 = roi2
+            print(f"ROI2 {x2} {y2} {w2} {h2}")
+            print(f"Automatisch gefundene Region 2: x={x2} y={y2} w={w2} h={h2}", file=sys.stderr)
+        return
 
     x, y, w, h = find_roi(args.video, max_seconds=args.max_seconds)
     # Maschinenlesbare Zeile für den Go-Aufrufer:

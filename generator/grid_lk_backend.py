@@ -347,10 +347,35 @@ def analyze_two_point(video_path, roi_a, roi_b, options):
 
     n = min(len(xa), len(xb))
     distances = np.hypot(xa[:n] - xb[:n], ya[:n] - yb[:n])
-    lost = int(np.count_nonzero(lost_a[:n] | lost_b[:n]))
+    either_lost = lost_a[:n] | lost_b[:n]
+    lost = int(np.count_nonzero(either_lost))
     if lost:
         print(f"Zwei-Punkt-Messung (Grid-LK): in {lost}/{n} Frames hat mindestens ein "
               "Gitter alle Punkte verloren", file=sys.stderr)
+
+    # Gaps für Kontakt-Vibration (Playback mutet Vib während Tracker-Verlust).
+    gaps = []
+    start = end = None
+    for t, is_lost in zip(ts_a[:n], either_lost):
+        t = float(t)
+        if is_lost:
+            if start is None:
+                start = end = t
+            else:
+                end = t
+        elif start is not None:
+            gaps.append({"start_ms": int(round(start)), "end_ms": int(round(end))})
+            start = end = None
+    if start is not None:
+        gaps.append({"start_ms": int(round(start)), "end_ms": int(round(end))})
+    if gaps:
+        merged = [dict(gaps[0])]
+        for g in gaps[1:]:
+            if g["start_ms"] - merged[-1]["end_ms"] <= 100:
+                merged[-1]["end_ms"] = g["end_ms"]
+            else:
+                merged.append(dict(g))
+        gaps = merged
 
     stats = {
         "tracker_lost_frames": lost,
@@ -360,5 +385,6 @@ def analyze_two_point(video_path, roi_a, roi_b, options):
         "horizontal_range": 0.0,
         "grid_target_points_a": stats_a["grid_target_points"],
         "grid_target_points_b": stats_b["grid_target_points"],
+        "tracking_gaps": gaps,
     }
     return ts_a[:n], distances, frame_size, sorted(set(cuts_a) | set(cuts_b)), stats

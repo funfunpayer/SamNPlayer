@@ -44,9 +44,14 @@ type DeviceRecipe struct {
 	// ContactVibration: bei tf/tj optional gesetzt (generator/tf_tj_meta.py,
 	// --contact-vibration) - Vibration folgt dann zusätzlich zum Sog dem
 	// Abstandssignal, sobald es nahe sein eigenes, in diesem Skript
-	// beobachtetes Minimum fällt (siehe MapOptions.ContactVibration).
+	// beobachtetes Maximum steigt (siehe MapOptions.ContactVibration).
 	// Fehlt/false: unverändertes Verhalten, keine Vibration bei tf/tj.
 	ContactVibration bool `json:"contact_vibration,omitempty"`
+
+	// ContactVibrationSpan / Curve: nur sinnvoll mit ContactVibration.
+	// Fehlen → Mapper-Defaults (0.75 / linear). Siehe MapOptions.
+	ContactVibrationSpan  float64 `json:"contact_vibration_span,omitempty"`
+	ContactVibrationCurve string  `json:"contact_vibration_curve,omitempty"`
 }
 
 // RecipeFor liefert MapOptions für ein Profil.

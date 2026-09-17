@@ -1367,6 +1367,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
 
     distances = [two_point_distance(box_a, box_b)]
     timestamps = [0.0]
+    lost_flags = [False]
     lost = 0
     idx = 1
 
@@ -1390,7 +1391,8 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
             box_a = new_a
         if ok_b:
             box_b = new_b
-        if not (ok_a and ok_b):
+        frame_lost = not (ok_a and ok_b)
+        if frame_lost:
             # Verliert auch nur einer der beiden das Ziel, ist der Abstand
             # nicht mehr aussagekräftig - anders als bei einem einzelnen
             # Tracker, wo eine fortgeschriebene Position noch halbwegs
@@ -1398,6 +1400,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
             lost += 1
         distances.append(two_point_distance(box_a, box_b))
         timestamps.append(idx * 1000.0 / fps)
+        lost_flags.append(frame_lost)
         idx += 1
 
     cap.release()
@@ -1413,8 +1416,44 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
         "total_frames": idx,
         "vertical_range": round(float(np.ptp(distances)), 1),
         "horizontal_range": 0.0,
+        "tracking_gaps": tracking_gaps_from_flags(timestamps, lost_flags),
     }
     return np.asarray(timestamps), distances, (width, height), [], stats
+
+
+def tracking_gaps_from_flags(timestamps_ms, lost_flags, merge_gap_ms=100.0):
+    """Faßt aufeinanderfolgende Lost-Frames zu [{start_ms, end_ms}, ...] zusammen.
+
+    Kurze Lücken zwischen Lost-Blöcken (< merge_gap_ms) werden mitverschmolzen,
+    damit Kontakt-Vibration nicht in jedem Einzel-Frame-Flackern wieder anspringt.
+    """
+    if not lost_flags or not any(lost_flags):
+        return []
+    gaps = []
+    start = None
+    end = None
+    for t, lost in zip(timestamps_ms, lost_flags):
+        t = float(t)
+        if lost:
+            if start is None:
+                start = end = t
+            else:
+                end = t
+        elif start is not None:
+            gaps.append({"start_ms": int(round(start)), "end_ms": int(round(end))})
+            start = end = None
+    if start is not None:
+        gaps.append({"start_ms": int(round(start)), "end_ms": int(round(end))})
+    if not gaps:
+        return []
+    merged = [dict(gaps[0])]
+    for g in gaps[1:]:
+        prev = merged[-1]
+        if g["start_ms"] - prev["end_ms"] <= merge_gap_ms:
+            prev["end_ms"] = g["end_ms"]
+        else:
+            merged.append(dict(g))
+    return merged
 
 
 def _register_builtin_backends():
@@ -1840,6 +1879,14 @@ def main():
                          "Impuls - das passt sich von selbst an, wie lang/eng der Kontakt im "
                          "Video tatsächlich ist. Kein Akt-Detektor, reine Abstandsmessung. "
                          "Ohne diese Option bleibt tf/tj wie bisher ohne Vibration.")
+    ap.add_argument("--contact-vibration-span", type=float, default=None, metavar="0.4-0.95",
+                    help="Nur mit --contact-vibration: Anteil des Positions-Spektrums, der "
+                         "als Kontakt zählt (Default 0.75). Niedriger = früher an; "
+                         "höher = nur tief.")
+    ap.add_argument("--contact-vibration-curve", default=None,
+                    choices=["linear", "soft", "peak"],
+                    help="Nur mit --contact-vibration: Hüllkurve linear (Default), "
+                         "soft (weicher Einstieg, t²) oder peak (stärkerer Peak, √t).")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -2352,11 +2399,21 @@ def process_one(args, ap):
         metadata["ai_opinion"] = ai_opinion
     if audio_check_result is not None and audio_check_result.get("available"):
         metadata["audio_check"] = audio_check_result
+    # Tracker-Verlustfenster: Playback schaltet Kontakt-Vibration dort aus
+    # (gehaltene Last-Position würde sonst weiterbrummen).
+    gaps = track_stats.get("tracking_gaps") or []
+    if gaps and is_distance_profile(args.profile):
+        metadata["tracking_gaps"] = gaps
+        print(f"Tracking-Gaps für Kontakt-Vibration: {len(gaps)} Fenster",
+              file=sys.stderr)
     if args.contact_vibration and not is_distance_profile(args.profile):
         print("Hinweis: --contact-vibration wirkt nur bei --profile tf/tj, wird ignoriert.",
               file=sys.stderr)
-    metadata = apply_profile_metadata(metadata, args.profile,
-                                       contact_vibration=args.contact_vibration)
+    metadata = apply_profile_metadata(
+        metadata, args.profile,
+        contact_vibration=args.contact_vibration,
+        contact_vibration_span=args.contact_vibration_span,
+        contact_vibration_curve=args.contact_vibration_curve)
 
     with open(args.output, "w") as f:
         json.dump({

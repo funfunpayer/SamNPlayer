@@ -8,6 +8,23 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Kontakt-Vibration product controls:** sensitivity slider („früher an“ /
+  „nur tief“), curve shape (linear / soft / peak), playback checkbox
+  „Kontakt-Vibration ab“ (no regenerate), orange second track on the
+  position curve, and log line „Kontakt-Vibration aktiv“.
+- **Kontakt-Vibration signal quality:** mute vibration during tracker-loss
+  windows (`metadata.tracking_gaps`), short contact-envelope smoothing,
+  and opt-in two-ROI auto-suggest on Tf/Tj (classic or AI — suggestion only).
+- **SAM first enrich stage:** `sam.FromFunscriptEnriched` + CLI
+  `SamNPlayer sam FILE.funscript` fills Velocity/Confidence/Intensity/Range
+  from tracking gaps + Tf/contact recipe; Tf/contact **playback** consumes
+  SAM Intensity (`PlaybackFramesFromFunscript`). `.funscript` remains the
+  file format — SAM is the motion model, not a new Funscript format.
+  Tf/Tj generate also writes a `.sam` sidecar; playback prefers it when
+  present.
+
 ## [0.5.3] — September 17, 2026
 
 ### Added
