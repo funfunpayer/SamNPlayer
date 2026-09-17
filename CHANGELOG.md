@@ -17,6 +17,9 @@ measurement history behind each entry; this file is the short version for
 - **Kontakt-Vibration signal quality:** mute vibration during tracker-loss
   windows (`metadata.tracking_gaps`), short contact-envelope smoothing,
   and opt-in two-ROI auto-suggest on Tf/Tj (classic or AI — suggestion only).
+- **SAM first enrich stage:** `sam.FromFunscriptEnriched` + CLI
+  `SamNPlayer sam FILE.funscript` fills Velocity/Confidence/Intensity/Range
+  from tracking gaps + Tf/contact recipe (no GUI playback change yet).
 
 ## [0.5.3] — September 17, 2026
 

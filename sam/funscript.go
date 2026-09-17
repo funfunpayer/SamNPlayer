@@ -42,6 +42,9 @@ func FromFunscript(fs *funscript.Script) *Script {
 			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
 	}
+	if len(fs.Metadata.TrackingGaps) > 0 {
+		meta.TrackingGaps = fromFunscriptGaps(fs.Metadata.TrackingGaps)
+	}
 	return &Script{
 		Version:  ScriptVersion,
 		Frames:   frames,
@@ -82,6 +85,9 @@ func ToFunscript(s *Script) *funscript.Script {
 			ContactVibrationSpan:  dr.ContactVibrationSpan,
 			ContactVibrationCurve: dr.ContactVibrationCurve,
 		}
+	}
+	if len(s.Metadata.TrackingGaps) > 0 {
+		fs.Metadata.TrackingGaps = toFunscriptGaps(s.Metadata.TrackingGaps)
 	}
 	if len(actions) > 0 {
 		fs.Metadata.Duration = actions[len(actions)-1].At

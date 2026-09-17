@@ -110,12 +110,15 @@ far the rest of the vision goes, so they're the actual next block:
    and positions survive intact (existing players, existing scripts, the
    existing ecosystem all keep working un-migrated).
 
-Not yet done from this milestone's own DoD: no producer sets any field
-besides `Position`/`Type` yet (motion classification etc. stay deferred,
-see below), and nothing in the GUI or CLI creates or reads a `.sam` file
-yet - `sam/` exists as a library, not wired into any user-facing flow.
-That wiring is intentionally a separate, later step so this slice stays
-reviewable on its own.
+Not yet done from this milestone's own DoD: ~~no producer sets any field
+besides `Position`/`Type` yet~~ **first producer shipped (September 17,
+2026):** `sam.Enrich` / `FromFunscriptEnriched` fills `Velocity`,
+`Confidence` (from `tracking_gaps`), and for Tf/Tj + contact vibration
+also `Intensity`/`Range` — same signals generation already writes, no new
+tracker. CLI: `SamNPlayer sam FILE.funscript`. Plain `FromFunscript`
+stays thin. GUI still does not load/save `.sam` (playback stays on
+`.funscript` until a consumer prefers SAM Intensity over recomputing
+contact in `mapper.go`). Motion classification etc. stay deferred.
 
 ### Definition of Done for this milestone
 

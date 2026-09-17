@@ -1305,15 +1305,20 @@ resulting `.funscript` loads correctly through
 `fungen_compare.py::load_actions` - so a SAM-roundtripped script stays as
 comparable against FunGen references as any other output.
 
-**Still correctly not wired into GUI/CLI:** this closes a real
-correctness gap in the existing converter, it doesn't create a reason to
-expose SAM to users yet. No motion classifier exists (every field besides
-Position stays `MotionUnknown`/empty for every producer today), so a
-"save/load .sam" button would just be a differently-shaped `.funscript`
-with no new information - not a feature, surface area without payoff. A
-GUI/CLI flow is worth building once there's a concrete consumer for the
-richer fields (a classifier, or another producer that needs them) - see
-this section's own guiding constraint below.
+**Still correctly not wired into GUI playback:** this closes a real
+correctness gap in the existing converter and adds a first Enrich
+producer, it doesn't replace `.funscript` playback. A "save/load .sam"
+button in the GUI is still deferred until playback can *consume*
+`Motion.Intensity`/`Confidence` for contact (instead of recomputing from
+pos) — library + CLI `sam` convert are the first stage.
+
+**First Enrich producer (September 17, 2026):** `sam.FromFunscriptEnriched`
+uses generation metadata we already have (`tracking_gaps`, Tf/Tj
+`device_recipe.contact_vibration` + span/curve) to fill SAM fields that
+map onto contact vibration (`Intensity`/`Range`/`Confidence`) and basic
+kinematics (`Velocity`). CLI: `SamNPlayer sam script.funscript`. Next
+stage when useful: playback optionally reads Intensity from a loaded
+`.sam` for contact instead of the mapper's pos ramp.
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already

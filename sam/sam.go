@@ -125,6 +125,16 @@ type Metadata struct {
 	// unabhängig vom funscript-Paket bleibt (siehe Paket-Docstring) -
 	// funscript.go übernimmt die Feld-für-Feld-Umwandlung.
 	DeviceRecipe *DeviceRecipe `json:"device_recipe,omitempty"`
+	// TrackingGaps: Tracker-Verlustfenster aus der Generierung — Enrich
+	// setzt dort Confidence=0; Kontakt-Vibration bleibt stumm (siehe
+	// funscript.TrackingGap / mapper.go).
+	TrackingGaps []TrackingGap `json:"tracking_gaps,omitempty"`
+}
+
+// TrackingGap spiegelt funscript.TrackingGap für den SAM-Roundtrip.
+type TrackingGap struct {
+	StartMs int64 `json:"start_ms"`
+	EndMs   int64 `json:"end_ms"`
 }
 
 // DeviceRecipe spiegelt funscript.DeviceRecipe für den Roundtrip - siehe
