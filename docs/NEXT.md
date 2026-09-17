@@ -15,16 +15,17 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
 | 9 | SAM runtime wiring | **Milestone in package** — not GUI/CLI default yet |
 | 10 | Sharper video display | **Closed** (negative) |
-| — | Go-native generator | **Shipped opt-in** (CSRT + dense doctor + compare CLI); not default |
+| — | Go-native generator | **Shipped opt-in** (CSRT or simpletrack + dense doctor + compare CLI); not default |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
 ## Verified baseline · September 17, 2026
 
-- Latest published release **[v0.5.0](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.0)**;
-  source on this branch targets **0.5.1** (doc cleanup + CLI flag fix).
-- CI green on `main` through #86 (Go, Go-OpenCV, Python, Oberfläche).
+- Latest published release **[v0.5.1](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.1)**;
+  source on this branch targets **0.5.2** (simpletrack Windows no-Python +
+  GenerateWithContext cancel tests).
+- CI green on `main` through #87.
 - FunGen near-zero-correlation finding (issue #8,
   [`FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes the
   *general* real-clip gap; priority 2 has found clip-level improvements.

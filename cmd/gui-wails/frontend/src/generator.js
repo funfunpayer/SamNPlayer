@@ -108,7 +108,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
           data-help="Sucht nach jedem Schnitt die Region neu. Besser bei stark geschnittenem Material, dauert länger.">Region nach jedem Schnitt neu suchen</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-native" /><label for="gen-native"
-          data-help="Experimentell: CSRT-Tracking + Signalpfad in Go ohne Python. Nur CSRT, eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry — sonst Fallback auf Python.">Go-Pipeline (experimentell)</label></div>
+          data-help="Experimentell: Tracking + Signalpfad in Go ohne Python. Mit OpenCV = CSRT; ohne (z.B. Windows-Release) = einfacherer NCC-Tracker über ffmpeg. Nur eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry — sonst Fallback auf Python. Braucht ffmpeg im PATH.">Go-Pipeline (experimentell)</label></div>
         <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
         <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>

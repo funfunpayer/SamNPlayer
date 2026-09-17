@@ -141,9 +141,11 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       shipped with a first reasonable heuristic (median-baseline peak
       detection); revisit only if real usage shows it's off.
 - [x] 🔓 **`videox`/native tracker port** — `generator/trackcv` +
-      `posttrack` + opt-in `NativePipeline` (CSRT). Dense Quality Doctor +
-      FunGen-compare CLI in Go (v0.5.0). Still open: Tf/Tj two-point with
-      goldens; Windows OpenCV; native as default after real-clip win.
+      `posttrack` + opt-in `NativePipeline` (CSRT when OpenCV linked;
+      `simpletrack` NCC/SAD over ffmpeg otherwise — Windows without
+      Python, v0.5.2). Dense Quality Doctor + FunGen-compare CLI in Go.
+      Still open: Tf/Tj two-point with goldens; optional Windows OpenCV
+      for CSRT parity; native as default after real-clip win.
 - [x] 🔓 **Tf/Tj suction double-floor** — fixed; see `FINDINGS_TIMING_TF.md`.
 - [x] 🔓 **Phase Analyzer core** — `BestLagCorrelation` / `DiagnosePhase`
       + CLI. Full 8-point PTS pipeline still open (`docs/ENGINE.md`).

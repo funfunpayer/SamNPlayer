@@ -9,21 +9,20 @@ import (
 	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
-	"github.com/funfunpayer/SamNPlayer/generator/posttrack"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
 // errNativeCanceled is the build-tag-agnostic cancel sentinel from nativeTrackROI.
 var errNativeCanceled = errors.New("generator/native: tracking canceled")
 
-// NativePipelineEligible reports whether opts+roi can run on the pure-Go
-// CSRT path (trackcv + posttrack). Anything outside this set still needs
-// Python: other backends, two-point Tf/Tj, per-scene ROI, AI/audio extras,
-// auto-retry (needs Quality Doctor), OpenCL, cache.
+// NativePipelineEligible reports whether opts+roi can run on a Python-free
+// path (CSRT via trackcv when OpenCV is linked, otherwise simpletrack/NCC
+// via videox). Anything outside this set still needs Python.
 func NativePipelineEligible(opts Options, roi ROI) bool {
-	if !NativeTrackingAvailable() {
-		return false
-	}
+	return nativeOptionsEligible(opts, roi)
+}
+
+func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if roi.W <= 0 || roi.H <= 0 {
 		return false
 	}
@@ -34,6 +33,8 @@ func NativePipelineEligible(opts Options, roi ROI) bool {
 	if backend == "" {
 		backend = "csrt"
 	}
+	// "csrt" and empty mean "native Go pipeline preferred"; simpletrack
+	// covers the same single-ROI case when OpenCV is missing.
 	if backend != "csrt" {
 		return false
 	}
@@ -59,7 +60,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	if !NativeTrackingAvailable() {
 		return errNativeUnavailable
 	}
-	if !NativePipelineEligible(opts, roi) {
+	if !nativeOptionsEligible(opts, roi) {
 		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT + single ROI only; no Tf/Tj, per-scene, AI, audio, auto-retry, OpenCL)")
 	}
 	if err := ctx.Err(); err != nil {
@@ -99,105 +100,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	progress(fmt.Sprintf("%d Frames getrackt (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
-
-	ts := make([]float64, len(tr.TimestampsMs))
-	for i, v := range tr.TimestampsMs {
-		ts[i] = float64(v)
-	}
-
-	postOpts := posttrack.DefaultOptions()
-	postOpts.Invert = opts.Invert
-	if opts.SmoothWindow > 0 {
-		postOpts.SmoothWindow = opts.SmoothWindow
-	}
-	if opts.MinPeakDistanceMs > 0 {
-		postOpts.MinPeakDistanceMs = opts.MinPeakDistanceMs
-	}
-	postOpts.RDPTolerance = opts.RDPTolerance
-	if opts.NormPercentile > 0 {
-		postOpts.NormPercentile = opts.NormPercentile
-	} else if opts.NormPercentile < 0 {
-		postOpts.NormPercentile = 0
-	}
-	postOpts.AdaptiveError = opts.AdaptiveKeyframeError
-	if opts.MinActionIntervalMs > 0 {
-		postOpts.MinIntervalMs = opts.MinActionIntervalMs
-	} else if opts.MinActionIntervalMs < 0 {
-		postOpts.MinIntervalMs = 0
-	}
-	postOpts.DynamicRangeMs = opts.DynamicRangeMs
-	postOpts.PeakProminence = opts.PeakProminence
-	// Match generate_funscript.py profile='weich' defaults when the caller
-	// left the corresponding fields at zero.
-	if opts.Profile == "weich" {
-		if postOpts.PeakProminence == 0 {
-			postOpts.PeakProminence = 0.35
-		}
-		if opts.MinPeakDistanceMs == 0 {
-			postOpts.MinPeakDistanceMs = 200
-		}
-		if postOpts.DynamicRangeMs == 0 {
-			postOpts.DynamicRangeMs = 3000
-		}
-	}
-
-	result, err := posttrack.PositionsToActions(ts, tr.Positions, postOpts)
-	if err != nil {
-		return fmt.Errorf("generator/native: signal path: %w", err)
-	}
-	actions := result.Actions
-	if opts.MaxSpeed > 0 {
-		var changed int
-		actions, changed = posttrack.LimitSpeed(actions, opts.MaxSpeed)
-		if changed > 0 {
-			progress(fmt.Sprintf("%d Aktion(en) auf %.0f Einheiten/s begrenzt", changed, opts.MaxSpeed))
-		}
-	}
-	if funscript.IsDistanceProfile(opts.Profile) {
-		actions = posttrack.ClampActionsPos(actions, 20, 90)
-	}
-
-	progress(fmt.Sprintf("%d Keyframes aus %d Frames", len(actions), len(tr.TimestampsMs)))
-
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	var lostFrac *float64
-	if tr.TotalFrames > 0 {
-		f := float64(tr.LostFrames) / float64(tr.TotalFrames)
-		lostFrac = &f
-	}
-	var motionFrac *float64
-	if tr.Height > 0 && tr.VertRange > 0 {
-		f := tr.VertRange / float64(tr.Height)
-		motionFrac = &f
-	}
-	var durationMs *float64
-	if len(actions) > 0 {
-		d := float64(actions[len(actions)-1].At)
-		durationMs = &d
-	}
-	quality := funscript.EvaluateDenseQuality(actions, funscript.DenseQualityInput{
-		DenseAt:             result.DenseAt,
-		DensePos:            result.DensePos,
-		TrackerLostFraction: lostFrac,
-		MotionRangeFraction: motionFrac,
-		VideoDurationMs:     durationMs,
-		ValidFrames:         tr.ValidFrames,
-		Confidence:          tr.Confidence,
-		Reason:              tr.Reason,
-	})
-	progress(fmt.Sprintf("Quality Doctor (dense): score=%.2f passed=%v", quality.Score, quality.Passed))
-
-	if err := writeNativeFunscript(outputPath, actions, opts, tr, quality); err != nil {
-		return err
-	}
-	progress(fmt.Sprintf("geschrieben: %s (gesamt %s)", outputPath, time.Since(start).Round(time.Millisecond)))
-	if onPercent != nil {
-		onPercent(100)
-	}
-	return nil
+	return finishNativeGenerate(ctx, outputPath, opts, tr, "trackcv", "csrt", progress, onPercent, start)
 }
 
 type nativeTrackResult struct {
@@ -224,14 +127,18 @@ type nativeTrackOptions struct {
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
+	return writeNativeFunscriptNamed(path, actions, opts, tr, quality, "trackcv", "csrt")
+}
+
+func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult, tracking, backend string) error {
 	if len(actions) == 0 {
 		return fmt.Errorf("generator/native: keine Actions erzeugt")
 	}
 	duration := actions[len(actions)-1].At
 	nativeMeta := map[string]any{
-		"tracking": "trackcv",
+		"tracking": tracking,
 		"signal":   "posttrack",
-		"backend":  "csrt",
+		"backend":  backend,
 		"frames":   tr.TotalFrames,
 		"lost":     tr.LostFrames,
 		"range_px": tr.VertRange,
@@ -243,8 +150,12 @@ func writeNativeFunscript(path string, actions []funscript.Action, opts Options,
 	if tr.Reason != "" {
 		nativeMeta["reason"] = tr.Reason
 	}
+	creator := "SamNPlayer generator/native (trackcv+posttrack, kein Python)"
+	if tracking == "simpletrack" {
+		creator = "SamNPlayer generator/native (simpletrack+posttrack, kein Python/OpenCV)"
+	}
 	meta := map[string]any{
-		"creator":                    "SamNPlayer generator/native (trackcv+posttrack, kein Python)",
+		"creator":                    creator,
 		"duration":                   duration,
 		"native_pipeline":            nativeMeta,
 		"quality_score":              quality.Score,

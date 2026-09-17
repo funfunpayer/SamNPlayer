@@ -8,6 +8,25 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.2] — September 17, 2026
+
+### Added
+
+- **Windows-ready Go generate without OpenCV/Python:** `generator/simpletrack`
+  (NCC/SAD over `videox`/ffmpeg) backs `GenerateNativeSimple` when CSRT is
+  not linked. Opt-in `NativePipeline` no longer requires OpenCV for the
+  single-ROI case — Windows release builds can generate without a Python
+  install (ffmpeg still required). Weaker than CSRT; GUI help updated.
+- **`GenerateWithContext` cancel tests:** Python path (fake interpreter) and
+  native simple/CSRT path with synthetic ffmpeg clips must return
+  `context.Canceled`.
+
+### Changed
+
+- **`NativePipelineEligible`:** options/ROI only — OpenCV availability no
+  longer gates eligibility; routing picks CSRT or simpletrack at generate
+  time.
+
 ## [0.5.1] — September 17, 2026
 
 ### Fixed
