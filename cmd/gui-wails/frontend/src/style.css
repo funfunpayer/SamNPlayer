@@ -222,6 +222,16 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   color: var(--text-dim); white-space: pre-wrap;
 }
 
+.log-view {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; height: min(60vh, 520px); overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; line-height: 1.45; color: var(--text);
+  white-space: pre-wrap; word-break: break-word; user-select: text; -webkit-user-select: text;
+  margin: 0; cursor: text;
+}
+.log-view:focus { outline: 1px solid var(--accent); outline-offset: 1px; }
+
 video { width: 100%; max-height: 360px; background: #000; border-radius: var(--radius); margin: 10px 0; display: block; }
 
 #roi-canvas-wrap { position: relative; display: inline-block; margin: 10px 0; border-radius: var(--radius); overflow: hidden; }

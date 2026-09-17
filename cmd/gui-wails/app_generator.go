@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -204,7 +205,23 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
 			return
 		}
-		payload := map[string]any{"path": outPath}
+		payload := map[string]any{"path": outPath, "pipeline": "python"}
+		if data, readErr := os.ReadFile(outPath); readErr == nil {
+			var raw map[string]any
+			if json.Unmarshal(data, &raw) == nil {
+				if meta, ok := raw["metadata"].(map[string]any); ok {
+					if np, ok := meta["native_pipeline"].(map[string]any); ok {
+						payload["pipeline"] = "go"
+						if t, ok := np["tracking"].(string); ok {
+							payload["tracking"] = t
+						}
+						if b, ok := np["backend"].(string); ok {
+							payload["backend"] = b
+						}
+					}
+				}
+			}
+		}
 		if script, loadErr := funscript.Load(outPath); loadErr == nil {
 			if script.Metadata.QualityScore != nil {
 				payload["qualityScore"] = *script.Metadata.QualityScore

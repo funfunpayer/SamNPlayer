@@ -120,7 +120,19 @@ func L() *slog.Logger {
 	return logger
 }
 
-func Debug(msg string, args ...any) { L().Debug(msg, args...) }
-func Info(msg string, args ...any)  { L().Info(msg, args...) }
-func Warn(msg string, args ...any)  { L().Warn(msg, args...) }
-func Error(msg string, args ...any) { L().Error(msg, args...) }
+func Debug(msg string, args ...any) {
+	appendRing("DEBUG", msg, args...)
+	L().Debug(msg, args...)
+}
+func Info(msg string, args ...any) {
+	appendRing("INFO", msg, args...)
+	L().Info(msg, args...)
+}
+func Warn(msg string, args ...any) {
+	appendRing("WARN", msg, args...)
+	L().Warn(msg, args...)
+}
+func Error(msg string, args ...any) {
+	appendRing("ERROR", msg, args...)
+	L().Error(msg, args...)
+}

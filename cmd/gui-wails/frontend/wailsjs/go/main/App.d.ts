@@ -31,6 +31,8 @@ export function CheckGeneratorDependencies():Promise<void>;
 
 export function ClearCache():Promise<main.CacheInfo>;
 
+export function ClearLogEntries():Promise<void>;
+
 export function ConnectDevice(arg1:boolean):Promise<main.DeviceStatus>;
 
 export function ConnectDeviceVia(arg1:string,arg2:string):Promise<main.DeviceStatus>;
@@ -54,6 +56,8 @@ export function GetDiagnosticsHistory():Promise<Array<main.DiagnosticsHistoryEnt
 export function GetHardwareInfo():Promise<string>;
 
 export function GetHeatmap(arg1:number):Promise<Array<main.HeatmapPoint>>;
+
+export function GetLogEntries():Promise<Array<Record<string, any>>>;
 
 export function GetMarker(arg1:string):Promise<main.Marker>;
 

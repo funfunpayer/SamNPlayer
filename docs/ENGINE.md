@@ -32,6 +32,7 @@ end-user runtime should eventually need no Python install.
 - Tf/Tj suction double-floor fix; trackcv `valid`/`confidence`/`reason`
 - Device diagnostics (software-measurable only)
 - `GenerateWithContext` cancel tests (Python + native)
+- Log tab (copyable) + CLI `generate` + pipeline visibility (v0.5.3)
 
 ## What still needs you / measurement (do not invent)
 

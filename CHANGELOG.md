@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.3] — September 17, 2026
+
+### Added
+
+- **Log tab:** copyable in-app protocol (select text / „Alles kopieren“),
+  filter warnings/errors, clear ring, open log folder. Live `log:line`
+  events from the logging ring.
+- **CLI `generate`:** `SamNPlayer generate --video FILE --roi x,y,w,h`
+  (same Go-auto / Python-fallback path as the GUI) for headless smoke tests.
+- **Docs:** `FUNGEN_FEATURE_COMPARE.md`, `RELEASE_0_5_3.md` checklist.
+
 ### Changed
 
 - **Go generate path is automatic:** single-ROI CSRT settings (including
@@ -18,6 +29,8 @@ measurement history behind each entry; this file is the short version for
 - **Native failure soft-falls back to Python** when a Python install is
   available (cancel/deadline still abort). GUI cancel detection uses
   `errors.Is`.
+- **Generator UI** shows `Pfad: Go (…) / Python` and includes `pipeline` /
+  `tracking` / `backend` on `generate:done`.
 
 ## [0.5.2] — September 17, 2026
 

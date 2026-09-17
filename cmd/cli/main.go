@@ -30,6 +30,9 @@ func main() {
 	if len(os.Args) >= 2 && (os.Args[1] == "compare" || os.Args[1] == "fungen-compare") {
 		os.Exit(runCompare(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && os.Args[1] == "generate" {
+		os.Exit(runGenerate(os.Args[2:]))
+	}
 
 	scriptPath := flag.String("script", "", "Pfad zur .funscript-Datei (Pflicht)")
 	mock := flag.Bool("mock", false, "Kein BLE - Befehle nur auf der Konsole ausgeben")
@@ -47,7 +50,7 @@ func main() {
 		"Rampzeit zurück auf vorheriges Niveau nach Extended-O (0 = sofort)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n\n", os.Args[0], os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE --roi x,y,w,h [--output FILE]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		fmt.Fprintf(os.Stderr, "Playback options:\n")
 		flag.PrintDefaults()
 	}

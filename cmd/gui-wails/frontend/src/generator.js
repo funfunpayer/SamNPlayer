@@ -118,6 +118,7 @@ export function initGenerator(root, playback) {
       <button id="gen-cancel" type="button" disabled>Abbrechen</button>
     </div>
     <div class="path-label" id="gen-status"></div>
+    <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
     <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
       <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
         <div id="gen-progress-bar" style="height:100%; width:0%; background:var(--accent, #00c8ff);
@@ -509,7 +510,19 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Abbruch angefordert...';
   });
 
-  EventsOn('generate:progress', line => { el('#gen-status').textContent = line; });
+  EventsOn('generate:progress', line => {
+    el('#gen-status').textContent = line;
+    const pipe = el('#gen-pipeline');
+    if (!pipe) return;
+    const s = String(line);
+    if (/Go-Pipeline|Go-native|simpletrack|trackcv/i.test(s)) {
+      pipe.textContent = 'Pfad: Go (ohne Python)';
+    } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
+      pipe.textContent = 'Pfad: Python';
+    } else if (/Fallback auf Python/i.test(s)) {
+      pipe.textContent = 'Pfad: Python (Fallback)';
+    }
+  });
 
   // Ergebnis der automatischen Regionssuche übernehmen - die ROI wird
   // genauso gesetzt, als hätte der Nutzer sie gezogen, und lässt sich
@@ -610,6 +623,14 @@ export function initGenerator(root, playback) {
       return;
     }
     el('#gen-status').textContent = 'Fertig: ' + result.path;
+    const pipe = el('#gen-pipeline');
+    if (pipe) {
+      if (result.pipeline === 'go') {
+        pipe.textContent = `Pfad: Go (${result.tracking || 'native'} / ${result.backend || '?'})`;
+      } else {
+        pipe.textContent = 'Pfad: Python';
+      }
+    }
     if (typeof result.oZoneMarkerStartMs === 'number') {
       const s = Math.round(result.oZoneMarkerStartMs / 1000);
       const e = Math.round(result.oZoneMarkerEndMs / 1000);
