@@ -75,6 +75,13 @@ func (a *App) CheckRoiTrainingAvailable() bool {
 	return generator.RoiTrainingAvailable()
 }
 
+// ListRoiTrainingDevices liefert die wählbaren Trainingsgeräte
+// (auto/cuda/directml/mps/cpu) inkl. aktueller Verfügbarkeit - siehe
+// generator.ListRoiTrainingDevices / train_yolo_model --list-devices.
+func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
+	return generator.ListRoiTrainingDevices()
+}
+
 // BootstrapRoiTrainingSample trackt roi (und optional roi2) durchs Video und
 // hängt die Ergebnisse an den Datensatz an - siehe
 // generator.BootstrapRoiTrainingSample/bootstrap_yolo_dataset.py. Läuft

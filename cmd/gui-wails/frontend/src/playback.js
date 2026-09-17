@@ -6,6 +6,7 @@ import {
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { applyHotkeyOMarker } from './ozone_ui.js';
+import { wireDataHelp } from './help.js';
 
 const HEATMAP_BUCKETS = 300;
 
@@ -26,12 +27,11 @@ export function initPlayback(root) {
       <input type="checkbox" id="pb-curve-edit" />
       <label for="pb-curve-edit">Kurve bearbeiten</label>
     </div>
-    <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;">
-      Klick auf einen Punkt und ziehen = verschieben. Klick auf freie Stelle = neuer Punkt.
-      Doppelklick auf einen Punkt = löschen (mindestens 2 Punkte bleiben). Jede Änderung wird
-      sofort im Skript gespeichert.</p>
+    <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
+      data-help="Klick+Ziehen = Punkt verschieben. Klick auf freie Stelle = neuer Punkt. Doppelklick = löschen (mind. 2 bleiben). Jede Änderung wird sofort gespeichert.">
+      Kurve bearbeiten: ziehen / klicken / Doppelklick — siehe „?“.</p>
     <div class="row" id="pb-offset-row" style="display:none; align-items:center; margin-top:8px;">
-      <label style="width:auto;">Skript-Offset</label>
+      <label style="width:auto;" data-help="Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe. Wird je Skript gespeichert.">Skript-Offset</label>
       <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
       <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
       <span class="hint" style="margin:0;">ms</span>
@@ -39,15 +39,12 @@ export function initPlayback(root) {
       <button id="pb-offset-reset">zurücksetzen</button>
       <span class="checkbox-row" style="margin:0 0 0 12px;">
         <input type="checkbox" id="pb-loop" />
-        <label for="pb-loop" style="width:auto;">Markierung wiederholen</label>
+        <label for="pb-loop" style="width:auto;" data-help="Wiederholt den markierten Abschnitt (Heatmap ziehen).">Markierung wiederholen</label>
       </span>
     </div>
-    <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;">
-      Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe.
-      Wird je Skript gespeichert. Zum Einstellen: Abschnitt markieren, Wiederholung
-      einschalten und mit + / − nachjustieren.<br>
-      <b>Tasten:</b> Leertaste Start/Stop · ←/→ 5 s (mit Shift 1 s) · , und . Feinschritt ·
-      1–9 springen · + / − Offset · L Wiederholung · E Extended-O · O O-Marker 4s</p>
+    <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
+      data-help="Leertaste Start/Stop · ←/→ 5 s (Shift 1 s) · ,/. Feinschritt · 1–9 springen · +/− Offset · L Wiederholung · E Extended-O · O O-Marker 4s">
+      Tastenhilfe über „?“.</p>
     <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
     <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
       <button id="pb-script-doctor" type="button">Skript prüfen (Script Doctor)</button>
@@ -55,21 +52,19 @@ export function initPlayback(root) {
     </div>
     <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
     <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
-    <div class="hint" id="pb-marker-hint" style="display:none">
-      Klick auf die Leiste = an diese Stelle springen. Ziehen = Bereich markieren, in dem Extended-O automatisch auslöst.
-      <span id="pb-marker-label"></span>
+    <div class="hint" id="pb-marker-hint" style="display:none"
+      data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
+      Heatmap: Klick = springen, Ziehen = markieren. <span id="pb-marker-label"></span>
       <button id="pb-marker-clear" style="margin-left:8px">Markierung löschen</button>
     </div>
     <div class="checkbox-row" id="pb-marker-auto-row" style="display:none">
       <input type="checkbox" id="pb-marker-auto" />
-      <label for="pb-marker-auto">Extended-O automatisch im markierten Bereich auslösen</label>
+      <label for="pb-marker-auto" data-help="Löst Extended-O automatisch aus, wenn die Wiedergabe den markierten Bereich erreicht.">Extended-O automatisch im markierten Bereich</label>
     </div>
 
-    <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;">
-      O-Marker: authored im Skript gespeichert (nicht nur lokal wie die Markierung oben) -
-      ein primärer Marker für den Höhepunkt, optional sekundäre für schwächere Stellen davor.
-      Erst oben einen Bereich markieren (ziehen), dann hier übernehmen.
-    </div>
+    <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
+      data-help="O-Marker werden im Skript gespeichert (nicht nur lokal). Primär = Höhepunkt, sekundär = schwächere Stellen. Erst Bereich markieren, dann übernehmen.">
+      O-Marker: authored im Skript — siehe „?“.</div>
     <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
       <select id="pb-omarker-kind">
         <option value="primary">Primär (Höhepunkt)</option>
@@ -126,6 +121,7 @@ export function initPlayback(root) {
     <div id="pb-log"></div>
   `;
 
+  wireDataHelp(root);
   const el = id => root.querySelector(id);
   const videoEl = el('#pb-video');
   const heatmapCanvas = el('#pb-heatmap');
@@ -968,9 +964,10 @@ export function initPlayback(root) {
       box.style.display = 'block';
       box.style.background = result.passed ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       box.style.border = `1px solid ${result.passed ? 'var(--ok)' : 'var(--danger)'}`;
-      let html = `<b>Script Doctor: ${pct}% ${result.passed ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
-      html += '<br><span style="opacity:0.7;">Geschätzt nur aus dem Skript, ohne Video - '
-        + 'trackingbasierte Prüfungen (Tracker-Verlust, Bewegungsspielraum) fehlen hier, '
+      let html = `<b>Signal Quality (Script Doctor): ${pct}% ${result.passed ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
+      html += '<br><span style="opacity:0.7;">Nur Signalqualität — Jitter, Sprünge, Lücken, Geräte-Dichte. '
+        + 'Kein Beweis, dass die Kurve zum Video passt (das wäre Motion Fidelity / Phase-Vergleich). '
+        + 'Geschätzt nur aus dem Skript, ohne Video; trackingbasierte Prüfungen fehlen hier, '
         + 'anders als direkt nach einer Generierung.</span>';
       if (result.warnings && result.warnings.length > 0) {
         html += '<ul style="margin:6px 0 0 18px; padding:0;">'

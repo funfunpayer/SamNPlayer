@@ -20,7 +20,10 @@
 // docs/NEXT.md.
 package trackcv
 
-import "math"
+import (
+	"errors"
+	"math"
+)
 
 // Options steuert TrackROI - entspricht track_roi()'s Parametern.
 type Options struct {
@@ -29,6 +32,9 @@ type Options struct {
 	SceneCutDetection  bool
 	AppearanceMemory   bool
 	Axis               string // "auto" (Standard), "x" oder "y"
+	// Cancel, if non-nil, is checked each frame; return true to abort.
+	// Used by GenerateWithContext so Abbrechen stops native CSRT too.
+	Cancel func() bool
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -41,6 +47,10 @@ type Stats struct {
 	TotalFrames       int
 	VerticalRange     float64
 	HorizontalRange   float64
+	// Observation contract (FINDINGS F-004): honest missing-data signal.
+	ValidFrames int     // frames with a successful tracker update
+	Confidence  float64 // 0..1 ≈ valid/total after frame 0
+	Reason      string  // empty if ok; else e.g. "tracker_lost_heavy"
 }
 
 // Result ist die Go-Entsprechung von track_roi()'s Rückgabe.
@@ -51,7 +61,11 @@ type Result struct {
 	Height       int
 	SceneCuts    []int
 	Stats        Stats
+	Canceled     bool // true if Options.Cancel aborted the loop
 }
+
+// ErrCanceled is returned when Options.Cancel aborts the tracking loop.
+var ErrCanceled = errors.New("tracking abgebrochen")
 
 const (
 	sceneCutHistThreshold = 0.5
@@ -118,7 +132,11 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	var sceneCuts []int
 
 	frameIdx := 1
+	validFrames := 1 // frame 0 was Init
 	for cap.Read() {
+		if opts.Cancel != nil && opts.Cancel() {
+			return Result{Canceled: true}, ErrCanceled
+		}
 		var gray *Gray
 		if needsGray {
 			gray = cap.ToGray()
@@ -161,6 +179,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			yPositions = append(yPositions, yPositions[len(yPositions)-1])
 			xPositions = append(xPositions, xPositions[len(xPositions)-1])
 		} else {
+			validFrames++
 			yPositions = append(yPositions, float64(bbox.Y)+float64(bbox.H)/2.0)
 			xPositions = append(xPositions, float64(bbox.X)+float64(bbox.W)/2.0)
 			lastBbox = bbox
@@ -217,6 +236,21 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		}
 	}
 
+	confidence := 0.0
+	if frameIdx > 0 {
+		confidence = float64(validFrames) / float64(frameIdx)
+	}
+	reason := ""
+	lostFrac := 0.0
+	if frameIdx > 0 {
+		lostFrac = float64(trackerLostFrames) / float64(frameIdx)
+	}
+	if lostFrac > 0.5 {
+		reason = "tracker_lost_heavy"
+	} else if lostFrac > 0.15 {
+		reason = "tracker_lost_elevated"
+	}
+
 	return Result{
 		TimestampsMs: timestampsMs,
 		Positions:    positions,
@@ -229,6 +263,9 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			TotalFrames:       frameIdx,
 			VerticalRange:     verticalRange,
 			HorizontalRange:   horizontalRange,
+			ValidFrames:       validFrames,
+			Confidence:        confidence,
+			Reason:            reason,
 		},
 	}, nil
 }

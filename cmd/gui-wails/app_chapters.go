@@ -12,11 +12,12 @@ func (a *App) SuggestBackend(w, h int) string {
 }
 
 func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
-	if a.currentScript == nil || len(a.currentScript.Actions) < 4 {
+	script := a.loadedScript()
+	if script == nil || len(script.Actions) < 4 {
 		return nil, fmt.Errorf("kein Skript geladen")
 	}
-	points := make([]motionx.Point, 0, len(a.currentScript.Actions))
-	for _, act := range a.currentScript.Actions {
+	points := make([]motionx.Point, 0, len(script.Actions))
+	for _, act := range script.Actions {
 		points = append(points, motionx.Point{TMs: float64(act.At), Pos: float64(act.Pos)})
 	}
 	segs := motionx.Classify(points, motionx.ClassifyOptions{})

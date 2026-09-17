@@ -63,6 +63,12 @@ def main():
         "RunRoiModelTraining": "async (epochs, device) => { window.__calls.push(['train', epochs, device]); }",
         "GetSettings": "async () => ({ roiDatasetDir: '/data', defaultRoiDatasetDir: '/data' })",
         "CheckRoiTrainingAvailable": "async () => true",
+        "ListRoiTrainingDevices": "async () => (["
+            "{id:'auto',label:'Automatisch (bestes verfügbares)',available:true},"
+            "{id:'cuda',label:'NVIDIA CUDA',available:false},"
+            "{id:'directml',label:'DirectML (Windows)',available:false},"
+            "{id:'mps',label:'Apple MPS',available:false},"
+            "{id:'cpu',label:'CPU (sehr langsam)',available:true}])",
     }))
     harness = FRONTEND / "test" / "_roi_training_harness.html"
     harness.write_text(PAGE)

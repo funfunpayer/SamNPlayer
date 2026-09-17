@@ -5,6 +5,7 @@ export function ApplySuggestedOZone() { return window['go']['main']['App']['Appl
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
+export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
@@ -34,6 +35,7 @@ export function GetSettings() { return window['go']['main']['App']['GetSettings'
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
+export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }

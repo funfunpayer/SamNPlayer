@@ -36,12 +36,13 @@ type ScriptAnalysis struct {
 
 // AnalyzeScript zerlegt das geladene Skript in Bewegungszustände.
 func (a *App) AnalyzeScript() (ScriptAnalysis, error) {
-	if a.currentScript == nil || len(a.currentScript.Actions) < 4 {
+	script := a.loadedScript()
+	if script == nil || len(script.Actions) < 4 {
 		return ScriptAnalysis{}, fmt.Errorf("kein Skript geladen (oder zu wenige Punkte)")
 	}
 
-	points := make([]motionx.Point, 0, len(a.currentScript.Actions))
-	for _, action := range a.currentScript.Actions {
+	points := make([]motionx.Point, 0, len(script.Actions))
+	for _, action := range script.Actions {
 		points = append(points, motionx.Point{
 			TMs: float64(action.At),
 			Pos: float64(action.Pos),
@@ -138,16 +139,12 @@ func summarizeStates(shares map[string]float64, totalMs float64) string {
 
 // ScriptQuality wendet Quality Doctor auf das gerade geladene Skript an,
 // ohne dass dafür eine Generierung/ein Video nötig ist ("Script Doctor" für
-// importierte Dateien, docs/NEXT.md "Later") - anders als AnalyzeScript
-// oben (reine Bewegungszustands-Zusammensetzung) prüft das hier
-// Signalintegrität: Zeitstempel, Wertebereich, Lücken, Geschwindigkeits-
-// spitzen, Keyframe-Dichte, Geräte-Kompatibilität, Rhythmus. Braucht einen
-// Python-Aufruf (siehe generator.ScriptQuality), lohnt sich also nicht bei
-// jedem Tastendruck - die GUI ruft das gezielt auf, nicht automatisch bei
-// jedem Laden.
+// importierte Dateien). Das ist Signal Quality
+// (docs/SIGNAL_VS_FIDELITY.md), kein Motion-Fidelity-Vergleich gegen Video.
+// Pure Go (generator.ScriptQuality) — kein Python.
 func (a *App) ScriptQuality() (generator.ScriptQualityResult, error) {
-	if a.scriptPath == "" {
+	if a.loadedScriptPath() == "" {
 		return generator.ScriptQualityResult{}, fmt.Errorf("kein Skript geladen")
 	}
-	return generator.ScriptQuality(a.scriptPath)
+	return generator.ScriptQuality(a.loadedScriptPath())
 }

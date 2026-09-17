@@ -303,3 +303,23 @@ Adaptive Learning item above) stays local, is deletable, and learning
 itself must be possible to switch off. Matches `docs/AI_ADAPTER.md`'s
 existing principle for the AI engines almost exactly - same rule, restated
 for SAM.
+## SAM Perception v1 (17 September 2026)
+
+Architecture decision from the script-quality review
+(`docs/REVIEW_SCRIPTQUALITAET_2026-09-17.md`):
+
+> The next milestone is **not** “another tracker”, but **SAM Perception
+> v1**: measure the observers we already have (CSRT, grid_lk,
+> region_fusion, region_fusion_auto, flow), score segments, produce
+> confidence, fuse on agreement/disagreement, and derive a
+> device-independent motion model — then map that to funscript / runtime.
+
+Preconditions (same review’s order):
+
+1. Real golden clips with refs/ROIs/hashes
+2. Same-segment bake-off of all backends (Motion Fidelity **and** Signal
+   Quality metrics — see `docs/SIGNAL_VS_FIDELITY.md`)
+3. Raw tracking vs post-processing scored separately
+
+Only after a reproducible golden-clip win may a fusion path become the
+default. Go ports stay secondary to perception correctness.

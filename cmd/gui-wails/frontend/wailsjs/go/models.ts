@@ -181,6 +181,22 @@ export namespace generator {
 	        this.H = source["H"];
 	    }
 	}
+	export class RoiTrainingDevice {
+	    id: string;
+	    label: string;
+	    available: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new RoiTrainingDevice(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.available = source["available"];
+	    }
+	}
 	export class BenchmarkCorrelation {
 	    r: number;
 	    lag_ms: number;

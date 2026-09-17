@@ -10,10 +10,12 @@
 #
 #   pip install -r generator/requirements-ai-train.txt
 #
-# Training auf der CPU funktioniert, ist aber für echte Datensätze sehr
-# langsam - siehe generator/export_yolo_onnx.py's Modul-Docstring zum
-# empfohlenen Ablauf (Bootstrap/Export hier vorbereiten, das eigentliche
-# `yolo detect train ... device=cuda` auf einer Maschine mit GPU laufen
-# lassen).
+# Training-Gerät: train_yolo_model.py wählt mit --device auto der Reihe nach
+# CUDA → MPS → DirectML → CPU. CUDA braucht ein CUDA-fähiges PyTorch
+# (ultralytics-Default auf NVIDIA). DirectML unter Windows (AMD/Intel ohne
+# NVIDIA-Zwang): zusätzlich `pip install torch-directml` - bewusst nicht hier
+# gelistet, weil Linux/macOS es nicht brauchen und der Paketname
+# Windows-spezifisch ist. CPU funktioniert immer, ist für echte Datensätze
+# aber sehr langsam.
 onnx>=1.15
 ultralytics>=8.3

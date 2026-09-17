@@ -13,9 +13,13 @@ higher position value and stronger suction.
 ## Neo 2
 
 - Sync: `suction_position` (suction follows position; vibration = 0).
-- MinSuction: 0.20.
-- Tick: 50 ms; smoothing: 0.22.
-- Position clamp: 20–90.
+- Script position clamp: 20–90 (generation time). That clamp *is* the
+  suction floor in command space (`pos/100` → 0.20–0.90).
+- Recipe metadata still records `min_suction: 0.20` for documentation;
+  playback must **not** apply a second `liftFloor` on top (that remapped
+  0.20→0.36 and 0.90→0.92 — see `docs/FINDINGS_TIMING_TF.md`).
+- Tick: 50 ms (= 20 Hz command rate, **not** tempo); smoothing: 0.22.
+  63 BPM ≈ 952 ms/cycle is unrelated to `tick_ms`.
 
 ## Usage
 

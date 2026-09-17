@@ -2,6 +2,7 @@ package generator
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,48 @@ func RoiTrainingAvailable() bool {
 		return false
 	}
 	return strings.TrimSpace(string(out)) == "AVAILABLE"
+}
+
+// RoiTrainingDevice beschreibt eine wählbare Trainingsbeschleunigung
+// (CUDA / DirectML / MPS / CPU) - siehe train_yolo_model.list_devices.
+type RoiTrainingDevice struct {
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	Available bool   `json:"available"`
+}
+
+// ListRoiTrainingDevices fragt train_yolo_model.py --list-devices ab.
+// Bei Fehlern (kein Python / ultralytics egal - list_devices braucht kein
+// ultralytics) kommt eine statische Fallback-Liste, damit die GUI trotzdem
+// Auto/CUDA/DirectML/CPU anbieten kann; die echte Verfügbarkeit prüft dann
+// resolve_device beim Start des Trainings.
+func ListRoiTrainingDevices() []RoiTrainingDevice {
+	fallback := []RoiTrainingDevice{
+		{ID: "auto", Label: "Automatisch (bestes verfügbares)", Available: true},
+		{ID: "cuda", Label: "NVIDIA CUDA", Available: false},
+		{ID: "directml", Label: "DirectML (Windows, AMD/Intel/NVIDIA)", Available: false},
+		{ID: "mps", Label: "Apple MPS", Available: false},
+		{ID: "cpu", Label: "CPU (sehr langsam)", Available: true},
+	}
+	py, err := FindPython()
+	if err != nil {
+		return fallback
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return fallback
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
+	out, err := command(py, scriptPath, "--list-devices").Output()
+	if err != nil {
+		return fallback
+	}
+	var devices []RoiTrainingDevice
+	if err := json.Unmarshal(out, &devices); err != nil || len(devices) == 0 {
+		return fallback
+	}
+	return devices
 }
 
 // RoiTrainingRegion ist eine markierte Region samt Klassenname für den

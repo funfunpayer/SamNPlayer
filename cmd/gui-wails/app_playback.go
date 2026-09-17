@@ -27,14 +27,15 @@ type PlaybackOptions struct {
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return fmt.Errorf("kein Skript geladen")
 	}
 	mapOpts := funscript.DefaultMapOptions()
-	profile := a.currentScript.Metadata.Profile
+	profile := script.Metadata.Profile
 	if funscript.IsDistanceProfile(profile) {
 		mapOpts = funscript.RecipeFor(profile)
-		if dr := a.currentScript.Metadata.DeviceRecipe; dr != nil {
+		if dr := script.Metadata.DeviceRecipe; dr != nil {
 			mapOpts.ContactVibration = dr.ContactVibration
 		}
 	}
@@ -52,11 +53,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if !funscript.IsDistanceProfile(profile) || (opts.SyncMode != "" && opts.SyncMode != "independent") {
 		mapOpts.Sync = syncMode
 	}
-	frames := a.currentScript.ToIntensityCurve(mapOpts)
+	frames := script.ToIntensityCurve(mapOpts)
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
-	a.currentFrames = frames
+	a.setCurrentFrames(frames)
 	dev, reusedDevice := a.claimSessionDevice(opts.Mock)
 	p := player.New(dev)
 	p.LogEvery = time.Second
@@ -183,10 +184,11 @@ type CurvePoint struct {
 }
 
 func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return nil, fmt.Errorf("kein Skript geladen")
 	}
-	actions := a.currentScript.Actions
+	actions := script.Actions
 	if len(actions) == 0 {
 		return nil, fmt.Errorf("skript enthält keine Actions")
 	}
@@ -233,13 +235,14 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 }
 
 func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return nil, fmt.Errorf("kein Skript geladen")
 	}
 	if buckets < 10 {
 		buckets = 10
 	}
-	duration := a.currentScript.Duration()
+	duration := script.Duration()
 	if duration <= 0 {
 		return nil, fmt.Errorf("skript hat keine gültige Dauer")
 	}
@@ -248,7 +251,7 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	if opts.TickMs < 10 {
 		opts.TickMs = 10
 	}
-	frames := a.currentScript.ToIntensityCurve(opts)
+	frames := script.ToIntensityCurve(opts)
 	points := make([]HeatmapPoint, len(frames))
 	for i, f := range frames {
 		intensity := f.Vibration

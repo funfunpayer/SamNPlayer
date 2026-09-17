@@ -48,8 +48,53 @@ func TestRecipeTJSuctionOnlyNoVibration(t *testing.T) {
 	if maxSuc < 0.7 {
 		t.Errorf("Sog muss der hohen Position folgen, max %.3f", maxSuc)
 	}
-	if minSuc < 0.15 {
-		t.Errorf("Sog-Boden fehlt: min %.3f", minSuc)
+	// Floor comes from the 20–90 script clamp (pos 20 → suc 0.20), not from
+	// a second liftFloor on MinSuction — see TestRecipeTJSuctionNoDoubleFloor.
+	if minSuc < 0.15 || minSuc > 0.25 {
+		t.Errorf("Sog-Boden sollte ~0.20 aus dem Pos-Clamp sein, ist %.3f", minSuc)
+	}
+	if maxSuc > 0.95 {
+		t.Errorf("Sog-Maximum sollte ~0.90 aus Pos 90 sein (kein Double-Floor), ist %.3f", maxSuc)
+	}
+}
+
+// GEMESSEN/geprüft (docs/FINDINGS_TIMING_TF.md): Pos 20 + MinSuction 0.20
+// darf NICHT über liftFloor zu ~0.36 werden — der 20–90-Clamp ist bereits
+// der Boden. Sonst liegt Dauer-Sog unnötig hoch und die Dynamik schrumpft.
+func TestRecipeTJSuctionNoDoubleFloor(t *testing.T) {
+	script := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 500, Pos: 20},
+		Action{At: 1000, Pos: 90},
+		Action{At: 1500, Pos: 90},
+	)
+	opts := RecipeFor("tj")
+	opts.Smoothing = 0
+	frames := script.ToIntensityCurve(opts)
+	var atLow, atHigh float64
+	var sawLow, sawHigh bool
+	for _, f := range frames {
+		if f.At <= 400 {
+			atLow = f.Suction
+			sawLow = true
+		}
+		if f.At >= 1200 && f.At <= 1400 {
+			atHigh = f.Suction
+			sawHigh = true
+		}
+	}
+	if !sawLow || !sawHigh {
+		t.Fatal("expected both low and high windows")
+	}
+	if atLow < 0.18 || atLow > 0.22 {
+		t.Fatalf("pos=20 should map to ~0.20 suction, got %.3f (double-floor would be ~0.36)", atLow)
+	}
+	if atHigh < 0.88 || atHigh > 0.92 {
+		t.Fatalf("pos=90 should map to ~0.90 suction, got %.3f (double-floor would be ~0.92)", atHigh)
+	}
+	// Recipe still documents MinSuction=0.20 as the script-space floor.
+	if opts.MinSuction != 0.20 {
+		t.Fatalf("recipe MinSuction should stay 0.20 in metadata, got %.2f", opts.MinSuction)
 	}
 }
 

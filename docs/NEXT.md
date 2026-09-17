@@ -1757,6 +1757,27 @@ git history rather than rebuilding from scratch.
   ROI, tracking cache, auto-retry. Native is opt-in and unmarked as
   default until real-clip Quality Doctor parity exists in Go.
 
+- **Tf/Tj suction double-floor + Go Script Doctor (September 16, 2026)** —
+  operator research notes (timing/phase, 4-zone Tf/Tj, accelerators,
+  63 BPM) triaged in `docs/FINDINGS_TIMING_TF.md`. Only the concrete,
+  code-verified suction bug was fixed now: `SyncSuctionPosition` no
+  longer stacks `liftFloor(MinSuction=0.20)` on top of the 20–90 script
+  clamp (0.20→0.36 / 0.90→0.92). Script Doctor (`generator.ScriptQuality`)
+  now runs in pure Go via `funscript.EvaluateScriptQuality` — no Python
+  for “Skript prüfen”. Larger ideas (4-zone relative graph, PTS timeline,
+  full WinML inference stack, 63 BPM attractor) stay deferred until
+  golden-clip / hardware evidence supports them. Practical training-side
+  device switch shipped: `train_yolo_model --device auto|cuda|directml|mps|cpu`
+  + GUI dropdown (`ListRoiTrainingDevices`).
+
+- **Research pack + Go Phase Analyzer (September 16, 2026)** — remaining
+  notes (07–10, findings CSV, ADR) live under
+  `docs/perception_update_2026-09/`. Measurable P0 follow-up shipped:
+  `funscript.BestLagCorrelation` / `DiagnosePhase` port the FunGen
+  parity lag search to Go so timing-vs-shape diagnosis needs no Python.
+  The 8-point PTS→device chain stays deferred (tooling, not a generator
+  fix) until a concrete clip set needs it.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

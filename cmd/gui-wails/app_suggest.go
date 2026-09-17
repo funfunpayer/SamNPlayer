@@ -7,39 +7,43 @@ import (
 )
 
 func (a *App) SuggestPolarity() (funscript.PolarityHint, error) {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return funscript.PolarityHint{}, fmt.Errorf("kein Skript geladen")
 	}
-	return funscript.SuggestPolarity(a.currentScript.Actions), nil
+	return funscript.SuggestPolarity(script.Actions), nil
 }
 
 func (a *App) InvertLoadedScript() error {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	path := a.loadedScriptPath()
+	if script == nil {
 		return fmt.Errorf("kein Skript geladen")
 	}
-	if a.scriptPath == "" {
+	if path == "" {
 		return fmt.Errorf("kein Skriptpfad")
 	}
-	actions := make([]funscript.Action, len(a.currentScript.Actions))
-	for i, act := range a.currentScript.Actions {
+	actions := make([]funscript.Action, len(script.Actions))
+	for i, act := range script.Actions {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
-	if err := funscript.SaveActions(a.scriptPath, actions); err != nil {
+	if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
-	script, err := funscript.Load(a.scriptPath)
+	reloaded, err := funscript.Load(path)
 	if err != nil {
 		return err
 	}
-	a.currentScript = script
+	a.setLoadedScript(path, reloaded)
 	return nil
 }
 
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	if script == nil {
 		return funscript.OZoneSuggestion{}, fmt.Errorf("kein Skript geladen")
 	}
-	return funscript.SuggestOZone(a.currentScript.Actions), nil
+	return funscript.SuggestOZone(script.Actions), nil
 }
 
 func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
@@ -50,7 +54,7 @@ func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
 	if !zone.OK {
 		return zone, nil
 	}
-	path := a.scriptPath
+	path := a.loadedScriptPath()
 	if path == "" {
 		return zone, fmt.Errorf("kein Skriptpfad")
 	}
@@ -67,12 +71,8 @@ func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
 		Kind:      funscript.OMarkerPrimary,
 		Intensity: 1,
 	})
-	// Optionale schwächere Marker vor dem Hauptmarker (docs/NEXT.md
-	// Priorität 7: "primary marker + optionally one or two secondary
-	// markers earlier in the scene at lower intensity") - klassisch aus
-	// demselben Signal, kein KI-Modell. Meist leer, das ist der normale
-	// Fall, kein Fehler.
-	for _, sec := range funscript.SuggestSecondaryOZones(a.currentScript.Actions, zone, 2) {
+	script := a.loadedScript()
+	for _, sec := range funscript.SuggestSecondaryOZones(script.Actions, zone, 2) {
 		markers = append(markers, secondaryMarkerFromSuggestion(sec, zone))
 	}
 	return zone, a.SaveOMarkers(path, markers)
@@ -109,16 +109,18 @@ func secondaryMarkerFromSuggestion(sec, primary funscript.OZoneSuggestion) funsc
 // wird abgelehnt, damit keine unnötigen Null-Zyklen entstehen. Bestätigung
 // bleibt der UI überlassen.
 func (a *App) ApplyRingDown(atMs int64, cycles int) error {
-	if a.currentScript == nil {
+	script := a.loadedScript()
+	path := a.loadedScriptPath()
+	if script == nil {
 		return fmt.Errorf("kein Skript geladen")
 	}
-	if a.scriptPath == "" {
+	if path == "" {
 		return fmt.Errorf("kein Skriptpfad")
 	}
 	if atMs < 0 {
 		atMs = 0
 	}
-	actions := a.currentScript.Actions
+	actions := script.Actions
 	lastPos := 0
 	for _, act := range actions {
 		if act.At > atMs {
@@ -130,13 +132,13 @@ func (a *App) ApplyRingDown(atMs int64, cycles int) error {
 		return fmt.Errorf("Position zu niedrig für Ring-down (%d)", lastPos)
 	}
 	newActions := funscript.RingDown(actions, atMs, lastPos, cycles)
-	if err := funscript.SaveActions(a.scriptPath, newActions); err != nil {
+	if err := funscript.SaveActions(path, newActions); err != nil {
 		return err
 	}
-	script, err := funscript.Load(a.scriptPath)
+	reloaded, err := funscript.Load(path)
 	if err != nil {
 		return err
 	}
-	a.currentScript = script
+	a.setLoadedScript(path, reloaded)
 	return nil
 }

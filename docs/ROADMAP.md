@@ -145,11 +145,44 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       detection); revisit only if real usage shows it's off.
 - [x] 🔓 **`videox`/native tracker port** — goal confirmed (more Go / less
       Python). `generator/trackcv` (#84) + `generator/posttrack` + opt-in
-      `NativePipeline` now cover CSRT tracking and the signal path without
-      Python on Linux/macOS. Still open: Quality Doctor in Go, other
-      backends, Windows OpenCV/cgo, making native the default once measured
-      on real clips. `videox` (ffmpeg) remains unconnected — OpenCV decode
-      in trackcv covers the need without a second external binary.
+      `NativePipeline` (#85, merged) cover CSRT tracking and the signal
+      path without Python on Linux/macOS. Script Doctor + Phase Analyzer
+      core are pure Go (#86). Still open (see `docs/FINDINGS_TIMING_TF.md`
+      inventory): dense Quality Doctor, FunGen-compare CLI, Tf/Tj
+      two-point with goldens; Windows OpenCV/cgo; making native the
+      default once measured on real clips. `videox` (ffmpeg) remains
+      unconnected — OpenCV decode in trackcv covers the need without a
+      second external binary.
+- [x] 🔓 **Tf/Tj suction double-floor** — fixed: no second `liftFloor` on
+      `SyncSuctionPosition`; see `docs/FINDINGS_TIMING_TF.md`.
+- [x] 🔓 **Phase Analyzer core** — `funscript.BestLagCorrelation` /
+      `DiagnosePhase` (Go port of `best_lag_ms` + timing/shape verdict).
+      Full 8-point PTS pipeline still open; research pack at
+      `docs/perception_update_2026-09/`.
+- [x] 🔓 **Signal Quality ≠ Motion Fidelity** — documented and labeled in
+      API/GUI (`docs/SIGNAL_VS_FIDELITY.md`); Script Doctor / Quality
+      Doctor = Signal Quality; Phase CLI / FunGen correlate = Motion
+      Fidelity.
+
+### SAM Perception v1 (next architecture milestone)
+
+Confirmed direction from the 17 Sep 2026 script-quality review: **not
+“another tracker in the dropdown”**, but measure / fuse the observers we
+already have. Blocked on golden clips for any default change.
+
+Order (do not skip ahead of measurement):
+
+1. 🔒 Populate Golden-Clip set (real videos + refs + ROIs + hashes)
+2. 📏 Same-segment backend bake-off (correlation **and** turning-point /
+   amplitude / phase / lost-fraction / confidence)
+3. 📏 Split raw-tracking vs posttrack scores
+4. 🔓 Auto-evaluator (pick / weight observer per segment) — after 1–3
+5. 📏 Calibrate confidence vs error
+6. 🔓 Training queue for disagreeing / low-confidence segments
+7. 🔓 Further Go ports only with measured gain (see FINDINGS inventory)
+8. 🧭 SAM Motion Model as stable middle layer (see `docs/SAM_ARCHITECTURE.md`)
+9. 🔓 Keep Signal Quality and Motion Fidelity separate in GUI/reports
+10. 🧭 Promote a fusion path to default only after golden-clip wins
 
 ### Needs real hardware (blocked on you)
 

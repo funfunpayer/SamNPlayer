@@ -2,8 +2,10 @@ package generator
 
 import (
 	"bufio"
+	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -28,6 +31,14 @@ var requirementsSource []byte
 // Konsolenfenster auf.
 func command(name string, args ...string) *exec.Cmd {
 	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = hiddenSysProcAttr()
+	return cmd
+}
+
+// commandContext is command() with a cancellable context — used by long
+// generate runs so the GUI can abort without leaving an orphan Python.
+func commandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.SysProcAttr = hiddenSysProcAttr()
 	return cmd
 }
@@ -512,6 +523,100 @@ func Generate(videoPath string, roi ROI, outputPath string, opts Options, onProg
 	return GenerateWithProgress(videoPath, roi, outputPath, opts, onProgress, nil)
 }
 
+func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
+	return GenerateWithContext(context.Background(), videoPath, roi, outputPath, opts, onProgress, onPercent)
+}
+
+// GenerateWithContext runs generation under ctx. Cancel ctx to kill the
+// Python subprocess (review: generation must be abortable) or abort native
+// CSRT mid-loop via trackcv.Options.Cancel. Returns context.Canceled when
+// aborted. When opts.NativePipeline is set and eligible, uses
+// trackcv+posttrack without Python (see #85) including dense Quality Doctor.
+func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
+
+	if opts.NativePipeline {
+		if NativePipelineEligible(opts, roi) {
+			if err := GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
+				return err
+			}
+			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+			return nil
+		}
+		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
+			"available", NativeTrackingAvailable(),
+			"backend", opts.Backend,
+			"roi2", opts.ROI2.W > 0)
+		if onProgress != nil {
+			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
+		}
+	}
+
+	py, err := FindPython()
+	if err != nil {
+		return err
+	}
+	if err := CheckDependencies(); err != nil {
+		return err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
+	cmd := commandContext(ctx, py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+	}
+	scanner := bufio.NewScanner(stderr)
+	var lastLines []string
+	for scanner.Scan() {
+		if err := ctx.Err(); err != nil {
+			_ = cmd.Wait()
+			return err
+		}
+		line := scanner.Text()
+		if done, total, ok := parseProgress(line); ok {
+			if onPercent != nil {
+				onPercent(percentOf(done, total))
+			}
+			continue
+		}
+		lastLines = append(lastLines, line)
+		if len(lastLines) > 20 {
+			lastLines = lastLines[1:]
+		}
+		logging.Debug("generator: " + line)
+		if onProgress != nil {
+			onProgress(line)
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) {
+			logging.Info("generator: Generierung abgebrochen")
+			return context.Canceled
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+			return context.DeadlineExceeded
+		}
+		logging.Error("generator: Generierung fehlgeschlagen", "fehler", err)
+		return fmt.Errorf("generator: Generierung fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	logging.Info("generator: Generierung abgeschlossen", "output", outputPath)
+	return nil
+}
+
 func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) []string {
 	args := []string{
 		scriptPath,
@@ -621,74 +726,6 @@ func BuildArgsForTest(opts Options) []string {
 	return buildArgs("script.py", "v.mp4", "o.funscript", ROI{}, opts)
 }
 
-func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
-	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
-
-	if opts.NativePipeline {
-		if NativePipelineEligible(opts, roi) {
-			if err := GenerateNativeCSRT(videoPath, roi, outputPath, opts, onProgress, onPercent); err != nil {
-				return err
-			}
-			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
-			return nil
-		}
-		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
-			"available", NativeTrackingAvailable(),
-			"backend", opts.Backend,
-			"roi2", opts.ROI2.W > 0)
-		if onProgress != nil {
-			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
-		}
-	}
-
-	py, err := FindPython()
-	if err != nil {
-		return err
-	}
-	if err := CheckDependencies(); err != nil {
-		return err
-	}
-	scriptPath, err := writeScriptToTemp()
-	if err != nil {
-		return err
-	}
-	defer cleanupScriptTemp(scriptPath)
-	args := buildArgs(scriptPath, videoPath, outputPath, roi, opts)
-	cmd := command(py, args...)
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("generator: stderr-Pipe: %w", err)
-	}
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
-	}
-	scanner := bufio.NewScanner(stderr)
-	var lastLines []string
-	for scanner.Scan() {
-		line := scanner.Text()
-		if done, total, ok := parseProgress(line); ok {
-			if onPercent != nil {
-				onPercent(percentOf(done, total))
-			}
-			continue
-		}
-		lastLines = append(lastLines, line)
-		if len(lastLines) > 20 {
-			lastLines = lastLines[1:]
-		}
-		logging.Debug("generator: " + line)
-		if onProgress != nil {
-			onProgress(line)
-		}
-	}
-	if err := cmd.Wait(); err != nil {
-		logging.Error("generator: Generierung fehlgeschlagen", "fehler", err)
-		return fmt.Errorf("generator: Generierung fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
-	}
-	logging.Info("generator: Generierung abgeschlossen", "output", outputPath)
-	return nil
-}
-
 func joinLines(lines []string) string {
 	out := ""
 	for _, l := range lines {
@@ -703,47 +740,47 @@ func joinLines(lines []string) string {
 // Video fehlen die trackingbasierten Prüfungen (aktiver Zeitanteil,
 // Rekonstruktionsfehler, Tracker-Verlust, Bewegungsspielraum), das Ergebnis
 // ist darum vorsichtiger zu lesen als nach einer echten Generierung.
+//
+// Kind is always "signal_quality" (docs/SIGNAL_VS_FIDELITY.md) — not Motion
+// Fidelity against video/reference.
 type ScriptQualityResult struct {
 	Score                   float64  `json:"score"`
 	Passed                  bool     `json:"passed"`
 	Warnings                []string `json:"warnings"`
 	EstimatedFromScriptOnly bool     `json:"estimatedFromScriptOnly"`
+	Kind                    string   `json:"kind"`
 }
 
 // ScriptQuality wendet Quality Doctor auf eine bereits vorhandene
 // .funscript-Datei an, ohne Video - z.B. eine aus einem anderen Werkzeug
-// importierte Datei ("Script Doctor", docs/NEXT.md "Later"). Nur die
-// Actions-only-Prüfungen laufen (siehe --script-quality's eigene
-// Beschreibung).
+// importierte Datei ("Script Doctor"). Pure Go (funscript.EvaluateScriptQuality);
+// no Python install required for this check.
+//
+// Actions are read in file order (not via Load/Parse, which sorts) so that
+// unsorted timestamps are still flagged — same as quality_doctor on the
+// Python --script-quality path.
 func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
-	py, err := FindPython()
+	data, err := os.ReadFile(funscriptPath)
 	if err != nil {
-		return ScriptQualityResult{}, err
+		return ScriptQualityResult{}, fmt.Errorf("generator: Skript konnte nicht gelesen werden: %w", err)
 	}
-	if err := CheckDependencies(); err != nil {
-		return ScriptQualityResult{}, err
+	var doc struct {
+		Actions []funscript.Action `json:"actions"`
 	}
-	genScriptPath, err := writeScriptToTemp()
-	if err != nil {
-		return ScriptQualityResult{}, err
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return ScriptQualityResult{}, fmt.Errorf("generator: ungültiges JSON: %w", err)
 	}
-	defer cleanupScriptTemp(genScriptPath)
-	out, err := command(py, genScriptPath, "--script-quality", funscriptPath).Output()
-	if err != nil {
-		return ScriptQualityResult{}, fmt.Errorf("generator: Skript-Prüfung fehlgeschlagen: %w", err)
+	if len(doc.Actions) == 0 {
+		return ScriptQualityResult{}, fmt.Errorf("generator: keine actions im Skript gefunden")
 	}
-	for _, line := range splitLines(string(out)) {
-		payload, ok := strings.CutPrefix(line, "SCRIPT_QUALITY ")
-		if !ok {
-			continue
-		}
-		var result ScriptQualityResult
-		if err := json.Unmarshal([]byte(payload), &result); err != nil {
-			return ScriptQualityResult{}, fmt.Errorf("generator: Antwort der Skript-Prüfung unlesbar: %w", err)
-		}
-		return result, nil
-	}
-	return ScriptQualityResult{}, fmt.Errorf("generator: keine Antwort von der Skript-Prüfung erhalten")
+	got := funscript.EvaluateScriptQuality(doc.Actions)
+	return ScriptQualityResult{
+		Score:                   got.Score,
+		Passed:                  got.Passed,
+		Warnings:                got.Warnings,
+		EstimatedFromScriptOnly: true,
+		Kind:                    "signal_quality",
+	}, nil
 }
 
 func AddFeedback(reportPath, outputPath, verdict, comment string) error {

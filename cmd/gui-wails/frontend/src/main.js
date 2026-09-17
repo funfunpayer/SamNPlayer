@@ -1,4 +1,5 @@
 import './style.css';
+import './help.js';
 import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings } from '../wailsjs/go/main/App';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';

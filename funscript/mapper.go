@@ -173,7 +173,14 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		if opts.Sync != SyncSuctionOnly && opts.Sync != SyncSuctionPosition {
 			vib = liftFloor(vib, opts.MinVibration)
 		}
-		if opts.Sync != SyncVibrationOnly {
+		// SyncSuctionPosition: do NOT apply MinSuction via liftFloor.
+		// Tf/Tj scripts already clamp actions to 20–90 at generation time, so
+		// posSignal is already in [0.20, 0.90]. liftFloor(0.20, 0.20) would
+		// remap that to 0.36 (and 0.90→0.92), stacking two floors and raising
+		// resting suction for no gain — see docs/TF_TJ.md and the finding in
+		// docs/FINDINGS_TIMING_TF.md. MinSuction remains in the recipe metadata
+		// as the intended script-space floor (the clamp), not a second runtime remap.
+		if opts.Sync != SyncVibrationOnly && opts.Sync != SyncSuctionPosition {
 			suc = liftFloor(suc, opts.MinSuction)
 		}
 		if opts.Smoothing > 0 && len(frames) > 0 {

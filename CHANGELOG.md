@@ -8,8 +8,69 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.0] — September 17, 2026
+
 ### Added
 
+- **GUI polish (no hardware):** Nunito + brand logo in hero chrome, soft
+  page gradients, tab fade/slide transitions, device silhouette (shell +
+  fill states including searching), help chips on Device/Playback, shorter
+  Flow copy (~2×), soft `SuggestProfile` on generator load.
+- **Native Go pipeline cancel:** `GenerateWithContext` aborts CSRT via
+  `trackcv.Options.Cancel` (same Abbrechen path as Python `CommandContext`).
+- **Trackcv observation contract (F-004):** `Stats.ValidFrames` /
+  `Confidence` / `Reason` (+ `Result.Canceled`); written into native
+  funscript metadata.
+- **Dense Quality Doctor in pure Go** (`funscript.EvaluateDenseQuality`):
+  rhythm / active-time / reconstruction / tracker-lost / motion-amplitude
+  on the posttrack dense curve — wired into `GenerateNativeCSRT` metadata.
+- **FunGen-compare CLI in Go:** `SamNPlayer compare --dataset DIR`
+  (`fungen-compare` alias) — thin report on `CompareDataset` /
+  `BestLagCorrelation` (Python compare half no longer required).
+- **GUI help chips („?“):** Generator- and KI-Training options show a short
+  popover explaining what each toggle/setting does (`help.js` + `data-help`).
+  Long wall-of-text hints in advanced settings were shortened; details live
+  behind the chip. Advanced options grouped (Tracking / Signal / Keyframes).
+- **KI-Training device switch (auto / CUDA / DirectML / MPS / CPU):**
+  `train_yolo_model.py` defaults to `--device auto` (CUDA → MPS → DirectML →
+  CPU). DirectML needs optional `torch-directml` on Windows. GUI dropdown +
+  `ListRoiTrainingDevices` / `--list-devices`. Full WinML inference stack
+  still deferred (`docs/perception_update_2026-09/05_accelerator.md`); this
+  is the practical training-side switch.
+
+### Fixed
+
+- **`videox.FrameReader.Close` after normal EOF:** cancelling the
+  CommandContext made `Wait` return `context.Canceled` even when ffmpeg
+  finished cleanly — `TestGrayReaderScalesAndCounts` failed. Close now
+  treats cancel/deadline as success unless stderr reports a real error.
+- **App script-state race:** `currentScript` / `scriptPath` /
+  `currentFrames` go through `stateMu` accessors (`app_script_state.go`);
+  locked by `TestLoadedScriptStateNoRace` under `-race`.
+- **Generation not abortable:** `GenerateWithContext` + GUI
+  `CancelGenerate` / Abbrechen button kill the Python subprocess via
+  `CommandContext`; native CSRT also checks `ctx` each frame.
+- **Script Doctor unsorted-timestamp check:** `EvaluateScriptQuality`
+  now inspects the original action order before sorting (was dead code
+  after `sort.SliceStable`). `generator.ScriptQuality` reads file-order
+  actions instead of `Load`/`Parse` so spliced scripts are still
+  flagged. Locked by `TestEvaluateScriptQualityFlagsUnsorted` and
+  Python goldens in `funscript/testdata/script_quality_goldens.json`.
+- **Tf/Tj suction double-floor:** with actions already clamped to 20–90,
+  applying `liftFloor(pos/100, MinSuction=0.20)` remapped resting suction
+  from 0.20→0.36 and peaks from 0.90→0.92. `SyncSuctionPosition` no longer
+  applies that second floor; the clamp *is* the floor. Recipe metadata
+  still reports `min_suction: 0.20`. Locked by
+  `TestRecipeTJSuctionNoDoubleFloor`. See `docs/FINDINGS_TIMING_TF.md`.
+
+### Added
+
+- **CI installs ffmpeg in the Go jobs** so `videox` tests actually run
+  instead of `t.Skip("ffmpeg not available")` — that skip made the Go
+  job permanently green while the same tests caught `FrameReader.Close`
+  locally. Both `go` and `go-opencv` install ffmpeg now.
+- **`update` package unit tests** (`IsNewer`, `AssetForThisPlatform`,
+  `Describe`, URL validation) — coverage was previously ~0%.
 - **`generator/posttrack` + optional Go generation path (experimental)**:
   second step of the "more Go, less Python" move. Pure-Go port of
   `positions_to_funscript` (Savitzky-Golay, percentile normalisation,
@@ -30,6 +91,32 @@ measurement history behind each entry; this file is the short version for
   `--min-action-interval-ms` into `positions_to_funscript` (so
   `--profile weich` was a no-op for those knobs) — guarded by
   `process_one_kwargs_test.py`.
+- **Signal Quality ≠ Motion Fidelity** (`docs/SIGNAL_VS_FIDELITY.md`):
+  Script Doctor / Quality Doctor labeled as Signal Quality (`kind:
+  signal_quality`); Phase CLI / `EvaluateMotionFidelity` as Motion
+  Fidelity. GUI copy updated so a high doctor score is never read as
+  “matches the video”. SAM Perception v1 ordered in `docs/ROADMAP.md`.
+- **CLI `phase` subcommand** (`SamNPlayer-cli phase A.funscript B.funscript`):
+  runs `BestLagCorrelation` / `DiagnosePhase` without Python.
+- **Phase Analyzer core in pure Go** (`funscript.BestLagCorrelation` +
+  `DiagnosePhase`): port of `fungen_compare.best_lag_correlation`
+  (lag search, orientation, shape-normalized error, low-confidence)
+  plus the research-doc timing-vs-shape verdict. Tests mirror
+  `fungen_compare_test.py`. Full 8-point PTS→device pipeline still
+  deferred.
+- **Script Doctor ↔ Python goldens:** `TestEvaluateScriptQualityMatchesPythonGoldens`
+  locks actions-only scores against `quality_doctor.evaluate()`.
+
+- **Research pack** archived at `docs/perception_update_2026-09/`
+  (docs 01–10, findings CSV, ADR) with implementation status and a
+  full open/Go-migration inventory in `docs/FINDINGS_TIMING_TF.md`.
+- **Script Doctor in pure Go** (`funscript.EvaluateScriptQuality` +
+  `EvaluateDeviceCompat`): playback-tab “Skript prüfen” no longer needs
+  a Python install. Same actions-only checks as Quality Doctor without
+  dense tracking data; `EstimatedFromScriptOnly` remains set.
+- **Research triage** of timing / 4-zone / accelerator / 63-BPM notes:
+  `docs/FINDINGS_TIMING_TF.md` — what was fixed, what waits on
+  measurement, what stays deferred, what the next Go slices are.
 - **Playback tab: pressing the native video Play control now also starts
   funscript/device playback**, instead of these being two separate actions
   (the dedicated "Abspielen" button and the video's own play control).

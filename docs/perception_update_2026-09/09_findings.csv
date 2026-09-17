@@ -1,0 +1,21 @@
+﻿ID;Bereich;Befund;Grund/Hypothese;Maßnahme;Priorität
+F-001;Tf/Tj;Kurve läuft Video voraus;Phase/Timing;Phase Analyzer + best_lag_ms;P0
+F-002;Sog;Effektiver Mindest-Sog möglicherweise ~36%;Doppelter Positions-/Sog-Floor;A/B Floor;P0
+F-003;Timeline;FrameIndex/FPS unpräzise möglich;VFR/PTS;echte PTS;P0
+F-004;Tracking;Last-value bei Loss verfälscht Signal;Missing Data fehlt;valid/confidence/reason;P0
+F-005;4-Zonen;Einfaches Mitteln verschenkt Information;6 Paarbeziehungen;Relative Motion Graph;P0
+F-006;4-Zonen;Schlechte Zone kann Fusion kippen;fehlende Reliability;Confidence Consensus;P0
+F-007;Normalisierung;Min/Max kann Noise aufblasen;Outlier/kurze Szene;P05/P95 + MAD;P0
+F-008;Signal;Filter kann Peaks verschieben;Phasenlag;Timing Benchmark;P0
+F-009;Camera;0 und Fehler nicht unterscheiden;fehlende Statussemantik;ok/confidence;P1
+F-010;Camera;Affine Daten werden reduziert;X/Rotation/Scale verloren;Full residual test;P1
+F-011;Rhythm;63 BPM als Baseline;Attraktor statt Zwang;Recovery Benchmark;P1
+F-012;Device;Tf/Tj suction-first;Sam Neo 2 Schwerpunkt Sog;Device Test;P0
+F-013;Fusion;Blindes Mitteln ungeeignet;Quellen können korreliert falsch sein;Disagreement Trigger;P1
+F-014;Runtime;CUDA-only bindet an NVIDIA;fehlende Provider-Abstraction;WinML/DML/CUDA/CoreML;P3
+F-015;Architektur;Python Runtime langfristig vermeidbar;Packaging/Dependencies;Go/native Runtime;P2
+F-016;Architektur;Pure-Go CV-Kernel nicht automatisch besser;native Libraries hochoptimiert;Benchmark vor Port;P2
+F-017;Sprache;Rust nur für Hotspots;Komplexitätskosten;Profiler Gate;P4
+F-018;Quality;Portierung darf Qualität nicht senken;Quality-first;Golden Clip Gate;P0
+F-019;Prediction;Prediction kann Fehler kaschieren;Latenzen nicht getrennt;erst messen, dann kompensieren;P1
+F-020;Motion;Mikrozyklen erzeugen Hektik;Noise/fehlende Hysterese;Deadband + Refractory;P0
