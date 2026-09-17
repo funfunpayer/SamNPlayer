@@ -38,7 +38,9 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if backend != "csrt" {
 		return false
 	}
-	if opts.PerSceneROI || opts.AutoRetry || opts.UseOpenCL {
+	// AutoRetry is handled inside finishNativeGenerate (signal-param retry),
+	// so it no longer blocks the Go path — default GUI has AutoRetry on.
+	if opts.PerSceneROI || opts.UseOpenCL {
 		return false
 	}
 	if opts.AIQualityOpinion || opts.AudioCheck {
@@ -61,7 +63,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		return errNativeUnavailable
 	}
 	if !nativeOptionsEligible(opts, roi) {
-		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT + single ROI only; no Tf/Tj, per-scene, AI, audio, auto-retry, OpenCL)")
+		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT + single ROI only; no Tf/Tj, per-scene, AI, audio, OpenCL)")
 	}
 	if err := ctx.Err(); err != nil {
 		return err

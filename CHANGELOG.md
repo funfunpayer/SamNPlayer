@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Go generate path is automatic:** single-ROI CSRT settings (including
+  default Auto-Retry) use `trackcv` or `simpletrack` without a GUI checkbox.
+  Auto-Retry varies signal params in Go (same idea as Python). Special cases
+  (other backends, Tf/Tj, per-scene, AI/audio, OpenCL) still use Python.
+  `PreferPython` forces the old path for tests/CLI.
+
 ## [0.5.2] — September 17, 2026
 
 ### Added

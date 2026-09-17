@@ -9,6 +9,10 @@ func TestNativePipelineEligible(t *testing.T) {
 	if !NativePipelineEligible(ok, roi) {
 		t.Fatal("expected eligible for plain CSRT options")
 	}
+	// Default GUI has AutoRetry on — must still be eligible (retry is in-Go).
+	if !NativePipelineEligible(Options{Backend: "csrt", AutoRetry: true}, roi) {
+		t.Fatal("AutoRetry must not block the Go path")
+	}
 	if NativePipelineEligible(Options{Backend: "flow"}, roi) {
 		t.Fatal("flow must not be eligible")
 	}

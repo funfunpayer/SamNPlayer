@@ -107,8 +107,6 @@ export function initGenerator(root, playback) {
           data-help="Setzt zusätzliche Keyframes bei asymmetrischen Bewegungen.">Adaptive Keyframes</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
           data-help="Sucht nach jedem Schnitt die Region neu. Besser bei stark geschnittenem Material, dauert länger.">Region nach jedem Schnitt neu suchen</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-native" /><label for="gen-native"
-          data-help="Experimentell: Tracking + Signalpfad in Go ohne Python. Mit OpenCV = CSRT; ohne (z.B. Windows-Release) = einfacherer NCC-Tracker über ffmpeg. Nur eine Region, ohne Tf/Tj/KI/Audio/Auto-Retry — sonst Fallback auf Python. Braucht ffmpeg im PATH.">Go-Pipeline (experimentell)</label></div>
         <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
         <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
@@ -144,7 +142,9 @@ export function initGenerator(root, playback) {
 
     <p class="hint">
       Klassisches CV-Tracking als Grundlage - im Vorschaubild eine Region über
-      das zu verfolgende Motiv ziehen, dann generieren. Optional dabei die lokale
+      das zu verfolgende Motiv ziehen, dann generieren. Der Standardfall
+      (eine Region, CSRT) läuft in Go ohne Python; andere Backends, Tf/Tj,
+      KI- und Audio-Extras brauchen Python. Optional die lokale
       KI-Regionserkennung nutzen (Häkchen oben) oder ein gemerktes/vorgeschlagenes
       Profil übernehmen (unten) - beides bleibt ein Vorschlag, den du bestätigst
       oder korrigierst.
@@ -494,7 +494,6 @@ export function initGenerator(root, playback) {
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
-      nativePipeline: el('#gen-native').checked,
     };
     if (roi2) {
       payload.x2 = roi2.x;

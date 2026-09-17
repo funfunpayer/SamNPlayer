@@ -76,8 +76,12 @@ type Options struct {
 	AIBaseURL                 string
 	ContactVibration          bool
 	AudioCheck                bool
-	// NativePipeline: opt-in Go path (trackcv + posttrack) for CSRT + single
-	// ROI. Falls back to Python when unavailable or ineligible. Experimental.
+	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
+	// Default false: GenerateWithContext uses trackcv or simpletrack when
+	// NativePipelineEligible — no GUI checkbox required.
+	PreferPython bool
+	// NativePipeline is retained for JSON/API compat and ignored for routing.
+	// Go is chosen automatically when eligible unless PreferPython is set.
 	NativePipeline bool
 }
 
@@ -529,34 +533,37 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 
 // GenerateWithContext runs generation under ctx. Cancel ctx to kill the
 // Python subprocess (review: generation must be abortable) or abort native
-// CSRT mid-loop via trackcv.Options.Cancel. Returns context.Canceled when
-// aborted. When opts.NativePipeline is set and eligible, uses
-// trackcv+posttrack without Python (see #85) including dense Quality Doctor.
+// tracking mid-loop. Returns context.Canceled when aborted.
+//
+// When PreferPython is false and opts+roi are NativePipelineEligible, uses
+// the Go path automatically (CSRT via trackcv when OpenCV is linked, else
+// simpletrack over videox) — no opt-in flag. Otherwise falls back to Python.
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
 
-	if opts.NativePipeline {
-		if NativePipelineEligible(opts, roi) {
-			var err error
-			if NativeTrackingAvailable() {
-				err = GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
-			} else {
-				err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
-			}
-			if err != nil {
-				return err
-			}
-			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
-			return nil
+	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
+		var err error
+		if NativeTrackingAvailable() {
+			err = GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+		} else {
+			err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
 		}
-		logging.Warn("generator: NativePipeline angefordert, aber nicht nutzbar — Fallback auf Python",
+		if err != nil {
+			return err
+		}
+		logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+		return nil
+	}
+	if !opts.PreferPython && opts.NativePipeline {
+		logging.Warn("generator: Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python",
 			"csrt", NativeTrackingAvailable(),
 			"simple", SimpleTrackingAvailable(),
 			"backend", opts.Backend,
-			"roi2", opts.ROI2.W > 0)
+			"roi2", opts.ROI2.W > 0,
+			"auto_retry", opts.AutoRetry)
 		if onProgress != nil {
 			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
 		}

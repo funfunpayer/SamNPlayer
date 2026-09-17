@@ -42,8 +42,8 @@ func TestGenerateWithContextCancelPython(t *testing.T) {
 	go func() {
 		done <- GenerateWithContext(ctx, video, ROI{X: 10, Y: 10, W: 40, H: 40}, out, Options{
 			Backend: "csrt",
-			// Force Python path even if OpenCV native is available.
-			NativePipeline: false,
+			// Force Python path even when Go native is eligible.
+			PreferPython: true,
 		}, nil, nil)
 	}()
 	time.Sleep(200 * time.Millisecond)
@@ -81,9 +81,9 @@ func TestGenerateWithContextCancelNativeSimple(t *testing.T) {
 		// Prefer simple path explicitly when CSRT is unavailable; when CSRT
 		// is linked GenerateWithContext would take CSRT — still cancelable.
 		done <- GenerateWithContext(ctx, video, ROI{X: 120, Y: 80, W: 80, H: 80}, out, Options{
-			Backend:        "csrt",
-			NativePipeline: true,
-			MaxFrames:      0,
+			Backend:   "csrt",
+			MaxFrames: 0,
+			// Auto path: eligible CSRT options take Go (simpletrack or CSRT).
 		}, nil, nil)
 	}()
 	time.Sleep(250 * time.Millisecond)
