@@ -1,5 +1,6 @@
 import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
@@ -498,8 +499,7 @@ export function initGenerator(root, playback) {
         }
       }).catch(() => {});
     } catch (err) {
-      el('#gen-status').textContent = '';
-      alert('Fehler: ' + err);
+      uiError('Video laden: ' + err, el('#gen-status'));
     }
   }
 
@@ -521,16 +521,16 @@ export function initGenerator(root, playback) {
       await showFrame(videoPath, seekSec);
       el('#gen-status').textContent = `Frame bei ${seekSec}s — Region markieren.`;
     } catch (err) {
-      alert('Seek fehlgeschlagen: ' + err);
+      uiError('Seek fehlgeschlagen: ' + err, el('#gen-status'));
     }
   }
 
   async function checkDeps() {
     try {
       await CheckGeneratorDependencies();
-      alert('Python und alle benötigten Pakete sind verfügbar.');
+      uiInfo('Python und benötigte Pakete sind verfügbar.', el('#gen-status'));
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Abhängigkeiten: ' + err, el('#gen-status'));
     }
   }
 
@@ -630,8 +630,7 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     if (result.error) {
-      el('#gen-status').textContent = 'Automatische Suche fehlgeschlagen.';
-      alert('Fehler: ' + result.error);
+      uiError('Automatische Regionssuche: ' + result.error, el('#gen-status'));
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
@@ -876,7 +875,7 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     const label = el('#gen-scene-label').value.trim();
     if (!label) {
-      alert('Bitte einen Namen für die Szene eingeben.');
+      uiWarn('Bitte einen Namen für die Szene eingeben.', el('#gen-suggest-status'));
       return;
     }
     el('#gen-label-scene').disabled = true;
@@ -884,7 +883,7 @@ export function initGenerator(root, playback) {
       await LabelScene(videoPath, label);
       el('#gen-suggest-status').textContent = `Szene als "${label}" gemerkt.`;
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Szene merken: ' + err, el('#gen-suggest-status'));
     } finally {
       el('#gen-label-scene').disabled = false;
     }

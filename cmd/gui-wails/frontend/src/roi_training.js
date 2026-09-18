@@ -7,6 +7,7 @@ import {
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
+import { uiError } from './notify.js';
 
 const CLASS_PRESETS = [
   'hand', 'mouth', 'brust', 'eichel', 'penis', 'tongue', 'toy', 'body', 'face', 'other',
@@ -278,8 +279,7 @@ export function initRoiTraining(root) {
       await showPreview(path, 0);
       el('#rt-bootstrap-status').textContent = 'Region(en) markieren. Bei schwarzem Anfang Zeit vorstellen.';
     } catch (err) {
-      el('#rt-bootstrap-status').textContent = '';
-      alert('Fehler: ' + err);
+      uiError('Video laden: ' + err, el('#rt-bootstrap-status'));
     }
   }
 
@@ -322,8 +322,7 @@ export function initRoiTraining(root) {
       img.src = `data:${mime};base64,` + preview;
       el('#rt-bootstrap-status').textContent = 'Still-Bild: Regionen markieren, dann speichern.';
     } catch (err) {
-      el('#rt-bootstrap-status').textContent = '';
-      alert('Fehler: ' + err);
+      uiError('Bild laden: ' + err, el('#rt-bootstrap-status'));
     }
   }
 
@@ -336,7 +335,7 @@ export function initRoiTraining(root) {
       await showPreview(sourcePath, seekSec);
       el('#rt-bootstrap-status').textContent = `Frame bei ${seekSec}s — markieren.`;
     } catch (err) {
-      alert('Seek fehlgeschlagen: ' + err);
+      uiError('Seek fehlgeschlagen: ' + err, el('#rt-bootstrap-status'));
     }
   }
 
@@ -381,8 +380,7 @@ export function initRoiTraining(root) {
         );
       }
     } catch (err) {
-      el('#rt-bootstrap-status').textContent = 'Fehlgeschlagen.';
-      alert('Fehler: ' + err);
+      uiError('Sample speichern: ' + err, el('#rt-bootstrap-status'));
       updateBootstrapEnabled();
     }
   });
@@ -395,8 +393,7 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:bootstrap:done', payload => {
     updateBootstrapEnabled();
     if (payload.error) {
-      el('#rt-bootstrap-status').textContent = 'Fehlgeschlagen.';
-      alert('Bootstrap fehlgeschlagen: ' + payload.error);
+      uiError('Bootstrap fehlgeschlagen: ' + payload.error, el('#rt-bootstrap-status'));
       return;
     }
     lastPrefix = payload.prefix || lastPrefix;
@@ -474,7 +471,7 @@ export function initRoiTraining(root) {
             await DiscardRoiTrainingSample(datasetDir, s.split, s.name);
             card.remove();
           } catch (err) {
-            alert('Konnte nicht verworfen werden: ' + err);
+            uiError('Sample verwerfen: ' + err);
             discardBtn.disabled = false;
           }
         });
@@ -569,8 +566,7 @@ export function initRoiTraining(root) {
     try {
       await RunRoiModelTraining(epochs, device);
     } catch (err) {
-      el('#rt-train-status').textContent = 'Fehlgeschlagen.';
-      alert('Fehler: ' + err);
+      uiError('ROI-Training: ' + err, el('#rt-train-status'));
       el('#rt-train').disabled = false;
     }
   });
@@ -582,8 +578,7 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:train:done', payload => {
     el('#rt-train').disabled = false;
     if (payload.error) {
-      el('#rt-train-status').textContent = 'Fehlgeschlagen.';
-      alert('Training fehlgeschlagen: ' + payload.error);
+      uiError('Training fehlgeschlagen: ' + payload.error, el('#rt-train-status'));
       return;
     }
     el('#rt-train-status').textContent = 'Fertig: ' + payload.modelPath;

@@ -54,6 +54,16 @@ export function initLog(root) {
 
   EventsOn('log:line', e => push(e));
 
+  // Frontend-Hinweise (statt alert): Fehler/Warnungen landen hier.
+  window.addEventListener('ui:notify', e => {
+    const d = (e && e.detail) || {};
+    push({
+      time: d.time || new Date().toLocaleTimeString(),
+      level: d.level || 'INFO',
+      message: d.message || '',
+    });
+  });
+
   // Also mirror generator progress into the log so Go/Python path lines are copyable.
   EventsOn('generate:progress', line => {
     push({ time: new Date().toLocaleTimeString(), level: 'INFO', message: String(line) });

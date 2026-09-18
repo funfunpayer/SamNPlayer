@@ -1,6 +1,7 @@
 import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { wireDataHelp } from './help.js';
+import { uiError } from './notify.js';
 
 // Zweck dieses Tabs: sichtbar machen, ob überhaupt ein Gerät gefunden und
 // richtig erkannt wurde, und die Ansteuerung isoliert prüfen zu können -
@@ -97,6 +98,11 @@ export function initDevice(root) {
 
   function log(msg) {
     el('#dev-log').textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  }
+
+  function logError(msg) {
+    log(msg);
+    uiError(msg);
   }
 
   function setFills(vibPct, sucPct) {
@@ -232,7 +238,7 @@ export function initDevice(root) {
     try {
       await TestVibration(pct / 100);
     } catch (err) {
-      log('Vibration: ' + err);
+      logError('Vibration: ' + err);
     }
   });
 
@@ -243,7 +249,7 @@ export function initDevice(root) {
     try {
       await TestSuction(pct / 100);
     } catch (err) {
-      log('Sog: ' + err);
+      logError('Sog: ' + err);
     }
   });
 
@@ -277,7 +283,7 @@ export function initDevice(root) {
       await TestRawValue(channel, value);
       log(`Rohwert ${value} an ${channel} gesendet.`);
     } catch (err) {
-      log('Rohwert: ' + err);
+      logError('Rohwert: ' + err);
     }
   });
 
@@ -339,7 +345,7 @@ export function initDevice(root) {
       }
       box.innerHTML = history.map(renderDiagHistoryRow).join('');
     } catch (err) {
-      box.textContent = 'Verlauf konnte nicht geladen werden: ' + err;
+      uiError('Diagnose-Verlauf: ' + err, box);
     }
   }
 
@@ -351,7 +357,7 @@ export function initDevice(root) {
       await RunDeviceDiagnostics();
     } catch (err) {
       el('#diag-run').disabled = false;
-      el('#diag-status').textContent = 'Fehlgeschlagen: ' + err;
+      uiError('Diagnose: ' + err, el('#diag-status'));
     }
   });
 

@@ -8,6 +8,7 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { applyHotkeyOMarker } from './ozone_ui.js';
 import { wireDataHelp } from './help.js';
+import { uiError } from './notify.js';
 
 const HEATMAP_BUCKETS = 300;
 
@@ -224,6 +225,11 @@ export function initPlayback(root) {
     box.scrollTop = box.scrollHeight;
   }
 
+  function logError(line) {
+    log(line);
+    uiError(line);
+  }
+
   function setPlayingState(isPlaying) {
     playing = isPlaying;
     el('#pb-play').disabled = isPlaying;
@@ -298,7 +304,7 @@ export function initPlayback(root) {
       await SaveOMarkers(scriptPath, oMarkers);
     } catch (err) {
       oMarkers = previous;
-      log('O-Marker entfernen: ' + err);
+      logError('O-Marker entfernen: ' + err);
       return;
     }
     renderOMarkerList();
@@ -514,7 +520,7 @@ export function initPlayback(root) {
     try {
       await SetScriptOffset(value);
     } catch (err) {
-      log('Offset: ' + err);
+      logError('Offset: ' + err);
     }
   }
 
@@ -553,7 +559,7 @@ export function initPlayback(root) {
       status.textContent = 'Gespeichert im Skript.';
       await refreshScriptVisuals();
     } catch (err) {
-      status.textContent = 'Fehler: ' + err;
+      uiError('Kontakt speichern: ' + err, status);
       log('Kontakt speichern: ' + err);
     }
   });
@@ -716,7 +722,7 @@ export function initPlayback(root) {
     try {
       await SaveScriptActions(sorted.map(p => ({ at: p.atMs, pos: p.pos })));
     } catch (err) {
-      log('Kurve speichern: ' + err);
+      logError('Kurve speichern: ' + err);
       return;
     }
     rawActions = sorted;
@@ -730,7 +736,7 @@ export function initPlayback(root) {
         const actions = await GetScriptActions();
         rawActions = (Array.isArray(actions) ? actions : []).map(a => ({ atMs: a.at, pos: a.pos }));
       } catch (err) {
-        log('Editor: Punkte laden fehlgeschlagen: ' + err);
+        logError('Editor: Punkte laden fehlgeschlagen: ' + err);
         el('#pb-curve-edit').checked = false;
         return;
       }
@@ -847,7 +853,7 @@ export function initPlayback(root) {
     try {
       await SaveOMarkers(scriptPath, next);
     } catch (err) {
-      log('O-Marker hinzufügen: ' + err);
+      logError('O-Marker hinzufügen: ' + err);
       return;
     }
     oMarkers = next;
@@ -1014,8 +1020,7 @@ export function initPlayback(root) {
     try {
       await StartPlayback(opts);
     } catch (err) {
-      log('Fehler: ' + err);
-      return false;
+      logError('Wiedergabe starten: ' + err);
       return false;
     }
     setPlayingState(true);
@@ -1145,7 +1150,7 @@ export function initPlayback(root) {
       }
       box.innerHTML = html;
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      uiError('Quality-Prüfung: ' + err, status);
     } finally {
       btn.disabled = false;
     }
@@ -1239,7 +1244,7 @@ export function initPlayback(root) {
       renderOMarkerList();
       describeScript();
     } catch (err) {
-      log('Aktualisieren: ' + err);
+      logError('Aktualisieren: ' + err);
     }
   }
 
@@ -1253,7 +1258,7 @@ export function initPlayback(root) {
       redrawCurve();
       log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
     } catch (err) {
-      log('O-Taste: ' + err);
+      logError('O-Taste: ' + err);
     }
   });
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });

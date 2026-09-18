@@ -1,4 +1,5 @@
 import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth } from '../wailsjs/go/main/App';
+import { uiError } from './notify.js';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -210,7 +211,7 @@ export function initSettings(root) {
       const version = await CurrentVersion();
       const res = await CheckForUpdate();
       if (res.error) {
-        status.textContent = 'Prüfung fehlgeschlagen: ' + res.error;
+        uiError('Update-Prüfung: ' + res.error, status);
       } else if (!res.available) {
         status.textContent = `Kein Update verfügbar (aktuell: ${version}).`;
       } else {
@@ -220,18 +221,18 @@ export function initSettings(root) {
           try {
             await ApplyUpdate();
           } catch (err) {
-            status.textContent = 'Update fehlgeschlagen: ' + err;
+            uiError('Update fehlgeschlagen: ' + err, status);
           }
         }
       }
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      uiError('Update-Prüfung: ' + err, status);
     } finally {
       btn.disabled = false;
     }
   });
   el('#st-log-level').addEventListener('change', e => saveSetting('log.level', e.target.value));
-  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => alert('Fehler: ' + err)));
+  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => uiError('Log-Ordner: ' + err)));
 
   el('#st-report-path').addEventListener('change', e =>
     saveSetting('generator.reportPath', e.target.value.trim()).then(updateReportStatus));
@@ -245,7 +246,7 @@ export function initSettings(root) {
         updateReportStatus();
       }
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Report-Pfad: ' + err);
     }
   });
 
@@ -292,7 +293,7 @@ export function initSettings(root) {
       await ClearCache();
       await refreshCache();
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Cache leeren: ' + err, el('#st-cache-info'));
     }
   });
 

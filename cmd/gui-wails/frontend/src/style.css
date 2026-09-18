@@ -16,8 +16,8 @@
   --danger: #e85d5d;
   --ok: #5ecf8a;
   --warn: #f2b03d;
-  --radius: 6px;
-  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-sm: 5px;
   --rail: 78px;
   --font: "Space Grotesk", "Nunito", "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -86,9 +86,9 @@ body {
   content: "";
   position: absolute;
   top: 0; right: 0; bottom: 0;
-  width: 2px;
+  width: 3px;
   background: linear-gradient(180deg, var(--accent) 0%, var(--teal) 55%, transparent 100%);
-  opacity: 0.55;
+  opacity: 0.75;
   pointer-events: none;
 }
 .brand {

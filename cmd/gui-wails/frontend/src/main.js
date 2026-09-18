@@ -1,5 +1,6 @@
 import './style.css';
 import './help.js';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
@@ -101,7 +102,7 @@ initPostGenerateReview();
         window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
       } catch (err) {
         busy = false;
-        alert('Trennen fehlgeschlagen: ' + err);
+        uiError('Trennen fehlgeschlagen: ' + err);
         render({ connected: true });
       }
       return;
@@ -119,7 +120,7 @@ initPostGenerateReview();
     } catch (err) {
       busy = false;
       render({ connected: false });
-      alert('Verbindung fehlgeschlagen: ' + err + '\n\nVerbindungsart (BLE / Intiface / Mock) im Gerät-Tab wählen.');
+      uiError('Verbindung fehlgeschlagen: ' + err + ' — Verbindungsart (BLE / Intiface / Mock) im Gerät-Tab wählen.');
     }
   });
 
@@ -147,15 +148,16 @@ GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
     if (res.error) {
-      console.warn('Update-Prüfung beim Start fehlgeschlagen:', res.error);
+      uiWarn('Update-Prüfung beim Start: ' + res.error);
       return;
     }
     if (!res.available) return;
     const tag = res.release ? res.release.tag_name : '?';
+    // Update-Installation ist bewusst bestätigt (wie Überschreiben beim Erzeugen).
     if (confirm(`Version ${tag} ist verfügbar (aktuell: ${currentVersion}).\n\nJetzt herunterladen und neu starten?`)) {
-      ApplyUpdate().catch(err => alert('Update fehlgeschlagen: ' + err));
+      ApplyUpdate().catch(err => uiError('Update fehlgeschlagen: ' + err));
     }
-  }).catch(err => console.warn('Update-Prüfung beim Start fehlgeschlagen:', err));
+  }).catch(err => uiWarn('Update-Prüfung beim Start: ' + err));
 });
 
 
@@ -193,8 +195,7 @@ EventsOn('files:dropped', data => {
     return;
   }
   if (data.ignored) {
-    alert('Damit kann ich nichts anfangen. Zieh eine Videodatei oder eine '
-        + '.funscript-Datei ins Fenster.');
+    uiWarn('Drop ignoriert — bitte eine Videodatei oder .funscript ablegen.');
   }
 });
 
