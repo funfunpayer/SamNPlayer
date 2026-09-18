@@ -29,7 +29,7 @@ export function initPlayback(root) {
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
         <p class="pb-empty-title">Noch nichts geladen</p>
-        <p class="hint">Ein oder mehrere Funscripts ablegen — Filme mit gleichem Namen erscheinen automatisch. Mehrere Skripte werden als Liste abgespielt.</p>
+        <p class="hint">Ein oder mehrere Funscripts ablegen — mit oder ohne Video daneben. Ohne Film läuft das Skript allein (Gerät + Kurve). Mehrere Skripte werden als Liste abgespielt.</p>
         <button type="button" id="pb-choose-empty" class="primary">Skript wählen</button>
       </div>
     </div>
@@ -44,8 +44,11 @@ export function initPlayback(root) {
           </div>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Skript ohne Film</p>
-            <p class="hint">Gerät und Kurve laufen trotzdem. Optional ein Video verknüpfen.</p>
-            <button type="button" id="pb-pick-video" class="primary">Video wählen…</button>
+            <p class="hint">Läuft allein über Gerät und Kurve — Video ist optional. „Abspielen“ startet sofort.</p>
+            <div class="pb-novideo-actions">
+              <button type="button" id="pb-play-novideo" class="primary">Abspielen</button>
+              <button type="button" id="pb-pick-video">Video verknüpfen…</button>
+            </div>
           </div>
         </div>
         <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
@@ -220,6 +223,7 @@ export function initPlayback(root) {
   let playlist = []; // [{ path, name }]
   let playlistIndex = 0;
   let advancingPlaylist = false;
+  let userStopRequested = false;
   let heatmapPoints = null;
   let curvePoints = null;
   let vibrationCurvePoints = null;
@@ -325,6 +329,8 @@ export function initPlayback(root) {
     el('#pb-play').disabled = isPlaying;
     el('#pb-stop').disabled = !isPlaying;
     el('#pb-eo-trigger').disabled = !isPlaying || !el('#pb-eo-enabled').checked;
+    const playAlone = el('#pb-play-novideo');
+    if (playAlone) playAlone.disabled = isPlaying;
     if (!isPlaying) el('#pb-progress').style.width = '0%';
     if (isPlaying) autoEOTriggeredForMarker = false;
     el('#pb-video-stage').classList.toggle('is-playing', !!isPlaying);
@@ -1108,6 +1114,8 @@ export function initPlayback(root) {
       if (showContact) {
         el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
+    } else if (!info.hasVideo) {
+      log('Skript geladen ohne Video — Abspielen steuert Gerät + Kurve allein.');
     }
   }
 
@@ -1134,6 +1142,12 @@ export function initPlayback(root) {
 
   function onPlaybackFinished() {
     if (advancingPlaylist) return;
+    // Stop-Knopf / manuelles Beenden: nicht automatisch weiter in der Liste.
+    if (userStopRequested) {
+      userStopRequested = false;
+      setPlayingState(false);
+      return;
+    }
     const auto = el('#pb-playlist-auto') && el('#pb-playlist-auto').checked;
     if (auto && playlist.length > 1 && playlistIndex < playlist.length - 1) {
       playNextInPlaylist();
@@ -1151,6 +1165,7 @@ export function initPlayback(root) {
   async function startScriptPlayback() {
     if (!scriptPath) { log('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
     el('#pb-log').textContent = '';
+    userStopRequested = false;
 
     const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
     const opts = {
@@ -1185,6 +1200,11 @@ export function initPlayback(root) {
       return false;
     }
     setPlayingState(true);
+    if (!useVideoSync) {
+      log(videoPath
+        ? 'Skript allein (Video-Sync aus) — eigene Uhr.'
+        : 'Skript allein ohne Video — Gerät + Kurve.');
+    }
     return true;
   }
 
@@ -1199,6 +1219,7 @@ export function initPlayback(root) {
   }
 
   async function stop() {
+    userStopRequested = true;
     await StopPlayback();
     if (videoPath) videoEl.pause();
     setPlayingState(false);
@@ -1320,6 +1341,7 @@ export function initPlayback(root) {
   el('#pb-choose-empty').addEventListener('click', chooseScript);
   el('#pb-queue-add').addEventListener('click', queueAddScript);
   el('#pb-next').addEventListener('click', () => playNextInPlaylist());
+  el('#pb-play-novideo').addEventListener('click', play);
   el('#pb-playlist-list').addEventListener('click', async e => {
     const remove = e.target.closest('.pb-playlist-remove');
     if (remove) {
