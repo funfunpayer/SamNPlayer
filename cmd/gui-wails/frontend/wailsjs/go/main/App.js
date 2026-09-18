@@ -38,6 +38,7 @@ export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App'][
 export function GetRoiTrainingSampleImage(arg1) { return window['go']['main']['App']['GetRoiTrainingSampleImage'](arg1); }
 export function GetRuntimeHealth() { return window['go']['main']['App']['GetRuntimeHealth'](); }
 export function GetScriptActions() { return window['go']['main']['App']['GetScriptActions'](); }
+export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['GetSpeedHighlights'](arg1); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }
 export function GetVibrationCurvePreview(arg1) { return window['go']['main']['App']['GetVibrationCurvePreview'](arg1); }

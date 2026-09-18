@@ -79,6 +79,8 @@ export function GetRuntimeHealth():Promise<main.RuntimeHealth>;
 
 export function GetScriptActions():Promise<Array<funscript.Action>>;
 
+export function GetSpeedHighlights(arg1:number):Promise<Array<funscript.SpeedSegment>>;
+
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
 
 export function GetVibrationCurve(arg1:number):Promise<Array<main.VibrationCurvePoint>>;

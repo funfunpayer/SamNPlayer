@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights, ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
@@ -226,6 +226,7 @@ export function initPlayback(root) {
   let userStopRequested = false;
   let heatmapPoints = null;
   let curvePoints = null;
+  let speedHighlights = [];
   let vibrationCurvePoints = null;
   let scriptHasContactVibration = false;
   const curveCanvas = el('#pb-curve');
@@ -560,6 +561,16 @@ export function initPlayback(root) {
       ctx.fillRect(xOf(marker.startMs), 0, xOf(marker.endMs) - xOf(marker.startMs), h);
     }
 
+    // OFS-Stil: Abschnitte über Community-Intensitätsschwelle (Max-Speed).
+    if (Array.isArray(speedHighlights) && speedHighlights.length > 0) {
+      ctx.fillStyle = 'rgba(239, 95, 95, 0.22)';
+      for (const seg of speedHighlights) {
+        const x0 = xOf(seg.fromMs ?? seg.FromMs ?? 0);
+        const x1 = xOf(seg.toMs ?? seg.ToMs ?? 0);
+        if (x1 > x0) ctx.fillRect(x0, 0, x1 - x0, h);
+      }
+    }
+
     // Die Kurve selbst - als weiche Spline statt gerader Segmente.
     ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
@@ -710,12 +721,14 @@ export function initPlayback(root) {
     } catch (err) {
       curvePoints = null;
       vibrationCurvePoints = null;
+      speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
       vibrationCurvePoints = null;
+      speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
@@ -726,6 +739,12 @@ export function initPlayback(root) {
         : null;
     } catch (err) {
       vibrationCurvePoints = null;
+    }
+    try {
+      speedHighlights = await GetSpeedHighlights(0);
+      if (!Array.isArray(speedHighlights)) speedHighlights = [];
+    } catch (err) {
+      speedHighlights = [];
     }
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';

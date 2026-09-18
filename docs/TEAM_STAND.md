@@ -127,12 +127,17 @@ for speed and gaps. Proposed first steps here: enforce minimum spacing and
 speed caps (partly implemented), then provide an explicit repair step with
 a before/after diff.
 
-### 6. Small editor
+### 6. Small editor (learn from OFS, implement in Go)
 
 After generation, show the curve, allow peaks to be dragged and sections
 to be deleted or repeated, and retain the existing offset control. An
 overlay of the most recent generated curve is enough for the first version.
-A full OFS clone or multi-axis OSR studio is outside this proposal.
+
+**OpenFunscripter (OFS)** is a strong reference for *editor* quality
+(max-speed highlights, chapters in metadata, project persistence,
+frame/tempo aids). Adopt those ideas selectively and reimplement them in
+Go under SamNPlayer — see [OFS_LEARN.md](OFS_LEARN.md). This is not an
+ImGui/OFS UI clone and not a multi-axis OSR studio as the product shell.
 
 ### 7. UI afterward
 
