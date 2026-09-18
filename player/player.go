@@ -6,6 +6,8 @@ package player
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/funfunpayer/SamNPlayer/device"
@@ -31,11 +33,11 @@ type Player struct {
 	// (Start/Ende von Extended-O, periodische Fortschrittszeilen). Optional.
 	OnLog func(line string)
 
-	// PauseVideo/ResumeVideo sind optionale Hooks, die Sync() während eines
-	// Extended-O-Haltens aufruft, um z.B. ein HTML5-<video>-Element im
-	// Frontend zu pausieren/fortzusetzen - rein kosmetisch fürs
-	// Zusammenspiel, Sync() funktioniert auch ohne (dann läuft das Video
-	// während des Haltens einfach weiter).
+	// PauseVideo/ResumeVideo sind optionale Hooks (historisch für Extended-O
+	// mit Video-Pause). Extended-O pausiert das Video nicht mehr - die Kurve
+	// läuft weiter, nur die Amplitude sinkt - die Hooks bleiben für
+	// mögliche andere Nutzung erhalten und werden vom Player nicht mehr
+	// selbst aufgerufen.
 	PauseVideo  func()
 	ResumeVideo func()
 
@@ -49,12 +51,17 @@ type Player struct {
 	lastSyncPosMs int64
 
 	extendedOCh chan ExtendedOOptions
+
+	intensityMu    sync.Mutex
+	intensityScale float64 // 1.0 = volle Kurvenhöhe; Extended-O senkt nur das
+	eoBusy         atomic.Bool
 }
 
 func New(dev device.Device) *Player {
 	return &Player{
-		Device:      dev,
-		extendedOCh: make(chan ExtendedOOptions, 1),
+		Device:         dev,
+		extendedOCh:    make(chan ExtendedOOptions, 1),
+		intensityScale: 1,
 	}
 }
 
@@ -73,10 +80,9 @@ func (p *Player) logf(format string, args ...interface{}) {
 //
 // Wird währenddessen TriggerExtendedO() aufgerufen (typischerweise aus
 // einer anderen Goroutine, z.B. einem stdin-Listener oder einem GUI-Button),
-// pausiert Play die Skript-Timeline für die Dauer des Extended-O-Zyklus und
-// setzt sie danach exakt dort fort, wo sie unterbrochen wurde - das Skript
-// "verliert" also keine Sekunden, sondern die Gesamtwiedergabe verlängert
-// sich um die Haltezeit.
+// läuft die Skript-Timeline weiter - Extended-O skaliert nur die Amplitude
+// von Vibration/Sog (Kurve/Rhythmus bleiben), ohne die Wiedergabe zu
+// pausieren oder zu verlängern.
 func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 	if len(frames) == 0 {
 		return fmt.Errorf("player: keine Frames zum Abspielen")
@@ -84,47 +90,32 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 	logging.Info("player: Wiedergabe startet", "frames", len(frames), "dauer_ms", frames[len(frames)-1].At)
 	defer func() {
 		logging.Info("player: Wiedergabe beendet")
+		p.setIntensityScale(1)
 		p.Device.Stop() //nolint:errcheck // best effort beim Beenden
 	}()
 
 	start := time.Now()
 	lastLog := start
-	var curVib, curSuc float64
 
 	if p.SoftStartMs > 0 && len(frames) > 0 {
 		t0 := time.Now()
 		if err := p.softStart(ctx, frames[0]); err != nil {
 			return err
 		}
-		curVib, curSuc = frames[0].Vibration, frames[0].Suction
 		start = start.Add(time.Since(t0)) // Zeitbasis um die Ramp-Dauer verschieben, sonst "hinkt" der Rest der Wiedergabe hinterher und holt hektisch auf
 	}
 
 	for _, f := range frames {
-		// Anhängigen Extended-O-Trigger abarbeiten, bevor der nächste
-		// Frame gewartet/gesendet wird.
-		select {
-		case opts := <-p.extendedOCh:
-			elapsed, err := p.runExtendedO(ctx, opts, curVib, curSuc, f.At)
-			start = start.Add(elapsed) // Timeline um Haltezeit verschieben
-			if err != nil {
-				return err
-			}
-		default:
-		}
+		p.drainExtendedO(ctx)
 
 		target := start.Add(time.Duration(f.At) * time.Millisecond)
 		if d := time.Until(target); d > 0 {
 			select {
 			case <-time.After(d):
 			case opts := <-p.extendedOCh:
-				// Trigger kam während des Wartens rein - sofort reagieren
-				// statt bis zum nächsten Frame zu warten.
-				elapsed, err := p.runExtendedO(ctx, opts, curVib, curSuc, f.At)
-				start = start.Add(elapsed)
-				if err != nil {
-					return err
-				}
+				// Trigger kam während des Wartens - Amplitude skalieren,
+				// Timeline nicht anhalten.
+				p.startExtendedO(ctx, opts)
 				if d := time.Until(start.Add(time.Duration(f.At) * time.Millisecond)); d > 0 {
 					select {
 					case <-time.After(d):
@@ -137,20 +128,13 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 			}
 		}
 
-		if err := p.Device.SetVibration(f.Vibration); err != nil {
-			return fmt.Errorf("player: SetVibration bei t=%dms: %w", f.At, err)
-		}
-		if err := p.Device.SetSuction(f.Suction); err != nil {
-			return fmt.Errorf("player: SetSuction bei t=%dms: %w", f.At, err)
-		}
-		curVib, curSuc = f.Vibration, f.Suction
-
-		if p.OnFrame != nil {
-			p.OnFrame(f)
+		if err := p.setOutput(f); err != nil {
+			return fmt.Errorf("player: Ausgabe bei t=%dms: %w", f.At, err)
 		}
 
 		if p.LogEvery > 0 && time.Since(lastLog) >= p.LogEvery {
-			p.logf("t=%6dms  vib=%.2f  suc=%.2f", f.At, f.Vibration, f.Suction)
+			scale := p.getIntensityScale()
+			p.logf("t=%6dms  vib=%.2f  suc=%.2f  scale=%.2f", f.At, f.Vibration*scale, f.Suction*scale, scale)
 			lastLog = time.Now()
 		}
 
@@ -159,67 +143,4 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 		}
 	}
 	return nil
-}
-
-// runExtendedO fährt Vibration/Sog auf opts.MinLevel, hält, und rampt
-// zurück auf (curVib, curSuc). Gibt die insgesamt verstrichene Zeit zurück,
-// damit der Aufrufer die Skript-Timeline entsprechend verschieben kann.
-// atMs ist die "eingefrorene" Skript-Position (für OnFrame/Fortschrittsanzeigen -
-// die Timeline pausiert ja während des gesamten Zyklus).
-func (p *Player) runExtendedO(ctx context.Context, opts ExtendedOOptions, curVib, curSuc float64, atMs int64) (time.Duration, error) {
-	t0 := time.Now()
-	p.logf("[extended-o] halte bei %.0f%% für %s...", opts.MinLevel*100, opts.HoldDuration)
-
-	if err := p.Device.SetVibration(opts.MinLevel); err != nil {
-		return time.Since(t0), fmt.Errorf("player: extended-o SetVibration: %w", err)
-	}
-	if err := p.Device.SetSuction(opts.MinLevel); err != nil {
-		return time.Since(t0), fmt.Errorf("player: extended-o SetSuction: %w", err)
-	}
-	if p.OnFrame != nil {
-		p.OnFrame(funscript.Frame{At: atMs, Vibration: opts.MinLevel, Suction: opts.MinLevel})
-	}
-
-	select {
-	case <-time.After(opts.HoldDuration):
-	case <-ctx.Done():
-		return time.Since(t0), ctx.Err()
-	}
-
-	if opts.RestoreDuration <= 0 {
-		if err := p.Device.SetVibration(curVib); err != nil {
-			return time.Since(t0), err
-		}
-		if err := p.Device.SetSuction(curSuc); err != nil {
-			return time.Since(t0), err
-		}
-		if p.OnFrame != nil {
-			p.OnFrame(funscript.Frame{At: atMs, Vibration: curVib, Suction: curSuc})
-		}
-	} else {
-		const steps = 10
-		stepDur := opts.RestoreDuration / steps
-		for i := 1; i <= steps; i++ {
-			frac := float64(i) / float64(steps)
-			v := opts.MinLevel + frac*(curVib-opts.MinLevel)
-			s := opts.MinLevel + frac*(curSuc-opts.MinLevel)
-			if err := p.Device.SetVibration(v); err != nil {
-				return time.Since(t0), err
-			}
-			if err := p.Device.SetSuction(s); err != nil {
-				return time.Since(t0), err
-			}
-			if p.OnFrame != nil {
-				p.OnFrame(funscript.Frame{At: atMs, Vibration: v, Suction: s})
-			}
-			select {
-			case <-time.After(stepDur):
-			case <-ctx.Done():
-				return time.Since(t0), ctx.Err()
-			}
-		}
-	}
-
-	p.logf("[extended-o] wiederhergestellt, Wiedergabe läuft weiter")
-	return time.Since(t0), nil
 }

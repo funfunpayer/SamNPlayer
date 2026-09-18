@@ -73,6 +73,8 @@ export function GetRoiDatasetSummary(arg1:string):Promise<main.RoiDatasetSummary
 
 export function GetRoiTrainingSampleImage(arg1:string):Promise<string>;
 
+export function GetRuntimeHealth():Promise<main.RuntimeHealth>;
+
 export function GetScriptActions():Promise<Array<funscript.Action>>;
 
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;

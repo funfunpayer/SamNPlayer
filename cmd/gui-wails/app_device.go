@@ -149,6 +149,8 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 		_ = a.settings.Set(prefIntifaceURL, url)
 	}
 
+	a.maybeConnectSmokeTest(dev)
+
 	st := a.GetDeviceStatus()
 	logging.Info("geraet: verbunden", "weg", transport, "name", st.Name, "adresse", st.Address)
 	return st, nil
@@ -182,9 +184,32 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
+	a.maybeConnectSmokeTest(dev)
+
 	st := a.GetDeviceStatus()
 	logging.Info("geraet: verbunden", "mock", mock, "name", st.Name, "adresse", st.Address, "rssi", st.RSSI)
 	return st, nil
+}
+
+// maybeConnectSmokeTest sendet nach dem Verbinden einen kurzen Vib/Sog-
+// Impuls und schaltet danach ab - nur wenn die Einstellung aktiv ist
+// (Standard: aus). Damit lässt sich einmalig prüfen, ob die Verbindung
+// wirklich Steuerbefehle durchlässt, ohne bei jedem Connect zu stören.
+func (a *App) maybeConnectSmokeTest(dev device.Device) {
+	if a.settings == nil || !a.settings.GetBool(prefDeviceConnectTest, false) {
+		return
+	}
+	if dev == nil {
+		return
+	}
+	logging.Info("geraet: Verbindungsprüfung nach Connect")
+	_ = dev.SetVibration(0.3)
+	time.Sleep(150 * time.Millisecond)
+	_ = dev.SetSuction(0.3)
+	time.Sleep(150 * time.Millisecond)
+	if err := dev.Stop(); err != nil {
+		logging.Warn("geraet: Verbindungsprüfung Stop fehlgeschlagen", "fehler", err)
+	}
 }
 
 // DisconnectDevice trennt die Testverbindung wieder.

@@ -86,6 +86,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.registerLogLiveHook()
 	logging.Info("gui-wails gestartet")
+	a.ensureRuntimeReady()
 	a.registerFileDrop()
 }
 

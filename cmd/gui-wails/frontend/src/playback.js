@@ -125,7 +125,7 @@ export function initPlayback(root) {
     <div class="field-row"><label>Soft-Start (ms)</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
 
     <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O aktiv</label></div>
-    <div class="field-row"><label>Min-Intensität</label><input type="number" step="0.05" id="pb-eo-min" value="0.1" /></div>
+    <div class="field-row"><label>Amplitude (0–1)</label><input type="number" step="0.05" min="0" max="1" id="pb-eo-min" value="0.1" title="Kurve behält den Rhythmus; nur die Höhe wird mit diesem Faktor multipliziert" /></div>
     <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
     <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
 
@@ -999,8 +999,8 @@ export function initPlayback(root) {
     }
   });
 
-  // Extended-O soll (wenn gewünscht) das Video pausieren/fortsetzen -
-  // siehe Player.PauseVideo/ResumeVideo-Hooks im Go-Backend.
+  // Historische video:pause/resume-Events. Extended-O skaliert nur noch die
+  // Amplitude und pausiert das Video nicht mehr - Listener bleiben harmlos.
   EventsOn('video:pause', () => videoEl.pause());
   EventsOn('video:resume', () => videoEl.play().catch(() => {}));
 

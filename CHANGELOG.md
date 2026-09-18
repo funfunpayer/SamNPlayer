@@ -14,6 +14,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Extended-O:** scales curve amplitude only (vib/suc × factor); rhythm/shape
+  unchanged — no flat freeze and no video/timeline pause during hold.
+- **Startup:** creates missing SamNPlayer folders (logs/sessions/models/cache/…)
+  and checks dependencies (ffmpeg required, python/ffprobe optional).
+- **Connect smoke test:** optional short vib/suc pulse after connect
+  (`device.connect_test`, default off) — Settings checkbox.
 - **GUI visual refresh:** Space Grotesk + logo palette (gold `#f2b03d` /
   teal `#3dccc0` on deep navy); sharper geometry, dual-tone rail/brand
   offset, SamN wordmark in topbar; violet accents removed (ROI2/Sog → gold/teal).

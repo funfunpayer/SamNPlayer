@@ -35,6 +35,7 @@ export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
 export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App']['GetRoiDatasetSummary'](arg1); }
 export function GetRoiTrainingSampleImage(arg1) { return window['go']['main']['App']['GetRoiTrainingSampleImage'](arg1); }
+export function GetRuntimeHealth() { return window['go']['main']['App']['GetRuntimeHealth'](); }
 export function GetScriptActions() { return window['go']['main']['App']['GetScriptActions'](); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }
