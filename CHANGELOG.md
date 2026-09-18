@@ -6,11 +6,36 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
-## Unreleased
+## [0.5.5] — September 18, 2026
+
+Release after stacking GUI/startup, OFS editor tools, OpenCV 5 tracker
+fallback (#95), and funscript autotune workflow. Green CI on tip before tag.
 
 ### Fixed
 
-- **CI Go (OpenCV):** `ptpFloat` redeclaration in `trackcv` (vet fail on #97).
+- **OpenCV 5.0 CSRT** (#94/#95): `create_tracker` / package gate try CSRT then
+  KCF/MIL under `cv2` and `cv2.legacy` — generate no longer dies on Windows
+  opencv-contrib 5.0.0.
+- **CapSpeedRange editor stale state:** after speed-cap / range-delete, reload
+  duration + `rawActions` so edit mode cannot overwrite the capped file.
+- **ROI redraw vs backend:** manual Flow/grid_lk/etc. survive ROI re-draw
+  (`userTouched` on backend/profile).
+- **bandpass NameError:** parse `--bandpass-hz` inside `process_one`.
+- **CapSpeedRange overlap:** later segments use original timestamps.
+- **Playlist:** remove-active reloads highlight; video end advances via
+  `stop({user:false})`; connect-fail `playback:done {failed:true}` does not
+  auto-advance.
+- **OFS bookmarks/chapters:** accept float seconds.
+- **CI Go (OpenCV):** `ptpFloat` redeclaration in `trackcv`.
+
+### Added
+
+- **Profil `autotune`:** detrend + bandpass 0.5–4 Hz + speed 400; GUI Max Speed /
+  Flow-Downscale; workflow tip Flow→CSRT→Autotune→Audio-Check
+  (`docs/FUNSCRIPT_ALGOS.md`).
+- **OFS-inspired Go tools:** max-speed highlights, chapters/bookmarks metadata,
+  heatmap PNG, `.snp.json` projects, FPS snap, range delete/speed-cap.
+- **Clean SamNPlayer wordmark:** Space Grotesk 700, amber + teal N.
 
 ### Changed
 

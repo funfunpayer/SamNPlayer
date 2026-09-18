@@ -20,8 +20,8 @@ discussion stays German.
 ## Principles (recap — see `HANDOFF.md` for the full rationale)
 
 1. **Don't add what isn't needed.** No dependency, module, or feature
-   ships speculatively — `fusion.py`/`videox` sit tested but unconnected
-   for exactly this reason.
+   ships speculatively — `fusion.py` stays tested but unconnected until a
+   genuine third independent signal source exists (see Open tasks).
 2. **Every quality/speed claim needs a measurement, not an estimate.**
    Reproduce before changing an algorithm; keep the raw numbers, not just
    the conclusion.

@@ -445,8 +445,12 @@ export function initGenerator(root, playback) {
     try {
       const s = await SuggestPipeline(w, h, w2, h2);
       if (!s) return;
-      if (s.Backend) el('#gen-backend').value = s.Backend;
-      if (s.Profile) {
+      // Manual backend/profile choices survive ROI redraws; only auto-fill
+      // when the user has not touched the dropdowns yet.
+      const backendTouched = el('#gen-backend').dataset.userTouched === '1';
+      const profileTouched = el('#gen-profile').dataset.userTouched === '1';
+      if (s.Backend && !backendTouched) el('#gen-backend').value = s.Backend;
+      if (s.Profile && !profileTouched) {
         el('#gen-profile').value = s.Profile;
         updateProfileUi();
       }
@@ -487,6 +491,9 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Lade Vorschau-Frame...';
     roi = null;
     roi2 = null;
+    // Neues Video: Pipeline-Vorschläge wieder erlauben.
+    delete el('#gen-backend').dataset.userTouched;
+    delete el('#gen-profile').dataset.userTouched;
     setRoi2Mode(isTfTj());
     el('#gen-generate').disabled = true;
     updateRoiLabels();
@@ -822,7 +829,10 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird gold).';
     }
   });
-  el('#gen-profile').addEventListener('change', updateProfileUi);
+  el('#gen-profile').addEventListener('change', () => {
+    el('#gen-profile').dataset.userTouched = '1';
+    updateProfileUi();
+  });
   el('#gen-contact-vibration').addEventListener('change', () => {
     contactUserOverride = true;
     updateContactVibrationOpts();
@@ -832,7 +842,10 @@ export function initGenerator(root, playback) {
   });
   el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
   updateContactSpanLabel();
-  el('#gen-backend').addEventListener('change', updateGenerateEnabled);
+  el('#gen-backend').addEventListener('change', () => {
+    el('#gen-backend').dataset.userTouched = '1';
+    updateGenerateEnabled();
+  });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;

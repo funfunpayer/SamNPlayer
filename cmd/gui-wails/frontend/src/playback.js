@@ -1427,8 +1427,8 @@ export function initPlayback(root) {
     try {
       await EditCapSpeedRange(marker.startMs, marker.endMs, 400);
       ofsStatus('Speed-Cap angewendet');
-      await drawCurve();
-      await drawHeatmap();
+      // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
+      await reloadAfterRangeEdit();
     } catch (err) {
       uiError('Speed-Cap: ' + err, el('#pb-ofs-status'));
     }
@@ -1442,8 +1442,7 @@ export function initPlayback(root) {
       await EditDeleteRange(marker.startMs, marker.endMs);
       ofsStatus('Bereich gelöscht');
       marker = null;
-      await drawCurve();
-      await drawHeatmap();
+      await reloadAfterRangeEdit();
     } catch (err) {
       uiError('Löschen: ' + err, el('#pb-ofs-status'));
     }
@@ -1586,6 +1585,20 @@ export function initPlayback(root) {
     } catch (err) {
       logError('Aktualisieren: ' + err);
     }
+  }
+
+  // Nach Speed-Cap / Bereich-Löschen: Dauer neu lesen und Editor-Puffer
+  // neu laden — sonst schreibt Editieren die alten Punkte wieder zurück.
+  async function reloadAfterRangeEdit() {
+    if (!scriptPath) return;
+    try {
+      const info = await LoadFunscript(scriptPath);
+      totalMs = Math.max(info.durationMs, 1);
+      scriptHasContactVibration = !!info.contactVibration;
+    } catch (err) {
+      logError('Skript nach Bearbeitung neu laden: ' + err);
+    }
+    await refreshScriptVisuals();
   }
 
   window.addEventListener('ozone:hotkey', async (ev) => {
