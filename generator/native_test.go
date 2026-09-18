@@ -16,8 +16,9 @@ func TestNativePipelineEligible(t *testing.T) {
 	if NativePipelineEligible(Options{Backend: "flow"}, roi) {
 		t.Fatal("flow must not be eligible")
 	}
-	if NativePipelineEligible(Options{Backend: "csrt", ROI2: ROI{W: 10, H: 10}}, roi) {
-		t.Fatal("roi2 must not be eligible")
+	// Tf/Tj two-point is now Go-native (CSRT / simpletrack TrackTwoPoints).
+	if !NativePipelineEligible(Options{Backend: "csrt", ROI2: ROI{W: 10, H: 10}, Profile: "tf"}, roi) {
+		t.Fatal("roi2 / Tf/Tj must be eligible on the Go path")
 	}
 	if NativePipelineEligible(Options{Backend: "csrt", PerSceneROI: true}, roi) {
 		t.Fatal("per-scene must not be eligible")

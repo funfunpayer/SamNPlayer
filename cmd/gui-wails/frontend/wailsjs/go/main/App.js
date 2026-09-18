@@ -5,6 +5,11 @@ export function ApplySuggestedOZone() { return window['go']['main']['App']['Appl
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
+export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12) {
+  return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+}
+export function AddRoiStillTrainingSample(arg1, arg2) { return window['go']['main']['App']['AddRoiStillTrainingSample'](arg1, arg2); }
+export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
@@ -42,6 +47,7 @@ export function LabelScene(arg1, arg2) { return window['go']['main']['App']['Lab
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
+export function LoadFrameAt(arg1, arg2) { return window['go']['main']['App']['LoadFrameAt'](arg1, arg2); }
 export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFunscript'](arg1); }
 export function OpenLogFolder() { return window['go']['main']['App']['OpenLogFolder'](); }
 export function PickBenchmarkManifest() { return window['go']['main']['App']['PickBenchmarkManifest'](); }
@@ -72,6 +78,7 @@ export function StopTraining() { return window['go']['main']['App']['StopTrainin
 export function StopTrainingCycle() { return window['go']['main']['App']['StopTrainingCycle'](); }
 export function SubmitFeedback(arg1) { return window['go']['main']['App']['SubmitFeedback'](arg1); }
 export function SuggestBackend(arg1, arg2) { return window['go']['main']['App']['SuggestBackend'](arg1, arg2); }
+export function SuggestPipeline(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['SuggestPipeline'](arg1, arg2, arg3, arg4); }
 export function SuggestOZone() { return window['go']['main']['App']['SuggestOZone'](); }
 export function SuggestPolarity() { return window['go']['main']['App']['SuggestPolarity'](); }
 export function SuggestProfile(arg1) { return window['go']['main']['App']['SuggestProfile'](arg1); }

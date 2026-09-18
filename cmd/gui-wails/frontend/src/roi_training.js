@@ -1,5 +1,6 @@
 import {
-  PickVideoFile, LoadFirstFrame, BootstrapRoiTrainingSample, RunRoiModelTraining,
+  PickVideoFile, PickImageFile, LoadFirstFrame, LoadFrameAt,
+  BootstrapRoiTrainingSampleEx, AddRoiStillTrainingSample, RunRoiModelTraining,
   ListRoiTrainingSamples, DiscardRoiTrainingSample, GetRoiDatasetSummary,
   GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, ListRoiTrainingDevices,
 } from '../wailsjs/go/main/App';
@@ -7,65 +8,71 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
 
-// KI-Trainingssystem: sammelt Trainingsdaten für ein YOLO-Regionserkennungs-
-// modell direkt aus Videos, die durch die App laufen (statt nur über die
-// eigenständigen CLI-Skripte generator/bootstrap_yolo_dataset.py und
-// train_yolo_model.py) - siehe app_roi_training.go für den Vertrag.
-//
-// bootstrap_yolo_dataset.py ist explizit dokumentiert: der Detektor lernt,
-// die klassische Tracking-Box nachzuahmen, wird also nie zuverlässiger als
-// der Tracker, der die Trainingsdaten geliefert hat. Deshalb ist die
-// Kontrollansicht (Abschnitt 2) kein optionales Extra, sondern der Schritt,
-// der das eigentlich erst brauchbar macht: falsch getrackte Beispiele lassen
-// sich vor dem Training verwerfen, statt unkontrolliert einzufließen.
-//
-// Box-Korrektur von Hand (statt nur Verwerfen) ist bewusst nicht Teil dieser
-// ersten Version - Verwerfen deckt den wichtigsten Fall (Tracker hat
-// komplett danebengelegen) ab, ohne eine eigene Zeichen-UI für die
-// Kontrollansicht zu brauchen.
+const CLASS_PRESETS = [
+  'hand', 'mouth', 'brust', 'eichel', 'penis', 'tongue', 'toy', 'body', 'face', 'other',
+];
+const MARK_COLORS = [
+  { stroke: '#5fd0c8', fill: 'rgba(95,208,200,0.15)' },
+  { stroke: '#8b7cff', fill: 'rgba(139,124,255,0.18)' },
+  { stroke: '#f0a14a', fill: 'rgba(240,161,74,0.18)' },
+  { stroke: '#5ecf8a', fill: 'rgba(94,207,138,0.18)' },
+];
+
 export function initRoiTraining(root) {
   root.innerHTML = `
     <h2>KI-Trainingssystem</h2>
     <p class="hint">
-      Trainingsbeispiele aus Videos sammeln → falsch Getracktes aussortieren → lokal trainieren.
-      Das manuelle Markieren im Generator-Tab bleibt der zuverlässige Weg ohne eigenes Modell.
+      Markierungen auf Video oder Still-Bild → abtasten → kontrollieren → lokal trainieren.
+      Bis zu vier Klassen pro Bild. Sound wird neben dem Datensatz abgelegt.
     </p>
 
     <h3>1. Trainingsdaten sammeln</h3>
     <div class="row">
       <button id="rt-pick-video" type="button">Video wählen…</button>
-      <span class="path-label" id="rt-video-path">Kein Video gewählt</span>
+      <button id="rt-pick-image" type="button"
+        data-help="Einzelbild ohne Tracking — gut, um Klassen zu erklären; später auf Clips übertragen.">Bild wählen…</button>
+      <span class="path-label" id="rt-video-path">Keine Quelle gewählt</span>
+    </div>
+    <div class="row" style="align-items:center; margin:6px 0;">
+      <label style="width:auto;" data-help="Vorsprung bei schwarzem Intro — Frame zum Markieren wählen.">Zeit (s)</label>
+      <input type="number" id="rt-seek" value="0" min="0" step="0.5" style="width:5em;" />
+      <button id="rt-seek-btn" type="button" disabled>Frame laden</button>
+      <button id="rt-seek-plus" type="button" disabled title="+1 s">+1s</button>
+      <button id="rt-seek-plus5" type="button" disabled title="+5 s">+5s</button>
     </div>
     <div id="rt-canvas-wrap">
       <canvas id="rt-canvas"></canvas>
     </div>
-    <div class="row" style="align-items:center;">
-      <button id="rt-roi2-toggle" type="button"
-        data-help="Zweite Region (violett) für mehrklassige Beispiele, z.B. Eichel + Brustwarze. Auch per Shift+Ziehen.">2. Region</button>
-      <span class="hint" style="margin:0">Optional, zweite Klasse.</span>
+    <div class="row" style="align-items:center; flex-wrap:wrap;">
+      <button id="rt-mark-next" type="button"
+        data-help="Nächste Markierung starten (bis zu 4 Boxen im selben Bild).">+ Markierung</button>
+      <button id="rt-clear-marks" type="button">Alle löschen</button>
+      <span class="hint" style="margin:0">Aktiv: <span id="rt-active-mark">1</span>/4 — Shift+Ziehen = nächste Klasse</span>
     </div>
-    <div class="field-row"><label data-help="Klassenname für Region 1 im YOLO-Datensatz (z.B. brust).">Klasse (Region 1)</label>
-      <input type="text" id="rt-class1" list="rt-class-list" placeholder="z.B. brust" />
-    </div>
-    <div class="field-row"><label data-help="Klassenname für Region 2, nur wenn eine zweite Box markiert ist.">Klasse (Region 2)</label>
-      <input type="text" id="rt-class2" list="rt-class-list" placeholder="z.B. hand" disabled />
-    </div>
+    <div id="rt-mark-fields"></div>
     <datalist id="rt-class-list"></datalist>
-    <div class="path-label" id="rt-roi-label">Keine Region markiert</div>
-    <div class="path-label" id="rt-roi2-label">Keine 2. Region markiert</div>
-    <div class="row"><button id="rt-bootstrap" class="primary" disabled
-      data-help="Trackt die markierte(n) Region(en) durchs Video und hängt die Frames als YOLO-Beispiele an den Datensatz an.">Für Training verwenden</button></div>
+    <div id="rt-class-chips" class="rt-chips" aria-label="Bekannte Klassen"></div>
+    <div class="field-row"><label data-help="Jeden N-ten Frame als Beispiel schreiben. Kleiner = dichter, größer = weniger Redundanz.">Abtastung (jeder N-te Frame)</label>
+      <input type="number" id="rt-sample-every" value="12" min="1" max="120" style="width:5em;" />
+    </div>
+    <div class="checkbox-row"><input type="checkbox" id="rt-extract-audio" checked />
+      <label for="rt-extract-audio" style="width:auto"
+        data-help="Speichert die Tonspur als WAV unter audio/ im Datensatz — für späteres Lernen, was was ist.">Sound mit speichern</label></div>
+    <div class="row">
+      <button id="rt-bootstrap" class="primary" disabled
+        data-help="Video: trackt Markierungen und schreibt YOLO-Beispiele. Bild: speichert eine Still-Annotation.">Für Training verwenden</button>
+    </div>
     <div class="path-label" id="rt-bootstrap-status"></div>
     <pre id="rt-bootstrap-log" class="hint" style="max-height:120px; overflow:auto; white-space:pre-wrap; margin:0 0 10px;"></pre>
 
     <h3>2. Kontrollansicht</h3>
-    <div class="field-row"><label data-help="Ordner mit images/ und labels/ aus dem Bootstrap. Standard liegt unter den App-Einstellungen.">Datensatzordner</label>
+    <div class="field-row"><label data-help="Ordner mit images/ und labels/ aus dem Bootstrap.">Datensatzordner</label>
       <input type="text" id="rt-dataset-dir" style="flex:1" />
     </div>
     <div class="row" style="align-items:center;">
       <button id="rt-refresh-review" type="button">Aktualisieren</button>
       <label class="hint" style="margin:0"
-        data-help="Zeigt nur Beispiele des letzten Bootstrap-Laufs statt den ganzen Datensatz."><input type="checkbox" id="rt-only-new" checked /> nur zuletzt hinzugekommene</label>
+        data-help="Zeigt nur Beispiele des letzten Laufs."><input type="checkbox" id="rt-only-new" checked /> nur zuletzt hinzugekommene</label>
     </div>
     <div id="rt-review-grid" class="hint">Noch keine Beispiele geladen.</div>
 
@@ -74,11 +81,9 @@ export function initRoiTraining(root) {
     <div id="rt-summary" class="hint"></div>
 
     <h3>4. Modell trainieren</h3>
-    <p class="hint">Lokal auf dieser Maschine. Gerät: Auto wählt CUDA → MPS → DirectML → CPU.
-      Unter Windows ohne NVIDIA: DirectML (pip install torch-directml). Fertiges Modell landet
-      am KI-Modellpfad und ist danach unter „KI-Erkennung“ nutzbar.</p>
-    <div class="field-row"><label data-help="Anzahl Trainingsdurchläufe über den Datensatz. 50–100 ist für kleine Sets üblich.">Epochen</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
-    <div class="field-row"><label data-help="auto = bestes verfügbares Backend. CUDA = NVIDIA. DirectML = Windows AMD/Intel (torch-directml). MPS = Apple Silicon. CPU immer möglich, aber sehr langsam.">Gerät</label>
+    <p class="hint">Lokal. Gerät: Auto wählt CUDA → MPS → DirectML → CPU.</p>
+    <div class="field-row"><label data-help="Trainingsdurchläufe. 50–100 üblich für kleine Sets.">Epochen</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
+    <div class="field-row"><label data-help="auto = bestes Backend.">Gerät</label>
       <select id="rt-device">
         <option value="auto" selected>Automatisch</option>
         <option value="cuda">NVIDIA CUDA</option>
@@ -90,9 +95,7 @@ export function initRoiTraining(root) {
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Training starten</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
-      ultralytics ist nicht installiert (nur fürs Trainieren nötig, nicht fürs Sammeln von
-      Trainingsdaten oben) - im Terminal einmalig:
-      <code>pip install -r generator/requirements-ai-train.txt</code>
+      ultralytics fehlt — <code>pip install -r generator/requirements-ai-train.txt</code>
     </p>
     <div class="path-label" id="rt-train-status"></div>
     <pre id="rt-train-log" class="hint" style="max-height:240px; overflow:auto; white-space:pre-wrap;"></pre>
@@ -104,74 +107,93 @@ export function initRoiTraining(root) {
   const canvas = el('#rt-canvas');
   const ctx = canvas.getContext('2d');
 
-  let videoPath = null;
+  let sourcePath = null;
+  let sourceKind = null; // 'video' | 'image'
   let img = new Image();
   let nativeW = 0, nativeH = 0;
-  let roi = null;
-  let roi2 = null;
-  let roi2Mode = false;
-  let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
+  let marks = [null, null, null, null]; // up to 4
+  let activeMark = 0;
+  let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let lastPrefix = '';
   let datasetDir = '';
+  let seekSec = 0;
 
   const DISPLAY_W = 560;
-  const ROI1_STROKE = '#5fd0c8';
-  const ROI1_FILL = 'rgba(95,208,200,0.15)';
-  const ROI2_STROKE = '#8b7cff';
-  const ROI2_FILL = 'rgba(139,124,255,0.18)';
 
-  function setRoi2Mode(on) {
-    roi2Mode = !!on;
-    const btn = el('#rt-roi2-toggle');
-    btn.style.outline = roi2Mode ? '2px solid #8b7cff' : '';
-    btn.style.background = roi2Mode ? 'rgba(139,124,255,0.28)' : '';
-  }
-
-  function updateLabels() {
-    el('#rt-roi-label').textContent = roi
-      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`
-      : 'Keine Region markiert';
-    el('#rt-roi2-label').textContent = roi2
-      ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, violett)`
-      : 'Keine 2. Region markiert';
-    el('#rt-class2').disabled = !roi2;
+  function renderMarkFields() {
+    const prev = [];
+    for (let i = 0; i < 4; i++) {
+      prev[i] = el(`#rt-class${i + 1}`)?.value || '';
+    }
+    const wrap = el('#rt-mark-fields');
+    wrap.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const row = document.createElement('div');
+      row.className = 'field-row';
+      row.style.opacity = (i === 0 || marks[i] || i === activeMark) ? '1' : '0.55';
+      const lab = document.createElement('label');
+      lab.textContent = `Klasse ${i + 1}`;
+      lab.style.borderLeft = `3px solid ${MARK_COLORS[i].stroke}`;
+      lab.style.paddingLeft = '6px';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = `rt-class${i + 1}`;
+      input.setAttribute('list', 'rt-class-list');
+      input.placeholder = CLASS_PRESETS[i] || 'z.B. hand';
+      if (prev[i]) input.value = prev[i];
+      input.addEventListener('input', updateBootstrapEnabled);
+      const meta = document.createElement('span');
+      meta.className = 'hint';
+      meta.id = `rt-mark-label${i + 1}`;
+      meta.style.margin = '0 0 0 8px';
+      meta.textContent = marks[i]
+        ? `${marks[i].w}×${marks[i].h}`
+        : (i === activeMark ? 'ziehen…' : '—');
+      row.appendChild(lab);
+      row.appendChild(input);
+      row.appendChild(meta);
+      wrap.appendChild(row);
+    }
+    el('#rt-active-mark').textContent = String(activeMark + 1);
+    updateBootstrapEnabled();
   }
 
   function updateBootstrapEnabled() {
-    const class1 = el('#rt-class1').value.trim();
-    const class2 = el('#rt-class2').value.trim();
-    el('#rt-bootstrap').disabled = !(videoPath && roi && class1 && (!roi2 || class2));
+    const class1 = el('#rt-class1')?.value.trim();
+    let ok = !!(sourcePath && marks[0] && class1);
+    for (let i = 1; i < 4; i++) {
+      if (marks[i] && !(el(`#rt-class${i + 1}`)?.value.trim())) ok = false;
+    }
+    el('#rt-bootstrap').disabled = !ok;
   }
 
   function drawNativeRect(r, stroke, fill) {
     if (!r || !nativeW || !nativeH) return;
     const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
-    const dx0 = r.x * scaleX, dy0 = r.y * scaleY, dw = r.w * scaleX, dh = r.h * scaleY;
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 2;
-    ctx.strokeRect(dx0, dy0, dw, dh);
+    ctx.strokeRect(r.x * scaleX, r.y * scaleY, r.w * scaleX, r.h * scaleY);
     ctx.fillStyle = fill;
-    ctx.fillRect(dx0, dy0, dw, dh);
-  }
-
-  function drawDragRect(stroke, fill) {
-    const dx0 = Math.min(startX, curX), dy0 = Math.min(startY, curY);
-    const dw = Math.abs(curX - startX), dh = Math.abs(curY - startY);
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(dx0, dy0, dw, dh);
-    ctx.fillStyle = fill;
-    ctx.fillRect(dx0, dy0, dw, dh);
+    ctx.fillRect(r.x * scaleX, r.y * scaleY, r.w * scaleX, r.h * scaleY);
   }
 
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    if (roi && !(dragging && !draggingSecond)) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
-    if (roi2 && !(dragging && draggingSecond)) drawNativeRect(roi2, ROI2_STROKE, ROI2_FILL);
+    for (let i = 0; i < 4; i++) {
+      if (marks[i] && !(dragging && i === activeMark)) {
+        drawNativeRect(marks[i], MARK_COLORS[i].stroke, MARK_COLORS[i].fill);
+      }
+    }
     if (dragging) {
-      if (draggingSecond) drawDragRect(ROI2_STROKE, ROI2_FILL);
-      else drawDragRect(ROI1_STROKE, ROI1_FILL);
+      const c = MARK_COLORS[activeMark];
+      const dx0 = Math.min(startX, curX), dy0 = Math.min(startY, curY);
+      const dw = Math.abs(curX - startX), dh = Math.abs(curY - startY);
+      ctx.strokeStyle = c.stroke;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(dx0, dy0, dw, dh);
+      ctx.fillStyle = c.fill;
+      ctx.fillRect(dx0, dy0, dw, dh);
     }
   }
 
@@ -179,8 +201,13 @@ export function initRoiTraining(root) {
     const r = canvas.getBoundingClientRect();
     startX = curX = e.clientX - r.left;
     startY = curY = e.clientY - r.top;
+    if (e.shiftKey) {
+      for (let i = 0; i < 4; i++) {
+        if (!marks[i]) { activeMark = i; break; }
+      }
+    }
     dragging = true;
-    draggingSecond = roi2Mode || e.shiftKey;
+    renderMarkFields();
   });
   canvas.addEventListener('mousemove', e => {
     if (!dragging) return;
@@ -192,71 +219,167 @@ export function initRoiTraining(root) {
   window.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
-    const wasSecond = draggingSecond;
-    draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
     if (w < 4 || h < 4) { redraw(); return; }
     const scaleX = nativeW / canvas.width, scaleY = nativeH / canvas.height;
     const x0 = Math.min(startX, curX), y0 = Math.min(startY, curY);
-    const box = {
+    marks[activeMark] = {
       x: Math.round(x0 * scaleX), y: Math.round(y0 * scaleY),
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
-    if (wasSecond) {
-      roi2 = box;
-      setRoi2Mode(false);
-    } else {
-      roi = box;
-    }
-    updateLabels();
+    if (activeMark < 3) activeMark += 1;
+    renderMarkFields();
     updateBootstrapEnabled();
     redraw();
   });
 
-  el('#rt-roi2-toggle').addEventListener('click', () => setRoi2Mode(!roi2Mode));
+  el('#rt-mark-next').addEventListener('click', () => {
+    for (let i = 0; i < 4; i++) {
+      if (!marks[i]) { activeMark = i; break; }
+    }
+    renderMarkFields();
+  });
+  el('#rt-clear-marks').addEventListener('click', () => {
+    marks = [null, null, null, null];
+    activeMark = 0;
+    renderMarkFields();
+    updateBootstrapEnabled();
+    redraw();
+  });
+
+  async function showPreview(path, sec) {
+    const preview = sec > 0 ? await LoadFrameAt(path, sec) : await LoadFirstFrame(path);
+    nativeW = preview.width; nativeH = preview.height;
+    const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
+    canvas.width = DISPLAY_W; canvas.height = displayH;
+    img.onload = redraw;
+    img.src = 'data:image/png;base64,' + preview.pngBase64;
+  }
 
   async function chooseVideo() {
     const path = await PickVideoFile();
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (document.activeElement?.blur) document.activeElement.blur();
     window.focus();
     if (!path) return;
-    videoPath = path;
+    sourcePath = path;
+    sourceKind = 'video';
+    seekSec = 0;
+    el('#rt-seek').value = '0';
     el('#rt-video-path').textContent = path.split(/[\\/]/).pop();
-    roi = null; roi2 = null;
-    setRoi2Mode(false);
-    updateLabels();
+    marks = [null, null, null, null];
+    activeMark = 0;
+    renderMarkFields();
     updateBootstrapEnabled();
-    el('#rt-bootstrap-status').textContent = 'Lade Vorschau-Frame...';
+    el('#rt-seek-btn').disabled = false;
+    el('#rt-seek-plus').disabled = false;
+    el('#rt-seek-plus5').disabled = false;
+    el('#rt-bootstrap-status').textContent = 'Lade Frame…';
     try {
-      const preview = await LoadFirstFrame(path);
-      nativeW = preview.width; nativeH = preview.height;
-      const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
-      canvas.width = DISPLAY_W; canvas.height = displayH;
-      img.onload = redraw;
-      img.src = 'data:image/png;base64,' + preview.pngBase64;
-      el('#rt-bootstrap-status').textContent = 'Region markieren (Maus ziehen), optional 2. Region (Shift+Ziehen oder Knopf).';
+      await showPreview(path, 0);
+      el('#rt-bootstrap-status').textContent = 'Region(en) markieren. Bei schwarzem Anfang Zeit vorstellen.';
     } catch (err) {
       el('#rt-bootstrap-status').textContent = '';
       alert('Fehler: ' + err);
     }
   }
+
+  async function chooseImage() {
+    const path = await PickImageFile();
+    if (document.activeElement?.blur) document.activeElement.blur();
+    window.focus();
+    if (!path) return;
+    sourcePath = path;
+    sourceKind = 'image';
+    el('#rt-video-path').textContent = path.split(/[\\/]/).pop() + ' (Bild)';
+    marks = [null, null, null, null];
+    activeMark = 0;
+    renderMarkFields();
+    updateBootstrapEnabled();
+    el('#rt-seek-btn').disabled = true;
+    el('#rt-seek-plus').disabled = true;
+    el('#rt-seek-plus5').disabled = true;
+    el('#rt-bootstrap-status').textContent = 'Lade Bild…';
+    try {
+      // Still: LoadFrameAt won't work; read via temporary — use same PNG path through a tiny hack:
+      // Go AddStill uses DecodeConfig; for preview we open as data URL via fetch isn't available.
+      // Use LoadFirstFrame on non-video fails — instead draw from filesystem via a Go helper.
+      // Fallback: ask user to mark after we get dimensions from a video-less path.
+      // We reuse LoadFrameAt only for video; for images, create an Image from file:// is blocked.
+      // So call a zero-second dump only works for video. For images, use img from path via Go:
+      const preview = await GetRoiTrainingSampleImage(path);
+      img.onload = () => {
+        nativeW = img.naturalWidth || img.width;
+        nativeH = img.naturalHeight || img.height;
+        const displayH = Math.round(DISPLAY_W * nativeH / Math.max(nativeW, 1));
+        canvas.width = DISPLAY_W; canvas.height = displayH;
+        redraw();
+      };
+      const ext = path.toLowerCase();
+      const mime = ext.endsWith('.png') ? 'image/png'
+        : ext.endsWith('.webp') ? 'image/webp'
+        : ext.endsWith('.gif') ? 'image/gif'
+        : 'image/jpeg';
+      img.src = `data:${mime};base64,` + preview;
+      el('#rt-bootstrap-status').textContent = 'Still-Bild: Regionen markieren, dann speichern.';
+    } catch (err) {
+      el('#rt-bootstrap-status').textContent = '';
+      alert('Fehler: ' + err);
+    }
+  }
+
+  async function seekTo(sec) {
+    if (!sourcePath || sourceKind !== 'video') return;
+    seekSec = Math.max(0, sec);
+    el('#rt-seek').value = String(seekSec);
+    el('#rt-bootstrap-status').textContent = `Lade Frame bei ${seekSec}s…`;
+    try {
+      await showPreview(sourcePath, seekSec);
+      el('#rt-bootstrap-status').textContent = `Frame bei ${seekSec}s — markieren.`;
+    } catch (err) {
+      alert('Seek fehlgeschlagen: ' + err);
+    }
+  }
+
   el('#rt-pick-video').addEventListener('click', chooseVideo);
-  el('#rt-class1').addEventListener('input', updateBootstrapEnabled);
-  el('#rt-class2').addEventListener('input', updateBootstrapEnabled);
+  el('#rt-pick-image').addEventListener('click', chooseImage);
+  el('#rt-seek-btn').addEventListener('click', () => seekTo(parseFloat(el('#rt-seek').value) || 0));
+  el('#rt-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
+  el('#rt-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
+
+  function roiArg(m) {
+    return m ? { X: m.x, Y: m.y, W: m.w, H: m.h } : null;
+  }
 
   el('#rt-bootstrap').addEventListener('click', async () => {
-    if (!videoPath || !roi) return;
-    const class1 = el('#rt-class1').value.trim();
-    const class2 = el('#rt-class2').value.trim();
+    if (!sourcePath || !marks[0]) return;
+    const classes = [1, 2, 3, 4].map(i => el(`#rt-class${i}`)?.value.trim() || '');
+    if (!classes[0]) return;
     el('#rt-bootstrap').disabled = true;
-    el('#rt-bootstrap-status').textContent = 'Läuft… (kann bei langen Videos Minuten dauern)';
+    el('#rt-bootstrap-status').textContent = 'Läuft…';
     el('#rt-bootstrap-log').textContent = '';
     try {
-      const roiArg = { X: roi.x, Y: roi.y, W: roi.w, H: roi.h };
-      const roi2Arg = roi2 ? { X: roi2.x, Y: roi2.y, W: roi2.w, H: roi2.h } : null;
-      lastPrefix = await BootstrapRoiTrainingSample(videoPath, roiArg, roi2Arg, class1, class2);
-      // Knopf bleibt gesperrt, bis roitraining:bootstrap:done ankommt -
-      // Go lässt ohnehin nur einen Bootstrap-/Trainingslauf gleichzeitig zu.
+      if (sourceKind === 'image') {
+        const regions = [];
+        for (let i = 0; i < 4; i++) {
+          if (marks[i] && classes[i]) {
+            regions.push({ ROI: roiArg(marks[i]), ClassName: classes[i] });
+          }
+        }
+        lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
+        el('#rt-bootstrap-status').textContent = 'Still-Beispiel gespeichert.';
+        updateBootstrapEnabled();
+        refreshReview();
+        refreshClassList();
+      } else {
+        const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
+        const extractAudio = el('#rt-extract-audio').checked;
+        lastPrefix = await BootstrapRoiTrainingSampleEx(
+          sourcePath,
+          roiArg(marks[0]), roiArg(marks[1]), roiArg(marks[2]), roiArg(marks[3]),
+          classes[0], classes[1], classes[2], classes[3],
+          sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0,
+        );
+      }
     } catch (err) {
       el('#rt-bootstrap-status').textContent = 'Fehlgeschlagen.';
       alert('Fehler: ' + err);
@@ -277,12 +400,11 @@ export function initRoiTraining(root) {
       return;
     }
     lastPrefix = payload.prefix || lastPrefix;
-    el('#rt-bootstrap-status').textContent = 'Fertig - Beispiele zur Kontrollansicht hinzugefügt.';
+    el('#rt-bootstrap-status').textContent = 'Fertig — Beispiele in der Kontrollansicht.';
     refreshReview();
     refreshClassList();
   });
 
-  // --- Kontrollansicht -----------------------------------------------
   function boxOverlay(box) {
     const wrap = document.createElement('div');
     wrap.className = 'rt-box';
@@ -307,7 +429,7 @@ export function initRoiTraining(root) {
       const samples = await ListRoiTrainingSamples(datasetDir, prefix);
       if (!samples || samples.length === 0) {
         grid.textContent = onlyNew && lastPrefix
-          ? 'Keine neuen Beispiele gefunden - Häkchen "nur zuletzt hinzugekommene" abwählen, um den ganzen Datensatz zu sehen.'
+          ? 'Keine neuen Beispiele — Häkchen abwählen für den ganzen Datensatz.'
           : 'Keine Beispiele gefunden.';
         return;
       }
@@ -337,7 +459,12 @@ export function initRoiTraining(root) {
         gridEl.appendChild(card);
 
         GetRoiTrainingSampleImage(s.imagePath).then(b64 => {
-          imgEl.src = 'data:image/jpeg;base64,' + b64;
+          const p = String(s.imagePath || '').toLowerCase();
+          const mime = p.endsWith('.png') ? 'image/png'
+            : p.endsWith('.webp') ? 'image/webp'
+            : p.endsWith('.gif') ? 'image/gif'
+            : 'image/jpeg';
+          imgEl.src = `data:${mime};base64,` + b64;
           (s.boxes || []).forEach(box => thumbWrap.appendChild(boxOverlay(box)));
         }).catch(() => { caption.textContent += ' (Bild konnte nicht geladen werden)'; });
 
@@ -361,17 +488,52 @@ export function initRoiTraining(root) {
     saveSetting('generator.roiTrainingDatasetDir', e.target.value.trim());
   });
 
-  // --- Datensatz-Übersicht + Klassen-Autocomplete ---------------------
   async function refreshClassList() {
+    let fromData = [];
     try {
       const summary = await GetRoiDatasetSummary(datasetDir || el('#rt-dataset-dir').value.trim());
+      fromData = (summary.classes || []).map(c => c.className);
       const list = el('#rt-class-list');
-      list.innerHTML = (summary.classes || [])
-        .map(c => `<option value="${c.className}"></option>`).join('');
+      const names = [...new Set([...fromData, ...CLASS_PRESETS])];
+      list.innerHTML = names.map(n => `<option value="${n}"></option>`).join('');
+      renderClassChips(fromData, names);
       return summary;
     } catch {
+      el('#rt-class-list').innerHTML = CLASS_PRESETS.map(n => `<option value="${n}"></option>`).join('');
+      renderClassChips([], CLASS_PRESETS);
       return null;
     }
+  }
+
+  function renderClassChips(fromData, allNames) {
+    const wrap = el('#rt-class-chips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const known = fromData.length ? fromData : allNames.slice(0, 8);
+    if (!known.length) {
+      wrap.innerHTML = '<span class="hint">Noch keine Klassen — Presets unten tippen oder markieren.</span>';
+      return;
+    }
+    const label = document.createElement('span');
+    label.className = 'hint';
+    label.style.marginRight = '6px';
+    label.textContent = fromData.length ? 'Aus Datensatz:' : 'Vorschläge:';
+    wrap.appendChild(label);
+    known.forEach(name => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rt-chip';
+      btn.textContent = name;
+      btn.title = 'In aktive Klasse einsetzen';
+      btn.addEventListener('click', () => {
+        const input = el(`#rt-class${activeMark + 1}`);
+        if (input) {
+          input.value = name;
+          updateBootstrapEnabled();
+        }
+      });
+      wrap.appendChild(btn);
+    });
   }
 
   el('#rt-summary-refresh').addEventListener('click', async () => {
@@ -381,7 +543,7 @@ export function initRoiTraining(root) {
     try {
       const summary = await GetRoiDatasetSummary(datasetDir);
       if (!summary.classes || summary.classes.length === 0) {
-        box.textContent = 'Noch keine Klassen im Datensatz - erst Trainingsdaten sammeln.';
+        box.textContent = 'Noch keine Klassen — erst Daten sammeln.';
         return;
       }
       box.innerHTML = '<table style="border-collapse:collapse; width:100%;">'
@@ -392,19 +554,17 @@ export function initRoiTraining(root) {
           + `<td style="text-align:right; padding:4px 8px;">${c.trainCount}</td>`
           + `<td style="text-align:right; padding:4px 8px;">${c.valCount}</td></tr>`).join('')
         + '</tbody></table>';
-      const list = el('#rt-class-list');
-      list.innerHTML = summary.classes.map(c => `<option value="${c.className}"></option>`).join('');
+      refreshClassList();
     } catch (err) {
       box.textContent = 'Fehler: ' + err;
     }
   });
 
-  // --- Training ---------------------------------------------------------
   el('#rt-train').addEventListener('click', async () => {
     const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
-    el('#rt-train-status').textContent = 'Läuft… (kann je nach Datensatzgröße und Gerät lange dauern)';
+    el('#rt-train-status').textContent = 'Läuft…';
     el('#rt-train-log').textContent = '';
     try {
       await RunRoiModelTraining(epochs, device);
@@ -435,11 +595,6 @@ export function initRoiTraining(root) {
     refreshClassList();
   });
 
-  // ultralytics ist eine schwere, separate Installation (zieht u.a. PyTorch
-  // nach sich, siehe requirements-ai-train.txt) - den Knopf anzubieten und
-  // dann mit einem rohen ModuleNotFoundError-Traceback scheitern zu lassen
-  // wäre schlechter als ihn vorher zu sperren (gleiches Muster wie
-  // CheckAIRoiAvailable im Generator-Tab).
   CheckRoiTrainingAvailable().then(available => {
     el('#rt-train').disabled = !available;
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
@@ -447,9 +602,6 @@ export function initRoiTraining(root) {
     el('#rt-train-unavailable').style.display = 'block';
   });
 
-  // Geräteauswahl aus train_yolo_model --list-devices (CUDA/DirectML/MPS/CPU).
-  // Nicht verfügbare Einträge bleiben wählbar (klare Fehlermeldung beim Start),
-  // werden aber im Label markiert — Auto bleibt Standard.
   ListRoiTrainingDevices().then(devices => {
     if (!Array.isArray(devices) || !devices.length) return;
     const sel = el('#rt-device');
@@ -467,4 +619,7 @@ export function initRoiTraining(root) {
   }).catch(() => {
     el('#rt-device-status').textContent = '';
   });
+
+  renderMarkFields();
+  el('#rt-class-list').innerHTML = CLASS_PRESETS.map(n => `<option value="${n}"></option>`).join('');
 }

@@ -28,6 +28,7 @@ import (
 // Options steuert TrackROI - entspricht track_roi()'s Parametern.
 type Options struct {
 	MaxFrames          int // 0 = unbegrenzt
+	StartTimeSec       float64
 	CameraCompensation bool
 	SceneCutDetection  bool
 	AppearanceMemory   bool
@@ -62,6 +63,8 @@ type Result struct {
 	SceneCuts    []int
 	Stats        Stats
 	Canceled     bool // true if Options.Cancel aborted the loop
+	// LostFlags is set by TrackTwoPoints (per-frame: either tracker lost).
+	LostFlags []bool
 }
 
 // ErrCanceled is returned when Options.Cancel aborts the tracking loop.
@@ -89,6 +92,14 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	}
 	width := int(cap.Get(CapPropFrameWidth))
 	height := int(cap.Get(CapPropFrameHeight))
+
+	startFrame := 0
+	if opts.StartTimeSec > 0 {
+		startFrame = int(opts.StartTimeSec*fps + 0.5)
+		if startFrame > 0 {
+			cap.Seek(startFrame)
+		}
+	}
 
 	if !cap.Read() {
 		return Result{}, &trackError{"Erster Frame konnte nicht gelesen werden"}
@@ -216,6 +227,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 
 	if opts.CameraCompensation {
 		applyCameraCompensation(yPositions, cameraDyCumulative, sceneCuts)
+	}
+
+	if opts.StartTimeSec > 0 {
+		off := int(opts.StartTimeSec*1000 + 0.5)
+		for i := range timestampsMs {
+			timestampsMs[i] += off
+		}
 	}
 
 	verticalRange := ptp(yPositions)

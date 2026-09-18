@@ -42,6 +42,9 @@ def main():
         "PickVideoFile": "async () => '/tmp/video.mp4'",
         "LoadFirstFrame": f"async () => ({{ width: 640, height: 360, "
                           f"pngBase64: '{TINY_PNG_B64}' }})",
+        "LoadFrameAt": f"async () => ({{ width: 640, height: 360, "
+                       f"pngBase64: '{TINY_PNG_B64}' }})",
+        "SuggestPipeline": "async () => ({ Backend: 'csrt', Profile: 'standard', Reason: 'test', GoPath: true })",
         "CheckAIRoiAvailable": "async () => false",
         "CheckAudioCheckAvailable": "async () => false",
     }))

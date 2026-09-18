@@ -20,6 +20,7 @@ type Rect struct{ X, Y, W, H int }
 // Options controls TrackROI.
 type Options struct {
 	MaxFrames    int // 0 = unlimited
+	StartTimeSec float64
 	Axis         string
 	Cancel       func() bool
 	SearchMargin int // pixels around last box; 0 → 32
@@ -45,6 +46,9 @@ type Result struct {
 	Height       int
 	Stats        Stats
 	Canceled     bool
+	// LostFlags is set by TrackTwoPoints: true when at least one of the two
+	// trackers failed that frame (for tracking_gaps / contact mute).
+	LostFlags []bool
 }
 
 // ErrCanceled is returned when Options.Cancel aborts.
@@ -83,6 +87,7 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 		FPS:        fps,
 		MaxWidth:   640,
 		AutoRotate: true,
+		StartSec:   opts.StartTimeSec,
 	})
 	if err != nil {
 		return Result{}, fmt.Errorf("simpletrack: open: %w", err)
@@ -152,6 +157,13 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 		frameIdx++
 		if opts.MaxFrames > 0 && frameIdx >= opts.MaxFrames {
 			break
+		}
+	}
+
+	if opts.StartTimeSec > 0 {
+		off := int(opts.StartTimeSec*1000 + 0.5)
+		for i := range timestamps {
+			timestamps[i] += off
 		}
 	}
 

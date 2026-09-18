@@ -68,7 +68,8 @@ import generate_funscript as g
 
 
 def track_center_path(video_path, roi, max_frames=None, cache_dir=None,
-                       camera_compensation=True, scene_cut_detection=True):
+                       camera_compensation=True, scene_cut_detection=True,
+                       start_frame=0):
     """Liefert (timestamps_ms, x_centers, y_centers, frame_size) - track_roi
     gibt öffentlich nur EINE Achse zurück (je nach axis-Parameter), für eine
     Bounding-Box braucht es beide. Trackt darum zweimal (x, y) statt
@@ -79,11 +80,13 @@ def track_center_path(video_path, roi, max_frames=None, cache_dir=None,
     ts, y_centers, frame_size, _cuts, _stats = g.track_roi_cached(
         video_path, roi, max_frames=max_frames, cache_dir=cache_dir,
         camera_compensation=camera_compensation,
-        scene_cut_detection=scene_cut_detection, axis="y")
+        scene_cut_detection=scene_cut_detection, axis="y",
+        start_frame=start_frame)
     _ts2, x_centers, _fs2, _cuts2, _stats2 = g.track_roi_cached(
         video_path, roi, max_frames=max_frames, cache_dir=cache_dir,
         camera_compensation=camera_compensation,
-        scene_cut_detection=scene_cut_detection, axis="x")
+        scene_cut_detection=scene_cut_detection, axis="x",
+        start_frame=start_frame)
     return ts, x_centers, y_centers, frame_size
 
 
@@ -141,7 +144,7 @@ def _frame_label_lines(regions_at_frame, width, height):
 
 def build_dataset(video_path, regions, output_dir, sample_every=12,
                    max_frames=None, cache_dir=None, val_fraction=0.15, seed=0,
-                   sample_prefix=None):
+                   sample_prefix=None, start_frame=0):
     """Trackt eine oder mehrere Regionen durchs Video, schreibt jeden
     sample_every-ten Frame plus ein YOLO-Label JE Region (feste Boxgröße,
     Mittelpunkt = getrackte Position) in output_dir.
@@ -155,14 +158,18 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
     sample_every=12 ist ein Kompromiss: bei 25fps etwa alle 0.5s ein Bild -
     benachbarte Videoframes sind sich fast identisch, zu dichte Abtastung
     bläht den Datensatz nur mit redundanten, stark korrelierten Beispielen
-    auf, ohne das Modell robuster zu machen."""
+    auf, ohne das Modell robuster zu machen.
+
+    start_frame überspringt den Intro-Abschnitt (GUI-Seek), Tracking und
+    Frame-Dump starten gemeinsam dort."""
     regions = [(tuple(int(v) for v in roi), class_id) for roi, class_id in regions]
     print(f"Tracke {video_path} ({len(regions)} Region(en))...", file=sys.stderr)
     tracks = []
     width = height = None
     for roi, class_id in regions:
         _ts, x_centers, y_centers, (width, height) = track_center_path(
-            video_path, roi, max_frames=max_frames, cache_dir=cache_dir)
+            video_path, roi, max_frames=max_frames, cache_dir=cache_dir,
+            start_frame=start_frame)
         tracks.append((roi, class_id, x_centers, y_centers))
     n = min(len(xc) for (_roi, _cid, xc, _yc) in tracks)
     print(f"{n} Frames getrackt, Videogröße {width}x{height}", file=sys.stderr)
@@ -180,6 +187,9 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+    if start_frame > 0:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+        print(f"Start bei Frame {start_frame}", file=sys.stderr)
 
     written = 0
     frame_idx = 0
@@ -413,11 +423,21 @@ def main():
                           "als zwei Klassen im selben Bild statt zwei getrennten Datensätzen")
     ap.add_argument("--class-name2", default=None,
                      help="Klasse der zweiten Region (--roi2) - erforderlich, wenn --roi2 gesetzt ist")
+    ap.add_argument("--roi3", default=None, metavar="x,y,w,h",
+                     help="Dritte Region im selben Frame (optional)")
+    ap.add_argument("--class-name3", default=None,
+                     help="Klasse der dritten Region (--roi3)")
+    ap.add_argument("--roi4", default=None, metavar="x,y,w,h",
+                     help="Vierte Region im selben Frame (optional)")
+    ap.add_argument("--class-name4", default=None,
+                     help="Klasse der vierten Region (--roi4)")
     ap.add_argument("--sample-prefix", default=None,
                      help="Fester Dateinamenspräfix statt des automatischen Video-Hash-Präfix - "
                           "so kann ein Aufrufer (z.B. die GUI) den Präfix vorher selbst bestimmen "
                           "und später list_samples()/Kontrollansicht ohne erneute Hash-Berechnung "
                           "genau auf diesen Lauf eingrenzen")
+    ap.add_argument("--start-seconds", type=float, default=0.0,
+                     help="Überspringt die ersten N Sekunden (GUI-Seek am schwarzen Intro)")
     args = ap.parse_args()
 
     try:
@@ -429,21 +449,36 @@ def main():
 
     regions = [(roi, register_class(args.output_dir, args.class_name, class_id=args.class_id))]
 
-    if args.roi2:
-        if not args.class_name2:
-            ap.error("--roi2 braucht --class-name2")
+    def _add_roi(flag, roi_s, class_s):
+        if not roi_s:
+            return
+        if not class_s:
+            ap.error(f"{flag} braucht einen Klassennamen")
         try:
-            roi2 = tuple(int(v) for v in args.roi2.split(","))
-            if len(roi2) != 4:
+            box = tuple(int(v) for v in roi_s.split(","))
+            if len(box) != 4:
                 raise ValueError
         except ValueError:
-            ap.error('--roi2 muss "x,y,w,h" sein')
-        regions.append((roi2, register_class(args.output_dir, args.class_name2)))
+            ap.error(f'{flag} muss "x,y,w,h" sein')
+        regions.append((box, register_class(args.output_dir, class_s)))
+
+    _add_roi("--roi2", args.roi2, args.class_name2)
+    _add_roi("--roi3", args.roi3, args.class_name3)
+    _add_roi("--roi4", args.roi4, args.class_name4)
+
+    start_frame = 0
+    if getattr(args, "start_seconds", 0) and args.start_seconds > 0:
+        _cap = cv2.VideoCapture(args.video)
+        _fps = _cap.get(cv2.CAP_PROP_FPS) or 25.0
+        _cap.release()
+        start_frame = max(0, int(round(args.start_seconds * _fps)))
+        if start_frame:
+            print(f"Start bei {args.start_seconds:.2f}s (Frame {start_frame})", file=sys.stderr)
 
     build_dataset(args.video, regions, args.output_dir,
                   sample_every=args.sample_every, max_frames=args.max_frames,
                   cache_dir=args.cache_dir, val_fraction=args.val_fraction,
-                  sample_prefix=args.sample_prefix)
+                  sample_prefix=args.sample_prefix, start_frame=start_frame)
     write_data_yaml(args.output_dir)
 
 

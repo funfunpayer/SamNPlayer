@@ -17,7 +17,8 @@ var errNativeCanceled = errors.New("generator/native: tracking canceled")
 
 // NativePipelineEligible reports whether opts+roi can run on a Python-free
 // path (CSRT via trackcv when OpenCV is linked, otherwise simpletrack/NCC
-// via videox). Anything outside this set still needs Python.
+// via videox). Covers single-ROI and Tf/Tj two-point (ROI2). Other backends
+// / per-scene / AI / audio still need Python.
 func NativePipelineEligible(opts Options, roi ROI) bool {
 	return nativeOptionsEligible(opts, roi)
 }
@@ -26,15 +27,13 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if roi.W <= 0 || roi.H <= 0 {
 		return false
 	}
-	if opts.ROI2.W > 0 && opts.ROI2.H > 0 {
-		return false
-	}
 	backend := opts.Backend
 	if backend == "" {
 		backend = "csrt"
 	}
 	// "csrt" and empty mean "native Go pipeline preferred"; simpletrack
-	// covers the same single-ROI case when OpenCV is missing.
+	// covers the same cases when OpenCV is missing. Two-point Tf/Tj uses
+	// the same CSRT/NCC trackers on both ROIs.
 	if backend != "csrt" {
 		return false
 	}
@@ -49,9 +48,10 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	return true
 }
 
-// GenerateNativeCSRT runs trackcv.TrackROI + posttrack.PositionsToActions and
-// writes a .funscript. No Python subprocess. Dense Quality Doctor runs in Go
-// when dense curve + tracker stats are available; AI/audio stay Python-only.
+// GenerateNativeCSRT runs trackcv.TrackROI (or TrackTwoPoints when ROI2 is
+// set) + posttrack.PositionsToActions and writes a .funscript. No Python
+// subprocess. Dense Quality Doctor runs in Go when dense curve + tracker
+// stats are available; AI/audio stay Python-only.
 // Cancel ctx to abort CSRT mid-loop (same Abort path as Python CommandContext).
 // Returns errNativeUnavailable when OpenCV/cgo is not linked; context.Canceled
 // when aborted.
@@ -63,7 +63,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		return errNativeUnavailable
 	}
 	if !nativeOptionsEligible(opts, roi) {
-		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT + single ROI only; no Tf/Tj, per-scene, AI, audio, OpenCL)")
+		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2; no per-scene, AI, audio, OpenCL)")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -75,11 +75,17 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 			onProgress(line)
 		}
 	}
-	progress("Go-native CSRT-Pipeline (trackcv + posttrack), ohne Python")
+	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
+	if twoPoint {
+		progress("Go-native Zwei-Punkt-Pipeline (trackcv TrackTwoPoints + posttrack), ohne Python")
+	} else {
+		progress("Go-native CSRT-Pipeline (trackcv + posttrack), ohne Python")
+	}
 
 	start := time.Now()
 	trackOpts := nativeTrackOptions{
 		MaxFrames:          opts.MaxFrames,
+		StartTimeSec:       opts.StartTimeSec,
 		CameraCompensation: !opts.DisableCameraCompensation,
 		SceneCutDetection:  !opts.DisableSceneCutDetection,
 		AppearanceMemory:   true,
@@ -90,7 +96,13 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		trackOpts.Axis = "auto"
 	}
 
-	tr, err := nativeTrackROI(videoPath, roi, trackOpts, onPercent)
+	var tr nativeTrackResult
+	var err error
+	if twoPoint {
+		tr, err = nativeTrackTwoPoints(videoPath, roi, opts.ROI2, trackOpts, onPercent)
+	} else {
+		tr, err = nativeTrackROI(videoPath, roi, trackOpts, onPercent)
+	}
 	if err != nil {
 		if errors.Is(err, errNativeCanceled) || errors.Is(ctx.Err(), context.Canceled) {
 			return context.Canceled
@@ -102,7 +114,11 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	progress(fmt.Sprintf("%d Frames getrackt (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
-	return finishNativeGenerate(ctx, outputPath, opts, tr, "trackcv", "csrt", progress, onPercent, start)
+	backend := "csrt"
+	if twoPoint {
+		backend = "two_point"
+	}
+	return finishNativeGenerate(ctx, outputPath, opts, tr, "trackcv", backend, progress, onPercent, start)
 }
 
 type nativeTrackResult struct {
@@ -117,10 +133,12 @@ type nativeTrackResult struct {
 	ValidFrames  int
 	Confidence   float64
 	Reason       string
+	LostFlags    []bool // two-point: per-frame tracker loss
 }
 
 type nativeTrackOptions struct {
 	MaxFrames          int
+	StartTimeSec       float64
 	CameraCompensation bool
 	SceneCutDetection  bool
 	AppearanceMemory   bool
@@ -165,6 +183,9 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 		"quality_warnings":           quality.Warnings,
 		"quality_kind":               quality.Kind,
 		"estimated_from_script_only": quality.EstimatedFromScriptOnly,
+	}
+	if gaps := trackingGapsFromFlags(tr.TimestampsMs, tr.LostFlags, 100); len(gaps) > 0 {
+		meta["tracking_gaps"] = gaps
 	}
 	if opts.Profile != "" && opts.Profile != "standard" {
 		recipe := funscript.RecipeMeta(opts.Profile)

@@ -27,14 +27,26 @@ type FramePreview struct {
 }
 
 func (a *App) LoadFirstFrame(videoPath string) (FramePreview, error) {
+	return a.LoadFrameAt(videoPath, 0)
+}
+
+// LoadFrameAt extracts a preview PNG at timeSec (seconds). Uses ffmpeg so
+// seeking past a black intro does not need Python.
+func (a *App) LoadFrameAt(videoPath string, timeSec float64) (FramePreview, error) {
 	tmpPNG, err := tempFile("frame-preview-*.png")
 	if err != nil {
 		return FramePreview{}, err
 	}
 	defer removeFile(tmpPNG)
-	w, h, err := generator.DumpFirstFrame(videoPath, tmpPNG)
+	w, h, err := generator.DumpFrameAt(videoPath, tmpPNG, timeSec)
 	if err != nil {
-		return FramePreview{}, err
+		// Fall back to Python dump for time 0 if ffmpeg path fails.
+		if timeSec <= 0 {
+			w, h, err = generator.DumpFirstFrame(videoPath, tmpPNG)
+		}
+		if err != nil {
+			return FramePreview{}, err
+		}
 	}
 	b64, err := fileToBase64(tmpPNG)
 	if err != nil {
@@ -76,6 +88,8 @@ type GenerateOptions struct {
 	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
 	AudioCheck                bool    `json:"audioCheck"`
 	NativePipeline            bool    `json:"nativePipeline"`
+	// StartTimeSec skips the first N seconds (GUI seek past black intro).
+	StartTimeSec float64 `json:"startTimeSec"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -216,6 +230,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			ContactVibrationCurve:     opts.ContactVibrationCurve,
 			AudioCheck:                opts.AudioCheck,
 			NativePipeline:            opts.NativePipeline,
+			StartTimeSec:              opts.StartTimeSec,
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}

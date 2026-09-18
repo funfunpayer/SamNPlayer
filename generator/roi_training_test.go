@@ -21,17 +21,16 @@ func TestBuildBootstrapArgsSingleRegion(t *testing.T) {
 	}
 }
 
-func TestBuildBootstrapArgsTwoRegionsAndPrefix(t *testing.T) {
-	regions := []RoiTrainingRegion{
-		{ROI: ROI{X: 1, Y: 2, W: 3, H: 4}, ClassName: "brust"},
-		{ROI: ROI{X: 5, Y: 6, W: 7, H: 8}, ClassName: "hand"},
-	}
-	args := buildBootstrapArgs("script.py", "v.mp4", regions, "/data", "clipA_abc12")
+func TestBuildBootstrapArgsStartSeconds(t *testing.T) {
+	regions := []RoiTrainingRegion{{ROI: ROI{X: 1, Y: 2, W: 3, H: 4}, ClassName: "brust"}}
+	args := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 4.5)
 	joined := strings.Join(args, " ")
-	for _, want := range []string{"--roi2 5,6,7,8", "--class-name2 hand", "--sample-prefix clipA_abc12"} {
-		if !strings.Contains(joined, want) {
-			t.Errorf("Argument %q fehlt in: %s", want, joined)
-		}
+	if !strings.Contains(joined, "--start-seconds 4.500") {
+		t.Errorf("start-seconds fehlt in: %s", joined)
+	}
+	args0 := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 0)
+	if strings.Contains(strings.Join(args0, " "), "--start-seconds") {
+		t.Errorf("start-seconds bei 0 unerwartet: %v", args0)
 	}
 }
 

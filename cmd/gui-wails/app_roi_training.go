@@ -82,15 +82,23 @@ func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
 	return generator.ListRoiTrainingDevices()
 }
 
-// BootstrapRoiTrainingSample trackt roi (und optional roi2) durchs Video und
-// hängt die Ergebnisse an den Datensatz an - siehe
-// generator.BootstrapRoiTrainingSample/bootstrap_yolo_dataset.py. Läuft
-// asynchron (echtes Tracking, kann bei --backend csrt auf einem langen
-// Video Minuten dauern), Events "roitraining:bootstrap:progress"/"...:done".
-// Liefert den Sample-Präfix sofort zurück (schon vor Abschluss bekannt,
-// siehe roiTrainingSamplePrefix), damit die GUI ihn für die anschließende
-// Kontrollansicht bereithält, ohne auf das Event warten zu müssen.
+// BootstrapRoiTrainingSample trackt roi (und optional weitere Regionen) durchs
+// Video und hängt die Ergebnisse an den Datensatz an. sampleEvery steuert die
+// Abtastung (Standard 12); extractAudio speichert die Tonspur neben dem Datensatz.
 func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.ROI, className, className2 string) (string, error) {
+	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0)
+}
+
+// BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio,
+// and an optional startSeconds seek (GUI past black intro).
+func (a *App) BootstrapRoiTrainingSampleEx(
+	videoPath string,
+	roi, roi2, roi3, roi4 *generator.ROI,
+	className, className2, className3, className4 string,
+	sampleEvery int,
+	extractAudio bool,
+	startSeconds float64,
+) (string, error) {
 	if err := claimRoiTrainingRun(); err != nil {
 		return "", err
 	}
@@ -102,6 +110,17 @@ func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.
 		releaseRoiTrainingRun()
 		return "", fmt.Errorf("2. Region braucht einen Klassennamen")
 	}
+	if roi3 != nil && strings.TrimSpace(className3) == "" {
+		releaseRoiTrainingRun()
+		return "", fmt.Errorf("3. Region braucht einen Klassennamen")
+	}
+	if roi4 != nil && strings.TrimSpace(className4) == "" {
+		releaseRoiTrainingRun()
+		return "", fmt.Errorf("4. Region braucht einen Klassennamen")
+	}
+	if sampleEvery <= 0 {
+		sampleEvery = 12
+	}
 
 	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
 	prefix := roiTrainingSamplePrefix(videoPath)
@@ -110,10 +129,16 @@ func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.
 	if roi2 != nil {
 		regions = append(regions, generator.RoiTrainingRegion{ROI: *roi2, ClassName: className2})
 	}
+	if roi3 != nil {
+		regions = append(regions, generator.RoiTrainingRegion{ROI: *roi3, ClassName: className3})
+	}
+	if roi4 != nil {
+		regions = append(regions, generator.RoiTrainingRegion{ROI: *roi4, ClassName: className4})
+	}
 
 	go func() {
 		defer releaseRoiTrainingRun()
-		err := generator.BootstrapRoiTrainingSample(videoPath, regions, datasetDir, prefix,
+		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
 		if err != nil {
 			logging.Error("roitraining: Bootstrap fehlgeschlagen", "video", videoPath, "fehler", err)
@@ -125,6 +150,26 @@ func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.
 	}()
 
 	return prefix, nil
+}
+
+// AddRoiStillTrainingSample adds one labeled still image (photo) to the dataset.
+func (a *App) AddRoiStillTrainingSample(imagePath string, regions []generator.RoiTrainingRegion) (string, error) {
+	if len(regions) == 0 {
+		return "", fmt.Errorf("mindestens eine Region nötig")
+	}
+	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
+	prefix := roiTrainingSamplePrefix(imagePath)
+	return generator.AddStillTrainingSample(imagePath, regions, datasetDir, prefix)
+}
+
+// PickImageFile opens an image picker for still-image training samples.
+func (a *App) PickImageFile() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Bild für KI-Training wählen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Bilder", Pattern: "*.jpg;*.jpeg;*.png;*.webp"},
+		},
+	})
 }
 
 // RunRoiModelTraining trainiert ein Modell auf dem gesammelten Datensatz und

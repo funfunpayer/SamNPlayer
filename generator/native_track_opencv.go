@@ -18,6 +18,7 @@ var errNativeUnavailable = errors.New("generator: native CSRT tracking is not av
 func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
 	tr, err := trackcv.TrackROI(videoPath, trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, trackcv.Options{
 		MaxFrames:          opts.MaxFrames,
+		StartTimeSec:       opts.StartTimeSec,
 		CameraCompensation: opts.CameraCompensation,
 		SceneCutDetection:  opts.SceneCutDetection,
 		AppearanceMemory:   opts.AppearanceMemory,
@@ -45,5 +46,38 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		ValidFrames:  tr.Stats.ValidFrames,
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
+	}, nil
+}
+
+func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
+	tr, err := trackcv.TrackTwoPoints(videoPath,
+		trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H},
+		trackcv.Rect{X: roi2.X, Y: roi2.Y, W: roi2.W, H: roi2.H},
+		trackcv.Options{
+			MaxFrames:    opts.MaxFrames,
+			StartTimeSec: opts.StartTimeSec,
+			Cancel:       opts.Cancel,
+		})
+	if err != nil {
+		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
+			return nativeTrackResult{}, errNativeCanceled
+		}
+		return nativeTrackResult{}, err
+	}
+	if onPercent != nil && tr.Stats.TotalFrames > 0 {
+		onPercent(100)
+	}
+	return nativeTrackResult{
+		TimestampsMs: tr.TimestampsMs,
+		Positions:    tr.Positions,
+		Width:        tr.Width,
+		Height:       tr.Height,
+		LostFrames:   tr.Stats.TrackerLostFrames,
+		TotalFrames:  tr.Stats.TotalFrames,
+		VertRange:    tr.Stats.VerticalRange,
+		ValidFrames:  tr.Stats.ValidFrames,
+		Confidence:   tr.Stats.Confidence,
+		Reason:       tr.Stats.Reason,
+		LostFlags:    tr.LostFlags,
 	}, nil
 }
