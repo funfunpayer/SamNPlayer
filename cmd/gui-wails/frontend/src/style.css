@@ -1,24 +1,24 @@
-/* SamN brand tokens — gold + teal on deep navy (logo-universal.png) */
+/* SamN brand tokens — cooler ink surfaces, clearer gold + aqua */
 :root {
-  --bg: #07090e;
-  --bg-alt: #10141c;
-  --surface: #121722;
-  --surface-2: #1a2130;
-  --border: #2a3344;
-  --border-strong: #3a465c;
-  --text: #eef1f6;
-  --text-dim: #8e98ab;
-  --accent: #f2b03d;
-  --accent-hover: #f7c25a;
-  --accent-soft: rgba(242, 176, 61, 0.14);
-  --teal: #3dccc0;
-  --teal-soft: rgba(61, 204, 192, 0.14);
-  --danger: #e85d5d;
-  --ok: #5ecf8a;
-  --warn: #f2b03d;
-  --radius: 8px;
-  --radius-sm: 5px;
-  --rail: 78px;
+  --bg: #06090f;
+  --bg-alt: #0c1119;
+  --surface: #121925;
+  --surface-2: #1a2333;
+  --border: #2a3548;
+  --border-strong: #3d4d66;
+  --text: #f2f5fa;
+  --text-dim: #93a0b5;
+  --accent: #f3b23c;
+  --accent-hover: #ffc857;
+  --accent-soft: rgba(243, 178, 60, 0.16);
+  --teal: #2fd4c4;
+  --teal-soft: rgba(47, 212, 196, 0.14);
+  --danger: #ef5f5f;
+  --ok: #4fd68a;
+  --warn: #f3b23c;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --rail: 80px;
   --font: "Space Grotesk", "Nunito", "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
@@ -58,13 +58,13 @@ body {
   font-family: var(--font);
   font-weight: 400;
   background:
-    radial-gradient(900px 480px at 0% -5%, rgba(242, 176, 61, 0.09), transparent 55%),
-    radial-gradient(700px 420px at 100% 0%, rgba(61, 204, 192, 0.07), transparent 50%),
-    linear-gradient(180deg, #0a0d14 0%, var(--bg) 40%);
+    radial-gradient(820px 420px at 8% -8%, rgba(243, 178, 60, 0.11), transparent 58%),
+    radial-gradient(640px 380px at 100% 0%, rgba(47, 212, 196, 0.08), transparent 52%),
+    linear-gradient(180deg, #0a1018 0%, var(--bg) 42%);
   color: var(--text);
   font-size: 14px;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
+  line-height: 1.55;
+  letter-spacing: 0.015em;
 }
 
 #app { display: flex; height: 100vh; }
@@ -127,8 +127,8 @@ body {
   font-weight: 500;
   transition: background-color .18s ease, color .18s ease, transform .15s ease;
 }
-.tab-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: square; stroke-linejoin: miter; }
-.tab-btn span { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.tab-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+.tab-btn span { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; }
 .tab-btn:hover { background: var(--surface); color: var(--text); }
 .tab-btn.active {
   background: var(--accent-soft);
@@ -453,13 +453,20 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
+.pb-head-text { min-width: 0; flex: 1; }
 .pb-head h2 {
-  margin: 0;
-  padding-bottom: 8px;
-  flex: 1;
-  min-width: 140px;
+  margin: 0 0 4px;
+  padding-bottom: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+.pb-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .pb-pick { margin: 0; }
 .pb-empty {
@@ -469,21 +476,22 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   background:
-    radial-gradient(600px 280px at 30% 20%, rgba(242, 176, 61, 0.08), transparent 60%),
-    radial-gradient(500px 240px at 80% 80%, rgba(61, 204, 192, 0.07), transparent 55%),
+    radial-gradient(600px 280px at 30% 20%, rgba(243, 178, 60, 0.1), transparent 60%),
+    radial-gradient(500px 240px at 80% 80%, rgba(47, 212, 196, 0.08), transparent 55%),
     var(--surface);
 }
 .pb-empty[hidden], .pb-loaded[hidden] { display: none !important; }
 .pb-empty-inner {
   text-align: center;
-  max-width: 360px;
+  max-width: 400px;
   padding: 28px 20px;
 }
 .pb-empty-title {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 8px;
   color: var(--text);
+  letter-spacing: -0.02em;
 }
 .pb-loaded {
   display: grid;
@@ -607,13 +615,106 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
-.pb-transport-btns { margin-bottom: 10px; }
+.pb-transport-btns { margin-bottom: 10px; gap: 8px; }
+.pb-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pb-btn-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: none;
+}
 .pb-live {
   margin-top: 8px;
   font-size: 13px;
   color: var(--text-dim);
 }
 .pb-live b { color: var(--text); font-weight: 600; }
+.pb-playlist {
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  padding: 10px 12px 12px;
+}
+.pb-playlist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.pb-playlist-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.pb-playlist-auto {
+  font-size: 12px;
+  color: var(--text-dim);
+  gap: 6px;
+}
+.pb-playlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+.pb-playlist-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.pb-playlist-pick {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+}
+.pb-playlist-pick:hover {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.pb-playlist-item.is-active .pb-playlist-pick {
+  background: var(--accent-soft);
+  border-color: rgba(243, 178, 60, 0.35);
+  color: var(--accent-hover);
+}
+.pb-playlist-idx {
+  width: 1.5em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.pb-playlist-item.is-active .pb-playlist-idx { color: var(--accent); }
+.pb-playlist-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pb-playlist-remove {
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+}
+.pb-playlist-remove:hover { color: var(--danger); }
 .pb-tools {
   min-width: 0;
   padding: 4px 2px 0;

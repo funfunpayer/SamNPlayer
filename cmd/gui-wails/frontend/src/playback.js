@@ -16,18 +16,21 @@ export function initPlayback(root) {
   root.classList.add('tab-playback');
   root.innerHTML = `
     <div class="pb-head">
-      <h2>Wiedergabe</h2>
-      <div class="row pb-pick">
-        <button id="pb-choose" class="primary">Funscript wählen…</button>
+      <div class="pb-head-text">
+        <h2>Wiedergabe</h2>
         <span class="path-label" id="pb-script-path">Kein Skript gewählt</span>
+      </div>
+      <div class="pb-head-actions">
+        <button id="pb-choose" class="primary" type="button">Skript wählen</button>
+        <button id="pb-queue-add" type="button" title="Weiteres Skript an die Liste hängen" hidden>Zur Liste</button>
       </div>
     </div>
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
         <p class="pb-empty-title">Noch nichts geladen</p>
-        <p class="hint">Funscript wählen — liegt ein Video mit gleichem Namen daneben, erscheint es hier automatisch.</p>
-        <button type="button" id="pb-choose-empty" class="primary">Funscript wählen…</button>
+        <p class="hint">Ein oder mehrere Funscripts ablegen — Filme mit gleichem Namen erscheinen automatisch. Mehrere Skripte werden als Liste abgespielt.</p>
+        <button type="button" id="pb-choose-empty" class="primary">Skript wählen</button>
       </div>
     </div>
 
@@ -36,12 +39,12 @@ export function initPlayback(root) {
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
           <div class="pb-video-chrome" id="pb-video-chrome">
-            <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick aufs Video)">Vollbild</button>
+            <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick)">Vollbild</button>
             <button type="button" id="pb-video-change" title="Anderes Video wählen">Video…</button>
           </div>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Skript ohne Film</p>
-            <p class="hint">Gerät und Kurve laufen trotzdem. Optional ein Video verknüpfen — muss nicht denselben Namen haben.</p>
+            <p class="hint">Gerät und Kurve laufen trotzdem. Optional ein Video verknüpfen.</p>
             <button type="button" id="pb-pick-video" class="primary">Video wählen…</button>
           </div>
         </div>
@@ -49,15 +52,32 @@ export function initPlayback(root) {
         <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
         <div class="pb-transport">
           <div class="row pb-transport-btns">
-            <button id="pb-play" class="primary">▶ Abspielen</button>
-            <button id="pb-stop" disabled>■ Stop</button>
-            <button id="pb-eo-trigger" disabled>Extended-O</button>
+            <button id="pb-play" class="primary pb-btn-icon" type="button" title="Abspielen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <span>Abspielen</span>
+            </button>
+            <button id="pb-stop" class="pb-btn-icon" type="button" disabled title="Stop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>
+              <span>Stop</span>
+            </button>
+            <button id="pb-eo-trigger" type="button" disabled>Extended-O</button>
+            <button id="pb-next" type="button" hidden title="Nächster Film in der Liste">Weiter</button>
           </div>
           <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
           <div class="stat-row pb-live">
             <span>Vibration <b id="pb-vib">-</b></span>
             <span>Sog <b id="pb-suc">-</b></span>
           </div>
+        </div>
+        <div class="pb-playlist" id="pb-playlist" hidden>
+          <div class="pb-playlist-head">
+            <span class="pb-playlist-title">Film-Liste</span>
+            <label class="checkbox-row pb-playlist-auto" style="margin:0">
+              <input type="checkbox" id="pb-playlist-auto" checked />
+              <span>Automatisch weiter</span>
+            </label>
+          </div>
+          <ol class="pb-playlist-list" id="pb-playlist-list"></ol>
         </div>
       </div>
 
@@ -151,7 +171,7 @@ export function initPlayback(root) {
           </div>
         </div>
 
-        <details class="pb-advanced" open>
+        <details class="pb-advanced">
           <summary>Abspielen &amp; Extended-O</summary>
           <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
             <input type="checkbox" id="pb-use-video-sync" checked />
@@ -197,6 +217,9 @@ export function initPlayback(root) {
   let videoPath = null;
   let totalMs = 1;
   let playing = false;
+  let playlist = []; // [{ path, name }]
+  let playlistIndex = 0;
+  let advancingPlaylist = false;
   let heatmapPoints = null;
   let curvePoints = null;
   let vibrationCurvePoints = null;
@@ -225,6 +248,65 @@ export function initPlayback(root) {
     el('#pb-empty').hidden = !!loaded;
     el('#pb-loaded').hidden = !loaded;
     root.classList.toggle('has-script', !!loaded);
+    el('#pb-queue-add').hidden = !loaded;
+  }
+
+  function scriptBaseName(path) {
+    const base = String(path || '').split(/[/\\]/).pop() || path;
+    return base.replace(/\.funscript$/i, '');
+  }
+
+  function renderPlaylist() {
+    const wrap = el('#pb-playlist');
+    const list = el('#pb-playlist-list');
+    const nextBtn = el('#pb-next');
+    if (!wrap || !list) return;
+    if (playlist.length < 2) {
+      wrap.hidden = true;
+      list.innerHTML = '';
+      if (nextBtn) nextBtn.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    if (nextBtn) nextBtn.hidden = playlistIndex >= playlist.length - 1;
+    list.innerHTML = playlist.map((item, i) => {
+      const active = i === playlistIndex ? ' is-active' : '';
+      return `<li class="pb-playlist-item${active}" data-idx="${i}">`
+        + `<button type="button" class="pb-playlist-pick" data-idx="${i}">`
+        + `<span class="pb-playlist-idx">${i + 1}</span>`
+        + `<span class="pb-playlist-name">${item.name}</span>`
+        + `</button>`
+        + `<button type="button" class="pb-playlist-remove" data-idx="${i}" title="Entfernen">×</button>`
+        + `</li>`;
+    }).join('');
+  }
+
+  function replacePlaylist(paths, startIndex = 0) {
+    const uniq = [];
+    const seen = new Set();
+    for (const p of paths || []) {
+      if (!p || seen.has(p)) continue;
+      seen.add(p);
+      uniq.push({ path: p, name: scriptBaseName(p) });
+    }
+    playlist = uniq;
+    playlistIndex = Math.max(0, Math.min(startIndex, Math.max(0, playlist.length - 1)));
+    renderPlaylist();
+  }
+
+  function appendToPlaylist(path) {
+    if (!path) return;
+    if (playlist.some(p => p.path === path)) {
+      log('Schon in der Liste: ' + scriptBaseName(path));
+      return;
+    }
+    if (playlist.length === 0 && scriptPath) {
+      playlist.push({ path: scriptPath, name: scriptBaseName(scriptPath) });
+      playlistIndex = 0;
+    }
+    playlist.push({ path, name: scriptBaseName(path) });
+    renderPlaylist();
+    log('Zur Liste: ' + scriptBaseName(path));
   }
 
   function log(line) {
@@ -884,20 +966,28 @@ export function initPlayback(root) {
 
 
 
-  // Fallengelassenes Skript übernehmen - gleicher Ladeweg wie die
-  // Dateiauswahl.
-  window.addEventListener('drop:script', e => loadScript(e.detail.path, e.detail.extraCount || 0));
+  // Fallengelassene Skripte: eines oder mehrere → Film-Liste.
+  window.addEventListener('drop:script', e => {
+    const paths = (e.detail && e.detail.paths && e.detail.paths.length)
+      ? e.detail.paths
+      : [e.detail.path];
+    replacePlaylist(paths, 0);
+    loadScript(paths[0], { keepPlaylist: true });
+  });
 
   async function chooseScript() {
     const path = await PickFunscriptFile();
-    // Fokus zurück ins Fenster holen: nach dem Schließen des nativen
-    // Datei-Dialogs bleibt der Tastaturfokus sonst am Auswahl-Button
-    // hängen (oder ganz außerhalb der Webview), und die Tastenkürzel
-    // wirken scheinbar nicht mehr. In der Testumgebung reproduzierbar,
-    // darum hier defensiv behandelt.
     restoreKeyboardFocus();
     if (!path) return;
-    await loadScript(path);
+    replacePlaylist([path], 0);
+    await loadScript(path, { keepPlaylist: true });
+  }
+
+  async function queueAddScript() {
+    const path = await PickFunscriptFile();
+    restoreKeyboardFocus();
+    if (!path) return;
+    appendToPlaylist(path);
   }
 
   // restoreKeyboardFocus nimmt den Fokus von einem eventuell fokussierten
@@ -935,18 +1025,22 @@ export function initPlayback(root) {
     el('#pb-video-fs').textContent = on ? 'Zurück' : 'Vollbild';
   }
 
-  async function loadScript(path, extraCount = 0, opts = {}) {
+  async function loadScript(path, extraCountOrOpts = 0, opts = {}) {
+    // Rückwärtskompatibel: früher (path, extraCount), jetzt auch (path, opts).
+    if (extraCountOrOpts && typeof extraCountOrOpts === 'object') {
+      opts = extraCountOrOpts;
+    }
     const info = await LoadFunscript(path);
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
-    // Stapelverarbeitung mehrerer Skripte gibt es noch nicht - vorher
-    // wurden weitere abgelegte Skripte einfach stillschweigend verworfen,
-    // ohne dass sichtbar war, dass überhaupt mehr als eins ankam (siehe
-    // dieselbe Behandlung für Videos in generator.js).
-    const batchNote = extraCount > 0
-      ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Skript${extraCount === 1 ? '' : 'e'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
-      : '';
-    el('#pb-script-path').textContent = scriptPath + batchNote;
+    if (!opts.keepPlaylist) {
+      replacePlaylist([scriptPath], 0);
+    } else {
+      const idx = playlist.findIndex(p => p.path === scriptPath);
+      if (idx >= 0) playlistIndex = idx;
+      renderPlaylist();
+    }
+    el('#pb-script-path').textContent = scriptPath;
     setScriptLoaded(true);
     scriptHasContactVibration = !!info.contactVibration;
     const showContact = scriptHasContactVibration;
@@ -1015,6 +1109,37 @@ export function initPlayback(root) {
         el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
+  }
+
+  async function playNextInPlaylist() {
+    if (advancingPlaylist) return;
+    if (playlistIndex >= playlist.length - 1) {
+      setPlayingState(false);
+      return;
+    }
+    advancingPlaylist = true;
+    try {
+      if (playing) await stop();
+      playlistIndex += 1;
+      renderPlaylist();
+      await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+      await play();
+    } catch (err) {
+      logError('Nächster Film: ' + err);
+      setPlayingState(false);
+    } finally {
+      advancingPlaylist = false;
+    }
+  }
+
+  function onPlaybackFinished() {
+    if (advancingPlaylist) return;
+    const auto = el('#pb-playlist-auto') && el('#pb-playlist-auto').checked;
+    if (auto && playlist.length > 1 && playlistIndex < playlist.length - 1) {
+      playNextInPlaylist();
+      return;
+    }
+    setPlayingState(false);
   }
 
   // startScriptPlayback startet nur das Funscript/Gerät (StartPlayback +
@@ -1116,7 +1241,9 @@ export function initPlayback(root) {
   // player.Sync() im Leerlauf hängen (wartet ewig auf weitere Positionen,
   // die nach Videoende nicht mehr kommen).
   videoEl.addEventListener('ended', () => {
-    if (playing && el('#pb-use-video-sync').checked) stop();
+    if (playing && el('#pb-use-video-sync').checked) {
+      stop().then(() => onPlaybackFinished());
+    }
   });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per
@@ -1136,7 +1263,7 @@ export function initPlayback(root) {
 
   EventsOn('playback:log', log);
   EventsOn('playback:error', msg => log('FEHLER: ' + msg));
-  EventsOn('playback:done', () => setPlayingState(false));
+  EventsOn('playback:done', () => onPlaybackFinished());
   EventsOn('playback:frame', f => {
     totalMs = Math.max(f.totalMs, 1);
     currentPosMs = f.atMs;
@@ -1193,6 +1320,28 @@ export function initPlayback(root) {
   });
   el('#pb-choose').addEventListener('click', chooseScript);
   el('#pb-choose-empty').addEventListener('click', chooseScript);
+  el('#pb-queue-add').addEventListener('click', queueAddScript);
+  el('#pb-next').addEventListener('click', () => playNextInPlaylist());
+  el('#pb-playlist-list').addEventListener('click', async e => {
+    const remove = e.target.closest('.pb-playlist-remove');
+    if (remove) {
+      const idx = Number(remove.dataset.idx);
+      if (Number.isNaN(idx)) return;
+      playlist.splice(idx, 1);
+      if (playlistIndex >= playlist.length) playlistIndex = Math.max(0, playlist.length - 1);
+      else if (idx < playlistIndex) playlistIndex -= 1;
+      renderPlaylist();
+      return;
+    }
+    const pick = e.target.closest('.pb-playlist-pick');
+    if (!pick) return;
+    const idx = Number(pick.dataset.idx);
+    if (Number.isNaN(idx) || idx === playlistIndex) return;
+    if (playing) await stop();
+    playlistIndex = idx;
+    renderPlaylist();
+    await loadScript(playlist[idx].path, { keepPlaylist: true });
+  });
   el('#pb-pick-video').addEventListener('click', attachVideoFromPicker);
   el('#pb-video-change').addEventListener('click', attachVideoFromPicker);
   el('#pb-video-fs').addEventListener('click', toggleVideoFullscreen);

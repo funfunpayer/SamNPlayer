@@ -29,6 +29,7 @@ type Protocol interface {
 // Service UUID:  0000ffe0-0000-1000-8000-00805f9b34fb
 // TX Char UUID:  0000ffe1-0000-1000-8000-00805f9b34fb  (Kommandos hierhin schreiben)
 // RX Char UUID:  0000ffe2-0000-1000-8000-00805f9b34fb  (Notify, geräteeigenes
+//
 //	Statusformat — hier nicht ausgewertet). Akku wird zusätzlich über den
 //	Standard-GATT-Battery-Service (0x180F/0x2A19) versucht, falls vorhanden.
 //

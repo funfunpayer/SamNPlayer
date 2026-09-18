@@ -95,7 +95,10 @@ def main():
         check("Skript wechselt in den Wiedergabe-Tab", active() == "playback", str(active()))
         dropped = page.evaluate("window.__dropped[1]")
         check("Skriptpfad kommt unverändert an",
-              dropped == ["script", {"path": "/skripte/a.funscript", "extraCount": 0}], str(dropped))
+              dropped[0] == "script"
+              and dropped[1]["path"] == "/skripte/a.funscript"
+              and dropped[1].get("paths") == ["/skripte/a.funscript"],
+              str(dropped))
 
         # --- Beides zugleich: Video hat Vorrang ---------------------------
         page.evaluate("""window.__triggerEvent('files:dropped',
@@ -123,22 +126,21 @@ def main():
         check("mehrere Videos: Hinweis auf die ignorierten Dateien in der Oberfläche sichtbar",
               "2" in page.locator("#gen-status").inner_text())
 
-        # --- Mehrere Skripte: nur das erste wird geladen, aber sichtbar ---
-        # (dieselbe Lücke wie bei Videos oben, hier für Skripte - vorher
-        # verschwanden weitere abgelegte Skripte spurlos.)
+        # --- Mehrere Skripte: Film-Liste statt „ignoriert“ -----------------
+        page.evaluate("window.__dropped.length = 0")
         page.evaluate("""window.__triggerEvent('files:dropped',
             { videos: [], scripts: ['/s/first.funscript', '/s/second.funscript'], ignored: 0 })""")
-        page.wait_for_function("window.__dropped.length > 4")
-        dropped = page.evaluate("window.__dropped[4]")
-        check("mehrere Skripte: nur der erste Pfad wird geladen",
+        page.wait_for_function("window.__dropped.length > 0")
+        dropped = page.evaluate("window.__dropped[0]")
+        check("mehrere Skripte: erster Pfad kommt an",
               dropped[1]["path"] == "/s/first.funscript", str(dropped))
-        check("mehrere Skripte: Anzahl der übrigen wird mitgeschickt",
-              dropped[1]["extraCount"] == 1, str(dropped))
+        check("mehrere Skripte: komplette Liste wird mitgeschickt",
+              dropped[1].get("paths") == ["/s/first.funscript", "/s/second.funscript"], str(dropped))
         page.wait_for_function(
-            "document.querySelector('#pb-script-path').textContent.includes('ignoriert')",
+            "document.querySelector('#pb-playlist') && !document.querySelector('#pb-playlist').hidden",
             timeout=5000)
-        check("mehrere Skripte: Hinweis auf die ignorierten Dateien in der Oberfläche sichtbar",
-              "1" in page.locator("#pb-script-path").inner_text())
+        check("mehrere Skripte: Film-Liste sichtbar",
+              page.locator("#pb-playlist-list li").count() == 2)
 
         # --- Ablagefläche erscheint und verschwindet ----------------------
         overlay_visible = "document.getElementById('drop-overlay').classList.contains('visible')"
