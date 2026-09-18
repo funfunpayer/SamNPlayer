@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -22,16 +23,10 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 	if strings.TrimSpace(outputDir) == "" {
 		return "", fmt.Errorf("generator: outputDir leer")
 	}
-	f, err := os.Open(imagePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	cfg, _, err := image.DecodeConfig(f)
+	w, h, err := stillImageSize(imagePath)
 	if err != nil {
 		return "", fmt.Errorf("generator: Bild lesen: %w", err)
 	}
-	w, h := cfg.Width, cfg.Height
 	if w < 8 || h < 8 {
 		return "", fmt.Errorf("generator: Bild zu klein (%dx%d)", w, h)
 	}
@@ -76,12 +71,18 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 		prefix = "still_" + sanitizeStem(base)
 	}
 	stem := fmt.Sprintf("%s_000000", prefix)
-	dstImg := filepath.Join(outputDir, "images", "train", stem+filepath.Ext(imagePath))
-	if ext := strings.ToLower(filepath.Ext(dstImg)); ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+	ext := strings.ToLower(filepath.Ext(imagePath))
+	dstImg := filepath.Join(outputDir, "images", "train", stem+ext)
+	needConvert := ext != ".jpg" && ext != ".jpeg" && ext != ".png"
+	if needConvert {
 		dstImg = filepath.Join(outputDir, "images", "train", stem+".jpg")
-	}
-	if err := copyFile(imagePath, dstImg); err != nil {
-		return "", err
+		if err := convertStillToJPEG(imagePath, dstImg); err != nil {
+			return "", err
+		}
+	} else {
+		if err := copyFile(imagePath, dstImg); err != nil {
+			return "", err
+		}
 	}
 	lbl := filepath.Join(outputDir, "labels", "train", stem+".txt")
 	if err := os.WriteFile(lbl, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
@@ -89,6 +90,57 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 	}
 	_ = writeDataYAMLFromRegistry(outputDir, registry)
 	return prefix, nil
+}
+
+// stillImageSize returns pixel size for JPEG/PNG via stdlib, or via ffmpeg
+// for formats Go does not decode (WebP, HEIC, …).
+func stillImageSize(path string) (int, int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, 0, err
+	}
+	cfg, _, err := image.DecodeConfig(f)
+	f.Close()
+	if err == nil {
+		return cfg.Width, cfg.Height, nil
+	}
+	w, h, ffErr := imageSizeViaFFmpeg(path)
+	if ffErr != nil {
+		return 0, 0, err
+	}
+	return w, h, nil
+}
+
+func imageSizeViaFFmpeg(path string) (int, int, error) {
+	if _, err := exec.LookPath("ffprobe"); err != nil {
+		return 0, 0, fmt.Errorf("ffprobe nicht gefunden")
+	}
+	out, err := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0",
+		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", path).CombinedOutput()
+	if err != nil {
+		return 0, 0, fmt.Errorf("ffprobe: %w (%s)", err, strings.TrimSpace(string(out)))
+	}
+	parts := strings.Split(strings.TrimSpace(string(out)), "x")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("ffprobe: unerwartete Ausgabe %q", string(out))
+	}
+	w, err1 := strconv.Atoi(parts[0])
+	h, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil || w < 1 || h < 1 {
+		return 0, 0, fmt.Errorf("ffprobe: unparseable size %q", string(out))
+	}
+	return w, h, nil
+}
+
+func convertStillToJPEG(src, dst string) error {
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		return fmt.Errorf("ffmpeg nicht gefunden (nötig für WebP/HEIC-Stills)")
+	}
+	args := []string{"-v", "error", "-y", "-i", src, "-q:v", "2", dst}
+	if b, err := exec.Command("ffmpeg", args...).CombinedOutput(); err != nil {
+		return fmt.Errorf("still→jpeg: %w\n%s", err, string(b))
+	}
+	return nil
 }
 
 // ExtractTrainingAudio dumps the clip audio next to the dataset so later

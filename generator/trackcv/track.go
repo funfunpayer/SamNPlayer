@@ -28,6 +28,7 @@ import (
 // Options steuert TrackROI - entspricht track_roi()'s Parametern.
 type Options struct {
 	MaxFrames          int // 0 = unbegrenzt
+	StartTimeSec       float64
 	CameraCompensation bool
 	SceneCutDetection  bool
 	AppearanceMemory   bool
@@ -91,6 +92,14 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	}
 	width := int(cap.Get(CapPropFrameWidth))
 	height := int(cap.Get(CapPropFrameHeight))
+
+	startFrame := 0
+	if opts.StartTimeSec > 0 {
+		startFrame = int(opts.StartTimeSec*fps + 0.5)
+		if startFrame > 0 {
+			cap.Seek(startFrame)
+		}
+	}
 
 	if !cap.Read() {
 		return Result{}, &trackError{"Erster Frame konnte nicht gelesen werden"}

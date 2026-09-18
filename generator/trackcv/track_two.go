@@ -21,6 +21,13 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	width := int(cap.Get(CapPropFrameWidth))
 	height := int(cap.Get(CapPropFrameHeight))
 
+	if opts.StartTimeSec > 0 {
+		sf := int(opts.StartTimeSec*fps + 0.5)
+		if sf > 0 {
+			cap.Seek(sf)
+		}
+	}
+
 	if !cap.Read() {
 		return Result{}, &trackError{"Erster Frame konnte nicht gelesen werden"}
 	}

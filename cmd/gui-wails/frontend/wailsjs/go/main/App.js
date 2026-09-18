@@ -5,7 +5,9 @@ export function ApplySuggestedOZone() { return window['go']['main']['App']['Appl
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
-export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11) { return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11); }
+export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12) {
+  return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+}
 export function AddRoiStillTrainingSample(arg1, arg2) { return window['go']['main']['App']['AddRoiStillTrainingSample'](arg1, arg2); }
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }

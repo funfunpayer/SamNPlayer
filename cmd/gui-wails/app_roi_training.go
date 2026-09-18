@@ -86,16 +86,18 @@ func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
 // Video und hängt die Ergebnisse an den Datensatz an. sampleEvery steuert die
 // Abtastung (Standard 12); extractAudio speichert die Tonspur neben dem Datensatz.
 func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.ROI, className, className2 string) (string, error) {
-	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true)
+	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0)
 }
 
-// BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio.
+// BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio,
+// and an optional startSeconds seek (GUI past black intro).
 func (a *App) BootstrapRoiTrainingSampleEx(
 	videoPath string,
 	roi, roi2, roi3, roi4 *generator.ROI,
 	className, className2, className3, className4 string,
 	sampleEvery int,
 	extractAudio bool,
+	startSeconds float64,
 ) (string, error) {
 	if err := claimRoiTrainingRun(); err != nil {
 		return "", err
@@ -136,7 +138,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 
 	go func() {
 		defer releaseRoiTrainingRun()
-		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio,
+		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
 		if err != nil {
 			logging.Error("roitraining: Bootstrap fehlgeschlagen", "video", videoPath, "fehler", err)

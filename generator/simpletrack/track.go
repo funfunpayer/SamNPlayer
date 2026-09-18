@@ -20,6 +20,7 @@ type Rect struct{ X, Y, W, H int }
 // Options controls TrackROI.
 type Options struct {
 	MaxFrames    int // 0 = unlimited
+	StartTimeSec float64
 	Axis         string
 	Cancel       func() bool
 	SearchMargin int // pixels around last box; 0 → 32
@@ -86,6 +87,7 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 		FPS:        fps,
 		MaxWidth:   640,
 		AutoRotate: true,
+		StartSec:   opts.StartTimeSec,
 	})
 	if err != nil {
 		return Result{}, fmt.Errorf("simpletrack: open: %w", err)

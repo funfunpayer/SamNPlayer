@@ -88,6 +88,8 @@ type GenerateOptions struct {
 	AutoOZoneMarker           bool    `json:"autoOZoneMarker"`
 	AudioCheck                bool    `json:"audioCheck"`
 	NativePipeline            bool    `json:"nativePipeline"`
+	// StartTimeSec skips the first N seconds (GUI seek past black intro).
+	StartTimeSec float64 `json:"startTimeSec"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -228,6 +230,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			ContactVibrationCurve:     opts.ContactVibrationCurve,
 			AudioCheck:                opts.AudioCheck,
 			NativePipeline:            opts.NativePipeline,
+			StartTimeSec:              opts.StartTimeSec,
 		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}

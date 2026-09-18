@@ -425,16 +425,19 @@ def _track_cache_key(video_path, roi, max_frames, camera_compensation, scene_cut
 
 def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
                      scene_cut_detection=True, cache_dir=None, axis="auto",
-                     appearance_memory=True):
+                     appearance_memory=True, start_frame=0):
     """track_roi mit Zwischenspeicherung. cache_dir=None schaltet den Cache ab."""
     if not cache_dir:
         return track_roi(video_path, roi, max_frames=max_frames,
                          camera_compensation=camera_compensation,
                          scene_cut_detection=scene_cut_detection, axis=axis,
-                         appearance_memory=appearance_memory)
+                         appearance_memory=appearance_memory,
+                         start_frame=start_frame)
 
     key = _track_cache_key(video_path, roi, max_frames, camera_compensation,
                            scene_cut_detection, axis, appearance_memory)
+    if start_frame:
+        key = f"{key}-s{start_frame}"
     path = os.path.join(cache_dir, f"track-{key}.npz")
 
     if os.path.exists(path):
@@ -456,7 +459,7 @@ def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
         video_path, roi, max_frames=max_frames,
         camera_compensation=camera_compensation,
         scene_cut_detection=scene_cut_detection, axis=axis,
-        appearance_memory=appearance_memory)
+        appearance_memory=appearance_memory, start_frame=start_frame)
 
     try:
         os.makedirs(cache_dir, exist_ok=True)
@@ -1528,7 +1531,8 @@ def _register_builtin_backends():
             scene_cut_detection=options.get("scene_cut_detection", True),
             cache_dir=options.get("cache_dir"),
             axis=options.get("axis", "auto"),
-            appearance_memory=options.get("appearance_memory", True))
+            appearance_memory=options.get("appearance_memory", True),
+            start_frame=options.get("start_frame", 0))
 
     def flow(video_path, roi, options):
         import flow_backend
@@ -1543,7 +1547,8 @@ def _register_builtin_backends():
         if not roi2:
             raise RuntimeError("Das Verfahren 'two_point' braucht eine zweite Region (--roi2)")
         return track_two_points(video_path, roi, roi2,
-                                max_frames=options.get("max_frames"))
+                                max_frames=options.get("max_frames"),
+                                start_frame=options.get("start_frame", 0))
 
     def grid_lk(video_path, roi, options):
         import grid_lk_backend
@@ -1824,6 +1829,8 @@ def main():
     ap.add_argument("--smooth-window", type=int, default=11, help="Savitzky-Golay-Fensterbreite (ungerade Zahl)")
     ap.add_argument("--min-peak-distance-ms", type=int, default=150, help="Mindestabstand zwischen erkannten Keyframes in ms")
     ap.add_argument("--max-frames", type=int, default=None, help="Nur die ersten N Frames verarbeiten (zum schnellen Testen)")
+    ap.add_argument("--start-seconds", type=float, default=0.0,
+                    help="Tracking erst ab dieser Zeit starten (GUI-Seek bei schwarzem Intro)")
     ap.add_argument("--no-camera-compensation", action="store_true",
                      help="Kamerabewegungs-Kompensation abschalten (per Default an - schätzt globale "
                           "Kamerabewegung aus Hintergrund-Features und zieht sie von der Objektkurve ab)")
@@ -2211,6 +2218,17 @@ def process_one(args, ap):
     print("Tracke ROI durchs Video...", file=sys.stderr)
     cache_dir = None if args.no_cache else (args.cache_dir or default_cache_dir())
     scene_ranges = None
+    start_frame = 0
+    if getattr(args, "start_seconds", 0) and args.start_seconds > 0:
+        # FPS erst nach dem Öffnen bekannt — grobe Schätzung 25, track_*
+        # liest die echte FPS und springt über CAP_PROP_POS_FRAMES.
+        # Genauer: kurze Probe hier, damit start_frame stimmt.
+        _cap = cv2.VideoCapture(args.video)
+        _fps = _cap.get(cv2.CAP_PROP_FPS) or 25.0
+        _cap.release()
+        start_frame = max(0, int(round(args.start_seconds * _fps)))
+        if start_frame:
+            print(f"Start bei {args.start_seconds:.2f}s (Frame {start_frame})", file=sys.stderr)
     # Verfahren außerhalb der eingebauten Sonderfälle laufen über das
     # Register. Die Sonderfälle bleiben, weil sie zusätzliche Rückgabewerte
     # haben (Szenenbereiche) oder Optionen brauchen, die nicht Teil des
@@ -2229,6 +2247,7 @@ def process_one(args, ap):
             "axis": args.axis,
             "appearance_memory": not args.no_appearance_memory,
             "roi2": None,
+            "start_frame": start_frame,
          })
     elif args.roi2:
         try:
@@ -2268,7 +2287,7 @@ def process_one(args, ap):
                 })
         else:
             timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_two_points(
-                args.video, roi, roi2, max_frames=args.max_frames)
+                args.video, roi, roi2, max_frames=args.max_frames, start_frame=start_frame)
     elif args.backend == "flow":
         # Flow-Backend: kein Tracker, keine markierte Region. Deutlich
         # schneller (dichter Farneback ~18ms/Frame gegen ~100ms für CSRT)
@@ -2307,6 +2326,7 @@ def process_one(args, ap):
             cache_dir=cache_dir,
             axis=args.axis,
             appearance_memory=not args.no_appearance_memory,
+            start_frame=start_frame,
         )
     print(f"{len(timestamps_ms)} Frames getrackt (Videogröße {frame_size[0]}x{frame_size[1]})", file=sys.stderr)
 

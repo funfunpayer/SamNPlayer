@@ -21,9 +21,12 @@ measurement history behind each entry; this file is the short version for
   (`SuggestPipeline`); Tf/Tj + CSRT → Go path by default.
 - **KI-Training:** seek past black intro, up to 4 marks/classes, still-image
   samples, sample stride, audio WAV sidecar; class presets + chips from
-  collected dataset.
+  collected dataset. Seek offset now reaches generate + bootstrap pipelines;
+  WebP/HEIC stills convert via ffmpeg.
 - **GUI brand:** Wails logo replaced with SamNPlayer SN mark; seek controls
   on Generator + KI-Training tabs.
+- **Generator seek:** `StartTimeSec` / `--start-seconds` wired through Go
+  trackers (trackcv/simpletrack) and Python generate path.
 
 ## [0.5.4] — September 18, 2026
 

@@ -101,13 +101,13 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
-	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, onProgress)
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, onProgress)
 }
 
 // BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
-// stride and optional audio extraction beside the dataset.
+// stride, optional audio extraction, and optional startSeconds seek.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
-	sampleEvery int, extractAudio bool, onProgress func(line string)) error {
+	sampleEvery int, extractAudio bool, startSeconds float64, onProgress func(line string)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: mindestens eine Region nötig")
 	}
@@ -125,7 +125,7 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "bootstrap_yolo_dataset.py")
 
-	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery),
+	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds),
 		"roi_training", onProgress, nil); err != nil {
 		return err
 	}
@@ -215,10 +215,10 @@ func runPythonScript(py string, args []string, logPrefix string,
 // - reine Funktionen, testbar ohne Python/Subprozess. Eine Option, die hier
 // nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
 func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string) []string {
-	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12)
+	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12, 0)
 }
 
-func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int) []string {
+func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds float64) []string {
 	args := []string{scriptPath,
 		"--video", videoPath,
 		"--roi", roiArg(regions[0].ROI),
@@ -230,6 +230,9 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	}
 	if sampleEvery > 0 && sampleEvery != 12 {
 		args = append(args, "--sample-every", itoa(sampleEvery))
+	}
+	if startSeconds > 0 {
+		args = append(args, "--start-seconds", fmt.Sprintf("%.3f", startSeconds))
 	}
 	if len(regions) > 1 {
 		args = append(args, "--roi2", roiArg(regions[1].ROI), "--class-name2", regions[1].ClassName)

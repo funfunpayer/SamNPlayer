@@ -85,6 +85,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	start := time.Now()
 	trackOpts := nativeTrackOptions{
 		MaxFrames:          opts.MaxFrames,
+		StartTimeSec:       opts.StartTimeSec,
 		CameraCompensation: !opts.DisableCameraCompensation,
 		SceneCutDetection:  !opts.DisableSceneCutDetection,
 		AppearanceMemory:   true,
@@ -137,6 +138,7 @@ type nativeTrackResult struct {
 
 type nativeTrackOptions struct {
 	MaxFrames          int
+	StartTimeSec       float64
 	CameraCompensation bool
 	SceneCutDetection  bool
 	AppearanceMemory   bool

@@ -677,6 +677,8 @@ export namespace main {
 	    contactVibrationCurve: string;
 	    autoOZoneMarker: boolean;
 	    audioCheck: boolean;
+	    nativePipeline: boolean;
+	    startTimeSec: number;
 
 	    static createFrom(source: any = {}) {
 	        return new GenerateOptions(source);
@@ -715,6 +717,8 @@ export namespace main {
 	        this.contactVibrationCurve = source["contactVibrationCurve"];
 	        this.autoOZoneMarker = source["autoOZoneMarker"];
 	        this.audioCheck = source["audioCheck"];
+	        this.nativePipeline = source["nativePipeline"];
+	        this.startTimeSec = source["startTimeSec"];
 	    }
 	}
 	export class GeneratedReview {

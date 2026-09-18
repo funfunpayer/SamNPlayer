@@ -56,9 +56,10 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		axis = "auto"
 	}
 	stOpts := simpletrack.Options{
-		MaxFrames: opts.MaxFrames,
-		Axis:      axis,
-		Cancel:    func() bool { return ctx.Err() != nil },
+		MaxFrames:    opts.MaxFrames,
+		StartTimeSec: opts.StartTimeSec,
+		Axis:         axis,
+		Cancel:       func() bool { return ctx.Err() != nil },
 	}
 
 	var tr simpletrack.Result

@@ -582,6 +582,7 @@ export function initGenerator(root, playback) {
         : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
+      startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     if (roi2) {
       payload.x2 = roi2.x;

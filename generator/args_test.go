@@ -37,6 +37,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		{"Backend flow", Options{Backend: "flow"}, []string{"--backend", "flow"}},
 		{"Backend grid_lk", Options{Backend: "grid_lk"}, []string{"--backend", "grid_lk"}},
 		{"Audio-Tempo-Prüfung", Options{AudioCheck: true}, []string{"--audio-check"}},
+		{"Seek StartTimeSec", Options{StartTimeSec: 3.5}, []string{"--start-seconds", "3.500"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,7 +52,8 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 				for _, flag := range []string{"--auto-retry", "--axis", "--max-speed",
 					"--adaptive-keyframes", "--per-scene-roi", "--profile", "--roi2",
 					"--contact-vibration", "--contact-vibration-span",
-					"--contact-vibration-curve", "--backend", "--audio-check"} {
+					"--contact-vibration-curve", "--backend", "--audio-check",
+					"--start-seconds"} {
 					if strings.Contains(joined, flag) {
 						t.Errorf("unerwartetes Argument %q bei Standardoptionen: %s", flag, joined)
 					}

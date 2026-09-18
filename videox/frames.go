@@ -29,6 +29,8 @@ type GrayReaderOptions struct {
 	MaxWidth int
 	// AutoRotate applies container rotation metadata. Default true.
 	AutoRotate bool
+	// StartSec seeks before decoding (ffmpeg -ss before -i).
+	StartSec float64
 }
 
 // FrameReader streams grayscale frames from ffmpeg over a pipe.
@@ -77,6 +79,9 @@ func NewGrayReader(ctx context.Context, path string, info Info, opt GrayReaderOp
 	args := []string{"-v", "error", "-nostdin"}
 	if !opt.AutoRotate {
 		args = append(args, "-noautorotate")
+	}
+	if opt.StartSec > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(opt.StartSec, 'f', 3, 64))
 	}
 	args = append(args,
 		"-i", path,

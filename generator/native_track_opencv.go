@@ -18,6 +18,7 @@ var errNativeUnavailable = errors.New("generator: native CSRT tracking is not av
 func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
 	tr, err := trackcv.TrackROI(videoPath, trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, trackcv.Options{
 		MaxFrames:          opts.MaxFrames,
+		StartTimeSec:       opts.StartTimeSec,
 		CameraCompensation: opts.CameraCompensation,
 		SceneCutDetection:  opts.SceneCutDetection,
 		AppearanceMemory:   opts.AppearanceMemory,
@@ -53,8 +54,9 @@ func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptio
 		trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H},
 		trackcv.Rect{X: roi2.X, Y: roi2.Y, W: roi2.W, H: roi2.H},
 		trackcv.Options{
-			MaxFrames: opts.MaxFrames,
-			Cancel:    opts.Cancel,
+			MaxFrames:    opts.MaxFrames,
+			StartTimeSec: opts.StartTimeSec,
+			Cancel:       opts.Cancel,
 		})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {

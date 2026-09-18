@@ -78,6 +78,9 @@ type Options struct {
 	ContactVibrationSpan      float64
 	ContactVibrationCurve     string
 	AudioCheck                bool
+	// StartTimeSec skips the first N seconds before tracking (GUI seek past
+	// black intro). 0 = start at the beginning.
+	StartTimeSec float64
 	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
 	// Default false: GenerateWithContext uses trackcv or simpletrack when
 	// NativePipelineEligible — no GUI checkbox required.
@@ -846,6 +849,9 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.AudioCheck {
 		args = append(args, "--audio-check")
+	}
+	if opts.StartTimeSec > 0 {
+		args = append(args, "--start-seconds", strconv.FormatFloat(opts.StartTimeSec, 'f', 3, 64))
 	}
 	return args
 }

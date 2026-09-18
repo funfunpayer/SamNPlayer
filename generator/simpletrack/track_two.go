@@ -44,6 +44,7 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		FPS:        fps,
 		MaxWidth:   640,
 		AutoRotate: true,
+		StartSec:   opts.StartTimeSec,
 	})
 	if err != nil {
 		return Result{}, fmt.Errorf("simpletrack: open: %w", err)

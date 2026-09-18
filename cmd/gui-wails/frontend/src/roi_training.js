@@ -374,7 +374,7 @@ export function initRoiTraining(root) {
           sourcePath,
           roiArg(marks[0]), roiArg(marks[1]), roiArg(marks[2]), roiArg(marks[3]),
           classes[0], classes[1], classes[2], classes[3],
-          sampleEvery, extractAudio,
+          sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0,
         );
       }
     } catch (err) {
