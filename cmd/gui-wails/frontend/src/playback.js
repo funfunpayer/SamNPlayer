@@ -1172,7 +1172,7 @@ export function initPlayback(root) {
     }
     advancingPlaylist = true;
     try {
-      if (playing) await stop();
+      if (playing) await stop({ user: false });
       playlistIndex += 1;
       renderPlaylist();
       await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
@@ -1263,8 +1263,10 @@ export function initPlayback(root) {
     }
   }
 
-  async function stop() {
-    userStopRequested = true;
+  // user=true: Stop-Knopf / manuelles Beenden — Playlist nicht weiter.
+  // user=false: natürliches Video-/Skript-Ende — Auto-Next darf greifen.
+  async function stop({ user = true } = {}) {
+    if (user) userStopRequested = true;
     await StopPlayback();
     if (videoPath) videoEl.pause();
     setPlayingState(false);
@@ -1305,9 +1307,10 @@ export function initPlayback(root) {
 
   // Video-Ende soll auch unsere Wiedergabe sauber beenden - sonst bleibt
   // player.Sync() im Leerlauf hängen (wartet ewig auf weitere Positionen,
-  // die nach Videoende nicht mehr kommen).
+  // die nach Videoende nicht mehr kommen). user:false, damit die Film-Liste
+  // bei „automatisch weiter“ noch weiterschalten darf.
   videoEl.addEventListener('ended', () => {
-    if (playing && el('#pb-use-video-sync').checked) stop();
+    if (playing && el('#pb-use-video-sync').checked) stop({ user: false });
   });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per
@@ -1417,7 +1420,7 @@ export function initPlayback(root) {
       return;
     }
     try {
-      await EditCapSpeedRange(marker.startMs, marker.endMs, 0);
+      await EditCapSpeedRange(marker.startMs, marker.endMs, 400);
       ofsStatus('Speed-Cap angewendet');
       await drawCurve();
       await drawHeatmap();
@@ -1460,7 +1463,7 @@ export function initPlayback(root) {
     if (!pick) return;
     const idx = Number(pick.dataset.idx);
     if (Number.isNaN(idx) || idx === playlistIndex) return;
-    if (playing) await stop();
+    if (playing) await stop({ user: false });
     playlistIndex = idx;
     renderPlaylist();
     await loadScript(playlist[idx].path, { keepPlaylist: true });
