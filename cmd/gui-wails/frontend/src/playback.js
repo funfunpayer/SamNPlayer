@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
-  SaveContactSettings,
+  SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -35,7 +35,15 @@ export function initPlayback(root) {
       <div class="pb-media">
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
-          <div id="pb-novideo" class="pb-novideo">Kein Video daneben — Skript läuft trotzdem allein (Gerät + Kurve).</div>
+          <div class="pb-video-chrome" id="pb-video-chrome">
+            <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick aufs Video)">Vollbild</button>
+            <button type="button" id="pb-video-change" title="Anderes Video wählen">Video…</button>
+          </div>
+          <div id="pb-novideo" class="pb-novideo">
+            <p class="pb-novideo-title">Skript ohne Film</p>
+            <p class="hint">Gerät und Kurve laufen trotzdem. Optional ein Video verknüpfen — muss nicht denselben Namen haben.</p>
+            <button type="button" id="pb-pick-video" class="primary">Video wählen…</button>
+          </div>
         </div>
         <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
         <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
@@ -237,6 +245,7 @@ export function initPlayback(root) {
     el('#pb-eo-trigger').disabled = !isPlaying || !el('#pb-eo-enabled').checked;
     if (!isPlaying) el('#pb-progress').style.width = '0%';
     if (isPlaying) autoEOTriggeredForMarker = false;
+    el('#pb-video-stage').classList.toggle('is-playing', !!isPlaying);
     // Bearbeiten während der Wiedergabe wäre verwirrend (die Kurve bewegt
     // sich durch den Positionszeiger mit) - beim Start aus, Checkbox bis
     // zum Stop gesperrt.
@@ -901,6 +910,31 @@ export function initPlayback(root) {
     window.focus();
   }
 
+  async function attachVideoFromPicker() {
+    if (!scriptPath) return;
+    try {
+      const path = await PickVideoFile();
+      if (!path) return;
+      const url = await SetPlaybackVideo(path);
+      videoPath = path;
+      videoEl.src = url;
+      const stage = el('#pb-video-stage');
+      stage.classList.add('has-video');
+      stage.classList.remove('no-video');
+      el('#pb-video-sync-row').style.display = 'flex';
+      log('Video verknüpft: ' + path);
+    } catch (err) {
+      uiError('Video verknüpfen: ' + err);
+    }
+  }
+
+  function toggleVideoFullscreen() {
+    const stage = el('#pb-video-stage');
+    if (!stage.classList.contains('has-video')) return;
+    const on = stage.classList.toggle('is-fs');
+    el('#pb-video-fs').textContent = on ? 'Zurück' : 'Vollbild';
+  }
+
   async function loadScript(path, extraCount = 0, opts = {}) {
     const info = await LoadFunscript(path);
     scriptPath = info.path;
@@ -940,9 +974,11 @@ export function initPlayback(root) {
     } else {
       videoPath = null;
       videoEl.removeAttribute('src');
-      stage.classList.remove('has-video');
+      stage.classList.remove('has-video', 'is-fs', 'is-playing');
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
+      el('#pb-video-fs').textContent = 'Vollbild';
+      try { ClearPlaybackVideo().catch(() => {}); } catch (_) {}
     }
     try {
       marker = await GetMarker(scriptPath);
@@ -1157,6 +1193,13 @@ export function initPlayback(root) {
   });
   el('#pb-choose').addEventListener('click', chooseScript);
   el('#pb-choose-empty').addEventListener('click', chooseScript);
+  el('#pb-pick-video').addEventListener('click', attachVideoFromPicker);
+  el('#pb-video-change').addEventListener('click', attachVideoFromPicker);
+  el('#pb-video-fs').addEventListener('click', toggleVideoFullscreen);
+  videoEl.addEventListener('dblclick', e => {
+    e.preventDefault();
+    toggleVideoFullscreen();
+  });
   el('#pb-play').addEventListener('click', play);
   el('#pb-stop').addEventListener('click', stop);
   el('#pb-eo-trigger').addEventListener('click', triggerEO);
@@ -1169,6 +1212,12 @@ export function initPlayback(root) {
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+    if (e.key === 'Escape' && el('#pb-video-stage').classList.contains('is-fs')) {
+      e.preventDefault();
+      toggleVideoFullscreen();
+      return;
+    }
 
     if (e.code === 'Space') {
       e.preventDefault();

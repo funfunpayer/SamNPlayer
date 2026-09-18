@@ -39,6 +39,8 @@ export function ClearCache():Promise<main.CacheInfo>;
 
 export function ClearLogEntries():Promise<void>;
 
+export function ClearPlaybackVideo():Promise<void>;
+
 export function ConnectDevice(arg1:boolean):Promise<main.DeviceStatus>;
 
 export function ConnectDeviceVia(arg1:string,arg2:string):Promise<main.DeviceStatus>;
@@ -146,6 +148,8 @@ export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;
+
+export function SetPlaybackVideo(arg1:string):Promise<string>;
 
 export function SetSetting(arg1:string,arg2:any):Promise<void>;
 

@@ -351,6 +351,13 @@ func (i *Intiface) Disconnect() error {
 	return conn.Close()
 }
 
+// Capabilities meldet, welche Kanäle/Sensoren Buttplug für dieses Gerät listet.
+func (i *Intiface) Capabilities() (vibration, suction, battery bool) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.vibrateIdx >= 0, i.constrictIdx >= 0, i.hasBattery
+}
+
 // Info liefert den Verbindungszustand für die Anzeige.
 func (i *Intiface) Info() ConnectionInfo {
 	i.mu.Lock()

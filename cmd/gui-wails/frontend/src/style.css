@@ -507,16 +507,20 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
 .pb-video-stage {
   position: relative;
   background: #000;
-  min-height: 200px;
+  min-height: 240px;
   display: grid;
   place-items: center;
 }
 .pb-video-stage video {
   width: 100%;
-  max-height: min(56vh, 520px);
+  max-height: min(62vh, 640px);
   margin: 0;
   border-radius: 0;
   background: #000;
+  object-fit: contain;
+}
+.pb-video-stage.is-playing.has-video video {
+  max-height: min(72vh, 760px);
 }
 .pb-video-stage.no-video video,
 .pb-video-stage:not(.has-video) video { display: none; }
@@ -524,8 +528,72 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
 .pb-novideo {
   color: var(--text-dim);
   font-size: 13px;
-  padding: 48px 20px;
+  padding: 40px 24px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 28em;
+}
+.pb-novideo-title {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.pb-novideo .hint { margin: 0; }
+.pb-video-chrome {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+.pb-video-stage.has-video:hover .pb-video-chrome,
+.pb-video-stage.has-video:focus-within .pb-video-chrome,
+.pb-video-stage.is-fs .pb-video-chrome { opacity: 1; }
+.pb-video-chrome button {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(10, 12, 18, 0.72);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--text);
+}
+.pb-video-chrome button:hover {
+  background: rgba(20, 24, 34, 0.9);
+  border-color: var(--accent);
+}
+.pb-video-stage.is-fs {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  min-height: 100vh;
+  background: #000;
+  border-radius: 0;
+}
+.pb-video-stage.is-fs video {
+  max-height: 100vh;
+  height: 100vh;
+}
+.dev-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.dev-cap {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--teal-soft);
+  color: var(--teal);
+  border: 1px solid rgba(61, 204, 192, 0.28);
 }
 .pb-curve, .pb-heatmap {
   width: 100%;

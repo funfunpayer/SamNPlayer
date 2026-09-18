@@ -95,6 +95,14 @@ func (s *SamNeo2) Info() ConnectionInfo {
 	}
 }
 
+// BatteryProbed ist true, sobald mindestens einmal versucht wurde, den
+// Standard-GATT-Akku zu lesen (Erfolg oder „Service fehlt“).
+func (s *SamNeo2) BatteryProbed() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.batteryChecked
+}
+
 // BatteryLevel versucht den Standard-GATT-Akku zu lesen (wenn vorhanden).
 // Ergebnis wird kurz gecacht, damit der 2s-Status-Poll die BLE-Verbindung
 // nicht mit Dauer-Lesevorgängen belastet.

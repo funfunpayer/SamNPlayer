@@ -18,6 +18,7 @@ export function CheckForUpdate() { return window['go']['main']['App']['CheckForU
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
 export function ClearLogEntries() { return window['go']['main']['App']['ClearLogEntries'](); }
+export function ClearPlaybackVideo() { return window['go']['main']['App']['ClearPlaybackVideo'](); }
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
 export function CurrentVersion() { return window['go']['main']['App']['CurrentVersion'](); }
@@ -72,6 +73,7 @@ export function ScriptChapters() { return window['go']['main']['App']['ScriptCha
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
 export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
+export function SetPlaybackVideo(arg1) { return window['go']['main']['App']['SetPlaybackVideo'](arg1); }
 export function SetSetting(arg1, arg2) { return window['go']['main']['App']['SetSetting'](arg1, arg2); }
 export function StartPlayback(arg1) { return window['go']['main']['App']['StartPlayback'](arg1); }
 export function StartTraining(arg1) { return window['go']['main']['App']['StartTraining'](arg1); }

@@ -33,9 +33,15 @@ type DeviceStatus struct {
 	Address       string `json:"address"`
 	RSSI          int    `json:"rssi"`
 	SessionActive bool   `json:"sessionActive"`
+	Transport     string `json:"transport"` // ble | intiface | mock | ""
 	// BatteryPct 0–100 wenn BatteryOK; sonst ignorieren (kein Platzhalter in der UI).
 	BatteryPct int  `json:"batteryPct"`
 	BatteryOK  bool `json:"batteryOk"`
+	// Fähigkeiten des verbundenen Geräts (Anzeige „was geht“).
+	CapVibration bool `json:"capVibration"`
+	CapSuction   bool `json:"capSuction"`
+	CapBattery   bool `json:"capBattery"`
+	CapRaw       bool `json:"capRaw"`
 }
 
 // GetDeviceStatus liefert den aktuellen Verbindungszustand der Testverbindung.
@@ -43,10 +49,11 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 	a.stateMu.RLock()
 	dev := a.testDevice
 	isMock := a.testDeviceMock
+	transport := a.testDeviceTransport
 	session := a.sessionActive
 	a.stateMu.RUnlock()
 
-	st := DeviceStatus{SessionActive: session, Mock: isMock}
+	st := DeviceStatus{SessionActive: session, Mock: isMock, Transport: transport}
 	if dev == nil {
 		return st
 	}
@@ -56,9 +63,12 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Connected = info.Connected
 		st.Name = info.Name
 		st.Address = info.Address
+		st.CapVibration, st.CapSuction, st.CapBattery = intiface.Capabilities()
+		st.CapRaw = false
 		if pct, ok := intiface.BatteryLevel(); ok {
 			st.BatteryPct = pct
 			st.BatteryOK = true
+			st.CapBattery = true
 		}
 		return st
 	}
@@ -68,12 +78,22 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Name = info.Name
 		st.Address = info.Address
 		st.RSSI = info.RSSI
+		st.CapVibration = true
+		st.CapSuction = true
+		st.CapRaw = true
 		if pct, ok := real.BatteryLevel(); ok {
 			st.BatteryPct = pct
 			st.BatteryOK = true
+			st.CapBattery = true
+		} else if real.BatteryProbed() {
+			st.CapBattery = false
 		}
 	} else {
 		st.Name = "Mock-Gerät (keine echte Hardware)"
+		st.CapVibration = true
+		st.CapSuction = true
+		st.CapRaw = true
+		st.CapBattery = false
 	}
 	return st
 }
@@ -151,6 +171,7 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = transport == "mock"
+	a.testDeviceTransport = transport
 	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
@@ -192,6 +213,11 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = mock
+	if mock {
+		a.testDeviceTransport = "mock"
+	} else {
+		a.testDeviceTransport = "ble"
+	}
 	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
@@ -242,6 +268,7 @@ func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	dev := a.testDevice
 	a.testDevice = nil
 	a.testDeviceMock = false
+	a.testDeviceTransport = ""
 	a.testDeviceConnectLatencyMs = 0
 	a.stateMu.Unlock()
 

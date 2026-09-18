@@ -45,10 +45,15 @@ def main():
                          "state.address = mock ? '' : 'AA:BB:CC:DD:EE:FF'; "
                          "state.rssi = mock ? 0 : -58; "
                          "state.batteryOk = !mock; state.batteryPct = mock ? 0 : 73; "
+                         "state.transport = mock ? 'mock' : 'ble'; "
+                         "state.capVibration = true; state.capSuction = true; "
+                         "state.capBattery = !mock; state.capRaw = !mock; "
                          "return { ...state }; }",
         "DisconnectDevice": "async () => { window.__calls.push(['disconnect']); "
                             "state.connected = false; state.name = ''; state.address = ''; "
                             "state.rssi = 0; state.batteryOk = false; state.batteryPct = 0; "
+                            "state.capVibration = false; state.capSuction = false; "
+                            "state.capBattery = false; state.capRaw = false; "
                             "return { ...state }; }",
         "TestVibration": "async v => { window.__calls.push(['vib', v]); }",
         "TestSuction": "async v => { window.__calls.push(['suc', v]); }",
@@ -63,6 +68,10 @@ def main():
                             "state.rssi = -58; "
                             "state.batteryOk = transport !== 'mock'; "
                             "state.batteryPct = transport === 'mock' ? 0 : 73; "
+                            "state.transport = transport; "
+                            "state.capVibration = true; state.capSuction = true; "
+                            "state.capBattery = transport !== 'mock'; "
+                            "state.capRaw = transport === 'ble'; "
                             "return { ...state }; }",
         "RunDeviceDiagnostics": "async () => { window.__calls.push(['diagnose']); }",
         "GetDiagnosticsHistory": "async () => ([])",
@@ -115,6 +124,8 @@ def main():
         check("Verbunden: Adresse sichtbar", "AA:BB:CC:DD:EE:FF" in status(), status())
         check("Verbunden: Signalstärke sichtbar", "-58" in status(), status())
         check("Verbunden: Akku sichtbar wenn gemeldet", "Akku 73%" in status(), status())
+        caps = page.locator("#dev-caps").inner_text()
+        check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Sog" in caps, caps)
         check("Verbunden: Testbereich frei", not disabled("#dev-test"))
         check("Verbunden: Verbinden gesperrt", disabled("#dev-connect"))
 

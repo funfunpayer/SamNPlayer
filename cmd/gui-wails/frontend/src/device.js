@@ -24,6 +24,7 @@ export function initDevice(root) {
           <span id="dev-status-text">Status wird geladen...</span>
         </div>
         <p class="hint" id="dev-status-sub" style="margin:0">Noch nicht verbunden.</p>
+        <div class="dev-caps" id="dev-caps" hidden></div>
       </div>
     </div>
 
@@ -116,6 +117,35 @@ export function initDevice(root) {
   const vibStep = pct => Math.round(pct / 100 * 10);
   const sucStep = pct => Math.round(pct / 100 * 5);
 
+  function renderCaps(st) {
+    const box = el('#dev-caps');
+    if (!st || !st.connected) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    const chips = [];
+    const transportLabel = {
+      ble: 'Direkt-BLE',
+      intiface: 'Intiface',
+      mock: 'Mock',
+    }[st.transport] || (st.mock ? 'Mock' : '');
+    if (transportLabel) chips.push(transportLabel);
+    if (st.capVibration) chips.push('Vibration');
+    if (st.capSuction) chips.push('Sog');
+    if (st.capBattery) {
+      chips.push(st.batteryOk ? `Akku ${st.batteryPct}%` : 'Akku');
+    }
+    if (st.capRaw) chips.push('Rohwerte');
+    if (chips.length === 0) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML = chips.map(c => `<span class="dev-cap">${c}</span>`).join('');
+  }
+
   function render(st) {
     const dot = el('#dev-dot');
     const text = el('#dev-status-text');
@@ -129,12 +159,14 @@ export function initDevice(root) {
       text.textContent = 'Wiedergabe oder Training läuft - Gerätetest währenddessen nicht möglich.';
       sub.textContent = 'Test erst nach Ende der Session.';
       box.style.borderColor = 'var(--warn, #d9a441)';
+      renderCaps(null);
     } else if (searching) {
       box.classList.add('is-searching');
       dot.style.background = 'var(--warn, #d9a441)';
       text.textContent = 'Suche Gerät…';
       sub.textContent = 'Bis zu 20 Sekunden.';
       box.style.borderColor = 'var(--warn, #d9a441)';
+      renderCaps(null);
     } else if (st.connected) {
       box.classList.add('is-connected');
       dot.style.background = 'var(--ok)';
@@ -154,12 +186,14 @@ export function initDevice(root) {
         : (st.batteryOk
           ? `Bereit für Funktionstest · Akku ${st.batteryPct}%.`
           : 'Bereit für Funktionstest.');
+      renderCaps(st);
     } else {
       dot.style.background = '#777';
       box.style.borderColor = 'var(--border)';
       text.textContent = 'Nicht verbunden';
       sub.textContent = 'Verbindung wählen und Verbinden tippen.';
       setFills(0, 0);
+      renderCaps(null);
     }
 
     const canTest = st.connected && !st.sessionActive;

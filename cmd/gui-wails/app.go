@@ -46,6 +46,8 @@ type App struct {
 	// eine Verbindung) und wird in app_device.go explizit abgelehnt.
 	testDevice     device.Device
 	testDeviceMock bool
+	// testDeviceTransport: "ble" | "intiface" | "mock" — für die Fähigkeitsanzeige.
+	testDeviceTransport string
 	// testDeviceConnectLatencyMs: wie lange der letzte erfolgreiche
 	// Connect() gedauert hat - fließt als erster Eintrag in den
 	// Geräte-Diagnoselauf ein (app_diagnostics.go), statt die Verbindung
@@ -211,6 +213,35 @@ func (a *App) VideoFileURL() string {
 	return fmt.Sprintf("http://127.0.0.1:%d/video", port)
 }
 
+// SetPlaybackVideo verknüpft ein beliebiges Video mit dem geladenen Skript
+// (wenn keines mit gleichem Namen daneben liegt). Liefert die neue Video-URL.
+func (a *App) SetPlaybackVideo(path string) (string, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", fmt.Errorf("kein Videopfad")
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return "", fmt.Errorf("Videodatei nicht gefunden: %s", path)
+	}
+	a.stateMu.Lock()
+	a.videoPath = path
+	a.stateMu.Unlock()
+	logging.Info("app: Wiedergabe-Video gesetzt", "pfad", path)
+	url := a.VideoFileURL()
+	if url == "" {
+		return "", fmt.Errorf("Videoserver nicht startbar")
+	}
+	return url, nil
+}
+
+// ClearPlaybackVideo entfernt die Video-Verknüpfung (Skript allein).
+func (a *App) ClearPlaybackVideo() {
+	a.stateMu.Lock()
+	a.videoPath = ""
+	a.stateMu.Unlock()
+}
+
 // ensureVideoServer startet (einmalig, beim ersten Bedarf) einen lokalen
 // HTTP-Server, der ausschließlich an localhost lauscht und nur die aktuell
 // in a.videoPath hinterlegte Datei ausliefert - kein offener Dateiserver,
@@ -368,6 +399,8 @@ func (a *App) shutdown(ctx context.Context) {
 	a.stateMu.Lock()
 	dev := a.testDevice
 	a.testDevice = nil
+	a.testDeviceMock = false
+	a.testDeviceTransport = ""
 	activeDev := a.activeDevice
 	cancel := a.playCancel
 	a.stateMu.Unlock()
