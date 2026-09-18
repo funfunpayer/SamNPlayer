@@ -141,11 +141,11 @@ type TrackingGap struct {
 // dortige Feldkommentare (funscript/recipe.go) für die Bedeutung der
 // einzelnen Werte.
 type DeviceRecipe struct {
-	Sync             string  `json:"sync"`
-	MinSuction       float64 `json:"min_suction"`
-	TickMs           int64   `json:"tick_ms"`
-	MaxSpeed         float64 `json:"max_speed"`
-	Smoothing        float64 `json:"smoothing"`
+	Sync                  string  `json:"sync"`
+	MinSuction            float64 `json:"min_suction"`
+	TickMs                int64   `json:"tick_ms"`
+	MaxSpeed              float64 `json:"max_speed"`
+	Smoothing             float64 `json:"smoothing"`
 	ContactVibration      bool    `json:"contact_vibration,omitempty"`
 	ContactVibrationSpan  float64 `json:"contact_vibration_span,omitempty"`
 	ContactVibrationCurve string  `json:"contact_vibration_curve,omitempty"`
