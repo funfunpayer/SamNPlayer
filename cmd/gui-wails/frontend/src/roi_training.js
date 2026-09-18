@@ -26,6 +26,16 @@ export function initRoiTraining(root) {
       Markierungen auf Video oder Still-Bild → abtasten → kontrollieren → lokal trainieren.
       Bis zu vier Klassen pro Bild. Sound wird neben dem Datensatz abgelegt.
     </p>
+    <div class="card" style="margin-bottom:16px; padding:12px 14px;">
+      <h3 style="margin-top:0; margin-bottom:8px;">So wird daraus ein gutes Skript</h3>
+      <ol class="hint" style="margin:0; padding-left:1.2em; line-height:1.55;">
+        <li><b>Hier trainieren</b> — Markierungen → „Für Training verwenden“ → schlechte Samples verwerfen → Training starten. Ergebnis: <code>roi_detector.onnx</code>.</li>
+        <li><b>Dann Erzeugen</b> — Video laden → Häkchen „KI-Erkennung (ONNX)“ → „Region automatisch finden“. Die KI schlägt nur die Box vor.</li>
+        <li><b>Box prüfen/korrigieren</b> — nie blind übernehmen. Bei Tf/Tj ggf. 2. Region setzen.</li>
+        <li><b>Funscript generieren</b> — klassisches Tracking (CSRT/Flow/…) schreibt das Skript. Die KI trackt nicht selbst.</li>
+        <li><b>In Wiedergabe prüfen</b> — Feedback-Buttons (brauchbar/…) verbessern später den Quality Doctor, nicht die Regions-KI.</li>
+      </ol>
+    </div>
 
     <h3>1. Trainingsdaten sammeln</h3>
     <div class="row">

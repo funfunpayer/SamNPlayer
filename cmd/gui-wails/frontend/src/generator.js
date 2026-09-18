@@ -6,6 +6,10 @@ import { wireDataHelp } from './help.js';
 export function initGenerator(root, playback) {
   root.innerHTML = `
     <h2>Skript erzeugen</h2>
+    <p class="hint" style="margin-top:0">
+      Die KI (ONNX) findet nur die <b>Start-Region</b>. Das Funscript entsteht danach durch Tracking.
+      Modell trainieren unter <b>KI-Train.</b> — dann hier „KI-Erkennung“ anhaken → Region finden → Box prüfen → Generieren.
+    </p>
     <div class="row">
       <button id="gen-choose">Video wählen...</button>
       <span class="path-label" id="gen-video-path">Kein Video gewählt</span>
