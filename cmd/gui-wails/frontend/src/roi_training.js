@@ -12,10 +12,10 @@ const CLASS_PRESETS = [
   'hand', 'mouth', 'brust', 'eichel', 'penis', 'tongue', 'toy', 'body', 'face', 'other',
 ];
 const MARK_COLORS = [
-  { stroke: '#5fd0c8', fill: 'rgba(95,208,200,0.15)' },
-  { stroke: '#8b7cff', fill: 'rgba(139,124,255,0.18)' },
-  { stroke: '#f0a14a', fill: 'rgba(240,161,74,0.18)' },
-  { stroke: '#5ecf8a', fill: 'rgba(94,207,138,0.18)' },
+  { stroke: '#3dccc0', fill: 'rgba(61,204,192,0.16)' },
+  { stroke: '#f2b03d', fill: 'rgba(242,176,61,0.18)' },
+  { stroke: '#5ecf8a', fill: 'rgba(94,207,138,0.16)' },
+  { stroke: '#e8eaed', fill: 'rgba(232,234,237,0.12)' },
 ];
 
 export function initRoiTraining(root) {

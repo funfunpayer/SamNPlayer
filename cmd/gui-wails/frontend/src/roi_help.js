@@ -109,7 +109,7 @@ export function enhanceGeneratorPreview(root) {
     const sx = overlay.width / nw, sy = overlay.height / nh;
     const a = { x: (r1.x + r1.w / 2) * sx, y: (r1.y + r1.h / 2) * sy };
     const b = { x: (r2.x + r2.w / 2) * sx, y: (r2.y + r2.h / 2) * sy };
-    ctx.strokeStyle = 'rgba(240,161,74,0.9)';
+    ctx.strokeStyle = 'rgba(242,176,61,0.9)';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 4]);
     ctx.beginPath();
@@ -117,7 +117,7 @@ export function enhanceGeneratorPreview(root) {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#f0a14a';
+    ctx.fillStyle = '#f2b03d';
     ctx.beginPath(); ctx.arc(a.x, a.y, 4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill();
   }
