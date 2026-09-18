@@ -13,11 +13,15 @@ measurement history behind each entry; this file is the short version for
 - **KI-Training:** one-click `InstallRoiTrainingDeps` (embedded
   `requirements-ai-train.txt` in release binaries); split status
   (Python / OpenCV / ultralytics); still samples get a val split;
-  Kontrollansicht **Box korrigieren**; guides `docs/KI_TRAINING.md` +
+  review **correct box**; guides `docs/KI_TRAINING.md` +
   `docs/PLAYER_CODECS.md`.
-- **Playback codecs:** ffprobe playability check, „Abspielbar machen“
+- **Class-aware AI ROI:** `preferred_class_ids` /
+  `--ai-preferred-classes` / Settings preferred classes; `classes.json`
+  copied next to `.onnx` on train; two-ROI pick prefers distinct classes.
+- **Bootstrap box scale:** `--box-scale` / GUI field for slight YOLO pad.
+- **Playback codecs:** ffprobe playability check, “Make playable”
   H.264/AAC proxy via ffmpeg, `<video>` error banner, correct MIME on
-  local video serve.
+  local video serve; player key hints + transport polish.
 
 ### Fixed
 

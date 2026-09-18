@@ -40,6 +40,7 @@ export function saveSetting(key, value) {
       'training.plateau_fraction': 'trainingPlateauFraction',
       'training.progression_per_cycle': 'trainingProgressionPerCycle',
       'generator.aiRoiModelPath': 'aiRoiModelPath',
+      'generator.aiPreferredClasses': 'aiPreferredClasses',
       'generator.aiBaseUrl': 'aiBaseUrl',
       'generator.roiTrainingDatasetDir': 'roiDatasetDir',
     };
@@ -89,8 +90,13 @@ export function initSettings(root) {
       es bei der klassischen Erkennung. Leer lassen nutzt den Standardordner
       (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> unter Windows).</p>
     <div class="row">
-      <input type="text" id="st-ai-roi-path" placeholder="(Standardordner)" style="flex:1;" />
-      <button id="st-ai-roi-check">Verfügbarkeit prüfen</button>
+      <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
+      <button id="st-ai-roi-check">Check availability</button>
+    </div>
+    <div class="field-row" style="margin-top:8px">
+      <label for="st-ai-pref-classes"
+        data-help="Comma-separated class names or ids (e.g. hand,breast). Empty = best confidence among all classes. Names need classes.json next to the .onnx (copied after training).">Preferred classes</label>
+      <input type="text" id="st-ai-pref-classes" placeholder="(all classes)" style="flex:1;" />
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
@@ -180,6 +186,7 @@ export function initSettings(root) {
     el('#st-cache-exit').checked = !!s.clearCacheOnExit;
     el('#st-report-path').dataset.default = s.defaultReportPath || '';
     el('#st-ai-roi-path').value = s.aiRoiModelPath || '';
+    el('#st-ai-pref-classes').value = s.aiPreferredClasses || '';
     el('#st-ai-base-url').value = s.aiBaseUrl || '';
     updateReportStatus();
   });
@@ -259,6 +266,9 @@ export function initSettings(root) {
 
   el('#st-ai-roi-path').addEventListener('change', e =>
     saveSetting('generator.aiRoiModelPath', e.target.value.trim()));
+
+  el('#st-ai-pref-classes').addEventListener('change', e =>
+    saveSetting('generator.aiPreferredClasses', e.target.value.trim()));
 
   el('#st-ai-base-url').addEventListener('change', e =>
     saveSetting('generator.aiBaseUrl', e.target.value.trim()));

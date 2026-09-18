@@ -17,7 +17,7 @@ export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 
 export function BootstrapRoiTrainingSample(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:string,arg5:string):Promise<string>;
 
-export function BootstrapRoiTrainingSampleEx(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:generator.ROI|null,arg5:generator.ROI|null,arg6:string,arg7:string,arg8:string,arg9:string,arg10:number,arg11:boolean,arg12:number):Promise<string>;
+export function BootstrapRoiTrainingSampleEx(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:generator.ROI|null,arg5:generator.ROI|null,arg6:string,arg7:string,arg8:string,arg9:string,arg10:number,arg11:boolean,arg12:number,arg13:number):Promise<string>;
 
 export function AddRoiStillTrainingSample(arg1:string,arg2:Array<generator.RoiTrainingRegion>):Promise<string>;
 

@@ -100,10 +100,13 @@ python generator/train_yolo_model.py \
 ## Tipps für gute Modelle
 
 - Viele kurze Clips statt eines langen
-- Boxen in der Kontrollansicht korrigieren
+- Boxen in der Kontrollansicht korrigieren (Bootstrap hält feste w/h)
+- Optional **Box scale** 1.1–1.2 für etwas Polster um die Markierung
 - Mindestens ein Val-Beispiel (Still-Pfad wechselt automatisch)
 - GPU stark empfohlen; CPU nur für Smoke-Tests (wenige Epochen)
-- Nach Training: im Erzeugen-Tab einmal „KI-Erkennung“ prüfen
+- Nach Training: Erzeugen-Tab → KI-Erkennung; in Settings **Preferred classes**
+  setzen bei Mehrklassen-Modellen (z.B. `hand,breast`)
+- 3D / Depth / Pose: **nicht** — erst wenn Golden-Clips Funscript-Gewinn zeigen
 
 ## Fehlerbilder
 
@@ -113,7 +116,8 @@ python generator/train_yolo_model.py \
 | Bootstrap scheitert OpenCV 5 | `opencv-contrib-python`; KCF-Fallback prüfen |
 | Training: leeres val | mind. 2 Stills oder Video-Bootstrap |
 | KI-Häkchen grau | kein `.onnx` unter Modellpfad |
-| Schlechte Vorschläge | mehr/korrigierte Samples, nicht „größeres YOLO“ raten |
+| Schlechte Vorschläge | mehr/korrigierte Samples; Preferred classes; nicht „größeres YOLO“ |
+| Preferred class ignoriert | `classes.json` neben `.onnx` fehlt (neu trainieren oder kopieren) |
 
 ## Verwandte Dateien
 

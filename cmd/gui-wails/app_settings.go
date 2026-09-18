@@ -20,6 +20,7 @@ const (
 	prefIntifaceURL          = "device.intifaceUrl"
 	prefDeviceConnectTest    = "device.connect_test"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
+	prefAIPreferredClasses   = "generator.aiPreferredClasses"
 	prefAIBaseURL            = "generator.aiBaseUrl"
 	prefBenchmarkManifest    = "generator.benchmarkManifestPath"
 	prefBenchmarkHistoryPath = "generator.benchmarkHistoryPath"
@@ -101,6 +102,11 @@ type Settings struct {
 	// einen Python-Start, gehört darum nicht in dieses Massen-Get).
 	AIRoiModelPath string `json:"aiRoiModelPath"`
 
+	// AIPreferredClasses: comma-separated class names or ids for AI ROI
+	// (e.g. "hand,breast"). Empty = highest confidence among all classes.
+	// Names resolve via classes.json next to the .onnx (copied on train).
+	AIPreferredClasses string `json:"aiPreferredClasses"`
+
 	// AIBaseURL: Adresse eines lokalen Colibri-Servers (coli serve) für
 	// Profil-Vorschlag und KI-Zweitmeinung zur Qualität (docs/AI_ADAPTER.md).
 	// Leer = colibri_client.DEFAULT_BASE_URL (Standard-Localhost-Port).
@@ -157,15 +163,16 @@ func (a *App) GetSettings() Settings {
 		TrainingPlateauFraction:     s.GetFloat(prefTrainingPlateauFraction, 0.7),
 		TrainingProgressionPerCycle: s.GetFloat(prefTrainingProgressionPerCycle, 0.15),
 
-		LogPath:           logging.Path(),
-		ReportPath:        s.GetString(prefReportPath, ""),
-		DefaultReportPath: defaultReportPath(),
-		ClearCacheOnExit:  s.GetBool(prefClearCacheOnExit, false),
-		DeviceTransport:   s.GetString(prefDeviceTransport, "ble"),
-		IntifaceURL:       s.GetString(prefIntifaceURL, ""),
-		DeviceConnectTest: s.GetBool(prefDeviceConnectTest, false),
-		AIRoiModelPath:    s.GetString(prefAIRoiModelPath, ""),
-		AIBaseURL:         s.GetString(prefAIBaseURL, ""),
+		LogPath:            logging.Path(),
+		ReportPath:         s.GetString(prefReportPath, ""),
+		DefaultReportPath:  defaultReportPath(),
+		ClearCacheOnExit:   s.GetBool(prefClearCacheOnExit, false),
+		DeviceTransport:    s.GetString(prefDeviceTransport, "ble"),
+		IntifaceURL:        s.GetString(prefIntifaceURL, ""),
+		DeviceConnectTest:  s.GetBool(prefDeviceConnectTest, false),
+		AIRoiModelPath:     s.GetString(prefAIRoiModelPath, ""),
+		AIPreferredClasses: s.GetString(prefAIPreferredClasses, ""),
+		AIBaseURL:          s.GetString(prefAIBaseURL, ""),
 
 		BenchmarkManifestPath:       s.GetString(prefBenchmarkManifest, ""),
 		BenchmarkHistoryPath:        s.GetString(prefBenchmarkHistoryPath, ""),

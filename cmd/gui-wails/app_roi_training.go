@@ -121,11 +121,11 @@ func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
 // Video und hängt die Ergebnisse an den Datensatz an. sampleEvery steuert die
 // Abtastung (Standard 12); extractAudio speichert die Tonspur neben dem Datensatz.
 func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.ROI, className, className2 string) (string, error) {
-	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0)
+	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0, 1.0)
 }
 
 // BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio,
-// and an optional startSeconds seek (GUI past black intro).
+// startSeconds seek, and optional YOLO box_scale pad around the marked size.
 func (a *App) BootstrapRoiTrainingSampleEx(
 	videoPath string,
 	roi, roi2, roi3, roi4 *generator.ROI,
@@ -133,6 +133,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	sampleEvery int,
 	extractAudio bool,
 	startSeconds float64,
+	boxScale float64,
 ) (string, error) {
 	if err := claimRoiTrainingRun(); err != nil {
 		return "", err
@@ -156,6 +157,9 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	if sampleEvery <= 0 {
 		sampleEvery = 12
 	}
+	if boxScale <= 0 {
+		boxScale = 1.0
+	}
 
 	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
 	prefix := roiTrainingSamplePrefix(videoPath)
@@ -173,7 +177,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 
 	go func() {
 		defer releaseRoiTrainingRun()
-		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds,
+		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
 		if err != nil {
 			logging.Error("roitraining: Bootstrap fehlgeschlagen", "video", videoPath, "fehler", err)

@@ -64,8 +64,11 @@ export function initRoiTraining(root) {
     <div id="rt-mark-fields"></div>
     <datalist id="rt-class-list"></datalist>
     <div id="rt-class-chips" class="rt-chips" aria-label="Bekannte Klassen"></div>
-    <div class="field-row"><label data-help="Jeden N-ten Frame als Beispiel schreiben. Kleiner = dichter, größer = weniger Redundanz.">Abtastung (jeder N-te Frame)</label>
+    <div class="field-row"><label data-help="Write every N-th frame as a sample. Smaller = denser; larger = less redundancy.">Sampling (every N-th frame)</label>
       <input type="number" id="rt-sample-every" value="12" min="1" max="120" style="width:5em;" />
+    </div>
+    <div class="field-row"><label data-help="Multiply marked box size for YOLO labels (1.0 = exact mark; 1.1–1.2 adds a small pad). Prefer correcting boxes in review over a large scale.">Box scale</label>
+      <input type="number" id="rt-box-scale" value="1.0" min="0.5" max="2.0" step="0.05" style="width:5em;" />
     </div>
     <div class="checkbox-row"><input type="checkbox" id="rt-extract-audio" checked />
       <label for="rt-extract-audio" style="width:auto"
@@ -388,11 +391,12 @@ export function initRoiTraining(root) {
       } else {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
+        const boxScale = parseFloat(el('#rt-box-scale')?.value) || 1.0;
         lastPrefix = await BootstrapRoiTrainingSampleEx(
           sourcePath,
           roiArg(marks[0]), roiArg(marks[1]), roiArg(marks[2]), roiArg(marks[3]),
           classes[0], classes[1], classes[2], classes[3],
-          sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0,
+          sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
         );
       }
     } catch (err) {

@@ -42,11 +42,12 @@ export function initPlayback(root) {
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
           <div class="pb-video-chrome" id="pb-video-chrome">
-            <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick)">Vollbild</button>
-            <button type="button" id="pb-video-change" title="Anderes Video wählen">Video…</button>
-            <button type="button" id="pb-video-convert" title="Nach H.264/AAC MP4 konvertieren (ffmpeg)" hidden>Abspielbar machen</button>
+            <button type="button" id="pb-video-fs" title="Fullscreen (double-click)">Fullscreen</button>
+            <button type="button" id="pb-video-change" title="Choose another video">Video…</button>
+            <button type="button" id="pb-video-convert" title="Convert to H.264/AAC MP4 (ffmpeg)" hidden>Make playable</button>
           </div>
           <div id="pb-video-warn" class="pb-video-warn" hidden></div>
+          <p class="pb-keys-hint hint" id="pb-keys-hint">Space play/stop · ←/→ seek · ,/. fine · +/- offset · E Extended-O · Esc leave fullscreen</p>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Skript ohne Film</p>
             <p class="hint">Läuft allein über Gerät und Kurve — Video ist optional. „Abspielen“ startet sofort.</p>

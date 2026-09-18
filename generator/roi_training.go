@@ -142,7 +142,6 @@ type RoiTrainingDevice struct {
 	Available bool   `json:"available"`
 }
 
-
 // ListRoiTrainingDevices fragt train_yolo_model.py --list-devices ab.
 // Bei Fehlern (kein Python / ultralytics egal - list_devices braucht kein
 // ultralytics) kommt eine statische Fallback-Liste, damit die GUI trotzdem
@@ -195,13 +194,13 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
-	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, onProgress)
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress)
 }
 
 // BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
-// stride, optional audio extraction, and optional startSeconds seek.
+// stride, optional audio extraction, startSeconds seek, and boxScale pad.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
-	sampleEvery int, extractAudio bool, startSeconds float64, onProgress func(line string)) error {
+	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: mindestens eine Region nötig")
 	}
@@ -218,8 +217,11 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 	}
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "bootstrap_yolo_dataset.py")
+	if boxScale <= 0 {
+		boxScale = 1.0
+	}
 
-	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds),
+	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
 		"roi_training", onProgress, nil); err != nil {
 		return err
 	}
@@ -309,10 +311,10 @@ func runPythonScript(py string, args []string, logPrefix string,
 // - reine Funktionen, testbar ohne Python/Subprozess. Eine Option, die hier
 // nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
 func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string) []string {
-	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12, 0)
+	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12, 0, 1.0)
 }
 
-func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds float64) []string {
+func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds, boxScale float64) []string {
 	args := []string{scriptPath,
 		"--video", videoPath,
 		"--roi", roiArg(regions[0].ROI),
@@ -327,6 +329,9 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	}
 	if startSeconds > 0 {
 		args = append(args, "--start-seconds", fmt.Sprintf("%.3f", startSeconds))
+	}
+	if boxScale > 0 && (boxScale < 0.999 || boxScale > 1.001) {
+		args = append(args, "--box-scale", fmt.Sprintf("%.3f", boxScale))
 	}
 	if len(regions) > 1 {
 		args = append(args, "--roi2", roiArg(regions[1].ROI), "--class-name2", regions[1].ClassName)

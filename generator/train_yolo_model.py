@@ -203,6 +203,17 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
     if not export_yolo_onnx.verify(output_path, imgsz):
         print("WARNUNG: Verifikation des exportierten Modells unerwartet - "
               "manuell prüfen, bevor es produktiv verwendet wird.", file=sys.stderr)
+    # Keep classes.json next to the .onnx so inference can resolve
+    # --preferred-classes names without pointing at the full dataset dir.
+    import shutil
+    classes_src = os.path.join(dataset_dir, "classes.json")
+    if os.path.isfile(classes_src):
+        classes_dst = os.path.join(os.path.dirname(os.path.abspath(output_path)), "classes.json")
+        try:
+            shutil.copy2(classes_src, classes_dst)
+            print(f"classes.json -> {classes_dst}", file=sys.stderr)
+        except OSError as exc:
+            print(f"Hinweis: classes.json nicht kopiert: {exc}", file=sys.stderr)
     print(f"Fertig: {output_path}", file=sys.stderr)
     return output_path
 
