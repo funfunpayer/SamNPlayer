@@ -128,6 +128,15 @@ body {
   opacity: 0.75;
   pointer-events: none;
 }
+/* Logo + Wordmark als Lockup — Schrift sitzt direkt neben dem SN-Mark */
+.brand-lockup {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  z-index: 30;
+}
 .brand {
   width: 54px; height: 54px;
   border-radius: 16px;
@@ -135,19 +144,48 @@ body {
   border: 0;
   box-shadow: none;
   display: grid; place-items: center;
-  margin-bottom: 14px;
-  flex-shrink: 0;
   overflow: hidden;
   padding: 0;
   transition: transform .18s ease, filter .18s ease;
 }
-.brand:hover {
-  border-color: transparent;
-  box-shadow: none;
+.brand-lockup:hover .brand {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
 .brand img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 16px; }
+.brand-wordmark {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: var(--font);
+}
+.brand-wordmark .mark {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  text-shadow:
+    -2px 0 0 rgba(47, 212, 196, 0.55),
+    0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.brand-wordmark .rest {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #f7f0e2;
+  text-shadow:
+    -1.5px 0 0 rgba(47, 212, 196, 0.28),
+    0 1px 0 rgba(0, 0, 0, 0.3);
+}
 .tab-btn {
   width: 100%;
   border: 0;
@@ -187,6 +225,12 @@ body {
   background: rgba(12, 16, 24, 0.92);
   backdrop-filter: blur(8px);
 }
+/* Platzhalter links in der Topbar — Wordmark hängt am Rail-Logo */
+.topbar-brand-slot {
+  min-width: 168px;
+  height: 1px;
+  flex-shrink: 0;
+}
 .topbar-brand {
   display: flex;
   align-items: baseline;
@@ -195,16 +239,17 @@ body {
   line-height: 1;
 }
 .topbar-brand .mark {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.03em;
   color: var(--accent);
+  text-shadow: -2px 0 0 rgba(47, 212, 196, 0.55);
 }
 .topbar-brand .rest {
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #f7f0e2;
 }
 .topbar-brand .slash {
   margin: 0 8px;

@@ -8,7 +8,14 @@
 <body>
   <div id="app">
     <nav id="rail">
-      <div class="brand" title="SamNPlayer"><img src="/src/assets/images/logo-universal.png" alt="SamNPlayer" /></div>
+      <div class="brand-lockup" title="SamNPlayer">
+        <div class="brand">
+          <img src="/src/assets/images/logo-universal.png" alt="" />
+        </div>
+        <h1 class="brand-wordmark">
+          <span class="mark">SamN</span><span class="rest">Player</span>
+        </h1>
+      </div>
       <button class="tab-btn active" data-tab="playback" title="Wiedergabe">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="8.2"/>
@@ -75,9 +82,7 @@
 
     <div class="app-main">
       <header id="topbar">
-        <h1 class="topbar-brand">
-          <span class="mark">SamN</span><span class="rest">Player</span>
-        </h1>
+        <div class="topbar-brand-slot" aria-hidden="true"></div>
         <div class="pills">
           <div id="topbar-device-wrap" class="topbar-device-wrap">
             <button type="button" id="topbar-device" class="topbar-device is-offline" title="Gerätetab öffnen" aria-live="polite">
