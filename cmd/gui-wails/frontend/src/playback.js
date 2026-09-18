@@ -11,137 +11,168 @@ import { wireDataHelp } from './help.js';
 const HEATMAP_BUCKETS = 300;
 
 export function initPlayback(root) {
+  root.classList.add('tab-playback');
   root.innerHTML = `
-    <h2>Wiedergabe</h2>
-    <div class="row">
-      <button id="pb-choose">Funscript wählen...</button>
-      <span class="path-label" id="pb-script-path">Kein Skript gewählt</span>
+    <div class="pb-head">
+      <h2>Wiedergabe</h2>
+      <div class="row pb-pick">
+        <button id="pb-choose" class="primary">Funscript wählen…</button>
+        <span class="path-label" id="pb-script-path">Kein Skript gewählt</span>
+      </div>
     </div>
 
-    <video id="pb-video" controls style="display:none"></video>
-    <div id="pb-novideo" class="hint">Kein passendes Video im selben Ordner gefunden.</div>
-
-    <canvas id="pb-curve" height="110" style="width:100%; display:none; border-radius:4px;
-            margin-top:8px; background:rgba(255,255,255,0.04); cursor:crosshair;"></canvas>
-    <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
-      <input type="checkbox" id="pb-curve-edit" />
-      <label for="pb-curve-edit">Kurve bearbeiten</label>
-    </div>
-    <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
-      data-help="Klick+Ziehen = Punkt verschieben. Klick auf freie Stelle = neuer Punkt. Doppelklick = löschen (mind. 2 bleiben). Jede Änderung wird sofort gespeichert.">
-      Kurve bearbeiten: ziehen / klicken / Doppelklick — siehe „?“.</p>
-    <div class="row" id="pb-offset-row" style="display:none; align-items:center; margin-top:8px;">
-      <label style="width:auto;" data-help="Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe. Wird je Skript gespeichert.">Skript-Offset</label>
-      <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
-      <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
-      <span class="hint" style="margin:0;">ms</span>
-      <button id="pb-offset-plus" title="Skript 50ms später (Taste +)">+50</button>
-      <button id="pb-offset-reset">zurücksetzen</button>
-      <span class="checkbox-row" style="margin:0 0 0 12px;">
-        <input type="checkbox" id="pb-loop" />
-        <label for="pb-loop" style="width:auto;" data-help="Wiederholt den markierten Abschnitt (Heatmap ziehen).">Markierung wiederholen</label>
-      </span>
-    </div>
-    <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
-      data-help="Leertaste Start/Stop · ←/→ 5 s (Shift 1 s) · ,/. Feinschritt · 1–9 springen · +/− Offset · L Wiederholung · E Extended-O · O O-Marker 4s">
-      Tastenhilfe über „?“.</p>
-    <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
-    <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
-      <button id="pb-script-doctor" type="button">Skript prüfen (Script Doctor)</button>
-      <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
-    </div>
-    <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
-    <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
-    <div class="hint" id="pb-marker-hint" style="display:none"
-      data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
-      Heatmap: Klick = springen, Ziehen = markieren. <span id="pb-marker-label"></span>
-      <button id="pb-marker-clear" style="margin-left:8px">Markierung löschen</button>
-    </div>
-    <div class="checkbox-row" id="pb-marker-auto-row" style="display:none">
-      <input type="checkbox" id="pb-marker-auto" />
-      <label for="pb-marker-auto" data-help="Löst Extended-O automatisch aus, wenn die Wiedergabe den markierten Bereich erreicht.">Extended-O automatisch im markierten Bereich</label>
+    <div class="pb-empty" id="pb-empty">
+      <div class="pb-empty-inner">
+        <p class="pb-empty-title">Noch nichts geladen</p>
+        <p class="hint">Funscript wählen — liegt ein Video mit gleichem Namen daneben, erscheint es hier automatisch.</p>
+        <button type="button" id="pb-choose-empty" class="primary">Funscript wählen…</button>
+      </div>
     </div>
 
-    <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
-      data-help="O-Marker werden im Skript gespeichert (nicht nur lokal). Primär = Höhepunkt, sekundär = schwächere Stellen. Erst Bereich markieren, dann übernehmen.">
-      O-Marker: authored im Skript — siehe „?“.</div>
-    <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-      <select id="pb-omarker-kind">
-        <option value="primary">Primär (Höhepunkt)</option>
-        <option value="secondary">Sekundär (früher, schwächer)</option>
-      </select>
-      <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
-        <label style="width:auto;">Intensität</label>
-        <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
-      </span>
-      <button id="pb-omarker-add" disabled>Markierung als O-Marker übernehmen</button>
-    </div>
-    <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+    <div class="pb-loaded" id="pb-loaded" hidden>
+      <div class="pb-media">
+        <div class="pb-video-stage" id="pb-video-stage">
+          <video id="pb-video" controls playsinline></video>
+          <div id="pb-novideo" class="pb-novideo">Kein passendes Video im selben Ordner.</div>
+        </div>
+        <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
+        <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <div class="pb-transport">
+          <div class="row pb-transport-btns">
+            <button id="pb-play" class="primary">▶ Abspielen</button>
+            <button id="pb-stop" disabled>■ Stop</button>
+            <button id="pb-eo-trigger" disabled>Extended-O</button>
+          </div>
+          <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
+          <div class="stat-row pb-live">
+            <span>Vibration <b id="pb-vib">-</b></span>
+            <span>Sog <b id="pb-suc">-</b></span>
+          </div>
+        </div>
+      </div>
 
-    <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
-      <input type="checkbox" id="pb-use-video-sync" checked />
-      <label for="pb-use-video-sync">Gerät folgt der echten Videoposition (empfohlen, statt eigener Uhr)</label>
-    </div>
-    <div class="checkbox-row" id="pb-contact-off-row" style="display:none">
-      <input type="checkbox" id="pb-contact-off" />
-      <label for="pb-contact-off"
-        data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
-    </div>
-    <div class="field-row" id="pb-contact-intensity-row" style="display:none">
-      <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
-      <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
-      <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
-    </div>
-    <div class="field-row" id="pb-contact-span-row" style="display:none">
-      <label data-help="Live-Empfindlichkeit ohne Neu-Generate. Niedriger = früher an. Default aus dem Skript-Rezept.">Empfindlichkeit</label>
-      <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
-      <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
-    </div>
-    <div class="field-row" id="pb-contact-curve-row" style="display:none">
-      <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
-      <select id="pb-contact-curve">
-        <option value="linear">linear</option>
-        <option value="soft">soft</option>
-        <option value="peak">peak</option>
-      </select>
-    </div>
+      <div class="pb-tools">
+        <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
+          <input type="checkbox" id="pb-curve-edit" />
+          <label for="pb-curve-edit">Kurve bearbeiten</label>
+        </div>
+        <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
+          data-help="Klick+Ziehen = Punkt verschieben. Klick auf freie Stelle = neuer Punkt. Doppelklick = löschen (mind. 2 bleiben). Jede Änderung wird sofort gespeichert.">
+          Kurve bearbeiten: ziehen / klicken / Doppelklick — siehe „?“.</p>
 
-    <div class="field-row"><label>Gerät</label>
-      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät testen)</label></span>
-    </div>
-    <div class="field-row"><label>Sync-Modus</label>
-      <select id="pb-sync">
-        <option value="independent">independent</option>
-        <option value="synchronized">synchronized</option>
-        <option value="alternating">alternating</option>
-        <option value="vibration_only">nur Vibration</option>
-        <option value="suction_only">nur Sog</option>
-        <option value="suction_position">Sog aus Position</option>
-      </select>
-    </div>
-    <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
-    <div class="field-row"><label>Max-Speed</label><input type="number" step="0.1" id="pb-maxspeed" value="0.6" /></div>
-    <div class="field-row"><label>Glättung (0-1)</label><input type="number" step="0.05" min="0" max="1" id="pb-smoothing" value="0.3" /></div>
-    <div class="field-row"><label>Soft-Start (ms)</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
+        <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
+          <label style="width:auto;" data-help="Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe. Wird je Skript gespeichert.">Skript-Offset</label>
+          <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
+          <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
+          <span class="hint" style="margin:0;">ms</span>
+          <button id="pb-offset-plus" title="Skript 50ms später (Taste +)">+50</button>
+          <button id="pb-offset-reset">zurücksetzen</button>
+          <span class="checkbox-row" style="margin:0 0 0 12px;">
+            <input type="checkbox" id="pb-loop" />
+            <label for="pb-loop" style="width:auto;" data-help="Wiederholt den markierten Abschnitt (Heatmap ziehen).">Markierung wiederholen</label>
+          </span>
+        </div>
+        <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
+          data-help="Leertaste Start/Stop · ←/→ 5 s (Shift 1 s) · ,/. Feinschritt · 1–9 springen · +/− Offset · L Wiederholung · E Extended-O · O O-Marker 4s">
+          Tastenhilfe über „?“.</p>
 
-    <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O aktiv</label></div>
-    <div class="field-row"><label>Amplitude (0–1)</label><input type="number" step="0.05" min="0" max="1" id="pb-eo-min" value="0.1" title="Kurve behält den Rhythmus; nur die Höhe wird mit diesem Faktor multipliziert" /></div>
-    <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
-    <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
+        <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+        <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
+          <button id="pb-script-doctor" type="button">Skript prüfen</button>
+          <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
+        </div>
+        <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
 
-    <div class="row">
-      <button id="pb-play" class="primary">▶ Abspielen</button>
-      <button id="pb-stop" disabled>■ Stop</button>
-      <button id="pb-eo-trigger" disabled>Extended-O auslösen</button>
-    </div>
+        <div class="hint" id="pb-marker-hint" style="display:none"
+          data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
+          Heatmap: Klick = springen, Ziehen = markieren. <span id="pb-marker-label"></span>
+          <button id="pb-marker-clear" style="margin-left:8px">Markierung löschen</button>
+        </div>
+        <div class="checkbox-row" id="pb-marker-auto-row" style="display:none">
+          <input type="checkbox" id="pb-marker-auto" />
+          <label for="pb-marker-auto" data-help="Löst Extended-O automatisch aus, wenn die Wiedergabe den markierten Bereich erreicht.">Extended-O automatisch im markierten Bereich</label>
+        </div>
 
-    <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
-    <div class="stat-row">
-      <span>Vibration: <b id="pb-vib">-</b></span>
-      <span>Sog: <b id="pb-suc">-</b></span>
+        <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
+          data-help="O-Marker werden im Skript gespeichert (nicht nur lokal). Primär = Höhepunkt, sekundär = schwächere Stellen. Erst Bereich markieren, dann übernehmen.">
+          O-Marker: authored im Skript — siehe „?“.</div>
+        <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <select id="pb-omarker-kind">
+            <option value="primary">Primär (Höhepunkt)</option>
+            <option value="secondary">Sekundär (früher, schwächer)</option>
+          </select>
+          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
+            <label style="width:auto;">Intensität</label>
+            <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
+          </span>
+          <button id="pb-omarker-add" disabled>Als O-Marker übernehmen</button>
+        </div>
+        <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+
+        <div class="pb-contact" id="pb-contact-block" hidden>
+          <h3>Kontakt-Vibration</h3>
+          <p class="hint" style="margin-top:0">Aus dem Skript-Rezept — live anpassbar, ohne neu zu erzeugen.</p>
+          <div class="checkbox-row" id="pb-contact-off-row">
+            <input type="checkbox" id="pb-contact-off" />
+            <label for="pb-contact-off"
+              data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
+          </div>
+          <div class="field-row" id="pb-contact-intensity-row">
+            <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
+            <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+            <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
+          </div>
+          <div class="field-row" id="pb-contact-span-row">
+            <label data-help="Live-Empfindlichkeit ohne Neu-Generate. Niedriger = früher an. Default aus dem Skript-Rezept.">Empfindlichkeit</label>
+            <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
+            <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
+          </div>
+          <div class="field-row" id="pb-contact-curve-row">
+            <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
+            <select id="pb-contact-curve">
+              <option value="linear">linear</option>
+              <option value="soft">soft</option>
+              <option value="peak">peak</option>
+            </select>
+          </div>
+        </div>
+
+        <details class="pb-advanced" open>
+          <summary>Abspielen &amp; Extended-O</summary>
+          <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
+            <input type="checkbox" id="pb-use-video-sync" checked />
+            <label for="pb-use-video-sync">Gerät folgt der Videoposition</label>
+          </div>
+          <div class="field-row"><label>Gerät</label>
+            <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät)</label></span>
+          </div>
+          <div class="field-row"><label>Sync-Modus</label>
+            <select id="pb-sync">
+              <option value="independent">independent</option>
+              <option value="synchronized">synchronized</option>
+              <option value="alternating">alternating</option>
+              <option value="vibration_only">nur Vibration</option>
+              <option value="suction_only">nur Sog</option>
+              <option value="suction_position">Sog aus Position</option>
+            </select>
+          </div>
+          <div class="pb-adv-grid">
+            <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
+            <div class="field-row"><label>Max-Speed</label><input type="number" step="0.1" id="pb-maxspeed" value="0.6" /></div>
+            <div class="field-row"><label>Glättung</label><input type="number" step="0.05" min="0" max="1" id="pb-smoothing" value="0.3" /></div>
+            <div class="field-row"><label>Soft-Start</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
+          </div>
+          <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O aktiv</label></div>
+          <div class="pb-adv-grid">
+            <div class="field-row"><label title="Kurve behält den Rhythmus; nur die Höhe wird multipliziert">Amplitude</label><input type="number" step="0.05" min="0" max="1" id="pb-eo-min" value="0.1" /></div>
+            <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
+            <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
+          </div>
+        </details>
+
+        <div id="pb-log" class="pb-log"></div>
+      </div>
     </div>
-    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv), O = O-Marker 4s.</p>
-    <div id="pb-log"></div>
   `;
 
   wireDataHelp(root);
@@ -175,6 +206,12 @@ export function initPlayback(root) {
   const CURVE_PAD = 6;
   const EDIT_HIT_RADIUS_PX = 12;
   let currentPosMs = 0;
+
+  function setScriptLoaded(loaded) {
+    el('#pb-empty').hidden = !!loaded;
+    el('#pb-loaded').hidden = !loaded;
+    root.classList.toggle('has-script', !!loaded);
+  }
 
   function log(line) {
     const box = el('#pb-log');
@@ -848,12 +885,10 @@ export function initPlayback(root) {
       ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Skript${extraCount === 1 ? '' : 'e'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
       : '';
     el('#pb-script-path').textContent = scriptPath + batchNote;
+    setScriptLoaded(true);
     scriptHasContactVibration = !!info.contactVibration;
     const showContact = scriptHasContactVibration;
-    el('#pb-contact-off-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-intensity-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-span-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-curve-row').style.display = showContact ? 'flex' : 'none';
+    el('#pb-contact-block').hidden = !showContact;
     if (!showContact) {
       el('#pb-contact-off').checked = false;
       el('#pb-contact-intensity').value = '1';
@@ -866,16 +901,18 @@ export function initPlayback(root) {
       const curve = info.contactVibrationCurve || 'linear';
       el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'linear';
     }
+    const stage = el('#pb-video-stage');
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();
-      videoEl.style.display = 'block';
-      el('#pb-novideo').style.display = 'none';
+      stage.classList.add('has-video');
+      stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
     } else {
       videoPath = null;
-      videoEl.style.display = 'none';
-      el('#pb-novideo').style.display = 'block';
+      videoEl.removeAttribute('src');
+      stage.classList.remove('has-video');
+      stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
     }
     try {
@@ -889,8 +926,6 @@ export function initPlayback(root) {
     } catch (err) {
       oMarkers = [];
     }
-    el('#pb-omarker-hint').style.display = 'block';
-    el('#pb-omarker-add-row').style.display = 'flex';
     updateMarkerHint();
     renderOMarkerList();
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
@@ -901,6 +936,8 @@ export function initPlayback(root) {
     drawHeatmap();
     drawCurve();
     describeScript();
+    el('#pb-omarker-hint').style.display = 'block';
+    el('#pb-omarker-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
     el('#pb-script-doctor-result').style.display = 'none';
     el('#pb-script-doctor-status').textContent = '';
@@ -1084,6 +1121,7 @@ export function initPlayback(root) {
     }
   });
   el('#pb-choose').addEventListener('click', chooseScript);
+  el('#pb-choose-empty').addEventListener('click', chooseScript);
   el('#pb-play').addEventListener('click', play);
   el('#pb-stop').addEventListener('click', stop);
   el('#pb-eo-trigger').addEventListener('click', triggerEO);
