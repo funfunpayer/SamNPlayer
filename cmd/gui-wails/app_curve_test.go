@@ -122,3 +122,86 @@ func TestGetVibrationCurveAbsentWithoutFlag(t *testing.T) {
 		t.Errorf("ohne contact_vibration sollte keine Spur kommen, bekam %d Punkte", len(pts))
 	}
 }
+
+func TestGetVibrationCurvePreviewLiveScaleAndMute(t *testing.T) {
+	a := NewApp()
+	script := &funscript.Script{Actions: []funscript.Action{
+		{At: 0, Pos: 20}, {At: 500, Pos: 20},
+		{At: 600, Pos: 90}, {At: 900, Pos: 90},
+		{At: 1000, Pos: 20}, {At: 1500, Pos: 20},
+	}}
+	script.Metadata.Profile = "tj"
+	script.Metadata.DeviceRecipe = &funscript.DeviceRecipe{
+		Sync: "suction_position", ContactVibration: true,
+		ContactVibrationCurve: "linear", ContactVibrationSpan: 0.5,
+	}
+	a.currentScript = script
+
+	base, err := a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: 100, ContactIntensityScale: 1,
+	})
+	if err != nil || len(base) < 2 {
+		t.Fatalf("base: %v n=%d", err, len(base))
+	}
+	half, err := a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: 100, ContactIntensityScale: 0.5,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var maxBase, maxHalf float64
+	for i := range base {
+		if base[i].Vibration > maxBase {
+			maxBase = base[i].Vibration
+		}
+		if half[i].Vibration > maxHalf {
+			maxHalf = half[i].Vibration
+		}
+	}
+	if maxHalf > maxBase*0.6+0.01 {
+		t.Errorf("scale 0.5 sollte Peak halbieren: base=%.3f half=%.3f", maxBase, maxHalf)
+	}
+	muted, err := a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: 100, ContactIntensityScale: 1, MuteContact: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if muted != nil {
+		t.Errorf("mute sollte keine Spur liefern, got %d", len(muted))
+	}
+}
+
+func TestGetVibrationCurvePreviewSpanOverride(t *testing.T) {
+	a := NewApp()
+	script := &funscript.Script{Actions: []funscript.Action{
+		{At: 0, Pos: 20}, {At: 250, Pos: 50}, {At: 500, Pos: 70},
+		{At: 750, Pos: 90}, {At: 1000, Pos: 20},
+	}}
+	script.Metadata.Profile = "tj"
+	script.Metadata.DeviceRecipe = &funscript.DeviceRecipe{
+		Sync: "suction_position", ContactVibration: true,
+		ContactVibrationSpan: 0.9, ContactVibrationCurve: "linear",
+	}
+	a.currentScript = script
+
+	tight, _ := a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: 80, ContactVibrationSpan: 0.9, ContactIntensityScale: 1,
+	})
+	wide, _ := a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: 80, ContactVibrationSpan: 0.4, ContactIntensityScale: 1,
+	})
+	count := func(pts []VibrationCurvePoint) int {
+		n := 0
+		for _, p := range pts {
+			if p.Vibration > 0.05 {
+				n++
+			}
+		}
+		return n
+	}
+	if count(wide) <= count(tight) {
+		t.Errorf("span 0.4 sollte mehr Kontaktfenster öffnen als 0.9: wide=%d tight=%d",
+			count(wide), count(tight))
+	}
+}

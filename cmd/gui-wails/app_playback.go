@@ -30,6 +30,19 @@ type PlaybackOptions struct {
 	ContactIntensityScale float64 `json:"contactIntensityScale"`
 	// ContactExtraSmooth: zusätzliche EMA nach dem Mapping (0=aus).
 	ContactExtraSmooth float64 `json:"contactExtraSmooth"`
+	// ContactVibrationSpan / Curve: Live-Override der Empfindlichkeit/Kurve
+	// (0 / "" = aus DeviceRecipe). Datei bleibt unverändert.
+	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+}
+
+// ContactPreviewOptions steuert die zweite Kurvenspur inkl. Live-Overrides.
+type ContactPreviewOptions struct {
+	MaxPoints             int     `json:"maxPoints"`
+	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+	ContactIntensityScale float64 `json:"contactIntensityScale"`
+	MuteContact           bool    `json:"muteContact"`
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
@@ -46,6 +59,12 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			mapOpts.ContactVibration = dr.ContactVibration
 			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
 			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
+		}
+		if opts.ContactVibrationSpan > 0 {
+			mapOpts.ContactVibrationSpan = opts.ContactVibrationSpan
+		}
+		if opts.ContactVibrationCurve != "" {
+			mapOpts.ContactVibrationCurve = opts.ContactVibrationCurve
 		}
 		if len(script.Metadata.TrackingGaps) > 0 {
 			mapOpts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
@@ -79,7 +98,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
 		IntensityScale: opts.ContactIntensityScale,
 		ExtraSmooth:    opts.ContactExtraSmooth,
-		MuteContact:    opts.DisableContactVibration,
+		MuteContact:    opts.DisableContactVibration || opts.ContactIntensityScale <= 0,
 	})
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
@@ -274,9 +293,16 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 }
 
 // GetVibrationCurve returns the contact-vibration envelope for the loaded
-// script (empty if none). Uses the baked-in device_recipe so the second
-// curve track matches what playback would send without a disable override.
+// script (empty if none). Uses the baked-in device_recipe (no live override).
 func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
+	return a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: maxPoints, ContactIntensityScale: 1,
+	})
+}
+
+// GetVibrationCurvePreview applies live Span/Kurve/Stärke-Overrides — gleiche
+// Semantik wie StartPlayback, ohne die Datei anzufassen.
+func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]VibrationCurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
 		return nil, fmt.Errorf("kein Skript geladen")
@@ -285,6 +311,7 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
 		return nil, nil
 	}
+	maxPoints := preview.MaxPoints
 	if maxPoints < 50 {
 		maxPoints = 50
 	}
@@ -292,6 +319,12 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	opts.ContactVibration = true
 	opts.ContactVibrationSpan = dr.ContactVibrationSpan
 	opts.ContactVibrationCurve = dr.ContactVibrationCurve
+	if preview.ContactVibrationSpan > 0 {
+		opts.ContactVibrationSpan = preview.ContactVibrationSpan
+	}
+	if preview.ContactVibrationCurve != "" {
+		opts.ContactVibrationCurve = preview.ContactVibrationCurve
+	}
 	opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
 	opts.Smoothing = 0
 	opts.ContactVibrationEnvelope = -1
@@ -304,6 +337,16 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 		opts.TickMs = 10
 	}
 	frames := a.contactFrames(script, opts)
+	scale := preview.ContactIntensityScale
+	mute := preview.MuteContact
+	if scale <= 0 {
+		mute = true
+		scale = 1
+	}
+	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
+		IntensityScale: scale,
+		MuteContact:    mute,
+	})
 	out := make([]VibrationCurvePoint, 0, len(frames))
 	any := false
 	for _, f := range frames {

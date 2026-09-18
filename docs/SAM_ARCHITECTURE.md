@@ -162,11 +162,14 @@ already-generated scripts** - no webcam, no prediction yet. Shipped so far:
   top of mapped frames; original `.funscript` / `.sam` unchanged.
 - **CLI**: Tf/Tj+contact playback uses SAM (sidecar or Enrich+Densify);
   `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`.
-- **GUI**: „Kontakt-Stärke“ slider + existing „Kontakt ab“ feed RuntimeAdjust.
+- **GUI**: „Kontakt-Stärke“ / Empfindlichkeit / Kurve live + bestehende
+  „Kontakt ab“; Vibrationsspur folgt den Overrides (`GetVibrationCurvePreview`).
+- **CLI**: `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`,
+  `--contact-span`, `--contact-curve`.
 
 Contact vibration and O-markers remain mandatory carry-forwards (below).
-Further runtime work (live range/offset while playing, prediction) stays
-unscheduled until this layer is used on real hardware.
+Prediction and in-play scrubbing of range stay unscheduled until this layer
+is used on real hardware.
 
 ## Non-negotiable: contact vibration and O-markers must carry forward
 

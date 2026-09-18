@@ -59,6 +59,10 @@ func main() {
 		"Live-Skalierung der Kontakt-Vibration 0–2 (1=unverändert, ohne Datei-Rewrite)")
 	contactExtraSmooth := flag.Float64("contact-extra-smooth", 0,
 		"Zusätzliche EMA nur auf Vib/Sog nach dem Mapping (0=aus)")
+	contactSpan := flag.Float64("contact-span", 0,
+		"Live-Empfindlichkeit 0.4–0.95 (0=aus DeviceRecipe)")
+	contactCurve := flag.String("contact-curve", "",
+		"Live-Kurve linear|soft|peak (leer=aus DeviceRecipe)")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE --roi x,y,w,h [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
@@ -103,6 +107,12 @@ func main() {
 			opts.ContactVibration = dr.ContactVibration
 			opts.ContactVibrationSpan = dr.ContactVibrationSpan
 			opts.ContactVibrationCurve = dr.ContactVibrationCurve
+		}
+		if *contactSpan > 0 {
+			opts.ContactVibrationSpan = *contactSpan
+		}
+		if *contactCurve != "" {
+			opts.ContactVibrationCurve = *contactCurve
 		}
 		if len(script.Metadata.TrackingGaps) > 0 {
 			opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
