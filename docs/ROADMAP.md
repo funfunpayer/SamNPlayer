@@ -91,9 +91,11 @@ commits.
 - [x] Script Doctor for imported files without tracking data.
 - [x] Heatmap, chapters, bookmarks, training-session history.
 - [x] OFS-style max-speed highlights on the curve (`funscript.SpeedHighlights`).
-- [ ] Chapters in `.funscript` metadata + heatmap PNG export (see `OFS_LEARN.md`).
-- [ ] Lightweight project sidecar (video+script+markers) in Go/JSON.
-- [ ] Frame/tempo editing aids (snap, optional BPM grid).
+- [x] Chapters/bookmarks in `.funscript` metadata (`funscript/bookmarks.go`).
+- [x] Heatmap PNG export with chapter ticks.
+- [x] Lightweight project sidecar `.snp.json`.
+- [x] Frame snap + range delete/speed-cap (Wiedergabe OFS-row).
+- [ ] BPM/tempo grid overlay (optional polish).
 
 **Device / playback**
 - [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
@@ -133,9 +135,9 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       building block (`find_two_rois`) exists; still needs real-clip
       measurement (per principle 6/7) before it can become even an opt-in
       suggestion, let alone a default.
-- [ ] 🔓 **OFS-inspired editor upgrades in Go** — chapters-in-metadata,
-      project sidecar, frame/tempo aids (`docs/OFS_LEARN.md`). Max-speed
-      curve highlights already shipped.
+- [x] 🔓 **OFS-inspired editor upgrades in Go** — chapters/bookmarks metadata,
+      heatmap PNG, project sidecar, frame snap, range ops (`docs/OFS_LEARN.md`).
+      Optional later: BPM grid UI, WebSocket bridge.
 - [ ] 🔓 **Populate the Golden-Clip manifest with real clips** and run a
       first baseline — the tool is built, nobody has fed it real material
       yet. This unblocks *every* future "did X help" question on this

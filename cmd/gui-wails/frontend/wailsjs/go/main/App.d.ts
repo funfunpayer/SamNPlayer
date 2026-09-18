@@ -194,3 +194,14 @@ export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<vo
 export function UpdateRoiTrainingSample(arg1:string,arg2:string,arg3:string,arg4:Array<main.RoiTrainingBox>):Promise<void>;
 
 export function VideoFileURL():Promise<string>;
+export function ExportScriptHeatmapPNG():Promise<string>;
+export function SavePlaybackProject(arg1:funscript.Project):Promise<string>;
+export function LoadPlaybackProject(arg1:string):Promise<funscript.Project>;
+export function EditCapSpeedRange(arg1:number,arg2:number,arg3:number):Promise<void>;
+export function EditDeleteRange(arg1:number,arg2:number):Promise<void>;
+export function EditScaleRange(arg1:number,arg2:number,arg3:number):Promise<void>;
+export function SnapTimeMs(arg1:number,arg2:number):Promise<number>;
+export function GetScriptBookmarks():Promise<Array<funscript.Bookmark>>;
+export function SaveScriptBookmarks(arg1:Array<funscript.Bookmark>):Promise<void>;
+export function GetScriptChapterMarks():Promise<Array<funscript.ChapterMark>>;
+export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promise<void>;

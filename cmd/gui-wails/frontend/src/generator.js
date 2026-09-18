@@ -211,16 +211,20 @@ export function initGenerator(root, playback) {
   // installiertes onnxruntime oder ohne Modelldatei bleibt es bei der
   // klassischen Rhythmus-Heuristik (auto_roi.py). Einmal beim Öffnen des
   // Tabs geprüft (kostet einen Python-Start), nicht bei jedem Videoladen.
-  CheckAIRoiAvailable().then(available => {
-    const checkbox = el('#gen-ai-roi');
-    checkbox.disabled = !available;
-    el('#gen-autoroi-hint').textContent = available
-      ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
-        + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
-      : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
-        + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
-        + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
-  }).catch(() => {});
+  function refreshAIRoiAvailability() {
+    CheckAIRoiAvailable().then(available => {
+      const checkbox = el('#gen-ai-roi');
+      checkbox.disabled = !available;
+      el('#gen-autoroi-hint').textContent = available
+        ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
+          + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
+        : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
+          + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
+          + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
+    }).catch(() => {});
+  }
+  refreshAIRoiAvailability();
+  window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
   // Audio-Tempo-Prüfung (audio_check.py) braucht nur ffmpeg auf dem PATH -
   // kein Modell, kein separates Python-Paket. Gleiches Muster wie oben:

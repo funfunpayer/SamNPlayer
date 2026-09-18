@@ -1,14 +1,16 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights, ScriptChapters, ScriptQuality,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
+  ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
+  ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { applyHotkeyOMarker } from './ozone_ui.js';
 import { wireDataHelp } from './help.js';
-import { uiError } from './notify.js';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 
 const HEATMAP_BUCKETS = 300;
 
@@ -115,6 +117,18 @@ export function initPlayback(root) {
           <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
         </div>
         <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
+
+        <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
+          <button type="button" id="pb-heatmap-export" title="Intensitäts-Heatmap als PNG (Kapitel als Striche)">Heatmap PNG</button>
+          <button type="button" id="pb-project-save" title="Video+Skript+Offset als .snp.json speichern">Projekt speichern</button>
+          <button type="button" id="pb-cap-speed" title="In der Heatmap-Markierung zu schnelle Segmente zeitlich strecken">Speed-Cap Markierung</button>
+          <button type="button" id="pb-del-range" title="Punkte in der Heatmap-Markierung löschen">Bereich löschen</button>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Wenn >0: Sprünge und neue Kurvenpunkte rasten auf Frame-Raster (ms). 0 = aus.">
+            FPS-Snap<input type="number" id="pb-fps-snap" value="0" min="0" step="1" style="width:4em;" />
+          </label>
+          <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+        </div>
 
         <div class="hint" id="pb-marker-hint" style="display:none"
           data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
@@ -939,12 +953,22 @@ export function initPlayback(root) {
   // zusätzliches Zutun nötig. Ohne Video gibt es nichts zu spulen; dann
   // bleibt der Klick wirkungslos (die eigene Uhr in Play() lässt sich
   // nicht nachträglich verschieben).
-  function seekTo(atMs) {
-    if (!videoPath || !videoEl.duration) return;
-    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, atMs / 1000));
+  async function seekTo(atMs) {
+    let t = atMs;
+    const fps = parseFloat(el('#pb-fps-snap')?.value) || 0;
+    if (fps > 0) {
+      try { t = await SnapTimeMs(t, fps); } catch (_) { /* keep t */ }
+    }
+    currentPosMs = t;
+    if (!videoPath || !videoEl.duration) {
+      redrawHeatmap();
+      redrawCurve();
+      return;
+    }
+    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, t / 1000));
     // Auto-Extended-O darf nach einem Sprung erneut auslösen, wenn der
     // markierte Bereich danach nochmal erreicht wird.
-    if (marker && atMs < marker.startMs) autoEOTriggeredForMarker = false;
+    if (marker && t < marker.startMs) autoEOTriggeredForMarker = false;
     redrawHeatmap();
   }
 
@@ -1123,8 +1147,10 @@ export function initPlayback(root) {
     el('#pb-omarker-hint').style.display = 'block';
     el('#pb-omarker-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
+    el('#pb-ofs-row').style.display = 'flex';
     el('#pb-script-doctor-result').style.display = 'none';
     el('#pb-script-doctor-status').textContent = '';
+    if (el('#pb-ofs-status')) el('#pb-ofs-status').textContent = '';
     el('#pb-offset-row').style.display = 'flex';
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
@@ -1354,6 +1380,64 @@ export function initPlayback(root) {
       uiError('Quality-Prüfung: ' + err, status);
     } finally {
       btn.disabled = false;
+    }
+  });
+
+  function ofsStatus(msg) {
+    const s = el('#pb-ofs-status');
+    if (s) s.textContent = msg || '';
+  }
+  el('#pb-heatmap-export')?.addEventListener('click', async () => {
+    try {
+      const path = await ExportScriptHeatmapPNG();
+      ofsStatus('Heatmap: ' + path);
+      uiInfo('Heatmap gespeichert: ' + path);
+    } catch (err) {
+      uiError('Heatmap: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-project-save')?.addEventListener('click', async () => {
+    try {
+      const path = await SavePlaybackProject({
+        videoPath: videoPath || '',
+        scriptPath: scriptPath || '',
+        offsetMs: parseInt(el('#pb-offset')?.value, 10) || 0,
+        seekMs: currentPosMs || 0,
+        loopMarker: marker ? { startMs: marker.startMs, endMs: marker.endMs } : null,
+      });
+      ofsStatus('Projekt: ' + path);
+      uiInfo('Projekt gespeichert: ' + path);
+    } catch (err) {
+      uiError('Projekt: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-cap-speed')?.addEventListener('click', async () => {
+    if (!marker) {
+      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      return;
+    }
+    try {
+      await EditCapSpeedRange(marker.startMs, marker.endMs, 0);
+      ofsStatus('Speed-Cap angewendet');
+      await drawCurve();
+      await drawHeatmap();
+    } catch (err) {
+      uiError('Speed-Cap: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-del-range')?.addEventListener('click', async () => {
+    if (!marker) {
+      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      return;
+    }
+    try {
+      await EditDeleteRange(marker.startMs, marker.endMs);
+      ofsStatus('Bereich gelöscht');
+      marker = null;
+      await drawCurve();
+      await drawHeatmap();
+    } catch (err) {
+      uiError('Löschen: ' + err, el('#pb-ofs-status'));
     }
   });
   el('#pb-choose').addEventListener('click', chooseScript);

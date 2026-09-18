@@ -17,6 +17,7 @@ func (a *App) SuggestPipeline(w, h, w2, h2 int) funscript.PipelineSuggestion {
 
 func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
 	script := a.loadedScript()
+	path := a.loadedScriptPath()
 	if script == nil || len(script.Actions) < 4 {
 		return nil, fmt.Errorf("kein Skript geladen")
 	}
@@ -25,5 +26,26 @@ func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
 		points = append(points, motionx.Point{TMs: float64(act.At), Pos: float64(act.Pos)})
 	}
 	segs := motionx.Classify(points, motionx.ClassifyOptions{})
-	return motionx.Chapters(segs), nil
+	auto := motionx.Chapters(segs)
+
+	// Gespeicherte metadata.chapters (OFS-Stil) haben Vorrang als Labels,
+	// wenn vorhanden — Auto-Kapitel bleiben Fallback.
+	if path != "" {
+		if stored, err := funscript.LoadChapters(path); err == nil && len(stored) > 0 {
+			out := make([]motionx.Chapter, 0, len(stored))
+			for _, c := range stored {
+				kind := c.Name
+				if kind == "" {
+					kind = "chapter"
+				}
+				end := c.EndTime
+				if end <= c.StartTime {
+					end = c.StartTime + 1
+				}
+				out = append(out, motionx.Chapter{Kind: kind, StartMs: float64(c.StartTime), EndMs: float64(end)})
+			}
+			return out, nil
+		}
+	}
+	return auto, nil
 }

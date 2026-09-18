@@ -96,3 +96,14 @@ export function TrainingHistory() { return window['go']['main']['App']['Training
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
 export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['UpdateRoiTrainingSample'](arg1, arg2, arg3, arg4); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }
+export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
+export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
+export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }
+export function EditDeleteRange(arg1, arg2) { return window['go']['main']['App']['EditDeleteRange'](arg1, arg2); }
+export function SnapTimeMs(arg1, arg2) { return window['go']['main']['App']['SnapTimeMs'](arg1, arg2); }
+export function GetScriptBookmarks() { return window['go']['main']['App']['GetScriptBookmarks'](); }
+export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }
+export function GetScriptChapterMarks() { return window['go']['main']['App']['GetScriptChapterMarks'](); }
+export function SaveScriptChapterMarks(arg1) { return window['go']['main']['App']['SaveScriptChapterMarks'](arg1); }
+export function LoadPlaybackProject(arg1) { return window['go']['main']['App']['LoadPlaybackProject'](arg1); }
+export function EditScaleRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3); }

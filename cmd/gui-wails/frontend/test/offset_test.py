@@ -41,6 +41,12 @@ def main():
                       "({ atMs: i * 1000, intensity: 0.5 }))",
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
+        "GetSpeedHighlights": "async () => []",
+        "ExportScriptHeatmapPNG": "async () => '/tmp/h.png'",
+        "SavePlaybackProject": "async () => '/tmp/p.snp.json'",
+        "EditCapSpeedRange": "async () => {}",
+        "EditDeleteRange": "async () => {}",
+        "SnapTimeMs": "async (t, fps) => t",
         "GetScriptOffset": "async () => 250",
         "SetScriptOffset": "async (ms) => { window.__calls.push(['offset', ms]); }",
     }))

@@ -123,6 +123,47 @@ export namespace funscript {
 	    }
 	}
 
+	export class Bookmark {
+	    name: string;
+	    time: number;
+	    static createFrom(source: any = {}) { return new Bookmark(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.time = source["time"];
+	    }
+	}
+
+	export class ChapterMark {
+	    name: string;
+	    startTime: number;
+	    endTime: number;
+	    static createFrom(source: any = {}) { return new ChapterMark(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.startTime = source["startTime"];
+	        this.endTime = source["endTime"];
+	    }
+	}
+
+	export class Project {
+	    version: number;
+	    videoPath: string;
+	    scriptPath: string;
+	    offsetMs: number;
+	    seekMs: number;
+	    static createFrom(source: any = {}) { return new Project(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.videoPath = source["videoPath"];
+	        this.scriptPath = source["scriptPath"];
+	        this.offsetMs = source["offsetMs"];
+	        this.seekMs = source["seekMs"];
+	    }
+	}
+
 	export class PipelineSuggestion {
 	    Backend: string;
 	    Profile: string;

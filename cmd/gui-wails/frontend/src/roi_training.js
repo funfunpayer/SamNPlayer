@@ -591,7 +591,9 @@ export function initRoiTraining(root) {
       uiError('Training fehlgeschlagen: ' + payload.error, el('#rt-train-status'));
       return;
     }
-    el('#rt-train-status').textContent = 'Fertig: ' + payload.modelPath;
+    el('#rt-train-status').textContent = 'Fertig: ' + payload.modelPath
+      + ' — KI-Erkennung im Erzeugen-Tab aktualisiert sich automatisch.';
+    window.dispatchEvent(new CustomEvent('samn-ai-roi-refresh'));
   });
 
   getSettingsCache().then(s => {
