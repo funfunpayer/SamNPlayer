@@ -52,7 +52,13 @@ export function initGenerator(root, playback) {
         <option value="tf">Tf/Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Empfehlung: Flow-Scout (schnell) → CSRT mit ROI → Autotune-Nachbearbeitung. KI schlägt nur ROI vor.</p>
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
+      <strong>Workflow-Tipp:</strong> mehrere Stufen statt einer Methode —
+      1)&nbsp;Flow-Scout (schnell, keine ROI) →
+      2)&nbsp;CSRT mit ROI (KI schlägt nur die Region vor) →
+      3)&nbsp;Autotune (Detrend + Bandpass + Speed) →
+      4)&nbsp;optional Tonspur-Tempo prüfen (Erweitert).
+    </p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position.
       Kontakt-Vibration wird standardmäßig mit erzeugt (Stärke = Nähe wie Berührung) und lässt sich danach in der Wiedergabe feinjustieren.

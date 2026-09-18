@@ -17,8 +17,10 @@ Ideen und eigene Messungen.
 
 ## Empfohlener Multi-Modal-Workflow
 
-Der „Tipp am Ende“ aus der Research: **mehrere Stufen kombinieren**, nicht
-eine Methode allein.
+**Tipp:** mehrere Sachen für denselben Clip kombinieren — nicht eine
+Methode allein. Optical Flow liefert den groben Rhythmus, Tracking die
+präzise Kurve, Autotune die gerätefreundliche Nachbearbeitung, Audio
+einen Tempo-Check.
 
 | Stufe | Was | Warum |
 |-------|-----|--------|
@@ -27,6 +29,8 @@ eine Methode allein.
 | 3. Track | `csrt` (Standard) oder Tf/Tj | Robuste Kurve, Go-native wo möglich |
 | 4. Autotune | Profil `autotune` | Detrend 3s + Bandpass 0.5–4 Hz + Speed 400 |
 | 5. Check | Quality Doctor + optional Audio | Drift, Tempo, Geräte-Sicherheit |
+
+In der GUI steht derselbe Tipp unter **Bewegungsart** (`gen-profile-hint`).
 
 CLI-Beispiel:
 
