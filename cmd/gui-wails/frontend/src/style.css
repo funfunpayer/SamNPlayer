@@ -66,6 +66,60 @@ body {
   font-size: 14px;
   line-height: 1.55;
   letter-spacing: 0.015em;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(243, 178, 60, 0.35) transparent;
+}
+
+/* Schmale, dunkle Scrollbars im Markenlook */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(93, 108, 132, 0.55) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(93, 108, 132, 0.55), rgba(61, 74, 96, 0.7));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 36px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(243, 178, 60, 0.65), rgba(255, 140, 40, 0.75));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+*::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, var(--accent), #ff8c28);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.stage-main::-webkit-scrollbar-thumb,
+#sidebar::-webkit-scrollbar-thumb,
+.log-view::-webkit-scrollbar-thumb,
+.list::-webkit-scrollbar-thumb,
+#pb-log::-webkit-scrollbar-thumb,
+#tr-log::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(93, 108, 132, 0.5), rgba(61, 74, 96, 0.65));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.stage-main:hover::-webkit-scrollbar-thumb,
+#sidebar:hover::-webkit-scrollbar-thumb,
+.log-view:hover::-webkit-scrollbar-thumb,
+.list:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(243, 178, 60, 0.45), rgba(47, 212, 196, 0.35));
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }
 
 #app {
