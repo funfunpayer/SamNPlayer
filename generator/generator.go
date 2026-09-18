@@ -642,7 +642,9 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 //
 // When PreferPython is false and opts+roi are NativePipelineEligible, uses
 // the Go path automatically (CSRT via trackcv when OpenCV is linked, else
-// simpletrack over videox) — no opt-in flag. Otherwise falls back to Python.
+// simpletrack over videox) — no opt-in flag. Eligible failures are NOT
+// soft-failed to Python (overhead / hides Go bugs); PreferPython forces
+// the Python path explicitly.
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -660,27 +662,17 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
 			return nil
 		}
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return err
-		}
-		// Soft-fail to Python when available — better UX than a hard error
-		// if simpletrack/CSRT chokes on a clip the Python path can still do.
-		if _, pyErr := FindPython(); pyErr != nil {
-			return err
-		}
-		logging.Warn("generator: Go-Pipeline fehlgeschlagen — Fallback auf Python", "fehler", err)
-		if onProgress != nil {
-			onProgress("Go-Pipeline fehlgeschlagen — Fallback auf Python: " + err.Error())
-		}
-	} else if !opts.PreferPython && opts.NativePipeline {
-		logging.Warn("generator: Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python",
+		return err
+	}
+	if !opts.PreferPython && opts.NativePipeline {
+		logging.Warn("generator: Go-Pipeline nicht nutzbar für diese Einstellungen — nutze Python",
 			"csrt", NativeTrackingAvailable(),
 			"simple", SimpleTrackingAvailable(),
 			"backend", opts.Backend,
 			"roi2", opts.ROI2.W > 0,
 			"auto_retry", opts.AutoRetry)
 		if onProgress != nil {
-			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — Fallback auf Python")
+			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — nutze Python")
 		}
 	}
 

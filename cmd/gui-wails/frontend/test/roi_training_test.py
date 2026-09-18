@@ -55,7 +55,9 @@ def main():
         "PickVideoFile": "async () => '/tmp/video.mp4'",
         "LoadFirstFrame": f"async () => ({{ width: 640, height: 360, "
                           f"pngBase64: '{TINY_PNG_B64}' }})",
-        "BootstrapRoiTrainingSample": "async () => { window.__calls.push('bootstrap'); return 'clipA_deadbeef'; }",
+        "LoadFrameAt": f"async () => ({{ width: 640, height: 360, "
+                       f"pngBase64: '{TINY_PNG_B64}' }})",
+        "BootstrapRoiTrainingSampleEx": "async () => { window.__calls.push('bootstrap'); return 'clipA_deadbeef'; }",
         "ListRoiTrainingSamples": f"async () => {{ window.__calls.push('list'); return {json.dumps(SAMPLES)}; }}",
         "GetRoiTrainingSampleImage": f"async () => '{TINY_PNG_B64}'",
         "DiscardRoiTrainingSample": "async (dir, split, name) => { window.__calls.push(['discard', split, name]); }",
@@ -107,7 +109,7 @@ def main():
               not page.locator("#rt-bootstrap").is_disabled())
 
         # --- 2. Region ohne deren Klassenname: wieder gesperrt ----------------
-        page.click("#rt-roi2-toggle")
+        page.click("#rt-mark-next")
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 280, box["y"] + 120, steps=5)

@@ -11,6 +11,10 @@ func (a *App) SuggestBackend(w, h int) string {
 	return funscript.SuggestBackend(w, h)
 }
 
+func (a *App) SuggestPipeline(w, h, w2, h2 int) funscript.PipelineSuggestion {
+	return funscript.SuggestPipeline(w, h, w2, h2)
+}
+
 func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
 	script := a.loadedScript()
 	if script == nil || len(script.Actions) < 4 {

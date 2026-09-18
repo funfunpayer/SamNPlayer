@@ -24,7 +24,8 @@ func NativeGoGenerateAvailable() bool {
 
 // GenerateNativeSimple runs simpletrack (videox NCC) + posttrack without
 // Python/OpenCV. Used automatically when NativePipeline is eligible and
-// CSRT/OpenCV is not linked — notably Windows release builds.
+// CSRT/OpenCV is not linked — notably Windows release builds. Supports
+// single-ROI and Tf/Tj two-point (ROI2).
 func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -42,18 +43,34 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 			onProgress(line)
 		}
 	}
-	progress("Go-Pipeline ohne OpenCV (simpletrack/NCC über ffmpeg) — schwächer als CSRT, kein Python")
+	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
+	if twoPoint {
+		progress("Go-Pipeline Zwei-Punkt ohne OpenCV (simpletrack/NCC) — schwächer als CSRT, kein Python")
+	} else {
+		progress("Go-Pipeline ohne OpenCV (simpletrack/NCC über ffmpeg) — schwächer als CSRT, kein Python")
+	}
 
 	start := time.Now()
 	axis := opts.Axis
 	if axis == "" {
 		axis = "auto"
 	}
-	tr, err := simpletrack.TrackROI(ctx, videoPath, simpletrack.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, simpletrack.Options{
+	stOpts := simpletrack.Options{
 		MaxFrames: opts.MaxFrames,
 		Axis:      axis,
 		Cancel:    func() bool { return ctx.Err() != nil },
-	})
+	}
+
+	var tr simpletrack.Result
+	var err error
+	if twoPoint {
+		tr, err = simpletrack.TrackTwoPoints(ctx, videoPath,
+			simpletrack.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H},
+			simpletrack.Rect{X: opts.ROI2.X, Y: opts.ROI2.Y, W: opts.ROI2.W, H: opts.ROI2.H},
+			stOpts)
+	} else {
+		tr, err = simpletrack.TrackROI(ctx, videoPath, simpletrack.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, stOpts)
+	}
 	if err != nil {
 		if errors.Is(err, simpletrack.ErrCanceled) || errors.Is(ctx.Err(), context.Canceled) {
 			return context.Canceled
@@ -77,8 +94,13 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		ValidFrames:  tr.Stats.ValidFrames,
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
+		LostFlags:    tr.LostFlags,
 	}
-	return finishNativeGenerate(ctx, outputPath, opts, ntr, "simpletrack", "ncc", progress, onPercent, start)
+	backend := "ncc"
+	if twoPoint {
+		backend = "two_point_ncc"
+	}
+	return finishNativeGenerate(ctx, outputPath, opts, ntr, "simpletrack", backend, progress, onPercent, start)
 }
 
 // finishNativeGenerate shared posttrack + quality + write for CSRT and simple.

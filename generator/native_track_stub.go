@@ -13,3 +13,7 @@ var errNativeUnavailable = errors.New("generator: native CSRT tracking is not av
 func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
 	return nativeTrackResult{}, errNativeUnavailable
 }
+
+func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
+	return nativeTrackResult{}, errNativeUnavailable
+}

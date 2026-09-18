@@ -8,6 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Go-native Tf/Tj:** two-point distance tracking runs in Go (`trackcv` /
+  `simpletrack.TrackTwoPoints`) — no Python soft-fallback when the Go path
+  is eligible. `tracking_gaps` written into funscript metadata for Kontakt mute.
+- **Auto pipeline:** marking ROI(s) preselects backend + profile
+  (`SuggestPipeline`); Tf/Tj + CSRT → Go path by default.
+- **KI-Training:** seek past black intro, up to 4 marks/classes, still-image
+  samples, sample stride, audio WAV sidecar; class presets.
+- **GUI brand:** Wails logo replaced with SamNPlayer SN mark; seek controls
+  on Generator + KI-Training tabs.
+
 ## [0.5.4] — September 18, 2026
 
 Test release for Kontakt-Vibration + SAM runtime. `.funscript` stays the

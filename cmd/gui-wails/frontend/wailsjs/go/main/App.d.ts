@@ -17,6 +17,12 @@ export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 
 export function BootstrapRoiTrainingSample(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:string,arg5:string):Promise<string>;
 
+export function BootstrapRoiTrainingSampleEx(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:generator.ROI|null,arg5:generator.ROI|null,arg6:string,arg7:string,arg8:string,arg9:string,arg10:number,arg11:boolean):Promise<string>;
+
+export function AddRoiStillTrainingSample(arg1:string,arg2:Array<generator.RoiTrainingRegion>):Promise<string>;
+
+export function PickImageFile():Promise<string>;
+
 export function CancelGenerate():Promise<void>;
 
 export function CheckAIRoiAvailable():Promise<boolean>;
@@ -91,6 +97,8 @@ export function ListRoiTrainingSamples(arg1:string,arg2:string):Promise<Array<ma
 
 export function LoadFirstFrame(arg1:string):Promise<main.FramePreview>;
 
+export function LoadFrameAt(arg1:string,arg2:number):Promise<main.FramePreview>;
+
 export function LoadFunscript(arg1:string):Promise<main.ScriptInfo>;
 
 export function OpenLogFolder():Promise<void>;
@@ -150,6 +158,8 @@ export function StopTrainingCycle():Promise<void>;
 export function SubmitFeedback(arg1:main.ReportFeedback):Promise<void>;
 
 export function SuggestBackend(arg1:number,arg2:number):Promise<string>;
+
+export function SuggestPipeline(arg1:number,arg2:number,arg3:number,arg4:number):Promise<funscript.PipelineSuggestion>;
 
 export function SuggestOZone():Promise<funscript.OZoneSuggestion>;
 

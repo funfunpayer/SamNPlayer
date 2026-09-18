@@ -27,14 +27,26 @@ type FramePreview struct {
 }
 
 func (a *App) LoadFirstFrame(videoPath string) (FramePreview, error) {
+	return a.LoadFrameAt(videoPath, 0)
+}
+
+// LoadFrameAt extracts a preview PNG at timeSec (seconds). Uses ffmpeg so
+// seeking past a black intro does not need Python.
+func (a *App) LoadFrameAt(videoPath string, timeSec float64) (FramePreview, error) {
 	tmpPNG, err := tempFile("frame-preview-*.png")
 	if err != nil {
 		return FramePreview{}, err
 	}
 	defer removeFile(tmpPNG)
-	w, h, err := generator.DumpFirstFrame(videoPath, tmpPNG)
+	w, h, err := generator.DumpFrameAt(videoPath, tmpPNG, timeSec)
 	if err != nil {
-		return FramePreview{}, err
+		// Fall back to Python dump for time 0 if ffmpeg path fails.
+		if timeSec <= 0 {
+			w, h, err = generator.DumpFirstFrame(videoPath, tmpPNG)
+		}
+		if err != nil {
+			return FramePreview{}, err
+		}
 	}
 	b64, err := fileToBase64(tmpPNG)
 	if err != nil {

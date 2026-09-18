@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { wireDataHelp } from './help.js';
 
@@ -19,6 +19,13 @@ export function initGenerator(root, playback) {
     </div>
     <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analysiert die Bewegung im Video - danach lässt sich die Region trotzdem von Hand korrigieren.</p>
 
+    <div class="row" style="align-items:center; margin:4px 0;">
+      <label style="width:auto;" data-help="Bei schwarzem Clip-Anfang vorspulen, bevor du die Region markierst.">Zeit (s)</label>
+      <input type="number" id="gen-seek" value="0" min="0" step="0.5" style="width:5em;" disabled />
+      <button id="gen-seek-btn" type="button" disabled>Frame</button>
+      <button id="gen-seek-plus" type="button" disabled>+1s</button>
+      <button id="gen-seek-plus5" type="button" disabled>+5s</button>
+    </div>
     <div id="roi-canvas-wrap">
       <canvas id="roi-canvas"></canvas>
     </div>
@@ -29,6 +36,7 @@ export function initGenerator(root, playback) {
       <span class="hint" id="gen-roi2-hint" style="margin:0">Für Tf/Tj nötig.</span>
     </div>
     <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
+    <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
     <div class="row" style="align-items:center;">
       <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Tf/Tj braucht zwei Regionen und steuert Sog über den Abstand.">Bewegungsart</label>
@@ -159,13 +167,10 @@ export function initGenerator(root, playback) {
     <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
     <p class="hint">
-      Klassisches CV-Tracking als Grundlage - im Vorschaubild eine Region über
-      das zu verfolgende Motiv ziehen, dann generieren. Der Standardfall
-      (eine Region, CSRT) läuft in Go ohne Python; andere Backends, Tf/Tj,
-      KI- und Audio-Extras brauchen Python. Optional die lokale
-      KI-Regionserkennung nutzen (Häkchen oben) oder ein gemerktes/vorgeschlagenes
-      Profil übernehmen (unten) - beides bleibt ein Vorschlag, den du bestätigst
-      oder korrigierst.
+      Klassisches CV-Tracking. Eine Region + CSRT und Tf/Tj (zwei Regionen)
+      laufen in Go ohne Python — kein Soft-Fallback. Backend und Profil werden
+      aus den Markierungen automatisch vorbelegt (änderbar unter Erweitert).
+      Andere Backends, KI- und Audio-Extras brauchen weiterhin Python.
     </p>
   `;
 
@@ -182,6 +187,7 @@ export function initGenerator(root, playback) {
   let roi2 = null; // zweite Region für Tf/Tj (Abstand + Sog)
   let roi2Mode = false; // Knopf „2. Region“ aktiv
   let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
+  let seekSec = 0;
 
   const DISPLAY_W = 560;
 
@@ -397,11 +403,31 @@ export function initGenerator(root, playback) {
     }
     updateRoiLabels();
     updateGenerateEnabled();
+    autoApplyPipeline();
     if (isTfTj() && videoPath && !roi2) {
       el('#gen-status').textContent = 'Erste Region gesetzt — jetzt 2. Region markieren (Shift+Ziehen oder „2. Region“).';
     }
     redraw();
   });
+
+  async function autoApplyPipeline() {
+    const w = roi?.w || 0, h = roi?.h || 0;
+    const w2 = roi2?.w || 0, h2 = roi2?.h || 0;
+    try {
+      const s = await SuggestPipeline(w, h, w2, h2);
+      if (!s) return;
+      if (s.Backend) el('#gen-backend').value = s.Backend;
+      if (s.Profile) {
+        el('#gen-profile').value = s.Profile;
+        updateProfileUi();
+      }
+      const pipe = el('#gen-pipeline-auto');
+      if (pipe) {
+        pipe.textContent = (s.Reason || '') + (s.GoPath ? ' · Go-Pfad' : ' · Python-Pfad');
+      }
+      updateGenerateEnabled();
+    } catch (_) { /* ignore */ }
+  }
 
   // Fallengelassenes Video übernehmen. Teilt sich den Ladeweg mit der
   // Dateiauswahl, damit beide Wege garantiert dasselbe tun.
@@ -422,6 +448,12 @@ export function initGenerator(root, playback) {
 
   async function loadVideo(path, extraCount = 0) {
     videoPath = path;
+    seekSec = 0;
+    el('#gen-seek').value = '0';
+    el('#gen-seek').disabled = false;
+    el('#gen-seek-btn').disabled = false;
+    el('#gen-seek-plus').disabled = false;
+    el('#gen-seek-plus5').disabled = false;
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
     el('#gen-status').textContent = 'Lade Vorschau-Frame...';
     roi = null;
@@ -436,19 +468,14 @@ export function initGenerator(root, playback) {
       ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Video${extraCount === 1 ? '' : 's'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
       : '';
     try {
-      const preview = await LoadFirstFrame(path);
-      nativeW = preview.width; nativeH = preview.height;
-      const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
-      canvas.width = DISPLAY_W; canvas.height = displayH;
-      img.onload = redraw;
-      img.src = 'data:image/png;base64,' + preview.pngBase64;
+      await showFrame(path, 0);
       el('#gen-autoroi').disabled = false;
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite.'
-        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen).') + batchNote;
+        ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite. Bei schwarzem Anfang Zeit vorstellen.'
+        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen). Bei schwarzem Anfang Zeit vorstellen.') + batchNote;
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch übernehmen.
       SuggestProfile(path).then(result => {
         if (!result || !videoPath || videoPath !== path) return;
@@ -462,6 +489,28 @@ export function initGenerator(root, playback) {
     } catch (err) {
       el('#gen-status').textContent = '';
       alert('Fehler: ' + err);
+    }
+  }
+
+  async function showFrame(path, sec) {
+    const preview = sec > 0 ? await LoadFrameAt(path, sec) : await LoadFirstFrame(path);
+    nativeW = preview.width; nativeH = preview.height;
+    const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
+    canvas.width = DISPLAY_W; canvas.height = displayH;
+    img.onload = redraw;
+    img.src = 'data:image/png;base64,' + preview.pngBase64;
+  }
+
+  async function seekTo(sec) {
+    if (!videoPath) return;
+    seekSec = Math.max(0, sec);
+    el('#gen-seek').value = String(seekSec);
+    el('#gen-status').textContent = `Lade Frame bei ${seekSec}s…`;
+    try {
+      await showFrame(videoPath, seekSec);
+      el('#gen-status').textContent = `Frame bei ${seekSec}s — Region markieren.`;
+    } catch (err) {
+      alert('Seek fehlgeschlagen: ' + err);
     }
   }
 
@@ -735,6 +784,9 @@ export function initGenerator(root, playback) {
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
+  el('#gen-seek-btn').addEventListener('click', () => seekTo(parseFloat(el('#gen-seek').value) || 0));
+  el('#gen-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
+  el('#gen-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
   el('#gen-roi2-toggle').addEventListener('click', () => {
     setRoi2Mode(!roi2Mode);
     if (roi2Mode) {

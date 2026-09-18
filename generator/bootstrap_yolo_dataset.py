@@ -413,6 +413,14 @@ def main():
                           "als zwei Klassen im selben Bild statt zwei getrennten Datensätzen")
     ap.add_argument("--class-name2", default=None,
                      help="Klasse der zweiten Region (--roi2) - erforderlich, wenn --roi2 gesetzt ist")
+    ap.add_argument("--roi3", default=None, metavar="x,y,w,h",
+                     help="Dritte Region im selben Frame (optional)")
+    ap.add_argument("--class-name3", default=None,
+                     help="Klasse der dritten Region (--roi3)")
+    ap.add_argument("--roi4", default=None, metavar="x,y,w,h",
+                     help="Vierte Region im selben Frame (optional)")
+    ap.add_argument("--class-name4", default=None,
+                     help="Klasse der vierten Region (--roi4)")
     ap.add_argument("--sample-prefix", default=None,
                      help="Fester Dateinamenspräfix statt des automatischen Video-Hash-Präfix - "
                           "so kann ein Aufrufer (z.B. die GUI) den Präfix vorher selbst bestimmen "
@@ -429,16 +437,22 @@ def main():
 
     regions = [(roi, register_class(args.output_dir, args.class_name, class_id=args.class_id))]
 
-    if args.roi2:
-        if not args.class_name2:
-            ap.error("--roi2 braucht --class-name2")
+    def _add_roi(flag, roi_s, class_s):
+        if not roi_s:
+            return
+        if not class_s:
+            ap.error(f"{flag} braucht einen Klassennamen")
         try:
-            roi2 = tuple(int(v) for v in args.roi2.split(","))
-            if len(roi2) != 4:
+            box = tuple(int(v) for v in roi_s.split(","))
+            if len(box) != 4:
                 raise ValueError
         except ValueError:
-            ap.error('--roi2 muss "x,y,w,h" sein')
-        regions.append((roi2, register_class(args.output_dir, args.class_name2)))
+            ap.error(f'{flag} muss "x,y,w,h" sein')
+        regions.append((box, register_class(args.output_dir, class_s)))
+
+    _add_roi("--roi2", args.roi2, args.class_name2)
+    _add_roi("--roi3", args.roi3, args.class_name3)
+    _add_roi("--roi4", args.roi4, args.class_name4)
 
     build_dataset(args.video, regions, args.output_dir,
                   sample_every=args.sample_every, max_frames=args.max_frames,

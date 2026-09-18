@@ -85,11 +85,10 @@ func ListRoiTrainingDevices() []RoiTrainingDevice {
 
 // RoiTrainingRegion ist eine markierte Region samt Klassenname für den
 // Bootstrap-Datensatz (siehe bootstrap_yolo_dataset.py) - ROI1 ist immer
-// nötig, ROI2 optional (z.B. Eichel + Brustwarze für Tf/Tj, beide als
-// eigene Klasse im selben Bild, siehe dessen Moduldoc).
+// nötig, ROI2–ROI4 optional (mehrere Klassen im selben Bild).
 type RoiTrainingRegion struct {
-	ROI       ROI
-	ClassName string
+	ROI       ROI    `json:"ROI"`
+	ClassName string `json:"ClassName"`
 }
 
 // BootstrapRoiTrainingSample trackt eine oder zwei Regionen durchs Video und
@@ -102,6 +101,13 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, onProgress)
+}
+
+// BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
+// stride and optional audio extraction beside the dataset.
+func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
+	sampleEvery int, extractAudio bool, onProgress func(line string)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: mindestens eine Region nötig")
 	}
@@ -119,8 +125,21 @@ func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, o
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "bootstrap_yolo_dataset.py")
 
-	return runPythonScript(py, buildBootstrapArgs(scriptPath, videoPath, regions, outputDir, samplePrefix),
-		"roi_training", onProgress, nil)
+	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery),
+		"roi_training", onProgress, nil); err != nil {
+		return err
+	}
+	if extractAudio {
+		path, err := ExtractTrainingAudio(videoPath, outputDir, samplePrefix)
+		if err != nil {
+			if onProgress != nil {
+				onProgress("Hinweis: Audio nicht extrahiert — " + err.Error())
+			}
+		} else if onProgress != nil {
+			onProgress("Audio gespeichert: " + path)
+		}
+	}
+	return nil
 }
 
 // RunRoiModelTraining trainiert ein YOLO-Modell auf dem gesammelten
@@ -196,6 +215,10 @@ func runPythonScript(py string, args []string, logPrefix string,
 // - reine Funktionen, testbar ohne Python/Subprozess. Eine Option, die hier
 // nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
 func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string) []string {
+	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12)
+}
+
+func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int) []string {
 	args := []string{scriptPath,
 		"--video", videoPath,
 		"--roi", roiArg(regions[0].ROI),
@@ -205,8 +228,17 @@ func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegio
 	if samplePrefix != "" {
 		args = append(args, "--sample-prefix", samplePrefix)
 	}
+	if sampleEvery > 0 && sampleEvery != 12 {
+		args = append(args, "--sample-every", itoa(sampleEvery))
+	}
 	if len(regions) > 1 {
 		args = append(args, "--roi2", roiArg(regions[1].ROI), "--class-name2", regions[1].ClassName)
+	}
+	if len(regions) > 2 {
+		args = append(args, "--roi3", roiArg(regions[2].ROI), "--class-name3", regions[2].ClassName)
+	}
+	if len(regions) > 3 {
+		args = append(args, "--roi4", roiArg(regions[3].ROI), "--class-name4", regions[3].ClassName)
 	}
 	return args
 }

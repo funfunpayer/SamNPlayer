@@ -62,6 +62,8 @@ type Result struct {
 	SceneCuts    []int
 	Stats        Stats
 	Canceled     bool // true if Options.Cancel aborted the loop
+	// LostFlags is set by TrackTwoPoints (per-frame: either tracker lost).
+	LostFlags []bool
 }
 
 // ErrCanceled is returned when Options.Cancel aborts the tracking loop.

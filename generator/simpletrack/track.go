@@ -45,6 +45,9 @@ type Result struct {
 	Height       int
 	Stats        Stats
 	Canceled     bool
+	// LostFlags is set by TrackTwoPoints: true when at least one of the two
+	// trackers failed that frame (for tracking_gaps / contact mute).
+	LostFlags []bool
 }
 
 // ErrCanceled is returned when Options.Cancel aborts.

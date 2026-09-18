@@ -53,17 +53,18 @@ body {
   gap: 6px;
 }
 .brand {
-  width: 40px; height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, rgba(240,161,74,0.25), rgba(139,124,255,0.18));
-  border: 1px solid rgba(240,161,74,0.35);
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(240,161,74,0.22), rgba(95,208,200,0.12));
+  border: 1px solid rgba(240,161,74,0.4);
   display: grid; place-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   flex-shrink: 0;
   overflow: hidden;
-  padding: 4px;
+  padding: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
 }
-.brand img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.brand img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 10px; }
 .tab-btn {
   width: 100%;
   border: 0;
