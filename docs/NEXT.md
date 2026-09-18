@@ -1323,8 +1323,10 @@ script.funscript`.
 - `sam.RuntimeAdjust` — live IntensityScale / Mute / ExtraSmooth without
   rewriting `.funscript`/`.sam`.
 - CLI playback for Tf/Tj+contact uses SAM path; flags
-  `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`.
-- GUI: „Kontakt-Stärke“ slider on the player tab.
+  `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`,
+  `--contact-span`, `--contact-curve`.
+- GUI: Kontakt-Stärke / Empfindlichkeit / Kurve live; Vibrationsspur folgt
+  (`GetVibrationCurvePreview`).
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already
