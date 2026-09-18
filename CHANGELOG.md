@@ -14,6 +14,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **GUI visual refresh:** Space Grotesk + logo palette (gold `#f2b03d` /
+  teal `#3dccc0` on deep navy); sharper geometry, dual-tone rail/brand
+  offset, SamN wordmark in topbar; violet accents removed (ROI2/Sog → gold/teal).
+- **Topbar device:** connected device name always visible top-right (icon +
+  LED); **Verbinden / Trennen** there (uses saved transport from settings);
+  click name opens Gerät tab for transport/tests/diagnostics.
 - **Go-native Tf/Tj:** two-point distance tracking runs in Go (`trackcv` /
   `simpletrack.TrackTwoPoints`) — no Python soft-fallback when the Go path
   is eligible. `tracking_gaps` written into funscript metadata for Kontakt mute.

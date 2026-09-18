@@ -18,7 +18,7 @@ export function initSidebar(root) {
       </div>
       <div class="meter">
         <div class="row" style="margin:0"><span>Sog</span><span id="sb-suc-pct">-</span></div>
-        <div class="bar"><span id="sb-suc-bar" style="width:0%;background:var(--violet)"></span></div>
+        <div class="bar"><span id="sb-suc-bar" style="width:0%;background:var(--teal)"></span></div>
       </div>
     </div>
     <div class="card">

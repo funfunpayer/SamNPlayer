@@ -70,7 +70,7 @@ export function initBenchmark(root) {
     <div class="row"><button id="bm-run" class="primary" disabled>Benchmark starten</button></div>
     <div id="bm-progress-wrap" style="display:none; margin-top:8px;">
       <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
-        <div id="bm-progress-bar" style="height:100%; width:0%; background:var(--accent, #00c8ff);
+        <div id="bm-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
              transition:width .2s linear;"></div>
       </div>
       <div id="bm-progress-text" class="hint" style="margin-top:4px;"></div>

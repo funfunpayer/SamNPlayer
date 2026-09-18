@@ -32,7 +32,7 @@ export function initGenerator(root, playback) {
     <div class="path-label" id="gen-roi-label">Keine Region markiert</div>
     <div class="row" style="align-items:center; margin-top:6px;">
       <button id="gen-roi2-toggle" type="button"
-        data-help="Zweite Region (violett) für Tf/Tj: Abstand zwischen beiden steuert den Hub, Sog folgt der Position. Auch per Shift+Ziehen.">2. Region</button>
+        data-help="Zweite Region (gold) für Tf/Tj: Abstand zwischen beiden steuert den Hub, Sog folgt der Position. Auch per Shift+Ziehen.">2. Region</button>
       <span class="hint" id="gen-roi2-hint" style="margin:0">Für Tf/Tj nötig.</span>
     </div>
     <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
@@ -146,7 +146,7 @@ export function initGenerator(root, playback) {
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
     <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
       <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
-        <div id="gen-progress-bar" style="height:100%; width:0%; background:var(--accent, #00c8ff);
+        <div id="gen-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
              transition:width .2s linear;"></div>
       </div>
       <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
@@ -191,10 +191,10 @@ export function initGenerator(root, playback) {
 
   const DISPLAY_W = 560;
 
-  const ROI1_STROKE = '#5fd0c8';
-  const ROI1_FILL = 'rgba(95,208,200,0.15)';
-  const ROI2_STROKE = '#8b7cff';
-  const ROI2_FILL = 'rgba(139,124,255,0.18)';
+  const ROI1_STROKE = '#3dccc0';
+  const ROI1_FILL = 'rgba(61,204,192,0.16)';
+  const ROI2_STROKE = '#f2b03d';
+  const ROI2_FILL = 'rgba(242,176,61,0.18)';
 
   function isTfTj() {
     const p = el('#gen-profile').value;
@@ -231,8 +231,8 @@ export function initGenerator(root, playback) {
   function setRoi2Mode(on) {
     roi2Mode = !!on;
     const btn = el('#gen-roi2-toggle');
-    btn.style.outline = roi2Mode ? '2px solid #8b7cff' : '';
-    btn.style.background = roi2Mode ? 'rgba(139,124,255,0.28)' : '';
+    btn.style.outline = roi2Mode ? '2px solid #f2b03d' : '';
+    btn.style.background = roi2Mode ? 'rgba(242,176,61,0.22)' : '';
   }
 
   function updateRoiLabels() {
@@ -240,7 +240,7 @@ export function initGenerator(root, playback) {
       ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`
       : 'Keine Region markiert';
     el('#gen-roi2-label').textContent = roi2
-      ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, violett)`
+      ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, gold)`
       : 'Keine 2. Region markiert';
 
     // Zwei-Punkt-Messung (2. Region gesetzt) hat einen eigenen Pfad in
@@ -791,7 +791,7 @@ export function initGenerator(root, playback) {
   el('#gen-roi2-toggle').addEventListener('click', () => {
     setRoi2Mode(!roi2Mode);
     if (roi2Mode) {
-      el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird violett).';
+      el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird gold).';
     }
   });
   el('#gen-profile').addEventListener('change', updateProfileUi);

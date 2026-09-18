@@ -157,17 +157,15 @@ export function initDevice(root) {
     el('#dev-disconnect').disabled = !st.connected || busy;
     el('#dev-transport').disabled = st.connected || busy;
     el('#dev-intiface-url').disabled = st.connected || busy;
+
+    // Sidebar + Topbar hören auf dasselbe Event (ein Poll, mehrere Anzeigen).
+    window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
   }
 
   async function refresh() {
     try {
       const st = await GetDeviceStatus();
       render(st);
-      // sidebar.js zeigt denselben Status (LED/Name), fragt ihn aber nicht
-      // mehr selbst beim Backend ab, um GetDeviceStatus() nicht doppelt so
-      // oft wie nötig aufzurufen - dieser Tab bleibt wie der Wiedergabe-Tab
-      // dauerhaft im DOM (nur display:none), sein Poll-Intervall reicht.
-      window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
     } catch (e) {
       log('Status nicht abrufbar: ' + e);
     }
