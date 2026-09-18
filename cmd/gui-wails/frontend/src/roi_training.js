@@ -315,7 +315,10 @@ export function initRoiTraining(root) {
         redraw();
       };
       const ext = path.toLowerCase();
-      const mime = ext.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      const mime = ext.endsWith('.png') ? 'image/png'
+        : ext.endsWith('.webp') ? 'image/webp'
+        : ext.endsWith('.gif') ? 'image/gif'
+        : 'image/jpeg';
       img.src = `data:${mime};base64,` + preview;
       el('#rt-bootstrap-status').textContent = 'Still-Bild: Regionen markieren, dann speichern.';
     } catch (err) {
@@ -456,7 +459,12 @@ export function initRoiTraining(root) {
         gridEl.appendChild(card);
 
         GetRoiTrainingSampleImage(s.imagePath).then(b64 => {
-          imgEl.src = 'data:image/jpeg;base64,' + b64;
+          const p = String(s.imagePath || '').toLowerCase();
+          const mime = p.endsWith('.png') ? 'image/png'
+            : p.endsWith('.webp') ? 'image/webp'
+            : p.endsWith('.gif') ? 'image/gif'
+            : 'image/jpeg';
+          imgEl.src = `data:${mime};base64,` + b64;
           (s.boxes || []).forEach(box => thumbWrap.appendChild(boxOverlay(box)));
         }).catch(() => { caption.textContent += ' (Bild konnte nicht geladen werden)'; });
 

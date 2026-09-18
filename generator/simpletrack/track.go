@@ -160,6 +160,13 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 		}
 	}
 
+	if opts.StartTimeSec > 0 {
+		off := int(opts.StartTimeSec*1000 + 0.5)
+		for i := range timestamps {
+			timestamps[i] += off
+		}
+	}
+
 	vRange, hRange := ptp(ys), ptp(xs)
 	positions := ys
 	switch opts.Axis {

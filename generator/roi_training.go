@@ -130,7 +130,7 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 		return err
 	}
 	if extractAudio {
-		path, err := ExtractTrainingAudio(videoPath, outputDir, samplePrefix)
+		path, err := ExtractTrainingAudio(videoPath, outputDir, samplePrefix, startSeconds)
 		if err != nil {
 			if onProgress != nil {
 				onProgress("Hinweis: Audio nicht extrahiert — " + err.Error())

@@ -26,7 +26,9 @@ measurement history behind each entry; this file is the short version for
 - **GUI brand:** Wails logo replaced with SamNPlayer SN mark; seek controls
   on Generator + KI-Training tabs.
 - **Generator seek:** `StartTimeSec` / `--start-seconds` wired through Go
-  trackers (trackcv/simpletrack) and Python generate path.
+  trackers (trackcv/simpletrack) and Python generate path; funscript
+  timestamps and `tracking_gaps` are offset to absolute video time; bootstrap
+  audio respects the same seek.
 
 ## [0.5.4] — September 18, 2026
 

@@ -127,6 +127,13 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		}
 	}
 
+	if opts.StartTimeSec > 0 {
+		off := int(opts.StartTimeSec*1000 + 0.5)
+		for i := range timestamps {
+			timestamps[i] += off
+		}
+	}
+
 	conf := 0.0
 	if frameIdx > 0 {
 		conf = float64(valid) / float64(frameIdx)

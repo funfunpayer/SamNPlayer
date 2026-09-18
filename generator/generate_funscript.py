@@ -299,6 +299,10 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
     print(f"PROGRESS {frame_idx} {frame_idx}", file=sys.stderr, flush=True)
     cap.release()
 
+    if start_frame > 0:
+        offset_ms = int(round(start_frame * 1000 / fps))
+        timestamps_ms = [t + offset_ms for t in timestamps_ms]
+
     y_positions = np.array(y_positions)
     if camera_compensation:
         camera_dy = np.array(camera_dy_cumulative)
@@ -1463,6 +1467,9 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
 
     cap.release()
     print(f"PROGRESS {idx} {idx}", file=sys.stderr, flush=True)
+    if start_frame > 0:
+        offset_ms = int(round(start_frame * 1000 / fps))
+        timestamps = [t + offset_ms for t in timestamps]
     distances = np.asarray(distances, dtype=float)
     if lost:
         print(f"Zwei-Punkt-Messung: in {lost}/{idx} Frames hat mindestens einer der "

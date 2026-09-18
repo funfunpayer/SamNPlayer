@@ -229,6 +229,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		applyCameraCompensation(yPositions, cameraDyCumulative, sceneCuts)
 	}
 
+	if opts.StartTimeSec > 0 {
+		off := int(opts.StartTimeSec*1000 + 0.5)
+		for i := range timestampsMs {
+			timestampsMs[i] += off
+		}
+	}
+
 	verticalRange := ptp(yPositions)
 	horizontalRange := ptp(xPositions)
 	axisIsHorizontal := horizontalRange > verticalRange*1.5 && horizontalRange > 5

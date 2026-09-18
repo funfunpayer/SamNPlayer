@@ -145,7 +145,8 @@ func convertStillToJPEG(src, dst string) error {
 
 // ExtractTrainingAudio dumps the clip audio next to the dataset so later
 // multimodal training can use it. Best-effort: missing audio is not an error.
-func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string) (string, error) {
+// startSeconds skips intro (same seek as visual bootstrap samples).
+func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string, startSeconds float64) (string, error) {
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
 		return "", fmt.Errorf("ffmpeg nicht gefunden")
 	}
@@ -158,7 +159,11 @@ func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string) (string, er
 		prefix = sanitizeStem(filepath.Base(videoPath))
 	}
 	out := filepath.Join(audioDir, prefix+".wav")
-	args := []string{"-v", "error", "-y", "-i", videoPath, "-vn", "-ac", "1", "-ar", "16000", out}
+	args := []string{"-v", "error", "-y"}
+	if startSeconds > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(startSeconds, 'f', 3, 64))
+	}
+	args = append(args, "-i", videoPath, "-vn", "-ac", "1", "-ar", "16000", out)
 	if b, err := exec.Command("ffmpeg", args...).CombinedOutput(); err != nil {
 		return "", fmt.Errorf("audio-extraktion: %w\n%s", err, string(b))
 	}
