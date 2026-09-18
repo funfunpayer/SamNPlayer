@@ -1,6 +1,6 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
-  TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurve, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
+  TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
@@ -86,6 +86,24 @@ export function initPlayback(root) {
       <input type="checkbox" id="pb-contact-off" />
       <label for="pb-contact-off"
         data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
+    </div>
+    <div class="field-row" id="pb-contact-intensity-row" style="display:none">
+      <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
+      <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+      <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
+    </div>
+    <div class="field-row" id="pb-contact-span-row" style="display:none">
+      <label data-help="Live-Empfindlichkeit ohne Neu-Generate. Niedriger = früher an. Default aus dem Skript-Rezept.">Empfindlichkeit</label>
+      <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
+      <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
+    </div>
+    <div class="field-row" id="pb-contact-curve-row" style="display:none">
+      <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
+      <select id="pb-contact-curve">
+        <option value="linear">linear</option>
+        <option value="soft">soft</option>
+        <option value="peak">peak</option>
+      </select>
     </div>
 
     <div class="field-row"><label>Gerät</label>
@@ -464,6 +482,22 @@ export function initPlayback(root) {
   el('#pb-offset-plus').addEventListener('click',
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
+  el('#pb-contact-intensity').addEventListener('input', e => {
+    const v = Number(e.target.value) || 0;
+    el('#pb-contact-intensity-val').textContent = v.toFixed(2);
+    if (scriptHasContactVibration) drawCurve();
+  });
+  el('#pb-contact-span').addEventListener('input', e => {
+    const v = Number(e.target.value) || 0;
+    el('#pb-contact-span-val').textContent = v.toFixed(2);
+    if (scriptHasContactVibration) drawCurve();
+  });
+  el('#pb-contact-curve').addEventListener('change', () => {
+    if (scriptHasContactVibration) drawCurve();
+  });
+  el('#pb-contact-off').addEventListener('change', () => {
+    if (scriptHasContactVibration) drawCurve();
+  });
 
   const CHAPTER_LABELS = {
     pause: 'Pause', build: 'Aufbau', steady: 'gleichmäßig',
@@ -498,6 +532,16 @@ export function initPlayback(root) {
     box.style.display = text ? 'block' : 'none';
   }
 
+  function contactPreviewOpts() {
+    return {
+      maxPoints: CURVE_MAX_POINTS,
+      contactVibrationSpan: parseFloat(el('#pb-contact-span').value) || 0,
+      contactVibrationCurve: el('#pb-contact-curve').value || '',
+      contactIntensityScale: parseFloat(el('#pb-contact-intensity').value) || 1,
+      muteContact: el('#pb-contact-off').checked,
+    };
+  }
+
   async function drawCurve() {
     try {
       curvePoints = await GetScriptCurve(CURVE_MAX_POINTS);
@@ -516,7 +560,7 @@ export function initPlayback(root) {
     }
     try {
       vibrationCurvePoints = scriptHasContactVibration
-        ? await GetVibrationCurve(CURVE_MAX_POINTS)
+        ? await GetVibrationCurvePreview(contactPreviewOpts())
         : null;
     } catch (err) {
       vibrationCurvePoints = null;
@@ -805,8 +849,23 @@ export function initPlayback(root) {
       : '';
     el('#pb-script-path').textContent = scriptPath + batchNote;
     scriptHasContactVibration = !!info.contactVibration;
-    el('#pb-contact-off-row').style.display = scriptHasContactVibration ? 'flex' : 'none';
-    if (!scriptHasContactVibration) el('#pb-contact-off').checked = false;
+    const showContact = scriptHasContactVibration;
+    el('#pb-contact-off-row').style.display = showContact ? 'flex' : 'none';
+    el('#pb-contact-intensity-row').style.display = showContact ? 'flex' : 'none';
+    el('#pb-contact-span-row').style.display = showContact ? 'flex' : 'none';
+    el('#pb-contact-curve-row').style.display = showContact ? 'flex' : 'none';
+    if (!showContact) {
+      el('#pb-contact-off').checked = false;
+      el('#pb-contact-intensity').value = '1';
+      el('#pb-contact-intensity-val').textContent = '1.00';
+    } else {
+      // Rezept-Defaults in die Live-Controls übernehmen (Datei bleibt Quelle).
+      const span = (info.contactVibrationSpan > 0) ? info.contactVibrationSpan : 0.75;
+      el('#pb-contact-span').value = String(span);
+      el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
+      const curve = info.contactVibrationCurve || 'linear';
+      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'linear';
+    }
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();
@@ -874,6 +933,16 @@ export function initPlayback(root) {
       extendedOHoldS: parseFloat(el('#pb-eo-hold').value) || 10,
       extendedORestoreMs: parseFloat(el('#pb-eo-restore').value) || 500,
       disableContactVibration: scriptHasContactVibration && el('#pb-contact-off').checked,
+      contactIntensityScale: scriptHasContactVibration
+        ? parseFloat(el('#pb-contact-intensity').value) || 1
+        : 1,
+      contactExtraSmooth: 0,
+      contactVibrationSpan: scriptHasContactVibration
+        ? parseFloat(el('#pb-contact-span').value) || 0
+        : 0,
+      contactVibrationCurve: scriptHasContactVibration
+        ? (el('#pb-contact-curve').value || '')
+        : '',
     };
 
     try {
@@ -1086,7 +1155,7 @@ export function initPlayback(root) {
       const [heat, curve, vib, markers] = await Promise.all([
         GetHeatmap(HEATMAP_BUCKETS),
         GetScriptCurve(CURVE_MAX_POINTS),
-        scriptHasContactVibration ? GetVibrationCurve(CURVE_MAX_POINTS) : Promise.resolve(null),
+        scriptHasContactVibration ? GetVibrationCurvePreview(contactPreviewOpts()) : Promise.resolve(null),
         GetOMarkers(scriptPath),
       ]);
       heatmapPoints = heat;

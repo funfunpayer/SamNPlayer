@@ -14,18 +14,35 @@ import (
 )
 
 type PlaybackOptions struct {
-	Mock                   bool    `json:"mock"`
-	SyncMode               string  `json:"syncMode"`
-	TickMs                 int64   `json:"tickMs"`
-	MaxSpeed               float64 `json:"maxSpeed"`
-	Smoothing              float64 `json:"smoothing"`
-	SoftStartMs            int     `json:"softStartMs"`
-	UseVideoSync           bool    `json:"useVideoSync"`
-	ExtendedOEnabled       bool    `json:"extendedOEnabled"`
-	ExtendedOMin           float64 `json:"extendedOMin"`
-	ExtendedOHoldS         float64 `json:"extendedOHoldS"`
-	ExtendedORestoreMs     float64 `json:"extendedORestoreMs"`
-	DisableContactVibration bool   `json:"disableContactVibration"`
+	Mock                    bool    `json:"mock"`
+	SyncMode                string  `json:"syncMode"`
+	TickMs                  int64   `json:"tickMs"`
+	MaxSpeed                float64 `json:"maxSpeed"`
+	Smoothing               float64 `json:"smoothing"`
+	SoftStartMs             int     `json:"softStartMs"`
+	UseVideoSync            bool    `json:"useVideoSync"`
+	ExtendedOEnabled        bool    `json:"extendedOEnabled"`
+	ExtendedOMin            float64 `json:"extendedOMin"`
+	ExtendedOHoldS          float64 `json:"extendedOHoldS"`
+	ExtendedORestoreMs      float64 `json:"extendedORestoreMs"`
+	DisableContactVibration bool    `json:"disableContactVibration"`
+	// ContactIntensityScale: live SAM-Korrektur 0–2 (1=Rezept), Datei unverändert.
+	ContactIntensityScale float64 `json:"contactIntensityScale"`
+	// ContactExtraSmooth: zusätzliche EMA nach dem Mapping (0=aus).
+	ContactExtraSmooth float64 `json:"contactExtraSmooth"`
+	// ContactVibrationSpan / Curve: Live-Override der Empfindlichkeit/Kurve
+	// (0 / "" = aus DeviceRecipe). Datei bleibt unverändert.
+	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+}
+
+// ContactPreviewOptions steuert die zweite Kurvenspur inkl. Live-Overrides.
+type ContactPreviewOptions struct {
+	MaxPoints             int     `json:"maxPoints"`
+	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+	ContactIntensityScale float64 `json:"contactIntensityScale"`
+	MuteContact           bool    `json:"muteContact"`
 }
 
 func (a *App) StartPlayback(opts PlaybackOptions) error {
@@ -42,6 +59,12 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			mapOpts.ContactVibration = dr.ContactVibration
 			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
 			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
+		}
+		if opts.ContactVibrationSpan > 0 {
+			mapOpts.ContactVibrationSpan = opts.ContactVibrationSpan
+		}
+		if opts.ContactVibrationCurve != "" {
+			mapOpts.ContactVibrationCurve = opts.ContactVibrationCurve
 		}
 		if len(script.Metadata.TrackingGaps) > 0 {
 			mapOpts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
@@ -72,6 +95,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	} else {
 		frames = script.ToIntensityCurve(mapOpts)
 	}
+	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
+		IntensityScale: opts.ContactIntensityScale,
+		ExtraSmooth:    opts.ContactExtraSmooth,
+		MuteContact:    opts.DisableContactVibration || opts.ContactIntensityScale <= 0,
+	})
 	if len(frames) == 0 {
 		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
 	}
@@ -265,9 +293,16 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 }
 
 // GetVibrationCurve returns the contact-vibration envelope for the loaded
-// script (empty if none). Uses the baked-in device_recipe so the second
-// curve track matches what playback would send without a disable override.
+// script (empty if none). Uses the baked-in device_recipe (no live override).
 func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
+	return a.GetVibrationCurvePreview(ContactPreviewOptions{
+		MaxPoints: maxPoints, ContactIntensityScale: 1,
+	})
+}
+
+// GetVibrationCurvePreview applies live Span/Kurve/Stärke-Overrides — gleiche
+// Semantik wie StartPlayback, ohne die Datei anzufassen.
+func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]VibrationCurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
 		return nil, fmt.Errorf("kein Skript geladen")
@@ -276,6 +311,7 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
 		return nil, nil
 	}
+	maxPoints := preview.MaxPoints
 	if maxPoints < 50 {
 		maxPoints = 50
 	}
@@ -283,6 +319,12 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 	opts.ContactVibration = true
 	opts.ContactVibrationSpan = dr.ContactVibrationSpan
 	opts.ContactVibrationCurve = dr.ContactVibrationCurve
+	if preview.ContactVibrationSpan > 0 {
+		opts.ContactVibrationSpan = preview.ContactVibrationSpan
+	}
+	if preview.ContactVibrationCurve != "" {
+		opts.ContactVibrationCurve = preview.ContactVibrationCurve
+	}
 	opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
 	opts.Smoothing = 0
 	opts.ContactVibrationEnvelope = -1
@@ -295,6 +337,16 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 		opts.TickMs = 10
 	}
 	frames := a.contactFrames(script, opts)
+	scale := preview.ContactIntensityScale
+	mute := preview.MuteContact
+	if scale <= 0 {
+		mute = true
+		scale = 1
+	}
+	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
+		IntensityScale: scale,
+		MuteContact:    mute,
+	})
 	out := make([]VibrationCurvePoint, 0, len(frames))
 	any := false
 	for _, f := range frames {
@@ -338,11 +390,16 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	return points, nil
 }
 
-// contactFrames: bevorzugt vorhandenes .sam-Sidecar, sonst Enrich aus dem Funscript.
+// contactFrames: bevorzugt vorhandenes .sam-Sidecar mit Kontakt-Intensity,
+// sonst Enrich aus dem Funscript. Dünne Sidecars (nur Position) werden
+// übersprungen — sonst bliebe Vibration still auf 0.
+// Sidecar/Enrich werden vor dem Geräte-Mapping verdichtet (Densify), damit
+// Intensity der Classic-Per-Tick-Auswertung entspricht.
 func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
 	if path := a.loadedScriptPath(); path != "" {
-		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil {
-			if frames := sam.ToDeviceFrames(s, mapOpts); len(frames) > 0 {
+		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil && sam.HasContactIntensity(s) {
+			dense := sam.Densify(s, mapOpts.TickMs, mapOpts)
+			if frames := sam.ToDeviceFrames(dense, mapOpts); len(frames) > 0 {
 				return frames
 			}
 		}

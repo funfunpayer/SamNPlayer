@@ -728,6 +728,26 @@ export namespace main {
 	        this.endMs = source["endMs"];
 	    }
 	}
+	export class ContactPreviewOptions {
+	    maxPoints: number;
+	    contactVibrationSpan: number;
+	    contactVibrationCurve: string;
+	    contactIntensityScale: number;
+	    muteContact: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new ContactPreviewOptions(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.maxPoints = source["maxPoints"];
+	        this.contactVibrationSpan = source["contactVibrationSpan"];
+	        this.contactVibrationCurve = source["contactVibrationCurve"];
+	        this.contactIntensityScale = source["contactIntensityScale"];
+	        this.muteContact = source["muteContact"];
+	    }
+	}
 	export class PlaybackOptions {
 	    mock: boolean;
 	    syncMode: string;
@@ -741,6 +761,10 @@ export namespace main {
 	    extendedOHoldS: number;
 	    extendedORestoreMs: number;
 	    disableContactVibration: boolean;
+	    contactIntensityScale: number;
+	    contactExtraSmooth: number;
+	    contactVibrationSpan: number;
+	    contactVibrationCurve: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PlaybackOptions(source);
@@ -760,6 +784,10 @@ export namespace main {
 	        this.extendedOHoldS = source["extendedOHoldS"];
 	        this.extendedORestoreMs = source["extendedORestoreMs"];
 	        this.disableContactVibration = source["disableContactVibration"];
+	        this.contactIntensityScale = source["contactIntensityScale"];
+	        this.contactExtraSmooth = source["contactExtraSmooth"];
+	        this.contactVibrationSpan = source["contactVibrationSpan"];
+	        this.contactVibrationCurve = source["contactVibrationCurve"];
 	    }
 	}
 	export class ReportFeedback {
@@ -840,6 +868,8 @@ export namespace main {
 	    hasVideo: boolean;
 	    profile: string;
 	    contactVibration: boolean;
+	    contactVibrationSpan: number;
+	    contactVibrationCurve: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ScriptInfo(source);
@@ -854,6 +884,8 @@ export namespace main {
 	        this.hasVideo = source["hasVideo"];
 	        this.profile = source["profile"];
 	        this.contactVibration = source["contactVibration"];
+	        this.contactVibrationSpan = source["contactVibrationSpan"];
+	        this.contactVibrationCurve = source["contactVibrationCurve"];
 	    }
 	}
 	

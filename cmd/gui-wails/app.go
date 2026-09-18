@@ -137,13 +137,15 @@ func findMatchingVideo(scriptPath string) (string, bool) {
 
 // ScriptInfo wird als JSON ans Frontend zurückgegeben.
 type ScriptInfo struct {
-	Path              string `json:"path"`
-	ActionCount       int    `json:"actionCount"`
-	DurationMs        int64  `json:"durationMs"`
-	VideoPath         string `json:"videoPath"`
-	HasVideo          bool   `json:"hasVideo"`
-	Profile           string `json:"profile"`
-	ContactVibration  bool   `json:"contactVibration"`
+	Path                  string  `json:"path"`
+	ActionCount           int     `json:"actionCount"`
+	DurationMs            int64   `json:"durationMs"`
+	VideoPath             string  `json:"videoPath"`
+	HasVideo              bool    `json:"hasVideo"`
+	Profile               string  `json:"profile"`
+	ContactVibration      bool    `json:"contactVibration"`
+	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string  `json:"contactVibrationCurve"`
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
@@ -161,6 +163,8 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 	}
 	if dr := script.Metadata.DeviceRecipe; dr != nil {
 		info.ContactVibration = dr.ContactVibration
+		info.ContactVibrationSpan = funscript.EffectiveContactSpan(dr.ContactVibrationSpan)
+		info.ContactVibrationCurve = funscript.NormalizeContactCurve(dr.ContactVibrationCurve)
 	}
 	a.stateMu.Lock()
 	if video, ok := findMatchingVideo(path); ok {

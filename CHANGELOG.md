@@ -8,22 +8,36 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.4] — September 18, 2026
+
+Test release for Kontakt-Vibration + SAM runtime. `.funscript` stays the
+file format; SAM is the internal motion model (optional `.sam` sidecar).
+
 ### Added
 
 - **Kontakt-Vibration product controls:** sensitivity slider („früher an“ /
   „nur tief“), curve shape (linear / soft / peak), playback checkbox
   „Kontakt-Vibration ab“ (no regenerate), orange second track on the
-  position curve, and log line „Kontakt-Vibration aktiv“.
+  position curve.
 - **Kontakt-Vibration signal quality:** mute vibration during tracker-loss
   windows (`metadata.tracking_gaps`), short contact-envelope smoothing,
-  and opt-in two-ROI auto-suggest on Tf/Tj (classic or AI — suggestion only).
-- **SAM first enrich stage:** `sam.FromFunscriptEnriched` + CLI
-  `SamNPlayer sam FILE.funscript` fills Velocity/Confidence/Intensity/Range
-  from tracking gaps + Tf/contact recipe; Tf/contact **playback** consumes
-  SAM Intensity (`PlaybackFramesFromFunscript`). `.funscript` remains the
-  file format — SAM is the motion model, not a new Funscript format.
-  Tf/Tj generate also writes a `.sam` sidecar; playback prefers it when
-  present.
+  opt-in two-ROI auto-suggest on Tf/Tj.
+- **SAM enrich + sidecar:** `sam.FromFunscriptEnriched` + CLI
+  `SamNPlayer sam FILE.funscript`; Tf/Tj generate writes `.sam`; playback
+  prefers sidecar when it has contact Intensity.
+- **SAM Densify:** tick-grid Intensity from interpolated Position (classic
+  parity for contact mapping).
+- **SAM RuntimeAdjust (Milestone 2 start):** live Kontakt-Stärke /
+  Empfindlichkeit / Kurve without rewriting files; GUI preview via
+  `GetVibrationCurvePreview`; CLI `--contact-intensity`, `--mute-contact`,
+  `--contact-span`, `--contact-curve`, `--contact-extra-smooth`.
+
+### Fixed
+
+- SAM CLI `sam FILE --output OUT` honors flags after the path (`splitCLIArgs`).
+- `opts.TrackingGaps` respected without metadata; Confidence≈0 mutes vib.
+- Envelope/Smoothing no longer bleed vibration into tracking gaps.
+- Thin (position-only) `.sam` sidecars are not preferred over Enrich.
 
 ## [0.5.3] — September 17, 2026
 

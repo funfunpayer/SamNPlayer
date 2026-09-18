@@ -73,6 +73,8 @@ export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
 
 export function GetVibrationCurve(arg1:number):Promise<Array<main.VibrationCurvePoint>>;
 
+export function GetVibrationCurvePreview(arg1:main.ContactPreviewOptions):Promise<Array<main.VibrationCurvePoint>>;
+
 export function GetScriptOffset():Promise<number>;
 
 export function GetSettings():Promise<main.Settings>;

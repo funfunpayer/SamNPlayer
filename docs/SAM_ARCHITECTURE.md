@@ -149,18 +149,27 @@ Trimmed from the vision doc's own DoD list to what steps 1-4 actually cover:
 - Existing `.funscript` generation and playback are provably unaffected -
   no behavior change to anything currently shipped.
 
-## Second milestone (not started, sequenced after the first proves out)
+## Second milestone (started September 17, 2026)
 
 The vision doc's P1.1/P1.2 (runtime, live correction) applied to **existing,
-already-generated scripts** - no webcam, no prediction yet. This is a
-natural extension of what `funscript.MapOptions`/`ToIntensityCurve` and the
-player already do (map a curve to device output, with `Smoothing`,
-`MinVibration`, floor/ceiling behavior) rather than a new runtime built from
-scratch: let intensity/range/smoothness/offset be adjusted *during*
-playback of a SAM Script, without rewriting the underlying file - the same
-"correction on top, original data unchanged" principle the vision doc
-describes for P1.2. Only attempted once milestone 1 is solid; not
-scheduled yet.
+already-generated scripts** - no webcam, no prediction yet. Shipped so far:
+
+- **`sam.Densify`**: expand keyframe SAM onto the playback tick grid and
+  recompute contact `Intensity` from interpolated Position (same Span/Curve
+  as classic `ToIntensityCurve`) — closes keyframe-lerp divergence.
+- **`sam.RuntimeAdjust` / `AdjustDeviceFrames`**: IntensityScale,
+  IntensityBoost, SuctionScale, ExtraSmooth, MuteContact — correction on
+  top of mapped frames; original `.funscript` / `.sam` unchanged.
+- **CLI**: Tf/Tj+contact playback uses SAM (sidecar or Enrich+Densify);
+  `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`.
+- **GUI**: „Kontakt-Stärke“ / Empfindlichkeit / Kurve live + bestehende
+  „Kontakt ab“; Vibrationsspur folgt den Overrides (`GetVibrationCurvePreview`).
+- **CLI**: `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`,
+  `--contact-span`, `--contact-curve`.
+
+Contact vibration and O-markers remain mandatory carry-forwards (below).
+Prediction and in-play scrubbing of range stay unscheduled until this layer
+is used on real hardware.
 
 ## Non-negotiable: contact vibration and O-markers must carry forward
 

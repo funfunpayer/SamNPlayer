@@ -19,6 +19,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/device"
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/player"
+	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
 func main() {
@@ -52,6 +53,17 @@ func main() {
 	extendedORestore := flag.Duration("extended-o-restore", 500*time.Millisecond,
 		"Rampzeit zurück auf vorheriges Niveau nach Extended-O (0 = sofort)")
 
+	muteContact := flag.Bool("mute-contact", false,
+		"Kontakt-Vibration nur für diese Wiedergabe aus (Datei unverändert)")
+	contactIntensity := flag.Float64("contact-intensity", 1,
+		"Live-Skalierung der Kontakt-Vibration 0–2 (1=unverändert, ohne Datei-Rewrite)")
+	contactExtraSmooth := flag.Float64("contact-extra-smooth", 0,
+		"Zusätzliche EMA nur auf Vib/Sog nach dem Mapping (0=aus)")
+	contactSpan := flag.Float64("contact-span", 0,
+		"Live-Empfindlichkeit 0.4–0.95 (0=aus DeviceRecipe)")
+	contactCurve := flag.String("contact-curve", "",
+		"Live-Kurve linear|soft|peak (leer=aus DeviceRecipe)")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE --roi x,y,w,h [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		fmt.Fprintf(os.Stderr, "Playback options:\n")
@@ -84,8 +96,53 @@ func main() {
 	opts.TickMs = *tickMs
 	opts.MaxSpeed = *maxSpeed
 	opts.Sync = syncMode
-	frames := script.ToIntensityCurve(opts)
-	fmt.Printf("In %d Steuer-Frames umgerechnet (alle %dms, sync=%s)\n", len(frames), *tickMs, syncMode)
+	contactOn := false
+	if funscript.IsDistanceProfile(script.Metadata.Profile) {
+		opts = funscript.RecipeFor(script.Metadata.Profile)
+		opts.TickMs = *tickMs
+		if *maxSpeed > 0 {
+			opts.MaxSpeed = *maxSpeed
+		}
+		if dr := script.Metadata.DeviceRecipe; dr != nil {
+			opts.ContactVibration = dr.ContactVibration
+			opts.ContactVibrationSpan = dr.ContactVibrationSpan
+			opts.ContactVibrationCurve = dr.ContactVibrationCurve
+		}
+		if *contactSpan > 0 {
+			opts.ContactVibrationSpan = *contactSpan
+		}
+		if *contactCurve != "" {
+			opts.ContactVibrationCurve = *contactCurve
+		}
+		if len(script.Metadata.TrackingGaps) > 0 {
+			opts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
+		}
+		if *muteContact {
+			opts.ContactVibration = false
+		}
+		contactOn = opts.ContactVibration
+		if *syncModeStr != "" && *syncModeStr != "independent" {
+			opts.Sync = syncMode
+		}
+	}
+	var frames []funscript.Frame
+	if contactOn {
+		if s, err := sam.LoadSidecarIfPresent(*scriptPath); err == nil && s != nil && sam.HasContactIntensity(s) {
+			frames = sam.ToDeviceFrames(sam.Densify(s, opts.TickMs, opts), opts)
+		}
+		if len(frames) == 0 {
+			frames = sam.PlaybackFramesFromFunscript(script, opts)
+		}
+		fmt.Println("Kontakt-Vibration: SAM-Pfad (Densify + Intensity)")
+	} else {
+		frames = script.ToIntensityCurve(opts)
+	}
+	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
+		IntensityScale: *contactIntensity,
+		ExtraSmooth:    *contactExtraSmooth,
+		MuteContact:    *muteContact && contactOn,
+	})
+	fmt.Printf("In %d Steuer-Frames umgerechnet (alle %dms, sync=%s)\n", len(frames), *tickMs, opts.Sync)
 
 	var dev device.Device
 	if *mock {

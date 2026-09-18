@@ -1,6 +1,6 @@
 # Next steps
 
-## Status at a glance · September 17, 2026 (v0.5.x)
+## Status at a glance · September 18, 2026 (v0.5.x)
 
 Operational checklist. Measurement history stays below; **what's open now**:
 
@@ -13,19 +13,20 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in) |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
 | 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
-| 9 | SAM runtime wiring | **Milestone in package** — not GUI/CLI default yet |
+| 9 | SAM runtime wiring | **Started** — Densify + RuntimeAdjust + CLI/GUI live scale |
+
 | 10 | Sharper video display | **Closed** (negative) |
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
-## Verified baseline · September 17, 2026
+## Verified baseline · September 18, 2026
 
-- Latest published release **[v0.5.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.2)**;
-  source on this branch targets **0.5.3** (Log tab, CLI generate, test-release
-  docs). See `RELEASE_0_5_3.md` / `FUNGEN_FEATURE_COMPARE.md`.
-- CI green on `main` through #90.
+- Latest published release **[v0.5.3](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.3)**;
+  source on this branch targets **0.5.4** (Kontakt + SAM runtime test
+  release). See `RELEASE_0_5_4.md`.
+- CI green on `main` through #92; #93 carries 0.5.4.
 - FunGen near-zero-correlation finding (issue #8,
   [`FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes the
   *general* real-clip gap; priority 2 has found clip-level improvements.
@@ -1313,8 +1314,19 @@ Tf/Tj contact (Intensity/Gaps). Optional `.sam` via CLI is tooling only.
 **First Enrich + playback consumer (September 17, 2026):**
 `sam.FromFunscriptEnriched` fills Velocity/Confidence/Intensity/Range;
 GUI playback for contact uses `sam.PlaybackFramesFromFunscript` (log:
-„Kontakt-Vibration aktiv (SAM-Intensity)“). CLI: `SamNPlayer sam
+„Kontakt-Vibration aktiv (SAM)“). CLI: `SamNPlayer sam
 script.funscript`.
+
+**SAM runtime (milestone 2 start, September 17, 2026):**
+- `sam.Densify` — tick-grid Intensity from interpolated Position (classic
+  parity; no keyframe-lerp pre-buzz).
+- `sam.RuntimeAdjust` — live IntensityScale / Mute / ExtraSmooth without
+  rewriting `.funscript`/`.sam`.
+- CLI playback for Tf/Tj+contact uses SAM path; flags
+  `--contact-intensity`, `--mute-contact`, `--contact-extra-smooth`,
+  `--contact-span`, `--contact-curve`.
+- GUI: Kontakt-Stärke / Empfindlichkeit / Kurve live; Vibrationsspur folgt
+  (`GetVibrationCurvePreview`).
 
 Guiding constraint from the same conversation, worth restating because it
 governs every step of this: improve, never regress or dilute what already
