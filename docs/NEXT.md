@@ -1,6 +1,6 @@
 # Next steps
 
-## Status at a glance · September 17, 2026 (v0.5.x)
+## Status at a glance · September 18, 2026 (v0.5.x)
 
 Operational checklist. Measurement history stays below; **what's open now**:
 
@@ -21,12 +21,12 @@ Operational checklist. Measurement history stays below; **what's open now**:
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
-## Verified baseline · September 17, 2026
+## Verified baseline · September 18, 2026
 
-- Latest published release **[v0.5.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.2)**;
-  source on this branch targets **0.5.3** (Log tab, CLI generate, test-release
-  docs). See `RELEASE_0_5_3.md` / `FUNGEN_FEATURE_COMPARE.md`.
-- CI green on `main` through #90.
+- Latest published release **[v0.5.3](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.3)**;
+  source on this branch targets **0.5.4** (Kontakt + SAM runtime test
+  release). See `RELEASE_0_5_4.md`.
+- CI green on `main` through #92; #93 carries 0.5.4.
 - FunGen near-zero-correlation finding (issue #8,
   [`FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes the
   *general* real-clip gap; priority 2 has found clip-level improvements.

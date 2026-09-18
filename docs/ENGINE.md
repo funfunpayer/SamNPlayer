@@ -33,6 +33,7 @@ end-user runtime should eventually need no Python install.
 - Device diagnostics (software-measurable only)
 - `GenerateWithContext` cancel tests (Python + native)
 - Log tab (copyable) + CLI `generate` + pipeline visibility (v0.5.3)
+- Kontakt-Vibration + SAM Densify/RuntimeAdjust live overrides (v0.5.4)
 
 ## What still needs you / measurement (do not invent)
 
