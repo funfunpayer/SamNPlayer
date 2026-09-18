@@ -1241,9 +1241,7 @@ export function initPlayback(root) {
   // player.Sync() im Leerlauf hängen (wartet ewig auf weitere Positionen,
   // die nach Videoende nicht mehr kommen).
   videoEl.addEventListener('ended', () => {
-    if (playing && el('#pb-use-video-sync').checked) {
-      stop().then(() => onPlaybackFinished());
-    }
+    if (playing && el('#pb-use-video-sync').checked) stop();
   });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per
