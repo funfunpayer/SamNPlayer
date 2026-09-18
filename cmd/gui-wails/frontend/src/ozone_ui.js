@@ -65,6 +65,7 @@ export function enhancePlaybackOZone(root) {
     try {
       const video = root.querySelector('#pb-video');
       const nowMs = video ? Math.round((video.currentTime || 0) * 1000) : 0;
+      // Knopf-Klick = Bestätigung — kein zusätzliches Popup.
       await ApplyRingDown(nowMs, 2);
       status.textContent = 'Ring-down nach ' + nowMs + ' ms angehängt und gespeichert.';
       window.dispatchEvent(new CustomEvent('ringdown:applied', { detail: { atMs: nowMs } }));
@@ -72,19 +73,30 @@ export function enhancePlaybackOZone(root) {
       uiError('Ring-down: ' + err, status);
     }
   });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (e.key !== 'o' && e.key !== 'O') return;
+    e.preventDefault();
+    const video = root.querySelector('#pb-video');
+    const nowMs = video && !video.paused ? Math.round(video.currentTime * 1000) : 0;
+    window.dispatchEvent(new CustomEvent('ozone:hotkey', { detail: { nowMs } }));
+  });
 }
 
-export async function applyHotkeyOMarker(scriptPath, nowMs) {
-  if (!scriptPath) return;
-  const start = Math.max(0, nowMs - 2000);
-  const end = nowMs + 2000;
+// Vom Wiedergabe-Tab auf ozone:hotkey aufgerufen; liefert die neue Marker-Liste.
+export async function applyHotkeyOMarker(scriptPath, nowMs, existing) {
+  if (!scriptPath || nowMs < 0) return existing || [];
   try {
-    const existing = await GetOMarkers(scriptPath);
-    const list = Array.isArray(existing) ? existing.slice() : [];
-    list.push({ startMs: start, endMs: end, kind: 'primary', intensity: 1 });
-    await SaveOMarkers(scriptPath, list);
-    window.dispatchEvent(new CustomEvent('ozone:hotkey', { detail: { nowMs } }));
+    const markers = Array.isArray(existing) ? existing.slice() : await GetOMarkers(scriptPath);
+    const start = Math.max(0, nowMs);
+    const end = start + 4000;
+    markers.push({ startMs: start, endMs: end, kind: 'primary', intensity: 1 });
+    await SaveOMarkers(scriptPath, markers);
+    return markers;
   } catch (err) {
     uiError('O-Marker Hotkey: ' + err);
+    throw err;
   }
 }
