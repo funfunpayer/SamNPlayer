@@ -143,6 +143,9 @@ func finishNativeGenerate(
 		}
 		postOpts.DynamicRangeMs = opts.DynamicRangeMs
 		postOpts.PeakProminence = opts.PeakProminence
+		postOpts.DetrendWindowMs = opts.DetrendWindowMs
+		postOpts.BandpassLowHz = opts.BandpassLowHz
+		postOpts.BandpassHighHz = opts.BandpassHighHz
 		if opts.Profile == "weich" {
 			if postOpts.PeakProminence == 0 {
 				postOpts.PeakProminence = 0.35
@@ -152,6 +155,23 @@ func finishNativeGenerate(
 			}
 			if postOpts.DynamicRangeMs == 0 {
 				postOpts.DynamicRangeMs = 3000
+			}
+		}
+		if opts.Profile == "autotune" {
+			// Multi-filter recipe inspired by FunGen Ultimate Autotune /
+			// Funscript-Flow — classical track still writes the script.
+			if postOpts.DetrendWindowMs == 0 {
+				postOpts.DetrendWindowMs = 3000
+			}
+			if postOpts.BandpassLowHz == 0 && postOpts.BandpassHighHz == 0 {
+				postOpts.BandpassLowHz = 0.5
+				postOpts.BandpassHighHz = 4.0
+			}
+			if postOpts.DynamicRangeMs == 0 {
+				postOpts.DynamicRangeMs = 3000
+			}
+			if postOpts.PeakProminence == 0 {
+				postOpts.PeakProminence = 0.2
 			}
 		}
 		return postOpts, nil
@@ -169,8 +189,12 @@ func finishNativeGenerate(
 			return nil, posttrack.Result{}, funscript.ScriptQualityResult{}, err
 		}
 		actions := result.Actions
-		if opts.MaxSpeed > 0 {
-			actions, _ = posttrack.LimitSpeed(actions, opts.MaxSpeed)
+		maxSpeed := opts.MaxSpeed
+		if maxSpeed <= 0 && opts.Profile == "autotune" {
+			maxSpeed = 400
+		}
+		if maxSpeed > 0 {
+			actions, _ = posttrack.LimitSpeed(actions, maxSpeed)
 		}
 		if funscript.IsDistanceProfile(opts.Profile) {
 			actions = posttrack.ClampActionsPos(actions, 20, 90)

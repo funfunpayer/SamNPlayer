@@ -190,6 +190,10 @@ Order (do not skip ahead of measurement):
       in the history. What it can't tell you: whether it actually *feels*
       right - that's still yours to judge and note down separately.
 
+### Funscript algorithm workflow
+
+See [FUNSCRIPT_ALGOS.md](FUNSCRIPT_ALGOS.md) for the multi-stage Flow→CSRT→Autotune recipe.
+
 ### FunGen parity (open-ended, ongoing measurement)
 
 - [ ] 📏 Keep closing the real-clip correlation gap (`docs/NEXT.md`

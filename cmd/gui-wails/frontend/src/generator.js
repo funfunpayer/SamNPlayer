@@ -44,14 +44,15 @@ export function initGenerator(root, playback) {
     <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
     <div class="row" style="align-items:center;">
-      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Tf/Tj braucht zwei Regionen und steuert Sog über den Abstand.">Bewegungsart</label>
+      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Autotune = Detrend+Bandpass+Speed-Cap (FunGen/Flow-inspiriert). Tf/Tj braucht zwei Regionen.">Bewegungsart</label>
       <select id="gen-profile">
         <option value="standard">Hubbewegung (Standard)</option>
         <option value="weich">Weiches Gewebe (schwingt nach)</option>
+        <option value="autotune">Autotune (Detrend + Bandpass + Speed)</option>
         <option value="tf">Tf/Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf/Tj = Abstand + Sog. „Weiches Gewebe“ filtert Nachschwingen.</p>
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Empfehlung: Flow-Scout (schnell) → CSRT mit ROI → Autotune-Nachbearbeitung. KI schlägt nur ROI vor.</p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position.
       Kontakt-Vibration wird standardmäßig mit erzeugt (Stärke = Nähe wie Berührung) und lässt sich danach in der Wiedergabe feinjustieren.
@@ -141,6 +142,8 @@ export function initGenerator(root, playback) {
         <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
         <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+        <div class="field-row"><label data-help="Max. Positionsänderung pro Sekunde (0–100-Skala). 0 = aus. Schützt das Gerät. Autotune setzt 400.">Max. Speed (0 = aus)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+        <div class="field-row"><label data-help="Nur Optical-Flow-Backend: Frame-Skalierung (0.5 = halb, deutlich schneller). 0 oder 1 = voll.">Flow-Downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
       </div>
     </details>
 
@@ -590,6 +593,8 @@ export function initGenerator(root, playback) {
       profile: el('#gen-profile').value,
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
+      maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
+      flowDownscale: parseFloat(el('#gen-flow-downscale')?.value) || 0,
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,

@@ -88,6 +88,13 @@ type Options struct {
 	// NativePipeline is retained for JSON/API compat and ignored for routing.
 	// Go is chosen automatically when eligible unless PreferPython is set.
 	NativePipeline bool
+	// DetrendWindowMs / Bandpass* — FunGen/Flow-inspired post filters (0 = off).
+	DetrendWindowMs float64
+	BandpassLowHz   float64
+	BandpassHighHz  float64
+	// FlowDownscale shrinks frames for the optical-flow backend (e.g. 0.5).
+	// 0 or 1 = full resolution. Ignored by CSRT/native.
+	FlowDownscale float64
 }
 
 func pythonCandidates() []string {
@@ -781,7 +788,7 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	if opts.Backend != "" && opts.Backend != "csrt" {
 		args = append(args, "--backend", opts.Backend)
 	}
-	if opts.Profile == "weich" || opts.Profile == "tf" || opts.Profile == "tj" {
+	if opts.Profile == "weich" || opts.Profile == "tf" || opts.Profile == "tj" || opts.Profile == "autotune" {
 		args = append(args, "--profile", opts.Profile)
 	}
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 {
@@ -800,6 +807,23 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.MaxSpeed > 0 {
 		args = append(args, "--max-speed", strconv.FormatFloat(opts.MaxSpeed, 'f', -1, 64))
+	}
+	if opts.DetrendWindowMs > 0 {
+		args = append(args, "--detrend-ms", strconv.FormatFloat(opts.DetrendWindowMs, 'f', -1, 64))
+	}
+	if opts.BandpassLowHz > 0 || opts.BandpassHighHz > 0 {
+		lo, hi := opts.BandpassLowHz, opts.BandpassHighHz
+		if lo <= 0 {
+			lo = 0.5
+		}
+		if hi <= 0 {
+			hi = 4
+		}
+		args = append(args, "--bandpass-hz",
+			strconv.FormatFloat(lo, 'f', -1, 64)+","+strconv.FormatFloat(hi, 'f', -1, 64))
+	}
+	if opts.FlowDownscale > 0 && opts.FlowDownscale != 1 {
+		args = append(args, "--flow-downscale", strconv.FormatFloat(opts.FlowDownscale, 'f', -1, 64))
 	}
 	if opts.Axis == "x" || opts.Axis == "y" {
 		// Leer bleibt "auto" (Pythons Standard seit der automatischen

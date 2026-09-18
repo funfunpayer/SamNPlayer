@@ -11,15 +11,15 @@ import (
 // Project is a lightweight SamNPlayer session sidecar (OFS-inspired, JSON).
 // Stored next to the video or script as "<name>.snp.json".
 type Project struct {
-	Version      int     `json:"version"`
-	VideoPath    string  `json:"videoPath,omitempty"`
-	ScriptPath   string  `json:"scriptPath,omitempty"`
-	OffsetMs     int64   `json:"offsetMs,omitempty"`
-	SeekMs       int64   `json:"seekMs,omitempty"`
-	LoopMarker   *Marker `json:"loopMarker,omitempty"`
+	Version      int           `json:"version"`
+	VideoPath    string        `json:"videoPath,omitempty"`
+	ScriptPath   string        `json:"scriptPath,omitempty"`
+	OffsetMs     int64         `json:"offsetMs,omitempty"`
+	SeekMs       int64         `json:"seekMs,omitempty"`
+	LoopMarker   *Marker       `json:"loopMarker,omitempty"`
 	Bookmarks    []Bookmark    `json:"bookmarks,omitempty"`
 	Chapters     []ChapterMark `json:"chapters,omitempty"`
-	LastOpenedMs int64   `json:"lastOpenedMs,omitempty"`
+	LastOpenedMs int64         `json:"lastOpenedMs,omitempty"`
 }
 
 // Marker is a simple time range (playback loop / selection).
