@@ -60,7 +60,8 @@ def main():
 
         options = page.eval_on_selector_all("#gen-profile option", "els => els.map(e => e.value)")
         check("Dropdown hat nur einen Tf/Tj-Eintrag (kein separates 'tj' mehr)",
-              options == ["standard", "weich", "tf"], str(options))
+              options == ["standard", "weich", "autotune", "tf"] and "tj" not in options,
+              str(options))
 
         page.click("#gen-choose")
         page.wait_for_function(

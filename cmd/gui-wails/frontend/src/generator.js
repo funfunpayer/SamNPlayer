@@ -505,7 +505,7 @@ export function initGenerator(root, playback) {
         const status = el('#gen-suggest-status');
         const via = result.via || 'Signatur';
         const label = result.label === 'tj' ? 'tf' : result.label;
-        if (label && ['standard', 'weich', 'tf'].includes(label)) {
+        if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
           status.textContent = `Vorschlag: „${label}“ (${via}) — Knopf „Profil vorschlagen“ zum Übernehmen.`;
         }
       }).catch(() => {});
@@ -840,7 +840,7 @@ export function initGenerator(root, playback) {
     AutoDetectROI(videoPath, engine);
   });
 
-  const PROFILE_VALUES = ['standard', 'weich', 'tf'];
+  const PROFILE_VALUES = ['standard', 'weich', 'autotune', 'tf'];
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;

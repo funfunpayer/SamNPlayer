@@ -1135,6 +1135,16 @@ class AppearanceMemory:
         return (x, y, max(8, w), max(8, h))
 
 
+def _parse_bandpass_hz(value):
+    """Parse --bandpass-hz LOW,HIGH into (low, high) floats, or None."""
+    if not value:
+        return None
+    parts = str(value).replace(" ", "").split(",")
+    if len(parts) != 2:
+        raise ValueError("--bandpass-hz erwartet LOW,HIGH (z.B. 0.5,4)")
+    return (float(parts[0]), float(parts[1]))
+
+
 def _bandpass_1pole(values, sample_hz, low_hz, high_hz):
     """Zero-phase one-pole bandpass (forward+backward), FunGen/Flow-style."""
     x = np.asarray(values, dtype=float).copy()
@@ -2139,13 +2149,12 @@ def main():
               f"(detrend={args.detrend_ms}ms, band={args.bandpass_hz}, "
               f"max_speed={args.max_speed})", file=sys.stderr)
 
-    bandpass = None
-    if args.bandpass_hz:
-        parts = str(args.bandpass_hz).replace(" ", "").split(",")
-        if len(parts) != 2:
-            print("Fehler: --bandpass-hz erwartet LOW,HIGH (z.B. 0.5,4)", file=sys.stderr)
-            sys.exit(1)
-        bandpass = (float(parts[0]), float(parts[1]))
+    # Frühe Validierung; die eigentliche Nutzung liegt in process_one.
+    try:
+        _parse_bandpass_hz(args.bandpass_hz)
+    except ValueError as e:
+        print(f"Fehler: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if is_distance_profile(args.profile):
         if not args.roi2:
@@ -2457,6 +2466,14 @@ def process_one(args, ap):
     motion_fraction = (track_stats.get("vertical_range", 0.0) / frame_size[1]
                        if frame_size and frame_size[1] else None)
     lost_fraction = track_stats["tracker_lost_frames"] / max(1, track_stats["total_frames"])
+
+    # Bandpass hier parsen (nicht nur in main): process_one ist eine eigene
+    # Funktion und sieht Locals aus main nicht — sonst NameError in build().
+    try:
+        bandpass = _parse_bandpass_hz(getattr(args, "bandpass_hz", None))
+    except ValueError as e:
+        print(f"Fehler: {e}", file=sys.stderr)
+        sys.exit(1)
 
     def build(smooth_window, min_peak_distance_ms, adaptive_error, norm_percentile):
         """Ein kompletter Signalpfad ab der bereits vorhandenen Trackingkurve."""

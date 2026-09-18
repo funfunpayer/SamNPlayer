@@ -41,6 +41,8 @@ def main() -> int:
         "peak_prominence",
         "dynamic_range_ms",
         "min_interval_ms",
+        "detrend_ms",
+        "bandpass_hz",
     }
     # At least one call site (the process_one build path) must pass them.
     if not any(required <= kw for kw in hits):
@@ -48,7 +50,30 @@ def main() -> int:
         for i, kw in enumerate(hits):
             print(f"  call[{i}] kwargs={sorted(kw)}")
         return 1
-    print("OK: process_one passes peak_prominence/dynamic_range_ms/min_interval_ms")
+
+    # bandpass must be a local in process_one (parsed from args), not a bare
+    # name from main() — that caused NameError in CI (Sept 2026).
+    proc = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == "process_one":
+            proc = node
+            break
+    if proc is None:
+        print("FAIL: process_one not found")
+        return 1
+    assigns = set()
+    for node in ast.walk(proc):
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    assigns.add(t.id)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            assigns.add(node.target.id)
+    if "bandpass" not in assigns:
+        print("FAIL: process_one must assign local 'bandpass' (from args.bandpass_hz)")
+        return 1
+
+    print("OK: process_one passes peak/dynamic/min/detrend/bandpass; local bandpass set")
     return 0
 
 
