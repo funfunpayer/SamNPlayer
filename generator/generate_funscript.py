@@ -299,10 +299,6 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
     print(f"PROGRESS {frame_idx} {frame_idx}", file=sys.stderr, flush=True)
     cap.release()
 
-    if start_frame > 0:
-        offset_ms = int(round(start_frame * 1000 / fps))
-        timestamps_ms = [t + offset_ms for t in timestamps_ms]
-
     y_positions = np.array(y_positions)
     if camera_compensation:
         camera_dy = np.array(camera_dy_cumulative)
@@ -2336,6 +2332,24 @@ def process_one(args, ap):
             start_frame=start_frame,
         )
     print(f"{len(timestamps_ms)} Frames getrackt (Videogröße {frame_size[0]}x{frame_size[1]})", file=sys.stderr)
+
+    # Seek (--start-seconds): track_roi returns times relative to start_frame
+    # (track_by_scenes chains those itself). For single-pass tracking, shift to
+    # absolute video time so the funscript syncs with full-clip playback.
+    # track_two_points already applies the offset internally.
+    if start_frame > 0 and not args.roi2 and not args.per_scene_roi:
+        _cap = cv2.VideoCapture(args.video)
+        _fps = _cap.get(cv2.CAP_PROP_FPS) or 25.0
+        _cap.release()
+        offset_ms = int(round(start_frame * 1000 / _fps))
+        timestamps_ms = [float(t) + offset_ms for t in timestamps_ms]
+        gaps = track_stats.get("tracking_gaps")
+        if gaps:
+            track_stats["tracking_gaps"] = [
+                {"start_ms": g["start_ms"] + offset_ms, "end_ms": g["end_ms"] + offset_ms}
+                if isinstance(g, dict) else g
+                for g in gaps
+            ]
 
     # Gelerntes Modell laden, falls vorhanden. Fehlt es, gelten die Regeln.
     try:
