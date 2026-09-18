@@ -45,6 +45,32 @@ type ContactPreviewOptions struct {
 	MuteContact           bool    `json:"muteContact"`
 }
 
+// SaveContactSettings schreibt Kontakt-Vibration in die Skript-Metadata
+// (device_recipe) und lädt das Skript neu — damit Preview und nächste
+// Wiedergabe denselben „wie die Berührung“-Stand nutzen.
+func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
+	path := a.loadedScriptPath()
+	if path == "" {
+		return fmt.Errorf("kein Skript geladen")
+	}
+	script := a.loadedScript()
+	if script == nil {
+		return fmt.Errorf("kein Skript geladen")
+	}
+	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
+		return fmt.Errorf("Kontakt-Vibration nur bei Tf/Tj-Skripten")
+	}
+	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {
+		return err
+	}
+	reloaded, err := funscript.Load(path)
+	if err != nil {
+		return err
+	}
+	a.setLoadedScript(path, reloaded)
+	return nil
+}
+
 func (a *App) StartPlayback(opts PlaybackOptions) error {
 	script := a.loadedScript()
 	if script == nil {
@@ -145,7 +171,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			if err := dev.Connect(connectCtx); err != nil {
 				logging.Error("app: Verbindung fehlgeschlagen", "fehler", err)
 				runtime.EventsEmit(a.ctx, "playback:error", err.Error())
-				runtime.EventsEmit(a.ctx, "playback:done")
+				// failed:true — frontend must NOT auto-advance the playlist
+				runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
 				return
 			}
 			defer dev.Disconnect()
@@ -166,8 +193,10 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		}
 		if playErr != nil && playErr != context.Canceled {
 			runtime.EventsEmit(a.ctx, "playback:error", playErr.Error())
+			runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
+			return
 		}
-		runtime.EventsEmit(a.ctx, "playback:done")
+		runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": false})
 	}()
 	return nil
 }
@@ -186,6 +215,18 @@ func (a *App) StopPlayback() {
 	a.stateMu.Unlock()
 	if ch != nil {
 		close(ch)
+	}
+	// Wait until the playback goroutine's endSession runs — otherwise
+	// playNextInPlaylist → play() races tryStartSession (sessionActive).
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		a.stateMu.RLock()
+		active := a.sessionActive
+		a.stateMu.RUnlock()
+		if !active {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

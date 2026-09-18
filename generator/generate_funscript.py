@@ -1135,6 +1135,61 @@ class AppearanceMemory:
         return (x, y, max(8, w), max(8, h))
 
 
+def _parse_bandpass_hz(value):
+    """Parse --bandpass-hz LOW,HIGH into (low, high) floats, or None."""
+    if not value:
+        return None
+    parts = str(value).replace(" ", "").split(",")
+    if len(parts) != 2:
+        raise ValueError("--bandpass-hz erwartet LOW,HIGH (z.B. 0.5,4)")
+    return (float(parts[0]), float(parts[1]))
+
+
+def _bandpass_1pole(values, sample_hz, low_hz, high_hz):
+    """Zero-phase one-pole bandpass (forward+backward), FunGen/Flow-style."""
+    x = np.asarray(values, dtype=float).copy()
+    if sample_hz <= 0 or len(x) < 8:
+        return x
+
+    def _lpf(sig, cutoff):
+        if cutoff is None or cutoff <= 0 or cutoff >= sample_hz / 2:
+            return sig
+        dt = 1.0 / sample_hz
+        rc = 1.0 / (2 * np.pi * cutoff)
+        alpha = dt / (rc + dt)
+        y = np.empty_like(sig)
+        y[0] = sig[0]
+        for i in range(1, len(sig)):
+            y[i] = y[i - 1] + alpha * (sig[i] - y[i - 1])
+        return y
+
+    def _hpf(sig, cutoff):
+        if cutoff is None or cutoff <= 0 or cutoff >= sample_hz / 2:
+            return sig
+        dt = 1.0 / sample_hz
+        rc = 1.0 / (2 * np.pi * cutoff)
+        alpha = rc / (rc + dt)
+        y = np.empty_like(sig)
+        y[0] = sig[0]
+        for i in range(1, len(sig)):
+            y[i] = alpha * (y[i - 1] + sig[i] - sig[i - 1])
+        return y
+
+    def _filtfilt(sig, fn):
+        fwd = fn(sig)
+        return fn(fwd[::-1])[::-1]
+
+    lo = float(low_hz) if low_hz else 0.0
+    hi = float(high_hz) if high_hz else 0.0
+    if lo > 0 and hi > 0 and lo > hi:
+        lo, hi = hi, lo
+    if lo > 0:
+        x = _filtfilt(x, lambda s: _hpf(s, lo))
+    if hi > 0:
+        x = _filtfilt(x, lambda s: _lpf(s, hi))
+    return x
+
+
 def dynamic_range_normalize(values, window, max_gain=5.0, min_local_span=0.12):
     """Gleitende Normalisierung: hebt schwache Abschnitte auf nutzbare Stärke.
 
@@ -1539,12 +1594,19 @@ def _register_builtin_backends():
 
     def flow(video_path, roi, options):
         import flow_backend
+        downscale = options.get("flow_downscale") or options.get("downscale") or 1.0
+        try:
+            downscale = float(downscale)
+        except (TypeError, ValueError):
+            downscale = 1.0
+        if downscale <= 0:
+            downscale = 1.0
         return flow_backend.analyze(
             video_path,
             max_frames=options.get("max_frames"),
             camera_compensation=options.get("camera_compensation", True),
-            axis=options.get("axis", "auto"))
-
+            axis=options.get("axis", "auto"),
+            downscale=downscale)
     def two_point(video_path, roi, options):
         roi2 = options.get("roi2")
         if not roi2:
@@ -1661,7 +1723,8 @@ def positions_to_funscript(timestamps_ms, y_positions, invert=False,
                             rdp_tolerance=0.0, norm_percentile=2.0,
                             scene_ranges=None, adaptive_error=0.0,
                             min_interval_ms=100.0, dynamic_range_ms=0.0,
-                            peak_prominence=0.0):
+                            peak_prominence=0.0, detrend_ms=0.0,
+                            bandpass_hz=None):
     """Wandelt die rohe y-Kurve in funscript-Actions um."""
     n = len(y_positions)
     if n < smooth_window:
@@ -1673,30 +1736,32 @@ def positions_to_funscript(timestamps_ms, y_positions, invert=False,
             smooth_window += 1
         smoothed = savgol_filter(y_positions, smooth_window, polyorder=3)
 
-    # Normalisierung auf 0-100. Standardmäßig über Perzentile statt über
-    # Min/Max: ein einziger Tracker-Ausreißer - ein kurzer Sprung auf eine
-    # falsche Bildregion - legt bei Min/Max die Skala für das GESAMTE Skript
-    # fest. Die echte Bewegung wird dann in einen schmalen Mittelbereich
-    # gequetscht und das Skript wirkt kraftlos. Gemessen an einem Signal mit
-    # 60px echter Bewegung und einem 6 Frames langen Ausreißer: mit Min/Max
-    # nutzt die echte Bewegung nur noch 41 von 100 Punkten, mit Perzentil
-    # 2/98 wieder die vollen 100.
-    #
-    # Werte außerhalb der Perzentilgrenzen werden geklemmt, nicht verworfen -
-    # ein Ausreißer soll als "ganz oben"/"ganz unten" erscheinen, aber die
-    # Skala nicht mehr bestimmen. norm_percentile=0 stellt das alte
-    # Min/Max-Verhalten wieder her.
-    # Bei szenenweiser Verarbeitung wird JEDE Szene für sich normalisiert.
-    # Die Regionen verschiedener Szenen liegen in ganz unterschiedlichen
-    # Bildbereichen - eine gemeinsame Skala über alle Szenen hinweg würde
-    # bedeuten, dass die Bewegung einer Szene, die zufällig weiter oben im
-    # Bild stattfindet, dauerhaft "höhere" Positionen bekommt als eine
-    # gleichwertige Bewegung weiter unten. Das hat mit der eigentlichen
-    # Bewegung nichts zu tun.
+    timestamps_ms = np.asarray(timestamps_ms, dtype=float)
+    step = float(np.median(np.diff(timestamps_ms))) if len(timestamps_ms) > 1 else 33.3
+    sample_hz = 1000.0 / max(step, 1.0)
+
+    # FunGen/Flow-inspiriert: Drift weg, dann Stroke-Band (0.5–4 Hz typisch).
+    if detrend_ms and detrend_ms > 0 and n > 4:
+        win = max(3, int(round(detrend_ms / max(step, 1.0))))
+        if win % 2 == 0:
+            win += 1
+        if win > n:
+            win = n if n % 2 == 1 else n - 1
+        if win >= 3:
+            kernel = np.ones(win, dtype=float) / win
+            # reflect-pad so edges don't collapse
+            pad = win // 2
+            padded = np.pad(smoothed, (pad, pad), mode="edge")
+            mean = np.convolve(padded, kernel, mode="valid")
+            smoothed = smoothed - mean
+
+    if bandpass_hz and n > 8:
+        lo, hi = bandpass_hz
+        smoothed = _bandpass_1pole(smoothed, sample_hz, lo, hi)
+
     # Gleitende Dynamik VOR der Normalisierung: schwache Abschnitte auf
     # nutzbare Stärke heben, bevor die Skala festgelegt wird.
     if dynamic_range_ms and dynamic_range_ms > 0 and len(timestamps_ms) > 4:
-        step = float(np.median(np.diff(np.asarray(timestamps_ms, dtype=float))))
         window = int(dynamic_range_ms / max(step, 1.0))
         smoothed = dynamic_range_normalize(smoothed, window)
 
@@ -2000,6 +2065,16 @@ def main():
                          "Sekunde). 0 = aus. Sprünge, die schneller sind als das Gerät "
                          "fahren kann, werden nicht schneller ausgeführt, sondern "
                          "abgeschnitten - dann lieber die Amplitude anpassen.")
+    ap.add_argument("--detrend-ms", type=float, default=0.0, metavar="MS",
+                    help="Gleitendes Mittel (ms) vom Signal abziehen — entfernt "
+                         "langsamen Drift (Kamera/Belichtung). 0 = aus. "
+                         "Empfehlung im Autotune-Profil: 3000.")
+    ap.add_argument("--bandpass-hz", default=None, metavar="LOW,HIGH",
+                    help="Stroke-Bandpass in Hz, z.B. 0.5,4 — typisches Geräteband. "
+                         "Leer = aus.")
+    ap.add_argument("--flow-downscale", type=float, default=0.0, metavar="FAKTOR",
+                    help="Optical-Flow-Backend: Frames skalieren (z.B. 0.5 = halbe "
+                         "Auflösung, deutlich schneller). 0 oder 1 = voll.")
     ap.add_argument("--roi2", default=None, metavar="x,y,w,h",
                     help="Zweite Region für die Zwei-Punkt-Messung. Das Signal ist dann der "
                          "ABSTAND beider Regionen. Ein Abstand ist von Kamerabewegung "
@@ -2011,11 +2086,12 @@ def main():
                          "(Standard) wählt danach automatisch die Achse mit der deutlich "
                          "größeren Spannweite. y/x erzwingen stattdessen fest eine Achse, "
                          "falls die automatische Wahl im Einzelfall falsch liegt.")
-    ap.add_argument("--profile", choices=["standard", "weich", "tf", "tj"], default="standard",
+    ap.add_argument("--profile", choices=["standard", "weich", "tf", "tj", "autotune"],
+                    default="standard",
                     help="Voreinstellungen für eine Bewegungsart. 'standard' für Hubbewegung. "
-                         "'weich' für weiches Gewebe, das nach einem Anstoß gedämpft "
-                         "ausschwingt: die Nachschwingungen werden dann nicht als eigene "
-                         "Hübe behandelt. Einzelne Werte lassen sich danach überschreiben.")
+                         "'weich' für weiches Gewebe. 'autotune' = Detrend+Bandpass+Speed-Cap "
+                         "(FunGen/Flow-inspirierte Nachbearbeitung, Tracking bleibt klassisch). "
+                         "Einzelne Werte lassen sich danach überschreiben.")
     ap.add_argument("--peak-prominence", type=float, default=0.0, metavar="ANTEIL",
                     help="Mindest-Prominenz eines Extremwerts, als Anteil der Gesamtauslenkung. "
                          "0 = aus. Unterdrückt Nachschwingungen. Bis 0.30 bleiben saubere "
@@ -2056,6 +2132,29 @@ def main():
         print("Profil 'weich': Nachschwingungen werden unterdrückt "
               f"(Prominenz {args.peak_prominence}, Mindestabstand "
               f"{args.min_peak_distance_ms}ms)", file=sys.stderr)
+
+    if args.profile == "autotune":
+        defaults = ap.parse_args([])
+        if args.detrend_ms == defaults.detrend_ms:
+            args.detrend_ms = 3000
+        if args.bandpass_hz is None:
+            args.bandpass_hz = "0.5,4"
+        if args.dynamic_range_ms == defaults.dynamic_range_ms:
+            args.dynamic_range_ms = 3000
+        if args.peak_prominence == defaults.peak_prominence:
+            args.peak_prominence = 0.2
+        if args.max_speed == defaults.max_speed:
+            args.max_speed = 400
+        print("Profil 'autotune': Detrend+Bandpass+Speed-Cap "
+              f"(detrend={args.detrend_ms}ms, band={args.bandpass_hz}, "
+              f"max_speed={args.max_speed})", file=sys.stderr)
+
+    # Frühe Validierung; die eigentliche Nutzung liegt in process_one.
+    try:
+        _parse_bandpass_hz(args.bandpass_hz)
+    except ValueError as e:
+        print(f"Fehler: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if is_distance_profile(args.profile):
         if not args.roi2:
@@ -2251,6 +2350,7 @@ def process_one(args, ap):
             "appearance_memory": not args.no_appearance_memory,
             "roi2": None,
             "start_frame": start_frame,
+            "flow_downscale": getattr(args, "flow_downscale", 0) or 1.0,
          })
     elif args.roi2:
         try:
@@ -2367,6 +2467,14 @@ def process_one(args, ap):
                        if frame_size and frame_size[1] else None)
     lost_fraction = track_stats["tracker_lost_frames"] / max(1, track_stats["total_frames"])
 
+    # Bandpass hier parsen (nicht nur in main): process_one ist eine eigene
+    # Funktion und sieht Locals aus main nicht — sonst NameError in build().
+    try:
+        bandpass = _parse_bandpass_hz(getattr(args, "bandpass_hz", None))
+    except ValueError as e:
+        print(f"Fehler: {e}", file=sys.stderr)
+        sys.exit(1)
+
     def build(smooth_window, min_peak_distance_ms, adaptive_error, norm_percentile):
         """Ein kompletter Signalpfad ab der bereits vorhandenen Trackingkurve."""
         acts, dense = positions_to_funscript(
@@ -2381,6 +2489,8 @@ def process_one(args, ap):
             min_interval_ms=args.min_action_interval_ms,
             dynamic_range_ms=args.dynamic_range_ms,
             peak_prominence=args.peak_prominence,
+            detrend_ms=args.detrend_ms,
+            bandpass_hz=bandpass,
         )
         limited = 0
         if args.max_speed > 0:

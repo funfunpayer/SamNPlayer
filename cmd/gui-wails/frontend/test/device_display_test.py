@@ -34,7 +34,7 @@ PAGE = """<!doctype html><html><body><div id="root"></div>
 
 def main():
     state_js = ("let state = { connected: false, mock: false, name: '', "
-                "address: '', rssi: 0, sessionActive: false };\n"
+                "address: '', rssi: 0, sessionActive: false, batteryOk: false, batteryPct: 0 };\n"
                 "window.__setState = s => { state = Object.assign(state, s); };\n")
     base, shutdown = serve(state_js + app_stub({
         "GetDeviceStatus": "async () => ({ ...state })",
@@ -43,10 +43,18 @@ def main():
                          "state.connected = true; state.mock = mock; "
                          "state.name = mock ? 'Mock-Geraet' : 'Sam Neo 2 Pro'; "
                          "state.address = mock ? '' : 'AA:BB:CC:DD:EE:FF'; "
-                         "state.rssi = mock ? 0 : -58; return { ...state }; }",
+                         "state.rssi = mock ? 0 : -58; "
+                         "state.batteryOk = !mock; state.batteryPct = mock ? 0 : 73; "
+                         "state.transport = mock ? 'mock' : 'ble'; "
+                         "state.capVibration = true; state.capSuction = true; "
+                         "state.capBattery = !mock; state.capRaw = !mock; "
+                         "return { ...state }; }",
         "DisconnectDevice": "async () => { window.__calls.push(['disconnect']); "
                             "state.connected = false; state.name = ''; state.address = ''; "
-                            "state.rssi = 0; return { ...state }; }",
+                            "state.rssi = 0; state.batteryOk = false; state.batteryPct = 0; "
+                            "state.capVibration = false; state.capSuction = false; "
+                            "state.capBattery = false; state.capRaw = false; "
+                            "return { ...state }; }",
         "TestVibration": "async v => { window.__calls.push(['vib', v]); }",
         "TestSuction": "async v => { window.__calls.push(['suc', v]); }",
         "TestStop": "async () => { window.__calls.push(['stop']); }",
@@ -57,7 +65,14 @@ def main():
                             "state.connected = true; state.mock = transport === 'mock'; "
                             "state.name = transport === 'intiface' ? 'Testgeraet (ueber Intiface)' "
                             ": 'Sam Neo 2 Pro'; state.address = 'AA:BB:CC:DD:EE:FF'; "
-                            "state.rssi = -58; return { ...state }; }",
+                            "state.rssi = -58; "
+                            "state.batteryOk = transport !== 'mock'; "
+                            "state.batteryPct = transport === 'mock' ? 0 : 73; "
+                            "state.transport = transport; "
+                            "state.capVibration = true; state.capSuction = true; "
+                            "state.capBattery = transport !== 'mock'; "
+                            "state.capRaw = transport === 'ble'; "
+                            "return { ...state }; }",
         "RunDeviceDiagnostics": "async () => { window.__calls.push(['diagnose']); }",
         "GetDiagnosticsHistory": "async () => ([])",
     }))
@@ -108,6 +123,9 @@ def main():
         check("Verbunden: Gerätename sichtbar", "Sam Neo 2 Pro" in status(), status())
         check("Verbunden: Adresse sichtbar", "AA:BB:CC:DD:EE:FF" in status(), status())
         check("Verbunden: Signalstärke sichtbar", "-58" in status(), status())
+        check("Verbunden: Akku sichtbar wenn gemeldet", "Akku 73%" in status(), status())
+        caps = page.locator("#dev-caps").inner_text()
+        check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Sog" in caps, caps)
         check("Verbunden: Testbereich frei", not disabled("#dev-test"))
         check("Verbunden: Verbinden gesperrt", disabled("#dev-connect"))
 

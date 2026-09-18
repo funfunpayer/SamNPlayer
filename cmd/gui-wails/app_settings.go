@@ -18,6 +18,7 @@ const (
 	prefClearCacheOnExit     = "cache.clearOnExit"
 	prefDeviceTransport      = "device.transport"
 	prefIntifaceURL          = "device.intifaceUrl"
+	prefDeviceConnectTest    = "device.connect_test"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
 	prefAIBaseURL            = "generator.aiBaseUrl"
 	prefBenchmarkManifest    = "generator.benchmarkManifestPath"
@@ -88,6 +89,9 @@ type Settings struct {
 	// laufen lässt, tippt sonst bei jedem Start dieselbe IP neu ein.
 	DeviceTransport string `json:"deviceTransport"`
 	IntifaceURL     string `json:"intifaceUrl"`
+	// DeviceConnectTest: nach erfolgreichem Verbinden einmal kurz Vib/Sog
+	// testen. Standard aus - stört sonst bei jedem Connect.
+	DeviceConnectTest bool `json:"deviceConnectTest"`
 
 	// AIRoiModelPath: Pfad zur .onnx-Modelldatei für die KI-Regionssuche
 	// (generator/ai_roi.py). Leer = Standardordner (siehe
@@ -159,6 +163,7 @@ func (a *App) GetSettings() Settings {
 		ClearCacheOnExit:  s.GetBool(prefClearCacheOnExit, false),
 		DeviceTransport:   s.GetString(prefDeviceTransport, "ble"),
 		IntifaceURL:       s.GetString(prefIntifaceURL, ""),
+		DeviceConnectTest: s.GetBool(prefDeviceConnectTest, false),
 		AIRoiModelPath:    s.GetString(prefAIRoiModelPath, ""),
 		AIBaseURL:         s.GetString(prefAIBaseURL, ""),
 

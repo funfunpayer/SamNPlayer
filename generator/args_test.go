@@ -22,6 +22,7 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		{"adaptive Keyframes", Options{AdaptiveKeyframeError: 6}, []string{"--adaptive-keyframes", "6"}},
 		{"Region pro Szene", Options{PerSceneROI: true}, []string{"--per-scene-roi"}},
 		{"Profil weich", Options{Profile: "weich"}, []string{"--profile", "weich"}},
+		{"Profil autotune", Options{Profile: "autotune"}, []string{"--profile", "autotune"}},
 		{"Profil tj", Options{Profile: "tj"}, []string{"--profile", "tj"}},
 		{"Profil tf", Options{Profile: "tf"}, []string{"--profile", "tf"}},
 		{"ROI2", Options{ROI2: ROI{X: 10, Y: 20, W: 30, H: 40}},

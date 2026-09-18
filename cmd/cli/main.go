@@ -48,10 +48,11 @@ func main() {
 
 	extendedOEnabled := flag.Bool("extended-o", true,
 		"Extended-O per [Enter] während der Wiedergabe aktivieren")
-	extendedOMin := flag.Float64("extended-o-min", 0.1, "Intensität während des Extended-O-Haltens (0-1)")
+	extendedOMin := flag.Float64("extended-o-min", 0.1,
+		"Amplitudenfaktor während Extended-O (0-1); Kurve/Rhythmus unverändert, nur niedriger")
 	extendedOHold := flag.Duration("extended-o-hold", 10*time.Second, "Haltedauer für Extended-O (z.B. 10s, 1m)")
 	extendedORestore := flag.Duration("extended-o-restore", 500*time.Millisecond,
-		"Rampzeit zurück auf vorheriges Niveau nach Extended-O (0 = sofort)")
+		"Rampzeit auf/ab den Amplitudenfaktor bei Extended-O (0 = sofort)")
 
 	muteContact := flag.Bool("mute-contact", false,
 		"Kontakt-Vibration nur für diese Wiedergabe aus (Datei unverändert)")
@@ -176,7 +177,7 @@ func main() {
 	}
 
 	if *extendedOEnabled {
-		fmt.Printf("Extended-O: [Enter] drücken für %.0f%% Intensität, %s halten\n",
+		fmt.Printf("Extended-O: [Enter] drücken für %.0f%% Amplitude (Rhythmus gleich), %s halten\n",
 			*extendedOMin*100, *extendedOHold)
 		go func() {
 			scanner := bufio.NewScanner(os.Stdin)

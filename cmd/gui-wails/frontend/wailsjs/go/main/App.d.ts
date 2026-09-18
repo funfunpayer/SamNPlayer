@@ -39,6 +39,8 @@ export function ClearCache():Promise<main.CacheInfo>;
 
 export function ClearLogEntries():Promise<void>;
 
+export function ClearPlaybackVideo():Promise<void>;
+
 export function ConnectDevice(arg1:boolean):Promise<main.DeviceStatus>;
 
 export function ConnectDeviceVia(arg1:string,arg2:string):Promise<main.DeviceStatus>;
@@ -73,7 +75,11 @@ export function GetRoiDatasetSummary(arg1:string):Promise<main.RoiDatasetSummary
 
 export function GetRoiTrainingSampleImage(arg1:string):Promise<string>;
 
+export function GetRuntimeHealth():Promise<main.RuntimeHealth>;
+
 export function GetScriptActions():Promise<Array<funscript.Action>>;
+
+export function GetSpeedHighlights(arg1:number):Promise<Array<funscript.SpeedSegment>>;
 
 export function GetScriptCurve(arg1:number):Promise<Array<main.CurvePoint>>;
 
@@ -135,6 +141,8 @@ export function SaveOMarkers(arg1:string,arg2:Array<funscript.OMarker>):Promise<
 
 export function SaveScriptActions(arg1:Array<funscript.Action>):Promise<void>;
 
+export function SaveContactSettings(arg1:boolean,arg2:number,arg3:string):Promise<void>;
+
 export function ScriptChapters():Promise<Array<motionx.Chapter>>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
@@ -142,6 +150,8 @@ export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;
+
+export function SetPlaybackVideo(arg1:string):Promise<string>;
 
 export function SetSetting(arg1:string,arg2:any):Promise<void>;
 
@@ -184,3 +194,14 @@ export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<vo
 export function UpdateRoiTrainingSample(arg1:string,arg2:string,arg3:string,arg4:Array<main.RoiTrainingBox>):Promise<void>;
 
 export function VideoFileURL():Promise<string>;
+export function ExportScriptHeatmapPNG():Promise<string>;
+export function SavePlaybackProject(arg1:funscript.Project):Promise<string>;
+export function LoadPlaybackProject(arg1:string):Promise<funscript.Project>;
+export function EditCapSpeedRange(arg1:number,arg2:number,arg3:number):Promise<void>;
+export function EditDeleteRange(arg1:number,arg2:number):Promise<void>;
+export function EditScaleRange(arg1:number,arg2:number,arg3:number):Promise<void>;
+export function SnapTimeMs(arg1:number,arg2:number):Promise<number>;
+export function GetScriptBookmarks():Promise<Array<funscript.Bookmark>>;
+export function SaveScriptBookmarks(arg1:Array<funscript.Bookmark>):Promise<void>;
+export function GetScriptChapterMarks():Promise<Array<funscript.ChapterMark>>;
+export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promise<void>;

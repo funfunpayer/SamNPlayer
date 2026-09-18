@@ -1,6 +1,7 @@
 import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
+import { uiError } from './notify.js';
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -123,7 +124,7 @@ export function initBenchmark(root) {
       saveSetting('generator.benchmarkManifestPath', path);
       updateRunEnabled();
     } catch (err) {
-      alert('Konnte keine Datei wählen: ' + err);
+      uiError('Manifest wählen: ' + err, el('#bm-status'));
     }
   });
 
@@ -153,8 +154,7 @@ export function initBenchmark(root) {
     showProgress(false);
     updateRunEnabled();
     if (payload.error) {
-      el('#bm-status').textContent = 'Fehlgeschlagen.';
-      alert('Benchmark fehlgeschlagen: ' + payload.error);
+      uiError('Benchmark fehlgeschlagen: ' + payload.error, el('#bm-status'));
       return;
     }
     el('#bm-status').textContent = 'Fertig: ' + formatDate(payload.result.timestamp);

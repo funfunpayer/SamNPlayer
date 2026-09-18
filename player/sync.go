@@ -23,11 +23,8 @@ var errNoFrames = errors.New("player: keine Frames zum Abspielen")
 // sofort ausgegeben - kein Timing-Loop, kein "warten bis Zielzeit erreicht",
 // da die Zeitbasis extern (vom Video) kommt statt von uns.
 //
-// Extended-O funktioniert weiterhin über TriggerExtendedO, hält aber -
-// anders als bei Play() - die tatsächliche Videowiedergabe nicht an
-// (die läuft ja im Frontend weiter). PauseVideo/ResumeVideo-Hooks lassen
-// sich setzen, um das Frontend während des Haltens zu pausieren, für ein
-// stimmigeres Verhalten - siehe Player.PauseVideo/ResumeVideo.
+// Extended-O funktioniert über TriggerExtendedO und skaliert nur die
+// Amplitude (Vib/Sog × Faktor) - Video und Skript-Rhythmus laufen weiter.
 func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <-chan int64) error {
 	if len(frames) == 0 {
 		return errNoFrames
@@ -35,6 +32,7 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 	logging.Info("player: Sync-Wiedergabe startet (externe Positionsquelle)", "frames", len(frames))
 	defer func() {
 		logging.Info("player: Sync-Wiedergabe beendet")
+		p.setIntensityScale(1)
 		p.Device.Stop() //nolint:errcheck // best effort beim Beenden
 	}()
 
@@ -49,20 +47,7 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			if !ok {
 				continue
 			}
-			if p.PauseVideo != nil {
-				p.PauseVideo()
-			}
-			// curVib/curSuc: letzten bekannten Zustand nehmen - bei Sync
-			// haben wir keine fortlaufende "curVib"-Variable wie bei Play(),
-			// darum den zur letzten gemeldeten Position passenden Frame
-			// erneut nachschlagen.
-			f := frameAt(frames, p.lastSyncPosMs)
-			if _, err := p.runExtendedO(ctx, opts, f.Vibration, f.Suction, p.lastSyncPosMs); err != nil {
-				return err
-			}
-			if p.ResumeVideo != nil {
-				p.ResumeVideo()
-			}
+			p.startExtendedO(ctx, opts)
 
 		case posMs, ok := <-positions:
 			if !ok {
@@ -78,35 +63,53 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 				return err
 			}
 			firstFrame = false
-			if p.OnFrame != nil {
-				p.OnFrame(f)
-			}
 		}
 	}
 }
 
-// setOutput schickt einen Frame direkt ans Gerät, ohne Soft-Start-Rampe -
-// der Normalfall für jeden Frame nach dem allerersten.
+// setOutput schickt einen Frame skaliert ans Gerät (Extended-O senkt nur
+// die Amplitude) und meldet den ausgegebenen Wert per OnFrame.
 func (p *Player) setOutput(f funscript.Frame) error {
-	if err := p.Device.SetVibration(f.Vibration); err != nil {
+	scale := p.getIntensityScale()
+	out := funscript.Frame{
+		At:        f.At,
+		Vibration: f.Vibration * scale,
+		Suction:   f.Suction * scale,
+	}
+	if err := p.Device.SetVibration(out.Vibration); err != nil {
 		return err
 	}
-	return p.Device.SetSuction(f.Suction)
+	if err := p.Device.SetSuction(out.Suction); err != nil {
+		return err
+	}
+	if p.OnFrame != nil {
+		p.OnFrame(out)
+	}
+	return nil
 }
 
 // softStart rampt in kleinen Schritten von 0 auf den Zielframe hoch, statt
 // direkt zu springen - siehe Player.SoftStartMs. Genutzt beim allerersten
-// Frame von Play() und Sync().
+// Frame von Play() und Sync(). Berücksichtigt den aktuellen Amplitudenfaktor.
 func (p *Player) softStart(ctx context.Context, target funscript.Frame) error {
 	const steps = 10
 	stepDur := time.Duration(p.SoftStartMs) * time.Millisecond / steps
+	scale := p.getIntensityScale()
 	for i := 1; i <= steps; i++ {
 		frac := float64(i) / float64(steps)
-		if err := p.Device.SetVibration(target.Vibration * frac); err != nil {
+		out := funscript.Frame{
+			At:        target.At,
+			Vibration: target.Vibration * frac * scale,
+			Suction:   target.Suction * frac * scale,
+		}
+		if err := p.Device.SetVibration(out.Vibration); err != nil {
 			return err
 		}
-		if err := p.Device.SetSuction(target.Suction * frac); err != nil {
+		if err := p.Device.SetSuction(out.Suction); err != nil {
 			return err
+		}
+		if p.OnFrame != nil {
+			p.OnFrame(out)
 		}
 		select {
 		case <-time.After(stepDur):

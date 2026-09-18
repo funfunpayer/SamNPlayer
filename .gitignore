@@ -18,8 +18,16 @@ venv/
 # Lokale Testartefakte
 *.funscript
 !testdata/**/*.funscript
+!cmd/gui-wails/frontend/test/fixtures/*.funscript
 *.mp4
 !testdata/**/*.mp4
+.artifacts/
+
+# Agent-/Preview-Demos (nicht Teil der App)
+cmd/gui-wails/frontend/ui-preview.html
+cmd/gui-wails/frontend/test/_demo_harness.html
+cmd/gui-wails/frontend/test/_player_preview.html
+demo_server.py
 
 # Editor/OS
 .DS_Store

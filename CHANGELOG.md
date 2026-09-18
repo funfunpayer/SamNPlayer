@@ -6,14 +6,50 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
-## Unreleased
+## [0.5.5] — September 18, 2026
+
+Release after stacking GUI/startup, OFS editor tools, OpenCV 5 tracker
+fallback (#95), and funscript autotune workflow. Green CI on tip before tag.
 
 ### Fixed
 
-- **CI Go (OpenCV):** `ptpFloat` redeclaration in `trackcv` (vet fail on #97).
+- **OpenCV 5.0 CSRT** (#94/#95): `create_tracker` / package gate try CSRT then
+  KCF/MIL under `cv2` and `cv2.legacy` — generate no longer dies on Windows
+  opencv-contrib 5.0.0.
+- **CapSpeedRange editor stale state:** after speed-cap / range-delete, reload
+  duration + `rawActions` so edit mode cannot overwrite the capped file.
+- **ROI redraw vs backend:** manual Flow/grid_lk/etc. survive ROI re-draw
+  (`userTouched` on backend/profile).
+- **bandpass NameError:** parse `--bandpass-hz` inside `process_one`.
+- **CapSpeedRange overlap:** later segments use original timestamps.
+- **Playlist:** remove-active reloads highlight; video end advances via
+  `stop({user:false})`; connect-fail `playback:done {failed:true}` does not
+  auto-advance.
+- **OFS bookmarks/chapters:** accept float seconds.
+- **CI Go (OpenCV):** `ptpFloat` redeclaration in `trackcv`.
+
+### Added
+
+- **Profil `autotune`:** detrend + bandpass 0.5–4 Hz + speed 400; GUI Max Speed /
+  Flow-Downscale; workflow tip Flow→CSRT→Autotune→Audio-Check
+  (`docs/FUNSCRIPT_ALGOS.md`).
+- **OFS-inspired Go tools:** max-speed highlights, chapters/bookmarks metadata,
+  heatmap PNG, `.snp.json` projects, FPS snap, range delete/speed-cap.
+- **Clean SamNPlayer wordmark:** Space Grotesk 700, amber + teal N.
 
 ### Changed
 
+- **Extended-O:** scales curve amplitude only (vib/suc × factor); rhythm/shape
+  unchanged — no flat freeze and no video/timeline pause during hold.
+- **Startup:** creates missing SamNPlayer folders (logs/sessions/models/cache/…)
+  and checks dependencies (ffmpeg required, python/ffprobe optional).
+- **Connect smoke test:** optional short vib/suc pulse after connect
+  (`device.connect_test`, default off) — Settings checkbox.
+- **Wiedergabe layout:** media-first (video/curve/heatmap + transport), tools
+  beside; empty-state CTA; script-alone without video supported.
+- **Kontakt-Vibration:** Tf/Tj defaults to on (soft curve ≈ touch); after
+  generate auto-opens Playback for review/edit; save contact settings into
+  script metadata; fewer post-generate popups.
 - **GUI visual refresh:** Space Grotesk + logo palette (gold `#f2b03d` /
   teal `#3dccc0` on deep navy); sharper geometry, dual-tone rail/brand
   offset, SamN wordmark in topbar; violet accents removed (ROI2/Sog → gold/teal).

@@ -1,147 +1,229 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
+  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
+  ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
+  ScriptChapters, ScriptQuality,
+  SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { applyHotkeyOMarker } from './ozone_ui.js';
 import { wireDataHelp } from './help.js';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 
 const HEATMAP_BUCKETS = 300;
 
 export function initPlayback(root) {
+  root.classList.add('tab-playback');
   root.innerHTML = `
-    <h2>Wiedergabe</h2>
-    <div class="row">
-      <button id="pb-choose">Funscript wählen...</button>
-      <span class="path-label" id="pb-script-path">Kein Skript gewählt</span>
+    <div class="pb-head">
+      <div class="pb-head-text">
+        <h2>Wiedergabe</h2>
+        <span class="path-label" id="pb-script-path">Kein Skript gewählt</span>
+      </div>
+      <div class="pb-head-actions">
+        <button id="pb-choose" class="primary" type="button">Skript wählen</button>
+        <button id="pb-queue-add" type="button" title="Weiteres Skript an die Liste hängen" hidden>Zur Liste</button>
+      </div>
     </div>
 
-    <video id="pb-video" controls style="display:none"></video>
-    <div id="pb-novideo" class="hint">Kein passendes Video im selben Ordner gefunden.</div>
-
-    <canvas id="pb-curve" height="110" style="width:100%; display:none; border-radius:4px;
-            margin-top:8px; background:rgba(255,255,255,0.04); cursor:crosshair;"></canvas>
-    <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
-      <input type="checkbox" id="pb-curve-edit" />
-      <label for="pb-curve-edit">Kurve bearbeiten</label>
-    </div>
-    <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
-      data-help="Klick+Ziehen = Punkt verschieben. Klick auf freie Stelle = neuer Punkt. Doppelklick = löschen (mind. 2 bleiben). Jede Änderung wird sofort gespeichert.">
-      Kurve bearbeiten: ziehen / klicken / Doppelklick — siehe „?“.</p>
-    <div class="row" id="pb-offset-row" style="display:none; align-items:center; margin-top:8px;">
-      <label style="width:auto;" data-help="Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe. Wird je Skript gespeichert.">Skript-Offset</label>
-      <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
-      <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
-      <span class="hint" style="margin:0;">ms</span>
-      <button id="pb-offset-plus" title="Skript 50ms später (Taste +)">+50</button>
-      <button id="pb-offset-reset">zurücksetzen</button>
-      <span class="checkbox-row" style="margin:0 0 0 12px;">
-        <input type="checkbox" id="pb-loop" />
-        <label for="pb-loop" style="width:auto;" data-help="Wiederholt den markierten Abschnitt (Heatmap ziehen).">Markierung wiederholen</label>
-      </span>
-    </div>
-    <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
-      data-help="Leertaste Start/Stop · ←/→ 5 s (Shift 1 s) · ,/. Feinschritt · 1–9 springen · +/− Offset · L Wiederholung · E Extended-O · O O-Marker 4s">
-      Tastenhilfe über „?“.</p>
-    <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
-    <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
-      <button id="pb-script-doctor" type="button">Skript prüfen (Script Doctor)</button>
-      <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
-    </div>
-    <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
-    <canvas id="pb-heatmap" height="28" style="width:100%; display:none; border-radius:4px; margin-top:8px; cursor:crosshair;"></canvas>
-    <div class="hint" id="pb-marker-hint" style="display:none"
-      data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
-      Heatmap: Klick = springen, Ziehen = markieren. <span id="pb-marker-label"></span>
-      <button id="pb-marker-clear" style="margin-left:8px">Markierung löschen</button>
-    </div>
-    <div class="checkbox-row" id="pb-marker-auto-row" style="display:none">
-      <input type="checkbox" id="pb-marker-auto" />
-      <label for="pb-marker-auto" data-help="Löst Extended-O automatisch aus, wenn die Wiedergabe den markierten Bereich erreicht.">Extended-O automatisch im markierten Bereich</label>
+    <div class="pb-empty" id="pb-empty">
+      <div class="pb-empty-inner">
+        <p class="pb-empty-title">Noch nichts geladen</p>
+        <p class="hint">Ein oder mehrere Funscripts ablegen — mit oder ohne Video daneben. Ohne Film läuft das Skript allein (Gerät + Kurve). Mehrere Skripte werden als Liste abgespielt.</p>
+        <button type="button" id="pb-choose-empty" class="primary">Skript wählen</button>
+      </div>
     </div>
 
-    <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
-      data-help="O-Marker werden im Skript gespeichert (nicht nur lokal). Primär = Höhepunkt, sekundär = schwächere Stellen. Erst Bereich markieren, dann übernehmen.">
-      O-Marker: authored im Skript — siehe „?“.</div>
-    <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-      <select id="pb-omarker-kind">
-        <option value="primary">Primär (Höhepunkt)</option>
-        <option value="secondary">Sekundär (früher, schwächer)</option>
-      </select>
-      <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
-        <label style="width:auto;">Intensität</label>
-        <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
-      </span>
-      <button id="pb-omarker-add" disabled>Markierung als O-Marker übernehmen</button>
-    </div>
-    <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+    <div class="pb-loaded" id="pb-loaded" hidden>
+      <div class="pb-media">
+        <div class="pb-video-stage" id="pb-video-stage">
+          <video id="pb-video" controls playsinline></video>
+          <div class="pb-video-chrome" id="pb-video-chrome">
+            <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick)">Vollbild</button>
+            <button type="button" id="pb-video-change" title="Anderes Video wählen">Video…</button>
+          </div>
+          <div id="pb-novideo" class="pb-novideo">
+            <p class="pb-novideo-title">Skript ohne Film</p>
+            <p class="hint">Läuft allein über Gerät und Kurve — Video ist optional. „Abspielen“ startet sofort.</p>
+            <div class="pb-novideo-actions">
+              <button type="button" id="pb-play-novideo" class="primary">Abspielen</button>
+              <button type="button" id="pb-pick-video">Video verknüpfen…</button>
+            </div>
+          </div>
+        </div>
+        <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
+        <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <div class="pb-transport">
+          <div class="row pb-transport-btns">
+            <button id="pb-play" class="primary pb-btn-icon" type="button" title="Abspielen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <span>Abspielen</span>
+            </button>
+            <button id="pb-stop" class="pb-btn-icon" type="button" disabled title="Stop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>
+              <span>Stop</span>
+            </button>
+            <button id="pb-eo-trigger" type="button" disabled>Extended-O</button>
+            <button id="pb-next" type="button" hidden title="Nächster Film in der Liste">Weiter</button>
+          </div>
+          <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
+          <div class="stat-row pb-live">
+            <span>Vibration <b id="pb-vib">-</b></span>
+            <span>Sog <b id="pb-suc">-</b></span>
+          </div>
+        </div>
+        <div class="pb-playlist" id="pb-playlist" hidden>
+          <div class="pb-playlist-head">
+            <span class="pb-playlist-title">Film-Liste</span>
+            <label class="checkbox-row pb-playlist-auto" style="margin:0">
+              <input type="checkbox" id="pb-playlist-auto" checked />
+              <span>Automatisch weiter</span>
+            </label>
+          </div>
+          <ol class="pb-playlist-list" id="pb-playlist-list"></ol>
+        </div>
+      </div>
 
-    <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
-      <input type="checkbox" id="pb-use-video-sync" checked />
-      <label for="pb-use-video-sync">Gerät folgt der echten Videoposition (empfohlen, statt eigener Uhr)</label>
-    </div>
-    <div class="checkbox-row" id="pb-contact-off-row" style="display:none">
-      <input type="checkbox" id="pb-contact-off" />
-      <label for="pb-contact-off"
-        data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
-    </div>
-    <div class="field-row" id="pb-contact-intensity-row" style="display:none">
-      <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
-      <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
-      <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
-    </div>
-    <div class="field-row" id="pb-contact-span-row" style="display:none">
-      <label data-help="Live-Empfindlichkeit ohne Neu-Generate. Niedriger = früher an. Default aus dem Skript-Rezept.">Empfindlichkeit</label>
-      <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
-      <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
-    </div>
-    <div class="field-row" id="pb-contact-curve-row" style="display:none">
-      <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
-      <select id="pb-contact-curve">
-        <option value="linear">linear</option>
-        <option value="soft">soft</option>
-        <option value="peak">peak</option>
-      </select>
-    </div>
+      <div class="pb-tools">
+        <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
+          <input type="checkbox" id="pb-curve-edit" />
+          <label for="pb-curve-edit">Kurve bearbeiten</label>
+        </div>
+        <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
+          data-help="Klick+Ziehen = Punkt verschieben. Klick auf freie Stelle = neuer Punkt. Doppelklick = löschen (mind. 2 bleiben). Jede Änderung wird sofort gespeichert.">
+          Kurve bearbeiten: ziehen / klicken / Doppelklick — siehe „?“.</p>
 
-    <div class="field-row"><label>Gerät</label>
-      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät testen)</label></span>
-    </div>
-    <div class="field-row"><label>Sync-Modus</label>
-      <select id="pb-sync">
-        <option value="independent">independent</option>
-        <option value="synchronized">synchronized</option>
-        <option value="alternating">alternating</option>
-        <option value="vibration_only">nur Vibration</option>
-        <option value="suction_only">nur Sog</option>
-        <option value="suction_position">Sog aus Position</option>
-      </select>
-    </div>
-    <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
-    <div class="field-row"><label>Max-Speed</label><input type="number" step="0.1" id="pb-maxspeed" value="0.6" /></div>
-    <div class="field-row"><label>Glättung (0-1)</label><input type="number" step="0.05" min="0" max="1" id="pb-smoothing" value="0.3" /></div>
-    <div class="field-row"><label>Soft-Start (ms)</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
+        <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
+          <label style="width:auto;" data-help="Positiver Wert = Skript greift später. Wirkt sofort, auch während der Wiedergabe. Wird je Skript gespeichert.">Skript-Offset</label>
+          <button id="pb-offset-minus" title="Skript 50ms früher (Taste -)">−50</button>
+          <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
+          <span class="hint" style="margin:0;">ms</span>
+          <button id="pb-offset-plus" title="Skript 50ms später (Taste +)">+50</button>
+          <button id="pb-offset-reset">zurücksetzen</button>
+          <span class="checkbox-row" style="margin:0 0 0 12px;">
+            <input type="checkbox" id="pb-loop" />
+            <label for="pb-loop" style="width:auto;" data-help="Wiederholt den markierten Abschnitt (Heatmap ziehen).">Markierung wiederholen</label>
+          </span>
+        </div>
+        <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
+          data-help="Leertaste Start/Stop · ←/→ 5 s (Shift 1 s) · ,/. Feinschritt · 1–9 springen · +/− Offset · L Wiederholung · E Extended-O · O O-Marker 4s">
+          Tastenhilfe über „?“.</p>
 
-    <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O aktiv</label></div>
-    <div class="field-row"><label>Min-Intensität</label><input type="number" step="0.05" id="pb-eo-min" value="0.1" /></div>
-    <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
-    <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
+        <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+        <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
+          <button id="pb-script-doctor" type="button">Skript prüfen</button>
+          <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
+        </div>
+        <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
 
-    <div class="row">
-      <button id="pb-play" class="primary">▶ Abspielen</button>
-      <button id="pb-stop" disabled>■ Stop</button>
-      <button id="pb-eo-trigger" disabled>Extended-O auslösen</button>
-    </div>
+        <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
+          <button type="button" id="pb-heatmap-export" title="Intensitäts-Heatmap als PNG (Kapitel als Striche)">Heatmap PNG</button>
+          <button type="button" id="pb-project-save" title="Video+Skript+Offset als .snp.json speichern">Projekt speichern</button>
+          <button type="button" id="pb-cap-speed" title="In der Heatmap-Markierung zu schnelle Segmente zeitlich strecken">Speed-Cap Markierung</button>
+          <button type="button" id="pb-del-range" title="Punkte in der Heatmap-Markierung löschen">Bereich löschen</button>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Wenn >0: Sprünge und neue Kurvenpunkte rasten auf Frame-Raster (ms). 0 = aus.">
+            FPS-Snap<input type="number" id="pb-fps-snap" value="0" min="0" step="1" style="width:4em;" />
+          </label>
+          <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+        </div>
 
-    <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
-    <div class="stat-row">
-      <span>Vibration: <b id="pb-vib">-</b></span>
-      <span>Sog: <b id="pb-suc">-</b></span>
+        <div class="hint" id="pb-marker-hint" style="display:none"
+          data-help="Klick auf die Heatmap = springen. Ziehen = Bereich markieren (Extended-O / Wiederholung / O-Marker).">
+          Heatmap: Klick = springen, Ziehen = markieren. <span id="pb-marker-label"></span>
+          <button id="pb-marker-clear" style="margin-left:8px">Markierung löschen</button>
+        </div>
+        <div class="checkbox-row" id="pb-marker-auto-row" style="display:none">
+          <input type="checkbox" id="pb-marker-auto" />
+          <label for="pb-marker-auto" data-help="Löst Extended-O automatisch aus, wenn die Wiedergabe den markierten Bereich erreicht.">Extended-O automatisch im markierten Bereich</label>
+        </div>
+
+        <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
+          data-help="O-Marker werden im Skript gespeichert (nicht nur lokal). Primär = Höhepunkt, sekundär = schwächere Stellen. Erst Bereich markieren, dann übernehmen.">
+          O-Marker: authored im Skript — siehe „?“.</div>
+        <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <select id="pb-omarker-kind">
+            <option value="primary">Primär (Höhepunkt)</option>
+            <option value="secondary">Sekundär (früher, schwächer)</option>
+          </select>
+          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
+            <label style="width:auto;">Intensität</label>
+            <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
+          </span>
+          <button id="pb-omarker-add" disabled>Als O-Marker übernehmen</button>
+        </div>
+        <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+
+        <div class="pb-contact" id="pb-contact-block" hidden>
+          <h3>Kontakt-Vibration</h3>
+          <p class="hint" style="margin-top:0">Folgt dem Abstand wie eine Berührung — live anpassen, optional ins Skript speichern.</p>
+          <div class="checkbox-row" id="pb-contact-off-row">
+            <input type="checkbox" id="pb-contact-off" />
+            <label for="pb-contact-off"
+              data-help="Schaltet die im Skript hinterlegte Kontakt-Vibration nur für diese Wiedergabe aus — ohne neu zu generieren. Die Kurvenanzeige bleibt sichtbar.">Kontakt-Vibration ab</label>
+          </div>
+          <div class="field-row" id="pb-contact-intensity-row">
+            <label data-help="Live-Skalierung der Kontakt-Vibration ohne Datei-Rewrite (SAM Runtime). 1 = wie generiert, 0 = aus, bis 2 = stärker.">Kontakt-Stärke</label>
+            <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+            <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
+          </div>
+          <div class="field-row" id="pb-contact-span-row">
+            <label data-help="Live-Empfindlichkeit ohne Neu-Generate. Niedriger = früher an. Default aus dem Skript-Rezept.">Empfindlichkeit</label>
+            <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
+            <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
+          </div>
+          <div class="field-row" id="pb-contact-curve-row">
+            <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
+            <select id="pb-contact-curve">
+              <option value="linear">linear</option>
+              <option value="soft">soft (wie Berührung)</option>
+              <option value="peak">peak</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button type="button" id="pb-contact-save">In Skript speichern</button>
+            <span class="hint" id="pb-contact-save-status" style="margin:0"></span>
+          </div>
+        </div>
+
+        <details class="pb-advanced">
+          <summary>Abspielen &amp; Extended-O</summary>
+          <div class="checkbox-row" id="pb-video-sync-row" style="display:none">
+            <input type="checkbox" id="pb-use-video-sync" checked />
+            <label for="pb-use-video-sync">Gerät folgt der Videoposition</label>
+          </div>
+          <div class="field-row"><label>Gerät</label>
+            <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (ohne Gerät)</label></span>
+          </div>
+          <div class="field-row"><label>Sync-Modus</label>
+            <select id="pb-sync">
+              <option value="independent">independent</option>
+              <option value="synchronized">synchronized</option>
+              <option value="alternating">alternating</option>
+              <option value="vibration_only">nur Vibration</option>
+              <option value="suction_only">nur Sog</option>
+              <option value="suction_position">Sog aus Position</option>
+            </select>
+          </div>
+          <div class="pb-adv-grid">
+            <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
+            <div class="field-row"><label>Max-Speed</label><input type="number" step="0.1" id="pb-maxspeed" value="0.6" /></div>
+            <div class="field-row"><label>Glättung</label><input type="number" step="0.05" min="0" max="1" id="pb-smoothing" value="0.3" /></div>
+            <div class="field-row"><label>Soft-Start</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
+          </div>
+          <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O aktiv</label></div>
+          <div class="pb-adv-grid">
+            <div class="field-row"><label title="Kurve behält den Rhythmus; nur die Höhe wird multipliziert">Amplitude</label><input type="number" step="0.05" min="0" max="1" id="pb-eo-min" value="0.1" /></div>
+            <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
+            <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
+          </div>
+        </details>
+
+        <div id="pb-log" class="pb-log"></div>
+      </div>
     </div>
-    <p class="hint">Tastenkürzel: Leertaste = Abspielen/Stop, E = Extended-O auslösen (wenn aktiv), O = O-Marker 4s.</p>
-    <div id="pb-log"></div>
   `;
 
   wireDataHelp(root);
@@ -152,8 +234,13 @@ export function initPlayback(root) {
   let videoPath = null;
   let totalMs = 1;
   let playing = false;
+  let playlist = []; // [{ path, name }]
+  let playlistIndex = 0;
+  let advancingPlaylist = false;
+  let userStopRequested = false;
   let heatmapPoints = null;
   let curvePoints = null;
+  let speedHighlights = [];
   let vibrationCurvePoints = null;
   let scriptHasContactVibration = false;
   const curveCanvas = el('#pb-curve');
@@ -176,10 +263,80 @@ export function initPlayback(root) {
   const EDIT_HIT_RADIUS_PX = 12;
   let currentPosMs = 0;
 
+  function setScriptLoaded(loaded) {
+    el('#pb-empty').hidden = !!loaded;
+    el('#pb-loaded').hidden = !loaded;
+    root.classList.toggle('has-script', !!loaded);
+    el('#pb-queue-add').hidden = !loaded;
+  }
+
+  function scriptBaseName(path) {
+    const base = String(path || '').split(/[/\\]/).pop() || path;
+    return base.replace(/\.funscript$/i, '');
+  }
+
+  function renderPlaylist() {
+    const wrap = el('#pb-playlist');
+    const list = el('#pb-playlist-list');
+    const nextBtn = el('#pb-next');
+    if (!wrap || !list) return;
+    if (playlist.length < 2) {
+      wrap.hidden = true;
+      list.innerHTML = '';
+      if (nextBtn) nextBtn.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    if (nextBtn) nextBtn.hidden = playlistIndex >= playlist.length - 1;
+    list.innerHTML = playlist.map((item, i) => {
+      const active = i === playlistIndex ? ' is-active' : '';
+      return `<li class="pb-playlist-item${active}" data-idx="${i}">`
+        + `<button type="button" class="pb-playlist-pick" data-idx="${i}">`
+        + `<span class="pb-playlist-idx">${i + 1}</span>`
+        + `<span class="pb-playlist-name">${item.name}</span>`
+        + `</button>`
+        + `<button type="button" class="pb-playlist-remove" data-idx="${i}" title="Entfernen">×</button>`
+        + `</li>`;
+    }).join('');
+  }
+
+  function replacePlaylist(paths, startIndex = 0) {
+    const uniq = [];
+    const seen = new Set();
+    for (const p of paths || []) {
+      if (!p || seen.has(p)) continue;
+      seen.add(p);
+      uniq.push({ path: p, name: scriptBaseName(p) });
+    }
+    playlist = uniq;
+    playlistIndex = Math.max(0, Math.min(startIndex, Math.max(0, playlist.length - 1)));
+    renderPlaylist();
+  }
+
+  function appendToPlaylist(path) {
+    if (!path) return;
+    if (playlist.some(p => p.path === path)) {
+      log('Schon in der Liste: ' + scriptBaseName(path));
+      return;
+    }
+    if (playlist.length === 0 && scriptPath) {
+      playlist.push({ path: scriptPath, name: scriptBaseName(scriptPath) });
+      playlistIndex = 0;
+    }
+    playlist.push({ path, name: scriptBaseName(path) });
+    renderPlaylist();
+    log('Zur Liste: ' + scriptBaseName(path));
+  }
+
   function log(line) {
     const box = el('#pb-log');
     box.textContent += (box.textContent ? '\n' : '') + line;
     box.scrollTop = box.scrollHeight;
+  }
+
+  function logError(line) {
+    log(line);
+    uiError(line);
   }
 
   function setPlayingState(isPlaying) {
@@ -187,8 +344,11 @@ export function initPlayback(root) {
     el('#pb-play').disabled = isPlaying;
     el('#pb-stop').disabled = !isPlaying;
     el('#pb-eo-trigger').disabled = !isPlaying || !el('#pb-eo-enabled').checked;
+    const playAlone = el('#pb-play-novideo');
+    if (playAlone) playAlone.disabled = isPlaying;
     if (!isPlaying) el('#pb-progress').style.width = '0%';
     if (isPlaying) autoEOTriggeredForMarker = false;
+    el('#pb-video-stage').classList.toggle('is-playing', !!isPlaying);
     // Bearbeiten während der Wiedergabe wäre verwirrend (die Kurve bewegt
     // sich durch den Positionszeiger mit) - beim Start aus, Checkbox bis
     // zum Stop gesperrt.
@@ -256,7 +416,7 @@ export function initPlayback(root) {
       await SaveOMarkers(scriptPath, oMarkers);
     } catch (err) {
       oMarkers = previous;
-      log('O-Marker entfernen: ' + err);
+      logError('O-Marker entfernen: ' + err);
       return;
     }
     renderOMarkerList();
@@ -415,6 +575,16 @@ export function initPlayback(root) {
       ctx.fillRect(xOf(marker.startMs), 0, xOf(marker.endMs) - xOf(marker.startMs), h);
     }
 
+    // OFS-Stil: Abschnitte über Community-Intensitätsschwelle (Max-Speed).
+    if (Array.isArray(speedHighlights) && speedHighlights.length > 0) {
+      ctx.fillStyle = 'rgba(239, 95, 95, 0.22)';
+      for (const seg of speedHighlights) {
+        const x0 = xOf(seg.fromMs ?? seg.FromMs ?? 0);
+        const x1 = xOf(seg.toMs ?? seg.ToMs ?? 0);
+        if (x1 > x0) ctx.fillRect(x0, 0, x1 - x0, h);
+      }
+    }
+
     // Die Kurve selbst - als weiche Spline statt gerader Segmente.
     ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
@@ -472,7 +642,7 @@ export function initPlayback(root) {
     try {
       await SetScriptOffset(value);
     } catch (err) {
-      log('Offset: ' + err);
+      logError('Offset: ' + err);
     }
   }
 
@@ -497,6 +667,23 @@ export function initPlayback(root) {
   });
   el('#pb-contact-off').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
+  });
+  el('#pb-contact-save').addEventListener('click', async () => {
+    if (!scriptPath || !scriptHasContactVibration) return;
+    const status = el('#pb-contact-save-status');
+    status.textContent = 'Speichere…';
+    try {
+      await SaveContactSettings(
+        !el('#pb-contact-off').checked,
+        parseFloat(el('#pb-contact-span').value) || 0.75,
+        el('#pb-contact-curve').value || 'soft',
+      );
+      status.textContent = 'Gespeichert im Skript.';
+      await refreshScriptVisuals();
+    } catch (err) {
+      uiError('Kontakt speichern: ' + err, status);
+      log('Kontakt speichern: ' + err);
+    }
   });
 
   const CHAPTER_LABELS = {
@@ -548,12 +735,14 @@ export function initPlayback(root) {
     } catch (err) {
       curvePoints = null;
       vibrationCurvePoints = null;
+      speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
       vibrationCurvePoints = null;
+      speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
@@ -564,6 +753,12 @@ export function initPlayback(root) {
         : null;
     } catch (err) {
       vibrationCurvePoints = null;
+    }
+    try {
+      speedHighlights = await GetSpeedHighlights(0);
+      if (!Array.isArray(speedHighlights)) speedHighlights = [];
+    } catch (err) {
+      speedHighlights = [];
     }
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
@@ -657,7 +852,7 @@ export function initPlayback(root) {
     try {
       await SaveScriptActions(sorted.map(p => ({ at: p.atMs, pos: p.pos })));
     } catch (err) {
-      log('Kurve speichern: ' + err);
+      logError('Kurve speichern: ' + err);
       return;
     }
     rawActions = sorted;
@@ -671,7 +866,7 @@ export function initPlayback(root) {
         const actions = await GetScriptActions();
         rawActions = (Array.isArray(actions) ? actions : []).map(a => ({ atMs: a.at, pos: a.pos }));
       } catch (err) {
-        log('Editor: Punkte laden fehlgeschlagen: ' + err);
+        logError('Editor: Punkte laden fehlgeschlagen: ' + err);
         el('#pb-curve-edit').checked = false;
         return;
       }
@@ -758,12 +953,22 @@ export function initPlayback(root) {
   // zusätzliches Zutun nötig. Ohne Video gibt es nichts zu spulen; dann
   // bleibt der Klick wirkungslos (die eigene Uhr in Play() lässt sich
   // nicht nachträglich verschieben).
-  function seekTo(atMs) {
-    if (!videoPath || !videoEl.duration) return;
-    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, atMs / 1000));
+  async function seekTo(atMs) {
+    let t = atMs;
+    const fps = parseFloat(el('#pb-fps-snap')?.value) || 0;
+    if (fps > 0) {
+      try { t = await SnapTimeMs(t, fps); } catch (_) { /* keep t */ }
+    }
+    currentPosMs = t;
+    if (!videoPath || !videoEl.duration) {
+      redrawHeatmap();
+      redrawCurve();
+      return;
+    }
+    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, t / 1000));
     // Auto-Extended-O darf nach einem Sprung erneut auslösen, wenn der
     // markierte Bereich danach nochmal erreicht wird.
-    if (marker && atMs < marker.startMs) autoEOTriggeredForMarker = false;
+    if (marker && t < marker.startMs) autoEOTriggeredForMarker = false;
     redrawHeatmap();
   }
 
@@ -788,7 +993,7 @@ export function initPlayback(root) {
     try {
       await SaveOMarkers(scriptPath, next);
     } catch (err) {
-      log('O-Marker hinzufügen: ' + err);
+      logError('O-Marker hinzufügen: ' + err);
       return;
     }
     oMarkers = next;
@@ -810,20 +1015,28 @@ export function initPlayback(root) {
 
 
 
-  // Fallengelassenes Skript übernehmen - gleicher Ladeweg wie die
-  // Dateiauswahl.
-  window.addEventListener('drop:script', e => loadScript(e.detail.path, e.detail.extraCount || 0));
+  // Fallengelassene Skripte: eines oder mehrere → Film-Liste.
+  window.addEventListener('drop:script', e => {
+    const paths = (e.detail && e.detail.paths && e.detail.paths.length)
+      ? e.detail.paths
+      : [e.detail.path];
+    replacePlaylist(paths, 0);
+    loadScript(paths[0], { keepPlaylist: true });
+  });
 
   async function chooseScript() {
     const path = await PickFunscriptFile();
-    // Fokus zurück ins Fenster holen: nach dem Schließen des nativen
-    // Datei-Dialogs bleibt der Tastaturfokus sonst am Auswahl-Button
-    // hängen (oder ganz außerhalb der Webview), und die Tastenkürzel
-    // wirken scheinbar nicht mehr. In der Testumgebung reproduzierbar,
-    // darum hier defensiv behandelt.
     restoreKeyboardFocus();
     if (!path) return;
-    await loadScript(path);
+    replacePlaylist([path], 0);
+    await loadScript(path, { keepPlaylist: true });
+  }
+
+  async function queueAddScript() {
+    const path = await PickFunscriptFile();
+    restoreKeyboardFocus();
+    if (!path) return;
+    appendToPlaylist(path);
   }
 
   // restoreKeyboardFocus nimmt den Fokus von einem eventuell fokussierten
@@ -836,24 +1049,52 @@ export function initPlayback(root) {
     window.focus();
   }
 
-  async function loadScript(path, extraCount = 0) {
+  async function attachVideoFromPicker() {
+    if (!scriptPath) return;
+    try {
+      const path = await PickVideoFile();
+      if (!path) return;
+      const url = await SetPlaybackVideo(path);
+      videoPath = path;
+      videoEl.src = url;
+      const stage = el('#pb-video-stage');
+      stage.classList.add('has-video');
+      stage.classList.remove('no-video');
+      el('#pb-video-sync-row').style.display = 'flex';
+      log('Video verknüpft: ' + path);
+    } catch (err) {
+      uiError('Video verknüpfen: ' + err);
+    }
+  }
+
+  function toggleVideoFullscreen() {
+    const stage = el('#pb-video-stage');
+    if (!stage.classList.contains('has-video')) return;
+    const on = stage.classList.toggle('is-fs');
+    el('#pb-video-fs').textContent = on ? 'Zurück' : 'Vollbild';
+  }
+
+  async function loadScript(path, extraCountOrOpts = 0, opts = {}) {
+    // Rückwärtskompatibel: früher (path, extraCount), jetzt auch (path, opts).
+    if (extraCountOrOpts && typeof extraCountOrOpts === 'object') {
+      opts = extraCountOrOpts;
+    }
     const info = await LoadFunscript(path);
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
-    // Stapelverarbeitung mehrerer Skripte gibt es noch nicht - vorher
-    // wurden weitere abgelegte Skripte einfach stillschweigend verworfen,
-    // ohne dass sichtbar war, dass überhaupt mehr als eins ankam (siehe
-    // dieselbe Behandlung für Videos in generator.js).
-    const batchNote = extraCount > 0
-      ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Skript${extraCount === 1 ? '' : 'e'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
-      : '';
-    el('#pb-script-path').textContent = scriptPath + batchNote;
+    if (!opts.keepPlaylist) {
+      replacePlaylist([scriptPath], 0);
+    } else {
+      const idx = playlist.findIndex(p => p.path === scriptPath);
+      if (idx >= 0) playlistIndex = idx;
+      renderPlaylist();
+    }
+    el('#pb-script-path').textContent = scriptPath;
+    setScriptLoaded(true);
     scriptHasContactVibration = !!info.contactVibration;
     const showContact = scriptHasContactVibration;
-    el('#pb-contact-off-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-intensity-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-span-row').style.display = showContact ? 'flex' : 'none';
-    el('#pb-contact-curve-row').style.display = showContact ? 'flex' : 'none';
+    el('#pb-contact-block').hidden = !showContact;
+    if (el('#pb-contact-save-status')) el('#pb-contact-save-status').textContent = '';
     if (!showContact) {
       el('#pb-contact-off').checked = false;
       el('#pb-contact-intensity').value = '1';
@@ -863,20 +1104,24 @@ export function initPlayback(root) {
       const span = (info.contactVibrationSpan > 0) ? info.contactVibrationSpan : 0.75;
       el('#pb-contact-span').value = String(span);
       el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
-      const curve = info.contactVibrationCurve || 'linear';
-      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'linear';
+      const curve = info.contactVibrationCurve || 'soft';
+      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'soft';
     }
+    const stage = el('#pb-video-stage');
     if (info.hasVideo) {
       videoPath = info.videoPath;
       videoEl.src = await VideoFileURL();
-      videoEl.style.display = 'block';
-      el('#pb-novideo').style.display = 'none';
+      stage.classList.add('has-video');
+      stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
     } else {
       videoPath = null;
-      videoEl.style.display = 'none';
-      el('#pb-novideo').style.display = 'block';
+      videoEl.removeAttribute('src');
+      stage.classList.remove('has-video', 'is-fs', 'is-playing');
+      stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
+      el('#pb-video-fs').textContent = 'Vollbild';
+      try { ClearPlaybackVideo().catch(() => {}); } catch (_) {}
     }
     try {
       marker = await GetMarker(scriptPath);
@@ -889,24 +1134,76 @@ export function initPlayback(root) {
     } catch (err) {
       oMarkers = [];
     }
-    el('#pb-omarker-hint').style.display = 'block';
-    el('#pb-omarker-add-row').style.display = 'flex';
     updateMarkerHint();
     renderOMarkerList();
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
-    el('#pb-curve-edit').checked = false;
-    setEditMode(false);
+    el('#pb-curve-edit').checked = !!opts.review;
+    await setEditMode(!!opts.review);
     drawHeatmap();
     drawCurve();
     describeScript();
+    el('#pb-omarker-hint').style.display = 'block';
+    el('#pb-omarker-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
+    el('#pb-ofs-row').style.display = 'flex';
     el('#pb-script-doctor-result').style.display = 'none';
     el('#pb-script-doctor-status').textContent = '';
+    if (el('#pb-ofs-status')) el('#pb-ofs-status').textContent = '';
     el('#pb-offset-row').style.display = 'flex';
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
+    if (opts.review) {
+      log('Frisch erzeugt — Kurve prüfen und bei Bedarf Kontakt/Punkte anpassen.');
+      if (showContact) {
+        el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    } else if (!info.hasVideo) {
+      log('Skript geladen ohne Video — Abspielen steuert Gerät + Kurve allein.');
+    }
+  }
+
+  async function playNextInPlaylist() {
+    if (advancingPlaylist) return;
+    if (playlistIndex >= playlist.length - 1) {
+      setPlayingState(false);
+      return;
+    }
+    advancingPlaylist = true;
+    try {
+      if (playing) await stop({ user: false });
+      playlistIndex += 1;
+      renderPlaylist();
+      await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+      await play();
+    } catch (err) {
+      logError('Nächster Film: ' + err);
+      setPlayingState(false);
+    } finally {
+      advancingPlaylist = false;
+    }
+  }
+
+  function onPlaybackFinished(payload) {
+    if (advancingPlaylist) return;
+    // Stop-Knopf / manuelles Beenden: nicht automatisch weiter in der Liste.
+    if (userStopRequested) {
+      userStopRequested = false;
+      setPlayingState(false);
+      return;
+    }
+    // Connect-/Play-Fehler: Meter zurücksetzen, aber Playlist nicht weiter.
+    if (payload && payload.failed) {
+      setPlayingState(false);
+      return;
+    }
+    const auto = el('#pb-playlist-auto') && el('#pb-playlist-auto').checked;
+    if (auto && playlist.length > 1 && playlistIndex < playlist.length - 1) {
+      playNextInPlaylist();
+      return;
+    }
+    setPlayingState(false);
   }
 
   // startScriptPlayback startet nur das Funscript/Gerät (StartPlayback +
@@ -916,8 +1213,9 @@ export function initPlayback(root) {
   // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
   // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
   async function startScriptPlayback() {
-    if (!scriptPath) { alert('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
+    if (!scriptPath) { log('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
     el('#pb-log').textContent = '';
+    userStopRequested = false;
 
     const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
     const opts = {
@@ -948,10 +1246,15 @@ export function initPlayback(root) {
     try {
       await StartPlayback(opts);
     } catch (err) {
-      alert('Fehler: ' + err);
+      logError('Wiedergabe starten: ' + err);
       return false;
     }
     setPlayingState(true);
+    if (!useVideoSync) {
+      log(videoPath
+        ? 'Skript allein (Video-Sync aus) — eigene Uhr.'
+        : 'Skript allein ohne Video — Gerät + Kurve.');
+    }
     return true;
   }
 
@@ -965,7 +1268,10 @@ export function initPlayback(root) {
     }
   }
 
-  async function stop() {
+  // user=true: Stop-Knopf / manuelles Beenden — Playlist nicht weiter.
+  // user=false: natürliches Video-/Skript-Ende — Auto-Next darf greifen.
+  async function stop({ user = true } = {}) {
+    if (user) userStopRequested = true;
     await StopPlayback();
     if (videoPath) videoEl.pause();
     setPlayingState(false);
@@ -999,16 +1305,17 @@ export function initPlayback(root) {
     }
   });
 
-  // Extended-O soll (wenn gewünscht) das Video pausieren/fortsetzen -
-  // siehe Player.PauseVideo/ResumeVideo-Hooks im Go-Backend.
+  // Historische video:pause/resume-Events. Extended-O skaliert nur noch die
+  // Amplitude und pausiert das Video nicht mehr - Listener bleiben harmlos.
   EventsOn('video:pause', () => videoEl.pause());
   EventsOn('video:resume', () => videoEl.play().catch(() => {}));
 
   // Video-Ende soll auch unsere Wiedergabe sauber beenden - sonst bleibt
   // player.Sync() im Leerlauf hängen (wartet ewig auf weitere Positionen,
-  // die nach Videoende nicht mehr kommen).
+  // die nach Videoende nicht mehr kommen). user:false, damit die Film-Liste
+  // bei „automatisch weiter“ noch weiterschalten darf.
   videoEl.addEventListener('ended', () => {
-    if (playing && el('#pb-use-video-sync').checked) stop();
+    if (playing && el('#pb-use-video-sync').checked) stop({ user: false });
   });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per
@@ -1028,7 +1335,7 @@ export function initPlayback(root) {
 
   EventsOn('playback:log', log);
   EventsOn('playback:error', msg => log('FEHLER: ' + msg));
-  EventsOn('playback:done', () => setPlayingState(false));
+  EventsOn('playback:done', (payload) => onPlaybackFinished(payload || {}));
   EventsOn('playback:frame', f => {
     totalMs = Math.max(f.totalMs, 1);
     currentPosMs = f.atMs;
@@ -1078,12 +1385,111 @@ export function initPlayback(root) {
       }
       box.innerHTML = html;
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      uiError('Quality-Prüfung: ' + err, status);
     } finally {
       btn.disabled = false;
     }
   });
+
+  function ofsStatus(msg) {
+    const s = el('#pb-ofs-status');
+    if (s) s.textContent = msg || '';
+  }
+  el('#pb-heatmap-export')?.addEventListener('click', async () => {
+    try {
+      const path = await ExportScriptHeatmapPNG();
+      ofsStatus('Heatmap: ' + path);
+      uiInfo('Heatmap gespeichert: ' + path);
+    } catch (err) {
+      uiError('Heatmap: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-project-save')?.addEventListener('click', async () => {
+    try {
+      const path = await SavePlaybackProject({
+        videoPath: videoPath || '',
+        scriptPath: scriptPath || '',
+        offsetMs: parseInt(el('#pb-offset')?.value, 10) || 0,
+        seekMs: currentPosMs || 0,
+        loopMarker: marker ? { startMs: marker.startMs, endMs: marker.endMs } : null,
+      });
+      ofsStatus('Projekt: ' + path);
+      uiInfo('Projekt gespeichert: ' + path);
+    } catch (err) {
+      uiError('Projekt: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-cap-speed')?.addEventListener('click', async () => {
+    if (!marker) {
+      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      return;
+    }
+    try {
+      await EditCapSpeedRange(marker.startMs, marker.endMs, 400);
+      ofsStatus('Speed-Cap angewendet');
+      // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
+      await reloadAfterRangeEdit();
+    } catch (err) {
+      uiError('Speed-Cap: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-del-range')?.addEventListener('click', async () => {
+    if (!marker) {
+      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      return;
+    }
+    try {
+      await EditDeleteRange(marker.startMs, marker.endMs);
+      ofsStatus('Bereich gelöscht');
+      marker = null;
+      await reloadAfterRangeEdit();
+    } catch (err) {
+      uiError('Löschen: ' + err, el('#pb-ofs-status'));
+    }
+  });
   el('#pb-choose').addEventListener('click', chooseScript);
+  el('#pb-choose-empty').addEventListener('click', chooseScript);
+  el('#pb-queue-add').addEventListener('click', queueAddScript);
+  el('#pb-next').addEventListener('click', () => playNextInPlaylist());
+  el('#pb-play-novideo').addEventListener('click', play);
+  el('#pb-playlist-list').addEventListener('click', async e => {
+    const remove = e.target.closest('.pb-playlist-remove');
+    if (remove) {
+      const idx = Number(remove.dataset.idx);
+      if (Number.isNaN(idx)) return;
+      const removingCurrent = idx === playlistIndex;
+      playlist.splice(idx, 1);
+      if (playlist.length === 0) {
+        playlistIndex = 0;
+        renderPlaylist();
+        return;
+      }
+      if (playlistIndex >= playlist.length) playlistIndex = Math.max(0, playlist.length - 1);
+      else if (idx < playlistIndex) playlistIndex -= 1;
+      renderPlaylist();
+      // Active row removed: load the script now highlighted, else UI lies.
+      if (removingCurrent && playlist[playlistIndex]) {
+        if (playing) await stop({ user: false });
+        await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+      }
+      return;
+    }
+    const pick = e.target.closest('.pb-playlist-pick');
+    if (!pick) return;
+    const idx = Number(pick.dataset.idx);
+    if (Number.isNaN(idx) || idx === playlistIndex) return;
+    if (playing) await stop({ user: false });
+    playlistIndex = idx;
+    renderPlaylist();
+    await loadScript(playlist[idx].path, { keepPlaylist: true });
+  });
+  el('#pb-pick-video').addEventListener('click', attachVideoFromPicker);
+  el('#pb-video-change').addEventListener('click', attachVideoFromPicker);
+  el('#pb-video-fs').addEventListener('click', toggleVideoFullscreen);
+  videoEl.addEventListener('dblclick', e => {
+    e.preventDefault();
+    toggleVideoFullscreen();
+  });
   el('#pb-play').addEventListener('click', play);
   el('#pb-stop').addEventListener('click', stop);
   el('#pb-eo-trigger').addEventListener('click', triggerEO);
@@ -1096,6 +1502,12 @@ export function initPlayback(root) {
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+    if (e.key === 'Escape' && el('#pb-video-stage').classList.contains('is-fs')) {
+      e.preventDefault();
+      toggleVideoFullscreen();
+      return;
+    }
 
     if (e.code === 'Space') {
       e.preventDefault();
@@ -1171,8 +1583,22 @@ export function initPlayback(root) {
       renderOMarkerList();
       describeScript();
     } catch (err) {
-      log('Aktualisieren: ' + err);
+      logError('Aktualisieren: ' + err);
     }
+  }
+
+  // Nach Speed-Cap / Bereich-Löschen: Dauer neu lesen und Editor-Puffer
+  // neu laden — sonst schreibt Editieren die alten Punkte wieder zurück.
+  async function reloadAfterRangeEdit() {
+    if (!scriptPath) return;
+    try {
+      const info = await LoadFunscript(scriptPath);
+      totalMs = Math.max(info.durationMs, 1);
+      scriptHasContactVibration = !!info.contactVibration;
+    } catch (err) {
+      logError('Skript nach Bearbeitung neu laden: ' + err);
+    }
+    await refreshScriptVisuals();
   }
 
   window.addEventListener('ozone:hotkey', async (ev) => {
@@ -1185,7 +1611,7 @@ export function initPlayback(root) {
       redrawCurve();
       log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
     } catch (err) {
-      log('O-Taste: ' + err);
+      logError('O-Taste: ' + err);
     }
   });
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
@@ -1194,7 +1620,8 @@ export function initPlayback(root) {
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
-    loadScriptPath: (path) => loadScript(path).then(() => switchToPlaybackTab()),
+    // opts.review: Kurven-Editor an, Fokus auf Kontakt — frisch erzeugt.
+    loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
   };
 }
 

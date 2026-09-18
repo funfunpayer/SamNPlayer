@@ -23,10 +23,12 @@ Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md
 
 ## Verified baseline · September 18, 2026
 
-- Latest published release **[v0.5.3](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.3)**;
-  source on this branch targets **0.5.4** (Kontakt + SAM runtime test
-  release). See `RELEASE_0_5_4.md`.
-- CI green on `main` through #92; #93 carries 0.5.4.
+- Latest published release **[v0.5.4](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.4)**;
+  source on this branch targets **0.5.5** (GUI/OFS/OpenCV5/autotune stack).
+  See `RELEASE_0_5_5.md`.
+- Issue **#95** (generate / OpenCV 5 CSRT) fixed via CSRT→KCF fallback
+  (`create_tracker` / package gate); covered by `create_tracker_test.py`.
+- CI green on tip stack (#97–#99) before release tag.
 - FunGen near-zero-correlation finding (issue #8,
   [`FUNGEN_PARITY_PLAN.md`](FUNGEN_PARITY_PLAN.md)) still describes the
   *general* real-clip gap; priority 2 has found clip-level improvements.

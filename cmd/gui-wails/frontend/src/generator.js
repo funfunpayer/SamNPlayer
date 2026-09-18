@@ -1,10 +1,15 @@
 import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
   root.innerHTML = `
     <h2>Skript erzeugen</h2>
+    <p class="hint" style="margin-top:0">
+      Die KI (ONNX) findet nur die <b>Start-Region</b>. Das Funscript entsteht danach durch Tracking.
+      Modell trainieren unter <b>KI-Train.</b> — dann hier „KI-Erkennung“ anhaken → Region finden → Box prüfen → Generieren.
+    </p>
     <div class="row">
       <button id="gen-choose">Video wählen...</button>
       <span class="path-label" id="gen-video-path">Kein Video gewählt</span>
@@ -39,22 +44,30 @@ export function initGenerator(root, playback) {
     <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
     <div class="row" style="align-items:center;">
-      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Tf/Tj braucht zwei Regionen und steuert Sog über den Abstand.">Bewegungsart</label>
+      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Autotune = Detrend+Bandpass+Speed-Cap (FunGen/Flow-inspiriert). Tf/Tj braucht zwei Regionen.">Bewegungsart</label>
       <select id="gen-profile">
         <option value="standard">Hubbewegung (Standard)</option>
         <option value="weich">Weiches Gewebe (schwingt nach)</option>
+        <option value="autotune">Autotune (Detrend + Bandpass + Speed)</option>
         <option value="tf">Tf/Tj (Abstand + Sog)</option>
       </select>
     </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf/Tj = Abstand + Sog. „Weiches Gewebe“ filtert Nachschwingen.</p>
+    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
+      <strong>Workflow-Tipp:</strong> mehrere Stufen statt einer Methode —
+      1)&nbsp;Flow-Scout (schnell, keine ROI) →
+      2)&nbsp;CSRT mit ROI (KI schlägt nur die Region vor) →
+      3)&nbsp;Autotune (Detrend + Bandpass + Speed) →
+      4)&nbsp;optional Tonspur-Tempo prüfen (Erweitert).
+    </p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position. Vibration nur mit „Kontakt-Vibration“.
+      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position.
+      Kontakt-Vibration wird standardmäßig mit erzeugt (Stärke = Nähe wie Berührung) und lässt sich danach in der Wiedergabe feinjustieren.
     </p>
     <div id="gen-contact-vibration-wrap" style="display:none;">
       <div class="checkbox-row" id="gen-contact-vibration-row">
-        <input type="checkbox" id="gen-contact-vibration" />
+        <input type="checkbox" id="gen-contact-vibration" checked />
         <label for="gen-contact-vibration"
-          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt. Stärke folgt dem gemessenen Abstand — wie eine Berührung, kein fester Impuls. Standard an bei Tf/Tj; abwählbar.">Kontakt-Vibration (automatisch bei Tf/Tj)</label>
       </div>
       <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
         <div class="field-row" style="align-items:center;">
@@ -63,10 +76,10 @@ export function initGenerator(root, playback) {
           <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">nur tief</span>
         </div>
         <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²). peak = stärkerer Peak (√t). Immer aus demselben Videosignal.">Kurve</label>
+          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²) — näher an „wie die Berührung“. peak = stärkerer Peak (√t).">Kurve</label>
           <select id="gen-contact-curve">
-            <option value="linear" selected>Linear</option>
-            <option value="soft">Weicher Einstieg</option>
+            <option value="linear">Linear</option>
+            <option value="soft" selected>Weicher Einstieg (wie Berührung)</option>
             <option value="peak">Stärkerer Peak</option>
           </select>
         </div>
@@ -135,6 +148,8 @@ export function initGenerator(root, playback) {
         <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
         <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+        <div class="field-row"><label data-help="Max. Positionsänderung pro Sekunde (0–100-Skala). 0 = aus. Schützt das Gerät. Autotune setzt 400.">Max. Speed (0 = aus)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+        <div class="field-row"><label data-help="Nur Optical-Flow-Backend: Frame-Skalierung (0.5 = halb, deutlich schneller). 0 oder 1 = voll.">Flow-Downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
       </div>
     </details>
 
@@ -205,16 +220,20 @@ export function initGenerator(root, playback) {
   // installiertes onnxruntime oder ohne Modelldatei bleibt es bei der
   // klassischen Rhythmus-Heuristik (auto_roi.py). Einmal beim Öffnen des
   // Tabs geprüft (kostet einen Python-Start), nicht bei jedem Videoladen.
-  CheckAIRoiAvailable().then(available => {
-    const checkbox = el('#gen-ai-roi');
-    checkbox.disabled = !available;
-    el('#gen-autoroi-hint').textContent = available
-      ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
-        + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
-      : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
-        + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
-        + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
-  }).catch(() => {});
+  function refreshAIRoiAvailability() {
+    CheckAIRoiAvailable().then(available => {
+      const checkbox = el('#gen-ai-roi');
+      checkbox.disabled = !available;
+      el('#gen-autoroi-hint').textContent = available
+        ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
+          + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
+        : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
+          + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
+          + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
+    }).catch(() => {});
+  }
+  refreshAIRoiAvailability();
+  window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
   // Audio-Tempo-Prüfung (audio_check.py) braucht nur ffmpeg auf dem PATH -
   // kein Modell, kein separates Python-Paket. Gleiches Muster wie oben:
@@ -299,6 +318,8 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = false;
   }
 
+  let contactUserOverride = false;
+
   function updateContactVibrationOpts() {
     const on = isTfTj() && el('#gen-contact-vibration').checked;
     el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
@@ -317,6 +338,14 @@ export function initGenerator(root, playback) {
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-wrap').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
+    // Automatisch versuchen: bei Tf/Tj Kontakt an, solange der Nutzer nicht
+    // bewusst abgewählt hat — danach bleibt seine Wahl.
+    if (tftj && !contactUserOverride) {
+      el('#gen-contact-vibration').checked = true;
+      if (!el('#gen-contact-curve').dataset.userTouched) {
+        el('#gen-contact-curve').value = 'soft';
+      }
+    }
     updateContactVibrationOpts();
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
@@ -416,8 +445,12 @@ export function initGenerator(root, playback) {
     try {
       const s = await SuggestPipeline(w, h, w2, h2);
       if (!s) return;
-      if (s.Backend) el('#gen-backend').value = s.Backend;
-      if (s.Profile) {
+      // Manual backend/profile choices survive ROI redraws; only auto-fill
+      // when the user has not touched the dropdowns yet.
+      const backendTouched = el('#gen-backend').dataset.userTouched === '1';
+      const profileTouched = el('#gen-profile').dataset.userTouched === '1';
+      if (s.Backend && !backendTouched) el('#gen-backend').value = s.Backend;
+      if (s.Profile && !profileTouched) {
         el('#gen-profile').value = s.Profile;
         updateProfileUi();
       }
@@ -458,6 +491,9 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Lade Vorschau-Frame...';
     roi = null;
     roi2 = null;
+    // Neues Video: Pipeline-Vorschläge wieder erlauben.
+    delete el('#gen-backend').dataset.userTouched;
+    delete el('#gen-profile').dataset.userTouched;
     setRoi2Mode(isTfTj());
     el('#gen-generate').disabled = true;
     updateRoiLabels();
@@ -482,13 +518,12 @@ export function initGenerator(root, playback) {
         const status = el('#gen-suggest-status');
         const via = result.via || 'Signatur';
         const label = result.label === 'tj' ? 'tf' : result.label;
-        if (label && ['standard', 'weich', 'tf'].includes(label)) {
+        if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
           status.textContent = `Vorschlag: „${label}“ (${via}) — Knopf „Profil vorschlagen“ zum Übernehmen.`;
         }
       }).catch(() => {});
     } catch (err) {
-      el('#gen-status').textContent = '';
-      alert('Fehler: ' + err);
+      uiError('Video laden: ' + err, el('#gen-status'));
     }
   }
 
@@ -510,23 +545,23 @@ export function initGenerator(root, playback) {
       await showFrame(videoPath, seekSec);
       el('#gen-status').textContent = `Frame bei ${seekSec}s — Region markieren.`;
     } catch (err) {
-      alert('Seek fehlgeschlagen: ' + err);
+      uiError('Seek fehlgeschlagen: ' + err, el('#gen-status'));
     }
   }
 
   async function checkDeps() {
     try {
       await CheckGeneratorDependencies();
-      alert('Python und alle benötigten Pakete sind verfügbar.');
+      uiInfo('Python und benötigte Pakete sind verfügbar.', el('#gen-status'));
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Abhängigkeiten: ' + err, el('#gen-status'));
     }
   }
 
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      alert('Tf/Tj (Abstand + Sog) braucht eine zweite Region. Shift+Ziehen oder Knopf „2. Region“.');
+      el('#gen-status').textContent = 'Tf/Tj braucht eine zweite Region (Shift+Ziehen oder „2. Region“).';
       return;
     }
 
@@ -571,6 +606,8 @@ export function initGenerator(root, playback) {
       profile: el('#gen-profile').value,
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
+      maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
+      flowDownscale: parseFloat(el('#gen-flow-downscale')?.value) || 0,
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
       contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
@@ -619,8 +656,7 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     if (result.error) {
-      el('#gen-status').textContent = 'Automatische Suche fehlgeschlagen.';
-      alert('Fehler: ' + result.error);
+      uiError('Automatische Regionssuche: ' + result.error, el('#gen-status'));
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
@@ -719,8 +755,7 @@ export function initGenerator(root, playback) {
         el('#gen-status').textContent = 'Abgebrochen.';
         return;
       }
-      el('#gen-status').textContent = 'Fehlgeschlagen.';
-      alert('Fehler: ' + result.error);
+      el('#gen-status').textContent = 'Fehlgeschlagen: ' + result.error;
       return;
     }
     el('#gen-status').textContent = result.samPath
@@ -777,9 +812,9 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'none';
     }
 
-    if (confirm(`${result.path}\n\nJetzt im Wiedergabe-Tab laden?`)) {
-      playback.loadScriptPath(result.path);
-    }
+    // Fertiges Skript immer zum Anschauen/Bearbeiten laden — kein Popup.
+    el('#gen-status').textContent += ' — in Wiedergabe geladen (prüfen & anpassen).';
+    playback.loadScriptPath(result.path, { review: true });
   });
 
   el('#gen-choose').addEventListener('click', chooseVideo);
@@ -794,11 +829,23 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird gold).';
     }
   });
-  el('#gen-profile').addEventListener('change', updateProfileUi);
-  el('#gen-contact-vibration').addEventListener('change', updateContactVibrationOpts);
+  el('#gen-profile').addEventListener('change', () => {
+    el('#gen-profile').dataset.userTouched = '1';
+    updateProfileUi();
+  });
+  el('#gen-contact-vibration').addEventListener('change', () => {
+    contactUserOverride = true;
+    updateContactVibrationOpts();
+  });
+  el('#gen-contact-curve').addEventListener('change', () => {
+    el('#gen-contact-curve').dataset.userTouched = '1';
+  });
   el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
   updateContactSpanLabel();
-  el('#gen-backend').addEventListener('change', updateGenerateEnabled);
+  el('#gen-backend').addEventListener('change', () => {
+    el('#gen-backend').dataset.userTouched = '1';
+    updateGenerateEnabled();
+  });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
@@ -812,7 +859,7 @@ export function initGenerator(root, playback) {
     AutoDetectROI(videoPath, engine);
   });
 
-  const PROFILE_VALUES = ['standard', 'weich', 'tf'];
+  const PROFILE_VALUES = ['standard', 'weich', 'autotune', 'tf'];
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
@@ -860,7 +907,7 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     const label = el('#gen-scene-label').value.trim();
     if (!label) {
-      alert('Bitte einen Namen für die Szene eingeben.');
+      uiWarn('Bitte einen Namen für die Szene eingeben.', el('#gen-suggest-status'));
       return;
     }
     el('#gen-label-scene').disabled = true;
@@ -868,7 +915,7 @@ export function initGenerator(root, playback) {
       await LabelScene(videoPath, label);
       el('#gen-suggest-status').textContent = `Szene als "${label}" gemerkt.`;
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Szene merken: ' + err, el('#gen-suggest-status'));
     } finally {
       el('#gen-label-scene').disabled = false;
     }

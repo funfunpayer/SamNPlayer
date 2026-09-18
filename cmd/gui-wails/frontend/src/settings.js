@@ -1,4 +1,5 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth } from '../wailsjs/go/main/App';
+import { uiError } from './notify.js';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -16,6 +17,7 @@ export function saveSetting(key, value) {
   if (cachedSettings) {
     const map = {
       'update.check_on_startup': 'updateCheckOnStartup',
+      'device.connect_test': 'deviceConnectTest',
       'log.level': 'logLevel',
       'playback.mock': 'playbackMock',
       'playback.sync_mode': 'playbackSync',
@@ -53,6 +55,15 @@ export function initSettings(root) {
     <div class="checkbox-row">
       <input type="checkbox" id="st-update-check" />
       <label for="st-update-check">Beim Start automatisch nach Updates suchen</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="st-connect-test" />
+      <label for="st-connect-test">Beim Verbinden einmal Verbindung testen (kurz Vib/Sog)</label>
+    </div>
+    <p class="hint" style="margin-top:0">Standard aus. Wenn an: nach erfolgreichem Connect ein kurzer Impuls, damit klar ist, dass Steuerbefehle ankommen.</p>
+    <div class="row" style="align-items:center;">
+      <button id="st-runtime-check" type="button">Ordner &amp; Abhängigkeiten prüfen</button>
+      <span class="hint" id="st-runtime-status" style="margin:0"></span>
     </div>
     <div class="row" style="align-items:center;">
       <button id="st-update-now" type="button">Jetzt nach Updates suchen</button>
@@ -162,6 +173,7 @@ export function initSettings(root) {
 
   getSettingsCache().then(s => {
     el('#st-update-check').checked = s.updateCheckOnStartup;
+    el('#st-connect-test').checked = !!s.deviceConnectTest;
     el('#st-log-level').value = s.logLevel;
     el('#st-log-path').textContent = s.logPath || '(noch keine Logdatei geschrieben)';
     el('#st-report-path').value = s.reportPath || '';
@@ -173,6 +185,23 @@ export function initSettings(root) {
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
+  el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));
+  el('#st-runtime-check').addEventListener('click', async () => {
+    const status = el('#st-runtime-status');
+    status.textContent = 'Prüfe…';
+    try {
+      const h = await GetRuntimeHealth();
+      const missing = (h.deps || []).filter(d => !d.found).map(d => d.label);
+      const created = (h.dirsCreated || []).length;
+      const parts = [];
+      if (created) parts.push(`${created} Ordner angelegt`);
+      if (missing.length) parts.push('fehlt: ' + missing.join(', '));
+      else parts.push('Abhängigkeiten ok');
+      status.textContent = (h.ok ? '✓ ' : '⚠ ') + parts.join(' · ');
+    } catch (err) {
+      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+    }
+  });
   el('#st-update-now').addEventListener('click', async () => {
     const status = el('#st-update-status');
     const btn = el('#st-update-now');
@@ -182,7 +211,7 @@ export function initSettings(root) {
       const version = await CurrentVersion();
       const res = await CheckForUpdate();
       if (res.error) {
-        status.textContent = 'Prüfung fehlgeschlagen: ' + res.error;
+        uiError('Update-Prüfung: ' + res.error, status);
       } else if (!res.available) {
         status.textContent = `Kein Update verfügbar (aktuell: ${version}).`;
       } else {
@@ -192,18 +221,18 @@ export function initSettings(root) {
           try {
             await ApplyUpdate();
           } catch (err) {
-            status.textContent = 'Update fehlgeschlagen: ' + err;
+            uiError('Update fehlgeschlagen: ' + err, status);
           }
         }
       }
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      uiError('Update-Prüfung: ' + err, status);
     } finally {
       btn.disabled = false;
     }
   });
   el('#st-log-level').addEventListener('change', e => saveSetting('log.level', e.target.value));
-  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => alert('Fehler: ' + err)));
+  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => uiError('Log-Ordner: ' + err)));
 
   el('#st-report-path').addEventListener('change', e =>
     saveSetting('generator.reportPath', e.target.value.trim()).then(updateReportStatus));
@@ -217,7 +246,7 @@ export function initSettings(root) {
         updateReportStatus();
       }
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Report-Pfad: ' + err);
     }
   });
 
@@ -264,7 +293,7 @@ export function initSettings(root) {
       await ClearCache();
       await refreshCache();
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Cache leeren: ' + err, el('#st-cache-info'));
     }
   });
 

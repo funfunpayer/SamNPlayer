@@ -18,6 +18,7 @@ export function CheckForUpdate() { return window['go']['main']['App']['CheckForU
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
 export function ClearLogEntries() { return window['go']['main']['App']['ClearLogEntries'](); }
+export function ClearPlaybackVideo() { return window['go']['main']['App']['ClearPlaybackVideo'](); }
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
 export function CurrentVersion() { return window['go']['main']['App']['CurrentVersion'](); }
@@ -35,7 +36,9 @@ export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
 export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App']['GetRoiDatasetSummary'](arg1); }
 export function GetRoiTrainingSampleImage(arg1) { return window['go']['main']['App']['GetRoiTrainingSampleImage'](arg1); }
+export function GetRuntimeHealth() { return window['go']['main']['App']['GetRuntimeHealth'](); }
 export function GetScriptActions() { return window['go']['main']['App']['GetScriptActions'](); }
+export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['GetSpeedHighlights'](arg1); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }
 export function GetVibrationCurvePreview(arg1) { return window['go']['main']['App']['GetVibrationCurvePreview'](arg1); }
@@ -66,10 +69,12 @@ export function RunRoiModelTraining(arg1, arg2) { return window['go']['main']['A
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
+export function SaveContactSettings(arg1, arg2, arg3) { return window['go']['main']['App']['SaveContactSettings'](arg1, arg2, arg3); }
 export function ScriptChapters() { return window['go']['main']['App']['ScriptChapters'](); }
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
 export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
+export function SetPlaybackVideo(arg1) { return window['go']['main']['App']['SetPlaybackVideo'](arg1); }
 export function SetSetting(arg1, arg2) { return window['go']['main']['App']['SetSetting'](arg1, arg2); }
 export function StartPlayback(arg1) { return window['go']['main']['App']['StartPlayback'](arg1); }
 export function StartTraining(arg1) { return window['go']['main']['App']['StartTraining'](arg1); }
@@ -91,3 +96,14 @@ export function TrainingHistory() { return window['go']['main']['App']['Training
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
 export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['UpdateRoiTrainingSample'](arg1, arg2, arg3, arg4); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }
+export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
+export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
+export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }
+export function EditDeleteRange(arg1, arg2) { return window['go']['main']['App']['EditDeleteRange'](arg1, arg2); }
+export function SnapTimeMs(arg1, arg2) { return window['go']['main']['App']['SnapTimeMs'](arg1, arg2); }
+export function GetScriptBookmarks() { return window['go']['main']['App']['GetScriptBookmarks'](); }
+export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }
+export function GetScriptChapterMarks() { return window['go']['main']['App']['GetScriptChapterMarks'](); }
+export function SaveScriptChapterMarks(arg1) { return window['go']['main']['App']['SaveScriptChapterMarks'](arg1); }
+export function LoadPlaybackProject(arg1) { return window['go']['main']['App']['LoadPlaybackProject'](arg1); }
+export function EditScaleRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3); }

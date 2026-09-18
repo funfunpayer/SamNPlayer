@@ -33,6 +33,15 @@ type DeviceStatus struct {
 	Address       string `json:"address"`
 	RSSI          int    `json:"rssi"`
 	SessionActive bool   `json:"sessionActive"`
+	Transport     string `json:"transport"` // ble | intiface | mock | ""
+	// BatteryPct 0–100 wenn BatteryOK; sonst ignorieren (kein Platzhalter in der UI).
+	BatteryPct int  `json:"batteryPct"`
+	BatteryOK  bool `json:"batteryOk"`
+	// Fähigkeiten des verbundenen Geräts (Anzeige „was geht“).
+	CapVibration bool `json:"capVibration"`
+	CapSuction   bool `json:"capSuction"`
+	CapBattery   bool `json:"capBattery"`
+	CapRaw       bool `json:"capRaw"`
 }
 
 // GetDeviceStatus liefert den aktuellen Verbindungszustand der Testverbindung.
@@ -40,10 +49,11 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 	a.stateMu.RLock()
 	dev := a.testDevice
 	isMock := a.testDeviceMock
+	transport := a.testDeviceTransport
 	session := a.sessionActive
 	a.stateMu.RUnlock()
 
-	st := DeviceStatus{SessionActive: session, Mock: isMock}
+	st := DeviceStatus{SessionActive: session, Mock: isMock, Transport: transport}
 	if dev == nil {
 		return st
 	}
@@ -53,6 +63,13 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Connected = info.Connected
 		st.Name = info.Name
 		st.Address = info.Address
+		st.CapVibration, st.CapSuction, st.CapBattery = intiface.Capabilities()
+		st.CapRaw = false
+		if pct, ok := intiface.BatteryLevel(); ok {
+			st.BatteryPct = pct
+			st.BatteryOK = true
+			st.CapBattery = true
+		}
 		return st
 	}
 	if real, ok := dev.(*device.SamNeo2); ok {
@@ -61,8 +78,22 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Name = info.Name
 		st.Address = info.Address
 		st.RSSI = info.RSSI
+		st.CapVibration = true
+		st.CapSuction = true
+		st.CapRaw = true
+		if pct, ok := real.BatteryLevel(); ok {
+			st.BatteryPct = pct
+			st.BatteryOK = true
+			st.CapBattery = true
+		} else if real.BatteryProbed() {
+			st.CapBattery = false
+		}
 	} else {
 		st.Name = "Mock-Gerät (keine echte Hardware)"
+		st.CapVibration = true
+		st.CapSuction = true
+		st.CapRaw = true
+		st.CapBattery = false
 	}
 	return st
 }
@@ -140,6 +171,7 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = transport == "mock"
+	a.testDeviceTransport = transport
 	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
 
@@ -148,6 +180,8 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	if transport == "intiface" {
 		_ = a.settings.Set(prefIntifaceURL, url)
 	}
+
+	a.maybeConnectSmokeTest(dev)
 
 	st := a.GetDeviceStatus()
 	logging.Info("geraet: verbunden", "weg", transport, "name", st.Name, "adresse", st.Address)
@@ -179,12 +213,40 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 	a.stateMu.Lock()
 	a.testDevice = dev
 	a.testDeviceMock = mock
+	if mock {
+		a.testDeviceTransport = "mock"
+	} else {
+		a.testDeviceTransport = "ble"
+	}
 	a.testDeviceConnectLatencyMs = connectLatencyMs
 	a.stateMu.Unlock()
+
+	a.maybeConnectSmokeTest(dev)
 
 	st := a.GetDeviceStatus()
 	logging.Info("geraet: verbunden", "mock", mock, "name", st.Name, "adresse", st.Address, "rssi", st.RSSI)
 	return st, nil
+}
+
+// maybeConnectSmokeTest sendet nach dem Verbinden einen kurzen Vib/Sog-
+// Impuls und schaltet danach ab - nur wenn die Einstellung aktiv ist
+// (Standard: aus). Damit lässt sich einmalig prüfen, ob die Verbindung
+// wirklich Steuerbefehle durchlässt, ohne bei jedem Connect zu stören.
+func (a *App) maybeConnectSmokeTest(dev device.Device) {
+	if a.settings == nil || !a.settings.GetBool(prefDeviceConnectTest, false) {
+		return
+	}
+	if dev == nil {
+		return
+	}
+	logging.Info("geraet: Verbindungsprüfung nach Connect")
+	_ = dev.SetVibration(0.3)
+	time.Sleep(150 * time.Millisecond)
+	_ = dev.SetSuction(0.3)
+	time.Sleep(150 * time.Millisecond)
+	if err := dev.Stop(); err != nil {
+		logging.Warn("geraet: Verbindungsprüfung Stop fehlgeschlagen", "fehler", err)
+	}
 }
 
 // DisconnectDevice trennt die Testverbindung wieder.
@@ -206,6 +268,7 @@ func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	dev := a.testDevice
 	a.testDevice = nil
 	a.testDeviceMock = false
+	a.testDeviceTransport = ""
 	a.testDeviceConnectLatencyMs = 0
 	a.stateMu.Unlock()
 

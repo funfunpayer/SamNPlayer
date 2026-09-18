@@ -19,6 +19,13 @@ type Options struct {
 	MinIntervalMs     float64
 	DynamicRangeMs    float64
 	PeakProminence    float64 // fraction of position span; 0 = off
+	// DetrendWindowMs: rolling-mean high-pass before normalize (0 = off).
+	// Typical: 2000–4000 ms — kills slow camera/lighting drift.
+	DetrendWindowMs float64
+	// BandpassLowHz / BandpassHighHz: device-safe stroke band (0 = edge off).
+	// Typical FunGen/Flow band: 0.5–4 Hz.
+	BandpassLowHz  float64
+	BandpassHighHz float64
 }
 
 // DefaultOptions matches generate_funscript.positions_to_funscript defaults.
@@ -71,9 +78,20 @@ func PositionsToActions(timestampsMs []float64, yPositions []float64, opts Optio
 		smoothed = savgol(yPositions, smoothWindow, 3)
 	}
 
+	stepMs := medianDiff(timestampsMs)
+	sampleHz := 1000.0 / math.Max(stepMs, 1.0)
+
+	// Drift removal then stroke-band filter (FunGen / Funscript-Flow inspired).
+	// Order: savgol → detrend → bandpass → dynamic-range → percentile normalize.
+	if opts.DetrendWindowMs > 0 && n > 4 {
+		smoothed = RollingDetrend(smoothed, opts.DetrendWindowMs, stepMs)
+	}
+	if (opts.BandpassLowHz > 0 || opts.BandpassHighHz > 0) && n > 8 {
+		smoothed = Bandpass(smoothed, sampleHz, opts.BandpassLowHz, opts.BandpassHighHz)
+	}
+
 	if opts.DynamicRangeMs > 0 && len(timestampsMs) > 4 {
-		step := medianDiff(timestampsMs)
-		window := int(opts.DynamicRangeMs / math.Max(step, 1.0))
+		window := int(opts.DynamicRangeMs / math.Max(stepMs, 1.0))
 		smoothed = dynamicRangeNormalize(smoothed, window, 5.0, 0.12)
 	}
 

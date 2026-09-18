@@ -90,6 +90,8 @@ type GenerateOptions struct {
 	NativePipeline            bool    `json:"nativePipeline"`
 	// StartTimeSec skips the first N seconds (GUI seek past black intro).
 	StartTimeSec float64 `json:"startTimeSec"`
+	// FlowDownscale is only used by the optical-flow backend (0/1 = full res).
+	FlowDownscale float64 `json:"flowDownscale"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -231,7 +233,14 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			AudioCheck:                opts.AudioCheck,
 			NativePipeline:            opts.NativePipeline,
 			StartTimeSec:              opts.StartTimeSec,
+			FlowDownscale:             opts.FlowDownscale,
+			DetrendWindowMs:           0,
+			BandpassLowHz:             0,
+			BandpassHighHz:            0,
 		}
+		// Autotune defaults are applied in native_simple / Python profile;
+		// still pass MaxSpeed from GUI when set.
+		_ = opts.FlowDownscale
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
 		}

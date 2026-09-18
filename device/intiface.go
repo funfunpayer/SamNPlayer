@@ -30,8 +30,9 @@ import (
 // Protokollbeschreibung, nicht durch Übernahme fremden Codes. Nachrichten
 // sind JSON-Objekte, jede in ein Array verpackt, mit fortlaufender Id.
 //
-// Bewusst nicht umgesetzt: Geräteauswahl per Index, Sensoren, Linear- und
-// Rotationsbefehle. Wir brauchen genau zwei Kanäle auf dem ersten
+// Bewusst nicht umgesetzt: Geräteauswahl per Index, Linear- und
+// Rotationsbefehle. Sensoren nur für den Akku (BatteryLevelCmd), wenn das
+// Gerät ihn meldet. Wir brauchen genau zwei Steuerkanäle auf dem ersten
 // gefundenen Gerät - alles andere wäre Vorrat ohne Nutzung.
 type Intiface struct {
 	url string
@@ -47,6 +48,10 @@ type Intiface struct {
 	constrictIdx int
 	deviceName   string
 	connected    bool
+	hasBattery   bool
+	batteryPct   int
+	batteryOK    bool
+	batteryAt    time.Time
 
 	stopPing chan struct{}
 }
@@ -174,10 +179,14 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 		logging.Warn("intiface: Gerät ohne nutzbare Kanäle übersprungen", "geraet", name)
 		return
 	}
+	// Akku nur anbieten, wenn Buttplug BatteryLevelCmd listet.
+	if _, ok := messages["BatteryLevelCmd"]; ok {
+		i.hasBattery = true
+	}
 	i.deviceIdx = int(index)
 	i.deviceName = name
 	logging.Info("intiface: Gerät übernommen", "geraet", name, "index", i.deviceIdx,
-		"vibration", i.vibrateIdx, "sog", i.constrictIdx)
+		"vibration", i.vibrateIdx, "sog", i.constrictIdx, "akku", i.hasBattery)
 }
 
 func (i *Intiface) Connect(ctx context.Context) error {
@@ -194,6 +203,10 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	i.nextID = 0
 	i.deviceName = ""
 	i.vibrateIdx, i.constrictIdx = -1, -1
+	i.hasBattery = false
+	i.batteryOK = false
+	i.batteryPct = 0
+	i.batteryAt = time.Time{}
 
 	deadline := time.Now().Add(intifaceTimeout)
 	if _, err := i.send(map[string]any{"RequestServerInfo": map[string]any{
@@ -338,6 +351,13 @@ func (i *Intiface) Disconnect() error {
 	return conn.Close()
 }
 
+// Capabilities meldet, welche Kanäle/Sensoren Buttplug für dieses Gerät listet.
+func (i *Intiface) Capabilities() (vibration, suction, battery bool) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.vibrateIdx >= 0, i.constrictIdx >= 0, i.hasBattery
+}
+
 // Info liefert den Verbindungszustand für die Anzeige.
 func (i *Intiface) Info() ConnectionInfo {
 	i.mu.Lock()
@@ -353,7 +373,60 @@ func (i *Intiface) Info() ConnectionInfo {
 		}
 		name = fmt.Sprintf("%s (über Intiface, %s)", name, strings.Join(channels, " + "))
 	}
-	return ConnectionInfo{Connected: i.connected, Name: name, Address: i.url}
+	return ConnectionInfo{
+		Connected:  i.connected,
+		Name:       name,
+		Address:    i.url,
+		BatteryPct: i.batteryPct,
+		BatteryOK:  i.batteryOK,
+	}
+}
+
+// BatteryLevel fragt Buttplug BatteryLevelCmd ab, sofern das Gerät sie anbietet.
+func (i *Intiface) BatteryLevel() (int, bool) {
+	i.mu.Lock()
+	if !i.connected || i.conn == nil || !i.hasBattery {
+		i.mu.Unlock()
+		return 0, false
+	}
+	if i.batteryOK && time.Since(i.batteryAt) < batteryCacheTTL {
+		pct := i.batteryPct
+		i.mu.Unlock()
+		return pct, true
+	}
+	deviceIdx := i.deviceIdx
+	if _, err := i.send(map[string]any{"BatteryLevelCmd": map[string]any{
+		"DeviceIndex": deviceIdx,
+	}}); err != nil {
+		i.mu.Unlock()
+		return 0, false
+	}
+	i.mu.Unlock()
+
+	body, err := i.readUntil("BatteryLevelReading", time.Now().Add(3*time.Second))
+	if err != nil {
+		logging.Debug("intiface: Akku nicht lesbar", "fehler", err)
+		return 0, false
+	}
+	raw, ok := body["BatteryLevel"].(float64)
+	if !ok {
+		return 0, false
+	}
+	pct := int(raw*100 + 0.5)
+	if pct < 0 {
+		pct = 0
+	}
+	if pct > 100 {
+		pct = 100
+	}
+
+	i.mu.Lock()
+	i.batteryPct = pct
+	i.batteryOK = true
+	i.batteryAt = time.Now()
+	i.mu.Unlock()
+	logging.Info("intiface: Akku gelesen", "prozent", pct)
+	return pct, true
 }
 
 // intifaceHint nennt die wahrscheinlichste Ursache. Eine rohe

@@ -63,14 +63,22 @@ type SamNeo2 struct {
 	connectedName    string
 	connectedAddress string
 	connectedRSSI    int
+
+	// Optionaler Standard-GATT-Akku (0x180F). -1 = unbekannt/nicht unterstützt.
+	batteryPct     int
+	batteryOK      bool
+	batteryChecked bool
+	batteryAt      time.Time
 }
 
 // ConnectionInfo beschreibt die aktuell bestehende Verbindung.
 type ConnectionInfo struct {
-	Connected bool
-	Name      string
-	Address   string
-	RSSI      int
+	Connected  bool
+	Name       string
+	Address    string
+	RSSI       int
+	BatteryPct int  // 0–100 wenn BatteryOK
+	BatteryOK  bool // false = Gerät meldet keinen Akku / nicht auslesbar
 }
 
 // Info liefert den aktuellen Verbindungszustand samt erkanntem Gerätenamen.
@@ -78,11 +86,54 @@ func (s *SamNeo2) Info() ConnectionInfo {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return ConnectionInfo{
-		Connected: s.keepaliveEnd != nil,
-		Name:      s.connectedName,
-		Address:   s.connectedAddress,
-		RSSI:      s.connectedRSSI,
+		Connected:  s.keepaliveEnd != nil,
+		Name:       s.connectedName,
+		Address:    s.connectedAddress,
+		RSSI:       s.connectedRSSI,
+		BatteryPct: s.batteryPct,
+		BatteryOK:  s.batteryOK,
 	}
+}
+
+// BatteryProbed ist true, sobald mindestens einmal versucht wurde, den
+// Standard-GATT-Akku zu lesen (Erfolg oder „Service fehlt“).
+func (s *SamNeo2) BatteryProbed() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.batteryChecked
+}
+
+// BatteryLevel versucht den Standard-GATT-Akku zu lesen (wenn vorhanden).
+// Ergebnis wird kurz gecacht, damit der 2s-Status-Poll die BLE-Verbindung
+// nicht mit Dauer-Lesevorgängen belastet.
+func (s *SamNeo2) BatteryLevel() (int, bool) {
+	s.mu.Lock()
+	connected := s.keepaliveEnd != nil
+	fresh := s.batteryChecked && time.Since(s.batteryAt) < batteryCacheTTL
+	if !connected {
+		s.mu.Unlock()
+		return 0, false
+	}
+	if fresh {
+		pct, ok := s.batteryPct, s.batteryOK
+		s.mu.Unlock()
+		return pct, ok
+	}
+	dev := s.device
+	s.mu.Unlock()
+
+	pct, ok := readStandardBatteryLevel(dev)
+
+	s.mu.Lock()
+	s.batteryPct = pct
+	s.batteryOK = ok
+	s.batteryChecked = true
+	s.batteryAt = time.Now()
+	s.mu.Unlock()
+	if ok {
+		logging.Info("samneo2: Akku gelesen", "prozent", pct)
+	}
+	return pct, ok
 }
 
 // DeviceRef hält die verbundene BLE-Geräte-Referenz.
@@ -189,12 +240,18 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 	s.connectedName = result.LocalName()
 	s.connectedAddress = result.Address.String()
 	s.connectedRSSI = int(result.RSSI)
+	s.batteryPct = 0
+	s.batteryOK = false
+	s.batteryChecked = false
+	s.batteryAt = time.Time{}
 	s.keepaliveEnd = make(chan struct{})
 	s.mu.Unlock()
 	go s.runKeepalive()
 
 	connected = false // Verbindung steht - der defer oben soll sie NICHT mehr trennen
 	logging.Info("samneo2: verbunden", "adresse", result.Address.String())
+	// Akku optional nachziehen (fehlende Battery Service = still ok).
+	_, _ = s.BatteryLevel()
 	return nil
 }
 
@@ -205,6 +262,8 @@ func (s *SamNeo2) Disconnect() error {
 		close(s.keepaliveEnd)
 		s.keepaliveEnd = nil
 	}
+	s.batteryOK = false
+	s.batteryChecked = false
 	s.mu.Unlock()
 	_ = s.Stop()
 	err := s.device.Disconnect()

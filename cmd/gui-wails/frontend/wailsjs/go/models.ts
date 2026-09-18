@@ -106,6 +106,64 @@ export namespace funscript {
 	    }
 	}
 
+	export class SpeedSegment {
+	    fromMs: number;
+	    toMs: number;
+	    intensity: number;
+
+	    static createFrom(source: any = {}) {
+	        return new SpeedSegment(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.fromMs = source["fromMs"];
+	        this.toMs = source["toMs"];
+	        this.intensity = source["intensity"];
+	    }
+	}
+
+	export class Bookmark {
+	    name: string;
+	    time: number;
+	    static createFrom(source: any = {}) { return new Bookmark(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.time = source["time"];
+	    }
+	}
+
+	export class ChapterMark {
+	    name: string;
+	    startTime: number;
+	    endTime: number;
+	    static createFrom(source: any = {}) { return new ChapterMark(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.startTime = source["startTime"];
+	        this.endTime = source["endTime"];
+	    }
+	}
+
+	export class Project {
+	    version: number;
+	    videoPath: string;
+	    scriptPath: string;
+	    offsetMs: number;
+	    seekMs: number;
+	    static createFrom(source: any = {}) { return new Project(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.videoPath = source["videoPath"];
+	        this.scriptPath = source["scriptPath"];
+	        this.offsetMs = source["offsetMs"];
+	        this.seekMs = source["seekMs"];
+	    }
+	}
+
 	export class PipelineSuggestion {
 	    Backend: string;
 	    Profile: string;
@@ -470,11 +528,11 @@ export namespace main {
 	    address: string;
 	    rssi: number;
 	    sessionActive: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new DeviceStatus(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.connected = source["connected"];
@@ -483,6 +541,64 @@ export namespace main {
 	        this.address = source["address"];
 	        this.rssi = source["rssi"];
 	        this.sessionActive = source["sessionActive"];
+	    }
+	}
+	export class RuntimeDepInfo {
+	    id: string;
+	    label: string;
+	    required: boolean;
+	    found: boolean;
+	    path: string;
+	    hint: string;
+
+	    static createFrom(source: any = {}) {
+	        return new RuntimeDepInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.required = source["required"];
+	        this.found = source["found"];
+	        this.path = source["path"];
+	        this.hint = source["hint"];
+	    }
+	}
+	export class RuntimeHealth {
+	    dirsCreated: string[];
+	    dirsFailed: string[];
+	    deps: RuntimeDepInfo[];
+	    ok: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new RuntimeHealth(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dirsCreated = source["dirsCreated"];
+	        this.dirsFailed = source["dirsFailed"];
+	        this.deps = this.convertValues(source["deps"], RuntimeDepInfo);
+	        this.ok = source["ok"];
+	    }
+
+	    convertValues(a: any, classs: any, asMap: boolean = false): any {
+	        if (!a) {
+	            return a;
+	        }
+	        if (a.slice && a.map) {
+	            return (a as any[]).map(elem => this.convertValues(elem, classs));
+	        } else if ("object" === typeof a) {
+	            if (asMap) {
+	                for (const key of Object.keys(a)) {
+	                    a[key] = new classs(a[key]);
+	                }
+	                return a;
+	            }
+	            return new classs(a);
+	        }
+	        return a;
 	    }
 	}
 	export class DiagnosticsHistoryEntry {
@@ -973,6 +1089,7 @@ export namespace main {
 	    clearCacheOnExit: boolean;
 	    deviceTransport: string;
 	    intifaceUrl: string;
+	    deviceConnectTest: boolean;
 	    aiRoiModelPath: string;
 	    aiBaseUrl: string;
 	    benchmarkManifestPath: string;
@@ -1017,6 +1134,7 @@ export namespace main {
 	        this.clearCacheOnExit = source["clearCacheOnExit"];
 	        this.deviceTransport = source["deviceTransport"];
 	        this.intifaceUrl = source["intifaceUrl"];
+	        this.deviceConnectTest = source["deviceConnectTest"];
 	        this.aiRoiModelPath = source["aiRoiModelPath"];
 	        this.aiBaseUrl = source["aiBaseUrl"];
 	        this.benchmarkManifestPath = source["benchmarkManifestPath"];

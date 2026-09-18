@@ -20,8 +20,8 @@ discussion stays German.
 ## Principles (recap — see `HANDOFF.md` for the full rationale)
 
 1. **Don't add what isn't needed.** No dependency, module, or feature
-   ships speculatively — `fusion.py`/`videox` sit tested but unconnected
-   for exactly this reason.
+   ships speculatively — `fusion.py` stays tested but unconnected until a
+   genuine third independent signal source exists (see Open tasks).
 2. **Every quality/speed claim needs a measurement, not an estimate.**
    Reproduce before changing an algorithm; keep the raw numbers, not just
    the conclusion.
@@ -90,6 +90,12 @@ commits.
       dragged point).
 - [x] Script Doctor for imported files without tracking data.
 - [x] Heatmap, chapters, bookmarks, training-session history.
+- [x] OFS-style max-speed highlights on the curve (`funscript.SpeedHighlights`).
+- [x] Chapters/bookmarks in `.funscript` metadata (`funscript/bookmarks.go`).
+- [x] Heatmap PNG export with chapter ticks.
+- [x] Lightweight project sidecar `.snp.json`.
+- [x] Frame snap + range delete/speed-cap (Wiedergabe OFS-row).
+- [ ] BPM/tempo grid overlay (optional polish).
 
 **Device / playback**
 - [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
@@ -129,6 +135,9 @@ first · 🧭 needs a decision from you · 🔓 buildable now, no blocker.
       building block (`find_two_rois`) exists; still needs real-clip
       measurement (per principle 6/7) before it can become even an opt-in
       suggestion, let alone a default.
+- [x] 🔓 **OFS-inspired editor upgrades in Go** — chapters/bookmarks metadata,
+      heatmap PNG, project sidecar, frame snap, range ops (`docs/OFS_LEARN.md`).
+      Optional later: BPM grid UI, WebSocket bridge.
 - [ ] 🔓 **Populate the Golden-Clip manifest with real clips** and run a
       first baseline — the tool is built, nobody has fed it real material
       yet. This unblocks *every* future "did X help" question on this
@@ -180,6 +189,10 @@ Order (do not skip ahead of measurement):
       Device tab, click "Diagnose starten", the resulting profile lands
       in the history. What it can't tell you: whether it actually *feels*
       right - that's still yours to judge and note down separately.
+
+### Funscript algorithm workflow
+
+See [FUNSCRIPT_ALGOS.md](FUNSCRIPT_ALGOS.md) for the multi-stage Flow→CSRT→Autotune recipe.
 
 ### FunGen parity (open-ended, ongoing measurement)
 

@@ -8,52 +8,88 @@
 <body>
   <div id="app">
     <nav id="rail">
-      <div class="brand" title="SamNPlayer"><img src="/src/assets/images/logo-universal.png" alt="SamNPlayer" /></div>
+      <div class="brand-lockup" title="SamNPlayer">
+        <div class="brand">
+          <img src="/src/assets/images/logo-universal.png" alt="" />
+        </div>
+        <h1 class="brand-wordmark" aria-label="SamNPlayer">
+          <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
+        </h1>
+      </div>
       <button class="tab-btn active" data-tab="playback" title="Wiedergabe">
-        <svg viewBox="0 0 24 24"><polygon points="8,6 18,12 8,18"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.2"/>
+          <path d="M10.2 8.6v6.8l6-3.4z" fill="currentColor" stroke="none"/>
+        </svg>
         <span>Play</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="training" title="Training">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5.5 12a6.5 6.5 0 1 1 13 0"/>
+          <path d="M12 5.5v6.2l3.4 2"/>
+          <path d="M4.8 14.8h3.2M16 14.8h3.2"/>
+        </svg>
         <span>Training</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="generator" title="Skript erzeugen">
-        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4.5" y="4.5" width="15" height="15" rx="3"/>
+          <path d="M8 9.2h5.5M8 12h8M8 14.8h4"/>
+          <path d="M16.2 8.2l2.6 2.1-2.6 2.1"/>
+        </svg>
         <span>Erzeugen</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="benchmark" title="Golden-Clip-Benchmark">
-        <svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.9H21l-5.6 4.1 2.1 7-5.5-4.3L6.5 20l2.1-7L3 8.9h6.6z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.5 19V10.5M12 19V6.5M16.5 19v-5"/>
+          <path d="M6 19.2h12"/>
+        </svg>
         <span>Bench</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="roi-training" title="KI-Trainingssystem">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3.8" y="3.8" width="7" height="7" rx="2"/>
+          <rect x="13.2" y="3.8" width="7" height="7" rx="2"/>
+          <rect x="3.8" y="13.2" width="7" height="7" rx="2"/>
+          <path d="M14.2 15.2h5M16.7 12.7v5"/>
+        </svg>
         <span>KI-Train.</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="device" title="Gerät">
-        <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="3"/><path d="M12 17h.01"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
+          <path d="M11 7.2h2"/>
+          <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
+        </svg>
         <span>Gerät</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="log" title="Protokoll">
-        <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.2 4.5h7.2L18 8.1v11.4a1.8 1.8 0 0 1-1.8 1.8H7.2a1.8 1.8 0 0 1-1.8-1.8V6.3a1.8 1.8 0 0 1 1.8-1.8z"/>
+          <path d="M14.2 4.6V8h3.5"/>
+          <path d="M8.5 11.2h7M8.5 14h7M8.5 16.8h4.5"/>
+        </svg>
         <span>Log</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="settings" title="Einstellungen">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M18.4 5.6l-1.4 1.4M7 17l-1.4 1.4M18.4 18.4L17 17M7 7 5.6 5.6"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.1"/>
+          <path d="M12 3.6v2.1M12 18.3v2.1M3.6 12h2.1M18.3 12h2.1M6.2 6.2l1.5 1.5M16.3 16.3l1.5 1.5M17.8 6.2l-1.5 1.5M7.7 16.3l-1.5 1.5"/>
+        </svg>
         <span>Einstell.</span><i class="dot"></i>
       </button>
     </nav>
 
     <div class="app-main">
       <header id="topbar">
-        <h1 class="topbar-brand">
-          <span class="mark">SamN</span><span class="rest">Player</span>
-        </h1>
+        <div class="topbar-brand-slot" aria-hidden="true"></div>
         <div class="pills">
           <div id="topbar-device-wrap" class="topbar-device-wrap">
             <button type="button" id="topbar-device" class="topbar-device is-offline" title="Gerätetab öffnen" aria-live="polite">
               <svg class="topbar-device-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="7" y="4" width="10" height="16" rx="3"/>
-                <path d="M12 17h.01"/>
+                <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
+                <path d="M11 7.2h2"/>
+                <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
               </svg>
               <span id="topbar-device-name">Nicht verbunden</span>
               <i id="topbar-device-led" class="topbar-device-led"></i>

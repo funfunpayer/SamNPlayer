@@ -1,6 +1,7 @@
 import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { wireDataHelp } from './help.js';
+import { uiError } from './notify.js';
 
 // Zweck dieses Tabs: sichtbar machen, ob überhaupt ein Gerät gefunden und
 // richtig erkannt wurde, und die Ansteuerung isoliert prüfen zu können -
@@ -23,6 +24,7 @@ export function initDevice(root) {
           <span id="dev-status-text">Status wird geladen...</span>
         </div>
         <p class="hint" id="dev-status-sub" style="margin:0">Noch nicht verbunden.</p>
+        <div class="dev-caps" id="dev-caps" hidden></div>
       </div>
     </div>
 
@@ -99,6 +101,11 @@ export function initDevice(root) {
     el('#dev-log').textContent = new Date().toLocaleTimeString() + '  ' + msg;
   }
 
+  function logError(msg) {
+    log(msg);
+    uiError(msg);
+  }
+
   function setFills(vibPct, sucPct) {
     el('#dev-fill-vib').style.height = Math.max(0, Math.min(100, vibPct)) + '%';
     el('#dev-fill-suc').style.height = Math.max(0, Math.min(100, sucPct * 0.85)) + '%';
@@ -109,6 +116,35 @@ export function initDevice(root) {
   // nichts ändert - deshalb wird die tatsächliche Stufe mit angezeigt.
   const vibStep = pct => Math.round(pct / 100 * 10);
   const sucStep = pct => Math.round(pct / 100 * 5);
+
+  function renderCaps(st) {
+    const box = el('#dev-caps');
+    if (!st || !st.connected) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    const chips = [];
+    const transportLabel = {
+      ble: 'Direkt-BLE',
+      intiface: 'Intiface',
+      mock: 'Mock',
+    }[st.transport] || (st.mock ? 'Mock' : '');
+    if (transportLabel) chips.push(transportLabel);
+    if (st.capVibration) chips.push('Vibration');
+    if (st.capSuction) chips.push('Sog');
+    if (st.capBattery) {
+      chips.push(st.batteryOk ? `Akku ${st.batteryPct}%` : 'Akku');
+    }
+    if (st.capRaw) chips.push('Rohwerte');
+    if (chips.length === 0) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML = chips.map(c => `<span class="dev-cap">${c}</span>`).join('');
+  }
 
   function render(st) {
     const dot = el('#dev-dot');
@@ -123,12 +159,14 @@ export function initDevice(root) {
       text.textContent = 'Wiedergabe oder Training läuft - Gerätetest währenddessen nicht möglich.';
       sub.textContent = 'Test erst nach Ende der Session.';
       box.style.borderColor = 'var(--warn, #d9a441)';
+      renderCaps(null);
     } else if (searching) {
       box.classList.add('is-searching');
       dot.style.background = 'var(--warn, #d9a441)';
       text.textContent = 'Suche Gerät…';
       sub.textContent = 'Bis zu 20 Sekunden.';
       box.style.borderColor = 'var(--warn, #d9a441)';
+      renderCaps(null);
     } else if (st.connected) {
       box.classList.add('is-connected');
       dot.style.background = 'var(--ok)';
@@ -139,14 +177,23 @@ export function initDevice(root) {
       if (st.name) parts.push(st.name);
       if (st.address) parts.push(st.address);
       if (st.rssi) parts.push(`Signal ${st.rssi} dBm`);
+      if (st.batteryOk && typeof st.batteryPct === 'number') {
+        parts.push(`Akku ${st.batteryPct}%`);
+      }
       text.textContent = parts.join('  ·  ');
-      sub.textContent = st.mock ? 'Simuliertes Gerät' : 'Bereit für Funktionstest.';
+      sub.textContent = st.mock
+        ? 'Simuliertes Gerät'
+        : (st.batteryOk
+          ? `Bereit für Funktionstest · Akku ${st.batteryPct}%.`
+          : 'Bereit für Funktionstest.');
+      renderCaps(st);
     } else {
       dot.style.background = '#777';
       box.style.borderColor = 'var(--border)';
       text.textContent = 'Nicht verbunden';
       sub.textContent = 'Verbindung wählen und Verbinden tippen.';
       setFills(0, 0);
+      renderCaps(null);
     }
 
     const canTest = st.connected && !st.sessionActive;
@@ -232,7 +279,7 @@ export function initDevice(root) {
     try {
       await TestVibration(pct / 100);
     } catch (err) {
-      log('Vibration: ' + err);
+      logError('Vibration: ' + err);
     }
   });
 
@@ -243,7 +290,7 @@ export function initDevice(root) {
     try {
       await TestSuction(pct / 100);
     } catch (err) {
-      log('Sog: ' + err);
+      logError('Sog: ' + err);
     }
   });
 
@@ -277,7 +324,7 @@ export function initDevice(root) {
       await TestRawValue(channel, value);
       log(`Rohwert ${value} an ${channel} gesendet.`);
     } catch (err) {
-      log('Rohwert: ' + err);
+      logError('Rohwert: ' + err);
     }
   });
 
@@ -339,7 +386,7 @@ export function initDevice(root) {
       }
       box.innerHTML = history.map(renderDiagHistoryRow).join('');
     } catch (err) {
-      box.textContent = 'Verlauf konnte nicht geladen werden: ' + err;
+      uiError('Diagnose-Verlauf: ' + err, box);
     }
   }
 
@@ -351,7 +398,7 @@ export function initDevice(root) {
       await RunDeviceDiagnostics();
     } catch (err) {
       el('#diag-run').disabled = false;
-      el('#diag-status').textContent = 'Fehlgeschlagen: ' + err;
+      uiError('Diagnose: ' + err, el('#diag-status'));
     }
   });
 

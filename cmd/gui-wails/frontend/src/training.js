@@ -1,4 +1,7 @@
 import { StartTraining, StopTraining, StopTrainingCycle, ReportArousal, TrainingHistory } from '../wailsjs/go/main/App';
+import { EventsOn } from '../wailsjs/runtime/runtime';
+import { getSettingsCache, saveSetting } from './settings.js';
+import { uiError } from './notify.js';
 
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
 const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Sog', both: 'Beide' };
@@ -8,8 +11,6 @@ function formatHistoryDate(iso) {
   if (isNaN(d.getTime())) return iso || '?';
   return d.toLocaleString();
 }
-import { EventsOn } from '../wailsjs/runtime/runtime';
-import { getSettingsCache, saveSetting } from './settings.js';
 
 // Trainings-Modus: eigenständige Auf/Ab-Zyklen unabhängig von einem Skript,
 // angelehnt an die klinisch beschriebene Stop-Start-Methode (Semans) bzw.
@@ -143,7 +144,7 @@ export function initTraining(root) {
     try {
       await StartTraining(req);
     } catch (err) {
-      alert('Fehler: ' + err);
+      uiError('Training starten: ' + err, el('#tr-log'));
       return;
     }
     setRunningState(true);

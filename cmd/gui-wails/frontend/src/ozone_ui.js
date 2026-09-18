@@ -1,4 +1,5 @@
 import { ApplySuggestedOZone, SuggestPolarity, InvertLoadedScript, SaveOMarkers, GetOMarkers, ApplyRingDown } from '../wailsjs/go/main/App';
+import { uiError } from './notify.js';
 
 export function enhancePlaybackOZone(root) {
   const oRow = root.querySelector('#pb-omarker-add-row');
@@ -39,27 +40,24 @@ export function enhancePlaybackOZone(root) {
       status.textContent = zone.reason;
       window.dispatchEvent(new CustomEvent('ozone:suggested', { detail: zone }));
     } catch (err) {
-      status.textContent = String(err);
+      uiError('O-Zone: ' + err, status);
     }
   });
 
+  // Knopf-Klick = Bestätigung — kein zusätzliches Popup.
   invertBtn.addEventListener('click', async () => {
     try {
       const hint = await SuggestPolarity();
       const msg = (hint && hint.reason) || '';
       if (hint && hint.suggestInvert) {
-        if (confirm(msg + '\n\nPositionen jetzt spiegeln (100 − pos)?')) {
-          await InvertLoadedScript();
-          status.textContent = 'Richtung umgekehrt und gespeichert.';
-          window.dispatchEvent(new CustomEvent('polarity:inverted'));
-        } else {
-          status.textContent = 'unveraendert. ' + msg;
-        }
+        await InvertLoadedScript();
+        status.textContent = 'Richtung umgekehrt und gespeichert. ' + msg;
+        window.dispatchEvent(new CustomEvent('polarity:inverted'));
       } else {
-        status.textContent = msg;
+        status.textContent = msg || 'Richtung sieht konsistent aus.';
       }
     } catch (err) {
-      status.textContent = String(err);
+      uiError('Polarität: ' + err, status);
     }
   });
 
@@ -67,15 +65,12 @@ export function enhancePlaybackOZone(root) {
     try {
       const video = root.querySelector('#pb-video');
       const nowMs = video ? Math.round((video.currentTime || 0) * 1000) : 0;
-      if (!confirm('Ring-down nach ' + nowMs + ' ms anhängen (2 Zyklen) und Skript speichern?')) {
-        status.textContent = 'Ring-down abgebrochen.';
-        return;
-      }
+      // Knopf-Klick = Bestätigung — kein zusätzliches Popup.
       await ApplyRingDown(nowMs, 2);
-      status.textContent = 'Ring-down angehängt und gespeichert.';
+      status.textContent = 'Ring-down nach ' + nowMs + ' ms angehängt und gespeichert.';
       window.dispatchEvent(new CustomEvent('ringdown:applied', { detail: { atMs: nowMs } }));
     } catch (err) {
-      status.textContent = String(err);
+      uiError('Ring-down: ' + err, status);
     }
   });
 
@@ -90,12 +85,18 @@ export function enhancePlaybackOZone(root) {
   });
 }
 
+// Vom Wiedergabe-Tab auf ozone:hotkey aufgerufen; liefert die neue Marker-Liste.
 export async function applyHotkeyOMarker(scriptPath, nowMs, existing) {
   if (!scriptPath || nowMs < 0) return existing || [];
-  const markers = Array.isArray(existing) ? existing.slice() : await GetOMarkers(scriptPath);
-  const start = Math.max(0, nowMs);
-  const end = start + 4000;
-  markers.push({ startMs: start, endMs: end, kind: 'primary', intensity: 1 });
-  await SaveOMarkers(scriptPath, markers);
-  return markers;
+  try {
+    const markers = Array.isArray(existing) ? existing.slice() : await GetOMarkers(scriptPath);
+    const start = Math.max(0, nowMs);
+    const end = start + 4000;
+    markers.push({ startMs: start, endMs: end, kind: 'primary', intensity: 1 });
+    await SaveOMarkers(scriptPath, markers);
+    return markers;
+  } catch (err) {
+    uiError('O-Marker Hotkey: ' + err);
+    throw err;
+  }
 }
