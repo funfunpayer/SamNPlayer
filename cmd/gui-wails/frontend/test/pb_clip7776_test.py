@@ -14,8 +14,8 @@ from playwright.sync_api import sync_playwright
 
 from _harness import Checker, app_stub, serve
 
-ROOT = pathlib.Path(__file__).resolve().parents[4]
-CLIP = ROOT / ".artifacts" / "clip7776_tf.funscript"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CLIP = ROOT / "test" / "fixtures" / "clip7776_tf.funscript"
 
 PAGE = """<!doctype html><html><body><div id="root"></div>
 <script type="module">

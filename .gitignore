@@ -18,6 +18,7 @@ venv/
 # Lokale Testartefakte
 *.funscript
 !testdata/**/*.funscript
+!cmd/gui-wails/frontend/test/fixtures/*.funscript
 *.mp4
 !testdata/**/*.mp4
 
