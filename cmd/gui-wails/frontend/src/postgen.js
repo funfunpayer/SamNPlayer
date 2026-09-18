@@ -1,6 +1,8 @@
-import { ReviewGeneratedScript, InvertScriptAtPath } from '../wailsjs/go/main/App';
+import { ReviewGeneratedScript } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
+// Nach dem Erzeugen: Hinweise in den Status/Log, kein Popup außer bei
+// bewusster Invert-Aktion über einen Knopf (falls vorgeschlagen).
 export function initPostGenerateReview() {
   EventsOn('generate:done', async (payload) => {
     if (!payload || payload.error || !payload.path) return;
@@ -20,15 +22,9 @@ export function initPostGenerateReview() {
     if (status && bits.length) {
       status.textContent = (status.textContent ? status.textContent + ' \n' : '') + bits.join(' ');
     }
-    if (pol.suggestInvert) {
-      if (confirm((pol.reason || 'Richtung unsicher') + '\n\nSkript jetzt umkehren (100 − pos)? Quality-Doctor und FunGen-r danach neu lesen.')) {
-        try {
-          await InvertScriptAtPath(payload.path);
-          if (status) status.textContent += ' Richtung umgekehrt.';
-        } catch (err) {
-          if (status) status.textContent += ' Invert fehlgeschlagen: ' + err;
-        }
-      }
+    // Invert nur vorschlagen, nicht per Popup erzwingen — Nutzer prüft in der Wiedergabe.
+    if (pol.suggestInvert && status) {
+      status.textContent += ' (Richtung unsicher — in Wiedergabe prüfen; ggf. Kurve invertieren.)';
     }
   });
 }

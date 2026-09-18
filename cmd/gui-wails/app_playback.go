@@ -45,6 +45,32 @@ type ContactPreviewOptions struct {
 	MuteContact           bool    `json:"muteContact"`
 }
 
+// SaveContactSettings schreibt Kontakt-Vibration in die Skript-Metadata
+// (device_recipe) und lädt das Skript neu — damit Preview und nächste
+// Wiedergabe denselben „wie die Berührung“-Stand nutzen.
+func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
+	path := a.loadedScriptPath()
+	if path == "" {
+		return fmt.Errorf("kein Skript geladen")
+	}
+	script := a.loadedScript()
+	if script == nil {
+		return fmt.Errorf("kein Skript geladen")
+	}
+	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
+		return fmt.Errorf("Kontakt-Vibration nur bei Tf/Tj-Skripten")
+	}
+	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {
+		return err
+	}
+	reloaded, err := funscript.Load(path)
+	if err != nil {
+		return err
+	}
+	a.setLoadedScript(path, reloaded)
+	return nil
+}
+
 func (a *App) StartPlayback(opts PlaybackOptions) error {
 	script := a.loadedScript()
 	if script == nil {

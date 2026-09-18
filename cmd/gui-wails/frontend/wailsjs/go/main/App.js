@@ -67,6 +67,7 @@ export function RunRoiModelTraining(arg1, arg2) { return window['go']['main']['A
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }
 export function SaveScriptActions(arg1) { return window['go']['main']['App']['SaveScriptActions'](arg1); }
+export function SaveContactSettings(arg1, arg2, arg3) { return window['go']['main']['App']['SaveContactSettings'](arg1, arg2, arg3); }
 export function ScriptChapters() { return window['go']['main']['App']['ScriptChapters'](); }
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
 export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }

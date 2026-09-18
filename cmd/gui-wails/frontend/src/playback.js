@@ -2,6 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, ScriptChapters, ScriptQuality,
+  SaveContactSettings,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -33,7 +34,7 @@ export function initPlayback(root) {
       <div class="pb-media">
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
-          <div id="pb-novideo" class="pb-novideo">Kein passendes Video im selben Ordner.</div>
+          <div id="pb-novideo" class="pb-novideo">Kein Video daneben — Skript läuft trotzdem allein (Gerät + Kurve).</div>
         </div>
         <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
         <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
@@ -111,7 +112,7 @@ export function initPlayback(root) {
 
         <div class="pb-contact" id="pb-contact-block" hidden>
           <h3>Kontakt-Vibration</h3>
-          <p class="hint" style="margin-top:0">Aus dem Skript-Rezept — live anpassbar, ohne neu zu erzeugen.</p>
+          <p class="hint" style="margin-top:0">Folgt dem Abstand wie eine Berührung — live anpassen, optional ins Skript speichern.</p>
           <div class="checkbox-row" id="pb-contact-off-row">
             <input type="checkbox" id="pb-contact-off" />
             <label for="pb-contact-off"
@@ -131,9 +132,13 @@ export function initPlayback(root) {
             <label data-help="Live-Kurvenform der Kontakt-Vibration (linear / soft / peak), ohne Datei-Rewrite.">Kontakt-Kurve</label>
             <select id="pb-contact-curve">
               <option value="linear">linear</option>
-              <option value="soft">soft</option>
+              <option value="soft">soft (wie Berührung)</option>
               <option value="peak">peak</option>
             </select>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button type="button" id="pb-contact-save">In Skript speichern</button>
+            <span class="hint" id="pb-contact-save-status" style="margin:0"></span>
           </div>
         </div>
 
@@ -535,6 +540,23 @@ export function initPlayback(root) {
   el('#pb-contact-off').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
   });
+  el('#pb-contact-save').addEventListener('click', async () => {
+    if (!scriptPath || !scriptHasContactVibration) return;
+    const status = el('#pb-contact-save-status');
+    status.textContent = 'Speichere…';
+    try {
+      await SaveContactSettings(
+        !el('#pb-contact-off').checked,
+        parseFloat(el('#pb-contact-span').value) || 0.75,
+        el('#pb-contact-curve').value || 'soft',
+      );
+      status.textContent = 'Gespeichert im Skript.';
+      await refreshScriptVisuals();
+    } catch (err) {
+      status.textContent = 'Fehler: ' + err;
+      log('Kontakt speichern: ' + err);
+    }
+  });
 
   const CHAPTER_LABELS = {
     pause: 'Pause', build: 'Aufbau', steady: 'gleichmäßig',
@@ -873,7 +895,7 @@ export function initPlayback(root) {
     window.focus();
   }
 
-  async function loadScript(path, extraCount = 0) {
+  async function loadScript(path, extraCount = 0, opts = {}) {
     const info = await LoadFunscript(path);
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
@@ -889,6 +911,7 @@ export function initPlayback(root) {
     scriptHasContactVibration = !!info.contactVibration;
     const showContact = scriptHasContactVibration;
     el('#pb-contact-block').hidden = !showContact;
+    if (el('#pb-contact-save-status')) el('#pb-contact-save-status').textContent = '';
     if (!showContact) {
       el('#pb-contact-off').checked = false;
       el('#pb-contact-intensity').value = '1';
@@ -898,8 +921,8 @@ export function initPlayback(root) {
       const span = (info.contactVibrationSpan > 0) ? info.contactVibrationSpan : 0.75;
       el('#pb-contact-span').value = String(span);
       el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
-      const curve = info.contactVibrationCurve || 'linear';
-      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'linear';
+      const curve = info.contactVibrationCurve || 'soft';
+      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'soft';
     }
     const stage = el('#pb-video-stage');
     if (info.hasVideo) {
@@ -931,8 +954,8 @@ export function initPlayback(root) {
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
-    el('#pb-curve-edit').checked = false;
-    setEditMode(false);
+    el('#pb-curve-edit').checked = !!opts.review;
+    await setEditMode(!!opts.review);
     drawHeatmap();
     drawCurve();
     describeScript();
@@ -944,6 +967,12 @@ export function initPlayback(root) {
     el('#pb-offset-row').style.display = 'flex';
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
+    if (opts.review) {
+      log('Frisch erzeugt — Kurve prüfen und bei Bedarf Kontakt/Punkte anpassen.');
+      if (showContact) {
+        el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
   }
 
   // startScriptPlayback startet nur das Funscript/Gerät (StartPlayback +
@@ -953,7 +982,7 @@ export function initPlayback(root) {
   // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
   // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
   async function startScriptPlayback() {
-    if (!scriptPath) { alert('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
+    if (!scriptPath) { log('Bitte zuerst eine .funscript-Datei wählen.'); return false; }
     el('#pb-log').textContent = '';
 
     const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
@@ -985,7 +1014,8 @@ export function initPlayback(root) {
     try {
       await StartPlayback(opts);
     } catch (err) {
-      alert('Fehler: ' + err);
+      log('Fehler: ' + err);
+      return false;
       return false;
     }
     setPlayingState(true);
@@ -1232,7 +1262,8 @@ export function initPlayback(root) {
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
-    loadScriptPath: (path) => loadScript(path).then(() => switchToPlaybackTab()),
+    // opts.review: Kurven-Editor an, Fokus auf Kontakt — frisch erzeugt.
+    loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
   };
 }
 

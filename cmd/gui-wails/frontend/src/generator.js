@@ -48,13 +48,14 @@ export function initGenerator(root, playback) {
     </div>
     <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">Tf/Tj = Abstand + Sog. „Weiches Gewebe“ filtert Nachschwingen.</p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position. Vibration nur mit „Kontakt-Vibration“.
+      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position.
+      Kontakt-Vibration wird standardmäßig mit erzeugt (Stärke = Nähe wie Berührung) und lässt sich danach in der Wiedergabe feinjustieren.
     </p>
     <div id="gen-contact-vibration-wrap" style="display:none;">
       <div class="checkbox-row" id="gen-contact-vibration-row">
-        <input type="checkbox" id="gen-contact-vibration" />
+        <input type="checkbox" id="gen-contact-vibration" checked />
         <label for="gen-contact-vibration"
-          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt (z.B. Kontakt). Stärke folgt dem gemessenen Abstand — kein fester Impuls.">Kontakt-Vibration bei Annäherung</label>
+          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt. Stärke folgt dem gemessenen Abstand — wie eine Berührung, kein fester Impuls. Standard an bei Tf/Tj; abwählbar.">Kontakt-Vibration (automatisch bei Tf/Tj)</label>
       </div>
       <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
         <div class="field-row" style="align-items:center;">
@@ -63,10 +64,10 @@ export function initGenerator(root, playback) {
           <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">nur tief</span>
         </div>
         <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²). peak = stärkerer Peak (√t). Immer aus demselben Videosignal.">Kurve</label>
+          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²) — näher an „wie die Berührung“. peak = stärkerer Peak (√t).">Kurve</label>
           <select id="gen-contact-curve">
-            <option value="linear" selected>Linear</option>
-            <option value="soft">Weicher Einstieg</option>
+            <option value="linear">Linear</option>
+            <option value="soft" selected>Weicher Einstieg (wie Berührung)</option>
             <option value="peak">Stärkerer Peak</option>
           </select>
         </div>
@@ -299,6 +300,8 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = false;
   }
 
+  let contactUserOverride = false;
+
   function updateContactVibrationOpts() {
     const on = isTfTj() && el('#gen-contact-vibration').checked;
     el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
@@ -317,6 +320,14 @@ export function initGenerator(root, playback) {
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-wrap').style.display = tftj ? 'block' : 'none';
     el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
+    // Automatisch versuchen: bei Tf/Tj Kontakt an, solange der Nutzer nicht
+    // bewusst abgewählt hat — danach bleibt seine Wahl.
+    if (tftj && !contactUserOverride) {
+      el('#gen-contact-vibration').checked = true;
+      if (!el('#gen-contact-curve').dataset.userTouched) {
+        el('#gen-contact-curve').value = 'soft';
+      }
+    }
     updateContactVibrationOpts();
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
@@ -719,8 +730,7 @@ export function initGenerator(root, playback) {
         el('#gen-status').textContent = 'Abgebrochen.';
         return;
       }
-      el('#gen-status').textContent = 'Fehlgeschlagen.';
-      alert('Fehler: ' + result.error);
+      el('#gen-status').textContent = 'Fehlgeschlagen: ' + result.error;
       return;
     }
     el('#gen-status').textContent = result.samPath
@@ -777,9 +787,9 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'none';
     }
 
-    if (confirm(`${result.path}\n\nJetzt im Wiedergabe-Tab laden?`)) {
-      playback.loadScriptPath(result.path);
-    }
+    // Fertiges Skript immer zum Anschauen/Bearbeiten laden — kein Popup.
+    el('#gen-status').textContent += ' — in Wiedergabe geladen (prüfen & anpassen).';
+    playback.loadScriptPath(result.path, { review: true });
   });
 
   el('#gen-choose').addEventListener('click', chooseVideo);
@@ -795,7 +805,13 @@ export function initGenerator(root, playback) {
     }
   });
   el('#gen-profile').addEventListener('change', updateProfileUi);
-  el('#gen-contact-vibration').addEventListener('change', updateContactVibrationOpts);
+  el('#gen-contact-vibration').addEventListener('change', () => {
+    contactUserOverride = true;
+    updateContactVibrationOpts();
+  });
+  el('#gen-contact-curve').addEventListener('change', () => {
+    el('#gen-contact-curve').dataset.userTouched = '1';
+  });
   el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
   updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', updateGenerateEnabled);

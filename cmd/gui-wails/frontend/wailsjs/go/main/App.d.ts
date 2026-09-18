@@ -137,6 +137,8 @@ export function SaveOMarkers(arg1:string,arg2:Array<funscript.OMarker>):Promise<
 
 export function SaveScriptActions(arg1:Array<funscript.Action>):Promise<void>;
 
+export function SaveContactSettings(arg1:boolean,arg2:number,arg3:string):Promise<void>;
+
 export function ScriptChapters():Promise<Array<motionx.Chapter>>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
