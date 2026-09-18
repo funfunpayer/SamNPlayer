@@ -1,90 +1,131 @@
 """Test für generate_funscript.create_tracker().
 
-Reales Problem (Nutzerbericht, 16. September 2026): eine echte
-opencv-contrib-python-Installation hatte WEDER cv2.legacy.TrackerCSRT_create
-NOCH cv2.TrackerCSRT_create - nur die dritte, klassenbasierte API
-cv2.TrackerCSRT.create(). create_tracker() kannte bis dahin nur die ersten
-zwei und stürzte mit einem rohen AttributeError ab.
-
-Da sich die drei API-Varianten nicht zuverlässig lokal nachstellen lassen
-(diese Testumgebung hat immer alle drei), wird hier direkt am echten
-cv2-Modul manipuliert: die jeweils "höherwertigen" Attribute vorübergehend
-entfernt, damit create_tracker() auf den nächstniedrigeren Pfad zurückfällt
-- und am Ende alles wiederhergestellt, damit andere Tests im selben Prozess
-nicht betroffen sind.
+Deckt die bekannten OpenCV-API-Varianten ab und den KCF-Fallback, wenn
+CSRT fehlt (Issue #94/#95: Windows opencv 5.0.0 ohne CSRT — oft
+opencv-python ohne contrib).
 
 Ausführen: python3 generator/create_tracker_test.py
 """
 
+from __future__ import annotations
+
 import sys
+from types import SimpleNamespace
 
 import cv2
 
 import generate_funscript as gf
 
 
+class _FakeTracker:
+    pass
+
+
 def main():
     failures = []
 
     def check(name, cond, detail=""):
-        print(("  OK   " if cond else "  FAIL ") + name + (f"  [{detail}]" if not cond else ""))
+        print(("  OK   " if cond else "  FAIL ") + name
+              + (f"  [{detail}]" if detail and not cond else ""))
         if not cond:
             failures.append(name)
 
-    # --- Pfad 1: cv2.legacy.TrackerCSRT_create() bevorzugt, falls vorhanden ---
-    check("nutzt cv2.legacy.TrackerCSRT_create(), wenn vorhanden",
-          gf.create_tracker() is not None)
+    check("nutzt CSRT, wenn vorhanden", gf.create_tracker() is not None)
+    check("opencv_has_usable_tracker True", gf.opencv_has_usable_tracker())
 
-    # --- Pfad 2: ohne cv2.legacy fällt es auf cv2.TrackerCSRT_create() zurück ---
-    has_legacy = hasattr(cv2, "legacy")
-    legacy_mod = getattr(cv2, "legacy", None)
-    if has_legacy:
+    # Snapshot real attrs to restore later
+    saved = {
+        "legacy": getattr(cv2, "legacy", None),
+        "TrackerCSRT_create": getattr(cv2, "TrackerCSRT_create", None),
+        "TrackerCSRT": getattr(cv2, "TrackerCSRT", None),
+        "TrackerKCF_create": getattr(cv2, "TrackerKCF_create", None),
+        "TrackerKCF": getattr(cv2, "TrackerKCF", None),
+        "TrackerMIL_create": getattr(cv2, "TrackerMIL_create", None),
+        "TrackerMIL": getattr(cv2, "TrackerMIL", None),
+        "has_legacy": hasattr(cv2, "legacy"),
+    }
+
+    def strip_csrt():
+        if hasattr(cv2, "legacy"):
+            delattr(cv2, "legacy")
+        for name in ("TrackerCSRT_create", "TrackerCSRT"):
+            if hasattr(cv2, name):
+                delattr(cv2, name)
+
+    def restore():
+        if saved["has_legacy"]:
+            cv2.legacy = saved["legacy"]
+        elif hasattr(cv2, "legacy"):
+            delattr(cv2, "legacy")
+        for name in ("TrackerCSRT_create", "TrackerCSRT",
+                     "TrackerKCF_create", "TrackerKCF",
+                     "TrackerMIL_create", "TrackerMIL"):
+            val = saved[name]
+            if val is not None:
+                setattr(cv2, name, val)
+            elif hasattr(cv2, name):
+                delattr(cv2, name)
+
+    # --- nur legacy.TrackerCSRT.create() ---
+    strip_csrt()
+    try:
+        fake_cls = SimpleNamespace(create=lambda: _FakeTracker())
+        cv2.legacy = SimpleNamespace(TrackerCSRT=fake_cls)
+        # remove free/main CSRT leftovers already stripped
+        t = gf.create_tracker()
+        check("nutzt cv2.legacy.TrackerCSRT.create()", isinstance(t, _FakeTracker))
+    finally:
+        restore()
+
+    # --- nur Hauptmodul TrackerCSRT.create() ---
+    strip_csrt()
+    try:
+        cv2.TrackerCSRT = SimpleNamespace(create=lambda: _FakeTracker())
+        t = gf.create_tracker()
+        check("nutzt cv2.TrackerCSRT.create()", isinstance(t, _FakeTracker))
+    finally:
+        restore()
+
+    # --- kein CSRT, aber KCF → Fallback ---
+    strip_csrt()
+    try:
+        cv2.TrackerKCF_create = lambda: _FakeTracker()
+        t = gf.create_tracker()
+        check("fällt auf KCF zurück ohne CSRT", isinstance(t, _FakeTracker))
+        check("opencv_has_usable_tracker mit nur KCF",
+              gf.opencv_has_usable_tracker())
+    finally:
+        restore()
+
+    # --- gar kein Tracker ---
+    strip_csrt()
+    for name in ("TrackerKCF_create", "TrackerKCF",
+                 "TrackerMIL_create", "TrackerMIL"):
+        if hasattr(cv2, name):
+            delattr(cv2, name)
+    if hasattr(cv2, "legacy"):
         delattr(cv2, "legacy")
     try:
-        check("fällt ohne cv2.legacy auf cv2.TrackerCSRT_create() zurück",
-              gf.create_tracker() is not None)
-
-        # --- Pfad 3: ohne cv2.TrackerCSRT_create() auf cv2.TrackerCSRT.create() ---
-        has_free_fn = hasattr(cv2, "TrackerCSRT_create")
-        free_fn = getattr(cv2, "TrackerCSRT_create", None)
-        if has_free_fn:
-            delattr(cv2, "TrackerCSRT_create")
         try:
-            check("fällt ohne cv2.TrackerCSRT_create() auf cv2.TrackerCSRT.create() zurück "
-                  "(der reale Fall aus dem Nutzerbericht)",
-                  gf.create_tracker() is not None)
-
-            # --- Keine der drei APIs vorhanden: klarer Fehler statt Traceback ---
-            has_cls = hasattr(cv2, "TrackerCSRT")
-            cls = getattr(cv2, "TrackerCSRT", None)
-            if has_cls:
-                delattr(cv2, "TrackerCSRT")
-            try:
-                try:
-                    gf.create_tracker()
-                    check("wirft, wenn keine der drei APIs existiert", False)
-                except RuntimeError as exc:
-                    check("wirft RuntimeError statt AttributeError, wenn nichts passt",
-                          True, str(exc))
-                    check("Fehlermeldung nennt den Aktualisierungs-Hinweis",
-                          "opencv-contrib-python" in str(exc), str(exc))
-                except AttributeError as exc:
-                    check("wirft RuntimeError statt eines rohen AttributeError", False, str(exc))
-            finally:
-                if has_cls:
-                    cv2.TrackerCSRT = cls
-        finally:
-            if has_free_fn:
-                cv2.TrackerCSRT_create = free_fn
+            gf.create_tracker()
+            check("wirft ohne jeden Tracker", False)
+        except RuntimeError as exc:
+            msg = str(exc)
+            check("RuntimeError ohne Tracker", True)
+            check("Fehlermeldung nennt pip uninstall opencv-python",
+                  "pip uninstall opencv-python" in msg, msg[:200])
+            check("Fehlermeldung nennt opencv-contrib-python",
+                  "opencv-contrib-python" in msg, msg[:200])
+        check("opencv_has_usable_tracker False ohne Tracker",
+              not gf.opencv_has_usable_tracker())
     finally:
-        if has_legacy:
-            cv2.legacy = legacy_mod
+        restore()
 
-    # --- Aufräumen erfolgreich: create_tracker() funktioniert wieder normal ---
-    check("nach dem Wiederherstellen funktioniert create_tracker() wie zuvor",
+    check("nach Restore funktioniert create_tracker wieder",
           gf.create_tracker() is not None)
 
-    print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
+    print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else
+          "Alle Prüfungen bestanden.")
     return 1 if failures else 0
 
 

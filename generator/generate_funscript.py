@@ -1252,54 +1252,109 @@ def enforce_min_interval(timestamps_ms, pos, keyframe_idx, min_interval_ms):
 
 
 def create_tracker():
-    """Erzeugt einen CSRT-Tracker.
+    """Erzeugt einen CSRT-Tracker (Fallback: KCF).
 
     Gekapselt, weil OpenCV die CSRT-Erzeugung je nach opencv-contrib-python-
-    Version an einer von DREI verschiedenen Stellen anbietet, und welche
-    davon existiert nicht zuverlässig an cv2.__version__ hängt (zwei
-    Nutzer mit demselben "pip install opencv-contrib-python" zu
-    unterschiedlichen Zeitpunkten können unterschiedliche Stellen haben):
+    Version an verschiedenen Stellen anbietet, und welche davon existiert
+    nicht zuverlässig an cv2.__version__ hängt (zwei Nutzer mit demselben
+    "pip install opencv-contrib-python" zu unterschiedlichen Zeitpunkten
+    können unterschiedliche Stellen haben):
 
-      1. cv2.legacy.TrackerCSRT_create() - die "Legacy"-API, ab ca. 4.5.2
-         eingeführt, als die klassischen Tracker aus dem Hauptmodul in
-         einen eigenen Unterordner verschoben wurden.
-      2. cv2.TrackerCSRT_create() - die ältere freie Funktion direkt im
-         Hauptmodul (vor der Legacy-Aufspaltung, oder falls das cv2.legacy-
-         Modul in einer Version doch mal fehlt).
-      3. cv2.TrackerCSRT.create() - die neuere, klassenbasierte API
-         (Klassenmethode statt freier Funktion) - GEMESSEN (16. September
-         2026, echter Nutzerbericht): mindestens eine reale
-         opencv-contrib-python-Installation hatte WEDER 1 noch 2, nur
-         diese dritte Variante.
+      1. cv2.legacy.TrackerCSRT_create() - Legacy-API, ab ca. 4.5.2
+      2. cv2.legacy.TrackerCSRT.create() - Klassenmethode unter legacy
+         (OpenCV 5 Docs; zusätzlich zur freien Funktion)
+      3. cv2.TrackerCSRT_create() - freie Funktion im Hauptmodul
+      4. cv2.TrackerCSRT.create() - klassenbasierte API im Hauptmodul
+         (GEMESSEN 16. Sep 2026: reale Install hatte nur diese)
 
-    Probiert alle drei der Reihe nach, statt nur die ersten zwei zu kennen
-    und beim dritten Fall mit einem rohen AttributeError abzustürzen. Wirft
-    erst dann einen eigenen, sprechenden Fehler, wenn keine der drei
-    existiert - das nennt die installierte Version, statt nur zu sagen,
-    welches EINE Attribut fehlte.
+    GEMESSEN (Issue #94/#95, Sep 18 2026, Windows, cv2 5.0.0): manche
+    Installationen melden 5.0.0 OHNE jede CSRT-API — typisch wenn
+    opencv-python (ohne contrib) opencv-contrib-python überschattet.
+    Dann Fallback auf KCF (mit Warnung), statt hart abzubrechen; Tf/Tj
+    und KI-Training brauchen irgendeinen Tracker.
 
-    GEMESSEN (September 14, 2026, echter 256x144-Clip, docs/NEXT.md
-    Priorität 2): Frames vor dem Tracking hochzuskalieren, in der Annahme
-    das helfe CSRT bei sehr kleinen/unscharfen Regionen, macht es messbar
-    SCHLECHTER statt besser - verlorene Frames stiegen von 2 % (Original-
-    auflösung, eng gesetzte ROIs) auf 6 % (2x) und 34 % (3x). CSRT verliert
-    offenbar öfter die Zuordnung, je größer das Korrelationsfenster wird,
-    nicht seltener. Nicht implementieren, ohne das an neuem Material zu
-    widerlegen.
+    CSRT bleibt bevorzugt (Qualität). KCF ist messbar schneller, auf
+    harten Tip-ROIs schwächer — siehe docs/NEXT.md Priorität 8.
     """
-    if hasattr(cv2, "legacy") and hasattr(cv2.legacy, "TrackerCSRT_create"):
-        return cv2.legacy.TrackerCSRT_create()
-    if hasattr(cv2, "TrackerCSRT_create"):
-        return cv2.TrackerCSRT_create()
-    if hasattr(cv2, "TrackerCSRT") and hasattr(cv2.TrackerCSRT, "create"):
-        return cv2.TrackerCSRT.create()
-    raise RuntimeError(
-        "CSRT-Tracker nicht gefunden - keine der bekannten OpenCV-APIs "
-        "(cv2.legacy.TrackerCSRT_create, cv2.TrackerCSRT_create, "
-        f"cv2.TrackerCSRT.create) existiert in dieser opencv-contrib-python-"
-        f"Version ({getattr(cv2, '__version__', '?')}). Bitte "
-        "opencv-contrib-python aktualisieren (pip install -U "
-        "opencv-contrib-python).")
+    factory = _csrt_factory()
+    if factory is not None:
+        return factory()
+    factory, kind = _fallback_tracker_factory()
+    if factory is not None:
+        print(
+            f"Warnung: CSRT nicht verfügbar in OpenCV {getattr(cv2, '__version__', '?')} "
+            f"— nutze {kind} als Fallback. Für beste Qualität: "
+            f"pip uninstall opencv-python opencv-python-headless && "
+            f"pip install opencv-contrib-python",
+            file=sys.stderr,
+        )
+        return factory()
+    raise RuntimeError(_opencv_tracker_missing_message())
+
+
+def _csrt_factory():
+    """Callable der einen CSRT erzeugt, oder None."""
+    legacy = getattr(cv2, "legacy", None)
+    if legacy is not None:
+        create_fn = getattr(legacy, "TrackerCSRT_create", None)
+        if callable(create_fn):
+            return create_fn
+        cls = getattr(legacy, "TrackerCSRT", None)
+        create_m = getattr(cls, "create", None) if cls is not None else None
+        if callable(create_m):
+            return create_m
+    create_fn = getattr(cv2, "TrackerCSRT_create", None)
+    if callable(create_fn):
+        return create_fn
+    cls = getattr(cv2, "TrackerCSRT", None)
+    create_m = getattr(cls, "create", None) if cls is not None else None
+    if callable(create_m):
+        return create_m
+    return None
+
+
+def _fallback_tracker_factory():
+    """(factory, kind) für KCF/MIL, oder (None, '')."""
+    candidates = (
+        ("KCF", "TrackerKCF_create", "TrackerKCF"),
+        ("MIL", "TrackerMIL_create", "TrackerMIL"),
+    )
+    legacy = getattr(cv2, "legacy", None)
+    for kind, free_name, cls_name in candidates:
+        if legacy is not None:
+            create_fn = getattr(legacy, free_name, None)
+            if callable(create_fn):
+                return create_fn, kind
+            cls = getattr(legacy, cls_name, None)
+            create_m = getattr(cls, "create", None) if cls is not None else None
+            if callable(create_m):
+                return create_m, kind
+        create_fn = getattr(cv2, free_name, None)
+        if callable(create_fn):
+            return create_fn, kind
+        cls = getattr(cv2, cls_name, None)
+        create_m = getattr(cls, "create", None) if cls is not None else None
+        if callable(create_m):
+            return create_m, kind
+    return None, ""
+
+
+def _opencv_tracker_missing_message():
+    ver = getattr(cv2, "__version__", "?")
+    origin = getattr(cv2, "__file__", "?")
+    return (
+        f"Kein OpenCV-Tracker (CSRT/KCF/MIL) in cv2 {ver} "
+        f"(geladen aus {origin}). Häufige Ursache: opencv-python ohne "
+        f"contrib überschattet opencv-contrib-python. Fix:\n"
+        f"  pip uninstall opencv-python opencv-python-headless\n"
+        f"  pip install opencv-contrib-python\n"
+        f"Danach SamNPlayer neu starten."
+    )
+
+
+def opencv_has_usable_tracker():
+    """True, wenn create_tracker() einen Tracker erzeugen könnte."""
+    return _csrt_factory() is not None or _fallback_tracker_factory()[0] is not None
 
 
 def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
