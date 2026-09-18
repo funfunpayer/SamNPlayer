@@ -8,6 +8,10 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **CI Go (OpenCV):** `ptpFloat` redeclaration in `trackcv` (vet fail on #97).
+
 ### Changed
 
 - **Go-native Tf/Tj:** two-point distance tracking runs in Go (`trackcv` /
@@ -16,7 +20,8 @@ measurement history behind each entry; this file is the short version for
 - **Auto pipeline:** marking ROI(s) preselects backend + profile
   (`SuggestPipeline`); Tf/Tj + CSRT → Go path by default.
 - **KI-Training:** seek past black intro, up to 4 marks/classes, still-image
-  samples, sample stride, audio WAV sidecar; class presets.
+  samples, sample stride, audio WAV sidecar; class presets + chips from
+  collected dataset.
 - **GUI brand:** Wails logo replaced with SamNPlayer SN mark; seek controls
   on Generator + KI-Training tabs.
 

@@ -105,26 +105,10 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		Stats: Stats{
 			TrackerLostFrames: lost,
 			TotalFrames:       idx,
-			VerticalRange:     ptpFloat(distances),
+			VerticalRange:     ptp(distances),
 			ValidFrames:       valid,
 			Confidence:        conf,
 			Reason:            reason,
 		},
 	}, nil
-}
-
-func ptpFloat(v []float64) float64 {
-	if len(v) == 0 {
-		return 0
-	}
-	lo, hi := v[0], v[0]
-	for _, x := range v[1:] {
-		if x < lo {
-			lo = x
-		}
-		if x > hi {
-			hi = x
-		}
-	}
-	return hi - lo
 }

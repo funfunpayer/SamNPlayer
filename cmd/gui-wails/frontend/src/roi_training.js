@@ -51,6 +51,7 @@ export function initRoiTraining(root) {
     </div>
     <div id="rt-mark-fields"></div>
     <datalist id="rt-class-list"></datalist>
+    <div id="rt-class-chips" class="rt-chips" aria-label="Bekannte Klassen"></div>
     <div class="field-row"><label data-help="Jeden N-ten Frame als Beispiel schreiben. Kleiner = dichter, größer = weniger Redundanz.">Abtastung (jeder N-te Frame)</label>
       <input type="number" id="rt-sample-every" value="12" min="1" max="120" style="width:5em;" />
     </div>
@@ -480,17 +481,51 @@ export function initRoiTraining(root) {
   });
 
   async function refreshClassList() {
+    let fromData = [];
     try {
       const summary = await GetRoiDatasetSummary(datasetDir || el('#rt-dataset-dir').value.trim());
+      fromData = (summary.classes || []).map(c => c.className);
       const list = el('#rt-class-list');
-      const fromData = (summary.classes || []).map(c => c.className);
-      const names = [...new Set([...CLASS_PRESETS, ...fromData])];
+      const names = [...new Set([...fromData, ...CLASS_PRESETS])];
       list.innerHTML = names.map(n => `<option value="${n}"></option>`).join('');
+      renderClassChips(fromData, names);
       return summary;
     } catch {
       el('#rt-class-list').innerHTML = CLASS_PRESETS.map(n => `<option value="${n}"></option>`).join('');
+      renderClassChips([], CLASS_PRESETS);
       return null;
     }
+  }
+
+  function renderClassChips(fromData, allNames) {
+    const wrap = el('#rt-class-chips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const known = fromData.length ? fromData : allNames.slice(0, 8);
+    if (!known.length) {
+      wrap.innerHTML = '<span class="hint">Noch keine Klassen — Presets unten tippen oder markieren.</span>';
+      return;
+    }
+    const label = document.createElement('span');
+    label.className = 'hint';
+    label.style.marginRight = '6px';
+    label.textContent = fromData.length ? 'Aus Datensatz:' : 'Vorschläge:';
+    wrap.appendChild(label);
+    known.forEach(name => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rt-chip';
+      btn.textContent = name;
+      btn.title = 'In aktive Klasse einsetzen';
+      btn.addEventListener('click', () => {
+        const input = el(`#rt-class${activeMark + 1}`);
+        if (input) {
+          input.value = name;
+          updateBootstrapEnabled();
+        }
+      });
+      wrap.appendChild(btn);
+    });
   }
 
   el('#rt-summary-refresh').addEventListener('click', async () => {
