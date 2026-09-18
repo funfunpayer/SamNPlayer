@@ -10,35 +10,65 @@
     <nav id="rail">
       <div class="brand" title="SamNPlayer"><img src="/src/assets/images/logo-universal.png" alt="SamNPlayer" /></div>
       <button class="tab-btn active" data-tab="playback" title="Wiedergabe">
-        <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.2"/>
+          <path d="M10.2 8.6v6.8l6-3.4z" fill="currentColor" stroke="none"/>
+        </svg>
         <span>Play</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="training" title="Training">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 8.5v4l2.8 1.6"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5.5 12a6.5 6.5 0 1 1 13 0"/>
+          <path d="M12 5.5v6.2l3.4 2"/>
+          <path d="M4.8 14.8h3.2M16 14.8h3.2"/>
+        </svg>
         <span>Training</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="generator" title="Skript erzeugen">
-        <svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h9M5 17h14"/><path d="M16 10.5l3 1.5-3 1.5"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4.5" y="4.5" width="15" height="15" rx="3"/>
+          <path d="M8 9.2h5.5M8 12h8M8 14.8h4"/>
+          <path d="M16.2 8.2l2.6 2.1-2.6 2.1"/>
+        </svg>
         <span>Erzeugen</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="benchmark" title="Golden-Clip-Benchmark">
-        <svg viewBox="0 0 24 24"><path d="M12 3.2l2.1 5.9h6.2l-5 3.7 1.9 6.1L12 15.7 6.8 18.9l1.9-6.1-5-3.7h6.2z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.5 19V10.5M12 19V6.5M16.5 19v-5"/>
+          <path d="M6 19.2h12"/>
+        </svg>
         <span>Bench</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="roi-training" title="KI-Trainingssystem">
-        <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3.8" y="3.8" width="7" height="7" rx="2"/>
+          <rect x="13.2" y="3.8" width="7" height="7" rx="2"/>
+          <rect x="3.8" y="13.2" width="7" height="7" rx="2"/>
+          <path d="M14.2 15.2h5M16.7 12.7v5"/>
+        </svg>
         <span>KI-Train.</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="device" title="Gerät">
-        <svg viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="4"/><path d="M12 16.5h.01"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
+          <path d="M11 7.2h2"/>
+          <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
+        </svg>
         <span>Gerät</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="log" title="Protokoll">
-        <svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="2"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.2 4.5h7.2L18 8.1v11.4a1.8 1.8 0 0 1-1.8 1.8H7.2a1.8 1.8 0 0 1-1.8-1.8V6.3a1.8 1.8 0 0 1 1.8-1.8z"/>
+          <path d="M14.2 4.6V8h3.5"/>
+          <path d="M8.5 11.2h7M8.5 14h7M8.5 16.8h4.5"/>
+        </svg>
         <span>Log</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="settings" title="Einstellungen">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2.2M12 17.8V20M4 12h2.2M17.8 12H20M6.4 6.4l1.6 1.6M16 16l1.6 1.6M17.6 6.4 16 8M8 16l-1.6 1.6"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.1"/>
+          <path d="M12 3.6v2.1M12 18.3v2.1M3.6 12h2.1M18.3 12h2.1M6.2 6.2l1.5 1.5M16.3 16.3l1.5 1.5M17.8 6.2l-1.5 1.5M7.7 16.3l-1.5 1.5"/>
+        </svg>
         <span>Einstell.</span><i class="dot"></i>
       </button>
     </nav>
@@ -52,8 +82,9 @@
           <div id="topbar-device-wrap" class="topbar-device-wrap">
             <button type="button" id="topbar-device" class="topbar-device is-offline" title="Gerätetab öffnen" aria-live="polite">
               <svg class="topbar-device-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="7" y="4" width="10" height="16" rx="3"/>
-                <path d="M12 17h.01"/>
+                <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
+                <path d="M11 7.2h2"/>
+                <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
               </svg>
               <span id="topbar-device-name">Nicht verbunden</span>
               <i id="topbar-device-led" class="topbar-device-led"></i>
