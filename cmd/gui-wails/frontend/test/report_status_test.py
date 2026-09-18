@@ -57,24 +57,24 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         page.wait_for_function(
-            "document.querySelector('#st-report-status').textContent.includes('bereits')",
+            "document.querySelector('#st-report-status').textContent.includes('Already')",
             timeout=5000)
-        check("Pfad mit Daten: 'bereits' im Hinweis",
-              "bereits" in page.locator("#st-report-status").inner_text())
+        check("path with data: 'Already' in status",
+              "Already" in page.locator("#st-report-status").inner_text())
 
         page.click("#st-pick-report")
         page.wait_for_function(
-            "document.querySelector('#st-report-status').textContent.includes('Noch keine')",
+            "document.querySelector('#st-report-status').textContent.includes('No metrics recorded')",
             timeout=5000)
-        check("frisch gewählter, leerer Pfad: 'Noch keine' im Hinweis",
-              "Noch keine" in page.locator("#st-report-status").inner_text())
+        check("frisch gewählter, leerer Pfad: 'No metrics yet' im Hinweis",
+              "No metrics recorded" in page.locator("#st-report-status").inner_text())
 
         page.click("#st-default-report")
         page.wait_for_function(
             "document.querySelector('#st-report-path').value === '/tmp/default.jsonl'",
             timeout=5000)
-        check("Standard-Pfad ebenfalls ohne Daten -> 'Noch keine'",
-              "Noch keine" in page.locator("#st-report-status").inner_text())
+        check("Standard-Pfad ebenfalls ohne Daten -> 'No metrics yet'",
+              "No metrics recorded" in page.locator("#st-report-status").inner_text())
 
         page.fill("#st-report-path", "")
         page.locator("#st-report-path").dispatch_event("change")

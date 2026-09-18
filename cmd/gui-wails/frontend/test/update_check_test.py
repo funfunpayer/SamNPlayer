@@ -51,10 +51,10 @@ def main():
         page.evaluate("window.__updateResult = { available: false }")
         page.click("#st-update-now")
         page.wait_for_function(
-            "document.querySelector('#st-update-status').textContent.includes('Kein Update')",
+            "document.querySelector('#st-update-status').textContent.includes('No update')",
             timeout=5000)
         txt = page.locator("#st-update-status").inner_text()
-        check("kein Update: Hinweis nennt 'Kein Update'", "Kein Update" in txt)
+        check("no update: status mentions 'No update'", "No update" in txt)
         check("kein Update: aktuelle Version wird genannt", "0.3.0" in txt, txt)
 
         # Update verfügbar (Dialog wird oben dismissed statt akzeptiert).

@@ -20,6 +20,7 @@ from _harness import Checker, app_stub, serve
 PAGE = """<!doctype html><html><body><div id="root"></div>
 <script type="module">
   import { initPlayback } from '/src/playback.js';
+  window.__calls = [];
   window.__pb = initPlayback(document.querySelector('#root'));
   window.__ready = true;
 </script></body></html>"""
@@ -96,7 +97,7 @@ def main():
               8000 <= saved[0]["startMs"] <= 12000 and 38000 <= saved[0]["endMs"] <= 42000,
               str(saved))
         check("Liste zeigt den neuen Marker",
-              "Primär" in page.locator("#pb-omarker-list").inner_text())
+              "Primary" in page.locator("#pb-omarker-list").inner_text())
 
         # Sekundären Marker mit eigener Intensität hinzufügen - Kind
         # umschalten muss die Intensitätszeile einblenden.
@@ -114,7 +115,7 @@ def main():
               str(saved2))
 
         # Ersten Marker wieder entfernen.
-        page.locator("#pb-omarker-list button", has_text="Entfernen").first.click()
+        page.locator("#pb-omarker-list button", has_text="Remove").first.click()
         page.wait_for_function("window.__calls.filter(c => c[0] === 'saveOMarkers').length === 3",
                                timeout=5000)
         saved3 = page.evaluate("window.__calls.filter(c => c[0] === 'saveOMarkers').pop()[1]")

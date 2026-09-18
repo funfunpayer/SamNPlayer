@@ -70,11 +70,11 @@ def main():
         "InstallRoiTrainingDeps": "async () => {}",
         "UpdateRoiTrainingSample": "async () => {}",
         "ListRoiTrainingDevices": "async () => (["
-            "{id:'auto',label:'Automatisch (bestes verfügbares)',available:true},"
+            "{id:'auto',label:'Automatic (best available)',available:true},"
             "{id:'cuda',label:'NVIDIA CUDA',available:false},"
             "{id:'directml',label:'DirectML (Windows)',available:false},"
             "{id:'mps',label:'Apple MPS',available:false},"
-            "{id:'cpu',label:'CPU (sehr langsam)',available:true}])",
+            "{id:'cpu',label:'CPU (very slow)',available:true}])",
     }))
     harness = FRONTEND / "test" / "_roi_training_harness.html"
     harness.write_text(PAGE)
@@ -105,7 +105,7 @@ def main():
         page.mouse.down()
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
         page.mouse.up()
-        check("Ohne Klassennamen bleibt 'Für Training verwenden' gesperrt",
+        check("Ohne Klassennamen bleibt 'Use for training' gesperrt",
               page.locator("#rt-bootstrap").is_disabled())
 
         page.fill("#rt-class1", "brust")
@@ -149,7 +149,7 @@ def main():
               "brust" in page.locator(".rt-box-label").first.inner_text())
 
         # --- Verwerfen entfernt genau eine Karte --------------------------------
-        page.locator(".rt-card button:text('Verwerfen')").first.click()
+        page.locator(".rt-card button:text('Discard')").first.click()
         page.wait_for_function("window.__calls.some(c => Array.isArray(c) && c[0] === 'discard')", timeout=5000)
         page.wait_for_function("document.querySelectorAll('.rt-card').length === 1", timeout=5000)
         check("Verwerfen entfernt genau eine Karte", True)

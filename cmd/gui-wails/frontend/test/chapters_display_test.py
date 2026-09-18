@@ -61,12 +61,12 @@ def main():
 
         page.click("#pb-choose")
         page.wait_for_function(
-            "document.querySelector('#pb-analysis').textContent.includes('Kapitel')", timeout=5000)
+            "document.querySelector('#pb-analysis').textContent.includes('Chapters')", timeout=5000)
         text = page.locator("#pb-analysis").inner_text()
         check("Analyse-Zusammenfassung bleibt erhalten", "gleichmäßig" in text, text)
-        check("Kapitelliste wird angehängt", "Kapitel:" in text, text)
+        check("chapter list is appended", "Chapters:" in text, text)
         check("Kapitelnamen werden übersetzt (Pause/Steigerung)",
-              "Pause" in text and "Steigerung" in text, text)
+              "Pause" in text and "Crescendo" in text, text)
         check("Zeiten werden als m:ss formatiert", "0:00" in text and "0:10" in text, text)
 
         browser.close()

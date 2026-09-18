@@ -4,7 +4,7 @@ import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
 
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
-const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Sog', both: 'Beide' };
+const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both' };
 
 function formatHistoryDate(iso) {
   const d = new Date(iso);
@@ -12,73 +12,72 @@ function formatHistoryDate(iso) {
   return d.toLocaleString();
 }
 
-// Trainings-Modus: eigenständige Auf/Ab-Zyklen unabhängig von einem Skript,
-// angelehnt an die klinisch beschriebene Stop-Start-Methode (Semans) bzw.
+// Trainings-Modus: eigenständige Auf/Ab-Cycles unabhängig von einem Skript,
+// angelehnt to die klinisch beschriebene Stop-Start-Methode (Semans) bzw.
 // deren Plateau/Edging-Variante. Steuert ausschließlich Vibration (siehe
 // player/training.go für den Hintergrund) - kein funscript nötig.
 export function initTraining(root) {
   root.innerHTML = `
     <h2>Training</h2>
     <p class="hint">
-      Eigenständige Auf/Ab-Zyklen zum Ausdauer-/Kontrolltraining - kein
-      Video/Skript nötig. "Stop-Start": komplett auf 0 zwischen den Zyklen.
-      "Plateau": bleibt auf einem hohen Niveau statt ganz abzufallen
-      ("Edging"). Vibration und Sog sind beide stufenlos steuerbar, darum
-      frei als Kanal wählbar. Jeder Zyklus wird mitgeschrieben
-      (Einstellungen-Tab → Log-Ordner), um die Ansteuerung später
-      feinabstimmen zu können.
+      Standalone up/down cycles for stamina/control training — no
+      video or script required. "Stop-start": fully to 0 between cycles.
+      "Plateau": stays at a high level instead of dropping all the way
+      ("edging"). Vibration and suction are both stepless, so either
+      channel is free to choose. Each cycle is logged
+      (Settings → log folder) so drive can be tuned later.
     </p>
 
-    <div class="field-row"><label>Gerät</label>
-      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="tr-mock" /> <label for="tr-mock" style="width:auto">Mock (ohne Gerät testen)</label></span>
+    <div class="field-row"><label>Device</label>
+      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="tr-mock" /> <label for="tr-mock" style="width:auto">Mock (test without device)</label></span>
     </div>
-    <div class="field-row"><label>Technik</label>
+    <div class="field-row"><label>Technique</label>
       <select id="tr-technique">
-        <option value="stopstart">Stop-Start (auf 0 zwischen Zyklen)</option>
-        <option value="plateau">Plateau (bleibt oben, "Edging")</option>
+        <option value="stopstart">Stop-start (to 0 between cycles)</option>
+        <option value="plateau">Plateau (stays high, "edging")</option>
       </select>
     </div>
-    <div class="field-row"><label>Kanal</label>
+    <div class="field-row"><label>Channel</label>
       <select id="tr-channel">
-        <option value="vibration">Nur Vibration</option>
-        <option value="suction">Nur Sog</option>
-        <option value="both">Beide</option>
+        <option value="vibration">Vibration only</option>
+        <option value="suction">Suction only</option>
+        <option value="both">Both</option>
       </select>
     </div>
-    <div class="field-row"><label>Zyklen</label><input type="number" min="1" id="tr-cycles" value="5" /></div>
-    <div class="field-row"><label>Hochfahren (ms)</label><input type="number" min="0" step="500" id="tr-rampup" value="8000" /></div>
-    <div class="field-row"><label>Halten (ms)</label><input type="number" min="0" step="500" id="tr-hold" value="3000" /></div>
-    <div class="field-row"><label>Pause/Absenken (ms)</label><input type="number" min="0" step="500" id="tr-rest" value="10000" /></div>
-    <div class="field-row"><label>Höchst-Intensität</label><input type="number" min="0" max="1" step="0.05" id="tr-peak" value="0.8" /></div>
-    <div class="field-row" id="tr-plateau-row"><label>Plateau-Anteil</label><input type="number" min="0" max="1" step="0.05" id="tr-plateaufrac" value="0.7" /></div>
-    <div class="field-row"><label>Steigerung/Zyklus</label><input type="number" min="0" max="1" step="0.05" id="tr-progression" value="0.15" /></div>
+    <div class="field-row"><label>Cycles</label><input type="number" min="1" id="tr-cycles" value="5" /></div>
+    <div class="field-row"><label>Ramp up (ms)</label><input type="number" min="0" step="500" id="tr-rampup" value="8000" /></div>
+    <div class="field-row"><label>Hold (ms)</label><input type="number" min="0" step="500" id="tr-hold" value="3000" /></div>
+    <div class="field-row"><label>Rest (ms)</label><input type="number" min="0" step="500" id="tr-rest" value="10000" /></div>
+    <div class="field-row"><label>Peak intensity</label><input type="number" min="0" max="1" step="0.05" id="tr-peak" value="0.8" /></div>
+    <div class="field-row" id="tr-plateau-row"><label>Plateau fraction</label><input type="number" min="0" max="1" step="0.05" id="tr-plateaufrac" value="0.7" /></div>
+    <div class="field-row"><label>Progression per cycle</label><input type="number" min="0" max="1" step="0.05" id="tr-progression" value="0.15" /></div>
 
     <div class="row">
-      <button id="tr-start" class="primary">▶ Training starten</button>
-      <button id="tr-pause" class="primary" disabled>Jetzt unterbrechen</button>
-      <button id="tr-stop" disabled>■ Session beenden</button>
+      <button id="tr-start" class="primary">▶ Start training</button>
+      <button id="tr-pause" class="primary" disabled>Interrupt now</button>
+      <button id="tr-stop" disabled>■ End session</button>
     </div>
 
     <fieldset id="tr-arousal" disabled style="margin-top:12px; border:1px solid var(--border);
               border-radius:4px; padding:10px;">
-      <legend style="padding:0 6px;">Rückmeldung</legend>
-      <p class="hint" style="margin-top:0;">Wie nah bist du gerade? Die Angabe wirkt auf den
-        <em>nächsten</em> Zyklus: hohe Werte führen zu kürzeren, sanfteren Zyklen mit längerer
-        Pause. Ziel ist 7 — nah dran, aber mit Abstand.</p>
+      <legend style="padding:0 6px;">Feedback</legend>
+      <p class="hint" style="margin-top:0;">How close are you right now? Your rating affects the
+        <em>next</em> cycle: high values lead to shorter, gentler cycles with longer
+        rest. Target is 7 — close, but with margin.</p>
       <div class="row" id="tr-arousal-buttons" style="flex-wrap:wrap; gap:4px;"></div>
       <div id="tr-arousal-status" class="hint" style="margin-top:6px;"></div>
     </div>
 
     <div class="stat-row">
-      <span>Zyklus: <b id="tr-cycle-label">-</b></span>
-      <span>Aktuelle Spitze: <b id="tr-peak-label">-</b></span>
+      <span>Cycle: <b id="tr-cycle-label">-</b></span>
+      <span>Current peak: <b id="tr-peak-label">-</b></span>
     </div>
     <div id="tr-log" style="background:var(--bg-alt); border:1px solid var(--border); border-radius:4px; padding:8px; height:100px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--text-dim); white-space:pre-wrap;"></div>
 
-    <h3 style="margin-top:16px;">Verlauf</h3>
+    <h3 style="margin-top:16px;">History</h3>
     <p class="hint" style="margin-top:0;">Jede Session wird mitgeschrieben (siehe oben) -
       hier eine Zeile je vergangener Session, neueste zuerst.</p>
-    <div id="tr-history" class="hint">Lädt...</div>
+    <div id="tr-history" class="hint">Loading…</div>
   `;
 
   const el = id => root.querySelector(id);
@@ -108,22 +107,22 @@ export function initTraining(root) {
     try {
       const history = await TrainingHistory();
       if (!Array.isArray(history) || history.length === 0) {
-        box.textContent = 'Noch keine abgeschlossene Session.';
+        box.textContent = 'No completed session yet.';
         return;
       }
       box.innerHTML = history.map(s => {
         const technique = TECHNIQUE_LABELS[s.technique] || s.technique;
         const channel = CHANNEL_LABELS[s.channel] || s.channel;
         const stopped = s.cyclesStoppedEarly > 0
-          ? `, ${s.cyclesStoppedEarly}x unterbrochen` : '';
+          ? `, ${s.cyclesStoppedEarly}× interrupted` : '';
         const arousal = s.arousalReportsCount > 0
-          ? `, Ø-Rückmeldung ${s.meanArousalReported.toFixed(1)}` : '';
+          ? `, avg feedback ${s.meanArousalReported.toFixed(1)}` : '';
         return `<div>${formatHistoryDate(s.startedAt)} — ${technique}/${channel}: `
-          + `${s.cyclesCompleted} Zyklen, Ø-Spitze ${Math.round(s.meanPeakIntensity * 100)}%`
+          + `${s.cyclesCompleted} cycles, avg peak ${Math.round(s.meanPeakIntensity * 100)}%`
           + `${stopped}${arousal}</div>`;
       }).join('');
     } catch (err) {
-      box.textContent = 'Verlauf konnte nicht geladen werden: ' + err;
+      box.textContent = 'Could not load history: ' + err;
     }
   }
 
@@ -144,7 +143,7 @@ export function initTraining(root) {
     try {
       await StartTraining(req);
     } catch (err) {
-      uiError('Training starten: ' + err, el('#tr-log'));
+      uiError('Start training: ' + err, el('#tr-log'));
       return;
     }
     setRunningState(true);
@@ -156,14 +155,14 @@ export function initTraining(root) {
   }
 
   EventsOn('training:log', log);
-  EventsOn('training:error', msg => log('FEHLER: ' + msg));
-  EventsOn('training:done', () => { setRunningState(false); log('Training beendet.'); refreshHistory(); });
+  EventsOn('training:error', msg => log('ERROR: ' + msg));
+  EventsOn('training:done', () => { setRunningState(false); log('Training finished.'); refreshHistory(); });
   EventsOn('training:cycle', c => {
     el('#tr-cycle-label').textContent = `${c.cycleIndex + 1} / ${c.cyclesTotal}`;
     el('#tr-peak-label').textContent = Math.round(c.peakIntensity * 100) + '%';
     const reached = c.reachedPeakAfterMs ? `, erreicht nach ${(c.reachedPeakAfterMs / 1000).toFixed(1)}s` : '';
     const stopped = c.stoppedByUser ? ' — auf Wunsch unterbrochen' : '';
-    const fb = c.arousalBefore ? `, angepasst nach Rückmeldung ${c.arousalBefore}` : '';
+    const fb = c.arousalBefore ? `, angepasst nach Feedback ${c.arousalBefore}` : '';
     log(`Zyklus ${c.cycleIndex + 1}/${c.cyclesTotal}: Spitze ${Math.round(c.peakIntensity * 100)}%, Halten ${c.holdMs}ms${fb}${reached}${stopped}`);
   });
 
@@ -178,9 +177,9 @@ export function initTraining(root) {
       try {
         await ReportArousal(i);
         el('#tr-arousal-status').textContent =
-          `${i} gemeldet — wirkt auf den nächsten Zyklus.`;
+          `${i} reported — affects the next cycle.`;
       } catch (err) {
-        el('#tr-arousal-status').textContent = 'Nicht übernommen: ' + err;
+        el('#tr-arousal-status').textContent = 'Not applied: ' + err;
       }
     });
     scale.appendChild(btn);
@@ -195,9 +194,9 @@ export function initTraining(root) {
   el('#tr-pause').addEventListener('click', async () => {
     try {
       await StopTrainingCycle();
-      log('Zyklus unterbrochen - Pause läuft, danach geht es weiter.');
+      log('Cycle interrupted — pause running, then continues.');
     } catch (err) {
-      log('Konnte nicht unterbrechen: ' + err);
+      log('Could not interrupt: ' + err);
     }
   });
   el('#tr-technique').addEventListener('change', updateTechniqueVisibility);

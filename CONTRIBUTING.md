@@ -18,9 +18,11 @@ reports, permission claims, and completion claims against the current
 state. When sources disagree, rely on code and reproducible tests. Do not
 present values without hardware evidence as verified device properties.
 
-Write project documentation in English. Preserve code identifiers, CLI
-flags, file paths, and exact UI labels when they are needed to identify
-an existing control.
+Write project documentation and **user-facing UI** in English (see
+`docs/LANGUAGE.md`). Preserve code identifiers, CLI flags, file paths, and
+exact UI labels when they are needed to identify an existing control.
+Do not rewrite Go/Python/JS stacks for fashion — only when a measured win
+justifies the cost.
 
 ## Areas that can be worked on independently
 

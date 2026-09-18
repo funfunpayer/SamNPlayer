@@ -92,13 +92,13 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_device_harness.html")
         page.wait_for_function("window.__ready === true")
-        page.wait_for_function("!document.querySelector('#dev-status-text').textContent.includes('geladen')")
+        page.wait_for_function("!document.querySelector('#dev-status-text').textContent.includes('Loading')")
 
         status = lambda: page.locator("#dev-status-text").inner_text()
         disabled = lambda sel: page.locator(sel).evaluate("e => e.disabled")
 
         # --- Ausgangszustand ---
-        check("Start: 'Nicht verbunden'", "Nicht verbunden" in status(), status())
+        check("Start: 'Not connected'", "Not connected" in status(), status())
         check("Start: Testbereich gesperrt", disabled("#dev-test"))
         check("Start: Trennen gesperrt", disabled("#dev-disconnect"))
         check("Start: Verbinden möglich", not disabled("#dev-connect"))
@@ -123,9 +123,9 @@ def main():
         check("Verbunden: Gerätename sichtbar", "Sam Neo 2 Pro" in status(), status())
         check("Verbunden: Adresse sichtbar", "AA:BB:CC:DD:EE:FF" in status(), status())
         check("Verbunden: Signalstärke sichtbar", "-58" in status(), status())
-        check("Verbunden: Akku sichtbar wenn gemeldet", "Akku 73%" in status(), status())
+        check("Verbunden: Akku sichtbar wenn gemeldet", "Battery 73%" in status(), status())
         caps = page.locator("#dev-caps").inner_text()
-        check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Sog" in caps, caps)
+        check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Suction" in caps, caps)
         check("Verbunden: Testbereich frei", not disabled("#dev-test"))
         check("Verbunden: Verbinden gesperrt", disabled("#dev-connect"))
 
@@ -135,13 +135,13 @@ def main():
         vib = page.evaluate("window.__calls.filter(c => c[0] === 'vib').pop()")
         check("Vibrationsregler sendet 0.5", abs(vib[1] - 0.5) < 1e-9, str(vib))
         check("Stufenanzeige Vibration 50% = Stufe 5",
-              "Stufe 5" in page.locator("#dev-vib-val").inner_text(),
+              "level 5" in page.locator("#dev-vib-val").inner_text(),
               page.locator("#dev-vib-val").inner_text())
 
         page.eval_on_selector("#dev-suc", "e => { e.value = 100; e.dispatchEvent(new Event('input')); }")
         page.wait_for_function("window.__calls.some(c => c[0] === 'suc')")
         check("Stufenanzeige Sog 100% = Stufe 5",
-              "Stufe 5" in page.locator("#dev-suc-val").inner_text(),
+              "level 5" in page.locator("#dev-suc-val").inner_text(),
               page.locator("#dev-suc-val").inner_text())
 
         # --- "Alles aus" setzt auch die Regler zurück ---
@@ -159,8 +159,8 @@ def main():
         page.wait_for_function("window.__calls.some(c => c[0] === 'raw')")
         raw = page.evaluate("window.__calls.filter(c => c[0] === 'raw').pop()")
         check("Rohwert wird unverändert gesendet", raw[2] == 42, str(raw))
-        check("Hinweis bei Wert über dem dokumentierten Maximum",
-              "Maximum" in page.locator("#dev-raw-hint").inner_text(),
+        check("Hinweis bei Wert über dem documented maximum",
+              "documented maximum" in page.locator("#dev-raw-hint").inner_text(),
               page.locator("#dev-raw-hint").inner_text())
 
         # --- Geräte-Diagnose: nur bei bestehender Verbindung bedienbar ----
@@ -168,7 +168,7 @@ def main():
         page.click("#diag-run")
         page.wait_for_function("window.__calls.some(c => c[0] === 'diagnose')")
         check("Diagnose-Knopf während des Laufs gesperrt", disabled("#diag-run"))
-        check("Status zeigt 'Läuft'", "Läuft" in page.locator("#diag-status").inner_text(),
+        check("Status zeigt 'Läuft'", "Running" in page.locator("#diag-status").inner_text(),
               page.locator("#diag-status").inner_text())
 
         page.evaluate("window.__triggerEvent('diagnostics:entry', "
@@ -187,7 +187,7 @@ def main():
                 interrupted: false,
                 phases: [{ phase: 'raw_sweep_vibration', commands: 32, errors: 0,
                            meanLatencyMs: 3.2, maxLatencyMs: 9.1 }],
-                log: [], notes: ['Nicht gemessen: gefühlte Intensität.'],
+                log: [], notes: ['Not measured: felt intensity.'],
             },
         })""")
         page.wait_for_function("document.querySelector('#diag-run').disabled === false")
@@ -196,7 +196,7 @@ def main():
               "raw sweep vibration" in page.locator("#diag-result").inner_text(),
               page.locator("#diag-result").inner_text())
         check("Ergebnis zeigt die Nicht-gemessen-Notiz",
-              "gefühlte Intensität" in page.locator("#diag-result").inner_text(),
+              "Not measured" in page.locator("#diag-result").inner_text(),
               page.locator("#diag-result").inner_text())
 
         # --- Laufende Session sperrt den Test ---
@@ -205,13 +205,13 @@ def main():
         check("Session läuft: Testbereich gesperrt", disabled("#dev-test"))
         check("Session läuft: Rohwert-Bereich gesperrt", disabled("#dev-raw"))
         check("Session läuft: Diagnose-Bereich gesperrt", disabled("#dev-diag"))
-        check("Session läuft: Hinweis sichtbar", "nicht möglich" in status(), status())
+        check("Session läuft: Hinweis sichtbar", "unavailable" in status(), status())
         page.evaluate("window.__setState({ sessionActive: false })")
 
         # --- Trennen ---
         page.wait_for_function("document.querySelector('#dev-disconnect').disabled === false", timeout=5000)
         page.click("#dev-disconnect")
-        page.wait_for_function("document.querySelector('#dev-status-text').textContent.includes('Nicht verbunden')")
+        page.wait_for_function("document.querySelector('#dev-status-text').textContent.includes('Not connected')")
         check("Getrennt: Testbereich wieder gesperrt", disabled("#dev-test"))
 
         browser.close()

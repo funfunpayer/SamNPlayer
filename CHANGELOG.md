@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Product language:** user-facing UI and docs aligned to **English**
+  (`docs/LANGUAGE.md`). Prefer English for new strings and documentation;
+  keep Go/Python/JS where each fits (no speculative rewrites).
+
 ### Added
 
 - **KI-Training:** one-click `InstallRoiTrainingDeps` (embedded

@@ -19,10 +19,10 @@ PAGE = """<!doctype html><html><head><link rel="stylesheet" href="/src/style.css
         <div id="topbar-device-wrap" class="topbar-device-wrap">
           <button type="button" id="topbar-device" class="topbar-device is-offline">
             <svg class="topbar-device-icon" viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="3"/><path d="M12 17h.01"/></svg>
-            <span id="topbar-device-name">Nicht verbunden</span>
+            <span id="topbar-device-name">Not connected</span>
             <i id="topbar-device-led" class="topbar-device-led"></i>
           </button>
-          <button type="button" id="topbar-device-action" class="topbar-device-action">Verbinden</button>
+          <button type="button" id="topbar-device-action" class="topbar-device-action">Connect</button>
         </div>
         <span id="version-label" class="pill">dev</span>
       </div>
@@ -59,20 +59,20 @@ PAGE = """<!doctype html><html><head><link rel="stylesheet" href="/src/style.css
     wrap.classList.remove('is-online', 'is-offline', 'is-searching');
     if (busy && !connected) {
       wrap.classList.add('is-searching');
-      nameEl.textContent = 'Suche…';
+      nameEl.textContent = 'Searching…';
       action.textContent = '…';
       action.disabled = true;
       return;
     }
     if (connected) {
       wrap.classList.add('is-online');
-      nameEl.textContent = st.mock ? 'Mock-Gerät' : (st.name && String(st.name).trim()) || 'Verbunden';
-      action.textContent = 'Trennen';
+      nameEl.textContent = st.mock ? 'Mock device' : (st.name && String(st.name).trim()) || 'Connected';
+      action.textContent = 'Disconnect';
       action.disabled = busy;
     } else {
       wrap.classList.add('is-offline');
-      nameEl.textContent = 'Nicht verbunden';
-      action.textContent = 'Verbinden';
+      nameEl.textContent = 'Not connected';
+      action.textContent = 'Connect';
       action.disabled = busy;
     }
   }
@@ -135,23 +135,23 @@ def main():
         label = lambda: page.locator("#topbar-device-name").inner_text()
         action = lambda: page.locator("#topbar-device-action").inner_text()
 
-        check("Start offline", label() == "Nicht verbunden", label())
-        check("Start Verbinden-Knopf", action() == "Verbinden", action())
+        check("Start offline", label() == "Not connected", label())
+        check("Start Connect button", action() == "Connect", action())
         check("Start Klasse offline",
               "is-offline" in page.locator("#topbar-device-wrap").get_attribute("class"))
 
         page.click("#topbar-device-action")
         page.wait_for_function("document.querySelector('#topbar-device-name').textContent === 'Sam Neo 2 Pro'")
         check("Verbinden setzt Name", label() == "Sam Neo 2 Pro", label())
-        check("Nach Verbinden Trennen", action() == "Trennen", action())
+        check("After connect: Disconnect", action() == "Disconnect", action())
         check("Online-Klasse", "is-online" in page.locator("#topbar-device-wrap").get_attribute("class"))
         check("Connect mit gespeichertem Transport",
               page.evaluate("window.__calls.some(c => c[0]==='connect' && c[1]==='ble')"))
 
         page.click("#topbar-device-action")
-        page.wait_for_function("document.querySelector('#topbar-device-name').textContent === 'Nicht verbunden'")
-        check("Trennen wieder offline", label() == "Nicht verbunden", label())
-        check("Nach Trennen Verbinden", action() == "Verbinden", action())
+        page.wait_for_function("document.querySelector('#topbar-device-name').textContent === 'Not connected'")
+        check("Trennen wieder offline", label() == "Not connected", label())
+        check("After disconnect: Connect", action() == "Connect", action())
 
         page.click("#topbar-device")
         check("Name-Klick öffnet Gerätetab", page.evaluate("window.__lastTab") == "device")

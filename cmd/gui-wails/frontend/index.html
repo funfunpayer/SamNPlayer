@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>SamNPlayer</title>
@@ -16,7 +16,7 @@
           <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
         </h1>
       </div>
-      <button class="tab-btn active" data-tab="playback" title="Wiedergabe">
+      <button class="tab-btn active" data-tab="playback" title="Playback">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="8.2"/>
           <path d="M10.2 8.6v6.8l6-3.4z" fill="currentColor" stroke="none"/>
@@ -31,13 +31,13 @@
         </svg>
         <span>Training</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="generator" title="Skript erzeugen">
+      <button class="tab-btn" data-tab="generator" title="Generate script">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4.5" y="4.5" width="15" height="15" rx="3"/>
           <path d="M8 9.2h5.5M8 12h8M8 14.8h4"/>
           <path d="M16.2 8.2l2.6 2.1-2.6 2.1"/>
         </svg>
-        <span>Erzeugen</span><i class="dot"></i>
+        <span>Generate</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="benchmark" title="Golden-Clip-Benchmark">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -46,24 +46,24 @@
         </svg>
         <span>Bench</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="roi-training" title="KI-Trainingssystem">
+      <button class="tab-btn" data-tab="roi-training" title="AI training">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3.8" y="3.8" width="7" height="7" rx="2"/>
           <rect x="13.2" y="3.8" width="7" height="7" rx="2"/>
           <rect x="3.8" y="13.2" width="7" height="7" rx="2"/>
           <path d="M14.2 15.2h5M16.7 12.7v5"/>
         </svg>
-        <span>KI-Train.</span><i class="dot"></i>
+        <span>AI Train</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="device" title="Gerät">
+      <button class="tab-btn" data-tab="device" title="Device">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
           <path d="M11 7.2h2"/>
           <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
         </svg>
-        <span>Gerät</span><i class="dot"></i>
+        <span>Device</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="log" title="Protokoll">
+      <button class="tab-btn" data-tab="log" title="Log">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M7.2 4.5h7.2L18 8.1v11.4a1.8 1.8 0 0 1-1.8 1.8H7.2a1.8 1.8 0 0 1-1.8-1.8V6.3a1.8 1.8 0 0 1 1.8-1.8z"/>
           <path d="M14.2 4.6V8h3.5"/>
@@ -71,12 +71,12 @@
         </svg>
         <span>Log</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="settings" title="Einstellungen">
+      <button class="tab-btn" data-tab="settings" title="Settings">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="3.1"/>
           <path d="M12 3.6v2.1M12 18.3v2.1M3.6 12h2.1M18.3 12h2.1M6.2 6.2l1.5 1.5M16.3 16.3l1.5 1.5M17.8 6.2l-1.5 1.5M7.7 16.3l-1.5 1.5"/>
         </svg>
-        <span>Einstell.</span><i class="dot"></i>
+        <span>Settings</span><i class="dot"></i>
       </button>
     </nav>
 
@@ -85,16 +85,16 @@
         <div class="topbar-brand-slot" aria-hidden="true"></div>
         <div class="pills">
           <div id="topbar-device-wrap" class="topbar-device-wrap">
-            <button type="button" id="topbar-device" class="topbar-device is-offline" title="Gerätetab öffnen" aria-live="polite">
+            <button type="button" id="topbar-device" class="topbar-device is-offline" title="Open Device tab" aria-live="polite">
               <svg class="topbar-device-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="8" y="3.2" width="8" height="17.6" rx="4"/>
                 <path d="M11 7.2h2"/>
                 <circle cx="12" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>
               </svg>
-              <span id="topbar-device-name">Nicht verbunden</span>
+              <span id="topbar-device-name">Not connected</span>
               <i id="topbar-device-led" class="topbar-device-led"></i>
             </button>
-            <button type="button" id="topbar-device-action" class="topbar-device-action">Verbinden</button>
+            <button type="button" id="topbar-device-action" class="topbar-device-action">Connect</button>
           </div>
           <span id="version-label" class="pill"></span>
         </div>

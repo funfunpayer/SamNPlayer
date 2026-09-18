@@ -1,80 +1,74 @@
-# KI-Trainingssystem — Anleitung (was / wo / wie)
+# AI training system — guide (what / where / how)
 
-Stand: September 2026 · SamNPlayer **0.5.5+**
+As of September 2026 · SamNPlayer **0.5.5+**
 
-Dieses Dokument erklärt das **Regions-Modell** (YOLO → ONNX), nicht das
-Geräte-„Training“ im Tab Training (Stop-Start/Plateau).
+This document explains the **regions model** (YOLO → ONNX), not device **Training** in the Training tab (stop-start/plateau).
 
-## Kurz: Was die KI darf — und was nicht
+## Quick: what AI may do — and what not
 
-| Darf | Darf nicht |
-|------|------------|
-| Region(en) vorschlagen | Funscript schreiben |
-| Box in der GUI setzen | Tracking ersetzen |
-| Lokal auf deinem Rechner lernen | Cloud / Telemetrie / mitgeliefertes Modell |
+| May | May not |
+|-----|---------|
+| Suggest region(s) | Write Funscripts |
+| Set box in the GUI | Replace tracking |
+| Learn locally on your machine | Cloud / telemetry / bundled model |
 
-Klassisches Tracking (CSRT / Flow / …) schreibt immer das `.funscript`.
-Siehe auch `docs/AI_ADAPTER.md` und `docs/FUNSCRIPT_ALGOS.md`.
+Classic tracking (CSRT / flow / …) always writes the `.funscript`.
+See also `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.md`.
 
-## Voraussetzungen
+## Requirements
 
-1. **Python 3** (dasselbe, das SamNPlayer findet — Windows: `py`/`python`)
-2. **Basis-CV:** `opencv-contrib-python` (nicht nur `opencv-python`) — für
-   Bootstrap (Video abtasten). OpenCV 5: CSRT oft weg → automatischer
-   KCF-Fallback (#95).
-3. **Training:** `ultralytics` + `onnx` (zieht PyTorch nach)
-4. **Inferenz (Erzeugen-Tab):** `onnxruntime`
-5. Optional: **ffmpeg** für Still-Konvertierung / Audio-Sidecar / Player-Proxy
+1. **Python 3** (same interpreter SamNPlayer finds — Windows: `py`/`python`)
+2. **Base CV:** `opencv-contrib-python` (not `opencv-python` alone) — for bootstrap (video sampling). OpenCV 5: CSRT often missing → automatic KCF fallback (#95).
+3. **Training:** `ultralytics` + `onnx` (pulls PyTorch)
+4. **Inference (Generate tab):** `onnxruntime`
+5. Optional: **ffmpeg** for still conversion / audio sidecar / player proxy
 
-### Installation (GUI, empfohlen)
+### Installation (GUI, recommended)
 
-Im Tab **KI-Trainingssystem** → **Abhängigkeiten installieren**.
+In the **AI training** tab → **Install dependencies**.
 
-Das schreibt die im Binary eingebettete `requirements-ai-train.txt` und ruft
-`python -m pip install -r …` auf — funktioniert auch ohne Quellbaum
-(Release-.exe).
+This writes the embedded `requirements-ai-train.txt` and runs
+`python -m pip install -r …` — works without a source tree
+(release `.exe`).
 
-### Installation (manuell)
+### Installation (manual)
 
 ```bash
-# Inferenz
+# Inference
 pip install -r generator/requirements-ai.txt
 
 # Training (+ PyTorch)
 pip install -r generator/requirements-ai-train.txt
 
-# Windows ohne NVIDIA (optional):
+# Windows without NVIDIA (optional):
 pip install torch-directml
 ```
 
-Aus dem Binary: Einstellungen / oder später „Requirements exportieren“ —
-`WriteAIRequirementFiles(zielordner)`.
+From the binary: Settings / or later “Export requirements” —
+`WriteAIRequirementFiles(target folder)`.
 
-## Schritt-für-Schritt (GUI)
+## Step-by-step (GUI)
 
-1. Tab **KI-Trainingssystem**
-2. **Video wählen** (oder **Bild** für Still-Annotation)
-3. Bei schwarzem Intro: Zeit vorstellen → Frame laden
-4. Bis zu **4 Boxen** ziehen, Klassen benennen (`hand`, `brust`, …)
-5. **Für Training verwenden** → CSRT/KCF trackt und schreibt YOLO-Samples
-6. **Kontrollansicht:** schlechte Samples **verwerfen**, Boxen
-   **korrigieren** (wichtig — Bootstrap-Boxgröße ist fest, Tracker kann
-   danebenliegen)
-7. **Training starten** (Epochen, Gerät Auto/CUDA/DirectML/CPU)
-8. Ergebnis: `roi_detector.onnx` unter dem Modellpfad (Einstellungen)
-9. Tab **Erzeugen** → Häkchen **KI-Erkennung (ONNX)** → Region finden lassen
-   → Box prüfen → Funscript generieren
+1. **AI training** tab
+2. **Choose video** (or **image** for still annotation)
+3. For black intro: seek time → load frame
+4. Draw up to **4 boxes**, name classes (`hand`, `breast`, …)
+5. **Use for training** → CSRT/KCF tracks and writes YOLO samples
+6. **Review:** discard bad samples, **correct** boxes (important — bootstrap box size is fixed; tracker may drift)
+7. **Start training** (epochs, device Auto/CUDA/DirectML/CPU)
+8. Result: `roi_detector.onnx` under model path (Settings)
+9. **Generate** tab → enable **AI detection (ONNX)** → find region → verify box → generate Funscript
 
-## Ordner
+## Folders
 
-| Was | Typischer Pfad |
-|-----|----------------|
-| Datensatz | `%AppData%/SamNPlayer/roi_training_dataset` bzw. `~/.config/SamNPlayer/…` |
-| Modell | `%LOCALAPPDATA%/SamNPlayer/models/roi_detector.onnx` |
-| Zwischengewichte | `<dataset>/runs/samnplayer_roi/weights/best.pt` |
-| Audio (optional) | `<dataset>/audio/*.wav` — noch nicht im Training genutzt |
+| What | Typical path |
+|------|----------------|
+| Dataset | `%AppData%/SamNPlayer/roi_training_dataset` or `~/.config/SamNPlayer/…` |
+| Model | `%LOCALAPPDATA%/SamNPlayer/models/roi_detector.onnx` |
+| Checkpoints | `<dataset>/runs/samnplayer_roi/weights/best.pt` |
+| Audio (optional) | `<dataset>/audio/*.wav` — not used in training yet |
 
-## CLI (Quellbaum)
+## CLI (source tree)
 
 ```bash
 python generator/bootstrap_yolo_dataset.py \
@@ -87,41 +81,40 @@ python generator/train_yolo_model.py \
   --epochs 100 --device auto
 ```
 
-## Bild-Erkennung: Was wir nutzen / was nicht
+## Vision: what we use / what not
 
-| Technik | Status |
-|---------|--------|
-| YOLOv8n → ONNX ROI-Vorschlag | **Produktpfad** |
-| Klassisches CSRT/KCF/Flow | **schreibt Funscript** |
-| Zwei-ROI-KI (`find_two_rois`) | Code da, real kaum gemessen |
-| Audio-Sidecar | nur abgelegt |
-| 3D / Depth / Pose | **nicht** — erst wenn Golden-Clips zeigen, dass es die Funscript-Qualität hebt |
+| Technique | Status |
+|-----------|--------|
+| YOLOv8n → ONNX ROI suggestion | **Product path** |
+| Classic CSRT/KCF/flow | **writes Funscript** |
+| Two-ROI AI (`find_two_rois`) | Code present, rarely measured in practice |
+| Audio sidecar | stored only |
+| 3D / depth / pose | **not** — until golden clips show Funscript quality gain |
 
-## Tipps für gute Modelle
+## Tips for good models
 
-- Viele kurze Clips statt eines langen
-- Boxen in der Kontrollansicht korrigieren (Bootstrap hält feste w/h)
-- Optional **Box scale** 1.1–1.2 für etwas Polster um die Markierung
-- Mindestens ein Val-Beispiel (Still-Pfad wechselt automatisch)
-- GPU stark empfohlen; CPU nur für Smoke-Tests (wenige Epochen)
-- Nach Training: Erzeugen-Tab → KI-Erkennung; in Settings **Preferred classes**
-  setzen bei Mehrklassen-Modellen (z.B. `hand,breast`)
-- 3D / Depth / Pose: **nicht** — erst wenn Golden-Clips Funscript-Gewinn zeigen
+- Many short clips instead of one long one
+- Correct boxes in review (bootstrap keeps fixed w/h)
+- Optional **box scale** 1.1–1.2 for padding around the mark
+- At least one val example (still path switches automatically)
+- GPU strongly recommended; CPU only for smoke tests (few epochs)
+- After training: Generate tab → AI detection; in Settings set **Preferred classes** for multi-class models (e.g. `hand,breast`)
+- 3D / depth / pose: **not** — until golden clips show Funscript gain
 
-## Fehlerbilder
+## Troubleshooting
 
-| Symptom | Ursache / Fix |
-|---------|----------------|
-| „ultralytics fehlt“ | Abhängigkeiten installieren |
-| Bootstrap scheitert OpenCV 5 | `opencv-contrib-python`; KCF-Fallback prüfen |
-| Training: leeres val | mind. 2 Stills oder Video-Bootstrap |
-| KI-Häkchen grau | kein `.onnx` unter Modellpfad |
-| Schlechte Vorschläge | mehr/korrigierte Samples; Preferred classes; nicht „größeres YOLO“ |
-| Preferred class ignoriert | `classes.json` neben `.onnx` fehlt (neu trainieren oder kopieren) |
+| Symptom | Cause / fix |
+|---------|-------------|
+| “ultralytics missing” | Install dependencies |
+| Bootstrap fails on OpenCV 5 | `opencv-contrib-python`; check KCF fallback |
+| Training: empty val | at least 2 stills or video bootstrap |
+| AI checkbox gray | no `.onnx` at model path |
+| Poor suggestions | more/corrected samples; preferred classes; not “bigger YOLO” |
+| Preferred class ignored | `classes.json` beside `.onnx` missing (retrain or copy) |
 
-## Verwandte Dateien
+## Related files
 
 - `cmd/gui-wails/frontend/src/roi_training.js` — GUI
-- `cmd/gui-wails/app_roi_training.go` — Wails-API
+- `cmd/gui-wails/app_roi_training.go` — Wails API
 - `generator/roi_training.go`, `bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `ai_roi.py`
-- `docs/AI_ADAPTER.md` — Architekturprinzip
+- `docs/AI_ADAPTER.md` — architecture principle

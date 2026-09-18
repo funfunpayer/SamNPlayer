@@ -52,25 +52,25 @@ export function saveSetting(key, value) {
 
 export function initSettings(root) {
   root.innerHTML = `
-    <h2>Einstellungen</h2>
+    <h2>Settings</h2>
     <div class="checkbox-row">
       <input type="checkbox" id="st-update-check" />
-      <label for="st-update-check">Beim Start automatisch nach Updates suchen</label>
+      <label for="st-update-check">Check for updates on startup</label>
     </div>
     <div class="checkbox-row">
       <input type="checkbox" id="st-connect-test" />
-      <label for="st-connect-test">Beim Verbinden einmal Verbindung testen (kurz Vib/Sog)</label>
+      <label for="st-connect-test">On connect, run a short connection test (brief vib/suction)</label>
     </div>
-    <p class="hint" style="margin-top:0">Standard aus. Wenn an: nach erfolgreichem Connect ein kurzer Impuls, damit klar ist, dass Steuerbefehle ankommen.</p>
+    <p class="hint" style="margin-top:0">Off by default. When on: after a successful connect, a short pulse confirms that commands arrive.</p>
     <div class="row" style="align-items:center;">
-      <button id="st-runtime-check" type="button">Ordner &amp; Abhängigkeiten prüfen</button>
+      <button id="st-runtime-check" type="button">Check folders &amp; dependencies</button>
       <span class="hint" id="st-runtime-status" style="margin:0"></span>
     </div>
     <div class="row" style="align-items:center;">
-      <button id="st-update-now" type="button">Jetzt nach Updates suchen</button>
+      <button id="st-update-now" type="button">Check for updates now</button>
       <span class="hint" id="st-update-status" style="margin:0"></span>
     </div>
-    <div class="field-row"><label>Log-Level</label>
+    <div class="field-row"><label>Log level</label>
       <select id="st-log-level">
         <option value="debug">debug</option>
         <option value="info">info</option>
@@ -80,15 +80,15 @@ export function initSettings(root) {
     </div>
     <div class="row">
       <span class="path-label" id="st-log-path"></span>
-      <button id="st-open-log">Log-Ordner öffnen</button>
+      <button id="st-open-log">Open log folder</button>
     </div>
 
-    <h3>KI-Regionserkennung (lokal, optional)</h3>
-    <p class="hint">Lokales ONNX-Objekterkennungsmodell als Alternative zur klassischen
-      Rhythmus-Heuristik im Generator-Tab ("Region automatisch finden"). Kein Modell liegt
-      diesem Programm bei und keins wird heruntergeladen - ohne eigene .onnx-Datei bleibt
-      es bei der klassischen Erkennung. Leer lassen nutzt den Standardordner
-      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> unter Windows).</p>
+    <h3>AI region detection (local, optional)</h3>
+    <p class="hint">Local ONNX object detector as an alternative to the classical
+      rhythm heuristic in the Generate tab (“Find region automatically”). No model
+      ships with the app and none is downloaded — without your own <code>.onnx</code>
+      file, classical detection stays in use. Leave empty to use the default folder
+      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> on Windows).</p>
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
       <button id="st-ai-roi-check">Check availability</button>
@@ -100,66 +100,65 @@ export function initSettings(root) {
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
-    <h3>KI-Server für Profil-Vorschlag &amp; Qualitäts-Zweitmeinung (lokal, optional)</h3>
-    <p class="hint">Adresse eines lokal laufenden Colibri-Servers (<code>coli serve</code>,
-      siehe docs/AI_ADAPTER.md) für den "Profil vorschlagen"-Knopf und die
-      KI-Zweitmeinung im Generator-Tab. Beides funktioniert auch ohne diesen Server -
-      die gemessene Szenen-Ähnlichkeit (ohne KI) bleibt dann die einzige Quelle für
-      Profil-Vorschläge. Leer lassen nutzt die Standardadresse.</p>
+    <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
+    <p class="hint">Address of a local Colibri server (<code>coli serve</code>,
+      see docs/AI_ADAPTER.md) for the “Suggest profile” button and the AI quality
+      opinion in the Generate tab. Both work without this server — measured scene
+      similarity (no AI) remains the only source for profile suggestions. Leave
+      empty to use the default address.</p>
     <div class="row">
-      <input type="text" id="st-ai-base-url" placeholder="(Standardadresse)" style="flex:1;" />
+      <input type="text" id="st-ai-base-url" placeholder="(default address)" style="flex:1;" />
     </div>
 
     <h3>Hardware</h3>
-    <p class="hint">Welche Beschleunigung der Generator tatsächlich nutzen kann. Eine
-      vorhandene NVIDIA-Karte bedeutet nicht automatisch, dass sie genutzt wird — die
-      üblichen pip-Pakete von OpenCV sind ohne CUDA gebaut.</p>
-    <div class="row"><button id="st-hardware">Hardware prüfen</button></div>
+    <p class="hint">Which acceleration the generator can actually use. Having an
+      NVIDIA GPU does not mean it is used — typical OpenCV pip packages are built
+      without CUDA.</p>
+    <div class="row"><button id="st-hardware">Check hardware</button></div>
     <pre id="st-hardware-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
 
-    <h3>Zwischenspeicher</h3>
-    <p class="hint">Der Generator speichert Trackingergebnisse, damit ein erneuter Lauf mit
-      anderen Einstellungen nicht das ganze Video neu dekodieren muss — das ist rund 36-mal
-      schneller. Dafür wächst der Speicher mit jedem Video.</p>
+    <h3>Cache</h3>
+    <p class="hint">The generator stores tracking results so a re-run with different
+      settings does not re-decode the whole video — about 36× faster. The cache grows
+      with each video.</p>
     <div class="row">
       <span class="path-label" id="st-cache-info">…</span>
-      <button id="st-cache-clear">Jetzt leeren</button>
+      <button id="st-cache-clear">Clear now</button>
     </div>
     <div class="checkbox-row">
       <input type="checkbox" id="st-cache-exit" />
-      <label for="st-cache-exit">Beim Beenden automatisch leeren</label>
+      <label for="st-cache-exit">Clear automatically on quit</label>
     </div>
 
-    <h3>Messwerte des Generators</h3>
-    <p class="hint">Schreibt zu jedem Generatorlauf eine Zeile mit allen Kennzahlen
-      (Bewegungsamplitude, spektrale Konzentration, Tracker-Verlust, Laufzeit) in eine
-      Datei. Zusammen mit deinem Urteil im Generator-Tab ist das die Grundlage, um die
-      Qualitätsbewertung an echtem Material zu justieren - bisher beruht sie auf
-      synthetischen Testvideos. Leer lassen schaltet die Aufzeichnung ab.</p>
+    <h3>Generator metrics</h3>
+    <p class="hint">Appends a line of metrics for every generate run (motion amplitude,
+      spectral concentration, tracker loss, runtime). Together with your judgments in
+      the Generate tab, this is the basis for tuning quality scoring on real material —
+      so far it relies on synthetic test videos. Leave empty to disable recording.</p>
     <div class="row">
-      <input type="text" id="st-report-path" placeholder="(keine Aufzeichnung)"
+      <input type="text" id="st-report-path" placeholder="(no recording)"
              style="flex:1;" />
-      <button id="st-pick-report">Wählen…</button>
-      <button id="st-default-report">Standard</button>
+      <button id="st-pick-report">Choose…</button>
+      <button id="st-default-report">Default</button>
     </div>
     <p class="hint" id="st-report-status" style="margin-top:2px;"></p>
     <div class="row">
-      <button id="st-report-summary">Auswertung anzeigen</button>
-      <button id="st-model-info">Modell anzeigen</button>
-      <button id="st-model-train" class="primary">Aus Urteilen lernen</button>
+      <button id="st-report-summary">Show summary</button>
+      <button id="st-model-info">Show model</button>
+      <button id="st-model-train" class="primary">Learn from judgments</button>
     </div>
-    <p class="hint">Die Qualitätsbewertung arbeitet mit Schwellen, die an synthetischen
-      Testvideos festgelegt wurden. Aus genügend eigenen Urteilen lässt sich stattdessen
-      ein Modell lernen. Es wird nur übernommen, wenn es die bisherigen Regeln in einer
-      Kreuzvalidierung schlägt — sonst bleibt alles, wie es ist.</p>
+    <p class="hint">Quality scoring uses thresholds set on synthetic test videos.
+      With enough of your own judgments, a model can be learned instead. It is only
+      adopted if it beats the current rules in cross-validation — otherwise nothing
+      changes.</p>
     <pre id="st-report-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
   `;
 
   const el = id => root.querySelector(id);
 
   // Ohne das war unsichtbar, ob unter dem eingestellten Pfad schon Messwerte
-  // stehen - "Auswertung anzeigen" beantwortete das zwar auch, aber erst
-  // nach einem Klick und mit einer Fehlermeldung statt eines einfachen
+  // stehen - "Show summary" beantwortete das zwar auch, aber erst
+  // nach einem Klick und mit einer errorsmeldung statt eines einfachen
   // Hinweises, wenn (noch) nichts drin ist.
   async function updateReportStatus() {
     const status = el('#st-report-status');
@@ -170,8 +169,8 @@ export function initSettings(root) {
     }
     try {
       status.textContent = (await ReportExists())
-        ? '✓ Enthält bereits Messwerte.'
-        : 'Noch keine Messwerte aufgezeichnet (wird beim nächsten Generatorlauf angelegt).';
+        ? '✓ Already contains metrics.'
+        : 'No metrics recorded yet (created on the next generator run).';
     } catch (err) {
       status.textContent = '';
     }
@@ -181,7 +180,7 @@ export function initSettings(root) {
     el('#st-update-check').checked = s.updateCheckOnStartup;
     el('#st-connect-test').checked = !!s.deviceConnectTest;
     el('#st-log-level').value = s.logLevel;
-    el('#st-log-path').textContent = s.logPath || '(noch keine Logdatei geschrieben)';
+    el('#st-log-path').textContent = s.logPath || '(no log file written yet)';
     el('#st-report-path').value = s.reportPath || '';
     el('#st-cache-exit').checked = !!s.clearCacheOnExit;
     el('#st-report-path').dataset.default = s.defaultReportPath || '';
@@ -195,51 +194,53 @@ export function initSettings(root) {
   el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));
   el('#st-runtime-check').addEventListener('click', async () => {
     const status = el('#st-runtime-status');
-    status.textContent = 'Prüfe…';
+    status.textContent = 'Checking…';
     try {
       const h = await GetRuntimeHealth();
       const missing = (h.deps || []).filter(d => !d.found).map(d => d.label);
       const created = (h.dirsCreated || []).length;
       const parts = [];
-      if (created) parts.push(`${created} Ordner angelegt`);
-      if (missing.length) parts.push('fehlt: ' + missing.join(', '));
-      else parts.push('Abhängigkeiten ok');
+      if (created) parts.push(`${created} folder(s) created`);
+      if (missing.length) parts.push('missing: ' + missing.join(', '));
+      else parts.push('Dependencies OK');
       status.textContent = (h.ok ? '✓ ' : '⚠ ') + parts.join(' · ');
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      status.textContent = 'Check failed: ' + err;
     }
   });
   el('#st-update-now').addEventListener('click', async () => {
     const status = el('#st-update-status');
     const btn = el('#st-update-now');
     btn.disabled = true;
-    status.textContent = 'Prüfe...';
+    status.textContent = 'Checking…';
     try {
       const version = await CurrentVersion();
       const res = await CheckForUpdate();
       if (res.error) {
-        uiError('Update-Prüfung: ' + res.error, status);
+        uiError('Update check: ' + res.error, status);
       } else if (!res.available) {
-        status.textContent = `Kein Update verfügbar (aktuell: ${version}).`;
+        status.textContent = `No update available (current: ${version}).`;
       } else {
         const tag = res.release ? res.release.tag_name : '?';
-        status.textContent = `Version ${tag} verfügbar (aktuell: ${version}).`;
-        if (confirm(`Version ${tag} ist verfügbar (aktuell: ${version}).\n\nJetzt herunterladen und neu starten?`)) {
+        status.textContent = `Version ${tag} available (current: ${version}).`;
+        if (confirm(`Version ${tag} is available (current: ${version}).
+
+Download and restart now?`)) {
           try {
             await ApplyUpdate();
           } catch (err) {
-            uiError('Update fehlgeschlagen: ' + err, status);
+            uiError('Update failed: ' + err, status);
           }
         }
       }
     } catch (err) {
-      uiError('Update-Prüfung: ' + err, status);
+      uiError('Update check: ' + err, status);
     } finally {
       btn.disabled = false;
     }
   });
   el('#st-log-level').addEventListener('change', e => saveSetting('log.level', e.target.value));
-  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => uiError('Log-Ordner: ' + err)));
+  el('#st-open-log').addEventListener('click', () => OpenLogFolder().catch(err => uiError('Log folder: ' + err)));
 
   el('#st-report-path').addEventListener('change', e =>
     saveSetting('generator.reportPath', e.target.value.trim()).then(updateReportStatus));
@@ -253,7 +254,7 @@ export function initSettings(root) {
         updateReportStatus();
       }
     } catch (err) {
-      uiError('Report-Pfad: ' + err);
+      uiError('Report path: ' + err);
     }
   });
 
@@ -275,15 +276,15 @@ export function initSettings(root) {
 
   el('#st-ai-roi-check').addEventListener('click', async () => {
     const status = el('#st-ai-roi-status');
-    status.textContent = 'Prüfe...';
+    status.textContent = 'Checking…';
     try {
       const available = await CheckAIRoiAvailable();
       status.textContent = available
-        ? 'Verfügbar - der Generator-Tab bietet die KI-Erkennung jetzt an.'
-        : 'Nicht verfügbar - onnxruntime fehlt oder es liegt keine .onnx-Datei am '
-          + '(angegebenen oder Standard-) Pfad.';
+        ? 'Available — the Generate tab now offers AI detection.'
+        : 'Not available — onnxruntime missing or no .onnx at '
+          + '(specified or default) path.';
     } catch (err) {
-      status.textContent = 'Prüfung fehlgeschlagen: ' + err;
+      status.textContent = 'Check failed: ' + err;
     }
   });
 
@@ -291,9 +292,9 @@ export function initSettings(root) {
     try {
       const c = await GetCacheInfo();
       el('#st-cache-info').textContent =
-        `${c.files} Datei(en), ${c.humanSize || '0 B'} — ${c.path}`;
+        `${c.files} file(s), ${c.humanSize || '0 B'} — ${c.path}`;
     } catch (err) {
-      el('#st-cache-info').textContent = 'nicht lesbar: ' + err;
+      el('#st-cache-info').textContent = 'unreadable: ' + err;
     }
   }
   refreshCache();
@@ -303,7 +304,7 @@ export function initSettings(root) {
       await ClearCache();
       await refreshCache();
     } catch (err) {
-      uiError('Cache leeren: ' + err, el('#st-cache-info'));
+      uiError('Clear cache: ' + err, el('#st-cache-info'));
     }
   });
 
@@ -312,41 +313,41 @@ export function initSettings(root) {
 
   el('#st-hardware').addEventListener('click', async () => {
     const out = el('#st-hardware-out');
-    out.textContent = 'Prüfe...';
+    out.textContent = 'Checking…';
     try {
       out.textContent = await GetHardwareInfo();
     } catch (err) {
-      out.textContent = 'Nicht ermittelbar: ' + err;
+      out.textContent = 'Could not determine: ' + err;
     }
   });
 
   el('#st-model-info').addEventListener('click', async () => {
     const out = el('#st-report-out');
-    out.textContent = 'Frage Modell ab...';
+    out.textContent = 'Querying model…';
     try {
       out.textContent = await QualityModelInfo();
     } catch (err) {
-      out.textContent = 'Nicht abrufbar: ' + err;
+      out.textContent = 'Unavailable: ' + err;
     }
   });
 
   el('#st-model-train').addEventListener('click', async () => {
     const out = el('#st-report-out');
-    out.textContent = 'Lerne aus den Urteilen...';
+    out.textContent = 'Learning from ratings…';
     try {
       out.textContent = await TrainQualityModel();
     } catch (err) {
-      out.textContent = 'Lernen fehlgeschlagen: ' + err;
+      out.textContent = 'Learning failed: ' + err;
     }
   });
 
   el('#st-report-summary').addEventListener('click', async () => {
     const out = el('#st-report-out');
-    out.textContent = 'Werte aus...';
+    out.textContent = 'Reading values…';
     try {
       out.textContent = await ReportSummary();
     } catch (err) {
-      out.textContent = 'Keine Auswertung möglich: ' + err;
+      out.textContent = 'No summary available: ' + err;
     }
   });
 }
