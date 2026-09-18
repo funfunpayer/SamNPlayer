@@ -171,7 +171,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			if err := dev.Connect(connectCtx); err != nil {
 				logging.Error("app: Verbindung fehlgeschlagen", "fehler", err)
 				runtime.EventsEmit(a.ctx, "playback:error", err.Error())
-				runtime.EventsEmit(a.ctx, "playback:done")
+				// failed:true — frontend must NOT auto-advance the playlist
+				runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
 				return
 			}
 			defer dev.Disconnect()
@@ -192,8 +193,10 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		}
 		if playErr != nil && playErr != context.Canceled {
 			runtime.EventsEmit(a.ctx, "playback:error", playErr.Error())
+			runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
+			return
 		}
-		runtime.EventsEmit(a.ctx, "playback:done")
+		runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": false})
 	}()
 	return nil
 }
@@ -212,6 +215,18 @@ func (a *App) StopPlayback() {
 	a.stateMu.Unlock()
 	if ch != nil {
 		close(ch)
+	}
+	// Wait until the playback goroutine's endSession runs — otherwise
+	// playNextInPlaylist → play() races tryStartSession (sessionActive).
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		a.stateMu.RLock()
+		active := a.sessionActive
+		a.stateMu.RUnlock()
+		if !active {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

@@ -111,16 +111,22 @@ func CapSpeedRange(actions []Action, start, end int64, maxIntensity float64) ([]
 		start, end = end, start
 	}
 	out := append([]Action(nil), actions...)
+	// Overlap must use original timestamps — after the first stretch,
+	// shifted At would fall past `end` and skip later in-range segments.
+	origAt := make([]int64, len(out))
+	for i := range out {
+		origAt[i] = out[i].At
+	}
 	var shift int64
 	for i := 0; i < len(out)-1; i++ {
-		out[i].At += shift
-		nextAt := out[i+1].At + shift
+		out[i].At = origAt[i] + shift
+		nextAt := origAt[i+1] + shift
 		dt := float64(nextAt - out[i].At)
 		if dt <= 0 {
 			continue
 		}
-		// Segment overlaps edit range if it starts before end and ends after start.
-		if nextAt < start || out[i].At > end {
+		// Segment overlaps edit range on the ORIGINAL timeline.
+		if origAt[i+1] < start || origAt[i] > end {
 			continue
 		}
 		dpos := math.Abs(float64(out[i+1].Pos - out[i].Pos))
@@ -134,7 +140,7 @@ func CapSpeedRange(actions []Action, start, end int64, maxIntensity float64) ([]
 			shift += extra
 		}
 	}
-	out[len(out)-1].At += shift
+	out[len(out)-1].At = origAt[len(out)-1] + shift
 	return out, nil
 }
 

@@ -35,6 +35,14 @@ def main():
         "Stop-Knopf gebunden",
         "el('#pb-stop').addEventListener('click', stop)" in src,
     )
+    check(
+        "Connect-Fehler: failed-Payload blockiert Advance",
+        "payload.failed" in src and "onPlaybackFinished(payload" in src,
+    )
+    check(
+        "Aktiven Playlist-Eintrag entfernen lädt nach",
+        "removingCurrent" in src and "loadScript(playlist[playlistIndex].path" in src,
+    )
 
     return check.report()
 

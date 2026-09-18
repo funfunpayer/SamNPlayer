@@ -1185,11 +1185,16 @@ export function initPlayback(root) {
     }
   }
 
-  function onPlaybackFinished() {
+  function onPlaybackFinished(payload) {
     if (advancingPlaylist) return;
     // Stop-Knopf / manuelles Beenden: nicht automatisch weiter in der Liste.
     if (userStopRequested) {
       userStopRequested = false;
+      setPlayingState(false);
+      return;
+    }
+    // Connect-/Play-Fehler: Meter zurücksetzen, aber Playlist nicht weiter.
+    if (payload && payload.failed) {
       setPlayingState(false);
       return;
     }
@@ -1330,7 +1335,7 @@ export function initPlayback(root) {
 
   EventsOn('playback:log', log);
   EventsOn('playback:error', msg => log('FEHLER: ' + msg));
-  EventsOn('playback:done', () => onPlaybackFinished());
+  EventsOn('playback:done', (payload) => onPlaybackFinished(payload || {}));
   EventsOn('playback:frame', f => {
     totalMs = Math.max(f.totalMs, 1);
     currentPosMs = f.atMs;
@@ -1453,10 +1458,21 @@ export function initPlayback(root) {
     if (remove) {
       const idx = Number(remove.dataset.idx);
       if (Number.isNaN(idx)) return;
+      const removingCurrent = idx === playlistIndex;
       playlist.splice(idx, 1);
+      if (playlist.length === 0) {
+        playlistIndex = 0;
+        renderPlaylist();
+        return;
+      }
       if (playlistIndex >= playlist.length) playlistIndex = Math.max(0, playlist.length - 1);
       else if (idx < playlistIndex) playlistIndex -= 1;
       renderPlaylist();
+      // Active row removed: load the script now highlighted, else UI lies.
+      if (removingCurrent && playlist[playlistIndex]) {
+        if (playing) await stop({ user: false });
+        await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+      }
       return;
     }
     const pick = e.target.closest('.pb-playlist-pick');
