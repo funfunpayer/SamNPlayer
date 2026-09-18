@@ -1,6 +1,6 @@
 import './style.css';
 import './help.js';
-import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings } from '../wailsjs/go/main/App';
+import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
@@ -37,32 +37,92 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 initPostGenerateReview();
 
-// Topbar: Geräte-Icon rechts — immer der verbundene Gerätename (oder offline).
+// Topbar: Geräte-Status + Verbinden/Trennen (Transport bleibt im Gerät-Tab).
 (function initTopbarDevice() {
+  const wrap = document.getElementById('topbar-device-wrap');
   const btn = document.getElementById('topbar-device');
   const nameEl = document.getElementById('topbar-device-name');
-  if (!btn || !nameEl) return;
+  const action = document.getElementById('topbar-device-action');
+  if (!wrap || !btn || !nameEl || !action) return;
+
+  let connected = false;
+  let busy = false;
 
   function render(st) {
-    btn.classList.remove('is-online', 'is-offline', 'is-searching');
-    if (st && st.connected) {
-      btn.classList.add('is-online');
+    connected = !!(st && st.connected);
+    wrap.classList.remove('is-online', 'is-offline', 'is-searching');
+    if (busy && !connected) {
+      wrap.classList.add('is-searching');
+      nameEl.textContent = 'Suche…';
+      action.textContent = '…';
+      action.disabled = true;
+      btn.title = 'Verbindung läuft…';
+      return;
+    }
+    if (connected) {
+      wrap.classList.add('is-online');
       const label = st.mock
         ? 'Mock-Gerät'
         : (st.name && String(st.name).trim()) || 'Verbunden';
       nameEl.textContent = label;
+      action.textContent = 'Trennen';
+      action.disabled = busy;
       btn.title = st.address
-        ? `${label} · ${st.address}`
-        : `${label} — Gerätetab öffnen`;
+        ? `${label} · ${st.address} — Details im Gerätetab`
+        : `${label} — Details im Gerätetab`;
     } else {
-      btn.classList.add('is-offline');
+      wrap.classList.add('is-offline');
       nameEl.textContent = 'Nicht verbunden';
-      btn.title = 'Kein Gerät — Gerätetab öffnen';
+      action.textContent = 'Verbinden';
+      action.disabled = busy;
+      btn.title = 'Details / Verbindungsart im Gerätetab';
     }
   }
 
-  window.addEventListener('device:status', e => render(e.detail || {}));
+  window.addEventListener('device:status', e => {
+    // Während eigener Topbar-Verbindung kein Fremd-Status überschreiben,
+    // außer das Ergebnis ist bereits connected (Erfolg vom Gerät-Tab).
+    if (busy && !(e.detail && e.detail.connected)) return;
+    if (e.detail && e.detail.connected) busy = false;
+    render(e.detail || {});
+  });
+
   btn.addEventListener('click', () => switchTab('device'));
+
+  action.addEventListener('click', async () => {
+    if (busy) return;
+    if (connected) {
+      busy = true;
+      action.disabled = true;
+      try {
+        const st = await DisconnectDevice();
+        busy = false;
+        render(st);
+        window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
+      } catch (err) {
+        busy = false;
+        alert('Trennen fehlgeschlagen: ' + err);
+        render({ connected: true });
+      }
+      return;
+    }
+    busy = true;
+    render({ connected: false });
+    try {
+      const s = await GetSettings();
+      const transport = (s && s.deviceTransport) || 'ble';
+      const url = (s && s.intifaceUrl) || '';
+      const st = await ConnectDeviceVia(transport, url);
+      busy = false;
+      render(st);
+      window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
+    } catch (err) {
+      busy = false;
+      render({ connected: false });
+      alert('Verbindung fehlgeschlagen: ' + err + '\n\nVerbindungsart (BLE / Intiface / Mock) im Gerät-Tab wählen.');
+    }
+  });
+
   render({ connected: false });
 })();
 

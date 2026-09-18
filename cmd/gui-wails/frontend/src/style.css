@@ -186,26 +186,36 @@ body {
   color: var(--text-dim);
 }
 
-/* Geräte-Indikator oben rechts — immer sichtbar, Name bei Verbindung */
+/* Geräte-Indikator oben rechts — Status + Verbinden/Trennen */
+.topbar-device-wrap {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: min(360px, 52vw);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
 .topbar-device {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: min(280px, 42vw);
-  padding: 5px 10px 5px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
+  min-width: 0;
+  flex: 1;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-dim);
   font: inherit;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color .15s ease, color .15s ease, background .15s ease;
+  transition: color .15s ease, background .15s ease;
 }
 .topbar-device:hover {
-  border-color: var(--border-strong);
   color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
 }
 .topbar-device-icon {
   width: 16px; height: 16px; flex-shrink: 0;
@@ -221,22 +231,58 @@ body {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0;
 }
-.topbar-device.is-online {
-  border-color: rgba(94, 207, 138, 0.45);
+.topbar-device-action {
+  flex-shrink: 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-2);
   color: var(--text);
+  transition: background .12s ease, color .12s ease;
+}
+.topbar-device-action:hover:not(:disabled) {
+  background: #222a3a;
+  color: var(--text);
+}
+.topbar-device-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.topbar-device-wrap.is-online {
+  border-color: rgba(94, 207, 138, 0.45);
   background: rgba(94, 207, 138, 0.08);
 }
-.topbar-device.is-online .topbar-device-led {
+.topbar-device-wrap.is-online .topbar-device { color: var(--text); }
+.topbar-device-wrap.is-online .topbar-device-led {
   background: var(--ok);
   box-shadow: 0 0 0 2px rgba(94, 207, 138, 0.25);
 }
-.topbar-device.is-online .topbar-device-icon { color: var(--teal); }
-.topbar-device.is-offline { opacity: 0.85; }
-.topbar-device.is-searching {
-  border-color: rgba(242, 176, 61, 0.45);
-  color: var(--accent);
+.topbar-device-wrap.is-online .topbar-device-icon { color: var(--teal); }
+.topbar-device-wrap.is-online .topbar-device-action {
+  color: var(--danger);
+  background: transparent;
 }
-.topbar-device.is-searching .topbar-device-led { background: var(--accent); }
+.topbar-device-wrap.is-online .topbar-device-action:hover:not(:disabled) {
+  background: rgba(232, 93, 93, 0.12);
+}
+.topbar-device-wrap.is-offline .topbar-device-action {
+  background: var(--accent);
+  color: #12100a;
+  border-left-color: transparent;
+}
+.topbar-device-wrap.is-offline .topbar-device-action:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.topbar-device-wrap.is-searching {
+  border-color: rgba(242, 176, 61, 0.45);
+}
+.topbar-device-wrap.is-searching .topbar-device { color: var(--accent); }
+.topbar-device-wrap.is-searching .topbar-device-led { background: var(--accent); }
 
 .stage { flex: 1; display: flex; min-height: 0; }
 .stage-main { flex: 1; overflow-y: auto; min-width: 0; }
