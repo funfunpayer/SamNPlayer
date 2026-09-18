@@ -28,9 +28,9 @@ type Protocol interface {
 // BLE Advertising-Name: "Sam Neo 2" bzw. "Sam Neo 2 Pro"
 // Service UUID:  0000ffe0-0000-1000-8000-00805f9b34fb
 // TX Char UUID:  0000ffe1-0000-1000-8000-00805f9b34fb  (Kommandos hierhin schreiben)
-// RX Char UUID:  0000ffe2-0000-1000-8000-00805f9b34fb  (Notify, für Status/Akku -
-//
-//	hier nicht genutzt, da wir nur steuern, nicht auslesen)
+// RX Char UUID:  0000ffe2-0000-1000-8000-00805f9b34fb  (Notify, geräteeigenes
+//	Statusformat — hier nicht ausgewertet). Akku wird zusätzlich über den
+//	Standard-GATT-Battery-Service (0x180F/0x2A19) versucht, falls vorhanden.
 //
 // Kein Initialisierungs-Handshake nötig (im Gegensatz zum originalen Sam Neo,
 // der vor dem ersten Befehl auf RX subscriben muss) - laut Quellcode wird

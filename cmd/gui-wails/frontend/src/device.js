@@ -145,8 +145,15 @@ export function initDevice(root) {
       if (st.name) parts.push(st.name);
       if (st.address) parts.push(st.address);
       if (st.rssi) parts.push(`Signal ${st.rssi} dBm`);
+      if (st.batteryOk && typeof st.batteryPct === 'number') {
+        parts.push(`Akku ${st.batteryPct}%`);
+      }
       text.textContent = parts.join('  ·  ');
-      sub.textContent = st.mock ? 'Simuliertes Gerät' : 'Bereit für Funktionstest.';
+      sub.textContent = st.mock
+        ? 'Simuliertes Gerät'
+        : (st.batteryOk
+          ? `Bereit für Funktionstest · Akku ${st.batteryPct}%.`
+          : 'Bereit für Funktionstest.');
     } else {
       dot.style.background = '#777';
       box.style.borderColor = 'var(--border)';

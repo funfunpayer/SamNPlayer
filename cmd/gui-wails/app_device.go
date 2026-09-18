@@ -33,6 +33,9 @@ type DeviceStatus struct {
 	Address       string `json:"address"`
 	RSSI          int    `json:"rssi"`
 	SessionActive bool   `json:"sessionActive"`
+	// BatteryPct 0–100 wenn BatteryOK; sonst ignorieren (kein Platzhalter in der UI).
+	BatteryPct int  `json:"batteryPct"`
+	BatteryOK  bool `json:"batteryOk"`
 }
 
 // GetDeviceStatus liefert den aktuellen Verbindungszustand der Testverbindung.
@@ -53,6 +56,10 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Connected = info.Connected
 		st.Name = info.Name
 		st.Address = info.Address
+		if pct, ok := intiface.BatteryLevel(); ok {
+			st.BatteryPct = pct
+			st.BatteryOK = true
+		}
 		return st
 	}
 	if real, ok := dev.(*device.SamNeo2); ok {
@@ -61,6 +68,10 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		st.Name = info.Name
 		st.Address = info.Address
 		st.RSSI = info.RSSI
+		if pct, ok := real.BatteryLevel(); ok {
+			st.BatteryPct = pct
+			st.BatteryOK = true
+		}
 	} else {
 		st.Name = "Mock-Gerät (keine echte Hardware)"
 	}

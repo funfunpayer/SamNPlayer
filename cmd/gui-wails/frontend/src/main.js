@@ -65,12 +65,16 @@ initPostGenerateReview();
       const label = st.mock
         ? 'Mock-Gerät'
         : (st.name && String(st.name).trim()) || 'Verbunden';
-      nameEl.textContent = label;
+      const batt = (st.batteryOk && typeof st.batteryPct === 'number')
+        ? ` · ${st.batteryPct}%`
+        : '';
+      nameEl.textContent = label + batt;
       action.textContent = 'Trennen';
       action.disabled = busy;
+      const battTitle = batt ? ` · Akku ${st.batteryPct}%` : '';
       btn.title = st.address
-        ? `${label} · ${st.address} — Details im Gerätetab`
-        : `${label} — Details im Gerätetab`;
+        ? `${label}${battTitle} · ${st.address} — Details im Gerätetab`
+        : `${label}${battTitle} — Details im Gerätetab`;
     } else {
       wrap.classList.add('is-offline');
       nameEl.textContent = 'Nicht verbunden';
