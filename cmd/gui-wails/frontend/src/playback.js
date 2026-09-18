@@ -5,6 +5,7 @@ import {
   ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
+  ProbePlaybackVideo, EnsurePlayablePlaybackVideo,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -43,7 +44,9 @@ export function initPlayback(root) {
           <div class="pb-video-chrome" id="pb-video-chrome">
             <button type="button" id="pb-video-fs" title="Vollbild (Doppelklick)">Vollbild</button>
             <button type="button" id="pb-video-change" title="Anderes Video wählen">Video…</button>
+            <button type="button" id="pb-video-convert" title="Nach H.264/AAC MP4 konvertieren (ffmpeg)" hidden>Abspielbar machen</button>
           </div>
+          <div id="pb-video-warn" class="pb-video-warn" hidden></div>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Skript ohne Film</p>
             <p class="hint">Läuft allein über Gerät und Kurve — Video ist optional. „Abspielen“ startet sofort.</p>
@@ -1062,8 +1065,57 @@ export function initPlayback(root) {
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
       log('Video verknüpft: ' + path);
+      await refreshVideoPlayability(path);
     } catch (err) {
       uiError('Video verknüpfen: ' + err);
+    }
+  }
+
+  async function refreshVideoPlayability(path) {
+    const warn = el('#pb-video-warn');
+    const conv = el('#pb-video-convert');
+    if (!warn || !conv) return;
+    try {
+      const info = await ProbePlaybackVideo(path || '');
+      if (info.likelyPlayable && !info.warning) {
+        warn.hidden = true;
+        conv.hidden = true;
+        return;
+      }
+      warn.hidden = false;
+      warn.textContent = info.warning
+        || (`Codec ${info.codec || '?'} — Abspielen ggf. fehlgeschlagen`);
+      conv.hidden = false;
+    } catch (err) {
+      warn.hidden = false;
+      warn.textContent = 'Video-Metadaten nicht lesbar: ' + err;
+      conv.hidden = false;
+    }
+  }
+
+  async function convertPlaybackVideo() {
+    const conv = el('#pb-video-convert');
+    const warn = el('#pb-video-warn');
+    if (conv) conv.disabled = true;
+    if (warn) {
+      warn.hidden = false;
+      warn.textContent = 'Konvertiere nach H.264/AAC (kann dauern)…';
+    }
+    try {
+      const info = await EnsurePlayablePlaybackVideo();
+      videoPath = info.path;
+      videoEl.src = await VideoFileURL();
+      if (warn) {
+        warn.textContent = info.usingProxy
+          ? ('Abspiel-Kopie bereit' + (info.proxyPath ? ': ' + info.proxyPath.split(/[\\/]/).pop() : ''))
+          : 'Video sollte jetzt abspielbar sein.';
+      }
+      if (conv) conv.hidden = true;
+      uiInfo('Video für den Player vorbereitet.');
+    } catch (err) {
+      uiError('Konvertierung: ' + err, warn);
+    } finally {
+      if (conv) conv.disabled = false;
     }
   }
 
@@ -1114,6 +1166,7 @@ export function initPlayback(root) {
       stage.classList.add('has-video');
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
+      refreshVideoPlayability(videoPath);
     } else {
       videoPath = null;
       videoEl.removeAttribute('src');
@@ -1121,6 +1174,10 @@ export function initPlayback(root) {
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
       el('#pb-video-fs').textContent = 'Vollbild';
+      const warn = el('#pb-video-warn');
+      const conv = el('#pb-video-convert');
+      if (warn) warn.hidden = true;
+      if (conv) conv.hidden = true;
       try { ClearPlaybackVideo().catch(() => {}); } catch (_) {}
     }
     try {
@@ -1317,6 +1374,19 @@ export function initPlayback(root) {
   videoEl.addEventListener('ended', () => {
     if (playing && el('#pb-use-video-sync').checked) stop({ user: false });
   });
+  videoEl.addEventListener('error', async () => {
+    const warn = el('#pb-video-warn');
+    const conv = el('#pb-video-convert');
+    if (warn) {
+      warn.hidden = false;
+      warn.textContent = 'Video nicht abspielbar (Codec/Container). „Abspielbar machen“ erzeugt eine H.264-Kopie.';
+    }
+    if (conv) conv.hidden = false;
+    if (playing) {
+      try { await stop({ user: true }); } catch (_) { /* ignore */ }
+    }
+    uiWarn('Video-Decodierung fehlgeschlagen — Konvertierung anbieten.');
+  });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per
   // Klick oder Leertaste mit Fokus auf dem Video) soll das Funscript
@@ -1486,6 +1556,7 @@ export function initPlayback(root) {
   el('#pb-pick-video').addEventListener('click', attachVideoFromPicker);
   el('#pb-video-change').addEventListener('click', attachVideoFromPicker);
   el('#pb-video-fs').addEventListener('click', toggleVideoFullscreen);
+  el('#pb-video-convert')?.addEventListener('click', convertPlaybackVideo);
   videoEl.addEventListener('dblclick', e => {
     e.preventDefault();
     toggleVideoFullscreen();

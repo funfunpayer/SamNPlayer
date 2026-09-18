@@ -65,6 +65,10 @@ def main():
         "RunRoiModelTraining": "async (epochs, device) => { window.__calls.push(['train', epochs, device]); }",
         "GetSettings": "async () => ({ roiDatasetDir: '/data', defaultRoiDatasetDir: '/data' })",
         "CheckRoiTrainingAvailable": "async () => true",
+        "CheckRoiTrainingStatus": "async () => ({ python: true, opencv: true, "
+                                  "ultralytics: true, detail: 'Bereit' })",
+        "InstallRoiTrainingDeps": "async () => {}",
+        "UpdateRoiTrainingSample": "async () => {}",
         "ListRoiTrainingDevices": "async () => (["
             "{id:'auto',label:'Automatisch (bestes verfügbares)',available:true},"
             "{id:'cuda',label:'NVIDIA CUDA',available:false},"
@@ -184,7 +188,14 @@ def main():
     shutdown()
 
     # --- ohne ultralytics: Knopf bleibt gesperrt, Hinweis mit pip-Befehl -------
-    base2, shutdown2 = serve(app_stub({"CheckRoiTrainingAvailable": "async () => false"}))
+    base2, shutdown2 = serve(app_stub({
+        "CheckRoiTrainingAvailable": "async () => false",
+        "CheckRoiTrainingStatus": "async () => ({ python: true, opencv: true, "
+                                  "ultralytics: false, detail: 'Bootstrap möglich; "
+                                  "Training: pip install ultralytics onnx' })",
+        "InstallRoiTrainingDeps": "async () => {}",
+        "ListRoiTrainingDevices": "async () => []",
+    }))
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
@@ -195,8 +206,9 @@ def main():
             "document.querySelector('#rt-train-unavailable').style.display === 'block'", timeout=5000)
         check("Ohne ultralytics bleibt der Training-Knopf gesperrt",
               page.locator("#rt-train").is_disabled())
-        check("Hinweis nennt den pip-install-Befehl",
-              "requirements-ai-train.txt" in page.locator("#rt-train-unavailable").inner_text())
+        hint = page.locator("#rt-train-unavailable").inner_text()
+        check("Hinweis nennt pip/ultralytics",
+              "ultralytics" in hint.lower() or "pip install" in hint.lower(), hint)
         browser.close()
     shutdown2()
 

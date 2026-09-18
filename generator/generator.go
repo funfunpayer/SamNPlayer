@@ -18,7 +18,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
-//go:embed *.py requirements.txt
+//go:embed *.py requirements.txt requirements-ai.txt requirements-ai-train.txt
 var pythonFiles embed.FS
 
 //go:embed requirements.txt

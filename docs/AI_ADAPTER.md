@@ -78,6 +78,19 @@ export format.
     clip with a content category (e.g. `blowjob`, `tf_tj_mix`); repeated
     calls into the same `--output-dir` accumulate across clips AND
     categories (`classes.json` remembers name→ID, `data.yaml` is
+    rewritten). GUI: tab **KI-Trainingssystem** (see `docs/KI_TRAINING.md`).
+  - Train via GUI (**Abhängigkeiten installieren** embeds
+    `requirements-ai-train.txt` even in release builds) or CLI:
+
+    ```bash
+    python generator/train_yolo_model.py \
+      --dataset-dir ~/.config/SamNPlayer/roi_training_dataset \
+      --output ~/.config/SamNPlayer/models/roi_detector.onnx \
+      --epochs 100 --device auto
+    ```
+
+    (Older docs mentioned hand-running `yolo detect train … yolo11n.pt` —
+    the supported path is `train_yolo_model.py` with base `yolov8n.pt`.)
     regenerated from it each time), so a mixed dataset spanning several
     categories builds up one clip at a time instead of one run
     overwriting the last.

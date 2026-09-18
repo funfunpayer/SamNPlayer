@@ -31,6 +31,12 @@ export function CheckAudioCheckAvailable():Promise<boolean>;
 
 export function CheckRoiTrainingAvailable():Promise<boolean>;
 
+export function CheckRoiTrainingStatus():Promise<generator.RoiTrainingStatus>;
+
+export function InstallRoiTrainingDeps():Promise<void>;
+
+export function WriteAIRequirementFiles(arg1:string):Promise<void>;
+
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
 
 export function CheckGeneratorDependencies():Promise<void>;
@@ -194,6 +200,8 @@ export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<vo
 export function UpdateRoiTrainingSample(arg1:string,arg2:string,arg3:string,arg4:Array<main.RoiTrainingBox>):Promise<void>;
 
 export function VideoFileURL():Promise<string>;
+export function ProbePlaybackVideo(arg1:string):Promise<main.PlaybackVideoInfo>;
+export function EnsurePlayablePlaybackVideo():Promise<main.PlaybackVideoInfo>;
 export function ExportScriptHeatmapPNG():Promise<string>;
 export function SavePlaybackProject(arg1:funscript.Project):Promise<string>;
 export function LoadPlaybackProject(arg1:string):Promise<funscript.Project>;

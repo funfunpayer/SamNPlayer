@@ -1,13 +1,14 @@
 import {
   PickVideoFile, PickImageFile, LoadFirstFrame, LoadFrameAt,
   BootstrapRoiTrainingSampleEx, AddRoiStillTrainingSample, RunRoiModelTraining,
-  ListRoiTrainingSamples, DiscardRoiTrainingSample, GetRoiDatasetSummary,
-  GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, ListRoiTrainingDevices,
+  ListRoiTrainingSamples, DiscardRoiTrainingSample, UpdateRoiTrainingSample, GetRoiDatasetSummary,
+  GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, CheckRoiTrainingStatus,
+  InstallRoiTrainingDeps, ListRoiTrainingDevices,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
-import { uiError } from './notify.js';
+import { uiError, uiInfo } from './notify.js';
 
 const CLASS_PRESETS = [
   'hand', 'mouth', 'brust', 'eichel', 'penis', 'tongue', 'toy', 'body', 'face', 'other',
@@ -104,10 +105,15 @@ export function initRoiTraining(root) {
       </select>
     </div>
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
-    <div class="row"><button id="rt-train" class="primary" type="button" disabled>Training starten</button></div>
+    <div class="row"><button id="rt-train" class="primary" type="button" disabled>Training starten</button>
+      <button id="rt-install-deps" type="button"
+        data-help="Installiert ultralytics + onnx per pip in das erkannte Python (auch ohne Quellbaum).">Abhängigkeiten installieren</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
-      ultralytics fehlt — <code>pip install -r generator/requirements-ai-train.txt</code>
+      Training-Abhängigkeiten fehlen. Knopf „Abhängigkeiten installieren“ nutzen
+      (oder manuell: <code>pip install ultralytics onnx</code>). Details:
+      <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
     </p>
+    <p class="hint" id="rt-status-detail" style="margin:0 0 8px;"></p>
     <div class="path-label" id="rt-train-status"></div>
     <pre id="rt-train-log" class="hint" style="max-height:240px; overflow:auto; white-space:pre-wrap;"></pre>
   `;
@@ -460,9 +466,18 @@ export function initRoiTraining(root) {
         discardBtn.type = 'button';
         discardBtn.className = 'danger';
         discardBtn.textContent = 'Verwerfen';
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.textContent = 'Box korrigieren';
+        editBtn.title = 'Box neu auf dem Vorschaubild ziehen und speichern';
+        const btnRow = document.createElement('div');
+        btnRow.className = 'row';
+        btnRow.style.gap = '6px';
+        btnRow.appendChild(editBtn);
+        btnRow.appendChild(discardBtn);
         card.appendChild(thumbWrap);
         card.appendChild(caption);
-        card.appendChild(discardBtn);
+        card.appendChild(btnRow);
         gridEl.appendChild(card);
 
         GetRoiTrainingSampleImage(s.imagePath).then(b64 => {
@@ -474,6 +489,14 @@ export function initRoiTraining(root) {
           imgEl.src = `data:${mime};base64,` + b64;
           (s.boxes || []).forEach(box => thumbWrap.appendChild(boxOverlay(box)));
         }).catch(() => { caption.textContent += ' (Bild konnte nicht geladen werden)'; });
+
+        editBtn.addEventListener('click', async () => {
+          try {
+            await editSampleBoxes(s, imgEl, thumbWrap);
+          } catch (err) {
+            uiError('Box korrigieren: ' + err);
+          }
+        });
 
         discardBtn.addEventListener('click', async () => {
           discardBtn.disabled = true;
@@ -490,6 +513,85 @@ export function initRoiTraining(root) {
       grid.textContent = 'Fehler: ' + err;
     }
   }
+
+  // Simple box re-draw: user drags on the thumbnail; first box is replaced.
+  async function editSampleBoxes(sample, imgEl, thumbWrap) {
+    const boxes = Array.isArray(sample.boxes) ? sample.boxes.slice() : [];
+    if (!imgEl.naturalWidth) {
+      await new Promise((resolve, reject) => {
+        imgEl.onload = resolve;
+        imgEl.onerror = reject;
+        if (imgEl.complete && imgEl.naturalWidth) resolve();
+      });
+    }
+    uiInfo('Auf dem Vorschaubild ziehen: neue Box für die erste Klasse. Escape bricht ab.');
+    const rect = () => thumbWrap.getBoundingClientRect();
+    let dragging = false, x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    const overlay = document.createElement('div');
+    overlay.className = 'rt-box';
+    overlay.style.borderColor = 'var(--accent)';
+    const onMove = (e) => {
+      if (!dragging) return;
+      const r = rect();
+      x1 = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      y1 = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      const L = Math.min(x0, x1), T = Math.min(y0, y1);
+      const W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+      overlay.style.left = (L * 100) + '%';
+      overlay.style.top = (T * 100) + '%';
+      overlay.style.width = (W * 100) + '%';
+      overlay.style.height = (H * 100) + '%';
+    };
+    const cleanup = () => {
+      thumbWrap.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('keydown', onKey);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        overlay.remove();
+        uiInfo('Korrektur abgebrochen.');
+      }
+    };
+    const onUp = async () => {
+      if (!dragging) return;
+      dragging = false;
+      cleanup();
+      const L = Math.min(x0, x1), T = Math.min(y0, y1);
+      const W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+      if (W < 0.02 || H < 0.02) {
+        overlay.remove();
+        uiInfo('Box zu klein — erneut versuchen.');
+        return;
+      }
+      const first = boxes[0] || { classId: 0, className: 'object' };
+      const updated = [{
+        classId: first.classId,
+        className: first.className,
+        xc: L + W / 2,
+        yc: T + H / 2,
+        w: W,
+        h: H,
+      }, ...boxes.slice(1)];
+      await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, updated);
+      overlay.remove();
+      thumbWrap.querySelectorAll('.rt-box').forEach(n => n.remove());
+      updated.forEach(box => thumbWrap.appendChild(boxOverlay(box)));
+      uiInfo('Box gespeichert.');
+    };
+    thumbWrap.addEventListener('mousedown', (e) => {
+      const r = rect();
+      dragging = true;
+      x0 = x1 = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      y0 = y1 = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      thumbWrap.appendChild(overlay);
+      thumbWrap.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('keydown', onKey);
+    }, { once: true });
+  }
+
   el('#rt-refresh-review').addEventListener('click', refreshReview);
   el('#rt-dataset-dir').addEventListener('change', e => {
     saveSetting('generator.roiTrainingDatasetDir', e.target.value.trim());
@@ -602,11 +704,48 @@ export function initRoiTraining(root) {
     refreshClassList();
   });
 
-  CheckRoiTrainingAvailable().then(available => {
+  function applyTrainAvailability(available, detail) {
     el('#rt-train').disabled = !available;
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
+    if (el('#rt-status-detail') && detail) {
+      el('#rt-status-detail').textContent = detail;
+    }
+  }
+
+  CheckRoiTrainingStatus().then(st => {
+    applyTrainAvailability(!!st.ultralytics, st.detail || '');
   }).catch(() => {
-    el('#rt-train-unavailable').style.display = 'block';
+    CheckRoiTrainingAvailable().then(available => {
+      applyTrainAvailability(available, '');
+    }).catch(() => applyTrainAvailability(false, ''));
+  });
+
+  el('#rt-install-deps')?.addEventListener('click', async () => {
+    el('#rt-install-deps').disabled = true;
+    el('#rt-train-status').textContent = 'Installiere Abhängigkeiten…';
+    el('#rt-train-log').textContent = '';
+    try {
+      await InstallRoiTrainingDeps();
+    } catch (err) {
+      uiError('Installation: ' + err, el('#rt-train-status'));
+      el('#rt-install-deps').disabled = false;
+    }
+  });
+  EventsOn('roitraining:deps:progress', line => {
+    const log = el('#rt-train-log');
+    log.textContent += line + '\n';
+    log.scrollTop = log.scrollHeight;
+  });
+  EventsOn('roitraining:deps:done', payload => {
+    el('#rt-install-deps').disabled = false;
+    if (payload.error) {
+      uiError('Installation fehlgeschlagen: ' + payload.error, el('#rt-train-status'));
+      return;
+    }
+    const st = payload.status || {};
+    applyTrainAvailability(!!st.ultralytics, st.detail || 'Abhängigkeiten installiert');
+    el('#rt-train-status').textContent = 'Abhängigkeiten OK — Training starten möglich.';
+    uiInfo('KI-Trainingsabhängigkeiten installiert.');
   });
 
   ListRoiTrainingDevices().then(devices => {

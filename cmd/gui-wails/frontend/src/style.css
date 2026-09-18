@@ -713,6 +713,21 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   background: rgba(20, 24, 34, 0.9);
   border-color: var(--accent);
 }
+.pb-video-warn {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  z-index: 2;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(18, 14, 10, 0.88);
+  border: 1px solid rgba(242, 176, 61, 0.45);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  backdrop-filter: blur(6px);
+}
 .pb-video-stage.is-fs {
   position: fixed;
   inset: 0;

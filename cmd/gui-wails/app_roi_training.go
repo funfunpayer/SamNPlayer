@@ -75,6 +75,41 @@ func (a *App) CheckRoiTrainingAvailable() bool {
 	return generator.RoiTrainingAvailable()
 }
 
+// CheckRoiTrainingStatus liefert getrennte Flags für Python/OpenCV/ultralytics.
+func (a *App) CheckRoiTrainingStatus() generator.RoiTrainingStatus {
+	return generator.GetRoiTrainingStatus()
+}
+
+// InstallRoiTrainingDeps installiert ultralytics+onnx per pip (asynchron,
+// Events roitraining:deps:progress|done). Für Release-Builds ohne
+// Quellbaum — requirements sind im Binary eingebettet.
+func (a *App) InstallRoiTrainingDeps() error {
+	if err := claimRoiTrainingRun(); err != nil {
+		return err
+	}
+	go func() {
+		defer releaseRoiTrainingRun()
+		err := generator.InstallRoiTrainingDeps(func(line string) {
+			runtime.EventsEmit(a.ctx, "roitraining:deps:progress", line)
+		})
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "roitraining:deps:done", map[string]any{"error": err.Error()})
+			return
+		}
+		runtime.EventsEmit(a.ctx, "roitraining:deps:done", map[string]any{
+			"ok":     true,
+			"status": generator.GetRoiTrainingStatus(),
+		})
+	}()
+	return nil
+}
+
+// WriteAIRequirementFiles schreibt die eingebetteten requirements-*.txt
+// in einen Ordner (manuelles pip install).
+func (a *App) WriteAIRequirementFiles(dir string) error {
+	return generator.WriteAIRequirementFiles(dir)
+}
+
 // ListRoiTrainingDevices liefert die wählbaren Trainingsgeräte
 // (auto/cuda/directml/mps/cpu) inkl. aktueller Verfügbarkeit - siehe
 // generator.ListRoiTrainingDevices / train_yolo_model --list-devices.

@@ -6,6 +6,24 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## Unreleased
+
+### Added
+
+- **KI-Training:** one-click `InstallRoiTrainingDeps` (embedded
+  `requirements-ai-train.txt` in release binaries); split status
+  (Python / OpenCV / ultralytics); still samples get a val split;
+  Kontrollansicht **Box korrigieren**; guides `docs/KI_TRAINING.md` +
+  `docs/PLAYER_CODECS.md`.
+- **Playback codecs:** ffprobe playability check, „Abspielbar machen“
+  H.264/AAC proxy via ffmpeg, `<video>` error banner, correct MIME on
+  local video serve.
+
+### Fixed
+
+- Train button no longer requires OpenCV when only ultralytics is missing
+  (and vice versa — clear status text).
+
 ## [0.5.5] — September 18, 2026
 
 Release after stacking GUI/startup, OFS editor tools, OpenCV 5 tracker
