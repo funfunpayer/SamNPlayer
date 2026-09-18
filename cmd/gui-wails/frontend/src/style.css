@@ -186,6 +186,58 @@ body {
   color: var(--text-dim);
 }
 
+/* Geräte-Indikator oben rechts — immer sichtbar, Name bei Verbindung */
+.topbar-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(280px, 42vw);
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.topbar-device:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.topbar-device-icon {
+  width: 16px; height: 16px; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 1.75;
+  stroke-linecap: square; stroke-linejoin: miter;
+}
+.topbar-device-led {
+  width: 7px; height: 7px; border-radius: 1px; flex-shrink: 0;
+  background: #555;
+  margin-left: 2px;
+}
+#topbar-device-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+}
+.topbar-device.is-online {
+  border-color: rgba(94, 207, 138, 0.45);
+  color: var(--text);
+  background: rgba(94, 207, 138, 0.08);
+}
+.topbar-device.is-online .topbar-device-led {
+  background: var(--ok);
+  box-shadow: 0 0 0 2px rgba(94, 207, 138, 0.25);
+}
+.topbar-device.is-online .topbar-device-icon { color: var(--teal); }
+.topbar-device.is-offline { opacity: 0.85; }
+.topbar-device.is-searching {
+  border-color: rgba(242, 176, 61, 0.45);
+  color: var(--accent);
+}
+.topbar-device.is-searching .topbar-device-led { background: var(--accent); }
+
 .stage { flex: 1; display: flex; min-height: 0; }
 .stage-main { flex: 1; overflow-y: auto; min-width: 0; }
 

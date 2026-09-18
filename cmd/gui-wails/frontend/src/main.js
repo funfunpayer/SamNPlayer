@@ -37,6 +37,35 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 initPostGenerateReview();
 
+// Topbar: Geräte-Icon rechts — immer der verbundene Gerätename (oder offline).
+(function initTopbarDevice() {
+  const btn = document.getElementById('topbar-device');
+  const nameEl = document.getElementById('topbar-device-name');
+  if (!btn || !nameEl) return;
+
+  function render(st) {
+    btn.classList.remove('is-online', 'is-offline', 'is-searching');
+    if (st && st.connected) {
+      btn.classList.add('is-online');
+      const label = st.mock
+        ? 'Mock-Gerät'
+        : (st.name && String(st.name).trim()) || 'Verbunden';
+      nameEl.textContent = label;
+      btn.title = st.address
+        ? `${label} · ${st.address}`
+        : `${label} — Gerätetab öffnen`;
+    } else {
+      btn.classList.add('is-offline');
+      nameEl.textContent = 'Nicht verbunden';
+      btn.title = 'Kein Gerät — Gerätetab öffnen';
+    }
+  }
+
+  window.addEventListener('device:status', e => render(e.detail || {}));
+  btn.addEventListener('click', () => switchTab('device'));
+  render({ connected: false });
+})();
+
 let currentVersion = 'dev';
 CurrentVersion().then(v => {
   currentVersion = v;
