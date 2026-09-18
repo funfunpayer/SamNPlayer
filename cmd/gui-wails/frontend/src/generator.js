@@ -537,7 +537,7 @@ export function initGenerator(root, playback) {
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      alert('Tf/Tj (Abstand + Sog) braucht eine zweite Region. Shift+Ziehen oder Knopf „2. Region“.');
+      el('#gen-status').textContent = 'Tf/Tj braucht eine zweite Region (Shift+Ziehen oder „2. Region“).';
       return;
     }
 

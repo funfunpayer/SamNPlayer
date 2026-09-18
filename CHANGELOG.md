@@ -20,6 +20,11 @@ measurement history behind each entry; this file is the short version for
   and checks dependencies (ffmpeg required, python/ffprobe optional).
 - **Connect smoke test:** optional short vib/suc pulse after connect
   (`device.connect_test`, default off) — Settings checkbox.
+- **Wiedergabe layout:** media-first (video/curve/heatmap + transport), tools
+  beside; empty-state CTA; script-alone without video supported.
+- **Kontakt-Vibration:** Tf/Tj defaults to on (soft curve ≈ touch); after
+  generate auto-opens Playback for review/edit; save contact settings into
+  script metadata; fewer post-generate popups.
 - **GUI visual refresh:** Space Grotesk + logo palette (gold `#f2b03d` /
   teal `#3dccc0` on deep navy); sharper geometry, dual-tone rail/brand
   offset, SamN wordmark in topbar; violet accents removed (ROI2/Sog → gold/teal).
