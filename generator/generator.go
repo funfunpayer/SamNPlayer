@@ -120,7 +120,18 @@ func pythonCandidates() []string {
 }
 
 func hasPackages(py string) (bool, string) {
-	out, err := command(py, "-c", "import cv2, scipy, numpy").CombinedOutput()
+	// CSRT/KCF must exist — plain opencv-python (no contrib) imports cv2
+	// but leaves create_tracker() dead (Issues #94/#95).
+	script := "import cv2, scipy, numpy\n" +
+		"ok=False\n" +
+		"leg=getattr(cv2,'legacy',None)\n" +
+		"for free,cls in (('TrackerCSRT_create','TrackerCSRT'),('TrackerKCF_create','TrackerKCF'),('TrackerMIL_create','TrackerMIL')):\n" +
+		"  if callable(getattr(cv2,free,None)) or (getattr(cv2,cls,None) is not None and callable(getattr(getattr(cv2,cls,None),'create',None))):\n" +
+		"    ok=True; break\n" +
+		"  if leg is not None and (callable(getattr(leg,free,None)) or (getattr(leg,cls,None) is not None and callable(getattr(getattr(leg,cls,None),'create',None)))):\n" +
+		"    ok=True; break\n" +
+		"assert ok, 'OpenCV ohne Tracker (CSRT/KCF) — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
+	out, err := command(py, "-c", script).CombinedOutput()
 	return err == nil, string(out)
 }
 
@@ -165,7 +176,7 @@ func CheckDependencies() error {
 	if err != nil {
 		return err
 	}
-	return fmt.Errorf("generator: Pakete fehlen. Installieren mit: \"%s\" -m pip install opencv-contrib-python scipy numpy\nGeprüft:\n%s", target, strings.Join(details, "\n"))
+	return fmt.Errorf("generator: Pakete fehlen. Installieren mit: \"%s\" -m pip install opencv-contrib-python scipy numpy\n(Wichtig: nicht parallel zu opencv-python — das nimmt CSRT weg.)\nGeprüft:\n%s", target, strings.Join(details, "\n"))
 }
 
 func firstLine(s string) string {
