@@ -394,11 +394,10 @@ func SupportSignalsAvailable(depthOnnxPath, poseOnnxPath string) map[string]bool
 }
 
 // AudioCheckAvailable prüft, ob --audio-check grundsätzlich nutzbar ist -
-// nur ffmpeg auf dem PATH nötig (siehe generator/audio_check.py), kein
-// Python-Unterprozess wie bei AIRoiAvailable, weil ffmpeg die einzige
-// zusätzliche Voraussetzung gegenüber der normalen Generierung ist. Für die
-// GUI, um die Checkbox zu aktivieren/auszublenden statt sie anzubieten und
-// dann bei jedem Versuch mit "nicht möglich" scheitern zu lassen.
+// nur ffmpeg auf dem PATH nötig (Go: CheckAudioTempo / Python: audio_check.py).
+// Kein separates Python-Paket. Für die GUI, um die Checkbox zu aktivieren/
+// auszublenden statt sie anzubieten und dann bei jedem Versuch mit
+// "nicht möglich" scheitern zu lassen.
 func AudioCheckAvailable() bool {
 	_, err := exec.LookPath("ffmpeg")
 	return err == nil

@@ -124,6 +124,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["w2"] = roi2.W
 				payload["h2"] = roi2.H
 			}
+			attachROIVerify(payload, videoPath, roi)
 			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		case "auto_two":
 			roi, roi2, err := generator.FindTwoROIsWithProgress(videoPath, onLine, onPct)
@@ -140,6 +141,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["w2"] = roi2.W
 				payload["h2"] = roi2.H
 			}
+			attachROIVerify(payload, videoPath, roi)
 			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		case "ai":
 			roi, err := generator.FindROIAIWithProgress(videoPath,
@@ -150,20 +152,36 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
-			})
+			}
+			attachROIVerify(payload, videoPath, roi)
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		default:
 			roi, err := generator.FindROIWithProgress(videoPath, onLine, onPct)
 			if err != nil {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
-			})
+			}
+			attachROIVerify(payload, videoPath, roi)
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		}
 	}()
+}
+
+// attachROIVerify runs a lightweight Go second-pass motion check and adds
+// warning fields when the proposed box looks weak. Never changes the box.
+func attachROIVerify(payload map[string]any, videoPath string, roi generator.ROI) {
+	v := generator.VerifyROI(context.Background(), videoPath, roi)
+	if v.Score > 0 {
+		payload["verifyScore"] = v.Score
+	}
+	if v.Warning != "" {
+		payload["verifyWarning"] = v.Warning
+	}
 }
 
 // CheckAIRoiAvailable meldet, ob die KI-Regionssuche grundsätzlich nutzbar
@@ -317,9 +335,9 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 					payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
 					payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
 				}
-				if script.Metadata.AudioCheck != nil {
-					payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
-				}
+			}
+			if script.Metadata.AudioCheck != nil {
+				payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
 			}
 			if opts.AutoOZoneMarker {
 				zone, err := applyAutoOZoneMarker(outPath, script.Actions)

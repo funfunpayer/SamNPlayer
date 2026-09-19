@@ -18,7 +18,8 @@ var errNativeCanceled = errors.New("generator/native: tracking canceled")
 // NativePipelineEligible reports whether opts+roi can run on a Python-free
 // path (CSRT via trackcv when OpenCV is linked, otherwise simpletrack/NCC
 // via videox). Covers single-ROI and Tf/Tj two-point (ROI2). Other backends
-// / per-scene / AI / audio still need Python.
+// / per-scene / AI opinion still need Python. Audio-tempo check is post-hoc
+// in Go (CheckAudioTempo) and does not force the Python path.
 func NativePipelineEligible(opts Options, roi ROI) bool {
 	return nativeOptionsEligible(opts, roi)
 }
@@ -42,7 +43,9 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if opts.PerSceneROI || opts.UseOpenCL {
 		return false
 	}
-	if opts.AIQualityOpinion || opts.AudioCheck {
+	// AI quality opinion still shells out to Python; audio check runs in Go
+	// after tracking and no longer blocks eligibility.
+	if opts.AIQualityOpinion {
 		return false
 	}
 	return true
@@ -63,7 +66,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		return errNativeUnavailable
 	}
 	if !nativeOptionsEligible(opts, roi) {
-		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2; no per-scene, AI, audio, OpenCL)")
+		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2; no per-scene, AI opinion, OpenCL)")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -118,7 +121,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	if twoPoint {
 		backend = "two_point"
 	}
-	return finishNativeGenerate(ctx, outputPath, opts, tr, "trackcv", backend, progress, onPercent, start)
+	return finishNativeGenerate(ctx, videoPath, outputPath, opts, tr, "trackcv", backend, progress, onPercent, start)
 }
 
 type nativeTrackResult struct {
@@ -147,10 +150,10 @@ type nativeTrackOptions struct {
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
-	return writeNativeFunscriptNamed(path, actions, opts, tr, quality, "trackcv", "csrt")
+	return writeNativeFunscriptNamed(path, actions, opts, tr, quality, nil, "trackcv", "csrt")
 }
 
-func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult, tracking, backend string) error {
+func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult, audio *funscript.AudioCheck, tracking, backend string) error {
 	if len(actions) == 0 {
 		return fmt.Errorf("generator/native: keine Actions erzeugt")
 	}
@@ -207,6 +210,9 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 		if funscript.IsDistanceProfile(opts.Profile) {
 			meta["device_recipe"] = recipe
 		}
+	}
+	if audio != nil {
+		meta["audio_check"] = audio
 	}
 	doc := map[string]any{
 		"actions":  actions,

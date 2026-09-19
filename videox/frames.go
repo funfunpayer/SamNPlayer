@@ -73,7 +73,7 @@ func NewGrayReader(ctx context.Context, path string, info Info, opt GrayReaderOp
 	if opt.FPS > 0 {
 		filters = append(filters, "fps="+strconv.FormatFloat(opt.FPS, 'f', 4, 64))
 	}
-	filters = append(filters, fmt.Sprintf("scale=%d:%d:flags=bilinear", w, h))
+	filters = append(filters, fmt.Sprintf("scale=%d:%d:flags=lanczos", w, h))
 	filters = append(filters, "format=gray")
 
 	args := []string{"-v", "error", "-nostdin"}

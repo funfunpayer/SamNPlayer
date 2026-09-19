@@ -104,6 +104,16 @@ func videoContentType(path string) string {
 		return "video/x-matroska"
 	case ".avi":
 		return "video/x-msvideo"
+	case ".ts", ".m2ts":
+		return "video/mp2t"
+	case ".flv":
+		return "video/x-flv"
+	case ".mpg", ".mpeg":
+		return "video/mpeg"
+	case ".3gp":
+		return "video/3gpp"
+	case ".ogv":
+		return "video/ogg"
 	default:
 		return "application/octet-stream"
 	}

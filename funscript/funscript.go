@@ -41,9 +41,9 @@ type AIOpinion struct {
 }
 
 // AudioCheck ist das optionale Ergebnis der Audio-Tempo-Plausibilitätsprüfung
-// (--audio-check, generator/audio_check.py) - wie AIOpinion rein informativ,
-// verändert QualityScore/QualityPassed nicht. Nur vorhanden, wenn die Prüfung
-// tatsächlich lief (ffmpeg + eine lesbare Audiospur vorhanden waren).
+// (--audio-check; Go: generator.CheckAudioTempo, Python: audio_check.py) -
+// wie AIOpinion rein informativ, verändert QualityScore/QualityPassed nicht.
+// Nur vorhanden, wenn die Prüfung tatsächlich lief (ffmpeg + lesbare Audiospur).
 type AudioCheck struct {
 	ScriptHz *float64 `json:"script_hz"`
 	AudioHz  *float64 `json:"audio_hz"`

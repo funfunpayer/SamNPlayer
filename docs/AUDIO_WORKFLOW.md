@@ -1,18 +1,18 @@
 # Audio in the generate workflow
 
 **Status today:** still shipped. Classical tempo check only — not AI,
-not a motion replacement.
+not a motion replacement. Native Go path runs the same check post-hoc
+(`CheckAudioTempo`) — no longer forces Python.
 
 ## What exists
 
 | Piece | Role |
 |-------|------|
-| `generator/audio_check.py` | After a script exists: compare script stroke tempo (Hz) to audio-energy envelope tempo |
+| `generator/audiocheck.go` | Go port: compare script stroke tempo (Hz) to audio-energy envelope tempo |
+| `generator/audio_check.py` | Python equivalent (PreferPython / non-native backends) |
 | CLI `--audio-check` | Opt-in |
 | GUI Advanced → “Check script tempo against audio” | Opt-in (default **on** when ffmpeg is on PATH) |
 | Result | Warnings in report / funscript `metadata.audio_check` — never changes Quality Doctor pass/score |
-
-Native Go pipeline skips this (needs ffmpeg + Python path).
 
 ## What it is *not*
 
@@ -23,10 +23,10 @@ Native Go pipeline skips this (needs ffmpeg + Python path).
 ## Best place in the workflow (recommendation)
 
 ```text
-  1. ROI / profile (as now)
-  2. Track video → build general curve
-  3. Quality Doctor
-  4. Audio tempo check (when ffmpeg available)  ← keep here
+  1. ROI / profile (as now) — second-pass VerifyROI warns if the box looks weak
+  2. Track video → build general curve (Go CSRT/simpletrack when eligible)
+  3. Quality Doctor (Go dense on native path)
+  4. Audio tempo check (when ffmpeg available)  ← post-hoc, same path
   5. Write .samn + .funscript
 ```
 
@@ -38,7 +38,7 @@ A pre-pass can only estimate a *tempo hint*, not the stroke shape.
 
 | Idea | Fit | Notes |
 |------|-----|--------|
-| **Default-on post-check** | Yes | Low risk; warn only |
+| **Default-on post-check** | Yes | Already GUI default when ffmpeg present |
 | **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape |
 | **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness |
 | **Audio-driven chapters** | Later | Energy peaks as chapter candidates — separate from tempo check |

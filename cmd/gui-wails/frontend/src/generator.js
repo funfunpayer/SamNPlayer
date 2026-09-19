@@ -235,10 +235,10 @@ export function initGenerator(root, playback) {
   refreshAIRoiAvailability();
   window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
-  // Audio-Tempo-Prüfung (audio_check.py) braucht nur ffmpeg auf dem PATH -
-  // kein Modell, kein separates Python-Paket. Gleiches Muster wie oben:
-  // einmal beim Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei
-  // jedem Versuch mit "nicht möglich" zu scheitern.
+  // Audio-Tempo-Prüfung braucht nur ffmpeg auf dem PATH (Go-native post-hoc
+  // oder Python bei PreferPython). Gleiches Muster wie oben: einmal beim
+  // Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei jedem Versuch
+  // mit "nicht möglich" zu scheitern.
   CheckAudioCheckAvailable().then(available => {
     const checkbox = el('#gen-audio-check');
     checkbox.disabled = !available;
@@ -682,11 +682,16 @@ export function initGenerator(root, playback) {
     }
     updateProfileUi();
     updateGenerateEnabled();
-    el('#gen-status').textContent = hasRoi2
+    let status = hasRoi2
       ? `Both regions found (${via}) — suggestion, please review/correct.`
       : (isTfTj() && !roi2
         ? `Region found (${via}) — for Tf/Tj mark the 2nd region (Shift+drag or “2. Region”).`
         : `Region found (${via}) — correct by hand if needed.`);
+    if (result.verifyWarning) {
+      status += ' ⚠ ' + result.verifyWarning;
+      uiWarn(result.verifyWarning, el('#gen-status'));
+    }
+    el('#gen-status').textContent = status;
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl

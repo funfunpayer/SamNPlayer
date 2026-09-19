@@ -79,10 +79,13 @@ commits.
       — built and tested, **not yet wired into generation** (see Open
       tasks below, this is deliberate per principle 6).
 - [x] Audio-tempo plausibility check (`--audio-check`) — classical, not
-      AI; GUI default **on** when ffmpeg is available. Workflow notes:
+      AI; GUI default **on** when ffmpeg is available. Native Go path
+      runs `CheckAudioTempo` post-hoc (no longer forces Python). Workflow:
       [`docs/AUDIO_WORKFLOW.md`](AUDIO_WORKFLOW.md). Pre-pass tempo hint
       / “no motion → audio” fallback still deferred (audio is not a
       position curve).
+- [x] ROI auto-detect second-pass (`VerifyROI`) — warn-only motion
+      concentration check after classic/AI find-region.
 
 **O-markers / Extended-O**
 - [x] Manual placement, classical auto-suggestion (primary + secondary),
@@ -295,6 +298,19 @@ these in the 0.5.7 train** unless noted.
 **Next buildable after 0.5.7 (if picking from this list):** ~~heatmap/curve
 value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)” item
 (e.g. curve zoom) or hygiene; not frameless/light/cloud.
+
+### Evaluated 19 Sep 2026 — less Python / player / detection
+
+| Idea | Verdict |
+|------|---------|
+| Decouple `--audio-check` from `NativePipelineEligible` | **Done** — Go `CheckAudioTempo` post-hoc; default GUI stays on CSRT/simpletrack |
+| Port `audio_check.py` to Go | **Done** — `generator/audiocheck.go` (Python kept for PreferPython path) |
+| Soft CSS / WebGL canvas upscale + sharpen | **Skip** — measured worse than native `<video>` (`docs/NEXT.md` §10) |
+| Soft upscale inside tracking / proxy | **Skip upscale** — Lanczos **downscale** only when proxy width > 1920; GrayReader Lanczos |
+| Remux-first H.264 → MP4 | **Done** — avoid re-encode when codec already playable |
+| More player containers (ts/flv/mpg/…) | **Done** — pick filters + MIME; proxy still the fallback |
+| Live second-pass ROI rewrite | **Skip rewrite** — `VerifyROI` warns only (no silent box change) |
+| AI quality opinion on Go path | **Still Python** — keep blocking eligibility until a Go port exists |
 
 ## Explicitly deferred, not forgotten
 

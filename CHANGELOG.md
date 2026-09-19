@@ -15,12 +15,27 @@ measurement history behind each entry; this file is the short version for
   **O-markers**, contact-vibration recipe, strength presets soft/normal/strong).
   Community `.funscript` remains import/export. Docs: `docs/SAMN_FORMAT.md`.
   Playback UI: curve channel, drive mode, bake axes, export funscript / save `.samn`.
+- **Go audio-tempo check** (`generator/audiocheck.go`): post-hoc on the
+  native pipeline; `--audio-check` no longer forces Python.
+- **ROI second-pass** (`VerifyROI`): after auto-detect, warn when motion
+  concentration in the box looks weak — never auto-rewrites the region.
+- **Player proxy:** remux-first for H.264 in awkward containers; soft
+  Lanczos downscale when re-encoding above 1920px; more pick/MIME formats
+  (ts/m2ts/flv/mpg/3gp/ogv). Analysis GrayReader uses Lanczos (was bilinear).
+
+### Changed
+
+- **`NativePipelineEligible`:** `AudioCheck` no longer blocks the Go path
+  (AI quality opinion still does).
 
 ### Docs
 
 - **License system concept** (not built / not sharp): yearly key, trial =
   1‑minute generate + funscript-only play; Ed25519 signed files;
   `docs/LICENSE_SYSTEM.md`.
+- **Audio workflow / player verdicts:** soft CSS/WebGL upscale still
+  rejected (measured worse); proxy remux + Lanczos downscale shipped
+  instead (`docs/AUDIO_WORKFLOW.md`).
 
 ## [0.5.8] — September 19, 2026
 

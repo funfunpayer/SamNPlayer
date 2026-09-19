@@ -101,12 +101,13 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	if twoPoint {
 		backend = "two_point_ncc"
 	}
-	return finishNativeGenerate(ctx, outputPath, opts, ntr, "simpletrack", backend, progress, onPercent, start)
+	return finishNativeGenerate(ctx, videoPath, outputPath, opts, ntr, "simpletrack", backend, progress, onPercent, start)
 }
 
 // finishNativeGenerate shared posttrack + quality + write for CSRT and simple.
 func finishNativeGenerate(
 	ctx context.Context,
+	videoPath string,
 	outputPath string,
 	opts Options,
 	tr nativeTrackResult,
@@ -292,7 +293,31 @@ func finishNativeGenerate(
 
 	progress(fmt.Sprintf("Quality Doctor (dense): score=%.2f passed=%v", quality.Score, quality.Passed))
 
-	if err := writeNativeFunscriptNamed(outputPath, actions, opts, tr, quality, tracking, backend); err != nil {
+	var audioMeta *funscript.AudioCheck
+	if opts.AudioCheck {
+		progress("Audio-Tempo-Prüfung (Go, post-hoc)…")
+		audioMeta = CheckAudioTempo(videoPath, actions)
+		if audioMeta == nil {
+			progress("Audio-Tempo-Prüfung nicht möglich (kein ffmpeg / keine Audiospur)")
+		} else {
+			switch {
+			case audioMeta.ScriptHz != nil && audioMeta.AudioHz != nil:
+				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Skript %.2fHz, Audio %.2fHz",
+					*audioMeta.ScriptHz, *audioMeta.AudioHz))
+			case audioMeta.AudioHz != nil:
+				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Audio %.2fHz (Skript-Tempo nicht schätzbar)",
+					*audioMeta.AudioHz))
+			case audioMeta.ScriptHz != nil:
+				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Skript %.2fHz (Audio-Tempo nicht schätzbar)",
+					*audioMeta.ScriptHz))
+			}
+			for _, w := range audioMeta.Warnings {
+				progress("WARNUNG: " + w)
+			}
+		}
+	}
+
+	if err := writeNativeFunscriptNamed(outputPath, actions, opts, tr, quality, audioMeta, tracking, backend); err != nil {
 		return err
 	}
 	progress(fmt.Sprintf("geschrieben: %s (gesamt %s)", outputPath, time.Since(start).Round(time.Millisecond)))
