@@ -99,10 +99,11 @@ prerequisites are met — not a calendar promise.
 
 | ID | Item | Target | Prerequisites | Your test |
 |----|------|--------|---------------|-----------|
-| E1 | License concept (1 year, 1 person, invite/internal) | done (doc) | — | Read `LICENSE_SYSTEM.md` |
-| E2 | **License generator** (issuer CLI, personal keys) | when go-live starts | Ed25519 issuer key offline | Issue 1 standard + 1 invite key; import in Settings |
-| E3 | Settings import + status (no gates yet) | after E2 | Generator works | Paste key → “Valid until …” |
-| E4 | Enforcement (trial 1 min / `.samn` play) | after E3 + `.samn` stable | `Enforcement` flag | Trial vs licensed vs invite |
+| E1 | License concept (1 year, 1 person, invite/internal) | done | — | Read `LICENSE_SYSTEM.md` |
+| E2 | **License generator** (`cmd/license-tool`) | done (not sharp) | Dev issuer in testdata | Issue standard + internal; `verify` |
+| E3 | Settings import + status | done (not sharp) | E2 | Settings → License: import / clear / status |
+| E4 | Library `EffectiveLicensed` + escape hatches | done (enforcement off) | — | `go test ./license/` |
+| E5 | Enforcement (trial 1 min / `.samn` play) | later / go-live | Replace pubkey; owner OK | Trial vs licensed vs invite |
 
 ### F — Stability & bugfix (every release)
 
@@ -122,6 +123,7 @@ prerequisites are met — not a calendar promise.
 3. **Windows portable zip** on a machine without ffmpeg (B1)  
 4. **Public site** copy vs README — same English CTA (C3)  
 5. **Any DE leftover** you spot in the GUI (C1) — send screenshot  
+6. **License path (not sharp)** — issue with `license-tool`, import in Settings → License (E2–E3)
 
 Agent-side before tag: CI green, clip7776 suite, version sync, English
 user-string bugfix on this branch.
