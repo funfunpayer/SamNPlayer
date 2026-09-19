@@ -97,13 +97,16 @@ Repeat for every new version after the private release finishes.
 | Private app repo + public expects downloads there | Release assets stay **login-gated** |
 | MIT + “please don’t copy” | Already-public MIT copies remain usable by those who got them |
 
-## Legal note
+## License file
 
-Code already published under **MIT** may have been cloned. Going private
-stops **new** public source access; it does not erase past copies. Prefer
-a proprietary notice on new closed builds; ask counsel if you need more.
+The repo root [`LICENSE`](../LICENSE) is a **proprietary** notice (not MIT):
+
+- Source and private docs: no copy / redistribute without permission
+- Official site binaries: personal non-commercial use allowed
+- Past public MIT revisions are not undone (see the historical note in
+  `LICENSE`); ask counsel if you need more
 
 ## Decision
 
 **Source private · product page + release downloads public** via
-`SamNPlayer-site`.
+`SamNPlayer-site`. Proprietary `LICENSE` on the app repo.

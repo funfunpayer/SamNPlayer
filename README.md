@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/funfunpayer/SamNPlayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=d4a017" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/funfunpayer/SamNPlayer?style=flat-square" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" /></a>
   <img alt="No Electron" src="https://img.shields.io/badge/GUI-~13%20MB%20native-0d9488?style=flat-square" />
   <img alt="Local only" src="https://img.shields.io/badge/AI-local%20optional-334155?style=flat-square" />
 </p>
@@ -187,4 +187,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). One manageable task, regression
 tests for behavior changes, measurements instead of vibes. Day-to-day
 discussion may be German; **shipped UI and docs are English**.
 
-License: [MIT](LICENSE).
+License: [Proprietary](LICENSE) — source private; official binaries for personal use.
