@@ -111,12 +111,14 @@ not needed, it stays out.
 
 ## Download
 
-Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are attached to
-every [GitHub Release](https://github.com/funfunpayer/SamNPlayer/releases)
-with `checksums.txt`. Double-click — no installer.
+Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are meant to
+be **public** even when the application source is **private**. Publish
+them on the showcase repo releases (not only on a private app repo):
 
-Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
-Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
+**→ [SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**
+
+See [`docs/CLOSED_SOURCE.md`](docs/CLOSED_SOURCE.md) and
+`scripts/publish-public-release.sh`. Source version: [`VERSION`](VERSION).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
 antenna (e.g. TP-Link UB500 / Asus USB-BT500), not bare onboard radios.
