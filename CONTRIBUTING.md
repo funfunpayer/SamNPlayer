@@ -78,7 +78,13 @@ this frontend build step.
    an intermediate solution. Review the complete diff before committing.
 5. Wait for CI and obtain a review. Changes to `device/` should include a
    hardware test; clearly identify mock-only testing.
-6. After merging, reconcile `docs/NEXT.md`. Reference a PR or commit for
+6. **Before every release tag:** (a) bugfix the tip (leftover user-facing
+   German, broken seeks/handlers, missing bindings), and (b) re-run the
+   clip7776 playback suite
+   (`python3 cmd/gui-wails/frontend/test/pb_clip7776_test.py` plus related
+   `pb_*` / curve / playlist tests). Do not tag if either step fails or
+   shows a regression versus `main`.
+7. After merging, reconcile `docs/NEXT.md`. Reference a PR or commit for
    completed work and record architectural findings in `HANDOFF.md`.
    Delete old branches only after verifying that their changes are integrated.
 
