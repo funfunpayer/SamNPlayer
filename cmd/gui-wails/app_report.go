@@ -74,12 +74,12 @@ func (a *App) PickReportPath() (string, error) {
 		current = defaultReportPath()
 	}
 	return runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:                "Messwerte speichern unter",
+		Title:                "Save measurements as",
 		DefaultFilename:      filepath.Base(current),
 		DefaultDirectory:     filepath.Dir(current),
 		CanCreateDirectories: true,
 		Filters: []runtime.FileFilter{
-			{DisplayName: "Messwerte (*.jsonl)", Pattern: "*.jsonl"},
+			{DisplayName: "Measurements (*.jsonl)", Pattern: "*.jsonl"},
 		},
 	})
 }

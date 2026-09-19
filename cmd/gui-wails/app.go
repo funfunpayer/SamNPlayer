@@ -96,7 +96,7 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) PickFunscriptFile() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Funscript wählen",
+		Title: "Choose funscript",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "Funscript (*.funscript)", Pattern: "*.funscript"},
 		},
@@ -105,7 +105,7 @@ func (a *App) PickFunscriptFile() (string, error) {
 
 func (a *App) PickVideoFile() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Video wählen",
+		Title: "Choose video",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "Videos", Pattern: "*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.m4v;*.webm"},
 		},
@@ -117,7 +117,7 @@ func (a *App) PickVideoFile() (string, error) {
 // darum eine Dateiauswahl statt eines im Repository mitgelieferten Pfads.
 func (a *App) PickBenchmarkManifest() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Golden-Clip-Manifest wählen",
+		Title: "Choose golden-clip manifest",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "Manifest (*.json)", Pattern: "*.json"},
 		},

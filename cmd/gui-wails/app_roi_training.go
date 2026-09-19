@@ -204,9 +204,9 @@ func (a *App) AddRoiStillTrainingSample(imagePath string, regions []generator.Ro
 // PickImageFile opens an image picker for still-image training samples.
 func (a *App) PickImageFile() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Bild für KI-Training wählen",
+		Title: "Choose image for AI training",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "Bilder", Pattern: "*.jpg;*.jpeg;*.png;*.webp"},
+			{DisplayName: "Images", Pattern: "*.jpg;*.jpeg;*.png;*.webp"},
 		},
 	})
 }

@@ -796,7 +796,7 @@ export function initGenerator(root, playback) {
       }
       if (result.aiOpinionVerdict) {
         html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
-          + `<b>KI-Zweitmeinung: ${result.aiOpinionVerdict}</b>`
+          + `<b>AI second opinion: ${result.aiOpinionVerdict}</b>`
           + (result.aiOpinionReason ? `<br>${result.aiOpinionReason}` : '')
           + `</div>`;
       }

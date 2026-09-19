@@ -248,16 +248,18 @@ These were **out of scope for the polish PR only**, not rejected. After
 `v0.5.6` lands, work them in this order (still subject to principles 2/6/7 —
 measure before defaulting anything that writes Funscripts):
 
-1. [ ] 🔓 **English for remaining German code comments / backend logs** —
-       user-facing UI is already English (`docs/LANGUAGE.md`). Extend that
-       to operator-facing Go/Python log lines and new comments; no mass
-       speculative rewrite of every historical comment in one go.
-2. [ ] 📏 **Tf/Tj + AI two-ROI (`find_two_rois`) on real clips** — wire as
-       opt-in suggestion only after golden-/real-clip numbers beat the
-       current manual ROI2 path (see Open tasks above + `docs/NEXT.md`).
-3. [ ] 🔓 **Quality-Doctor learning from user judgments** — feed
-       accept/reject (and similar) into the existing `quality_model`
-       pattern; adopt only if cross-validation beats fixed rules.
+1. [x] 🔓 **English for remaining German code comments / backend logs** —
+       operator-facing Log-tab / stderr / `fmt.Errorf` / file-dialog titles
+       English (`docs/LANGUAGE.md`). Historical comments may stay German
+       until touched — no mass rewrite.
+2. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — GUI already has opt-in
+       `ai_two` / `auto_two` suggestion (`find_two_rois`). Still needs
+       golden-/real-clip numbers before promoting further (see Open tasks
+       + `docs/NEXT.md` / `docs/GOLDEN_CLIPS.md`).
+3. [x] 🔓 **Quality-Doctor learning from user judgments** — already wired:
+       Generator accept/reject → report JSONL → Settings “Train quality
+       model” (`SubmitFeedback` / `TrainQualityModel`). Adopted only if
+       cross-validation beats fixed rules (`quality_model.py`).
 4. [ ] 🧭 **3D / depth / pose as supporting signals** — research +
        golden-clip bake-off first (`docs/KI_TRAINING.md`). No dependency
        lands without a measured Funscript-quality win.
