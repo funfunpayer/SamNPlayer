@@ -49,17 +49,17 @@ number over a feature wall (`docs/COMPETITIVE.md`).
 
 ---
 
-## Offer to lock (product)
+## Offer (locked)
 
 Already decided in `docs/LICENSE_SYSTEM.md`:
 
-- **Retail:** 1 person, 1 year, full Generate + `.samn` play  
+- **Retail:** **€40** / year — 1 person, full Generate + `.samn` play  
 - **Trial:** 1 minute Generate; Funscript play without Neo-2 `.samn`  
 - **Invite / internal:** no expiry for testers  
 
 Still to decide with the owner (not inferred here):
 
-- Exact **EUR/USD** price and renewal wording  
+- Renewal wording (same €40 / year vs. early-bird)  
 - Refund window  
 - Whether Discord / email is the support channel  
 - Whether Anna-class reviewers get invite keys only (no public download)
@@ -86,9 +86,9 @@ Still to decide with the owner (not inferred here):
 ## Suggested order of work
 
 1. Publish `website/` to Pages; keep license CTA on showcase issues (or real inbox)  
-2. Owner sets retail price + support channel  
+2. Owner sets support channel (price locked at **€40** / year)  
 3. Production `genkey`, embed pubkey, flip enforcement  
-4. Minimal checkout → issue key (even if semi-manual at first)  
+4. Minimal checkout at **€40** → issue key (even if semi-manual at first)  
 5. Trust pack: portable Win test + one Neo 2 feel note + optional bench number  
 6. Only then: ads, influencers, store listings  
 

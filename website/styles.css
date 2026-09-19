@@ -292,6 +292,25 @@ code {
   font-size: 0.95rem;
 }
 
+.price {
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+.price-amount {
+  font-size: clamp(2.4rem, 5vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  line-height: 1;
+}
+.price-unit {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
 .license-points {
   margin: 0 0 1.5rem;
   padding: 0;

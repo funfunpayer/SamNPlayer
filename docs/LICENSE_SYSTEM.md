@@ -14,6 +14,7 @@ production plan (`docs/PRODUCTION_ROADMAP.md` stream E).
 
 | Decision | Choice |
 |----------|--------|
+| Retail price | **€40** / year (EUR; one named seat) |
 | Retail key lifetime | **1 year** from issue (`exp = iat + 365 days`) |
 | Seat | **One person** — one key named to that person (email / id) |
 | Internal / invite | Same Settings import; `tier: internal` or `invite`; no expiry |
