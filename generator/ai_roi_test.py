@@ -122,6 +122,32 @@ def main():
     check("preferred ohne Treffer fällt ehrlich auf alle Detektionen zurück",
           box_fallback == (100, 100, 100, 100), str(box_fallback))
 
+    # --- depth rank (opt-in): soft bonus from support_signals ----------------
+    gray = np.zeros((200, 200), dtype=np.uint8)
+    gray[:, :100] = 30
+    gray[:, 100:] = 220
+    rng = np.random.default_rng(1)
+    gray[:, :100] = np.clip(
+        gray[:, :100].astype(np.int16) + rng.integers(0, 40, size=(200, 100)), 0, 255
+    ).astype(np.uint8)
+    import support_signals
+    depth_map = support_signals.relative_depth_map(gray)
+    # Manual contrast map so the large left ROI clearly beats a slightly higher-conf flat right ROI.
+    depth_map = np.zeros((200, 200), dtype=np.float32)
+    depth_map[:, :100] = 0.95
+    depth_map[:, 100:] = 0.05
+    close_dets = [
+        {"x0": 0.55, "y0": 0.10, "x1": 0.85, "y1": 0.25, "confidence": 0.92, "class_id": 0},
+        {"x0": 0.05, "y0": 0.05, "x1": 0.45, "y1": 0.95, "confidence": 0.90, "class_id": 0},
+    ]
+    box_no_depth = ai_roi.select_best_box(close_dets, 200, 200, use_depth_rank=False)
+    box_depth = ai_roi.select_best_box(
+        close_dets, 200, 200, use_depth_rank=True, depth_map=depth_map)
+    check("use_depth_rank=False keeps confidence-only winner",
+          box_no_depth == (110, 20, 60, 30), str(box_no_depth))
+    check("use_depth_rank=True can prefer higher depth-contrast ROI",
+          box_depth == (10, 10, 80, 180), str(box_depth))
+
     two_class = [
         {"x0": 0.05, "y0": 0.05, "x1": 0.15, "y1": 0.15, "confidence": 0.95, "class_id": 0},
         {"x0": 0.08, "y0": 0.40, "x1": 0.18, "y1": 0.50, "confidence": 0.90, "class_id": 0},

@@ -69,7 +69,7 @@ func (a *App) GetCacheInfo() CacheInfo {
 func (a *App) ClearCache() (CacheInfo, error) {
 	path := generator.DefaultCacheDir()
 	if path == "" {
-		return CacheInfo{}, fmt.Errorf("kein Cache-Verzeichnis bekannt")
+		return CacheInfo{}, fmt.Errorf("no cache directory known")
 	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -88,7 +88,7 @@ func (a *App) ClearCache() (CacheInfo, error) {
 			removed++
 		}
 	}
-	logging.Info("cache: geleert", "dateien", removed, "pfad", path)
+	logging.Info("cache: cleared", "files", removed, "path", path)
 	return a.GetCacheInfo(), nil
 }
 
@@ -98,6 +98,6 @@ func (a *App) clearCacheIfRequested() {
 		return
 	}
 	if _, err := a.ClearCache(); err != nil {
-		logging.Warn("cache: Leeren beim Beenden fehlgeschlagen", "fehler", err)
+		logging.Warn("cache: clear on shutdown failed", "error", err)
 	}
 }

@@ -48,7 +48,7 @@ var Version = "dev"
 //
 // Bewusst eine Konstante und keine Datei, die zur Laufzeit gelesen wird:
 // die fertige .exe soll eine einzelne Datei bleiben.
-const BaseVersion = "0.5.6"
+const BaseVersion = "0.5.7"
 
 // Describe liefert die Fassung für Anzeige und Fehlerberichte.
 func Describe() string {
@@ -105,10 +105,10 @@ func (r *Release) ChecksumFor(assetName string) (string, error) {
 // (nil, nil) wenn RepoOwner noch auf den Platzhalter zeigt - bewusst kein
 // Netzwerk-Aufruf gegen ein Repo, das mit Sicherheit nicht existiert.
 func CheckLatest() (*Release, error) {
-	logging.Info("update: prüfe auf neue Version", "aktuelle_version", Version, "repo", RepoOwner+"/"+RepoName)
+	logging.Info("update: checking for new version", "current_version", Version, "repo", RepoOwner+"/"+RepoName)
 	if RepoOwner == "TODO-github-username" {
-		logging.Warn("update: RepoOwner ist Platzhalter, Check übersprungen")
-		return nil, fmt.Errorf("update: RepoOwner ist noch nicht gesetzt (Platzhalter in update/update.go)")
+		logging.Warn("update: RepoOwner is placeholder, check skipped")
+		return nil, fmt.Errorf("update: RepoOwner is not set yet (placeholder in update/update.go)")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", RepoOwner, RepoName)
@@ -122,22 +122,22 @@ func CheckLatest() (*Release, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("update: GitHub-Anfrage fehlgeschlagen: %w", err)
+		return nil, fmt.Errorf("update: GitHub request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("update: kein Release gefunden (Repo %s/%s hat noch keins, oder Name stimmt nicht)", RepoOwner, RepoName)
+		return nil, fmt.Errorf("update: no release found (repo %s/%s has none yet, or name does not match)", RepoOwner, RepoName)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("update: GitHub antwortete mit HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("update: GitHub responded with HTTP %d", resp.StatusCode)
 	}
 
 	var rel Release
 	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
-		return nil, fmt.Errorf("update: Antwort konnte nicht gelesen werden: %w", err)
+		return nil, fmt.Errorf("update: response could not be read: %w", err)
 	}
-	logging.Info("update: neuestes Release gefunden", "tag", rel.TagName)
+	logging.Info("update: latest release found", "tag", rel.TagName)
 	return &rel, nil
 }
 
@@ -196,11 +196,11 @@ func Download(a Asset, expectedSHA256 string) (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("update: Download fehlgeschlagen: %w", err)
+		return "", fmt.Errorf("update: download failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("update: HTTP %d beim Download von %s", resp.StatusCode, a.BrowserDownloadURL)
+		return "", fmt.Errorf("update: HTTP %d while downloading %s", resp.StatusCode, a.BrowserDownloadURL)
 	}
 
 	tmp, err := os.CreateTemp("", "SamNPlayer-update-*"+filepath.Ext(a.Name))
@@ -218,23 +218,23 @@ func Download(a Asset, expectedSHA256 string) (string, error) {
 	written, err := io.Copy(io.MultiWriter(tmp, hasher), limited)
 	if err != nil {
 		os.Remove(tmp.Name())
-		return "", fmt.Errorf("update: Download konnte nicht gespeichert werden: %w", err)
+		return "", fmt.Errorf("update: download could not be saved: %w", err)
 	}
 	if written > maxDownloadBytes {
 		os.Remove(tmp.Name())
-		return "", fmt.Errorf("update: heruntergeladene Datei überschreitet die erwartete Maximalgröße (%d MB) - abgebrochen", maxDownloadBytes/1024/1024)
+		return "", fmt.Errorf("update: downloaded file exceeds expected max size (%d MB) — aborted", maxDownloadBytes/1024/1024)
 	}
 
 	if expectedSHA256 != "" {
 		actual := hex.EncodeToString(hasher.Sum(nil))
 		if !strings.EqualFold(actual, expectedSHA256) {
 			os.Remove(tmp.Name())
-			logging.Error("update: Prüfsumme stimmt nicht", "erwartet", expectedSHA256, "erhalten", actual)
-			return "", fmt.Errorf("update: SHA256-Prüfsumme stimmt nicht überein (erwartet %s, erhalten %s) - Download verworfen, KEIN Update angewendet", expectedSHA256, actual)
+			logging.Error("update: checksum mismatch", "expected", expectedSHA256, "actual", actual)
+			return "", fmt.Errorf("update: SHA256 checksum mismatch (expected %s, got %s) — download discarded, update NOT applied", expectedSHA256, actual)
 		}
-		logging.Info("update: Prüfsumme verifiziert", "sha256", actual)
+		logging.Info("update: checksum verified", "sha256", actual)
 	} else {
-		logging.Warn("update: keine Prüfsumme verfügbar (Release hat keine checksums.txt) - Integrität nicht verifiziert")
+		logging.Warn("update: no checksum available (release has no checksums.txt) — integrity not verified")
 	}
 
 	return tmp.Name(), nil
@@ -247,17 +247,17 @@ func Download(a Asset, expectedSHA256 string) (string, error) {
 func validateGitHubAssetURL(rawURL string) error {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return fmt.Errorf("update: ungültige Asset-URL: %w", err)
+		return fmt.Errorf("update: invalid asset URL: %w", err)
 	}
 	if u.Scheme != "https" {
-		return fmt.Errorf("update: Asset-URL nutzt kein HTTPS (%s) - abgelehnt", u.Scheme)
+		return fmt.Errorf("update: asset URL does not use HTTPS (%s) — rejected", u.Scheme)
 	}
 	host := strings.ToLower(u.Hostname())
 	allowed := host == "github.com" ||
 		strings.HasSuffix(host, ".github.com") ||
 		strings.HasSuffix(host, ".githubusercontent.com")
 	if !allowed {
-		return fmt.Errorf("update: Asset-URL zeigt nicht auf github.com (%s) - abgelehnt, um keine Datei von einer unerwarteten Quelle auszuführen", host)
+		return fmt.Errorf("update: asset URL does not point to github.com (%s) — rejected to avoid running a file from an unexpected source", host)
 	}
 	return nil
 }
@@ -285,7 +285,7 @@ func checksumForAsset(rel *Release, assetName string) (string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(checksumsAsset.BrowserDownloadURL)
 	if err != nil {
-		return "", fmt.Errorf("update: checksums.txt konnte nicht geladen werden: %w", err)
+		return "", fmt.Errorf("update: checksums.txt could not be loaded: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -294,7 +294,7 @@ func checksumForAsset(rel *Release, assetName string) (string, error) {
 
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1MB reicht für eine Textliste bei weitem
 	if err != nil {
-		return "", fmt.Errorf("update: checksums.txt konnte nicht gelesen werden: %w", err)
+		return "", fmt.Errorf("update: checksums.txt could not be read: %w", err)
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
@@ -307,7 +307,7 @@ func checksumForAsset(rel *Release, assetName string) (string, error) {
 			return hash, nil
 		}
 	}
-	return "", fmt.Errorf("update: kein Eintrag für %q in checksums.txt gefunden", assetName)
+	return "", fmt.Errorf("update: no entry for %q in checksums.txt", assetName)
 }
 
 // ApplyAndRestart ersetzt die aktuell laufende Programmdatei durch die unter
@@ -318,18 +318,18 @@ func checksumForAsset(rel *Release, assetName string) (string, error) {
 // Funktion kehrt im Erfolgsfall NICHT zurück - sie beendet den Prozess
 // (os.Exit), damit der Hilfsprozess die Datei freigeben kann.
 func ApplyAndRestart(newPath string) error {
-	logging.Info("update: wende Update an und starte neu", "neue_datei", newPath)
+	logging.Info("update: applying update and restarting", "new_file", newPath)
 	self, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("update: eigener Pfad nicht ermittelbar: %w", err)
+		return fmt.Errorf("update: own executable path unknown: %w", err)
 	}
 	self, err = filepath.EvalSymlinks(self)
 	if err != nil {
-		return fmt.Errorf("update: eigener Pfad nicht auflösbar: %w", err)
+		return fmt.Errorf("update: own executable path not resolvable: %w", err)
 	}
 
 	if err := os.Chmod(newPath, 0755); err != nil {
-		return fmt.Errorf("update: Ausführungsrecht konnte nicht gesetzt werden: %w", err)
+		return fmt.Errorf("update: execute permission could not be set: %w", err)
 	}
 
 	pid := os.Getpid()
@@ -345,7 +345,7 @@ func ApplyAndRestart(newPath string) error {
 		cmd := exec.Command("cmd", "/C", script)
 		cmd.SysProcAttr = detachedSysProcAttr()
 		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("update: Hilfsprozess konnte nicht gestartet werden: %w", err)
+			return fmt.Errorf("update: helper process could not be started: %w", err)
 		}
 	default: // linux, darwin
 		script := fmt.Sprintf(
@@ -355,7 +355,7 @@ func ApplyAndRestart(newPath string) error {
 		cmd := exec.Command("sh", "-c", script)
 		cmd.SysProcAttr = detachedSysProcAttr()
 		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("update: Hilfsprozess konnte nicht gestartet werden: %w", err)
+			return fmt.Errorf("update: helper process could not be started: %w", err)
 		}
 	}
 

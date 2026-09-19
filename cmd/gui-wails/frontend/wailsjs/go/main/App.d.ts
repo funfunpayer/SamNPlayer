@@ -183,6 +183,8 @@ export function SuggestPolarity():Promise<funscript.PolarityHint>;
 
 export function SuggestProfile(arg1:string):Promise<generator.ProfileSuggestion>;
 
+export function SupportSignalsAvailable():Promise<Record<string, boolean>>;
+
 export function TestRawValue(arg1:string,arg2:number):Promise<void>;
 
 export function TestStop():Promise<void>;

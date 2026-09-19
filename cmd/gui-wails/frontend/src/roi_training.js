@@ -293,12 +293,12 @@ export function initRoiTraining(root) {
     el('#rt-seek-btn').disabled = false;
     el('#rt-seek-plus').disabled = false;
     el('#rt-seek-plus5').disabled = false;
-    el('#rt-bootstrap-status').textContent = 'Lade Frame…';
+    el('#rt-bootstrap-status').textContent = 'Loading frame…';
     try {
       await showPreview(path, 0);
-      el('#rt-bootstrap-status').textContent = 'Region(en) markieren. Bei schwarzem Anfang Zeit vorstellen.';
+      el('#rt-bootstrap-status').textContent = 'Mark region(s). If the start is black, seek forward first.';
     } catch (err) {
-      uiError('Video laden: ' + err, el('#rt-bootstrap-status'));
+      uiError('Load video: ' + err, el('#rt-bootstrap-status'));
     }
   }
 
@@ -349,10 +349,10 @@ export function initRoiTraining(root) {
     if (!sourcePath || sourceKind !== 'video') return;
     seekSec = Math.max(0, sec);
     el('#rt-seek').value = String(seekSec);
-    el('#rt-bootstrap-status').textContent = `Lade Frame bei ${seekSec}s…`;
+    el('#rt-bootstrap-status').textContent = `Loading frame at ${seekSec}s…`;
     try {
       await showPreview(sourcePath, seekSec);
-      el('#rt-bootstrap-status').textContent = `Frame bei ${seekSec}s — markieren.`;
+      el('#rt-bootstrap-status').textContent = `Frame at ${seekSec}s — mark region(s).`;
     } catch (err) {
       uiError('Seek failed: ' + err, el('#rt-bootstrap-status'));
     }
@@ -384,7 +384,7 @@ export function initRoiTraining(root) {
           }
         }
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
-        el('#rt-bootstrap-status').textContent = 'Still-Beispiel gespeichert.';
+        el('#rt-bootstrap-status').textContent = 'Still sample saved.';
         updateBootstrapEnabled();
         refreshReview();
         refreshClassList();
@@ -400,7 +400,7 @@ export function initRoiTraining(root) {
         );
       }
     } catch (err) {
-      uiError('Sample speichern: ' + err, el('#rt-bootstrap-status'));
+      uiError('Save sample: ' + err, el('#rt-bootstrap-status'));
       updateBootstrapEnabled();
     }
   });
@@ -508,13 +508,13 @@ export function initRoiTraining(root) {
             await DiscardRoiTrainingSample(datasetDir, s.split, s.name);
             card.remove();
           } catch (err) {
-            uiError('Sample verwerfen: ' + err);
+            uiError('Discard sample: ' + err);
             discardBtn.disabled = false;
           }
         });
       }
     } catch (err) {
-      grid.textContent = 'Fehler: ' + err;
+      grid.textContent = 'Error: ' + err;
     }
   }
 
@@ -582,7 +582,7 @@ export function initRoiTraining(root) {
       overlay.remove();
       thumbWrap.querySelectorAll('.rt-box').forEach(n => n.remove());
       updated.forEach(box => thumbWrap.appendChild(boxOverlay(box)));
-      uiInfo('Box gespeichert.');
+      uiInfo('Box saved.');
     };
     thumbWrap.addEventListener('mousedown', (e) => {
       const r = rect();
@@ -669,7 +669,7 @@ export function initRoiTraining(root) {
         + '</tbody></table>';
       refreshClassList();
     } catch (err) {
-      box.textContent = 'Fehler: ' + err;
+      box.textContent = 'Error: ' + err;
     }
   });
 

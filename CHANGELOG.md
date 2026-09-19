@@ -8,6 +8,34 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.7] — September 19, 2026
+
+Follow-up after v0.5.6: finish English operator-facing logs, ship
+experimental depth/pose supporting signals (opt-in only), and a small
+bugfix pass (clip7776 + bindings).
+
+### Changed
+
+- **Operator-facing logs / errors / file dialogs** in English
+  (`docs/LANGUAGE.md`). Structured log keys aligned where touched
+  (`fehler`→`error`, etc.). Historical code comments may stay German
+  until touched.
+
+### Added
+
+- **Experimental depth / pose supporting signals** (`docs/DEPTH_POSE.md`):
+  classical relative-depth proxy + optional ONNX stubs; soft-rank AI ROI
+  candidates only when `SAMNPLAYER_DEPTH_RANK=1`. Never writes a
+  Funscript alone; no bundled model. Golden-clip win still required
+  before any default.
+
+### Fixed
+
+- Export `SupportSignalsAvailable` in wailsjs bindings.
+- Leftover German UI strings found in clip7776 / playback bugfix
+  (heatmap/project toasts, range-mark warnings, ROI-training status,
+  generator workflow tip, benchmark hint).
+
 ## [0.5.6] — September 19, 2026
 
 Polish release after English UI/docs alignment and a selective GUI review.

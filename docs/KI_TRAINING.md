@@ -89,7 +89,7 @@ python generator/train_yolo_model.py \
 | Classic CSRT/KCF/flow | **writes Funscript** |
 | Two-ROI AI (`find_two_rois`) | Code present, rarely measured in practice |
 | Audio sidecar | stored only |
-| 3D / depth / pose | **not** — until golden clips show Funscript quality gain |
+| 3D / depth / pose | **experimental** — classical depth proxy + optional ONNX stub in `support_signals.py`; opt-in ROI soft-rank only (`SAMNPLAYER_DEPTH_RANK=1`); no Funscript writer; bake-off required before default |
 
 ## Tips for good models
 
@@ -99,7 +99,7 @@ python generator/train_yolo_model.py \
 - At least one val example (still path switches automatically)
 - GPU strongly recommended; CPU only for smoke tests (few epochs)
 - After training: Generate tab → AI detection; in Settings set **Preferred classes** for multi-class models (e.g. `hand,breast`)
-- 3D / depth / pose: **not** — until golden clips show Funscript gain
+- 3D / depth / pose: experimental scaffold only — see `docs/DEPTH_POSE.md`; golden-clip win required before default
 
 ## Troubleshooting
 
@@ -116,5 +116,5 @@ python generator/train_yolo_model.py \
 
 - `cmd/gui-wails/frontend/src/roi_training.js` — GUI
 - `cmd/gui-wails/app_roi_training.go` — Wails API
-- `generator/roi_training.go`, `bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `ai_roi.py`
+- `generator/roi_training.go`, `bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `ai_roi.py`, `support_signals.py`
 - `docs/AI_ADAPTER.md` — architecture principle

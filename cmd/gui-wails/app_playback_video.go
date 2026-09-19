@@ -35,7 +35,7 @@ func (a *App) ProbePlaybackVideo(path string) (PlaybackVideoInfo, error) {
 		a.stateMu.RUnlock()
 	}
 	if path == "" {
-		return PlaybackVideoInfo{}, fmt.Errorf("kein Video geladen")
+		return PlaybackVideoInfo{}, fmt.Errorf("no video loaded")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), videox.ProbeTimeout)
 	defer cancel()
@@ -55,9 +55,9 @@ func (a *App) ProbePlaybackVideo(path string) (PlaybackVideoInfo, error) {
 	ext := strings.ToLower(filepath.Ext(path))
 	if out.LikelyPlayable && (ext == ".mkv" || ext == ".avi") {
 		out.LikelyPlayable = false
-		out.Warning = "Container oft problematisch im Player — H.264-MP4-Kopie empfohlen"
+		out.Warning = "Container often problematic in the player — H.264 MP4 copy recommended"
 	} else if !out.LikelyPlayable {
-		out.Warning = fmt.Sprintf("Codec %q wird vom eingebetteten Player oft nicht abgespielt", info.Codec)
+		out.Warning = fmt.Sprintf("Codec %q is often not playable in the embedded player", info.Codec)
 	}
 	return out, nil
 }
@@ -69,12 +69,12 @@ func (a *App) EnsurePlayablePlaybackVideo() (PlaybackVideoInfo, error) {
 	src := a.videoPath
 	a.stateMu.RUnlock()
 	if src == "" {
-		return PlaybackVideoInfo{}, fmt.Errorf("kein Video geladen")
+		return PlaybackVideoInfo{}, fmt.Errorf("no video loaded")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 	out, converted, err := videox.EnsurePlayableProxy(ctx, src, func(line string) {
-		logging.Info("playback: proxy", "zeile", line)
+		logging.Info("playback: proxy", "line", line)
 	})
 	if err != nil {
 		return PlaybackVideoInfo{Path: src, Warning: err.Error()}, err

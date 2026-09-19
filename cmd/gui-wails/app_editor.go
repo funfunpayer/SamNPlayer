@@ -13,7 +13,7 @@ import (
 func (a *App) GetScriptActions() ([]funscript.Action, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	return script.Actions, nil
 }
@@ -23,7 +23,7 @@ func (a *App) GetScriptActions() ([]funscript.Action, error) {
 func (a *App) GetSpeedHighlights(maxIntensity float64) ([]funscript.SpeedSegment, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	return funscript.SpeedHighlights(script.Actions, maxIntensity), nil
 }
@@ -36,7 +36,7 @@ func (a *App) GetSpeedHighlights(maxIntensity float64) ([]funscript.SpeedSegment
 func (a *App) SaveScriptActions(actions []funscript.Action) error {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	if err := funscript.SaveActions(path, actions); err != nil {
 		return err

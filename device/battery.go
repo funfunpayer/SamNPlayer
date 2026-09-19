@@ -37,7 +37,7 @@ func readStandardBatteryLevel(dev bluetooth.Device) (int, bool) {
 	buf := make([]byte, 1)
 	n, err := chars[0].Read(buf)
 	if err != nil || n < 1 {
-		logging.Debug("battery: Lesen fehlgeschlagen", "fehler", err)
+		logging.Debug("battery: read failed", "error", err)
 		return 0, false
 	}
 	pct := int(buf[0])

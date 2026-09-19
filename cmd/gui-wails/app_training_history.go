@@ -61,7 +61,7 @@ func (a *App) TrainingHistory() ([]TrainingSessionSummary, error) {
 		}
 		summary, err := summarizeSessionLog(filepath.Join(sessionsDir, e.Name()))
 		if err != nil {
-			logging.Warn("app: Session-Protokoll übersprungen", "datei", e.Name(), "fehler", err)
+			logging.Warn("app: session log skipped", "file", e.Name(), "error", err)
 			continue
 		}
 		if summary == nil {

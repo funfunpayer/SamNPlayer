@@ -9,7 +9,7 @@ import (
 func (a *App) SuggestPolarity() (funscript.PolarityHint, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return funscript.PolarityHint{}, fmt.Errorf("kein Skript geladen")
+		return funscript.PolarityHint{}, fmt.Errorf("no script loaded")
 	}
 	return funscript.SuggestPolarity(script.Actions), nil
 }
@@ -18,10 +18,10 @@ func (a *App) InvertLoadedScript() error {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	if path == "" {
-		return fmt.Errorf("kein Skriptpfad")
+		return fmt.Errorf("no script path")
 	}
 	actions := make([]funscript.Action, len(script.Actions))
 	for i, act := range script.Actions {
@@ -41,7 +41,7 @@ func (a *App) InvertLoadedScript() error {
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return funscript.OZoneSuggestion{}, fmt.Errorf("kein Skript geladen")
+		return funscript.OZoneSuggestion{}, fmt.Errorf("no script loaded")
 	}
 	return funscript.SuggestOZone(script.Actions), nil
 }
@@ -56,7 +56,7 @@ func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
 	}
 	path := a.loadedScriptPath()
 	if path == "" {
-		return zone, fmt.Errorf("kein Skriptpfad")
+		return zone, fmt.Errorf("no script path")
 	}
 	if err := a.SaveMarker(path, zone.StartMs, zone.EndMs); err != nil {
 		return zone, err
@@ -112,10 +112,10 @@ func (a *App) ApplyRingDown(atMs int64, cycles int) error {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	if path == "" {
-		return fmt.Errorf("kein Skriptpfad")
+		return fmt.Errorf("no script path")
 	}
 	if atMs < 0 {
 		atMs = 0
@@ -129,7 +129,7 @@ func (a *App) ApplyRingDown(atMs int64, cycles int) error {
 		lastPos = act.Pos
 	}
 	if lastPos < 10 {
-		return fmt.Errorf("Position zu niedrig für Ring-down (%d)", lastPos)
+		return fmt.Errorf("position too low for ring-down (%d)", lastPos)
 	}
 	newActions := funscript.RingDown(actions, atMs, lastPos, cycles)
 	if err := funscript.SaveActions(path, newActions); err != nil {

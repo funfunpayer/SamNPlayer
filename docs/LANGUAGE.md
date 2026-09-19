@@ -18,6 +18,11 @@ language keeps the product and the repository aligned.
   Wails UI. Do not rewrite stacks for language fashion — only when a
   measured win (performance, maintainability, or removing a dependency)
   justifies the cost.
+- **Operator-facing logs and backend errors** (Log tab, stderr progress,
+  `fmt.Errorf` returned to the GUI, `logging.Info`/`Warn`/`Error`) should be
+  **English**. When you touch a log line, translate it; update structured log
+  attribute keys to English when adjacent (`fehler`→`error`, `geraet`→`device`,
+  `pfad`→`path`, `hinweis`→`hint`, `zeile`→`line`).
 - **Code comments** may still be German in older files; new comments
   preferably English. Do not mass-rewrite comments for translation alone.
 - **Brand / domain terms** stay: SamNPlayer, Funscript, Extended-O, Tf/Tj,

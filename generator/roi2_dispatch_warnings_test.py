@@ -53,28 +53,28 @@ def main():
         out1 = Path(tmp) / "perscene.funscript"
         result = run(video, out1, "--per-scene-roi")
         check("per-scene-roi + roi2: Exit-Code 0", result.returncode == 0, result.stderr)
-        check("per-scene-roi + roi2: Hinweis auf stderr",
-              "per-scene-roi" in result.stderr and "keine Wirkung" in result.stderr,
+        check("per-scene-roi + roi2: hint on stderr",
+              "per-scene-roi" in result.stderr and "has no effect" in result.stderr,
               result.stderr)
-        check("per-scene-roi + roi2: Ausgabedatei trotzdem erzeugt", out1.exists())
+        check("per-scene-roi + roi2: output file still created", out1.exists())
 
         # --backend flow zusammen mit --roi2: flow hat keinen Zwei-Punkt-Pfad,
         # fällt bisher stillschweigend auf CSRT zurück.
         out2 = Path(tmp) / "flow.funscript"
         result = run(video, out2, "--backend", "flow")
         check("backend flow + roi2: Exit-Code 0", result.returncode == 0, result.stderr)
-        check("backend flow + roi2: Hinweis auf stderr",
-              "'flow'" in result.stderr and "verwende CSRT" in result.stderr,
+        check("backend flow + roi2: hint on stderr",
+              "'flow'" in result.stderr and "using CSRT" in result.stderr,
               result.stderr)
-        check("backend flow + roi2: Ausgabedatei trotzdem erzeugt", out2.exists())
+        check("backend flow + roi2: output file still created", out2.exists())
 
         # Normalfall (csrt, kein per-scene-roi): kein Hinweis, keine
         # falsch-positive Warnung.
         out3 = Path(tmp) / "normal.funscript"
         result = run(video, out3)
-        check("normaler Zwei-Punkt-Lauf: Exit-Code 0", result.returncode == 0, result.stderr)
-        check("normaler Zwei-Punkt-Lauf: kein Hinweis auf stderr",
-              "keine Wirkung" not in result.stderr and "verwende CSRT" not in result.stderr,
+        check("normal two-point run: Exit-Code 0", result.returncode == 0, result.stderr)
+        check("normal two-point run: no hint on stderr",
+              "has no effect" not in result.stderr and "using CSRT" not in result.stderr,
               result.stderr)
 
         # backend grid_lk + roi2: hat einen eigenen Zwei-Punkt-Pfad, darf
@@ -82,10 +82,10 @@ def main():
         out4 = Path(tmp) / "gridlk.funscript"
         result = run(video, out4, "--backend", "grid_lk")
         check("backend grid_lk + roi2: Exit-Code 0", result.returncode == 0, result.stderr)
-        check("backend grid_lk + roi2: kein Fallback-Hinweis",
-              "verwende CSRT" not in result.stderr, result.stderr)
+        check("backend grid_lk + roi2: no fallback hint",
+              "using CSRT" not in result.stderr, result.stderr)
 
-    print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
+    print(("FAILED: " + ", ".join(failures)) if failures else "All checks passed.")
     return 1 if failures else 0
 
 

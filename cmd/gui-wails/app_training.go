@@ -62,7 +62,7 @@ type sessionLogEntry struct {
 // "training:error") - derselbe Aufbau wie StartPlayback.
 func (a *App) StartTraining(req TrainingRequest) error {
 	if req.Cycles <= 0 {
-		return fmt.Errorf("mindestens 1 Zyklus nötig")
+		return fmt.Errorf("at least 1 cycle required")
 	}
 
 	dev, reusedDevice := a.claimSessionDevice(req.Mock)
@@ -76,7 +76,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 
 	sessionFile, sessionErr := a.openSessionLog(req.Technique)
 	if sessionErr != nil {
-		logging.Warn("app: Session-Log konnte nicht angelegt werden", "fehler", sessionErr)
+		logging.Warn("app: session log could not be created", "error", sessionErr)
 	}
 
 	opts := player.TrainingOptions{
@@ -106,13 +106,13 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			// Bereits über den Geräte-Tab verbunden - nicht erneut
 			// verbinden und am Ende NICHT trennen, das bleibt dessen
 			// Sache (siehe claimSessionDevice).
-			runtime.EventsEmit(a.ctx, "training:log", "Nutze die bestehende Verbindung aus dem Geräte-Tab.")
+			runtime.EventsEmit(a.ctx, "training:log", "Using existing connection from Device tab.")
 		} else {
 			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 			defer connectCancel()
-			runtime.EventsEmit(a.ctx, "training:log", "Verbinde...")
+			runtime.EventsEmit(a.ctx, "training:log", "Connecting...")
 			if err := dev.Connect(connectCtx); err != nil {
-				logging.Error("app: Verbindung fehlgeschlagen (Training)", "fehler", err)
+				logging.Error("app: connection failed (training)", "error", err)
 				runtime.EventsEmit(a.ctx, "training:error", err.Error())
 				runtime.EventsEmit(a.ctx, "training:done")
 				return
@@ -120,7 +120,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			defer dev.Disconnect()
 		}
 
-		runtime.EventsEmit(a.ctx, "training:log", "Training startet...")
+		runtime.EventsEmit(a.ctx, "training:log", "Training starting...")
 
 		control := player.NewTrainingControl()
 		a.stateMu.Lock()
@@ -161,7 +161,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 				}
 				if b, err := json.Marshal(entry); err == nil {
 					if _, writeErr := sessionFile.Write(append(b, '\n')); writeErr != nil {
-						logging.Warn("app: Trainings-Zyklus konnte nicht ins Session-Log geschrieben werden", "fehler", writeErr)
+						logging.Warn("app: training cycle could not be written to session log", "error", writeErr)
 					}
 				}
 			}
@@ -185,10 +185,10 @@ func (a *App) StopTrainingCycle() error {
 	control := a.trainingControl
 	a.stateMu.RUnlock()
 	if control == nil {
-		return fmt.Errorf("es läuft gerade kein Training")
+		return fmt.Errorf("no training is running")
 	}
 	control.StopCycle()
-	logging.Info("training: Zyklus auf Wunsch unterbrochen")
+	logging.Info("training: cycle interrupted on request")
 	return nil
 }
 
@@ -201,13 +201,13 @@ func (a *App) ReportArousal(level int) error {
 	control := a.trainingControl
 	a.stateMu.RUnlock()
 	if control == nil {
-		return fmt.Errorf("es läuft gerade kein Training")
+		return fmt.Errorf("no training is running")
 	}
 	if level < 1 || level > 10 {
-		return fmt.Errorf("Wert muss zwischen 1 und 10 liegen (ist %d)", level)
+		return fmt.Errorf("value must be between 1 and 10 (got %d)", level)
 	}
 	control.ReportArousal(level)
-	logging.Info("training: Rückmeldung", "erregung", level)
+	logging.Info("training: feedback", "arousal", level)
 	return nil
 }
 

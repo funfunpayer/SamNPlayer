@@ -28,11 +28,11 @@ func (a *App) RunGoldenClipBenchmark(manifestPath string) {
 			func(line string) { runtime.EventsEmit(a.ctx, "benchmark:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "benchmark:percent", pct) })
 		if err != nil {
-			logging.Error("benchmark: Lauf fehlgeschlagen", "manifest", manifestPath, "fehler", err)
+			logging.Error("benchmark: run failed", "manifest", manifestPath, "error", err)
 			runtime.EventsEmit(a.ctx, "benchmark:done", map[string]any{"error": err.Error()})
 			return
 		}
-		logging.Info("benchmark: Lauf abgeschlossen", "manifest", manifestPath,
+		logging.Info("benchmark: run finished", "manifest", manifestPath,
 			"clips", result.Summary.Total, "ok", result.Summary.OK)
 		runtime.EventsEmit(a.ctx, "benchmark:done", map[string]any{"result": result})
 	}()
@@ -66,7 +66,7 @@ func (a *App) GetBenchmarkHistory() ([]generator.BenchmarkResult, error) {
 	for scanner.Scan() {
 		var r generator.BenchmarkResult
 		if err := json.Unmarshal(scanner.Bytes(), &r); err != nil {
-			logging.Warn("benchmark: Verlaufszeile übersprungen", "fehler", err)
+			logging.Warn("benchmark: history line skipped", "error", err)
 			continue
 		}
 		results = append(results, r)

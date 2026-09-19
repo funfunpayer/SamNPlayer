@@ -173,6 +173,12 @@ func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
 }
 
+// SupportSignalsAvailable reports experimental depth/pose helper flags (see
+// docs/DEPTH_POSE.md). No GUI toggle in this release — CLI/env only.
+func (a *App) SupportSignalsAvailable() map[string]bool {
+	return generator.SupportSignalsAvailable("", "")
+}
+
 // CheckAudioCheckAvailable meldet, ob --audio-check grundsätzlich nutzbar
 // ist (ffmpeg auf dem PATH) - die GUI nutzt das, um die Checkbox zu
 // aktivieren/auszublenden statt sie anzubieten und dann scheitern zu lassen.
@@ -206,7 +212,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		if !opts.Overwrite {
 			if _, err := os.Stat(outPath); err == nil {
 				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
-					"error": "Es existiert bereits ein Skript: " + outPath + " - Generierung abgebrochen, um es nicht zu überschreiben.",
+					"error": "Script already exists: " + outPath + " — generation cancelled to avoid overwriting it.",
 				})
 				return
 			}
@@ -271,7 +277,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generierung abgebrochen", "cancelled": true})
+				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generation cancelled", "cancelled": true})
 				return
 			}
 			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
@@ -301,7 +307,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				if script.Metadata.QualityPassed != nil {
 					payload["qualityPassed"] = *script.Metadata.QualityPassed
 				}
-				logging.Info("generator: Qualitätsbewertung", "output", outPath, "score", *script.Metadata.QualityScore)
+				logging.Info("generator: quality score", "output", outPath, "score", *script.Metadata.QualityScore)
 				if script.Metadata.AIOpinion != nil {
 					payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
 					payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
@@ -313,7 +319,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			if opts.AutoOZoneMarker {
 				zone, err := applyAutoOZoneMarker(outPath, script.Actions)
 				if err != nil {
-					logging.Warn("generator: O-Marker konnte nicht gespeichert werden", "output", outPath, "fehler", err)
+					logging.Warn("generator: O markers could not be saved", "output", outPath, "error", err)
 				} else if zone.OK {
 					payload["oZoneMarkerStartMs"] = zone.StartMs
 					payload["oZoneMarkerEndMs"] = zone.EndMs
@@ -322,14 +328,14 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			// Tf/Tj: SAM-Sidecar neben dem Funscript (Modell, kein Format-Ersatz).
 			if funscript.IsDistanceProfile(script.Metadata.Profile) {
 				if err := sam.WriteEnrichedSidecar(outPath, script); err != nil {
-					logging.Warn("generator: SAM-Sidecar nicht geschrieben", "output", outPath, "fehler", err)
+					logging.Warn("generator: SAM sidecar not written", "output", outPath, "error", err)
 				} else {
 					payload["samPath"] = sam.SidecarPath(outPath)
-					logging.Info("generator: SAM-Sidecar geschrieben", "path", payload["samPath"])
+					logging.Info("generator: SAM sidecar written", "path", payload["samPath"])
 				}
 			}
 		} else {
-			logging.Warn("generator: erzeugtes Skript nicht lesbar", "output", outPath, "fehler", loadErr)
+			logging.Warn("generator: generated script not readable", "output", outPath, "error", loadErr)
 		}
 		runtime.EventsEmit(a.ctx, "generate:done", payload)
 	}()

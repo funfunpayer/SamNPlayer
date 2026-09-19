@@ -38,7 +38,7 @@ type ScriptAnalysis struct {
 func (a *App) AnalyzeScript() (ScriptAnalysis, error) {
 	script := a.loadedScript()
 	if script == nil || len(script.Actions) < 4 {
-		return ScriptAnalysis{}, fmt.Errorf("kein Skript geladen (oder zu wenige Punkte)")
+		return ScriptAnalysis{}, fmt.Errorf("no script loaded (or too few points)")
 	}
 
 	points := make([]motionx.Point, 0, len(script.Actions))
@@ -144,7 +144,7 @@ func summarizeStates(shares map[string]float64, totalMs float64) string {
 // Pure Go (generator.ScriptQuality) — kein Python.
 func (a *App) ScriptQuality() (generator.ScriptQualityResult, error) {
 	if a.loadedScriptPath() == "" {
-		return generator.ScriptQualityResult{}, fmt.Errorf("kein Skript geladen")
+		return generator.ScriptQualityResult{}, fmt.Errorf("no script loaded")
 	}
 	return generator.ScriptQuality(a.loadedScriptPath())
 }

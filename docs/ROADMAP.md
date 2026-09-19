@@ -248,19 +248,49 @@ These were **out of scope for the polish PR only**, not rejected. After
 `v0.5.6` lands, work them in this order (still subject to principles 2/6/7 —
 measure before defaulting anything that writes Funscripts):
 
-1. [ ] 🔓 **English for remaining German code comments / backend logs** —
-       user-facing UI is already English (`docs/LANGUAGE.md`). Extend that
-       to operator-facing Go/Python log lines and new comments; no mass
-       speculative rewrite of every historical comment in one go.
-2. [ ] 📏 **Tf/Tj + AI two-ROI (`find_two_rois`) on real clips** — wire as
-       opt-in suggestion only after golden-/real-clip numbers beat the
-       current manual ROI2 path (see Open tasks above + `docs/NEXT.md`).
-3. [ ] 🔓 **Quality-Doctor learning from user judgments** — feed
-       accept/reject (and similar) into the existing `quality_model`
-       pattern; adopt only if cross-validation beats fixed rules.
-4. [ ] 🧭 **3D / depth / pose as supporting signals** — research +
-       golden-clip bake-off first (`docs/KI_TRAINING.md`). No dependency
-       lands without a measured Funscript-quality win.
+1. [x] 🔓 **English for remaining German code comments / backend logs** —
+       operator-facing Log-tab / stderr / `fmt.Errorf` / file-dialog titles
+       English (`docs/LANGUAGE.md`). Historical comments may stay German
+       until touched — no mass rewrite.
+2. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — GUI already has opt-in
+       `ai_two` / `auto_two` suggestion (`find_two_rois`). Still needs
+       golden-/real-clip numbers before promoting further (see Open tasks
+       + `docs/NEXT.md` / `docs/GOLDEN_CLIPS.md`).
+3. [x] 🔓 **Quality-Doctor learning from user judgments** — already wired:
+       Generator accept/reject → report JSONL → Settings “Train quality
+       model” (`SubmitFeedback` / `TrainQualityModel`). Adopted only if
+       cross-validation beats fixed rules (`quality_model.py`).
+4. [x] 🔓 **3D / depth / pose supporting-signal scaffold** — shipped
+       (`generator/support_signals.py`, `docs/DEPTH_POSE.md`): classical
+       depth proxy + optional ONNX stubs, opt-in ROI soft-rank
+       (`SAMNPLAYER_DEPTH_RANK=1`). Still 📏 for golden-clip Funscript-
+       quality win before any default.
+
+### Evaluated 19 Sep 2026 — Wails-v3 / “GUI modernisation” idea dump
+
+Selective review (same bar as the earlier polish pass). **Ship none of
+these in the 0.5.7 train** unless noted.
+
+| Idea | Verdict |
+|------|---------|
+| Frameless window + custom titlebar | **Skip** — brand/desktop chrome already settled; overkill vs Wails v2 app chrome |
+| Card-based layout / more whitespace redesign | **Skip** — conflicts with “no cards by default” / existing dark gold-teal composition |
+| Dark/Light mode (`IsDarkMode`) | **Skip** — product is dark gold/teal; light mode rejected in 0.5.6 review |
+| Micro-interactions / tab transitions | **Later (small)** — `prefers-reduced-motion` already respected; only add if it helps hierarchy |
+| Heatmap/curve tooltips + zoom | **Later (fit)** — incremental on existing editor; good UX, no architecture risk |
+| Multi-axis funscripts “v2.0” | **Partial already** — position + suction + contact vibration via `device_recipe`; full multi-axis format only with measured device need |
+| Playlist shuffle / section repeat / crossfades | **Later (fit, small)** — playlist exists; shuffle/repeat are cheap; crossfades need design |
+| Plugin video-sync / streaming sources | **Skip** — local files + H.264 proxy is the codec path; no streaming plugin surface |
+| Cloud sync for settings | **Skip** — local-only / no telemetry principle |
+| Swap BLE stack (tinygo / bleak) | **Skip until measured** — BLE+Intiface+Mock already work; swap is risk without hardware matrix |
+| Central event-bus state | **Later (hygiene)** — modular JS is fine; bus only if coupling becomes painful |
+| Automated Mock-BLE test runner | **Partial already** — Mock transport + device diagnostics + frontend device tests; expand if protocol regressions appear |
+| Self-hosted SamNPlayer Cloud | **Reject for now** — out of product scope |
+| WebCodecs custom video pipeline | **Skip** — ffprobe + “Make playable” proxy is the measured path |
+| Community Funscript platform | **Reject for now** — tool, not a social network |
+
+**Next buildable after 0.5.7 (if picking from this list):** heatmap/curve
+value tooltips, then playlist shuffle/repeat — not frameless/light/cloud.
 
 ## Explicitly deferred, not forgotten
 

@@ -173,9 +173,9 @@ def load_plugins(directory=None, verbose=True):
             spec.loader.exec_module(module)
             loaded.append(filename)
             if verbose:
-                print(f"Plugin geladen: {filename}", file=sys.stderr)
+                print(f"Plugin loaded: {filename}", file=sys.stderr)
         except Exception:
             if verbose:
-                print(f"Plugin {filename} konnte nicht geladen werden und wird "
-                      f"übersprungen:\n{traceback.format_exc()}", file=sys.stderr)
+                print(f"Plugin {filename} could not be loaded and will be "
+                      f"skipped:\n{traceback.format_exc()}", file=sys.stderr)
     return loaded
