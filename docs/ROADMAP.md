@@ -333,11 +333,13 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
       for now.
 - [ ] 🔒 Real-hardware "does contact-vibration feel right" check —
       blocked on the same hardware item above.
-- [ ] 🔑 **Yearly license gate** — concept only:
-      [`docs/LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md). Unlicensed: 1‑minute
-      generate + funscript-only play; licensed: full `.samn`. **Not sharp
-      until owner flips enforcement**; need infinite/internal key for
-      testing. Do not implement gates before `.samn` workflow is stable.
+- [ ] 🔑 **Yearly personal license** — concept locked:
+      [`docs/LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md). **1 year**, **1 person**
+      per key; **invite/internal** for owner & early testers. When go-live
+      starts: build **license generator** first, then Settings import, then
+      gates. Unlicensed: 1‑minute generate + funscript-only play. **Not
+      sharp** until owner flips enforcement. Do not implement gates before
+      `.samn` workflow is stable.
 - [ ] 📱 **Mobile player (iOS/Android)** — play + device only; no
       generator. Architecture fence: [`docs/PLATFORMS.md`](PLATFORMS.md).
 - [ ]  **macOS GUI release** — needs Mac builder + notarization; Linux
@@ -383,6 +385,7 @@ Things this file can't resolve on its own — flagging rather than guessing:
    Golden-Clip Benchmark already shipped — each remaining phase pulls in
    real new dependencies (SAM-equivalent segmentation, ByteTrack/BoT-SORT,
    depth models) that need individual sign-off, per principle 7.
-5. **License go-live:** confirm trial rules in
+5. **License go-live:** settle remaining open items in
    [`docs/LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) (edit `.samn` without
-   key? seat model? renew grace?) before any enforcement build.
+   key? renew grace? shop) — **seat = one person**, **1 year**,
+   invite/internal already locked. First code: license generator.
