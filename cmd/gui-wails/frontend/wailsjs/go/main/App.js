@@ -90,6 +90,7 @@ export function SuggestPipeline(arg1, arg2, arg3, arg4) { return window['go']['m
 export function SuggestOZone() { return window['go']['main']['App']['SuggestOZone'](); }
 export function SuggestPolarity() { return window['go']['main']['App']['SuggestPolarity'](); }
 export function SuggestProfile(arg1) { return window['go']['main']['App']['SuggestProfile'](arg1); }
+export function SupportSignalsAvailable() { return window['go']['main']['App']['SupportSignalsAvailable'](); }
 export function TestRawValue(arg1, arg2) { return window['go']['main']['App']['TestRawValue'](arg1, arg2); }
 export function TestStop() { return window['go']['main']['App']['TestStop'](); }
 export function TestSuction(arg1) { return window['go']['main']['App']['TestSuction'](arg1); }
