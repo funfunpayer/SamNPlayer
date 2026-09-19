@@ -1,19 +1,40 @@
-# Closed source + public showcase
+# Closed source + public downloads
 
-Anna (and anyone outside the core team) should **see the product**, not
-**fork the source**.
+**Goal:** Anyone can **download releases** and see the product page.  
+Nobody outside the team can **see or fork the source**.
 
-## Setup (owner does this once in GitHub)
+“Anna” was a mix-up — this is for the **general public**.
 
-### 1. Public showcase (already created)
+## The right split
 
-- Repo: https://github.com/funfunpayer/SamNPlayer-site  
-- Contents: landing README + branding (no application code)  
-- Share **this** link with Anna / reviewers
+| What | Where | Visibility |
+|------|--------|------------|
+| **Source code**, CI, issues | `funfunpayer/SamNPlayer` | **Private** |
+| **Landing page** (logo, screenshots, “why us”) | [`SamNPlayer-site`](https://github.com/funfunpayer/SamNPlayer-site) | **Public** |
+| **GUI/CLI binaries + checksums** | **Releases on `SamNPlayer-site`** | **Public** |
 
-### 2. Make the application repo private
+### Important GitHub fact
 
-In a terminal logged in as the repo owner (`funfunpayer`):
+If you only make `SamNPlayer` private and keep releases there, **anonymous
+users cannot download** those assets. Public downloads must live on a
+**public** repo (the showcase) or another public host.
+
+```text
+  [Private] SamNPlayer          build + tag vX.Y.Z
+        │
+        ▼
+  CI builds Windows/Linux GUI+CLI
+        │
+        ▼
+  [Public] SamNPlayer-site      gh release create vX.Y.Z  (same binaries)
+        │
+        ▼
+  Anyone opens site → Downloads → gets ZIP/binaries, never the source
+```
+
+## Owner setup (one-time)
+
+### 1. Make the app repo private
 
 ```bash
 gh repo edit funfunpayer/SamNPlayer \
@@ -21,46 +42,68 @@ gh repo edit funfunpayer/SamNPlayer \
   --accept-visibility-change-consequences
 ```
 
-Or: GitHub → **SamNPlayer** → **Settings** → **Danger Zone** →
-**Change visibility** → **Private**.
+GitHub → **Settings → Collaborators**: only the core team.
 
-Then: **Settings → Collaborators** → add only the core team.
+### 2. Keep the showcase public
 
-### 3. After going private — mirror screenshots into the showcase
+https://github.com/funfunpayer/SamNPlayer-site  
 
-Raw image URLs from `SamNPlayer` stop working for the public once the app
-repo is private. Copy `docs/media/*.png` into `SamNPlayer-site/docs/media/`
-and point the showcase README at relative paths again.
+Share **this** URL as the public face (not the private app repo).
+
+### 3. Mirror screenshots into the showcase
+
+After the app repo is private, raw image URLs from it break for visitors.
+Copy media into the site repo (relative paths in its README):
 
 ```bash
 git clone https://github.com/funfunpayer/SamNPlayer-site.git
 mkdir -p SamNPlayer-site/docs/media
-cp docs/media/*.png SamNPlayer-site/docs/media/
-# edit README image srcs back to docs/media/...
-cd SamNPlayer-site && git add -A && git commit -m "docs: mirror GUI media" && git push
+cp /path/to/SamNPlayer/docs/media/*.png SamNPlayer-site/docs/media/
+cd SamNPlayer-site && git add docs/media && git commit -m "docs: mirror GUI media" && git push
 ```
 
-### 4. Binaries for trusted people
+### 4. Publish each version’s binaries on the **site** releases
 
-Keep releases on the **private** app repo (or send ZIP builds privately).
-Do **not** expect anonymous downloaders on the showcase page.
+After a private app tag builds (or after downloading from the private
+release while you still have access):
+
+```bash
+# from a folder that contains the five release assets:
+./scripts/publish-public-release.sh v0.5.8
+```
+
+Or manually:
+
+```bash
+gh release download v0.5.8 -R funfunpayer/SamNPlayer -D /tmp/snp-rel
+cd /tmp/snp-rel
+gh release create v0.5.8 -R funfunpayer/SamNPlayer-site \
+  --title "v0.5.8" \
+  --notes "SamNPlayer v0.5.8 binaries (closed source)." \
+  SamNPlayer-gui-linux-amd64 \
+  SamNPlayer-gui-windows-amd64.exe \
+  SamNPlayer-cli-linux-amd64 \
+  SamNPlayer-cli-windows-amd64.exe \
+  checksums.txt
+```
+
+Repeat for every new version after the private release finishes.
 
 ## What does *not* work
 
 | Idea | Why not |
 |------|---------|
-| Keep repo public, only “disable forking” | Anyone can still **clone / Download ZIP** the source |
-| MIT “but please don’t copy” | Already published MIT copies stay legal for people who got them |
-| Public source + private “secret” folder | Git history still exposes it |
+| Public app repo + “disable forking” | Clone / Download ZIP still gives **full source** |
+| Private app repo + public expects downloads there | Release assets stay **login-gated** |
+| MIT + “please don’t copy” | Already-public MIT copies remain usable by those who got them |
 
 ## Legal note
 
-Code that was already public under **MIT** may have been cloned by others.
-Making the repo private stops **new** public access; it does not erase past
-copies. For a clean closed-source future: private repo + proprietary license
-on new work; ask counsel if you need stronger protection.
+Code already published under **MIT** may have been cloned. Going private
+stops **new** public source access; it does not erase past copies. Prefer
+a proprietary notice on new closed builds; ask counsel if you need more.
 
-## Decision (ROADMAP)
+## Decision
 
-This replaces the open “open source or not?” question with:
-**source private for the team; showcase public for visibility.**
+**Source private · product page + release downloads public** via
+`SamNPlayer-site`.
