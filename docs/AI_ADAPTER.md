@@ -212,6 +212,26 @@ still no field data on step 2/3 usefulness from a real Colibri server. No
 bundled ONNX model is planned regardless (see step 1 above): training stays
 something each user runs locally against their own material.
 
+### 4. Depth / pose supporting signals — experimental
+
+Monocular depth and pose are **not** a fourth output path. They may only
+soft-rank existing proposals (today: optional bonus inside
+`ai_roi.select_best_box` / `select_two_best_boxes` when
+`SAMNPLAYER_DEPTH_RANK=1` or `use_depth_rank=True`).
+
+- `generator/support_signals.py`: classical relative-depth **proxy** (numpy/
+  OpenCV only — not metric depth), optional ONNX hooks (`load_onnx_session`,
+  `propose_pose_boxes` stub), and `depth_roi_confidence` for ranking hints.
+- No bundled model, no auto-download, no telemetry. Missing onnxruntime or
+  model files → empty lists / classical-only; the CSRT/flow pipeline is
+  unchanged.
+- CLI probe: `python3 generator/support_signals.py --video clip.mp4 --frame 0`
+  prints JSON (`--check` for availability flags only). Operator notes:
+  `docs/DEPTH_POSE.md`.
+- **Not default:** golden-clip bake-off required before any depth/pose signal
+  influences shipped defaults (`docs/KI_TRAINING.md`, `docs/ROADMAP.md` item 4
+  after v0.5.6). Still proposes only — never writes a `.funscript` alone.
+
 ## Not part of this change
 
 - No action detector — unchanged principle from `docs/TEAM_STAND.md`.

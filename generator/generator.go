@@ -358,6 +358,41 @@ func AIRoiAvailable(modelPath string) bool {
 	return strings.TrimSpace(string(out)) == "AVAILABLE"
 }
 
+// SupportSignalsAvailable reports experimental depth/pose helper availability
+// (classical proxy always on; ONNX flags only when optional models exist).
+// Returns nil on any probe failure so callers can treat it as unavailable.
+func SupportSignalsAvailable(depthOnnxPath, poseOnnxPath string) map[string]bool {
+	py, err := FindPython()
+	if err != nil {
+		return nil
+	}
+	if err := CheckDependencies(); err != nil {
+		return nil
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return nil
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "support_signals.py")
+	args := []string{scriptPath, "--check"}
+	if depthOnnxPath != "" {
+		args = append(args, "--depth-onnx", depthOnnxPath)
+	}
+	if poseOnnxPath != "" {
+		args = append(args, "--pose-onnx", poseOnnxPath)
+	}
+	out, err := command(py, args...).Output()
+	if err != nil {
+		return nil
+	}
+	var flags map[string]bool
+	if err := json.Unmarshal(out, &flags); err != nil {
+		return nil
+	}
+	return flags
+}
+
 // AudioCheckAvailable prüft, ob --audio-check grundsätzlich nutzbar ist -
 // nur ffmpeg auf dem PATH nötig (siehe generator/audio_check.py), kein
 // Python-Unterprozess wie bei AIRoiAvailable, weil ffmpeg die einzige

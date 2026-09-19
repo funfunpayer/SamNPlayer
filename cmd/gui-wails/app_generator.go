@@ -173,6 +173,12 @@ func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
 }
 
+// SupportSignalsAvailable reports experimental depth/pose helper flags (see
+// docs/DEPTH_POSE.md). No GUI toggle in this release — CLI/env only.
+func (a *App) SupportSignalsAvailable() map[string]bool {
+	return generator.SupportSignalsAvailable("", "")
+}
+
 // CheckAudioCheckAvailable meldet, ob --audio-check grundsätzlich nutzbar
 // ist (ffmpeg auf dem PATH) - die GUI nutzt das, um die Checkbox zu
 // aktivieren/auszublenden statt sie anzubieten und dann scheitern zu lassen.

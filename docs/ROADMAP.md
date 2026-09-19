@@ -260,9 +260,10 @@ measure before defaulting anything that writes Funscripts):
        Generator accept/reject → report JSONL → Settings “Train quality
        model” (`SubmitFeedback` / `TrainQualityModel`). Adopted only if
        cross-validation beats fixed rules (`quality_model.py`).
-4. [ ] 🧭 **3D / depth / pose as supporting signals** — research +
-       golden-clip bake-off first (`docs/KI_TRAINING.md`). No dependency
-       lands without a measured Funscript-quality win.
+4. [ ] 📏 **3D / depth / pose as supporting signals** — scaffold shipped
+       (`generator/support_signals.py`, `docs/DEPTH_POSE.md`): classical
+       depth proxy + optional ONNX stubs, opt-in ROI soft-rank only. Still
+       📏 for golden-clip Funscript-quality win before any default.
 
 ## Explicitly deferred, not forgotten
 
