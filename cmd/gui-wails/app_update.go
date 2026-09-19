@@ -23,7 +23,7 @@ func (a *App) CheckForUpdate() UpdateCheckResult {
 	}
 	asset, ok := rel.AssetForThisPlatform("gui")
 	if !ok {
-		return UpdateCheckResult{Available: true, Release: rel, Error: "kein passendes Binary für diese Plattform im Release"}
+		return UpdateCheckResult{Available: true, Release: rel, Error: "no matching binary for this platform in the release"}
 	}
 	return UpdateCheckResult{Available: true, Release: rel, AssetName: asset.Name}
 }
@@ -38,7 +38,7 @@ func (a *App) ApplyUpdate() error {
 	}
 	asset, ok := rel.AssetForThisPlatform("gui")
 	if !ok {
-		return fmt.Errorf("kein passendes Binary für diese Plattform im Release")
+		return fmt.Errorf("no matching binary for this platform in the release")
 	}
 	checksum, checksumErr := rel.ChecksumFor(asset.Name)
 	if checksumErr != nil {

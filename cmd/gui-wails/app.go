@@ -78,7 +78,7 @@ type App struct {
 func NewApp() *App {
 	s, err := newSettingsStore()
 	if err != nil {
-		logging.Warn("app: Einstellungen konnten nicht geladen werden", "fehler", err)
+		logging.Warn("app: settings could not be loaded", "error", err)
 		s = &settingsStore{data: map[string]any{}}
 	}
 	return &App{settings: s}
@@ -87,7 +87,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.registerLogLiveHook()
-	logging.Info("gui-wails gestartet")
+	logging.Info("gui-wails started")
 	a.ensureRuntimeReady()
 	a.registerFileDrop()
 }
@@ -207,7 +207,7 @@ func (a *App) VideoFileURL() string {
 	}
 	port, err := a.ensureVideoServer()
 	if err != nil {
-		logging.Error("app: lokaler Videoserver konnte nicht gestartet werden", "fehler", err)
+		logging.Error("app: local video server could not be started", "error", err)
 		return ""
 	}
 	return fmt.Sprintf("http://127.0.0.1:%d/video", port)
@@ -218,19 +218,19 @@ func (a *App) VideoFileURL() string {
 func (a *App) SetPlaybackVideo(path string) (string, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return "", fmt.Errorf("kein Videopfad")
+		return "", fmt.Errorf("no video path")
 	}
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
-		return "", fmt.Errorf("Videodatei nicht gefunden: %s", path)
+		return "", fmt.Errorf("video file not found: %s", path)
 	}
 	a.stateMu.Lock()
 	a.videoPath = path
 	a.stateMu.Unlock()
-	logging.Info("app: Wiedergabe-Video gesetzt", "pfad", path)
+	logging.Info("app: playback video set", "path", path)
 	url := a.VideoFileURL()
 	if url == "" {
-		return "", fmt.Errorf("Videoserver nicht startbar")
+		return "", fmt.Errorf("video server cannot be started")
 	}
 	return url, nil
 }
@@ -264,12 +264,12 @@ func (a *App) ensureVideoServer() (int, error) {
 	srv := &http.Server{Handler: mux}
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			logging.Error("app: Videoserver beendet", "fehler", err)
+			logging.Error("app: video server exited", "error", err)
 		}
 	}()
 
 	a.videoServerPort = port
-	logging.Info("app: lokaler Videoserver gestartet", "port", port)
+	logging.Info("app: local video server started", "port", port)
 	return port, nil
 }
 
@@ -283,7 +283,7 @@ func (a *App) tryStartSession() (context.Context, error) {
 	a.stateMu.Lock()
 	defer a.stateMu.Unlock()
 	if a.sessionActive {
-		return nil, fmt.Errorf("es läuft bereits eine Wiedergabe oder ein Training - bitte erst stoppen")
+		return nil, fmt.Errorf("playback or training is already running — stop it first")
 	}
 	// Eine bestehende Testverbindung aus dem Geräte-Tab wird NICHT mehr
 	// abgelehnt, sondern von claimSessionDevice() für die Sitzung
@@ -377,7 +377,7 @@ func (a *App) registerFileDrop() {
 				videos = append(videos, path)
 			}
 		}
-		logging.Info("app: Dateien fallengelassen", "videos", len(videos), "skripte", len(scripts))
+		logging.Info("app: files dropped", "videos", len(videos), "scripts", len(scripts))
 		runtime.EventsEmit(a.ctx, "files:dropped", map[string]any{
 			"videos":  videos,
 			"scripts": scripts,
@@ -410,12 +410,12 @@ func (a *App) shutdown(ctx context.Context) {
 	if dev != nil {
 		_ = dev.Stop()
 		_ = dev.Disconnect()
-		logging.Info("app: Testverbindung beim Beenden getrennt")
+		logging.Info("app: test connection disconnected on shutdown")
 	}
 	if activeDev != nil {
 		_ = activeDev.Stop()
 		_ = activeDev.Disconnect()
-		logging.Info("app: aktive Sitzung beim Beenden getrennt")
+		logging.Info("app: active session disconnected on shutdown")
 	}
 	a.clearCacheIfRequested()
 }

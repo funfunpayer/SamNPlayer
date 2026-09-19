@@ -392,8 +392,8 @@ def main():
         registry = load_class_registry(registry_path) if registry_path else {}
         preferred = resolve_preferred_class_ids(args.preferred_classes, registry)
         if preferred is None:
-            print("Warnung: --preferred-classes konnte nicht aufgelöst werden "
-                  "(Namen brauchen --classes-json)", file=sys.stderr)
+            print("Warning: --preferred-classes could not be resolved "
+                  "(names require --classes-json)", file=sys.stderr)
 
     if args.two:
         try:
@@ -401,21 +401,20 @@ def main():
                                         confidence_threshold=args.confidence,
                                         preferred_class_ids=preferred)
         except (ModelUnavailable, RuntimeError) as exc:
-            print(f"KI-Regionssuche fehlgeschlagen: {exc}", file=sys.stderr)
+            print(f"AI region search failed: {exc}", file=sys.stderr)
             sys.exit(1)
         if roi1 is None:
-            print("KI-Regionssuche fehlgeschlagen: keine Region gefunden", file=sys.stderr)
+            print("AI region search failed: no region found", file=sys.stderr)
             sys.exit(1)
         x, y, w, h = roi1
         print(f"ROI {x} {y} {w} {h}")
-        print(f"KI-Region 1 gefunden: x={x} y={y} w={w} h={h}", file=sys.stderr)
+        print(f"AI region 1 found: x={x} y={y} w={w} h={h}", file=sys.stderr)
         if roi2 is not None:
             x2, y2, w2, h2 = roi2
             print(f"ROI2 {x2} {y2} {w2} {h2}")
-            print(f"KI-Region 2 gefunden: x={x2} y={y2} w={w2} h={h2}", file=sys.stderr)
+            print(f"AI region 2 found: x={x2} y={y2} w={w2} h={h2}", file=sys.stderr)
         else:
-            print("KI-Region 2: kein zweites, getrenntes Objekt gefunden - bitte von Hand "
-                  "markieren", file=sys.stderr)
+            print("AI region 2: no second distinct object found — mark manually", file=sys.stderr)
         return
 
     try:
@@ -423,11 +422,11 @@ def main():
                                confidence_threshold=args.confidence,
                                preferred_class_ids=preferred)
     except (ModelUnavailable, RuntimeError) as exc:
-        print(f"KI-Regionssuche fehlgeschlagen: {exc}", file=sys.stderr)
+        print(f"AI region search failed: {exc}", file=sys.stderr)
         sys.exit(1)
 
     print(f"ROI {x} {y} {w} {h}")
-    print(f"KI-Region gefunden: x={x} y={y} w={w} h={h}", file=sys.stderr)
+    print(f"AI region found: x={x} y={y} w={w} h={h}", file=sys.stderr)
 
 
 if __name__ == "__main__":

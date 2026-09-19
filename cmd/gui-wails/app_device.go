@@ -89,7 +89,7 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 			st.CapBattery = false
 		}
 	} else {
-		st.Name = "Mock-Gerät (keine echte Hardware)"
+		st.Name = "Mock device (no real hardware)"
 		st.CapVibration = true
 		st.CapSuction = true
 		st.CapRaw = true
@@ -121,11 +121,11 @@ func (a *App) claimTestDeviceConnect() error {
 	a.stateMu.Lock()
 	defer a.stateMu.Unlock()
 	if a.sessionActive {
-		return fmt.Errorf("es läuft gerade eine Wiedergabe oder ein Training - " +
-			"bitte zuerst beenden, das Gerät kann nur eine Verbindung gleichzeitig halten")
+		return fmt.Errorf("playback or training is in progress — " +
+			"stop it first; the device can only hold one connection at a time")
 	}
 	if a.testDevice != nil || a.testDeviceConnecting {
-		return fmt.Errorf("es besteht bereits eine Verbindung - zuerst trennen")
+		return fmt.Errorf("already connected — disconnect first")
 	}
 	a.testDeviceConnecting = true
 	return nil
@@ -163,7 +163,7 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	defer cancel()
 	connectStart := time.Now()
 	if err := dev.Connect(ctx); err != nil {
-		logging.Warn("geraet: Verbindung fehlgeschlagen", "weg", transport, "fehler", err)
+		logging.Warn("device: connection failed", "transport", transport, "error", err)
 		return a.GetDeviceStatus(), err
 	}
 	connectLatencyMs := float64(time.Since(connectStart).Microseconds()) / 1000.0
@@ -184,7 +184,7 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	a.maybeConnectSmokeTest(dev)
 
 	st := a.GetDeviceStatus()
-	logging.Info("geraet: verbunden", "weg", transport, "name", st.Name, "adresse", st.Address)
+	logging.Info("device: connected", "transport", transport, "name", st.Name, "address", st.Address)
 	return st, nil
 }
 
@@ -205,7 +205,7 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 	defer cancel()
 	connectStart := time.Now()
 	if err := dev.Connect(ctx); err != nil {
-		logging.Warn("geraet: Verbindung fehlgeschlagen", "mock", mock, "fehler", err)
+		logging.Warn("device: connection failed", "mock", mock, "error", err)
 		return a.GetDeviceStatus(), err
 	}
 	connectLatencyMs := float64(time.Since(connectStart).Microseconds()) / 1000.0
@@ -224,7 +224,7 @@ func (a *App) ConnectDevice(mock bool) (DeviceStatus, error) {
 	a.maybeConnectSmokeTest(dev)
 
 	st := a.GetDeviceStatus()
-	logging.Info("geraet: verbunden", "mock", mock, "name", st.Name, "adresse", st.Address, "rssi", st.RSSI)
+	logging.Info("device: connected", "mock", mock, "name", st.Name, "address", st.Address, "rssi", st.RSSI)
 	return st, nil
 }
 
@@ -239,13 +239,13 @@ func (a *App) maybeConnectSmokeTest(dev device.Device) {
 	if dev == nil {
 		return
 	}
-	logging.Info("geraet: Verbindungsprüfung nach Connect")
+	logging.Info("device: post-connect connection check")
 	_ = dev.SetVibration(0.3)
 	time.Sleep(150 * time.Millisecond)
 	_ = dev.SetSuction(0.3)
 	time.Sleep(150 * time.Millisecond)
 	if err := dev.Stop(); err != nil {
-		logging.Warn("geraet: Verbindungsprüfung Stop fehlgeschlagen", "fehler", err)
+		logging.Warn("device: post-connect stop failed", "error", err)
 	}
 }
 
@@ -263,7 +263,7 @@ func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	if a.sessionActive {
 		a.stateMu.Unlock()
 		return a.GetDeviceStatus(), fmt.Errorf(
-			"eine Wiedergabe oder ein Training nutzt diese Verbindung gerade - zuerst dort stoppen")
+			"playback or training is using this connection — stop it there first")
 	}
 	dev := a.testDevice
 	a.testDevice = nil
@@ -278,10 +278,10 @@ func (a *App) DisconnectDevice() (DeviceStatus, error) {
 	// Vor dem Trennen immer ausschalten - sonst läuft ein Gerät weiter, das
 	// gerade noch einen Testimpuls bekommen hat.
 	if err := dev.Stop(); err != nil {
-		logging.Warn("geraet: Stop vor dem Trennen fehlgeschlagen", "fehler", err)
+		logging.Warn("device: stop before disconnect failed", "error", err)
 	}
 	err := dev.Disconnect()
-	logging.Info("geraet: getrennt", "fehler", err)
+	logging.Info("device: disconnected", "error", err)
 	return a.GetDeviceStatus(), err
 }
 
@@ -292,10 +292,10 @@ func (a *App) testDeviceOrErr() (device.Device, error) {
 	session := a.sessionActive
 	a.stateMu.RUnlock()
 	if session {
-		return nil, fmt.Errorf("während einer laufenden Wiedergabe oder eines Trainings ist kein Gerätetest möglich")
+		return nil, fmt.Errorf("device test not available during playback or training")
 	}
 	if dev == nil {
-		return nil, fmt.Errorf("kein Gerät verbunden - im Geräte-Tab zuerst verbinden")
+		return nil, fmt.Errorf("no device connected — connect in the Device tab first")
 	}
 	return dev, nil
 }
@@ -307,7 +307,7 @@ func (a *App) TestVibration(intensity float64) error {
 	if err != nil {
 		return err
 	}
-	logging.Info("geraet: Test Vibration", "intensitaet", intensity)
+	logging.Info("device: test vibration", "intensity", intensity)
 	return dev.SetVibration(clamp01(intensity))
 }
 
@@ -318,7 +318,7 @@ func (a *App) TestSuction(intensity float64) error {
 	if err != nil {
 		return err
 	}
-	logging.Info("geraet: Test Sog", "intensitaet", intensity)
+	logging.Info("device: test suction", "intensity", intensity)
 	return dev.SetSuction(clamp01(intensity))
 }
 
@@ -328,7 +328,7 @@ func (a *App) TestStop() error {
 	if err != nil {
 		return err
 	}
-	logging.Info("geraet: Test Stop")
+	logging.Info("device: test stop")
 	return dev.Stop()
 }
 
@@ -358,19 +358,19 @@ func (a *App) TestRawValue(channel string, value int) error {
 	}
 	raw, ok := dev.(rawCapable)
 	if !ok {
-		return fmt.Errorf("dieses Gerät unterstützt keine Rohwerte")
+		return fmt.Errorf("this device does not support raw values")
 	}
 	if value < 0 || value > 255 {
-		return fmt.Errorf("Rohwert muss zwischen 0 und 255 liegen (ist %d)", value)
+		return fmt.Errorf("raw value must be between 0 and 255 (got %d)", value)
 	}
-	logging.Info("geraet: Rohwert-Test", "kanal", channel, "wert", value)
+	logging.Info("device: raw value test", "channel", channel, "value", value)
 	switch channel {
 	case "vibration":
 		return raw.SetVibrationRaw(byte(value))
 	case "suction":
 		return raw.SetSuctionRaw(byte(value))
 	default:
-		return fmt.Errorf("unbekannter Kanal %q", channel)
+		return fmt.Errorf("unknown channel %q", channel)
 	}
 }
 

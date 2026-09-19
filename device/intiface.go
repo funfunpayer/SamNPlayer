@@ -124,7 +124,7 @@ func (i *Intiface) readUntil(want string, deadline time.Time) (map[string]any, e
 		_ = i.conn.SetReadDeadline(deadline)
 		var batch []map[string]json.RawMessage
 		if err := i.conn.ReadJSON(&batch); err != nil {
-			return nil, fmt.Errorf("intiface: Antwort nicht lesbar: %w", err)
+			return nil, fmt.Errorf("intiface: response not readable: %w", err)
 		}
 		for _, message := range batch {
 			for name, raw := range message {
@@ -134,7 +134,7 @@ func (i *Intiface) readUntil(want string, deadline time.Time) (map[string]any, e
 					i.adoptDevice(body)
 				}
 				if name == "Error" {
-					return nil, fmt.Errorf("intiface: Server meldet Fehler: %v", body["ErrorMessage"])
+					return nil, fmt.Errorf("intiface: server reported error: %v", body["ErrorMessage"])
 				}
 				if name == want {
 					return body, nil
@@ -142,7 +142,7 @@ func (i *Intiface) readUntil(want string, deadline time.Time) (map[string]any, e
 			}
 		}
 	}
-	return nil, fmt.Errorf("intiface: keine Antwort vom Typ %q innerhalb der Wartezeit", want)
+	return nil, fmt.Errorf("intiface: no response of type %q within timeout", want)
 }
 
 // adoptDevice übernimmt das erste Gerät, das die benötigten Kanäle bietet.
@@ -176,7 +176,7 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 		}
 	}
 	if i.vibrateIdx < 0 && i.constrictIdx < 0 {
-		logging.Warn("intiface: Gerät ohne nutzbare Kanäle übersprungen", "geraet", name)
+		logging.Warn("intiface: device skipped (no usable channels)", "device", name)
 		return
 	}
 	// Akku nur anbieten, wenn Buttplug BatteryLevelCmd listet.
@@ -185,8 +185,8 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 	}
 	i.deviceIdx = int(index)
 	i.deviceName = name
-	logging.Info("intiface: Gerät übernommen", "geraet", name, "index", i.deviceIdx,
-		"vibration", i.vibrateIdx, "sog", i.constrictIdx, "akku", i.hasBattery)
+	logging.Info("intiface: device adopted", "device", name, "index", i.deviceIdx,
+		"vibration", i.vibrateIdx, "suction", i.constrictIdx, "battery", i.hasBattery)
 }
 
 func (i *Intiface) Connect(ctx context.Context) error {
@@ -196,7 +196,7 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	dialer := websocket.Dialer{HandshakeTimeout: intifaceTimeout}
 	conn, _, err := dialer.DialContext(ctx, i.url, nil)
 	if err != nil {
-		return fmt.Errorf("intiface: keine Verbindung zu %s - %s (%w)",
+		return fmt.Errorf("intiface: no connection to %s - %s (%w)",
 			i.url, intifaceHint(i.url, err), err)
 	}
 	i.conn = conn
@@ -213,14 +213,14 @@ func (i *Intiface) Connect(ctx context.Context) error {
 		"ClientName": "SamNPlayer", "MessageVersion": 3,
 	}}); err != nil {
 		conn.Close()
-		return fmt.Errorf("intiface: Anmeldung fehlgeschlagen: %w", err)
+		return fmt.Errorf("intiface: handshake failed: %w", err)
 	}
 	info, err := i.readUntil("ServerInfo", deadline)
 	if err != nil {
 		conn.Close()
 		return err
 	}
-	logging.Info("intiface: verbunden", "server", info["ServerName"])
+	logging.Info("intiface: connected", "server", info["ServerName"])
 
 	// Bereits verbundene Geräte abfragen. Ohne das würde nur ein Gerät
 	// gefunden, das WÄHREND unserer Sitzung neu dazukommt.
@@ -248,8 +248,7 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	}
 	if i.deviceName == "" {
 		conn.Close()
-		return fmt.Errorf("intiface: kein nutzbares Gerät gefunden - in Intiface Central " +
-			"das Gerät verbinden und dann erneut versuchen")
+		return fmt.Errorf("intiface: no usable device found — connect the device in Intiface Central and try again")
 	}
 
 	i.connected = true
@@ -283,7 +282,7 @@ func (i *Intiface) scalar(index int, value float64) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if !i.connected || i.conn == nil {
-		return fmt.Errorf("intiface: nicht verbunden")
+		return fmt.Errorf("intiface: not connected")
 	}
 	if index < 0 {
 		return nil // Kanal auf diesem Gerät nicht vorhanden
@@ -369,9 +368,9 @@ func (i *Intiface) Info() ConnectionInfo {
 			channels = append(channels, "Vibration")
 		}
 		if i.constrictIdx >= 0 {
-			channels = append(channels, "Sog")
+			channels = append(channels, "Suction")
 		}
-		name = fmt.Sprintf("%s (über Intiface, %s)", name, strings.Join(channels, " + "))
+		name = fmt.Sprintf("%s (via Intiface, %s)", name, strings.Join(channels, " + "))
 	}
 	return ConnectionInfo{
 		Connected:  i.connected,
@@ -405,7 +404,7 @@ func (i *Intiface) BatteryLevel() (int, bool) {
 
 	body, err := i.readUntil("BatteryLevelReading", time.Now().Add(3*time.Second))
 	if err != nil {
-		logging.Debug("intiface: Akku nicht lesbar", "fehler", err)
+		logging.Debug("intiface: battery not readable", "error", err)
 		return 0, false
 	}
 	raw, ok := body["BatteryLevel"].(float64)
@@ -425,7 +424,7 @@ func (i *Intiface) BatteryLevel() (int, bool) {
 	i.batteryOK = true
 	i.batteryAt = time.Now()
 	i.mu.Unlock()
-	logging.Info("intiface: Akku gelesen", "prozent", pct)
+	logging.Info("intiface: battery read", "percent", pct)
 	return pct, true
 }
 
@@ -440,25 +439,25 @@ func intifaceHint(url string, err error) string {
 	switch {
 	case strings.Contains(text, "refused"):
 		if local {
-			return "der Rechner ist erreichbar, aber auf diesem Port läuft kein Server. " +
-				"In Intiface Central den Server starten"
+			return "the host is reachable but nothing is listening on this port. " +
+				"Start the server in Intiface Central"
 		}
-		return "das Gerät ist erreichbar, aber auf diesem Port läuft kein Server. " +
-			"In Intiface Central den Server starten und prüfen, ob er für das Netzwerk " +
-			"freigegeben ist (nicht nur für das Gerät selbst)"
+		return "the device is reachable but nothing is listening on this port. " +
+			"Start the server in Intiface Central and check it is exposed on the network " +
+			"(not only on the device itself)"
 	case strings.Contains(text, "timeout"), strings.Contains(text, "deadline"),
 		strings.Contains(text, "no route"), strings.Contains(text, "unreachable"):
 		if local {
-			return "keine Antwort - läuft Intiface Central?"
+			return "no response — is Intiface Central running?"
 		}
-		return "keine Antwort. Sind Handy und Rechner im selben WLAN? " +
-			"Stimmt die IP-Adresse? Blockiert eine Firewall den Port?"
+		return "no response. Are the phone and computer on the same Wi-Fi? " +
+			"Is the IP address correct? Is a firewall blocking the port?"
 	case strings.Contains(text, "no such host"):
-		return "der Name ist nicht auflösbar - besser die IP-Adresse direkt eintragen"
+		return "hostname could not be resolved — enter the IP address directly"
 	default:
 		if local {
-			return "läuft Intiface Central und ist der Server gestartet?"
+			return "is Intiface Central running with the server started?"
 		}
-		return "Adresse und Netzwerkverbindung prüfen"
+		return "check the address and network connection"
 	}
 }

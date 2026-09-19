@@ -46,26 +46,26 @@ func (a *App) ensureRuntimeReady() RuntimeHealth {
 			continue
 		}
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			logging.Warn("startup: Ordner konnte nicht angelegt werden", "pfad", dir, "fehler", err)
+			logging.Warn("startup: folder could not be created", "path", dir, "error", err)
 			h.DirsFailed = append(h.DirsFailed, dir)
 			h.OK = false
 			continue
 		}
-		logging.Info("startup: Ordner angelegt", "pfad", dir)
+		logging.Info("startup: folder created", "path", dir)
 		h.DirsCreated = append(h.DirsCreated, dir)
 	}
 
 	h.Deps = checkRuntimeDeps()
 	for _, d := range h.Deps {
 		if d.Found {
-			logging.Info("startup: Abhängigkeit ok", "id", d.ID, "pfad", d.Path)
+			logging.Info("startup: dependency ok", "id", d.ID, "path", d.Path)
 			continue
 		}
 		if d.Required {
-			logging.Warn("startup: benötigte Abhängigkeit fehlt", "id", d.ID, "hinweis", d.Hint)
+			logging.Warn("startup: required dependency missing", "id", d.ID, "hint", d.Hint)
 			h.OK = false
 		} else {
-			logging.Info("startup: optionale Abhängigkeit fehlt", "id", d.ID, "hinweis", d.Hint)
+			logging.Info("startup: optional dependency missing", "id", d.ID, "hint", d.Hint)
 		}
 	}
 
@@ -125,7 +125,7 @@ func checkRuntimeDeps() []RuntimeDepInfo {
 			ID:       "python3",
 			Label:    "Python 3",
 			Required: false,
-			Hint:     "Optional für den klassischen Python-Generator und KI-Training. Der Go-Pfad braucht kein Python.",
+			Hint:     "Optional for the classic Python generator and AI training. The Go path does not need Python.",
 		},
 	}
 	if goruntime.GOOS == "windows" {

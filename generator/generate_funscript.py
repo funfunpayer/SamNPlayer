@@ -162,7 +162,7 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
     über den Schnitt hinweg zu tracken."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+        raise RuntimeError(f"Could not open video: {video_path}")
 
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -176,7 +176,7 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
     ok, first_frame = cap.read()
     if not ok:
         cap.release()
-        raise RuntimeError("Erster Frame konnte nicht gelesen werden")
+        raise RuntimeError("Could not read first frame")
 
     tracker = create_tracker()
     tracker.init(first_frame, tuple(roi))
@@ -447,13 +447,13 @@ def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
                           (int(data["width"]), int(data["height"])),
                           data["scene_cuts"].tolist(),
                           json.loads(str(data["stats"])))
-            print(f"Trackingergebnis aus Cache übernommen ({path})", file=sys.stderr)
+            print(f"Using cached tracking result ({path})", file=sys.stderr)
             print("PROGRESS 1 1", file=sys.stderr, flush=True)
             return result
         except Exception as exc:
             # Ein beschädigter oder unlesbarer Cache darf den Lauf nie
             # verhindern - dann eben neu rechnen.
-            print(f"Cache nicht lesbar, wird neu berechnet: {exc}", file=sys.stderr)
+            print(f"Cache not readable, recomputing: {exc}", file=sys.stderr)
 
     timestamps_ms, y_positions, frame_size, scene_cuts, stats = track_roi(
         video_path, roi, max_frames=max_frames,
@@ -483,7 +483,7 @@ def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
             )
         os.replace(tmp, path)
     except Exception as exc:
-        print(f"Cache konnte nicht geschrieben werden (unkritisch): {exc}", file=sys.stderr)
+        print(f"Cache could not be written (non-critical): {exc}", file=sys.stderr)
 
     return timestamps_ms, y_positions, frame_size, scene_cuts, stats
 
@@ -501,7 +501,7 @@ def detect_scene_boundaries(video_path, max_frames=None, min_scene_frames=25):
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+        raise RuntimeError(f"Could not open video: {video_path}")
 
     boundaries = [0]
     prev_gray = None
@@ -604,7 +604,7 @@ def track_by_scenes(video_path, fallback_roi, max_frames=None,
         fallback_roi = roi
 
     if not all_ts:
-        raise RuntimeError("Keine verwertbaren Szenen gefunden")
+        raise RuntimeError("No usable scenes found")
 
     merged = {
         "tracker_lost_frames": sum(s["tracker_lost_frames"] for s in all_stats),
@@ -872,11 +872,11 @@ def enable_opencl():
     stille Voreinstellung.
     """
     if not cv2.ocl.haveOpenCL():
-        print("OpenCL nicht verfügbar - Berechnung läuft auf der CPU", file=sys.stderr)
+        print("OpenCL not available — computing on CPU", file=sys.stderr)
         return False
     cv2.ocl.setUseOpenCL(True)
     active = cv2.ocl.useOpenCL()
-    print(f"OpenCL {'aktiv' if active else 'konnte nicht aktiviert werden'}", file=sys.stderr)
+    print(f"OpenCL {'active' if active else 'could not be enabled'}", file=sys.stderr)
     return active
 
 
@@ -976,7 +976,7 @@ def run_batch(args, parser):
     """
     folder = args.batch
     if not os.path.isdir(folder):
-        print(f"Fehler: {folder} ist kein Ordner", file=sys.stderr)
+        print(f"Error: {folder} is not a folder", file=sys.stderr)
         sys.exit(1)
 
     videos = sorted(
@@ -1340,8 +1340,8 @@ def create_tracker():
     factory, kind = _fallback_tracker_factory()
     if factory is not None:
         print(
-            f"Warnung: CSRT nicht verfügbar in OpenCV {getattr(cv2, '__version__', '?')} "
-            f"— nutze {kind} als Fallback. Für beste Qualität: "
+            f"Warning: CSRT not available in OpenCV {getattr(cv2, '__version__', '?')} "
+            f"— using {kind} as fallback. For best quality: "
             f"pip uninstall opencv-python opencv-python-headless && "
             f"pip install opencv-contrib-python",
             file=sys.stderr,
@@ -1401,12 +1401,12 @@ def _opencv_tracker_missing_message():
     ver = getattr(cv2, "__version__", "?")
     origin = getattr(cv2, "__file__", "?")
     return (
-        f"Kein OpenCV-Tracker (CSRT/KCF/MIL) in cv2 {ver} "
-        f"(geladen aus {origin}). Häufige Ursache: opencv-python ohne "
-        f"contrib überschattet opencv-contrib-python. Fix:\n"
+        f"No OpenCV tracker (CSRT/KCF/MIL) in cv2 {ver} "
+        f"(loaded from {origin}). Common cause: opencv-python without "
+        f"contrib shadowing opencv-contrib-python. Fix:\n"
         f"  pip uninstall opencv-python opencv-python-headless\n"
         f"  pip install opencv-contrib-python\n"
-        f"Danach SamNPlayer neu starten."
+        f"Then restart SamNPlayer."
     )
 
 
@@ -1454,7 +1454,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+        raise RuntimeError(f"Could not open video: {video_path}")
     fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     if start_frame > 0:
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
@@ -1462,7 +1462,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     ok, first = cap.read()
     if not ok:
         cap.release()
-        raise RuntimeError("Video enthält keine lesbaren Frames")
+        raise RuntimeError("Video contains no readable frames")
     height, width = first.shape[:2]
 
     tracker_a = create_tracker()
@@ -1610,7 +1610,7 @@ def _register_builtin_backends():
     def two_point(video_path, roi, options):
         roi2 = options.get("roi2")
         if not roi2:
-            raise RuntimeError("Das Verfahren 'two_point' braucht eine zweite Region (--roi2)")
+            raise RuntimeError("two_point mode requires a second region (--roi2)")
         return track_two_points(video_path, roi, roi2,
                                 max_frames=options.get("max_frames"),
                                 start_frame=options.get("start_frame", 0))
@@ -1661,13 +1661,13 @@ def select_roi_interactively(video_path):
     ok, frame = cap.read()
     cap.release()
     if not ok:
-        raise RuntimeError("Erster Frame für ROI-Auswahl konnte nicht gelesen werden")
+        raise RuntimeError("Could not read first frame for ROI selection")
     print("Bildregion mit der Maus markieren, dann ENTER/SPACE drücken "
           "(ESC bricht ab).", file=sys.stderr)
     x, y, w, h = cv2.selectROI("ROI wählen - Enter bestätigt", frame, showCrosshair=True)
     cv2.destroyAllWindows()
     if w == 0 or h == 0:
-        raise RuntimeError("Keine ROI ausgewählt")
+        raise RuntimeError("No ROI selected")
     return (x, y, w, h)
 
 
@@ -1798,8 +1798,8 @@ def positions_to_funscript(timestamps_ms, y_positions, invert=False,
         lo, hi = float(smoothed.min()), float(smoothed.max())
     if hi - lo < 1e-6:
         raise RuntimeError(
-            "Keine erkennbare Bewegung in der verfolgten Region - "
-            "falsche ROI gewählt, oder das Objekt bewegt sich nicht sichtbar."
+            "No discernible motion in the tracked region — "
+            "wrong ROI, or the object is not visibly moving."
         )
     pos = np.clip((smoothed - lo) / (hi - lo), 0.0, 1.0) * 100.0
     if not invert:
@@ -1880,7 +1880,7 @@ def dump_first_frame(video_path, output_png):
     ok, frame = cap.read()
     cap.release()
     if not ok:
-        raise RuntimeError("Erster Frame konnte nicht gelesen werden")
+        raise RuntimeError("Could not read first frame")
     cv2.imwrite(output_png, frame)
     h, w = frame.shape[:2]
     return w, h
@@ -2160,12 +2160,12 @@ def main():
     try:
         _parse_bandpass_hz(args.bandpass_hz)
     except ValueError as e:
-        print(f"Fehler: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if is_distance_profile(args.profile):
         if not args.roi2:
-            print("Fehler: Profil tf/tj braucht --roi2 (zweite Region für Abstand)", file=sys.stderr)
+            print("Error: tf/tj profile requires --roi2 (second region for distance)", file=sys.stderr)
             sys.exit(1)
         print(f"Profil '{args.profile}': Abstand ROI1–ROI2, Pos geklemmt "
               f"(Sog aus Position)", file=sys.stderr)
@@ -2196,7 +2196,7 @@ def main():
 
     if args.train_model:
         if not args.report:
-            print("Fehler: --train-model braucht --report DATEI", file=sys.stderr)
+            print("Error: --train-model requires --report FILE", file=sys.stderr)
             sys.exit(1)
         import quality_model
         ok, report = quality_model.train(read_report(args.report), args.model_path or None)
@@ -2205,7 +2205,7 @@ def main():
 
     if args.report_summary:
         if not args.report:
-            print("Fehler: --report-summary braucht --report DATEI", file=sys.stderr)
+            print("Error: --report-summary requires --report FILE", file=sys.stderr)
             sys.exit(1)
         print(summarize_report(args.report))
         return
@@ -2217,7 +2217,7 @@ def main():
         import quality_doctor
         actions, failure_reason = fungen_compare.load_actions(_Path(args.script_quality))
         if actions is None:
-            print(f"Fehler: {args.script_quality} konnte nicht gelesen werden "
+            print(f"Error: could not read {args.script_quality} "
                   f"({failure_reason})", file=sys.stderr)
             sys.exit(1)
         duration_ms = max(float(a["at"]) for a in actions) - min(float(a["at"]) for a in actions)
@@ -2228,7 +2228,7 @@ def main():
 
     if args.feedback:
         if not args.report or not args.output:
-            print("Fehler: --feedback braucht --report DATEI und --output DATEI",
+            print("Error: --feedback requires --report FILE and --output FILE",
                   file=sys.stderr)
             sys.exit(1)
         verdict = args.feedback[0]
@@ -2288,14 +2288,14 @@ def process_one(args, ap):
         import colibri_client
         base_url = args.ai_base_url or colibri_client.DEFAULT_BASE_URL
         if not ai_profile.available(base_url=base_url):
-            print(f"Kein Colibri-Server unter {base_url} erreichbar - kein Vorschlag",
+            print(f"No Colibri server reachable at {base_url} — no suggestion",
                   file=sys.stderr)
             return
         nearest = sorted(known, key=lambda e: motion_signature.distance(
             signature, e.get("signature", {})))[:3]
         result = ai_profile.suggest_profile(signature, known_examples=nearest, base_url=base_url)
         if result is None:
-            print("KI lieferte keinen verwertbaren Vorschlag", file=sys.stderr)
+            print("AI returned no usable suggestion", file=sys.stderr)
             return
         print(f"Vorschlag (KI, unverifiziert): '{result['profile']}' "
               f"(Konfidenz {result['confidence']:.2f}) - {result['reason']}", file=sys.stderr)
@@ -2303,7 +2303,7 @@ def process_one(args, ap):
         return
 
     if not args.output:
-        print("Fehler: --output ist erforderlich (außer bei --dump-first-frame)", file=sys.stderr)
+        print("Error: --output is required (except with --dump-first-frame)", file=sys.stderr)
         sys.exit(1)
 
     if args.roi:
@@ -2312,7 +2312,7 @@ def process_one(args, ap):
             if len(roi) != 4:
                 raise ValueError
         except ValueError:
-            print('Fehler: --roi muss "x,y,w,h" sein, z.B. "120,80,60,60"', file=sys.stderr)
+            print('Error: --roi must be "x,y,w,h", e.g. "120,80,60,60"', file=sys.stderr)
             sys.exit(1)
     elif args.backend in ("flow", "region_fusion_auto"):
         # Beide Backends bestimmen ihre Zonen/ihr Bewegungszentrum selbst
@@ -2365,7 +2365,7 @@ def process_one(args, ap):
             if len(roi2) != 4:
                 raise ValueError
         except ValueError:
-            print('Fehler: --roi2 muss "x,y,w,h" sein', file=sys.stderr)
+            print('Error: --roi2 must be "x,y,w,h"', file=sys.stderr)
             sys.exit(1)
         print(f"Zwei-Punkt-Messung: {roi} und {roi2}", file=sys.stderr)
         # Zwei-Punkt-Messung hat einen eigenen Dispatch-Zweig (braucht zwei
@@ -2375,8 +2375,8 @@ def process_one(args, ap):
         # Sichtbar machen statt stillschweigend wirkungslos bleiben (dieselbe
         # Art Fehler wie beim --backend-Fall direkt darunter, siehe #45/#46).
         if args.per_scene_roi:
-            print("Hinweis: --per-scene-roi hat bei --roi2 (Zwei-Punkt-Messung) "
-                  "keine Wirkung - die Region wird nach Schnitten nicht neu gesucht",
+            print("Hint: --per-scene-roi has no effect with --roi2 (two-point measurement) "
+                  "— region is not re-searched after cuts",
                   file=sys.stderr)
         if args.backend not in ("csrt", "grid_lk"):
             print(f"Hinweis: --backend {args.backend!r} unterstützt keine Zwei-Punkt-Messung, "
@@ -2489,7 +2489,7 @@ def process_one(args, ap):
     try:
         bandpass = _parse_bandpass_hz(getattr(args, "bandpass_hz", None))
     except ValueError as e:
-        print(f"Fehler: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     def build(smooth_window, min_peak_distance_ms, adaptive_error, norm_percentile):
@@ -2536,8 +2536,8 @@ def process_one(args, ap):
         untreatable = (lost_fraction > 0.5
                        or (motion_fraction is not None and motion_fraction < 0.03))
         if untreatable:
-            print("Auto-Retry übersprungen: das Problem liegt im Tracking, nicht in der "
-                  "Signalverarbeitung - andere Filterparameter ändern daran nichts",
+            print("Auto-retry skipped: problem is in tracking, not signal processing "
+                  "— different filter parameters will not help",
                   file=sys.stderr)
         else:
             candidates = [
@@ -2587,7 +2587,7 @@ def process_one(args, ap):
                 print(f"KI-Zweitmeinung: '{ai_opinion['verdict']}' - {ai_opinion['reason']}",
                       file=sys.stderr)
         else:
-            print(f"Kein Colibri-Server unter {base_url} erreichbar - keine Zweitmeinung",
+            print(f"No Colibri server reachable at {base_url} — no second opinion",
                   file=sys.stderr)
 
     audio_check_result = None
@@ -2600,7 +2600,7 @@ def process_one(args, ap):
             for w in audio_check_result["warnings"]:
                 print(f"WARNUNG (Audio-Tempo-Prüfung): {w}", file=sys.stderr)
         else:
-            print(f"Audio-Tempo-Prüfung nicht möglich: {audio_check_result['reason']}",
+            print(f"Audio tempo check not possible: {audio_check_result['reason']}",
                   file=sys.stderr)
 
     if is_distance_profile(args.profile):
@@ -2630,7 +2630,7 @@ def process_one(args, ap):
         print(f"Tracking-Gaps für Kontakt-Vibration: {len(gaps)} Fenster",
               file=sys.stderr)
     if args.contact_vibration and not is_distance_profile(args.profile):
-        print("Hinweis: --contact-vibration wirkt nur bei --profile tf/tj, wird ignoriert.",
+        print("Hint: --contact-vibration only applies with --profile tf/tj, ignored.",
               file=sys.stderr)
     metadata = apply_profile_metadata(
         metadata, args.profile,

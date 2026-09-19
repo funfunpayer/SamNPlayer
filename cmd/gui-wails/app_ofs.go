@@ -12,7 +12,7 @@ import (
 func (a *App) GetScriptBookmarks() ([]funscript.Bookmark, error) {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	return funscript.LoadBookmarks(path)
 }
@@ -21,7 +21,7 @@ func (a *App) GetScriptBookmarks() ([]funscript.Bookmark, error) {
 func (a *App) SaveScriptBookmarks(bookmarks []funscript.Bookmark) error {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	return funscript.SaveBookmarks(path, bookmarks)
 }
@@ -30,7 +30,7 @@ func (a *App) SaveScriptBookmarks(bookmarks []funscript.Bookmark) error {
 func (a *App) GetScriptChapterMarks() ([]funscript.ChapterMark, error) {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	return funscript.LoadChapters(path)
 }
@@ -39,7 +39,7 @@ func (a *App) GetScriptChapterMarks() ([]funscript.ChapterMark, error) {
 func (a *App) SaveScriptChapterMarks(chapters []funscript.ChapterMark) error {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	return funscript.SaveChapters(path, chapters)
 }
@@ -49,7 +49,7 @@ func (a *App) ExportScriptHeatmapPNG() (string, error) {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil || path == "" {
-		return "", fmt.Errorf("kein Skript geladen")
+		return "", fmt.Errorf("no script loaded")
 	}
 	chapters, _ := funscript.LoadChapters(path)
 	out := path[:len(path)-len(filepath.Ext(path))] + ".heatmap.png"
@@ -70,7 +70,7 @@ func (a *App) SavePlaybackProject(p funscript.Project) (string, error) {
 		p.ScriptPath = media
 	}
 	if media == "" {
-		return "", fmt.Errorf("kein Video/Skript für Projekt")
+		return "", fmt.Errorf("no video/script for project")
 	}
 	path := funscript.ProjectPathFor(media)
 	p.LastOpenedMs = time.Now().UnixMilli()
@@ -95,7 +95,7 @@ func (a *App) EditDeleteRange(startMs, endMs int64) error {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil || path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	out, err := funscript.DeleteRange(script.Actions, startMs, endMs)
 	if err != nil {
@@ -109,7 +109,7 @@ func (a *App) EditCapSpeedRange(startMs, endMs int64, maxIntensity float64) erro
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil || path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	out, err := funscript.CapSpeedRange(script.Actions, startMs, endMs, maxIntensity)
 	if err != nil {
@@ -123,7 +123,7 @@ func (a *App) EditScaleRange(startMs, endMs int64, factor float64) error {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil || path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	out := funscript.ScaleRangePos(script.Actions, startMs, endMs, factor)
 	return a.SaveScriptActions(out)

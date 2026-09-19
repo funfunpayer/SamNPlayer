@@ -30,7 +30,7 @@ var roiTrainingRunning bool
 
 func claimRoiTrainingRun() error {
 	if roiTrainingRunning {
-		return fmt.Errorf("es läuft bereits ein Bootstrap- oder Trainingslauf")
+		return fmt.Errorf("a bootstrap or training run is already in progress")
 	}
 	roiTrainingRunning = true
 	return nil
@@ -140,19 +140,19 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	}
 	if roi == nil {
 		releaseRoiTrainingRun()
-		return "", fmt.Errorf("mindestens eine Region (ROI1) ist nötig")
+		return "", fmt.Errorf("at least one region (ROI1) is required")
 	}
 	if roi2 != nil && strings.TrimSpace(className2) == "" {
 		releaseRoiTrainingRun()
-		return "", fmt.Errorf("2. Region braucht einen Klassennamen")
+		return "", fmt.Errorf("region 2 needs a class name")
 	}
 	if roi3 != nil && strings.TrimSpace(className3) == "" {
 		releaseRoiTrainingRun()
-		return "", fmt.Errorf("3. Region braucht einen Klassennamen")
+		return "", fmt.Errorf("region 3 needs a class name")
 	}
 	if roi4 != nil && strings.TrimSpace(className4) == "" {
 		releaseRoiTrainingRun()
-		return "", fmt.Errorf("4. Region braucht einen Klassennamen")
+		return "", fmt.Errorf("region 4 needs a class name")
 	}
 	if sampleEvery <= 0 {
 		sampleEvery = 12
@@ -180,11 +180,11 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
 		if err != nil {
-			logging.Error("roitraining: Bootstrap fehlgeschlagen", "video", videoPath, "fehler", err)
+			logging.Error("roitraining: bootstrap failed", "video", videoPath, "error", err)
 			runtime.EventsEmit(a.ctx, "roitraining:bootstrap:done", map[string]any{"error": err.Error()})
 			return
 		}
-		logging.Info("roitraining: Bootstrap abgeschlossen", "video", videoPath, "prefix", prefix)
+		logging.Info("roitraining: bootstrap finished", "video", videoPath, "prefix", prefix)
 		runtime.EventsEmit(a.ctx, "roitraining:bootstrap:done", map[string]any{"prefix": prefix})
 	}()
 
@@ -194,7 +194,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 // AddRoiStillTrainingSample adds one labeled still image (photo) to the dataset.
 func (a *App) AddRoiStillTrainingSample(imagePath string, regions []generator.RoiTrainingRegion) (string, error) {
 	if len(regions) == 0 {
-		return "", fmt.Errorf("mindestens eine Region nötig")
+		return "", fmt.Errorf("at least one region required")
 	}
 	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
 	prefix := roiTrainingSamplePrefix(imagePath)
@@ -236,11 +236,11 @@ func (a *App) RunRoiModelTraining(epochs int, device string) error {
 		err := generator.RunRoiModelTraining(datasetDir, modelPath, epochs, device,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:train:progress", line) })
 		if err != nil {
-			logging.Error("roitraining: Training fehlgeschlagen", "fehler", err)
+			logging.Error("roitraining: training failed", "error", err)
 			runtime.EventsEmit(a.ctx, "roitraining:train:done", map[string]any{"error": err.Error()})
 			return
 		}
-		logging.Info("roitraining: Training abgeschlossen", "modell", modelPath)
+		logging.Info("roitraining: training finished", "model", modelPath)
 		runtime.EventsEmit(a.ctx, "roitraining:train:done", map[string]any{"modelPath": modelPath})
 	}()
 
@@ -281,7 +281,7 @@ func roiTrainingClassNames(datasetDir string) (map[int]string, error) {
 	}
 	var registry map[string]int
 	if err := json.Unmarshal(data, &registry); err != nil {
-		return nil, fmt.Errorf("classes.json ungültig: %w", err)
+		return nil, fmt.Errorf("classes.json invalid: %w", err)
 	}
 	names := make(map[int]string, len(registry))
 	for name, id := range registry {
@@ -357,7 +357,7 @@ func roiLabelPathForImage(imagePath string) (string, error) {
 		}
 	}
 	if idx == -1 {
-		return "", fmt.Errorf("kein 'images'-Ordner im Pfad: %s", imagePath)
+		return "", fmt.Errorf("no 'images' folder in path: %s", imagePath)
 	}
 	parts[idx] = "labels"
 	joined := filepath.Join(parts...)

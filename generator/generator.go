@@ -148,7 +148,7 @@ func hasPackages(py string) (bool, string) {
 func FindPython() (string, error) {
 	candidates := pythonCandidates()
 	if len(candidates) == 0 {
-		return "", fmt.Errorf("generator: kein Python gefunden (python3/python/py im PATH) - bitte Python 3.9+ installieren: https://python.org")
+		return "", fmt.Errorf("generator: no Python found (python3/python/py on PATH) — install Python 3.9+: https://python.org")
 	}
 	var firstRunnable string
 	for _, py := range candidates {
@@ -165,7 +165,7 @@ func FindPython() (string, error) {
 	if firstRunnable != "" {
 		return firstRunnable, nil
 	}
-	return "", fmt.Errorf("generator: kein funktionierender Python-Interpreter gefunden (geprüft: %v)", candidates)
+	return "", fmt.Errorf("generator: no working Python interpreter found (checked: %v)", candidates)
 }
 
 func CheckDependencies() error {
@@ -186,7 +186,7 @@ func CheckDependencies() error {
 	if err != nil {
 		return err
 	}
-	return fmt.Errorf("generator: Pakete fehlen. Installieren mit: \"%s\" -m pip install opencv-contrib-python scipy numpy\n(Wichtig: nicht parallel zu opencv-python — das nimmt CSRT weg.)\nGeprüft:\n%s", target, strings.Join(details, "\n"))
+	return fmt.Errorf("generator: missing packages. Install with: \"%s\" -m pip install opencv-contrib-python scipy numpy\n(Important: do not install alongside opencv-python — it removes CSRT.)\nChecked:\n%s", target, strings.Join(details, "\n"))
 }
 
 func firstLine(s string) string {
@@ -196,7 +196,7 @@ func firstLine(s string) string {
 			return line
 		}
 	}
-	return "nicht startbar"
+	return "failed to start"
 }
 
 func writeScriptToTemp() (string, error) {
@@ -207,7 +207,7 @@ func writeScriptToTemp() (string, error) {
 	entries, err := pythonFiles.ReadDir(".")
 	if err != nil {
 		os.RemoveAll(dir)
-		return "", fmt.Errorf("generator: eingebettete Dateien nicht lesbar: %w", err)
+		return "", fmt.Errorf("generator: embedded files not readable: %w", err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -220,11 +220,11 @@ func writeScriptToTemp() (string, error) {
 		content, err := pythonFiles.ReadFile(name)
 		if err != nil {
 			os.RemoveAll(dir)
-			return "", fmt.Errorf("generator: %s nicht lesbar: %w", name, err)
+			return "", fmt.Errorf("generator: %s not readable: %w", name, err)
 		}
 		if err := os.WriteFile(filepath.Join(dir, name), content, 0644); err != nil {
 			os.RemoveAll(dir)
-			return "", fmt.Errorf("generator: %s konnte nicht geschrieben werden: %w", name, err)
+			return "", fmt.Errorf("generator: %s could not be written: %w", name, err)
 		}
 	}
 	return filepath.Join(dir, "generate_funscript.py"), nil
@@ -237,12 +237,12 @@ func cleanupScriptTemp(scriptPath string) {
 func writeEmbeddedToTemp(pattern string, content []byte) (string, error) {
 	f, err := os.CreateTemp("", pattern)
 	if err != nil {
-		return "", fmt.Errorf("generator: Temp-Datei für Skript: %w", err)
+		return "", fmt.Errorf("generator: temp file for script: %w", err)
 	}
 	defer f.Close()
 	if _, err := f.Write(content); err != nil {
 		os.Remove(f.Name())
-		return "", fmt.Errorf("generator: Skript konnte nicht geschrieben werden: %w", err)
+		return "", fmt.Errorf("generator: script could not be written: %w", err)
 	}
 	return f.Name(), nil
 }
@@ -399,7 +399,7 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 		return ROI{}, fmt.Errorf("generator: stdout-Pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return ROI{}, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+		return ROI{}, fmt.Errorf("generator: start failed: %w", err)
 	}
 	// cmd.Wait() schließt die Pipes, sobald der Prozess beendet ist - laut
 	// os/exec-Doku "incorrect to call Wait before all reads from the pipe
@@ -441,12 +441,12 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
-		return ROI{}, fmt.Errorf("generator: automatische Regionssuche fehlgeschlagen: %w", err)
+		return ROI{}, fmt.Errorf("generator: automatic region search failed: %w", err)
 	}
 	if !found {
-		return ROI{}, fmt.Errorf("generator: keine Region gefunden - bitte von Hand markieren")
+		return ROI{}, fmt.Errorf("generator: no region found — mark manually")
 	}
-	logging.Info("generator: Region automatisch gefunden", "roi", fmt.Sprintf("%+v", roi))
+	logging.Info("generator: region found automatically", "roi", fmt.Sprintf("%+v", roi))
 	return roi, nil
 }
 
@@ -478,7 +478,7 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 		return ROI{}, ROI{}, fmt.Errorf("generator: stdout-Pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return ROI{}, ROI{}, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+		return ROI{}, ROI{}, fmt.Errorf("generator: start failed: %w", err)
 	}
 	var stderrDone sync.WaitGroup
 	stderrDone.Add(1)
@@ -516,12 +516,12 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
-		return ROI{}, ROI{}, fmt.Errorf("generator: automatische Zwei-Regionen-Suche fehlgeschlagen: %w", err)
+		return ROI{}, ROI{}, fmt.Errorf("generator: automatic two-region search failed: %w", err)
 	}
 	if !found {
-		return ROI{}, ROI{}, fmt.Errorf("generator: keine Region gefunden - bitte von Hand markieren")
+		return ROI{}, ROI{}, fmt.Errorf("generator: no region found — mark manually")
 	}
-	logging.Info("generator: Regionen automatisch gefunden",
+	logging.Info("generator: regions found automatically",
 		"roi", fmt.Sprintf("%+v", roi), "roi2", fmt.Sprintf("%+v", roi2))
 	return roi, roi2, nil
 }
@@ -542,7 +542,7 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 	cmd := command(py, scriptPath, "--video", videoPath, "--dump-first-frame", outputPNG)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return 0, 0, fmt.Errorf("generator: Frame-Extraktion fehlgeschlagen: %w\n%s", err, string(out))
+		return 0, 0, fmt.Errorf("generator: frame extraction failed: %w\n%s", err, string(out))
 	}
 	for _, line := range splitLines(string(out)) {
 		var w, h int
@@ -550,7 +550,7 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 			return w, h, nil
 		}
 	}
-	return 0, 0, fmt.Errorf("generator: Framegröße nicht aus Skript-Ausgabe lesbar: %s", string(out))
+	return 0, 0, fmt.Errorf("generator: frame size not readable from script output: %s", string(out))
 }
 
 // ProfileSuggestion ist das Ergebnis von SuggestProfile. Found=false ist ein
@@ -591,7 +591,7 @@ func SuggestProfile(videoPath, baseURL string) (ProfileSuggestion, error) {
 	}
 	out, err := command(py, args...).Output()
 	if err != nil {
-		return ProfileSuggestion{}, fmt.Errorf("generator: Profilvorschlag fehlgeschlagen: %w", err)
+		return ProfileSuggestion{}, fmt.Errorf("generator: profile suggestion failed: %w", err)
 	}
 	// "PROFILE_SUGGESTION <label> <measured|ai> <confidence>" - Label kann
 	// selbst Leerzeichen enthalten (freier Szenenname), darum von den festen
@@ -630,7 +630,7 @@ func LabelScene(videoPath, label string) error {
 	defer cleanupScriptTemp(scriptPath)
 	out, err := command(py, scriptPath, "--video", videoPath, "--label-scene", label).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("generator: Szene konnte nicht gespeichert werden: %w\n%s", err, string(out))
+		return fmt.Errorf("generator: scene could not be saved: %w\n%s", err, string(out))
 	}
 	return nil
 }
@@ -671,7 +671,7 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	logging.Info("generator: starte Generierung", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
+	logging.Info("generator: starting generation", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
 		var err error
@@ -681,20 +681,20 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 			err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
 		}
 		if err == nil {
-			logging.Info("generator: native Generierung abgeschlossen", "output", outputPath)
+			logging.Info("generator: native generation finished", "output", outputPath)
 			return nil
 		}
 		return err
 	}
 	if !opts.PreferPython && opts.NativePipeline {
-		logging.Warn("generator: Go-Pipeline nicht nutzbar für diese Einstellungen — nutze Python",
+		logging.Warn("generator: Go pipeline not usable for these settings — using Python",
 			"csrt", NativeTrackingAvailable(),
 			"simple", SimpleTrackingAvailable(),
 			"backend", opts.Backend,
 			"roi2", opts.ROI2.W > 0,
 			"auto_retry", opts.AutoRetry)
 		if onProgress != nil {
-			onProgress("Go-Pipeline nicht nutzbar für diese Einstellungen — nutze Python")
+			onProgress("Go pipeline not usable for these settings — using Python")
 		}
 	}
 
@@ -717,7 +717,7 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 		return fmt.Errorf("generator: stderr-Pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+		return fmt.Errorf("generator: start failed: %w", err)
 	}
 	scanner := bufio.NewScanner(stderr)
 	var lastLines []string
@@ -744,19 +744,19 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	}
 	if err := cmd.Wait(); err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) {
-			logging.Info("generator: Generierung abgebrochen")
+			logging.Info("generator: generation cancelled")
 			return context.Canceled
 		}
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
 			return context.DeadlineExceeded
 		}
-		logging.Error("generator: Generierung fehlgeschlagen", "fehler", err)
-		return fmt.Errorf("generator: Generierung fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
+		logging.Error("generator: generation failed", "error", err)
+		return fmt.Errorf("generator: generation failed: %w\nLast output:\n%s", err, joinLines(lastLines))
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	logging.Info("generator: Generierung abgeschlossen", "output", outputPath)
+	logging.Info("generator: generation finished", "output", outputPath)
 	return nil
 }
 
@@ -932,16 +932,16 @@ type ScriptQualityResult struct {
 func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
 	data, err := os.ReadFile(funscriptPath)
 	if err != nil {
-		return ScriptQualityResult{}, fmt.Errorf("generator: Skript konnte nicht gelesen werden: %w", err)
+		return ScriptQualityResult{}, fmt.Errorf("generator: script could not be read: %w", err)
 	}
 	var doc struct {
 		Actions []funscript.Action `json:"actions"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
-		return ScriptQualityResult{}, fmt.Errorf("generator: ungültiges JSON: %w", err)
+		return ScriptQualityResult{}, fmt.Errorf("generator: invalid JSON: %w", err)
 	}
 	if len(doc.Actions) == 0 {
-		return ScriptQualityResult{}, fmt.Errorf("generator: keine actions im Skript gefunden")
+		return ScriptQualityResult{}, fmt.Errorf("generator: no actions found in script")
 	}
 	got := funscript.EvaluateScriptQuality(doc.Actions)
 	return ScriptQualityResult{
@@ -969,7 +969,7 @@ func AddFeedback(reportPath, outputPath, verdict, comment string) error {
 	}
 	out, err := command(py, args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("generator: Urteil konnte nicht gespeichert werden: %w\n%s", err, string(out))
+		return fmt.Errorf("generator: verdict could not be saved: %w\n%s", err, string(out))
 	}
 	return nil
 }
@@ -986,7 +986,7 @@ func ReportSummary(reportPath string) (string, error) {
 	defer cleanupScriptTemp(scriptPath)
 	out, err := command(py, scriptPath, "--report", reportPath, "--report-summary").Output()
 	if err != nil {
-		return "", fmt.Errorf("generator: Bericht konnte nicht ausgewertet werden: %w", err)
+		return "", fmt.Errorf("generator: report could not be evaluated: %w", err)
 	}
 	return string(out), nil
 }
@@ -1003,7 +1003,7 @@ func HardwareInfo() (string, error) {
 	defer cleanupScriptTemp(scriptPath)
 	out, err := command(py, scriptPath, "--hardware-info").Output()
 	if err != nil {
-		return "", fmt.Errorf("generator: Hardware-Abfrage fehlgeschlagen: %w", err)
+		return "", fmt.Errorf("generator: hardware query failed: %w", err)
 	}
 	return string(out), nil
 }
@@ -1024,7 +1024,7 @@ func TrainQualityModel(reportPath string) (string, error) {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
 			return string(out), nil
 		}
-		return string(out), fmt.Errorf("generator: Lernen fehlgeschlagen: %w", err)
+		return string(out), fmt.Errorf("generator: training failed: %w", err)
 	}
 	return string(out), nil
 }
@@ -1041,7 +1041,7 @@ func QualityModelInfo() (string, error) {
 	defer cleanupScriptTemp(scriptPath)
 	out, err := command(py, scriptPath, "--model-info").Output()
 	if err != nil {
-		return "", fmt.Errorf("generator: Modellabfrage fehlgeschlagen: %w", err)
+		return "", fmt.Errorf("generator: model query failed: %w", err)
 	}
 	return string(out), nil
 }
@@ -1117,7 +1117,7 @@ func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(li
 
 	jsonOut, err := os.CreateTemp("", "golden-clip-result-*.json")
 	if err != nil {
-		return result, fmt.Errorf("generator: Temp-Datei für Benchmark-Ergebnis: %w", err)
+		return result, fmt.Errorf("generator: temp file for benchmark result: %w", err)
 	}
 	jsonOutPath := jsonOut.Name()
 	jsonOut.Close()
@@ -1133,7 +1133,7 @@ func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(li
 		return result, fmt.Errorf("generator: stderr-Pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return result, fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+		return result, fmt.Errorf("generator: start failed: %w", err)
 	}
 	scanner := bufio.NewScanner(stderr)
 	var lastLines []string
@@ -1155,14 +1155,14 @@ func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(li
 		}
 	}
 	if err := cmd.Wait(); err != nil {
-		return result, fmt.Errorf("generator: Golden-Clip-Benchmark fehlgeschlagen: %w\nLetzte Ausgabe:\n%s", err, joinLines(lastLines))
+		return result, fmt.Errorf("generator: golden-clip benchmark failed: %w\nLast output:\n%s", err, joinLines(lastLines))
 	}
 	data, err := os.ReadFile(jsonOutPath)
 	if err != nil {
-		return result, fmt.Errorf("generator: Benchmark-Ergebnis nicht lesbar: %w", err)
+		return result, fmt.Errorf("generator: benchmark result not readable: %w", err)
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return result, fmt.Errorf("generator: Benchmark-Ergebnis ungültig: %w", err)
+		return result, fmt.Errorf("generator: benchmark result invalid: %w", err)
 	}
 	return result, nil
 }

@@ -298,7 +298,7 @@ export function initRoiTraining(root) {
       await showPreview(path, 0);
       el('#rt-bootstrap-status').textContent = 'Region(en) markieren. Bei schwarzem Anfang Zeit vorstellen.';
     } catch (err) {
-      uiError('Video laden: ' + err, el('#rt-bootstrap-status'));
+      uiError('Load video: ' + err, el('#rt-bootstrap-status'));
     }
   }
 
@@ -400,7 +400,7 @@ export function initRoiTraining(root) {
         );
       }
     } catch (err) {
-      uiError('Sample speichern: ' + err, el('#rt-bootstrap-status'));
+      uiError('Save sample: ' + err, el('#rt-bootstrap-status'));
       updateBootstrapEnabled();
     }
   });
@@ -508,7 +508,7 @@ export function initRoiTraining(root) {
             await DiscardRoiTrainingSample(datasetDir, s.split, s.name);
             card.remove();
           } catch (err) {
-            uiError('Sample verwerfen: ' + err);
+            uiError('Discard sample: ' + err);
             discardBtn.disabled = false;
           }
         });

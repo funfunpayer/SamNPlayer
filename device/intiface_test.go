@@ -146,7 +146,7 @@ func TestIntifaceConnectAndControl(t *testing.T) {
 	}
 	// Die Anzeige soll sagen, WELCHE Kanäle gefunden wurden - sonst merkt
 	// man erst beim Abspielen, dass der Sog fehlt.
-	if !strings.Contains(info.Name, "Vibration") || !strings.Contains(info.Name, "Sog") {
+	if !strings.Contains(info.Name, "Vibration") || !strings.Contains(info.Name, "Suction") {
 		t.Errorf("gefundene Kanäle fehlen in der Anzeige: %q", info.Name)
 	}
 
@@ -220,7 +220,7 @@ func TestIntifaceWithoutDeviceFails(t *testing.T) {
 		dev.Disconnect()
 		t.Fatal("ohne Gerät darf Connect nicht gelingen")
 	}
-	if !strings.Contains(err.Error(), "Gerät") {
+	if !strings.Contains(strings.ToLower(err.Error()), "device") {
 		t.Errorf("Meldung nennt das Problem nicht: %v", err)
 	}
 }
@@ -251,7 +251,7 @@ func TestIntifaceVibrationOnlyDevice(t *testing.T) {
 		t.Errorf("SetVibration: %v", err)
 	}
 	info := dev.Info()
-	if strings.Contains(info.Name, "Sog") {
+	if strings.Contains(info.Name, "Suction") {
 		t.Errorf("Anzeige behauptet einen Kanal, den es nicht gibt: %q", info.Name)
 	}
 }
@@ -310,26 +310,26 @@ func TestIntifaceHintDistinguishesLocalAndNetwork(t *testing.T) {
 	refused := errorString("dial tcp: connection refused")
 
 	local := intifaceHint("ws://127.0.0.1:12345", refused)
-	if !strings.Contains(local, "Server starten") {
+	if !strings.Contains(local, "Start the server") {
 		t.Errorf("lokaler Hinweis unbrauchbar: %q", local)
 	}
-	if strings.Contains(local, "WLAN") {
+	if strings.Contains(strings.ToLower(local), "wi-fi") {
 		t.Errorf("lokaler Hinweis spricht fälschlich vom Netzwerk: %q", local)
 	}
 
 	remote := intifaceHint("ws://192.168.1.50:12345", refused)
-	if !strings.Contains(remote, "Netzwerk") {
+	if !strings.Contains(strings.ToLower(remote), "network") {
 		t.Errorf("Netzwerk-Hinweis fehlt: %q", remote)
 	}
 
 	timeout := intifaceHint("ws://192.168.1.50:12345",
 		errorString("dial tcp: i/o timeout"))
-	if !strings.Contains(timeout, "WLAN") {
+	if !strings.Contains(strings.ToLower(timeout), "wi-fi") {
 		t.Errorf("bei Zeitüberschreitung im Netzwerk fehlt der WLAN-Hinweis: %q", timeout)
 	}
 
 	host := intifaceHint("ws://handy.local:12345", errorString("no such host"))
-	if !strings.Contains(host, "IP-Adresse") {
+	if !strings.Contains(strings.ToLower(host), "ip address") {
 		t.Errorf("bei unauflösbarem Namen fehlt der Hinweis auf die IP: %q", host)
 	}
 }

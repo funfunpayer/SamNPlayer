@@ -51,14 +51,14 @@ type ContactPreviewOptions struct {
 func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
 	path := a.loadedScriptPath()
 	if path == "" {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	script := a.loadedScript()
 	if script == nil {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
-		return fmt.Errorf("Kontakt-Vibration nur bei Tf/Tj-Skripten")
+		return fmt.Errorf("contact vibration only for Tf/Tj scripts")
 	}
 	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {
 		return err
@@ -74,7 +74,7 @@ func (a *App) SaveContactSettings(enabled bool, span float64, curve string) erro
 func (a *App) StartPlayback(opts PlaybackOptions) error {
 	script := a.loadedScript()
 	if script == nil {
-		return fmt.Errorf("kein Skript geladen")
+		return fmt.Errorf("no script loaded")
 	}
 	mapOpts := funscript.DefaultMapOptions()
 	profile := script.Metadata.Profile
@@ -127,7 +127,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		MuteContact:    opts.DisableContactVibration || opts.ContactIntensityScale <= 0,
 	})
 	if len(frames) == 0 {
-		return fmt.Errorf("das Skript enthält keine abspielbaren Actions")
+		return fmt.Errorf("script contains no playable actions")
 	}
 	a.setCurrentFrames(frames)
 	dev, reusedDevice := a.claimSessionDevice(opts.Mock)
@@ -163,13 +163,13 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			// Bereits über den Geräte-Tab verbunden - nicht erneut
 			// verbinden und am Ende NICHT trennen, das bleibt dessen
 			// Sache (siehe claimSessionDevice).
-			runtime.EventsEmit(a.ctx, "playback:log", "Nutze die bestehende Verbindung aus dem Geräte-Tab.")
+			runtime.EventsEmit(a.ctx, "playback:log", "Using existing connection from Device tab.")
 		} else {
 			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 			defer connectCancel()
-			runtime.EventsEmit(a.ctx, "playback:log", "Verbinde...")
+			runtime.EventsEmit(a.ctx, "playback:log", "Connecting...")
 			if err := dev.Connect(connectCtx); err != nil {
-				logging.Error("app: Verbindung fehlgeschlagen", "fehler", err)
+				logging.Error("app: connection failed", "error", err)
 				runtime.EventsEmit(a.ctx, "playback:error", err.Error())
 				// failed:true — frontend must NOT auto-advance the playlist
 				runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
@@ -177,9 +177,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			}
 			defer dev.Disconnect()
 		}
-		runtime.EventsEmit(a.ctx, "playback:log", "Wiedergabe startet...")
+		runtime.EventsEmit(a.ctx, "playback:log", "Playback starting...")
 		if contactOn {
-			runtime.EventsEmit(a.ctx, "playback:log", "Kontakt-Vibration aktiv (SAM)")
+			runtime.EventsEmit(a.ctx, "playback:log", "Contact vibration active (SAM)")
 		}
 		var playErr error
 		if opts.UseVideoSync {
@@ -285,11 +285,11 @@ type VibrationCurvePoint struct {
 func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	actions := script.Actions
 	if len(actions) == 0 {
-		return nil, fmt.Errorf("skript enthält keine Actions")
+		return nil, fmt.Errorf("script contains no actions")
 	}
 	if maxPoints < 100 {
 		maxPoints = 100
@@ -346,7 +346,7 @@ func (a *App) GetVibrationCurve(maxPoints int) ([]VibrationCurvePoint, error) {
 func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]VibrationCurvePoint, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	dr := script.Metadata.DeviceRecipe
 	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
@@ -405,14 +405,14 @@ func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]Vibrati
 func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	script := a.loadedScript()
 	if script == nil {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	if buckets < 10 {
 		buckets = 10
 	}
 	duration := script.Duration()
 	if duration <= 0 {
-		return nil, fmt.Errorf("skript hat keine gültige Dauer")
+		return nil, fmt.Errorf("script has no valid duration")
 	}
 	opts := funscript.DefaultMapOptions()
 	opts.TickMs = duration / int64(buckets)
@@ -466,7 +466,7 @@ func (a *App) SetScriptOffset(ms int64) {
 	if path != "" {
 		_ = a.settings.Set(offsetKeyFor(path), ms)
 	}
-	logging.Info("wiedergabe: Skript-Offset gesetzt", "ms", ms, "skript", path)
+	logging.Info("playback: script offset set", "ms", ms, "script", path)
 }
 
 func (a *App) GetScriptOffset() int64 {

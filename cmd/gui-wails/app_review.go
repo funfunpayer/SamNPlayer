@@ -17,7 +17,7 @@ type GeneratedReview struct {
 // Polaritäts- und O-Zonen-Vorschlag. Ändert nichts an der Datei.
 func (a *App) ReviewGeneratedScript(path string) (GeneratedReview, error) {
 	if path == "" {
-		return GeneratedReview{}, fmt.Errorf("kein Pfad")
+		return GeneratedReview{}, fmt.Errorf("no path")
 	}
 	script, err := funscript.Load(path)
 	if err != nil {
@@ -34,7 +34,7 @@ func (a *App) ReviewGeneratedScript(path string) (GeneratedReview, error) {
 // die gerade geladene Wiedergabe ist (Generator-Nachlauf).
 func (a *App) InvertScriptAtPath(path string) error {
 	if path == "" {
-		return fmt.Errorf("kein Pfad")
+		return fmt.Errorf("no path")
 	}
 	script, err := funscript.Load(path)
 	if err != nil {

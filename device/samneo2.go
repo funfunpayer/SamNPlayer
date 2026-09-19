@@ -131,7 +131,7 @@ func (s *SamNeo2) BatteryLevel() (int, bool) {
 	s.batteryAt = time.Now()
 	s.mu.Unlock()
 	if ok {
-		logging.Info("samneo2: Akku gelesen", "prozent", pct)
+		logging.Info("samneo2: battery read", "percent", pct)
 	}
 	return pct, ok
 }
@@ -155,13 +155,13 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 	alreadyConnected := s.keepaliveEnd != nil
 	s.mu.Unlock()
 	if alreadyConnected {
-		return fmt.Errorf("samneo2: bereits verbunden - erst Disconnect() aufrufen")
+		return fmt.Errorf("samneo2: already connected — call Disconnect() first")
 	}
 
-	logging.Info("samneo2: verbinde", "name_prefix", s.NamePrefix, "scan_timeout", s.ScanTimeout)
+	logging.Info("samneo2: connecting", "name_prefix", s.NamePrefix, "scan_timeout", s.ScanTimeout)
 	if err := s.adapter.Enable(); err != nil {
-		logging.Error("samneo2: BLE-Adapter-Aktivierung fehlgeschlagen", "fehler", err)
-		return fmt.Errorf("samneo2: BLE-Adapter konnte nicht aktiviert werden: %w", err)
+		logging.Error("samneo2: BLE adapter enable failed", "error", err)
+		return fmt.Errorf("samneo2: BLE adapter could not be enabled: %w", err)
 	}
 
 	found := make(chan bluetooth.ScanResult, 1)
@@ -186,23 +186,23 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 	var result bluetooth.ScanResult
 	select {
 	case result = <-found:
-		logging.Info("samneo2: Gerät gefunden", "adresse", result.Address.String(), "name", result.LocalName(), "rssi", result.RSSI)
+		logging.Info("samneo2: device found", "address", result.Address.String(), "name", result.LocalName(), "rssi", result.RSSI)
 	case err := <-scanErr:
-		logging.Error("samneo2: Scan fehlgeschlagen", "fehler", err)
-		return fmt.Errorf("samneo2: Scan fehlgeschlagen: %w", err)
+		logging.Error("samneo2: scan failed", "error", err)
+		return fmt.Errorf("samneo2: scan failed: %w", err)
 	case <-time.After(s.ScanTimeout):
 		s.adapter.StopScan()
-		logging.Warn("samneo2: Scan-Timeout, kein Gerät gefunden", "name_prefix", s.NamePrefix, "timeout", s.ScanTimeout)
-		return fmt.Errorf("samneo2: kein Gerät mit Namenspräfix %q innerhalb von %s gefunden", s.NamePrefix, s.ScanTimeout)
+		logging.Warn("samneo2: scan timeout, no device found", "name_prefix", s.NamePrefix, "timeout", s.ScanTimeout)
+		return fmt.Errorf("samneo2: no device with name prefix %q found within %s", s.NamePrefix, s.ScanTimeout)
 	case <-ctx.Done():
 		s.adapter.StopScan()
-		logging.Warn("samneo2: Scan abgebrochen (Context)")
+		logging.Warn("samneo2: scan cancelled (context)")
 		return ctx.Err()
 	}
 
 	dev, err := s.adapter.Connect(result.Address, bluetooth.ConnectionParams{})
 	if err != nil {
-		return fmt.Errorf("samneo2: Verbindung fehlgeschlagen: %w", err)
+		return fmt.Errorf("samneo2: connection failed: %w", err)
 	}
 	s.device = dev
 	// Ab hier ist die BLE-Verbindung offen - jeder folgende Fehlerpfad muss
@@ -218,21 +218,21 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 
 	svcUUID, err := bluetooth.ParseUUID(s.protocol.ServiceUUID())
 	if err != nil {
-		return fmt.Errorf("samneo2: ungültige Service-UUID: %w", err)
+		return fmt.Errorf("samneo2: invalid service UUID: %w", err)
 	}
 	services, err := dev.DiscoverServices([]bluetooth.UUID{svcUUID})
 	if err != nil || len(services) == 0 {
-		return fmt.Errorf("samneo2: Service nicht gefunden: %w", err)
+		return fmt.Errorf("samneo2: service not found: %w", err)
 	}
 
 	charUUID, err := bluetooth.ParseUUID(s.protocol.CharacteristicUUID())
 	if err != nil {
-		return fmt.Errorf("samneo2: ungültige Characteristic-UUID: %w", err)
+		return fmt.Errorf("samneo2: invalid characteristic UUID: %w", err)
 	}
 	chars, err := services[0].DiscoverCharacteristics([]bluetooth.UUID{charUUID})
 	if err != nil || len(chars) == 0 {
-		logging.Error("samneo2: Characteristic nicht gefunden", "fehler", err)
-		return fmt.Errorf("samneo2: Characteristic nicht gefunden: %w", err)
+		logging.Error("samneo2: characteristic not found", "error", err)
+		return fmt.Errorf("samneo2: characteristic not found: %w", err)
 	}
 	s.char = chars[0]
 
@@ -249,14 +249,14 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 	go s.runKeepalive()
 
 	connected = false // Verbindung steht - der defer oben soll sie NICHT mehr trennen
-	logging.Info("samneo2: verbunden", "adresse", result.Address.String())
+	logging.Info("samneo2: connected", "address", result.Address.String())
 	// Akku optional nachziehen (fehlende Battery Service = still ok).
 	_, _ = s.BatteryLevel()
 	return nil
 }
 
 func (s *SamNeo2) Disconnect() error {
-	logging.Info("samneo2: trenne Verbindung")
+	logging.Info("samneo2: disconnecting")
 	s.mu.Lock()
 	if s.keepaliveEnd != nil {
 		close(s.keepaliveEnd)
@@ -268,7 +268,7 @@ func (s *SamNeo2) Disconnect() error {
 	_ = s.Stop()
 	err := s.device.Disconnect()
 	if err != nil {
-		logging.Warn("samneo2: Trennen mit Fehler", "fehler", err)
+		logging.Warn("samneo2: disconnect error", "error", err)
 	}
 	return err
 }
@@ -323,7 +323,7 @@ type rawEncoder interface {
 func (s *SamNeo2) SetVibrationRaw(speed byte) error {
 	enc, ok := s.protocol.(rawEncoder)
 	if !ok {
-		return fmt.Errorf("device: dieses Protokoll unterstützt keine Rohwerte")
+		return fmt.Errorf("device: this protocol does not support raw values")
 	}
 	return s.write(enc.EncodeVibrationRaw(speed))
 }
@@ -331,7 +331,7 @@ func (s *SamNeo2) SetVibrationRaw(speed byte) error {
 func (s *SamNeo2) SetSuctionRaw(level byte) error {
 	enc, ok := s.protocol.(rawEncoder)
 	if !ok {
-		return fmt.Errorf("device: dieses Protokoll unterstützt keine Rohwerte")
+		return fmt.Errorf("device: this protocol does not support raw values")
 	}
 	return s.write(enc.EncodeSuctionRaw(level))
 }
@@ -405,7 +405,7 @@ func (s *SamNeo2) writeLocked(packet []byte) error {
 		_, err = s.char.WriteWithoutResponse(packet)
 	}
 	if err != nil {
-		logging.Error("samneo2: GATT-Write fehlgeschlagen", "fehler", err, "bytes", fmt.Sprintf("% x", packet))
+		logging.Error("samneo2: GATT write failed", "error", err, "bytes", fmt.Sprintf("% x", packet))
 		return err
 	}
 	logging.Debug("samneo2: GATT-Write", "bytes", fmt.Sprintf("% x", packet))
@@ -433,7 +433,7 @@ func (s *SamNeo2) runKeepalive() {
 			s.mu.Lock()
 			if (s.lastVibrationPacket != nil || s.lastSuctionPacket != nil) &&
 				time.Since(s.lastWriteAt) >= keepaliveInterval {
-				logging.Debug("samneo2: Keepalive-Wiederholung", "idle", time.Since(s.lastWriteAt))
+				logging.Debug("samneo2: keepalive repeat", "idle", time.Since(s.lastWriteAt))
 				// Direkter Write statt writeLocked(): ein Keepalive-Replay
 				// ist kein inhaltlich neues Kommando, lastWriteAt soll darum
 				// NICHT aktualisiert werden - sonst würde ein Dauerstrom aus

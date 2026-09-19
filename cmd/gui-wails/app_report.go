@@ -36,15 +36,14 @@ func (a *App) activeReportPath() string {
 func (a *App) SubmitFeedback(fb ReportFeedback) error {
 	path := a.activeReportPath()
 	if path == "" {
-		return fmt.Errorf("kein Berichtspfad eingestellt - im Einstellungen-Tab festlegen, " +
-			"damit Messwerte und Urteile gespeichert werden können")
+		return fmt.Errorf("no report path configured — set it in Settings to save measurements and verdicts")
 	}
 	if err := generator.AddFeedback(path, fb.OutputPath, fb.Verdict, fb.Comment); err != nil {
-		logging.Warn("bericht: Urteil konnte nicht gespeichert werden", "fehler", err)
+		logging.Warn("report: verdict could not be saved", "error", err)
 		return err
 	}
-	logging.Info("bericht: Urteil gespeichert", "urteil", fb.Verdict,
-		"skript", fb.OutputPath, "kommentar", fb.Comment)
+	logging.Info("report: verdict saved", "verdict", fb.Verdict,
+		"script", fb.OutputPath, "comment", fb.Comment)
 	return nil
 }
 
@@ -52,7 +51,7 @@ func (a *App) SubmitFeedback(fb ReportFeedback) error {
 func (a *App) ReportSummary() (string, error) {
 	path := a.activeReportPath()
 	if path == "" {
-		return "", fmt.Errorf("kein Berichtspfad eingestellt")
+		return "", fmt.Errorf("no report path configured")
 	}
 	return generator.ReportSummary(path)
 }
@@ -89,15 +88,14 @@ func (a *App) PickReportPath() (string, error) {
 func (a *App) TrainQualityModel() (string, error) {
 	path := a.activeReportPath()
 	if path == "" {
-		return "", fmt.Errorf("kein Berichtspfad eingestellt - ohne aufgezeichnete " +
-			"Messwerte und Urteile gibt es nichts zu lernen")
+		return "", fmt.Errorf("no report path configured — nothing to learn without recorded measurements and verdicts")
 	}
 	report, err := generator.TrainQualityModel(path)
 	if err != nil {
-		logging.Warn("modell: Lernen fehlgeschlagen", "fehler", err)
+		logging.Warn("model: training failed", "error", err)
 		return report, err
 	}
-	logging.Info("modell: Lernvorgang abgeschlossen")
+	logging.Info("model: training run finished")
 	return report, nil
 }
 

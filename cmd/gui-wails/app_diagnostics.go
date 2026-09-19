@@ -50,7 +50,7 @@ func (a *App) RunDeviceDiagnostics() error {
 	a.stateMu.Lock()
 	if diagnosticsRunning {
 		a.stateMu.Unlock()
-		return fmt.Errorf("es läuft bereits ein Diagnoselauf")
+		return fmt.Errorf("a diagnostics run is already in progress")
 	}
 	diagnosticsRunning = true
 	a.stateMu.Unlock()
@@ -90,10 +90,10 @@ func (a *App) RunDeviceDiagnostics() error {
 			Report:     report,
 		}
 		if err := a.appendDiagnosticsHistory(entry); err != nil {
-			logging.Warn("diagnostics: Verlauf konnte nicht geschrieben werden", "fehler", err)
+			logging.Warn("diagnostics: history could not be written", "error", err)
 		}
 
-		logging.Info("diagnostics: Lauf abgeschlossen",
+		logging.Info("diagnostics: run finished",
 			"mock", mock, "kommandos", len(report.Log), "abgebrochen", report.Interrupted)
 		runtime.EventsEmit(a.ctx, "diagnostics:done", entry)
 	}()
@@ -104,7 +104,7 @@ func (a *App) RunDeviceDiagnostics() error {
 func (a *App) appendDiagnosticsHistory(entry DiagnosticsHistoryEntry) error {
 	path := a.settings.GetString(prefDiagnosticsHistory, defaultDiagnosticsHistoryPath())
 	if path == "" {
-		return fmt.Errorf("kein Verlaufspfad verfügbar")
+		return fmt.Errorf("no history path available")
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
@@ -145,7 +145,7 @@ func (a *App) GetDiagnosticsHistory() ([]DiagnosticsHistoryEntry, error) {
 	for scanner.Scan() {
 		var e DiagnosticsHistoryEntry
 		if err := json.Unmarshal(scanner.Bytes(), &e); err != nil {
-			logging.Warn("diagnostics: Verlaufszeile übersprungen", "fehler", err)
+			logging.Warn("diagnostics: history line skipped", "error", err)
 			continue
 		}
 		results = append(results, e)

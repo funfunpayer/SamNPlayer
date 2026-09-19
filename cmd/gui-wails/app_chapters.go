@@ -19,7 +19,7 @@ func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
 	if script == nil || len(script.Actions) < 4 {
-		return nil, fmt.Errorf("kein Skript geladen")
+		return nil, fmt.Errorf("no script loaded")
 	}
 	points := make([]motionx.Point, 0, len(script.Actions))
 	for _, act := range script.Actions {
