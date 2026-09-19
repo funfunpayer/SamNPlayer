@@ -84,7 +84,7 @@ prerequisites are met — not a calendar promise.
 |----|------|--------|---------------|-----------|
 | C1 | Language sweep (no leftover DE UI) | 0.5.9 | — | Click every tab; note any leftover DE |
 | C2 | Thanks / feedback buttons English | 0.5.9 (done) | — | After Generate → usable/… |
-| C3 | README vs public portal layout | ongoing | SamNPlayer-site | Both show same brand + portable CTA |
+| C3 | README vs public portal layout | `website/` ready — publish to Pages | SamNPlayer-site | Both show same brand + portable CTA; see `docs/SELLING.md` |
 | C4 | Curve zoom / BPM grid | later | Design call | Optional polish |
 
 ### D — Mobile player (no generator)
