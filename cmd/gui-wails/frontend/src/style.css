@@ -797,6 +797,38 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
 }
 .pb-curve { border-top: 1px solid var(--border); }
 .pb-heatmap { border-top: 1px solid var(--border); height: 28px; }
+.pb-chart-tooltip {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pb-chart-tooltip {
+    transition: opacity 0.08s ease-out;
+  }
+}
+.pb-playlist-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.pb-playlist-shuffle,
+.pb-playlist-repeat {
+  font-size: 12px;
+  color: var(--text-dim);
+  gap: 6px;
+}
 .pb-transport {
   padding: 12px 14px 14px;
   border-top: 1px solid var(--border);

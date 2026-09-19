@@ -59,6 +59,7 @@ export function initPlayback(root) {
         </div>
         <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
         <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <div id="pb-chart-tooltip" class="pb-chart-tooltip" hidden></div>
         <div class="pb-transport">
           <div class="row pb-transport-btns">
             <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play">
@@ -81,10 +82,20 @@ export function initPlayback(root) {
         <div class="pb-playlist" id="pb-playlist" hidden>
           <div class="pb-playlist-head">
             <span class="pb-playlist-title">Playlist</span>
-            <label class="checkbox-row pb-playlist-auto" style="margin:0">
-              <input type="checkbox" id="pb-playlist-auto" checked />
-              <span>Auto-advance</span>
-            </label>
+            <div class="pb-playlist-opts">
+              <label class="checkbox-row pb-playlist-auto" style="margin:0">
+                <input type="checkbox" id="pb-playlist-auto" checked />
+                <span>Auto-advance</span>
+              </label>
+              <label class="checkbox-row pb-playlist-shuffle" style="margin:0">
+                <input type="checkbox" id="pb-playlist-shuffle" />
+                <span>Shuffle</span>
+              </label>
+              <label class="checkbox-row pb-playlist-repeat" style="margin:0">
+                <input type="checkbox" id="pb-playlist-repeat" />
+                <span>Repeat playlist</span>
+              </label>
+            </div>
           </div>
           <ol class="pb-playlist-list" id="pb-playlist-list"></ol>
         </div>
@@ -248,7 +259,10 @@ export function initPlayback(root) {
   let vibrationCurvePoints = null;
   let scriptHasContactVibration = false;
   const curveCanvas = el('#pb-curve');
+  const chartTooltip = el('#pb-chart-tooltip');
   const CURVE_MAX_POINTS = 1200;
+  const PLAYLIST_SHUFFLE_KEY = 'pb.playlist.shuffle';
+  const PLAYLIST_REPEAT_KEY = 'pb.playlist.repeat';
   let marker = null; // {startMs, endMs} oder null
   let markerDragStartMs = null;
   let markerDragMoved = false;
@@ -291,7 +305,8 @@ export function initPlayback(root) {
       return;
     }
     wrap.hidden = false;
-    if (nextBtn) nextBtn.hidden = playlistIndex >= playlist.length - 1;
+    const repeat = el('#pb-playlist-repeat') && el('#pb-playlist-repeat').checked;
+    if (nextBtn) nextBtn.hidden = playlistIndex >= playlist.length - 1 && !repeat;
     list.innerHTML = playlist.map((item, i) => {
       const active = i === playlistIndex ? ' is-active' : '';
       return `<li class="pb-playlist-item${active}" data-idx="${i}">`
@@ -314,6 +329,33 @@ export function initPlayback(root) {
     }
     playlist = uniq;
     playlistIndex = Math.max(0, Math.min(startIndex, Math.max(0, playlist.length - 1)));
+    renderPlaylist();
+  }
+
+  function shuffleArrayInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  /** Reshuffle queue with the current item first (when shuffle is turned on). */
+  function reshufflePlaylistKeepingCurrent() {
+    if (playlist.length < 2) return;
+    const cur = playlist[playlistIndex];
+    const rest = playlist.filter((_, i) => i !== playlistIndex);
+    shuffleArrayInPlace(rest);
+    playlist = [cur, ...rest];
+    playlistIndex = 0;
+    renderPlaylist();
+  }
+
+  /** New cycle at end of list: full reshuffle when shuffle is on. */
+  function reshufflePlaylistForRepeatCycle() {
+    if (playlist.length < 2) return;
+    shuffleArrayInPlace(playlist);
+    playlistIndex = 0;
     renderPlaylist();
   }
 
@@ -700,6 +742,89 @@ export function initPlayback(root) {
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   }
 
+  function formatTooltipTime(ms) {
+    const sec = Math.max(0, ms) / 1000;
+    if (sec < 60) return sec.toFixed(1) + 's';
+    const m = Math.floor(sec / 60);
+    const sWhole = Math.floor(sec % 60);
+    const tenths = Math.round((sec % 1) * 10);
+    return m + ':' + String(sWhole).padStart(2, '0') + '.' + tenths;
+  }
+
+  function hideChartTooltip() {
+    if (chartTooltip) chartTooltip.hidden = true;
+  }
+
+  function showChartTooltip(e, text) {
+    if (!chartTooltip) return;
+    chartTooltip.textContent = text;
+    chartTooltip.hidden = false;
+    const pad = 12;
+    const rect = chartTooltip.getBoundingClientRect();
+    let left = e.clientX + pad;
+    let top = e.clientY + pad;
+    if (left + rect.width > window.innerWidth - 4) left = e.clientX - rect.width - pad;
+    if (top + rect.height > window.innerHeight - 4) top = e.clientY - rect.height - pad;
+    chartTooltip.style.left = left + 'px';
+    chartTooltip.style.top = top + 'px';
+  }
+
+  function curvePosAtMs(atMs, points) {
+    if (!points || points.length === 0) return 0;
+    if (atMs <= points[0].atMs) return points[0].pos;
+    const last = points[points.length - 1];
+    if (atMs >= last.atMs) return last.pos;
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (atMs >= a.atMs && atMs <= b.atMs) {
+        const span = Math.max(1, b.atMs - a.atMs);
+        const t = (atMs - a.atMs) / span;
+        return a.pos + t * (b.pos - a.pos);
+      }
+    }
+    return last.pos;
+  }
+
+  function heatmapIntensityAtMs(atMs) {
+    if (!heatmapPoints || heatmapPoints.length === 0) return null;
+    let best = heatmapPoints[0];
+    let bestDist = Math.abs(best.atMs - atMs);
+    for (let i = 1; i < heatmapPoints.length; i++) {
+      const p = heatmapPoints[i];
+      const d = Math.abs(p.atMs - atMs);
+      if (d < bestDist) { bestDist = d; best = p; }
+    }
+    return best.intensity;
+  }
+
+  function updateHeatmapChartTooltip(e) {
+    if (!heatmapPoints || heatmapPoints.length === 0 || !totalMs) {
+      hideChartTooltip();
+      return;
+    }
+    const atMs = canvasXToMs(e.clientX);
+    const intensity = heatmapIntensityAtMs(atMs);
+    if (intensity == null) {
+      hideChartTooltip();
+      return;
+    }
+    const pct = Math.round(Math.max(0, Math.min(1, intensity)) * 100);
+    showChartTooltip(e, formatTooltipTime(atMs) + ' · ' + pct + '%');
+  }
+
+  function updateCurveChartTooltip(e) {
+    const points = (editMode && rawActions) ? rawActions : curvePoints;
+    if (!points || points.length < 2 || !totalMs) {
+      hideChartTooltip();
+      return;
+    }
+    const atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
+    const pos = curvePosAtMs(atMs, points);
+    const posLabel = Math.round(Math.max(0, Math.min(100, pos)));
+    showChartTooltip(e, formatTooltipTime(atMs) + ' · ' + posLabel);
+  }
+
   async function describeScript() {
     const box = el('#pb-analysis');
     let text = '';
@@ -803,15 +928,20 @@ export function initPlayback(root) {
   });
 
   curveCanvas.addEventListener('mousemove', (e) => {
-    if (!editMode || editDragIndex === null) return;
-    const atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
-    rawActions[editDragIndex] = { atMs, pos: curvePosOfY(e.clientY) };
-    redrawCurve();
-    // Video folgt beim Ziehen mit - man sieht, welcher Moment gerade
-    // markiert wird, statt blind auf Zeitwerte zu vertrauen. seekTo() ist
-    // bereits ein no-op ohne Video, also kein zusätzlicher Guard nötig.
-    seekTo(atMs);
+    if (editMode && editDragIndex !== null) {
+      const atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
+      rawActions[editDragIndex] = { atMs, pos: curvePosOfY(e.clientY) };
+      redrawCurve();
+      hideChartTooltip();
+      // Video folgt beim Ziehen mit - man sieht, welcher Moment gerade
+      // markiert wird, statt blind auf Zeitwerte zu vertrauen. seekTo() ist
+      // bereits ein no-op ohne Video, also kein zusätzlicher Guard nötig.
+      seekTo(atMs);
+      return;
+    }
+    updateCurveChartTooltip(e);
   });
+  curveCanvas.addEventListener('mouseleave', hideChartTooltip);
 
   window.addEventListener('mouseup', async () => {
     if (!editMode || editDragIndex === null) return;
@@ -920,14 +1050,22 @@ export function initPlayback(root) {
     markerDragMoved = false;
   });
   heatmapCanvas.addEventListener('mousemove', (e) => {
-    if (markerDragStartMs === null) return;
-    const cur = canvasXToMs(e.clientX);
-    if (Math.abs(cur - markerDragStartMs) > 150) markerDragMoved = true;
-    if (!markerDragMoved) return;
-    marker = { startMs: Math.min(markerDragStartMs, cur), endMs: Math.max(markerDragStartMs, cur) };
-    redrawHeatmap();
-    redrawCurve();
+    if (markerDragStartMs !== null) {
+      const cur = canvasXToMs(e.clientX);
+      if (Math.abs(cur - markerDragStartMs) > 150) markerDragMoved = true;
+      if (!markerDragMoved) {
+        hideChartTooltip();
+        return;
+      }
+      hideChartTooltip();
+      marker = { startMs: Math.min(markerDragStartMs, cur), endMs: Math.max(markerDragStartMs, cur) };
+      redrawHeatmap();
+      redrawCurve();
+      return;
+    }
+    updateHeatmapChartTooltip(e);
   });
+  heatmapCanvas.addEventListener('mouseleave', hideChartTooltip);
   window.addEventListener('mouseup', () => {
     if (markerDragStartMs === null) return;
     const clickedMs = markerDragStartMs;
@@ -1222,17 +1360,36 @@ export function initPlayback(root) {
     }
   }
 
+  function nextPlaylistIndexAfterAdvance() {
+    const repeat = el('#pb-playlist-repeat') && el('#pb-playlist-repeat').checked;
+    if (playlist.length < 2) return playlistIndex;
+    if (playlistIndex < playlist.length - 1) return playlistIndex + 1;
+    if (repeat) return 0;
+    return playlistIndex;
+  }
+
   async function playNextInPlaylist() {
     if (advancingPlaylist) return;
-    if (playlistIndex >= playlist.length - 1) {
+    const repeat = el('#pb-playlist-repeat') && el('#pb-playlist-repeat').checked;
+    const atEnd = playlistIndex >= playlist.length - 1;
+    if (atEnd && !repeat) {
       setPlayingState(false);
       return;
     }
     advancingPlaylist = true;
     try {
       if (playing) await stop({ user: false });
-      playlistIndex += 1;
-      renderPlaylist();
+      if (atEnd && repeat) {
+        if (el('#pb-playlist-shuffle') && el('#pb-playlist-shuffle').checked) {
+          reshufflePlaylistForRepeatCycle();
+        } else {
+          playlistIndex = 0;
+          renderPlaylist();
+        }
+      } else {
+        playlistIndex += 1;
+        renderPlaylist();
+      }
       await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
       await play();
     } catch (err) {
@@ -1257,7 +1414,8 @@ export function initPlayback(root) {
       return;
     }
     const auto = el('#pb-playlist-auto') && el('#pb-playlist-auto').checked;
-    if (auto && playlist.length > 1 && playlistIndex < playlist.length - 1) {
+    const repeat = el('#pb-playlist-repeat') && el('#pb-playlist-repeat').checked;
+    if (auto && playlist.length > 1 && (playlistIndex < playlist.length - 1 || repeat)) {
       playNextInPlaylist();
       return;
     }
@@ -1610,6 +1768,19 @@ export function initPlayback(root) {
   });
 
   // Gespeicherte Standardwerte übernehmen, sobald settings.js sie geladen hat.
+  try {
+    el('#pb-playlist-shuffle').checked = sessionStorage.getItem(PLAYLIST_SHUFFLE_KEY) === '1';
+    el('#pb-playlist-repeat').checked = sessionStorage.getItem(PLAYLIST_REPEAT_KEY) === '1';
+  } catch (_) { /* private mode */ }
+  el('#pb-playlist-shuffle').addEventListener('change', e => {
+    try { sessionStorage.setItem(PLAYLIST_SHUFFLE_KEY, e.target.checked ? '1' : '0'); } catch (_) {}
+    if (e.target.checked) reshufflePlaylistKeepingCurrent();
+  });
+  el('#pb-playlist-repeat').addEventListener('change', e => {
+    try { sessionStorage.setItem(PLAYLIST_REPEAT_KEY, e.target.checked ? '1' : '0'); } catch (_) {}
+    renderPlaylist();
+  });
+
   getSettingsCache().then(s => {
     el('#pb-mock').checked = s.playbackMock;
     el('#pb-sync').value = s.playbackSync;
@@ -1694,6 +1865,9 @@ export function initPlayback(root) {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
     // opts.review: Kurven-Editor an, Fokus auf Kontakt — frisch erzeugt.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
+    nextPlaylistIndexAfterAdvance,
+    getPlaylistIndex: () => playlistIndex,
+    setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),
   };
 }
 
