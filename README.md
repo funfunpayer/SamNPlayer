@@ -133,7 +133,7 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
+Latest: **[v0.5.9](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
@@ -156,7 +156,7 @@ Cross-compile Windows GUI from Linux:
 ```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.8"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.9"
 ```
 
 Generator extras need **Python 3.9+** and
@@ -192,6 +192,7 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 | [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly license concept (not enforced yet) |
 | [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
+| [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production plan — open items, owner tests, how results turn into fixes |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Checklist — what’s done / next / rejected |
 | [`docs/NEXT.md`](docs/NEXT.md) | Measurement journal |
 | [`HANDOFF.md`](HANDOFF.md) | Architecture + tested-and-rejected table |

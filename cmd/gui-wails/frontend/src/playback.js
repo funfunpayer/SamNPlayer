@@ -1278,7 +1278,7 @@ export function initPlayback(root) {
     if (conv) conv.disabled = true;
     if (warn) {
       warn.hidden = false;
-      warn.textContent = 'Konvertiere nach H.264/AAC (kann dauern)…';
+      warn.textContent = 'Converting to H.264/AAC (may take a while)…';
     }
     try {
       const info = await EnsurePlayablePlaybackVideo();
@@ -1286,7 +1286,7 @@ export function initPlayback(root) {
       videoEl.src = await VideoFileURL();
       if (warn) {
         warn.textContent = info.usingProxy
-          ? ('Abspiel-Kopie bereit' + (info.proxyPath ? ': ' + info.proxyPath.split(/[\\/]/).pop() : ''))
+          ? ('Playable copy ready' + (info.proxyPath ? ': ' + info.proxyPath.split(/[\\/]/).pop() : ''))
           : 'Video should be playable now.';
       }
       if (conv) conv.hidden = true;
@@ -1383,7 +1383,7 @@ export function initPlayback(root) {
       stage.classList.remove('has-video', 'is-fs', 'is-playing');
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
-      el('#pb-video-fs').textContent = 'Vollbild';
+      el('#pb-video-fs').textContent = 'Fullscreen';
       const warn = el('#pb-video-warn');
       const conv = el('#pb-video-convert');
       if (warn) warn.hidden = true;
@@ -1609,7 +1609,7 @@ export function initPlayback(root) {
     const conv = el('#pb-video-convert');
     if (warn) {
       warn.hidden = false;
-      warn.textContent = 'Video nicht abspielbar (Codec/Container). „Abspielbar machen“ erzeugt eine H.264-Kopie.';
+      warn.textContent = 'Video not playable (codec/container). “Make playable” creates an H.264 copy.';
     }
     if (conv) conv.hidden = false;
     if (playing) {

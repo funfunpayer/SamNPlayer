@@ -8,6 +8,11 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.9] — September 19, 2026
+
+Production train after v0.5.8: native `.samn`, leaner Go generation path,
+portable ffmpeg, English GUI lock, production roadmap for owner testing.
+
 ### Added
 
 - **Native script `.samn`:** source of truth for Sam Neo 2 (general +
@@ -34,11 +39,15 @@ measurement history behind each entry; this file is the short version for
   when clip tests show **equal or better** quality — never worse; fewer
   deps after that gate. ISO-BMFF probe is **fallback only** (ffprobe
   preferred); geometry matched against ffprobe on synthetic clip.
+- **Production roadmap** (`docs/PRODUCTION_ROADMAP.md`): open workstreams,
+  owner test loop, targets and prerequisites.
 
 ### Changed
 
 - **`NativePipelineEligible`:** `AudioCheck` no longer blocks the Go path
   (AI quality opinion still does).
+- **GUI English lock:** leftover German user strings (playback convert
+  banners, ROI labels, ROI training hints, Thanks/feedback) → English.
 
 ### Docs
 

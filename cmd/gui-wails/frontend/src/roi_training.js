@@ -33,7 +33,7 @@ export function initRoiTraining(root) {
         <li><b>Train here</b> — marks → “Use for training” → discard bad samples → start training. Result: <code>roi_detector.onnx</code>.</li>
         <li><b>Then Generate</b> — Load video → enable “AI detection (ONNX)” → “Find region automatically”. AI suggests the box only.</li>
         <li><b>Verify/correct box</b> — never apply blindly. For Tf/Tj, set a 2nd region if needed.</li>
-        <li><b>Generate Funscript</b> — klassisches Tracking (CSRT/Flow/…) schreibt das Skript. Die KI trackt nicht selbst.</li>
+        <li><b>Generate Funscript</b> — classic tracking (CSRT/Flow/…) writes the script. AI does not track by itself.</li>
         <li><b>Review in Playback</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>
     </div>
@@ -757,14 +757,14 @@ export function initRoiTraining(root) {
     const sel = el('#rt-device');
     const current = sel.value || 'auto';
     sel.innerHTML = devices.map(d => {
-      const mark = d.available ? '' : ' — nicht erkannt';
+      const mark = d.available ? '' : ' — not detected';
       return `<option value="${d.id}">${d.label}${mark}</option>`;
     }).join('');
     if ([...sel.options].some(o => o.value === current)) sel.value = current;
     else sel.value = 'auto';
     const avail = devices.filter(d => d.available && d.id !== 'auto').map(d => d.id);
     el('#rt-device-status').textContent = avail.length
-      ? ('Erkannt: ' + avail.join(', '))
+      ? ('Detected: ' + avail.join(', '))
       : 'No GPU backend detected — Auto falls back to CPU.';
   }).catch(() => {
     el('#rt-device-status').textContent = '';

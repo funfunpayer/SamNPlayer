@@ -9,6 +9,9 @@ discussion stays German.
 **Relationship to the other planning docs, so they stop drifting apart:**
 
 - **This file** — the current checklist. Check items off here as they ship.
+- `docs/PRODUCTION_ROADMAP.md` — rock-solid production plan: open
+  workstreams, owner test loop, targets / prerequisites, what you test
+  and where results go.
 - `docs/NEXT.md` — research journal (measurements / rejected approaches).
 - `docs/ENGINE.md` — lean engine direction (phases + DoD).
 - `docs/FINDINGS_TIMING_TF.md` — Go-migration / timing inventory.
