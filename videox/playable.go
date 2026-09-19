@@ -82,7 +82,7 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 		}
 	}
 	if _, err := FFmpeg(); err != nil {
-		return "", false, fmt.Errorf("ffmpeg fehlt — Codec %q vermutlich nicht abspielbar (portable zip mitliefern oder „Install video tools“)", info.Codec)
+		return "", false, fmt.Errorf("ffmpeg missing — codec %q likely not playable (use portable zip or Settings → Install video tools)", info.Codec)
 	}
 	dst := ProxyPath(src)
 	if st, err := os.Stat(dst); err == nil && !st.IsDir() && st.Size() > 1024 {
@@ -90,7 +90,7 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 		srcSt, _ := os.Stat(src)
 		if srcSt == nil || !srcSt.ModTime().After(st.ModTime()) {
 			if onProgress != nil {
-				onProgress("Vorhandene Abspiel-Kopie: " + filepath.Base(dst))
+				onProgress("Existing playable copy: " + filepath.Base(dst))
 			}
 			return dst, true, nil
 		}
@@ -99,22 +99,22 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 	// Prefer remux when video is already H.264 (no quality loss, much faster).
 	if isH264Family(info.Codec) {
 		if onProgress != nil {
-			onProgress(fmt.Sprintf("Remux nach MP4 (stream copy, %s)…", info.Codec))
+			onProgress(fmt.Sprintf("Remux to MP4 (stream copy, %s)…", info.Codec))
 		}
 		if err := remuxCopyMP4(ctx, src, dst); err == nil {
 			if onProgress != nil {
-				onProgress("Fertig (Remux): " + filepath.Base(dst))
+				onProgress("Done (remux): " + filepath.Base(dst))
 			}
 			return dst, true, nil
 		}
 		_ = os.Remove(dst)
 		if onProgress != nil {
-			onProgress("Remux fehlgeschlagen — re-encode…")
+			onProgress("Remux failed — re-encoding…")
 		}
 	}
 
 	if onProgress != nil {
-		onProgress(fmt.Sprintf("Konvertiere nach H.264/AAC (%s → mp4)…", info.Codec))
+		onProgress(fmt.Sprintf("Converting to H.264/AAC (%s → mp4)…", info.Codec))
 	}
 	args := []string{
 		"-y", "-hide_banner", "-loglevel", "error",

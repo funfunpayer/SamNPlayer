@@ -191,19 +191,16 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.PauseVideo = func() { runtime.EventsEmit(a.ctx, "video:pause") }
 		p.ResumeVideo = func() { runtime.EventsEmit(a.ctx, "video:resume") }
 	}
-	// Unter stateMu wie jedes andere geteilte Feld auf App (siehe dessen
-	// eigene Deklaration) - vorher unguarded gesetzt, während
-	// TriggerExtendedO a.activePlayer ebenso unguarded liest: eine echte
-	// Datenwettlauf zwischen einem Wiedergabe-Start und einem Klick auf
-	// "Extended-O auslösen" kurz danach.
-	a.stateMu.Lock()
-	a.activeDevice = dev
-	a.activePlayer = p
-	a.stateMu.Unlock()
+	// Set session pointers only after the session slot is ours — otherwise a
+	// rejected second StartPlayback would replace the live session's player.
 	ctx, err := a.tryStartSession()
 	if err != nil {
 		return err
 	}
+	a.stateMu.Lock()
+	a.activeDevice = dev
+	a.activePlayer = p
+	a.stateMu.Unlock()
 	go func() {
 		defer a.endSession()
 		if reusedDevice {

@@ -108,7 +108,7 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
 	}
 	if !RoiTrainingAvailable() {
-		return fmt.Errorf("generator: ultralytics nach pip install immer noch nicht verfügbar")
+		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
 	}
 	return nil
 }
@@ -202,7 +202,7 @@ func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, o
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
 	if len(regions) == 0 {
-		return fmt.Errorf("generator: mindestens eine Region nötig")
+		return fmt.Errorf("generator: at least one region required")
 	}
 	py, err := FindPython()
 	if err != nil {

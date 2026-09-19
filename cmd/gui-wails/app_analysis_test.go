@@ -37,8 +37,8 @@ func TestAnalyzeScriptFindsStaticStretches(t *testing.T) {
 	if analysis.ShareByState["static"] < 0.25 {
 		t.Errorf("Stillstand nicht erkannt: %v", analysis.ShareByState)
 	}
-	if !strings.Contains(analysis.Summary, "Stillstand") {
-		t.Errorf("Zusammenfassung erwähnt den Stillstand nicht: %q", analysis.Summary)
+	if !strings.Contains(analysis.Summary, "still") {
+		t.Errorf("summary does not mention still stretches: %q", analysis.Summary)
 	}
 	total := 0.0
 	for _, share := range analysis.ShareByState {

@@ -239,6 +239,14 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				})
 				return
 			}
+			if companion := samn.CompanionSamnPath(outPath); companion != "" {
+				if _, err := os.Stat(companion); err == nil {
+					runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
+						"error": "Native script already exists: " + companion + " — generation cancelled to avoid overwriting it.",
+					})
+					return
+				}
+			}
 		}
 		roi := generator.ROI{X: opts.X, Y: opts.Y, W: opts.W, H: opts.H}
 		genOpts := generator.Options{

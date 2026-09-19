@@ -8,6 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Session guard:** rejected second StartPlayback/StartTraining no longer
+  overwrites the live session’s `activePlayer`/`activeDevice`.
+- **Generate overwrite:** also refuse when a companion `.samn` exists
+  (matched `ScriptExistsForVideo`).
+- **Contact intensity 0:** slider value `0` no longer coerced to `1`
+  (`finiteOr` instead of `x || 1`).
+- **English operator UI:** analysis summary, playback/generator/device
+  status strings, videox convert progress, native pipeline progress —
+  leftover German user strings → English.
+- **license-tool:** unknown `--tier` rejected; internal/invite issue path
+  simplified.
+
 ### Added
 
 - **License infra (not sharp):** `license` package (Ed25519 SNP1 keys),

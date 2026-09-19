@@ -487,7 +487,7 @@ export function initPlayback(root) {
       await SaveOMarkers(scriptPath, oMarkers);
     } catch (err) {
       oMarkers = previous;
-      logError('O-Marker entfernen: ' + err);
+      logError('Remove O-marker: ' + err);
       return;
     }
     renderOMarkerList();
@@ -876,11 +876,17 @@ export function initPlayback(root) {
   function contactPreviewOpts() {
     return {
       maxPoints: CURVE_MAX_POINTS,
-      contactVibrationSpan: parseFloat(el('#pb-contact-span').value) || 0,
+      contactVibrationSpan: finiteOr(el('#pb-contact-span').value, 0),
       contactVibrationCurve: el('#pb-contact-curve').value || '',
-      contactIntensityScale: parseFloat(el('#pb-contact-intensity').value) || 1,
+      contactIntensityScale: finiteOr(el('#pb-contact-intensity').value, 1),
       muteContact: el('#pb-contact-off').checked,
     };
+  }
+
+  /** parseFloat that keeps 0 (unlike `x || fallback`). */
+  function finiteOr(raw, fallback) {
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
   }
 
   async function drawCurve() {
@@ -1515,15 +1521,15 @@ export function initPlayback(root) {
       useVideoSync: !!useVideoSync,
       extendedOEnabled: el('#pb-eo-enabled').checked,
       extendedOMin: parseFloat(el('#pb-eo-min').value) || 0.1,
-      extendedOHoldS: parseFloat(el('#pb-eo-hold').value) || 10,
-      extendedORestoreMs: parseFloat(el('#pb-eo-restore').value) || 500,
+      extendedOHoldS: finiteOr(el('#pb-eo-hold').value, 10),
+      extendedORestoreMs: finiteOr(el('#pb-eo-restore').value, 500),
       disableContactVibration: scriptHasContactVibration && el('#pb-contact-off').checked,
       contactIntensityScale: scriptHasContactVibration
-        ? parseFloat(el('#pb-contact-intensity').value) || 1
+        ? finiteOr(el('#pb-contact-intensity').value, 1)
         : 1,
       contactExtraSmooth: 0,
       contactVibrationSpan: scriptHasContactVibration
-        ? parseFloat(el('#pb-contact-span').value) || 0
+        ? finiteOr(el('#pb-contact-span').value, 0)
         : 0,
       contactVibrationCurve: scriptHasContactVibration
         ? (el('#pb-contact-curve').value || '')
@@ -1533,7 +1539,7 @@ export function initPlayback(root) {
     try {
       await StartPlayback(opts);
     } catch (err) {
-      logError('Playback starten: ' + err);
+      logError('Playback start: ' + err);
       return false;
     }
     setPlayingState(true);
@@ -1830,7 +1836,7 @@ export function initPlayback(root) {
       applyOffset((Number(el('#pb-offset').value) || 0) + step);
     } else if (e.key === 'l') {
       el('#pb-loop').checked = !el('#pb-loop').checked;
-      log(el('#pb-loop').checked ? 'Wiederholung an.' : 'Wiederholung aus.');
+      log(el('#pb-loop').checked ? 'Loop on.' : 'Loop off.');
     } else if (e.key >= '1' && e.key <= '9') {
       if (totalMs > 0) seekTo(Math.round(totalMs * (Number(e.key) - 1) / 9));
     } else if (e.key.toLowerCase() === 'e') {

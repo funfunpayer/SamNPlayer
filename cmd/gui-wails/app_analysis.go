@@ -81,10 +81,10 @@ func (a *App) AnalyzeScript() (ScriptAnalysis, error) {
 	return analysis, nil
 }
 
-// summarizeStates schreibt einen Satz, den man ohne Erklärung versteht.
+// summarizeStates writes one plain-English line for the Playback analysis box.
 func summarizeStates(shares map[string]float64, totalMs float64) string {
 	if len(shares) == 0 {
-		return "Keine Abschnitte erkennbar."
+		return "No segments detected."
 	}
 	type entry struct {
 		state string
@@ -97,12 +97,12 @@ func summarizeStates(shares map[string]float64, totalMs float64) string {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].share > entries[j].share })
 
 	labels := map[string]string{
-		"static":       "Stillstand",
-		"starting":     "Anfahren",
-		"accelerating": "beschleunigend",
-		"regular":      "gleichmäßig",
-		"decelerating": "abbremsend",
-		"stopping":     "Auslaufen",
+		"static":       "still",
+		"starting":     "starting",
+		"accelerating": "accelerating",
+		"regular":      "steady",
+		"decelerating": "slowing",
+		"stopping":     "stopping",
 	}
 
 	parts := make([]string, 0, 3)
@@ -120,19 +120,17 @@ func summarizeStates(shares map[string]float64, totalMs float64) string {
 		}
 	}
 
-	text := fmt.Sprintf("%.0f Sekunden: ", totalMs/1000)
+	text := fmt.Sprintf("%.0f seconds: ", totalMs/1000)
 	for i, part := range parts {
 		if i > 0 {
 			text += ", "
 		}
 		text += part
 	}
-	// Der Hinweis, auf den es ankommt: viel Stillstand fällt den übrigen
-	// Prüfungen nicht auf, weil eine flache Strecke weder verrauscht noch
-	// unrhythmisch ist.
+	// Flat stretches are quiet to Quality Doctor — surface them here.
 	if shares["static"] > 0.3 {
-		text += fmt.Sprintf(" — mehr als %.0f%% Stillstand, das Skript ist über weite "+
-			"Strecken ohne Bewegung", shares["static"]*100)
+		text += fmt.Sprintf(" — more than %.0f%% still; long stretches without motion",
+			shares["static"]*100)
 	}
 	return text
 }
