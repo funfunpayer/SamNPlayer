@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/funfunpayer/SamNPlayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=d4a017" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/funfunpayer/SamNPlayer?style=flat-square" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" /></a>
   <img alt="No Electron" src="https://img.shields.io/badge/GUI-~13%20MB%20native-0d9488?style=flat-square" />
   <img alt="Local only" src="https://img.shields.io/badge/AI-local%20optional-334155?style=flat-square" />
 </p>
@@ -111,12 +111,14 @@ not needed, it stays out.
 
 ## Download
 
-Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are attached to
-every [GitHub Release](https://github.com/funfunpayer/SamNPlayer/releases)
-with `checksums.txt`. Double-click — no installer.
+Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are meant to
+be **public** even when the application source is **private**. Publish
+them on the showcase repo releases (not only on a private app repo):
 
-Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
-Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
+**→ [SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**
+
+See [`docs/CLOSED_SOURCE.md`](docs/CLOSED_SOURCE.md) and
+`scripts/publish-public-release.sh`. Source version: [`VERSION`](VERSION).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
 antenna (e.g. TP-Link UB500 / Asus USB-BT500), not bare onboard radios.
@@ -185,4 +187,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). One manageable task, regression
 tests for behavior changes, measurements instead of vibes. Day-to-day
 discussion may be German; **shipped UI and docs are English**.
 
-License: [MIT](LICENSE).
+License: [Proprietary](LICENSE) — source private; official binaries for personal use.

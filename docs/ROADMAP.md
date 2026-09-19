@@ -319,12 +319,13 @@ the best), a C#/.NET/Avalonia rewrite.
 
 Things this file can't resolve on its own — flagging rather than guessing:
 
-1. **Open source or not, going forward.** **Decision leaning closed:** keep
-   application source **private** (core team only); use public showcase
-   [SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site) for
-   Anna/reviewers. Owner must flip `SamNPlayer` to private (agent cannot).
-   Details: [`docs/CLOSED_SOURCE.md`](CLOSED_SOURCE.md). Past MIT-published
-   copies are not undone by going private.
+1. **Open source or not, going forward.** **Closed source + public
+   downloads:** private `SamNPlayer` (source); public
+   [SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site)
+   (landing + **release binaries**). Owner flips app repo to private and
+   runs `scripts/publish-public-release.sh vX.Y.Z` after each tag.
+   Details: [`docs/CLOSED_SOURCE.md`](CLOSED_SOURCE.md). Root `LICENSE` is
+   proprietary (not MIT). Past MIT copies are not undone by going private.
 2. **"Drei-Experten-Regel"** — mentioned once, not found in any existing
    doc (`TEAM_STAND.md`, `HANDOFF.md`, `NEXT.md`, `CONTRIBUTING.md`). Is
    this a new principle to adopt (e.g. "don't ship a design call without

@@ -266,7 +266,7 @@ records the project's existing license assessment.
 
 The project excludes FunGen source-code reuse and structurally equivalent
 ports because of licensing concerns around derivative works and commercial
-use in an MIT-licensed product. Public descriptions of behavior may inform
+use in a proprietary product. Public descriptions of behavior may inform
 independent designs. This records the development policy, not a fresh legal
 assessment of third-party licenses.
 

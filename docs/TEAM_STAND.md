@@ -40,7 +40,7 @@ equivalent ports because of its PolyForm Strict license. Publicly described
 - `Sync()` follows the video clock; script offset is applied in one place.
 - Generator options supported by measurements in HANDOFF.
 - Two-point distance (`--roi2`), motion signatures, Quality Doctor.
-- MIT license; `update.RepoOwner` / `RepoName` point to `funfunpayer/SamNPlayer`.
+- Proprietary license; `update.RepoOwner` / `RepoName` point to `funfunpayer/SamNPlayer`.
 
 ---
 
