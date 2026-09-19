@@ -514,7 +514,7 @@ export function initRoiTraining(root) {
         });
       }
     } catch (err) {
-      grid.textContent = 'Fehler: ' + err;
+      grid.textContent = 'Error: ' + err;
     }
   }
 
@@ -669,7 +669,7 @@ export function initRoiTraining(root) {
         + '</tbody></table>';
       refreshClassList();
     } catch (err) {
-      box.textContent = 'Fehler: ' + err;
+      box.textContent = 'Error: ' + err;
     }
   });
 
