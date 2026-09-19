@@ -419,11 +419,11 @@ body {
 }
 .tab-panel.active {
   display: block;
-  animation: tabIn .2s ease both;
+  animation: tabIn .28s cubic-bezier(.2, .8, .2, 1) both;
 }
 @keyframes tabIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) scale(0.994); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .tab-panel.active { animation: none; }
@@ -1297,4 +1297,119 @@ legend { font-size: 12.5px; color: var(--text-dim); padding: 0 6px; font-weight:
 }
 @media (prefers-reduced-motion: reduce) {
   .ui-toast { animation: none; }
+}
+
+/* --- Lean motion polish (CSS-only; honour reduced-motion) ---------------- */
+@keyframes ambientShift {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.78; }
+}
+@keyframes brandIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes wordmarkIn {
+  from { opacity: 0; transform: translateY(-52%) translateX(-5px); }
+  to { opacity: 1; transform: translateY(-52%) translateX(0); }
+}
+@keyframes railGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.95; }
+}
+@keyframes progressShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes softFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes ledPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(243, 178, 60, 0.45); }
+  50% { opacity: 0.55; box-shadow: 0 0 0 4px rgba(243, 178, 60, 0); }
+}
+
+/* Corner brand accents breathe quietly */
+#app::after,
+#app::before {
+  animation: ambientShift 7s ease-in-out infinite;
+}
+#app::before { animation-delay: 1.2s; }
+
+.brand-lockup .brand {
+  animation: brandIn .42s cubic-bezier(.2, .8, .2, 1) both;
+}
+.brand-wordmark {
+  animation: wordmarkIn .48s cubic-bezier(.2, .8, .2, 1) .06s both;
+}
+#rail::after {
+  animation: railGlow 4.5s ease-in-out infinite;
+}
+
+/* Active rail tab: soft gold halo */
+.tab-btn.active {
+  box-shadow:
+    inset 0 0 0 1px rgba(243, 178, 60, 0.28),
+    0 0 16px rgba(243, 178, 60, 0.1);
+}
+.tab-btn.active .dot {
+  box-shadow: 0 0 7px rgba(243, 178, 60, 0.7);
+}
+
+/* Primary CTA: living gradient on hover */
+button.primary {
+  background-size: 200% 100%;
+  background-image: linear-gradient(105deg, #ffd06a 0%, var(--accent) 42%, #ff9a3c 72%, var(--accent) 100%);
+  transition: background-position .35s ease, box-shadow .18s ease, transform .1s ease;
+}
+button.primary:hover:not(:disabled) {
+  background-position: 100% 50%;
+  animation: softFloat 1.8s ease-in-out infinite;
+}
+
+/* Progress fill shimmer */
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--teal), var(--accent));
+  background-size: 200% 100%;
+  animation: progressShimmer 1.8s linear infinite;
+}
+
+/* Empty Play stage: quiet drift */
+.pb-empty {
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+.pb-empty:not([hidden]) {
+  animation: softFloat 5.5s ease-in-out infinite;
+  box-shadow: inset 0 0 56px rgba(243, 178, 60, 0.04);
+}
+
+/* Device LED while searching */
+.topbar-device-wrap.is-searching .topbar-device-led {
+  animation: ledPulse 1.2s ease-in-out infinite;
+}
+
+/* Drop overlay pop */
+#drop-overlay.visible > div {
+  animation: brandIn .2s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Sidebar cards: gentle lift (interaction containers) */
+#sidebar .card {
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+#sidebar .card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app::after, #app::before,
+  .brand-lockup .brand, .brand-wordmark, #rail::after,
+  button.primary, .progress-bar-fill,
+  .pb-empty:not([hidden]), #drop-overlay.visible > div,
+  .topbar-device-wrap.is-searching .topbar-device-led,
+  #sidebar .card {
+    animation: none !important;
+  }
 }

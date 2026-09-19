@@ -29,6 +29,12 @@ measurement history behind each entry; this file is the short version for
   One person / 1 year / invite+internal. `Enforcement=false` — full features
   until go-live (`docs/LICENSE_SYSTEM.md`).
 
+### Changed
+
+- **GUI lean motion polish:** CSS-only brand/rail/tab/progress animations,
+  primary gradient hover, empty-Play drift, device LED pulse; respects
+  `prefers-reduced-motion`. No layout redesign.
+
 ## [0.5.9] — September 19, 2026
 
 Production train after v0.5.8: native `.samn`, leaner Go generation path,
