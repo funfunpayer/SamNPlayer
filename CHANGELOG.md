@@ -8,12 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.8] — September 19, 2026
+
+Playback UX release after #102. Green CI + clip7776 / full frontend suite
+before tag (`CONTRIBUTING.md` release gate).
+
 ### Added
 
-- **Playback:** hover tooltips on the funscript curve and intensity heatmap (time +
-  position / intensity). Playlist **Shuffle** (reshuffles queue when enabled;
-  reshuffles again on repeat wrap) and **Repeat playlist** (auto-advance loops
-  the list). Toggle state kept in session storage for the app run.
+- **Playback:** hover tooltips on the funscript curve and intensity heatmap
+  (time + position / intensity). Playlist **Shuffle** (reshuffles queue
+  when enabled; reshuffles again on repeat wrap) and **Repeat playlist**
+  (auto-advance loops the list). Toggle state kept in session storage for
+  the app run.
+- **Docs:** release gate in `CONTRIBUTING.md` — bugfix + clip7776 before
+  every tag.
 
 ## [0.5.7] — September 19, 2026
 
