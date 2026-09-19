@@ -107,7 +107,8 @@ commits.
 - [x] Heatmap PNG export with chapter ticks.
 - [x] Lightweight project sidecar `.snp.json`.
 - [x] Frame snap + range delete/speed-cap (Wiedergabe OFS-row).
-- [ ] BPM/tempo grid overlay (optional polish).
+- [ ] BPM/tempo grid overlay (optional polish — after GUI improve C5;
+      see `docs/PRODUCTION_ROADMAP.md` C4).
 
 **Device / playback**
 - [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
