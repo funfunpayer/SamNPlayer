@@ -46,6 +46,9 @@ end-user runtime should eventually need no Python install.
 | P1 | Real Sam Neo 2 feel / BLE+Intiface | hardware |
 | P1 | Native CSRT as default | measured win on goldens |
 | P1 | Windows native OpenCV (CSRT) | optional; simpletrack covers no-Python path |
+| P1 | Competitive GUI polish (Play home) | `docs/COMPETITIVE.md` — no layout fashion |
+| P2 | macOS release | Mac builder + notarization (`docs/PLATFORMS.md`) |
+| P2 | Mobile player (no generator) | share player/device/funscript/samn only |
 | P2 | 4-zone relative graph as default | bake-off vs two-ROI |
 | P2 | Depth / pose / spatial | per-variant benchmark |
 | P2 | Prediction / look-ahead | only after measured latency |

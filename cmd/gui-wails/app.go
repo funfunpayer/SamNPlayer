@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 
@@ -88,7 +89,14 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.registerLogLiveHook()
-	logging.Info("gui-wails started")
+	// Go already schedules on all CPUs; log so support/logs show the machine
+	// budget. Do not force extra tracker parallelism — measured no net gain.
+	logging.Info("gui-wails started",
+		"goos", goruntime.GOOS,
+		"goarch", goruntime.GOARCH,
+		"num_cpu", goruntime.NumCPU(),
+		"gomaxprocs", goruntime.GOMAXPROCS(0),
+	)
 	a.ensureRuntimeReady()
 	a.registerFileDrop()
 }

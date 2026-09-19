@@ -206,6 +206,9 @@ export function initSettings(root) {
       if (created) parts.push(`${created} folder(s) created`);
       if (missing.length) parts.push('missing: ' + missing.join(', '));
       else parts.push('Dependencies OK');
+      if (h.resources) {
+        parts.push(`${h.resources.goos}/${h.resources.goarch} · ${h.resources.numCPU} CPU · GOMAXPROCS ${h.resources.goMaxProcs}`);
+      }
       status.textContent = (h.ok ? '✓ ' : '⚠ ') + parts.join(' · ');
     } catch (err) {
       status.textContent = 'Check failed: ' + err;

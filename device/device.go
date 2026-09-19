@@ -1,6 +1,3 @@
-// Package device kapselt die Ansteuerung eines Toys hinter einem generischen
-// Interface, damit der Player nicht wissen muss, ob am anderen Ende ein
-// echtes BLE-Gerät oder ein Mock für Tests hängt.
 package device
 
 import "context"

@@ -1,9 +1,10 @@
 name: Release
 
 # Läuft bei jedem Tag, der wie "v1.2.3" aussieht (git tag v1.2.3 && git push --tags).
-# Baut die GUI (Wails) für Windows und Linux, hängt beide Binaries an einen
-# GitHub-Release mit demselben Namen wie der Tag. Die App selbst
-# (update/update.go) prüft genau gegen diese Releases.
+# Baut die GUI (Wails) für Windows und Linux, hängt Binaries + portable
+# ffmpeg-Archive an einen GitHub-Release. macOS: not in this workflow yet
+# (needs a macos runner + notarization — docs/PLATFORMS.md).
+# Die App selbst (update/update.go) prüft genau gegen diese Releases.
 on:
   push:
     tags:

@@ -37,7 +37,8 @@ generator/         Python pipeline and Go wrapper; trackcv (CSRT/cgo) +
                    for CSRT/Tf-Tj (audio check + ROI verify in Go post-hoc)
 motionx/           RDP reduction and motion-state classification (salvaged)
 videox/            ffprobe/ffmpeg: gray frames, playable remux/proxy
-                   (Lanczos downscale), used by simpletrack + player
+                   (Lanczos downscale); resolves bundled/portable tools
+                   (`docs/FFMPEG_TOOLS.md`)
 logging/ update/   Logging, automatic updates through GitHub releases
 ```
 

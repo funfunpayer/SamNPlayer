@@ -22,7 +22,16 @@ type RuntimeHealth struct {
 	DirsCreated []string         `json:"dirsCreated"`
 	DirsFailed  []string         `json:"dirsFailed"`
 	Deps        []RuntimeDepInfo `json:"deps"`
+	Resources   RuntimeResources `json:"resources"`
 	OK          bool             `json:"ok"`
+}
+
+// RuntimeResources is the honest machine budget (see docs/PLATFORMS.md).
+type RuntimeResources struct {
+	NumCPU     int    `json:"numCPU"`
+	GOMAXPROCS int    `json:"goMaxProcs"`
+	GoOS       string `json:"goos"`
+	GoArch     string `json:"goarch"`
 }
 
 // RuntimeDepInfo beschreibt ein geprüftes externes Werkzeug.
@@ -59,6 +68,12 @@ func (a *App) ensureRuntimeReady() RuntimeHealth {
 	}
 
 	h.Deps = checkRuntimeDeps()
+	h.Resources = RuntimeResources{
+		NumCPU:     goruntime.NumCPU(),
+		GOMAXPROCS: goruntime.GOMAXPROCS(0),
+		GoOS:       goruntime.GOOS,
+		GoArch:     goruntime.GOARCH,
+	}
 	for _, d := range h.Deps {
 		if d.Found {
 			logging.Info("startup: dependency ok", "id", d.ID, "path", d.Path)

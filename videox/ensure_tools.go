@@ -22,6 +22,14 @@ const (
 	ffmpegLinuxTarURL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
 )
 
+func ffmpegDarwinZipURL() string {
+	// Apple Silicon vs Intel — BtbN naming.
+	if runtime.GOARCH == "arm64" {
+		return "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-macosarm64-gpl.zip"
+	}
+	return "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-macos64-gpl.zip"
+}
+
 // EnsureTools installs ffmpeg (+ ffprobe when present) into ToolsDir() when
 // they are not already resolvable. Opt-in only — no surprise network calls
 // at startup (principle: user must ask).
@@ -49,16 +57,32 @@ func EnsureTools(ctx context.Context, onProgress func(string)) error {
 		return installWindowsZip(ctx, dir, onProgress)
 	case "linux":
 		return installLinuxTarXZ(ctx, dir, onProgress)
+	case "darwin":
+		return installDarwinZip(ctx, dir, onProgress)
 	default:
-		return fmt.Errorf("automatic ffmpeg install is only supported on Windows and Linux (got %s) — place ffmpeg next to SamNPlayer or use the portable release", runtime.GOOS)
+		return fmt.Errorf("automatic ffmpeg install is only supported on Windows, Linux, and macOS (got %s) — place ffmpeg next to SamNPlayer or use the portable release", runtime.GOOS)
 	}
 }
 
 func installWindowsZip(ctx context.Context, destDir string, onProgress func(string)) error {
+	return installZipBins(ctx, ffmpegWinZipURL, destDir, onProgress, map[string]string{
+		"ffmpeg.exe":  "ffmpeg.exe",
+		"ffprobe.exe": "ffprobe.exe",
+	})
+}
+
+func installDarwinZip(ctx context.Context, destDir string, onProgress func(string)) error {
+	return installZipBins(ctx, ffmpegDarwinZipURL(), destDir, onProgress, map[string]string{
+		"ffmpeg":  "ffmpeg",
+		"ffprobe": "ffprobe",
+	})
+}
+
+func installZipBins(ctx context.Context, url, destDir string, onProgress func(string), want map[string]string) error {
 	if onProgress != nil {
 		onProgress("Downloading ffmpeg…")
 	}
-	tmp, err := downloadToTemp(ctx, ffmpegWinZipURL, ".zip")
+	tmp, err := downloadToTemp(ctx, url, ".zip")
 	if err != nil {
 		return err
 	}
@@ -77,22 +101,25 @@ func installWindowsZip(ctx context.Context, destDir string, onProgress func(stri
 			continue
 		}
 		base := filepath.Base(f.Name)
-		var dst string
-		switch strings.ToLower(base) {
-		case "ffmpeg.exe":
-			dst = filepath.Join(destDir, "ffmpeg.exe")
-		case "ffprobe.exe":
-			dst = filepath.Join(destDir, "ffprobe.exe")
-		default:
+		dstName, ok := want[strings.ToLower(base)]
+		if !ok {
+			for k, v := range want {
+				if strings.EqualFold(base, k) {
+					dstName, ok = v, true
+					break
+				}
+			}
+		}
+		if !ok {
 			continue
 		}
-		if err := extractZipFile(f, dst); err != nil {
+		if err := extractZipFile(f, filepath.Join(destDir, dstName)); err != nil {
 			return err
 		}
 		found++
 	}
 	if found == 0 {
-		return fmt.Errorf("ffmpeg.exe not found inside download")
+		return fmt.Errorf("ffmpeg binary not found inside download")
 	}
 	return finishInstall(onProgress)
 }

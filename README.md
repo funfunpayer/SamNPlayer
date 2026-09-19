@@ -26,6 +26,8 @@
   ·
   <a href="#build-from-source">Build</a>
   ·
+  <a href="docs/PLATFORMS.md">Platforms</a>
+  ·
   <a href="docs/LANGUAGE.md">Docs</a>
 </p>
 
@@ -120,6 +122,15 @@ Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
 include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
 install. Single-file GUI binaries remain for in-app updates. Details:
 [`docs/FFMPEG_TOOLS.md`](docs/FFMPEG_TOOLS.md).
+
+| Platform | Now | Later |
+|----------|-----|-------|
+| Windows / Linux | GUI + CLI + portable ffmpeg | — |
+| macOS | Code-ready; **no release binary yet** (needs Mac builder) | Signed `.app` |
+| iPhone / Android | — | **Player only** (no Generate) |
+
+Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
+[`docs/COMPETITIVE.md`](docs/COMPETITIVE.md).
 
 Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).

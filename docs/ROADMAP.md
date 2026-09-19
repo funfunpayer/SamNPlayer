@@ -313,6 +313,10 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
 | AI quality opinion on Go path | **Still Python** — keep blocking eligibility until a Go port exists |
 | Bundle / auto-ship ffmpeg | **Done** — portable release + opt-in Install video tools; no surprise download at startup |
 | Pure-Go H.264 decode/encode | **Skip** — codec stack; keep ffmpeg as the only media I/O helper (`docs/FFMPEG_TOOLS.md`) |
+| Competitive GUI + GitHub exterior | **Bar documented** — `docs/COMPETITIVE.md`; Play stays home; no phone-shaped desktop |
+| macOS release binary | **Blocked on hardware/CI** — code path kept; see `docs/PLATFORMS.md` |
+| iOS/Android player (no generator) | **Hinted** — share `player`/`device`/`funscript`/`samn`; desktop keeps Generate |
+| “Max out CPU/GPU/RAM” slogans | **Reject as policy** — use measured budgets; CSRT already multi-threads; GPU ≠ CSRT |
 
 ## Explicitly deferred, not forgotten
 
@@ -327,7 +331,10 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
       generate + funscript-only play; licensed: full `.samn`. **Not sharp
       until owner flips enforcement**; need infinite/internal key for
       testing. Do not implement gates before `.samn` workflow is stable.
-
+- [ ] 📱 **Mobile player (iOS/Android)** — play + device only; no
+      generator. Architecture fence: [`docs/PLATFORMS.md`](PLATFORMS.md).
+- [ ]  **macOS GUI release** — needs Mac builder + notarization; Linux
+      and Windows remain the shipped pair.
 ---
 
 ## Explicitly rejected — don't retry without new evidence

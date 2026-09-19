@@ -26,6 +26,10 @@ measurement history behind each entry; this file is the short version for
   app / user tools dir; Settings → **Install video tools** (opt-in);
   release ships **portable** archives with ffmpeg beside the GUI
   (`docs/FFMPEG_TOOLS.md`).
+- **Platforms stake:** desktop Win/Linux now; macOS when a Mac builder
+  exists; later **iOS/Android player-only** (no Generate) —
+  `docs/PLATFORMS.md`, `docs/COMPETITIVE.md`. Runtime health shows
+  CPU / GOMAXPROCS (honest budget, not fan-max).
 
 ### Changed
 
