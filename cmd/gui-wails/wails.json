@@ -13,7 +13,7 @@
   "info": {
     "companyName": "funfunplayer",
     "productName": "SamNPlayer",
-    "productVersion": "0.5.7",
+    "productVersion": "0.5.8",
     "copyright": "Copyright (c) 2026 funfunplayer",
     "comments": "Player and generator for .funscript files"
   }
