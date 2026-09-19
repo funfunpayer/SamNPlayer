@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Generate · Play · Train</strong> — local desktop app for
-  <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
+  <code>.samn</code> / <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
 </p>
 
 <p align="center">
@@ -159,7 +159,7 @@ Generator extras need **Python 3.9+** and
            Funscript + Quality Doctor
 ```
 
-There is **no** second, AI-only path that writes `.funscript` files by
+There is **no** second, AI-only path that writes `.samn` / `.funscript` files by
 itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md),
 [`docs/DEPTH_POSE.md`](docs/DEPTH_POSE.md) (experimental supporting signals).

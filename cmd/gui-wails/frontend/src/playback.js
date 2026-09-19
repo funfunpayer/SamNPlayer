@@ -2,6 +2,8 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
+  GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
+  GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
@@ -105,6 +107,26 @@ export function initPlayback(root) {
         <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve</label>
+        </div>
+        <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label style="width:auto;" data-help="General = community stroke. Vibration/Suction = Neo 2 channels in .samn (or baked axes).">Curve</label>
+          <select id="pb-axis" style="width:auto;">
+            <option value="general">General</option>
+            <option value="vibration">Vibration</option>
+            <option value="suction">Suction</option>
+          </select>
+          <label style="width:auto;" data-help="Recipe derives Neo 2 from general. Axes plays explicit vibration/suction curves.">Drive</label>
+          <select id="pb-playback-source" style="width:auto;">
+            <option value="recipe">Recipe</option>
+            <option value="axes">Axes</option>
+          </select>
+          <label style="width:auto;" data-help="Named strength scales on .samn (soft/normal/strong).">Strength</label>
+          <select id="pb-strength" style="width:auto;">
+            <option value="">—</option>
+          </select>
+          <button type="button" id="pb-bake-axes" title="Bake vibration/suction from recipe into .samn">Bake axes</button>
+          <button type="button" id="pb-export-funscript" title="Export community .funscript (general only)">Export .funscript</button>
+          <button type="button" id="pb-save-samn" title="Save/update native .samn">Save .samn</button>
         </div>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
           data-help="Click+drag = move point. Click empty area = new point. Double-click = delete (keep at least 2). Each change saves immediately.">
@@ -277,6 +299,9 @@ export function initPlayback(root) {
   let rawActions = null; // [{atMs, pos}] voller Auflösung, nur während editMode gesetzt
   let editDragIndex = null;
   let editDragStartValue = null; // {atMs, pos} des gegriffenen Punkts vor dem Ziehen, null bei neuem Punkt
+  let editAxis = 'general'; // general | vibration | suction
+  let scriptNativeFormat = false;
+  let scriptHasNeoAxes = false;
   const CURVE_PAD = 6;
   const EDIT_HIT_RADIUS_PX = 12;
   let currentPosMs = 0;
@@ -290,7 +315,7 @@ export function initPlayback(root) {
 
   function scriptBaseName(path) {
     const base = String(path || '').split(/[/\\]/).pop() || path;
-    return base.replace(/\.funscript$/i, '');
+    return base.replace(/\.(funscript|samn)$/i, '');
   }
 
   function renderPlaylist() {
@@ -984,9 +1009,9 @@ export function initPlayback(root) {
     if (!scriptPath || !rawActions) return;
     const sorted = [...rawActions].sort((a, b) => a.atMs - b.atMs);
     try {
-      await SaveScriptActions(sorted.map(p => ({ at: p.atMs, pos: p.pos })));
+      await SaveScriptAxisActions(editAxis || 'general', sorted.map(p => ({ at: p.atMs, pos: p.pos })));
     } catch (err) {
-      logError('Kurve speichern: ' + err);
+      logError('Save curve: ' + err);
       return;
     }
     rawActions = sorted;
@@ -997,8 +1022,15 @@ export function initPlayback(root) {
   async function setEditMode(on) {
     if (on) {
       try {
-        const actions = await GetScriptActions();
+        const actions = await GetScriptAxisActions(editAxis || 'general');
         rawActions = (Array.isArray(actions) ? actions : []).map(a => ({ atMs: a.at, pos: a.pos }));
+        if (!rawActions.length) {
+          // Empty Neo-2 axis: seed from general so the user can start editing.
+          if (editAxis !== 'general') {
+            const gen = await GetScriptAxisActions('general');
+            rawActions = (Array.isArray(gen) ? gen : []).map(a => ({ atMs: a.at, pos: 0 }));
+          }
+        }
       } catch (err) {
         logError('Editor: failed to load points: ' + err);
         el('#pb-curve-edit').checked = false;
@@ -1262,7 +1294,36 @@ export function initPlayback(root) {
     const stage = el('#pb-video-stage');
     if (!stage.classList.contains('has-video')) return;
     const on = stage.classList.toggle('is-fs');
-    el('#pb-video-fs').textContent = on ? 'Exit fullscreen' : 'Vollbild';
+    el('#pb-video-fs').textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+  }
+
+  async function refreshSamnControls(info) {
+    scriptNativeFormat = !!info.nativeFormat;
+    scriptHasNeoAxes = !!info.hasNeoAxes;
+    const row = el('#pb-axis-row');
+    if (row) row.style.display = 'flex';
+    if (el('#pb-playback-source')) {
+      el('#pb-playback-source').value = info.playbackSource === 'axes' ? 'axes' : 'recipe';
+    }
+    const strength = el('#pb-strength');
+    if (strength) {
+      strength.innerHTML = '<option value="">—</option>';
+      try {
+        const pack = await GetStrengthPresets();
+        const presets = (pack && pack.presets) || [];
+        const active = (pack && pack.active) || '';
+        for (const p of presets) {
+          const opt = document.createElement('option');
+          opt.value = p.name;
+          opt.textContent = p.name;
+          if (p.name === active) opt.selected = true;
+          strength.appendChild(opt);
+        }
+        strength.disabled = presets.length === 0;
+      } catch (_) {
+        strength.disabled = true;
+      }
+    }
   }
 
   async function loadScript(path, extraCountOrOpts = 0, opts = {}) {
@@ -1283,7 +1344,8 @@ export function initPlayback(root) {
     el('#pb-script-path').textContent = scriptPath;
     setScriptLoaded(true);
     scriptHasContactVibration = !!info.contactVibration;
-    const showContact = scriptHasContactVibration;
+    await refreshSamnControls(info);
+    const showContact = scriptHasContactVibration && info.playbackSource !== 'axes';
     el('#pb-contact-block').hidden = !showContact;
     if (el('#pb-contact-save-status')) el('#pb-contact-save-status').textContent = '';
     if (!showContact) {
@@ -1860,6 +1922,79 @@ export function initPlayback(root) {
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
   window.addEventListener('polarity:inverted', () => { refreshScriptVisuals(); });
   window.addEventListener('ringdown:applied', () => { refreshScriptVisuals(); });
+
+  if (el('#pb-axis')) {
+    el('#pb-axis').addEventListener('change', async () => {
+      editAxis = el('#pb-axis').value || 'general';
+      if (editMode) {
+        el('#pb-curve-edit').checked = false;
+        await setEditMode(false);
+        el('#pb-curve-edit').checked = true;
+        await setEditMode(true);
+      } else {
+        await drawCurve();
+      }
+    });
+  }
+  if (el('#pb-playback-source')) {
+    el('#pb-playback-source').addEventListener('change', async () => {
+      try {
+        await SetPlaybackSource(el('#pb-playback-source').value);
+        log('Playback drive: ' + el('#pb-playback-source').value);
+        const info = await LoadFunscript(scriptPath);
+        await refreshSamnControls(info);
+        scriptHasContactVibration = !!info.contactVibration;
+        el('#pb-contact-block').hidden = !(scriptHasContactVibration && info.playbackSource !== 'axes');
+        await refreshScriptVisuals();
+      } catch (err) {
+        logError('Playback source: ' + err);
+      }
+    });
+  }
+  if (el('#pb-strength')) {
+    el('#pb-strength').addEventListener('change', async () => {
+      const name = el('#pb-strength').value;
+      if (!name) return;
+      try {
+        await SetActiveStrength(name);
+        log('Strength preset: ' + name);
+      } catch (err) {
+        logError('Strength: ' + err);
+      }
+    });
+  }
+  if (el('#pb-bake-axes')) {
+    el('#pb-bake-axes').addEventListener('click', async () => {
+      try {
+        const out = await BakeNeoAxesOnLoaded();
+        log('Baked Neo axes → ' + out);
+        await loadScript(out, 0, { keepPlaylist: true });
+      } catch (err) {
+        logError('Bake axes: ' + err);
+      }
+    });
+  }
+  if (el('#pb-export-funscript')) {
+    el('#pb-export-funscript').addEventListener('click', async () => {
+      try {
+        const out = await ExportLoadedFunscript('');
+        log('Exported funscript → ' + out);
+      } catch (err) {
+        logError('Export: ' + err);
+      }
+    });
+  }
+  if (el('#pb-save-samn')) {
+    el('#pb-save-samn').addEventListener('click', async () => {
+      try {
+        const out = await SaveLoadedAsSamn();
+        log('Saved native script → ' + out);
+        await loadScript(out, 0, { keepPlaylist: true });
+      } catch (err) {
+        logError('Save .samn: ' + err);
+      }
+    });
+  }
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.

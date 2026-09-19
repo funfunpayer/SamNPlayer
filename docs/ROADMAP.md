@@ -278,7 +278,7 @@ these in the 0.5.7 train** unless noted.
 | Dark/Light mode (`IsDarkMode`) | **Skip** — product is dark gold/teal; light mode rejected in 0.5.6 review |
 | Micro-interactions / tab transitions | **Later (small)** — `prefers-reduced-motion` already respected; only add if it helps hierarchy |
 | Heatmap/curve tooltips + zoom | **Done (tooltips)** — hover time/value on curve + heatmap; optional zoom still open |
-| Multi-axis funscripts “v2.0” | **Partial already** — position + suction + contact vibration via `device_recipe`; full multi-axis format only with measured device need |
+| Multi-axis funscripts “v2.0” | **Done as `.samn`** — native source of truth with general/vib/suc + recipe/axes drive + strength presets; Funscript export for community. See `docs/SAMN_FORMAT.md` |
 | Playlist shuffle / section repeat / crossfades | **Partial (shuffle + playlist repeat)** — crossfades still later |
 | Plugin video-sync / streaming sources | **Skip** — local files + H.264 proxy is the codec path; no streaming plugin surface |
 | Cloud sync for settings | **Skip** — local-only / no telemetry principle |

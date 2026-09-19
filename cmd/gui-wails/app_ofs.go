@@ -6,40 +6,77 @@ import (
 	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
-// GetScriptBookmarks liest metadata.bookmarks (OFS-/Community-Stil).
+// GetScriptBookmarks liest metadata.bookmarks (OFS-/Community-Stil) bzw. .samn.
 func (a *App) GetScriptBookmarks() ([]funscript.Bookmark, error) {
 	path := a.loadedScriptPath()
 	if path == "" {
 		return nil, fmt.Errorf("no script loaded")
 	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return nil, err
+		}
+		return doc.Bookmarks, nil
+	}
 	return funscript.LoadBookmarks(path)
 }
 
-// SaveScriptBookmarks schreibt metadata.bookmarks.
+// SaveScriptBookmarks schreibt metadata.bookmarks bzw. .samn.
 func (a *App) SaveScriptBookmarks(bookmarks []funscript.Bookmark) error {
 	path := a.loadedScriptPath()
 	if path == "" {
 		return fmt.Errorf("no script loaded")
 	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.Bookmarks = bookmarks
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		return a.reloadLoadedScript()
+	}
 	return funscript.SaveBookmarks(path, bookmarks)
 }
 
-// GetScriptChapterMarks liest metadata.chapters.
+// GetScriptChapterMarks liest metadata.chapters bzw. .samn.
 func (a *App) GetScriptChapterMarks() ([]funscript.ChapterMark, error) {
 	path := a.loadedScriptPath()
 	if path == "" {
 		return nil, fmt.Errorf("no script loaded")
 	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return nil, err
+		}
+		return doc.Chapters, nil
+	}
 	return funscript.LoadChapters(path)
 }
 
-// SaveScriptChapterMarks schreibt metadata.chapters.
+// SaveScriptChapterMarks schreibt metadata.chapters bzw. .samn.
 func (a *App) SaveScriptChapterMarks(chapters []funscript.ChapterMark) error {
 	path := a.loadedScriptPath()
 	if path == "" {
 		return fmt.Errorf("no script loaded")
+	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.Chapters = chapters
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		return a.reloadLoadedScript()
 	}
 	return funscript.SaveChapters(path, chapters)
 }
@@ -51,7 +88,7 @@ func (a *App) ExportScriptHeatmapPNG() (string, error) {
 	if script == nil || path == "" {
 		return "", fmt.Errorf("no script loaded")
 	}
-	chapters, _ := funscript.LoadChapters(path)
+	chapters, _ := a.GetScriptChapterMarks()
 	out := path[:len(path)-len(filepath.Ext(path))] + ".heatmap.png"
 	err := funscript.ExportHeatmapPNG(out, script.Actions, funscript.HeatmapPNGOptions{
 		Width: 960, Height: 56, Chapters: chapters,

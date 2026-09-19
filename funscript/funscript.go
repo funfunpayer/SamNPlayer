@@ -25,6 +25,7 @@ type Script struct {
 		QualityWarnings []string      `json:"quality_warnings,omitempty"`
 		Profile         string        `json:"profile,omitempty"`
 		DeviceRecipe    *DeviceRecipe `json:"device_recipe,omitempty"`
+		SamnAxes        *SamnAxes     `json:"samn_axes,omitempty"`
 		TrackingGaps    []TrackingGap `json:"tracking_gaps,omitempty"`
 		AIOpinion       *AIOpinion    `json:"ai_opinion,omitempty"`
 		AudioCheck      *AudioCheck   `json:"audio_check,omitempty"`

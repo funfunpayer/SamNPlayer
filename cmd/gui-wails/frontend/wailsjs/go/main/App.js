@@ -41,6 +41,15 @@ export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App'][
 export function GetRoiTrainingSampleImage(arg1) { return window['go']['main']['App']['GetRoiTrainingSampleImage'](arg1); }
 export function GetRuntimeHealth() { return window['go']['main']['App']['GetRuntimeHealth'](); }
 export function GetScriptActions() { return window['go']['main']['App']['GetScriptActions'](); }
+export function GetScriptAxisActions(arg1) { return window['go']['main']['App']['GetScriptAxisActions'](arg1); }
+export function SaveScriptAxisActions(arg1, arg2) { return window['go']['main']['App']['SaveScriptAxisActions'](arg1, arg2); }
+export function GetPlaybackSource() { return window['go']['main']['App']['GetPlaybackSource'](); }
+export function SetPlaybackSource(arg1) { return window['go']['main']['App']['SetPlaybackSource'](arg1); }
+export function GetStrengthPresets() { return window['go']['main']['App']['GetStrengthPresets'](); }
+export function SetActiveStrength(arg1) { return window['go']['main']['App']['SetActiveStrength'](arg1); }
+export function ExportLoadedFunscript(arg1) { return window['go']['main']['App']['ExportLoadedFunscript'](arg1); }
+export function SaveLoadedAsSamn() { return window['go']['main']['App']['SaveLoadedAsSamn'](); }
+export function BakeNeoAxesOnLoaded() { return window['go']['main']['App']['BakeNeoAxesOnLoaded'](); }
 export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['GetSpeedHighlights'](arg1); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }

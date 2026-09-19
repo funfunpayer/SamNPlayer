@@ -2644,6 +2644,18 @@ def process_one(args, ap):
             "metadata": metadata,
         }, f, indent=2)
 
+    try:
+        from samn_write import write_companion_samn
+        samn_path = write_companion_samn(
+            args.output, actions, metadata, args.profile,
+            contact_vibration=args.contact_vibration,
+            contact_vibration_span=args.contact_vibration_span,
+            contact_vibration_curve=args.contact_vibration_curve)
+        if samn_path:
+            print(f"Native script written: {samn_path}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 — generation must not fail on sidecar
+        print(f"Hint: companion .samn not written ({exc})", file=sys.stderr)
+
     if args.report:
         write_report(args.report, {
             "video": os.path.abspath(args.video),
