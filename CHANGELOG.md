@@ -22,6 +22,10 @@ measurement history behind each entry; this file is the short version for
 - **Player proxy:** remux-first for H.264 in awkward containers; soft
   Lanczos downscale when re-encoding above 1920px; more pick/MIME formats
   (ts/m2ts/flv/mpg/3gp/ogv). Analysis GrayReader uses Lanczos (was bilinear).
+- **ffmpeg without system install:** `videox` resolves a copy next to the
+  app / user tools dir; Settings → **Install video tools** (opt-in);
+  release ships **portable** archives with ffmpeg beside the GUI
+  (`docs/FFMPEG_TOOLS.md`).
 
 ### Changed
 

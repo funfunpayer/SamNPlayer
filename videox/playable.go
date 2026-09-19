@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -82,8 +81,8 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 			return src, false, nil
 		}
 	}
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return "", false, fmt.Errorf("ffmpeg fehlt — Codec %q vermutlich nicht abspielbar", info.Codec)
+	if _, err := FFmpeg(); err != nil {
+		return "", false, fmt.Errorf("ffmpeg fehlt — Codec %q vermutlich nicht abspielbar (portable zip mitliefern oder „Install video tools“)", info.Codec)
 	}
 	dst := ProxyPath(src)
 	if st, err := os.Stat(dst); err == nil && !st.IsDir() && st.Size() > 1024 {
@@ -133,7 +132,10 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 		"-movflags", "+faststart",
 		dst,
 	)
-	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	cmd, err := CommandContext(ctx, args...)
+	if err != nil {
+		return "", false, err
+	}
 	if b, err := cmd.CombinedOutput(); err != nil {
 		_ = os.Remove(dst)
 		msg := strings.TrimSpace(string(b))
@@ -149,13 +151,16 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 }
 
 func remuxCopyMP4(ctx context.Context, src, dst string) error {
-	cmd := exec.CommandContext(ctx, "ffmpeg",
+	cmd, err := CommandContext(ctx,
 		"-y", "-hide_banner", "-loglevel", "error",
 		"-i", src,
 		"-c", "copy",
 		"-movflags", "+faststart",
 		dst,
 	)
+	if err != nil {
+		return err
+	}
 	if b, err := cmd.CombinedOutput(); err != nil {
 		msg := strings.TrimSpace(string(b))
 		if msg == "" {

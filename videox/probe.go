@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -61,13 +60,16 @@ type ffprobeJSON struct {
 // first stream carrying width/height may be attached cover art (mjpeg), which
 // yields a bogus resolution and a frame rate of 1/1.
 func Probe(ctx context.Context, path string) (Info, error) {
-	cmd := exec.CommandContext(ctx, "ffprobe",
+	cmd, err := ProbeCommandContext(ctx,
 		"-v", "error",
 		"-select_streams", "v:0",
 		"-print_format", "json",
 		"-show_streams", "-show_format",
 		path,
 	)
+	if err != nil {
+		return Info{}, err
+	}
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 

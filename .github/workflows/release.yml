@@ -31,12 +31,12 @@ jobs:
           SAMNPLAYER_RELEASE_TAG: ${{ github.ref_name }}
         run: go test ./update -run TestSourceVersion -count=1
 
-      - name: System deps (WebKitGTK, mingw, OpenCV)
+      - name: System deps (WebKitGTK, mingw, OpenCV, ffmpeg)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
             libgtk-3-dev libwebkit2gtk-4.1-dev gcc-mingw-w64-x86-64 \
-            libopencv-dev pkg-config
+            libopencv-dev pkg-config ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
 
       - name: Read version from tag
@@ -77,8 +77,30 @@ jobs:
           go build -trimpath -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
 
+      - name: Bundle portable archives (GUI + ffmpeg beside the binary)
+        run: |
+          set -euo pipefail
+          # Linux: system ffmpeg/ffprobe next to the GUI (resolved via videox).
+          mkdir -p portable-linux
+          cp SamNPlayer-gui-linux-amd64 portable-linux/SamNPlayer
+          cp "$(command -v ffmpeg)" portable-linux/ffmpeg
+          cp "$(command -v ffprobe)" portable-linux/ffprobe
+          chmod +x portable-linux/*
+          tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
+          # Windows: BtbN static GPL build (ffmpeg.exe + ffprobe.exe).
+          curl -fsSL -o /tmp/ffmpeg-win.zip \
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+          mkdir -p /tmp/ffmpeg-win portable-windows
+          unzip -q /tmp/ffmpeg-win.zip -d /tmp/ffmpeg-win
+          cp SamNPlayer-gui-windows-amd64.exe portable-windows/SamNPlayer.exe
+          find /tmp/ffmpeg-win -name 'ffmpeg.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffmpeg.exe
+          find /tmp/ffmpeg-win -name 'ffprobe.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffprobe.exe
+          test -f portable-windows/ffmpeg.exe
+          test -f portable-windows/ffprobe.exe
+          (cd portable-windows && zip -q ../SamNPlayer-portable-windows-amd64.zip SamNPlayer.exe ffmpeg.exe ffprobe.exe)
+
       - name: Run tests (non-GUI packages)
-        run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/...
+        run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/... ./videox/...
 
       - name: Generate checksums
         run: |
@@ -87,6 +109,8 @@ jobs:
             SamNPlayer-cli-linux-amd64 \
             SamNPlayer-gui-windows-amd64.exe \
             SamNPlayer-cli-windows-amd64.exe \
+            SamNPlayer-portable-linux-amd64.tar.gz \
+            SamNPlayer-portable-windows-amd64.zip \
             > checksums.txt
           cat checksums.txt
 
@@ -98,5 +122,7 @@ jobs:
             SamNPlayer-cli-linux-amd64
             SamNPlayer-gui-windows-amd64.exe
             SamNPlayer-cli-windows-amd64.exe
+            SamNPlayer-portable-linux-amd64.tar.gz
+            SamNPlayer-portable-windows-amd64.zip
             checksums.txt
           generate_release_notes: true

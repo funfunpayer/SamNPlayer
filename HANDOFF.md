@@ -33,10 +33,11 @@ device/            BLE protocol and transport, mock device
 player/            Playback, synchronization, training mode
 funscript/         Parser, metadata, mapping
 generator/         Python pipeline and Go wrapper; trackcv (CSRT/cgo) +
-                   posttrack (pure-Go signal path); opt-in NativePipeline
+                   posttrack (pure-Go signal path); NativePipeline preferred
+                   for CSRT/Tf-Tj (audio check + ROI verify in Go post-hoc)
 motionx/           RDP reduction and motion-state classification (salvaged)
-videox/            ffprobe/ffmpeg wrappers (salvaged, not yet connected —
-                   trackcv covers decode for the native CSRT path)
+videox/            ffprobe/ffmpeg: gray frames, playable remux/proxy
+                   (Lanczos downscale), used by simpletrack + player
 logging/ update/   Logging, automatic updates through GitHub releases
 ```
 

@@ -47,7 +47,8 @@ suggested.
 | App size | Electron often 100+ MB | **~13 MB** GUI (OS webview via [Wails](https://wails.io) — no bundled Chromium) |
 | Scope | Play *or* generate | **Play + generate + device + training** in one window |
 | AI | Cloud, bundled weights, or AI-only scripts | **Optional local ONNX** — AI *proposes*, classical tracking *writes* the Funscript |
-| Privacy | Telemetry / downloads common | **Local-only** — no model in the binary, no auto-download, no cloud calls |
+| Privacy | Telemetry / downloads common | **Local-only** — no model in the binary, no surprise downloads, no cloud calls |
+| Video tools | “Install ffmpeg yourself” | **Portable zip** ships ffmpeg next to the app; optional Settings install (`docs/FFMPEG_TOOLS.md`) |
 | Device | Generic Buttplug clients | **Sam Neo 2 first-class** (BLE + Intiface + Mock) with diagnostics |
 | Quality | “Looks fine” | **Quality Doctor**, Script Doctor, golden-clip benchmark — numbers before claims |
 | Engineering | Feature pile-on | **Measure → ship or reject** (`HANDOFF.md`, `docs/NEXT.md`) |
@@ -113,7 +114,12 @@ not needed, it stays out.
 
 Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are attached to
 every [GitHub Release](https://github.com/funfunpayer/SamNPlayer/releases)
-with `checksums.txt`. Double-click — no installer.
+with `checksums.txt`.
+
+Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
+include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
+install. Single-file GUI binaries remain for in-app updates. Details:
+[`docs/FFMPEG_TOOLS.md`](docs/FFMPEG_TOOLS.md).
 
 Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).

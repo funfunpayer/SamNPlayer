@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	goruntime "runtime"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 // RuntimeHealth fasst den Startcheck zusammen: fehlende Ordner wurden
@@ -78,7 +81,27 @@ func (a *App) ensureRuntimeReady() RuntimeHealth {
 // GetRuntimeHealth führt denselben Check erneut aus (z.B. aus den
 // Einstellungen nach Installation von ffmpeg).
 func (a *App) GetRuntimeHealth() RuntimeHealth {
+	videox.ResetToolCache()
 	return a.ensureRuntimeReady()
+}
+
+// EnsureVideoTools installs ffmpeg/ffprobe into the user tools dir when
+// missing (opt-in; downloads a static build). Prefer the portable release
+// that already ships ffmpeg next to the GUI binary.
+func (a *App) EnsureVideoTools() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+	err := videox.EnsureTools(ctx, func(line string) {
+		logging.Info("tools: " + line)
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "runtime:tools", line)
+		}
+	})
+	videox.ResetToolCache()
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "runtime:health", a.ensureRuntimeReady())
+	}
+	return err
 }
 
 func runtimeDirs() []string {
@@ -90,6 +113,7 @@ func runtimeDirs() []string {
 			filepath.Join(root, "logs"),
 			filepath.Join(root, "logs", "sessions"),
 			filepath.Join(root, "models"),
+			filepath.Join(root, "tools"),
 			filepath.Join(root, "roi_training_dataset"),
 			filepath.Join(root, "roi_training_dataset", "images", "train"),
 			filepath.Join(root, "roi_training_dataset", "labels", "train"),
@@ -113,13 +137,13 @@ func checkRuntimeDeps() []RuntimeDepInfo {
 			ID:       "ffmpeg",
 			Label:    "ffmpeg",
 			Required: true,
-			Hint:     "Für Video-Dekodierung und Generator nötig. Bitte ffmpeg installieren und im PATH bereitstellen.",
+			Hint:     "Needed for video decode / Generate / Make playable. Portable release ships it next to the app; or Settings → Install video tools.",
 		},
 		{
 			ID:       "ffprobe",
 			Label:    "ffprobe",
 			Required: false,
-			Hint:     "Optional für Bildgrößen/Metadaten. Kommt üblicherweise mit ffmpeg.",
+			Hint:     "Optional metadata helper — usually next to ffmpeg.",
 		},
 		{
 			ID:       "python3",
@@ -132,12 +156,19 @@ func checkRuntimeDeps() []RuntimeDepInfo {
 		deps[2].ID = "python"
 		deps[2].Label = "Python"
 	}
-	for i := range deps {
-		name := deps[i].ID
-		if path, err := exec.LookPath(name); err == nil {
-			deps[i].Found = true
-			deps[i].Path = path
-		}
+	videox.ResetToolCache()
+	if p, err := videox.FFmpeg(); err == nil {
+		deps[0].Found = true
+		deps[0].Path = p
+	}
+	if p, err := videox.FFprobe(); err == nil {
+		deps[1].Found = true
+		deps[1].Path = p
+	}
+	name := deps[2].ID
+	if path, err := exec.LookPath(name); err == nil {
+		deps[2].Found = true
+		deps[2].Path = path
 	}
 	return deps
 }

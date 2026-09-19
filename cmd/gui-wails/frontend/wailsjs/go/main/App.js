@@ -111,6 +111,7 @@ export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window[
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }
 export function ProbePlaybackVideo(arg1) { return window['go']['main']['App']['ProbePlaybackVideo'](arg1); }
 export function EnsurePlayablePlaybackVideo() { return window['go']['main']['App']['EnsurePlayablePlaybackVideo'](); }
+export function EnsureVideoTools() { return window['go']['main']['App']['EnsureVideoTools'](); }
 export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
 export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
 export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }

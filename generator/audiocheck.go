@@ -1,13 +1,14 @@
 package generator
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/cmplx"
-	"os/exec"
 	"sort"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 // Classical audio-tempo plausibility check (port of audio_check.py).
@@ -211,13 +212,13 @@ func compareTempo(scriptHz, audioHz *float64, tolerance float64, harmonics []flo
 }
 
 func extractAudioSamples(videoPath string, sampleRate int) ([]float64, float64, error) {
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return nil, 0, fmt.Errorf("ffmpeg ist nicht installiert")
-	}
-	cmd := exec.Command("ffmpeg",
+	cmd, err := videox.CommandContext(context.Background(),
 		"-i", videoPath,
 		"-vn", "-ac", "1", "-ar", fmt.Sprintf("%d", sampleRate),
 		"-f", "f32le", "-loglevel", "error", "-")
+	if err != nil {
+		return nil, 0, fmt.Errorf("ffmpeg ist nicht installiert")
+	}
 	out, err := cmd.Output()
 	if err != nil || len(out) == 0 {
 		return nil, 0, fmt.Errorf("Keine Audiospur lesbar")

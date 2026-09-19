@@ -7,10 +7,11 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 // AddStillTrainingSample writes one labeled still image into the YOLO
@@ -151,11 +152,12 @@ func stillImageSize(path string) (int, int, error) {
 }
 
 func imageSizeViaFFmpeg(path string) (int, int, error) {
-	if _, err := exec.LookPath("ffprobe"); err != nil {
+	cmd, err := videox.ProbeCommandContext(nil, "-v", "error", "-select_streams", "v:0",
+		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", path)
+	if err != nil {
 		return 0, 0, fmt.Errorf("ffprobe nicht gefunden")
 	}
-	out, err := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0",
-		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", path).CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0, 0, fmt.Errorf("ffprobe: %w (%s)", err, strings.TrimSpace(string(out)))
 	}
@@ -172,11 +174,11 @@ func imageSizeViaFFmpeg(path string) (int, int, error) {
 }
 
 func convertStillToJPEG(src, dst string) error {
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
+	cmd, err := videox.CommandContext(nil, "-v", "error", "-y", "-i", src, "-q:v", "2", dst)
+	if err != nil {
 		return fmt.Errorf("ffmpeg nicht gefunden (nötig für WebP/HEIC-Stills)")
 	}
-	args := []string{"-v", "error", "-y", "-i", src, "-q:v", "2", dst}
-	if b, err := exec.Command("ffmpeg", args...).CombinedOutput(); err != nil {
+	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("still→jpeg: %w\n%s", err, string(b))
 	}
 	return nil
@@ -186,9 +188,6 @@ func convertStillToJPEG(src, dst string) error {
 // multimodal training can use it. Best-effort: missing audio is not an error.
 // startSeconds skips intro (same seek as visual bootstrap samples).
 func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string, startSeconds float64) (string, error) {
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return "", fmt.Errorf("ffmpeg nicht gefunden")
-	}
 	audioDir := filepath.Join(outputDir, "audio")
 	if err := os.MkdirAll(audioDir, 0o755); err != nil {
 		return "", err
@@ -203,7 +202,11 @@ func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string, startSecond
 		args = append(args, "-ss", strconv.FormatFloat(startSeconds, 'f', 3, 64))
 	}
 	args = append(args, "-i", videoPath, "-vn", "-ac", "1", "-ar", "16000", out)
-	if b, err := exec.Command("ffmpeg", args...).CombinedOutput(); err != nil {
+	cmd, err := videox.CommandContext(nil, args...)
+	if err != nil {
+		return "", fmt.Errorf("ffmpeg nicht gefunden")
+	}
+	if b, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("audio-extraktion: %w\n%s", err, string(b))
 	}
 	return out, nil

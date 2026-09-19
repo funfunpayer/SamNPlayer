@@ -1,5 +1,6 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth } from '../wailsjs/go/main/App';
-import { uiError } from './notify.js';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools } from '../wailsjs/go/main/App';
+import { EventsOn } from '../wailsjs/runtime/runtime';
+import { uiError, uiInfo } from './notify.js';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -64,6 +65,8 @@ export function initSettings(root) {
     <p class="hint" style="margin-top:0">Off by default. When on: after a successful connect, a short pulse confirms that commands arrive.</p>
     <div class="row" style="align-items:center;">
       <button id="st-runtime-check" type="button">Check folders &amp; dependencies</button>
+      <button id="st-install-ffmpeg" type="button"
+        data-help="Downloads a static ffmpeg into your SamNPlayer tools folder when missing. Prefer the portable release (ffmpeg already next to the app).">Install video tools</button>
       <span class="hint" id="st-runtime-status" style="margin:0"></span>
     </div>
     <div class="row" style="align-items:center;">
@@ -206,6 +209,31 @@ export function initSettings(root) {
       status.textContent = (h.ok ? '✓ ' : '⚠ ') + parts.join(' · ');
     } catch (err) {
       status.textContent = 'Check failed: ' + err;
+    }
+  });
+  EventsOn('runtime:tools', line => {
+    const status = el('#st-runtime-status');
+    if (status) status.textContent = String(line);
+  });
+  el('#st-install-ffmpeg').addEventListener('click', async () => {
+    const status = el('#st-runtime-status');
+    const btn = el('#st-install-ffmpeg');
+    btn.disabled = true;
+    status.textContent = 'Installing video tools (ffmpeg)…';
+    try {
+      await EnsureVideoTools();
+      const h = await GetRuntimeHealth();
+      const ff = (h.deps || []).find(d => d.id === 'ffmpeg');
+      if (ff && ff.found) {
+        uiInfo('Video tools ready: ' + (ff.path || 'ffmpeg'), status);
+        status.textContent = '✓ ffmpeg: ' + (ff.path || 'ok');
+      } else {
+        status.textContent = 'Install finished but ffmpeg still missing — use the portable release.';
+      }
+    } catch (err) {
+      uiError('Install video tools: ' + err, status);
+    } finally {
+      btn.disabled = false;
     }
   });
   el('#st-update-now').addEventListener('click', async () => {

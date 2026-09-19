@@ -16,6 +16,7 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 //go:embed *.py requirements.txt requirements-ai.txt requirements-ai-train.txt
@@ -399,8 +400,7 @@ func SupportSignalsAvailable(depthOnnxPath, poseOnnxPath string) map[string]bool
 // auszublenden statt sie anzubieten und dann bei jedem Versuch mit
 // "nicht möglich" scheitern zu lassen.
 func AudioCheckAvailable() bool {
-	_, err := exec.LookPath("ffmpeg")
-	return err == nil
+	return videox.Available()
 }
 
 // findROIViaScript führt eines der beiden austauschbaren ROI-Finder-Skripte

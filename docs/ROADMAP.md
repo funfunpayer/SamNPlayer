@@ -311,6 +311,8 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
 | More player containers (ts/flv/mpg/…) | **Done** — pick filters + MIME; proxy still the fallback |
 | Live second-pass ROI rewrite | **Skip rewrite** — `VerifyROI` warns only (no silent box change) |
 | AI quality opinion on Go path | **Still Python** — keep blocking eligibility until a Go port exists |
+| Bundle / auto-ship ffmpeg | **Done** — portable release + opt-in Install video tools; no surprise download at startup |
+| Pure-Go H.264 decode/encode | **Skip** — codec stack; keep ffmpeg as the only media I/O helper (`docs/FFMPEG_TOOLS.md`) |
 
 ## Explicitly deferred, not forgotten
 

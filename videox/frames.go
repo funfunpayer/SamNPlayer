@@ -93,7 +93,11 @@ func NewGrayReader(ctx context.Context, path string, info Info, opt GrayReaderOp
 	)
 
 	runCtx, cancel := context.WithCancel(ctx)
-	cmd := exec.CommandContext(runCtx, "ffmpeg", args...)
+	cmd, err := CommandContext(runCtx, args...)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
 
 	stderr := &ringBuffer{limit: 8 << 10}
 	cmd.Stderr = stderr

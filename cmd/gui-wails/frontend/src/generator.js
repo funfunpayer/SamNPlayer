@@ -129,7 +129,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
           data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-          data-help="Compares script tempo to the audio track (ffmpeg). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
+          data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
           data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
 
@@ -244,7 +244,7 @@ export function initGenerator(root, playback) {
     checkbox.disabled = !available;
     if (!available) {
       checkbox.checked = false;
-      checkbox.title = 'ffmpeg was not found on PATH';
+      checkbox.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
     } else {
       // Part of the normal workflow when ffmpeg is present (docs/AUDIO_WORKFLOW.md).
       checkbox.checked = true;
