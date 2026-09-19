@@ -30,6 +30,9 @@ measurement history behind each entry; this file is the short version for
   exists; later **iOS/Android player-only** (no Generate) —
   `docs/PLATFORMS.md`, `docs/COMPETITIVE.md`. Runtime health shows
   CPU / GOMAXPROCS (honest budget, not fan-max).
+- **Lean self-build principle** (`docs/SELF_BUILD.md`): prefer small owned
+  Go for our use case over heavy OSS stacks; ISO-BMFF MP4 probe fallback
+  when ffprobe is missing.
 
 ### Changed
 

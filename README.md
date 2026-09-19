@@ -130,7 +130,8 @@ install. Single-file GUI binaries remain for in-app updates. Details:
 | iPhone / Android | — | **Player only** (no Generate) |
 
 Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
-[`docs/COMPETITIVE.md`](docs/COMPETITIVE.md).
+[`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
+[`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
 Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).

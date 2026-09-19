@@ -22,6 +22,10 @@ clips show quality ≥ current path. Keep OpenCV / FFmpeg / ONNX as native
 kernels behind thin interfaces. Python stays for training and research;
 end-user runtime should eventually need no Python install.
 
+**Lean self-build:** when open source solves a problem, prefer a smaller
+owned implementation of *our* use case over vendoring the whole stack
+(`docs/SELF_BUILD.md`). Do not reimplement full codec or browser engines.
+
 ## What is already shipped (v0.5.x)
 
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)

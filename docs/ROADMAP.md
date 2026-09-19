@@ -22,6 +22,8 @@ discussion stays German.
 1. **Don't add what isn't needed.** No dependency, module, or feature
    ships speculatively — `fusion.py` stays tested but unconnected until a
    genuine third independent signal source exists (see Open tasks).
+   Prefer a **lean self-build** of our use case over a heavy OSS stack
+   when quality matches (`docs/SELF_BUILD.md`).
 2. **Every quality/speed claim needs a measurement, not an estimate.**
    Reproduce before changing an algorithm; keep the raw numbers, not just
    the conclusion.
@@ -313,6 +315,7 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
 | AI quality opinion on Go path | **Still Python** — keep blocking eligibility until a Go port exists |
 | Bundle / auto-ship ffmpeg | **Done** — portable release + opt-in Install video tools; no surprise download at startup |
 | Pure-Go H.264 decode/encode | **Skip** — codec stack; keep ffmpeg as the only media I/O helper (`docs/FFMPEG_TOOLS.md`) |
+| Lean self-build over heavy OSS | **Principle** — `docs/SELF_BUILD.md`; MP4 ISO-BMFF probe fallback without ffprobe **Done** |
 | Competitive GUI + GitHub exterior | **Bar documented** — `docs/COMPETITIVE.md`; Play stays home; no phone-shaped desktop |
 | macOS release binary | **Blocked on hardware/CI** — code path kept; see `docs/PLATFORMS.md` |
 | iOS/Android player (no generator) | **Hinted** — share `player`/`device`/`funscript`/`samn`; desktop keeps Generate |
