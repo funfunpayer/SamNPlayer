@@ -23,16 +23,17 @@ func main() {
 	logging.SetLevel(parseLogLevel(app.settings.GetString(prefLogLevel, "info")))
 
 	err := wails.Run(&options.App{
-		Title:  "SamNPlayer",
-		Width:  1000,
-		Height: 720,
+		Title:     "SamNPlayer",
+		Width:     1100,
+		Height:    760,
+		MinWidth:  880,
+		MinHeight: 560,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 24, G: 26, B: 32, A: 1},
-		// Dateien per Drag & Drop annehmen. DisableWebViewDrop verhindert,
-		// dass die Webview eine versehentlich fallengelassene Datei selbst
-		// öffnet und damit die Oberfläche ersetzt.
+		// Accept drag-and-drop. DisableWebViewDrop stops the webview from
+		// navigating to a dropped file and replacing the UI.
 		DragAndDrop: &options.DragAndDrop{
 			EnableFileDrop:     true,
 			DisableWebViewDrop: true,

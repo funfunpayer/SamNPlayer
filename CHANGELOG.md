@@ -8,6 +8,11 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.6] — September 19, 2026
+
+Polish release after English UI/docs alignment and a selective GUI review.
+CI green on tip before tag.
+
 ### Changed
 
 - **Product language:** user-facing UI and docs aligned to **English**
@@ -28,6 +33,11 @@ measurement history behind each entry; this file is the short version for
 - **Playback codecs:** ffprobe playability check, “Make playable”
   H.264/AAC proxy via ffmpeg, `<video>` error banner, correct MIME on
   local video serve; player key hints + transport polish.
+- **GUI a11y / desktop basics:** window `MinWidth`/`MinHeight`, tablist
+  ARIA + arrow-key nav, non-blocking ERROR toast with “Open Log”,
+  spacing/focus tokens. Deliberately **not** taken: light mode,
+  frameless chrome, glassmorphism, skeleton screens, disconnect confirm
+  (see review notes in PR #100).
 
 ### Fixed
 

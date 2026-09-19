@@ -17,9 +17,65 @@ import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    const on = p.id === 'tab-' + name;
+    p.classList.toggle('active', on);
+    if (on) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
 }
+
+function initTabA11y() {
+  const rail = document.getElementById('rail');
+  if (rail) rail.setAttribute('role', 'tablist');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const name = btn.dataset.tab;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-controls', 'tab-' + name);
+    btn.id = btn.id || 'tabbtn-' + name;
+    const on = btn.classList.contains('active');
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    btn.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.setAttribute('role', 'tabpanel');
+    const name = p.id.replace(/^tab-/, '');
+    p.setAttribute('aria-labelledby', 'tabbtn-' + name);
+    if (!p.classList.contains('active')) p.setAttribute('hidden', '');
+  });
+  rail?.addEventListener('keydown', (e) => {
+    const tabs = [...document.querySelectorAll('.tab-btn')];
+    const i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = tabs[(i + 1) % tabs.length];
+      next.focus();
+      switchTab(next.dataset.tab);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = tabs[(i - 1 + tabs.length) % tabs.length];
+      prev.focus();
+      switchTab(prev.dataset.tab);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      tabs[0].focus();
+      switchTab(tabs[0].dataset.tab);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      tabs[tabs.length - 1].focus();
+      switchTab(tabs[tabs.length - 1].dataset.tab);
+    }
+  });
+}
+
+initTabA11y();
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
