@@ -32,7 +32,9 @@ bugfix pass (clip7776 + bindings).
 ### Fixed
 
 - Export `SupportSignalsAvailable` in wailsjs bindings.
-- Leftover German `Fehler:` prefixes in ROI-training UI.
+- Leftover German UI strings found in clip7776 / playback bugfix
+  (heatmap/project toasts, range-mark warnings, ROI-training status,
+  generator workflow tip, benchmark hint).
 
 ## [0.5.6] — September 19, 2026
 
