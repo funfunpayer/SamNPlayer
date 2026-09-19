@@ -5,7 +5,7 @@ export function helpChip(text) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'help-chip';
-  btn.setAttribute('aria-label', 'Hilfe');
+  btn.setAttribute('aria-label', 'Help');
   btn.textContent = '?';
   btn.dataset.help = text;
   return btn;

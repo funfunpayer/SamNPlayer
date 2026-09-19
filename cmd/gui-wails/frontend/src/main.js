@@ -17,9 +17,65 @@ import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    const on = p.id === 'tab-' + name;
+    p.classList.toggle('active', on);
+    if (on) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
 }
+
+function initTabA11y() {
+  const rail = document.getElementById('rail');
+  if (rail) rail.setAttribute('role', 'tablist');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const name = btn.dataset.tab;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-controls', 'tab-' + name);
+    btn.id = btn.id || 'tabbtn-' + name;
+    const on = btn.classList.contains('active');
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    btn.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.setAttribute('role', 'tabpanel');
+    const name = p.id.replace(/^tab-/, '');
+    p.setAttribute('aria-labelledby', 'tabbtn-' + name);
+    if (!p.classList.contains('active')) p.setAttribute('hidden', '');
+  });
+  rail?.addEventListener('keydown', (e) => {
+    const tabs = [...document.querySelectorAll('.tab-btn')];
+    const i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = tabs[(i + 1) % tabs.length];
+      next.focus();
+      switchTab(next.dataset.tab);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = tabs[(i - 1 + tabs.length) % tabs.length];
+      prev.focus();
+      switchTab(prev.dataset.tab);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      tabs[0].focus();
+      switchTab(tabs[0].dataset.tab);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      tabs[tabs.length - 1].focus();
+      switchTab(tabs[tabs.length - 1].dataset.tab);
+    }
+  });
+}
+
+initTabA11y();
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
@@ -38,7 +94,7 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 initPostGenerateReview();
 
-// Topbar: Geräte-Status + Verbinden/Trennen (Transport bleibt im Gerät-Tab).
+// Topbar: Geräte-Status + Connect/Disconnect (Transport bleibt im Gerät-Tab).
 (function initTopbarDevice() {
   const wrap = document.getElementById('topbar-device-wrap');
   const btn = document.getElementById('topbar-device');
@@ -54,33 +110,33 @@ initPostGenerateReview();
     wrap.classList.remove('is-online', 'is-offline', 'is-searching');
     if (busy && !connected) {
       wrap.classList.add('is-searching');
-      nameEl.textContent = 'Suche…';
+      nameEl.textContent = 'Searching…';
       action.textContent = '…';
       action.disabled = true;
-      btn.title = 'Verbindung läuft…';
+      btn.title = 'Connecting…';
       return;
     }
     if (connected) {
       wrap.classList.add('is-online');
       const label = st.mock
-        ? 'Mock-Gerät'
-        : (st.name && String(st.name).trim()) || 'Verbunden';
+        ? 'Mock device'
+        : (st.name && String(st.name).trim()) || 'Connected';
       const batt = (st.batteryOk && typeof st.batteryPct === 'number')
         ? ` · ${st.batteryPct}%`
         : '';
       nameEl.textContent = label + batt;
-      action.textContent = 'Trennen';
+      action.textContent = 'Disconnect';
       action.disabled = busy;
-      const battTitle = batt ? ` · Akku ${st.batteryPct}%` : '';
+      const battTitle = batt ? ` · Battery ${st.batteryPct}%` : '';
       btn.title = st.address
-        ? `${label}${battTitle} · ${st.address} — Details im Gerätetab`
-        : `${label}${battTitle} — Details im Gerätetab`;
+        ? `${label}${battTitle} · ${st.address} — Details in Device tab`
+        : `${label}${battTitle} — Details in Device tab`;
     } else {
       wrap.classList.add('is-offline');
-      nameEl.textContent = 'Nicht verbunden';
-      action.textContent = 'Verbinden';
+      nameEl.textContent = 'Not connected';
+      action.textContent = 'Connect';
       action.disabled = busy;
-      btn.title = 'Details / Verbindungsart im Gerätetab';
+      btn.title = 'Details / connection type in Device tab';
     }
   }
 
@@ -106,7 +162,7 @@ initPostGenerateReview();
         window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
       } catch (err) {
         busy = false;
-        uiError('Trennen fehlgeschlagen: ' + err);
+        uiError('Disconnect failed: ' + err);
         render({ connected: true });
       }
       return;
@@ -124,7 +180,7 @@ initPostGenerateReview();
     } catch (err) {
       busy = false;
       render({ connected: false });
-      uiError('Verbindung fehlgeschlagen: ' + err + ' — Verbindungsart (BLE / Intiface / Mock) im Gerät-Tab wählen.');
+      uiError('Connection failed: ' + err + ' — choose connection type (BLE / Intiface / Mock) in the Device tab.');
     }
   });
 
@@ -141,27 +197,27 @@ CurrentVersion().then(v => {
 // settings.js beim Laden aus GetSettings() liest; hier zusätzlich einmal
 // direkt geprüft, damit main.js nicht auf settings.js warten muss.
 //
-// "Still" heißt: kein Dialog bei "kein Update"/Fehler, nicht "Fehler
+// "Still" heißt: kein Dialog bei "kein Update"/Errors, nicht "Errors
 // verschwinden lassen" - ein CheckForUpdate()-Fehlschlag wurde hier bisher
 // komplett verschluckt (leeres .catch), nicht mal geloggt. Von außen war
 // "kein Update gefunden, weil es keins gibt" nicht von "die Prüfung ist
 // stillschweigend gescheitert" zu unterscheiden - dafür gibt es jetzt den
-// Knopf "Jetzt nach Updates suchen" in den Einstellungen (settings.js), der
-// das Ergebnis (auch einen Fehler) explizit anzeigt.
+// Knopf "Check for updates now" in den Settings (settings.js), der
+// das Ergebnis (auch einen errors) explizit anzeigt.
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
     if (res.error) {
-      uiWarn('Update-Prüfung beim Start: ' + res.error);
+      uiWarn('Update check on startup: ' + res.error);
       return;
     }
     if (!res.available) return;
     const tag = res.release ? res.release.tag_name : '?';
     // Update-Installation ist bewusst bestätigt (wie Überschreiben beim Erzeugen).
-    if (confirm(`Version ${tag} ist verfügbar (aktuell: ${currentVersion}).\n\nJetzt herunterladen und neu starten?`)) {
-      ApplyUpdate().catch(err => uiError('Update fehlgeschlagen: ' + err));
+    if (confirm(`Version ${tag} is available (current: ${currentVersion}).\n\nDownload and restart now?`)) {
+      ApplyUpdate().catch(err => uiError('Update failed: ' + err));
     }
-  }).catch(err => uiWarn('Update-Prüfung beim Start: ' + err));
+  }).catch(err => uiWarn('Update check on startup: ' + err));
 });
 
 
@@ -172,7 +228,7 @@ GetSettings().then(s => {
 // der Generator nichts anfangen kann.
 //
 // Die fallengelassene Datei bestimmt den Tab: ein Video gehört in den
-// Generator, ein Skript in die Wiedergabe. Das erspart es, vorher den
+// Generator, ein Skript in die Playback. Das erspart es, vorher den
 // richtigen Tab zu suchen.
 EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
@@ -181,7 +237,7 @@ EventsOn('files:dropped', data => {
   if (data.videos && data.videos.length) {
     switchTab('generator');
     // Nur das erste Video wird geladen - Stapelverarbeitung mehrerer Videos
-    // gibt es noch nicht. Der Generator zeigt das explizit an (extraCount),
+    // gibt es noch nicht. Der Generator zeigt das explizit to (extraCount),
     // statt die übrigen Dateien einfach stillschweigend zu verwerfen.
     window.dispatchEvent(new CustomEvent('drop:video', {
       detail: { path: data.videos[0], extraCount: data.videos.length - 1 },
@@ -200,14 +256,14 @@ EventsOn('files:dropped', data => {
     return;
   }
   if (data.ignored) {
-    uiWarn('Drop ignoriert — bitte eine Videodatei oder .funscript ablegen.');
+    uiWarn('Drop ignored — please drop a video file or .funscript.');
   }
 });
 
-// Sichtbare Rückmeldung, solange etwas über dem Fenster schwebt.
+// Sichtbare Feedback, solange etwas über dem Fenster schwebt.
 const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
-overlay.innerHTML = '<div>Video oder .funscript hier ablegen</div>';
+overlay.innerHTML = '<div>Drop video or .funscript here</div>';
 document.body.appendChild(overlay);
 
 let dragDepth = 0;

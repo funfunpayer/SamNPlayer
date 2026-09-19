@@ -76,9 +76,9 @@ def main():
             timeout=5000)
         result = page.locator("#pb-script-doctor-result")
         check("bestanden: Prozentwert sichtbar", "90%" in result.inner_text())
-        check("bestanden: 'unauffällig' im Text", "unauffällig" in result.inner_text())
-        check("bestanden: Hinweis auf Schätzung ohne Video",
-              "ohne Video" in result.inner_text())
+        check("passed: 'within normal' in text", "within normal" in result.inner_text())
+        check("passed: estimate-without-video note",
+              "without video" in result.inner_text())
         border = result.evaluate("e => getComputedStyle(e).borderColor")
         check("bestanden: grüner Rahmen (nicht rot)", "220, 77, 77" not in border, border)
 
@@ -92,18 +92,18 @@ def main():
             timeout=5000)
         text = result.inner_text()
         check("nicht bestanden: Prozentwert sichtbar", "30%" in text)
-        check("nicht bestanden: 'bitte prüfen' im Text", "bitte prüfen" in text)
+        check("failed: 'review recommended' in text", "review recommended" in text)
         check("nicht bestanden: Warnung wird angezeigt",
               "außerhalb 0-100" in text, text)
 
         # Fehler bei der Prüfung darf nicht stillschweigend verschwinden.
-        page.evaluate("window.__qualityError = 'kein Skriptpfad'")
+        page.evaluate("window.__qualityError = 'no script path'")
         page.click("#pb-script-doctor")
         page.wait_for_function(
-            "document.querySelector('#pb-script-doctor-status').textContent.includes('kein Skriptpfad')",
+            "document.querySelector('#pb-script-doctor-status').textContent.includes('no script path')",
             timeout=5000)
         check("Fehler bei der Prüfung wird angezeigt",
-              "kein Skriptpfad" in page.locator("#pb-script-doctor-status").inner_text())
+              "no script path" in page.locator("#pb-script-doctor-status").inner_text())
 
         browser.close()
 

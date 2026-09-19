@@ -5,8 +5,8 @@ export function ApplySuggestedOZone() { return window['go']['main']['App']['Appl
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
-export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12) {
-  return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13) {
+  return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
 }
 export function AddRoiStillTrainingSample(arg1, arg2) { return window['go']['main']['App']['AddRoiStillTrainingSample'](arg1, arg2); }
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
@@ -14,6 +14,9 @@ export function CancelGenerate() { return window['go']['main']['App']['CancelGen
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
+export function CheckRoiTrainingStatus() { return window['go']['main']['App']['CheckRoiTrainingStatus'](); }
+export function InstallRoiTrainingDeps() { return window['go']['main']['App']['InstallRoiTrainingDeps'](); }
+export function WriteAIRequirementFiles(arg1) { return window['go']['main']['App']['WriteAIRequirementFiles'](arg1); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
@@ -96,6 +99,8 @@ export function TrainingHistory() { return window['go']['main']['App']['Training
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
 export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['UpdateRoiTrainingSample'](arg1, arg2, arg3, arg4); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }
+export function ProbePlaybackVideo(arg1) { return window['go']['main']['App']['ProbePlaybackVideo'](arg1); }
+export function EnsurePlayablePlaybackVideo() { return window['go']['main']['App']['EnsurePlayablePlaybackVideo'](); }
 export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
 export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
 export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }

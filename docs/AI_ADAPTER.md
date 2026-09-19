@@ -61,6 +61,15 @@ export format.
   (default stays `auto`, so behavior is unchanged without the new option).
 - `decode_detections()` and `select_best_box()` are pure functions and
   testable without a model or onnxruntime (`generator/ai_roi_test.py`).
+  `select_best_box` / `select_two_best_boxes` accept optional
+  `preferred_class_ids` so a multi-class ROI model can prefer e.g.
+  `hand`/`breast` over other detections (falls back to all classes when
+  none of the preferred ids appear in the frame).
+- CLI: `--preferred-classes hand,breast` (or `0,1`) with `--classes-json`
+  pointing at the dataset or model directory. After training,
+  `classes.json` is copied next to the `.onnx` automatically.
+- GUI: Settings → **Preferred classes**; Generate uses that preference for
+  AI ROI proposals.
 - `onnxruntime` lives in `generator/requirements-ai.txt`, NOT in
   `requirements.txt`.
 - **GUI wiring done:** `generator.go` gained `FindROIAIWithProgress`/
@@ -78,9 +87,19 @@ export format.
     clip with a content category (e.g. `blowjob`, `tf_tj_mix`); repeated
     calls into the same `--output-dir` accumulate across clips AND
     categories (`classes.json` remembers name→ID, `data.yaml` is
-    regenerated from it each time), so a mixed dataset spanning several
-    categories builds up one clip at a time instead of one run
-    overwriting the last.
+    rewritten). GUI: tab **KI-Trainingssystem** (see `docs/KI_TRAINING.md`).
+  - Train via GUI (**Abhängigkeiten installieren** embeds
+    `requirements-ai-train.txt` even in release builds) or CLI:
+
+    ```bash
+    python generator/train_yolo_model.py \
+      --dataset-dir ~/.config/SamNPlayer/roi_training_dataset \
+      --output ~/.config/SamNPlayer/models/roi_detector.onnx \
+      --epochs 100 --device auto
+    ```
+
+    (Older docs mentioned hand-running `yolo detect train … yolo11n.pt` —
+    the supported path is `train_yolo_model.py` with base `yolov8n.pt`.)
   - `generator/export_yolo_onnx.py` exports a trained checkpoint (any
     Ultralytics YOLO version — the script only calls `YOLO(pt_path)`, it
     is not tied to a specific release) to ONNX and rewrites the graph so
@@ -88,11 +107,10 @@ export format.
     exactly. This step is necessary: verified empirically that
     Ultralytics' own `export(nms=True)` output has the right `(N,6)`
     shape but pixel-space coordinates, not normalized ones.
-  - Both scripts are dev-time tooling, not part of the shipped
-    generator — `onnx`/`ultralytics` live in the new, separate
-    `generator/requirements-ai-train.txt`, not in `requirements-ai.txt`
-    (which stays just `onnxruntime`, needed only to *run* a finished
-    model).
+  - Both scripts are available from the GUI/release binary via embedded
+    `requirements-ai-train.txt` (Install-Knopf) as well as from a source
+    checkout. `onnx`/`ultralytics` stay out of `requirements-ai.txt`
+    (which remains just `onnxruntime` to *run* a finished model).
   - **Required convention:** train and export at `imgsz=640` — `ai_roi.py`
     hardcodes `input_size=640` in `_run_model()` and does not expose it
     via `find_roi()`.

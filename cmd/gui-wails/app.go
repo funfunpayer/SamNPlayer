@@ -260,16 +260,7 @@ func (a *App) ensureVideoServer() (int, error) {
 	port := ln.Addr().(*net.TCPAddr).Port
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/video", func(w http.ResponseWriter, r *http.Request) {
-		a.stateMu.RLock()
-		path := a.videoPath
-		a.stateMu.RUnlock()
-		if path == "" {
-			http.NotFound(w, r)
-			return
-		}
-		http.ServeFile(w, r, path)
-	})
+	mux.HandleFunc("/video", a.servePlaybackVideo)
 	srv := &http.Server{Handler: mux}
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

@@ -79,10 +79,13 @@ The release repository is already configured as `funfunpayer/SamNPlayer`.
 [v0.2.2](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.2.2) is
 the latest published release; see `VERSION`/`update.BaseVersion` for the
 current source version, which may be ahead of it. The settings tab also
-has a "Jetzt nach Updates suchen" button for an on-demand check that shows
+has a **Check for updates** button for an on-demand check that shows
 its result (or the reason it failed) instead of only checking silently at
 startup. For future releases, follow
 [CONTRIBUTING.md](CONTRIBUTING.md#versions).
+
+**Product language:** the GUI and documentation are **English**
+([docs/LANGUAGE.md](docs/LANGUAGE.md)).
 
 ## Generating scripts from video
 

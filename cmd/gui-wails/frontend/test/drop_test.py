@@ -21,13 +21,13 @@ from _harness import Checker, app_stub, serve
 PAGE = """<!doctype html><html><body>
 <div id="app">
   <nav id="tabbar">
-    <button class="tab-btn active" data-tab="playback">Wiedergabe</button>
+    <button class="tab-btn active" data-tab="playback">Playback</button>
     <button class="tab-btn" data-tab="training">Training</button>
-    <button class="tab-btn" data-tab="generator">Skript erzeugen</button>
-    <button class="tab-btn" data-tab="device">Gerät</button>
+    <button class="tab-btn" data-tab="generator">Generate</button>
+    <button class="tab-btn" data-tab="device">Device</button>
     <button class="tab-btn" data-tab="log">Log</button>
-    <button class="tab-btn" data-tab="settings">Einstellungen</button>
-    <button class="tab-btn" data-tab="roi-training">KI-Train.</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+    <button class="tab-btn" data-tab="roi-training">AI Train</button>
     <span id="version-label"></span>
   </nav>
   <section id="tab-playback" class="tab-panel active"></section>
@@ -121,7 +121,7 @@ def main():
         check("mehrere Videos: Anzahl der übrigen wird mitgeschickt",
               dropped[1]["extraCount"] == 2, str(dropped))
         page.wait_for_function(
-            "document.querySelector('#gen-status').textContent.includes('ignoriert')",
+            "document.querySelector('#gen-status').textContent.includes('ignored')",
             timeout=5000)
         check("mehrere Videos: Hinweis auf die ignorierten Dateien in der Oberfläche sichtbar",
               "2" in page.locator("#gen-status").inner_text())

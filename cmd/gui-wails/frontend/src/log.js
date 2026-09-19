@@ -4,16 +4,16 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 // Log tab: selectable, copyable ring of app logs (fixes “can’t copy from status line”).
 export function initLog(root) {
   root.innerHTML = `
-    <h2>Protokoll</h2>
-    <p class="hint">Laufende Meldungen und Fehler — markieren und kopieren (Strg/Cmd+C)
-      oder „Kopieren“. Die Datei unter Einstellungen bleibt die langfristige Ablage.</p>
+    <h2>Log</h2>
+    <p class="hint">Live messages and errors — select and copy (Ctrl/Cmd+C)
+      or “Copy all”. The file under Settings remains the long-term archive.</p>
     <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
       <label class="hint" style="display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" id="log-errors-only" /> Nur Warnungen/Fehler
+        <input type="checkbox" id="log-errors-only" /> Warnings/errors only
       </label>
-      <button type="button" id="log-copy">Alles kopieren</button>
-      <button type="button" id="log-clear">Leeren</button>
-      <button type="button" id="log-open-folder">Ordner öffnen</button>
+      <button type="button" id="log-copy">Copy all</button>
+      <button type="button" id="log-clear">Clear</button>
+      <button type="button" id="log-open-folder">Open folder</button>
       <span class="hint" id="log-status"></span>
     </div>
     <pre id="log-view" class="log-view" tabindex="0"></pre>
@@ -54,7 +54,7 @@ export function initLog(root) {
 
   EventsOn('log:line', e => push(e));
 
-  // Frontend-Hinweise (statt alert): Fehler/Warnungen landen hier.
+  // Frontend-Hinweise (statt alert): errors/Warnings landen hier.
   window.addEventListener('ui:notify', e => {
     const d = (e && e.detail) || {};
     push({
@@ -70,7 +70,7 @@ export function initLog(root) {
   });
   EventsOn('generate:done', result => {
     if (result && result.error) {
-      push({ time: new Date().toLocaleTimeString(), level: 'ERROR', message: 'Generierung: ' + result.error });
+      push({ time: new Date().toLocaleTimeString(), level: 'ERROR', message: 'Generation: ' + result.error });
       return;
     }
     if (result && result.path) {
@@ -78,7 +78,7 @@ export function initLog(root) {
         ? `Go (${result.tracking || 'native'}/${result.backend || '?'})`
         : 'Python';
       push({ time: new Date().toLocaleTimeString(), level: 'INFO',
-        message: `Generierung fertig [${pipe}]: ${result.path}` });
+        message: `Generation finished [${pipe}]: ${result.path}` });
     }
   });
 
@@ -87,7 +87,7 @@ export function initLog(root) {
     entries = [];
     ClearLogEntries().catch(() => {});
     render();
-    el('#log-status').textContent = 'Geleert.';
+    el('#log-status').textContent = 'Cleared.';
   });
   el('#log-open-folder').addEventListener('click', () => {
     OpenLogFolder().catch(err => { el('#log-status').textContent = String(err); });
@@ -105,7 +105,7 @@ export function initLog(root) {
         sel.addRange(range);
         document.execCommand('copy');
       }
-      el('#log-status').textContent = 'Kopiert.';
+      el('#log-status').textContent = 'Copied.';
     } catch (err) {
       // Fallback: select all so user can Cmd/Ctrl+C
       const range = document.createRange();
@@ -113,7 +113,7 @@ export function initLog(root) {
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      el('#log-status').textContent = 'Markiert — bitte Cmd/Strg+C.';
+      el('#log-status').textContent = 'Selected — press Cmd/Ctrl+C.';
     }
   });
 }

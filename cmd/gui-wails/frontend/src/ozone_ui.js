@@ -8,20 +8,20 @@ export function enhancePlaybackOZone(root) {
   const suggestBtn = document.createElement('button');
   suggestBtn.id = 'pb-ozone-suggest';
   suggestBtn.type = 'button';
-  suggestBtn.textContent = 'O-Zone vorschlagen';
+  suggestBtn.textContent = 'Suggest O-zone';
   oRow.appendChild(suggestBtn);
 
   const invertBtn = document.createElement('button');
   invertBtn.id = 'pb-polarity-invert';
   invertBtn.type = 'button';
-  invertBtn.textContent = 'Richtung prüfen / umkehren';
+  invertBtn.textContent = 'Check / invert direction';
   oRow.appendChild(invertBtn);
 
   const ringBtn = document.createElement('button');
   ringBtn.id = 'pb-ringdown';
   ringBtn.type = 'button';
   ringBtn.textContent = 'Ring-down';
-  ringBtn.title = 'Gedämpfte Halbzyklen nach aktueller Position anhängen und speichern';
+  ringBtn.title = 'Append damped half-cycles after current position and save';
   oRow.appendChild(ringBtn);
 
   const status = document.createElement('span');
@@ -34,13 +34,13 @@ export function enhancePlaybackOZone(root) {
     try {
       const zone = await ApplySuggestedOZone();
       if (!zone || !zone.ok) {
-        status.textContent = zone && zone.reason ? zone.reason : 'kein Vorschlag';
+        status.textContent = zone && zone.reason ? zone.reason : 'no suggestion';
         return;
       }
       status.textContent = zone.reason;
       window.dispatchEvent(new CustomEvent('ozone:suggested', { detail: zone }));
     } catch (err) {
-      uiError('O-Zone: ' + err, status);
+      uiError('O-zone: ' + err, status);
     }
   });
 
@@ -51,13 +51,13 @@ export function enhancePlaybackOZone(root) {
       const msg = (hint && hint.reason) || '';
       if (hint && hint.suggestInvert) {
         await InvertLoadedScript();
-        status.textContent = 'Richtung umgekehrt und gespeichert. ' + msg;
+        status.textContent = 'Direction inverted and saved. ' + msg;
         window.dispatchEvent(new CustomEvent('polarity:inverted'));
       } else {
-        status.textContent = msg || 'Richtung sieht konsistent aus.';
+        status.textContent = msg || 'Direction looks consistent.';
       }
     } catch (err) {
-      uiError('Polarität: ' + err, status);
+      uiError('Polarity: ' + err, status);
     }
   });
 
@@ -67,7 +67,7 @@ export function enhancePlaybackOZone(root) {
       const nowMs = video ? Math.round((video.currentTime || 0) * 1000) : 0;
       // Knopf-Klick = Bestätigung — kein zusätzliches Popup.
       await ApplyRingDown(nowMs, 2);
-      status.textContent = 'Ring-down nach ' + nowMs + ' ms angehängt und gespeichert.';
+      status.textContent = 'Ring-down appended after ' + nowMs + ' ms and saved.';
       window.dispatchEvent(new CustomEvent('ringdown:applied', { detail: { atMs: nowMs } }));
     } catch (err) {
       uiError('Ring-down: ' + err, status);
@@ -85,7 +85,7 @@ export function enhancePlaybackOZone(root) {
   });
 }
 
-// Vom Wiedergabe-Tab auf ozone:hotkey aufgerufen; liefert die neue Marker-Liste.
+// Vom Playback-Tab auf ozone:hotkey aufgerufen; liefert die neue Marker-Liste.
 export async function applyHotkeyOMarker(scriptPath, nowMs, existing) {
   if (!scriptPath || nowMs < 0) return existing || [];
   try {

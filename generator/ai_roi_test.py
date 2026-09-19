@@ -107,6 +107,38 @@ def main():
     check("keine Detektion -> (None, None) statt Absturz",
           ai_roi.select_two_best_boxes([], 100, 100) == (None, None), "")
 
+    # --- class-aware: preferred_class_ids filters when matches exist --------
+    mixed = [
+        {"x0": 0.10, "y0": 0.10, "x1": 0.20, "y1": 0.20, "confidence": 0.99, "class_id": 0},
+        {"x0": 0.60, "y0": 0.30, "x1": 0.80, "y1": 0.50, "confidence": 0.70, "class_id": 1},
+    ]
+    box_pref = ai_roi.select_best_box(mixed, frame_w=1000, frame_h=1000,
+                                       preferred_class_ids=[1])
+    check("preferred_class_ids wählt Klasse 1 trotz niedrigerer Konfidenz",
+          box_pref == (600, 300, 200, 200), str(box_pref))
+
+    box_fallback = ai_roi.select_best_box(mixed, frame_w=1000, frame_h=1000,
+                                           preferred_class_ids=[9])
+    check("preferred ohne Treffer fällt ehrlich auf alle Detektionen zurück",
+          box_fallback == (100, 100, 100, 100), str(box_fallback))
+
+    two_class = [
+        {"x0": 0.05, "y0": 0.05, "x1": 0.15, "y1": 0.15, "confidence": 0.95, "class_id": 0},
+        {"x0": 0.08, "y0": 0.40, "x1": 0.18, "y1": 0.50, "confidence": 0.90, "class_id": 0},
+        {"x0": 0.70, "y0": 0.70, "x1": 0.80, "y1": 0.80, "confidence": 0.60, "class_id": 1},
+    ]
+    b1c, b2c = ai_roi.select_two_best_boxes(
+        two_class, frame_w=1000, frame_h=1000, preferred_class_ids=[0, 1])
+    check("zwei bevorzugte Klassen: box2 nimmt die andere Klasse, nicht denselben Typ",
+          b2c == (700, 700, 100, 100), str((b1c, b2c)))
+
+    ids = ai_roi.resolve_preferred_class_ids(
+        "hand,breast", {"hand": 0, "Breast": 1, "penis": 2})
+    check("resolve_preferred_class_ids mappt Namen case-insensitive",
+          ids == [0, 1], str(ids))
+    check("resolve_preferred_class_ids akzeptiert numerische IDs",
+          ai_roi.resolve_preferred_class_ids("0,2") == [0, 2], "")
+
     # --- available(): ehrliche Antwort ohne onnxruntime/Modell ---------------
     check("available() meldet False ohne Modell/Laufzeit unter erfundenem Pfad",
           ai_roi.available(model_path="/nicht/vorhanden.onnx") is False, "")

@@ -1925,6 +1925,13 @@ def main():
     ap.add_argument("--ai-model-path", default=None, metavar="DATEI",
                     help="Pfad zur .onnx-Regionsmodell-Datei für --roi-finder ai. Ohne "
                          "Angabe der plattformübliche Modellordner (siehe ai_roi.default_model_path).")
+    ap.add_argument("--ai-preferred-classes", default=None, metavar="LISTE",
+                    help="Comma-separated class names or ids for --roi-finder ai "
+                         "(e.g. hand,breast or 0,1). Names resolve via --ai-classes-json.")
+    ap.add_argument("--ai-classes-json", default=None, metavar="PFAD",
+                    help="classes.json (or its dataset directory) for name→id "
+                         "when using --ai-preferred-classes. Default: next to "
+                         "--ai-model-path if present.")
     ap.add_argument("--cache-dir", default=None,
                     help="Verzeichnis für zwischengespeicherte Trackingergebnisse. "
                          "Ohne Angabe wird ein plattformüblicher Ort verwendet.")
@@ -2413,9 +2420,19 @@ def process_one(args, ap):
         if args.roi_finder == "ai":
             import ai_roi
 
-            def roi_finder(path, start, end):
+            _ai_pref = None
+            if getattr(args, "ai_preferred_classes", None):
+                _reg_path = args.ai_classes_json
+                if not _reg_path and args.ai_model_path:
+                    _reg_path = os.path.dirname(os.path.abspath(args.ai_model_path))
+                _reg = ai_roi.load_class_registry(_reg_path) if _reg_path else {}
+                _ai_pref = ai_roi.resolve_preferred_class_ids(
+                    args.ai_preferred_classes, _reg)
+
+            def roi_finder(path, start, end, _pref=_ai_pref):
                 return ai_roi.find_roi(path, start_frame=start, end_frame=end,
-                                       report_progress=False, model_path=args.ai_model_path)
+                                       report_progress=False, model_path=args.ai_model_path,
+                                       preferred_class_ids=_pref)
         (timestamps_ms, y_positions, frame_size, scene_cuts,
          track_stats, scene_ranges) = track_by_scenes(
             args.video, roi, max_frames=args.max_frames,

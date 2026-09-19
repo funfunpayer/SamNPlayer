@@ -23,14 +23,22 @@ func TestBuildBootstrapArgsSingleRegion(t *testing.T) {
 
 func TestBuildBootstrapArgsStartSeconds(t *testing.T) {
 	regions := []RoiTrainingRegion{{ROI: ROI{X: 1, Y: 2, W: 3, H: 4}, ClassName: "brust"}}
-	args := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 4.5)
+	args := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 4.5, 1.0)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "--start-seconds 4.500") {
 		t.Errorf("start-seconds fehlt in: %s", joined)
 	}
-	args0 := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 0)
+	args0 := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 0, 1.0)
 	if strings.Contains(strings.Join(args0, " "), "--start-seconds") {
 		t.Errorf("start-seconds bei 0 unerwartet: %v", args0)
+	}
+	argsScale := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 0, 1.15)
+	if !strings.Contains(strings.Join(argsScale, " "), "--box-scale 1.150") {
+		t.Errorf("box-scale fehlt in: %v", argsScale)
+	}
+	argsDefaultScale := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 0, 1.0)
+	if strings.Contains(strings.Join(argsDefaultScale, " "), "--box-scale") {
+		t.Errorf("box-scale bei 1.0 unerwartet: %v", argsDefaultScale)
 	}
 }
 

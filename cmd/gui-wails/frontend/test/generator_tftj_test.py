@@ -75,7 +75,7 @@ def main():
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
         page.mouse.up()
         page.wait_for_function(
-            "!document.querySelector('#gen-roi-label').textContent.includes('Keine')", timeout=5000)
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')", timeout=5000)
         check("1. Region gesetzt", True)
         check("Profil bleibt 'standard' nach nur einer Region",
               page.locator("#gen-profile").input_value() == "standard",

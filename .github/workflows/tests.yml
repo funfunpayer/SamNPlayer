@@ -36,7 +36,7 @@ jobs:
       # missing — so the Go job stayed green in CI while the same test
       # reliably caught FrameReader.Close bugs locally. Without ffmpeg the
       # whole video path is untested in CI.
-      - name: ffmpeg installieren
+      - name: Install ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
@@ -49,19 +49,19 @@ jobs:
       # Checkout mit "pattern all:frontend/dist: no matching files found".
       #
       # Genau daran ist der erste Testklon dieses Projekts gescheitert.
-      - name: Frontend bauen
+      - name: Build frontend
         working-directory: cmd/gui-wails/frontend
         run: |
           npm install
           npm run build
 
-      - name: Formatierung prüfen
+      - name: Check formatting
         run: |
           # gofmt meldet nichts, wenn alles passt - deshalb die Ausgabe
           # auswerten statt auf den Rückgabewert zu vertrauen.
           unformatted=$(gofmt -l .)
           if [ -n "$unformatted" ]; then
-            echo "Diese Dateien sind nicht formatiert (gofmt -w <datei>):"
+            echo "These files are not gofmt-clean (gofmt -w <file>):"
             echo "$unformatted"
             exit 1
           fi
@@ -73,11 +73,11 @@ jobs:
       # Keepalive und Geräteansteuerung laufen nebenläufig, und ein
       # Datenwettlauf zeigt sich sonst als sporadisches Ruckeln, das
       # niemand reproduzieren kann.
-      - name: Tests mit Race-Detector
+      - name: Tests with race detector
         run: go test -race ./...
 
       # Regression: cgo on, no OpenCV headers — must still build (stub path).
-      - name: Build ohne OpenCV (CGO an)
+      - name: Build without OpenCV (CGO on)
         run: |
           go build ./generator/ ./cmd/cli/
           go test ./generator/ -run 'NativePipeline|NativeTracking' -count=1
@@ -95,7 +95,7 @@ jobs:
         with:
           node-version: "22"
 
-      - name: OpenCV + ffmpeg installieren
+      - name: Install OpenCV + ffmpeg
         run: |
           sudo apt-get update
           # libopencv-dev: native CSRT (-tags opencv).
@@ -104,7 +104,7 @@ jobs:
           command -v ffmpeg
           ffmpeg -version | head -1
 
-      - name: Frontend bauen
+      - name: Build frontend
         working-directory: cmd/gui-wails/frontend
         run: |
           npm install
@@ -113,7 +113,7 @@ jobs:
       - name: go vet (-tags opencv)
         run: go vet -tags opencv ./...
 
-      - name: Tests mit Race-Detector (-tags opencv)
+      - name: Tests with race detector (-tags opencv)
         run: go test -tags opencv -race ./...
 
   python:
@@ -125,13 +125,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Abhängigkeiten
+      - name: Dependencies
         run: pip install opencv-contrib-python scipy numpy
 
       # Die schnellen Tests zuerst: sie decken die Signalverarbeitung ab und
       # sind in Sekunden durch. Die Videotests laufen danach, weil sie
       # Minuten brauchen - so sieht man den häufigsten Fehler früher.
-      - name: Schnelle Tests
+      - name: Fast tests
         working-directory: generator
         run: |
           for t in backends_test.py quality_doctor_test.py device_profile_test.py \
@@ -142,7 +142,7 @@ jobs:
             python3 "$t"
           done
 
-      - name: Videobasierte Tests
+      - name: Video-based tests
         working-directory: generator
         run: |
           for t in flow_backend_test.py grid_lk_backend_test.py grid_lk_two_point_test.py \
@@ -155,7 +155,7 @@ jobs:
           done
 
   frontend:
-    name: Oberfläche
+    name: Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,7 +175,7 @@ jobs:
       # App.js. Ohne diesen Schritt fehlen dort neue Go-Methoden, und die
       # Tests scheitern mit "does not provide an export named ..." - ein
       # irreführender Fehler, der nichts mit dem Prüfgegenstand zu tun hat.
-      - name: Wails-Bindings erzeugen
+      - name: Generate Wails bindings
         run: |
           sudo apt-get update
           # ffmpeg gehört inhaltlich nicht zu den Wails-Bindings, hängt hier

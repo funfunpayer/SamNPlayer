@@ -13,32 +13,125 @@ import (
 
 // RoiTrainingAvailable prüft, ob das Trainieren eines eigenen Modells
 // grundsätzlich möglich ist - ultralytics installiert (siehe
-// requirements-ai-train.txt, bewusst NICHT Teil der Basis-Installation, da
-// es u.a. PyTorch nachzieht). Für die GUI, um den "Training starten"-Knopf
-// zu aktivieren/auszublenden, statt ihn anzubieten und dann mit einem
-// rohen ModuleNotFoundError-Traceback scheitern zu lassen - dasselbe Muster
-// wie AIRoiAvailable für die kleinere onnxruntime-Abhängigkeit. Bootstrap
-// (Datensammeln, braucht nur die Basis-Installation) ist davon nicht
-// betroffen, nur das eigentliche Trainieren.
+// requirements-ai-train.txt). Bootstrap (Datensammeln) braucht OpenCV und
+// wird separat geprüft; hier nur das eigentliche Trainieren, damit ein
+// fehlendes OpenCV den Train-Knopf nicht fälschlich sperrt, wenn ultralytics
+// bereits da ist (und umgekehrt eine klare Meldung möglich bleibt).
 func RoiTrainingAvailable() bool {
+	st := GetRoiTrainingStatus()
+	return st.Ultralytics
+}
+
+// RoiTrainingStatus beschreibt die Voraussetzungen für Bootstrap und Training.
+type RoiTrainingStatus struct {
+	Python      bool   `json:"python"`
+	OpenCV      bool   `json:"opencv"`
+	Ultralytics bool   `json:"ultralytics"`
+	Detail      string `json:"detail"`
+}
+
+// GetRoiTrainingStatus prüft Python, OpenCV-Tracker und ultralytics getrennt.
+func GetRoiTrainingStatus() RoiTrainingStatus {
+	st := RoiTrainingStatus{}
 	py, err := FindPython()
 	if err != nil {
-		return false
+		st.Detail = "Kein Python gefunden"
+		return st
 	}
-	if err := CheckDependencies(); err != nil {
-		return false
+	st.Python = true
+	if err := CheckDependencies(); err == nil {
+		st.OpenCV = true
 	}
 	mainScript, err := writeScriptToTemp()
 	if err != nil {
-		return false
+		st.Detail = "Eingebettete Skripte nicht schreibbar"
+		return st
 	}
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
 	out, err := command(py, scriptPath, "--check").Output()
-	if err != nil {
-		return false
+	if err == nil && strings.TrimSpace(string(out)) == "AVAILABLE" {
+		st.Ultralytics = true
 	}
-	return strings.TrimSpace(string(out)) == "AVAILABLE"
+	switch {
+	case st.Ultralytics && st.OpenCV:
+		st.Detail = "Bereit: Bootstrap und Training möglich"
+	case st.Ultralytics && !st.OpenCV:
+		st.Detail = "Training möglich; Bootstrap braucht opencv-contrib-python"
+	case !st.Ultralytics && st.OpenCV:
+		st.Detail = "Bootstrap möglich; Training: pip install ultralytics onnx"
+	default:
+		st.Detail = "Weder ultralytics noch OpenCV-Tracker gefunden"
+	}
+	return st
+}
+
+// InstallRoiTrainingDeps installs ultralytics+onnx via pip for the detected
+// Python. Writes the embedded requirements-ai-train.txt to a temp file first
+// so release binaries (no source tree) still work.
+func InstallRoiTrainingDeps(onProgress func(line string)) error {
+	py, err := FindPython()
+	if err != nil {
+		return err
+	}
+	req, err := pythonFiles.ReadFile("requirements-ai-train.txt")
+	if err != nil {
+		return fmt.Errorf("generator: requirements-ai-train.txt fehlt im Binary: %w", err)
+	}
+	tmp, err := os.CreateTemp("", "samn-ai-train-req-*.txt")
+	if err != nil {
+		return err
+	}
+	reqPath := tmp.Name()
+	defer os.Remove(reqPath)
+	if _, err := tmp.Write(req); err != nil {
+		tmp.Close()
+		return err
+	}
+	tmp.Close()
+	if onProgress != nil {
+		onProgress("pip install -r requirements-ai-train.txt …")
+	}
+	cmd := command(py, "-m", "pip", "install", "-r", reqPath)
+	out, err := cmd.CombinedOutput()
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		logging.Info("roitraining: pip", "zeile", line)
+		if onProgress != nil {
+			onProgress(line)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
+	}
+	if !RoiTrainingAvailable() {
+		return fmt.Errorf("generator: ultralytics nach pip install immer noch nicht verfügbar")
+	}
+	return nil
+}
+
+// WriteAIRequirementFiles writes embedded AI requirement lists into dir
+// (for users who prefer manual pip). Creates dir if needed.
+func WriteAIRequirementFiles(dir string) error {
+	if strings.TrimSpace(dir) == "" {
+		return fmt.Errorf("generator: Zielordner leer")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	for _, name := range []string{"requirements-ai.txt", "requirements-ai-train.txt", "requirements.txt"} {
+		data, err := pythonFiles.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("generator: %s: %w", name, err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RoiTrainingDevice beschreibt eine wählbare Trainingsbeschleunigung
@@ -101,13 +194,13 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
-	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, onProgress)
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress)
 }
 
 // BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
-// stride, optional audio extraction, and optional startSeconds seek.
+// stride, optional audio extraction, startSeconds seek, and boxScale pad.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
-	sampleEvery int, extractAudio bool, startSeconds float64, onProgress func(line string)) error {
+	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: mindestens eine Region nötig")
 	}
@@ -124,8 +217,11 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 	}
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "bootstrap_yolo_dataset.py")
+	if boxScale <= 0 {
+		boxScale = 1.0
+	}
 
-	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds),
+	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
 		"roi_training", onProgress, nil); err != nil {
 		return err
 	}
@@ -215,10 +311,10 @@ func runPythonScript(py string, args []string, logPrefix string,
 // - reine Funktionen, testbar ohne Python/Subprozess. Eine Option, die hier
 // nicht ankommt, ist schlimmer als keine (vgl. args_test.go).
 func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string) []string {
-	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12, 0)
+	return buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, 12, 0, 1.0)
 }
 
-func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds float64) []string {
+func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds, boxScale float64) []string {
 	args := []string{scriptPath,
 		"--video", videoPath,
 		"--roi", roiArg(regions[0].ROI),
@@ -233,6 +329,9 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	}
 	if startSeconds > 0 {
 		args = append(args, "--start-seconds", fmt.Sprintf("%.3f", startSeconds))
+	}
+	if boxScale > 0 && (boxScale < 0.999 || boxScale > 1.001) {
+		args = append(args, "--box-scale", fmt.Sprintf("%.3f", boxScale))
 	}
 	if len(regions) > 1 {
 		args = append(args, "--roi2", roiArg(regions[1].ROI), "--class-name2", regions[1].ClassName)

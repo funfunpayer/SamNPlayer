@@ -26,12 +26,12 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Quellversion und Release-Tag prüfen
+      - name: Check source version and release tag
         env:
           SAMNPLAYER_RELEASE_TAG: ${{ github.ref_name }}
         run: go test ./update -run TestSourceVersion -count=1
 
-      - name: Systemabhängigkeiten (WebKitGTK für Linux-Build + mingw fürs Windows-Cross-Build + OpenCV für generator/trackcv)
+      - name: System deps (WebKitGTK, mingw, OpenCV)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
@@ -39,11 +39,11 @@ jobs:
             libopencv-dev pkg-config
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
 
-      - name: Versionsnummer aus dem Tag lesen
+      - name: Read version from tag
         id: version
         run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Linux-Binary bauen (GUI)
+      - name: Build Linux binary (GUI)
         working-directory: cmd/gui-wails
         run: |
           # opencv tag enables generator/trackcv native CSRT; Windows stays
@@ -52,13 +52,13 @@ jobs:
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer ../../SamNPlayer-gui-linux-amd64
 
-      - name: Linux-Binary bauen (CLI)
+      - name: Build Linux binary (CLI)
         run: |
           go build -trimpath -tags opencv \
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-linux-amd64 ./cmd/cli
 
-      - name: Windows-Binary cross-kompilieren (GUI)
+      - name: Cross-compile Windows binary (GUI)
         working-directory: cmd/gui-wails
         env:
           GOOS: windows
@@ -68,7 +68,7 @@ jobs:
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer.exe ../../SamNPlayer-gui-windows-amd64.exe
 
-      - name: Windows-Binary cross-kompilieren (CLI)
+      - name: Cross-compile Windows binary (CLI)
         env:
           GOOS: windows
           GOARCH: amd64
@@ -77,10 +77,10 @@ jobs:
           go build -trimpath -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
 
-      - name: Tests laufen lassen (nur Nicht-GUI-Pakete)
+      - name: Run tests (non-GUI packages)
         run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/...
 
-      - name: Prüfsummen erzeugen
+      - name: Generate checksums
         run: |
           sha256sum \
             SamNPlayer-gui-linux-amd64 \
@@ -90,7 +90,7 @@ jobs:
             > checksums.txt
           cat checksums.txt
 
-      - name: Release veröffentlichen
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |

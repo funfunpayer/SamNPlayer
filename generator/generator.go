@@ -18,7 +18,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
-//go:embed *.py requirements.txt
+//go:embed *.py requirements.txt requirements-ai.txt requirements-ai-train.txt
 var pythonFiles embed.FS
 
 //go:embed requirements.txt
@@ -293,24 +293,36 @@ func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onP
 	return findTwoROIsViaScript("auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
 }
 
-// FindROIAIWithProgress ist die KI-Variante von FindROIWithProgress: gleicher
-// Vertrag (stdout "ROI x y w h", stderr Fortschritt/Log), aber ai_roi.py
-// (lokales ONNX-Modell) statt auto_roi.py (Rhythmus-Heuristik ohne Modell).
-// modelPath == "" nutzt ai_roi.defaultModelPath() (siehe dort).
-func FindROIAIWithProgress(videoPath, modelPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+// FindROIAIWithProgress is the AI variant of FindROIWithProgress: same
+// stdout/stderr contract, but ai_roi.py (local ONNX) instead of auto_roi.py.
+// modelPath == "" uses ai_roi.default_model_path(). preferredClasses is a
+// comma-separated list of names or ids (empty = no class filter).
+func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
 	var extraArgs []string
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
 	}
+	if preferredClasses != "" {
+		extraArgs = append(extraArgs, "--preferred-classes", preferredClasses)
+		if modelPath != "" {
+			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
+		}
+	}
 	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
-// FindTwoROIsAIWithProgress ist die KI-Variante von FindTwoROIsWithProgress
-// (ai_roi.py --two). roi2 darf leer sein, wenn kein zweites Objekt gefunden.
-func FindTwoROIsAIWithProgress(videoPath, modelPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+// FindTwoROIsAIWithProgress is the AI variant of FindTwoROIsWithProgress
+// (ai_roi.py --two). roi2 may be empty when no second object was found.
+func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
 	extraArgs := []string{"--two"}
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
+	}
+	if preferredClasses != "" {
+		extraArgs = append(extraArgs, "--preferred-classes", preferredClasses)
+		if modelPath != "" {
+			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
+		}
 	}
 	return findTwoROIsViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }

@@ -31,13 +31,6 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 		return "", fmt.Errorf("generator: Bild zu klein (%dx%d)", w, h)
 	}
 
-	if err := os.MkdirAll(filepath.Join(outputDir, "images", "train"), 0o755); err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(filepath.Join(outputDir, "labels", "train"), 0o755); err != nil {
-		return "", err
-	}
-
 	registry, err := loadClassRegistry(outputDir)
 	if err != nil {
 		return "", err
@@ -70,12 +63,26 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 		base := strings.TrimSuffix(filepath.Base(imagePath), filepath.Ext(imagePath))
 		prefix = "still_" + sanitizeStem(base)
 	}
+
+	// Alternate into val when train already has samples — empty val breaks
+	// ultralytics (data.yaml points at images/val).
+	split := "train"
+	if shouldUseValSplit(outputDir) {
+		split = "val"
+	}
+	if err := os.MkdirAll(filepath.Join(outputDir, "images", split), 0o755); err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Join(outputDir, "labels", split), 0o755); err != nil {
+		return "", err
+	}
+
 	stem := fmt.Sprintf("%s_000000", prefix)
 	ext := strings.ToLower(filepath.Ext(imagePath))
-	dstImg := filepath.Join(outputDir, "images", "train", stem+ext)
+	dstImg := filepath.Join(outputDir, "images", split, stem+ext)
 	needConvert := ext != ".jpg" && ext != ".jpeg" && ext != ".png"
 	if needConvert {
-		dstImg = filepath.Join(outputDir, "images", "train", stem+".jpg")
+		dstImg = filepath.Join(outputDir, "images", split, stem+".jpg")
 		if err := convertStillToJPEG(imagePath, dstImg); err != nil {
 			return "", err
 		}
@@ -84,12 +91,44 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 			return "", err
 		}
 	}
-	lbl := filepath.Join(outputDir, "labels", "train", stem+".txt")
+	lbl := filepath.Join(outputDir, "labels", split, stem+".txt")
 	if err := os.WriteFile(lbl, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		return "", err
 	}
 	_ = writeDataYAMLFromRegistry(outputDir, registry)
 	return prefix, nil
+}
+
+// shouldUseValSplit puts roughly every 6th still into val when train already
+// has material, so still-only datasets are not val-empty.
+func shouldUseValSplit(outputDir string) bool {
+	trainN := countImages(filepath.Join(outputDir, "images", "train"))
+	valN := countImages(filepath.Join(outputDir, "images", "val"))
+	if trainN == 0 {
+		return false // first sample always train
+	}
+	if valN == 0 && trainN >= 1 {
+		return true // guarantee at least one val after the first train
+	}
+	return (trainN+valN)%6 == 5
+}
+
+func countImages(dir string) int {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, e := range ents {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+			n++
+		}
+	}
+	return n
 }
 
 // stillImageSize returns pixel size for JPEG/PNG via stdlib, or via ffmpeg

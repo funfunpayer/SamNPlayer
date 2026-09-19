@@ -5,27 +5,27 @@ import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
   root.innerHTML = `
-    <h2>Skript erzeugen</h2>
+    <h2>Generate script</h2>
     <p class="hint" style="margin-top:0">
-      Die KI (ONNX) findet nur die <b>Start-Region</b>. Das Funscript entsteht danach durch Tracking.
-      Modell trainieren unter <b>KI-Train.</b> — dann hier „KI-Erkennung“ anhaken → Region finden → Box prüfen → Generieren.
+      The AI (ONNX) finds the <b>start region</b> only. The Funscript is created afterward by tracking.
+      Train a model under <b>AI Train</b> — then enable <b>AI detection (ONNX)</b> here → find region → verify box → generate.
     </p>
     <div class="row">
-      <button id="gen-choose">Video wählen...</button>
-      <span class="path-label" id="gen-video-path">Kein Video gewählt</span>
-      <button id="gen-check-deps">Abhängigkeiten prüfen</button>
+      <button id="gen-choose">Choose video…</button>
+      <span class="path-label" id="gen-video-path">No video selected</span>
+      <button id="gen-check-deps">Check dependencies</button>
     </div>
     <div class="row" style="align-items:center;">
       <button id="gen-autoroi" class="primary" disabled
-        data-help="Findet eine Startregion über Bewegung im Bild (bei Tf/Tj beide Regionen als Vorschlag). Danach kannst du die Box von Hand korrigieren — nie stillschweigend übernommen.">Region automatisch finden</button>
+        data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
         <label for="gen-ai-roi" style="width:auto"
-          data-help="Nutzt ein lokales ONNX-Modell statt der klassischen Bewegungssuche. Braucht ein trainiertes Modell unter Einstellungen → KI-Regionserkennung. Bleibt aus, wenn onnxruntime oder die Modelldatei fehlen.">KI-Erkennung (ONNX)</label></span>
+          data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
     </div>
-    <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analysiert die Bewegung im Video - danach lässt sich die Region trotzdem von Hand korrigieren.</p>
+    <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand.</p>
 
     <div class="row" style="align-items:center; margin:4px 0;">
-      <label style="width:auto;" data-help="Bei schwarzem Clip-Anfang vorspulen, bevor du die Region markierst.">Zeit (s)</label>
+      <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
       <input type="number" id="gen-seek" value="0" min="0" step="0.5" style="width:5em;" disabled />
       <button id="gen-seek-btn" type="button" disabled>Frame</button>
       <button id="gen-seek-plus" type="button" disabled>+1s</button>
@@ -34,53 +34,53 @@ export function initGenerator(root, playback) {
     <div id="roi-canvas-wrap">
       <canvas id="roi-canvas"></canvas>
     </div>
-    <div class="path-label" id="gen-roi-label">Keine Region markiert</div>
+    <div class="path-label" id="gen-roi-label">No region marked</div>
     <div class="row" style="align-items:center; margin-top:6px;">
       <button id="gen-roi2-toggle" type="button"
-        data-help="Zweite Region (gold) für Tf/Tj: Abstand zwischen beiden steuert den Hub, Sog folgt der Position. Auch per Shift+Ziehen.">2. Region</button>
-      <span class="hint" id="gen-roi2-hint" style="margin:0">Für Tf/Tj nötig.</span>
+        data-help="Second region (gold) for Tf/Tj: distance between both drives stroke; suction follows position. Also via Shift+drag.">2. Region</button>
+      <span class="hint" id="gen-roi2-hint" style="margin:0">Required for Tf/Tj.</span>
     </div>
-    <div class="path-label" id="gen-roi2-label">Keine 2. Region markiert</div>
+    <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
     <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
     <div class="row" style="align-items:center;">
-      <label style="width:auto;" data-help="Standard = klassische Hubbewegung. Weiches Gewebe filtert Nachschwingen. Autotune = Detrend+Bandpass+Speed-Cap (FunGen/Flow-inspiriert). Tf/Tj braucht zwei Regionen.">Bewegungsart</label>
+      <label style="width:auto;" data-help="Default = classic stroke motion. Soft tissue filters ringing. Autotune = detrend+bandpass+speed cap (FunGen/Flow-inspired). Tf/Tj needs two regions.">Motion type</label>
       <select id="gen-profile">
-        <option value="standard">Hubbewegung (Standard)</option>
-        <option value="weich">Weiches Gewebe (schwingt nach)</option>
-        <option value="autotune">Autotune (Detrend + Bandpass + Speed)</option>
-        <option value="tf">Tf/Tj (Abstand + Sog)</option>
+        <option value="standard">Stroke motion (default)</option>
+        <option value="weich">Soft tissue (rings)</option>
+        <option value="autotune">Autotune (detrend + bandpass + speed)</option>
+        <option value="tf">Tf/Tj (distance + suction)</option>
       </select>
     </div>
     <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-      <strong>Workflow-Tipp:</strong> mehrere Stufen statt einer Methode —
+      <strong>Workflow tip:</strong> several stages instead of one method —
       1)&nbsp;Flow-Scout (schnell, keine ROI) →
       2)&nbsp;CSRT mit ROI (KI schlägt nur die Region vor) →
-      3)&nbsp;Autotune (Detrend + Bandpass + Speed) →
-      4)&nbsp;optional Tonspur-Tempo prüfen (Erweitert).
+      3)&nbsp;Autotune (detrend + bandpass + speed) →
+      4)&nbsp;optional audio tempo check (Advanced).
     </p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-      Zwei Regionen markieren. Abstand steuert Hub; Sog folgt der Position.
-      Kontakt-Vibration wird standardmäßig mit erzeugt (Stärke = Nähe wie Berührung) und lässt sich danach in der Wiedergabe feinjustieren.
+      Mark two regions. Distance drives stroke; suction follows position.
+      Contact vibration is generated by default (strength = proximity like contact) and can be fine-tuned in Playback afterward.
     </p>
     <div id="gen-contact-vibration-wrap" style="display:none;">
       <div class="checkbox-row" id="gen-contact-vibration-row">
         <input type="checkbox" id="gen-contact-vibration" checked />
         <label for="gen-contact-vibration"
-          data-help="Zusätzliche Vibration, wenn ROI1 nahe an ROI2 kommt. Stärke folgt dem gemessenen Abstand — wie eine Berührung, kein fester Impuls. Standard an bei Tf/Tj; abwählbar.">Kontakt-Vibration (automatisch bei Tf/Tj)</label>
+          data-help="Extra vibration when ROI1 nears ROI2. Strength follows measured distance — contact-like, not a fixed pulse. On by default for Tf/Tj; optional.">Contact vibration (automatic for Tf/Tj)</label>
       </div>
       <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
         <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="Niedriger = früher an (größeres Kontaktfenster). Höher = nur tief (nur nahe am Minimumabstand). Default 0,75 = oberstes Viertel des Videosignals.">Empfindlichkeit</label>
+          <label style="width:auto;" data-help="Lower = engages earlier (wider contact window). Higher = deep only (near minimum distance). Default 0.75 = top quarter of the video signal.">Sensitivity</label>
           <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
-          <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">nur tief</span>
+          <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">deep only</span>
         </div>
         <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="linear = Abstand 1:1. soft = weicher Einstieg (t²) — näher an „wie die Berührung“. peak = stärkerer Peak (√t).">Kurve</label>
+          <label style="width:auto;" data-help="linear = 1:1 distance. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
           <select id="gen-contact-curve">
             <option value="linear">Linear</option>
-            <option value="soft" selected>Weicher Einstieg (wie Berührung)</option>
-            <option value="peak">Stärkerer Peak</option>
+            <option value="soft" selected>Soft onset (contact-like)</option>
+            <option value="peak">Stronger peak</option>
           </select>
         </div>
       </div>
@@ -88,74 +88,74 @@ export function initGenerator(root, playback) {
 
     <div class="row" style="align-items:center;">
       <button id="gen-suggest-profile" disabled
-        data-help="Vergleicht die Bewegungssignatur zuerst mit gemerkten Szenen, optional danach mit einem lokalen KI-Server. Nur Vorschlag — nichts wird automatisch übernommen.">Profil vorschlagen</button>
+        data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
       <span class="hint" id="gen-suggest-status" style="margin:0"></span>
     </div>
     <div class="row" style="align-items:center;">
-      <input type="text" id="gen-scene-label" placeholder="Name für diese Szene (optional)" style="flex:1;" />
+      <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
       <button id="gen-label-scene" disabled
-        data-help="Speichert die Bewegungssignatur unter diesem Namen. Spätere ähnliche Videos bekommen dieses Profil als Vorschlag (klassisch gemessen, ohne KI).">Szene merken</button>
+        data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
     </div>
 
     <details id="gen-advanced" style="margin:6px 0 10px 0;">
-      <summary style="cursor:pointer;">Erweiterte Einstellungen</summary>
+      <summary style="cursor:pointer;">Advanced settings</summary>
       <div style="margin-top:8px;">
         <div class="opt-group">Tracking</div>
         <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-          data-help="Dreht die Bewegungsrichtung um (Polarität). Oft der Unterschied zu FunGen — kein Trackingfehler.">Bewegungsrichtung umkehren</label></div>
+          data-help="Inverts motion direction (polarity). Often the FunGen difference — not a tracking bug.">Invert motion direction</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
-          data-help="Rechnet Kameraschwenks über Hintergrundmerkmale heraus. Empfohlen bei bewegter Kamera.">Kamerabewegungs-Kompensation</label></div>
+          data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
-          data-help="Erkennt harte Schnitte und verankert den Tracker danach neu.">Szenenschnitt-Erkennung</label></div>
+          data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
         <div class="row" style="align-items:center;">
-          <label style="width:auto;" data-help="CSRT: robust, gut bei Schwenks. Flow: ~1,9× schneller (nicht 4×), keine Region nötig. Gitter/Optical-Flow: ~15× schneller als CSRT, gut bei kleinen ROIs. Region-Fusion: 4 Teilregionen gewichtet. Region-Fusion Auto: wie Fusion ohne Markierung.">Tracking-Verfahren</label>
+          <label style="width:auto;" data-help="CSRT: robust, good with pans. Flow: ~1.9× faster (not 4×), no region needed. Grid/optical flow: ~15× faster than CSRT, good for small ROIs. Region fusion: 4 sub-regions weighted. Region fusion auto: fusion without marking.">Tracking method</label>
           <select id="gen-backend">
             <option value="csrt">CSRT (Standard, robust)</option>
-            <option value="flow">Flow (keine Region nötig, ~2× schneller)</option>
-            <option value="grid_lk">Gitter/Optical-Flow (braucht Region wie CSRT, ca. 15x schneller)</option>
-            <option value="region_fusion">Region-Fusion (4 Teilregionen, gewichtet verschmolzen)</option>
-            <option value="region_fusion_auto">Region-Fusion Automatisch (4 Zonen, keine Region nötig)</option>
+            <option value="flow">Flow (no region needed, ~2× faster)</option>
+            <option value="grid_lk">Grid/optical flow (needs region like CSRT, ~15× faster)</option>
+            <option value="region_fusion">Region fusion (4 sub-regions, weighted merge)</option>
+            <option value="region_fusion_auto">Region fusion auto (4 zones, no region needed)</option>
           </select>
         </div>
-        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">Kurzhilfe über „?“ am Label — Messung in docs/NEXT.md.</p>
+        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">Short help via “?” on the label — measurements in docs/NEXT.md.</p>
 
-        <div class="opt-group">Signal &amp; Qualität</div>
+        <div class="opt-group">Signal &amp; quality</div>
         <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
-          data-help="Hebt schwache Abschnitte gleitend auf nutzbare Stärke.">Gleitende Dynamik</label></div>
+          data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl"
-          data-help="Nutzt OpenCL für Teile des Trackings, falls die Treiber es anbieten. Unabhängig vom KI-Training-Gerät (CUDA/DirectML).">GPU-Beschleunigung (OpenCL)</label></div>
+          data-help="Uses OpenCL for parts of tracking when drivers support it. Independent of AI training device (CUDA/DirectML).">GPU acceleration (OpenCL)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
-          data-help="Bei schlechter Qualität andere Signalparameter automatisch erneut versuchen.">Auto-Retry</label></div>
+          data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
-          data-help="Holt optional eine Zweitmeinung vom lokalen KI-Server. Beeinflusst den Quality-Doctor-Wert nicht.">KI-Zweitmeinung zur Qualität</label></div>
+          data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-          data-help="Vergleicht Skript-Tempo mit der Tonspur (ffmpeg). Klassisch, beeinflusst den Quality-Doctor-Wert nicht.">Skript-Tempo gegen Tonspur prüfen</label></div>
+          data-help="Compares script tempo to the audio track (ffmpeg). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
-          data-help="Schlägt O-Marker im letzten Achtel vor (höchste mittlere Position), nur wenn das Ende deutlich hoch liegt. Klassisch aus dem Signal, kein KI-Modell.">O-Marker automatisch vorschlagen</label></div>
+          data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
 
         <div class="opt-group">Keyframes</div>
-        <div class="field-row"><label data-help="Beide Achsen werden verfolgt; Automatisch wählt die mit der größeren Spannweite. Nur bei klar falscher Wahl fest erzwingen.">Bewegungsachse</label>
+        <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
           <select id="gen-axis">
-            <option value="" selected>Automatisch (empfohlen)</option>
-            <option value="x">Waagerecht erzwingen</option>
-            <option value="y">Senkrecht erzwingen</option>
+            <option value="" selected>Automatic (recommended)</option>
+            <option value="x">Force horizontal</option>
+            <option value="y">Force vertical</option>
           </select>
         </div>
         <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
-          data-help="Setzt zusätzliche Keyframes bei asymmetrischen Bewegungen.">Adaptive Keyframes</label></div>
+          data-help="Adds extra keyframes for asymmetric motion.">Adaptive Keyframes</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
-          data-help="Sucht nach jedem Schnitt die Region neu. Besser bei stark geschnittenem Material, dauert länger.">Region nach jedem Schnitt neu suchen</label></div>
-        <div class="field-row"><label data-help="Fensterbreite der Signalglättung in Frames. Größer = ruhiger, aber träger.">Glättungs-Fenster</label><input type="number" id="gen-smooth" value="11" /></div>
-        <div class="field-row"><label data-help="Mindestabstand zwischen zwei Keyframes in Millisekunden.">Min. Keyframe-Abstand (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
-        <div class="field-row"><label data-help="Ramer-Douglas-Peucker-Toleranz zum Ausdünnen. 0 = aus.">RDP-Toleranz (0 = aus)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
-        <div class="field-row"><label data-help="Max. Positionsänderung pro Sekunde (0–100-Skala). 0 = aus. Schützt das Gerät. Autotune setzt 400.">Max. Speed (0 = aus)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-        <div class="field-row"><label data-help="Nur Optical-Flow-Backend: Frame-Skalierung (0.5 = halb, deutlich schneller). 0 oder 1 = voll.">Flow-Downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
+          data-help="Re-searches region after each cut. Better for heavily edited material, slower.">Re-find region after each cut</label></div>
+        <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
+        <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+        <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+        <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+        <div class="field-row"><label data-help="Optical-flow backend only: frame scale (0.5 = half, much faster). 0 or 1 = full.">Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
       </div>
     </details>
 
     <div class="row">
-      <button id="gen-generate" class="primary" disabled>Funscript generieren</button>
-      <button id="gen-cancel" type="button" disabled>Abbrechen</button>
+      <button id="gen-generate" class="primary" disabled>Generate Funscript</button>
+      <button id="gen-cancel" type="button" disabled>Cancel</button>
     </div>
     <div class="path-label" id="gen-status"></div>
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
@@ -168,24 +168,24 @@ export function initGenerator(root, playback) {
     </div>
     <div id="gen-feedback" style="display:none; margin-top:10px; padding:10px;
          border:1px solid var(--border); border-radius:4px;">
-      <div style="margin-bottom:6px;">War das Ergebnis brauchbar? Dein Urteil hilft,
-        die Qualitätsbewertung an echtem Material zu justieren.</div>
+      <div style="margin-bottom:6px;">Was the result usable? Your rating helps
+        tune quality scoring on real material.</div>
       <div class="row">
-        <button data-verdict="brauchbar">brauchbar</button>
-        <button data-verdict="grenzwertig">grenzwertig</button>
-        <button data-verdict="unbrauchbar">unbrauchbar</button>
+        <button data-verdict="brauchbar">usable</button>
+        <button data-verdict="grenzwertig">borderline</button>
+        <button data-verdict="unbrauchbar">unusable</button>
       </div>
-      <input type="text" id="gen-fb-comment" placeholder="Kommentar (optional) - z.B. was genau nicht gepasst hat"
+      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) — e.g. what did not fit"
              style="width:100%; margin-top:8px;" />
       <div id="gen-fb-status" class="hint" style="margin-top:6px;"></div>
     </div>
     <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
     <p class="hint">
-      Klassisches CV-Tracking. Eine Region + CSRT und Tf/Tj (zwei Regionen)
-      laufen in Go ohne Python — kein Soft-Fallback. Backend und Profil werden
-      aus den Markierungen automatisch vorbelegt (änderbar unter Erweitert).
-      Andere Backends, KI- und Audio-Extras brauchen weiterhin Python.
+      Classic CV tracking. One region + CSRT and Tf/Tj (two regions)
+      run in Go without Python — no soft fallback. Backend and profile are
+      prefilled from marks (change under Advanced).
+      Other backends and AI/audio extras still need Python.
     </p>
   `;
 
@@ -198,8 +198,8 @@ export function initGenerator(root, playback) {
   let videoPath = null;
   let img = new Image();
   let nativeW = 0, nativeH = 0;
-  let roi = null; // {x,y,w,h} in Videopixeln
-  let roi2 = null; // zweite Region für Tf/Tj (Abstand + Sog)
+  let roi = null; // {x,y,w,h} in videopixeln
+  let roi2 = null; // zweite Region für Tf/Tj (distance + suction)
   let roi2Mode = false; // Knopf „2. Region“ aktiv
   let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let seekSec = 0;
@@ -219,17 +219,17 @@ export function initGenerator(root, playback) {
   // KI-Regionssuche (ai_roi.py, lokales ONNX-Modell) ist optional - ohne
   // installiertes onnxruntime oder ohne Modelldatei bleibt es bei der
   // klassischen Rhythmus-Heuristik (auto_roi.py). Einmal beim Öffnen des
-  // Tabs geprüft (kostet einen Python-Start), nicht bei jedem Videoladen.
+  // Tabs geprüft (kostet einen Python-Start), nicht bei jedem videoladen.
   function refreshAIRoiAvailability() {
     CheckAIRoiAvailable().then(available => {
       const checkbox = el('#gen-ai-roi');
       checkbox.disabled = !available;
       el('#gen-autoroi-hint').textContent = available
-        ? 'Häkchen "KI-Erkennung" setzt auf ein lokales ONNX-Objekterkennungsmodell statt der '
-          + 'Rhythmus-Heuristik. Danach lässt sich die Region trotzdem von Hand korrigieren.'
-        : 'Analysiert die Bewegung im Video (klassisch, ohne KI-Modell) - danach lässt sich die '
-          + 'Region trotzdem von Hand korrigieren. KI-Erkennung: kein lokales ONNX-Modell '
-          + 'gefunden (Einstellungen → KI-Modellpfad, oder Standardordner).';
+        ? 'Enabling “AI detection” uses a local ONNX detector instead of the '
+          + 'rhythm heuristic. You can still correct the region by hand afterward.'
+        : 'Analyzes motion in the video (classic, no AI model) — you can still '
+          + 'correct the region by hand. AI detection: no local ONNX model '
+          + 'found (Settings → AI model path, or default folder).';
     }).catch(() => {});
   }
   refreshAIRoiAvailability();
@@ -243,7 +243,7 @@ export function initGenerator(root, playback) {
     const checkbox = el('#gen-audio-check');
     checkbox.disabled = !available;
     if (!available) {
-      checkbox.title = 'ffmpeg wurde nicht auf dem PATH gefunden';
+      checkbox.title = 'ffmpeg was not found on PATH';
     }
   }).catch(() => {});
 
@@ -257,10 +257,10 @@ export function initGenerator(root, playback) {
   function updateRoiLabels() {
     el('#gen-roi-label').textContent = roi
       ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`
-      : 'Keine Region markiert';
+      : 'No region marked';
     el('#gen-roi2-label').textContent = roi2
       ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, gold)`
-      : 'Keine 2. Region markiert';
+      : 'No 2nd region marked';
 
     // Zwei-Punkt-Messung (2. Region gesetzt) hat einen eigenen Pfad in
     // generate_funscript.py, der weder die Schnitt-Neuerkennung noch das
@@ -271,20 +271,20 @@ export function initGenerator(root, playback) {
     perScene.disabled = twoPoint;
     if (twoPoint) perScene.checked = false;
     perScene.title = twoPoint
-      ? 'Bei Zwei-Punkt-Messung (2. Region gesetzt) nicht verfügbar - die Region wird dort nicht neu gesucht.'
+      ? 'Not available for two-point measurement (2nd region set) — region is not re-searched there.'
       : '';
     const flowOption = el('#gen-backend').querySelector('option[value="flow"]');
     flowOption.disabled = twoPoint;
-    flowOption.title = twoPoint ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Tracker/keine Region).' : '';
+    flowOption.title = twoPoint ? 'Not available for two-point measurement (no tracker/no region).' : '';
     const regionFusionOption = el('#gen-backend').querySelector('option[value="region_fusion"]');
     regionFusionOption.disabled = twoPoint;
     regionFusionOption.title = twoPoint
-      ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Zwei-Punkt-Pfad für dieses Verfahren) - CSRT wird stattdessen verwendet.'
+      ? 'Not available for two-point measurement (no two-point path for this method) — CSRT is used instead.'
       : '';
     const regionFusionAutoOption = el('#gen-backend').querySelector('option[value="region_fusion_auto"]');
     regionFusionAutoOption.disabled = twoPoint;
     regionFusionAutoOption.title = twoPoint
-      ? 'Bei Zwei-Punkt-Messung nicht verfügbar (kein Zwei-Punkt-Pfad für dieses Verfahren) - CSRT wird stattdessen verwendet.'
+      ? 'Not available for two-point measurement (no two-point path for this method) — CSRT is used instead.'
       : '';
     if (twoPoint && ['flow', 'region_fusion', 'region_fusion_auto'].includes(el('#gen-backend').value)) {
       el('#gen-backend').value = 'csrt';
@@ -300,7 +300,7 @@ export function initGenerator(root, playback) {
   }
 
   function updateGenerateEnabled() {
-    // Ohne Video kein Ziel zum Generieren - bisher deckte "kein roi" das
+    // Ohne video kein Ziel zum Generieren - bisher deckte "kein roi" das
     // implizit mit ab (roi startet null), das gilt seit backendNeedsRoi()
     // für flow/region_fusion_auto nicht mehr automatisch.
     if (!videoPath) {
@@ -328,8 +328,8 @@ export function initGenerator(root, playback) {
   function updateContactSpanLabel() {
     const v = parseInt(el('#gen-contact-span').value, 10) || 75;
     const label = el('#gen-contact-span-label');
-    if (v <= 50) label.textContent = 'früher an';
-    else if (v >= 85) label.textContent = 'nur tief';
+    if (v <= 50) label.textContent = 'earlier';
+    else if (v >= 85) label.textContent = 'deep only';
     else label.textContent = (v / 100).toFixed(2);
   }
 
@@ -351,8 +351,8 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     if (tftj && videoPath) {
       el('#gen-status').textContent = roi2
-        ? 'Tf/Tj: beide Regionen gesetzt — generieren möglich.'
-        : 'Tf/Tj (Abstand + Sog): zweite Region markieren (Shift+Ziehen oder „2. Region“).';
+        ? 'Tf/Tj: both regions set — ready to generate.'
+        : 'Tf/Tj (distance + suction): mark 2nd region (Shift+drag or “2. Region”).';
     }
   }
 
@@ -434,7 +434,7 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     autoApplyPipeline();
     if (isTfTj() && videoPath && !roi2) {
-      el('#gen-status').textContent = 'Erste Region gesetzt — jetzt 2. Region markieren (Shift+Ziehen oder „2. Region“).';
+      el('#gen-status').textContent = 'First region set — now mark 2nd region (Shift+drag or “2. Region”).';
     }
     redraw();
   });
@@ -456,13 +456,13 @@ export function initGenerator(root, playback) {
       }
       const pipe = el('#gen-pipeline-auto');
       if (pipe) {
-        pipe.textContent = (s.Reason || '') + (s.GoPath ? ' · Go-Pfad' : ' · Python-Pfad');
+        pipe.textContent = (s.Reason || '') + (s.GoPath ? ' · Go path' : ' · Python path');
       }
       updateGenerateEnabled();
     } catch (_) { /* ignore */ }
   }
 
-  // Fallengelassenes Video übernehmen. Teilt sich den Ladeweg mit der
+  // Fallengelassenes video Apply. Teilt sich den Ladeweg mit der
   // Dateiauswahl, damit beide Wege garantiert dasselbe tun.
   window.addEventListener('drop:video', e => loadVideo(e.detail.path, e.detail.extraCount || 0));
 
@@ -488,20 +488,20 @@ export function initGenerator(root, playback) {
     el('#gen-seek-plus').disabled = false;
     el('#gen-seek-plus5').disabled = false;
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
-    el('#gen-status').textContent = 'Lade Vorschau-Frame...';
+    el('#gen-status').textContent = 'Loading preview frame…';
     roi = null;
     roi2 = null;
-    // Neues Video: Pipeline-Vorschläge wieder erlauben.
+    // Neues video: Pipeline-Vorschläge wieder erlauben.
     delete el('#gen-backend').dataset.userTouched;
     delete el('#gen-profile').dataset.userTouched;
     setRoi2Mode(isTfTj());
     el('#gen-generate').disabled = true;
     updateRoiLabels();
-    // Stapelverarbeitung mehrerer Videos gibt es noch nicht - vorher wurden
-    // weitere abgelegte Videos einfach stillschweigend verworfen, ohne dass
+    // Stapelverarbeitung mehrerer videos gibt es noch nicht - vorher wurden
+    // more dropped videos einfach stillschweigend verworfen, ohne dass
     // sichtbar war, dass überhaupt mehr als eins ankam.
     const batchNote = extraCount > 0
-      ? ` (${extraCount} weitere${extraCount === 1 ? 's' : ''} abgelegte${extraCount === 1 ? 's' : ''} Video${extraCount === 1 ? '' : 's'} ignoriert - Stapelverarbeitung gibt es noch nicht)`
+      ? ` (${extraCount} more${extraCount === 1 ? 's' : ''} dropped${extraCount === 1 ? 's' : ''} video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
     try {
       await showFrame(path, 0);
@@ -510,20 +510,20 @@ export function initGenerator(root, playback) {
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj (Abstand + Sog): erste Region ziehen, dann Shift+Ziehen oder „2. Region“ für die zweite. Bei schwarzem Anfang Zeit vorstellen.'
-        : 'Region automatisch finden lassen oder von Hand markieren (Maus ziehen). Bei schwarzem Anfang Zeit vorstellen.') + batchNote;
-      // Soft-Vorschlag: Profil nur anzeigen, nie automatisch übernehmen.
+        ? 'Tf/Tj: draw first region, then Shift+drag or “2. Region” for the second. Seek time if the start is black.'
+        : 'Find region automatically or mark by hand (drag). Seek time if the start is black.') + batchNote;
+      // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
         if (!result || !videoPath || videoPath !== path) return;
         const status = el('#gen-suggest-status');
-        const via = result.via || 'Signatur';
+        const via = result.via || 'signature';
         const label = result.label === 'tj' ? 'tf' : result.label;
         if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
-          status.textContent = `Vorschlag: „${label}“ (${via}) — Knopf „Profil vorschlagen“ zum Übernehmen.`;
+          status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
         }
       }).catch(() => {});
     } catch (err) {
-      uiError('Video laden: ' + err, el('#gen-status'));
+      uiError('Load video: ' + err, el('#gen-status'));
     }
   }
 
@@ -543,36 +543,36 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = `Lade Frame bei ${seekSec}s…`;
     try {
       await showFrame(videoPath, seekSec);
-      el('#gen-status').textContent = `Frame bei ${seekSec}s — Region markieren.`;
+      el('#gen-status').textContent = `Frame at ${seekSec}s — mark region.`;
     } catch (err) {
-      uiError('Seek fehlgeschlagen: ' + err, el('#gen-status'));
+      uiError('Seek failed: ' + err, el('#gen-status'));
     }
   }
 
   async function checkDeps() {
     try {
       await CheckGeneratorDependencies();
-      uiInfo('Python und benötigte Pakete sind verfügbar.', el('#gen-status'));
+      uiInfo('Python and required packages are available.', el('#gen-status'));
     } catch (err) {
-      uiError('Abhängigkeiten: ' + err, el('#gen-status'));
+      uiError('Dependencies: ' + err, el('#gen-status'));
     }
   }
 
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      el('#gen-status').textContent = 'Tf/Tj braucht eine zweite Region (Shift+Ziehen oder „2. Region“).';
+      el('#gen-status').textContent = 'Tf/Tj needs a second region (Shift+drag or “2. Region”).';
       return;
     }
 
     // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
     // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
-    // dem Video liegen haben.
+    // dem video liegen haben.
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
         const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript';
-        if (!confirm(`Es existiert bereits ein Skript:\n${target}\n\nWirklich überschreiben?`)) {
+        if (!confirm(`A script already exists:\n${target}\n\nOverwrite it?`)) {
           return;
         }
         overwrite = true;
@@ -584,7 +584,7 @@ export function initGenerator(root, playback) {
 
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
-    el('#gen-status').textContent = 'Generiere...';
+    el('#gen-status').textContent = 'Generating…';
     // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
     // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
     // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
@@ -632,7 +632,7 @@ export function initGenerator(root, playback) {
 
   el('#gen-cancel').addEventListener('click', () => {
     CancelGenerate();
-    el('#gen-status').textContent = 'Abbruch angefordert...';
+    el('#gen-status').textContent = 'Cancel requested…';
   });
 
   EventsOn('generate:progress', line => {
@@ -641,22 +641,22 @@ export function initGenerator(root, playback) {
     if (!pipe) return;
     const s = String(line);
     if (/Go-Pipeline|Go-native|simpletrack|trackcv/i.test(s)) {
-      pipe.textContent = 'Pfad: Go (ohne Python)';
+      pipe.textContent = 'Path: Go (no Python)';
     } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
-      pipe.textContent = 'Pfad: Python';
+      pipe.textContent = 'Path: Python';
     } else if (/Fallback auf Python/i.test(s)) {
-      pipe.textContent = 'Pfad: Python (Fallback)';
+      pipe.textContent = 'Path: Python (fallback)';
     }
   });
 
-  // Ergebnis der automatischen Regionssuche übernehmen - die ROI wird
+  // Ergebnis der automatischen Regionssuche Apply - die ROI wird
   // genauso gesetzt, als hätte der Nutzer sie gezogen, und lässt sich
   // danach frei korrigieren.
   EventsOn('generate:autoroi', result => {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     if (result.error) {
-      uiError('Automatische Regionssuche: ' + result.error, el('#gen-status'));
+      uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
@@ -667,26 +667,26 @@ export function initGenerator(root, playback) {
       if (!isTfTj()) el('#gen-profile').value = 'tf';
     }
     updateRoiLabels();
-    const via = result.engine === 'ai' ? 'KI-Erkennung' : 'klassisch, automatisch';
+    const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
     if (roi) {
       el('#gen-roi-label').textContent =
         `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, ${via} gefunden)`;
     }
     if (hasRoi2 && roi2) {
       el('#gen-roi2-label').textContent =
-        `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, ${via} — bitte prüfen)`;
+        `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, ${via} — please review)`;
     }
     updateProfileUi();
     updateGenerateEnabled();
     el('#gen-status').textContent = hasRoi2
-      ? `Beide Regionen gefunden (${via}) — Vorschlag, bitte prüfen/korrigieren.`
+      ? `Both regions found (${via}) — suggestion, please review/correct.`
       : (isTfTj() && !roi2
-        ? `Region gefunden (${via}) — für Tf/Tj noch die 2. Region markieren (Shift+Ziehen oder „2. Region“).`
-        : `Region gefunden (${via}) - bei Bedarf von Hand korrigieren.`);
+        ? `Region found (${via}) — for Tf/Tj mark the 2nd region (Shift+drag or “2. Region”).`
+        : `Region found (${via}) — correct by hand if needed.`);
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
-  // des Videos nicht ermittelbar war. In dem Fall wird ein unbestimmter
+  // des videos unknown war. In dem Fall wird ein unbestimmter
   // Balken gezeigt statt eines erfundenen Prozentwerts.
   let progressStartedAt = 0;
   EventsOn('generate:percent', pct => {
@@ -700,7 +700,7 @@ export function initGenerator(root, playback) {
     if (pct < 0) {
       bar.style.width = '100%';
       bar.style.opacity = '0.35';
-      text.textContent = 'Läuft... (Gesamtlänge des Videos nicht ermittelbar)';
+      text.textContent = 'Running… (could not determine video length)';
       return;
     }
     bar.style.opacity = '1';
@@ -710,7 +710,7 @@ export function initGenerator(root, playback) {
     if (pct >= 3 && elapsed > 2) {
       const total = elapsed / (pct / 100);
       const remaining = Math.max(0, Math.round(total - elapsed));
-      rest = `  ·  noch ca. ${remaining < 60 ? remaining + ' s' : Math.round(remaining / 60) + ' min'}`;
+      rest = `  ·  ~${remaining < 60 ? remaining + ' s' : Math.round(remaining / 60) + ' min'} left`;
     }
     text.textContent = `${pct} %${rest}`;
   });
@@ -738,7 +738,7 @@ export function initGenerator(root, playback) {
         status.textContent = `Danke - als "${btn.dataset.verdict}" gespeichert.`;
         el('#gen-fb-comment').value = '';
       } catch (err) {
-        status.textContent = 'Konnte nicht gespeichert werden: ' + err;
+        status.textContent = 'Could not save: ' + err;
       }
     });
   });
@@ -752,21 +752,21 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     if (result.error) {
       if (result.cancelled) {
-        el('#gen-status').textContent = 'Abgebrochen.';
+        el('#gen-status').textContent = 'Canceled.';
         return;
       }
-      el('#gen-status').textContent = 'Fehlgeschlagen: ' + result.error;
+      el('#gen-status').textContent = 'Failed: ' + result.error;
       return;
     }
     el('#gen-status').textContent = result.samPath
       ? `Fertig: ${result.path} (+ SAM-Modell)`
-      : 'Fertig: ' + result.path;
+      : 'Done: ' + result.path;
     const pipe = el('#gen-pipeline');
     if (pipe) {
       if (result.pipeline === 'go') {
         pipe.textContent = `Pfad: Go (${result.tracking || 'native'} / ${result.backend || '?'})`;
       } else {
-        pipe.textContent = 'Pfad: Python';
+        pipe.textContent = 'Path: Python';
       }
     }
     if (typeof result.oZoneMarkerStartMs === 'number') {
@@ -787,9 +787,9 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'block';
       qualityBox.style.background = ok ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       qualityBox.style.border = `1px solid ${ok ? 'var(--ok)' : 'var(--danger)'}`;
-      let html = `<b>Signal Quality (Quality Doctor): ${pct}% ${ok ? '(unauffällig)' : '(bitte prüfen)'}</b>`;
-      html += '<br><span style="opacity:0.7;">Technische Signalqualität — nicht Motion Fidelity '
-        + '(Passt die Kurve zum Video?).</span>';
+      let html = `<b>Signal Quality (Quality Doctor): ${pct}% ${ok ? '(within normal)' : '(review recommended)'}</b>`;
+      html += '<br><span style="opacity:0.7;">Technical signal quality — not motion fidelity '
+        + '(Does the curve match the video?).</span>';
       if (result.qualityWarnings && result.qualityWarnings.length > 0) {
         html += '<ul style="margin:6px 0 0 18px; padding:0;">' +
           result.qualityWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
@@ -802,7 +802,7 @@ export function initGenerator(root, playback) {
       }
       if (result.audioCheckWarnings && result.audioCheckWarnings.length > 0) {
         html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
-          + `<b>Audio-Tempo-Prüfung:</b>`
+          + `<b>Audio tempo check:</b>`
           + '<ul style="margin:6px 0 0 18px; padding:0;">'
           + result.audioCheckWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>'
           + `</div>`;
@@ -813,7 +813,7 @@ export function initGenerator(root, playback) {
     }
 
     // Fertiges Skript immer zum Anschauen/Bearbeiten laden — kein Popup.
-    el('#gen-status').textContent += ' — in Wiedergabe geladen (prüfen & anpassen).';
+    el('#gen-status').textContent += ' — loaded in Playback (review & adjust).';
     playback.loadScriptPath(result.path, { review: true });
   });
 
@@ -826,7 +826,7 @@ export function initGenerator(root, playback) {
   el('#gen-roi2-toggle').addEventListener('click', () => {
     setRoi2Mode(!roi2Mode);
     if (roi2Mode) {
-      el('#gen-status').textContent = '2. Region: Bereich im Vorschaubild ziehen (wird gold).';
+      el('#gen-status').textContent = '2nd region: drag on preview (shown in gold).';
     }
   });
   el('#gen-profile').addEventListener('change', () => {
@@ -852,9 +852,9 @@ export function initGenerator(root, playback) {
     const two = isTfTj();
     el('#gen-autoroi').disabled = true;
     el('#gen-status').textContent = useAI
-      ? (two ? 'KI sucht beide Regionen (ONNX)...' : 'KI-Regionssuche läuft (ONNX-Modell)...')
-      : (two ? 'Suche beide Regionen (Abstand/Tf/Tj-Vorschlag)...'
-        : 'Analysiere Bewegung im Video (dauert einige Sekunden)...');
+      ? (two ? 'AI searching both regions (ONNX)…' : 'AI region search running (ONNX model)…')
+      : (two ? 'Searching both regions (distance/Tf/Tj suggestion)…'
+        : 'Analyzing motion in video (may take a few seconds)…');
     const engine = useAI ? (two ? 'ai_two' : 'ai') : (two ? 'auto_two' : 'auto');
     AutoDetectROI(videoPath, engine);
   });
@@ -864,12 +864,12 @@ export function initGenerator(root, playback) {
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
     const status = el('#gen-suggest-status');
-    status.textContent = 'Vergleiche mit gemerkten Szenen...';
+    status.textContent = 'Comparing to saved scenes…';
     el('#gen-suggest-profile').disabled = true;
     try {
       const result = await SuggestProfile(videoPath);
       if (!result.found) {
-        status.textContent = 'Kein Vorschlag (keine ähnliche gemerkte Szene, kein KI-Server erreichbar).';
+        status.textContent = 'No suggestion (no similar saved scene, AI server unreachable).';
         return;
       }
       const via = result.kind === 'ai'
@@ -883,21 +883,21 @@ export function initGenerator(root, playback) {
       // stillschweigend hängenzubleiben.
       const label = result.label === 'tj' ? 'tf' : result.label;
       if (PROFILE_VALUES.includes(label)) {
-        status.textContent = `Vorschlag: "${label}" (${via}) — `;
+        status.textContent = `Suggestion: "${label}" (${via}) — `;
         const applyBtn = document.createElement('button');
-        applyBtn.textContent = 'übernehmen';
+        applyBtn.textContent = 'Apply';
         applyBtn.addEventListener('click', () => {
           el('#gen-profile').value = label;
           updateProfileUi();
-          status.textContent = `Profil "${label}" übernommen (${via}).`;
+          status.textContent = `Profile “${label}” applied (${via}).`;
         });
         status.appendChild(applyBtn);
       } else {
-        status.textContent = `Ähnlich zu gemerkter Szene "${result.label}" (${via}) - kein `
-          + 'direkter Profilname, keine automatische Übernahme.';
+        status.textContent = `Similar to saved scene “${result.label}” (${via}) — no `
+          + 'direct profile name; not applied automatically.';
       }
     } catch (err) {
-      status.textContent = 'Fehler: ' + err;
+      status.textContent = 'Error: ' + err;
     } finally {
       el('#gen-suggest-profile').disabled = false;
     }
@@ -907,15 +907,15 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     const label = el('#gen-scene-label').value.trim();
     if (!label) {
-      uiWarn('Bitte einen Namen für die Szene eingeben.', el('#gen-suggest-status'));
+      uiWarn('Enter a name for the scene.', el('#gen-suggest-status'));
       return;
     }
     el('#gen-label-scene').disabled = true;
     try {
       await LabelScene(videoPath, label);
-      el('#gen-suggest-status').textContent = `Szene als "${label}" gemerkt.`;
+      el('#gen-suggest-status').textContent = `Scene saved as "${label}".`;
     } catch (err) {
-      uiError('Szene merken: ' + err, el('#gen-suggest-status'));
+      uiError('Remember scene: ' + err, el('#gen-suggest-status'));
     } finally {
       el('#gen-label-scene').disabled = false;
     }

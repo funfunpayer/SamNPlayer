@@ -24,7 +24,7 @@ export function enhanceGeneratorPreview(root) {
     if (input && label) {
       input.id = 'gen-invert-visible';
       label.htmlFor = 'gen-invert-visible';
-      label.textContent = 'Bewegungsrichtung umkehren (Polaritaet — oft FunGen-Differenz, kein Trackingfehler)';
+      label.textContent = 'Invert motion direction (polarity — often FunGen difference, not a tracking bug)';
       input.addEventListener('change', () => {
         const orig = root.querySelector('#gen-invert');
         if (orig) orig.checked = input.checked;
@@ -49,9 +49,9 @@ export function enhanceGeneratorPreview(root) {
   function backendHintLocal(r1) {
     if (!r1) return '';
     if (r1.w * r1.h < 800 || r1.w < 24 || r1.h < 24) {
-      return 'Kleine ROI: Tracking-Verfahren Gitter/Optical-Flow ist meist robuster als CSRT.';
+      return 'Small ROI: grid/optical-flow tracking is usually more robust than CSRT.';
     }
-    return 'ROI-Groesse spricht fuer CSRT.';
+    return 'ROI size favors CSRT.';
   }
 
   async function refreshBackendHint(r1) {
@@ -60,7 +60,7 @@ export function enhanceGeneratorPreview(root) {
       const name = await SuggestBackend(r1.w, r1.h);
       if (name && typeof name === 'string') {
         if (name.toLowerCase().includes('grid') || name.toLowerCase().includes('flow') || name.toLowerCase().includes('lk')) {
-          lastBackendHint = 'SuggestBackend: ' + name + ' (kleine ROI).';
+          lastBackendHint = 'SuggestBackend: ' + name + ' (small ROI).';
         } else {
           lastBackendHint = 'SuggestBackend: ' + name + '.';
         }
@@ -73,23 +73,23 @@ export function enhanceGeneratorPreview(root) {
   function coachText(r1, r2) {
     const bits = [];
     if (r1) {
-      if (r1.w * r1.h < 400) bits.push('ROI1 ist sehr klein — Tracking verliert leicht den Halt.');
-      if (r1.x < 4 || r1.y < 4) bits.push('ROI1 klebt am Bildrand.');
+      if (r1.w * r1.h < 400) bits.push('ROI1 is very small — tracking may lose lock.');
+      if (r1.x < 4 || r1.y < 4) bits.push('ROI1 is flush with the image edge.');
       if (lastBackendHint) bits.push(lastBackendHint);
       else bits.push(backendHintLocal(r1));
     } else {
-      bits.push('ROI1 setzen: bewegter Hub, nicht nur die Spitze.');
+      bits.push('Set ROI1 on moving stroke, not just the tip.');
     }
     if (r1 && r2) {
       const dx = (r1.x + r1.w / 2) - (r2.x + r2.w / 2);
       const dy = (r1.y + r1.h / 2) - (r2.y + r2.h / 2);
-      if (Math.hypot(dx, dy) < 12) bits.push('ROI2 sitzt fast auf ROI1 — Abstandssignal wird tot.');
+      if (Math.hypot(dx, dy) < 12) bits.push('ROI2 almost on ROI1 — distance signal collapses.');
       if (Math.abs(dy) < 4 && Math.abs(dx) > 8) {
-        bits.push('ROI2 ist nur seitlich verschoben (gleiche Hoehe) — schlechter Anker.');
+        bits.push('ROI2 is only shifted sideways (same height) — poor anchor.');
       }
-      bits.push('Linie = gemessener Abstand (Tf/Tj). ROI2 soll ein Gegenpunkt sein, keine Kopie.');
+      bits.push('Line = measured distance (Tf/Tj). ROI2 should be a counter-anchor, not a copy.');
     } else if (r1 && !r2) {
-      bits.push('Fuer Tf/Tj zweiten Anker setzen — nicht ROI1 seitlich kopieren.');
+      bits.push('For Tf/Tj set a second anchor — do not copy ROI1 sideways.');
     }
     return bits.filter(Boolean).join(' ');
   }

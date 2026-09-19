@@ -142,26 +142,37 @@ def _frame_label_lines(regions_at_frame, width, height):
     return lines
 
 
+def _scaled_box_wh(roi, box_scale, frame_w, frame_h):
+    """Apply box_scale around the marked ROI size, clamped to the frame.
+    Bootstrap keeps a fixed w/h per track (tracker only moves the center);
+    a slight pad (1.05–1.2) helps YOLO learn a margin around the contact
+    region. Values <1 shrink; 1.0 is the historical default."""
+    scale = float(box_scale) if box_scale is not None else 1.0
+    if scale <= 0:
+        scale = 1.0
+    _x, _y, w, h = roi
+    w = max(8, int(round(w * scale)))
+    h = max(8, int(round(h * scale)))
+    w = min(w, max(8, int(frame_w)))
+    h = min(h, max(8, int(frame_h)))
+    return w, h
+
+
 def build_dataset(video_path, regions, output_dir, sample_every=12,
                    max_frames=None, cache_dir=None, val_fraction=0.15, seed=0,
-                   sample_prefix=None, start_frame=0):
-    """Trackt eine oder mehrere Regionen durchs Video, schreibt jeden
-    sample_every-ten Frame plus ein YOLO-Label JE Region (feste Boxgröße,
-    Mittelpunkt = getrackte Position) in output_dir.
+                   sample_prefix=None, start_frame=0, box_scale=1.0):
+    """Track one or more regions through the video; write every sample_every-th
+    frame plus one YOLO label per region (fixed box size × box_scale,
+    center = tracked position) into output_dir.
 
-    regions: Liste aus (roi, class_id)-Paaren. EINE Region wie bisher, ZWEI
-    für Tf/Tj-artigen Content (Eichel + Brustwarze/Zunge als je eigene
-    Klasse) - beide landen als zwei Zeilen in derselben Labeldatei, damit der
-    Detektor lernt, beide gleichzeitig in einem Bild zu finden, statt zwei
-    unabhängige Einzelobjekt-Modelle zu brauchen.
+    regions: list of (roi, class_id). One region as before; two for Tf/Tj-
+    style content (both as lines in the same label file).
 
-    sample_every=12 ist ein Kompromiss: bei 25fps etwa alle 0.5s ein Bild -
-    benachbarte Videoframes sind sich fast identisch, zu dichte Abtastung
-    bläht den Datensatz nur mit redundanten, stark korrelierten Beispielen
-    auf, ohne das Modell robuster zu machen.
-
-    start_frame überspringt den Intro-Abschnitt (GUI-Seek), Tracking und
-    Frame-Dump starten gemeinsam dort."""
+    sample_every=12 ≈ 0.5s at 25fps — denser sampling mostly adds correlated
+    near-duplicates. start_frame skips intro (GUI seek).
+    box_scale: multiply marked w/h (default 1.0). Prefer correcting bad
+    samples in the review UI over guessing a large scale.
+    """
     regions = [(tuple(int(v) for v in roi), class_id) for roi, class_id in regions]
     print(f"Tracke {video_path} ({len(regions)} Region(en))...", file=sys.stderr)
     tracks = []
@@ -173,6 +184,8 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
         tracks.append((roi, class_id, x_centers, y_centers))
     n = min(len(xc) for (_roi, _cid, xc, _yc) in tracks)
     print(f"{n} Frames getrackt, Videogröße {width}x{height}", file=sys.stderr)
+    if abs(float(box_scale) - 1.0) > 1e-6:
+        print(f"Box-Skalierung: {box_scale:.3f}× markierte Größe", file=sys.stderr)
 
     img_train_dir = os.path.join(output_dir, "images", "train")
     img_val_dir = os.path.join(output_dir, "images", "val")
@@ -200,10 +213,11 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
             if not ok:
                 break
             if frame_idx % sample_every == 0:
-                regions_at_frame = [
-                    (class_id, xc[frame_idx], yc[frame_idx], roi[2], roi[3])
-                    for roi, class_id, xc, yc in tracks
-                ]
+                regions_at_frame = []
+                for roi, class_id, xc, yc in tracks:
+                    bw, bh = _scaled_box_wh(roi, box_scale, width, height)
+                    regions_at_frame.append(
+                        (class_id, xc[frame_idx], yc[frame_idx], bw, bh))
                 lines = _frame_label_lines(regions_at_frame, width, height)
                 if not lines:
                     frame_idx += 1
@@ -438,6 +452,10 @@ def main():
                           "genau auf diesen Lauf eingrenzen")
     ap.add_argument("--start-seconds", type=float, default=0.0,
                      help="Überspringt die ersten N Sekunden (GUI-Seek am schwarzen Intro)")
+    ap.add_argument("--box-scale", type=float, default=1.0,
+                     help="Multiply marked ROI width/height for YOLO labels "
+                          "(1.0 = exact mark; 1.1–1.2 adds a small pad). "
+                          "Still prefer correcting boxes in the review UI.")
     args = ap.parse_args()
 
     try:
@@ -478,7 +496,8 @@ def main():
     build_dataset(args.video, regions, args.output_dir,
                   sample_every=args.sample_every, max_frames=args.max_frames,
                   cache_dir=args.cache_dir, val_fraction=args.val_fraction,
-                  sample_prefix=args.sample_prefix, start_frame=start_frame)
+                  sample_prefix=args.sample_prefix, start_frame=start_frame,
+                  box_scale=args.box_scale)
     write_data_yaml(args.output_dir)
 
 

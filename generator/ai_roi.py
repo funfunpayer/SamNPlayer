@@ -97,17 +97,31 @@ def decode_detections(raw_output, confidence_threshold=0.35):
     return detections
 
 
-def select_best_box(detections, frame_w, frame_h, min_size_px=16):
-    """Reine Funktion: Detektionsliste (normalisierte Koordinaten) ->
-    (x,y,w,h) in Pixeln der bestbewerteten Box, oder None.
+def _filter_preferred(detections, preferred_class_ids=None):
+    """If preferred_class_ids is set and at least one detection matches,
+    keep only those. Otherwise return detections unchanged (honest fallback
+    so a single-class model or an empty preference list still works)."""
+    if not detections or not preferred_class_ids:
+        return detections
+    preferred = {int(c) for c in preferred_class_ids}
+    filtered = [d for d in detections if int(d.get("class_id", -1)) in preferred]
+    return filtered if filtered else detections
 
-    Wählt schlicht die höchste Konfidenz - anders als auto_roi.py (das
-    mangels Objektbegriff mehrere Rasterzellen zusammenfassen muss) liefert
-    ein Detektor bereits eine zusammenhängende Objektbox.
+
+def select_best_box(detections, frame_w, frame_h, min_size_px=16,
+                    preferred_class_ids=None):
+    """Pure function: detection list (normalized coords) ->
+    (x,y,w,h) in pixels for the highest-confidence box, or None.
+
+    When preferred_class_ids is given and any detection matches, only those
+    classes compete; otherwise all detections are considered (so a
+    breast/hand-trained model can prefer the contact class without
+    failing when that class is absent in the frame).
     """
-    if not detections:
+    candidates = _filter_preferred(detections, preferred_class_ids)
+    if not candidates:
         return None
-    best = max(detections, key=lambda d: d["confidence"])
+    best = max(candidates, key=lambda d: d["confidence"])
     x0 = int(best["x0"] * frame_w)
     y0 = int(best["y0"] * frame_h)
     x1 = int(best["x1"] * frame_w)
@@ -133,30 +147,74 @@ def _iou(a, b):
     return inter / union if union > 0 else 0.0
 
 
-def select_two_best_boxes(detections, frame_w, frame_h, min_size_px=16, max_iou=0.3):
-    """Wie select_best_box, aber wählt bis zu ZWEI räumlich getrennte Objekte
-    statt eines - für Profile, die zwei Regionen brauchen (tf/tj).
+def select_two_best_boxes(detections, frame_w, frame_h, min_size_px=16, max_iou=0.3,
+                          preferred_class_ids=None):
+    """Like select_best_box, but picks up to TWO spatially separated objects
+    for profiles that need two regions (tf/tj).
 
-    docs/NEXT.md Priorität 3, Richtung (a): "the AI detector proposing ROI2
-    too, once it can find distinct objects instead of a rhythm-scored grid
-    cell" - anders als auto_roi.find_two_rois() (dort als "GEMESSEN
-    UNZUREICHEND" dokumentiert, weil die Rasterzellen-Heuristik keinen
-    Objektbegriff hat) kennt ein Detektor bereits zusammenhängende
-    Objektboxen; das Problem reduziert sich auf "zwei verschiedene Boxen
-    wählen" statt "Rasterzellen zu Objekten gruppieren".
-
-    Gibt (box1, box2) zurück; box2 ist None, wenn kein zweites, von box1
-    hinreichend getrenntes Objekt gefunden wurde (max_iou-Schwelle) - NIE
-    eine erfundene zweite Box. box1 ist None nur, wenn detections leer ist.
+    When preferred_class_ids has more than one id, the second box prefers a
+    *different* class from the first (e.g. hand + breast) before falling
+    back to any low-IoU candidate. Never invents a second box: box2 is None
+    when nothing sufficiently separated exists.
     """
-    if not detections:
+    candidates = _filter_preferred(detections, preferred_class_ids)
+    if not candidates:
         return None, None
-    ranked = sorted(detections, key=lambda d: d["confidence"], reverse=True)
+    ranked = sorted(candidates, key=lambda d: d["confidence"], reverse=True)
     best = ranked[0]
     box1 = select_best_box([best], frame_w, frame_h, min_size_px)
-    second = next((d for d in ranked[1:] if _iou(d, best) <= max_iou), None)
+    best_cls = int(best.get("class_id", -1))
+    # Prefer a different class when multi-class preference is active.
+    second = None
+    if preferred_class_ids and len(set(int(c) for c in preferred_class_ids)) > 1:
+        second = next(
+            (d for d in ranked[1:]
+             if int(d.get("class_id", -1)) != best_cls and _iou(d, best) <= max_iou),
+            None)
+    if second is None:
+        second = next((d for d in ranked[1:] if _iou(d, best) <= max_iou), None)
     box2 = select_best_box([second], frame_w, frame_h, min_size_px) if second else None
     return box1, box2
+
+
+def load_class_registry(path):
+    """Load name->id map from classes.json (dataset dir or file path)."""
+    import json
+    if not path:
+        return {}
+    file_path = path
+    if os.path.isdir(path):
+        file_path = os.path.join(path, "classes.json")
+    if not os.path.isfile(file_path):
+        return {}
+    with open(file_path, encoding="utf-8") as f:
+        data = json.load(f)
+    return {str(k): int(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+
+def resolve_preferred_class_ids(names_or_ids, registry=None):
+    """Parse 'hand,breast' / '0,1' / mixed into a list of int class ids.
+    Names need registry (classes.json). Unknown names are skipped."""
+    if not names_or_ids:
+        return None
+    if isinstance(names_or_ids, (list, tuple)):
+        parts = [str(p).strip() for p in names_or_ids if str(p).strip()]
+    else:
+        parts = [p.strip() for p in str(names_or_ids).split(",") if p.strip()]
+    if not parts:
+        return None
+    registry = registry or {}
+    # case-insensitive name lookup
+    by_lower = {str(k).lower(): int(v) for k, v in registry.items()}
+    out = []
+    for p in parts:
+        if p.isdigit() or (p.startswith("-") and p[1:].isdigit()):
+            out.append(int(p))
+            continue
+        cid = by_lower.get(p.lower())
+        if cid is not None:
+            out.append(cid)
+    return out or None
 
 
 def _preprocess_frame(frame_bgr, input_size):
@@ -191,20 +249,15 @@ def _run_model(session, frame_bgr, input_size=640):
 
 def find_roi(video_path, start_frame=0, end_frame=None, report_progress=True,
              model_path=None, confidence_threshold=0.35, sample_frames=5,
-             _run_model_fn=None):
-    """Wie auto_roi.find_roi: liefert (x,y,w,h) oder wirft RuntimeError.
+             preferred_class_ids=None, _run_model_fn=None):
+    """Same contract as auto_roi.find_roi: returns (x,y,w,h) or raises.
 
-    Gleicher Vertrag wie auto_roi.find_roi (start_frame/end_frame für
-    szenenweise Suche, siehe track_by_scenes in generate_funscript.py),
-    damit sich beide als roi_finder gegeneinander austauschen lassen.
-
-    _run_model_fn(frame_bgr) -> raw_output ist der Testhaken: ai_roi_test.py
-    injiziert hier eine Attrappe statt echter Inferenz, genau wie
-    track_by_scenes() für roi_finder selbst einen Injektionspunkt hat.
+    preferred_class_ids: optional list of class ids (from classes.json) so a
+    multi-class ROI model prefers e.g. hand/breast over background junk.
     """
     model_path = model_path or default_model_path()
     if _run_model_fn is None:
-        session = _load_session(model_path)  # wirft ModelUnavailable
+        session = _load_session(model_path)  # raises ModelUnavailable
         _run_model_fn = lambda frame: _run_model(session, frame)
 
     cap = cv2.VideoCapture(video_path)
@@ -231,6 +284,7 @@ def find_roi(video_path, start_frame=0, end_frame=None, report_progress=True,
                 continue
             raw = _run_model_fn(frame)
             detections = decode_detections(raw, confidence_threshold)
+            detections = _filter_preferred(detections, preferred_class_ids)
             for det in detections:
                 if best_overall is None or det["confidence"] > best_overall["confidence"]:
                     best_overall = det
@@ -243,28 +297,21 @@ def find_roi(video_path, start_frame=0, end_frame=None, report_progress=True,
         raise RuntimeError(
             "KI-Regionssuche: keine Erkennung über der Konfidenzschwelle - "
             "bitte Region von Hand markieren oder --roi-finder auto verwenden")
-    return select_best_box([best_overall], width, height)
+    return select_best_box([best_overall], width, height,
+                           preferred_class_ids=preferred_class_ids)
 
 
 def find_two_rois(video_path, start_frame=0, end_frame=None, report_progress=True,
                    model_path=None, confidence_threshold=0.35, sample_frames=5,
-                   _run_model_fn=None):
-    """Wie find_roi(), liefert aber (roi1, roi2) für Profile, die zwei
-    Regionen brauchen (tf/tj) - roi2 ist None, wenn kein zweites,
-    hinreichend getrenntes Objekt gefunden wurde (siehe
-    select_two_best_boxes).
+                   preferred_class_ids=None, _run_model_fn=None):
+    """Like find_roi(), but returns (roi1, roi2). roi2 is None when no second
+    sufficiently separated object was found (see select_two_best_boxes).
 
-    NOCH NIE GEGEN ECHTES MATERIAL GEMESSEN - anders als
-    auto_roi.find_two_rois() (dokumentiert als "GEMESSEN UNZUREICHEND",
-    siehe docs/NEXT.md Priorität 3) ist dieser Pfad schlicht unbewertet,
-    weder gut noch schlecht. Bleibt darum wie die KI-Regionssuche für ROI1
-    ein VORSCHLAG, den ein Mensch bestätigt oder korrigiert, nie ein
-    automatisch übernommener Standard (issue #8: "never a silently
-    auto-committed guess for either ROI").
+    Still a human-confirmed proposal — never silently auto-committed (#8).
     """
     model_path = model_path or default_model_path()
     if _run_model_fn is None:
-        session = _load_session(model_path)  # wirft ModelUnavailable
+        session = _load_session(model_path)  # raises ModelUnavailable
         _run_model_fn = lambda frame: _run_model(session, frame)
 
     cap = cv2.VideoCapture(video_path)
@@ -281,10 +328,6 @@ def find_two_rois(video_path, start_frame=0, end_frame=None, report_progress=Tru
             for i in range(sample_frames)
         ))
 
-        # Detektionen über alle Beispiel-Frames gesammelt statt pro Frame das
-        # jeweils Beste zu behalten (wie find_roi() es für EINE Box tut) -
-        # select_two_best_boxes braucht den vollen Kandidatenpool, um zwei
-        # verschiedene Objekte auseinanderzuhalten.
         pooled = []
         for n, idx in enumerate(indices):
             if report_progress:
@@ -304,7 +347,8 @@ def find_two_rois(video_path, start_frame=0, end_frame=None, report_progress=Tru
         raise RuntimeError(
             "KI-Regionssuche: keine Erkennung über der Konfidenzschwelle - "
             "bitte Regionen von Hand markieren oder --roi-finder auto verwenden")
-    return select_two_best_boxes(pooled, width, height)
+    return select_two_best_boxes(pooled, width, height,
+                                 preferred_class_ids=preferred_class_ids)
 
 
 def main():
@@ -313,6 +357,12 @@ def main():
     ap.add_argument("--video", help="Pfad zum Video (nicht nötig mit --check)")
     ap.add_argument("--model", default=None, help="Pfad zur .onnx-Datei (sonst Standardordner)")
     ap.add_argument("--confidence", type=float, default=0.35)
+    ap.add_argument("--preferred-classes", default=None,
+                     help="Comma-separated class names or ids to prefer "
+                          "(e.g. hand,breast or 0,1). Names need --classes-json.")
+    ap.add_argument("--classes-json", default=None,
+                     help="Path to classes.json or its dataset directory "
+                          "(default: sibling of --model, then dataset under config).")
     ap.add_argument("--check", action="store_true",
                      help="Nur prüfen, ob KI-Erkennung nutzbar ist (onnxruntime + Modell "
                           "vorhanden), ohne Video zu öffnen - für die GUI, um den KI-Knopf "
@@ -334,10 +384,22 @@ def main():
     if not args.video:
         ap.error("--video ist erforderlich, außer bei --check")
 
+    preferred = None
+    if args.preferred_classes:
+        registry_path = args.classes_json
+        if not registry_path and args.model:
+            registry_path = os.path.dirname(os.path.abspath(args.model))
+        registry = load_class_registry(registry_path) if registry_path else {}
+        preferred = resolve_preferred_class_ids(args.preferred_classes, registry)
+        if preferred is None:
+            print("Warnung: --preferred-classes konnte nicht aufgelöst werden "
+                  "(Namen brauchen --classes-json)", file=sys.stderr)
+
     if args.two:
         try:
             roi1, roi2 = find_two_rois(args.video, model_path=args.model,
-                                        confidence_threshold=args.confidence)
+                                        confidence_threshold=args.confidence,
+                                        preferred_class_ids=preferred)
         except (ModelUnavailable, RuntimeError) as exc:
             print(f"KI-Regionssuche fehlgeschlagen: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -358,7 +420,8 @@ def main():
 
     try:
         x, y, w, h = find_roi(args.video, model_path=args.model,
-                               confidence_threshold=args.confidence)
+                               confidence_threshold=args.confidence,
+                               preferred_class_ids=preferred)
     except (ModelUnavailable, RuntimeError) as exc:
         print(f"KI-Regionssuche fehlgeschlagen: {exc}", file=sys.stderr)
         sys.exit(1)

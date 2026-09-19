@@ -8,7 +8,7 @@ Go käme.
 Hintergrund: die Anzeige hat das Urteil früher selbst aus qualityScore >= 0.5
 berechnet und damit die harten Ausschlusskriterien des Quality Doctor
 ignoriert (z.B. >40% der Videolänge ohne Tracking-Daten). Ein Skript mit
-Score 0.63, das die Prüfung nicht bestanden hat, wurde als "unauffällig"
+Score 0.63, das die Prüfung nicht bestanden hat, wurde als "within normal"
 angezeigt. Dieser Test hält fest, dass das Urteil aus quality_passed kommt.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/quality_display_test.py
@@ -69,7 +69,7 @@ def main():
             "path": "/tmp/a.funscript", "qualityScore": 0.63, "qualityPassed": False,
             "qualityWarnings": ["58% der Videolänge ohne Tracking-Daten"],
         })
-        check("Score 0.63 + passed=false -> 'bitte prüfen'", "bitte prüfen" in text, text)
+        check("Score 0.63 + passed=false -> 'review recommended'", "review recommended" in text, text)
         check("Warnung wird angezeigt", "58%" in text, text)
 
         # 2. Sauberes Ergebnis bleibt sauber.
@@ -77,20 +77,20 @@ def main():
             "path": "/tmp/b.funscript", "qualityScore": 1.0, "qualityPassed": True,
             "qualityWarnings": [],
         })
-        check("Score 1.0 + passed=true -> 'unauffällig'", "unauffällig" in text, text)
+        check("Score 1.0 + passed=true -> 'within normal'", "within normal" in text, text)
 
         # 3. Niedriger Score bleibt auffällig, auch wenn passed fehlt.
         text, _ = read_verdict(page, {
             "path": "/tmp/c.funscript", "qualityScore": 0.2, "qualityWarnings": [],
         })
-        check("Score 0.2 ohne passed -> 'bitte prüfen'", "bitte prüfen" in text, text)
+        check("Score 0.2 without passed -> 'review recommended'", "review recommended" in text, text)
 
         # 4. Rückwärtskompatibilität: ältere Skripte ohne quality_passed
         #    werden weiter nach dem Score beurteilt.
         text, _ = read_verdict(page, {
             "path": "/tmp/d.funscript", "qualityScore": 0.8, "qualityWarnings": [],
         })
-        check("Score 0.8 ohne passed -> 'unauffällig' (Altskript)", "unauffällig" in text, text)
+        check("Score 0.8 without passed -> 'within normal' (legacy)", "within normal" in text, text)
 
         # 5. Fortschrittsbalken: erscheint bei Prozentmeldungen, verschwindet
         #    wenn das Ergebnis da ist.
@@ -104,8 +104,8 @@ def main():
         check("Prozenttext sichtbar", "42" in page.locator("#gen-progress-text").inner_text(),
               page.locator("#gen-progress-text").inner_text())
         page.evaluate("window.__triggerEvent('generate:percent', -1)")
-        check("unbekannte Gesamtlänge -> Hinweis statt Prozentwert",
-              "nicht ermittelbar" in page.locator("#gen-progress-text").inner_text(),
+        check("unknown total length -> note instead of percent",
+              "could not determine" in page.locator("#gen-progress-text").inner_text(),
               page.locator("#gen-progress-text").inner_text())
         page.evaluate("window.__triggerEvent('generate:percent', 80)")
         read_verdict(page, {"path": "/tmp/f.funscript", "qualityScore": 1.0, "qualityPassed": True})

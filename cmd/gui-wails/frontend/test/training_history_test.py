@@ -43,9 +43,9 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         page.wait_for_function(
-            "document.querySelector('#tr-history').textContent.includes('keine')", timeout=5000)
+            "document.querySelector('#tr-history').textContent.includes('No completed')", timeout=5000)
         check("ohne Sessions: Hinweistext statt leerer Liste",
-              "keine" in page.locator("#tr-history").inner_text())
+              "No completed" in page.locator("#tr-history").inner_text())
 
         page.evaluate("""
           window.__history = [
@@ -67,15 +67,15 @@ def main():
         check("zwei Sessions als zwei Zeilen", len(lines) == 2, str(lines))
         first, second = lines[0], lines[1]
         check("Technik wird übersetzt angezeigt (Stop-Start)", "Stop-Start" in first, first)
-        check("Zyklenzahl steht in der Zeile", "5 Zyklen" in first, first)
+        check("Zyklenzahl steht in der Zeile", "5 cycles" in first, first)
         check("Ø-Spitze als Prozent", "75%" in first, first)
-        check("Unterbrechungszähler wird genannt", "2x unterbrochen" in first, first)
+        check("Unterbrechungszähler wird genannt", "2× interrupted" in first, first)
         check("Rückmeldungs-Durchschnitt wird genannt", "7.5" in first, first)
         check("zweite Session (Plateau) korrekt übersetzt", "Plateau" in second, second)
         check("Session ohne Rückmeldung zeigt keinen Durchschnitt",
-              "Ø-Rückmeldung" not in second, second)
+              "avg feedback" not in second, second)
         check("Session ohne Unterbrechung zeigt keinen Zähler",
-              "unterbrochen" not in second, second)
+              "interrupted" not in second, second)
 
         browser.close()
 

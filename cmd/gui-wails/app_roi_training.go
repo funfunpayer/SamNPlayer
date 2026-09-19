@@ -75,6 +75,41 @@ func (a *App) CheckRoiTrainingAvailable() bool {
 	return generator.RoiTrainingAvailable()
 }
 
+// CheckRoiTrainingStatus liefert getrennte Flags für Python/OpenCV/ultralytics.
+func (a *App) CheckRoiTrainingStatus() generator.RoiTrainingStatus {
+	return generator.GetRoiTrainingStatus()
+}
+
+// InstallRoiTrainingDeps installiert ultralytics+onnx per pip (asynchron,
+// Events roitraining:deps:progress|done). Für Release-Builds ohne
+// Quellbaum — requirements sind im Binary eingebettet.
+func (a *App) InstallRoiTrainingDeps() error {
+	if err := claimRoiTrainingRun(); err != nil {
+		return err
+	}
+	go func() {
+		defer releaseRoiTrainingRun()
+		err := generator.InstallRoiTrainingDeps(func(line string) {
+			runtime.EventsEmit(a.ctx, "roitraining:deps:progress", line)
+		})
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "roitraining:deps:done", map[string]any{"error": err.Error()})
+			return
+		}
+		runtime.EventsEmit(a.ctx, "roitraining:deps:done", map[string]any{
+			"ok":     true,
+			"status": generator.GetRoiTrainingStatus(),
+		})
+	}()
+	return nil
+}
+
+// WriteAIRequirementFiles schreibt die eingebetteten requirements-*.txt
+// in einen Ordner (manuelles pip install).
+func (a *App) WriteAIRequirementFiles(dir string) error {
+	return generator.WriteAIRequirementFiles(dir)
+}
+
 // ListRoiTrainingDevices liefert die wählbaren Trainingsgeräte
 // (auto/cuda/directml/mps/cpu) inkl. aktueller Verfügbarkeit - siehe
 // generator.ListRoiTrainingDevices / train_yolo_model --list-devices.
@@ -86,11 +121,11 @@ func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
 // Video und hängt die Ergebnisse an den Datensatz an. sampleEvery steuert die
 // Abtastung (Standard 12); extractAudio speichert die Tonspur neben dem Datensatz.
 func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.ROI, className, className2 string) (string, error) {
-	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0)
+	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0, 1.0)
 }
 
 // BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio,
-// and an optional startSeconds seek (GUI past black intro).
+// startSeconds seek, and optional YOLO box_scale pad around the marked size.
 func (a *App) BootstrapRoiTrainingSampleEx(
 	videoPath string,
 	roi, roi2, roi3, roi4 *generator.ROI,
@@ -98,6 +133,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	sampleEvery int,
 	extractAudio bool,
 	startSeconds float64,
+	boxScale float64,
 ) (string, error) {
 	if err := claimRoiTrainingRun(); err != nil {
 		return "", err
@@ -121,6 +157,9 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	if sampleEvery <= 0 {
 		sampleEvery = 12
 	}
+	if boxScale <= 0 {
+		boxScale = 1.0
+	}
 
 	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
 	prefix := roiTrainingSamplePrefix(videoPath)
@@ -138,7 +177,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 
 	go func() {
 		defer releaseRoiTrainingRun()
-		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds,
+		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
 		if err != nil {
 			logging.Error("roitraining: Bootstrap fehlgeschlagen", "video", videoPath, "fehler", err)

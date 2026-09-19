@@ -87,6 +87,14 @@ def main():
     check("nur die im Bild liegende Region bleibt übrig, der Frame wird nicht verworfen",
           len(lines_partial) == 1 and lines_partial[0].startswith("0 "), str(lines_partial))
 
+    # --- box_scale: pad / shrink marked ROI size for YOLO labels ------------
+    w1, h1 = b._scaled_box_wh((10, 20, 40, 30), 1.0, 200, 100)
+    check("box_scale 1.0 lässt Größe unverändert", (w1, h1) == (40, 30), str((w1, h1)))
+    w2, h2 = b._scaled_box_wh((10, 20, 40, 30), 1.5, 200, 100)
+    check("box_scale 1.5 vergrößert w/h", (w2, h2) == (60, 45), str((w2, h2)))
+    w3, h3 = b._scaled_box_wh((0, 0, 180, 90), 2.0, 200, 100)
+    check("box_scale klemmt an Bildgrenze", w3 <= 200 and h3 <= 100, str((w3, h3)))
+
     # --- Kontrollansicht: Label lesen/schreiben/auflisten/verwerfen ---------
     with tempfile.TemporaryDirectory() as tmp3:
         out = Path(tmp3) / "dataset"

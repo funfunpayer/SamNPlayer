@@ -10,25 +10,25 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 export function initSidebar(root) {
   root.innerHTML = `
     <div class="card">
-      <h2>Gerät</h2>
-      <div class="dev-name"><i class="led" id="sb-led"></i><span id="sb-dev-name">Status wird geladen...</span></div>
+      <h2>Device</h2>
+      <div class="dev-name"><i class="led" id="sb-led"></i><span id="sb-dev-name">Loading status…</span></div>
       <div class="meter">
         <div class="row" style="margin:0"><span>Vibration</span><span id="sb-vib-pct">-</span></div>
         <div class="bar"><span id="sb-vib-bar" style="width:0%;background:var(--accent)"></span></div>
       </div>
       <div class="meter">
-        <div class="row" style="margin:0"><span>Sog</span><span id="sb-suc-pct">-</span></div>
+        <div class="row" style="margin:0"><span>Suction</span><span id="sb-suc-pct">-</span></div>
         <div class="bar"><span id="sb-suc-bar" style="width:0%;background:var(--teal)"></span></div>
       </div>
     </div>
     <div class="card">
-      <h2>Skript</h2>
-      <div class="chip" id="sb-recipe-chip">Kein Skript geladen</div>
+      <h2>Script</h2>
+      <div class="chip" id="sb-recipe-chip">No script loaded</div>
       <p class="hint" id="sb-recipe-hint" style="margin-top:8px"></p>
     </div>
     <div class="card">
-      <h2>Qualität</h2>
-      <p class="hint" id="sb-quality-hint" style="margin:0">Noch keine Analyse.</p>
+      <h2>Quality</h2>
+      <p class="hint" id="sb-quality-hint" style="margin:0">No analysis yet.</p>
     </div>
   `;
 
@@ -41,11 +41,11 @@ export function initSidebar(root) {
     if (st.connected) {
       el('#sb-led').style.background = 'var(--ok)';
       el('#sb-led').style.boxShadow = '0 0 8px var(--ok)';
-      el('#sb-dev-name').textContent = st.mock ? 'Mock-Gerät verbunden' : (st.name || 'Verbunden');
+      el('#sb-dev-name').textContent = st.mock ? 'Mock device connected' : (st.name || 'Connected');
     } else {
       el('#sb-led').style.background = '#555';
       el('#sb-led').style.boxShadow = 'none';
-      el('#sb-dev-name').textContent = 'Nicht verbunden';
+      el('#sb-dev-name').textContent = 'Not connected';
     }
   }
 
@@ -56,25 +56,25 @@ export function initSidebar(root) {
     el('#sb-suc-bar').style.width = '0%';
   }
 
-  // Skript-/Rezept-Info: liest, was der Wiedergabe-Tab bereits anzeigt,
+  // Skript-/Rezept-Info: liest, was der Playback-Tab bereits anzeigt,
   // statt den Ladezustand ein zweites Mal zu verwalten.
   function refreshRecipe() {
     const pathLabel = document.getElementById('pb-script-path');
     const syncSelect = document.getElementById('pb-sync');
-    if (!pathLabel || pathLabel.textContent === 'Kein Skript gewählt') {
-      el('#sb-recipe-chip').textContent = 'Kein Skript geladen';
+    if (!pathLabel || pathLabel.textContent === 'No script selected') {
+      el('#sb-recipe-chip').textContent = 'No script loaded';
       el('#sb-recipe-hint').textContent = '';
       return;
     }
     const name = pathLabel.textContent.split(/[\\/]/).pop();
     el('#sb-recipe-chip').textContent = name;
     el('#sb-recipe-hint').textContent = syncSelect
-      ? `Sync-Modus: ${syncSelect.value} (Wiedergabe-Tab)`
+      ? `Sync mode: ${syncSelect.value} (Playback tab)`
       : '';
   }
 
   // Qualität: übernimmt die Quality-Doctor-Ausgabe des letzten Generator-
-  // laufs, sonst die Skript-Analyse aus dem Wiedergabe-Tab.
+  // laufs, sonst die Skript-Analyse aus dem Playback-Tab.
   function refreshQuality() {
     const genQuality = document.getElementById('gen-quality');
     const pbAnalysis = document.getElementById('pb-analysis');
@@ -84,7 +84,7 @@ export function initSidebar(root) {
     } else if (pbAnalysis && pbAnalysis.style.display !== 'none' && pbAnalysis.textContent.trim()) {
       box.textContent = pbAnalysis.textContent;
     } else {
-      box.textContent = 'Noch keine Analyse.';
+      box.textContent = 'No analysis yet.';
     }
   }
 

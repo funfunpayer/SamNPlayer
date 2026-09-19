@@ -107,7 +107,9 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 		switch engine {
 		case "ai_two":
 			roi, roi2, err := generator.FindTwoROIsAIWithProgress(videoPath,
-				a.settings.GetString(prefAIRoiModelPath, ""), onLine, onPct)
+				a.settings.GetString(prefAIRoiModelPath, ""),
+				a.settings.GetString(prefAIPreferredClasses, ""),
+				onLine, onPct)
 			if err != nil {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 				return
@@ -139,7 +141,9 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 			}
 			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		case "ai":
-			roi, err := generator.FindROIAIWithProgress(videoPath, a.settings.GetString(prefAIRoiModelPath, ""),
+			roi, err := generator.FindROIAIWithProgress(videoPath,
+				a.settings.GetString(prefAIRoiModelPath, ""),
+				a.settings.GetString(prefAIPreferredClasses, ""),
 				onLine, onPct)
 			if err != nil {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})

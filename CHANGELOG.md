@@ -6,6 +6,44 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## Unreleased
+
+## [0.5.6] — September 19, 2026
+
+Polish release after English UI/docs alignment and a selective GUI review.
+CI green on tip before tag.
+
+### Changed
+
+- **Product language:** user-facing UI and docs aligned to **English**
+  (`docs/LANGUAGE.md`). Prefer English for new strings and documentation;
+  keep Go/Python/JS where each fits (no speculative rewrites).
+
+### Added
+
+- **KI-Training:** one-click `InstallRoiTrainingDeps` (embedded
+  `requirements-ai-train.txt` in release binaries); split status
+  (Python / OpenCV / ultralytics); still samples get a val split;
+  review **correct box**; guides `docs/KI_TRAINING.md` +
+  `docs/PLAYER_CODECS.md`.
+- **Class-aware AI ROI:** `preferred_class_ids` /
+  `--ai-preferred-classes` / Settings preferred classes; `classes.json`
+  copied next to `.onnx` on train; two-ROI pick prefers distinct classes.
+- **Bootstrap box scale:** `--box-scale` / GUI field for slight YOLO pad.
+- **Playback codecs:** ffprobe playability check, “Make playable”
+  H.264/AAC proxy via ffmpeg, `<video>` error banner, correct MIME on
+  local video serve; player key hints + transport polish.
+- **GUI a11y / desktop basics:** window `MinWidth`/`MinHeight`, tablist
+  ARIA + arrow-key nav, non-blocking ERROR toast with “Open Log”,
+  spacing/focus tokens. Deliberately **not** taken: light mode,
+  frameless chrome, glassmorphism, skeleton screens, disconnect confirm
+  (see review notes in PR #100).
+
+### Fixed
+
+- Train button no longer requires OpenCV when only ultralytics is missing
+  (and vice versa — clear status text).
+
 ## [0.5.5] — September 18, 2026
 
 Release after stacking GUI/startup, OFS editor tools, OpenCV 5 tracker
