@@ -3,9 +3,10 @@ package generator
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 // DumpFrameAt extracts a single PNG frame at timeSec (seconds from start)
@@ -14,25 +15,32 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 	if timeSec < 0 {
 		timeSec = 0
 	}
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return 0, 0, fmt.Errorf("generator: ffmpeg nicht gefunden")
-	}
-	args := []string{
+	cmd, err := videox.CommandContext(nil,
 		"-v", "error", "-y",
 		"-ss", strconv.FormatFloat(timeSec, 'f', 3, 64),
 		"-i", videoPath,
 		"-frames:v", "1",
 		"-f", "image2",
 		outputPNG,
+	)
+	if err != nil {
+		return 0, 0, fmt.Errorf("generator: ffmpeg nicht gefunden")
 	}
-	out, err := exec.Command("ffmpeg", args...).CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0, 0, fmt.Errorf("generator: Frame bei %.2fs fehlgeschlagen: %w\n%s", timeSec, err, string(out))
 	}
-	info, err := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0",
-		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", outputPNG).CombinedOutput()
+	probe, err := videox.ProbeCommandContext(nil, "-v", "error", "-select_streams", "v:0",
+		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", outputPNG)
 	if err != nil {
-		// PNG from ffmpeg — probe the output file; if that fails try reading size via identify-less path.
+		w, h, err2 := pngSize(outputPNG)
+		if err2 != nil {
+			return 0, 0, fmt.Errorf("generator: Framegröße unbekannt: %v / %v", err, err2)
+		}
+		return w, h, nil
+	}
+	info, err := probe.CombinedOutput()
+	if err != nil {
 		w, h, err2 := pngSize(outputPNG)
 		if err2 != nil {
 			return 0, 0, fmt.Errorf("generator: Framegröße unbekannt: %v / %v", err, err2)

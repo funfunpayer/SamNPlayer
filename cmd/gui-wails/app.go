@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 // App ist der zentrale Zustand hinter der Wails-Bindung. Alle exportierten
@@ -87,7 +89,14 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.registerLogLiveHook()
-	logging.Info("gui-wails started")
+	// Go already schedules on all CPUs; log so support/logs show the machine
+	// budget. Do not force extra tracker parallelism — measured no net gain.
+	logging.Info("gui-wails started",
+		"goos", goruntime.GOOS,
+		"goarch", goruntime.GOARCH,
+		"num_cpu", goruntime.NumCPU(),
+		"gomaxprocs", goruntime.GOMAXPROCS(0),
+	)
 	a.ensureRuntimeReady()
 	a.registerFileDrop()
 }
@@ -96,10 +105,8 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) PickFunscriptFile() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Choose funscript",
-		Filters: []runtime.FileFilter{
-			{DisplayName: "Funscript (*.funscript)", Pattern: "*.funscript"},
-		},
+		Title:   "Choose script",
+		Filters: scriptFileFilters(),
 	})
 }
 
@@ -107,7 +114,7 @@ func (a *App) PickVideoFile() (string, error) {
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Choose video",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "Videos", Pattern: "*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.m4v;*.webm"},
+			{DisplayName: "Videos", Pattern: "*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.m4v;*.webm;*.ts;*.m2ts;*.flv;*.mpg;*.mpeg;*.3gp;*.ogv"},
 		},
 	})
 }
@@ -129,7 +136,7 @@ func (a *App) PickBenchmarkManifest() (string, error) {
 func findMatchingVideo(scriptPath string) (string, bool) {
 	dir := filepath.Dir(scriptPath)
 	base := strings.TrimSuffix(filepath.Base(scriptPath), filepath.Ext(scriptPath))
-	for _, ext := range []string{".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".webm"} {
+	for _, ext := range []string{".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".webm", ".ts", ".m2ts", ".flv", ".mpg", ".mpeg", ".3gp", ".ogv"} {
 		candidate := filepath.Join(dir, base+ext)
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 			return candidate, true
@@ -149,25 +156,35 @@ type ScriptInfo struct {
 	ContactVibration      bool    `json:"contactVibration"`
 	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
 	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+	NativeFormat          bool    `json:"nativeFormat"`
+	PlaybackSource        string  `json:"playbackSource"`
+	HasNeoAxes            bool    `json:"hasNeoAxes"`
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
-	script, err := funscript.Load(path)
+	path = preferSamnCompanion(path)
+	script, err := a.loadScriptDocument(path)
 	if err != nil {
 		return ScriptInfo{}, err
 	}
 	a.setLoadedScript(path, script)
 
 	info := ScriptInfo{
-		Path:        path,
-		ActionCount: len(script.Actions),
-		DurationMs:  script.Duration(),
-		Profile:     script.Metadata.Profile,
+		Path:           path,
+		ActionCount:    len(script.Actions),
+		DurationMs:     script.Duration(),
+		Profile:        script.Metadata.Profile,
+		NativeFormat:   samn.IsSamnPath(path),
+		PlaybackSource: funscript.PlaybackSourceRecipe,
 	}
 	if dr := script.Metadata.DeviceRecipe; dr != nil {
 		info.ContactVibration = dr.ContactVibration
 		info.ContactVibrationSpan = funscript.EffectiveContactSpan(dr.ContactVibrationSpan)
 		info.ContactVibrationCurve = funscript.NormalizeContactCurve(dr.ContactVibrationCurve)
+		info.PlaybackSource = funscript.NormalizePlaybackSource(dr.PlaybackSource)
+	}
+	if ax := script.Metadata.SamnAxes; ax != nil {
+		info.HasNeoAxes = ax.HasAxes()
 	}
 	a.stateMu.Lock()
 	if video, ok := findMatchingVideo(path); ok {
@@ -371,7 +388,7 @@ func (a *App) registerFileDrop() {
 		var videos, scripts []string
 		for _, path := range paths {
 			switch strings.ToLower(filepath.Ext(path)) {
-			case ".funscript":
+			case ".funscript", ".samn":
 				scripts = append(scripts, path)
 			case ".mp4", ".mkv", ".avi", ".mov", ".m4v", ".webm", ".wmv", ".mpg", ".mpeg":
 				videos = append(videos, path)

@@ -11,6 +11,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
 	"github.com/funfunpayer/SamNPlayer/sam"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 type PlaybackOptions struct {
@@ -46,7 +47,7 @@ type ContactPreviewOptions struct {
 }
 
 // SaveContactSettings schreibt Kontakt-Vibration in die Skript-Metadata
-// (device_recipe) und lädt das Skript neu — damit Preview und nächste
+// (device_recipe / .samn recipe) und lädt das Skript neu — damit Preview und nächste
 // Wiedergabe denselben „wie die Berührung“-Stand nutzen.
 func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
 	path := a.loadedScriptPath()
@@ -59,6 +60,25 @@ func (a *App) SaveContactSettings(enabled bool, span float64, curve string) erro
 	}
 	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
 		return fmt.Errorf("contact vibration only for Tf/Tj scripts")
+	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.ApplyContactRecipe(enabled, span, curve)
+		// Keep baked vibration in sync when driving from axes.
+		if funscript.NormalizePlaybackSource(doc.PlaybackSource) == samn.PlaybackAxes {
+			if err := doc.BakeNeoAxes(); err != nil {
+				return err
+			}
+		}
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		// Keep community export recipe (contact) aligned.
+		_ = doc.ExportFunscript(samn.CompanionFunscriptPath(path))
+		return a.reloadLoadedScript()
 	}
 	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {
 		return err
@@ -76,29 +96,25 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if script == nil {
 		return fmt.Errorf("no script loaded")
 	}
-	mapOpts := funscript.DefaultMapOptions()
+	mapOpts := funscript.MapOptionsFromScript(script)
 	profile := script.Metadata.Profile
 	contactOn := false
 	if funscript.IsDistanceProfile(profile) {
-		mapOpts = funscript.RecipeFor(profile)
-		if dr := script.Metadata.DeviceRecipe; dr != nil {
-			mapOpts.ContactVibration = dr.ContactVibration
-			mapOpts.ContactVibrationSpan = dr.ContactVibrationSpan
-			mapOpts.ContactVibrationCurve = dr.ContactVibrationCurve
-		}
 		if opts.ContactVibrationSpan > 0 {
 			mapOpts.ContactVibrationSpan = opts.ContactVibrationSpan
 		}
 		if opts.ContactVibrationCurve != "" {
 			mapOpts.ContactVibrationCurve = opts.ContactVibrationCurve
 		}
-		if len(script.Metadata.TrackingGaps) > 0 {
-			mapOpts.TrackingGaps = append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...)
-		}
 		if opts.DisableContactVibration {
 			mapOpts.ContactVibration = false
 		}
-		contactOn = mapOpts.ContactVibration
+		// Live contact knobs only apply in recipe mode; axes mode uses baked curves.
+		if mapOpts.UseExplicitAxes {
+			contactOn = false
+		} else {
+			contactOn = mapOpts.ContactVibration
+		}
 	}
 	if opts.TickMs > 0 {
 		mapOpts.TickMs = opts.TickMs
@@ -106,15 +122,41 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if opts.MaxSpeed > 0 {
 		mapOpts.MaxSpeed = opts.MaxSpeed
 	}
-	mapOpts.Smoothing = opts.Smoothing
+	if opts.Smoothing > 0 || (!mapOpts.UseExplicitAxes && !funscript.IsDistanceProfile(profile)) {
+		mapOpts.Smoothing = opts.Smoothing
+	}
 	syncMode, err := funscript.ParseSyncMode(opts.SyncMode)
 	if err != nil {
 		return err
 	}
 	if !funscript.IsDistanceProfile(profile) || (opts.SyncMode != "" && opts.SyncMode != "independent") {
-		mapOpts.Sync = syncMode
+		if !mapOpts.UseExplicitAxes {
+			mapOpts.Sync = syncMode
+		}
 	}
-	// Tf/Tj + Kontakt: SAM-Modell dazwischen (Intensity/Gaps), Datei bleibt .funscript.
+	vibScale := opts.ContactIntensityScale
+	sucScale := 1.0
+	if path := a.loadedScriptPath(); samn.IsSamnPath(path) {
+		if doc, err := samn.Load(path); err == nil {
+			if p := doc.ActivePreset(); p != nil {
+				if vibScale <= 0 {
+					vibScale = 1
+				}
+				vibScale *= p.VibrationScale
+				sucScale = p.SuctionScale
+				// Recipe mode: preset may override contact shape before mapping.
+				if !mapOpts.UseExplicitAxes && mapOpts.ContactVibration {
+					if p.ContactSpan > 0 {
+						mapOpts.ContactVibrationSpan = p.ContactSpan
+					}
+					if p.ContactCurve != "" {
+						mapOpts.ContactVibrationCurve = p.ContactCurve
+					}
+				}
+			}
+		}
+	}
+	// Map after strength presets may have adjusted contact knobs.
 	var frames []funscript.Frame
 	if contactOn {
 		frames = a.contactFrames(script, mapOpts)
@@ -122,10 +164,15 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		frames = script.ToIntensityCurve(mapOpts)
 	}
 	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
-		IntensityScale: opts.ContactIntensityScale,
+		IntensityScale: vibScale,
 		ExtraSmooth:    opts.ContactExtraSmooth,
 		MuteContact:    opts.DisableContactVibration || opts.ContactIntensityScale <= 0,
 	})
+	if sucScale != 1.0 {
+		for i := range frames {
+			frames[i].Suction = clamp01Playback(frames[i].Suction * sucScale)
+		}
+	}
 	if len(frames) == 0 {
 		return fmt.Errorf("script contains no playable actions")
 	}
@@ -349,12 +396,46 @@ func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]Vibrati
 		return nil, fmt.Errorf("no script loaded")
 	}
 	dr := script.Metadata.DeviceRecipe
-	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
-		return nil, nil
-	}
 	maxPoints := preview.MaxPoints
 	if maxPoints < 50 {
 		maxPoints = 50
+	}
+
+	// Explicit axes: sample the vibration channel directly.
+	if dr != nil && funscript.NormalizePlaybackSource(dr.PlaybackSource) == funscript.PlaybackSourceAxes {
+		if script.Metadata.SamnAxes == nil || len(script.Metadata.SamnAxes.Vibration) == 0 {
+			return nil, nil
+		}
+		duration := script.Duration()
+		if duration <= 0 {
+			return nil, nil
+		}
+		tick := duration / int64(maxPoints)
+		if tick < 10 {
+			tick = 10
+		}
+		scale := preview.ContactIntensityScale
+		if scale <= 0 || preview.MuteContact {
+			scale = 0
+		}
+		out := make([]VibrationCurvePoint, 0, maxPoints+1)
+		any := false
+		for t := int64(0); t <= duration; t += tick {
+			v := funscript.SampleAxisPos(script.Metadata.SamnAxes.Vibration, t) / 100.0
+			v *= scale
+			if v > 0.001 {
+				any = true
+			}
+			out = append(out, VibrationCurvePoint{AtMs: t, Vibration: v})
+		}
+		if !any {
+			return nil, nil
+		}
+		return out, nil
+	}
+
+	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
+		return nil, nil
 	}
 	opts := funscript.RecipeFor(script.Metadata.Profile)
 	opts.ContactVibration = true
@@ -477,4 +558,14 @@ func (a *App) GetScriptOffset() int64 {
 
 func offsetKeyFor(scriptPath string) string {
 	return "playback.offset." + scriptPath
+}
+
+func clamp01Playback(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
 }

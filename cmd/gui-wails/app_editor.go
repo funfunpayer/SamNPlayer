@@ -34,17 +34,5 @@ func (a *App) GetSpeedHighlights(maxIntensity float64) ([]funscript.SpeedSegment
 // Positionswerte, sortierte Reihenfolge), statt dass Speicher- und
 // Dateizustand leicht auseinanderlaufen.
 func (a *App) SaveScriptActions(actions []funscript.Action) error {
-	path := a.loadedScriptPath()
-	if path == "" {
-		return fmt.Errorf("no script loaded")
-	}
-	if err := funscript.SaveActions(path, actions); err != nil {
-		return err
-	}
-	reloaded, err := funscript.Load(path)
-	if err != nil {
-		return err
-	}
-	a.setLoadedScript(path, reloaded)
-	return nil
+	return a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions)
 }

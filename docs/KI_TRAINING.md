@@ -12,8 +12,9 @@ This document explains the **regions model** (YOLO → ONNX), not device **Train
 | Set box in the GUI | Replace tracking |
 | Learn locally on your machine | Cloud / telemetry / bundled model |
 
-Classic tracking (CSRT / flow / …) always writes the `.funscript`.
-See also `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.md`.
+Classic tracking (CSRT / flow / …) writes `.samn` (native) plus a
+community `.funscript` export. AI still never writes either file by itself.
+See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.md`.
 
 ## Requirements
 

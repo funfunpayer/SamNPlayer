@@ -25,6 +25,7 @@ type Script struct {
 		QualityWarnings []string      `json:"quality_warnings,omitempty"`
 		Profile         string        `json:"profile,omitempty"`
 		DeviceRecipe    *DeviceRecipe `json:"device_recipe,omitempty"`
+		SamnAxes        *SamnAxes     `json:"samn_axes,omitempty"`
 		TrackingGaps    []TrackingGap `json:"tracking_gaps,omitempty"`
 		AIOpinion       *AIOpinion    `json:"ai_opinion,omitempty"`
 		AudioCheck      *AudioCheck   `json:"audio_check,omitempty"`
@@ -40,9 +41,9 @@ type AIOpinion struct {
 }
 
 // AudioCheck ist das optionale Ergebnis der Audio-Tempo-Plausibilitätsprüfung
-// (--audio-check, generator/audio_check.py) - wie AIOpinion rein informativ,
-// verändert QualityScore/QualityPassed nicht. Nur vorhanden, wenn die Prüfung
-// tatsächlich lief (ffmpeg + eine lesbare Audiospur vorhanden waren).
+// (--audio-check; Go: generator.CheckAudioTempo, Python: audio_check.py) -
+// wie AIOpinion rein informativ, verändert QualityScore/QualityPassed nicht.
+// Nur vorhanden, wenn die Prüfung tatsächlich lief (ffmpeg + lesbare Audiospur).
 type AudioCheck struct {
 	ScriptHz *float64 `json:"script_hz"`
 	AudioHz  *float64 `json:"audio_hz"`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +18,20 @@ var PlayableCodecs = map[string]bool{
 	"av1":  true,
 	"vp09": true,
 	"av01": true,
+}
+
+// SoftProxyMaxWidth caps re-encoded proxy width with a soft Lanczos downscale.
+// Upscaling in the proxy is intentionally not done — measured WebGL/canvas
+// "sharpen/upscale" paths were worse than native <video> CSS bilinear.
+const SoftProxyMaxWidth = 1920
+
+// PlayableContainers are usually fine in the embedded <video> when the
+// codec is also playable. Other containers get a remux/proxy even for H.264.
+var PlayableContainers = map[string]bool{
+	".mp4":  true,
+	".m4v":  true,
+	".webm": true,
+	".mov":  true,
 }
 
 // LikelyPlayable reports whether Info.Codec is usually playable in the
@@ -47,9 +60,16 @@ func ProxyPath(src string) string {
 	return filepath.Join(dir, "."+base+".samnplayer-h264.mp4")
 }
 
+func isH264Family(codec string) bool {
+	c := strings.ToLower(strings.TrimSpace(codec))
+	return c == "h264" || c == "avc1" || strings.Contains(c, "h264") || strings.Contains(c, "avc")
+}
+
 // EnsurePlayableProxy returns src if already likely playable, otherwise
 // creates (or reuses) an H.264+AAC MP4 via ffmpeg next to the source.
-// Requires ffmpeg on PATH. onProgress may be nil.
+// Prefers a lossless remux (-c copy) when the video is already H.264 in a
+// awkward container; otherwise re-encodes with soft Lanczos downscale when
+// wider than SoftProxyMaxWidth. Requires ffmpeg on PATH. onProgress may be nil.
 func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string)) (outPath string, converted bool, err error) {
 	info, err := Probe(ctx, src)
 	if err != nil {
@@ -57,14 +77,12 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 	}
 	if info.LikelyPlayable() {
 		ext := strings.ToLower(filepath.Ext(src))
-		// MKV/AVI with H.264 still often fail in webview — prefer remux/proxy
-		// for non-mp4/webm containers even when codec looks fine.
-		if ext == ".mp4" || ext == ".m4v" || ext == ".webm" || ext == ".mov" {
+		if PlayableContainers[ext] {
 			return src, false, nil
 		}
 	}
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return "", false, fmt.Errorf("ffmpeg fehlt — Codec %q vermutlich nicht abspielbar", info.Codec)
+	if _, err := FFmpeg(); err != nil {
+		return "", false, fmt.Errorf("ffmpeg fehlt — Codec %q vermutlich nicht abspielbar (portable zip mitliefern oder „Install video tools“)", info.Codec)
 	}
 	dst := ProxyPath(src)
 	if st, err := os.Stat(dst); err == nil && !st.IsDir() && st.Size() > 1024 {
@@ -77,20 +95,47 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 			return dst, true, nil
 		}
 	}
+
+	// Prefer remux when video is already H.264 (no quality loss, much faster).
+	if isH264Family(info.Codec) {
+		if onProgress != nil {
+			onProgress(fmt.Sprintf("Remux nach MP4 (stream copy, %s)…", info.Codec))
+		}
+		if err := remuxCopyMP4(ctx, src, dst); err == nil {
+			if onProgress != nil {
+				onProgress("Fertig (Remux): " + filepath.Base(dst))
+			}
+			return dst, true, nil
+		}
+		_ = os.Remove(dst)
+		if onProgress != nil {
+			onProgress("Remux fehlgeschlagen — re-encode…")
+		}
+	}
+
 	if onProgress != nil {
 		onProgress(fmt.Sprintf("Konvertiere nach H.264/AAC (%s → mp4)…", info.Codec))
 	}
-	// Faststart for progressive HTTP seek; scale down only if huge.
 	args := []string{
 		"-y", "-hide_banner", "-loglevel", "error",
 		"-i", src,
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
 		"-pix_fmt", "yuv420p",
+	}
+	w, _ := info.Rotated()
+	if w > SoftProxyMaxWidth {
+		// Soft Lanczos downscale only — never upscale in the proxy.
+		args = append(args, "-vf", fmt.Sprintf("scale='min(%d,iw)':-2:flags=lanczos", SoftProxyMaxWidth))
+	}
+	args = append(args,
 		"-c:a", "aac", "-b:a", "160k",
 		"-movflags", "+faststart",
 		dst,
+	)
+	cmd, err := CommandContext(ctx, args...)
+	if err != nil {
+		return "", false, err
 	}
-	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		_ = os.Remove(dst)
 		msg := strings.TrimSpace(string(b))
@@ -103,6 +148,27 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 		onProgress("Fertig: " + filepath.Base(dst))
 	}
 	return dst, true, nil
+}
+
+func remuxCopyMP4(ctx context.Context, src, dst string) error {
+	cmd, err := CommandContext(ctx,
+		"-y", "-hide_banner", "-loglevel", "error",
+		"-i", src,
+		"-c", "copy",
+		"-movflags", "+faststart",
+		dst,
+	)
+	if err != nil {
+		return err
+	}
+	if b, err := cmd.CombinedOutput(); err != nil {
+		msg := strings.TrimSpace(string(b))
+		if msg == "" {
+			msg = err.Error()
+		}
+		return fmt.Errorf("remux: %s", msg)
+	}
+	return nil
 }
 
 // ProbeTimeout is the default probe budget for UI calls.

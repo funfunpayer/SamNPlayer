@@ -9,6 +9,9 @@ discussion stays German.
 **Relationship to the other planning docs, so they stop drifting apart:**
 
 - **This file** — the current checklist. Check items off here as they ship.
+- `docs/PRODUCTION_ROADMAP.md` — rock-solid production plan: open
+  workstreams, owner test loop, targets / prerequisites, what you test
+  and where results go.
 - `docs/NEXT.md` — research journal (measurements / rejected approaches).
 - `docs/ENGINE.md` — lean engine direction (phases + DoD).
 - `docs/FINDINGS_TIMING_TF.md` — Go-migration / timing inventory.
@@ -22,6 +25,9 @@ discussion stays German.
 1. **Don't add what isn't needed.** No dependency, module, or feature
    ships speculatively — `fusion.py` stays tested but unconnected until a
    genuine third independent signal source exists (see Open tasks).
+   Prefer a **lean self-build** only when clip tests show **equal or
+   better** quality — never worse (`docs/SELF_BUILD.md`). Fewer deps are
+   a win only after that gate.
 2. **Every quality/speed claim needs a measurement, not an estimate.**
    Reproduce before changing an algorithm; keep the raw numbers, not just
    the conclusion.
@@ -79,7 +85,13 @@ commits.
       — built and tested, **not yet wired into generation** (see Open
       tasks below, this is deliberate per principle 6).
 - [x] Audio-tempo plausibility check (`--audio-check`) — classical, not
-      AI, but shipped alongside the AI-quality-opinion checkbox.
+      AI; GUI default **on** when ffmpeg is available. Native Go path
+      runs `CheckAudioTempo` post-hoc (no longer forces Python). Workflow:
+      [`docs/AUDIO_WORKFLOW.md`](AUDIO_WORKFLOW.md). Pre-pass tempo hint
+      / “no motion → audio” fallback still deferred (audio is not a
+      position curve).
+- [x] ROI auto-detect second-pass (`VerifyROI`) — warn-only motion
+      concentration check after classic/AI find-region.
 
 **O-markers / Extended-O**
 - [x] Manual placement, classical auto-suggestion (primary + secondary),
@@ -278,7 +290,7 @@ these in the 0.5.7 train** unless noted.
 | Dark/Light mode (`IsDarkMode`) | **Skip** — product is dark gold/teal; light mode rejected in 0.5.6 review |
 | Micro-interactions / tab transitions | **Later (small)** — `prefers-reduced-motion` already respected; only add if it helps hierarchy |
 | Heatmap/curve tooltips + zoom | **Done (tooltips)** — hover time/value on curve + heatmap; optional zoom still open |
-| Multi-axis funscripts “v2.0” | **Partial already** — position + suction + contact vibration via `device_recipe`; full multi-axis format only with measured device need |
+| Multi-axis funscripts “v2.0” | **Done as `.samn`** — native source of truth with general/vib/suc + recipe/axes drive + strength presets; Funscript export for community. See `docs/SAMN_FORMAT.md` |
 | Playlist shuffle / section repeat / crossfades | **Partial (shuffle + playlist repeat)** — crossfades still later |
 | Plugin video-sync / streaming sources | **Skip** — local files + H.264 proxy is the codec path; no streaming plugin surface |
 | Cloud sync for settings | **Skip** — local-only / no telemetry principle |
@@ -293,6 +305,26 @@ these in the 0.5.7 train** unless noted.
 value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)” item
 (e.g. curve zoom) or hygiene; not frameless/light/cloud.
 
+### Evaluated 19 Sep 2026 — less Python / player / detection
+
+| Idea | Verdict |
+|------|---------|
+| Decouple `--audio-check` from `NativePipelineEligible` | **Done** — Go `CheckAudioTempo` post-hoc; default GUI stays on CSRT/simpletrack |
+| Port `audio_check.py` to Go | **Done** — `generator/audiocheck.go` (Python kept for PreferPython path) |
+| Soft CSS / WebGL canvas upscale + sharpen | **Skip** — measured worse than native `<video>` (`docs/NEXT.md` §10) |
+| Soft upscale inside tracking / proxy | **Skip upscale** — Lanczos **downscale** only when proxy width > 1920; GrayReader Lanczos |
+| Remux-first H.264 → MP4 | **Done** — avoid re-encode when codec already playable |
+| More player containers (ts/flv/mpg/…) | **Done** — pick filters + MIME; proxy still the fallback |
+| Live second-pass ROI rewrite | **Skip rewrite** — `VerifyROI` warns only (no silent box change) |
+| AI quality opinion on Go path | **Still Python** — keep blocking eligibility until a Go port exists |
+| Bundle / auto-ship ffmpeg | **Done** — portable release + opt-in Install video tools; no surprise download at startup |
+| Pure-Go H.264 decode/encode | **Skip** — codec stack; keep ffmpeg as the only media I/O helper (`docs/FFMPEG_TOOLS.md`) |
+| Lean self-build over heavy OSS | **Principle** — `docs/SELF_BUILD.md`; MP4 ISO-BMFF probe fallback without ffprobe **Done** |
+| Competitive GUI + GitHub exterior | **Bar documented** — `docs/COMPETITIVE.md`; Play stays home; no phone-shaped desktop |
+| macOS release binary | **Blocked on hardware/CI** — code path kept; see `docs/PLATFORMS.md` |
+| iOS/Android player (no generator) | **Hinted** — share `player`/`device`/`funscript`/`samn`; desktop keeps Generate |
+| “Max out CPU/GPU/RAM” slogans | **Reject as policy** — use measured budgets; CSRT already multi-threads; GPU ≠ CSRT |
+
 ## Explicitly deferred, not forgotten
 
 - [ ] 🧭 Climax ("cum") detection — needs a design decision on signal
@@ -301,7 +333,15 @@ value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)”
       for now.
 - [ ] 🔒 Real-hardware "does contact-vibration feel right" check —
       blocked on the same hardware item above.
-
+- [ ] 🔑 **Yearly license gate** — concept only:
+      [`docs/LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md). Unlicensed: 1‑minute
+      generate + funscript-only play; licensed: full `.samn`. **Not sharp
+      until owner flips enforcement**; need infinite/internal key for
+      testing. Do not implement gates before `.samn` workflow is stable.
+- [ ] 📱 **Mobile player (iOS/Android)** — play + device only; no
+      generator. Architecture fence: [`docs/PLATFORMS.md`](PLATFORMS.md).
+- [ ]  **macOS GUI release** — needs Mac builder + notarization; Linux
+      and Windows remain the shipped pair.
 ---
 
 ## Explicitly rejected — don't retry without new evidence
@@ -343,3 +383,6 @@ Things this file can't resolve on its own — flagging rather than guessing:
    Golden-Clip Benchmark already shipped — each remaining phase pulls in
    real new dependencies (SAM-equivalent segmentation, ByteTrack/BoT-SORT,
    depth models) that need individual sign-off, per principle 7.
+5. **License go-live:** confirm trial rules in
+   [`docs/LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) (edit `.samn` without
+   key? seat model? renew grace?) before any enforcement build.

@@ -52,6 +52,10 @@ type DeviceRecipe struct {
 	// Fehlen → Mapper-Defaults (0.75 / linear). Siehe MapOptions.
 	ContactVibrationSpan  float64 `json:"contact_vibration_span,omitempty"`
 	ContactVibrationCurve string  `json:"contact_vibration_curve,omitempty"`
+
+	// PlaybackSource: "recipe" (default) derives vibe/suction from general
+	// actions; "axes" drives Neo 2 from metadata.samn_axes. See docs/MULTI_AXIS.md.
+	PlaybackSource string `json:"playback_source,omitempty"`
 }
 
 // RecipeFor liefert MapOptions für ein Profil.

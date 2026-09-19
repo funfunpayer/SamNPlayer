@@ -10,7 +10,7 @@
 // every fixture. No cgo, no OpenCV, no Python runtime.
 //
 // Combined with generator/trackcv this is the second step toward a CSRT
-// generation path that does not need a Python install. Quality Doctor,
-// AI opinion, audio check, and non-CSRT backends stay on the Python path
-// for now.
+// generation path that does not need a Python install. Quality Doctor and
+// audio-tempo check run in Go on the native path; AI opinion and non-CSRT
+// backends stay on the Python path for now.
 package posttrack

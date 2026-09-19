@@ -1,13 +1,13 @@
-// Package videox contains dependency-free ffmpeg/ffprobe helpers.
+// Package videox contains ffmpeg/ffprobe helpers plus lean self-built
+// fallbacks (ISO-BMFF probe) so common MP4 metadata works without ffprobe.
 //
-// Salvaged and repaired from fse-generator v1.3 (internal/video).
+// See docs/SELF_BUILD.md and docs/FFMPEG_TOOLS.md.
 package videox
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -57,17 +57,35 @@ type ffprobeJSON struct {
 
 // Probe reads metadata for the first video stream.
 //
+// Prefers ffprobe when available (never silently downgrade). Falls back to
+// a lean ISO-BMFF reader for common .mp4/.m4v/.mov only when ffprobe fails
+// (docs/SELF_BUILD.md — equal geometry gate vs ffprobe on clips).
+//
 // Difference to the original: -select_streams v:0 is mandatory. Without it the
 // first stream carrying width/height may be attached cover art (mjpeg), which
 // yields a bogus resolution and a frame rate of 1/1.
 func Probe(ctx context.Context, path string) (Info, error) {
-	cmd := exec.CommandContext(ctx, "ffprobe",
+	info, err := probeWithFF(ctx, path)
+	if err == nil {
+		return info, nil
+	}
+	if lean, leanErr := probeISOBMFF(path); leanErr == nil {
+		return lean, nil
+	}
+	return Info{}, err
+}
+
+func probeWithFF(ctx context.Context, path string) (Info, error) {
+	cmd, err := ProbeCommandContext(ctx,
 		"-v", "error",
 		"-select_streams", "v:0",
 		"-print_format", "json",
 		"-show_streams", "-show_format",
 		path,
 	)
+	if err != nil {
+		return Info{}, err
+	}
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 

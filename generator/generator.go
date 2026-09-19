@@ -16,6 +16,7 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
 //go:embed *.py requirements.txt requirements-ai.txt requirements-ai-train.txt
@@ -394,14 +395,12 @@ func SupportSignalsAvailable(depthOnnxPath, poseOnnxPath string) map[string]bool
 }
 
 // AudioCheckAvailable prüft, ob --audio-check grundsätzlich nutzbar ist -
-// nur ffmpeg auf dem PATH nötig (siehe generator/audio_check.py), kein
-// Python-Unterprozess wie bei AIRoiAvailable, weil ffmpeg die einzige
-// zusätzliche Voraussetzung gegenüber der normalen Generierung ist. Für die
-// GUI, um die Checkbox zu aktivieren/auszublenden statt sie anzubieten und
-// dann bei jedem Versuch mit "nicht möglich" scheitern zu lassen.
+// nur ffmpeg auf dem PATH nötig (Go: CheckAudioTempo / Python: audio_check.py).
+// Kein separates Python-Paket. Für die GUI, um die Checkbox zu aktivieren/
+// auszublenden statt sie anzubieten und dann bei jedem Versuch mit
+// "nicht möglich" scheitern zu lassen.
 func AudioCheckAvailable() bool {
-	_, err := exec.LookPath("ffmpeg")
-	return err == nil
+	return videox.Available()
 }
 
 // findROIViaScript führt eines der beiden austauschbaren ROI-Finder-Skripte
@@ -971,14 +970,19 @@ func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
 	}
 	var doc struct {
 		Actions []funscript.Action `json:"actions"`
+		General []funscript.Action `json:"general"` // .samn native
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return ScriptQualityResult{}, fmt.Errorf("generator: invalid JSON: %w", err)
 	}
-	if len(doc.Actions) == 0 {
+	actions := doc.Actions
+	if len(actions) == 0 {
+		actions = doc.General
+	}
+	if len(actions) == 0 {
 		return ScriptQualityResult{}, fmt.Errorf("generator: no actions found in script")
 	}
-	got := funscript.EvaluateScriptQuality(doc.Actions)
+	got := funscript.EvaluateScriptQuality(actions)
 	return ScriptQualityResult{
 		Score:                   got.Score,
 		Passed:                  got.Passed,

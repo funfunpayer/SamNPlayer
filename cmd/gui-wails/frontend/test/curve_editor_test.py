@@ -36,7 +36,17 @@ def main():
                           "{ atMs: 100000, pos: 100 }]",
         "GetScriptActions": "async () => [{ at: 0, pos: 0 }, { at: 50000, pos: 50 }, "
                             "{ at: 100000, pos: 100 }]",
+        "GetScriptAxisActions": "async (axis) => [{ at: 0, pos: 0 }, { at: 50000, pos: 50 }, "
+                                "{ at: 100000, pos: 100 }]",
         "SaveScriptActions": "async (actions) => { window.__calls.push(['saveActions', actions]); }",
+        "SaveScriptAxisActions": "async (axis, actions) => { window.__calls.push(['saveActions', actions, axis]); }",
+        "GetPlaybackSource": "async () => 'recipe'",
+        "SetPlaybackSource": "async () => {}",
+        "GetStrengthPresets": "async () => ({ presets: [], active: '' })",
+        "SetActiveStrength": "async () => {}",
+        "ExportLoadedFunscript": "async () => '/tmp/out.funscript'",
+        "SaveLoadedAsSamn": "async () => '/tmp/out.samn'",
+        "BakeNeoAxesOnLoaded": "async () => '/tmp/out.samn'",
         "GetHeatmap": "async n => Array.from({ length: n }, (_, i) => "
                       "({ atMs: i * 1000, intensity: 0.5 }))",
         "GetMarker": "async () => null",

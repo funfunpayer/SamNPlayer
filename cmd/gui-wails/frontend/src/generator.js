@@ -37,7 +37,7 @@ export function initGenerator(root, playback) {
     <div class="path-label" id="gen-roi-label">No region marked</div>
     <div class="row" style="align-items:center; margin-top:6px;">
       <button id="gen-roi2-toggle" type="button"
-        data-help="Second region (gold) for Tf/Tj: distance between both drives stroke; suction follows position. Also via Shift+drag.">2. Region</button>
+        data-help="Second region (gold) for Tf/Tj: distance between both drives stroke; suction follows position. Also via Shift+drag.">2nd region</button>
       <span class="hint" id="gen-roi2-hint" style="margin:0">Required for Tf/Tj.</span>
     </div>
     <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
@@ -129,7 +129,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
           data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-          data-help="Compares script tempo to the audio track (ffmpeg). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
+          data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
         <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
           data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
 
@@ -171,11 +171,11 @@ export function initGenerator(root, playback) {
       <div style="margin-bottom:6px;">Was the result usable? Your rating helps
         tune quality scoring on real material.</div>
       <div class="row">
-        <button data-verdict="brauchbar">usable</button>
-        <button data-verdict="grenzwertig">borderline</button>
-        <button data-verdict="unbrauchbar">unusable</button>
+        <button data-verdict="brauchbar" type="button">usable</button>
+        <button data-verdict="grenzwertig" type="button">borderline</button>
+        <button data-verdict="unbrauchbar" type="button">unusable</button>
       </div>
-      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) — e.g. what did not fit"
+      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) - e.g. what did not fit"
              style="width:100%; margin-top:8px;" />
       <div id="gen-fb-status" class="hint" style="margin-top:6px;"></div>
     </div>
@@ -235,15 +235,19 @@ export function initGenerator(root, playback) {
   refreshAIRoiAvailability();
   window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
-  // Audio-Tempo-Prüfung (audio_check.py) braucht nur ffmpeg auf dem PATH -
-  // kein Modell, kein separates Python-Paket. Gleiches Muster wie oben:
-  // einmal beim Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei
-  // jedem Versuch mit "nicht möglich" zu scheitern.
+  // Audio-Tempo-Prüfung braucht nur ffmpeg auf dem PATH (Go-native post-hoc
+  // oder Python bei PreferPython). Gleiches Muster wie oben: einmal beim
+  // Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei jedem Versuch
+  // mit "nicht möglich" zu scheitern.
   CheckAudioCheckAvailable().then(available => {
     const checkbox = el('#gen-audio-check');
     checkbox.disabled = !available;
     if (!available) {
-      checkbox.title = 'ffmpeg was not found on PATH';
+      checkbox.checked = false;
+      checkbox.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
+    } else {
+      // Part of the normal workflow when ffmpeg is present (docs/AUDIO_WORKFLOW.md).
+      checkbox.checked = true;
     }
   }).catch(() => {});
 
@@ -256,10 +260,10 @@ export function initGenerator(root, playback) {
 
   function updateRoiLabels() {
     el('#gen-roi-label').textContent = roi
-      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel)`
+      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels)`
       : 'No region marked';
     el('#gen-roi2-label').textContent = roi2
-      ? `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, gold)`
+      ? `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, gold)`
       : 'No 2nd region marked';
 
     // Zwei-Punkt-Messung (2. Region gesetzt) hat einen eigenen Pfad in
@@ -352,7 +356,7 @@ export function initGenerator(root, playback) {
     if (tftj && videoPath) {
       el('#gen-status').textContent = roi2
         ? 'Tf/Tj: both regions set — ready to generate.'
-        : 'Tf/Tj (distance + suction): mark 2nd region (Shift+drag or “2. Region”).';
+        : 'Tf/Tj (distance + suction): mark 2nd region (Shift+drag or “2nd region”).';
     }
   }
 
@@ -434,7 +438,7 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     autoApplyPipeline();
     if (isTfTj() && videoPath && !roi2) {
-      el('#gen-status').textContent = 'First region set — now mark 2nd region (Shift+drag or “2. Region”).';
+      el('#gen-status').textContent = 'First region set — now mark 2nd region (Shift+drag or “2nd region”).';
     }
     redraw();
   });
@@ -510,7 +514,7 @@ export function initGenerator(root, playback) {
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj: draw first region, then Shift+drag or “2. Region” for the second. Seek time if the start is black.'
+        ? 'Tf/Tj: draw first region, then Shift+drag or “2nd region” for the second. Seek time if the start is black.'
         : 'Find region automatically or mark by hand (drag). Seek time if the start is black.') + batchNote;
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
@@ -561,7 +565,7 @@ export function initGenerator(root, playback) {
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      el('#gen-status').textContent = 'Tf/Tj needs a second region (Shift+drag or “2. Region”).';
+      el('#gen-status').textContent = 'Tf/Tj needs a second region (Shift+drag or “2nd region”).';
       return;
     }
 
@@ -571,7 +575,7 @@ export function initGenerator(root, playback) {
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript';
+        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript (and .samn)';
         if (!confirm(`A script already exists:\n${target}\n\nOverwrite it?`)) {
           return;
         }
@@ -670,19 +674,24 @@ export function initGenerator(root, playback) {
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
     if (roi) {
       el('#gen-roi-label').textContent =
-        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (Videopixel, ${via} gefunden)`;
+        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, ${via} found)`;
     }
     if (hasRoi2 && roi2) {
       el('#gen-roi2-label').textContent =
-        `2. Region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (Videopixel, ${via} — please review)`;
+        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — please review)`;
     }
     updateProfileUi();
     updateGenerateEnabled();
-    el('#gen-status').textContent = hasRoi2
+    let status = hasRoi2
       ? `Both regions found (${via}) — suggestion, please review/correct.`
       : (isTfTj() && !roi2
-        ? `Region found (${via}) — for Tf/Tj mark the 2nd region (Shift+drag or “2. Region”).`
+        ? `Region found (${via}) — for Tf/Tj mark the 2nd region (Shift+drag or “2nd region”).`
         : `Region found (${via}) — correct by hand if needed.`);
+    if (result.verifyWarning) {
+      status += ' ⚠ ' + result.verifyWarning;
+      uiWarn(result.verifyWarning, el('#gen-status'));
+    }
+    el('#gen-status').textContent = status;
     redraw();
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -735,7 +744,7 @@ export function initGenerator(root, playback) {
           verdict: btn.dataset.verdict,
           comment: el('#gen-fb-comment').value || '',
         });
-        status.textContent = `Thanks — saved as "${btn.dataset.verdict}".`;
+        status.textContent = `Thanks - saved as "${btn.textContent.trim()}".`;
         el('#gen-fb-comment').value = '';
       } catch (err) {
         status.textContent = 'Could not save: ' + err;

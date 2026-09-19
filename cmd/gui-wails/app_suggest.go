@@ -27,15 +27,7 @@ func (a *App) InvertLoadedScript() error {
 	for i, act := range script.Actions {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
-	if err := funscript.SaveActions(path, actions); err != nil {
-		return err
-	}
-	reloaded, err := funscript.Load(path)
-	if err != nil {
-		return err
-	}
-	a.setLoadedScript(path, reloaded)
-	return nil
+	return a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions)
 }
 
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {
@@ -132,13 +124,5 @@ func (a *App) ApplyRingDown(atMs int64, cycles int) error {
 		return fmt.Errorf("position too low for ring-down (%d)", lastPos)
 	}
 	newActions := funscript.RingDown(actions, atMs, lastPos, cycles)
-	if err := funscript.SaveActions(path, newActions); err != nil {
-		return err
-	}
-	reloaded, err := funscript.Load(path)
-	if err != nil {
-		return err
-	}
-	a.setLoadedScript(path, reloaded)
-	return nil
+	return a.SaveScriptAxisActions(string(funscript.AxisGeneral), newActions)
 }

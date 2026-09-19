@@ -26,6 +26,10 @@ func TestNativePipelineEligible(t *testing.T) {
 	if NativePipelineEligible(Options{Backend: "csrt", AIQualityOpinion: true}, roi) {
 		t.Fatal("AI opinion must not be eligible")
 	}
+	// Audio check is post-hoc in Go — must not force the Python path.
+	if !NativePipelineEligible(Options{Backend: "csrt", AudioCheck: true}, roi) {
+		t.Fatal("AudioCheck must stay eligible on the Go path")
+	}
 	if NativePipelineEligible(Options{Backend: "csrt"}, ROI{}) {
 		t.Fatal("empty ROI must not be eligible")
 	}

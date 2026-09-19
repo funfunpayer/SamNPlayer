@@ -22,6 +22,10 @@ clips show quality ≥ current path. Keep OpenCV / FFmpeg / ONNX as native
 kernels behind thin interfaces. Python stays for training and research;
 end-user runtime should eventually need no Python install.
 
+**Lean self-build:** fewer dependencies only if quality stays **equal or
+better** on clip tests — never ship a weaker self-build
+(`docs/SELF_BUILD.md`). Full codec/browser stacks stay thin kernels.
+
 ## What is already shipped (v0.5.x)
 
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)
@@ -46,6 +50,9 @@ end-user runtime should eventually need no Python install.
 | P1 | Real Sam Neo 2 feel / BLE+Intiface | hardware |
 | P1 | Native CSRT as default | measured win on goldens |
 | P1 | Windows native OpenCV (CSRT) | optional; simpletrack covers no-Python path |
+| P1 | Competitive GUI polish (Play home) | `docs/COMPETITIVE.md` — no layout fashion |
+| P2 | macOS release | Mac builder + notarization (`docs/PLATFORMS.md`) |
+| P2 | Mobile player (no generator) | share player/device/funscript/samn only |
 | P2 | 4-zone relative graph as default | bake-off vs two-ROI |
 | P2 | Depth / pose / spatial | per-variant benchmark |
 | P2 | Prediction / look-ahead | only after measured latency |

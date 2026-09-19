@@ -1,6 +1,9 @@
-// Package player führt eine resamplete funscript-Kurve auf einem
-// device.Device ab - zeitgenau, unterbrechbar per Context, mit optional
-// live triggerbarem Extended-O-Klimax-Modus.
+// Package player runs a resampled funscript/samn curve on a device.Device —
+// time-accurate, cancelable, with optional Extended-O.
+//
+// Mobile share surface: this package (with device/, funscript/, samn/) is the
+// intended core for a later iOS/Android *player-only* app. Do not import
+// generator/ here. See docs/PLATFORMS.md.
 package player
 
 import (

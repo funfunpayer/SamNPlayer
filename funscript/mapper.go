@@ -112,6 +112,13 @@ type MapOptions struct {
 
 	// TrackingGaps: Tracker-Verlustfenster — Vibration aus, Sog unverändert.
 	TrackingGaps []TrackingGap
+
+	// UseExplicitAxes: when true, vibe/suction come from VibrationAxis /
+	// SuctionAxis (0-100) instead of Sync mapping on general actions.
+	// See docs/MULTI_AXIS.md. Recipe Sync still influences floors/smoothing.
+	UseExplicitAxes bool
+	VibrationAxis   []Action
+	SuctionAxis     []Action
 }
 
 // DefaultContactVibrationSpan: oberstes Viertel des beobachteten
@@ -230,79 +237,128 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		return false
 	}
 	for t := int64(0); t <= duration; t += opts.TickMs {
-		for segIdx < len(s.Actions)-2 && s.Actions[segIdx+1].At <= t {
-			segIdx++
-		}
-		a, b := s.Actions[segIdx], s.Actions[segIdx+1]
-		dt := b.At - a.At
-		if dt <= 0 {
-			dt = 1
-		}
-		speed := math.Abs(float64(b.Pos-a.Pos)) / float64(dt)
-		intensity := clamp01(speed / opts.MaxSpeed)
-		frac := float64(t-a.At) / float64(dt)
-		pos := float64(a.Pos) + frac*float64(b.Pos-a.Pos)
-		posSignal := clamp01(pos / 100.0)
 		var vib, suc float64
-		switch opts.Sync {
-		case SyncSynchronized:
-			vib, suc = intensity, intensity
-		case SyncAlternating:
-			vib, suc = intensity, clamp01(1-intensity)
-		case SyncVibrationOnly:
-			vib, suc = intensity, 0
-		case SyncSuctionOnly:
-			vib, suc = 0, intensity
-		case SyncSuctionPosition:
-			vib, suc = 0, posSignal
-			inTrackingGap := inGap(t)
-			if contactEnabled && pos >= contactMin && !inTrackingGap {
-				linear := clamp01((pos - contactMin) / (contactMax - contactMin))
-				vib = applyContactCurve(linear, contactCurve)
-				if vib > 0 && opts.MinVibration > 0 {
-					vib = liftFloor(vib, opts.MinVibration)
-				}
-			}
-			// Kurze Envelope-Glättung nur für Kontakt-Vib außerhalb von
-			// Tracking-Gaps. Im Gap hart aus — sonst sickert prevContactVib
-			// über die Envelope in den Tracker-Verlust hinein.
-			if contactEnabled && envelopeOn && !inTrackingGap {
-				if len(frames) > 0 {
-					vib = envelope*prevContactVib + (1-envelope)*vib
-				}
-				prevContactVib = vib
-			} else if inTrackingGap {
+		if opts.UseExplicitAxes {
+			vib = clamp01(SampleAxisPos(opts.VibrationAxis, t) / 100.0)
+			suc = clamp01(SampleAxisPos(opts.SuctionAxis, t) / 100.0)
+			if inGap(t) {
 				vib = 0
-				prevContactVib = 0
 			}
-		default:
-			vib, suc = intensity, posSignal
-		}
-		if opts.Sync != SyncSuctionOnly && opts.Sync != SyncSuctionPosition {
-			vib = liftFloor(vib, opts.MinVibration)
-		}
-		// SyncSuctionPosition: do NOT apply MinSuction via liftFloor.
-		// Tf/Tj scripts already clamp actions to 20–90 at generation time, so
-		// posSignal is already in [0.20, 0.90]. liftFloor(0.20, 0.20) would
-		// remap that to 0.36 (and 0.90→0.92), stacking two floors and raising
-		// resting suction for no gain — see docs/TF_TJ.md and the finding in
-		// docs/FINDINGS_TIMING_TF.md. MinSuction remains in the recipe metadata
-		// as the intended script-space floor (the clamp), not a second runtime remap.
-		if opts.Sync != SyncVibrationOnly && opts.Sync != SyncSuctionPosition {
-			suc = liftFloor(suc, opts.MinSuction)
+		} else {
+			for segIdx < len(s.Actions)-2 && s.Actions[segIdx+1].At <= t {
+				segIdx++
+			}
+			a, b := s.Actions[segIdx], s.Actions[segIdx+1]
+			dt := b.At - a.At
+			if dt <= 0 {
+				dt = 1
+			}
+			speed := math.Abs(float64(b.Pos-a.Pos)) / float64(dt)
+			intensity := clamp01(speed / opts.MaxSpeed)
+			frac := float64(t-a.At) / float64(dt)
+			pos := float64(a.Pos) + frac*float64(b.Pos-a.Pos)
+			posSignal := clamp01(pos / 100.0)
+			switch opts.Sync {
+			case SyncSynchronized:
+				vib, suc = intensity, intensity
+			case SyncAlternating:
+				vib, suc = intensity, clamp01(1-intensity)
+			case SyncVibrationOnly:
+				vib, suc = intensity, 0
+			case SyncSuctionOnly:
+				vib, suc = 0, intensity
+			case SyncSuctionPosition:
+				vib, suc = 0, posSignal
+				inTrackingGap := inGap(t)
+				if contactEnabled && pos >= contactMin && !inTrackingGap {
+					linear := clamp01((pos - contactMin) / (contactMax - contactMin))
+					vib = applyContactCurve(linear, contactCurve)
+					if vib > 0 && opts.MinVibration > 0 {
+						vib = liftFloor(vib, opts.MinVibration)
+					}
+				}
+				// Kurze Envelope-Glättung nur für Kontakt-Vib außerhalb von
+				// Tracking-Gaps. Im Gap hart aus — sonst sickert prevContactVib
+				// über die Envelope in den Tracker-Verlust hinein.
+				if contactEnabled && envelopeOn && !inTrackingGap {
+					if len(frames) > 0 {
+						vib = envelope*prevContactVib + (1-envelope)*vib
+					}
+					prevContactVib = vib
+				} else if inTrackingGap {
+					vib = 0
+					prevContactVib = 0
+				}
+			default:
+				vib, suc = intensity, posSignal
+			}
+			if opts.Sync != SyncSuctionOnly && opts.Sync != SyncSuctionPosition {
+				vib = liftFloor(vib, opts.MinVibration)
+			}
+			// SyncSuctionPosition: do NOT apply MinSuction via liftFloor.
+			// Tf/Tj scripts already clamp actions to 20–90 at generation time, so
+			// posSignal is already in [0.20, 0.90]. liftFloor(0.20, 0.20) would
+			// remap that to 0.36 (and 0.90→0.92), stacking two floors and raising
+			// resting suction for no gain — see docs/TF_TJ.md and the finding in
+			// docs/FINDINGS_TIMING_TF.md. MinSuction remains in the recipe metadata
+			// as the intended script-space floor (the clamp), not a second runtime remap.
+			if opts.Sync != SyncVibrationOnly && opts.Sync != SyncSuctionPosition {
+				suc = liftFloor(suc, opts.MinSuction)
+			}
 		}
 		if opts.Smoothing > 0 && len(frames) > 0 {
 			vib = opts.Smoothing*prevVib + (1-opts.Smoothing)*vib
 			suc = opts.Smoothing*prevSuc + (1-opts.Smoothing)*suc
 		}
 		// Tracking-Gap gewinnt über Recipe-Smoothing (sonst sickert prevVib nach).
-		if opts.Sync == SyncSuctionPosition && inGap(t) {
+		if (opts.Sync == SyncSuctionPosition || opts.UseExplicitAxes) && inGap(t) {
 			vib = 0
 		}
 		prevVib, prevSuc = vib, suc
 		frames = append(frames, Frame{At: t, Vibration: vib, Suction: suc})
 	}
 	return frames
+}
+
+// MapOptionsFromScript builds mapper options from metadata (recipe + axes).
+func MapOptionsFromScript(s *Script) MapOptions {
+	opts := DefaultMapOptions()
+	if s == nil {
+		return opts
+	}
+	profile := s.Metadata.Profile
+	if profile != "" {
+		opts = RecipeFor(profile)
+	}
+	if dr := s.Metadata.DeviceRecipe; dr != nil {
+		if sync, err := ParseSyncMode(dr.Sync); err == nil && dr.Sync != "" {
+			opts.Sync = sync
+		}
+		if dr.TickMs > 0 {
+			opts.TickMs = dr.TickMs
+		}
+		if dr.MaxSpeed > 0 {
+			opts.MaxSpeed = dr.MaxSpeed
+		}
+		if dr.Smoothing > 0 {
+			opts.Smoothing = dr.Smoothing
+		}
+		if dr.MinSuction > 0 {
+			opts.MinSuction = dr.MinSuction
+		}
+		opts.ContactVibration = dr.ContactVibration
+		opts.ContactVibrationSpan = dr.ContactVibrationSpan
+		opts.ContactVibrationCurve = dr.ContactVibrationCurve
+		if NormalizePlaybackSource(dr.PlaybackSource) == PlaybackSourceAxes && s.Metadata.SamnAxes != nil {
+			opts.UseExplicitAxes = true
+			opts.VibrationAxis = s.Metadata.SamnAxes.Vibration
+			opts.SuctionAxis = s.Metadata.SamnAxes.Suction
+		}
+	}
+	if len(s.Metadata.TrackingGaps) > 0 {
+		opts.TrackingGaps = s.Metadata.TrackingGaps
+	}
+	return opts
 }
 
 func liftFloor(value, floor float64) float64 {

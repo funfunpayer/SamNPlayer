@@ -30,7 +30,9 @@ Wenn Probe warnt oder `<video>` einen Fehler wirft:
 3. ffmpeg erzeugt neben der Quelle: `.<name>.samnplayer-h264.mp4`
 4. Wiedergabe schaltet auf die Kopie um
 
-Voraussetzung: **ffmpeg** im PATH (wie für Generate).
+Voraussetzung: **ffmpeg** — portable release ships it next to the app,
+or Settings → **Install video tools**, or PATH. See
+[`docs/FFMPEG_TOOLS.md`](FFMPEG_TOOLS.md).
 
 ## API
 
@@ -39,6 +41,7 @@ Voraussetzung: **ffmpeg** im PATH (wie für Generate).
 | `ProbePlaybackVideo` | Codec/Größe/Dauer + `likelyPlayable` |
 | `EnsurePlayablePlaybackVideo` | Proxy erzeugen/reuse + Pfad wechseln |
 | `videox.EnsurePlayableProxy` | Kernlogik |
+| `EnsureVideoTools` | Opt-in static ffmpeg install into user tools dir |
 
 ## Qualitätshinweise
 

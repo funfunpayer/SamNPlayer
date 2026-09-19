@@ -8,6 +8,56 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.9] — September 19, 2026
+
+Production train after v0.5.8: native `.samn`, leaner Go generation path,
+portable ffmpeg, English GUI lock, production roadmap for owner testing.
+
+### Added
+
+- **Native script `.samn`:** source of truth for Sam Neo 2 (general +
+  vibration + suction curves, recipe vs axes drive, chapters/bookmarks,
+  **O-markers**, contact-vibration recipe, strength presets soft/normal/strong).
+  Community `.funscript` remains import/export. Docs: `docs/SAMN_FORMAT.md`.
+  Playback UI: curve channel, drive mode, bake axes, export funscript / save `.samn`.
+- **Go audio-tempo check** (`generator/audiocheck.go`): post-hoc on the
+  native pipeline; `--audio-check` no longer forces Python.
+- **ROI second-pass** (`VerifyROI`): after auto-detect, warn when motion
+  concentration in the box looks weak — never auto-rewrites the region.
+- **Player proxy:** remux-first for H.264 in awkward containers; soft
+  Lanczos downscale when re-encoding above 1920px; more pick/MIME formats
+  (ts/m2ts/flv/mpg/3gp/ogv). Analysis GrayReader uses Lanczos (was bilinear).
+- **ffmpeg without system install:** `videox` resolves a copy next to the
+  app / user tools dir; Settings → **Install video tools** (opt-in);
+  release ships **portable** archives with ffmpeg beside the GUI
+  (`docs/FFMPEG_TOOLS.md`).
+- **Platforms stake:** desktop Win/Linux now; macOS when a Mac builder
+  exists; later **iOS/Android player-only** (no Generate) —
+  `docs/PLATFORMS.md`, `docs/COMPETITIVE.md`. Runtime health shows
+  CPU / GOMAXPROCS (honest budget, not fan-max).
+- **Lean self-build principle** (`docs/SELF_BUILD.md`): self-build only
+  when clip tests show **equal or better** quality — never worse; fewer
+  deps after that gate. ISO-BMFF probe is **fallback only** (ffprobe
+  preferred); geometry matched against ffprobe on synthetic clip.
+- **Production roadmap** (`docs/PRODUCTION_ROADMAP.md`): open workstreams,
+  owner test loop, targets and prerequisites.
+
+### Changed
+
+- **`NativePipelineEligible`:** `AudioCheck` no longer blocks the Go path
+  (AI quality opinion still does).
+- **GUI English lock:** leftover German user strings (playback convert
+  banners, ROI labels, ROI training hints, Thanks/feedback) → English.
+
+### Docs
+
+- **License system concept** (not built / not sharp): yearly key, trial =
+  1‑minute generate + funscript-only play; Ed25519 signed files;
+  `docs/LICENSE_SYSTEM.md`.
+- **Audio workflow / player verdicts:** soft CSS/WebGL upscale still
+  rejected (measured worse); proxy remux + Lanczos downscale shipped
+  instead (`docs/AUDIO_WORKFLOW.md`).
+
 ## [0.5.8] — September 19, 2026
 
 Playback UX release after #102. Green CI + clip7776 / full frontend suite

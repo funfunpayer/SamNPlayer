@@ -14,6 +14,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/sam"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 func (a *App) CheckGeneratorDependencies() error {
@@ -123,6 +124,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["w2"] = roi2.W
 				payload["h2"] = roi2.H
 			}
+			attachROIVerify(payload, videoPath, roi)
 			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		case "auto_two":
 			roi, roi2, err := generator.FindTwoROIsWithProgress(videoPath, onLine, onPct)
@@ -139,6 +141,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["w2"] = roi2.W
 				payload["h2"] = roi2.H
 			}
+			attachROIVerify(payload, videoPath, roi)
 			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		case "ai":
 			roi, err := generator.FindROIAIWithProgress(videoPath,
@@ -149,20 +152,36 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
-			})
+			}
+			attachROIVerify(payload, videoPath, roi)
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		default:
 			roi, err := generator.FindROIWithProgress(videoPath, onLine, onPct)
 			if err != nil {
 				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{
+			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
-			})
+			}
+			attachROIVerify(payload, videoPath, roi)
+			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 		}
 	}()
+}
+
+// attachROIVerify runs a lightweight Go second-pass motion check and adds
+// warning fields when the proposed box looks weak. Never changes the box.
+func attachROIVerify(payload map[string]any, videoPath string, roi generator.ROI) {
+	v := generator.VerifyROI(context.Background(), videoPath, roi)
+	if v.Score > 0 {
+		payload["verifyScore"] = v.Score
+	}
+	if v.Warning != "" {
+		payload["verifyWarning"] = v.Warning
+	}
 }
 
 // CheckAIRoiAvailable meldet, ob die KI-Regionssuche grundsätzlich nutzbar
@@ -202,7 +221,11 @@ func (a *App) LabelScene(videoPath, label string) error {
 }
 
 func (a *App) ScriptExistsForVideo(videoPath string) bool {
-	_, err := os.Stat(scriptPathForVideo(videoPath))
+	fs := scriptPathForVideo(videoPath)
+	if _, err := os.Stat(fs); err == nil {
+		return true
+	}
+	_, err := os.Stat(samn.CompanionSamnPath(fs))
 	return err == nil
 }
 
@@ -283,7 +306,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
 			return
 		}
-		payload := map[string]any{"path": outPath, "pipeline": "python"}
+		payload := map[string]any{"path": openPathAfterGenerate(outPath), "funscriptPath": outPath, "pipeline": "python"}
 		if data, readErr := os.ReadFile(outPath); readErr == nil {
 			var raw map[string]any
 			if json.Unmarshal(data, &raw) == nil {
@@ -312,9 +335,9 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 					payload["aiOpinionVerdict"] = script.Metadata.AIOpinion.Verdict
 					payload["aiOpinionReason"] = script.Metadata.AIOpinion.Reason
 				}
-				if script.Metadata.AudioCheck != nil {
-					payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
-				}
+			}
+			if script.Metadata.AudioCheck != nil {
+				payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
 			}
 			if opts.AutoOZoneMarker {
 				zone, err := applyAutoOZoneMarker(outPath, script.Actions)
@@ -363,11 +386,31 @@ func applyAutoOZoneMarker(outPath string, actions []funscript.Action) (funscript
 	for _, sec := range funscript.SuggestSecondaryOZones(actions, zone, 2) {
 		markers = append(markers, secondaryMarkerFromSuggestion(sec, zone))
 	}
-	return zone, funscript.SaveOMarkers(outPath, markers)
+	if err := funscript.SaveOMarkers(outPath, markers); err != nil {
+		return zone, err
+	}
+	// Keep companion .samn in sync when present (native source of truth).
+	companion := samn.CompanionSamnPath(outPath)
+	if st, err := os.Stat(companion); err == nil && !st.IsDir() {
+		doc, err := samn.Load(companion)
+		if err != nil {
+			return zone, err
+		}
+		doc.OMarkers = markers
+		if err := samn.Save(companion, doc); err != nil {
+			return zone, err
+		}
+	}
+	return zone, nil
 }
 
 func scriptPathForVideo(videoPath string) string {
 	return strings.TrimSuffix(videoPath, filepath.Ext(videoPath)) + ".funscript"
+}
+
+// openPathAfterGenerate prefers the native .samn companion when present.
+func openPathAfterGenerate(funscriptPath string) string {
+	return preferSamnCompanion(funscriptPath)
 }
 
 func (a *App) GetHardwareInfo() (string, error) {

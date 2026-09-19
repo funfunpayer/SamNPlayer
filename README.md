@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Generate · Play · Train</strong> — local desktop app for
-  <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
+  <code>.samn</code> / <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
 </p>
 
 <p align="center">
@@ -25,6 +25,8 @@
   <a href="#screenshots">Screenshots</a>
   ·
   <a href="#build-from-source">Build</a>
+  ·
+  <a href="docs/PLATFORMS.md">Platforms</a>
   ·
   <a href="docs/LANGUAGE.md">Docs</a>
 </p>
@@ -47,7 +49,8 @@ suggested.
 | App size | Electron often 100+ MB | **~13 MB** GUI (OS webview via [Wails](https://wails.io) — no bundled Chromium) |
 | Scope | Play *or* generate | **Play + generate + device + training** in one window |
 | AI | Cloud, bundled weights, or AI-only scripts | **Optional local ONNX** — AI *proposes*, classical tracking *writes* the Funscript |
-| Privacy | Telemetry / downloads common | **Local-only** — no model in the binary, no auto-download, no cloud calls |
+| Privacy | Telemetry / downloads common | **Local-only** — no model in the binary, no surprise downloads, no cloud calls |
+| Video tools | “Install ffmpeg yourself” | **Portable zip** ships ffmpeg next to the app; optional Settings install (`docs/FFMPEG_TOOLS.md`) |
 | Device | Generic Buttplug clients | **Sam Neo 2 first-class** (BLE + Intiface + Mock) with diagnostics |
 | Quality | “Looks fine” | **Quality Doctor**, Script Doctor, golden-clip benchmark — numbers before claims |
 | Engineering | Feature pile-on | **Measure → ship or reject** (`HANDOFF.md`, `docs/NEXT.md`) |
@@ -113,9 +116,24 @@ not needed, it stays out.
 
 Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are attached to
 every [GitHub Release](https://github.com/funfunpayer/SamNPlayer/releases)
-with `checksums.txt`. Double-click — no installer.
+with `checksums.txt`.
 
-Latest: **[v0.5.8](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
+Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
+include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
+install. Single-file GUI binaries remain for in-app updates. Details:
+[`docs/FFMPEG_TOOLS.md`](docs/FFMPEG_TOOLS.md).
+
+| Platform | Now | Later |
+|----------|-----|-------|
+| Windows / Linux | GUI + CLI + portable ffmpeg | — |
+| macOS | Code-ready; **no release binary yet** (needs Mac builder) | Signed `.app` |
+| iPhone / Android | — | **Player only** (no Generate) |
+
+Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
+[`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
+[`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
+
+Latest: **[v0.5.9](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
@@ -138,7 +156,7 @@ Cross-compile Windows GUI from Linux:
 ```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.8"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.9"
 ```
 
 Generator extras need **Python 3.9+** and
@@ -159,7 +177,7 @@ Generator extras need **Python 3.9+** and
            Funscript + Quality Doctor
 ```
 
-There is **no** second, AI-only path that writes `.funscript` files by
+There is **no** second, AI-only path that writes `.samn` / `.funscript` files by
 itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md),
 [`docs/DEPTH_POSE.md`](docs/DEPTH_POSE.md) (experimental supporting signals).
@@ -170,7 +188,11 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 | Doc | What it is |
 |---|---|
+| [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate (post-track) |
+| [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly license concept (not enforced yet) |
+| [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
+| [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production plan — open items, owner tests, how results turn into fixes |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Checklist — what’s done / next / rejected |
 | [`docs/NEXT.md`](docs/NEXT.md) | Measurement journal |
 | [`HANDOFF.md`](HANDOFF.md) | Architecture + tested-and-rejected table |
