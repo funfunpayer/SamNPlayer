@@ -35,5 +35,5 @@ demo_server.py
 .vscode/
 *.swp
 
-# Local Wails binary from `go build`
-gui-wails
+# Local Wails binary from `go build` (repo root only)
+/gui-wails
