@@ -175,7 +175,7 @@ export function initGenerator(root, playback) {
         <button data-verdict="grenzwertig" type="button">borderline</button>
         <button data-verdict="unbrauchbar" type="button">unusable</button>
       </div>
-      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) — e.g. what did not fit"
+      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) - e.g. what did not fit"
              style="width:100%; margin-top:8px;" />
       <div id="gen-fb-status" class="hint" style="margin-top:6px;"></div>
     </div>
@@ -744,7 +744,7 @@ export function initGenerator(root, playback) {
           verdict: btn.dataset.verdict,
           comment: el('#gen-fb-comment').value || '',
         });
-        status.textContent = `Thanks — saved as “${btn.textContent.trim()}”.`;
+        status.textContent = `Thanks - saved as "${btn.textContent.trim()}".`;
         el('#gen-fb-comment').value = '';
       } catch (err) {
         status.textContent = 'Could not save: ' + err;
