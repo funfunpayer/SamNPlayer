@@ -170,6 +170,7 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 | Doc | What it is |
 |---|---|
+| [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Checklist — what’s done / next / rejected |
 | [`docs/NEXT.md`](docs/NEXT.md) | Measurement journal |
