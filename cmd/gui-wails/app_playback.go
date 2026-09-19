@@ -47,7 +47,7 @@ type ContactPreviewOptions struct {
 }
 
 // SaveContactSettings schreibt Kontakt-Vibration in die Skript-Metadata
-// (device_recipe) und lädt das Skript neu — damit Preview und nächste
+// (device_recipe / .samn recipe) und lädt das Skript neu — damit Preview und nächste
 // Wiedergabe denselben „wie die Berührung“-Stand nutzen.
 func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
 	path := a.loadedScriptPath()
@@ -60,6 +60,25 @@ func (a *App) SaveContactSettings(enabled bool, span float64, curve string) erro
 	}
 	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
 		return fmt.Errorf("contact vibration only for Tf/Tj scripts")
+	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.ApplyContactRecipe(enabled, span, curve)
+		// Keep baked vibration in sync when driving from axes.
+		if funscript.NormalizePlaybackSource(doc.PlaybackSource) == samn.PlaybackAxes {
+			if err := doc.BakeNeoAxes(); err != nil {
+				return err
+			}
+		}
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		// Keep community export recipe (contact) aligned.
+		_ = doc.ExportFunscript(samn.CompanionFunscriptPath(path))
+		return a.reloadLoadedScript()
 	}
 	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {
 		return err

@@ -54,6 +54,9 @@ func LoadFunscriptFile(path string) (*Document, error) {
 	if bm, err := funscript.LoadBookmarks(path); err == nil {
 		d.Bookmarks = bm
 	}
+	if om, err := funscript.LoadOMarkers(path); err == nil {
+		d.OMarkers = om
+	}
 	_ = d.Normalize()
 	return d, nil
 }
@@ -133,6 +136,9 @@ func (d *Document) ExportFunscript(path string) error {
 	if len(d.Bookmarks) > 0 {
 		meta["bookmarks"] = d.Bookmarks
 	}
+	if len(d.OMarkers) > 0 {
+		meta["oMarkers"] = d.OMarkers
+	}
 	doc := map[string]any{
 		"actions":  d.General,
 		"metadata": meta,
@@ -191,11 +197,28 @@ func (d *Document) ActivePreset() *StrengthPreset {
 	return nil
 }
 
+// ApplyContactRecipe updates Tf/Tj contact-vibration fields on the recipe.
+// When playbackSource is axes, call BakeNeoAxes afterwards so the vibration
+// curve matches the new contact settings.
+func (d *Document) ApplyContactRecipe(enabled bool, span float64, curve string) {
+	if d.Recipe.Sync == "" {
+		d.Recipe.Sync = funscript.SyncSuctionPosition.String()
+	}
+	d.Recipe.ContactVibration = enabled
+	if enabled {
+		d.Recipe.ContactVibrationSpan = funscript.EffectiveContactSpan(span)
+		d.Recipe.ContactVibrationCurve = funscript.NormalizeContactCurve(curve)
+	} else {
+		d.Recipe.ContactVibrationSpan = 0
+		d.Recipe.ContactVibrationCurve = ""
+	}
+}
+
 // DefaultStrengthPresets soft/normal/strong for new Tf/Tj documents.
 func DefaultStrengthPresets() []StrengthPreset {
 	return []StrengthPreset{
-		{Name: "soft", VibrationScale: 0.7, SuctionScale: 0.85},
+		{Name: "soft", VibrationScale: 0.7, SuctionScale: 0.85, ContactSpan: 0.85, ContactCurve: "soft"},
 		{Name: "normal", VibrationScale: 1.0, SuctionScale: 1.0},
-		{Name: "strong", VibrationScale: 1.3, SuctionScale: 1.1},
+		{Name: "strong", VibrationScale: 1.3, SuctionScale: 1.1, ContactSpan: 0.55, ContactCurve: "peak"},
 	}
 }

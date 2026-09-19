@@ -102,6 +102,9 @@ func (a *App) documentFromLoaded() (*samn.Document, error) {
 	if bm, err := funscript.LoadBookmarks(path); err == nil {
 		d.Bookmarks = bm
 	}
+	if om, err := funscript.LoadOMarkers(path); err == nil {
+		d.OMarkers = om
+	}
 	return d, nil
 }
 

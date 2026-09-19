@@ -55,6 +55,7 @@ type Document struct {
 
 	Chapters     []funscript.ChapterMark  `json:"chapters,omitempty"`
 	Bookmarks    []funscript.Bookmark     `json:"bookmarks,omitempty"`
+	OMarkers     []funscript.OMarker      `json:"oMarkers,omitempty"`
 	TrackingGaps []funscript.TrackingGap  `json:"trackingGaps,omitempty"`
 
 	StrengthPresets []StrengthPreset `json:"strengthPresets,omitempty"`
@@ -121,6 +122,11 @@ func (d *Document) Normalize() error {
 	d.Profile = funscript.NormalizeProfile(d.Profile)
 	if d.DurationMs <= 0 {
 		d.DurationMs = d.General[len(d.General)-1].At
+	}
+	for i, m := range d.OMarkers {
+		if err := m.Validate(); err != nil {
+			return fmt.Errorf("samn: oMarkers[%d]: %w", i, err)
+		}
 	}
 	return nil
 }

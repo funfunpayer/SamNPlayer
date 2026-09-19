@@ -47,11 +47,15 @@ compatible stroke.
   "suction": [{"at": 0, "pos": 20}, {"at": 1000, "pos": 90}],
   "chapters": [{"name": "Intro", "startTime": 0, "endTime": 15000}],
   "bookmarks": [{"name": "Peak", "time": 60000}],
+  "oMarkers": [
+    {"startMs": 55000, "endMs": 62000, "kind": "primary", "intensity": 1.0},
+    {"startMs": 20000, "endMs": 28000, "kind": "secondary", "intensity": 0.45}
+  ],
   "trackingGaps": [{"start_ms": 8000, "end_ms": 8200}],
   "strengthPresets": [
-    {"name": "soft", "vibrationScale": 0.7, "suctionScale": 0.85},
+    {"name": "soft", "vibrationScale": 0.7, "suctionScale": 0.85, "contactSpan": 0.85, "contactCurve": "soft"},
     {"name": "normal", "vibrationScale": 1.0, "suctionScale": 1.0},
-    {"name": "strong", "vibrationScale": 1.3, "suctionScale": 1.1}
+    {"name": "strong", "vibrationScale": 1.3, "suctionScale": 1.1, "contactSpan": 0.55, "contactCurve": "peak"}
   ],
   "activeStrength": "normal"
 }
@@ -71,6 +75,19 @@ compatible stroke.
 |-------|------------------|
 | `recipe` (default) | Derive vibe/suction from `general` via `recipe.sync` (incl. contact vibe). |
 | `axes` | Drive vibe/suction from `vibration` / `suction` curves. Missing channel → 0. |
+
+### Contact vibration
+
+Stored on `recipe` (`contact_vibration`, `_span`, `_curve`). In **recipe**
+mode the mapper builds vibe from proximity; in **axes** mode “Bake axes”
+(or saving contact settings) regenerates the `vibration` curve from those
+fields. Strength presets may override span/curve at playback.
+
+### O-markers
+
+First-class `oMarkers` (primary / secondary climax ranges) live in `.samn`
+and are copied into Funscript `metadata.oMarkers` on export. Extended-O
+sidecar `*.marker.json` remains a separate live/auto trigger — additive.
 
 ### Strength presets
 

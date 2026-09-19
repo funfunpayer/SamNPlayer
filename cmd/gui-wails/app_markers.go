@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 // Marker ist ein vom Nutzer markierter Zeitbereich im Skript (z.B. der
@@ -65,9 +68,26 @@ func (a *App) GetMarker(scriptPath string) (*Marker, error) {
 // authored data, die mit dem Skript geteilt/exportiert werden soll
 // (docs/NEXT.md Priorität 7), nicht nur lokaler Player-Zustand.
 func (a *App) GetOMarkers(scriptPath string) ([]funscript.OMarker, error) {
-	markers, err := funscript.LoadOMarkers(scriptPath)
-	if err != nil {
-		return nil, err
+	path := strings.TrimSpace(scriptPath)
+	if path == "" {
+		path = a.loadedScriptPath()
+	}
+	if path == "" {
+		return nil, fmt.Errorf("no script loaded")
+	}
+	var markers []funscript.OMarker
+	var err error
+	if samn.IsSamnPath(path) {
+		doc, loadErr := samn.Load(path)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		markers = doc.OMarkers
+	} else {
+		markers, err = funscript.LoadOMarkers(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if markers == nil {
 		markers = []funscript.OMarker{}
@@ -76,5 +96,34 @@ func (a *App) GetOMarkers(scriptPath string) ([]funscript.OMarker, error) {
 }
 
 func (a *App) SaveOMarkers(scriptPath string, markers []funscript.OMarker) error {
-	return funscript.SaveOMarkers(scriptPath, markers)
+	path := strings.TrimSpace(scriptPath)
+	if path == "" {
+		path = a.loadedScriptPath()
+	}
+	if path == "" {
+		return fmt.Errorf("no script loaded")
+	}
+	if markers == nil {
+		markers = []funscript.OMarker{}
+	}
+	for i, m := range markers {
+		if err := m.Validate(); err != nil {
+			return fmt.Errorf("oMarkers[%d]: %w", i, err)
+		}
+	}
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.OMarkers = markers
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		if a.loadedScriptPath() == path {
+			return a.reloadLoadedScript()
+		}
+		return nil
+	}
+	return funscript.SaveOMarkers(path, markers)
 }

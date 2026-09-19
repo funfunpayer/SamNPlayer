@@ -12,9 +12,9 @@ measurement history behind each entry; this file is the short version for
 
 - **Native script `.samn`:** source of truth for Sam Neo 2 (general +
   vibration + suction curves, recipe vs axes drive, chapters/bookmarks,
-  strength presets soft/normal/strong). Community `.funscript` remains
-  import/export. Docs: `docs/SAMN_FORMAT.md`. Playback UI: curve channel,
-  drive mode, bake axes, export funscript / save `.samn`.
+  **O-markers**, contact-vibration recipe, strength presets soft/normal/strong).
+  Community `.funscript` remains import/export. Docs: `docs/SAMN_FORMAT.md`.
+  Playback UI: curve channel, drive mode, bake axes, export funscript / save `.samn`.
 
 ## [0.5.8] — September 19, 2026
 

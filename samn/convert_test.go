@@ -45,6 +45,9 @@ func TestRoundTripFunscriptSamn(t *testing.T) {
 	if len(d.Chapters) != 1 || len(d.Bookmarks) != 1 {
 		t.Fatalf("chapters/bookmarks: %+v %+v", d.Chapters, d.Bookmarks)
 	}
+	d.OMarkers = []funscript.OMarker{{
+		StartMs: 800, EndMs: 1200, Kind: funscript.OMarkerPrimary, Intensity: 1,
+	}}
 	if err := d.BakeNeoAxes(); err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +104,10 @@ func TestRoundTripFunscriptSamn(t *testing.T) {
 	}
 	if len(re.Actions) != 3 {
 		t.Fatalf("exported actions: %d", len(re.Actions))
+	}
+	oms, err := funscript.LoadOMarkers(outFS)
+	if err != nil || len(oms) != 1 {
+		t.Fatalf("exported oMarkers: %v %v", oms, err)
 	}
 }
 
