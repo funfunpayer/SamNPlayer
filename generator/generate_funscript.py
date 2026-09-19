@@ -2367,7 +2367,7 @@ def process_one(args, ap):
         except ValueError:
             print('Error: --roi2 must be "x,y,w,h"', file=sys.stderr)
             sys.exit(1)
-        print(f"Zwei-Punkt-Messung: {roi} und {roi2}", file=sys.stderr)
+        print(f"Two-point measurement: {roi} and {roi2}", file=sys.stderr)
         # Zwei-Punkt-Messung hat einen eigenen Dispatch-Zweig (braucht zwei
         # ROIs statt einer und andere Rückgabewerte) und läuft NICHT über
         # das Backend-Register oder track_by_scenes - beide Optionen unten
@@ -2379,8 +2379,8 @@ def process_one(args, ap):
                   "— region is not re-searched after cuts",
                   file=sys.stderr)
         if args.backend not in ("csrt", "grid_lk"):
-            print(f"Hinweis: --backend {args.backend!r} unterstützt keine Zwei-Punkt-Messung, "
-                  "verwende CSRT (track_two_points) stattdessen", file=sys.stderr)
+            print(f"Hint: --backend {args.backend!r} does not support two-point measurement, "
+                  "using CSRT (track_two_points) instead", file=sys.stderr)
         if args.backend == "grid_lk":
             # --backend wurde für die Zwei-Punkt-Messung bisher komplett
             # ignoriert (immer CSRT über track_two_points) - derselbe
@@ -2389,7 +2389,7 @@ def process_one(args, ap):
             # keinen cv2.Tracker, braucht daher einen eigenen Zweipunkt-Pfad
             # statt track_two_points()'s festverdrahteten create_tracker().
             import grid_lk_backend
-            print("Backend 'grid_lk' (Zwei-Punkt, je ROI ein Gitter)", file=sys.stderr)
+            print("Backend 'grid_lk' (two-point, one grid per ROI)", file=sys.stderr)
             timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = grid_lk_backend.analyze_two_point(
                 args.video, roi, roi2, {
                     "max_frames": args.max_frames,
