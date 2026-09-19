@@ -14,6 +14,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/sam"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 func (a *App) CheckGeneratorDependencies() error {
@@ -202,7 +203,11 @@ func (a *App) LabelScene(videoPath, label string) error {
 }
 
 func (a *App) ScriptExistsForVideo(videoPath string) bool {
-	_, err := os.Stat(scriptPathForVideo(videoPath))
+	fs := scriptPathForVideo(videoPath)
+	if _, err := os.Stat(fs); err == nil {
+		return true
+	}
+	_, err := os.Stat(samn.CompanionSamnPath(fs))
 	return err == nil
 }
 
@@ -283,7 +288,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
 			return
 		}
-		payload := map[string]any{"path": outPath, "pipeline": "python"}
+		payload := map[string]any{"path": openPathAfterGenerate(outPath), "funscriptPath": outPath, "pipeline": "python"}
 		if data, readErr := os.ReadFile(outPath); readErr == nil {
 			var raw map[string]any
 			if json.Unmarshal(data, &raw) == nil {
@@ -363,11 +368,31 @@ func applyAutoOZoneMarker(outPath string, actions []funscript.Action) (funscript
 	for _, sec := range funscript.SuggestSecondaryOZones(actions, zone, 2) {
 		markers = append(markers, secondaryMarkerFromSuggestion(sec, zone))
 	}
-	return zone, funscript.SaveOMarkers(outPath, markers)
+	if err := funscript.SaveOMarkers(outPath, markers); err != nil {
+		return zone, err
+	}
+	// Keep companion .samn in sync when present (native source of truth).
+	companion := samn.CompanionSamnPath(outPath)
+	if st, err := os.Stat(companion); err == nil && !st.IsDir() {
+		doc, err := samn.Load(companion)
+		if err != nil {
+			return zone, err
+		}
+		doc.OMarkers = markers
+		if err := samn.Save(companion, doc); err != nil {
+			return zone, err
+		}
+	}
+	return zone, nil
 }
 
 func scriptPathForVideo(videoPath string) string {
 	return strings.TrimSuffix(videoPath, filepath.Ext(videoPath)) + ".funscript"
+}
+
+// openPathAfterGenerate prefers the native .samn companion when present.
+func openPathAfterGenerate(funscriptPath string) string {
+	return preferSamnCompanion(funscriptPath)
 }
 
 func (a *App) GetHardwareInfo() (string, error) {

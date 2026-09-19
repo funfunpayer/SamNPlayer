@@ -34,7 +34,7 @@ export function initPlayback(root) {
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
         <p class="pb-empty-title">Nothing loaded yet</p>
-        <p class="hint">Drop one or more funscripts — with or without a video. Without video, the script runs alone (device + curve). Multiple scripts play as a list.</p>
+        <p class="hint">Drop one or more scripts (.samn / .funscript) — with or without a video. Without video, the script runs alone (device + curve). Multiple scripts play as a list.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose script…</button>
       </div>
     </div>
@@ -885,7 +885,15 @@ export function initPlayback(root) {
 
   async function drawCurve() {
     try {
-      curvePoints = await GetScriptCurve(CURVE_MAX_POINTS);
+      if (editAxis && editAxis !== 'general') {
+        const acts = await GetScriptAxisActions(editAxis);
+        const pts = Array.isArray(acts) ? acts : [];
+        curvePoints = pts.length
+          ? pts.map(a => ({ atMs: a.at, pos: a.pos }))
+          : await GetScriptCurve(CURVE_MAX_POINTS);
+      } else {
+        curvePoints = await GetScriptCurve(CURVE_MAX_POINTS);
+      }
     } catch (err) {
       curvePoints = null;
       vibrationCurvePoints = null;
@@ -1345,7 +1353,8 @@ export function initPlayback(root) {
     setScriptLoaded(true);
     scriptHasContactVibration = !!info.contactVibration;
     await refreshSamnControls(info);
-    const showContact = scriptHasContactVibration && info.playbackSource !== 'axes';
+    // Contact controls stay available in axes mode (save re-bakes vibe).
+    const showContact = scriptHasContactVibration || info.hasNeoAxes || info.profile === 'tj' || info.profile === 'tf';
     el('#pb-contact-block').hidden = !showContact;
     if (el('#pb-contact-save-status')) el('#pb-contact-save-status').textContent = '';
     if (!showContact) {
@@ -1491,7 +1500,7 @@ export function initPlayback(root) {
   // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
   // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
   async function startScriptPlayback() {
-    if (!scriptPath) { log('Choose a .funscript file first.'); return false; }
+    if (!scriptPath) { log('Choose a .samn or .funscript file first.'); return false; }
     el('#pb-log').textContent = '';
     userStopRequested = false;
 
@@ -1869,26 +1878,22 @@ export function initPlayback(root) {
   async function refreshScriptVisuals() {
     if (!scriptPath) return;
     try {
-      const [heat, curve, vib, markers] = await Promise.all([
+      const [heat, markers] = await Promise.all([
         GetHeatmap(HEATMAP_BUCKETS),
-        GetScriptCurve(CURVE_MAX_POINTS),
-        scriptHasContactVibration ? GetVibrationCurvePreview(contactPreviewOpts()) : Promise.resolve(null),
         GetOMarkers(scriptPath),
       ]);
       heatmapPoints = heat;
-      curvePoints = curve;
-      vibrationCurvePoints = vib;
       oMarkers = Array.isArray(markers) ? markers : [];
       if (el('#pb-curve-edit').checked) {
-        const acts = await GetScriptActions();
-        rawActions = Array.isArray(acts) ? acts : rawActions;
+        const acts = await GetScriptAxisActions(editAxis || 'general');
+        rawActions = Array.isArray(acts) ? acts.map(a => ({ atMs: a.at, pos: a.pos })) : rawActions;
       }
+      await drawCurve();
       redrawHeatmap();
-      redrawCurve();
       renderOMarkerList();
       describeScript();
     } catch (err) {
-      logError('Aktualisieren: ' + err);
+      logError('Refresh: ' + err);
     }
   }
 

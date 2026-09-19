@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Kind          = "samnplayer.script"
+	Kind           = "samnplayer.script"
 	CurrentVersion = 1
 
 	PlaybackRecipe = funscript.PlaybackSourceRecipe
@@ -46,17 +46,17 @@ type Document struct {
 	VideoPath  string `json:"videoPath,omitempty"`
 	Profile    string `json:"profile,omitempty"`
 
-	PlaybackSource string               `json:"playbackSource,omitempty"`
+	PlaybackSource string                 `json:"playbackSource,omitempty"`
 	Recipe         funscript.DeviceRecipe `json:"recipe,omitempty"`
 
-	General    []Point `json:"general"`
-	Vibration  []Point `json:"vibration,omitempty"`
-	Suction    []Point `json:"suction,omitempty"`
+	General   []Point `json:"general"`
+	Vibration []Point `json:"vibration,omitempty"`
+	Suction   []Point `json:"suction,omitempty"`
 
-	Chapters     []funscript.ChapterMark  `json:"chapters,omitempty"`
-	Bookmarks    []funscript.Bookmark     `json:"bookmarks,omitempty"`
-	OMarkers     []funscript.OMarker      `json:"oMarkers,omitempty"`
-	TrackingGaps []funscript.TrackingGap  `json:"trackingGaps,omitempty"`
+	Chapters     []funscript.ChapterMark `json:"chapters,omitempty"`
+	Bookmarks    []funscript.Bookmark    `json:"bookmarks,omitempty"`
+	OMarkers     []funscript.OMarker     `json:"oMarkers,omitempty"`
+	TrackingGaps []funscript.TrackingGap `json:"trackingGaps,omitempty"`
 
 	StrengthPresets []StrengthPreset `json:"strengthPresets,omitempty"`
 	ActiveStrength  string           `json:"activeStrength,omitempty"`

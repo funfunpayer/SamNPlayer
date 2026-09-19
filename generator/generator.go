@@ -971,14 +971,19 @@ func ScriptQuality(funscriptPath string) (ScriptQualityResult, error) {
 	}
 	var doc struct {
 		Actions []funscript.Action `json:"actions"`
+		General []funscript.Action `json:"general"` // .samn native
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return ScriptQualityResult{}, fmt.Errorf("generator: invalid JSON: %w", err)
 	}
-	if len(doc.Actions) == 0 {
+	actions := doc.Actions
+	if len(actions) == 0 {
+		actions = doc.General
+	}
+	if len(actions) == 0 {
 		return ScriptQualityResult{}, fmt.Errorf("generator: no actions found in script")
 	}
-	got := funscript.EvaluateScriptQuality(doc.Actions)
+	got := funscript.EvaluateScriptQuality(actions)
 	return ScriptQualityResult{
 		Score:                   got.Score,
 		Passed:                  got.Passed,

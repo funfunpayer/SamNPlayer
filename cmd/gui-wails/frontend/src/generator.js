@@ -571,7 +571,7 @@ export function initGenerator(root, playback) {
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript';
+        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript (and .samn)';
         if (!confirm(`A script already exists:\n${target}\n\nOverwrite it?`)) {
           return;
         }

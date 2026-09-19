@@ -19,9 +19,9 @@ const (
 type AxisName string
 
 const (
-	AxisGeneral    AxisName = "general"
-	AxisVibration  AxisName = "vibration"
-	AxisSuction    AxisName = "suction"
+	AxisGeneral   AxisName = "general"
+	AxisVibration AxisName = "vibration"
+	AxisSuction   AxisName = "suction"
 )
 
 // SamnAxes holds optional Neo-2-specific curves. Community tools ignore this

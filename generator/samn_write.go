@@ -8,12 +8,12 @@ import (
 // writeCompanionSamn writes clip.samn beside a generated .funscript.
 func writeCompanionSamn(funscriptPath string, actions []funscript.Action, opts Options, gaps []funscript.TrackingGap, quality funscript.ScriptQualityResult) error {
 	doc := &samn.Document{
-		Version:    samn.CurrentVersion,
-		Kind:       samn.Kind,
-		Creator:    "SamNPlayer",
-		DurationMs: 0,
-		Profile:    funscript.NormalizeProfile(opts.Profile),
-		General:    append([]funscript.Action(nil), actions...),
+		Version:        samn.CurrentVersion,
+		Kind:           samn.Kind,
+		Creator:        "SamNPlayer",
+		DurationMs:     0,
+		Profile:        funscript.NormalizeProfile(opts.Profile),
+		General:        append([]funscript.Action(nil), actions...),
 		PlaybackSource: samn.PlaybackRecipe,
 	}
 	if len(actions) > 0 {

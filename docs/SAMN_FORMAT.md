@@ -100,13 +100,13 @@ the same script should feel softer/stronger without a second file.
 ```text
   Generate (Tf/Tj + contact)
         │
-        ├─► clip.samn     (native: general + baked vib/suc, chapters…)
+        ├─► clip.samn     (native: general + baked vib/suc when Go pipeline)
         └─► clip.funscript (export: actions = general only)
 
-  Open clip.funscript  ─import─► in-memory Document (recipe path)
-  Open clip.samn       ────────► Document as written
+  Open clip.funscript  ─if clip.samn exists─► prefer .samn
+  Open clip.samn       ─────────────────────► Document as written
 
-  “Export Funscript”   ────────► actions + chapters/bookmarks metadata
+  “Export Funscript”   ────────► actions + chapters/bookmarks/oMarkers metadata
 ```
 
 ## When not to use three curves

@@ -134,13 +134,6 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			mapOpts.Sync = syncMode
 		}
 	}
-	// Tf/Tj + Kontakt: SAM-Modell dazwischen (Intensity/Gaps), Datei bleibt .funscript/.samn.
-	var frames []funscript.Frame
-	if contactOn {
-		frames = a.contactFrames(script, mapOpts)
-	} else {
-		frames = script.ToIntensityCurve(mapOpts)
-	}
 	vibScale := opts.ContactIntensityScale
 	sucScale := 1.0
 	if path := a.loadedScriptPath(); samn.IsSamnPath(path) {
@@ -151,8 +144,24 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 				}
 				vibScale *= p.VibrationScale
 				sucScale = p.SuctionScale
+				// Recipe mode: preset may override contact shape before mapping.
+				if !mapOpts.UseExplicitAxes && mapOpts.ContactVibration {
+					if p.ContactSpan > 0 {
+						mapOpts.ContactVibrationSpan = p.ContactSpan
+					}
+					if p.ContactCurve != "" {
+						mapOpts.ContactVibrationCurve = p.ContactCurve
+					}
+				}
 			}
 		}
+	}
+	// Map after strength presets may have adjusted contact knobs.
+	var frames []funscript.Frame
+	if contactOn {
+		frames = a.contactFrames(script, mapOpts)
+	} else {
+		frames = script.ToIntensityCurve(mapOpts)
 	}
 	frames = sam.AdjustDeviceFrames(frames, sam.RuntimeAdjust{
 		IntensityScale: vibScale,

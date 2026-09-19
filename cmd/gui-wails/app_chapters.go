@@ -31,7 +31,7 @@ func (a *App) ScriptChapters() ([]motionx.Chapter, error) {
 	// Gespeicherte metadata.chapters (OFS-Stil) haben Vorrang als Labels,
 	// wenn vorhanden — Auto-Kapitel bleiben Fallback.
 	if path != "" {
-		if stored, err := funscript.LoadChapters(path); err == nil && len(stored) > 0 {
+		if stored, err := a.GetScriptChapterMarks(); err == nil && len(stored) > 0 {
 			out := make([]motionx.Chapter, 0, len(stored))
 			for _, c := range stored {
 				kind := c.Name

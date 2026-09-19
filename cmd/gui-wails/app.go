@@ -154,6 +154,7 @@ type ScriptInfo struct {
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
+	path = preferSamnCompanion(path)
 	script, err := a.loadScriptDocument(path)
 	if err != nil {
 		return ScriptInfo{}, err
