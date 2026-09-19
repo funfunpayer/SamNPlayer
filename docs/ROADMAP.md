@@ -277,9 +277,9 @@ these in the 0.5.7 train** unless noted.
 | Card-based layout / more whitespace redesign | **Skip** — conflicts with “no cards by default” / existing dark gold-teal composition |
 | Dark/Light mode (`IsDarkMode`) | **Skip** — product is dark gold/teal; light mode rejected in 0.5.6 review |
 | Micro-interactions / tab transitions | **Later (small)** — `prefers-reduced-motion` already respected; only add if it helps hierarchy |
-| Heatmap/curve tooltips + zoom | **Later (fit)** — incremental on existing editor; good UX, no architecture risk |
+| Heatmap/curve tooltips + zoom | **Done (tooltips)** — hover time/value on curve + heatmap; optional zoom still open |
 | Multi-axis funscripts “v2.0” | **Partial already** — position + suction + contact vibration via `device_recipe`; full multi-axis format only with measured device need |
-| Playlist shuffle / section repeat / crossfades | **Later (fit, small)** — playlist exists; shuffle/repeat are cheap; crossfades need design |
+| Playlist shuffle / section repeat / crossfades | **Partial (shuffle + playlist repeat)** — crossfades still later |
 | Plugin video-sync / streaming sources | **Skip** — local files + H.264 proxy is the codec path; no streaming plugin surface |
 | Cloud sync for settings | **Skip** — local-only / no telemetry principle |
 | Swap BLE stack (tinygo / bleak) | **Skip until measured** — BLE+Intiface+Mock already work; swap is risk without hardware matrix |
@@ -289,8 +289,9 @@ these in the 0.5.7 train** unless noted.
 | WebCodecs custom video pipeline | **Skip** — ffprobe + “Make playable” proxy is the measured path |
 | Community Funscript platform | **Reject for now** — tool, not a social network |
 
-**Next buildable after 0.5.7 (if picking from this list):** heatmap/curve
-value tooltips, then playlist shuffle/repeat — not frameless/light/cloud.
+**Next buildable after 0.5.7 (if picking from this list):** ~~heatmap/curve
+value tooltips~~, ~~playlist shuffle/repeat~~ — pick another “Later (fit)” item
+(e.g. curve zoom) or hygiene; not frameless/light/cloud.
 
 ## Explicitly deferred, not forgotten
 

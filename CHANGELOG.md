@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Playback:** hover tooltips on the funscript curve and intensity heatmap (time +
+  position / intensity). Playlist **Shuffle** (reshuffles queue when enabled;
+  reshuffles again on repeat wrap) and **Repeat playlist** (auto-advance loops
+  the list). Toggle state kept in session storage for the app run.
+
 ## [0.5.7] — September 19, 2026
 
 Follow-up after v0.5.6: finish English operator-facing logs, ship
