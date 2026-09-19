@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **License infra (not sharp):** `license` package (Ed25519 SNP1 keys),
+  `cmd/license-tool` (genkey/issue/verify), Settings → License import/status.
+  One person / 1 year / invite+internal. `Enforcement=false` — full features
+  until go-live (`docs/LICENSE_SYSTEM.md`).
+
 ## [0.5.9] — September 19, 2026
 
 Production train after v0.5.8: native `.samn`, leaner Go generation path,

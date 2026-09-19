@@ -15,12 +15,15 @@ export function CheckAIRoiAvailable() { return window['go']['main']['App']['Chec
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
 export function CheckRoiTrainingStatus() { return window['go']['main']['App']['CheckRoiTrainingStatus'](); }
+export function ImportLicenseFile() { return window['go']['main']['App']['ImportLicenseFile'](); }
+export function ImportLicenseText(arg1) { return window['go']['main']['App']['ImportLicenseText'](arg1); }
 export function InstallRoiTrainingDeps() { return window['go']['main']['App']['InstallRoiTrainingDeps'](); }
 export function WriteAIRequirementFiles(arg1) { return window['go']['main']['App']['WriteAIRequirementFiles'](arg1); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
 export function ClearLogEntries() { return window['go']['main']['App']['ClearLogEntries'](); }
+export function ClearLicense() { return window['go']['main']['App']['ClearLicense'](); }
 export function ClearPlaybackVideo() { return window['go']['main']['App']['ClearPlaybackVideo'](); }
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
@@ -34,6 +37,7 @@ export function GetDeviceStatus() { return window['go']['main']['App']['GetDevic
 export function GetDiagnosticsHistory() { return window['go']['main']['App']['GetDiagnosticsHistory'](); }
 export function GetHardwareInfo() { return window['go']['main']['App']['GetHardwareInfo'](); }
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
+export function GetLicenseStatus() { return window['go']['main']['App']['GetLicenseStatus'](); }
 export function GetLogEntries() { return window['go']['main']['App']['GetLogEntries'](); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
@@ -59,6 +63,7 @@ export function GetSettings() { return window['go']['main']['App']['GetSettings'
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
+export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }

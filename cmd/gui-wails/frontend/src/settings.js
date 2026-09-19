@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 
@@ -63,6 +63,22 @@ export function initSettings(root) {
       <label for="st-connect-test">On connect, run a short connection test (brief vib/suction)</label>
     </div>
     <p class="hint" style="margin-top:0">Off by default. When on: after a successful connect, a short pulse confirms that commands arrive.</p>
+
+    <h3>License</h3>
+    <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
+      Enforcement is <b>off</b> in this build — import works so we can test the path;
+      Generate/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
+    <p class="hint" id="st-license-status" style="margin-top:0">…</p>
+    <div class="row" style="align-items:flex-start;">
+      <textarea id="st-license-paste" rows="3" placeholder="Paste license token (SNP1.…)" style="flex:1; font-family:ui-monospace,monospace; font-size:12px;"></textarea>
+    </div>
+    <div class="row" style="align-items:center; margin-top:6px;">
+      <button id="st-license-import-text" type="button">Import pasted key</button>
+      <button id="st-license-import-file" type="button">Import from file…</button>
+      <button id="st-license-clear" type="button">Clear license</button>
+      <button id="st-license-refresh" type="button">Refresh status</button>
+    </div>
+
     <div class="row" style="align-items:center;">
       <button id="st-runtime-check" type="button">Check folders &amp; dependencies</button>
       <button id="st-install-ffmpeg" type="button"
@@ -191,6 +207,60 @@ export function initSettings(root) {
     el('#st-ai-pref-classes').value = s.aiPreferredClasses || '';
     el('#st-ai-base-url').value = s.aiBaseUrl || '';
     updateReportStatus();
+    refreshLicenseStatus();
+  });
+
+  async function refreshLicenseStatus() {
+    const box = el('#st-license-status');
+    if (!box) return;
+    try {
+      const st = await GetLicenseStatus();
+      const bits = [
+        `state: ${st.state || 'none'}`,
+        st.sub ? `person: ${st.sub}` : null,
+        st.tier ? `tier: ${st.tier}` : null,
+        st.validUntil ? `until: ${st.validUntil}` : null,
+        `enforcement: ${st.enforcement ? 'ON' : 'off'}`,
+        `effective: ${st.effective ? 'full access' : 'trial'}`,
+      ].filter(Boolean);
+      box.textContent = (st.message || '') + ' · ' + bits.join(' · ');
+    } catch (err) {
+      box.textContent = 'License status failed: ' + err;
+    }
+  }
+
+  el('#st-license-refresh')?.addEventListener('click', () => refreshLicenseStatus());
+  el('#st-license-import-text')?.addEventListener('click', async () => {
+    const box = el('#st-license-status');
+    const raw = el('#st-license-paste')?.value || '';
+    try {
+      const st = await ImportLicenseText(raw);
+      el('#st-license-paste').value = '';
+      uiInfo(st.message || 'License imported.', box);
+      await refreshLicenseStatus();
+    } catch (err) {
+      uiError('Import license: ' + err, box);
+    }
+  });
+  el('#st-license-import-file')?.addEventListener('click', async () => {
+    const box = el('#st-license-status');
+    try {
+      const st = await ImportLicenseFile();
+      uiInfo(st.message || 'License imported.', box);
+      await refreshLicenseStatus();
+    } catch (err) {
+      uiError('Import license: ' + err, box);
+    }
+  });
+  el('#st-license-clear')?.addEventListener('click', async () => {
+    const box = el('#st-license-status');
+    try {
+      await ClearLicense();
+      uiInfo('License cleared.', box);
+      await refreshLicenseStatus();
+    } catch (err) {
+      uiError('Clear license: ' + err, box);
+    }
   });
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));

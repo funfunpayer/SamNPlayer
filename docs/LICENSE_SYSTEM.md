@@ -1,205 +1,114 @@
-# License system — concept (not built)
+# License system
 
-**Status:** design only. **Do not enforce** in shipping builds until the
-owner flips an explicit “sharp” switch. Dev/test must keep working with
-either no check or an infinite internal license.
+**Status:** infrastructure landed, **enforcement OFF** (`license.Enforcement =
+false`). Import/verify/Settings work so we do not lose the path; Generate/Play
+are **not** limited yet.
 
 Related: proprietary app license (`LICENSE`), closed-source split
-(`docs/CLOSED_SOURCE.md`), native scripts (`docs/SAMN_FORMAT.md`).
+(`docs/CLOSED_SOURCE.md`), native scripts (`docs/SAMN_FORMAT.md`),
+production plan (`docs/PRODUCTION_ROADMAP.md` stream E).
 
 ---
 
-## Product rules (target behaviour)
+## Locked product decisions (owner)
+
+| Decision | Choice |
+|----------|--------|
+| Retail key lifetime | **1 year** from issue (`exp = iat + 365 days`) |
+| Seat | **One person** — one key named to that person (email / id) |
+| Internal / invite | Same Settings import; `tier: internal` or `invite`; no expiry |
+| Generator | **`cmd/license-tool`** (offline Ed25519 issuer) — built |
+| Library | **`license` package** — parse/verify/`Status`/`EffectiveLicensed` — built |
+| Settings UI | Import paste/file + status + clear — built |
+| Enforcement | **Off** until go-live flip |
+
+---
+
+## Product rules (when sharp)
 
 | Mode | Generate | Playback |
 |------|----------|----------|
-| **Licensed** (valid ≤ 1 year from issue) | Full length; write `.samn` + `.funscript` | Play `.samn` and `.funscript` |
-| **Unlicensed / expired** | Cap at **1 minute** of output | Play **only normal `.funscript`**; refuse or degrade `.samn` / Neo-2 axes |
+| **Licensed** (≤ 1 year) | Full; `.samn` + `.funscript` | `.samn` + `.funscript` |
+| **Internal / invite** | Same as licensed | Same as licensed |
+| **Unlicensed / expired** | Cap **1 minute** output | `.funscript` only; block Neo-2 `.samn` play |
 
-Intent: free/trial users can try the pipeline and use community scripts;
-SamNPlayer-native extras (dual axes, contact bake, strength presets) sit
-behind a paid yearly key.
-
-Clarifications to decide before coding:
-
-1. **1-minute cap** = wall-clock of the *output script* (first 60 000 ms),
-   not “one minute of tracking work”. Prefer output duration.
-2. **Unlicensed playback of `.funscript`:** allowed even if SamNPlayer
-   generated it (community format stays usable).
-3. **Unlicensed `.samn`:** block play (or play general-only as funscript
-   export without vib/suc). Prefer **block Neo-2 play**, still allow
-   “Export .funscript” then play that.
-4. **Offline:** keys must work without calling home every launch (see
-   security tradeoffs below).
+While enforcement is off, `EffectiveLicensed` is always true (full access).
+`Status.Licensed` still reflects the real key so you can test import.
 
 ---
 
-## Non-goals (for v1)
+## What is built now
 
-- No account server / DRM / always-online activation (too heavy for this
-  product stage).
-- No hardware dongle.
-- No encrypting the whole `.samn` body (breaks local edit and our own
-  tooling). License gates **app behaviour**, not file crypto.
-- Not a substitute for going private + proprietary `LICENSE`.
+| Piece | Path | Notes |
+|-------|------|-------|
+| Claims + SNP1 token | `license/` | Ed25519, `SNP1.payload.sig` |
+| Embedded public key | `license/pubkey.go` | Matches `license/testdata/issuer.ed25519` (**DEV**) |
+| Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` |
+| GUI API | `cmd/gui-wails/app_license.go` | `GetLicenseStatus`, `ImportLicense*`, `ClearLicense`, `LicenseAllowsFullFeatures` |
+| Settings section | `frontend/src/settings.js` | License card (English) |
 
----
+### Issue a key (dev issuer)
 
-## Developer / owner escape hatches (required before “scharf”)
+```bash
+go run ./cmd/license-tool issue \
+  --key license/testdata/issuer.ed25519 \
+  --sub you@example.com --years 1 \
+  --out /tmp/you.key
 
-Must ship **before** any enforcement lands:
+go run ./cmd/license-tool issue \
+  --key license/testdata/issuer.ed25519 \
+  --sub owner --tier internal --exp never \
+  --out /tmp/owner.key
+
+go run ./cmd/license-tool verify --file /tmp/owner.key
+```
+
+Then: Settings → License → Import from file / paste.
+
+### Escape hatches
 
 | Hatch | Purpose |
 |-------|---------|
-| **Build tag / env `SAMN_LICENSE_OFF=1`** | Dev binaries: no checks at all |
-| **Compile-time `license.Enforcement = false`** (default on `main` until go-live) | CI, clip7776, golden clips unchanged |
-| **Internal infinite key** | Owner machines: same UI path as customers, never expires |
-| **`license.SkipInTests`** | Unit/frontend tests never need a key file |
-
-Recommendation: default **enforcement off**. When ready, a single release
-build sets `Enforcement=true` and ships only signed keys. Day-to-day
-`main` and agent CI stay unlicensed-friendly.
+| `license.Enforcement = false` (default) | Not sharp |
+| `SAMN_LICENSE_OFF=1` | Force full access even if sharp |
+| `license.SkipInTests` | Tests |
+| Internal/invite key | Owner + early testers |
 
 ---
 
-## License document (what a key contains)
+## Non-goals (v1)
 
-Proposed signed payload (JSON claims inside a signed blob):
-
-```json
-{
-  "v": 1,
-  "sub": "customer-or-email-id",
-  "iss": "funfunpayer",
-  "iat": 1760000000,
-  "exp": 1791536000,
-  "tier": "standard",
-  "features": ["samn", "contact", "generate_full"],
-  "note": "optional"
-}
-```
-
-| Field | Meaning |
-|-------|---------|
-| `exp` | End of validity (**issue + 1 year** for retail) |
-| `tier` | Future: `standard` / `pro` without new formats |
-| `features` | Optional allow-list; v1 can treat all licensed equal |
-| Infinite internal | `exp` omitted or far future (`9999-01-01`) + `tier: "internal"` |
-
-**File on disk (customer):** e.g. `~/Library/.../SamNPlayer/license.key`
-or paste in Settings. App verifies signature, then caches claims in
-memory for the session.
+- No account server / always-online activation
+- No machine bind (honour system for one-person seat)
+- No `.samn` body encryption
 
 ---
 
-## How to create licenses securely (options)
-
-### A — Ed25519 signed files (recommended for v1)
-
-- Owner keeps **private** signing key offline (password manager / USB).
-- App embeds **public** verify key only.
-- Issue script (owner machine only): reads claims → signs → writes
-  `license.key` (base64 of `payload || signature`).
-- Strengths: offline, simple, no server, hard to forge without private key.
-- Weaknesses: key can be **copied** to another PC; not bound to machine.
-  Acceptable for yearly personal license at this scale.
-
-### B — Machine-bound (fingerprint)
-
-- Key signs `exp` + hash of machine id (hostname + disk id, etc.).
-- Stronger against casual sharing; painful for dual-boot / upgrades /
-  support (“my PC died”).
-- Defer unless abuse appears.
-
-### C — Online activation
-
-- Best revoke/abuse control; needs hosting, auth, offline grace, privacy.
-- Defer until there is real paid volume.
-
-### D — Obfuscation-only / shared password
-
-- Reject: trivial to crack once binary is distributed.
-
-**Verdict:** start with **A**. Document that licenses are portable by
-design (one seat = honour system + yearly renew). Add B later if needed.
-
----
-
-## Where enforcement would hook (when sharp)
+## Where gates will hook (later)
 
 | Gate | Unlicensed behaviour |
 |------|----------------------|
-| **Generate** (`GenerateScript` / CLI) | After build, truncate actions/`general` to `at ≤ 60_000`; still write both files; UI banner “Trial: 1 minute” |
-| **Playback `.samn`** | Refuse start with clear English error + “Export .funscript to play without a license” |
-| **Playback `.funscript`** | Allowed |
-| **Bake axes / Save .samn extras** | Allowed only if licensed (optional; else trial users never see Neo-2 value—decide at go-live) |
-| **Update check** | Unrelated; do not couple |
+| Generate | Truncate output to ≤ 60 000 ms; banner “Trial: 1 minute” |
+| Playback `.samn` | Refuse + “Export .funscript…” |
+| Playback `.funscript` | Allowed |
 
-UI: Settings → License → status (Valid until … / Trial) → paste or
-browse key. Never log full key material.
+Call site already prepared: `App.LicenseAllowsFullFeatures()` →
+`license.EffectiveLicensed(...)`.
 
 ---
 
-## Issuing workflow (owner, later)
+## Before paid go-live
 
-```text
-  [offline] license-tool issue \
-      --sub "anna@…" --years 1 \
-      --key ~/.samn/issuer.ed25519 \
-      > Anna-2026.license.key
-
-  Send file out-of-band (email / shop).
-  Customer: Settings → Import license.
-```
-
-Internal:
-
-```text
-  license-tool issue --tier internal --exp never …
-```
-
-Store issuer private key **outside** the git repo. Rotate by bumping
-`v` and embedding a new public key (accept old `v` for a grace period).
+1. `license-tool genkey --out ~/.samn/issuer` (private offline)
+2. Replace `EmbeddedPublicKeyHex` with the new public key
+3. Stop using `license/testdata/issuer.ed25519` for real customers
+4. Flip `Enforcement=true` in a dedicated release build
+5. Wire Generate/Play to `LicenseAllowsFullFeatures`
 
 ---
 
-## Risks and evaluation
+## Remaining open decisions
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| Cracked binary patches out check | High for any client app | Accept; closed source raises bar; don’t over-invest in DRM |
-| Shared license files | Medium | Yearly renew + optional machine bind later |
-| Leaked issuer private key | Critical | Offline only; revoke by new public key in next release |
-| CI / clip7776 broken by enforcement | High | Default off; infinite internal; test skip |
-| Confusing trial vs paid UX | Medium | One clear banner; English copy only |
-| Truncate mid-stroke at 60s | Low | End on last keyframe ≤ 60s; document |
-
-**Fit for SamNPlayer now:** good — matches closed-source + public
-downloads: binaries free to try, yearly key for full native workflow.
-**Do not build** until after `.samn` lands and day-to-day testing is
-stable; then implement behind `Enforcement=false`.
-
----
-
-## Implementation phases (when approved)
-
-1. **Docs only** ← this file.
-2. **Library stub** (`license` package): parse/verify, `Status()`; always
-   `Licensed=true` while `Enforcement=false`.
-3. **Issuer CLI** (private repo or `tools/`, not in public site).
-4. **Settings UI** (import + status) — still no gates.
-5. **Gates** behind flag: generate truncate + `.samn` play block.
-6. **Release build** with `Enforcement=true` + retail key process.
-
----
-
-## Open decisions for the owner
-
-1. Trial: may users **edit** `.samn` without a license, or only export
-   funscript?
-2. One license = one person or one household?
-3. Renew: new key only, or grace days after `exp`?
-4. Shop: manual issue vs later Stripe webhook → auto issue?
-
-Until those are answered, keep enforcement **off** and keep testing with
-full `.samn` locally.
+1. Trial: edit `.samn` without a license, or only export funscript?
+2. Renew: new key only, or grace days after `exp`?
+3. Shop: manual issue vs later Stripe → auto issue?

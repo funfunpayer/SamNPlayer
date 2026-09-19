@@ -35,6 +35,10 @@ export function CheckRoiTrainingStatus():Promise<generator.RoiTrainingStatus>;
 
 export function InstallRoiTrainingDeps():Promise<void>;
 
+export function ImportLicenseFile():Promise<any>;
+
+export function ImportLicenseText(arg1:string):Promise<any>;
+
 export function WriteAIRequirementFiles(arg1:string):Promise<void>;
 
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
@@ -44,6 +48,8 @@ export function CheckGeneratorDependencies():Promise<void>;
 export function ClearCache():Promise<main.CacheInfo>;
 
 export function ClearLogEntries():Promise<void>;
+
+export function ClearLicense():Promise<any>;
 
 export function ClearPlaybackVideo():Promise<void>;
 
@@ -70,6 +76,8 @@ export function GetDiagnosticsHistory():Promise<Array<main.DiagnosticsHistoryEnt
 export function GetHardwareInfo():Promise<string>;
 
 export function GetHeatmap(arg1:number):Promise<Array<main.HeatmapPoint>>;
+
+export function GetLicenseStatus():Promise<any>;
 
 export function GetLogEntries():Promise<Array<Record<string, any>>>;
 
@@ -102,6 +110,8 @@ export function InvertLoadedScript():Promise<void>;
 export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
+
+export function LicenseAllowsFullFeatures():Promise<boolean>;
 
 export function ListRoiTrainingDevices():Promise<Array<generator.RoiTrainingDevice>>;
 
