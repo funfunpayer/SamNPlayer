@@ -170,6 +170,7 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 | Doc | What it is |
 |---|---|
+| [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate (post-track) |
 | [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly license concept (not enforced yet) |
 | [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |

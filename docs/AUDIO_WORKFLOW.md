@@ -1,0 +1,60 @@
+# Audio in the generate workflow
+
+**Status today:** still shipped. Classical tempo check only — not AI,
+not a motion replacement.
+
+## What exists
+
+| Piece | Role |
+|-------|------|
+| `generator/audio_check.py` | After a script exists: compare script stroke tempo (Hz) to audio-energy envelope tempo |
+| CLI `--audio-check` | Opt-in |
+| GUI Advanced → “Check script tempo against audio” | Opt-in (default **on** when ffmpeg is on PATH) |
+| Result | Warnings in report / funscript `metadata.audio_check` — never changes Quality Doctor pass/score |
+
+Native Go pipeline skips this (needs ffmpeg + Python path).
+
+## What it is *not*
+
+- Not “listen to the soundtrack and invent a funscript.”
+- Not a substitute when tracking finds no motion — audio alone has no
+  reliable 0–100 position curve for Neo 2.
+
+## Best place in the workflow (recommendation)
+
+```text
+  1. ROI / profile (as now)
+  2. Track video → build general curve
+  3. Quality Doctor
+  4. Audio tempo check (when ffmpeg available)  ← keep here
+  5. Write .samn + .funscript
+```
+
+**Why after tracking, not before:** the useful comparison is
+*script Hz vs audio Hz*. Without a script there is nothing to validate.
+A pre-pass can only estimate a *tempo hint*, not the stroke shape.
+
+### Optional later enhancements (not built)
+
+| Idea | Fit | Notes |
+|------|-----|--------|
+| **Default-on post-check** | Yes | Low risk; warn only |
+| **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape |
+| **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness |
+| **Audio-driven chapters** | Later | Energy peaks as chapter candidates — separate from tempo check |
+
+### Recommended product rule
+
+1. **Always run post audio-check** when ffmpeg is available (GUI default on).
+2. If tracking span is tiny / Quality Doctor fails *and* audio tempo is
+   clear: surface a hint (“audio suggests ~X Hz — check ROI / axis”),
+   do not auto-write actions from audio.
+3. Defer a real pre-pass until golden-clip numbers show tempo hints help
+   more than they hurt (principle 6).
+
+## Relation to `.samn`
+
+Warnings can live in funscript metadata today; when baking `.samn`,
+copy `audio_check` into the native doc as informational quality
+sidecar (same as `qualityScore`) — optional follow-up, not required for
+the check itself.

@@ -79,7 +79,10 @@ commits.
       — built and tested, **not yet wired into generation** (see Open
       tasks below, this is deliberate per principle 6).
 - [x] Audio-tempo plausibility check (`--audio-check`) — classical, not
-      AI, but shipped alongside the AI-quality-opinion checkbox.
+      AI; GUI default **on** when ffmpeg is available. Workflow notes:
+      [`docs/AUDIO_WORKFLOW.md`](AUDIO_WORKFLOW.md). Pre-pass tempo hint
+      / “no motion → audio” fallback still deferred (audio is not a
+      position curve).
 
 **O-markers / Extended-O**
 - [x] Manual placement, classical auto-suggestion (primary + secondary),

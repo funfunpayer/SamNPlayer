@@ -243,7 +243,11 @@ export function initGenerator(root, playback) {
     const checkbox = el('#gen-audio-check');
     checkbox.disabled = !available;
     if (!available) {
+      checkbox.checked = false;
       checkbox.title = 'ffmpeg was not found on PATH';
+    } else {
+      // Part of the normal workflow when ffmpeg is present (docs/AUDIO_WORKFLOW.md).
+      checkbox.checked = true;
     }
   }).catch(() => {});
 
