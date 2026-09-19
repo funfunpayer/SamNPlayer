@@ -99,8 +99,10 @@ prerequisites are met — not a calendar promise.
 
 | ID | Item | Target | Prerequisites | Your test |
 |----|------|--------|---------------|-----------|
-| E1 | License concept only | done (doc) | — | Read `LICENSE_SYSTEM.md` |
-| E2 | Enforcement | only after `.samn` stable | Keys + grace | Trial 1 min generate |
+| E1 | License concept (1 year, 1 person, invite/internal) | done (doc) | — | Read `LICENSE_SYSTEM.md` |
+| E2 | **License generator** (issuer CLI, personal keys) | when go-live starts | Ed25519 issuer key offline | Issue 1 standard + 1 invite key; import in Settings |
+| E3 | Settings import + status (no gates yet) | after E2 | Generator works | Paste key → “Valid until …” |
+| E4 | Enforcement (trial 1 min / `.samn` play) | after E3 + `.samn` stable | `Enforcement` flag | Trial vs licensed vs invite |
 
 ### F — Stability & bugfix (every release)
 
@@ -147,7 +149,7 @@ Self-build only when equal or better (`docs/SELF_BUILD.md`).
 
 - macOS notarized build  
 - Mobile player binary  
-- License enforcement  
+- License enforcement (generator + Settings first — see stream E)
 - WebGL video sharpen / soft upscale  
 - Full pure-Go H.264  
 - Go ports of flow/`grid_lk` without golden win  
