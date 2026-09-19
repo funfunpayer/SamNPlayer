@@ -8,8 +8,9 @@ Anna (and anyone outside the core team) should **see the product**, not
 ### 1. Public showcase (already created)
 
 - Repo: https://github.com/funfunpayer/SamNPlayer-site  
-- Contents: landing README + branding (no application code)  
-- Share **this** link with Anna / reviewers
+- Contents: product landing (`website/` in this repo → sync) + branding (no application code)  
+- Share **this** link (or GitHub Pages once enabled) with Anna / reviewers  
+- Selling checklist: [`docs/SELLING.md`](SELLING.md)
 
 ### 2. Make the application repo private
 

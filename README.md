@@ -190,6 +190,8 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 |---|---|
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate (post-track) |
 | [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly personal license (infra built; not enforced yet) |
+| [`docs/SELLING.md`](docs/SELLING.md) | What we still need to charge for the product |
+| [`website/`](website/) | Public landing page source (sync → SamNPlayer-site / Pages) |
 | [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
 | [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production plan — open items, owner tests, how results turn into fixes |
