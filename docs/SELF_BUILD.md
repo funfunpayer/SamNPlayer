@@ -1,43 +1,64 @@
 # Lean self-build
 
-When an open-source tool does a job we need, the default is **not** to
-vendor the whole stack. Prefer a **leaner self-built** piece that covers
-our measured use case — inspired by how OSS solves it, not a copy of the
-dependency tree.
+Fewer dependencies are better for the product — **only if quality does
+not drop in any point**. A self-built piece that is slower, less accurate,
+or less reliable than what we already ship is **not an option**.
 
-## Rule
+## Gate (must pass before merge)
 
-1. Can we cover ≥ the cases we ship with a small Go module we own? → build it.  
-2. Would a full reimplementation be worse (codecs, browsers, BLE stacks)? → keep the thin kernel (ffmpeg, OS webview, platform BLE) behind our interface.  
-3. Never add a heavy library “because FunGen/OFS has it” without a golden-clip win.
+Ship a self-build **only** when clip/tests show one of:
 
-## Done (self-built / lean)
+| Outcome vs current path | Decision |
+|-------------------------|----------|
+| **Better** (quality and/or speed, no regression elsewhere) | Ship |
+| **Equal** on the fixed checks / golden clips | Ship (dependency win) |
+| **Worse** in any measured point | **Reject** — keep the existing path |
 
-| Area | Instead of | Ours |
-|------|------------|------|
-| Post-track signal | Python scipy path | `generator/posttrack` |
-| NCC tracking (no OpenCV) | Python OpenCV | `generator/simpletrack` |
-| Audio tempo check | `audio_check.py` only | `generator/audiocheck.go` |
-| Funscript / `.samn` | third-party script libs | `funscript/`, `samn/` |
-| Device playback clock | Electron players | `player/` + Wails webview |
-| ISO BMFF probe (common MP4) | always need ffprobe | `videox` lean probe fallback |
-| ffmpeg discovery | “install system-wide” | portable beside app + tools dir |
+Always compare on a real or synthetic **clip** (same inputs as today).
+No “looks fine” without numbers. Same bar as `docs/ROADMAP.md`
+principles 2, 6, 7 and `CONTRIBUTING.md`.
 
-## Keep as thin kernels (do not reimplement)
+**Fallback-only helpers** (e.g. lean MP4 probe when ffprobe is missing)
+must not replace the better path when that path is available. Prefer
+ffprobe/ffmpeg/OpenCV when present; lean code is the spare tire, not a
+silent downgrade.
+
+## Rule of thumb
+
+1. Open source shows *how* — we build the **smallest** module that covers
+   *our* use case.  
+2. Full reimplementation of codecs / browsers / BLE stacks stays out —
+   keep thin kernels.  
+3. Never vendor a heavy stack “because FunGen has it” without a golden
+   win.  
+4. Never ship a self-build that makes the product feel verbaut
+   (bloated, locked, or weaker).
+
+## Done (self-built / lean) — all gated
+
+| Area | Instead of | Ours | Gate |
+|------|------------|------|------|
+| Post-track signal | Python scipy | `posttrack` | Python goldens |
+| NCC tracking | Python OpenCV | `simpletrack` | e2e clips |
+| Audio tempo | Python-only | `audiocheck.go` | synthetic + optional clip |
+| ISO BMFF probe | ffprobe always | lean fallback | **equal geometry/duration vs ffprobe on clip**; ffprobe still preferred |
+| ffmpeg discovery | system-only install | portable / tools dir | resolve tests |
+
+## Keep as thin kernels
 
 | Kernel | Why |
 |--------|-----|
-| **ffmpeg** decode/encode | Full AV codec zoo; we ship portable binaries |
-| **OpenCV CSRT** (when linked) | Quality-critical tracker; no lean Go CSRT yet |
-| **OS webview** (Wails) | Chromium-in-Electron is the heavy alternative we avoid |
-| **Platform BLE / Intiface** | OS and vendor stacks |
+| **ffmpeg** decode/encode | Codec zoo; portable binaries |
+| **OpenCV CSRT** | Quality-critical; no equal Go CSRT yet |
+| **OS webview** | Avoid Electron bulk |
+| **Platform BLE / Intiface** | OS / vendor |
 
-## Next lean candidates (only with measurement)
+## Next candidates (clip gate required)
 
-| Candidate | Gate |
-|-----------|------|
-| Go `auto_roi` (rhythm heuristic) | Match Python ROI on golden clips |
-| Optical-flow / `grid_lk` in Go | Beat or match Python backend scores |
-| More container probes (WebM/MKV) | Only if portable users lack ffprobe often |
+| Candidate | Must match or beat |
+|-----------|-------------------|
+| Go `auto_roi` | Python ROI on golden clips |
+| Go flow / `grid_lk` | Python backend Quality Doctor + FunGen r |
+| More container probes | ffprobe on same files; no wrong playable hints |
 
-See also: `docs/ENGINE.md`, `docs/PLATFORMS.md`, `docs/FFMPEG_TOOLS.md`.
+See also: `docs/ENGINE.md`, `docs/GOLDEN_CLIPS.md`, `docs/FFMPEG_TOOLS.md`.

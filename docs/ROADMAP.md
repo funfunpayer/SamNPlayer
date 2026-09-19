@@ -22,8 +22,9 @@ discussion stays German.
 1. **Don't add what isn't needed.** No dependency, module, or feature
    ships speculatively — `fusion.py` stays tested but unconnected until a
    genuine third independent signal source exists (see Open tasks).
-   Prefer a **lean self-build** of our use case over a heavy OSS stack
-   when quality matches (`docs/SELF_BUILD.md`).
+   Prefer a **lean self-build** only when clip tests show **equal or
+   better** quality — never worse (`docs/SELF_BUILD.md`). Fewer deps are
+   a win only after that gate.
 2. **Every quality/speed claim needs a measurement, not an estimate.**
    Reproduce before changing an algorithm; keep the raw numbers, not just
    the conclusion.

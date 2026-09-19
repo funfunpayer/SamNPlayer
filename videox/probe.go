@@ -57,9 +57,9 @@ type ffprobeJSON struct {
 
 // Probe reads metadata for the first video stream.
 //
-// Prefers ffprobe when available. Falls back to a lean ISO-BMFF reader for
-// common .mp4/.m4v/.mov files so playback UI still works without ffprobe
-// (docs/SELF_BUILD.md).
+// Prefers ffprobe when available (never silently downgrade). Falls back to
+// a lean ISO-BMFF reader for common .mp4/.m4v/.mov only when ffprobe fails
+// (docs/SELF_BUILD.md — equal geometry gate vs ffprobe on clips).
 //
 // Difference to the original: -select_streams v:0 is mandatory. Without it the
 // first stream carrying width/height may be attached cover art (mjpeg), which
