@@ -54,8 +54,8 @@ export function initGenerator(root, playback) {
     </div>
     <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
       <strong>Workflow tip:</strong> several stages instead of one method —
-      1)&nbsp;Flow-Scout (schnell, keine ROI) →
-      2)&nbsp;CSRT mit ROI (KI schlägt nur die Region vor) →
+      1)&nbsp;Flow scout (fast, no ROI) →
+      2)&nbsp;CSRT with ROI (AI only proposes the region) →
       3)&nbsp;Autotune (detrend + bandpass + speed) →
       4)&nbsp;optional audio tempo check (Advanced).
     </p>
@@ -540,7 +540,7 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     seekSec = Math.max(0, sec);
     el('#gen-seek').value = String(seekSec);
-    el('#gen-status').textContent = `Lade Frame bei ${seekSec}s…`;
+    el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
     try {
       await showFrame(videoPath, seekSec);
       el('#gen-status').textContent = `Frame at ${seekSec}s — mark region.`;
@@ -735,7 +735,7 @@ export function initGenerator(root, playback) {
           verdict: btn.dataset.verdict,
           comment: el('#gen-fb-comment').value || '',
         });
-        status.textContent = `Danke - als "${btn.dataset.verdict}" gespeichert.`;
+        status.textContent = `Thanks — saved as "${btn.dataset.verdict}".`;
         el('#gen-fb-comment').value = '';
       } catch (err) {
         status.textContent = 'Could not save: ' + err;

@@ -53,14 +53,13 @@ function renderHistoryRow(r) {
 // nur das Manifest verweist auf lokale Pfade.
 export function initBenchmark(root) {
   root.innerHTML = `
-    <h2>Golden-Clip-Benchmark</h2>
+    <h2>Golden-Clip Benchmark</h2>
     <p class="hint">
       Runs a fixed set of your comparison clips through the real pipeline
-      und misst Quality-Doctor-Score sowie (wo eine FunGen-Referenz
-      hinterlegt ist) die Übereinstimmung - damit sich Verbesserungen (oder
-      Regressionen) tatsächlich über die Zeit verfolgen lassen, statt nur
-      als Einzelmessung im Gespräch zu stehen. Das Manifest verweist auf
-      lokale Videodateien, es wird nichts hochgeladen.
+      and measures Quality Doctor score plus FunGen agreement when a
+      reference is present — so improvements (or regressions) can be
+      tracked over time instead of one-off chat measurements. The manifest
+      points at local video files; nothing is uploaded.
     </p>
 
     <div class="field-row"><label>Manifest</label>

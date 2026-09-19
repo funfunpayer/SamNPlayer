@@ -1470,7 +1470,7 @@ export function initPlayback(root) {
     try {
       const path = await ExportScriptHeatmapPNG();
       ofsStatus('Heatmap: ' + path);
-      uiInfo('Heatmap gespeichert: ' + path);
+      uiInfo('Heatmap saved: ' + path);
     } catch (err) {
       uiError('Heatmap: ' + err, el('#pb-ofs-status'));
     }
@@ -1484,20 +1484,20 @@ export function initPlayback(root) {
         seekMs: currentPosMs || 0,
         loopMarker: marker ? { startMs: marker.startMs, endMs: marker.endMs } : null,
       });
-      ofsStatus('Projekt: ' + path);
-      uiInfo('Projekt gespeichert: ' + path);
+      ofsStatus('Project: ' + path);
+      uiInfo('Project saved: ' + path);
     } catch (err) {
       uiError('Project: ' + err, el('#pb-ofs-status'));
     }
   });
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {
-      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      uiWarn('Mark a range on the heatmap first.');
       return;
     }
     try {
       await EditCapSpeedRange(marker.startMs, marker.endMs, 400);
-      ofsStatus('Speed-Cap angewendet');
+      ofsStatus('Speed cap applied');
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
       await reloadAfterRangeEdit();
     } catch (err) {
@@ -1506,7 +1506,7 @@ export function initPlayback(root) {
   });
   el('#pb-del-range')?.addEventListener('click', async () => {
     if (!marker) {
-      uiWarn('Zuerst einen Bereich in der Heatmap markieren.');
+      uiWarn('Mark a range on the heatmap first.');
       return;
     }
     try {
