@@ -16,12 +16,11 @@ measurement history behind each entry; this file is the short version for
   Community `.funscript` remains import/export. Docs: `docs/SAMN_FORMAT.md`.
   Playback UI: curve channel, drive mode, bake axes, export funscript / save `.samn`.
 
-### Fixed
+### Docs
 
-- **`.samn` integration gaps:** Invert / Ring-down / Script Doctor / chapter
-  labels / post-generate open path now prefer or correctly write native
-  docs; O-markers sync to companion `.samn`; curve view follows selected
-  axis; contact controls remain usable in axes mode (re-bake on save).
+- **License system concept** (not built / not sharp): yearly key, trial =
+  1‑minute generate + funscript-only play; Ed25519 signed files;
+  `docs/LICENSE_SYSTEM.md`.
 
 ## [0.5.8] — September 19, 2026
 
