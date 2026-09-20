@@ -40,7 +40,8 @@ fixes are fine if they do not dilute Generate/Play.
 | Version | Status | Contents (short) |
 |---------|--------|------------------|
 | **v0.5.8** | Already tagged | Playback polish prior |
-| **v0.5.9** | This train (ready to tag on main) | `.samn` SoT, Go audio-check, ROI verify, portable ffmpeg, lean probe, platforms stake, English GUI lock |
+| **v0.5.9** | Tagged | `.samn` SoT, Go audio-check, ROI verify, portable ffmpeg, lean probe, platforms stake, English GUI lock |
+| **v0.5.10** | This train (local green; tag after CI billing fixed) | Bugfix + GUI motion + multi body-part regions (Face…Vagina, Fix ROI2) |
 
 **Owner steps after this PR merges to `main`:**
 

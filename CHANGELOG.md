@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.10] — September 20, 2026
+
+Careful bugfix + lean GUI motion + multi body-part regions for Tf/Tj /
+Generate / AI training. Tag when GitHub Actions billing is restored and
+Checks are green on `main`.
+
 ### Fixed
 
 - **Session guard:** rejected second StartPlayback/StartTraining no longer
@@ -21,6 +27,8 @@ measurement history behind each entry; this file is the short version for
   leftover German user strings → English.
 - **license-tool:** unknown `--tier` rejected; internal/invite issue path
   simplified.
+- **bootstrap_yolo_dataset.py:** Tab/space mix that broke import (CI Python
+  job would fail once runners start again).
 
 ### Added
 

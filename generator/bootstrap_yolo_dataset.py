@@ -441,7 +441,7 @@ def main():
                      help="Dritte Region im selben Frame (optional)")
     ap.add_argument("--class-name3", default=None,
                      help="Klasse der dritten Region (--roi3)")
-	ap.add_argument("--roi4", default=None, metavar="x,y,w,h",
+    ap.add_argument("--roi4", default=None, metavar="x,y,w,h",
                      help="Vierte Region im selben Frame (optional)")
     ap.add_argument("--class-name4", default=None,
                      help="Klasse der vierten Region (--roi4)")
