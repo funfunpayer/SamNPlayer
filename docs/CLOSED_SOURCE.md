@@ -78,17 +78,17 @@ release while you still have access):
 
 ```bash
 # from a folder that contains the five release assets:
-./scripts/publish-public-release.sh v0.5.10
+./scripts/publish-public-release.sh v0.5.11
 ```
 
 Or manually:
 
 ```bash
-gh release download v0.5.10 -R funfunpayer/SamNPlayer -D /tmp/snp-rel
+gh release download v0.5.11 -R funfunpayer/SamNPlayer -D /tmp/snp-rel
 cd /tmp/snp-rel
-gh release create v0.5.10 -R funfunpayer/SamNPlayer-site \
-  --title "v0.5.10" \
-  --notes "SamNPlayer v0.5.10 binaries (closed source)." \
+gh release create v0.5.11 -R funfunpayer/SamNPlayer-site \
+  --title "v0.5.11" \
+  --notes "SamNPlayer v0.5.11 binaries (closed source)." \
   SamNPlayer-gui-linux-amd64 \
   SamNPlayer-gui-windows-amd64.exe \
   SamNPlayer-cli-linux-amd64 \
