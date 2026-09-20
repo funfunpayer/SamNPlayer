@@ -17,3 +17,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
 	return nativeTrackResult{}, errNativeUnavailable
 }
+
+func nativeTrackMultiPoints(videoPath string, tip ROI, partners []nativePartner, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
+	return nativeTrackResult{}, errNativeUnavailable
+}

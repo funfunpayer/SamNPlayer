@@ -63,6 +63,10 @@ export function initGenerator(root, playback) {
           data-help="Zone 2: primary contact (e.g. nipples). Tf/Tj distance + contact vibration use tip→this zone (and Zone 3+). Also via Shift+drag.">Zone 2 (contact)</button>
         <button id="gen-target-add" type="button"
           data-help="Zone 3+: extra Tf/Tj contact (magenta). Stroke = min distance tip → all contact zones. Defaults to fixed.">+ Zone 3+ (contact)</button>
+        <label style="width:auto; margin:0;" data-help="Body-part class applied to the next Zone 3+ mark (e.g. mouth, nipples).">Zone 3+ class</label>
+        <select id="gen-target-class" style="min-width:7em;">
+          <option value="">(any)</option>
+        </select>
         <button id="gen-mask-add" type="button"
           data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
         <button id="gen-extras-clear" type="button"
@@ -348,7 +352,8 @@ export function initGenerator(root, playback) {
     if (extras) {
       const parts = [];
       if (extraTargets.length) {
-        parts.push(`${extraTargets.length} extra target${extraTargets.length === 1 ? '' : 's'} (magenta, fixed)`);
+        const named = extraTargets.map((t, i) => t.class ? t.class : `#${i + 1}`).join(', ');
+        parts.push(`${extraTargets.length} Zone 3+ (${named}, magenta, fixed)`);
       }
       if (maskRois.length) {
         parts.push(`${maskRois.length} soft mask${maskRois.length === 1 ? '' : 's'} (dashed)`);
@@ -560,13 +565,15 @@ export function initGenerator(root, playback) {
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
     if (mode === 'target') {
-      extraTargets.push({ ...box, fixed: true });
+      const cls = el('#gen-target-class')?.value || '';
+      extraTargets.push({ ...box, fixed: true, class: cls });
       setMarkMode(null);
       if (!isTfTj()) {
         el('#gen-profile').value = 'tf';
         updateProfileUi();
       }
-      el('#gen-status').textContent = `Extra target #${extraTargets.length} added (min-distance partner).`;
+      const tag = cls ? ` (${cls})` : '';
+      el('#gen-status').textContent = `Zone 3+ #${extraTargets.length}${tag} added (min-distance partner).`;
     } else if (mode === 'mask') {
       maskRois.push(box);
       setMarkMode(null);
@@ -724,7 +731,7 @@ export function initGenerator(root, playback) {
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      el('#gen-status').textContent = 'Tf/Tj needs a second region (Shift+drag or “2nd region”).';
+      el('#gen-status').textContent = 'Tf/Tj needs Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
       return;
     }
 
@@ -882,7 +889,7 @@ export function initGenerator(root, playback) {
     let status = hasRoi2
       ? `Both regions found (${via}) — suggestion, please review/correct.`
       : (isTfTj() && !roi2
-        ? `Region found (${via}) — for Tf/Tj mark the 2nd region (Shift+drag or “2nd region”).`
+        ? `Region found (${via}) — for Tf/Tj mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).`
         : `Region found (${via}) — correct by hand if needed.`);
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
@@ -1040,7 +1047,7 @@ export function initGenerator(root, playback) {
       setRoi2Mode(!roi2Mode);
     }
     if (roi2Mode) {
-      el('#gen-status').textContent = '2nd region: drag on preview (shown in gold).';
+      el('#gen-status').textContent = 'Zone 2 (contact): drag on preview (gold).';
     }
   });
   el('#gen-target-add')?.addEventListener('click', () => {
@@ -1168,7 +1175,7 @@ export function initGenerator(root, playback) {
   });
 
   // Body-part class selects (docs/BODY_REGIONS.md)
-  for (const selId of ['#gen-region-class', '#gen-region-class2']) {
+  for (const selId of ['#gen-region-class', '#gen-region-class2', '#gen-target-class']) {
     const sel = el(selId);
     if (!sel) continue;
     for (const p of CANONICAL) {

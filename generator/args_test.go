@@ -37,6 +37,9 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 			ExtraTargets: []NamedROI{{X: 5, Y: 6, W: 7, H: 8}},
 			MaskROIs:     []ROI{{X: 1, Y: 2, W: 3, H: 4}},
 		}, []string{"--target", "5,6,7,8", "--mask", "1,2,3,4"}},
+		{"extra target with class", Options{
+			ExtraTargets: []NamedROI{{X: 5, Y: 6, W: 7, H: 8, Class: "mouth"}},
+		}, []string{"--target", "5,6,7,8,mouth"}},
 		{"Kontakt-Vibration", Options{Profile: "tj", ContactVibration: true},
 			[]string{"--contact-vibration"}},
 		{"Kontakt-Vibration Span+Kurve", Options{Profile: "tj", ContactVibration: true,

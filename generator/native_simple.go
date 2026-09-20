@@ -44,7 +44,10 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		}
 	}
 	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
-	if twoPoint {
+	multi := twoPoint && len(opts.ExtraTargets) > 0
+	if multi {
+		progress("Go multi-partner simpletrack (NCC) — PreferSimpletrack / lab path")
+	} else if twoPoint {
 		progress("Go two-point simpletrack (NCC) — PreferSimpletrack / lab path")
 	} else {
 		progress("Go simpletrack (NCC over ffmpeg) — PreferSimpletrack / lab path")
@@ -67,10 +70,22 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	var tr simpletrack.Result
 	var err error
 	if twoPoint {
-		tr, err = simpletrack.TrackTwoPoints(ctx, videoPath,
+		partners := []simpletrack.Partner{{
+			ROI:   simpletrack.Rect{X: opts.ROI2.X, Y: opts.ROI2.Y, W: opts.ROI2.W, H: opts.ROI2.H},
+			Fixed: opts.ROI2Fixed,
+		}}
+		for _, t := range opts.ExtraTargets {
+			if t.W <= 0 || t.H <= 0 {
+				continue
+			}
+			partners = append(partners, simpletrack.Partner{
+				ROI:   simpletrack.Rect{X: t.X, Y: t.Y, W: t.W, H: t.H},
+				Fixed: true,
+			})
+		}
+		tr, err = simpletrack.TrackMultiPoints(ctx, videoPath,
 			simpletrack.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H},
-			simpletrack.Rect{X: opts.ROI2.X, Y: opts.ROI2.Y, W: opts.ROI2.W, H: opts.ROI2.H},
-			stOpts)
+			partners, stOpts)
 	} else {
 		tr, err = simpletrack.TrackROI(ctx, videoPath, simpletrack.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H}, stOpts)
 	}
@@ -103,7 +118,9 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		LostFlags:    tr.LostFlags,
 	}
 	backend := "ncc"
-	if twoPoint {
+	if multi {
+		backend = "multi_point_ncc"
+	} else if twoPoint {
 		backend = "two_point_ncc"
 	}
 	return finishNativeGenerate(ctx, videoPath, outputPath, opts, ntr, "simpletrack", backend, progress, onPercent, start)

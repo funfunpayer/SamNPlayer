@@ -26,8 +26,9 @@ func TestNativePipelineEligible(t *testing.T) {
 	if NativePipelineEligible(Options{Backend: "csrt", AIQualityOpinion: true}, roi) {
 		t.Fatal("AI opinion must not be eligible")
 	}
-	if NativePipelineEligible(Options{Backend: "csrt", ExtraTargets: []NamedROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
-		t.Fatal("extra Tf/Tj targets must force Python path")
+	if !NativePipelineEligible(Options{Backend: "csrt", ROI2: ROI{W: 10, H: 10},
+		ExtraTargets: []NamedROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
+		t.Fatal("extra Tf/Tj targets + ROI2 must stay on the Go path")
 	}
 	if NativePipelineEligible(Options{Backend: "csrt", MaskROIs: []ROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
 		t.Fatal("soft masks must force Python path")

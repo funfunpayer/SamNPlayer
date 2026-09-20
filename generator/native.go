@@ -59,8 +59,9 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if opts.AIQualityOpinion {
 		return false
 	}
-	// Multi-target / soft masks still need the Python path.
-	if len(opts.ExtraTargets) > 0 || len(opts.MaskROIs) > 0 {
+	// Soft masks still need Python (feature punch-outs on camera/grid paths).
+	// Extra Tf/Tj targets run on Go TrackMultiPoints (CSRT / simpletrack).
+	if len(opts.MaskROIs) > 0 {
 		return false
 	}
 	return true
@@ -81,7 +82,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		return errNativeUnavailable
 	}
 	if !nativeOptionsEligible(opts, roi) {
-		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2; no per-scene, AI opinion, OpenCL)")
+		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2/+targets; no per-scene, AI opinion, OpenCL, soft masks)")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -94,7 +95,10 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		}
 	}
 	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
-	if twoPoint {
+	multi := twoPoint && len(opts.ExtraTargets) > 0
+	if multi {
+		progress("Go-native multi-partner pipeline (trackcv TrackMultiPoints + posttrack), no Python")
+	} else if twoPoint {
 		progress("Go-native two-point pipeline (trackcv TrackTwoPoints + posttrack), no Python")
 	} else {
 		progress("Go-native CSRT pipeline (trackcv + posttrack), no Python")
@@ -118,7 +122,18 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	var tr nativeTrackResult
 	var err error
 	if twoPoint {
-		tr, err = nativeTrackTwoPoints(videoPath, roi, opts.ROI2, trackOpts, onPercent)
+		partners := []nativePartner{{ROI: opts.ROI2, Fixed: opts.ROI2Fixed}}
+		for _, t := range opts.ExtraTargets {
+			if t.W <= 0 || t.H <= 0 {
+				continue
+			}
+			// Zone 3+ extras are fixed contact anchors (GUI +Target).
+			partners = append(partners, nativePartner{
+				ROI:   ROI{X: t.X, Y: t.Y, W: t.W, H: t.H},
+				Fixed: true,
+			})
+		}
+		tr, err = nativeTrackMultiPoints(videoPath, roi, partners, trackOpts, onPercent)
 	} else {
 		tr, err = nativeTrackROI(videoPath, roi, trackOpts, onPercent)
 	}
@@ -134,10 +149,17 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	progress(fmt.Sprintf("%d frames tracked (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
 	backend := "csrt"
-	if twoPoint {
+	if multi {
+		backend = "multi_point"
+	} else if twoPoint {
 		backend = "two_point"
 	}
 	return finishNativeGenerate(ctx, videoPath, outputPath, opts, tr, "trackcv", backend, progress, onPercent, start)
+}
+
+type nativePartner struct {
+	ROI   ROI
+	Fixed bool
 }
 
 type nativeTrackResult struct {

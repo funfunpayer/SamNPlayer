@@ -44,15 +44,17 @@ IDs in Go (`generator/bodyparts`), Python (`bodyparts.py`), and the GUI
 - **Primary target (Zone 2 / ROI2):** required for Tf/Tj; optional `--roi2-fixed`.
   Typical class: `nipples` / `mouth` / `vagina`.
 - **Extra targets (Zone 3+, `--target`, repeatable):** additional contact
-  anchors (GUI: **+ Zone 3+**). Default **fixed**. Stroke signal =
+  anchors (GUI: **+ Zone 3+**). Default **fixed**. Optional class via
+  `x,y,w,h,class` or GUI **Zone 3+ class**. Stroke signal =
   **min** distance from tip to Zone 2 and all extra targets. Contact
-  vibration uses the same proximity signal.
+  vibration uses the same proximity signal. Go CSRT runs N partners
+  natively (`TrackMultiPoints`); soft masks still use the Python path.
 - **Soft masks (`--mask`, repeatable):** GUI **+ Mask**. Punched out of
   camera-motion and grid_lk reseed feature masks only — they do **not**
   drive the stroke. Not pixel-perfect SAM segmentation; box soft-exclude.
 
-Native Go pipeline stays on the Python path when ExtraTargets or MaskROIs
-are set.
+Native Go pipeline stays on the Python path when **MaskROIs** are set.
+ExtraTargets use Go `TrackMultiPoints` when OpenCV (or simpletrack) is available.
 
 ## Surfaces
 
