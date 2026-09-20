@@ -114,12 +114,15 @@ export function initRoiTraining(root) {
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Start training</button>
       <button id="rt-install-deps" type="button"
-        data-help="Optional. Installs ultralytics + onnx (+ PyTorch) via pip. Large download — skip unless you train.">Install AI train deps</button></div>
+        data-help="Installs ultralytics + onnx (+ PyTorch), then restores opencv-contrib-python so Use for training keeps CSRT. Prefer a real Python install (not the Windows Store stub). Large download.">Install AI train deps</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
       AI train packages missing (optional). Use “Install AI train deps”
-      only if you want to train a model (large: ultralytics/torch). Or:
-      <code>pip install ultralytics onnx</code>. Details:
-      <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
+      only if you want to train a model (large: ultralytics/torch). That
+      button also restores <code>opencv-contrib-python</code> so
+      <b>Use for training</b> keeps CSRT after ultralytics. Prefer a real
+      Python from python.org — not the Windows Store stub. Or:
+      <code>pip uninstall opencv-python opencv-python-headless &amp;&amp; pip install opencv-contrib-python ultralytics onnx</code>.
+      Details: <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
     </p>
     <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">
       No training samples yet. Mark region(s) above and click <b>Use for training</b>
@@ -795,8 +798,13 @@ export function initRoiTraining(root) {
     }
     const st = payload.status || {};
     applyTrainAvailability(!!st.ultralytics, st.detail || 'Dependencies installed');
-    el('#rt-train-status').textContent = 'Dependencies OK — you can start training.';
-    uiInfo('AI training dependencies installed.');
+    const bootstrapOk = !!st.opencv;
+    el('#rt-train-status').textContent = bootstrapOk
+      ? 'Dependencies OK — bootstrap (CSRT) and training ready.'
+      : 'Ultralytics OK, but OpenCV trackers still missing — re-run Install or pip install opencv-contrib-python.';
+    uiInfo(bootstrapOk
+      ? 'AI training dependencies installed (CSRT restored).'
+      : 'AI train deps installed; fix OpenCV (opencv-contrib-python) for Use for training.');
   });
 
   ListRoiTrainingDevices().then(devices => {

@@ -56,20 +56,21 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	}
 	switch {
 	case st.Ultralytics && st.OpenCV:
-		st.Detail = "Bereit: Bootstrap und Training möglich"
+		st.Detail = "Ready: bootstrap and training available"
 	case st.Ultralytics && !st.OpenCV:
-		st.Detail = "Training möglich; Bootstrap braucht opencv-contrib-python"
+		st.Detail = "Training OK; bootstrap needs opencv-contrib-python (Install AI train deps restores CSRT after ultralytics)"
 	case !st.Ultralytics && st.OpenCV:
-		st.Detail = "Bootstrap möglich; Training: pip install ultralytics onnx"
+		st.Detail = "Bootstrap OK; training: Install AI train deps (or pip install ultralytics onnx)"
 	default:
-		st.Detail = "Weder ultralytics noch OpenCV-Tracker gefunden"
+		st.Detail = "Neither ultralytics nor OpenCV trackers found — use Install AI train deps"
 	}
 	return st
 }
 
 // InstallRoiTrainingDeps installs ultralytics+onnx via pip for the detected
-// Python. Writes the embedded requirements-ai-train.txt to a temp file first
-// so release binaries (no source tree) still work.
+// Python, then restores opencv-contrib-python. ultralytics depends on
+// opencv-python, which removes CSRT trackers needed for video bootstrap
+// (“Use for training”) — Issues #94/#95/#119.
 func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	py, err := FindPython()
 	if err != nil {
@@ -95,7 +96,34 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	}
 	cmd := command(py, "-m", "pip", "install", "-r", reqPath)
 	out, err := cmd.CombinedOutput()
-	for _, line := range strings.Split(string(out), "\n") {
+	emitPipLines(string(out), onProgress)
+	if err != nil {
+		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
+	}
+	if onProgress != nil {
+		onProgress("Restoring opencv-contrib-python (CSRT for video bootstrap)…")
+	}
+	// Best-effort uninstall of the non-contrib wheels ultralytics may have pulled.
+	un := command(py, "-m", "pip", "uninstall", "-y", "opencv-python", "opencv-python-headless")
+	unOut, _ := un.CombinedOutput()
+	emitPipLines(string(unOut), onProgress)
+	fix := command(py, "-m", "pip", "install", "--upgrade", "opencv-contrib-python>=4.8", "scipy>=1.10", "numpy>=1.24")
+	fixOut, fixErr := fix.CombinedOutput()
+	emitPipLines(string(fixOut), onProgress)
+	if fixErr != nil {
+		return fmt.Errorf("generator: opencv-contrib-python restore failed: %w", fixErr)
+	}
+	if err := CheckDependencies(); err != nil {
+		return fmt.Errorf("generator: OpenCV still missing CSRT after restore — %w", err)
+	}
+	if !RoiTrainingAvailable() {
+		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
+	}
+	return nil
+}
+
+func emitPipLines(out string, onProgress func(line string)) {
+	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -105,13 +133,6 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 			onProgress(line)
 		}
 	}
-	if err != nil {
-		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
-	}
-	if !RoiTrainingAvailable() {
-		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
-	}
-	return nil
 }
 
 // WriteAIRequirementFiles writes embedded AI requirement lists into dir

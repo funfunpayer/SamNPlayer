@@ -136,7 +136,7 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Latest: **[v0.5.10](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
+Latest: **[v0.5.11](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
@@ -161,7 +161,7 @@ Cross-compile Windows GUI from Linux:
 ```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.10"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.11"
 ```
 
 Generator extras need **Python 3.9+** and

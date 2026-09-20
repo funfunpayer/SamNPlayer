@@ -15,6 +15,29 @@ measurement history behind each entry; this file is the short version for
   soft-excludes camera and grid_lk feature patches (not SAM pixels).
   Docs: `docs/BODY_REGIONS.md`, `docs/TF_TJ.md`.
 
+## [0.5.11] — September 20, 2026
+
+Patch for AI Train bootstrap on Windows after ultralytics / Store Python
+stubs (#119). Builds on 0.5.10 product path (CSRT Go default).
+
+### Fixed
+
+- **AI Train bootstrap OpenCV (#119):** after **Install AI train deps**,
+  ultralytics’ `opencv-python` dependency no longer leaves CSRT dead —
+  GUI/pip path uninstalls non-contrib wheels and reinstalls
+  `opencv-contrib-python`, then re-checks trackers.
+- **WindowsApps Python preference:** Store stubs under
+  `%LOCALAPPDATA%\Microsoft\WindowsApps` are demoted when a real
+  install exists, so bootstrap errors and pip hints point at
+  `Programs\Python\…` instead of the stub (#94/#119).
+- **Status copy:** ROI training readiness strings in English; install
+  success reports whether CSRT bootstrap is ready.
+
+### Docs
+
+- `docs/KI_TRAINING.md`: restore-contrib note + 0.5.9/0.5.10 manual
+  workaround.
+
 ## [0.5.10] — September 20, 2026
 
 Careful bugfix + lean GUI motion + multi body-part regions for Tf/Tj /

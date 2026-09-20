@@ -98,3 +98,43 @@ func TestFindPythonErrorWhenNoneRunnable(t *testing.T) {
 		t.Fatal("ohne jeden Interpreter muss FindPython einen Fehler liefern")
 	}
 }
+
+func TestIsWindowsAppsPythonStub(t *testing.T) {
+	cases := []struct {
+		path string
+		want bool
+	}{
+		{`C:\Users\Christian\AppData\Local\Microsoft\WindowsApps\python3.exe`, true},
+		{`C:/Users/Christian/AppData/Local/Microsoft/WindowsApps/python.exe`, true},
+		{`C:\Users\Christian\AppData\Local\Programs\Python\Python314\python.exe`, false},
+		{`/usr/bin/python3`, false},
+		{`C:\Windows\py.exe`, false},
+	}
+	for _, tc := range cases {
+		if got := isWindowsAppsPythonStub(tc.path); got != tc.want {
+			t.Errorf("isWindowsAppsPythonStub(%q)=%v want %v", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestDemoteWindowsAppsStubs(t *testing.T) {
+	stub := `C:\Users\x\AppData\Local\Microsoft\WindowsApps\python3.exe`
+	real := `C:\Users\x\AppData\Local\Programs\Python\Python314\python.exe`
+	pyLauncher := `C:\Windows\py.exe`
+
+	got := demoteWindowsAppsStubs([]string{stub, real, pyLauncher})
+	want := []string{real, pyLauncher, stub}
+	if len(got) != len(want) {
+		t.Fatalf("len=%d want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("[%d]=%q want %q (full=%v)", i, got[i], want[i], got)
+		}
+	}
+
+	onlyStubs := demoteWindowsAppsStubs([]string{stub})
+	if len(onlyStubs) != 1 || onlyStubs[0] != stub {
+		t.Errorf("only stubs should stay as-is, got %v", onlyStubs)
+	}
+}

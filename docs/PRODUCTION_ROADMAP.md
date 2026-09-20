@@ -41,7 +41,8 @@ fixes are fine if they do not dilute Generate/Play.
 |---------|--------|------------------|
 | **v0.5.8** | Tagged | Playback polish prior |
 | **v0.5.9** | **Shipped** | `.samn`, portable ffmpeg, English GUI lock, license infra (not sharp) |
-| **v0.5.10** | This train (local green; tag after CI billing fixed) | Bugfix + GUI motion + multi body-part regions + soft masks / N distance partners |
+| **v0.5.10** | **Shipped** (private release assets) | Bugfix + GUI motion + multi body-part regions + soft masks / N partners |
+| **v0.5.11** | This train | AI Train bootstrap: restore opencv-contrib after ultralytics; demote WindowsApps Python (#119) |
 
 **Owner steps after this PR merges to `main`:**
 
@@ -49,8 +50,8 @@ fixes are fine if they do not dilute Generate/Play.
 2. Spot-check GUI (Play + Generate) in English — **no popup on startup**  
 3. Prefer **portable** zip (ffmpeg included). Settings → “What you need” should match reality  
 4. AI Train (optional): mark → Use for training → train; empty dataset must warn, not traceback  
-5. Tag `v0.5.10` and push the tag → release workflow builds Win/Linux + portable archives  
-6. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.10`  
+5. Tag `v0.5.11` and push the tag → release workflow builds Win/Linux + portable archives  
+6. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.11`  
 7. Prefer **portable** download on the public site  
 8. Hardware: one BLE or Intiface play session if a device is available  
 

@@ -149,7 +149,35 @@ func pythonCandidates() []string {
 			add(matches[i])
 		}
 	}
-	return out
+	// Windows Store stubs (%LOCALAPPDATA%\Microsoft\WindowsApps\python*.exe)
+	// often sit first on PATH but are not the install users pip into. Prefer
+	// real interpreters when any exist (Issues #94/#119).
+	return demoteWindowsAppsStubs(out)
+}
+
+func isWindowsAppsPythonStub(path string) bool {
+	// Normalize both \ and / so detection works when unit tests pass
+	// Windows paths on a Linux builder (filepath.ToSlash alone does not).
+	lower := strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	return strings.Contains(lower, "/windowsapps/")
+}
+
+// demoteWindowsAppsStubs moves WindowsApps alias stubs to the end so
+// FindPython / CheckDependencies prefer a real install (e.g.
+// %LOCALAPPDATA%\Programs\Python\…) when both appear on PATH.
+func demoteWindowsAppsStubs(paths []string) []string {
+	var preferred, stubs []string
+	for _, p := range paths {
+		if isWindowsAppsPythonStub(p) {
+			stubs = append(stubs, p)
+			continue
+		}
+		preferred = append(preferred, p)
+	}
+	if len(preferred) == 0 {
+		return paths
+	}
+	return append(preferred, stubs...)
 }
 
 func hasPackages(py string) (bool, string) {
