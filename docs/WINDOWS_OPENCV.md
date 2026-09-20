@@ -31,6 +31,8 @@ We keep the slim `trackcv` wrapper (not full GoCV).
 4. Build CLI + Wails GUI with `-tags opencv`
 5. Portable zip: `ffmpeg` + OpenCV/MinGW DLLs via
    `scripts/collect-mingw-opencv-dlls.sh`
+   (must run under **MSYS2 MINGW64**, not Git Bash — `/mingw64` must be
+   mounted)
 
 Linux stays on Ubuntu `pkg-config opencv4`.
 
