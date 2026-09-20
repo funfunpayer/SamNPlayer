@@ -1415,7 +1415,8 @@ def opencv_has_usable_tracker():
     return _csrt_factory() is not None or _fallback_tracker_factory()[0] is not None
 
 
-def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
+def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
+                     fixed_b=False):
     """Verfolgt zwei Regionen und liefert ihren ABSTAND (2D) als Signal.
 
     Der Grund für dieses Verfahren ist mathematisch, nicht heuristisch: ein
@@ -1466,9 +1467,11 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     height, width = first.shape[:2]
 
     tracker_a = create_tracker()
-    tracker_b = create_tracker()
     tracker_a.init(first, tuple(int(v) for v in roi_a))
-    tracker_b.init(first, tuple(int(v) for v in roi_b))
+    tracker_b = None
+    if not fixed_b:
+        tracker_b = create_tracker()
+        tracker_b.init(first, tuple(int(v) for v in roi_b))
 
     box_a, box_b = tuple(roi_a), tuple(roi_b)
     center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
@@ -1499,11 +1502,13 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
         if not ok:
             break
         ok_a, new_a = tracker_a.update(frame)
-        ok_b, new_b = tracker_b.update(frame)
         if ok_a:
             box_a = new_a
-        if ok_b:
-            box_b = new_b
+        ok_b = True
+        if tracker_b is not None:
+            ok_b, new_b = tracker_b.update(frame)
+            if ok_b:
+                box_b = new_b
         frame_lost = not (ok_a and ok_b)
         if frame_lost:
             # Verliert auch nur einer der beiden das Ziel, ist der Abstand
@@ -1613,7 +1618,8 @@ def _register_builtin_backends():
             raise RuntimeError("two_point mode requires a second region (--roi2)")
         return track_two_points(video_path, roi, roi2,
                                 max_frames=options.get("max_frames"),
-                                start_frame=options.get("start_frame", 0))
+                                start_frame=options.get("start_frame", 0),
+                                fixed_b=bool(options.get("roi2_fixed")))
 
     def grid_lk(video_path, roi, options):
         import grid_lk_backend
@@ -2087,6 +2093,13 @@ def main():
                          "ABSTAND beider Regionen. Ein Abstand ist von Kamerabewegung "
                          "mathematisch unabhängig - das Problem entsteht gar nicht erst, "
                          "statt nachträglich herausgerechnet zu werden.")
+    ap.add_argument("--roi2-fixed", action="store_true",
+                    help="Keep ROI2 at the marked box (static contact target); only ROI1 "
+                         "is tracked. See docs/BODY_REGIONS.md.")
+    ap.add_argument("--region-class", default=None,
+                    help="Optional body-part class for ROI1 (face, mouth, breasts, …).")
+    ap.add_argument("--region-class2", default=None,
+                    help="Optional body-part class for ROI2.")
     ap.add_argument("--axis", choices=["auto", "y", "x"], default="auto",
                     help="Welche Bewegungsachse ausgewertet wird. Waagerecht und senkrecht "
                          "werden immer BEIDE getrackt (kostet nichts zusätzlich) - auto "
@@ -2397,7 +2410,8 @@ def process_one(args, ap):
                 })
         else:
             timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_two_points(
-                args.video, roi, roi2, max_frames=args.max_frames, start_frame=start_frame)
+                args.video, roi, roi2, max_frames=args.max_frames, start_frame=start_frame,
+                fixed_b=bool(getattr(args, "roi2_fixed", False)))
     elif args.backend == "flow":
         # Flow-Backend: kein Tracker, keine markierte Region. Deutlich
         # schneller (dichter Farneback ~18ms/Frame gegen ~100ms für CSRT)

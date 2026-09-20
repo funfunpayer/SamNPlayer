@@ -57,6 +57,7 @@ def main():
                           f"pngBase64: '{TINY_PNG_B64}' }})",
         "LoadFrameAt": f"async () => ({{ width: 640, height: 360, "
                        f"pngBase64: '{TINY_PNG_B64}' }})",
+        "BootstrapRoiTrainingRegions": "async () => { window.__calls.push('bootstrap'); return 'clipA_deadbeef'; }",
         "BootstrapRoiTrainingSampleEx": "async () => { window.__calls.push('bootstrap'); return 'clipA_deadbeef'; }",
         "ListRoiTrainingSamples": f"async () => {{ window.__calls.push('list'); return {json.dumps(SAMPLES)}; }}",
         "GetRoiTrainingSampleImage": f"async () => '{TINY_PNG_B64}'",

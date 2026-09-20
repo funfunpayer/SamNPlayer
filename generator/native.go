@@ -94,6 +94,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		AppearanceMemory:   true,
 		Axis:               opts.Axis,
 		Cancel:             func() bool { return ctx.Err() != nil },
+		FixedB:             opts.ROI2Fixed,
 	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
@@ -147,6 +148,7 @@ type nativeTrackOptions struct {
 	AppearanceMemory   bool
 	Axis               string
 	Cancel             func() bool
+	FixedB             bool
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {

@@ -9,7 +9,8 @@ func TestBuildBootstrapArgsSingleRegion(t *testing.T) {
 	regions := []RoiTrainingRegion{{ROI: ROI{X: 1, Y: 2, W: 3, H: 4}, ClassName: "brust"}}
 	args := buildBootstrapArgs("script.py", "v.mp4", regions, "/data", "")
 	joined := strings.Join(args, " ")
-	for _, want := range []string{"--video v.mp4", "--roi 1,2,3,4", "--class-name brust", "--output-dir /data"} {
+	// Legacy DE "brust" normalizes to English "breasts".
+	for _, want := range []string{"--video v.mp4", "--roi 1,2,3,4", "--class-name breasts", "--output-dir /data"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("Argument %q fehlt in: %s", want, joined)
 		}
@@ -17,6 +18,27 @@ func TestBuildBootstrapArgsSingleRegion(t *testing.T) {
 	for _, unwanted := range []string{"--roi2", "--class-name2", "--sample-prefix"} {
 		if strings.Contains(joined, unwanted) {
 			t.Errorf("unerwartetes Argument %q ohne 2. Region/Präfix: %s", unwanted, joined)
+		}
+	}
+}
+
+func TestBuildBootstrapArgsNineRegions(t *testing.T) {
+	regions := []RoiTrainingRegion{
+		{ROI: ROI{1, 1, 10, 10}, ClassName: "face"},
+		{ROI: ROI{2, 2, 10, 10}, ClassName: "mouth"},
+		{ROI: ROI{3, 3, 10, 10}, ClassName: "breasts"},
+		{ROI: ROI{4, 4, 10, 10}, ClassName: "nipples"},
+		{ROI: ROI{5, 5, 10, 10}, ClassName: "hand_1"},
+		{ROI: ROI{6, 6, 10, 10}, ClassName: "hand_2"},
+		{ROI: ROI{7, 7, 10, 10}, ClassName: "penis"},
+		{ROI: ROI{8, 8, 10, 10}, ClassName: "glans"},
+		{ROI: ROI{9, 9, 10, 10}, ClassName: "vagina"},
+	}
+	args := buildBootstrapArgs("script.py", "v.mp4", regions, "/data", "pfx")
+	joined := strings.Join(args, " ")
+	for _, want := range []string{"--roi9", "--class-name9 vagina", "--sample-prefix pfx"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in %s", want, joined)
 		}
 	}
 }

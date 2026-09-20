@@ -60,6 +60,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		StartTimeSec: opts.StartTimeSec,
 		Axis:         axis,
 		Cancel:       func() bool { return ctx.Err() != nil },
+		FixedB:       opts.ROI2Fixed,
 	}
 
 	var tr simpletrack.Result

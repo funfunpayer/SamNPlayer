@@ -114,8 +114,8 @@ export function initSettings(root) {
     </div>
     <div class="field-row" style="margin-top:8px">
       <label for="st-ai-pref-classes"
-        data-help="Comma-separated class names or ids (e.g. hand,breast). Empty = best confidence among all classes. Names need classes.json next to the .onnx (copied after training).">Preferred classes</label>
-      <input type="text" id="st-ai-pref-classes" placeholder="(all classes)" style="flex:1;" />
+        data-help="Comma-separated English body-part IDs (face,mouth,breasts,nipples,hand_1,hand_2,penis,glans,vagina). Empty = all classes from the model. Names need classes.json next to the .onnx.">Preferred classes</label>
+      <input type="text" id="st-ai-pref-classes" placeholder="face,mouth,breasts,nipples,hand_1,hand_2,penis,glans,vagina" style="flex:1;" />
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 

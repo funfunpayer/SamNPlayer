@@ -53,7 +53,10 @@ From the binary: Settings / or later “Export requirements” —
 1. **AI training** tab
 2. **Choose video** (or **image** for still annotation)
 3. For black intro: seek time → load frame
-4. Draw up to **4 boxes**, name classes (`hand`, `breast`, …)
+4. Draw up to **9 boxes**, name classes with the English taxonomy
+   (`face`, `mouth`, `breasts`, `nipples`, `hand_1`, `hand_2`, `penis`,
+   `glans`, `vagina` — see `docs/BODY_REGIONS.md`). Legacy German labels
+   (`brust`, `eichel`, …) still normalize.
 5. **Use for training** → CSRT/KCF tracks and writes YOLO samples
 6. **Review:** discard bad samples, **correct** boxes (important — bootstrap box size is fixed; tracker may drift)
 7. **Start training** (epochs, device Auto/CUDA/DirectML/CPU)

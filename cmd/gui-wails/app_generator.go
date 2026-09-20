@@ -93,6 +93,11 @@ type GenerateOptions struct {
 	StartTimeSec float64 `json:"startTimeSec"`
 	// FlowDownscale is only used by the optical-flow backend (0/1 = full res).
 	FlowDownscale float64 `json:"flowDownscale"`
+	// Roi2Fixed keeps the second Tf/Tj box static (contact target).
+	Roi2Fixed bool `json:"roi2Fixed"`
+	// RegionClass / RegionClass2 are optional body-part IDs (docs/BODY_REGIONS.md).
+	RegionClass  string `json:"regionClass"`
+	RegionClass2 string `json:"regionClass2"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -276,7 +281,10 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		_ = opts.FlowDownscale
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
+			genOpts.ROI2Fixed = opts.Roi2Fixed
 		}
+		genOpts.RegionClass = opts.RegionClass
+		genOpts.RegionClass2 = opts.RegionClass2
 		ctx, cancel := context.WithCancel(context.Background())
 		a.stateMu.Lock()
 		prev := a.genCancel

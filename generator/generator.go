@@ -73,12 +73,19 @@ type Options struct {
 	RDPTolerance              float64
 	DisableSceneCutDetection  bool
 	ROI2                      ROI
-	AIQualityOpinion          bool
-	AIBaseURL                 string
-	ContactVibration          bool
-	ContactVibrationSpan      float64
-	ContactVibrationCurve     string
-	AudioCheck                bool
+	// ROI2Fixed keeps the second Tf/Tj box at its marked position (static
+	// anchor). ROI1 is still tracked. Distance then reflects tip motion only.
+	ROI2Fixed bool
+	// RegionClass / RegionClass2 are optional canonical body-part IDs
+	// (docs/BODY_REGIONS.md) for ROI / ROI2 — used for AI preference + UI.
+	RegionClass           string
+	RegionClass2          string
+	AIQualityOpinion      bool
+	AIBaseURL             string
+	ContactVibration      bool
+	ContactVibrationSpan  float64
+	ContactVibrationCurve string
+	AudioCheck            bool
 	// StartTimeSec skips the first N seconds before tracking (GUI seek past
 	// black intro). 0 = start at the beginning.
 	StartTimeSec float64
@@ -839,6 +846,15 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 {
 		args = append(args, "--roi2", fmt.Sprintf("%d,%d,%d,%d", opts.ROI2.X, opts.ROI2.Y, opts.ROI2.W, opts.ROI2.H))
+		if opts.ROI2Fixed {
+			args = append(args, "--roi2-fixed")
+		}
+	}
+	if opts.RegionClass != "" {
+		args = append(args, "--region-class", opts.RegionClass)
+	}
+	if opts.RegionClass2 != "" {
+		args = append(args, "--region-class2", opts.RegionClass2)
 	}
 	if opts.PeakProminence > 0 {
 		args = append(args, "--peak-prominence", strconv.FormatFloat(opts.PeakProminence, 'f', -1, 64))

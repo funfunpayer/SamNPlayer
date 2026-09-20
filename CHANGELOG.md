@@ -10,10 +10,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-- **License infra (not sharp):** `license` package (Ed25519 SNP1 keys),
-  `cmd/license-tool` (genkey/issue/verify), Settings → License import/status.
-  One person / 1 year / invite+internal. `Enforcement=false` — full features
-  until go-live (`docs/LICENSE_SYSTEM.md`).
+- **Multi body-part regions:** English taxonomy
+  (`face`, `mouth`, `breasts`, `nipples`, `hand_1`, `hand_2`, `penis`,
+  `glans`, `vagina`) shared across Go/Python/GUI (`docs/BODY_REGIONS.md`).
+  AI training marks up to **9** classes/frame; Generate Tf/Tj gets ROI
+  class picks + **Fix ROI2** (static contact target); preferred-classes
+  default lists all nine IDs. Legacy DE labels (`brust`, `eichel`, …)
+  normalize.
 
 ## [0.5.9] — September 19, 2026
 

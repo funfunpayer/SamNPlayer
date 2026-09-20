@@ -66,9 +66,15 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 	boxA := clampRect(roiA, w, h)
 	boxB := clampRect(roiB, w, h)
 	tmplA := extract(frame.Pixels, w, h, boxA)
-	tmplB := extract(frame.Pixels, w, h, boxB)
-	if len(tmplA) == 0 || len(tmplB) == 0 {
+	if len(tmplA) == 0 {
 		return Result{}, fmt.Errorf("simpletrack: empty two-point template")
+	}
+	var tmplB []byte
+	if !opts.FixedB {
+		tmplB = extract(frame.Pixels, w, h, boxB)
+		if len(tmplB) == 0 {
+			return Result{}, fmt.Errorf("simpletrack: empty two-point template")
+		}
 	}
 
 	dist := func(a, b Rect) float64 {
@@ -97,19 +103,22 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 			break
 		}
 		bestA, scoreA, okA := searchNCC(frame.Pixels, w, h, tmplA, boxA, margin, step)
-		bestB, scoreB, okB := searchNCC(frame.Pixels, w, h, tmplB, boxB, margin, step)
 		okA = okA && scoreA >= 0.35
-		okB = okB && scoreB >= 0.35
 		if okA {
 			boxA = bestA
 			if frameIdx%15 == 0 {
 				tmplA = extract(frame.Pixels, w, h, boxA)
 			}
 		}
-		if okB {
-			boxB = bestB
-			if frameIdx%15 == 0 {
-				tmplB = extract(frame.Pixels, w, h, boxB)
+		okB := true
+		if !opts.FixedB {
+			bestB, scoreB, foundB := searchNCC(frame.Pixels, w, h, tmplB, boxB, margin, step)
+			okB = foundB && scoreB >= 0.35
+			if okB {
+				boxB = bestB
+				if frameIdx%15 == 0 {
+					tmplB = extract(frame.Pixels, w, h, boxB)
+				}
 			}
 		}
 		frameLost := !(okA && okB)

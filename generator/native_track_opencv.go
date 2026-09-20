@@ -57,6 +57,7 @@ func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptio
 			MaxFrames:    opts.MaxFrames,
 			StartTimeSec: opts.StartTimeSec,
 			Cancel:       opts.Cancel,
+			FixedB:       opts.FixedB,
 		})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {

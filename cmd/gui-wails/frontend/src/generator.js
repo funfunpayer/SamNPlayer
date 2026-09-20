@@ -1,4 +1,5 @@
 import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
+import { CANONICAL } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
@@ -41,6 +42,20 @@ export function initGenerator(root, playback) {
       <span class="hint" id="gen-roi2-hint" style="margin:0">Required for Tf/Tj.</span>
     </div>
     <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
+    <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+      <label style="width:auto;" data-help="Body-part class for ROI1 (English taxonomy — docs/BODY_REGIONS.md). Helps AI preferred classes.">ROI1 class</label>
+      <select id="gen-region-class" style="min-width:8em;">
+        <option value="">(any)</option>
+      </select>
+      <label style="width:auto;" data-help="Body-part class for ROI2 — tip vs contact target (e.g. glans + nipples).">ROI2 class</label>
+      <select id="gen-region-class2" style="min-width:8em;">
+        <option value="">(any)</option>
+      </select>
+      <label class="checkbox-row" style="margin:0;"
+        data-help="Keep ROI2 at the marked box (static contact target). Only ROI1 is tracked — better when nipples/mouth barely move.">
+        <input type="checkbox" id="gen-roi2-fixed" /> Fix ROI2 (static target)
+      </label>
+    </div>
     <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
     <div class="row" style="align-items:center;">
@@ -630,7 +645,10 @@ export function initGenerator(root, playback) {
       payload.y2 = roi2.y;
       payload.w2 = roi2.w;
       payload.h2 = roi2.h;
+      payload.roi2Fixed = !!el('#gen-roi2-fixed')?.checked;
     }
+    payload.regionClass = el('#gen-region-class')?.value || '';
+    payload.regionClass2 = el('#gen-region-class2')?.value || '';
     GenerateScript(payload);
   }
 
@@ -841,6 +859,14 @@ export function initGenerator(root, playback) {
   el('#gen-profile').addEventListener('change', () => {
     el('#gen-profile').dataset.userTouched = '1';
     updateProfileUi();
+    if (isTfTj()) {
+      const c1 = el('#gen-region-class');
+      const c2 = el('#gen-region-class2');
+      if (c1 && !c1.value) c1.value = 'glans';
+      if (c2 && !c2.value) c2.value = 'nipples';
+      const fix = el('#gen-roi2-fixed');
+      if (fix && !fix.dataset.userTouched) fix.checked = true;
+    }
   });
   el('#gen-contact-vibration').addEventListener('change', () => {
     contactUserOverride = true;
@@ -928,5 +954,20 @@ export function initGenerator(root, playback) {
     } finally {
       el('#gen-label-scene').disabled = false;
     }
+  });
+
+  // Body-part class selects (docs/BODY_REGIONS.md)
+  for (const selId of ['#gen-region-class', '#gen-region-class2']) {
+    const sel = el(selId);
+    if (!sel) continue;
+    for (const p of CANONICAL) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.label;
+      sel.appendChild(opt);
+    }
+  }
+  el('#gen-roi2-fixed')?.addEventListener('change', () => {
+    el('#gen-roi2-fixed').dataset.userTouched = '1';
   });
 }
