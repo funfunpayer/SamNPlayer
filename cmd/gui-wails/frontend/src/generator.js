@@ -426,7 +426,7 @@ export function initGenerator(root, playback) {
     } else if (!hasRoi1) {
       prompt.textContent = 'Step 2: mark a region on the frame (drag) or find one automatically.';
     } else if (isTfTj() && !roi2) {
-      prompt.textContent = 'Tf/Tj: mark the 2nd region (Shift+drag or “2nd region”), then Generate appears.';
+      prompt.textContent = 'Tf/Tj: mark Zone 2 / 2nd region (Shift+drag or “Zone 2”), then Generate appears.';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Step 3: pick motion type if needed — Generate unlocks when regions are ready.';
     } else if (generating) {
@@ -483,7 +483,7 @@ export function initGenerator(root, playback) {
     if (tftj && videoPath) {
       el('#gen-status').textContent = roi2
         ? 'Tf/Tj: both regions set — ready to generate.'
-        : 'Tf/Tj (distance + suction): mark 2nd region (Shift+drag or “2nd region”).';
+        : 'Tf/Tj (distance + suction): mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
     }
   }
 
@@ -590,7 +590,7 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     autoApplyPipeline();
     if (isTfTj() && videoPath && !roi2) {
-      el('#gen-status').textContent = 'First region set — now mark 2nd region (Shift+drag or “2nd region”).';
+      el('#gen-status').textContent = 'First region set — now mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
     }
     redraw();
   });
@@ -669,7 +669,7 @@ export function initGenerator(root, playback) {
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj: draw first region, then Shift+drag or “2nd region” for the second. Seek time if the start is black.'
+        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact (2nd region / nipples…). Seek time if the start is black.'
         : 'Find region automatically or mark by hand (drag). Seek time if the start is black.') + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
