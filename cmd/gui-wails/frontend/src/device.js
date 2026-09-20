@@ -59,7 +59,7 @@ export function initDevice(root) {
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <button id="dev-pulse" data-help="Zwei Sekunden mittlere Vibration, dann aus.">Short test pulse</button>
+        <button id="dev-pulse" data-help="Two seconds of medium vibration, then off.">Short test pulse</button>
         <button id="dev-stop" class="danger">All off</button>
       </div>
     </fieldset>
@@ -290,7 +290,7 @@ export function initDevice(root) {
     try {
       await TestSuction(pct / 100);
     } catch (err) {
-      logError('Sog: ' + err);
+      logError('Suction: ' + err);
     }
   });
 

@@ -19,7 +19,7 @@ import (
 // tracking — marks transfer later via clip bootstrap.
 func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outputDir, samplePrefix string) (string, error) {
 	if len(regions) == 0 {
-		return "", fmt.Errorf("generator: mindestens eine Region nötig")
+		return "", fmt.Errorf("generator: at least one region required")
 	}
 	if strings.TrimSpace(outputDir) == "" {
 		return "", fmt.Errorf("generator: outputDir leer")
@@ -53,7 +53,7 @@ func AddStillTrainingSample(imagePath string, regions []RoiTrainingRegion, outpu
 		lines = append(lines, fmt.Sprintf("%d %.6f %.6f %.6f %.6f", id, xc, yc, nw, nh))
 	}
 	if len(lines) == 0 {
-		return "", fmt.Errorf("generator: keine gültigen Boxen")
+		return "", fmt.Errorf("generator: no valid boxes")
 	}
 	if err := saveClassRegistry(outputDir, registry); err != nil {
 		return "", err
@@ -176,7 +176,7 @@ func imageSizeViaFFmpeg(path string) (int, int, error) {
 func convertStillToJPEG(src, dst string) error {
 	cmd, err := videox.CommandContext(nil, "-v", "error", "-y", "-i", src, "-q:v", "2", dst)
 	if err != nil {
-		return fmt.Errorf("ffmpeg nicht gefunden (nötig für WebP/HEIC-Stills)")
+		return fmt.Errorf("ffmpeg not found (needed for WebP/HEIC stills)")
 	}
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("still→jpeg: %w\n%s", err, string(b))

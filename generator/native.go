@@ -80,9 +80,9 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
 	if twoPoint {
-		progress("Go-native Zwei-Punkt-Pipeline (trackcv TrackTwoPoints + posttrack), ohne Python")
+		progress("Go-native two-point pipeline (trackcv TrackTwoPoints + posttrack), no Python")
 	} else {
-		progress("Go-native CSRT-Pipeline (trackcv + posttrack), ohne Python")
+		progress("Go-native CSRT pipeline (trackcv + posttrack), no Python")
 	}
 
 	start := time.Now()
@@ -116,7 +116,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		}
 		return fmt.Errorf("generator/native: tracking: %w", err)
 	}
-	progress(fmt.Sprintf("%d Frames getrackt (%dx%d) in %s",
+	progress(fmt.Sprintf("%d frames tracked (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
 	backend := "csrt"
 	if twoPoint {

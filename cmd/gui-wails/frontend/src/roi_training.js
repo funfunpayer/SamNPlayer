@@ -706,7 +706,7 @@ export function initRoiTraining(root) {
       uiError('Training failed: ' + payload.error, el('#rt-train-status'));
       return;
     }
-    el('#rt-train-status').textContent = 'Fertig: ' + payload.modelPath
+    el('#rt-train-status').textContent = 'Done: ' + payload.modelPath
       + ' — AI detection in the Generate tab updates automatically.';
     window.dispatchEvent(new CustomEvent('samn-ai-roi-refresh'));
   });

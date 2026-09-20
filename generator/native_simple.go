@@ -263,7 +263,7 @@ func finishNativeGenerate(
 				{baseSmooth + 20, max(250, basePeak*2), adaptive, normPct},
 				{baseSmooth, basePeak, adaptive, 0},
 			}
-			progress(fmt.Sprintf("Qualitätsprüfung nicht bestanden (Score %.2f) — probiere %d alternative Signalparameter",
+			progress(fmt.Sprintf("Quality check failed (score %.2f) — trying %d alternative signal settings",
 				quality.Score, len(candidates)))
 			bestActions, bestQuality := actions, quality
 			for _, c := range candidates {
@@ -296,24 +296,24 @@ func finishNativeGenerate(
 
 	var audioMeta *funscript.AudioCheck
 	if opts.AudioCheck {
-		progress("Audio-Tempo-Prüfung (Go, post-hoc)…")
+		progress("Audio tempo check (Go, post-hoc)…")
 		audioMeta = CheckAudioTempo(videoPath, actions)
 		if audioMeta == nil {
-			progress("Audio-Tempo-Prüfung nicht möglich (kein ffmpeg / keine Audiospur)")
+			progress("Audio tempo check unavailable (no ffmpeg / no audio track)")
 		} else {
 			switch {
 			case audioMeta.ScriptHz != nil && audioMeta.AudioHz != nil:
-				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Skript %.2fHz, Audio %.2fHz",
+				progress(fmt.Sprintf("Audio tempo check: script %.2fHz, audio %.2fHz",
 					*audioMeta.ScriptHz, *audioMeta.AudioHz))
 			case audioMeta.AudioHz != nil:
-				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Audio %.2fHz (Skript-Tempo nicht schätzbar)",
+				progress(fmt.Sprintf("Audio tempo check: audio %.2fHz (script tempo not estimated)",
 					*audioMeta.AudioHz))
 			case audioMeta.ScriptHz != nil:
-				progress(fmt.Sprintf("Audio-Tempo-Prüfung: Skript %.2fHz (Audio-Tempo nicht schätzbar)",
+				progress(fmt.Sprintf("Audio tempo check: script %.2fHz (audio tempo not estimated)",
 					*audioMeta.ScriptHz))
 			}
 			for _, w := range audioMeta.Warnings {
-				progress("WARNUNG: " + w)
+				progress("warning: " + w)
 			}
 		}
 	}
@@ -321,7 +321,7 @@ func finishNativeGenerate(
 	if err := writeNativeFunscriptNamed(outputPath, actions, opts, tr, quality, audioMeta, tracking, backend); err != nil {
 		return err
 	}
-	progress(fmt.Sprintf("geschrieben: %s (gesamt %s)", outputPath, time.Since(start).Round(time.Millisecond)))
+	progress(fmt.Sprintf("wrote %s (total %s)", outputPath, time.Since(start).Round(time.Millisecond)))
 	if onPercent != nil {
 		onPercent(100)
 	}

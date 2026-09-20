@@ -520,7 +520,7 @@ export function initGenerator(root, playback) {
     // more dropped videos einfach stillschweigend verworfen, ohne dass
     // sichtbar war, dass überhaupt mehr als eins ankam.
     const batchNote = extraCount > 0
-      ? ` (${extraCount} more${extraCount === 1 ? 's' : ''} dropped${extraCount === 1 ? 's' : ''} video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
+      ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
     try {
       await showFrame(path, 0);
@@ -786,12 +786,12 @@ export function initGenerator(root, playback) {
       return;
     }
     el('#gen-status').textContent = result.samPath
-      ? `Fertig: ${result.path} (+ SAM-Modell)`
+      ? `Done: ${result.path} (+ SAM model)`
       : 'Done: ' + result.path;
     const pipe = el('#gen-pipeline');
     if (pipe) {
       if (result.pipeline === 'go') {
-        pipe.textContent = `Pfad: Go (${result.tracking || 'native'} / ${result.backend || '?'})`;
+        pipe.textContent = `Path: Go (${result.tracking || 'native'} / ${result.backend || '?'})`;
       } else {
         pipe.textContent = 'Path: Python';
       }
@@ -799,7 +799,7 @@ export function initGenerator(root, playback) {
     if (typeof result.oZoneMarkerStartMs === 'number') {
       const s = Math.round(result.oZoneMarkerStartMs / 1000);
       const e = Math.round(result.oZoneMarkerEndMs / 1000);
-      el('#gen-status').textContent += ` — O-Marker gesetzt: ${s}s–${e}s`;
+      el('#gen-status').textContent += ` — O-marker set: ${s}s–${e}s`;
     }
 
     const qualityBox = el('#gen-quality');
