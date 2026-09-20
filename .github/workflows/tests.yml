@@ -255,10 +255,15 @@ jobs:
           set -euo pipefail
           export CGO_ENABLED=1
           export PATH="/mingw64/bin:$PATH"
+          # Node from actions/setup-node (Windows path) for any leftover npm calls.
+          export PATH="/c/Program Files/nodejs:$PATH"
           export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
           export CC=gcc CXX=g++
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
           cd cmd/gui-wails
-          "$(go env GOPATH)/bin/wails" build -trimpath -tags opencv
+          # Frontend already built in the previous step (embed dist).
+          "$(go env GOPATH)/bin/wails" build -trimpath -tags opencv -s
           test -f build/bin/SamNPlayer.exe
           ls -la build/bin/SamNPlayer.exe
+          bash ../../scripts/collect-mingw-opencv-dlls.sh build/bin/SamNPlayer.exe /tmp/gui-dlls
+          ls /tmp/gui-dlls/libopencv_tracking*.dll
