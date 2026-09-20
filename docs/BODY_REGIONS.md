@@ -38,11 +38,15 @@ IDs in Go (`generator/bodyparts`), Python (`bodyparts.py`), and the GUI
 
 ## Tf/Tj distance partners
 
-- **Tip (ROI1):** always tracked.
-- **Primary target (ROI2):** required for Tf/Tj; optional `--roi2-fixed`.
-- **Extra targets (`--target`, repeatable):** additional contact anchors
-  (GUI: **+ Target**). Default **fixed**. Stroke signal =
-  **min** 2D distance from tip to ROI2 and all extra targets.
+- **Tip (Zone 1 / ROI1):** always tracked. Prefer class `glans`; `penis`
+  (whole shaft) also works — distance uses the tip-box point **nearest the
+  partner**, so contact registers at the glans end, not the shaft center.
+- **Primary target (Zone 2 / ROI2):** required for Tf/Tj; optional `--roi2-fixed`.
+  Typical class: `nipples` / `mouth` / `vagina`.
+- **Extra targets (Zone 3+, `--target`, repeatable):** additional contact
+  anchors (GUI: **+ Zone 3+**). Default **fixed**. Stroke signal =
+  **min** distance from tip to Zone 2 and all extra targets. Contact
+  vibration uses the same proximity signal.
 - **Soft masks (`--mask`, repeatable):** GUI **+ Mask**. Punched out of
   camera-motion and grid_lk reseed feature masks only — they do **not**
   drive the stroke. Not pixel-perfect SAM segmentation; box soft-exclude.
@@ -62,10 +66,11 @@ are set.
 
 1. AI training: mark Face + Mouth + Breasts + Nipples + Hand 1 + Hand 2 +
    Penis + Glans + Vagina on one still → “Use for training”.
-2. Generate Tf/Tj: tip = Glans (tracked), target = Nipples (fixed) →
-   distance still moves when only the tip moves.
-3. Extra target: add a second contact (+ Target, e.g. mouth) → stroke
-   follows the **nearest** partner.
+2. Generate Tf/Tj: tip = Glans or whole Penis (tracked), target = Nipples
+   (fixed) → distance moves when the tip end approaches; contact vibration
+   follows proximity.
+3. Extra target: add Zone 3+ (+ Zone 3+, e.g. mouth) → stroke follows the
+   **nearest** partner.
 4. Soft mask: + Mask over a busy background patch → tracking/camera
    features ignore that box.
 5. Settings preferred classes defaults to the CSV of all nine IDs.

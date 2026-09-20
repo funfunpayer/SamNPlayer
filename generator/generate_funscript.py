@@ -1477,12 +1477,22 @@ def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_fram
 
     center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
 
+    def tip_partner_distance(tip, partner):
+        """Distance from tip-box point nearest partner center (not tip center).
+
+        Marking the whole penis still measures contact from the end toward
+        the partner (typically glans), so nipple/mouth contact registers.
+        """
+        px, py = center(partner)
+        x, y, w, h = tip
+        tx = min(max(px, x), x + w)
+        ty = min(max(py, y), y + h)
+        return float(np.hypot(px - tx, py - ty))
+
     def min_distance(tip, partners):
-        tx, ty = center(tip)
         best = None
         for p in partners:
-            px, py = center(p)
-            d = float(np.hypot(px - tx, py - ty))
+            d = tip_partner_distance(tip, p)
             if best is None or d < best:
                 best = d
         return best if best is not None else 0.0
@@ -1610,12 +1620,15 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
     box_a, box_b = tuple(roi_a), tuple(roi_b)
     center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
 
-    def two_point_distance(a, b):
-        ax, ay = center(a)
-        bx, by = center(b)
-        return float(np.hypot(bx - ax, by - ay))
+    def tip_partner_distance(tip, partner):
+        """Distance from tip-box point nearest partner center (not tip center)."""
+        px, py = center(partner)
+        x, y, w, h = tip
+        tx = min(max(px, x), x + w)
+        ty = min(max(py, y), y + h)
+        return float(np.hypot(px - tx, py - ty))
 
-    distances = [two_point_distance(box_a, box_b)]
+    distances = [tip_partner_distance(box_a, box_b)]
     timestamps = [0.0]
     lost_flags = [False]
     lost = 0
@@ -1650,7 +1663,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
             # Tracker, wo eine fortgeschriebene Position noch halbwegs
             # brauchbar sein kann.
             lost += 1
-        distances.append(two_point_distance(box_a, box_b))
+        distances.append(tip_partner_distance(box_a, box_b))
         timestamps.append(idx * 1000.0 / fps)
         lost_flags.append(frame_lost)
         idx += 1

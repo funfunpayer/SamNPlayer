@@ -3,15 +3,15 @@ package simpletrack
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
-// TrackTwoPoints follows two ROIs and returns their 2D center distance as
+// TrackTwoPoints follows two ROIs and returns tip→partner distance as
 // the position signal — Go port of generate_funscript.track_two_points.
 // Shared pan cancels in the distance; lost flags go into Stats for
-// tracking_gaps (contact vibration mute).
+// tracking_gaps (contact vibration mute). Distance uses tip box point
+// nearest the partner (tipPartnerDistance), not tip center.
 func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts Options) (Result, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -77,13 +77,7 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		}
 	}
 
-	dist := func(a, b Rect) float64 {
-		ax := float64(a.X) + float64(a.W)/2
-		ay := float64(a.Y) + float64(a.H)/2
-		bx := float64(b.X) + float64(b.W)/2
-		by := float64(b.Y) + float64(b.H)/2
-		return math.Hypot(bx-ax, by-ay)
-	}
+	dist := tipPartnerDistance
 
 	timestamps := []int{0}
 	distances := []float64{dist(boxA, boxB)}
