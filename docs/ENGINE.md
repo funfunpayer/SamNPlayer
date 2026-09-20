@@ -65,14 +65,21 @@ better** on clip tests — never ship a weaker self-build
 
 ## Phases (order)
 
-1. **Measurability** — goldens, PTS, traces, phase metrics  
-2. **Tf/Tj stabilize** — missing data, normalize, turning points, contact  
-3. **4-zone v2** — relative graph, reliability, common-mode  
-4. **Go motion core** — module-by-module with golden gate  
-5. **Device intelligence** — real Neo 2 profiles; optional sensor later  
-6. **Spatial/3D** — depth/pose only if scores improve  
-7. **Native AI runtime** — WinML/DirectML/CUDA/… when quality matches  
-8. **Prediction** — compensate measured E2E latency, never hide generator lag  
+Production spine (do not skip — see `docs/PRODUCTION_ROADMAP.md`):
+
+0. **G0 Stabilize Generate** — one CSRT path everywhere (Windows OpenCV in-binary)  
+1. **G1 Classical heuristics + audio** — goldens, Tf/Tj stabilize, posttrack package (`docs/GENERATE_HEURISTICS.md`); **no AI script writer**  
+2. **G2 Raw-value / Neo 2 mapping** — diagnostics → Intent→device; feel measured  
+3. **G3 AI helpers** — ROI / second opinion / train only on strong classical baseline  
+4. **G4 License go-live / platforms / site** — after G0–G2 hold  
+
+Longer research ladder (still gated by goldens):
+
+5. **4-zone v2** — relative graph, reliability, common-mode  
+6. **Go motion core** — module-by-module with golden gate  
+7. **Spatial/3D** — depth/pose only if scores improve  
+8. **Native AI runtime** — WinML/DirectML/CUDA/… when quality matches  
+9. **Prediction** — compensate measured E2E latency, never hide generator lag  
 
 ## Definition of Done (any new technique)
 

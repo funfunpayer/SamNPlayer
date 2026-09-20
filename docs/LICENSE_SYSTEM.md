@@ -1,8 +1,10 @@
 # License system
 
 **Status:** infrastructure landed, **enforcement OFF** (`license.Enforcement =
-false`). Import/verify/Settings work so we do not lose the path; Generate/Play
-are **not** limited yet.
+false`) — **developer mode through roadmap G0–G2**. Import/verify/Settings
+work so we do not lose the path; Generate/Play are **not** limited yet.
+Flip sharpness only after Generate + Neo 2 mapping feel stable
+(`docs/PRODUCTION_ROADMAP.md` G4.E / E5).
 
 Related: proprietary app license (`LICENSE`), closed-source split
 (`docs/CLOSED_SOURCE.md`), native scripts (`docs/SAMN_FORMAT.md`),
