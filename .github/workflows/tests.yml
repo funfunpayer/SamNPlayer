@@ -235,21 +235,24 @@ jobs:
           npm install
           npm run build
 
-      - name: go test -tags opencv
+      - name: go test -tags opencv (CSRT focus)
         run: |
           set -euo pipefail
           export CGO_ENABLED=1
           export PATH="/mingw64/bin:$PATH"
           export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-          # Help cgo find the C++ toolchain and OpenCV 5 (MSYS2 layout).
           export CC=gcc
           export CXX=g++
           go version
           pkg-config --modversion opencv5
-          go test -tags opencv ./generator/trackcv/ ./generator/ -count=1
+          # Full trackcv suite (CSRT + camera motion).
+          go test -tags opencv ./generator/trackcv/ -count=1
+          # Generator: native CSRT / simpletrack only — skip Python FindROI
+          # tests (no Python on this runner; product Windows path is Go CSRT).
+          go test -tags opencv ./generator/ -count=1 \
+            -run 'Native|AutoNative|NativeTracking|GenerateWithContextCancel'
           go build -tags opencv -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
           ls -la SamNPlayer-cli-windows-amd64.exe
-          # Sanity: tracking DLL is loadable next to a future portable zip.
           cp /mingw64/bin/libopencv_tracking*.dll .
           cp /mingw64/bin/libopencv_core*.dll .
           ls libopencv_*.dll | head
