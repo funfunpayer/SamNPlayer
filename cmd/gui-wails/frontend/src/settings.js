@@ -64,6 +64,14 @@ export function initSettings(root) {
     </div>
     <p class="hint" style="margin-top:0">Off by default. When on: after a successful connect, a short pulse confirms that commands arrive.</p>
 
+    <h3>What you need (keep it lean)</h3>
+    <ul class="hint" style="margin:0 0 12px; padding-left:1.2em; line-height:1.55;">
+      <li><b>Play + Generate (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
+      <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
+      <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Generate path does not need it.</li>
+      <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Generate.</li>
+    </ul>
+
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
       Enforcement is <b>off</b> in this build — import works so we can test the path;
@@ -79,6 +87,7 @@ export function initSettings(root) {
       <button id="st-license-refresh" type="button">Refresh status</button>
     </div>
 
+    <h3>Runtime &amp; updates</h3>
     <div class="row" style="align-items:center;">
       <button id="st-runtime-check" type="button">Check folders &amp; dependencies</button>
       <button id="st-install-ffmpeg" type="button"
@@ -87,6 +96,7 @@ export function initSettings(root) {
     </div>
     <div class="row" style="align-items:center;">
       <button id="st-update-now" type="button">Check for updates now</button>
+      <button id="st-update-apply" type="button" class="primary" style="display:none;">Download &amp; restart</button>
       <span class="hint" id="st-update-status" style="margin:0"></span>
     </div>
     <div class="field-row"><label>Log level</label>
@@ -312,7 +322,9 @@ export function initSettings(root) {
   el('#st-update-now').addEventListener('click', async () => {
     const status = el('#st-update-status');
     const btn = el('#st-update-now');
+    const apply = el('#st-update-apply');
     btn.disabled = true;
+    if (apply) apply.style.display = 'none';
     status.textContent = 'Checking…';
     try {
       const version = await CurrentVersion();
@@ -324,14 +336,17 @@ export function initSettings(root) {
       } else {
         const tag = res.release ? res.release.tag_name : '?';
         status.textContent = `Version ${tag} available (current: ${version}).`;
-        if (confirm(`Version ${tag} is available (current: ${version}).
-
-Download and restart now?`)) {
-          try {
-            await ApplyUpdate();
-          } catch (err) {
-            uiError('Update failed: ' + err, status);
-          }
+        if (apply) {
+          apply.style.display = '';
+          apply.onclick = async () => {
+            apply.disabled = true;
+            try {
+              await ApplyUpdate();
+            } catch (err) {
+              uiError('Update failed: ' + err, status);
+              apply.disabled = false;
+            }
+          };
         }
       }
     } catch (err) {

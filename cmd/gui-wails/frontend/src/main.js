@@ -1,6 +1,6 @@
 import './style.css';
 import './help.js';
-import { uiError, uiInfo, uiWarn } from './notify.js';
+import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
@@ -193,31 +193,42 @@ CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
 });
 
-// Stiller Update-Check beim Start - respektiert die Einstellung, die
-// settings.js beim Laden aus GetSettings() liest; hier zusätzlich einmal
-// direkt geprüft, damit main.js nicht auf settings.js warten muss.
-//
-// "Still" heißt: kein Dialog bei "kein Update"/Errors, nicht "Errors
-// verschwinden lassen" - ein CheckForUpdate()-Fehlschlag wurde hier bisher
-// komplett verschluckt (leeres .catch), nicht mal geloggt. Von außen war
-// "kein Update gefunden, weil es keins gibt" nicht von "die Prüfung ist
-// stillschweigend gescheitert" zu unterscheiden - dafür gibt es jetzt den
-// Knopf "Check for updates now" in den Settings (settings.js), der
-// das Ergebnis (auch einen errors) explizit anzeigt.
+// Silent startup update check: never alert()/confirm(), never toast.
+// Errors stay in the Log tab only; offer an in-app banner when a newer
+// release is actually available. Manual check lives in Settings.
+function showUpdateBanner(tag) {
+  if (document.getElementById('update-banner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'update-banner';
+  bar.className = 'update-banner';
+  bar.setAttribute('role', 'status');
+  bar.innerHTML = `<span>Update ${tag} available (you have ${currentVersion}).</span>
+    <button type="button" id="update-banner-apply" class="primary">Download &amp; restart</button>
+    <button type="button" id="update-banner-dismiss">Later</button>`;
+  const host = document.getElementById('topbar') || document.getElementById('app');
+  host?.prepend(bar);
+  bar.querySelector('#update-banner-apply')?.addEventListener('click', () => {
+    bar.querySelector('#update-banner-apply').disabled = true;
+    ApplyUpdate().catch(err => {
+      uiError('Update failed: ' + err);
+      bar.querySelector('#update-banner-apply').disabled = false;
+    });
+  });
+  bar.querySelector('#update-banner-dismiss')?.addEventListener('click', () => bar.remove());
+}
+
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
     if (res.error) {
-      uiWarn('Update check on startup: ' + res.error);
+      // Log only — no popup. Manual Settings check still surfaces the error.
+      uiLog('WARN', 'Update check on startup: ' + res.error);
       return;
     }
     if (!res.available) return;
     const tag = res.release ? res.release.tag_name : '?';
-    // Update-Installation ist bewusst bestätigt (wie Überschreiben beim Erzeugen).
-    if (confirm(`Version ${tag} is available (current: ${currentVersion}).\n\nDownload and restart now?`)) {
-      ApplyUpdate().catch(err => uiError('Update failed: ' + err));
-    }
-  }).catch(err => uiWarn('Update check on startup: ' + err));
+    showUpdateBanner(tag);
+  }).catch(err => uiLog('WARN', 'Update check on startup: ' + err));
 });
 
 

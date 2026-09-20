@@ -14,7 +14,9 @@ func CommandContext(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return exec.CommandContext(ctx, bin, args...), nil
+	cmd := exec.CommandContext(ctx, bin, args...)
+	hideConsoleWindow(cmd)
+	return cmd, nil
 }
 
 // ProbeCommandContext returns an *exec.Cmd for the resolved ffprobe binary.
@@ -26,5 +28,7 @@ func ProbeCommandContext(ctx context.Context, args ...string) (*exec.Cmd, error)
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return exec.CommandContext(ctx, bin, args...), nil
+	cmd := exec.CommandContext(ctx, bin, args...)
+	hideConsoleWindow(cmd)
+	return cmd, nil
 }

@@ -266,6 +266,22 @@ body {
   background: rgba(12, 16, 24, 0.92);
   backdrop-filter: blur(8px);
 }
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 8px 14px;
+  margin: 0 0 0 0;
+  font-size: 13px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--teal) 18%, var(--panel, #141a24));
+  border-bottom: 1px solid var(--border);
+}
+.update-banner button {
+  font-size: 12px;
+}
 /* Platzhalter links in der Topbar — Wordmark hängt am Rail-Logo */
 .topbar-brand-slot {
   min-width: 196px;

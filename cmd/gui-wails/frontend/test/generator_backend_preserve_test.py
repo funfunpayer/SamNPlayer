@@ -1,7 +1,6 @@
-"""ROI neu ziehen darf manuell gewähltes Tracking-Verfahren nicht überschreiben.
+"""ROI redraw must keep CSRT selected (only product backend in the GUI).
 
-Bugbot/Sept 2026: autoApplyPipeline setzte bei jedem mouseup Backend+Profil
-aus SuggestPipeline — Flow/grid_lk gingen verloren.
+Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_preserve_test.py
 """
 
 import pathlib
@@ -59,8 +58,8 @@ def main():
         page.mouse.up()
         page.wait_for_timeout(200)
 
-        page.select_option("#gen-backend", "flow")
-        check("Flow manuell gewählt", page.locator("#gen-backend").input_value() == "flow")
+        check("CSRT selected after first ROI",
+              page.locator("#gen-backend").input_value() == "csrt")
 
         page.mouse.move(box["x"] + 50, box["y"] + 50)
         page.mouse.down()
@@ -68,8 +67,8 @@ def main():
         page.mouse.up()
         page.wait_for_timeout(200)
 
-        check("Flow bleibt nach ROI-Neuzeichnen erhalten",
-              page.locator("#gen-backend").input_value() == "flow",
+        check("CSRT stays after ROI redraw",
+              page.locator("#gen-backend").input_value() == "csrt",
               page.locator("#gen-backend").input_value())
 
         browser.close()

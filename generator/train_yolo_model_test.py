@@ -135,8 +135,9 @@ def main():
             except RuntimeError as exc:
                 check("wirft RuntimeError bei fehlender data.yaml",
                       "data.yaml" in str(exc), str(exc))
-                check("Fehlermeldung verweist auf bootstrap_yolo_dataset.py",
-                      "bootstrap_yolo_dataset.py" in str(exc), str(exc))
+                check("Fehlermeldung verweist auf Use for training / bootstrap",
+                      "Use for training" in str(exc) or "bootstrap_yolo_dataset.py" in str(exc),
+                      str(exc))
 
     # --- train_and_export: batch=-1 + resolved device ------------------------
     captured_train_kwargs = {}

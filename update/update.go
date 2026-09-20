@@ -101,6 +101,12 @@ func (r *Release) ChecksumFor(assetName string) (string, error) {
 	return checksumForAsset(r, assetName)
 }
 
+// ErrNoRelease means the GitHub API returned 404 for /releases/latest
+// (no published release yet, or the repo is inaccessible without auth).
+// Callers that only care about "is an update available?" should treat this
+// as "nothing newer" rather than a user-facing failure.
+var ErrNoRelease = fmt.Errorf("update: no release found (repo %s/%s has none yet, or is not publicly readable)", RepoOwner, RepoName)
+
 // CheckLatest fragt die GitHub-API nach dem neuesten Release. Liefert
 // (nil, nil) wenn RepoOwner noch auf den Platzhalter zeigt - bewusst kein
 // Netzwerk-Aufruf gegen ein Repo, das mit Sicherheit nicht existiert.
@@ -127,7 +133,9 @@ func CheckLatest() (*Release, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("update: no release found (repo %s/%s has none yet, or name does not match)", RepoOwner, RepoName)
+		// Empty release list / private-or-missing repo: not a hard failure for
+		// callers that only care about "is there something newer?".
+		return nil, ErrNoRelease
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("update: GitHub responded with HTTP %d", resp.StatusCode)

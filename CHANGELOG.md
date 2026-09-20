@@ -23,6 +23,19 @@ Checks are green on `main`.
 
 ### Fixed
 
+- **AI Train empty dataset:** starting train without samples no longer
+  ends in a raw German `Keine data.yaml` traceback. Go/Python fail fast;
+  GUI warns to mark region(s) → **Use for training** first (#117).
+- **ffmpeg console flash (Windows):** `videox` now hides the console
+  window when spawning ffmpeg/ffprobe (same as Python helper processes),
+  so Generate/Play no longer blink a black popup.
+- **Update check noise:** missing/empty GitHub release is “no update”,
+  not a startup warning. No browser `confirm()` popup — in-app banner /
+  Settings button instead.
+- **Weak generator backends off the product GUI:** Flow / grid_lk /
+  region_fusion* removed from Advanced dropdown (CLI `--backend` only).
+  SuggestPipeline always picks CSRT → Go path (fewer dependencies).
+  Tf/Tj, masks, multi-target, AI ROI, Quality Doctor stay.
 - **Session guard:** rejected second StartPlayback/StartTraining no longer
   overwrites the live session’s `activePlayer`/`activeDevice`.
 - **Generate overwrite:** also refuse when a companion `.samn` exists
