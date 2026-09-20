@@ -1489,19 +1489,30 @@ def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_fram
         ty = min(max(py, y), y + h)
         return float(np.hypot(px - tx, py - ty))
 
-    def min_distance(tip, partners):
+    def fuse_tip_partners(tip, tip_ok, partners, include):
+        """min over included partners; None if tip lost or no usable partner.
+
+        Lost tracked partners must not feed stale boxes into min() (F-006).
+        """
+        if not tip_ok or not partners:
+            return None
         best = None
-        for p in partners:
+        for i, p in enumerate(partners):
+            if i < len(include) and not include[i]:
+                continue
             d = tip_partner_distance(tip, p)
             if best is None or d < best:
                 best = d
-        return best if best is not None else 0.0
+        return best
 
-    distances = [min_distance(tip_box, partner_boxes)]
+    include0 = [True] * len(partner_boxes)
+    d0 = fuse_tip_partners(tip_box, True, partner_boxes, include0)
+    distances = [d0 if d0 is not None else 0.0]
     timestamps = [0.0]
     lost_flags = [False]
     lost = 0
     idx = 1
+    last_dist = distances[0]
 
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
     if max_frames:
@@ -1520,19 +1531,25 @@ def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_fram
         ok_tip, new_tip = tip_tracker.update(frame)
         if ok_tip:
             tip_box = new_tip
-        frame_ok = ok_tip
+        include = []
         for i, tr in enumerate(partner_trackers):
             if tr is None:
+                include.append(True)  # fixed
                 continue
             ok_p, new_p = tr.update(frame)
             if ok_p:
                 partner_boxes[i] = new_p
+                include.append(True)
             else:
-                frame_ok = False
-        frame_lost = not frame_ok
+                include.append(False)  # exclude stale
+        fused = fuse_tip_partners(tip_box, ok_tip, partner_boxes, include)
+        frame_lost = fused is None
         if frame_lost:
             lost += 1
-        distances.append(min_distance(tip_box, partner_boxes))
+            distances.append(last_dist)
+        else:
+            last_dist = fused
+            distances.append(fused)
         timestamps.append(idx * 1000.0 / fps)
         lost_flags.append(frame_lost)
         idx += 1
@@ -1544,8 +1561,8 @@ def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_fram
         timestamps = [t + offset_ms for t in timestamps]
     distances = np.asarray(distances, dtype=float)
     if lost:
-        print(f"Multi-point measurement: in {lost}/{idx} Frames at least one "
-              "tracker lost the target", file=sys.stderr)
+        print(f"Multi-point measurement: in {lost}/{idx} Frames tip lost or no "
+              "usable partner (stale boxes excluded from min)", file=sys.stderr)
 
     stats = {
         "tracker_lost_frames": lost,
@@ -1633,6 +1650,7 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
     lost_flags = [False]
     lost = 0
     idx = 1
+    last_dist = distances[0]
 
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
     if max_frames:
@@ -1656,14 +1674,16 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
             ok_b, new_b = tracker_b.update(frame)
             if ok_b:
                 box_b = new_b
-        frame_lost = not (ok_a and ok_b)
-        if frame_lost:
-            # Verliert auch nur einer der beiden das Ziel, ist der Abstand
-            # nicht mehr aussagekräftig - anders als bei einem einzelnen
-            # Tracker, wo eine fortgeschriebene Position noch halbwegs
-            # brauchbar sein kann.
+        include_b = bool(fixed_b) or ok_b
+        if ok_a and include_b:
+            last_dist = tip_partner_distance(box_a, box_b)
+            distances.append(last_dist)
+            frame_lost = False
+        else:
+            # Tip or tracked partner lost — do not feed stale boxes into signal.
             lost += 1
-        distances.append(tip_partner_distance(box_a, box_b))
+            distances.append(last_dist)
+            frame_lost = True
         timestamps.append(idx * 1000.0 / fps)
         lost_flags.append(frame_lost)
         idx += 1

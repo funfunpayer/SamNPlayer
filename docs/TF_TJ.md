@@ -7,11 +7,19 @@ profile dropdown shows a single "Tf/Tj (distance + suction)" entry
 
 ## Signal
 
-Track the tip region plus one or more contact targets and measure
-**min** tip→partner distance. Distance uses the tip-box point **nearest
-the partner center** (not tip center), so a whole-penis mark still
-behaves like glans contact. A smaller distance means a higher position
-value, stronger suction, and (with contact vibration) more vibration.
+Track the tip region plus one or more contact partners (**star topology**:
+each partner only vs tip — not a full pairwise 4-zone graph). Measure
+**min** tip→partner distance among **usable** partners. Distance uses the
+tip-box point **nearest the partner center**. Lost tracked partners are
+**excluded** from that min for the frame (stale boxes must not drag the
+signal); tip loss or no usable partner keeps the previous distance and
+sets a tracking-gap flag.
+
+A smaller distance means a higher position value, stronger suction, and
+(with contact vibration) more vibration.
+
+Zone 3+ body-part **class** is stored/metadata for now (AI/taxonomy);
+fusion does not weight by class yet.
 
 ## Body parts (multi-region)
 
