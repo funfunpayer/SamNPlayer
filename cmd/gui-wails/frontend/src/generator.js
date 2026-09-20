@@ -202,11 +202,11 @@ export function initGenerator(root, playback) {
     <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
     <p class="hint">
-      Classic CV tracking. One region + CSRT and Tf/Tj (two regions)
-      prefer Go CSRT when OpenCV is linked in the binary; otherwise Python
-      CSRT when available. Weak Go NCC (simpletrack) is last resort only.
-      Backend and profile are prefilled from marks (change under Advanced).
-      Other backends and AI/audio extras still need Python.
+      Classic CV tracking on <b>CSRT</b> — one strong product path.
+      Go CSRT when OpenCV is linked in the binary; otherwise Python CSRT
+      (Windows today). Own Windows OpenCV CSRT is next so Generate needs
+      no Python. Backend/profile are prefilled from marks (Advanced).
+      AI Train and research backends still use Python on purpose.
     </p>
   `;
 
@@ -751,15 +751,15 @@ export function initGenerator(root, playback) {
     if (!pipe) return;
     const s = String(line);
     if (/Go-Pipeline|Go-native|trackcv/i.test(s) && !/simpletrack|NCC/i.test(s)) {
-      pipe.textContent = 'Path: Go CSRT (OpenCV)';
-    } else if (/simpletrack|NCC/i.test(s)) {
-      pipe.textContent = 'Path: Go simpletrack (weaker — last resort)';
-    } else if (/Using Python CSRT|Python CSRT/i.test(s)) {
-      pipe.textContent = 'Path: Python CSRT (quality)';
+      pipe.textContent = 'Path: Go CSRT';
+    } else if (/PreferSimpletrack|simpletrack|NCC/i.test(s)) {
+      pipe.textContent = 'Path: Go simpletrack (experimental)';
+    } else if (/Python CSRT|product path/i.test(s)) {
+      pipe.textContent = 'Path: Python CSRT';
     } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     } else if (/Fallback auf Python/i.test(s)) {
-      pipe.textContent = 'Path: Python (fallback)';
+      pipe.textContent = 'Path: Python';
     }
   });
 

@@ -45,9 +45,9 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	}
 	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
 	if twoPoint {
-		progress("Go-Pipeline Zwei-Punkt ohne OpenCV (simpletrack/NCC) — schwächer als CSRT, kein Python")
+		progress("Go two-point simpletrack (NCC) — PreferSimpletrack / lab path")
 	} else {
-		progress("Go-Pipeline ohne OpenCV (simpletrack/NCC über ffmpeg) — schwächer als CSRT, kein Python")
+		progress("Go simpletrack (NCC over ffmpeg) — PreferSimpletrack / lab path")
 	}
 
 	start := time.Now()

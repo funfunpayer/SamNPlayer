@@ -64,15 +64,6 @@ func TestGenerateWithContextCancelNativeSimple(t *testing.T) {
 		t.Skip("ffmpeg not available")
 	}
 	dir := t.TempDir()
-	if !NativeTrackingAvailable() {
-		// Without OpenCV, quality routing prefers Python CSRT when present.
-		// Put a package-less python first so this test still hits simpletrack.
-		writeFakePython(t, dir, "python3", false)
-		writeFakePython(t, dir, "python", false)
-		old := os.Getenv("PATH")
-		t.Cleanup(func() { os.Setenv("PATH", old) })
-		os.Setenv("PATH", dir+string(os.PathListSeparator)+old)
-	}
 	video := filepath.Join(dir, "clip.mp4")
 	// ~8s clip so cancel has time to hit mid-track.
 	args := []string{
@@ -88,8 +79,9 @@ func TestGenerateWithContextCancelNativeSimple(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		done <- GenerateWithContext(ctx, video, ROI{X: 120, Y: 80, W: 80, H: 80}, out, Options{
-			Backend:   "csrt",
-			MaxFrames: 0,
+			Backend:           "csrt",
+			MaxFrames:         0,
+			PreferSimpletrack: !NativeTrackingAvailable(),
 		}, nil, nil)
 	}()
 	time.Sleep(250 * time.Millisecond)

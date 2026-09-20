@@ -42,27 +42,26 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.8** | Tagged | Playback polish prior |
 | **v0.5.9** | **Shipped** | `.samn`, portable ffmpeg, English GUI lock, license infra (not sharp) |
 | **v0.5.10** | **Shipped** (private release assets) | Bugfix + GUI motion + multi body-part regions + soft masks / N partners |
-| **v0.5.11** | This train | #119 AI Train opencv restore; progress UI; #120 quality routing (Python CSRT > weak simpletrack); website deferred |
-| **v0.5.12** | Next | Windows OpenCV CSRT in release binary (true Go parity); Go auto_roi clip gate |
+| **v0.5.11** | This train | #119 AI Train opencv; progress UI; #120 one CSRT product path (Go when linked, else Python — no weak NCC in GUI); website deferred |
+| **v0.5.12** | Next | Windows OpenCV CSRT in release binary (own Go path everywhere); Go auto_roi clip gate |
 
 **Owner steps after this PR merges to `main`:**
 
 1. Confirm CI green on `main`  
-2. Spot-check GUI (Play + Generate) — progress bar moves; no weak-NCC happy path when Python CSRT works  
-3. AI Train: Install deps → Use for training (CSRT restored)  
-4. Prefer **portable** zip (ffmpeg included)  
-5. Tag `v0.5.11` and push the tag → release workflow  
-6. Public site sync/publish **later** (website polish deferred)  
-7. Hardware: one BLE or Intiface play session if a device is available  
+2. Spot-check Generate — path is Go CSRT or Python CSRT (not “schwächer”)  
+3. AI Train: Install deps → Use for training  
+4. Tag `v0.5.11`  
+5. Public site sync **later**  
+6. Hardware spot-check if device available  
 
 ### Engineering priority (0.5.11+)
 
-Website/presentation deferred. Focus:
+Website deferred. Focus:
 
-1. Quality ≥ Python on every default path (`SELF_BUILD`)  
-2. Windows linked OpenCV CSRT (research: MinGW build + DLL portable; keep `trackcv`, not full gocv)  
-3. Auto region detection reliability (needs Python today; Go port after CSRT Windows)  
-4. Clean PR stack → one release PR → tag
+1. **One strong Generate path (CSRT)** — improve our Go code; Windows OpenCV in-binary  
+2. Auto region detection reliability (Python today; Go after Windows CSRT)  
+3. Clean PR → tag → then 0.5.12 Windows CSRT  
+4. No soft fallback ladder in the product UI
 
 ### Owner pre-release checklist (before tagging)
 

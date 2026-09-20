@@ -104,12 +104,14 @@ type Options struct {
 	// StartTimeSec skips the first N seconds before tracking (GUI seek past
 	// black intro). 0 = start at the beginning.
 	StartTimeSec float64
-	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
-	// Default false: GenerateWithContext uses trackcv or simpletrack when
-	// NativePipelineEligible — no GUI checkbox required.
+	// PreferPython skips the automatic Go CSRT path (CLI/tests/advanced).
+	// Default false: use Go CSRT when OpenCV is linked; otherwise Python CSRT
+	// is the Generate product path (Windows today until in-binary CSRT).
 	PreferPython bool
+	// PreferSimpletrack opts into experimental NCC (simpletrack) instead of
+	// Python CSRT on builds without linked OpenCV. Lab/CLI only — not GUI.
+	PreferSimpletrack bool
 	// NativePipeline is retained for JSON/API compat and ignored for routing.
-	// Go is chosen automatically when eligible unless PreferPython is set.
 	NativePipeline bool
 	// DetrendWindowMs / Bandpass* — FunGen/Flow-inspired post filters (0 = off).
 	DetrendWindowMs float64
@@ -746,12 +748,15 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 // Python subprocess (review: generation must be abortable) or abort native
 // tracking mid-loop. Returns context.Canceled when aborted.
 //
-// Routing (quality first — docs/SELF_BUILD.md: never ship a weaker path):
-//  1. Go CSRT (trackcv) when OpenCV is linked — equals Python CSRT
-//  2. Else Python CSRT when opencv-contrib is available
-//  3. Else Go simpletrack (NCC) — last resort, no Python; weaker than CSRT
-// PreferPython forces step 2/3 Python only. Eligible Go-CSRT failures are
-// NOT soft-failed to Python (hides Go bugs).
+// Product path (one strong tracker — no “weak fallback” story, #120):
+//  1. Go CSRT (trackcv) when OpenCV is linked in this binary
+//  2. Else Python CSRT (opencv-contrib) — the Generate path on builds
+//     without linked OpenCV (today: Windows release) until Windows CSRT
+//     ships in-binary. This is the product path, not a soft fallback.
+//
+// PreferPython forces the Python path. PreferSimpletrack opts into the
+// experimental NCC tracker (lab/CLI); the GUI never sets it.
+// Eligible Go-CSRT failures are NOT soft-failed to Python (hides Go bugs).
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -767,11 +772,9 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 			}
 			return err
 		}
-		// simpletrack is weaker than Python CSRT (#120). Only use it when
-		// Python trackers are missing — otherwise prefer Python for quality.
-		if err := CheckDependencies(); err != nil {
+		if opts.PreferSimpletrack {
 			if onProgress != nil {
-				onProgress("Go simpletrack (NCC) — no Python CSRT available; weaker than OpenCV CSRT")
+				onProgress("Go simpletrack (NCC) — experimental PreferSimpletrack")
 			}
 			err := GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
 			if err == nil {
@@ -780,29 +783,20 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 			}
 			return err
 		}
+		// No linked OpenCV: Generate uses Python CSRT as the product path
+		// (Windows today). Missing opencv-contrib is a hard error — install
+		// it rather than silently degrading to weak NCC.
 		if onProgress != nil {
-			onProgress("Using Python CSRT (opencv-contrib) — stronger than Go simpletrack on this build")
-		}
-		// fall through to Python
-	}
-	if !opts.PreferPython && opts.NativePipeline {
-		logging.Warn("generator: Go pipeline not usable for these settings — using Python",
-			"csrt", NativeTrackingAvailable(),
-			"simple", SimpleTrackingAvailable(),
-			"backend", opts.Backend,
-			"roi2", opts.ROI2.W > 0,
-			"auto_retry", opts.AutoRetry)
-		if onProgress != nil {
-			onProgress("Go pipeline not usable for these settings — using Python")
+			onProgress("Generate: Python CSRT (product path — Windows OpenCV CSRT in binary is next)")
 		}
 	}
 
 	py, err := FindPython()
 	if err != nil {
-		return err
+		return fmt.Errorf("generator: Generate needs Python with opencv-contrib-python until this build links OpenCV CSRT: %w", err)
 	}
 	if err := CheckDependencies(); err != nil {
-		return err
+		return fmt.Errorf("generator: Generate needs opencv-contrib-python (CSRT). Install with the pip line below — NCC is not the product path.\n%w", err)
 	}
 	scriptPath, err := writeScriptToTemp()
 	if err != nil {

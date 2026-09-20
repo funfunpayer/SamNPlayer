@@ -14,15 +14,6 @@ func TestGenerateNativeTwoPointSimple(t *testing.T) {
 		t.Skip("ffmpeg not available")
 	}
 	dir := t.TempDir()
-	if !NativeTrackingAvailable() {
-		// Quality routing prefers Python CSRT when present; isolate so this
-		// test still exercises the simpletrack two-point last-resort path.
-		writeFakePython(t, dir, "python3", false)
-		writeFakePython(t, dir, "python", false)
-		old := os.Getenv("PATH")
-		t.Cleanup(func() { os.Setenv("PATH", old) })
-		os.Setenv("PATH", dir+string(os.PathListSeparator)+old)
-	}
 	video := filepath.Join(dir, "two.mp4")
 	args := []string{
 		"-v", "error", "-y",
@@ -48,6 +39,7 @@ func TestGenerateNativeTwoPointSimple(t *testing.T) {
 			MinPeakDistanceMs:   150,
 			MinActionIntervalMs: 100,
 			MaxFrames:           40,
+			PreferSimpletrack:   !NativeTrackingAvailable(),
 		}, nil, nil)
 	if err != nil {
 		t.Fatalf("GenerateWithContext two-point: %v", err)

@@ -9,15 +9,15 @@ type PipelineSuggestion struct {
 }
 
 // SuggestPipeline picks backend + profile from marked ROI geometry.
-// Always CSRT. Go CSRT when OpenCV is linked in the binary; otherwise the
-// generator prefers Python CSRT over weak simpletrack (#120 / SELF_BUILD).
-// Research backends remain CLI --backend only.
+// Always CSRT — the product tracker. Go CSRT when OpenCV is linked;
+// otherwise Generate uses Python CSRT as the product path until Windows
+// in-binary CSRT ships (#120). Research backends remain CLI --backend only.
 func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 	if roi2W > 0 && roi2H > 0 && roiW > 0 && roiH > 0 {
 		return PipelineSuggestion{
 			Backend: "csrt",
 			Profile: "tf",
-			Reason:  "Two regions → Tf/Tj (distance); CSRT (Go if OpenCV linked, else Python)",
+			Reason:  "Two regions → Tf/Tj (distance) on CSRT",
 			GoPath:  true,
 		}
 	}
@@ -33,7 +33,7 @@ func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 	return PipelineSuggestion{
 		Backend: "csrt",
 		Profile: "standard",
-		Reason:  "One region + CSRT — Go CSRT when linked; else Python CSRT (not weak NCC)",
+		Reason:  "One region → CSRT (Go when OpenCV linked; else Python product path)",
 		GoPath:  true,
 	}
 }

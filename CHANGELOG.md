@@ -30,11 +30,11 @@ Website/presentation deferred.
   `%LOCALAPPDATA%\Microsoft\WindowsApps` are demoted when a real
   install exists, so bootstrap errors and pip hints point at
   `Programs\Python\…` instead of the stub (#94/#119).
-- **Quality routing (#120):** Windows builds without linked OpenCV no
-  longer default to weak Go simpletrack (NCC) when Python
-  `opencv-contrib` is available — prefer Python CSRT. simpletrack stays
-  last-resort when Python trackers are missing. Message no longer
-  presents “weaker than CSRT” as the happy path.
+- **Generate product path (#120):** one strong tracker — **CSRT**.
+  Go CSRT when OpenCV is linked; otherwise **Python CSRT** is the
+  Generate path (Windows today), with a hard error if missing — not a
+  soft degrade to NCC. `simpletrack` is lab/CLI (`PreferSimpletrack`)
+  only. Next: Windows in-binary OpenCV CSRT so Generate needs no Python.
 - **Progress display (Generate + AI Train):** Go tracking reports percent
   during the run; AI Train wires `PROGRESS` to a bar; scrolling run logs
   in both tabs.
