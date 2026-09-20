@@ -20,7 +20,7 @@ func TestTipPartnerDistance_smallTipMatchesCenter(t *testing.T) {
 
 func TestTipPartnerDistance_largePenisUsesNearEdge(t *testing.T) {
 	// Whole-penis tip: partner to the right → distance from right edge, not center.
-	tip := Rect{X: 10, Y: 40, W: 100, H: 20}       // right edge x=110
+	tip := Rect{X: 10, Y: 40, W: 100, H: 20}     // right edge x=110
 	partner := Rect{X: 120, Y: 45, W: 20, H: 10} // center (130, 50)
 	d := TipPartnerDistance(tip, partner)
 	if math.Abs(d-20) > 0.01 {
