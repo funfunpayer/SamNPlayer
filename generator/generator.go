@@ -104,12 +104,14 @@ type Options struct {
 	// StartTimeSec skips the first N seconds before tracking (GUI seek past
 	// black intro). 0 = start at the beginning.
 	StartTimeSec float64
-	// PreferPython skips the automatic Go pipeline (CLI/tests/advanced).
-	// Default false: GenerateWithContext uses trackcv or simpletrack when
-	// NativePipelineEligible — no GUI checkbox required.
+	// PreferPython skips the automatic Go CSRT path (CLI/tests/advanced).
+	// Default false: use Go CSRT when OpenCV is linked; otherwise Python CSRT
+	// is the Generate product path (Windows today until in-binary CSRT).
 	PreferPython bool
+	// PreferSimpletrack opts into experimental NCC (simpletrack) instead of
+	// Python CSRT on builds without linked OpenCV. Lab/CLI only — not GUI.
+	PreferSimpletrack bool
 	// NativePipeline is retained for JSON/API compat and ignored for routing.
-	// Go is chosen automatically when eligible unless PreferPython is set.
 	NativePipeline bool
 	// DetrendWindowMs / Bandpass* — FunGen/Flow-inspired post filters (0 = off).
 	DetrendWindowMs float64
@@ -149,7 +151,35 @@ func pythonCandidates() []string {
 			add(matches[i])
 		}
 	}
-	return out
+	// Windows Store stubs (%LOCALAPPDATA%\Microsoft\WindowsApps\python*.exe)
+	// often sit first on PATH but are not the install users pip into. Prefer
+	// real interpreters when any exist (Issues #94/#119).
+	return demoteWindowsAppsStubs(out)
+}
+
+func isWindowsAppsPythonStub(path string) bool {
+	// Normalize both \ and / so detection works when unit tests pass
+	// Windows paths on a Linux builder (filepath.ToSlash alone does not).
+	lower := strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	return strings.Contains(lower, "/windowsapps/")
+}
+
+// demoteWindowsAppsStubs moves WindowsApps alias stubs to the end so
+// FindPython / CheckDependencies prefer a real install (e.g.
+// %LOCALAPPDATA%\Programs\Python\…) when both appear on PATH.
+func demoteWindowsAppsStubs(paths []string) []string {
+	var preferred, stubs []string
+	for _, p := range paths {
+		if isWindowsAppsPythonStub(p) {
+			stubs = append(stubs, p)
+			continue
+		}
+		preferred = append(preferred, p)
+	}
+	if len(preferred) == 0 {
+		return paths
+	}
+	return append(preferred, stubs...)
 }
 
 func hasPackages(py string) (bool, string) {
@@ -718,11 +748,15 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 // Python subprocess (review: generation must be abortable) or abort native
 // tracking mid-loop. Returns context.Canceled when aborted.
 //
-// When PreferPython is false and opts+roi are NativePipelineEligible, uses
-// the Go path automatically (CSRT via trackcv when OpenCV is linked, else
-// simpletrack over videox) — no opt-in flag. Eligible failures are NOT
-// soft-failed to Python (overhead / hides Go bugs); PreferPython forces
-// the Python path explicitly.
+// Product path (one strong tracker — no “weak fallback” story, #120):
+//  1. Go CSRT (trackcv) when OpenCV is linked in this binary
+//  2. Else Python CSRT (opencv-contrib) — the Generate path on builds
+//     without linked OpenCV (today: Windows release) until Windows CSRT
+//     ships in-binary. This is the product path, not a soft fallback.
+//
+// PreferPython forces the Python path. PreferSimpletrack opts into the
+// experimental NCC tracker (lab/CLI); the GUI never sets it.
+// Eligible Go-CSRT failures are NOT soft-failed to Python (hides Go bugs).
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -730,36 +764,39 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	logging.Info("generator: starting generation", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
-		var err error
 		if NativeTrackingAvailable() {
-			err = GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
-		} else {
-			err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			err := GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			if err == nil {
+				logging.Info("generator: native CSRT generation finished", "output", outputPath)
+				return nil
+			}
+			return err
 		}
-		if err == nil {
-			logging.Info("generator: native generation finished", "output", outputPath)
-			return nil
+		if opts.PreferSimpletrack {
+			if onProgress != nil {
+				onProgress("Go simpletrack (NCC) — experimental PreferSimpletrack")
+			}
+			err := GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			if err == nil {
+				logging.Info("generator: native simpletrack generation finished", "output", outputPath)
+				return nil
+			}
+			return err
 		}
-		return err
-	}
-	if !opts.PreferPython && opts.NativePipeline {
-		logging.Warn("generator: Go pipeline not usable for these settings — using Python",
-			"csrt", NativeTrackingAvailable(),
-			"simple", SimpleTrackingAvailable(),
-			"backend", opts.Backend,
-			"roi2", opts.ROI2.W > 0,
-			"auto_retry", opts.AutoRetry)
+		// No linked OpenCV: Generate uses Python CSRT as the product path
+		// (Windows today). Missing opencv-contrib is a hard error — install
+		// it rather than silently degrading to weak NCC.
 		if onProgress != nil {
-			onProgress("Go pipeline not usable for these settings — using Python")
+			onProgress("Generate: Python CSRT (product path — Windows OpenCV CSRT in binary is next)")
 		}
 	}
 
 	py, err := FindPython()
 	if err != nil {
-		return err
+		return fmt.Errorf("generator: Generate needs Python with opencv-contrib-python until this build links OpenCV CSRT: %w", err)
 	}
 	if err := CheckDependencies(); err != nil {
-		return err
+		return fmt.Errorf("generator: Generate needs opencv-contrib-python (CSRT). Install with the pip line below — NCC is not the product path.\n%w", err)
 	}
 	scriptPath, err := writeScriptToTemp()
 	if err != nil {

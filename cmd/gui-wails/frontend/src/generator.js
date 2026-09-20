@@ -185,6 +185,7 @@ export function initGenerator(root, playback) {
       </div>
       <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
     </div>
+    <pre id="gen-log" class="run-log" aria-label="Generation progress log"></pre>
     <div id="gen-feedback" style="display:none; margin-top:10px; padding:10px;
          border:1px solid var(--border); border-radius:4px;">
       <div style="margin-bottom:6px;">Was the result usable? Your rating helps
@@ -201,10 +202,11 @@ export function initGenerator(root, playback) {
     <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
     <p class="hint">
-      Classic CV tracking. One region + CSRT and Tf/Tj (two regions)
-      run in Go without Python — no soft fallback. Backend and profile are
-      prefilled from marks (change under Advanced).
-      Other backends and AI/audio extras still need Python.
+      Classic CV tracking on <b>CSRT</b> — one strong product path.
+      Go CSRT when OpenCV is linked in the binary; otherwise Python CSRT
+      (Windows today). Own Windows OpenCV CSRT is next so Generate needs
+      no Python. Backend/profile are prefilled from marks (Advanced).
+      AI Train and research backends still use Python on purpose.
     </p>
   `;
 
@@ -661,6 +663,15 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
     el('#gen-status').textContent = 'Generating…';
+    el('#gen-log').textContent = '';
+    {
+      const wrap = el('#gen-progress-wrap');
+      wrap.style.display = 'block';
+      el('#gen-progress-bar').style.width = '0%';
+      el('#gen-progress-bar').style.opacity = '1';
+      el('#gen-progress-text').textContent = 'Starting…';
+      progressStartedAt = Date.now();
+    }
     // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
     // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
     // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
@@ -726,15 +737,29 @@ export function initGenerator(root, playback) {
 
   EventsOn('generate:progress', line => {
     el('#gen-status').textContent = line;
+    const log = el('#gen-log');
+    if (log) {
+      log.textContent += line + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+    const wrap = el('#gen-progress-wrap');
+    if (wrap && wrap.style.display === 'none') {
+      wrap.style.display = 'block';
+      progressStartedAt = Date.now();
+    }
     const pipe = el('#gen-pipeline');
     if (!pipe) return;
     const s = String(line);
-    if (/Go-Pipeline|Go-native|simpletrack|trackcv/i.test(s)) {
-      pipe.textContent = 'Path: Go (no Python)';
+    if (/Go-Pipeline|Go-native|trackcv/i.test(s) && !/simpletrack|NCC/i.test(s)) {
+      pipe.textContent = 'Path: Go CSRT';
+    } else if (/PreferSimpletrack|simpletrack|NCC/i.test(s)) {
+      pipe.textContent = 'Path: Go simpletrack (experimental)';
+    } else if (/Python CSRT|product path/i.test(s)) {
+      pipe.textContent = 'Path: Python CSRT';
     } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     } else if (/Fallback auf Python/i.test(s)) {
-      pipe.textContent = 'Path: Python (fallback)';
+      pipe.textContent = 'Path: Python';
     }
   });
 

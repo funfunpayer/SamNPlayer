@@ -187,7 +187,8 @@ func (a *App) BootstrapRoiTrainingRegions(
 	go func() {
 		defer releaseRoiTrainingRun()
 		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
-			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) })
+			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) },
+			func(pct int) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:percent", pct) })
 		if err != nil {
 			logging.Error("roitraining: bootstrap failed", "video", videoPath, "error", err)
 			runtime.EventsEmit(a.ctx, "roitraining:bootstrap:done", map[string]any{"error": err.Error()})
@@ -242,8 +243,9 @@ func (a *App) RunRoiModelTraining(epochs int, device string) error {
 			runtime.EventsEmit(a.ctx, "roitraining:train:done", map[string]any{"error": err.Error()})
 			return
 		}
-		err := generator.RunRoiModelTraining(datasetDir, modelPath, epochs, device,
-			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:train:progress", line) })
+		err := generator.RunRoiModelTrainingWithProgress(datasetDir, modelPath, epochs, device,
+			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:train:progress", line) },
+			func(pct int) { runtime.EventsEmit(a.ctx, "roitraining:train:percent", pct) })
 		if err != nil {
 			logging.Error("roitraining: training failed", "error", err)
 			runtime.EventsEmit(a.ctx, "roitraining:train:done", map[string]any{"error": err.Error()})

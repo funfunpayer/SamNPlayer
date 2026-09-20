@@ -56,20 +56,21 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	}
 	switch {
 	case st.Ultralytics && st.OpenCV:
-		st.Detail = "Bereit: Bootstrap und Training möglich"
+		st.Detail = "Ready: bootstrap and training available"
 	case st.Ultralytics && !st.OpenCV:
-		st.Detail = "Training möglich; Bootstrap braucht opencv-contrib-python"
+		st.Detail = "Training OK; bootstrap needs opencv-contrib-python (Install AI train deps restores CSRT after ultralytics)"
 	case !st.Ultralytics && st.OpenCV:
-		st.Detail = "Bootstrap möglich; Training: pip install ultralytics onnx"
+		st.Detail = "Bootstrap OK; training: Install AI train deps (or pip install ultralytics onnx)"
 	default:
-		st.Detail = "Weder ultralytics noch OpenCV-Tracker gefunden"
+		st.Detail = "Neither ultralytics nor OpenCV trackers found — use Install AI train deps"
 	}
 	return st
 }
 
 // InstallRoiTrainingDeps installs ultralytics+onnx via pip for the detected
-// Python. Writes the embedded requirements-ai-train.txt to a temp file first
-// so release binaries (no source tree) still work.
+// Python, then restores opencv-contrib-python. ultralytics depends on
+// opencv-python, which removes CSRT trackers needed for video bootstrap
+// (“Use for training”) — Issues #94/#95/#119.
 func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	py, err := FindPython()
 	if err != nil {
@@ -95,7 +96,34 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	}
 	cmd := command(py, "-m", "pip", "install", "-r", reqPath)
 	out, err := cmd.CombinedOutput()
-	for _, line := range strings.Split(string(out), "\n") {
+	emitPipLines(string(out), onProgress)
+	if err != nil {
+		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
+	}
+	if onProgress != nil {
+		onProgress("Restoring opencv-contrib-python (CSRT for video bootstrap)…")
+	}
+	// Best-effort uninstall of the non-contrib wheels ultralytics may have pulled.
+	un := command(py, "-m", "pip", "uninstall", "-y", "opencv-python", "opencv-python-headless")
+	unOut, _ := un.CombinedOutput()
+	emitPipLines(string(unOut), onProgress)
+	fix := command(py, "-m", "pip", "install", "--upgrade", "opencv-contrib-python>=4.8", "scipy>=1.10", "numpy>=1.24")
+	fixOut, fixErr := fix.CombinedOutput()
+	emitPipLines(string(fixOut), onProgress)
+	if fixErr != nil {
+		return fmt.Errorf("generator: opencv-contrib-python restore failed: %w", fixErr)
+	}
+	if err := CheckDependencies(); err != nil {
+		return fmt.Errorf("generator: OpenCV still missing CSRT after restore — %w", err)
+	}
+	if !RoiTrainingAvailable() {
+		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
+	}
+	return nil
+}
+
+func emitPipLines(out string, onProgress func(line string)) {
+	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -105,13 +133,6 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 			onProgress(line)
 		}
 	}
-	if err != nil {
-		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
-	}
-	if !RoiTrainingAvailable() {
-		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
-	}
-	return nil
 }
 
 // WriteAIRequirementFiles writes embedded AI requirement lists into dir
@@ -195,13 +216,14 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
-	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress)
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress, nil)
 }
 
 // BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
 // stride, optional audio extraction, startSeconds seek, and boxScale pad.
+// onPercent receives 0–100 (or -1) from Python PROGRESS lines during tracking.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
-	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
+	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string), onPercent func(pct int)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: at least one region required")
 	}
@@ -223,7 +245,7 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 	}
 
 	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
-		"roi_training", onProgress, nil); err != nil {
+		"roi_training", onProgress, onPercent); err != nil {
 		return err
 	}
 	if extractAudio {
@@ -246,6 +268,13 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 // Timeout hier; die GUI ruft das asynchron auf (siehe app_roi_training.go).
 func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device string,
 	onProgress func(line string)) error {
+	return RunRoiModelTrainingWithProgress(datasetDir, outputModelPath, epochs, device, onProgress, nil)
+}
+
+// RunRoiModelTrainingWithProgress is RunRoiModelTraining with a percent callback
+// (ultralytics rarely emits PROGRESS lines; kept for API symmetry / future hooks).
+func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs int, device string,
+	onProgress func(line string), onPercent func(pct int)) error {
 	dataYAML := filepath.Join(datasetDir, "data.yaml")
 	if _, err := os.Stat(dataYAML); err != nil {
 		return fmt.Errorf("no training dataset yet (missing %s). In AI Train: mark region(s), click “Use for training”, then start training", dataYAML)
@@ -262,7 +291,7 @@ func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device 
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
 
 	return runPythonScript(py, buildTrainArgs(scriptPath, datasetDir, outputModelPath, epochs, device),
-		"roi_training", onProgress, nil)
+		"roi_training", onProgress, onPercent)
 }
 
 // runPythonScript führt ein Python-Skript aus, das seinen Fortschritt/Log

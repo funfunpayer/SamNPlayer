@@ -15,6 +15,39 @@ measurement history behind each entry; this file is the short version for
   soft-excludes camera and grid_lk feature patches (not SAM pixels).
   Docs: `docs/BODY_REGIONS.md`, `docs/TF_TJ.md`.
 
+## [0.5.11] — September 20, 2026
+
+Quality + AI Train recovery after 0.5.9/0.5.10 Windows pain (#119/#120).
+Website/presentation deferred.
+
+### Fixed
+
+- **AI Train bootstrap OpenCV (#119):** after **Install AI train deps**,
+  ultralytics’ `opencv-python` dependency no longer leaves CSRT dead —
+  GUI/pip path uninstalls non-contrib wheels and reinstalls
+  `opencv-contrib-python`, then re-checks trackers.
+- **WindowsApps Python preference:** Store stubs under
+  `%LOCALAPPDATA%\Microsoft\WindowsApps` are demoted when a real
+  install exists, so bootstrap errors and pip hints point at
+  `Programs\Python\…` instead of the stub (#94/#119).
+- **Generate product path (#120):** one strong tracker — **CSRT**.
+  Go CSRT when OpenCV is linked; otherwise **Python CSRT** is the
+  Generate path (Windows today), with a hard error if missing — not a
+  soft degrade to NCC. `simpletrack` is lab/CLI (`PreferSimpletrack`)
+  only. Next: Windows in-binary OpenCV CSRT so Generate needs no Python.
+- **Progress display (Generate + AI Train):** Go tracking reports percent
+  during the run; AI Train wires `PROGRESS` to a bar; scrolling run logs
+  in both tabs.
+- **Status copy:** ROI training readiness strings in English; install
+  success reports whether CSRT bootstrap is ready.
+
+### Docs
+
+- `docs/KI_TRAINING.md`: restore-contrib note + 0.5.9/0.5.10 manual
+  workaround.
+- `docs/ENGINE.md` / production roadmap: Windows OpenCV CSRT is next
+  (true Go parity); website polish deferred.
+
 ## [0.5.10] — September 20, 2026
 
 Careful bugfix + lean GUI motion + multi body-part regions for Tf/Tj /

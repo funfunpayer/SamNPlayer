@@ -17,22 +17,28 @@ separated.
 
 ## Quality vs language
 
-Go is the application / domain language. Port a piece only when golden
-clips show quality ≥ current path. Keep OpenCV / FFmpeg / ONNX as native
-kernels behind thin interfaces. Python stays for training and research;
-end-user runtime should eventually need no Python install.
+Go is the application / domain language. **One strong Generate path:**
+CSRT. Prefer our own Go CSRT (`trackcv`) everywhere — including Windows —
+so the product does not depend on a soft “fallback” ladder. Until Windows
+OpenCV is linked into the release binary, Generate’s product path on that
+OS is **Python CSRT** (required, clear error if missing). `simpletrack`
+(NCC) stays lab/CLI (`PreferSimpletrack`), not the GUI product path.
+
+Python stays intentional for **AI training / research**, not as a silent
+degrade of Generate quality.
 
 **Lean self-build:** fewer dependencies only if quality stays **equal or
 better** on clip tests — never ship a weaker self-build
-(`docs/SELF_BUILD.md`). Full codec/browser stacks stay thin kernels.
+(`docs/SELF_BUILD.md`).
 
 ## What is already shipped (v0.5.x)
 
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)
 - Phase Analyzer core + CLI (`phase`, `compare`)
 - Script Doctor (Go) + dense Quality Doctor on native CSRT / simpletrack
-- Opt-in Go pipeline → **automatic** for single-ROI CSRT (`trackcv` when
-  OpenCV linked; else `simpletrack` — Windows without Python)
+- Generate product path: **Go CSRT** when OpenCV linked; else **Python
+  CSRT** (Windows today). Goal: Windows in-binary CSRT (#120) — no
+  dual-quality story
 - Tf/Tj suction double-floor fix; trackcv `valid`/`confidence`/`reason`
 - Device diagnostics (software-measurable only)
 - `GenerateWithContext` cancel tests (Python + native)
@@ -49,8 +55,8 @@ better** on clip tests — never ship a weaker self-build
 | P1 | SAM as live Intent layer | wire after goldens |
 | P1 | Real Sam Neo 2 feel / BLE+Intiface | hardware |
 | P1 | Native CSRT as default | measured win on goldens |
-| P1 | Windows native OpenCV (CSRT) | optional; simpletrack covers no-Python path |
-| P1 | Competitive GUI polish (Play home) | `docs/COMPETITIVE.md` — no layout fashion |
+| P1 | **Windows native OpenCV (CSRT)** | **Next after 0.5.11** — single Go product path on Windows; MinGW OpenCV+contrib, link `trackcv`, ship DLLs in portable zip (#120) |
+| P1 | Go `auto_roi` parity | after Windows CSRT; clip gate vs Python |
 | P2 | macOS release | Mac builder + notarization (`docs/PLATFORMS.md`) |
 | P2 | Mobile player (no generator) | share player/device/funscript/samn only |
 | P2 | 4-zone relative graph as default | bake-off vs two-ROI |

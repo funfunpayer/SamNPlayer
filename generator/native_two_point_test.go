@@ -39,6 +39,7 @@ func TestGenerateNativeTwoPointSimple(t *testing.T) {
 			MinPeakDistanceMs:   150,
 			MinActionIntervalMs: 100,
 			MaxFrames:           40,
+			PreferSimpletrack:   !NativeTrackingAvailable(),
 		}, nil, nil)
 	if err != nil {
 		t.Fatalf("GenerateWithContext two-point: %v", err)

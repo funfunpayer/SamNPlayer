@@ -6,7 +6,7 @@
    (from the private checkout, as owner):
 
 ```bash
-./scripts/publish-public-release.sh v0.5.10
+./scripts/publish-public-release.sh v0.5.11
 ```
 
 4. Screenshots live under `docs/media/` and `media/` (relative paths only —

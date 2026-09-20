@@ -26,11 +26,17 @@ See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.m
 
 ### Installation (GUI, recommended)
 
-In the **AI training** tab → **Install dependencies**.
+In the **AI training** tab → **Install AI train deps**.
 
-This writes the embedded `requirements-ai-train.txt` and runs
-`python -m pip install -r …` — works without a source tree
+This writes the embedded `requirements-ai-train.txt`, runs
+`python -m pip install -r …`, then **restores `opencv-contrib-python`**
+(ultralytics depends on plain `opencv-python`, which removes CSRT needed
+for **Use for training** — Issues #94/#119). Works without a source tree
 (release `.exe`).
+
+On Windows, prefer a real install from [python.org](https://python.org)
+(e.g. `%LOCALAPPDATA%\Programs\Python\…`). The Microsoft Store / WindowsApps
+stub on PATH is demoted so pip hints target the real interpreter.
 
 ### Installation (manual)
 
@@ -38,12 +44,18 @@ This writes the embedded `requirements-ai-train.txt` and runs
 # Inference
 pip install -r generator/requirements-ai.txt
 
-# Training (+ PyTorch)
+# Training (+ PyTorch) — then restore contrib (ultralytics may replace it)
 pip install -r generator/requirements-ai-train.txt
+pip uninstall -y opencv-python opencv-python-headless
+pip install opencv-contrib-python
 
 # Windows without NVIDIA (optional):
 pip install torch-directml
 ```
+
+**0.5.9 / 0.5.10 workaround** (before the restore landed in 0.5.11): after
+any ultralytics install, run the uninstall + `opencv-contrib-python` lines
+above in the **same** Python SamNPlayer reports in the bootstrap error.
 
 From the binary: Settings / or later “Export requirements” —
 `WriteAIRequirementFiles(target folder)`.
@@ -109,7 +121,8 @@ python generator/train_yolo_model.py \
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| “ultralytics missing” | Install dependencies |
+| “ultralytics missing” | Install AI train deps |
+| Bootstrap fails: OpenCV without tracker / WindowsApps pip hint | Prefer real Python; Install AI train deps (restores contrib) or manual `pip uninstall opencv-python … && pip install opencv-contrib-python` (#119) |
 | Bootstrap fails on OpenCV 5 | `opencv-contrib-python`; check KCF fallback |
 | Training: empty val | at least 2 stills or video bootstrap |
 | AI checkbox gray | no `.onnx` at model path |

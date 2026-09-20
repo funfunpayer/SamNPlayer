@@ -9,9 +9,8 @@ import (
 	"testing"
 )
 
-// Default GUI options (CSRT + AutoRetry) must take the Go path without an
-// opt-in flag — review: NativePipeline checkbox + AutoRetry gate meant the
-// Go path never ran.
+// Default generate options must take the product tracker path without PreferPython.
+// With -tags opencv → Go CSRT. Without OpenCV → Python CSRT (hard requirement).
 func TestGenerateWithContextAutoNativeDefault(t *testing.T) {
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
 		t.Skip("ffmpeg not available")
@@ -36,9 +35,11 @@ func TestGenerateWithContextAutoNativeDefault(t *testing.T) {
 		MinPeakDistanceMs:   150,
 		MinActionIntervalMs: 100,
 		MaxFrames:           40,
-		// PreferPython unset, NativePipeline unset — must still go native.
 	}, nil, nil)
 	if err != nil {
+		if !NativeTrackingAvailable() && CheckDependencies() != nil {
+			t.Skipf("no Go CSRT and no Python CSRT in this environment: %v", err)
+		}
 		t.Fatalf("GenerateWithContext: %v", err)
 	}
 	data, err := os.ReadFile(out)
@@ -52,7 +53,15 @@ func TestGenerateWithContextAutoNativeDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	native, _ := doc.Metadata["native_pipeline"].(map[string]any)
-	if native == nil {
-		t.Fatalf("expected native_pipeline metadata, got %+v", doc.Metadata)
+	if NativeTrackingAvailable() {
+		if native == nil {
+			t.Fatalf("OpenCV build must use Go CSRT native_pipeline, got %+v", doc.Metadata)
+		}
+		return
+	}
+	if native != nil {
+		if tr, _ := native["tracking"].(string); tr == "simpletrack" {
+			t.Fatal("product Generate must not use simpletrack without PreferSimpletrack")
+		}
 	}
 }

@@ -65,6 +65,8 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	if opts.MaxFrames > 0 && (total == 0 || opts.MaxFrames < total) {
 		total = opts.MaxFrames
 	}
+	prog := newProgressReporter(opts.OnProgress, total)
+	prog.report(0)
 
 	for {
 		if opts.Cancel != nil && opts.Cancel() {
@@ -97,9 +99,10 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		distances = append(distances, dist(boxA, boxB))
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
+		prog.report(idx)
 		idx++
-		_ = total
 	}
+	prog.report(idx)
 
 	if opts.StartTimeSec > 0 {
 		off := int(opts.StartTimeSec*1000 + 0.5)

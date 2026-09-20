@@ -81,7 +81,11 @@ export function initRoiTraining(root) {
         data-help="Video: tracks marks and writes YOLO samples. Image: saves a still annotation.">Use for training</button>
     </div>
     <div class="path-label" id="rt-bootstrap-status"></div>
-    <pre id="rt-bootstrap-log" class="hint" style="max-height:120px; overflow:auto; white-space:pre-wrap; margin:0 0 10px;"></pre>
+    <div id="rt-bootstrap-progress-wrap" class="run-progress" style="display:none;">
+      <div class="run-progress-track"><div id="rt-bootstrap-progress-bar" class="run-progress-bar"></div></div>
+      <div id="rt-bootstrap-progress-text" class="hint" style="margin-top:4px;"></div>
+    </div>
+    <pre id="rt-bootstrap-log" class="run-log" aria-label="Bootstrap progress log"></pre>
 
     <h3>2. Review</h3>
     <div class="field-row"><label data-help="Folder with images/ and labels/ from bootstrap.">Dataset folder</label>
@@ -114,12 +118,15 @@ export function initRoiTraining(root) {
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Start training</button>
       <button id="rt-install-deps" type="button"
-        data-help="Optional. Installs ultralytics + onnx (+ PyTorch) via pip. Large download — skip unless you train.">Install AI train deps</button></div>
+        data-help="Installs ultralytics + onnx (+ PyTorch), then restores opencv-contrib-python so Use for training keeps CSRT. Prefer a real Python install (not the Windows Store stub). Large download.">Install AI train deps</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
       AI train packages missing (optional). Use “Install AI train deps”
-      only if you want to train a model (large: ultralytics/torch). Or:
-      <code>pip install ultralytics onnx</code>. Details:
-      <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
+      only if you want to train a model (large: ultralytics/torch). That
+      button also restores <code>opencv-contrib-python</code> so
+      <b>Use for training</b> keeps CSRT after ultralytics. Prefer a real
+      Python from python.org — not the Windows Store stub. Or:
+      <code>pip uninstall opencv-python opencv-python-headless &amp;&amp; pip install opencv-contrib-python ultralytics onnx</code>.
+      Details: <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
     </p>
     <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">
       No training samples yet. Mark region(s) above and click <b>Use for training</b>
@@ -127,7 +134,11 @@ export function initRoiTraining(root) {
     </p>
     <p class="hint" id="rt-status-detail" style="margin:0 0 8px;"></p>
     <div class="path-label" id="rt-train-status"></div>
-    <pre id="rt-train-log" class="hint" style="max-height:240px; overflow:auto; white-space:pre-wrap;"></pre>
+    <div id="rt-train-progress-wrap" class="run-progress" style="display:none;">
+      <div class="run-progress-track"><div id="rt-train-progress-bar" class="run-progress-bar"></div></div>
+      <div id="rt-train-progress-text" class="hint" style="margin-top:4px;"></div>
+    </div>
+    <pre id="rt-train-log" class="run-log" aria-label="Training progress log"></pre>
   `;
 
   wireDataHelp(root);
@@ -387,6 +398,7 @@ export function initRoiTraining(root) {
     el('#rt-bootstrap').disabled = true;
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
+    showRunProgress('rt-bootstrap', true);
     try {
       if (sourceKind === 'image') {
         const regions = [];
@@ -396,6 +408,7 @@ export function initRoiTraining(root) {
           }
         }
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
+        showRunProgress('rt-bootstrap', false);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
         updateBootstrapEnabled();
         refreshReview();
@@ -416,17 +429,49 @@ export function initRoiTraining(root) {
         );
       }
     } catch (err) {
+      showRunProgress('rt-bootstrap', false);
       uiError('Save sample: ' + err, el('#rt-bootstrap-status'));
       updateBootstrapEnabled();
     }
   });
+
+  function showRunProgress(prefix, show) {
+    const wrap = el(`#${prefix}-progress-wrap`);
+    if (!wrap) return;
+    wrap.style.display = show ? 'block' : 'none';
+    if (show) {
+      const bar = el(`#${prefix}-progress-bar`);
+      const text = el(`#${prefix}-progress-text`);
+      if (bar) { bar.style.width = '0%'; bar.style.opacity = '1'; }
+      if (text) text.textContent = 'Starting…';
+    }
+  }
+
+  function applyRunPercent(prefix, pct) {
+    const wrap = el(`#${prefix}-progress-wrap`);
+    const bar = el(`#${prefix}-progress-bar`);
+    const text = el(`#${prefix}-progress-text`);
+    if (!wrap || !bar || !text) return;
+    if (wrap.style.display === 'none') wrap.style.display = 'block';
+    if (pct < 0) {
+      bar.style.width = '100%';
+      bar.style.opacity = '0.35';
+      text.textContent = 'Running… (length unknown)';
+      return;
+    }
+    bar.style.opacity = '1';
+    bar.style.width = pct + '%';
+    text.textContent = pct + ' %';
+  }
 
   EventsOn('roitraining:bootstrap:progress', line => {
     const log = el('#rt-bootstrap-log');
     log.textContent += line + '\n';
     log.scrollTop = log.scrollHeight;
   });
+  EventsOn('roitraining:bootstrap:percent', pct => applyRunPercent('rt-bootstrap', pct));
   EventsOn('roitraining:bootstrap:done', payload => {
+    showRunProgress('rt-bootstrap', false);
     updateBootstrapEnabled();
     if (payload.error) {
       uiError('Bootstrap failed: ' + payload.error, el('#rt-bootstrap-status'));
@@ -708,9 +753,11 @@ export function initRoiTraining(root) {
     el('#rt-train').disabled = true;
     el('#rt-train-status').textContent = 'Running…';
     el('#rt-train-log').textContent = '';
+    showRunProgress('rt-train', true);
     try {
       await RunRoiModelTraining(epochs, device);
     } catch (err) {
+      showRunProgress('rt-train', false);
       uiError('ROI training: ' + err, el('#rt-train-status'));
       el('#rt-train').disabled = false;
     }
@@ -720,7 +767,9 @@ export function initRoiTraining(root) {
     log.textContent += line + '\n';
     log.scrollTop = log.scrollHeight;
   });
+  EventsOn('roitraining:train:percent', pct => applyRunPercent('rt-train', pct));
   EventsOn('roitraining:train:done', payload => {
+    showRunProgress('rt-train', false);
     el('#rt-train').disabled = false;
     if (payload.error) {
       uiError('Training failed: ' + payload.error, el('#rt-train-status'));
@@ -795,8 +844,13 @@ export function initRoiTraining(root) {
     }
     const st = payload.status || {};
     applyTrainAvailability(!!st.ultralytics, st.detail || 'Dependencies installed');
-    el('#rt-train-status').textContent = 'Dependencies OK — you can start training.';
-    uiInfo('AI training dependencies installed.');
+    const bootstrapOk = !!st.opencv;
+    el('#rt-train-status').textContent = bootstrapOk
+      ? 'Dependencies OK — bootstrap (CSRT) and training ready.'
+      : 'Ultralytics OK, but OpenCV trackers still missing — re-run Install or pip install opencv-contrib-python.';
+    uiInfo(bootstrapOk
+      ? 'AI training dependencies installed (CSRT restored).'
+      : 'AI train deps installed; fix OpenCV (opencv-contrib-python) for Use for training.');
   });
 
   ListRoiTrainingDevices().then(devices => {

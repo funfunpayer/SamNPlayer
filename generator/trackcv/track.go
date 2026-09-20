@@ -38,6 +38,9 @@ type Options struct {
 	Cancel func() bool
 	// FixedB keeps ROI B at the initial box (static Tf/Tj contact target).
 	FixedB bool
+	// OnProgress is called ~every 1% of frames (done, total). total may be 0
+	// when the container reports no frame count — GUI then shows indeterminate.
+	OnProgress func(done, total int)
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -144,6 +147,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	cameraFramesLost := 0
 	var sceneCuts []int
 
+	totalFrames := int(cap.Get(CapPropFrameCount))
+	if opts.MaxFrames > 0 && (totalFrames == 0 || opts.MaxFrames < totalFrames) {
+		totalFrames = opts.MaxFrames
+	}
+	prog := newProgressReporter(opts.OnProgress, totalFrames)
+	prog.report(0)
+
 	frameIdx := 1
 	validFrames := 1 // frame 0 was Init
 	for cap.Read() {
@@ -221,11 +231,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		}
 
 		timestampsMs = append(timestampsMs, int(float64(frameIdx)*1000.0/fps))
+		prog.report(frameIdx)
 		frameIdx++
 		if opts.MaxFrames > 0 && frameIdx >= opts.MaxFrames {
 			break
 		}
 	}
+	prog.report(frameIdx)
 
 	if opts.CameraCompensation {
 		applyCameraCompensation(yPositions, cameraDyCumulative, sceneCuts)
