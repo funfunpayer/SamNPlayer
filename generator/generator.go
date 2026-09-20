@@ -912,7 +912,11 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 		if t.W <= 0 || t.H <= 0 {
 			continue
 		}
-		args = append(args, "--target", fmt.Sprintf("%d,%d,%d,%d", t.X, t.Y, t.W, t.H))
+		spec := fmt.Sprintf("%d,%d,%d,%d", t.X, t.Y, t.W, t.H)
+		if t.Class != "" {
+			spec += "," + t.Class
+		}
+		args = append(args, "--target", spec)
 	}
 	for _, m := range opts.MaskROIs {
 		if m.W <= 0 || m.H <= 0 {

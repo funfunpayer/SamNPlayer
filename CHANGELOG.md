@@ -22,6 +22,12 @@ portable zip ships OpenCV DLLs beside the GUI.
 
 ### Changed
 
+- **Tf/Tj Zone 3+:** optional body-part class on extras (`--target x,y,w,h,class`
+  / GUI Zone 3+ class); Go CSRT `TrackMultiPoints` runs N contact partners
+  without Python (soft masks still Python).
+
+### Changed (prior)
+
 - **Tf/Tj tip→contact distance:** measure from the tip-box point nearest
   the partner (not tip center), so a whole-penis mark still registers
   glans-end contact; GUI names Zone 1/2/3+ for tip + nipple contacts.

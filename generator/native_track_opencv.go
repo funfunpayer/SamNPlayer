@@ -51,14 +51,24 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 }
 
 func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
-	tr, err := trackcv.TrackTwoPoints(videoPath,
-		trackcv.Rect{X: roi.X, Y: roi.Y, W: roi.W, H: roi.H},
-		trackcv.Rect{X: roi2.X, Y: roi2.Y, W: roi2.W, H: roi2.H},
+	return nativeTrackMultiPoints(videoPath, roi, []nativePartner{{ROI: roi2, Fixed: opts.FixedB}}, opts, onPercent)
+}
+
+func nativeTrackMultiPoints(videoPath string, tip ROI, partners []nativePartner, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
+	tps := make([]trackcv.Partner, len(partners))
+	for i, p := range partners {
+		tps[i] = trackcv.Partner{
+			ROI:   trackcv.Rect{X: p.ROI.X, Y: p.ROI.Y, W: p.ROI.W, H: p.ROI.H},
+			Fixed: p.Fixed,
+		}
+	}
+	tr, err := trackcv.TrackMultiPoints(videoPath,
+		trackcv.Rect{X: tip.X, Y: tip.Y, W: tip.W, H: tip.H},
+		tps,
 		trackcv.Options{
 			MaxFrames:    opts.MaxFrames,
 			StartTimeSec: opts.StartTimeSec,
 			Cancel:       opts.Cancel,
-			FixedB:       opts.FixedB,
 			OnProgress:   percentFromProgress(onPercent),
 		})
 	if err != nil {

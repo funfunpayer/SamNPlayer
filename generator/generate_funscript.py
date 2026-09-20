@@ -2253,9 +2253,10 @@ def main():
     ap.add_argument("--roi2-fixed", action="store_true",
                     help="Keep ROI2 at the marked box (static contact target); only ROI1 "
                          "is tracked. See docs/BODY_REGIONS.md.")
-    ap.add_argument("--target", action="append", default=None, metavar="x,y,w,h",
+    ap.add_argument("--target", action="append", default=None, metavar="x,y,w,h[,class]",
                     help="Extra Tf/Tj contact target (repeatable). Distance = min(tip, all "
-                         "targets including --roi2). Targets default to fixed.")
+                         "targets including --roi2). Targets default to fixed. Optional "
+                         "5th field = body-part class (docs/BODY_REGIONS.md).")
     ap.add_argument("--mask", action="append", default=None, metavar="x,y,w,h",
                     help="Soft-exclude box (repeatable). Punched out of camera / grid_lk "
                          "feature masks; does not drive the stroke signal.")
@@ -2518,12 +2519,26 @@ def process_one(args, ap):
     # grid_lk feature punch-outs as well as the multi-partner path.
     def _parse_box(flag, s):
         try:
-            box = tuple(int(v) for v in s.split(","))
-            if len(box) != 4:
+            parts = s.split(",")
+            if len(parts) != 4:
                 raise ValueError
-            return box
+            return tuple(int(v) for v in parts)
         except ValueError:
             raise SystemExit(f'{flag} must be "x,y,w,h"')
+
+    def _parse_target(s):
+        """Parse --target x,y,w,h or x,y,w,h,class → (box, class_or_None)."""
+        parts = s.split(",")
+        if len(parts) not in (4, 5):
+            raise SystemExit('--target must be "x,y,w,h" or "x,y,w,h,class"')
+        try:
+            box = tuple(int(v) for v in parts[:4])
+        except ValueError:
+            raise SystemExit('--target must be "x,y,w,h" or "x,y,w,h,class"')
+        cls = parts[4].strip() if len(parts) == 5 else None
+        if cls == "":
+            cls = None
+        return box, cls
 
     mask_rois = [_parse_box("--mask", s) for s in (getattr(args, "mask", None) or [])] or None
 
@@ -2573,7 +2588,8 @@ def process_one(args, ap):
                   "using CSRT (track_two_points) instead", file=sys.stderr)
         extra_targets = []
         for s in (args.target or []):
-            extra_targets.append((_parse_box("--target", s), True))
+            box, _cls = _parse_target(s)
+            extra_targets.append((box, True))
         if mask_rois is None:
             mask_rois = []
 
