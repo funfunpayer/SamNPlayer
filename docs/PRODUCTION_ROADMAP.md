@@ -94,7 +94,7 @@ redesign / no purple theme. Polish that helps Play + Generate first.
 |----|------|--------|---------------|-----------|
 | C1 | Language sweep (leftover DE) | ongoing | — | Every tab; screenshot any DE |
 | C2 | Thanks / feedback English | done (0.5.9) | — | usable / borderline / unusable |
-| C3 | README vs public portal layout | ongoing | SamNPlayer-site | Same brand + portable CTA |
+| C3 | README vs public portal layout | ongoing | SamNPlayer-site + `website/` | Same brand + portable CTA; guides/FAQ after sync |
 | C5 | **GUI improve pass** (spacing, hierarchy, Play first viewport, Generate clarity) | **next** | Your notes / screenshots | Before/after screenshots; Play + Generate still work |
 | C6 | Settings License block polish (status readable, import clear) | with C5 | E3 | Import key → status obvious |
 | C4 | Curve zoom / BPM grid | after C5 | Design call | Optional polish |

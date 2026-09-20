@@ -362,7 +362,33 @@ code {
   border-left: 2px solid var(--border);
 }
 
-.honesty { padding-bottom: 4rem; }
+.honesty { padding-bottom: 2rem; }
+
+.link-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 40rem;
+}
+.link-list li {
+  border-bottom: 1px solid var(--border);
+}
+.link-list a {
+  display: block;
+  padding: 0.95rem 0;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+.link-list a:hover { color: var(--teal); }
+.link-list .meta {
+  display: block;
+  margin-top: 0.25rem;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
 
 .foot {
   display: flex;
@@ -377,6 +403,101 @@ code {
 .foot a { color: var(--teal); text-decoration: none; }
 .foot a:hover { text-decoration: underline; }
 .foot-sep { opacity: 0.45; }
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+/* —— Inner pages —— */
+body.page { min-height: 100vh; display: flex; flex-direction: column; }
+body.page main { flex: 1; }
+.page-hero {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vh, 4rem) clamp(1.25rem, 4vw, 2.5rem) 0;
+}
+.page-hero h1 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.page-hero .lede {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--text-dim);
+}
+.crumb {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.crumb a { color: var(--teal); text-decoration: none; }
+.crumb a:hover { text-decoration: underline; }
+
+.prose {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 2rem clamp(1.25rem, 4vw, 2.5rem) 4rem;
+  max-width: 42rem;
+}
+.prose h2 {
+  margin: 2rem 0 0.65rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.prose p, .prose li { color: var(--text-dim); }
+.prose p { margin: 0 0 1rem; }
+.prose ul, .prose ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+}
+.prose li { margin-bottom: 0.45rem; }
+.prose strong { color: var(--text); }
+.prose a { color: var(--teal); }
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+.prose .cta-row { margin-top: 1.75rem; }
+
+.post-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.post-list li {
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.post-list a {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.post-list a:hover { color: var(--teal); }
+.post-list .meta {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+.post-list .tag {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+  display: block;
+}
 
 /* —— Motion —— */
 .reveal {
@@ -435,8 +556,8 @@ code {
   .btn:hover { transform: none; }
 }
 
-@media (max-width: 640px) {
-  .top-nav a:not(.nav-cta) { display: none; }
+@media (max-width: 720px) {
+  .top-nav a:not(.nav-cta):not(.nav-keep) { display: none; }
   .hero { min-height: 88vh; }
   .brand-lockup img { width: 56px; height: 56px; }
 }

@@ -10,7 +10,7 @@ Nobody outside the team can **see or fork the source**.
 | What | Where | Visibility |
 |------|--------|------------|
 | **Source code**, CI, issues | `funfunpayer/SamNPlayer` | **Private** |
-| **Landing page** (logo, screenshots, “why us”) | [`SamNPlayer-site`](https://github.com/funfunpayer/SamNPlayer-site) | **Public** |
+| **Landing page** (logo, screenshots, guides, FAQ) | [`SamNPlayer-site`](https://github.com/funfunpayer/SamNPlayer-site) — source under `website/` here | **Public** |
 | **GUI/CLI binaries + checksums** | **Releases on `SamNPlayer-site`** | **Public** |
 
 ### Important GitHub fact
@@ -50,10 +50,19 @@ https://github.com/funfunpayer/SamNPlayer-site
 
 Share **this** URL as the public face (not the private app repo).
 
-### 3. Mirror screenshots into the showcase
+### 3. Sync landing + screenshots into the showcase
 
 After the app repo is private, raw image URLs from it break for visitors.
-Copy media into the site repo (relative paths in its README):
+Prefer the one-shot sync (landing, guides, media):
+
+```bash
+./scripts/sync-public-site.sh
+```
+
+That copies `website/` + `docs/media/` into `SamNPlayer-site` with relative
+paths. Selling checklist / content map: [`docs/SELLING.md`](SELLING.md).
+
+Manual fallback:
 
 ```bash
 git clone https://github.com/funfunpayer/SamNPlayer-site.git
@@ -69,17 +78,17 @@ release while you still have access):
 
 ```bash
 # from a folder that contains the five release assets:
-./scripts/publish-public-release.sh v0.5.8
+./scripts/publish-public-release.sh v0.5.10
 ```
 
 Or manually:
 
 ```bash
-gh release download v0.5.8 -R funfunpayer/SamNPlayer -D /tmp/snp-rel
+gh release download v0.5.10 -R funfunpayer/SamNPlayer -D /tmp/snp-rel
 cd /tmp/snp-rel
-gh release create v0.5.8 -R funfunpayer/SamNPlayer-site \
-  --title "v0.5.8" \
-  --notes "SamNPlayer v0.5.8 binaries (closed source)." \
+gh release create v0.5.10 -R funfunpayer/SamNPlayer-site \
+  --title "v0.5.10" \
+  --notes "SamNPlayer v0.5.10 binaries (closed source)." \
   SamNPlayer-gui-linux-amd64 \
   SamNPlayer-gui-windows-amd64.exe \
   SamNPlayer-cli-linux-amd64 \
