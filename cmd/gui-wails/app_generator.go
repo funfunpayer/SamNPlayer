@@ -98,6 +98,10 @@ type GenerateOptions struct {
 	// RegionClass / RegionClass2 are optional body-part IDs (docs/BODY_REGIONS.md).
 	RegionClass  string `json:"regionClass"`
 	RegionClass2 string `json:"regionClass2"`
+	// ExtraTargets: additional fixed Tf/Tj anchors; distance = min(tip, all).
+	ExtraTargets []generator.NamedROI `json:"extraTargets"`
+	// MaskROIs: soft-exclude boxes for feature masks.
+	MaskROIs []generator.ROI `json:"maskRois"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -293,6 +297,8 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		}
 		genOpts.RegionClass = opts.RegionClass
 		genOpts.RegionClass2 = opts.RegionClass2
+		genOpts.ExtraTargets = opts.ExtraTargets
+		genOpts.MaskROIs = opts.MaskROIs
 		ctx, cancel := context.WithCancel(context.Background())
 		a.stateMu.Lock()
 		prev := a.genCancel

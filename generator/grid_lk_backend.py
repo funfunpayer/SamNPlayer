@@ -91,9 +91,8 @@ def _seed_grid(roi, n, m):
     return np.array([[[px, py]] for py in ys for px in xs], dtype=np.float32)
 
 
-def _reseed(gray, cx, cy, roi_w, roi_h, n_needed):
-    """Frische Ecken NUR innerhalb einer Maske um (cx, cy) - siehe
-    Modulkommentar zur Wiederbesetzung."""
+def _reseed(gray, cx, cy, roi_w, roi_h, n_needed, mask_rois=None):
+    """Fresh corners ONLY inside a mask around (cx, cy); punch out soft masks."""
     h, w = gray.shape[:2]
     half_w, half_h = roi_w * 0.6, roi_h * 0.6
     x0, x1 = max(0, int(cx - half_w)), min(w, int(cx + half_w))
@@ -102,6 +101,12 @@ def _reseed(gray, cx, cy, roi_w, roi_h, n_needed):
         return None
     mask = np.zeros(gray.shape[:2], dtype=np.uint8)
     mask[y0:y1, x0:x1] = 255
+    if mask_rois:
+        for box in mask_rois:
+            if not box:
+                continue
+            bx, by, bw, bh = [int(v) for v in box]
+            mask[max(0, by):min(h, by + bh), max(0, bx):min(w, bx + bw)] = 0
     min_dist = max(2, int(min(roi_w, roi_h) // max(2, n_needed)))
     return cv2.goodFeaturesToTrack(
         gray, maxCorners=max(n_needed * 3, 10), qualityLevel=0.01,
@@ -128,6 +133,7 @@ def _track_grid(video_path, roi, options):
 
     target_n = GRID_N * GRID_M
     quorum = max(2, int(np.ceil(target_n * DEGRADED_QUORUM_FRACTION)))
+    mask_rois = options.get("mask_rois") or None
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -180,7 +186,7 @@ def _track_grid(video_path, roi, options):
             scene_cuts.append(frame_idx)
 
         if is_cut or pts is None or len(pts) == 0:
-            fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, target_n)
+            fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, target_n, mask_rois)
             if fresh is not None and len(fresh) > 0:
                 pts = fresh[:target_n]
             else:
@@ -203,7 +209,7 @@ def _track_grid(video_path, roi, options):
             y_positions.append(y_positions[-1])
             x_positions.append(x_positions[-1])
             if pts is None or len(pts) == 0:
-                fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, target_n)
+                fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, target_n, mask_rois)
                 pts = fresh[:target_n] if fresh is not None and len(fresh) > 0 else None
         else:
             if n_survivors < quorum:
@@ -218,7 +224,7 @@ def _track_grid(video_path, roi, options):
 
             missing = target_n - n_survivors
             if missing > 0:
-                fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, missing)
+                fresh = _reseed(gray, cur_cx, cur_cy, w0, h0, missing, mask_rois)
                 if fresh is not None and len(fresh) > 0:
                     take = fresh[:missing].reshape(-1, 1, 2).astype(np.float32)
                     pts = np.concatenate(
@@ -232,7 +238,8 @@ def _track_grid(video_path, roi, options):
             if is_cut:
                 camera_dy_cumulative.append(0.0)
             else:
-                dy = estimate_camera_motion(prev_gray, gray, last_bbox)
+                dy = estimate_camera_motion(prev_gray, gray, last_bbox,
+                                           extra_excludes=mask_rois)
                 if dy == 0.0:
                     camera_frames_lost += 1
                 camera_dy_cumulative.append(camera_dy_cumulative[-1] + dy)
@@ -324,39 +331,65 @@ def analyze(video_path, roi, options):
 
 
 def analyze_two_point(video_path, roi_a, roi_b, options):
-    """Grid-LK-Gegenstück zu generate_funscript.track_two_points(): verfolgt
-    ZWEI unabhängige Punktgitter (eines je ROI) und liefert ihren vollen
-    2D-Abstand als Signal - dieselbe Idee, derselbe Rückgabe-Vertrag wie
-    track_two_points(), nur mit dem Gitter aus analyze() statt einem
-    einzelnen CSRT-Tracker je Region (docs/NEXT.md Abschnitt 8: Gitter ist
-    robuster als eine einzelne Box, insbesondere bei kleinen/schwierigen
-    ROIs - hier getestet, ob das auch für die Tf/Tj-Abstandsmessung gilt).
+    """Grid-LK two-partner path; delegates to analyze_multi_point."""
+    fixed_b = bool(options.get("roi2_fixed", False))
+    return analyze_multi_point(video_path, roi_a, [(roi_b, fixed_b)], options)
 
-    Keine Kamerakompensation: wie bei track_two_points() hebt sich eine
-    gemeinsame Kameraverschiebung im Abstand zweier Punkte ohnehin auf
-    (siehe dessen Docstring) - sie hier trotzdem anzuwenden würde nur zwei
-    UNABHÄNGIGE Schätzfehler einführen, die sich NICHT mehr zwangsläufig
-    aufheben.
+
+def analyze_multi_point(video_path, tip_roi, targets, options):
+    """Grid-LK multi-partner distance: tip + N targets, signal = min 2D distance.
+
+    targets: list of (roi, fixed). Fixed partners keep their marked center;
+    non-fixed get their own grid track. Soft mask_rois punch feature reseeds
+    (via options) but do not drive the stroke signal.
     """
-    opts_a = dict(options, camera_compensation=False)
-    opts_b = dict(options, camera_compensation=False)
-    (ts_a, xa, ya, _dy_a, lost_a, frame_size, cuts_a, stats_a, _cfl_a, idx_a) = _track_grid(
-        video_path, roi_a, opts_a)
-    (ts_b, xb, yb, _dy_b, lost_b, _frame_size_b, cuts_b, stats_b, _cfl_b, idx_b) = _track_grid(
-        video_path, roi_b, opts_b)
+    if not targets:
+        raise RuntimeError("analyze_multi_point requires at least one target")
+    opts = dict(options, camera_compensation=False)
+    (ts_tip, xa, ya, _dy, lost_tip, frame_size, cuts_tip, stats_tip,
+     _cfl, idx_tip) = _track_grid(video_path, tip_roi, opts)
 
-    n = min(len(xa), len(xb))
-    distances = np.hypot(xa[:n] - xb[:n], ya[:n] - yb[:n])
-    either_lost = lost_a[:n] | lost_b[:n]
+    partner_xy = []
+    partner_lost = []
+    partner_cuts = []
+    for roi, fixed in targets:
+        if fixed:
+            cx = float(roi[0]) + float(roi[2]) / 2.0
+            cy = float(roi[1]) + float(roi[3]) / 2.0
+            n = len(xa)
+            partner_xy.append((np.full(n, cx), np.full(n, cy)))
+            partner_lost.append(np.zeros(n, dtype=bool))
+            partner_cuts.append([])
+        else:
+            (ts_p, xp, yp, _dy_p, lost_p, _fs, cuts_p, _st, _cfl_p, _idx) = _track_grid(
+                video_path, roi, opts)
+            partner_xy.append((xp, yp))
+            partner_lost.append(lost_p)
+            partner_cuts.append(cuts_p)
+
+    n = len(xa)
+    for xp, yp in partner_xy:
+        n = min(n, len(xp), len(yp))
+    for lost_p in partner_lost:
+        n = min(n, len(lost_p))
+
+    distances = np.full(n, np.inf)
+    either_lost = lost_tip[:n].copy()
+    for (xp, yp), lost_p in zip(partner_xy, partner_lost):
+        d = np.hypot(xa[:n] - xp[:n], ya[:n] - yp[:n])
+        distances = np.minimum(distances, d)
+        either_lost = either_lost | lost_p[:n]
+    if not np.isfinite(distances).any():
+        distances = np.zeros(n)
+
     lost = int(np.count_nonzero(either_lost))
     if lost:
-        print(f"Zwei-Punkt-Messung (Grid-LK): in {lost}/{n} Frames hat mindestens ein "
-              "Gitter alle Punkte verloren", file=sys.stderr)
+        print(f"Multi-point measurement (Grid-LK): in {lost}/{n} Frames at least one "
+              "grid lost all points", file=sys.stderr)
 
-    # Gaps für Kontakt-Vibration (Playback mutet Vib während Tracker-Verlust).
     gaps = []
     start = end = None
-    for t, is_lost in zip(ts_a[:n], either_lost):
+    for t, is_lost in zip(ts_tip[:n], either_lost):
         t = float(t)
         if is_lost:
             if start is None:
@@ -377,14 +410,18 @@ def analyze_two_point(video_path, roi_a, roi_b, options):
                 merged.append(dict(g))
         gaps = merged
 
+    all_cuts = set(cuts_tip)
+    for c in partner_cuts:
+        all_cuts |= set(c)
+
     stats = {
         "tracker_lost_frames": lost,
         "camera_frames_lost": 0,
         "total_frames": n,
         "vertical_range": round(float(np.ptp(distances)) if n else 0.0, 1),
         "horizontal_range": 0.0,
-        "grid_target_points_a": stats_a["grid_target_points"],
-        "grid_target_points_b": stats_b["grid_target_points"],
+        "grid_target_points_tip": stats_tip["grid_target_points"],
+        "n_targets": len(targets),
         "tracking_gaps": gaps,
     }
-    return ts_a[:n], distances, frame_size, sorted(set(cuts_a) | set(cuts_b)), stats
+    return ts_tip[:n], distances, frame_size, sorted(all_cuts), stats

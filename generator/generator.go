@@ -48,6 +48,16 @@ type ROI struct {
 	X, Y, W, H int
 }
 
+// NamedROI is a body-part box with optional fixed flag (Tf/Tj target / mask).
+type NamedROI struct {
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+	W     int    `json:"w"`
+	H     int    `json:"h"`
+	Fixed bool   `json:"fixed"`
+	Class string `json:"class"`
+}
+
 type Options struct {
 	Invert                    bool
 	SmoothWindow              int
@@ -80,6 +90,11 @@ type Options struct {
 	// (docs/BODY_REGIONS.md) for ROI / ROI2 — used for AI preference + UI.
 	RegionClass           string
 	RegionClass2          string
+	// ExtraTargets are additional Tf/Tj contact anchors beyond ROI2.
+	// Distance signal = min(tip, ROI2, ExtraTargets…). Defaults to fixed.
+	ExtraTargets []NamedROI
+	// MaskROIs soft-exclude boxes (feature mask punch-outs); not distance drivers.
+	MaskROIs []ROI
 	AIQualityOpinion      bool
 	AIBaseURL             string
 	ContactVibration      bool
@@ -855,6 +870,18 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.RegionClass2 != "" {
 		args = append(args, "--region-class2", opts.RegionClass2)
+	}
+	for _, t := range opts.ExtraTargets {
+		if t.W <= 0 || t.H <= 0 {
+			continue
+		}
+		args = append(args, "--target", fmt.Sprintf("%d,%d,%d,%d", t.X, t.Y, t.W, t.H))
+	}
+	for _, m := range opts.MaskROIs {
+		if m.W <= 0 || m.H <= 0 {
+			continue
+		}
+		args = append(args, "--mask", fmt.Sprintf("%d,%d,%d,%d", m.X, m.Y, m.W, m.H))
 	}
 	if opts.PeakProminence > 0 {
 		args = append(args, "--peak-prominence", strconv.FormatFloat(opts.PeakProminence, 'f', -1, 64))

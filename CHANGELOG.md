@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Tf/Tj multi-partner distance + soft masks:** stroke signal =
+  min(tip → ROI2 and N `--target` anchors); `--mask` / GUI **+ Mask**
+  soft-excludes camera and grid_lk feature patches (not SAM pixels).
+  Docs: `docs/BODY_REGIONS.md`, `docs/TF_TJ.md`.
+
 ## [0.5.10] — September 20, 2026
 
 Careful bugfix + lean GUI motion + multi body-part regions for Tf/Tj /

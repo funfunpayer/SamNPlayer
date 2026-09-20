@@ -48,6 +48,10 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if opts.AIQualityOpinion {
 		return false
 	}
+	// Multi-target / soft masks still need the Python path.
+	if len(opts.ExtraTargets) > 0 || len(opts.MaskROIs) > 0 {
+		return false
+	}
 	return true
 }
 

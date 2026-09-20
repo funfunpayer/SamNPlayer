@@ -68,6 +68,7 @@ prerequisites are met — not a calendar promise.
 | A1 | Golden-clip manifest + FunGen r | next after 0.5.9 | Your clips + FunGen refs | Run Bench tab; paste report |
 | A2 | Tf/Tj + AI/auto two-ROI bake-off | after A1 | Two-body golden | Manual vs suggested ROI scores |
 | A2b | **Multi body-part regions** (Face…Vagina; fixed/tracked/mask) | with A2 | Taxonomy + AI train 9 marks | Mark 9 classes; Tf/Tj Fix ROI2; preferred CSV |
+| A2c | **Soft masks + >2 distance partners** (min tip→N targets) | after A2b | CLI `--target`/`--mask`, GUI +Target/+Mask | Extra target changes stroke; mask punches cam features |
 | A3 | Go `auto_roi` (if equal to Python) | after A1 | Clip gate `SELF_BUILD` | Same ROI as Python on 3 clips |
 | A4 | Contact-vibration “feel” | when device free | Real Neo 2 | Subjective note + log |
 

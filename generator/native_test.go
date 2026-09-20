@@ -26,6 +26,12 @@ func TestNativePipelineEligible(t *testing.T) {
 	if NativePipelineEligible(Options{Backend: "csrt", AIQualityOpinion: true}, roi) {
 		t.Fatal("AI opinion must not be eligible")
 	}
+	if NativePipelineEligible(Options{Backend: "csrt", ExtraTargets: []NamedROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
+		t.Fatal("extra Tf/Tj targets must force Python path")
+	}
+	if NativePipelineEligible(Options{Backend: "csrt", MaskROIs: []ROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
+		t.Fatal("soft masks must force Python path")
+	}
 	// Audio check is post-hoc in Go — must not force the Python path.
 	if !NativePipelineEligible(Options{Backend: "csrt", AudioCheck: true}, roi) {
 		t.Fatal("AudioCheck must stay eligible on the Go path")

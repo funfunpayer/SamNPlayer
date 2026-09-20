@@ -32,22 +32,31 @@ IDs in Go (`generator/bodyparts`), Python (`bodyparts.py`), and the GUI
 
 | Role | Meaning |
 |------|---------|
-| `tracked` | CSRT / two-point tracker follows the box |
+| `tracked` | CSRT / multi-point tracker follows the box |
 | `fixed` | Box stays where marked (static anchor) |
-| `mask` | Soft-exclude / ignore for stroke; still labeled for AI |
+| `mask` | Soft-exclude punch-out for camera / grid_lk features; not a distance driver |
 
-Tf/Tj still drives the script from **two** distance partners (tip ↔
-target). Other marked classes are for AI suggestion, masking, and
-dataset quality — not a third distance axis yet.
+## Tf/Tj distance partners
+
+- **Tip (ROI1):** always tracked.
+- **Primary target (ROI2):** required for Tf/Tj; optional `--roi2-fixed`.
+- **Extra targets (`--target`, repeatable):** additional contact anchors
+  (GUI: **+ Target**). Default **fixed**. Stroke signal =
+  **min** 2D distance from tip to ROI2 and all extra targets.
+- **Soft masks (`--mask`, repeatable):** GUI **+ Mask**. Punched out of
+  camera-motion and grid_lk reseed feature masks only — they do **not**
+  drive the stroke. Not pixel-perfect SAM segmentation; box soft-exclude.
+
+Native Go pipeline stays on the Python path when ExtraTargets or MaskROIs
+are set.
 
 ## Surfaces
 
 | Surface | Capacity |
 |---------|----------|
 | AI training marks | up to **9** boxes/classes per frame |
-| Generate / Tf/Tj stroke | ROI1 + ROI2 (+ optional fixed flag on ROI2) |
+| Generate / Tf/Tj stroke | ROI1 + ROI2 + N extra targets (min distance) + soft masks |
 | AI suggest | prefers canonical class list (`preferred_classes`) |
-| Segmentation masks | roadmap — box roles first |
 
 ## Owner test
 
@@ -55,6 +64,10 @@ dataset quality — not a third distance axis yet.
    Penis + Glans + Vagina on one still → “Use for training”.
 2. Generate Tf/Tj: tip = Glans (tracked), target = Nipples (fixed) →
    distance still moves when only the tip moves.
-3. Settings preferred classes defaults to the CSV of all nine IDs.
+3. Extra target: add a second contact (+ Target, e.g. mouth) → stroke
+   follows the **nearest** partner.
+4. Soft mask: + Mask over a busy background patch → tracking/camera
+   features ignore that box.
+5. Settings preferred classes defaults to the CSV of all nine IDs.
 
 Code: `generator/bodyparts`, `docs/TF_TJ.md`, `docs/KI_TRAINING.md`.
