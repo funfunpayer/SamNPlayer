@@ -97,6 +97,8 @@ jobs:
             mingw-w64-x86_64-opencv
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-nsis
+            zip
+            unzip
 
       - uses: actions/setup-node@v4
         with:
@@ -149,10 +151,12 @@ jobs:
           mv build/bin/SamNPlayer.exe ../../SamNPlayer-gui-windows-amd64.exe
           ls -la ../../SamNPlayer-gui-windows-amd64.exe
 
+      # Must use msys2 (job default): Git Bash cannot see /mingw64 OpenCV DLLs.
       - name: Bundle portable Windows (GUI + ffmpeg + OpenCV DLLs)
-        shell: bash
         run: |
           set -euo pipefail
+          export PATH="/mingw64/bin:$PATH"
+          test -d /mingw64/bin
           mkdir -p portable-windows
           cp SamNPlayer-gui-windows-amd64.exe portable-windows/SamNPlayer.exe
           # OpenCV (+ transitive MinGW) DLLs beside the exe.
@@ -172,6 +176,9 @@ jobs:
           test -f portable-windows/ffprobe.exe
           test -f portable-windows/SamNPlayer.exe
           ls portable-windows/libopencv_tracking*.dll
+          n=$(ls -1 portable-windows/*.dll | wc -l | tr -d ' ')
+          echo "portable-windows DLL count: $n"
+          test "$n" -ge 20
           (cd portable-windows && zip -q ../SamNPlayer-portable-windows-amd64.zip .)
           # Keep CLI next to the zip for the release asset list.
           ls -la SamNPlayer-cli-windows-amd64.exe SamNPlayer-gui-windows-amd64.exe \

@@ -17,7 +17,7 @@ portable zip ships OpenCV DLLs beside the GUI.
 
 - **Windows OpenCV CSRT (G0.1):** `trackcv` on Windows with `-tags opencv`;
   required CI `Go (OpenCV Windows)`; release builds Windows on
-  `windows-latest` and collects MinGW OpenCV DLLs
+  `windows-latest` and collects MinGW OpenCV DLLs under MSYS2
   (`docs/WINDOWS_OPENCV.md`, `scripts/collect-mingw-opencv-dlls.sh`).
 
 ## [0.5.12] — September 20, 2026
