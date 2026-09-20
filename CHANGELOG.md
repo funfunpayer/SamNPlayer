@@ -8,11 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.15] — September 20, 2026
+
 ### Fixed
 
 - **Tf/Tj multi-partner fusion:** lost tracked partners no longer feed
   stale boxes into `min()` distance; tip loss / no usable partner holds
-  the last good distance (F-006 / star-topology interim).
+  the last good distance (F-006 / star-topology interim) (#137).
 
 ## [0.5.14] — September 20, 2026
 
