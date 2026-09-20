@@ -97,6 +97,10 @@ def main():
         page.evaluate("window.__triggerEvent('generate:percent', 0)")
         check("Balken erscheint bei 0 %",
               page.locator("#gen-progress-wrap").evaluate("e => e.style.display") == "block")
+        page.evaluate("window.__triggerEvent('generate:progress', 'Go-native CSRT pipeline')")
+        check("Verlaufs-Log enthält Progress-Zeile",
+              "Go-native" in page.locator("#gen-log").inner_text(),
+              page.locator("#gen-log").inner_text())
         page.evaluate("window.__triggerEvent('generate:percent', 42)")
         check("Balken auf 42 %",
               page.locator("#gen-progress-bar").evaluate("e => e.style.width") == "42%",

@@ -15,6 +15,17 @@ import (
 // errNativeCanceled is the build-tag-agnostic cancel sentinel from nativeTrackROI.
 var errNativeCanceled = errors.New("generator/native: tracking canceled")
 
+// percentFromProgress maps tracker (done,total) callbacks onto the GUI's
+// 0–100 (or -1 when total is unknown) percent channel.
+func percentFromProgress(onPercent func(int)) func(done, total int) {
+	if onPercent == nil {
+		return nil
+	}
+	return func(done, total int) {
+		onPercent(percentOf(done, total))
+	}
+}
+
 // NativePipelineEligible reports whether opts+roi can run on a Python-free
 // path (CSRT via trackcv when OpenCV is linked, otherwise simpletrack/NCC
 // via videox). Covers single-ROI and Tf/Tj two-point (ROI2). Other backends

@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Progress display (Generate + AI Train):** Go-native tracking
+  (trackcv / simpletrack) now reports percent during the run — the bar
+  no longer stays empty until 100%. AI Train bootstrap wires Python
+  `PROGRESS` lines to a percent bar; both tabs show a visible scrolling
+  log (`#gen-log` / bootstrap & train logs).
+
 ### Added
 
 - **Tf/Tj multi-partner distance + soft masks:** stroke signal =

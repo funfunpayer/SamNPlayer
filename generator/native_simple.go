@@ -61,6 +61,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		Axis:         axis,
 		Cancel:       func() bool { return ctx.Err() != nil },
 		FixedB:       opts.ROI2Fixed,
+		OnProgress:   percentFromProgress(onPercent),
 	}
 
 	var tr simpletrack.Result
@@ -81,6 +82,9 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 			return context.DeadlineExceeded
 		}
 		return fmt.Errorf("generator/native-simple: tracking: %w", err)
+	}
+	if onPercent != nil {
+		onPercent(100)
 	}
 	progress(fmt.Sprintf("%d Frames getrackt (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))

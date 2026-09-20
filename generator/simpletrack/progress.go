@@ -1,0 +1,37 @@
+package simpletrack
+
+// progressReporter throttles OnProgress to ~100 updates so the GUI bar
+// moves during long NCC tracking (Windows Go path without OpenCV).
+type progressReporter struct {
+	fn    func(done, total int)
+	total int
+	next  int
+}
+
+func newProgressReporter(fn func(done, total int), totalFrames int) *progressReporter {
+	if fn == nil {
+		return nil
+	}
+	if totalFrames < 0 {
+		totalFrames = 0
+	}
+	return &progressReporter{fn: fn, total: totalFrames, next: 0}
+}
+
+func (p *progressReporter) report(done int) {
+	if p == nil {
+		return
+	}
+	if done < p.next && (p.total <= 0 || done < p.total) {
+		return
+	}
+	p.fn(done, p.total)
+	step := 10
+	if p.total > 0 {
+		step = p.total / 100
+		if step < 1 {
+			step = 1
+		}
+	}
+	p.next = done + step
+}

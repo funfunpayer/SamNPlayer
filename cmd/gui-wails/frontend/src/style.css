@@ -1188,12 +1188,39 @@ input[type="range"] { accent-color: var(--accent); }
 fieldset { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 legend { font-size: 12.5px; color: var(--text-dim); padding: 0 6px; font-weight: 500; }
 
-.path-label, pre, code, #st-report-out, #st-hardware-out, #gen-log, #tr-log {
+.path-label, pre, code, #st-report-out, #st-hardware-out, #gen-log, #tr-log, .run-log {
   user-select: text;
   cursor: text;
   font-family: var(--font-mono);
   font-size: 12px;
   word-break: break-all;
+}
+
+.run-log {
+  display: block;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  min-height: 72px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  margin: 8px 0 10px;
+  color: var(--text-dim);
+}
+.run-progress { margin: 6px 0 4px; }
+.run-progress-track {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.10);
+  overflow: hidden;
+}
+.run-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+  transition: width .2s linear;
 }
 
 /* --- Geräte-Tab ---------------------------------------------------------- */

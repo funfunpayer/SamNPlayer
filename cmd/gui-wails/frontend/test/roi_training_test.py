@@ -138,8 +138,17 @@ def main():
         page.evaluate("window.__triggerEvent('roitraining:bootstrap:progress', 'Frame 1/50')")
         check("Fortschrittszeile erscheint im Log",
               "Frame 1/50" in page.locator("#rt-bootstrap-log").inner_text())
+        page.evaluate("window.__triggerEvent('roitraining:bootstrap:percent', 37)")
+        check("Bootstrap-Balken sichtbar",
+              page.locator("#rt-bootstrap-progress-wrap").evaluate("e => e.style.display") == "block")
+        check("Bootstrap-Balken 37 %",
+              page.locator("#rt-bootstrap-progress-bar").evaluate("e => e.style.width") == "37%",
+              page.locator("#rt-bootstrap-progress-bar").evaluate("e => e.style.width"))
 
         page.evaluate("window.__triggerEvent('roitraining:bootstrap:done', { prefix: 'clipA_deadbeef' })")
+        page.wait_for_function(
+            "document.querySelector('#rt-bootstrap-progress-wrap').style.display === 'none'",
+            timeout=5000)
         page.wait_for_function("window.__calls.includes('list')", timeout=5000)
         check("Knopf wird nach Abschluss wieder frei", not page.locator("#rt-bootstrap").is_disabled())
 
