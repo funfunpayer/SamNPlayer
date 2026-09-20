@@ -2,11 +2,10 @@
 
 package trackcv
 
-import "math"
-
-// TrackTwoPoints follows two ROIs and returns 2D center distance as Positions —
+// TrackTwoPoints follows two ROIs and returns tip→partner distance as Positions —
 // Go port of generate_funscript.track_two_points (CSRT, no appearance memory;
-// shared pan cancels in the distance by construction).
+// shared pan cancels in the distance by construction). Distance uses the tip
+// box point nearest the partner (TipPartnerDistance), not tip center.
 func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, error) {
 	cap := OpenVideo(videoPath)
 	defer cap.Close()
@@ -47,16 +46,8 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		}
 	}()
 
-	dist := func(a, b Rect) float64 {
-		ax := float64(a.X) + float64(a.W)/2
-		ay := float64(a.Y) + float64(a.H)/2
-		bx := float64(b.X) + float64(b.W)/2
-		by := float64(b.Y) + float64(b.H)/2
-		return math.Hypot(bx-ax, by-ay)
-	}
-
 	timestamps := []int{0}
-	distances := []float64{dist(boxA, boxB)}
+	distances := []float64{TipPartnerDistance(boxA, boxB)}
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	idx := 1
@@ -96,7 +87,7 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		} else {
 			valid++
 		}
-		distances = append(distances, dist(boxA, boxB))
+		distances = append(distances, TipPartnerDistance(boxA, boxB))
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
 		prog.report(idx)

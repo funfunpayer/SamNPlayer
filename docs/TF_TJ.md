@@ -8,8 +8,10 @@ profile dropdown shows a single "Tf/Tj (distance + suction)" entry
 ## Signal
 
 Track the tip region plus one or more contact targets and measure
-**min** 2D distance tip→partners. A smaller distance means a higher
-position value and stronger suction.
+**min** tip→partner distance. Distance uses the tip-box point **nearest
+the partner center** (not tip center), so a whole-penis mark still
+behaves like glans contact. A smaller distance means a higher position
+value, stronger suction, and (with contact vibration) more vibration.
 
 ## Body parts (multi-region)
 

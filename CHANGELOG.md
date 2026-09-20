@@ -6,8 +6,6 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
-## Unreleased
-
 ## [0.5.13] — September 20, 2026
 
 Windows Generate on **Go CSRT** (no Python): MSYS2 OpenCV 5 in CI/release,
@@ -19,6 +17,14 @@ portable zip ships OpenCV DLLs beside the GUI.
   required CI `Go (OpenCV Windows)`; release builds Windows on
   `windows-latest` and collects MinGW OpenCV DLLs under MSYS2
   (`docs/WINDOWS_OPENCV.md`, `scripts/collect-mingw-opencv-dlls.sh`).
+
+## Unreleased
+
+### Changed
+
+- **Tf/Tj tip→contact distance:** measure from the tip-box point nearest
+  the partner (not tip center), so a whole-penis mark still registers
+  glans-end contact; GUI names Zone 1/2/3+ for tip + nipple contacts.
 
 ## [0.5.12] — September 20, 2026
 
