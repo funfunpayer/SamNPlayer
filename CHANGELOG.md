@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Docs
+
+- **Sequential production spine (G0→G4):** stabilize CSRT → classical
+  heuristics + audio → Neo 2 raw-value mapping → AI helpers → license/
+  platforms. Stops parallel theme sprawl; license stays developer mode
+  through G2. Spec: `docs/PRODUCTION_ROADMAP.md`,
+  `docs/GENERATE_HEURISTICS.md`.
+
 ### Added
 
 - **Tf/Tj multi-partner distance + soft masks:** stroke signal =

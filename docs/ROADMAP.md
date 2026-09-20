@@ -255,26 +255,29 @@ Ordered as the concept itself proposed:
       section (extend `quality_model.py`'s existing pattern, not a new
       architecture).
 
-### Next focus after v0.5.9
+### Next focus after v0.5.11 (sequential — do not parallelize themes)
 
-1. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — GUI already has opt-in
-       `ai_two` / `auto_two` suggestion (`find_two_rois`). Still needs
-       golden-/real-clip numbers before promoting further (see Open tasks
-       + `docs/NEXT.md` / `docs/GOLDEN_CLIPS.md`).
-2. [ ] 🎨 **GUI improve pass** — back on the plan (`docs/PRODUCTION_ROADMAP.md`
-       stream **C5–C7**). Play first viewport, Generate clarity, empty
-       states / errors, License status readability. Bar:
-       [`docs/COMPETITIVE.md`](COMPETITIVE.md). No Wails-v3 / card redesign
-       (rejected below). Owner screenshots of friction points welcome.
-3. [x] 🔓 **Quality-Doctor learning from user judgments** — already wired:
-       Generator accept/reject → report JSONL → Settings “Train quality
-       model” (`SubmitFeedback` / `TrainQualityModel`). Adopted only if
-       cross-validation beats fixed rules (`quality_model.py`).
-4. [x] 🔓 **3D / depth / pose supporting-signal scaffold** — shipped
-       (`generator/support_signals.py`, `docs/DEPTH_POSE.md`): classical
-       depth proxy + optional ONNX stubs, opt-in ROI soft-rank
-       (`SAMNPLAYER_DEPTH_RANK=1`). Still 📏 for golden-clip Funscript-
-       quality win before any default.
+Canonical order: **`docs/PRODUCTION_ROADMAP.md`** phases **G0 → G1 → G2 →
+G3 → G4**. Heuristics design: **`docs/GENERATE_HEURISTICS.md`**.
+License stays **developer mode** until after G2.
+
+1. [ ] 🔓 **G0 — Stabilize Generate** — Windows OpenCV CSRT in release
+       binary (#120); clip/cancel gates; no weak NCC; AI Train not a tag
+       blocker.
+2. [ ] 📏 **G1 — Classical heuristics + audio** — one posttrack package;
+       goldens + FunGen fixed-ROI bake-off; Tf/Tj classical stabilize;
+       audio warn-only. **No AI as script writer.**
+3. [ ] 🔒 **G2 — Neo 2 raw-value layer** — Device Diagnose on real hardware;
+       Intent→raw mapping for good feel (blocked on you + device).
+4. [ ] 📏 **G3 — AI helpers only after G1** — train/ROI suggest on strong
+       classical scripts; two-ROI AI stays opt-in until bake-off win.
+5. [ ] 🎨 **G4 orthogonal** — GUI improve slices (C5–C7) if Generate
+       untouched; license enforcement (E5) only after your go-live;
+       site/macOS/mobile later.
+
+Archive note — former “after v0.5.9” items: Quality-Doctor learning and
+depth/pose scaffold remain shipped; Tf/Tj+AI two-ROI waits for G1 goldens
+then G3; GUI improve is G4.C not parallel to G0/G1.
 
 ### Next after v0.5.6 (archive — polish train)
 

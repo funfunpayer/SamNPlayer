@@ -1,5 +1,9 @@
 # Audio in the generate workflow
 
+**Roadmap:** part of classical Generate phase **G1**
+(`docs/PRODUCTION_ROADMAP.md`, `docs/GENERATE_HEURISTICS.md`). Stabilize
+CSRT (G0) first; do not invent positions from audio; AI comes later (G3).
+
 **Status today:** still shipped. Classical tempo check only — not AI,
 not a motion replacement. Native Go path runs the same check post-hoc
 (`CheckAudioTempo`) — no longer forces Python.

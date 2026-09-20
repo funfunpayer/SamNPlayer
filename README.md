@@ -199,7 +199,8 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 | [`website/`](website/) | Public landing + guides / notes / FAQ (sync → SamNPlayer-site) |
 | [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
-| [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production plan — open items, owner tests, how results turn into fixes |
+| [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production spine G0–G4 (stabilize → heuristics → Neo 2 raw → AI → license); owner tests |
+| [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics + audio workflow (no AI script writer) |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Checklist — what’s done / next / rejected |
 | [`docs/NEXT.md`](docs/NEXT.md) | Measurement journal |
 | [`HANDOFF.md`](HANDOFF.md) | Architecture + tested-and-rejected table |
