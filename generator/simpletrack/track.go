@@ -25,6 +25,8 @@ type Options struct {
 	Cancel       func() bool
 	SearchMargin int // pixels around last box; 0 → 32
 	Step         int // search stride; 0 → 2
+	// FixedB keeps ROI B at the initial box (static Tf/Tj contact target).
+	FixedB bool
 }
 
 // Stats mirrors trackcv observation fields for native metadata.

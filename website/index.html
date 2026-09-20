@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SamNPlayer — Generate · Play · Train</title>
+  <meta name="description" content="Local desktop app for .samn / .funscript and SVAKOM Sam Neo 2. Play, generate, and train in one ~13 MB native window — no Electron, no cloud AI." />
+  <meta property="og:title" content="SamNPlayer" />
+  <meta property="og:description" content="Generate · Play · Train — local desktop for Sam Neo 2 and Funscript." />
+  <meta property="og:image" content="media/gui-player-rail.png" />
+  <link rel="icon" type="image/png" href="media/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <a class="top-brand" href="#top" aria-label="SamNPlayer home">
+      <img src="media/logo.png" alt="" width="36" height="36" />
+      <span class="wordmark" aria-hidden="true"><span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-player">Player</span></span>
+    </a>
+    <nav class="top-nav" aria-label="Primary">
+      <a href="#why">Why</a>
+      <a href="#product">Product</a>
+      <a href="#license">License</a>
+      <a href="#download" class="nav-cta">Download</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="top" class="hero" aria-label="SamNPlayer">
+      <div class="hero-plane" aria-hidden="true">
+        <img src="media/gui-player-rail.png" alt="" />
+      </div>
+      <div class="hero-veil" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="brand-lockup reveal">
+          <img src="media/logo.png" alt="" width="72" height="72" />
+          <span class="wordmark wordmark-lg"><span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-player">Player</span></span>
+        </p>
+        <h1 class="reveal delay-1">Generate · Play · Train</h1>
+        <p class="lede reveal delay-2">
+          One local desktop app for <code>.samn</code> / <code>.funscript</code>
+          and SVAKOM Sam Neo&nbsp;2 — measured scripts, first-class device control,
+          optional on-device AI that never writes alone.
+        </p>
+        <div class="cta-row reveal delay-3">
+          <a class="btn btn-primary" href="#download">Download portable</a>
+          <a class="btn btn-ghost" href="#license">€40 / year</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" class="section why">
+      <h2>Why this app</h2>
+      <p class="section-lede">
+        Most tools are a player <em>or</em> a generator — often inside a 100+&nbsp;MB Electron shell.
+        SamNPlayer keeps the full loop honest and small.
+      </p>
+      <dl class="compare">
+        <div>
+          <dt>Size</dt>
+          <dd>~13&nbsp;MB native GUI (OS webview via Wails — no bundled Chromium)</dd>
+        </div>
+        <div>
+          <dt>Scope</dt>
+          <dd>Play + generate + device + training in one window</dd>
+        </div>
+        <div>
+          <dt>AI</dt>
+          <dd>Optional local ONNX — AI proposes; classical tracking writes the script</dd>
+        </div>
+        <div>
+          <dt>Privacy</dt>
+          <dd>Local-only — no model in the binary, no surprise downloads, no cloud calls</dd>
+        </div>
+        <div>
+          <dt>Device</dt>
+          <dd>Sam Neo&nbsp;2 first-class (BLE + Intiface + Mock) with diagnostics</dd>
+        </div>
+        <div>
+          <dt>Quality</dt>
+          <dd>Quality Doctor, Script Doctor, golden-clip benchmark — numbers before claims</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="product" class="section product">
+      <h2>What you get</h2>
+      <p class="section-lede">Three jobs. One composition. English UI.</p>
+
+      <figure class="shot reveal">
+        <img src="media/gui-playback.png" alt="Playback tab with video sync, heatmap, and live device meters" width="1200" height="675" loading="lazy" />
+        <figcaption>Playback — video sync or script-alone; heatmap, curve, contact vibration, playlist</figcaption>
+      </figure>
+
+      <figure class="shot reveal">
+        <img src="media/gui-generator.png" alt="Generator tab with ROI workflow and Quality Doctor" width="1200" height="675" loading="lazy" />
+        <figcaption>Generate — mark ROI(s), pick profile / backend, Quality Doctor on the rail</figcaption>
+      </figure>
+    </section>
+
+    <section id="license" class="section license">
+      <h2>Personal license</h2>
+      <p class="price reveal"><span class="price-amount">€40</span> <span class="price-unit">/ year</span></p>
+      <p class="section-lede">
+        One person. One year. Full Generate + Neo&nbsp;2 <code>.samn</code> playback.
+        Invite / internal keys for early testers.
+      </p>
+      <ul class="license-points">
+        <li><strong>Retail — €40 / year</strong> — named seat, expires after 365 days from issue</li>
+        <li><strong>Trial path</strong> — unlicensed Generate capped at 1&nbsp;minute; Funscript play stays available</li>
+        <li><strong>Import</strong> — paste or file in Settings → License (Ed25519 <code>SNP1</code> token)</li>
+      </ul>
+      <p class="license-note">
+        Checkout and automatic key delivery are not live yet. Until then, request a key
+        from the owner after download — or use the public builds while enforcement stays off.
+      </p>
+      <p class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/funfunpayer/SamNPlayer-site/issues/new?title=License%20request%20%E2%80%94%20%E2%82%AC40">Request a license — €40</a>
+        <a class="btn btn-ghost" href="#download">Try the build first</a>
+      </p>
+    </section>
+
+    <section id="download" class="section download">
+      <h2>Download</h2>
+      <p class="section-lede">
+        Prefer the <strong>portable</strong> archive — ffmpeg / ffprobe ship next to the GUI.
+        Windows and Linux amd64 today; macOS when a Mac builder exists.
+      </p>
+      <p class="cta-row">
+        <a class="btn btn-primary" id="dl-latest"
+           href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest">
+          Latest release
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/funfunpayer/SamNPlayer-site">
+          Showcase on GitHub
+        </a>
+      </p>
+      <p class="fineprint">
+        Verify with <code>checksums.txt</code> in the release.
+        Bluetooth on Windows&nbsp;11: external dongle with antenna recommended
+        (e.g. TP-Link UB500 / Asus USB-BT500).
+      </p>
+    </section>
+
+    <section id="honesty" class="section honesty">
+      <h2>Honest limits</h2>
+      <ul class="limits">
+        <li>No FunGen clone theater — no silent AI-only Funscripts</li>
+        <li>No cloud sync, telemetry, or bundled model weights</li>
+        <li>macOS / mobile player: planned, not shipped</li>
+        <li>Application source is private; this site ships binaries and screenshots only</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span class="wordmark wordmark-sm"><span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-player">Player</span></span>
+    <span class="foot-sep">·</span>
+    <span>© 2026 funfunpayer</span>
+    <span class="foot-sep">·</span>
+    <a href="https://github.com/funfunpayer/SamNPlayer-site">Public releases</a>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

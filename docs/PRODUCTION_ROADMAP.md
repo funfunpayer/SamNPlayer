@@ -41,7 +41,19 @@ fixes are fine if they do not dilute Generate/Play.
 |---------|--------|------------------|
 | **v0.5.8** | Tagged | Playback polish prior |
 | **v0.5.9** | **Shipped** | `.samn`, portable ffmpeg, English GUI lock, license infra (not sharp) |
-| **next** | Open | Script quality (A) + **GUI improve (C)** in parallel bits |
+| **v0.5.10** | This train (local green; tag after CI billing fixed) | Bugfix + GUI motion + multi body-part regions + soft masks / N distance partners |
+
+**Owner steps after this PR merges to `main`:**
+
+1. Confirm CI green on `main` (or merge with known billing-blocked empty jobs)  
+2. Spot-check GUI (Play + Generate) in English  
+3. Tag `v0.5.10` and push the tag → release workflow builds Win/Linux + portable archives  
+4. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.10`  
+5. Prefer **portable** download on the public site (ffmpeg included)  
+6. Hardware: one BLE or Intiface play session if a device is available  
+
+Agent can prepare the PR and version bump; **tagging on `main` is the
+release switch** (`CONTRIBUTING.md`).
 
 ---
 
@@ -59,6 +71,8 @@ Quality still wins if a GUI change would hurt Generate/Play.
 |----|------|--------|---------------|-----------|
 | A1 | Golden-clip manifest + FunGen r | next after 0.5.9 | Your clips + FunGen refs | Run Bench tab; paste report |
 | A2 | Tf/Tj + AI/auto two-ROI bake-off | after A1 | Two-body golden | Manual vs suggested ROI scores |
+| A2b | **Multi body-part regions** (Face…Vagina; fixed/tracked/mask) | with A2 | Taxonomy + AI train 9 marks | Mark 9 classes; Tf/Tj Fix ROI2; preferred CSV |
+| A2c | **Soft masks + >2 distance partners** (min tip→N targets) | after A2b | CLI `--target`/`--mask`, GUI +Target/+Mask | Extra target changes stroke; mask punches cam features |
 | A3 | Go `auto_roi` (if equal to Python) | after A1 | Clip gate `SELF_BUILD` | Same ROI as Python on 3 clips |
 | A4 | Contact-vibration “feel” | when device free | Real Neo 2 | Subjective note + log |
 

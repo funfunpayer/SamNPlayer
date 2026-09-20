@@ -48,6 +48,10 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if opts.AIQualityOpinion {
 		return false
 	}
+	// Multi-target / soft masks still need the Python path.
+	if len(opts.ExtraTargets) > 0 || len(opts.MaskROIs) > 0 {
+		return false
+	}
 	return true
 }
 
@@ -80,9 +84,9 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
 	if twoPoint {
-		progress("Go-native Zwei-Punkt-Pipeline (trackcv TrackTwoPoints + posttrack), ohne Python")
+		progress("Go-native two-point pipeline (trackcv TrackTwoPoints + posttrack), no Python")
 	} else {
-		progress("Go-native CSRT-Pipeline (trackcv + posttrack), ohne Python")
+		progress("Go-native CSRT pipeline (trackcv + posttrack), no Python")
 	}
 
 	start := time.Now()
@@ -94,6 +98,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		AppearanceMemory:   true,
 		Axis:               opts.Axis,
 		Cancel:             func() bool { return ctx.Err() != nil },
+		FixedB:             opts.ROI2Fixed,
 	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
@@ -115,7 +120,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		}
 		return fmt.Errorf("generator/native: tracking: %w", err)
 	}
-	progress(fmt.Sprintf("%d Frames getrackt (%dx%d) in %s",
+	progress(fmt.Sprintf("%d frames tracked (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
 	backend := "csrt"
 	if twoPoint {
@@ -147,6 +152,7 @@ type nativeTrackOptions struct {
 	AppearanceMemory   bool
 	Axis               string
 	Cancel             func() bool
+	FixedB             bool
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {

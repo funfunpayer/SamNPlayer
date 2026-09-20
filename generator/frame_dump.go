@@ -35,7 +35,8 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 	if err != nil {
 		w, h, err2 := pngSize(outputPNG)
 		if err2 != nil {
-			return 0, 0, fmt.Errorf("generator: Framegröße unbekannt: %v / %v", err, err2)
+			return 0, 0, fmt.Errorf("generator: unknown frame size: %v / %v", err, err2)
+
 		}
 		return w, h, nil
 	}
@@ -43,7 +44,8 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 	if err != nil {
 		w, h, err2 := pngSize(outputPNG)
 		if err2 != nil {
-			return 0, 0, fmt.Errorf("generator: Framegröße unbekannt: %v / %v", err, err2)
+			return 0, 0, fmt.Errorf("generator: unknown frame size: %v / %v", err, err2)
+
 		}
 		return w, h, nil
 	}
@@ -51,14 +53,14 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 	if len(parts) != 2 {
 		w, h, err2 := pngSize(outputPNG)
 		if err2 != nil {
-			return 0, 0, fmt.Errorf("generator: Framegröße nicht lesbar: %s", string(info))
+			return 0, 0, fmt.Errorf("generator: frame size unreadable: %s", string(info))
 		}
 		return w, h, nil
 	}
 	w, _ := strconv.Atoi(parts[0])
 	h, _ := strconv.Atoi(parts[1])
 	if w <= 0 || h <= 0 {
-		return 0, 0, fmt.Errorf("generator: ungültige Framegröße %dx%d", w, h)
+		return 0, 0, fmt.Errorf("generator: invalid frame size %dx%d", w, h)
 	}
 	return w, h, nil
 }
@@ -86,7 +88,7 @@ func pngSize(path string) (int, int, error) {
 	w := int(header[16])<<24 | int(header[17])<<16 | int(header[18])<<8 | int(header[19])
 	h := int(header[20])<<24 | int(header[21])<<16 | int(header[22])<<8 | int(header[23])
 	if w <= 0 || h <= 0 {
-		return 0, 0, fmt.Errorf("PNG-Größe %dx%d", w, h)
+		return 0, 0, fmt.Errorf("PNG size %dx%d", w, h)
 	}
 	return w, h, nil
 }

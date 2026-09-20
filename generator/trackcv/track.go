@@ -36,6 +36,8 @@ type Options struct {
 	// Cancel, if non-nil, is checked each frame; return true to abort.
 	// Used by GenerateWithContext so Abbrechen stops native CSRT too.
 	Cancel func() bool
+	// FixedB keeps ROI B at the initial box (static Tf/Tj contact target).
+	FixedB bool
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt

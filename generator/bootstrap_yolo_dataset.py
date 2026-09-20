@@ -445,6 +445,26 @@ def main():
                      help="Vierte Region im selben Frame (optional)")
     ap.add_argument("--class-name4", default=None,
                      help="Klasse der vierten Region (--roi4)")
+    ap.add_argument("--roi5", default=None, metavar="x,y,w,h",
+                     help="Fifth region on the same frame (optional)")
+    ap.add_argument("--class-name5", default=None,
+                     help="Class for --roi5")
+    ap.add_argument("--roi6", default=None, metavar="x,y,w,h",
+                     help="Sixth region on the same frame (optional)")
+    ap.add_argument("--class-name6", default=None,
+                     help="Class for --roi6")
+    ap.add_argument("--roi7", default=None, metavar="x,y,w,h",
+                     help="Seventh region on the same frame (optional)")
+    ap.add_argument("--class-name7", default=None,
+                     help="Class for --roi7")
+    ap.add_argument("--roi8", default=None, metavar="x,y,w,h",
+                     help="Eighth region on the same frame (optional)")
+    ap.add_argument("--class-name8", default=None,
+                     help="Class for --roi8")
+    ap.add_argument("--roi9", default=None, metavar="x,y,w,h",
+                     help="Ninth region on the same frame (optional; body-parts taxonomy max)")
+    ap.add_argument("--class-name9", default=None,
+                     help="Class for --roi9")
     ap.add_argument("--sample-prefix", default=None,
                      help="Fester Dateinamenspräfix statt des automatischen Video-Hash-Präfix - "
                           "so kann ein Aufrufer (z.B. die GUI) den Präfix vorher selbst bestimmen "
@@ -483,6 +503,11 @@ def main():
     _add_roi("--roi2", args.roi2, args.class_name2)
     _add_roi("--roi3", args.roi3, args.class_name3)
     _add_roi("--roi4", args.roi4, args.class_name4)
+    _add_roi("--roi5", args.roi5, args.class_name5)
+    _add_roi("--roi6", args.roi6, args.class_name6)
+    _add_roi("--roi7", args.roi7, args.class_name7)
+    _add_roi("--roi8", args.roi8, args.class_name8)
+    _add_roi("--roi9", args.roi9, args.class_name9)
 
     start_frame = 0
     if getattr(args, "start_seconds", 0) and args.start_seconds > 0:

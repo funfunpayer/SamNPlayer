@@ -1,16 +1,23 @@
-MIT License
-
 Copyright (c) 2026 funfunpayer
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+SamNPlayer is proprietary software. The source code, documentation in this
+repository, and related materials are confidential and may not be copied,
+modified, merged, published, distributed, sublicensed, sold, or otherwise
+made available to third parties without prior written permission from the
+copyright holder.
+
+## End-user binaries
+
+Official release binaries published by the copyright holder (for example on
+https://github.com/funfunpayer/SamNPlayer-site) may be downloaded and used
+for personal, non-commercial purposes, subject to any additional terms shipped
+with those builds. Redistribution of those binaries, reverse engineering for
+the purpose of creating a competing product, and redistribution of extracted
+assets are not permitted without prior written permission.
+
+## No warranty
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +26,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Historical notice
+
+Earlier public revisions of this project were distributed under the MIT
+License. This proprietary notice applies to current and future closed builds
+and to this repository once it is private. It does not revoke rights that
+may already have attached to copies obtained under MIT while that license
+was in force.

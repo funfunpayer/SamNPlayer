@@ -10,15 +10,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/funfunpayer/SamNPlayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=d4a017" /></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=d4a017" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/funfunpayer/SamNPlayer?style=flat-square" /></a>
+  <img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" />
+  <img alt="Source" src="https://img.shields.io/badge/source-private-334155?style=flat-square" />
   <img alt="No Electron" src="https://img.shields.io/badge/GUI-~13%20MB%20native-0d9488?style=flat-square" />
   <img alt="Local only" src="https://img.shields.io/badge/AI-local%20optional-334155?style=flat-square" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/funfunpayer/SamNPlayer/releases/latest"><strong>Download</strong></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><strong>Download</strong></a>
   ·
   <a href="#why-samnplayer">Why this app</a>
   ·
@@ -114,9 +115,11 @@ not needed, it stays out.
 
 ## Download
 
-Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are attached to
-every [GitHub Release](https://github.com/funfunpayer/SamNPlayer/releases)
-with `checksums.txt`.
+Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are published on the
+**public** showcase ([SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases))
+with `checksums.txt`. Private-repo releases are not anonymously downloadable —
+after each tag run `./scripts/publish-public-release.sh vX.Y.Z` (and
+`./scripts/sync-public-site.sh` when screenshots/landing change).
 
 Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
 include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
@@ -133,7 +136,7 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Latest: **[v0.5.9](https://github.com/funfunpayer/SamNPlayer/releases/latest)**  
+Latest: **[v0.5.10](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
@@ -143,6 +146,8 @@ antenna (e.g. TP-Link UB500 / Asus USB-BT500), not bare onboard radios.
 ---
 
 ## Build from source
+
+> Team only — application source is **private**. Public visitors use [SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site).
 
 Needs Go, and Node/npm for the GUI frontend.
 
@@ -156,7 +161,7 @@ Cross-compile Windows GUI from Linux:
 ```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.9"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.10"
 ```
 
 Generator extras need **Python 3.9+** and
@@ -207,4 +212,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). One manageable task, regression
 tests for behavior changes, measurements instead of vibes. Day-to-day
 discussion may be German; **shipped UI and docs are English**.
 
-License: [MIT](LICENSE).
+License: proprietary — see [LICENSE](LICENSE). Public face + downloads: [SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site).

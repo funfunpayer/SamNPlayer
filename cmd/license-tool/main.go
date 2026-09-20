@@ -111,15 +111,18 @@ func cmdIssue(args []string) int {
 
 	now := time.Now().UTC()
 	t := strings.ToLower(strings.TrimSpace(*tier))
+	switch t {
+	case license.TierStandard, license.TierInvite, license.TierInternal:
+	default:
+		fmt.Fprintf(os.Stderr, "unknown tier %q (want standard|invite|internal)\n", *tier)
+		return 2
+	}
 	never := strings.EqualFold(*exp, "never") || t == license.TierInvite || t == license.TierInternal
 
 	var claims license.Claims
 	if never {
-		if t != license.TierInternal {
+		if t == license.TierStandard {
 			t = license.TierInvite
-		}
-		if strings.EqualFold(*tier, license.TierInternal) {
-			t = license.TierInternal
 		}
 		claims = license.NewInviteClaims(*sub, t, now)
 	} else {

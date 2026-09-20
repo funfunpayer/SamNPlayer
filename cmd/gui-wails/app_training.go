@@ -66,13 +66,6 @@ func (a *App) StartTraining(req TrainingRequest) error {
 	}
 
 	dev, reusedDevice := a.claimSessionDevice(req.Mock)
-	// Unter stateMu wie in StartPlayback (siehe dessen Kommentar) - Training
-	// hat kein Gegenstück zu TriggerExtendedO, das a.activeDevice läse, aber
-	// shutdown() liest es (app.go) und muss denselben Schutz sehen wie jeden
-	// anderen Schreibzugriff auf dieses Feld.
-	a.stateMu.Lock()
-	a.activeDevice = dev
-	a.stateMu.Unlock()
 
 	sessionFile, sessionErr := a.openSessionLog(req.Technique)
 	if sessionErr != nil {
@@ -91,10 +84,15 @@ func (a *App) StartTraining(req TrainingRequest) error {
 		ProgressionPerCycle: req.ProgressionPerCycle,
 	}
 
+	// Claim the session slot first — otherwise a rejected start would still
+	// overwrite activeDevice and point shutdown at the wrong device.
 	ctx, err := a.tryStartSession()
 	if err != nil {
 		return err
 	}
+	a.stateMu.Lock()
+	a.activeDevice = dev
+	a.stateMu.Unlock()
 
 	go func() {
 		defer a.endSession()

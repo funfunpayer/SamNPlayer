@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -108,7 +109,7 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
 	}
 	if !RoiTrainingAvailable() {
-		return fmt.Errorf("generator: ultralytics nach pip install immer noch nicht verfügbar")
+		return fmt.Errorf("generator: ultralytics still unavailable after pip install")
 	}
 	return nil
 }
@@ -176,9 +177,9 @@ func ListRoiTrainingDevices() []RoiTrainingDevice {
 	return devices
 }
 
-// RoiTrainingRegion ist eine markierte Region samt Klassenname für den
-// Bootstrap-Datensatz (siehe bootstrap_yolo_dataset.py) - ROI1 ist immer
-// nötig, ROI2–ROI4 optional (mehrere Klassen im selben Bild).
+// RoiTrainingRegion is a marked box + class for the YOLO bootstrap dataset
+// (bootstrap_yolo_dataset.py). ROI1 is required; ROI2–ROI9 optional (up to
+// bodyparts.MaxRegionsPerImage classes on one frame).
 type RoiTrainingRegion struct {
 	ROI       ROI    `json:"ROI"`
 	ClassName string `json:"ClassName"`
@@ -202,7 +203,7 @@ func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, o
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
 	if len(regions) == 0 {
-		return fmt.Errorf("generator: mindestens eine Region nötig")
+		return fmt.Errorf("generator: at least one region required")
 	}
 	py, err := FindPython()
 	if err != nil {
@@ -315,6 +316,15 @@ func buildBootstrapArgs(scriptPath, videoPath string, regions []RoiTrainingRegio
 }
 
 func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string, sampleEvery int, startSeconds, boxScale float64) []string {
+	if len(regions) > bodyparts.MaxRegionsPerImage {
+		regions = regions[:bodyparts.MaxRegionsPerImage]
+	}
+	for i := range regions {
+		regions[i].ClassName = bodyparts.Normalize(regions[i].ClassName)
+		if regions[i].ClassName == "" {
+			regions[i].ClassName = "motion_region"
+		}
+	}
 	args := []string{scriptPath,
 		"--video", videoPath,
 		"--roi", roiArg(regions[0].ROI),
@@ -333,14 +343,12 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	if boxScale > 0 && (boxScale < 0.999 || boxScale > 1.001) {
 		args = append(args, "--box-scale", fmt.Sprintf("%.3f", boxScale))
 	}
-	if len(regions) > 1 {
-		args = append(args, "--roi2", roiArg(regions[1].ROI), "--class-name2", regions[1].ClassName)
-	}
-	if len(regions) > 2 {
-		args = append(args, "--roi3", roiArg(regions[2].ROI), "--class-name3", regions[2].ClassName)
-	}
-	if len(regions) > 3 {
-		args = append(args, "--roi4", roiArg(regions[3].ROI), "--class-name4", regions[3].ClassName)
+	for i := 1; i < len(regions) && i < 9; i++ {
+		n := i + 1
+		args = append(args,
+			"--roi"+itoa(n), roiArg(regions[i].ROI),
+			"--class-name"+itoa(n), regions[i].ClassName,
+		)
 	}
 	return args
 }

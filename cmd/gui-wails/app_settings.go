@@ -8,6 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -171,7 +172,7 @@ func (a *App) GetSettings() Settings {
 		IntifaceURL:        s.GetString(prefIntifaceURL, ""),
 		DeviceConnectTest:  s.GetBool(prefDeviceConnectTest, false),
 		AIRoiModelPath:     s.GetString(prefAIRoiModelPath, ""),
-		AIPreferredClasses: s.GetString(prefAIPreferredClasses, ""),
+		AIPreferredClasses: s.GetString(prefAIPreferredClasses, bodyparts.PreferredClassesCSV()),
 		AIBaseURL:          s.GetString(prefAIBaseURL, ""),
 
 		BenchmarkManifestPath:       s.GetString(prefBenchmarkManifest, ""),

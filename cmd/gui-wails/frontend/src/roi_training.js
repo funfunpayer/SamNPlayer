@@ -1,23 +1,26 @@
 import {
   PickVideoFile, PickImageFile, LoadFirstFrame, LoadFrameAt,
-  BootstrapRoiTrainingSampleEx, AddRoiStillTrainingSample, RunRoiModelTraining,
+  BootstrapRoiTrainingRegions, AddRoiStillTrainingSample, RunRoiModelTraining,
   ListRoiTrainingSamples, DiscardRoiTrainingSample, UpdateRoiTrainingSample, GetRoiDatasetSummary,
   GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, CheckRoiTrainingStatus,
   InstallRoiTrainingDeps, ListRoiTrainingDevices,
 } from '../wailsjs/go/main/App';
+import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
 import { uiError, uiInfo } from './notify.js';
 
-const CLASS_PRESETS = [
-  'hand', 'mouth', 'brust', 'eichel', 'penis', 'tongue', 'toy', 'body', 'face', 'other',
-];
 const MARK_COLORS = [
   { stroke: '#3dccc0', fill: 'rgba(61,204,192,0.16)' },
   { stroke: '#f2b03d', fill: 'rgba(242,176,61,0.18)' },
   { stroke: '#5ecf8a', fill: 'rgba(94,207,138,0.16)' },
   { stroke: '#e8eaed', fill: 'rgba(232,234,237,0.12)' },
+  { stroke: '#7aa2ff', fill: 'rgba(122,162,255,0.16)' },
+  { stroke: '#ff7a9a', fill: 'rgba(255,122,154,0.16)' },
+  { stroke: '#c9a0ff', fill: 'rgba(201,160,255,0.14)' },
+  { stroke: '#9ad6ff', fill: 'rgba(154,214,255,0.14)' },
+  { stroke: '#ffd27a', fill: 'rgba(255,210,122,0.16)' },
 ];
 
 export function initRoiTraining(root) {
@@ -25,14 +28,14 @@ export function initRoiTraining(root) {
     <h2>AI training</h2>
     <p class="hint">
       Mark on video or still → sample → review → train locally.
-      Up to four classes per image. Audio is stored alongside the dataset.
+      Up to nine body-part classes per image (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina). Audio is stored with the dataset.
     </p>
     <div class="card" style="margin-bottom:16px; padding:12px 14px;">
       <h3 style="margin-top:0; margin-bottom:8px;">From marks to a good script</h3>
       <ol class="hint" style="margin:0; padding-left:1.2em; line-height:1.55;">
         <li><b>Train here</b> — marks → “Use for training” → discard bad samples → start training. Result: <code>roi_detector.onnx</code>.</li>
         <li><b>Then Generate</b> — Load video → enable “AI detection (ONNX)” → “Find region automatically”. AI suggests the box only.</li>
-        <li><b>Verify/correct box</b> — never apply blindly. For Tf/Tj, set a 2nd region if needed.</li>
+        <li><b>Verify/correct boxes</b> — never apply blindly. For Tf/Tj, tip + fixed target (e.g. Glans + Nipples).</li>
         <li><b>Generate Funscript</b> — classic tracking (CSRT/Flow/…) writes the script. AI does not track by itself.</li>
         <li><b>Review in Playback</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>
@@ -57,9 +60,9 @@ export function initRoiTraining(root) {
     </div>
     <div class="row" style="align-items:center; flex-wrap:wrap;">
       <button id="rt-mark-next" type="button"
-        data-help="Start next mark (up to 4 boxes on the same image).">+ Mark</button>
+        data-help="Start next mark (up to 9 body-part boxes on the same image).">+ Mark</button>
       <button id="rt-clear-marks" type="button">Clear all</button>
-      <span class="hint" style="margin:0">Active: <span id="rt-active-mark">1</span>/4 — Shift+drag = next class</span>
+      <span class="hint" style="margin:0">Active: <span id="rt-active-mark">1</span>/9 — Shift+drag = next class</span>
     </div>
     <div id="rt-mark-fields"></div>
     <datalist id="rt-class-list"></datalist>
@@ -131,7 +134,7 @@ export function initRoiTraining(root) {
   let sourceKind = null; // 'video' | 'image'
   let img = new Image();
   let nativeW = 0, nativeH = 0;
-  let marks = [null, null, null, null]; // up to 4
+  let marks = Array(9).fill(null); // up to MAX_REGIONS
   let activeMark = 0;
   let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let lastPrefix = '';
@@ -142,24 +145,24 @@ export function initRoiTraining(root) {
 
   function renderMarkFields() {
     const prev = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < MAX_REGIONS; i++) {
       prev[i] = el(`#rt-class${i + 1}`)?.value || '';
     }
     const wrap = el('#rt-mark-fields');
     wrap.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < MAX_REGIONS; i++) {
       const row = document.createElement('div');
       row.className = 'field-row';
       row.style.opacity = (i === 0 || marks[i] || i === activeMark) ? '1' : '0.55';
       const lab = document.createElement('label');
-      lab.textContent = `Klasse ${i + 1}`;
+      lab.textContent = `Class ${i + 1}`;
       lab.style.borderLeft = `3px solid ${MARK_COLORS[i].stroke}`;
       lab.style.paddingLeft = '6px';
       const input = document.createElement('input');
       input.type = 'text';
       input.id = `rt-class${i + 1}`;
       input.setAttribute('list', 'rt-class-list');
-      input.placeholder = CLASS_PRESETS[i] || 'z.B. hand';
+      input.placeholder = CLASS_PRESETS[i] || 'e.g. glans';
       if (prev[i]) input.value = prev[i];
       input.addEventListener('input', updateBootstrapEnabled);
       const meta = document.createElement('span');
@@ -168,7 +171,7 @@ export function initRoiTraining(root) {
       meta.style.margin = '0 0 0 8px';
       meta.textContent = marks[i]
         ? `${marks[i].w}×${marks[i].h}`
-        : (i === activeMark ? 'ziehen…' : '—');
+        : (i === activeMark ? 'draw…' : '—');
       row.appendChild(lab);
       row.appendChild(input);
       row.appendChild(meta);
@@ -181,7 +184,7 @@ export function initRoiTraining(root) {
   function updateBootstrapEnabled() {
     const class1 = el('#rt-class1')?.value.trim();
     let ok = !!(sourcePath && marks[0] && class1);
-    for (let i = 1; i < 4; i++) {
+    for (let i = 1; i < MAX_REGIONS; i++) {
       if (marks[i] && !(el(`#rt-class${i + 1}`)?.value.trim())) ok = false;
     }
     el('#rt-bootstrap').disabled = !ok;
@@ -200,7 +203,7 @@ export function initRoiTraining(root) {
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < MAX_REGIONS; i++) {
       if (marks[i] && !(dragging && i === activeMark)) {
         drawNativeRect(marks[i], MARK_COLORS[i].stroke, MARK_COLORS[i].fill);
       }
@@ -222,7 +225,7 @@ export function initRoiTraining(root) {
     startX = curX = e.clientX - r.left;
     startY = curY = e.clientY - r.top;
     if (e.shiftKey) {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < MAX_REGIONS; i++) {
         if (!marks[i]) { activeMark = i; break; }
       }
     }
@@ -247,14 +250,14 @@ export function initRoiTraining(root) {
       x: Math.round(x0 * scaleX), y: Math.round(y0 * scaleY),
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
-    if (activeMark < 3) activeMark += 1;
+    if (activeMark < MAX_REGIONS - 1) activeMark += 1;
     renderMarkFields();
     updateBootstrapEnabled();
     redraw();
   });
 
   el('#rt-mark-next').addEventListener('click', () => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < MAX_REGIONS; i++) {
       if (!marks[i]) { activeMark = i; break; }
     }
     renderMarkFields();
@@ -370,7 +373,10 @@ export function initRoiTraining(root) {
 
   el('#rt-bootstrap').addEventListener('click', async () => {
     if (!sourcePath || !marks[0]) return;
-    const classes = [1, 2, 3, 4].map(i => el(`#rt-class${i}`)?.value.trim() || '');
+    const classes = [];
+    for (let i = 1; i <= MAX_REGIONS; i++) {
+      classes.push(el(`#rt-class${i}`)?.value.trim() || '');
+    }
     if (!classes[0]) return;
     el('#rt-bootstrap').disabled = true;
     el('#rt-bootstrap-status').textContent = 'Running…';
@@ -378,9 +384,9 @@ export function initRoiTraining(root) {
     try {
       if (sourceKind === 'image') {
         const regions = [];
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < MAX_REGIONS; i++) {
           if (marks[i] && classes[i]) {
-            regions.push({ ROI: roiArg(marks[i]), ClassName: classes[i] });
+            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
           }
         }
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
@@ -392,11 +398,14 @@ export function initRoiTraining(root) {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
         const boxScale = parseFloat(el('#rt-box-scale')?.value) || 1.0;
-        lastPrefix = await BootstrapRoiTrainingSampleEx(
-          sourcePath,
-          roiArg(marks[0]), roiArg(marks[1]), roiArg(marks[2]), roiArg(marks[3]),
-          classes[0], classes[1], classes[2], classes[3],
-          sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
+        const regions = [];
+        for (let i = 0; i < MAX_REGIONS; i++) {
+          if (marks[i] && classes[i]) {
+            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
+          }
+        }
+        lastPrefix = await BootstrapRoiTrainingRegions(
+          sourcePath, regions, sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
         );
       }
     } catch (err) {
@@ -622,26 +631,26 @@ export function initRoiTraining(root) {
     const wrap = el('#rt-class-chips');
     if (!wrap) return;
     wrap.innerHTML = '';
-    const known = fromData.length ? fromData : allNames.slice(0, 8);
+    const known = fromData.length ? fromData : allNames.slice(0, MAX_REGIONS);
     if (!known.length) {
-      wrap.innerHTML = '<span class="hint">No classes yet — type presets below or mark a region.</span>';
+      wrap.innerHTML = '<span class="hint">No classes yet — use the English body-part presets or mark a region.</span>';
       return;
     }
     const label = document.createElement('span');
     label.className = 'hint';
     label.style.marginRight = '6px';
-    label.textContent = fromData.length ? 'From dataset:' : 'Suggestions:';
+    label.textContent = fromData.length ? 'From dataset:' : 'Body parts:';
     wrap.appendChild(label);
     known.forEach(name => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'rt-chip';
-      btn.textContent = name;
-      btn.title = 'In aktive Klasse einsetzen';
+      btn.textContent = labelFor(name) || name;
+      btn.title = name;
       btn.addEventListener('click', () => {
         const input = el(`#rt-class${activeMark + 1}`);
         if (input) {
-          input.value = name;
+          input.value = normalizeClass(name) || name;
           updateBootstrapEnabled();
         }
       });
@@ -697,7 +706,7 @@ export function initRoiTraining(root) {
       uiError('Training failed: ' + payload.error, el('#rt-train-status'));
       return;
     }
-    el('#rt-train-status').textContent = 'Fertig: ' + payload.modelPath
+    el('#rt-train-status').textContent = 'Done: ' + payload.modelPath
       + ' — AI detection in the Generate tab updates automatically.';
     window.dispatchEvent(new CustomEvent('samn-ai-roi-refresh'));
   });

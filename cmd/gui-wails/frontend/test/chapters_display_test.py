@@ -44,7 +44,7 @@ def main():
         "GetScriptOffset": "async () => 0",
         "GetOMarkers": "async () => []",
         "SaveOMarkers": "async () => {}",
-        "AnalyzeScript": "async () => ({ summary: '10 Sekunden: gleichmäßig 80%' })",
+        "AnalyzeScript": "async () => ({ summary: '10 seconds: steady 80%' })",
         "ScriptChapters": "async () => [{ kind: 'pause', startMs: 0, endMs: 1000 }, "
                           "{ kind: 'crescendo', startMs: 1000, endMs: 10000 }]",
     }))
@@ -63,11 +63,11 @@ def main():
         page.wait_for_function(
             "document.querySelector('#pb-analysis').textContent.includes('Chapters')", timeout=5000)
         text = page.locator("#pb-analysis").inner_text()
-        check("Analyse-Zusammenfassung bleibt erhalten", "gleichmäßig" in text, text)
+        check("analysis summary kept", "steady" in text, text)
         check("chapter list is appended", "Chapters:" in text, text)
-        check("Kapitelnamen werden übersetzt (Pause/Steigerung)",
+        check("chapter names translated (Pause/Crescendo)",
               "Pause" in text and "Crescendo" in text, text)
-        check("Zeiten werden als m:ss formatiert", "0:00" in text and "0:10" in text, text)
+        check("times formatted as m:ss", "0:00" in text and "0:10" in text, text)
 
         browser.close()
 

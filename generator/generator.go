@@ -48,6 +48,16 @@ type ROI struct {
 	X, Y, W, H int
 }
 
+// NamedROI is a body-part box with optional fixed flag (Tf/Tj target / mask).
+type NamedROI struct {
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+	W     int    `json:"w"`
+	H     int    `json:"h"`
+	Fixed bool   `json:"fixed"`
+	Class string `json:"class"`
+}
+
 type Options struct {
 	Invert                    bool
 	SmoothWindow              int
@@ -73,12 +83,24 @@ type Options struct {
 	RDPTolerance              float64
 	DisableSceneCutDetection  bool
 	ROI2                      ROI
-	AIQualityOpinion          bool
-	AIBaseURL                 string
-	ContactVibration          bool
-	ContactVibrationSpan      float64
-	ContactVibrationCurve     string
-	AudioCheck                bool
+	// ROI2Fixed keeps the second Tf/Tj box at its marked position (static
+	// anchor). ROI1 is still tracked. Distance then reflects tip motion only.
+	ROI2Fixed bool
+	// RegionClass / RegionClass2 are optional canonical body-part IDs
+	// (docs/BODY_REGIONS.md) for ROI / ROI2 — used for AI preference + UI.
+	RegionClass           string
+	RegionClass2          string
+	// ExtraTargets are additional Tf/Tj contact anchors beyond ROI2.
+	// Distance signal = min(tip, ROI2, ExtraTargets…). Defaults to fixed.
+	ExtraTargets []NamedROI
+	// MaskROIs soft-exclude boxes (feature mask punch-outs); not distance drivers.
+	MaskROIs []ROI
+	AIQualityOpinion      bool
+	AIBaseURL             string
+	ContactVibration      bool
+	ContactVibrationSpan  float64
+	ContactVibrationCurve string
+	AudioCheck            bool
 	// StartTimeSec skips the first N seconds before tracking (GUI seek past
 	// black intro). 0 = start at the beginning.
 	StartTimeSec float64
@@ -839,6 +861,27 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	}
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 {
 		args = append(args, "--roi2", fmt.Sprintf("%d,%d,%d,%d", opts.ROI2.X, opts.ROI2.Y, opts.ROI2.W, opts.ROI2.H))
+		if opts.ROI2Fixed {
+			args = append(args, "--roi2-fixed")
+		}
+	}
+	if opts.RegionClass != "" {
+		args = append(args, "--region-class", opts.RegionClass)
+	}
+	if opts.RegionClass2 != "" {
+		args = append(args, "--region-class2", opts.RegionClass2)
+	}
+	for _, t := range opts.ExtraTargets {
+		if t.W <= 0 || t.H <= 0 {
+			continue
+		}
+		args = append(args, "--target", fmt.Sprintf("%d,%d,%d,%d", t.X, t.Y, t.W, t.H))
+	}
+	for _, m := range opts.MaskROIs {
+		if m.W <= 0 || m.H <= 0 {
+			continue
+		}
+		args = append(args, "--mask", fmt.Sprintf("%d,%d,%d,%d", m.X, m.Y, m.W, m.H))
 	}
 	if opts.PeakProminence > 0 {
 		args = append(args, "--peak-prominence", strconv.FormatFloat(opts.PeakProminence, 'f', -1, 64))

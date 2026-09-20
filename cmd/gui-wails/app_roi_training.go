@@ -124,8 +124,8 @@ func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.
 	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0, 1.0)
 }
 
-// BootstrapRoiTrainingSampleEx supports up to 4 marks, sampling stride, audio,
-// startSeconds seek, and optional YOLO box_scale pad around the marked size.
+// BootstrapRoiTrainingSampleEx supports up to 4 marks (compat). Prefer
+// BootstrapRoiTrainingRegions for the full body-parts taxonomy (9 marks).
 func (a *App) BootstrapRoiTrainingSampleEx(
 	videoPath string,
 	roi, roi2, roi3, roi4 *generator.ROI,
@@ -135,35 +135,9 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	startSeconds float64,
 	boxScale float64,
 ) (string, error) {
-	if err := claimRoiTrainingRun(); err != nil {
-		return "", err
-	}
 	if roi == nil {
-		releaseRoiTrainingRun()
 		return "", fmt.Errorf("at least one region (ROI1) is required")
 	}
-	if roi2 != nil && strings.TrimSpace(className2) == "" {
-		releaseRoiTrainingRun()
-		return "", fmt.Errorf("region 2 needs a class name")
-	}
-	if roi3 != nil && strings.TrimSpace(className3) == "" {
-		releaseRoiTrainingRun()
-		return "", fmt.Errorf("region 3 needs a class name")
-	}
-	if roi4 != nil && strings.TrimSpace(className4) == "" {
-		releaseRoiTrainingRun()
-		return "", fmt.Errorf("region 4 needs a class name")
-	}
-	if sampleEvery <= 0 {
-		sampleEvery = 12
-	}
-	if boxScale <= 0 {
-		boxScale = 1.0
-	}
-
-	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
-	prefix := roiTrainingSamplePrefix(videoPath)
-
 	regions := []generator.RoiTrainingRegion{{ROI: *roi, ClassName: className}}
 	if roi2 != nil {
 		regions = append(regions, generator.RoiTrainingRegion{ROI: *roi2, ClassName: className2})
@@ -174,6 +148,41 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	if roi4 != nil {
 		regions = append(regions, generator.RoiTrainingRegion{ROI: *roi4, ClassName: className4})
 	}
+	return a.BootstrapRoiTrainingRegions(videoPath, regions, sampleEvery, extractAudio, startSeconds, boxScale)
+}
+
+// BootstrapRoiTrainingRegions tracks 1–9 marked body-part regions through the
+// video into the YOLO dataset (docs/BODY_REGIONS.md).
+func (a *App) BootstrapRoiTrainingRegions(
+	videoPath string,
+	regions []generator.RoiTrainingRegion,
+	sampleEvery int,
+	extractAudio bool,
+	startSeconds float64,
+	boxScale float64,
+) (string, error) {
+	if err := claimRoiTrainingRun(); err != nil {
+		return "", err
+	}
+	if len(regions) == 0 {
+		releaseRoiTrainingRun()
+		return "", fmt.Errorf("at least one region is required")
+	}
+	for i, r := range regions {
+		if strings.TrimSpace(r.ClassName) == "" {
+			releaseRoiTrainingRun()
+			return "", fmt.Errorf("region %d needs a class name", i+1)
+		}
+	}
+	if sampleEvery <= 0 {
+		sampleEvery = 12
+	}
+	if boxScale <= 0 {
+		boxScale = 1.0
+	}
+
+	datasetDir := a.settings.GetString(prefRoiDatasetDir, generator.DefaultRoiDatasetDir())
+	prefix := roiTrainingSamplePrefix(videoPath)
 
 	go func() {
 		defer releaseRoiTrainingRun()

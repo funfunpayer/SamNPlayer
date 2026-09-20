@@ -58,29 +58,39 @@ from tf_tj_meta import (
 )
 
 
-def estimate_camera_motion(prev_gray, gray, exclude_bbox):
-    """Schätzt die globale vertikale Kamerabewegung zwischen zwei Frames.
+def _punch_exclude_boxes(mask, boxes, pad=10):
+    """Zero out one or more (x,y,w,h) boxes on a uint8 feature mask."""
+    if not boxes:
+        return mask
+    h, w = mask.shape[:2]
+    for box in boxes:
+        if box is None:
+            continue
+        x, y, bw, bh = [int(v) for v in box]
+        x0, y0 = max(0, x - pad), max(0, y - pad)
+        x1, y1 = min(w, x + bw + pad), min(h, y + bh + pad)
+        if x1 > x0 and y1 > y0:
+            mask[y0:y1, x0:x1] = 0
+    return mask
 
-    Verfahren (siehe Projektdokumentation Abschnitt "Camera Motion
-    Compensation"): Hintergrund-Features außerhalb der verfolgten
-    Objektregion werden per Sparse Optical Flow (Lucas-Kanade) verfolgt,
-    daraus wird per RANSAC eine robuste affine Transformation geschätzt.
-    Der y-Translationsanteil dieser Transformation ist die geschätzte
-    Kamerabewegung.
 
-    Gibt 0.0 zurück, wenn zu wenige verlässliche Hintergrund-Punkte
-    gefunden wurden (z.B. wenig Textur, sehr kleines Bild oder das Objekt
-    füllt fast das ganze Bild) - eine unsichere Schätzung würde die Kurve
-    eher verschlechtern als verbessern, deshalb lieber keine Korrektur in
-    diesem Frame als eine geratene.
+def estimate_camera_motion(prev_gray, gray, exclude_bbox, extra_excludes=None):
+    """Estimate global vertical camera motion between two frames.
+
+    Background features outside the tracked object region (and optional
+    soft-mask body-part boxes) are tracked with sparse LK + RANSAC.
+    Returns 0.0 when too few reliable background points are found.
+    exclude_bbox: primary (x,y,w,h). extra_excludes: optional list of boxes
+    (docs/BODY_REGIONS.md mask role).
     """
     h, w = prev_gray.shape[:2]
     mask = np.full((h, w), 255, dtype=np.uint8)
-    x, y, bw, bh = [int(v) for v in exclude_bbox]
-    pad = 10
-    x0, y0 = max(0, x - pad), max(0, y - pad)
-    x1, y1 = min(w, x + bw + pad), min(h, y + bh + pad)
-    mask[y0:y1, x0:x1] = 0
+    boxes = []
+    if exclude_bbox is not None:
+        boxes.append(exclude_bbox)
+    if extra_excludes:
+        boxes.extend(extra_excludes)
+    _punch_exclude_boxes(mask, boxes, pad=10)
 
     prev_pts = cv2.goodFeaturesToTrack(
         prev_gray, maxCorners=200, qualityLevel=0.01, minDistance=20, blockSize=7, mask=mask
@@ -151,15 +161,12 @@ def detect_scene_cut(prev_gray, gray, threshold=0.5, prev_signature=None,
 
 def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
               scene_cut_detection=True, start_frame=0, axis="auto",
-              appearance_memory=True):
-    """Verfolgt roi=(x,y,w,h) durchs Video, gibt (timestamps_ms, y_positions,
-    frame_size, scene_cuts) zurück. y_positions ist die vertikale Mitte der
-    ROI pro Frame, in Bildkoordinaten (0=oben), optional um die geschätzte
-    globale Kamerabewegung bereinigt (siehe estimate_camera_motion).
-    scene_cuts ist eine Liste der Frame-Indizes, an denen ein harter
-    Szenenschnitt erkannt wurde (siehe detect_scene_cut) - dort wird der
-    Tracker an der zuletzt bekannten Position neu verankert, statt blind
-    über den Schnitt hinweg zu tracken."""
+              appearance_memory=True, mask_rois=None):
+    """Track roi=(x,y,w,h); return (timestamps_ms, positions, frame_size, scene_cuts, stats).
+
+    mask_rois: optional list of (x,y,w,h) soft-exclude boxes punched out of
+    the camera-motion feature mask (body-part mask role).
+    """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
@@ -281,7 +288,8 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
                 # abgezogen.
                 camera_dy_cumulative.append(0.0)
             else:
-                dy = estimate_camera_motion(prev_gray, gray, last_bbox)
+                dy = estimate_camera_motion(prev_gray, gray, last_bbox,
+                                            extra_excludes=mask_rois)
                 if dy == 0.0:
                     camera_frames_lost += 1
                 camera_dy_cumulative.append(camera_dy_cumulative[-1] + dy)
@@ -425,17 +433,19 @@ def _track_cache_key(video_path, roi, max_frames, camera_compensation, scene_cut
 
 def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
                      scene_cut_detection=True, cache_dir=None, axis="auto",
-                     appearance_memory=True, start_frame=0):
+                     appearance_memory=True, start_frame=0, mask_rois=None):
     """track_roi mit Zwischenspeicherung. cache_dir=None schaltet den Cache ab."""
     if not cache_dir:
         return track_roi(video_path, roi, max_frames=max_frames,
                          camera_compensation=camera_compensation,
                          scene_cut_detection=scene_cut_detection, axis=axis,
                          appearance_memory=appearance_memory,
-                         start_frame=start_frame)
+                         start_frame=start_frame, mask_rois=mask_rois)
 
     key = _track_cache_key(video_path, roi, max_frames, camera_compensation,
                            scene_cut_detection, axis, appearance_memory)
+    if mask_rois:
+        key = f"{key}-m{len(mask_rois)}"
     if start_frame:
         key = f"{key}-s{start_frame}"
     path = os.path.join(cache_dir, f"track-{key}.npz")
@@ -459,7 +469,8 @@ def track_roi_cached(video_path, roi, max_frames=None, camera_compensation=True,
         video_path, roi, max_frames=max_frames,
         camera_compensation=camera_compensation,
         scene_cut_detection=scene_cut_detection, axis=axis,
-        appearance_memory=appearance_memory, start_frame=start_frame)
+        appearance_memory=appearance_memory, start_frame=start_frame,
+        mask_rois=mask_rois)
 
     try:
         os.makedirs(cache_dir, exist_ok=True)
@@ -1415,7 +1426,131 @@ def opencv_has_usable_tracker():
     return _csrt_factory() is not None or _fallback_tracker_factory()[0] is not None
 
 
-def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
+def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_frame=0,
+                       mask_rois=None):
+    """Track tip + N contact targets; stroke signal = min 2D distance.
+
+    tip_roi: (x,y,w,h) — always tracked (Tf/Tj tip).
+    targets: list of (roi, fixed) — contact anchors (ROI2 + --target…).
+    Fixed boxes stay at the mark; non-fixed are tracked like the tip.
+    mask_rois: reserved soft-exclude boxes (camera/grid punch-outs on other
+    paths; distance itself is camera-invariant, so unused here).
+
+    Same return contract as track_two_points / track_roi.
+    """
+    if not targets:
+        raise RuntimeError("track_multi_points requires at least one target")
+    # Backward-compatible two-partner path stays available via track_two_points.
+    if len(targets) == 1:
+        roi_b, fixed_b = targets[0]
+        return track_two_points(video_path, tip_roi, roi_b, max_frames=max_frames,
+                                start_frame=start_frame, fixed_b=bool(fixed_b))
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Could not open video: {video_path}")
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    if start_frame > 0:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+    ok, first = cap.read()
+    if not ok:
+        cap.release()
+        raise RuntimeError("Video contains no readable frames")
+    height, width = first.shape[:2]
+
+    tip_tracker = create_tracker()
+    tip_tracker.init(first, tuple(int(v) for v in tip_roi))
+    tip_box = tuple(tip_roi)
+
+    partner_boxes = []
+    partner_trackers = []
+    for roi, fixed in targets:
+        box = tuple(roi)
+        partner_boxes.append(box)
+        if fixed:
+            partner_trackers.append(None)
+        else:
+            tr = create_tracker()
+            tr.init(first, tuple(int(v) for v in box))
+            partner_trackers.append(tr)
+
+    center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
+
+    def min_distance(tip, partners):
+        tx, ty = center(tip)
+        best = None
+        for p in partners:
+            px, py = center(p)
+            d = float(np.hypot(px - tx, py - ty))
+            if best is None or d < best:
+                best = d
+        return best if best is not None else 0.0
+
+    distances = [min_distance(tip_box, partner_boxes)]
+    timestamps = [0.0]
+    lost_flags = [False]
+    lost = 0
+    idx = 1
+
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    if max_frames:
+        total = min(total, max_frames) if total else max_frames
+    next_report = 0
+
+    while True:
+        if max_frames and idx >= max_frames:
+            break
+        if idx >= next_report:
+            print(f"PROGRESS {idx} {total}", file=sys.stderr, flush=True)
+            next_report = idx + max(1, (total or 1000) // 100)
+        ok, frame = cap.read()
+        if not ok:
+            break
+        ok_tip, new_tip = tip_tracker.update(frame)
+        if ok_tip:
+            tip_box = new_tip
+        frame_ok = ok_tip
+        for i, tr in enumerate(partner_trackers):
+            if tr is None:
+                continue
+            ok_p, new_p = tr.update(frame)
+            if ok_p:
+                partner_boxes[i] = new_p
+            else:
+                frame_ok = False
+        frame_lost = not frame_ok
+        if frame_lost:
+            lost += 1
+        distances.append(min_distance(tip_box, partner_boxes))
+        timestamps.append(idx * 1000.0 / fps)
+        lost_flags.append(frame_lost)
+        idx += 1
+
+    cap.release()
+    print(f"PROGRESS {idx} {idx}", file=sys.stderr, flush=True)
+    if start_frame > 0:
+        offset_ms = int(round(start_frame * 1000 / fps))
+        timestamps = [t + offset_ms for t in timestamps]
+    distances = np.asarray(distances, dtype=float)
+    if lost:
+        print(f"Multi-point measurement: in {lost}/{idx} Frames at least one "
+              "tracker lost the target", file=sys.stderr)
+
+    stats = {
+        "tracker_lost_frames": lost,
+        "camera_frames_lost": 0,
+        "total_frames": idx,
+        "vertical_range": round(float(np.ptp(distances)) if len(distances) else 0.0, 1),
+        "horizontal_range": 0.0,
+        "tracking_gaps": tracking_gaps_from_flags(timestamps, lost_flags),
+        "n_targets": len(targets),
+    }
+    return np.asarray(timestamps), distances, (width, height), [], stats
+
+
+def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0,
+                     fixed_b=False):
     """Verfolgt zwei Regionen und liefert ihren ABSTAND (2D) als Signal.
 
     Der Grund für dieses Verfahren ist mathematisch, nicht heuristisch: ein
@@ -1466,9 +1601,11 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
     height, width = first.shape[:2]
 
     tracker_a = create_tracker()
-    tracker_b = create_tracker()
     tracker_a.init(first, tuple(int(v) for v in roi_a))
-    tracker_b.init(first, tuple(int(v) for v in roi_b))
+    tracker_b = None
+    if not fixed_b:
+        tracker_b = create_tracker()
+        tracker_b.init(first, tuple(int(v) for v in roi_b))
 
     box_a, box_b = tuple(roi_a), tuple(roi_b)
     center = lambda box: (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
@@ -1499,11 +1636,13 @@ def track_two_points(video_path, roi_a, roi_b, max_frames=None, start_frame=0):
         if not ok:
             break
         ok_a, new_a = tracker_a.update(frame)
-        ok_b, new_b = tracker_b.update(frame)
         if ok_a:
             box_a = new_a
-        if ok_b:
-            box_b = new_b
+        ok_b = True
+        if tracker_b is not None:
+            ok_b, new_b = tracker_b.update(frame)
+            if ok_b:
+                box_b = new_b
         frame_lost = not (ok_a and ok_b)
         if frame_lost:
             # Verliert auch nur einer der beiden das Ziel, ist der Abstand
@@ -1590,7 +1729,8 @@ def _register_builtin_backends():
             cache_dir=options.get("cache_dir"),
             axis=options.get("axis", "auto"),
             appearance_memory=options.get("appearance_memory", True),
-            start_frame=options.get("start_frame", 0))
+            start_frame=options.get("start_frame", 0),
+            mask_rois=options.get("mask_rois"))
 
     def flow(video_path, roi, options):
         import flow_backend
@@ -1611,9 +1751,19 @@ def _register_builtin_backends():
         roi2 = options.get("roi2")
         if not roi2:
             raise RuntimeError("two_point mode requires a second region (--roi2)")
-        return track_two_points(video_path, roi, roi2,
-                                max_frames=options.get("max_frames"),
-                                start_frame=options.get("start_frame", 0))
+        targets = [(roi2, bool(options.get("roi2_fixed")))]
+        for t in options.get("targets") or []:
+            # t: (x,y,w,h) or ((x,y,w,h), fixed)
+            if isinstance(t, (list, tuple)) and len(t) == 2 and isinstance(t[0], (list, tuple)):
+                targets.append((t[0], bool(t[1])))
+            else:
+                targets.append((t, True))
+        return track_multi_points(
+            video_path, roi, targets,
+            max_frames=options.get("max_frames"),
+            start_frame=options.get("start_frame", 0),
+            mask_rois=options.get("mask_rois"),
+        )
 
     def grid_lk(video_path, roi, options):
         import grid_lk_backend
@@ -2087,6 +2237,19 @@ def main():
                          "ABSTAND beider Regionen. Ein Abstand ist von Kamerabewegung "
                          "mathematisch unabhängig - das Problem entsteht gar nicht erst, "
                          "statt nachträglich herausgerechnet zu werden.")
+    ap.add_argument("--roi2-fixed", action="store_true",
+                    help="Keep ROI2 at the marked box (static contact target); only ROI1 "
+                         "is tracked. See docs/BODY_REGIONS.md.")
+    ap.add_argument("--target", action="append", default=None, metavar="x,y,w,h",
+                    help="Extra Tf/Tj contact target (repeatable). Distance = min(tip, all "
+                         "targets including --roi2). Targets default to fixed.")
+    ap.add_argument("--mask", action="append", default=None, metavar="x,y,w,h",
+                    help="Soft-exclude box (repeatable). Punched out of camera / grid_lk "
+                         "feature masks; does not drive the stroke signal.")
+    ap.add_argument("--region-class", default=None,
+                    help="Optional body-part class for ROI1 (face, mouth, breasts, …).")
+    ap.add_argument("--region-class2", default=None,
+                    help="Optional body-part class for ROI2.")
     ap.add_argument("--axis", choices=["auto", "y", "x"], default="auto",
                     help="Welche Bewegungsachse ausgewertet wird. Waagerecht und senkrecht "
                          "werden immer BEIDE getrackt (kostet nichts zusätzlich) - auto "
@@ -2338,6 +2501,19 @@ def process_one(args, ap):
         start_frame = max(0, int(round(args.start_seconds * _fps)))
         if start_frame:
             print(f"Start bei {args.start_seconds:.2f}s (Frame {start_frame})", file=sys.stderr)
+    # Soft-exclude masks (repeatable --mask) apply to single-ROI camera /
+    # grid_lk feature punch-outs as well as the multi-partner path.
+    def _parse_box(flag, s):
+        try:
+            box = tuple(int(v) for v in s.split(","))
+            if len(box) != 4:
+                raise ValueError
+            return box
+        except ValueError:
+            raise SystemExit(f'{flag} must be "x,y,w,h"')
+
+    mask_rois = [_parse_box("--mask", s) for s in (getattr(args, "mask", None) or [])] or None
+
     # Verfahren außerhalb der eingebauten Sonderfälle laufen über das
     # Register. Die Sonderfälle bleiben, weil sie zusätzliche Rückgabewerte
     # haben (Szenenbereiche) oder Optionen brauchen, die nicht Teil des
@@ -2358,6 +2534,7 @@ def process_one(args, ap):
             "roi2": None,
             "start_frame": start_frame,
             "flow_downscale": getattr(args, "flow_downscale", 0) or 1.0,
+            "mask_rois": mask_rois,
          })
     elif args.roi2:
         try:
@@ -2381,23 +2558,29 @@ def process_one(args, ap):
         if args.backend not in ("csrt", "grid_lk"):
             print(f"Hint: --backend {args.backend!r} does not support two-point measurement, "
                   "using CSRT (track_two_points) instead", file=sys.stderr)
+        extra_targets = []
+        for s in (args.target or []):
+            extra_targets.append((_parse_box("--target", s), True))
+        if mask_rois is None:
+            mask_rois = []
+
         if args.backend == "grid_lk":
-            # --backend wurde für die Zwei-Punkt-Messung bisher komplett
-            # ignoriert (immer CSRT über track_two_points) - derselbe
-            # "stille Backend-Fall" wie schon einmal bei der GUI-Anbindung
-            # (siehe #45/#46), hier für den CLI-Zweipunktpfad. grid_lk hat
-            # keinen cv2.Tracker, braucht daher einen eigenen Zweipunkt-Pfad
-            # statt track_two_points()'s festverdrahteten create_tracker().
             import grid_lk_backend
-            print("Backend 'grid_lk' (two-point, one grid per ROI)", file=sys.stderr)
-            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = grid_lk_backend.analyze_two_point(
-                args.video, roi, roi2, {
-                    "max_frames": args.max_frames,
-                    "scene_cut_detection": not args.no_scene_cut_detection,
-                })
+            print("Backend 'grid_lk' (multi-point, min distance)", file=sys.stderr)
+            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = (
+                grid_lk_backend.analyze_multi_point(
+                    args.video, roi, [(roi2, bool(getattr(args, "roi2_fixed", False)))] + extra_targets,
+                    {
+                        "max_frames": args.max_frames,
+                        "scene_cut_detection": not args.no_scene_cut_detection,
+                        "mask_rois": mask_rois,
+                    }))
         else:
-            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_two_points(
-                args.video, roi, roi2, max_frames=args.max_frames, start_frame=start_frame)
+            timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = track_multi_points(
+                args.video, roi,
+                [(roi2, bool(getattr(args, "roi2_fixed", False)))] + extra_targets,
+                max_frames=args.max_frames, start_frame=start_frame,
+                mask_rois=mask_rois or None)
     elif args.backend == "flow":
         # Flow-Backend: kein Tracker, keine markierte Region. Deutlich
         # schneller (dichter Farneback ~18ms/Frame gegen ~100ms für CSRT)
@@ -2447,6 +2630,7 @@ def process_one(args, ap):
             axis=args.axis,
             appearance_memory=not args.no_appearance_memory,
             start_frame=start_frame,
+            mask_rois=mask_rois,
         )
     print(f"{len(timestamps_ms)} Frames getrackt (Videogröße {frame_size[0]}x{frame_size[1]})", file=sys.stderr)
 

@@ -10,10 +10,48 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-- **License infra (not sharp):** `license` package (Ed25519 SNP1 keys),
-  `cmd/license-tool` (genkey/issue/verify), Settings → License import/status.
-  One person / 1 year / invite+internal. `Enforcement=false` — full features
-  until go-live (`docs/LICENSE_SYSTEM.md`).
+- **Tf/Tj multi-partner distance + soft masks:** stroke signal =
+  min(tip → ROI2 and N `--target` anchors); `--mask` / GUI **+ Mask**
+  soft-excludes camera and grid_lk feature patches (not SAM pixels).
+  Docs: `docs/BODY_REGIONS.md`, `docs/TF_TJ.md`.
+
+## [0.5.10] — September 20, 2026
+
+Careful bugfix + lean GUI motion + multi body-part regions for Tf/Tj /
+Generate / AI training. Tag when GitHub Actions billing is restored and
+Checks are green on `main`.
+
+### Fixed
+
+- **Session guard:** rejected second StartPlayback/StartTraining no longer
+  overwrites the live session’s `activePlayer`/`activeDevice`.
+- **Generate overwrite:** also refuse when a companion `.samn` exists
+  (matched `ScriptExistsForVideo`).
+- **Contact intensity 0:** slider value `0` no longer coerced to `1`
+  (`finiteOr` instead of `x || 1`).
+- **English operator UI:** analysis summary, playback/generator/device
+  status strings, videox convert progress, native pipeline progress —
+  leftover German user strings → English.
+- **license-tool:** unknown `--tier` rejected; internal/invite issue path
+  simplified.
+- **bootstrap_yolo_dataset.py:** Tab/space mix that broke import (CI Python
+  job would fail once runners start again).
+
+### Added
+
+- **Multi body-part regions:** English taxonomy
+  (`face`, `mouth`, `breasts`, `nipples`, `hand_1`, `hand_2`, `penis`,
+  `glans`, `vagina`) shared across Go/Python/GUI (`docs/BODY_REGIONS.md`).
+  AI training marks up to **9** classes/frame; Generate Tf/Tj gets ROI
+  class picks + **Fix ROI2** (static contact target); preferred-classes
+  default lists all nine IDs. Legacy DE labels (`brust`, `eichel`, …)
+  normalize.
+
+### Changed
+
+- **GUI lean motion polish:** CSS-only brand/rail/tab/progress animations,
+  primary gradient hover, empty-Play drift, device LED pulse; respects
+  `prefers-reduced-motion`. No layout redesign.
 
 ## [0.5.9] — September 19, 2026
 

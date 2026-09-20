@@ -33,14 +33,19 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	}
 
 	trackerA := NewTracker()
-	trackerB := NewTracker()
+	trackerA.Init(cap, roiA)
+	var trackerB *Tracker
+	boxA, boxB := roiA, roiB
+	if !opts.FixedB {
+		trackerB = NewTracker()
+		trackerB.Init(cap, roiB)
+	}
 	defer func() {
 		trackerA.Close()
-		trackerB.Close()
+		if trackerB != nil {
+			trackerB.Close()
+		}
 	}()
-	trackerA.Init(cap, roiA)
-	trackerB.Init(cap, roiB)
-	boxA, boxB := roiA, roiB
 
 	dist := func(a, b Rect) float64 {
 		ax := float64(a.X) + float64(a.W)/2
@@ -72,12 +77,16 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 			break
 		}
 		newA, okA := trackerA.Update(cap)
-		newB, okB := trackerB.Update(cap)
 		if okA {
 			boxA = newA
 		}
-		if okB {
-			boxB = newB
+		okB := true
+		if trackerB != nil {
+			var newB Rect
+			newB, okB = trackerB.Update(cap)
+			if okB {
+				boxB = newB
+			}
 		}
 		frameLost := !(okA && okB)
 		if frameLost {
