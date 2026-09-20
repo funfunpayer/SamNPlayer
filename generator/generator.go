@@ -746,11 +746,12 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 // Python subprocess (review: generation must be abortable) or abort native
 // tracking mid-loop. Returns context.Canceled when aborted.
 //
-// When PreferPython is false and opts+roi are NativePipelineEligible, uses
-// the Go path automatically (CSRT via trackcv when OpenCV is linked, else
-// simpletrack over videox) — no opt-in flag. Eligible failures are NOT
-// soft-failed to Python (overhead / hides Go bugs); PreferPython forces
-// the Python path explicitly.
+// Routing (quality first — docs/SELF_BUILD.md: never ship a weaker path):
+//  1. Go CSRT (trackcv) when OpenCV is linked — equals Python CSRT
+//  2. Else Python CSRT when opencv-contrib is available
+//  3. Else Go simpletrack (NCC) — last resort, no Python; weaker than CSRT
+// PreferPython forces step 2/3 Python only. Eligible Go-CSRT failures are
+// NOT soft-failed to Python (hides Go bugs).
 func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputPath string, opts Options, onProgress func(line string), onPercent func(pct int)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -758,17 +759,31 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	logging.Info("generator: starting generation", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
-		var err error
 		if NativeTrackingAvailable() {
-			err = GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
-		} else {
-			err = GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			err := GenerateNativeCSRT(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			if err == nil {
+				logging.Info("generator: native CSRT generation finished", "output", outputPath)
+				return nil
+			}
+			return err
 		}
-		if err == nil {
-			logging.Info("generator: native generation finished", "output", outputPath)
-			return nil
+		// simpletrack is weaker than Python CSRT (#120). Only use it when
+		// Python trackers are missing — otherwise prefer Python for quality.
+		if err := CheckDependencies(); err != nil {
+			if onProgress != nil {
+				onProgress("Go simpletrack (NCC) — no Python CSRT available; weaker than OpenCV CSRT")
+			}
+			err := GenerateNativeSimple(ctx, videoPath, roi, outputPath, opts, onProgress, onPercent)
+			if err == nil {
+				logging.Info("generator: native simpletrack generation finished", "output", outputPath)
+				return nil
+			}
+			return err
 		}
-		return err
+		if onProgress != nil {
+			onProgress("Using Python CSRT (opencv-contrib) — stronger than Go simpletrack on this build")
+		}
+		// fall through to Python
 	}
 	if !opts.PreferPython && opts.NativePipeline {
 		logging.Warn("generator: Go pipeline not usable for these settings — using Python",

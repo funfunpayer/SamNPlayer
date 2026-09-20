@@ -104,9 +104,9 @@ func TestIsWindowsAppsPythonStub(t *testing.T) {
 		path string
 		want bool
 	}{
-		{`C:\Users\Christian\AppData\Local\Microsoft\WindowsApps\python3.exe`, true},
-		{`C:/Users/Christian/AppData/Local/Microsoft/WindowsApps/python.exe`, true},
-		{`C:\Users\Christian\AppData\Local\Programs\Python\Python314\python.exe`, false},
+		{`C:\Users\User\AppData\Local\Microsoft\WindowsApps\python3.exe`, true},
+		{`C:/Users/User/AppData/Local/Microsoft/WindowsApps/python.exe`, true},
+		{`C:\Users\User\AppData\Local\Programs\Python\Python314\python.exe`, false},
 		{`/usr/bin/python3`, false},
 		{`C:\Windows\py.exe`, false},
 	}

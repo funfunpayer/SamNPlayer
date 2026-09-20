@@ -32,7 +32,8 @@ better** on clip tests — never ship a weaker self-build
 - Phase Analyzer core + CLI (`phase`, `compare`)
 - Script Doctor (Go) + dense Quality Doctor on native CSRT / simpletrack
 - Opt-in Go pipeline → **automatic** for single-ROI CSRT (`trackcv` when
-  OpenCV linked; else `simpletrack` — Windows without Python)
+  OpenCV linked). Without OpenCV: **Python CSRT when available**, else
+  `simpletrack` last resort (Windows until OpenCV is linked — #120)
 - Tf/Tj suction double-floor fix; trackcv `valid`/`confidence`/`reason`
 - Device diagnostics (software-measurable only)
 - `GenerateWithContext` cancel tests (Python + native)
@@ -49,8 +50,8 @@ better** on clip tests — never ship a weaker self-build
 | P1 | SAM as live Intent layer | wire after goldens |
 | P1 | Real Sam Neo 2 feel / BLE+Intiface | hardware |
 | P1 | Native CSRT as default | measured win on goldens |
-| P1 | Windows native OpenCV (CSRT) | optional; simpletrack covers no-Python path |
-| P1 | Competitive GUI polish (Play home) | `docs/COMPETITIVE.md` — no layout fashion |
+| P1 | **Windows native OpenCV (CSRT)** | **Next train after 0.5.11** — MinGW OpenCV+contrib, link `trackcv`, ship DLLs in portable zip; until then prefer Python CSRT over simpletrack (#120) |
+| P1 | Go `auto_roi` parity | after Windows CSRT; clip gate vs Python |
 | P2 | macOS release | Mac builder + notarization (`docs/PLATFORMS.md`) |
 | P2 | Mobile player (no generator) | share player/device/funscript/samn only |
 | P2 | 4-zone relative graph as default | bake-off vs two-ROI |

@@ -8,14 +8,6 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
-### Fixed
-
-- **Progress display (Generate + AI Train):** Go-native tracking
-  (trackcv / simpletrack) now reports percent during the run — the bar
-  no longer stays empty until 100%. AI Train bootstrap wires Python
-  `PROGRESS` lines to a percent bar; both tabs show a visible scrolling
-  log (`#gen-log` / bootstrap & train logs).
-
 ### Added
 
 - **Tf/Tj multi-partner distance + soft masks:** stroke signal =
@@ -25,8 +17,8 @@ measurement history behind each entry; this file is the short version for
 
 ## [0.5.11] — September 20, 2026
 
-Patch for AI Train bootstrap on Windows after ultralytics / Store Python
-stubs (#119). Builds on 0.5.10 product path (CSRT Go default).
+Quality + AI Train recovery after 0.5.9/0.5.10 Windows pain (#119/#120).
+Website/presentation deferred.
 
 ### Fixed
 
@@ -38,6 +30,14 @@ stubs (#119). Builds on 0.5.10 product path (CSRT Go default).
   `%LOCALAPPDATA%\Microsoft\WindowsApps` are demoted when a real
   install exists, so bootstrap errors and pip hints point at
   `Programs\Python\…` instead of the stub (#94/#119).
+- **Quality routing (#120):** Windows builds without linked OpenCV no
+  longer default to weak Go simpletrack (NCC) when Python
+  `opencv-contrib` is available — prefer Python CSRT. simpletrack stays
+  last-resort when Python trackers are missing. Message no longer
+  presents “weaker than CSRT” as the happy path.
+- **Progress display (Generate + AI Train):** Go tracking reports percent
+  during the run; AI Train wires `PROGRESS` to a bar; scrolling run logs
+  in both tabs.
 - **Status copy:** ROI training readiness strings in English; install
   success reports whether CSRT bootstrap is ready.
 
@@ -45,6 +45,8 @@ stubs (#119). Builds on 0.5.10 product path (CSRT Go default).
 
 - `docs/KI_TRAINING.md`: restore-contrib note + 0.5.9/0.5.10 manual
   workaround.
+- `docs/ENGINE.md` / production roadmap: Windows OpenCV CSRT is next
+  (true Go parity); website polish deferred.
 
 ## [0.5.10] — September 20, 2026
 
