@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -52,5 +53,22 @@ func TestCommandFFmpeg(t *testing.T) {
 	}
 	if len(out) < 10 {
 		t.Fatalf("unexpected -version output: %q", out)
+	}
+}
+
+func TestCommandContextHidesConsoleOnWindows(t *testing.T) {
+	ResetToolCache()
+	if !Available() {
+		t.Skip("ffmpeg not available")
+	}
+	cmd, err := CommandContext(context.Background(), "-version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS != "windows" {
+		return
+	}
+	if cmd.SysProcAttr == nil || !cmd.SysProcAttr.HideWindow {
+		t.Fatal("Windows ffmpeg spawn must set HideWindow to avoid console flash popup")
 	}
 }

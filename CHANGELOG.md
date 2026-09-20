@@ -26,6 +26,9 @@ Checks are green on `main`.
 - **AI Train empty dataset:** starting train without samples no longer
   ends in a raw German `Keine data.yaml` traceback. Go/Python fail fast;
   GUI warns to mark region(s) → **Use for training** first (#117).
+- **ffmpeg console flash (Windows):** `videox` now hides the console
+  window when spawning ffmpeg/ffprobe (same as Python helper processes),
+  so Generate/Play no longer blink a black popup.
 - **Update check noise:** missing/empty GitHub release is “no update”,
   not a startup warning. No browser `confirm()` popup — in-app banner /
   Settings button instead.
