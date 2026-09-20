@@ -99,7 +99,8 @@ export function initRoiTraining(root) {
     <div id="rt-summary" class="hint"></div>
 
     <h3>4. Train model</h3>
-    <p class="hint">Local. Device: Auto picks CUDA → MPS → DirectML → CPU.</p>
+    <p class="hint">Optional. Only needed if you want your own ONNX region model.
+      Play / Generate work without this. Device: Auto picks CUDA → MPS → DirectML → CPU.</p>
     <div class="field-row"><label data-help="Training passes. 50–100 typical for small sets.">Epochs</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
     <div class="field-row"><label data-help="auto = best available backend.">Device</label>
       <select id="rt-device">
@@ -113,10 +114,11 @@ export function initRoiTraining(root) {
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Start training</button>
       <button id="rt-install-deps" type="button"
-        data-help="Installs ultralytics + onnx via pip into detected Python (works without source tree).">Install dependencies</button></div>
+        data-help="Optional. Installs ultralytics + onnx (+ PyTorch) via pip. Large download — skip unless you train.">Install AI train deps</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
-      Training dependencies missing. Use “Install dependencies”
-      (or manually: <code>pip install ultralytics onnx</code>). Details:
+      AI train packages missing (optional). Use “Install AI train deps”
+      only if you want to train a model (large: ultralytics/torch). Or:
+      <code>pip install ultralytics onnx</code>. Details:
       <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
     </p>
     <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">

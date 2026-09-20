@@ -2,6 +2,7 @@ package update
 
 import (
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -12,6 +13,15 @@ func TestDescribe(t *testing.T) {
 	}
 	if Version == "dev" && got != BaseVersion+"-dev" {
 		t.Fatalf("dev describe=%q want %s-dev", got, BaseVersion)
+	}
+}
+
+func TestErrNoReleaseSentinel(t *testing.T) {
+	if ErrNoRelease == nil {
+		t.Fatal("ErrNoRelease must be set")
+	}
+	if !strings.Contains(ErrNoRelease.Error(), "no release found") {
+		t.Fatalf("unexpected ErrNoRelease: %v", ErrNoRelease)
 	}
 }
 

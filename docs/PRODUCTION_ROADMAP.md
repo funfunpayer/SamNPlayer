@@ -46,11 +46,25 @@ fixes are fine if they do not dilute Generate/Play.
 **Owner steps after this PR merges to `main`:**
 
 1. Confirm CI green on `main` (or merge with known billing-blocked empty jobs)  
-2. Spot-check GUI (Play + Generate) in English  
-3. Tag `v0.5.10` and push the tag → release workflow builds Win/Linux + portable archives  
-4. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.10`  
-5. Prefer **portable** download on the public site (ffmpeg included)  
-6. Hardware: one BLE or Intiface play session if a device is available  
+2. Spot-check GUI (Play + Generate) in English — **no popup on startup**  
+3. Prefer **portable** zip (ffmpeg included). Settings → “What you need” should match reality  
+4. AI Train (optional): mark → Use for training → train; empty dataset must warn, not traceback  
+5. Tag `v0.5.10` and push the tag → release workflow builds Win/Linux + portable archives  
+6. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.10`  
+7. Prefer **portable** download on the public site  
+8. Hardware: one BLE or Intiface play session if a device is available  
+
+### Owner pre-release checklist (before tagging)
+
+| Check | Pass? |
+|-------|-------|
+| Startup: no update/error popup; Log quiet if already on latest | |
+| Play: load `.samn` / video, seek, heat map | |
+| Generate: mark ROI → generate → script opens in Play | |
+| Tf/Tj: tip + Fix ROI2 / +Target / +Mask if you use them | |
+| Settings → Check folders: ffmpeg found (portable) | |
+| AI Train skipped OR samples collected before train | |
+| Portable zip from previous tag still runs on a clean Windows folder | |
 
 Agent can prepare the PR and version bump; **tagging on `main` is the
 release switch** (`CONTRIBUTING.md`).

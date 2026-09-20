@@ -16,6 +16,10 @@ type UpdateCheckResult struct {
 func (a *App) CheckForUpdate() UpdateCheckResult {
 	rel, err := update.CheckLatest()
 	if err != nil {
+		// No public release yet → "up to date", not a toast/popup-worthy error.
+		if err == update.ErrNoRelease {
+			return UpdateCheckResult{Available: false}
+		}
 		return UpdateCheckResult{Error: err.Error()}
 	}
 	if !update.IsNewer(update.Version, rel.TagName) {

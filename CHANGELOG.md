@@ -23,6 +23,12 @@ Checks are green on `main`.
 
 ### Fixed
 
+- **AI Train empty dataset:** starting train without samples no longer
+  ends in a raw German `Keine data.yaml` traceback. Go/Python fail fast;
+  GUI warns to mark region(s) → **Use for training** first (#117).
+- **Update check noise:** missing/empty GitHub release is “no update”,
+  not a startup warning. No browser `confirm()` popup — in-app banner /
+  Settings button instead.
 - **Session guard:** rejected second StartPlayback/StartTraining no longer
   overwrites the live session’s `activePlayer`/`activeDevice`.
 - **Generate overwrite:** also refuse when a companion `.samn` exists
