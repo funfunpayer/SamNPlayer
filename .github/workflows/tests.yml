@@ -193,3 +193,57 @@ jobs:
             echo "== $t"
             python3 "$t"
           done
+
+  # G0.1 spike: Go CSRT on Windows via MSYS2 MinGW OpenCV (see docs/WINDOWS_OPENCV.md).
+  # continue-on-error until the first green run proves CSRT + DLL layout; then
+  # wire the same recipe into release.yml and drop continue-on-error.
+  windows-opencv:
+    name: Go (OpenCV Windows)
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-go
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-opencv
+            mingw-w64-x86_64-pkgconf
+
+      - name: OpenCV pkg-config
+        run: |
+          set -euo pipefail
+          which go gcc pkg-config
+          pkg-config --modversion opencv4
+          pkg-config --cflags --libs opencv4
+          # CSRT lives in opencv_tracking (contrib). Fail early if missing.
+          echo 'int main(){return 0;}' > /tmp/t.c
+          # shellcheck disable=SC2046
+          g++ -o /tmp/t /tmp/t.c $(pkg-config --cflags --libs opencv4) 2>&1 | tail -5 || true
+          ls /mingw64/include/opencv4/opencv2/tracking.hpp
+          ls /mingw64/bin/libopencv_tracking*.dll
+
+      - name: Build frontend dist (embed)
+        shell: bash
+        run: |
+          # Node from the Windows runner PATH (not MSYS2).
+          cd cmd/gui-wails/frontend
+          npm install
+          npm run build
+
+      - name: go test -tags opencv
+        run: |
+          set -euo pipefail
+          export CGO_ENABLED=1
+          export PATH="/mingw64/bin:$PATH"
+          go version
+          go test -tags opencv ./generator/trackcv/ ./generator/ -count=1
+          go build -tags opencv -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
+          ls -la SamNPlayer-cli-windows-amd64.exe

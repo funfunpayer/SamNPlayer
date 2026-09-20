@@ -47,8 +47,10 @@ jobs:
       - name: Build Linux binary (GUI)
         working-directory: cmd/gui-wails
         run: |
-          # opencv tag enables generator/trackcv native CSRT; Windows stays
-          # on the stub (no OpenCV in the mingw cross-build).
+          # opencv tag enables generator/trackcv native CSRT on Linux.
+          # Windows GUI/CLI still use the stub here (MinGW cross has no
+          # OpenCV). G0.1 moves Windows builds to windows-latest + MinGW
+          # OpenCV — see docs/WINDOWS_OPENCV.md and the windows-opencv CI job.
           wails build -trimpath -tags "webkit2_41,opencv" \
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer ../../SamNPlayer-gui-linux-amd64

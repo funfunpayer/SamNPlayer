@@ -1,4 +1,4 @@
-//go:build cgo && opencv && !windows
+//go:build cgo && opencv
 
 // Package trackcv (track.go) ist eine Go-native Entsprechung von
 // generate_funscript.py's track_roi() (CSRT + Szenenschnitt-Erkennung +

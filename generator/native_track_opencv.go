@@ -1,4 +1,4 @@
-//go:build cgo && opencv && !windows
+//go:build cgo && opencv
 
 package generator
 

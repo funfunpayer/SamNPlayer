@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Windows OpenCV CSRT (G0.1 in progress):** build tags no longer exclude
+  Windows from `trackcv` (`cgo && opencv`). CI spike job
+  `Go (OpenCV Windows)` (MSYS2) + plan in `docs/WINDOWS_OPENCV.md`.
+  Release still ships Windows stub until that job is green and wired into
+  `release.yml` (target **v0.5.13**).
+
 ## [0.5.12] — September 20, 2026
 
 Sequential Generate UI + production spine docs. Clip gate: full Go CSRT

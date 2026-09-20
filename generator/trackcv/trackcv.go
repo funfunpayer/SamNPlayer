@@ -1,4 +1,4 @@
-//go:build cgo && opencv && !windows
+//go:build cgo && opencv
 
 // Package trackcv bindet genau den Ausschnitt von OpenCV per cgo an, den
 // track.go für eine Go-native Entsprechung von generate_funscript.py's
@@ -7,7 +7,8 @@
 package trackcv
 
 /*
-#cgo pkg-config: opencv4
+#cgo !windows pkg-config: opencv4
+#cgo windows CXXFLAGS: --std=c++17 -DNDEBUG
 #include "cv.h"
 #include <stdlib.h>
 */
