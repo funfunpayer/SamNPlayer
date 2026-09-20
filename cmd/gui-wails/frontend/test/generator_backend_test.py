@@ -57,7 +57,6 @@ def main():
               and "region_fusion" not in options and "region_fusion_auto" not in options,
               str(options))
 
-        page.click("#gen-advanced summary")
         page.click("#gen-choose")
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
@@ -73,6 +72,8 @@ def main():
         page.wait_for_function(
             "document.querySelector('#gen-generate').disabled === false", timeout=5000)
         check("CSRT + one ROI enables Generate", True)
+        # Advanced lives in step 4 — only visible once Generate unlocks.
+        page.click("#gen-advanced summary")
         check("Backend stays CSRT", page.locator("#gen-backend").input_value() == "csrt")
 
         browser.close()

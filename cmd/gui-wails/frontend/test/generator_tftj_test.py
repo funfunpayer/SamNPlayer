@@ -81,12 +81,13 @@ def main():
               page.locator("#gen-profile").input_value() == "standard",
               page.locator("#gen-profile").input_value())
 
-        # --- 2. Region: schaltet automatisch auf Tf/Tj um ---------------------
-        page.click("#gen-roi2-toggle")
+        # --- 2. Region: Shift+drag (sets ROI2; auto-switches profile to Tf/Tj) -
+        page.keyboard.down("Shift")
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 280, box["y"] + 120, steps=5)
         page.mouse.up()
+        page.keyboard.up("Shift")
 
         page.wait_for_function(
             "document.querySelector('#gen-profile').value === 'tf'", timeout=5000)

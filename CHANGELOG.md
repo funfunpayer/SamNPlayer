@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Generate sequential workflow (GUI):** steps appear one after another —
+  Video → Region → Motion → Generate → Review. Next panel unlocks only
+  when the previous action is done (Tf/Tj waits for ROI2). Classic CSRT
+  first; AI stays optional on the region step.
+
 ### Docs
 
 - **Sequential production spine (G0→G4):** stabilize CSRT → classical
