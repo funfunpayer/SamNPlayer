@@ -1456,3 +1456,72 @@ button.primary:hover:not(:disabled) {
     animation: none !important;
   }
 }
+
+/* Generate: sequential workflow steps (appear one after another) */
+.gen-steps {
+  margin: 0 0 10px 0;
+}
+.gen-steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.gen-step-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted, #8a97ab);
+  opacity: 0.72;
+}
+.gen-step-item.is-done {
+  color: var(--teal);
+  opacity: 1;
+}
+.gen-step-item.is-current {
+  color: var(--accent);
+  opacity: 1;
+  font-weight: 600;
+}
+.gen-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.gen-step-panel {
+  margin: 12px 0 16px 0;
+  padding: 10px 12px 12px;
+  border-left: 2px solid var(--border-strong);
+  background: linear-gradient(90deg, rgba(47, 212, 196, 0.05), transparent 48%);
+  animation: genStepIn .28s ease-out both;
+}
+.gen-step-panel[hidden] {
+  display: none !important;
+}
+.gen-step-title {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: 0.02em;
+}
+.gen-step-prompt {
+  min-height: 1.4em;
+}
+@keyframes genStepIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gen-step-panel { animation: none !important; }
+}

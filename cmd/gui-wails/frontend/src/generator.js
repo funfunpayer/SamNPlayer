@@ -7,207 +7,230 @@ import { wireDataHelp } from './help.js';
 export function initGenerator(root, playback) {
   root.innerHTML = `
     <h2>Generate script</h2>
-    <p class="hint" style="margin-top:0">
-      The AI (ONNX) finds the <b>start region</b> only. The Funscript is created afterward by tracking.
-      Train a model under <b>AI Train</b> — then enable <b>AI detection (ONNX)</b> here → find region → verify box → generate.
+    <nav class="gen-steps" id="gen-steps" aria-label="Generate workflow">
+      <ol class="gen-steps-list">
+        <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
+        <li class="gen-step-item" data-step="2"><span class="gen-step-num">2</span> Region</li>
+        <li class="gen-step-item" data-step="3"><span class="gen-step-num">3</span> Motion</li>
+        <li class="gen-step-item" data-step="4"><span class="gen-step-num">4</span> Generate</li>
+        <li class="gen-step-item" data-step="5"><span class="gen-step-num">5</span> Review</li>
+      </ol>
+    </nav>
+    <p class="hint gen-step-prompt" id="gen-step-prompt" style="margin-top:0">
+      Start here: choose a video. The next step appears when this one is done.
     </p>
-    <div class="row">
-      <button id="gen-choose">Choose video…</button>
-      <span class="path-label" id="gen-video-path">No video selected</span>
-      <button id="gen-check-deps">Check dependencies</button>
-    </div>
-    <div class="row" style="align-items:center;">
-      <button id="gen-autoroi" class="primary" disabled
-        data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
-      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
-        <label for="gen-ai-roi" style="width:auto"
-          data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
-    </div>
-    <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand.</p>
-
-    <div class="row" style="align-items:center; margin:4px 0;">
-      <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
-      <input type="number" id="gen-seek" value="0" min="0" step="0.5" style="width:5em;" disabled />
-      <button id="gen-seek-btn" type="button" disabled>Frame</button>
-      <button id="gen-seek-plus" type="button" disabled>+1s</button>
-      <button id="gen-seek-plus5" type="button" disabled>+5s</button>
-    </div>
-    <div id="roi-canvas-wrap">
-      <canvas id="roi-canvas"></canvas>
-    </div>
-    <div class="path-label" id="gen-roi-label">No region marked</div>
-    <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="gen-roi2-toggle" type="button"
-        data-help="Second region (gold) for Tf/Tj: distance between both drives stroke; suction follows position. Also via Shift+drag.">2nd region</button>
-      <button id="gen-target-add" type="button"
-        data-help="Extra Tf/Tj contact target (magenta). Distance = min(tip → ROI2 and all extra targets). Defaults to fixed. Use after ROI1+ROI2.">+ Target</button>
-      <button id="gen-mask-add" type="button"
-        data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
-      <button id="gen-extras-clear" type="button"
-        data-help="Clear all extra targets and soft masks (keeps ROI1/ROI2).">Clear extras</button>
-      <span class="hint" id="gen-roi2-hint" style="margin:0">Required for Tf/Tj. Extras optional.</span>
-    </div>
-    <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
-    <div class="path-label" id="gen-extras-label" style="display:none;"></div>
-    <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
-      <label style="width:auto;" data-help="Body-part class for ROI1 (English taxonomy — docs/BODY_REGIONS.md). Helps AI preferred classes.">ROI1 class</label>
-      <select id="gen-region-class" style="min-width:8em;">
-        <option value="">(any)</option>
-      </select>
-      <label style="width:auto;" data-help="Body-part class for ROI2 — tip vs contact target (e.g. glans + nipples).">ROI2 class</label>
-      <select id="gen-region-class2" style="min-width:8em;">
-        <option value="">(any)</option>
-      </select>
-      <label class="checkbox-row" style="margin:0;"
-        data-help="Keep ROI2 at the marked box (static contact target). Only ROI1 is tracked — better when nipples/mouth barely move.">
-        <input type="checkbox" id="gen-roi2-fixed" /> Fix ROI2 (static target)
-      </label>
-    </div>
-    <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
-
-    <div class="row" style="align-items:center;">
-      <label style="width:auto;" data-help="Default = classic stroke motion. Soft tissue filters ringing. Autotune = detrend+bandpass+speed cap (FunGen/Flow-inspired). Tf/Tj needs two regions.">Motion type</label>
-      <select id="gen-profile">
-        <option value="standard">Stroke motion (default)</option>
-        <option value="weich">Soft tissue (rings)</option>
-        <option value="autotune">Autotune (detrend + bandpass + speed)</option>
-        <option value="tf">Tf/Tj (distance + suction)</option>
-      </select>
-    </div>
-    <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-      <strong>Workflow:</strong>
-      1)&nbsp;Mark region(s) (AI may propose the box — you verify) →
-      2)&nbsp;CSRT tracking on the Go path (no Python) →
-      3)&nbsp;optional Autotune / audio tempo check (Advanced) →
-      4)&nbsp;review in Play. Tf/Tj: tip + contact target(s); masks optional.
-    </p>
-    <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-      Mark two or more regions. Distance to the nearest contact target drives stroke;
-      suction follows position. Soft masks exclude features only.
-      Contact vibration is generated by default (strength = proximity like contact) and can be fine-tuned in Playback afterward.
-    </p>
-    <div id="gen-contact-vibration-wrap" style="display:none;">
-      <div class="checkbox-row" id="gen-contact-vibration-row">
-        <input type="checkbox" id="gen-contact-vibration" checked />
-        <label for="gen-contact-vibration"
-          data-help="Extra vibration when ROI1 nears ROI2. Strength follows measured distance — contact-like, not a fixed pulse. On by default for Tf/Tj; optional.">Contact vibration (automatic for Tf/Tj)</label>
-      </div>
-      <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
-        <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="Lower = engages earlier (wider contact window). Higher = deep only (near minimum distance). Default 0.75 = top quarter of the video signal.">Sensitivity</label>
-          <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
-          <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">deep only</span>
-        </div>
-        <div class="field-row" style="align-items:center;">
-          <label style="width:auto;" data-help="linear = 1:1 distance. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
-          <select id="gen-contact-curve">
-            <option value="linear">Linear</option>
-            <option value="soft" selected>Soft onset (contact-like)</option>
-            <option value="peak">Stronger peak</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="row" style="align-items:center;">
-      <button id="gen-suggest-profile" disabled
-        data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
-      <span class="hint" id="gen-suggest-status" style="margin:0"></span>
-    </div>
-    <div class="row" style="align-items:center;">
-      <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
-      <button id="gen-label-scene" disabled
-        data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
-    </div>
-
-    <details id="gen-advanced" style="margin:6px 0 10px 0;">
-      <summary style="cursor:pointer;">Advanced settings</summary>
-      <div style="margin-top:8px;">
-        <div class="opt-group">Tracking</div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-          data-help="Inverts motion direction (polarity). Often the FunGen difference — not a tracking bug.">Invert motion direction</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
-          data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
-          data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
-        <div class="row" style="align-items:center;">
-          <label style="width:auto;" data-help="Product tracking is CSRT on the Go path (portable: no Python). Research backends (flow, grid_lk, fusion) stay CLI --backend only — measured quality first.">Tracking method</label>
-          <select id="gen-backend">
-            <option value="csrt" selected>CSRT (standard, Go path)</option>
-          </select>
-        </div>
-        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT only in the GUI. Weaker/faster research methods are CLI-only so Play/Generate stay dependency-light.</p>
-
-        <div class="opt-group">Signal &amp; quality</div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
-          data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl"
-          data-help="Uses OpenCL for parts of tracking when drivers support it. Independent of AI training device (CUDA/DirectML).">GPU acceleration (OpenCL)</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
-          data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
-          data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-          data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
-          data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
-
-        <div class="opt-group">Keyframes</div>
-        <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
-          <select id="gen-axis">
-            <option value="" selected>Automatic (recommended)</option>
-            <option value="x">Force horizontal</option>
-            <option value="y">Force vertical</option>
-          </select>
-        </div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
-          data-help="Adds extra keyframes for asymmetric motion.">Adaptive Keyframes</label></div>
-        <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
-          data-help="Re-searches region after each cut. Better for heavily edited material, slower.">Re-find region after each cut</label></div>
-        <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
-        <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
-        <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
-        <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-        <div class="field-row" style="display:none;"><label>Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
-      </div>
-    </details>
-
-    <div class="row">
-      <button id="gen-generate" class="primary" disabled>Generate Funscript</button>
-      <button id="gen-cancel" type="button" disabled>Cancel</button>
-    </div>
     <div class="path-label" id="gen-status"></div>
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
-    <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
-      <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
-        <div id="gen-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
-             transition:width .2s linear;"></div>
-      </div>
-      <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
-    </div>
-    <pre id="gen-log" class="run-log" aria-label="Generation progress log"></pre>
-    <div id="gen-feedback" style="display:none; margin-top:10px; padding:10px;
-         border:1px solid var(--border); border-radius:4px;">
-      <div style="margin-bottom:6px;">Was the result usable? Your rating helps
-        tune quality scoring on real material.</div>
-      <div class="row">
-        <button data-verdict="brauchbar" type="button">usable</button>
-        <button data-verdict="grenzwertig" type="button">borderline</button>
-        <button data-verdict="unbrauchbar" type="button">unusable</button>
-      </div>
-      <input type="text" id="gen-fb-comment" placeholder="Comment (optional) - e.g. what did not fit"
-             style="width:100%; margin-top:8px;" />
-      <div id="gen-fb-status" class="hint" style="margin-top:6px;"></div>
-    </div>
-    <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
 
-    <p class="hint">
-      Classic CV tracking on <b>CSRT</b> — one strong product path.
-      Go CSRT when OpenCV is linked in the binary; otherwise Python CSRT
-      (Windows today). Own Windows OpenCV CSRT is next so Generate needs
-      no Python. Backend/profile are prefilled from marks (Advanced).
-      AI Train and research backends still use Python on purpose.
-    </p>
+    <section class="gen-step-panel" id="gen-step-video" data-step="1">
+      <h3 class="gen-step-title">1 · Video</h3>
+      <div class="row">
+        <button id="gen-choose" class="primary">Choose video…</button>
+        <span class="path-label" id="gen-video-path">No video selected</span>
+        <button id="gen-check-deps">Check dependencies</button>
+      </div>
+    </section>
+
+    <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
+      <h3 class="gen-step-title">2 · Mark region</h3>
+      <p class="hint" style="margin-top:0">
+        Drag on the frame (or find automatically). Classical CSRT tracks this box —
+        AI may only propose the start region (optional).
+      </p>
+      <div class="row" style="align-items:center;">
+        <button id="gen-autoroi" class="primary" disabled
+          data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
+        <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
+          <label for="gen-ai-roi" style="width:auto"
+            data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
+      </div>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand.</p>
+
+      <div class="row" style="align-items:center; margin:4px 0;">
+        <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
+        <input type="number" id="gen-seek" value="0" min="0" step="0.5" style="width:5em;" disabled />
+        <button id="gen-seek-btn" type="button" disabled>Frame</button>
+        <button id="gen-seek-plus" type="button" disabled>+1s</button>
+        <button id="gen-seek-plus5" type="button" disabled>+5s</button>
+      </div>
+      <div id="roi-canvas-wrap">
+        <canvas id="roi-canvas"></canvas>
+      </div>
+      <div class="path-label" id="gen-roi-label">No region marked</div>
+      <div class="row" style="align-items:center; margin-top:6px;">
+        <button id="gen-roi2-toggle" type="button"
+          data-help="Second region (gold) for Tf/Tj: distance between both drives stroke; suction follows position. Also via Shift+drag.">2nd region</button>
+        <button id="gen-target-add" type="button"
+          data-help="Extra Tf/Tj contact target (magenta). Distance = min(tip → ROI2 and all extra targets). Defaults to fixed. Use after ROI1+ROI2.">+ Target</button>
+        <button id="gen-mask-add" type="button"
+          data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
+        <button id="gen-extras-clear" type="button"
+          data-help="Clear all extra targets and soft masks (keeps ROI1/ROI2).">Clear extras</button>
+        <span class="hint" id="gen-roi2-hint" style="margin:0">Required for Tf/Tj. Extras optional.</span>
+      </div>
+      <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
+      <div class="path-label" id="gen-extras-label" style="display:none;"></div>
+      <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+        <label style="width:auto;" data-help="Body-part class for ROI1 (English taxonomy — docs/BODY_REGIONS.md). Helps AI preferred classes.">ROI1 class</label>
+        <select id="gen-region-class" style="min-width:8em;">
+          <option value="">(any)</option>
+        </select>
+        <label style="width:auto;" data-help="Body-part class for ROI2 — tip vs contact target (e.g. glans + nipples).">ROI2 class</label>
+        <select id="gen-region-class2" style="min-width:8em;">
+          <option value="">(any)</option>
+        </select>
+        <label class="checkbox-row" style="margin:0;"
+          data-help="Keep ROI2 at the marked box (static contact target). Only ROI1 is tracked — better when nipples/mouth barely move.">
+          <input type="checkbox" id="gen-roi2-fixed" /> Fix ROI2 (static target)
+        </label>
+      </div>
+      <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
+    </section>
+
+    <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
+      <h3 class="gen-step-title">3 · Motion type</h3>
+      <div class="row" style="align-items:center;">
+        <label style="width:auto;" data-help="Default = classic stroke motion. Soft tissue filters ringing. Autotune = detrend+bandpass+speed cap (FunGen/Flow-inspired). Tf/Tj needs two regions.">Motion type</label>
+        <select id="gen-profile">
+          <option value="standard">Stroke motion (default)</option>
+          <option value="weich">Soft tissue (rings)</option>
+          <option value="autotune">Autotune (detrend + bandpass + speed)</option>
+          <option value="tf">Tf/Tj (distance + suction)</option>
+        </select>
+      </div>
+      <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
+        CSRT tracks the marked region(s). Optional Autotune / audio check live under Advanced in step 4.
+        Tf/Tj needs a 2nd region (step 2).
+      </p>
+      <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
+        Mark two or more regions. Distance to the nearest contact target drives stroke;
+        suction follows position. Soft masks exclude features only.
+        Contact vibration is generated by default (strength = proximity like contact) and can be fine-tuned in Playback afterward.
+      </p>
+      <div id="gen-contact-vibration-wrap" style="display:none;">
+        <div class="checkbox-row" id="gen-contact-vibration-row">
+          <input type="checkbox" id="gen-contact-vibration" checked />
+          <label for="gen-contact-vibration"
+            data-help="Extra vibration when ROI1 nears ROI2. Strength follows measured distance — contact-like, not a fixed pulse. On by default for Tf/Tj; optional.">Contact vibration (automatic for Tf/Tj)</label>
+        </div>
+        <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
+          <div class="field-row" style="align-items:center;">
+            <label style="width:auto;" data-help="Lower = engages earlier (wider contact window). Higher = deep only (near minimum distance). Default 0.75 = top quarter of the video signal.">Sensitivity</label>
+            <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
+            <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">deep only</span>
+          </div>
+          <div class="field-row" style="align-items:center;">
+            <label style="width:auto;" data-help="linear = 1:1 distance. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
+            <select id="gen-contact-curve">
+              <option value="linear">Linear</option>
+              <option value="soft" selected>Soft onset (contact-like)</option>
+              <option value="peak">Stronger peak</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="align-items:center;">
+        <button id="gen-suggest-profile" disabled
+          data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
+        <span class="hint" id="gen-suggest-status" style="margin:0"></span>
+      </div>
+      <div class="row" style="align-items:center;">
+        <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
+        <button id="gen-label-scene" disabled
+          data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
+      </div>
+    </section>
+
+    <section class="gen-step-panel" id="gen-step-run" data-step="4" hidden>
+      <h3 class="gen-step-title">4 · Generate</h3>
+      <details id="gen-advanced" style="margin:6px 0 10px 0;">
+        <summary style="cursor:pointer;">Advanced settings</summary>
+        <div style="margin-top:8px;">
+          <div class="opt-group">Tracking</div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
+            data-help="Inverts motion direction (polarity). Often the FunGen difference — not a tracking bug.">Invert motion direction</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
+            data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
+            data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
+          <div class="row" style="align-items:center;">
+            <label style="width:auto;" data-help="Product tracking is CSRT on the Go path (portable: no Python). Research backends (flow, grid_lk, fusion) stay CLI --backend only — measured quality first.">Tracking method</label>
+            <select id="gen-backend">
+              <option value="csrt" selected>CSRT (standard, Go path)</option>
+            </select>
+          </div>
+          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT only in the GUI. Weaker/faster research methods are CLI-only so Play/Generate stay dependency-light.</p>
+
+          <div class="opt-group">Signal &amp; quality</div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
+            data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl"
+            data-help="Uses OpenCL for parts of tracking when drivers support it. Independent of AI training device (CUDA/DirectML).">GPU acceleration (OpenCL)</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
+            data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
+            data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
+            data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
+            data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
+
+          <div class="opt-group">Keyframes</div>
+          <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
+            <select id="gen-axis">
+              <option value="" selected>Automatic (recommended)</option>
+              <option value="x">Force horizontal</option>
+              <option value="y">Force vertical</option>
+            </select>
+          </div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
+            data-help="Adds extra keyframes for asymmetric motion.">Adaptive Keyframes</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
+            data-help="Re-searches region after each cut. Better for heavily edited material, slower.">Re-find region after each cut</label></div>
+          <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
+          <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+          <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+          <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+          <div class="field-row" style="display:none;"><label>Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
+        </div>
+      </details>
+
+      <div class="row">
+        <button id="gen-generate" class="primary" disabled>Generate Funscript</button>
+        <button id="gen-cancel" type="button" disabled>Cancel</button>
+      </div>
+      <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
+        <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
+          <div id="gen-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
+               transition:width .2s linear;"></div>
+        </div>
+        <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
+      </div>
+      <pre id="gen-log" class="run-log" aria-label="Generation progress log"></pre>
+      <p class="hint">
+        Classic CV tracking on <b>CSRT</b> — one strong product path.
+        Go CSRT when OpenCV is linked; otherwise Python CSRT (Windows today).
+      </p>
+    </section>
+
+    <section class="gen-step-panel" id="gen-step-result" data-step="5" hidden>
+      <h3 class="gen-step-title">5 · Review</h3>
+      <div id="gen-feedback" style="display:none; margin-top:4px; padding:10px;
+           border:1px solid var(--border); border-radius:4px;">
+        <div style="margin-bottom:6px;">Was the result usable? Your rating helps
+          tune quality scoring on real material.</div>
+        <div class="row">
+          <button data-verdict="brauchbar" type="button">usable</button>
+          <button data-verdict="grenzwertig" type="button">borderline</button>
+          <button data-verdict="unbrauchbar" type="button">unusable</button>
+        </div>
+        <input type="text" id="gen-fb-comment" placeholder="Comment (optional) - e.g. what did not fit"
+               style="width:100%; margin-top:8px;" />
+        <div id="gen-fb-status" class="hint" style="margin-top:6px;"></div>
+      </div>
+      <div id="gen-quality" style="display:none; margin-top:8px; padding:8px; border-radius:4px;"></div>
+    </section>
   `;
 
   wireDataHelp(root);
@@ -227,6 +250,8 @@ export function initGenerator(root, playback) {
   let markMode = null; // null | 'target' | 'mask'
   let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let seekSec = 0;
+  let generating = false;
+  let lastOutputPath = null;
 
   const DISPLAY_W = 560;
 
@@ -351,21 +376,75 @@ export function initGenerator(root, playback) {
     return true;
   }
 
+  function regionReadyForGenerate() {
+    if (!videoPath) return false;
+    if (backendNeedsRoi() && !roi) return false;
+    if (isTfTj() && !roi2) return false;
+    return true;
+  }
+
+  // Progressive steps: next panel appears only when the previous action is done.
+  function syncWorkflowSteps() {
+    const hasVideo = !!videoPath;
+    const hasRoi1 = !!roi;
+    const canRun = regionReadyForGenerate();
+    const hasResult = !!lastOutputPath;
+
+    const showRegion = hasVideo;
+    const showMotion = hasRoi1;
+    const showRun = canRun || generating;
+    const showResult = hasResult;
+
+    const panel = (id, on) => {
+      const node = el(id);
+      if (!node) return;
+      node.hidden = !on;
+    };
+    panel('#gen-step-region', showRegion);
+    panel('#gen-step-motion', showMotion);
+    panel('#gen-step-run', showRun);
+    panel('#gen-step-result', showResult);
+
+    let current = 1;
+    if (showResult) current = 5;
+    else if (showRun || generating) current = 4;
+    else if (showMotion) current = 3;
+    else if (showRegion) current = 2;
+
+    root.querySelectorAll('.gen-step-item').forEach(item => {
+      const n = parseInt(item.dataset.step, 10);
+      item.classList.toggle('is-current', n === current);
+      item.classList.toggle('is-done', n < current);
+    });
+
+    const prompt = el('#gen-step-prompt');
+    if (!prompt) return;
+    if (!hasVideo) {
+      prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
+    } else if (!hasRoi1) {
+      prompt.textContent = 'Step 2: mark a region on the frame (drag) or find one automatically.';
+    } else if (isTfTj() && !roi2) {
+      prompt.textContent = 'Tf/Tj: mark the 2nd region (Shift+drag or “2nd region”), then Generate appears.';
+    } else if (!canRun && !generating) {
+      prompt.textContent = 'Step 3: pick motion type if needed — Generate unlocks when regions are ready.';
+    } else if (generating) {
+      prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
+    } else if (!hasResult) {
+      prompt.textContent = 'Step 4: Generate Funscript (Advanced optional). Review appears after a successful run.';
+    } else {
+      prompt.textContent = 'Step 5: rate Signal Quality / usability — script is also in Play.';
+    }
+  }
+
   function updateGenerateEnabled() {
     // Ohne video kein Ziel zum Generieren.
-    if (!videoPath) {
+    if (!regionReadyForGenerate()) {
       el('#gen-generate').disabled = true;
+      syncWorkflowSteps();
       return;
     }
-    if (backendNeedsRoi() && !roi) {
-      el('#gen-generate').disabled = true;
-      return;
-    }
-    if (isTfTj() && !roi2) {
-      el('#gen-generate').disabled = true;
-      return;
-    }
-    el('#gen-generate').disabled = false;
+    el('#gen-generate').disabled = generating;
+    syncWorkflowSteps();
   }
 
   let contactUserOverride = false;
@@ -590,6 +669,10 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = (isTfTj()
         ? 'Tf/Tj: draw first region, then Shift+drag or “2nd region” for the second. Seek time if the start is black.'
         : 'Find region automatically or mark by hand (drag). Seek time if the start is black.') + batchNote;
+      lastOutputPath = null;
+      el('#gen-feedback').style.display = 'none';
+      el('#gen-quality').style.display = 'none';
+      syncWorkflowSteps();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
         if (!result || !videoPath || videoPath !== path) return;
@@ -662,6 +745,8 @@ export function initGenerator(root, playback) {
 
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
+    generating = true;
+    syncWorkflowSteps();
     el('#gen-status').textContent = 'Generating…';
     el('#gen-log').textContent = '';
     {
@@ -840,8 +925,6 @@ export function initGenerator(root, playback) {
     el('#gen-progress-text').textContent = '';
   }
 
-  let lastOutputPath = null;
-
   // Urteil abschicken. Der Bereich erscheint erst nach einem erfolgreichen
   // Lauf - vorher gibt es nichts zu beurteilen.
   root.querySelectorAll('#gen-feedback button[data-verdict]').forEach(btn => {
@@ -865,10 +948,12 @@ export function initGenerator(root, playback) {
   EventsOn('generate:done', result => {
     hideProgress();
     el('#gen-cancel').disabled = true;
+    generating = false;
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
+    syncWorkflowSteps();
     if (result.error) {
       if (result.cancelled) {
         el('#gen-status').textContent = 'Canceled.';
@@ -943,7 +1028,15 @@ export function initGenerator(root, playback) {
   el('#gen-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#gen-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
   el('#gen-roi2-toggle').addEventListener('click', () => {
-    setRoi2Mode(!roi2Mode);
+    // If Tf/Tj still needs ROI2, force mark mode ON (do not toggle off by accident).
+    if (isTfTj() && !roi2 && !roi2Mode) {
+      setRoi2Mode(true);
+    } else if (isTfTj() && !roi2 && roi2Mode) {
+      // already ready to mark — keep ON
+      setRoi2Mode(true);
+    } else {
+      setRoi2Mode(!roi2Mode);
+    }
     if (roi2Mode) {
       el('#gen-status').textContent = '2nd region: drag on preview (shown in gold).';
     }
@@ -1086,4 +1179,6 @@ export function initGenerator(root, playback) {
   el('#gen-roi2-fixed')?.addEventListener('change', () => {
     el('#gen-roi2-fixed').dataset.userTouched = '1';
   });
+
+  syncWorkflowSteps();
 }

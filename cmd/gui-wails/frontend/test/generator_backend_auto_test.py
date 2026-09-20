@@ -52,7 +52,6 @@ def main():
         check("Generate disabled without video",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
 
-        page.click("#gen-advanced summary")
         page.click("#gen-choose")
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)

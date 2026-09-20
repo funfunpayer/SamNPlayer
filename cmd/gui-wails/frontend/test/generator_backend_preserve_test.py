@@ -46,7 +46,6 @@ def main():
         page.goto(f"{base}/test/_generator_backend_preserve_harness.html")
         page.wait_for_function("window.__ready === true")
 
-        page.click("#gen-advanced summary")
         page.click("#gen-choose")
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
@@ -56,6 +55,8 @@ def main():
         page.mouse.down()
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
         page.mouse.up()
+        page.wait_for_function(
+            "!document.querySelector('#gen-step-run').hidden", timeout=5000)
         page.wait_for_timeout(200)
 
         check("CSRT selected after first ROI",

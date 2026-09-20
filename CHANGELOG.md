@@ -8,20 +8,25 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.12] — September 20, 2026
+
+Sequential Generate UI + production spine docs. Clip gate: full Go CSRT
+on test clip (1199 frames, Quality Doctor passed). Windows in-binary
+OpenCV CSRT remains **next** (G0.1 → 0.5.13).
+
+### Added
+
+- **Generate sequential workflow (GUI):** steps appear one after another —
+  Video → Region → Motion → Generate → Review. Next panel unlocks only
+  when the previous action is done (Tf/Tj waits for ROI2). Classic CSRT
+  first; AI stays optional on the region step.
+
 ### Docs
 
 - **Sequential production spine (G0→G4):** stabilize CSRT → classical
   heuristics + audio → Neo 2 raw-value mapping → AI helpers → license/
-  platforms. Stops parallel theme sprawl; license stays developer mode
-  through G2. Spec: `docs/PRODUCTION_ROADMAP.md`,
-  `docs/GENERATE_HEURISTICS.md`.
-
-### Added
-
-- **Tf/Tj multi-partner distance + soft masks:** stroke signal =
-  min(tip → ROI2 and N `--target` anchors); `--mask` / GUI **+ Mask**
-  soft-excludes camera and grid_lk feature patches (not SAM pixels).
-  Docs: `docs/BODY_REGIONS.md`, `docs/TF_TJ.md`.
+  platforms. License stays developer mode through G2.
+  Spec: `docs/PRODUCTION_ROADMAP.md`, `docs/GENERATE_HEURISTICS.md`.
 
 ## [0.5.11] — September 20, 2026
 
