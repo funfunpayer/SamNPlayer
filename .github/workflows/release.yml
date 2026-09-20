@@ -179,7 +179,8 @@ jobs:
           n=$(ls -1 portable-windows/*.dll | wc -l | tr -d ' ')
           echo "portable-windows DLL count: $n"
           test "$n" -ge 20
-          (cd portable-windows && zip -q ../SamNPlayer-portable-windows-amd64.zip .)
+          # -r required: Info-ZIP treats bare "." as nothing without recurse.
+          (cd portable-windows && zip -q -r ../SamNPlayer-portable-windows-amd64.zip .)
           # Keep CLI next to the zip for the release asset list.
           ls -la SamNPlayer-cli-windows-amd64.exe SamNPlayer-gui-windows-amd64.exe \
             SamNPlayer-portable-windows-amd64.zip
