@@ -1,4 +1,4 @@
-//go:build cgo && opencv && !windows
+//go:build cgo && opencv
 
 // cv.h - minimaler C-Wrapper um genau die OpenCV-Funktionen, die
 // track.go für einen CSRT-Tracking-Durchlauf braucht (siehe

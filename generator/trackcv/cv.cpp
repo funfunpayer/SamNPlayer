@@ -1,9 +1,11 @@
-//go:build cgo && opencv && !windows
+//go:build cgo && opencv
 
 #include "cv.h"
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/video/tracking.hpp>
 
 struct VideoCapture_ {
     cv::VideoCapture cap;

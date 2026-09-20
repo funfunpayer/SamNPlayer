@@ -199,6 +199,7 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 | [`website/`](website/) | Public landing + guides / notes / FAQ (sync → SamNPlayer-site) |
 | [`docs/SAMN_FORMAT.md`](docs/SAMN_FORMAT.md) | Native `.samn` script (Neo 2 axes) + Funscript export |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Product language (English UI/docs) |
+| [`docs/WINDOWS_OPENCV.md`](docs/WINDOWS_OPENCV.md) | G0.1 — Windows Go CSRT / portable DLLs plan (→ v0.5.13) |
 | [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production spine G0–G4 (stabilize → heuristics → Neo 2 raw → AI → license); owner tests |
 | [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics + audio workflow (no AI script writer) |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Checklist — what’s done / next / rejected |

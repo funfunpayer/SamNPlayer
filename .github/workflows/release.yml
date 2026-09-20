@@ -1,10 +1,10 @@
 name: Release
 
-# Läuft bei jedem Tag, der wie "v1.2.3" aussieht (git tag v1.2.3 && git push --tags).
-# Baut die GUI (Wails) für Windows und Linux, hängt Binaries + portable
-# ffmpeg-Archive an einen GitHub-Release. macOS: not in this workflow yet
-# (needs a macos runner + notarization — docs/PLATFORMS.md).
-# Die App selbst (update/update.go) prüft genau gegen diese Releases.
+# Runs on every tag like "v1.2.3".
+# Linux: Ubuntu + system OpenCV (pkg-config opencv4).
+# Windows: windows-latest + MSYS2 MinGW OpenCV 5 (Go CSRT, no Python).
+# Portable zips ship ffmpeg (+ OpenCV DLLs on Windows) beside the GUI.
+# macOS: not in this workflow yet (docs/PLATFORMS.md).
 on:
   push:
     tags:
@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +32,11 @@ jobs:
           SAMNPLAYER_RELEASE_TAG: ${{ github.ref_name }}
         run: go test ./update -run TestSourceVersion -count=1
 
-      - name: System deps (WebKitGTK, mingw, OpenCV, ffmpeg)
+      - name: System deps (WebKitGTK, OpenCV, ffmpeg)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
-            libgtk-3-dev libwebkit2gtk-4.1-dev gcc-mingw-w64-x86-64 \
+            libgtk-3-dev libwebkit2gtk-4.1-dev \
             libopencv-dev pkg-config ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
 
@@ -47,8 +47,6 @@ jobs:
       - name: Build Linux binary (GUI)
         working-directory: cmd/gui-wails
         run: |
-          # opencv tag enables generator/trackcv native CSRT; Windows stays
-          # on the stub (no OpenCV in the mingw cross-build).
           wails build -trimpath -tags "webkit2_41,opencv" \
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer ../../SamNPlayer-gui-linux-amd64
@@ -59,51 +57,153 @@ jobs:
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-linux-amd64 ./cmd/cli
 
-      - name: Cross-compile Windows binary (GUI)
-        working-directory: cmd/gui-wails
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: |
-          wails build -platform windows/amd64 -trimpath \
-            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
-          mv build/bin/SamNPlayer.exe ../../SamNPlayer-gui-windows-amd64.exe
-
-      - name: Cross-compile Windows binary (CLI)
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: 0
-        run: |
-          go build -trimpath -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
-            -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
-
-      - name: Bundle portable archives (GUI + ffmpeg beside the binary)
+      - name: Bundle portable Linux (GUI + ffmpeg)
         run: |
           set -euo pipefail
-          # Linux: system ffmpeg/ffprobe next to the GUI (resolved via videox).
           mkdir -p portable-linux
           cp SamNPlayer-gui-linux-amd64 portable-linux/SamNPlayer
           cp "$(command -v ffmpeg)" portable-linux/ffmpeg
           cp "$(command -v ffprobe)" portable-linux/ffprobe
           chmod +x portable-linux/*
           tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
-          # Windows: BtbN static GPL build (ffmpeg.exe + ffprobe.exe).
-          curl -fsSL -o /tmp/ffmpeg-win.zip \
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-          mkdir -p /tmp/ffmpeg-win portable-windows
-          unzip -q /tmp/ffmpeg-win.zip -d /tmp/ffmpeg-win
-          cp SamNPlayer-gui-windows-amd64.exe portable-windows/SamNPlayer.exe
-          find /tmp/ffmpeg-win -name 'ffmpeg.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffmpeg.exe
-          find /tmp/ffmpeg-win -name 'ffprobe.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffprobe.exe
-          test -f portable-windows/ffmpeg.exe
-          test -f portable-windows/ffprobe.exe
-          (cd portable-windows && zip -q ../SamNPlayer-portable-windows-amd64.zip SamNPlayer.exe ffmpeg.exe ffprobe.exe)
 
       - name: Run tests (non-GUI packages)
         run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/... ./videox/...
 
-      - name: Generate checksums
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-amd64
+          path: |
+            SamNPlayer-gui-linux-amd64
+            SamNPlayer-cli-linux-amd64
+            SamNPlayer-portable-linux-amd64.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-go
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-opencv
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-nsis
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Read version from tag
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend
+        shell: bash
+        run: |
+          cd cmd/gui-wails/frontend
+          npm install
+          npm run build
+
+      - name: OpenCV env
+        run: |
+          set -euo pipefail
+          export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          pkg-config --modversion opencv5
+          test -f /mingw64/include/opencv5/opencv2/tracking.hpp
+
+      - name: Build Windows CLI (OpenCV CSRT)
+        run: |
+          set -euo pipefail
+          export CGO_ENABLED=1
+          export PATH="/mingw64/bin:$PATH"
+          export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CC=gcc CXX=g++
+          go build -trimpath -tags opencv \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
+            -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
+          ls -la SamNPlayer-cli-windows-amd64.exe
+
+      - name: Install Wails + build Windows GUI (OpenCV CSRT)
+        run: |
+          set -euo pipefail
+          export CGO_ENABLED=1
+          export PATH="/mingw64/bin:$PATH"
+          export PATH="/c/Program Files/nodejs:$PATH"
+          export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CC=gcc CXX=g++
+          go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
+          cd cmd/gui-wails
+          # Frontend built in the previous step.
+          "$(go env GOPATH)/bin/wails" build -trimpath -tags opencv -s \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
+          mv build/bin/SamNPlayer.exe ../../SamNPlayer-gui-windows-amd64.exe
+          ls -la ../../SamNPlayer-gui-windows-amd64.exe
+
+      - name: Bundle portable Windows (GUI + ffmpeg + OpenCV DLLs)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p portable-windows
+          cp SamNPlayer-gui-windows-amd64.exe portable-windows/SamNPlayer.exe
+          # OpenCV (+ transitive MinGW) DLLs beside the exe.
+          bash scripts/collect-mingw-opencv-dlls.sh \
+            SamNPlayer-gui-windows-amd64.exe portable-windows
+          # Also ensure CLI deps are covered (same OpenCV set).
+          bash scripts/collect-mingw-opencv-dlls.sh \
+            SamNPlayer-cli-windows-amd64.exe portable-windows
+          # ffmpeg (BtbN static GPL).
+          curl -fsSL -o /tmp/ffmpeg-win.zip \
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+          mkdir -p /tmp/ffmpeg-win
+          unzip -q /tmp/ffmpeg-win.zip -d /tmp/ffmpeg-win
+          find /tmp/ffmpeg-win -name 'ffmpeg.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffmpeg.exe
+          find /tmp/ffmpeg-win -name 'ffprobe.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffprobe.exe
+          test -f portable-windows/ffmpeg.exe
+          test -f portable-windows/ffprobe.exe
+          test -f portable-windows/SamNPlayer.exe
+          ls portable-windows/libopencv_tracking*.dll
+          (cd portable-windows && zip -q ../SamNPlayer-portable-windows-amd64.zip .)
+          # Keep CLI next to the zip for the release asset list.
+          ls -la SamNPlayer-cli-windows-amd64.exe SamNPlayer-gui-windows-amd64.exe \
+            SamNPlayer-portable-windows-amd64.zip
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-amd64
+          path: |
+            SamNPlayer-gui-windows-amd64.exe
+            SamNPlayer-cli-windows-amd64.exe
+            SamNPlayer-portable-windows-amd64.zip
+
+  publish:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-amd64
+          path: dist
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-amd64
+          path: dist
+
+      - name: Checksums
+        working-directory: dist
         run: |
           sha256sum \
             SamNPlayer-gui-linux-amd64 \
@@ -114,16 +214,17 @@ jobs:
             SamNPlayer-portable-windows-amd64.zip \
             > checksums.txt
           cat checksums.txt
+          ls -la
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            SamNPlayer-gui-linux-amd64
-            SamNPlayer-cli-linux-amd64
-            SamNPlayer-gui-windows-amd64.exe
-            SamNPlayer-cli-windows-amd64.exe
-            SamNPlayer-portable-linux-amd64.tar.gz
-            SamNPlayer-portable-windows-amd64.zip
-            checksums.txt
+            dist/SamNPlayer-gui-linux-amd64
+            dist/SamNPlayer-cli-linux-amd64
+            dist/SamNPlayer-gui-windows-amd64.exe
+            dist/SamNPlayer-cli-windows-amd64.exe
+            dist/SamNPlayer-portable-linux-amd64.tar.gz
+            dist/SamNPlayer-portable-windows-amd64.zip
+            dist/checksums.txt
           generate_release_notes: true
