@@ -72,8 +72,8 @@ fixes are fine if they do not dilute Generate/Play.
 |---------|--------|------------------|
 | **v0.5.10** | Shipped | Bugfix + GUI motion + multi body-part + soft masks |
 | **v0.5.11** | Shipped | #119 AI Train opencv; progress UI; #120 one CSRT path |
-| **v0.5.12** | **This train** | Sequential Generate GUI (Video→Region→Motion→Generate→Review); G0–G4 spine docs |
-| **v0.5.13** | Next (G0.1) | Windows OpenCV CSRT in release binary; clip gate / portable smoke |
+| **v0.5.12** | Shipped | Sequential Generate GUI; G0–G4 spine docs |
+| **v0.5.13** | **This train (G0.1)** | Windows OpenCV CSRT in release binary + portable DLLs |
 | **v0.5.14+** | After G0 gate | G1 heuristics package + audio workflow polish (classical only) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 

@@ -12,22 +12,24 @@ if ! command -v ldd >/dev/null 2>&1; then
   exit 1
 fi
 
-# Direct + transitive MinGW deps of the binary.
-mapfile -t libs < <(ldd "$exe" | awk '/\/mingw64\// {print $3}' | sort -u)
-if [ "${#libs[@]}" -eq 0 ]; then
-  echo "ldd found no /mingw64/ deps for $exe — is it a MinGW OpenCV build?" >&2
-  exit 1
-fi
-
-for f in "${libs[@]}"; do
+count=0
+while read -r f; do
+  [ -n "$f" ] || continue
   [ -f "$f" ] || continue
-  cp -n "$f" "$dest/" || cp "$f" "$dest/"
-done
+  cp -f "$f" "$dest/"
+  count=$((count + 1))
+done < <(ldd "$exe" | awk '/\/mingw64\// {print $3}' | sort -u)
 
-# Always include tracking/core siblings used at runtime by OpenCV plugins.
+# Always include all OpenCV module DLLs (tracking loads siblings at runtime).
 shopt -s nullglob
 for f in /mingw64/bin/libopencv_*.dll; do
-  cp -n "$f" "$dest/" 2>/dev/null || cp "$f" "$dest/"
+  cp -f "$f" "$dest/"
+  count=$((count + 1))
 done
 
-echo "Collected $(ls -1 "$dest"/*.dll 2>/dev/null | wc -l) DLLs into $dest"
+n=$(ls -1 "$dest"/*.dll 2>/dev/null | wc -l | tr -d ' ')
+echo "Collected ${n} DLLs into $dest (ldd hits≈${count})"
+if [ "$n" -lt 3 ]; then
+  echo "too few DLLs — OpenCV link likely missing" >&2
+  exit 1
+fi

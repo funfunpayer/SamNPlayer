@@ -194,13 +194,10 @@ jobs:
             python3 "$t"
           done
 
-  # G0.1 spike: Go CSRT on Windows via MSYS2 MinGW OpenCV (see docs/WINDOWS_OPENCV.md).
-  # continue-on-error until the first green run proves CSRT + DLL layout; then
-  # wire the same recipe into release.yml and drop continue-on-error.
+  # G0.1: Go CSRT on Windows via MSYS2 MinGW OpenCV (docs/WINDOWS_OPENCV.md).
   windows-opencv:
     name: Go (OpenCV Windows)
     runs-on: windows-latest
-    continue-on-error: true
     defaults:
       run:
         shell: msys2 {0}
@@ -245,14 +242,23 @@ jobs:
           export CXX=g++
           go version
           pkg-config --modversion opencv5
-          # Full trackcv suite (CSRT + camera motion).
           go test -tags opencv ./generator/trackcv/ -count=1
-          # Generator: native CSRT / simpletrack only — skip Python FindROI
-          # tests (no Python on this runner; product Windows path is Go CSRT).
           go test -tags opencv ./generator/ -count=1 \
             -run 'Native|AutoNative|NativeTracking|GenerateWithContextCancel'
           go build -tags opencv -o SamNPlayer-cli-windows-amd64.exe ./cmd/cli
           ls -la SamNPlayer-cli-windows-amd64.exe
-          cp /mingw64/bin/libopencv_tracking*.dll .
-          cp /mingw64/bin/libopencv_core*.dll .
-          ls libopencv_*.dll | head
+          bash scripts/collect-mingw-opencv-dlls.sh SamNPlayer-cli-windows-amd64.exe /tmp/opencv-dlls
+          ls /tmp/opencv-dlls/libopencv_tracking*.dll
+
+      - name: Wails GUI build smoke (OpenCV tags)
+        run: |
+          set -euo pipefail
+          export CGO_ENABLED=1
+          export PATH="/mingw64/bin:$PATH"
+          export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CC=gcc CXX=g++
+          go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
+          cd cmd/gui-wails
+          "$(go env GOPATH)/bin/wails" build -trimpath -tags opencv
+          test -f build/bin/SamNPlayer.exe
+          ls -la build/bin/SamNPlayer.exe

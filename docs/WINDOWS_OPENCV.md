@@ -3,9 +3,9 @@
 **Goal:** Windows portable Generate uses **Go CSRT** (`trackcv`) with no
 Python — same quality path as Linux OpenCV builds.
 
-**Status:** build tags unlocked (`cgo && opencv` on all OS). Release still
-cross-compiles Windows **without** OpenCV (stub) until this plan ships.
-Linux release already links `-tags opencv`.
+**Status:** build tags unlocked; CI `Go (OpenCV Windows)` required green;
+release builds Windows on `windows-latest` + MSYS2 and ships OpenCV DLLs
+in the portable zip (`scripts/collect-mingw-opencv-dlls.sh`).
 
 Related: `docs/PRODUCTION_ROADMAP.md` G0.1, issue #120, `docs/ENGINE.md`.
 
@@ -13,35 +13,30 @@ Related: `docs/PRODUCTION_ROADMAP.md` G0.1, issue #120, `docs/ENGINE.md`.
 
 ## Why not MinGW cross-compile from Ubuntu?
 
-OpenCV+contrib (CSRT lives in `opencv_tracking`) for `x86_64-w64-mingw32`
-is painful to package on the Linux release runner. GoCV’s proven path is
-**build on `windows-latest`** with MinGW OpenCV (cached), then ship DLLs
-beside the `.exe`.
+OpenCV+contrib (CSRT in `opencv_tracking`) for `x86_64-w64-mingw32` is
+painful on the Linux release runner. Proven path: **build on
+`windows-latest`** with MSYS2 MinGW OpenCV, then ship DLLs beside the
+`.exe`.
 
-We keep our slim `trackcv` wrapper (not full GoCV) — only link what
-`cv.cpp` needs.
-
----
-
-## Approach (chosen)
-
-1. **CI / Release job on `windows-2022`**
-2. Install **MSYS2** MinGW64 + `mingw-w64-x86_64-opencv` (OpenCV **5.x**,
-   pkg-config name `opencv5`, includes `libopencv_tracking` / CSRT)
-   *or* cache a MinGW OpenCV 4 build (GoCV-style) if 5.x API breaks us.
-3. `CGO_ENABLED=1` + `-tags opencv` + `CGO_CPPFLAGS` / `CGO_LDFLAGS` /
-   PATH to MinGW `bin` (DLLs).
-4. Build:
-   - `go build -tags opencv ./cmd/cli` → `SamNPlayer-cli-windows-amd64.exe`
-   - Wails GUI with same tags / env
-5. Portable zip: copy required `libopencv_*.dll` (+ deps) next to
-   `SamNPlayer.exe` (same pattern as ffmpeg).
-
-Linux job stays as today (`pkg-config opencv4` on ubuntu).
+We keep the slim `trackcv` wrapper (not full GoCV).
 
 ---
 
-## Build tags (done in tree)
+## Approach (shipped in workflows)
+
+1. CI / Release job on **`windows-latest`**
+2. **MSYS2** MinGW64 + `mingw-w64-x86_64-opencv` (OpenCV **5.x**,
+   pkg-config `opencv5`, includes tracking/CSRT)
+3. `CGO_ENABLED=1` + `-tags opencv` + `PKG_CONFIG_PATH` + MinGW `gcc/g++`
+4. Build CLI + Wails GUI with `-tags opencv`
+5. Portable zip: `ffmpeg` + OpenCV/MinGW DLLs via
+   `scripts/collect-mingw-opencv-dlls.sh`
+
+Linux stays on Ubuntu `pkg-config opencv4`.
+
+---
+
+## Build tags
 
 | File | Constraint |
 |------|------------|
@@ -64,7 +59,7 @@ After a tagged build with OpenCV DLLs:
 
 ---
 
-## Out of scope here
+## Out of scope
 
 - AI Train / ultralytics (still Python)
 - Research backends in GUI
@@ -76,8 +71,8 @@ After a tagged build with OpenCV DLLs:
 ## Implementation checklist
 
 - [x] Remove `!windows` from OpenCV build tags
-- [ ] `windows-opencv` CI job (MSYS2 OpenCV + `go test -tags opencv`)
-- [ ] Release: Windows artifacts from `windows-latest`, not MinGW cross
-- [ ] DLL list + portable zip copy
+- [x] `windows-opencv` CI job (MSYS2 OpenCV + Go CSRT tests)
+- [x] Release: Windows artifacts from `windows-latest` + DLL zip
+- [x] DLL collector script
 - [ ] Owner clip gate on real Windows PC
 - [ ] Tag **v0.5.13**

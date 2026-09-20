@@ -10,11 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
-- **Windows OpenCV CSRT (G0.1 in progress):** build tags no longer exclude
-  Windows from `trackcv` (`cgo && opencv`). CI spike job
-  `Go (OpenCV Windows)` (MSYS2) + plan in `docs/WINDOWS_OPENCV.md`.
-  Release still ships Windows stub until that job is green and wired into
-  `release.yml` (target **v0.5.13**).
+- **Windows OpenCV CSRT (G0.1):** build tags allow Windows `trackcv`;
+  required CI job `Go (OpenCV Windows)` (MSYS2 OpenCV 5); release builds
+  Windows on `windows-latest` and ships OpenCV DLLs in the portable zip
+  (`docs/WINDOWS_OPENCV.md`, `scripts/collect-mingw-opencv-dlls.sh`).
+  Target tag **v0.5.13** after owner Windows clip gate.
 
 ## [0.5.12] — September 20, 2026
 
