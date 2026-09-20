@@ -73,7 +73,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.10** | Shipped | Bugfix + GUI motion + multi body-part + soft masks |
 | **v0.5.11** | Shipped | #119 AI Train opencv; progress UI; #120 one CSRT path |
 | **v0.5.12** | Shipped | Sequential Generate GUI; G0–G4 spine docs |
-| **v0.5.13** | **This train (G0.1)** | Windows OpenCV CSRT + portable DLLs |
+| **v0.5.13** | Shipped | Windows OpenCV CSRT + portable DLLs (G0.1) |
 | **v0.5.14+** | After G0 gate | G1 heuristics package + audio workflow polish (classical only) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
@@ -295,7 +295,7 @@ risks Generate regressions — otherwise small orthogonal PRs OK.
 **Now (G0 / G1):**
 
 1. **Private golden clips** — Bench / FunGen numbers (A1) — unblocks almost everything  
-2. **Windows portable** Generate without Python once 0.5.12 ships (G0.1)  
+2. **Windows portable** Generate without Python on **v0.5.13** (G0.1 gate)  
 3. **Classical Generate** usable/borderline/unusable on 2–3 clips (no AI required)
 
 **Then (G2):**
