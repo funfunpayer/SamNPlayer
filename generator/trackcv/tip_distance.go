@@ -30,3 +30,25 @@ func clampFloat(v, lo, hi float64) float64 {
 	}
 	return v
 }
+
+// FuseTipPartners returns min TipPartnerDistance over partners with include[i].
+// tipOK must be true and at least one partner included; otherwise ok=false
+// (caller keeps the previous distance — lost/stale boxes must not drag min()).
+func FuseTipPartners(tip Rect, tipOK bool, partners []Rect, include []bool) (dist float64, ok bool) {
+	if !tipOK || len(partners) == 0 {
+		return 0, false
+	}
+	best := 0.0
+	any := false
+	for i, p := range partners {
+		if i < len(include) && !include[i] {
+			continue
+		}
+		d := TipPartnerDistance(tip, p)
+		if !any || d < best {
+			best = d
+			any = true
+		}
+	}
+	return best, any
+}

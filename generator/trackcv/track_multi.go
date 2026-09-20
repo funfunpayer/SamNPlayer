@@ -10,6 +10,8 @@ type Partner struct {
 
 // TrackMultiPoints follows the tip ROI plus N contact partners and returns
 // min tip→partner distance (TipPartnerDistance) as Positions.
+// Lost tracked partners are excluded from min() for that frame (F-006);
+// tip loss or no usable partner keeps the previous distance.
 func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Options) (Result, error) {
 	if len(partners) == 0 {
 		return Result{}, &trackError{"TrackMultiPoints requires at least one partner"}
@@ -48,8 +50,10 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 	tipTracker.Init(cap, tip)
 	boxes := make([]Rect, len(partners))
 	trackers := make([]*Tracker, len(partners))
+	include0 := make([]bool, len(partners))
 	for i, p := range partners {
 		boxes[i] = p.ROI
+		include0[i] = true // first frame: all partners at marked boxes
 		if !p.Fixed {
 			tr := NewTracker()
 			tr.Init(cap, p.ROI)
@@ -65,23 +69,14 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 		}
 	}()
 
-	minDist := func(tipBox Rect, ps []Rect) float64 {
-		best := TipPartnerDistance(tipBox, ps[0])
-		for i := 1; i < len(ps); i++ {
-			d := TipPartnerDistance(tipBox, ps[i])
-			if d < best {
-				best = d
-			}
-		}
-		return best
-	}
-
 	tipBox := tip
+	d0, _ := FuseTipPartners(tipBox, true, boxes, include0)
 	timestamps := []int{0}
-	distances := []float64{minDist(tipBox, boxes)}
+	distances := []float64{d0}
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	idx := 1
+	lastDist := d0
 
 	total := int(cap.Get(CapPropFrameCount))
 	if opts.MaxFrames > 0 && (total == 0 || opts.MaxFrames < total) {
@@ -90,6 +85,7 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 	prog := newProgressReporter(opts.OnProgress, total)
 	prog.report(0)
 
+	include := make([]bool, len(partners))
 	for {
 		if opts.Cancel != nil && opts.Cancel() {
 			return Result{Canceled: true}, ErrCanceled
@@ -104,25 +100,29 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 		if okTip {
 			tipBox = newTip
 		}
-		frameOK := okTip
-		for i, tr := range trackers {
-			if tr == nil {
+		for i := range partners {
+			if trackers[i] == nil {
+				include[i] = true // fixed
 				continue
 			}
-			newB, okB := tr.Update(cap)
+			newB, okB := trackers[i].Update(cap)
 			if okB {
 				boxes[i] = newB
+				include[i] = true
 			} else {
-				frameOK = false
+				include[i] = false // exclude stale box from min()
 			}
 		}
-		frameLost := !frameOK
+		dist, fused := FuseTipPartners(tipBox, okTip, boxes, include)
+		frameLost := !fused
 		if frameLost {
 			lost++
+			dist = lastDist
 		} else {
 			valid++
+			lastDist = dist
 		}
-		distances = append(distances, minDist(tipBox, boxes))
+		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
 		prog.report(idx)

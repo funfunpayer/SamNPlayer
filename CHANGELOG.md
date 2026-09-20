@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Tf/Tj multi-partner fusion:** lost tracked partners no longer feed
+  stale boxes into `min()` distance; tip loss / no usable partner holds
+  the last good distance (F-006 / star-topology interim).
+
 ## [0.5.14] — September 20, 2026
 
 Tf/Tj contact zones: tip-end distance, named Zone 1/2/3+, Go multi-partner.

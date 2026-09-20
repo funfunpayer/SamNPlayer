@@ -39,3 +39,30 @@ func TestTipPartnerDistance_overlapIsZero(t *testing.T) {
 		t.Fatalf("overlap: got %v want 0", d)
 	}
 }
+
+func TestFuseTipPartners_excludesLostPartner(t *testing.T) {
+	tip := Rect{X: 0, Y: 0, W: 10, H: 10}
+	near := Rect{X: 20, Y: 0, W: 10, H: 10} // dist ~10 from tip edge
+	far := Rect{X: 200, Y: 0, W: 10, H: 10} // much farther
+	// If both included, min is near.
+	d, ok := FuseTipPartners(tip, true, []Rect{near, far}, []bool{true, true})
+	if !ok || d > 15 {
+		t.Fatalf("both: got %v ok=%v", d, ok)
+	}
+	// Stale "near" lost → only far counts (must NOT keep dragging min down).
+	d, ok = FuseTipPartners(tip, true, []Rect{near, far}, []bool{false, true})
+	if !ok {
+		t.Fatal("expected ok with remaining partner")
+	}
+	if d < 100 {
+		t.Fatalf("lost near must leave far distance, got %v", d)
+	}
+	// Tip lost → no fresh distance.
+	if _, ok = FuseTipPartners(tip, false, []Rect{near}, []bool{true}); ok {
+		t.Fatal("tip lost must not fuse")
+	}
+	// All partners lost → no fresh distance.
+	if _, ok = FuseTipPartners(tip, true, []Rect{near, far}, []bool{false, false}); ok {
+		t.Fatal("no partners must not fuse")
+	}
+}

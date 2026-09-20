@@ -77,10 +77,9 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		}
 	}
 
-	dist := tipPartnerDistance
-
 	timestamps := []int{0}
-	distances := []float64{dist(boxA, boxB)}
+	lastDist := tipPartnerDistance(boxA, boxB)
+	distances := []float64{lastDist}
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	frameIdx := 1
@@ -125,13 +124,17 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 				}
 			}
 		}
-		frameLost := !(okA && okB)
+		includeB := opts.FixedB || okB
+		dist, fused := fuseTipPartners(boxA, okA, []Rect{boxB}, []bool{includeB})
+		frameLost := !fused
 		if frameLost {
 			lost++
+			dist = lastDist
 		} else {
 			valid++
+			lastDist = dist
 		}
-		distances = append(distances, dist(boxA, boxB))
+		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(frameIdx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
 		prog.report(frameIdx)

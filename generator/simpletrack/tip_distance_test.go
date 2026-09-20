@@ -19,3 +19,13 @@ func TestTipPartnerDistance_overlapIsZero(t *testing.T) {
 		t.Fatalf("got %v want 0", d)
 	}
 }
+
+func TestFuseTipPartners_excludesLost(t *testing.T) {
+	tip := Rect{X: 0, Y: 0, W: 10, H: 10}
+	near := Rect{X: 20, Y: 0, W: 10, H: 10}
+	far := Rect{X: 200, Y: 0, W: 10, H: 10}
+	d, ok := fuseTipPartners(tip, true, []Rect{near, far}, []bool{false, true})
+	if !ok || d < 100 {
+		t.Fatalf("lost near must leave far, got %v ok=%v", d, ok)
+	}
+}

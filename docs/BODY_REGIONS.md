@@ -45,10 +45,11 @@ IDs in Go (`generator/bodyparts`), Python (`bodyparts.py`), and the GUI
   Typical class: `nipples` / `mouth` / `vagina`.
 - **Extra targets (Zone 3+, `--target`, repeatable):** additional contact
   anchors (GUI: **+ Zone 3+**). Default **fixed**. Optional class via
-  `x,y,w,h,class` or GUI **Zone 3+ class**. Stroke signal =
-  **min** distance from tip to Zone 2 and all extra targets. Contact
-  vibration uses the same proximity signal. Go CSRT runs N partners
-  natively (`TrackMultiPoints`); soft masks still use the Python path.
+  `x,y,w,h,class` or GUI **Zone 3+ class** — **label/metadata only today**
+  (taxonomy / future weighting); fusion is still unweighted `min()` over
+  **usable** partners (lost tracked boxes excluded). Contact vibration
+  uses the same proximity signal. Go CSRT runs N partners natively
+  (`TrackMultiPoints`); soft masks still use the Python path.
 - **Soft masks (`--mask`, repeatable):** GUI **+ Mask**. Punched out of
   camera-motion and grid_lk reseed feature masks only — they do **not**
   drive the stroke. Not pixel-perfect SAM segmentation; box soft-exclude.

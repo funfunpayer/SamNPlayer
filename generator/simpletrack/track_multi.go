@@ -103,22 +103,21 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 		}
 	}
 
-	minDist := func(tipB Rect, ps []Rect) float64 {
-		best := tipPartnerDistance(tipB, ps[0])
-		for i := 1; i < len(ps); i++ {
-			d := tipPartnerDistance(tipB, ps[i])
-			if d < best {
-				best = d
-			}
-		}
-		return best
+	minDist := func(tipB Rect, tipOK bool, ps []Rect, include []bool) (float64, bool) {
+		return fuseTipPartners(tipB, tipOK, ps, include)
 	}
 
+	include0 := make([]bool, len(partners))
+	for i := range include0 {
+		include0[i] = true
+	}
+	d0, _ := minDist(tipBox, true, boxes, include0)
 	timestamps := []int{0}
-	distances := []float64{minDist(tipBox, boxes)}
+	distances := []float64{d0}
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	frameIdx := 1
+	lastDist := d0
 
 	totalFrames := 0
 	if info.Duration > 0 && fps > 0 {
@@ -130,6 +129,7 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 	prog := newProgressReporter(opts.OnProgress, totalFrames)
 	prog.report(0)
 
+	include := make([]bool, len(partners))
 	for {
 		if opts.Cancel != nil && opts.Cancel() {
 			return Result{Canceled: true}, ErrCanceled
@@ -149,29 +149,33 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 				tmplTip = extract(frame.Pixels, w, h, tipBox)
 			}
 		}
-		frameOK := okTip
 		for i, p := range partners {
 			if p.Fixed {
+				include[i] = true
 				continue
 			}
 			best, score, found := searchNCC(frame.Pixels, w, h, tmpls[i], boxes[i], margin, step)
 			ok := found && score >= 0.35
 			if ok {
 				boxes[i] = best
+				include[i] = true
 				if frameIdx%15 == 0 {
 					tmpls[i] = extract(frame.Pixels, w, h, boxes[i])
 				}
 			} else {
-				frameOK = false
+				include[i] = false
 			}
 		}
-		frameLost := !frameOK
+		dist, fused := minDist(tipBox, okTip, boxes, include)
+		frameLost := !fused
 		if frameLost {
 			lost++
+			dist = lastDist
 		} else {
 			valid++
+			lastDist = dist
 		}
-		distances = append(distances, minDist(tipBox, boxes))
+		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(frameIdx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
 		prog.report(frameIdx)

@@ -24,3 +24,23 @@ func clampF(v, lo, hi float64) float64 {
 	}
 	return v
 }
+
+// fuseTipPartners mirrors trackcv.FuseTipPartners — exclude lost partners from min().
+func fuseTipPartners(tip Rect, tipOK bool, partners []Rect, include []bool) (float64, bool) {
+	if !tipOK || len(partners) == 0 {
+		return 0, false
+	}
+	best := 0.0
+	any := false
+	for i, p := range partners {
+		if i < len(include) && !include[i] {
+			continue
+		}
+		d := tipPartnerDistance(tip, p)
+		if !any || d < best {
+			best = d
+			any = true
+		}
+	}
+	return best, any
+}
