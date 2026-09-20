@@ -9,14 +9,14 @@ type PipelineSuggestion struct {
 }
 
 // SuggestPipeline picks backend + profile from marked ROI geometry.
-// Two valid ROIs → Tf/Tj + CSRT (Go two-point). Small single ROI → grid_lk
-// (Python). Large single ROI → CSRT (Go). Never invents flow.
+// Always CSRT so the default path stays Go (no Python). Two valid ROIs →
+// Tf/Tj. Research backends remain CLI --backend only.
 func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 	if roi2W > 0 && roi2H > 0 && roiW > 0 && roiH > 0 {
 		return PipelineSuggestion{
 			Backend: "csrt",
 			Profile: "tf",
-			Reason:  "Zwei Regionen → Tf/Tj (Abstand) auf der Go-Pipeline",
+			Reason:  "Two regions → Tf/Tj (distance) on the Go path",
 			GoPath:  true,
 		}
 	}
@@ -24,20 +24,15 @@ func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 		return PipelineSuggestion{
 			Backend: "csrt",
 			Profile: "standard",
-			Reason:  "Keine Region — CSRT-Standard (Region noch markieren)",
-			GoPath:  false,
+			Reason:  "No region yet — mark a region, then CSRT (Go path)",
+			GoPath:  true,
 		}
 	}
-	backend := SuggestBackend(roiW, roiH)
-	goPath := backend == "csrt"
-	reason := "Eine Region + CSRT → Go-Pipeline"
-	if backend == "grid_lk" {
-		reason = "Kleine Region → Gitter/Optical-Flow (Python; gemessen robuster bei kleinen Boxen)"
-	}
+	_ = SuggestBackend(roiW, roiH)
 	return PipelineSuggestion{
-		Backend: backend,
+		Backend: "csrt",
 		Profile: "standard",
-		Reason:  reason,
-		GoPath:  goPath,
+		Reason:  "One region + CSRT → Go path (no Python)",
+		GoPath:  true,
 	}
 }

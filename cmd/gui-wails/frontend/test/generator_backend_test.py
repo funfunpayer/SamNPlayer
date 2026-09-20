@@ -1,13 +1,8 @@
-"""Regressionstest für den Generator-Tab: Tracking-Verfahren-Dropdown.
+"""Product GUI exposes CSRT only (Go path, fewer deps).
 
-Prüft, dass region_fusion (das neue 4-Teilregionen-Verfahren, siehe
-generator/region_fusion_backend.py) als Option angeboten wird, und dass es -
-wie schon "flow" - bei einer Zwei-Punkt-Messung (2. Region markiert)
-gesperrt wird: generate_funscript.py hat für region_fusion keinen eigenen
-Zwei-Punkt-Pfad und würde sonst still auf CSRT zurückfallen (siehe dessen
-"Hinweis: --backend ... unterstützt keine Zwei-Punkt-Messung"). Die
-Oberfläche soll das nicht erst anbieten und dann stillschweigend
-überschreiben.
+Research backends (flow, grid_lk, region_fusion*) stay CLI --backend.
+This test locks the product surface: dropdown = csrt; Generate needs a
+marked region; Tf/Tj still requires ROI2.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_test.py
 """
@@ -56,46 +51,29 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         options = page.eval_on_selector_all("#gen-backend option", "els => els.map(e => e.value)")
-        check("Dropdown bietet region_fusion an",
-              "region_fusion" in options, str(options))
+        check("Dropdown offers only CSRT", options == ["csrt"], str(options))
+        check("Weak research backends not in GUI",
+              "flow" not in options and "grid_lk" not in options
+              and "region_fusion" not in options and "region_fusion_auto" not in options,
+              str(options))
 
-        # #gen-backend steckt in <details id="gen-advanced"> - erst öffnen,
-        # sonst gilt es Playwright als nicht sichtbar für select_option/
-        # is_disabled (anders als eval_on_selector_all oben, das keine
-        # Sichtbarkeit braucht).
         page.click("#gen-advanced summary")
-
         page.click("#gen-choose")
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
 
-        box = page.locator("#roi-canvas").bounding_box()
+        check("Generate stays disabled without ROI",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
 
-        # --- 1. Region markieren, region_fusion wählen -------------------------
+        box = page.locator("#roi-canvas").bounding_box()
         page.mouse.move(box["x"] + 40, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
         page.mouse.up()
-        page.select_option("#gen-backend", "region_fusion")
-        check("region_fusion mit nur 1 Region wählbar (nicht gesperrt)",
-              not page.locator('#gen-backend option[value="region_fusion"]').is_disabled())
-
-        # --- 2. Region markieren: region_fusion wird gesperrt und auf csrt zurückgesetzt ---
-        page.click("#gen-roi2-toggle")
-        page.mouse.move(box["x"] + 200, box["y"] + 40)
-        page.mouse.down()
-        page.mouse.move(box["x"] + 280, box["y"] + 120, steps=5)
-        page.mouse.up()
-
         page.wait_for_function(
-            "document.querySelector('#gen-backend option[value=\"region_fusion\"]').disabled === true",
-            timeout=5000)
-        check("region_fusion wird bei Zwei-Punkt-Messung gesperrt", True)
-        check("Backend wird bei Zwei-Punkt-Messung automatisch auf csrt zurückgesetzt",
-              page.locator("#gen-backend").input_value() == "csrt",
-              page.locator("#gen-backend").input_value())
-        check("flow ist ebenfalls gesperrt (bestehendes Verhalten, unverändert)",
-              page.locator('#gen-backend option[value="flow"]').is_disabled())
+            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
+        check("CSRT + one ROI enables Generate", True)
+        check("Backend stays CSRT", page.locator("#gen-backend").input_value() == "csrt")
 
         browser.close()
 

@@ -88,13 +88,13 @@ type Options struct {
 	ROI2Fixed bool
 	// RegionClass / RegionClass2 are optional canonical body-part IDs
 	// (docs/BODY_REGIONS.md) for ROI / ROI2 — used for AI preference + UI.
-	RegionClass           string
-	RegionClass2          string
+	RegionClass  string
+	RegionClass2 string
 	// ExtraTargets are additional Tf/Tj contact anchors beyond ROI2.
 	// Distance signal = min(tip, ROI2, ExtraTargets…). Defaults to fixed.
 	ExtraTargets []NamedROI
 	// MaskROIs soft-exclude boxes (feature mask punch-outs); not distance drivers.
-	MaskROIs []ROI
+	MaskROIs              []ROI
 	AIQualityOpinion      bool
 	AIBaseURL             string
 	ContactVibration      bool

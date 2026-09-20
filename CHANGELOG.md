@@ -32,6 +32,10 @@ Checks are green on `main`.
 - **Update check noise:** missing/empty GitHub release is “no update”,
   not a startup warning. No browser `confirm()` popup — in-app banner /
   Settings button instead.
+- **Weak generator backends off the product GUI:** Flow / grid_lk /
+  region_fusion* removed from Advanced dropdown (CLI `--backend` only).
+  SuggestPipeline always picks CSRT → Go path (fewer dependencies).
+  Tf/Tj, masks, multi-target, AI ROI, Quality Doctor stay.
 - **Session guard:** rejected second StartPlayback/StartTraining no longer
   overwrites the live session’s `activePlayer`/`activeDevice`.
 - **Generate overwrite:** also refuse when a companion `.samn` exists

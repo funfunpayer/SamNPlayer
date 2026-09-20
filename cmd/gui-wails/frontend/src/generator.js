@@ -75,11 +75,11 @@ export function initGenerator(root, playback) {
       </select>
     </div>
     <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-      <strong>Workflow tip:</strong> several stages instead of one method —
-      1)&nbsp;Flow scout (fast, no ROI) →
-      2)&nbsp;CSRT with ROI (AI only proposes the region) →
-      3)&nbsp;Autotune (detrend + bandpass + speed) →
-      4)&nbsp;optional audio tempo check (Advanced).
+      <strong>Workflow:</strong>
+      1)&nbsp;Mark region(s) (AI may propose the box — you verify) →
+      2)&nbsp;CSRT tracking on the Go path (no Python) →
+      3)&nbsp;optional Autotune / audio tempo check (Advanced) →
+      4)&nbsp;review in Play. Tf/Tj: tip + contact target(s); masks optional.
     </p>
     <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
       Mark two or more regions. Distance to the nearest contact target drives stroke;
@@ -131,16 +131,12 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
           data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
         <div class="row" style="align-items:center;">
-          <label style="width:auto;" data-help="CSRT: robust, good with pans. Flow: ~1.9× faster (not 4×), no region needed. Grid/optical flow: ~15× faster than CSRT, good for small ROIs. Region fusion: 4 sub-regions weighted. Region fusion auto: fusion without marking.">Tracking method</label>
+          <label style="width:auto;" data-help="Product tracking is CSRT on the Go path (portable: no Python). Research backends (flow, grid_lk, fusion) stay CLI --backend only — measured quality first.">Tracking method</label>
           <select id="gen-backend">
-            <option value="csrt">CSRT (Standard, robust)</option>
-            <option value="flow">Flow (no region needed, ~2× faster)</option>
-            <option value="grid_lk">Grid/optical flow (needs region like CSRT, ~15× faster)</option>
-            <option value="region_fusion">Region fusion (4 sub-regions, weighted merge)</option>
-            <option value="region_fusion_auto">Region fusion auto (4 zones, no region needed)</option>
+            <option value="csrt" selected>CSRT (standard, Go path)</option>
           </select>
         </div>
-        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">Short help via “?” on the label — measurements in docs/NEXT.md.</p>
+        <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT only in the GUI. Weaker/faster research methods are CLI-only so Play/Generate stay dependency-light.</p>
 
         <div class="opt-group">Signal &amp; quality</div>
         <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -172,7 +168,7 @@ export function initGenerator(root, playback) {
         <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
         <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
         <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-        <div class="field-row"><label data-help="Optical-flow backend only: frame scale (0.5 = half, much faster). 0 or 1 = full.">Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
+        <div class="field-row" style="display:none;"><label>Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
       </div>
     </details>
 
@@ -332,10 +328,8 @@ export function initGenerator(root, playback) {
       extras.textContent = parts.length ? parts.join(' · ') : '';
     }
 
-    // Zwei-Punkt-Messung (2. Region gesetzt) hat einen eigenen Pfad in
-    // generate_funscript.py, der weder die Schnitt-Neuerkennung noch das
-    // Flow-Backend kennt - beide unten sichtbar abschalten, statt sie
-    // anzubieten und dann stillschweigend zu ignorieren.
+    // Zwei-Punkt-Messung (2. Region gesetzt): Per-Scene-ROI abschalten —
+    // der Zwei-Punkt-Pfad sucht die Region nicht neu.
     const twoPoint = !!roi2;
     const perScene = el('#gen-perscene');
     perScene.disabled = twoPoint;
@@ -343,36 +337,20 @@ export function initGenerator(root, playback) {
     perScene.title = twoPoint
       ? 'Not available for two-point measurement (2nd region set) — region is not re-searched there.'
       : '';
-    const flowOption = el('#gen-backend').querySelector('option[value="flow"]');
-    flowOption.disabled = twoPoint;
-    flowOption.title = twoPoint ? 'Not available for two-point measurement (no tracker/no region).' : '';
-    const regionFusionOption = el('#gen-backend').querySelector('option[value="region_fusion"]');
-    regionFusionOption.disabled = twoPoint;
-    regionFusionOption.title = twoPoint
-      ? 'Not available for two-point measurement (no two-point path for this method) — CSRT is used instead.'
-      : '';
-    const regionFusionAutoOption = el('#gen-backend').querySelector('option[value="region_fusion_auto"]');
-    regionFusionAutoOption.disabled = twoPoint;
-    regionFusionAutoOption.title = twoPoint
-      ? 'Not available for two-point measurement (no two-point path for this method) — CSRT is used instead.'
-      : '';
-    if (twoPoint && ['flow', 'region_fusion', 'region_fusion_auto'].includes(el('#gen-backend').value)) {
+    // Product GUI only exposes CSRT (Go path). Research backends are CLI-only.
+    if (el('#gen-backend').value !== 'csrt') {
       el('#gen-backend').value = 'csrt';
     }
     updateGenerateEnabled();
   }
 
-  // Nur csrt/grid_lk/region_fusion/two_point (Tf/Tj) brauchen eine von Hand
-  // markierte Region - flow und region_fusion_auto bestimmen ihre Zonen
-  // selbst aus dem ganzen Bild, siehe generate_funscript.py/backends.py.
+  // Product path always needs a marked region (CSRT / Tf/Tj).
   function backendNeedsRoi() {
-    return !['flow', 'region_fusion_auto'].includes(el('#gen-backend').value);
+    return true;
   }
 
   function updateGenerateEnabled() {
-    // Ohne video kein Ziel zum Generieren - bisher deckte "kein roi" das
-    // implizit mit ab (roi startet null), das gilt seit backendNeedsRoi()
-    // für flow/region_fusion_auto nicht mehr automatisch.
+    // Ohne video kein Ziel zum Generieren.
     if (!videoPath) {
       el('#gen-generate').disabled = true;
       return;

@@ -9,10 +9,10 @@ func TestSuggestPipelineTwoROIUsesTf(t *testing.T) {
 	}
 }
 
-func TestSuggestPipelineSmallUsesGrid(t *testing.T) {
+func TestSuggestPipelineSmallUsesCSRTGo(t *testing.T) {
 	s := SuggestPipeline(18, 16, 0, 0)
-	if s.Backend != "grid_lk" || s.GoPath {
-		t.Fatalf("got %+v", s)
+	if s.Backend != "csrt" || !s.GoPath {
+		t.Fatalf("small ROI must stay CSRT/Go, got %+v", s)
 	}
 }
 

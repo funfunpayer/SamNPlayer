@@ -49,9 +49,9 @@ export function enhanceGeneratorPreview(root) {
   function backendHintLocal(r1) {
     if (!r1) return '';
     if (r1.w * r1.h < 800 || r1.w < 24 || r1.h < 24) {
-      return 'Small ROI: grid/optical-flow tracking is usually more robust than CSRT.';
+      return 'Small ROI — mark carefully; product tracking stays CSRT (Go path).';
     }
-    return 'ROI size favors CSRT.';
+    return 'ROI size OK for CSRT (Go path).';
   }
 
   async function refreshBackendHint(r1) {
@@ -59,11 +59,7 @@ export function enhanceGeneratorPreview(root) {
     try {
       const name = await SuggestBackend(r1.w, r1.h);
       if (name && typeof name === 'string') {
-        if (name.toLowerCase().includes('grid') || name.toLowerCase().includes('flow') || name.toLowerCase().includes('lk')) {
-          lastBackendHint = 'SuggestBackend: ' + name + ' (small ROI).';
-        } else {
-          lastBackendHint = 'SuggestBackend: ' + name + '.';
-        }
+        lastBackendHint = 'Tracking: ' + name + ' (Go path).';
         return;
       }
     } catch (_) { /* fallback below */ }

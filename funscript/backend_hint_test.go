@@ -2,20 +2,10 @@ package funscript
 
 import "testing"
 
-func TestSuggestBackendSmallBoxUsesGrid(t *testing.T) {
-	if SuggestBackend(18, 16) != "grid_lk" {
-		t.Fatal("kleine Box muss grid_lk sein")
-	}
-}
-
-func TestSuggestBackendLargeBoxUsesCSRT(t *testing.T) {
-	if SuggestBackend(80, 90) != "csrt" {
-		t.Fatal("große Box muss csrt sein")
-	}
-}
-
-func TestSuggestBackendInvalidDefaultsCSRT(t *testing.T) {
-	if SuggestBackend(0, 10) != "csrt" {
-		t.Fatal("ungueltige Box: csrt")
+func TestSuggestBackendAlwaysCSRT(t *testing.T) {
+	for _, sz := range [][2]int{{18, 16}, {80, 90}, {0, 10}, {4, 4}} {
+		if SuggestBackend(sz[0], sz[1]) != "csrt" {
+			t.Fatalf("SuggestBackend(%d,%d) want csrt", sz[0], sz[1])
+		}
 	}
 }

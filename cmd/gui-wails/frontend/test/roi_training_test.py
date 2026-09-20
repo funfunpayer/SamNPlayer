@@ -45,6 +45,9 @@ SAMPLES = [
 
 SUMMARY = {
     "datasetDir": "/data",
+    "hasDataYaml": True,
+    "trainImages": 2,
+    "readyToTrain": True,
     "classes": [{"className": "brust", "classId": 0, "trainCount": 2, "valCount": 0}],
 }
 
