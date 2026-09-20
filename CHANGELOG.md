@@ -8,13 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.13] — September 20, 2026
+
+Windows Generate on **Go CSRT** (no Python): MSYS2 OpenCV 5 in CI/release,
+portable zip ships OpenCV DLLs beside the GUI.
+
 ### Changed
 
-- **Windows OpenCV CSRT (G0.1):** build tags allow Windows `trackcv`;
-  required CI job `Go (OpenCV Windows)` (MSYS2 OpenCV 5); release builds
-  Windows on `windows-latest` and ships OpenCV DLLs in the portable zip
+- **Windows OpenCV CSRT (G0.1):** `trackcv` on Windows with `-tags opencv`;
+  required CI `Go (OpenCV Windows)`; release builds Windows on
+  `windows-latest` and collects MinGW OpenCV DLLs
   (`docs/WINDOWS_OPENCV.md`, `scripts/collect-mingw-opencv-dlls.sh`).
-  Target tag **v0.5.13** after owner Windows clip gate.
 
 ## [0.5.12] — September 20, 2026
 
