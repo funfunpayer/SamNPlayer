@@ -26,9 +26,9 @@ We keep our slim `trackcv` wrapper (not full GoCV) — only link what
 ## Approach (chosen)
 
 1. **CI / Release job on `windows-2022`**
-2. Install **MSYS2** MinGW64 + `mingw-w64-x86_64-opencv` (includes tracking)
-   *or* cache a MinGW OpenCV build (GoCV-style) if the pacman package
-   lacks CSRT.
+2. Install **MSYS2** MinGW64 + `mingw-w64-x86_64-opencv` (OpenCV **5.x**,
+   pkg-config name `opencv5`, includes `libopencv_tracking` / CSRT)
+   *or* cache a MinGW OpenCV 4 build (GoCV-style) if 5.x API breaks us.
 3. `CGO_ENABLED=1` + `-tags opencv` + `CGO_CPPFLAGS` / `CGO_LDFLAGS` /
    PATH to MinGW `bin` (DLLs).
 4. Build:
@@ -48,7 +48,7 @@ Linux job stays as today (`pkg-config opencv4` on ubuntu).
 | `trackcv` real impl + `cv.cpp` | `cgo && opencv` |
 | `trackcv` stub / `native_track_stub` | `!opencv \|\| !cgo` |
 | Linux cgo | `#cgo !windows pkg-config: opencv4` |
-| Windows cgo | `#cgo windows CXXFLAGS: --std=c++17` + env `CGO_*` |
+| Windows cgo | `#cgo windows pkg-config: opencv5` (+ CXXFLAGS) |
 
 Default clone (no `-tags opencv`) still builds everywhere.
 

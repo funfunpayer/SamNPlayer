@@ -8,6 +8,7 @@ package trackcv
 
 /*
 #cgo !windows pkg-config: opencv4
+#cgo windows pkg-config: opencv5
 #cgo windows CXXFLAGS: --std=c++17 -DNDEBUG
 #include "cv.h"
 #include <stdlib.h>
