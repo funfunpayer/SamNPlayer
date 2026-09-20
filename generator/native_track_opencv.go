@@ -24,6 +24,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		AppearanceMemory:   opts.AppearanceMemory,
 		Axis:               opts.Axis,
 		Cancel:             opts.Cancel,
+		OnProgress:         percentFromProgress(onPercent),
 	})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -31,7 +32,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		}
 		return nativeTrackResult{}, err
 	}
-	if onPercent != nil && tr.Stats.TotalFrames > 0 {
+	if onPercent != nil {
 		onPercent(100)
 	}
 	return nativeTrackResult{
@@ -58,6 +59,7 @@ func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptio
 			StartTimeSec: opts.StartTimeSec,
 			Cancel:       opts.Cancel,
 			FixedB:       opts.FixedB,
+			OnProgress:   percentFromProgress(onPercent),
 		})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -65,7 +67,7 @@ func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptio
 		}
 		return nativeTrackResult{}, err
 	}
-	if onPercent != nil && tr.Stats.TotalFrames > 0 {
+	if onPercent != nil {
 		onPercent(100)
 	}
 	return nativeTrackResult{

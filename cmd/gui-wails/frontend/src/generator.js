@@ -185,6 +185,7 @@ export function initGenerator(root, playback) {
       </div>
       <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
     </div>
+    <pre id="gen-log" class="run-log" aria-label="Generation progress log"></pre>
     <div id="gen-feedback" style="display:none; margin-top:10px; padding:10px;
          border:1px solid var(--border); border-radius:4px;">
       <div style="margin-bottom:6px;">Was the result usable? Your rating helps
@@ -661,6 +662,15 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
     el('#gen-status').textContent = 'Generating…';
+    el('#gen-log').textContent = '';
+    {
+      const wrap = el('#gen-progress-wrap');
+      wrap.style.display = 'block';
+      el('#gen-progress-bar').style.width = '0%';
+      el('#gen-progress-bar').style.opacity = '1';
+      el('#gen-progress-text').textContent = 'Starting…';
+      progressStartedAt = Date.now();
+    }
     // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
     // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
     // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
@@ -726,6 +736,16 @@ export function initGenerator(root, playback) {
 
   EventsOn('generate:progress', line => {
     el('#gen-status').textContent = line;
+    const log = el('#gen-log');
+    if (log) {
+      log.textContent += line + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+    const wrap = el('#gen-progress-wrap');
+    if (wrap && wrap.style.display === 'none') {
+      wrap.style.display = 'block';
+      progressStartedAt = Date.now();
+    }
     const pipe = el('#gen-pipeline');
     if (!pipe) return;
     const s = String(line);

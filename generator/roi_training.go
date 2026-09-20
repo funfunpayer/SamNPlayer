@@ -216,13 +216,14 @@ type RoiTrainingRegion struct {
 // optionaler Schritt, sondern Teil des vorgesehenen Ablaufs.
 func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	onProgress func(line string)) error {
-	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress)
+	return BootstrapRoiTrainingSampleOpts(videoPath, regions, outputDir, samplePrefix, 12, true, 0, 1.0, onProgress, nil)
 }
 
 // BootstrapRoiTrainingSampleOpts is BootstrapRoiTrainingSample with sampling
 // stride, optional audio extraction, startSeconds seek, and boxScale pad.
+// onPercent receives 0–100 (or -1) from Python PROGRESS lines during tracking.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
-	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string)) error {
+	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string), onPercent func(pct int)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: at least one region required")
 	}
@@ -244,7 +245,7 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 	}
 
 	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
-		"roi_training", onProgress, nil); err != nil {
+		"roi_training", onProgress, onPercent); err != nil {
 		return err
 	}
 	if extractAudio {
@@ -267,6 +268,13 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 // Timeout hier; die GUI ruft das asynchron auf (siehe app_roi_training.go).
 func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device string,
 	onProgress func(line string)) error {
+	return RunRoiModelTrainingWithProgress(datasetDir, outputModelPath, epochs, device, onProgress, nil)
+}
+
+// RunRoiModelTrainingWithProgress is RunRoiModelTraining with a percent callback
+// (ultralytics rarely emits PROGRESS lines; kept for API symmetry / future hooks).
+func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs int, device string,
+	onProgress func(line string), onPercent func(pct int)) error {
 	dataYAML := filepath.Join(datasetDir, "data.yaml")
 	if _, err := os.Stat(dataYAML); err != nil {
 		return fmt.Errorf("no training dataset yet (missing %s). In AI Train: mark region(s), click “Use for training”, then start training", dataYAML)
@@ -283,7 +291,7 @@ func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device 
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
 
 	return runPythonScript(py, buildTrainArgs(scriptPath, datasetDir, outputModelPath, epochs, device),
-		"roi_training", onProgress, nil)
+		"roi_training", onProgress, onPercent)
 }
 
 // runPythonScript führt ein Python-Skript aus, das seinen Fortschritt/Log

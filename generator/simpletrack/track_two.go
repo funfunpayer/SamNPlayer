@@ -91,6 +91,16 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 	lost, valid := 0, 1
 	frameIdx := 1
 
+	totalFrames := 0
+	if info.Duration > 0 && fps > 0 {
+		totalFrames = int(info.Duration.Seconds()*fps + 0.5)
+	}
+	if opts.MaxFrames > 0 && (totalFrames == 0 || opts.MaxFrames < totalFrames) {
+		totalFrames = opts.MaxFrames
+	}
+	prog := newProgressReporter(opts.OnProgress, totalFrames)
+	prog.report(0)
+
 	for {
 		if opts.Cancel != nil && opts.Cancel() {
 			return Result{Canceled: true}, ErrCanceled
@@ -130,11 +140,13 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		distances = append(distances, dist(boxA, boxB))
 		timestamps = append(timestamps, int(float64(frameIdx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
+		prog.report(frameIdx)
 		frameIdx++
 		if opts.MaxFrames > 0 && frameIdx >= opts.MaxFrames {
 			break
 		}
 	}
+	prog.report(frameIdx)
 
 	if opts.StartTimeSec > 0 {
 		off := int(opts.StartTimeSec*1000 + 0.5)
