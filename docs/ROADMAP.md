@@ -107,7 +107,8 @@ commits.
 - [x] Heatmap PNG export with chapter ticks.
 - [x] Lightweight project sidecar `.snp.json`.
 - [x] Frame snap + range delete/speed-cap (Wiedergabe OFS-row).
-- [ ] BPM/tempo grid overlay (optional polish).
+- [ ] BPM/tempo grid overlay (optional polish — after GUI improve C5;
+      see `docs/PRODUCTION_ROADMAP.md` C4).
 
 **Device / playback**
 - [x] BLE + Intiface/Buttplug transports, both-channel keepalive,
@@ -254,20 +255,17 @@ Ordered as the concept itself proposed:
       section (extend `quality_model.py`'s existing pattern, not a new
       architecture).
 
-### Next after v0.5.6 (not forgotten — pick up immediately after the polish release)
+### Next focus after v0.5.9
 
-These were **out of scope for the polish PR only**, not rejected. After
-`v0.5.6` lands, work them in this order (still subject to principles 2/6/7 —
-measure before defaulting anything that writes Funscripts):
-
-1. [x] 🔓 **English for remaining German code comments / backend logs** —
-       operator-facing Log-tab / stderr / `fmt.Errorf` / file-dialog titles
-       English (`docs/LANGUAGE.md`). Historical comments may stay German
-       until touched — no mass rewrite.
-2. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — GUI already has opt-in
+1. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — GUI already has opt-in
        `ai_two` / `auto_two` suggestion (`find_two_rois`). Still needs
        golden-/real-clip numbers before promoting further (see Open tasks
        + `docs/NEXT.md` / `docs/GOLDEN_CLIPS.md`).
+2. [ ] 🎨 **GUI improve pass** — back on the plan (`docs/PRODUCTION_ROADMAP.md`
+       stream **C5–C7**). Play first viewport, Generate clarity, empty
+       states / errors, License status readability. Bar:
+       [`docs/COMPETITIVE.md`](COMPETITIVE.md). No Wails-v3 / card redesign
+       (rejected below). Owner screenshots of friction points welcome.
 3. [x] 🔓 **Quality-Doctor learning from user judgments** — already wired:
        Generator accept/reject → report JSONL → Settings “Train quality
        model” (`SubmitFeedback` / `TrainQualityModel`). Adopted only if
@@ -277,6 +275,19 @@ measure before defaulting anything that writes Funscripts):
        depth proxy + optional ONNX stubs, opt-in ROI soft-rank
        (`SAMNPLAYER_DEPTH_RANK=1`). Still 📏 for golden-clip Funscript-
        quality win before any default.
+
+### Next after v0.5.6 (archive — polish train)
+
+These were **out of scope for the polish PR only**, not rejected. Items
+1/3/4 done; item 2 carried into “Next focus after v0.5.9” above.
+
+1. [x] 🔓 **English for remaining German code comments / backend logs** —
+       operator-facing Log-tab / stderr / `fmt.Errorf` / file-dialog titles
+       English (`docs/LANGUAGE.md`). Historical comments may stay German
+       until touched — no mass rewrite.
+2. [ ] 📏 **Tf/Tj + AI two-ROI on real clips** — see Next focus after v0.5.9.
+3. [x] 🔓 **Quality-Doctor learning from user judgments** — see above.
+4. [x] 🔓 **3D / depth / pose supporting-signal scaffold** — see above.
 
 ### Evaluated 19 Sep 2026 — Wails-v3 / “GUI modernisation” idea dump
 
