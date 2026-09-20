@@ -1,8 +1,23 @@
 # Public product site (source)
 
-Static landing page for SamNPlayer. English product language
+Static landing + guides + notes for SamNPlayer. English product language
 (`docs/LANGUAGE.md`). Visual tokens match the desktop GUI (dark ink,
 gold + teal, Space Grotesk).
+
+## Structure
+
+```text
+website/
+  index.html          Landing (hero, why, product, guides teaser, €40, download)
+  faq.html
+  changelog.html
+  guides/             Getting started, Neo 2 BLE, license import
+  blog/               Buyer-facing notes (AI, quality, portable, Tf/Tj, vs FunGen)
+  media/              Mirrored screenshots + logo
+  fonts/              Space Grotesk
+```
+
+Content plan: `docs/SELLING.md` → “Site content map”.
 
 ## Local preview
 
@@ -19,12 +34,12 @@ The public face is [`funfunpayer/SamNPlayer-site`](https://github.com/funfunpaye
 
 ```bash
 git clone https://github.com/funfunpayer/SamNPlayer-site.git
-rsync -a --delete \
+rsync -a \
   --exclude README.md \
   website/ SamNPlayer-site/
-# keep SamNPlayer-site SETUP.md / LICENSE; add index.html as GitHub Pages root
+# keep SamNPlayer-site SETUP.md / LICENSE; site root = Pages /
 cd SamNPlayer-site
-git add -A && git commit -m "site: product landing page" && git push
+git add -A && git commit -m "site: landing, guides, notes, FAQ" && git push
 ```
 
 Then enable **GitHub Pages** on `SamNPlayer-site` (branch `main`, `/` root)
@@ -38,3 +53,4 @@ working when the app repo is private (`docs/CLOSED_SOURCE.md`).
 - Point image `src` at `raw.githubusercontent.com/.../SamNPlayer/...` once
   the app repo is private.
 - Turn the first viewport into a dashboard of stats or feature cards.
+- Paste internal engineering journals into `/blog/`.
