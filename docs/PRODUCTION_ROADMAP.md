@@ -39,17 +39,18 @@ fixes are fine if they do not dilute Generate/Play.
 
 | Version | Status | Contents (short) |
 |---------|--------|------------------|
-| **v0.5.8** | Already tagged | Playback polish prior |
-| **v0.5.9** | Tagged | `.samn` SoT, Go audio-check, ROI verify, portable ffmpeg, lean probe, platforms stake, English GUI lock |
-| **v0.5.10** | This train (local green; tag after CI billing fixed) | Bugfix + GUI motion + multi body-part regions (Face…Vagina, Fix ROI2) |
+| **v0.5.8** | Tagged | Playback polish prior |
+| **v0.5.9** | **Shipped** | `.samn`, portable ffmpeg, English GUI lock, license infra (not sharp) |
+| **v0.5.10** | This train (local green; tag after CI billing fixed) | Bugfix + GUI motion + multi body-part regions + soft masks / N distance partners |
 
 **Owner steps after this PR merges to `main`:**
 
-1. Confirm CI green on `main`  
+1. Confirm CI green on `main` (or merge with known billing-blocked empty jobs)  
 2. Spot-check GUI (Play + Generate) in English  
-3. Tag `v0.5.9` and push the tag → release workflow builds Win/Linux + portable archives  
-4. Prefer **portable** download on the public site (ffmpeg included)  
-5. Hardware: one BLE or Intiface play session if a device is available  
+3. Tag `v0.5.10` and push the tag → release workflow builds Win/Linux + portable archives  
+4. Run `./scripts/sync-public-site.sh` then `./scripts/publish-public-release.sh v0.5.10`  
+5. Prefer **portable** download on the public site (ffmpeg included)  
+6. Hardware: one BLE or Intiface play session if a device is available  
 
 Agent can prepare the PR and version bump; **tagging on `main` is the
 release switch** (`CONTRIBUTING.md`).
@@ -60,6 +61,9 @@ release switch** (`CONTRIBUTING.md`).
 
 Priority order within each stream. **Target** = earliest sensible ship once
 prerequisites are met — not a calendar promise.
+
+**Next focus (parallel OK):** A (script quality) **and** C (GUI improve).
+Quality still wins if a GUI change would hurt Generate/Play.
 
 ### A — Script quality (highest product priority)
 
@@ -81,14 +85,20 @@ prerequisites are met — not a calendar promise.
 | B3 | macOS GUI build | later | Mac runner + notarization | Open `.app`, Play script-alone |
 | B4 | Linux WebKitGTK smoke | with 0.5.9 | Linux box | Play + Generate CSRT |
 
-### C — Player / GUI (English, competitive)
+### C — Player / GUI improve (back on the plan — competitive)
+
+Bar: `docs/COMPETITIVE.md`. English only. Play stays home. No card-grid
+redesign / no purple theme. Polish that helps Play + Generate first.
 
 | ID | Item | Target | Prerequisites | Your test |
 |----|------|--------|---------------|-----------|
-| C1 | Language sweep (no leftover DE UI) | 0.5.9 | — | Click every tab; note any leftover DE |
-| C2 | Thanks / feedback buttons English | 0.5.9 (done) | — | After Generate → usable/… |
-| C3 | README vs public portal layout | ongoing | SamNPlayer-site | Both show same brand + portable CTA |
-| C4 | Curve zoom / BPM grid | later | Design call | Optional polish |
+| C1 | Language sweep (leftover DE) | ongoing | — | Every tab; screenshot any DE |
+| C2 | Thanks / feedback English | done (0.5.9) | — | usable / borderline / unusable |
+| C3 | README vs public portal layout | ongoing | SamNPlayer-site | Same brand + portable CTA |
+| C5 | **GUI improve pass** (spacing, hierarchy, Play first viewport, Generate clarity) | **next** | Your notes / screenshots | Before/after screenshots; Play + Generate still work |
+| C6 | Settings License block polish (status readable, import clear) | with C5 | E3 | Import key → status obvious |
+| C4 | Curve zoom / BPM grid | after C5 | Design call | Optional polish |
+| C7 | Empty states / errors (Make playable, no script, missing ffmpeg) | with C5 | — | Trigger each banner; English + clear CTA |
 
 ### D — Mobile player (no generator)
 
@@ -119,17 +129,15 @@ prerequisites are met — not a calendar promise.
 
 ---
 
-## What still needs **your** testing (before calling 0.5.9 “rock solid”)
+## What still needs **your** testing
 
 1. **Private golden clips** — Bench / FunGen numbers (A1)  
 2. **Real Neo 2** — contact vibration + Extended-O feel (A4, F4)  
-3. **Windows portable zip** on a machine without ffmpeg (B1)  
-4. **Public site** copy vs README — same English CTA (C3)  
-5. **Any DE leftover** you spot in the GUI (C1) — send screenshot  
-6. **License path (not sharp)** — issue with `license-tool`, import in Settings → License (E2–E3)
-
-Agent-side before tag: CI green, clip7776 suite, version sync, English
-user-string bugfix on this branch.
+3. **Windows portable zip** without system ffmpeg (B1)  
+4. **GUI improve (C5)** — note what feels cluttered / unclear in Play + Generate; screenshots help  
+5. **Public site** vs README (C3)  
+6. **License path** — `license-tool` → Settings → License (E2–E3; not sharp)  
+7. **Any DE leftover** (C1)
 
 ---
 
@@ -154,7 +162,8 @@ Self-build only when equal or better (`docs/SELF_BUILD.md`).
 
 - macOS notarized build  
 - Mobile player binary  
-- License enforcement (generator + Settings first — see stream E)
+- License enforcement (E5 — infra already on main)  
 - WebGL video sharpen / soft upscale  
 - Full pure-Go H.264  
 - Go ports of flow/`grid_lk` without golden win  
+- Wails-v3 / frameless / card redesign (rejected — see `ROADMAP.md`)  
