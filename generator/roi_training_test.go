@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -106,5 +107,20 @@ func TestDefaultRoiDatasetDirIsUnderSamNPlayerNamespace(t *testing.T) {
 	}
 	if !strings.Contains(got, "SamNPlayer") || !strings.HasSuffix(got, "roi_training_dataset") {
 		t.Fatalf("erwarte einen Pfad unter .../SamNPlayer/roi_training_dataset, bekam %q", got)
+	}
+}
+
+func TestRunRoiModelTrainingFailsFastWithoutDataYAML(t *testing.T) {
+	dir := t.TempDir()
+	err := RunRoiModelTraining(dir, filepath.Join(dir, "out.onnx"), 1, "cpu", nil)
+	if err == nil {
+		t.Fatal("expected error when data.yaml is missing")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "data.yaml") {
+		t.Fatalf("error should mention data.yaml, got: %v", err)
+	}
+	if !strings.Contains(msg, "Use for training") {
+		t.Fatalf("error should point user to Use for training, got: %v", err)
 	}
 }

@@ -470,8 +470,11 @@ type RoiClassCount struct {
 
 // RoiDatasetSummary fasst den aktuellen Trainingsdatensatz zusammen.
 type RoiDatasetSummary struct {
-	DatasetDir string          `json:"datasetDir"`
-	Classes    []RoiClassCount `json:"classes"`
+	DatasetDir   string          `json:"datasetDir"`
+	HasDataYAML  bool            `json:"hasDataYaml"`
+	TrainImages  int             `json:"trainImages"`
+	ReadyToTrain bool            `json:"readyToTrain"`
+	Classes      []RoiClassCount `json:"classes"`
 }
 
 // GetRoiDatasetSummary liest classes.json und zählt, wie oft jede Klasse in
@@ -479,8 +482,28 @@ type RoiDatasetSummary struct {
 // in der Trainings-Oberfläche (siehe docs für den vollen Ablauf).
 func (a *App) GetRoiDatasetSummary(datasetDir string) (RoiDatasetSummary, error) {
 	summary := RoiDatasetSummary{DatasetDir: datasetDir}
+	if _, err := os.Stat(filepath.Join(datasetDir, "data.yaml")); err == nil {
+		summary.HasDataYAML = true
+	}
+	if entries, err := os.ReadDir(filepath.Join(datasetDir, "images", "train")); err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			n := strings.ToLower(e.Name())
+			if strings.HasSuffix(n, ".jpg") || strings.HasSuffix(n, ".jpeg") ||
+				strings.HasSuffix(n, ".png") || strings.HasSuffix(n, ".webp") {
+				summary.TrainImages++
+			}
+		}
+	}
+	summary.ReadyToTrain = summary.HasDataYAML && summary.TrainImages > 0
 	classNames, err := roiTrainingClassNames(datasetDir)
 	if err != nil {
+		// Empty dataset (no classes.json yet) is normal before first sample.
+		if os.IsNotExist(err) {
+			return summary, nil
+		}
 		return summary, err
 	}
 	counts := make(map[int]*RoiClassCount, len(classNames))

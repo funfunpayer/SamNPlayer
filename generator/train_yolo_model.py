@@ -171,8 +171,9 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
     data_yaml = os.path.join(dataset_dir, "data.yaml")
     if not os.path.isfile(data_yaml):
         raise RuntimeError(
-            f"Keine data.yaml unter {dataset_dir} - erst bootstrap_yolo_dataset.py "
-            "laufen lassen, um den Datensatz anzulegen.")
+            f"No data.yaml under {dataset_dir}. Collect samples first: in the AI Train "
+            "tab mark region(s) and click “Use for training” (or run "
+            "bootstrap_yolo_dataset.py), then start training again.")
 
     resolved = resolve_device(device)
     project_dir = project_dir or os.path.join(dataset_dir, "runs")

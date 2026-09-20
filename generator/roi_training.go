@@ -246,6 +246,10 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 // Timeout hier; die GUI ruft das asynchron auf (siehe app_roi_training.go).
 func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device string,
 	onProgress func(line string)) error {
+	dataYAML := filepath.Join(datasetDir, "data.yaml")
+	if _, err := os.Stat(dataYAML); err != nil {
+		return fmt.Errorf("no training dataset yet (missing %s). In AI Train: mark region(s), click “Use for training”, then start training", dataYAML)
+	}
 	py, err := FindPython()
 	if err != nil {
 		return err

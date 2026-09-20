@@ -9,7 +9,7 @@ import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor } from './bodypart
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
-import { uiError, uiInfo } from './notify.js';
+import { uiError, uiInfo, uiWarn } from './notify.js';
 
 const MARK_COLORS = [
   { stroke: '#3dccc0', fill: 'rgba(61,204,192,0.16)' },
@@ -118,6 +118,10 @@ export function initRoiTraining(root) {
       Training dependencies missing. Use “Install dependencies”
       (or manually: <code>pip install ultralytics onnx</code>). Details:
       <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
+    </p>
+    <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">
+      No training samples yet. Mark region(s) above and click <b>Use for training</b>
+      (or add a photo still) before starting training.
     </p>
     <p class="hint" id="rt-status-detail" style="margin:0 0 8px;"></p>
     <div class="path-label" id="rt-train-status"></div>
@@ -394,6 +398,7 @@ export function initRoiTraining(root) {
         updateBootstrapEnabled();
         refreshReview();
         refreshClassList();
+        refreshDatasetReadyHint();
       } else {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
@@ -429,6 +434,7 @@ export function initRoiTraining(root) {
     el('#rt-bootstrap-status').textContent = 'Done — samples in the review view.';
     refreshReview();
     refreshClassList();
+    refreshDatasetReadyHint();
   });
 
   function boxOverlay(box) {
@@ -516,6 +522,7 @@ export function initRoiTraining(root) {
           try {
             await DiscardRoiTrainingSample(datasetDir, s.split, s.name);
             card.remove();
+            refreshDatasetReadyHint();
           } catch (err) {
             uiError('Discard sample: ' + err);
             discardBtn.disabled = false;
@@ -683,6 +690,17 @@ export function initRoiTraining(root) {
   });
 
   el('#rt-train').addEventListener('click', async () => {
+    datasetDir = el('#rt-dataset-dir').value.trim();
+    try {
+      const summary = await GetRoiDatasetSummary(datasetDir);
+      if (!summary.readyToTrain) {
+        uiWarn('Collect samples first: mark region(s) → “Use for training”, then start training.',
+          el('#rt-train-status'));
+        const hint = el('#rt-dataset-hint');
+        if (hint) hint.style.display = 'block';
+        return;
+      }
+    } catch (_) { /* fall through; Go/Python will fail fast with a clear error */ }
     const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
@@ -715,6 +733,7 @@ export function initRoiTraining(root) {
     datasetDir = s.roiDatasetDir || s.defaultRoiDatasetDir || '';
     el('#rt-dataset-dir').value = datasetDir;
     refreshClassList();
+    refreshDatasetReadyHint();
   });
 
   function applyTrainAvailability(available, detail) {
@@ -722,6 +741,23 @@ export function initRoiTraining(root) {
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
     if (el('#rt-status-detail') && detail) {
       el('#rt-status-detail').textContent = detail;
+    }
+    if (available) refreshDatasetReadyHint();
+  }
+
+  async function refreshDatasetReadyHint() {
+    const hint = el('#rt-dataset-hint');
+    if (!hint) return;
+    datasetDir = el('#rt-dataset-dir').value.trim();
+    if (!datasetDir) {
+      hint.style.display = 'block';
+      return;
+    }
+    try {
+      const summary = await GetRoiDatasetSummary(datasetDir);
+      hint.style.display = summary.readyToTrain ? 'none' : 'block';
+    } catch (_) {
+      hint.style.display = 'block';
     }
   }
 
