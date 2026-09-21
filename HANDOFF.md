@@ -4,6 +4,9 @@ This document deliberately lives **inside the repository**, rather than
 in a separate PDF. It travels with the code and should be updated alongside
 code changes so the two do not drift apart.
 
+**Multi-agent work:** Cursor, Claude, and ChatGPT coordinate via
+[`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) (claim a lane before coding).
+
 Status: September 2026.
 
 ---

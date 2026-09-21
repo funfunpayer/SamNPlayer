@@ -6,7 +6,8 @@ where possible). We talk in German; the app does not.
 
 Related: `docs/ROADMAP.md` (engineering checklist), `docs/ENGINE.md`
 (chain + DoD), `docs/TFTJ_PROFILE_DIRECTION.md` (Tf/Tj = profile;
-no-mark 4-zone; contact vib → Normal/Auto), `docs/AUDIO_WORKFLOW.md`,
+no-mark 4-zone; contact vib → Normal/Auto), `docs/AGENT_COORD.md`
+(Cursor ↔ Claude task board), `docs/AUDIO_WORKFLOW.md`,
 `docs/FUNSCRIPT_ALGOS.md`, `docs/SELF_BUILD.md`, `docs/LICENSE_SYSTEM.md`,
 `docs/PLATFORMS.md`, `docs/COMPETITIVE.md`, `docs/LANGUAGE.md`.
 
