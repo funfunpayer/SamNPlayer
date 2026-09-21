@@ -175,11 +175,16 @@ func TestWindowedBestLagCorrelationLagDrift(t *testing.T) {
 	if len(confident) < 2 {
 		t.Fatalf("expected ≥2 confident windows, got %d", len(confident))
 	}
-	// First confident window lag should be negative-ish, last positive-ish.
+	// BestLagCorrelation's convention (shiftedB.At = act.At + lagMs, see
+	// phase.go) recovers the shift needed to correct the candidate's
+	// timestamps, which is the NEGATIVE of the drift injected above: the
+	// candidate is injected as t+lag(t) (lag(t): -400ms→+400ms), so the
+	// recovered LagMs runs +400ms→-400ms, positive-ish first and
+	// negative-ish last.
 	firstLag := confident[0].LagMs
 	lastLag := confident[len(confident)-1].LagMs
-	if firstLag >= lastLag {
-		t.Fatalf("expected lag drift (first=%d < last=%d)", firstLag, lastLag)
+	if firstLag <= lastLag {
+		t.Fatalf("expected lag drift (first=%d > last=%d)", firstLag, lastLag)
 	}
 	// Mean r should be high (shape matches; only lag drifts).
 	var sumR float64
@@ -226,18 +231,6 @@ func TestFormatWindowedReport(t *testing.T) {
 	if !contains(report, "mean r") && !contains(report, "undefined") {
 		t.Fatalf("report missing expected content:\n%s", report)
 	}
-}
-
-func contains(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(sub) == 0 ||
-		(func() bool {
-			for i := 0; i+len(sub) <= len(s); i++ {
-				if s[i:i+len(sub)] == sub {
-					return true
-				}
-			}
-			return false
-		})())
 }
 
 func absInt(v int) int {
