@@ -2552,6 +2552,15 @@ def process_one(args, ap):
 
     mask_rois = [_parse_box("--mask", s) for s in (getattr(args, "mask", None) or [])] or None
 
+    # Stroke profiles (standard/weich/autotune) use tip ROI only. Zone 2 under
+    # Autotune previously ran two-point + bandpass and often failed with
+    # "no discernible motion" (#145). Distance partners need --profile tf/tj.
+    if args.roi2 and args.profile not in ("tf", "tj"):
+        print("Hint: ignoring --roi2 — Autotune/stroke profiles use tip ROI only "
+              "(use --profile tf or tj for tip↔partner distance).",
+              file=sys.stderr)
+        args.roi2 = None
+
     # Verfahren außerhalb der eingebauten Sonderfälle laufen über das
     # Register. Die Sonderfälle bleiben, weil sie zusätzliche Rückgabewerte
     # haben (Szenenbereiche) oder Optionen brauchen, die nicht Teil des

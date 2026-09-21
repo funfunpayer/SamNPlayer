@@ -8,7 +8,15 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **#145 Autotune + Zone 2:** stroke profiles (`autotune` / `standard` / `weich`)
+  ignore Zone 2 and track tip ROI only; distance partners require Tf/Tj.
+  Avoids two-point+bandpass “no discernible motion” crashes from mixed UI state.
+  Clearer posttrack error when the tip curve is flat.
+
 ### Added
+
 
 - **F-003 option 1:** `LagCorrelation.AliasingRisk` (+ `DominantPeriodMs`,
   `AlternateLagsMs`) — flags near-tied lags at ±k×stroke period without

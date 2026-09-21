@@ -83,7 +83,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | #163 merged | F-003 option 1: AliasingRisk flag (no lag change) | **DONE** — lane free |
+| A | Cursor | `cursor/triage-145-autotune-d7cb` (#164) | #145: stroke profiles ignore Zone 2 (tip-only) | **IN PROGRESS** |
 | E | ChatGPT | #159 merged | #145/#119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + issues remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
@@ -93,10 +93,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 Claim: lane E (docs claim #152 merged).
 
-- #146 closed. #145/#119 still open — need current-build reproduce before close.
+- #146 closed. #145: Autotune+Zone2 misuse fix in flight (`cursor/triage-145-autotune-d7cb`); #119 still needs current-build AI-train reproduce.
 - Owner smoked **0.5.16**; **v0.5.17** tagged — portable live.
-- Next product: TFTJ step 3 (partner-mark) — **Cursor claimed lane C**.
-- Flow scaling: #156 merged on 21 Sep at 09:50 UTC; [GitHub Tests](https://github.com/funfunpayer/SamNPlayer/actions/runs/35584874293) passed. No review pending for this fix.
+- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163).
+- Flow scaling #156 + timeout docs #159 merged — original media probe still needed.
 - Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
 
@@ -347,7 +347,8 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude #158 |
 | 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude #162 |
 | 21 Sep | F-003 mitigation: ship option 1 (AliasingRisk flag) before any lag-search behavior change | Owner + Cursor |
-| 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms (likely half the true period), not a "no aliasing here" result | Claude |
+| 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms (likely half the true period), not a "no aliasing here" result | Claude #165 |
+| 21 Sep | #163 AliasingRisk shipped; #145 triage: Autotune+ROI2 was MIL/two-point misuse | Cursor #164 |
 
 ---
 

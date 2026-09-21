@@ -826,12 +826,15 @@ export function initGenerator(root, playback) {
       audioCheck: el('#gen-audio-check').checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
-    if (roi2) {
+    if (roi2 && isTfTj()) {
       payload.x2 = roi2.x;
       payload.y2 = roi2.y;
       payload.w2 = roi2.w;
       payload.h2 = roi2.h;
       payload.roi2Fixed = !!el('#gen-roi2-fixed')?.checked;
+    } else if (roi2 && !isTfTj()) {
+      el('#gen-status').textContent =
+        'Note: Zone 2 ignored for Autotune/stroke — tip ROI only. Switch profile to Tf/Tj for distance.';
     }
     payload.regionClass = el('#gen-region-class')?.value || '';
     payload.regionClass2 = el('#gen-region-class2')?.value || '';
