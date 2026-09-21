@@ -168,6 +168,7 @@ Farneback call itself, or just time a single-frame Farneback call at
 | 21 Sep | Owner smoked 0.5.16 → continue 0.5.17 | Owner |
 | 21 Sep | v0.5.17 tagged (#153) | Cursor A |
 | 21 Sep | TFTJ step 3: Cursor claims lane C — tracked partner when vib on | Cursor C |
+| 21 Sep | Owner: Tf Zone 2 always two markers (tip+partner) | Owner |
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude, this PR |
 
 ---

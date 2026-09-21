@@ -91,10 +91,10 @@ ships. **Blow** is a sibling contact-family profile, not a second tracker.
 
 ```text
   Default Generate     → no marks (4-zone / single-curve classical)
-  Contact vib OFF      → no partner mark required (any profile)
+  Contact vib OFF      → Normal/Auto: no marks; Tf/Tj: still two markers (tip+partner)
   Contact vib ON
     + Normal/Auto      → optional partner mark; without it use depth envelope
-    + Tf / Blow / …    → partner mark expected; track partner over time
+    + Tf / Blow / …    → two markers required; track partner over time (not Fix default)
 ```
 
 **Compensation rule (owner):** if the user marks a contact target and the
