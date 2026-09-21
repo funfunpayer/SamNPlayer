@@ -28,16 +28,26 @@ Perception research (do **not** leapfrog product): `docs/SAM_ARCHITECTURE.md`
 § Perception v1 — bake-off observers **before** any Go port / fusion default.
 **Bake-off done 21 Sep (#154):** no Go port for flow/grid_lk/region_fusion.
 
-**F-003 correction (21 Sep, this PR):** the timing-drift *signature*
-(weak whole-clip r, higher windowed r, swinging lag) is real, but its
-claimed cause (VFR/frame-index drift) is refuted — `clip_ausschnitt.mp4`
-is genuine CFR, frame-index-vs-real-PTS error is a constant 41ms, not
-growing. A constant offset can't produce a ±900ms swinging lag. New
-leading hypothesis: periodicity aliasing in the lag search, not proven
-yet. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Practical
+**F-003 correction (21 Sep):** the timing-drift *signature* (weak
+whole-clip r, higher windowed r, swinging lag) is real, but its claimed
+cause (VFR/frame-index drift) is refuted — `clip_ausschnitt.mp4` is
+genuine CFR, frame-index-vs-real-PTS error is a constant 41ms, not
+growing. A constant offset can't produce a ±900ms swinging lag. Practical
 guidance ("don't trust whole-clip r alone") is unaffected — only the
 mechanism explanation changes, so `TFTJ_PROFILE_DIRECTION.md`'s citation
 of that guidance needs no revert.
+
+**F-003 periodicity-aliasing CONFIRMED (21 Sep, this PR):** synthetic
+ground-truth test (`funscript.TestPeriodicityAliasingCharacterization`,
+runs in CI) proves a lag search over periodic motion can alias onto a
+wrong multiple of the stroke period and produce swinging windowed lag +
+an orientation flip — from a *provably constant* injected offset, no
+real drift involved. Non-periodic motion under the identical offset
+recovers the true lag in every window. `BestLagCorrelation` /
+`WindowedBestLagCorrelation` are unchanged (characterization test, not a
+fix). Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Any mitigation
+(e.g. constrain lag search to detected period) is a new idea, not
+decided or implemented — needs its own sign-off.
 
 **Rule:** piece by piece. One improvement ships and is measured before the
 next big theme. Prefer cleanup + focus over parallel feature sprawl.
@@ -72,7 +82,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | #158 merged | F-003 root-cause test | **DONE** — lane free |
+| B | Claude | this PR | F-003 periodicity-aliasing synthetic ground-truth test | **DONE** — lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
 | E | ChatGPT | #156 merged | #145/#119 and Flow timeout follow-up | Flow scaling **DONE** — remaining triage claimed |
 | C | Cursor | `cursor/tftj-step3-partner-d7cb` | TFTJ step 3: tracked partner when vib on | **IN PROGRESS** |
@@ -169,7 +179,8 @@ Farneback call itself, or just time a single-frame Farneback call at
 | 21 Sep | v0.5.17 tagged (#153) | Cursor A |
 | 21 Sep | TFTJ step 3: Cursor claims lane C — tracked partner when vib on | Cursor C |
 | 21 Sep | Owner: Tf Zone 2 always two markers (tip+partner) | Owner |
-| 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude, this PR |
+| 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude #158 |
+| 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude, this PR |
 
 ---
 

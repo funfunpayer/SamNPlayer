@@ -2007,6 +2007,27 @@ git history rather than rebuilding from scratch.
   clip with known ground-truth lag to test cleanly. Full writeup and the
   exact PTS numbers: `docs/FINDINGS_TIMING_TF.md` § F-003.
 
+- **Periodicity-aliasing hypothesis confirmed with a synthetic
+  ground-truth test (September 21, 2026)** - added
+  `funscript.TestPeriodicityAliasingCharacterization`
+  (`funscript/phase_test.go`, runs in CI, no external fixtures needed):
+  two synthetic 60s signals, identical except one is a 280ms-period sine
+  wave and the other alternates low/high with a non-repeating random
+  half-cycle duration, both given the *same known constant* injected
+  300ms lag. Result: the periodic pair's whole-clip lag search reports
+  `r=1.0000` at `lag_ms=-1140` (exactly 3 stroke periods off the true
+  `-300`), and its 10s-windowed search *swings* `-1420ms..+1240ms` across
+  windows with one window's orientation flipping to `inverted` - despite
+  the true offset being the same constant 300ms everywhere. The
+  non-periodic pair recovers the exact true `-300` lag, `r=1.0000`,
+  `orientation=normal`, in every single window - no swing, no flip. This
+  proves periodicity aliasing alone (no real drift needed) can produce
+  exactly the swinging-lag/orientation-flip pathology observed on the
+  real clips. `BestLagCorrelation`/`WindowedBestLagCorrelation` were not
+  changed - this is a characterization test, not a fix; any mitigation is
+  a separate, not-yet-decided design step. Full writeup:
+  `docs/FINDINGS_TIMING_TF.md` § F-003.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.
