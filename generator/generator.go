@@ -881,9 +881,8 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	if opts.DisableSceneCutDetection {
 		args = append(args, "--no-scene-cut-detection")
 	}
-	if opts.UseOpenCL {
-		args = append(args, "--opencl")
-	}
+	// OpenCL: Python enables automatically when available (log only).
+	// Do not pass --opencl / force a separate path — Go CSRT ignores it.
 	if opts.Threads > 0 {
 		args = append(args, "--threads", strconv.Itoa(opts.Threads))
 	}
