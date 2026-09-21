@@ -1809,6 +1809,79 @@ git history rather than rebuilding from scratch.
   (+ CLI). The 8-point PTS→device chain stays deferred until a concrete
   clip set needs it.
 
+- **First real Tf/Tj golden-clip measurement (September 21, 2026)** — the
+  user supplied the first actual comparison data `docs/FINDINGS_TIMING_TF.md`
+  had been waiting on ("Populate goldens / FunGen refs — you"): SamNPlayer's
+  `tj`-profile output for `clip_voll` (Python path, classical CV tracking,
+  280s) against two FunGen 2.6.3 references for the same clip — one with
+  its own YOLO detector, one with YOLO disabled (classical-vs-classical,
+  the fairer comparison per the same reasoning as the September 16
+  `region_fusion` measurement).
+
+  **Whole-clip correlation (existing `SamNPlayer phase` / `fungen_compare.py`
+  methodology, ±3000ms lag search): r≈0.06 against both references** —
+  looks like noise at first glance, matching the user's own suspicion that
+  something is fundamentally wrong (possibly their own ROI-marking
+  understanding for Tf/Tj).
+
+  **That reading turned out to be wrong once measured at finer resolution.**
+  Splitting the same clip into 30s windows and running the SAME best-lag
+  correlation independently per window (ad hoc script, not yet a CLI
+  option — see below) gives a completely different picture:
+
+  | metric | whole-clip | per-30s-segment (mean of 8) |
+  |---|---|---|
+  | r vs. FunGen "ohne YOLO" | 0.060 | **0.318** |
+  | r vs. FunGen "mit YOLO" | 0.065 | **0.321** |
+
+  Per-segment lag ranged from **-2600ms to +2800ms** and drifted
+  continuously across the clip instead of sitting near a constant offset -
+  exactly what a single whole-clip lag search cannot capture (it isn't
+  "the lag is large", it's "the lag keeps changing"), and exactly finding
+  F-003 from `docs/FINDINGS_TIMING_TF.md`'s source material (FrameIndex/FPS
+  imprecision under VFR). Direction (`orientation`) also flips from
+  `normal` to `inverted` partway through the clip - around 150s against
+  the no-YOLO reference, around 210s against the YOLO reference (close but
+  not identical, consistent with the flip being a real event in the
+  generated curve or the source video, not a comparison-script artifact).
+
+  **Reading on the user's own question ("liegt es an meiner ROI-Markierung
+  für Tf/Tj?"):** the per-segment r≈0.32 is in the same range as this
+  project's other measured real-clip backends (`csrt`/`region_fusion`
+  against FunGen2: r≈0.25–0.37, see the September 16 entries above) - so
+  the ROI-marking approach is producing a genuinely correlated signal, not
+  a fundamentally wrong measurement. The dominant problem measured here is
+  **timing drift**, not marking semantics. The orientation flip is the one
+  finding that COULD be a marking issue (e.g. which region was tracked as
+  "tip" vs. "partner" changing meaning if the scene/position changes
+  mid-clip) - worth checking against the source video at ~150-210s
+  specifically, rather than re-deriving the whole marking approach.
+
+  **Concrete, scoped next step (not done yet):** `docs/FINDINGS_TIMING_TF.md`
+  already lists "Phase Analyzer core in Go" as shipped
+  (`BestLagCorrelation`/`DiagnosePhase`, CLI `phase`/`compare`) - but that
+  tool only ever computes ONE lag/orientation for an entire clip. This
+  measurement shows that's the wrong granularity for a clip where the
+  true offset drifts: add a windowed mode (`--window-ms`, reporting
+  lag/orientation/r per window, e.g. a `phase --window-ms 30000` CLI
+  variant of what the ad hoc script above did) so a drifting-vs-constant
+  offset is visible directly instead of requiring a one-off script per
+  investigation. This is a small, well-scoped addition to the *existing*
+  `funscript.BestLagCorrelation`/`DiagnosePhase` machinery, not a new
+  subsystem - the "full PTS→device phase chain" (8-point timeline,
+  deferred in `docs/FINDINGS_TIMING_TF.md`) is a separate, bigger question
+  this does not answer or require.
+
+  Raw data (funscripts, not committed - ask the user if this should become
+  a real `golden_clips.json` entry with committed reference/video, which
+  this project has not done before for binary media): SamNPlayer
+  `clip_voll.funscript`/`.samn` (profile `tj`), FunGen2.6.3
+  `clip_voll_2 mit yolo.funscript` / `clip_voll_2 ohne yolo.funscript`,
+  source `clip_voll.mp4` (~280s). Durations: 277.1s (no-YOLO ref) /
+  279.999s (YOLO ref) / 280.1s (SamNPlayer) - within a few seconds of each
+  other, not the ~54s clip/reference mismatch seen in the September 16
+  MILF-clip comparison, so duration alignment is not the confound here.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

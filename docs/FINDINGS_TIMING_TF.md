@@ -66,19 +66,26 @@ on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 |---|---|
 | Default `generate_funscript.py` | Native covers CSRT+single ROI only |
 | flow / grid_lk / fusion / Tf/Tj two-point | Need goldens before Go ports |
-| Golden-clip real data | Tool exists; **manifest empty** — biggest process blocker |
+| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026 (see `docs/NEXT.md`) — manifest still not wired up, but no longer zero evidence |
 | Sam Neo 2 feel | Hardware |
 
 ### Next Go / product slices (quality-first)
 
-1. Tf/Tj two-point in Go — only with goldens  
-2. Native CSRT default — after real-clip measurement  
-3. Full PTS→device phase chain — media work  
-4. Windows OpenCV / accelerator abstraction — later  
+1. **`phase` CLI: windowed mode.** 21 Sep 2026 measurement: whole-clip
+   r≈0.06 on a real Tf/Tj clip, but r≈0.32 averaged over 30s windows with
+   the lag drifting -2600..+2800ms across the clip and one orientation
+   flip partway through. The shipped `BestLagCorrelation`/`DiagnosePhase`
+   only reports one lag for the whole clip, which is the wrong
+   granularity for a drifting offset — add `--window-ms` reporting
+   lag/orientation/r per window. Small addition to existing code, not the
+   full 8-point PTS chain below. See `docs/NEXT.md` for the numbers.
+2. Tf/Tj two-point in Go — only with goldens  
+3. Native CSRT default — after real-clip measurement  
+4. Full PTS→device phase chain — media work  
+5. Windows OpenCV / accelerator abstraction — later  
 
 ### Not now
 
-- Populate goldens / FunGen refs — you  
 - 4-zone relative graph as default — measure first  
 - Forced 63 BPM / Spatial 3D / Prediction — after measured latency  
 - Rust rewrite — profiler gate only  
