@@ -340,9 +340,13 @@ Architecture decision (`docs/SIGNAL_VS_FIDELITY.md`, `docs/ENGINE.md`):
 
 Preconditions (same review’s order):
 
-1. Real golden clips with refs/ROIs/hashes
+1. Real golden clips with refs/ROIs/hashes — **first filled 21 Sep 2026**
+   (`clip_voll_tftj`, `clip_ausschnitt_native` with FunGen2 refs; see
+   #140 / #150). Provenance must stay honest before comparing.
 2. Same-segment bake-off of all backends (Motion Fidelity **and** Signal
-   Quality metrics — see `docs/SIGNAL_VS_FIDELITY.md`)
+   Quality metrics — see `docs/SIGNAL_VS_FIDELITY.md`) — **next measurement
+   step**; claim/own via `docs/AGENT_COORD.md` lane B (no Go port until a
+   backend beats CSRT on these goldens).
 3. Raw tracking vs post-processing scored separately
 
 Only after a reproducible golden-clip win may a fusion path become the
