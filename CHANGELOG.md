@@ -8,6 +8,11 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **CI Windows OpenCV:** install `libgfortran` before `opencv` so pacman
+  does not silently skip OpenCV after MSYS2 renamed `gcc-libs` → `cc-libs`.
+
 ## [0.5.15] — September 20, 2026
 
 ### Fixed
