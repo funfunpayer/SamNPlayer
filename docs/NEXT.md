@@ -1923,43 +1923,45 @@ git history rather than rebuilding from scratch.
   now sit alongside the `tj` ones in
   `generator/testdata/golden_clips/clip_voll_tftj/{mit_yolo,ohne_yolo}/`.
 
-- **Native Go pipeline, `clip_ausschnitt`: timing drift is internal to
-  posttrack, not a FunGen-alignment artifact (September 21, 2026)** - the
-  user supplied three SamNPlayer exports of `clip_ausschnitt` (50s) from
-  the new native Go pipeline (`trackcv`+`posttrack`, no Python), plus the
-  clip's older Python-path output for comparison. All three new exports
-  share the exact same underlying CSRT tracking run
-  (`native_pipeline.frames=1199, lost=0, range_px=105.0539100525142`
-  identical to 13 decimal places across all three) - only their
-  posttrack/export settings differ: `v1` (71 sparse keyframes, chapters
-  metadata), `v2` (738 dense points, chapters metadata), `v3` (145
-  points, minimal metadata; the user uploaded this one twice, byte
-  identical). No FunGen reference exists for this clip, so this is a
-  parity/consistency check, not a Motion Fidelity score.
+- **Native Go pipeline vs. real FunGen2, `clip_ausschnitt`: same F-003
+  drift signature, second real clip (September 21, 2026, corrected same
+  day)** - originally published (and merged, #148) as an "internal
+  SamNPlayer consistency check" - that framing was **wrong**. Of the
+  user's three original `clip_ausschnitt` uploads, two (71 and 738
+  actions) carry `metadata.creator: "SamNPlayer generator/native..."`
+  plus a `native_pipeline` telemetry block, but are actually **FunGen
+  2.6.3's own tracking** (`mit_yolo`/`ohne_yolo`, same convention as
+  `clip_voll`) - confirmed when a follow-up upload correctly labeled
+  `creator: "FunGen 2.6.3"` matched the 738-action file 715/716 actions
+  exactly. Only the third (145 actions, minimal metadata) is genuinely
+  SamNPlayer's native Go output. Likely cause: some SamNPlayer
+  import/export step stamps its own `creator`/`native_pipeline` metadata
+  onto any loaded/re-saved funscript regardless of true origin - a real
+  provenance bug, tracked separately from F-003, not yet root-caused.
 
-  Whole-clip `SamNPlayer phase` between the three NEW exports of the
-  *same tracking run*: r=0.27-0.47 (not >0.9 as same-signal exports
-  should read). `--window-ms 10000` on the same pairs: mean r rises to
-  0.53-0.59, per-window lag swings up to ±700-900ms, and orientation
-  flips window to window - the identical pattern already found on
-  `clip_voll` (F-003), reproduced here with the official Go `phase`/
-  `--window-ms` CLI instead of the Python ad hoc tool. Old Python vs. any
-  new Go export: similarly weak (r=0.14-0.24 whole-clip, mean r≈0.53-0.55
-  windowed) - the Go-native path is not obviously worse than Python here,
-  but neither path is clean on this clip.
+  With correct labels, this is a real Motion Fidelity measurement (not
+  internal consistency), same methodology as `clip_voll`:
 
-  **This is stronger evidence than the `clip_voll` case**: there, the
-  weak whole-clip correlation was between SamNPlayer and an *external*
-  FunGen reference, leaving open whether ROI/marking-convention
-  differences between tools explained it. Here the low-correlating pairs
-  are two SamNPlayer exports of the *identical* CSRT tracking result -
-  the only thing that can differ between them is how `posttrack` assigns
-  keyframe timestamps from the same frame-indexed positions. That points
-  specifically at F-003 (`docs/FINDINGS_TIMING_TF.md`: FrameIndex/FPS
-  imprecision under VFR, real PTS needed) as the mechanism, not at
-  ROI-marking or cross-tool convention differences.
+  | metric | vs. FunGen2 mit_yolo | vs. FunGen2 ohne_yolo |
+  |---|---|---|
+  | whole-clip r (native Go) | 0.273 | 0.440 |
+  | windowed (10s) mean r | 0.533 | 0.590 |
+  | lag range | +0..+700ms | -900..+0ms |
+  | whole-clip r (old Python, same refs) | 0.236 | 0.165 |
 
-  Raw files committed (not the source video, per `docs/GOLDEN_CLIPS.md`):
+  Same signature as `clip_voll`: whole-clip r looks weak, windowed r
+  rises substantially, lag isn't constant, orientation flips mid-clip
+  (F-003, `docs/FINDINGS_TIMING_TF.md`). Native Go's whole-clip r is
+  comparable-to-better than the old Python path's against the same real
+  FunGen2 references - not a Go-migration regression, but neither path is
+  clean. **Correction from the original (wrong) framing**: since a real
+  FunGen2 reference *is* involved after all, this does NOT rule out
+  cross-tool ROI/timing-convention differences as (part of) the cause the
+  way the original entry claimed - it's back to the same open question as
+  `clip_voll`, just now confirmed on a second independent real clip.
+
+  Raw files (relabeled with correct provenance, not the source video, per
+  `docs/GOLDEN_CLIPS.md`):
   `generator/testdata/golden_clips/clip_ausschnitt_native/`.
 
 ## Product requirements
