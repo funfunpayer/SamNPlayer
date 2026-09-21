@@ -15,6 +15,7 @@ const (
 	LowConfidenceSamples  = 30
 	DefaultTimingGainMin  = 0.30 // aligned r must beat raw by this much → "timing"
 	DefaultMinAlignedR    = 0.70 // below this after alignment → shape/perception
+	DefaultWindowMs       = 30000 // 30s windows for windowed mode
 )
 
 // LagCorrelation is the result of BestLagCorrelation — same fields as
@@ -28,6 +29,17 @@ type LagCorrelation struct {
 	ShapeError    *float64 `json:"shape_error"`
 	RZeroLag      *float64 `json:"r_zero_lag"`
 	LowConfidence bool     `json:"low_confidence"`
+}
+
+// WindowResult is one absolute-time window from WindowedBestLagCorrelation.
+// Correlation is nil when the window has too few actions or Pearson is
+// undefined (constant series) — never silently dropped, so quiet sections
+// show up as undefined rather than missing rows.
+type WindowResult struct {
+	WindowStartMs int64           `json:"window_start_ms"`
+	WindowEndMs   int64           `json:"window_end_ms"`
+	Correlation   *LagCorrelation `json:"correlation"`
+	Reason        string          `json:"reason,omitempty"` // "too_few_actions_in_window" | "undefined_correlation"
 }
 
 // PhaseVerdict is the diagnose step from docs/ENGINE.md (timing vs shape):
@@ -169,6 +181,63 @@ func BestLagCorrelation(a, b []Action, maxLagMs, lagStepMs, resampleStepMs int) 
 	best.RZeroLag = zeroLagR
 	best.LowConfidence = best.NSamples < LowConfidenceSamples
 	return best
+}
+
+// WindowedBestLagCorrelation splits series a's absolute timeline into
+// fixed-size windows and runs BestLagCorrelation independently per window
+// against b (padded by maxLagMs so edge lags are not starved). Port of
+// generator/fungen_compare_windowed.windowed_correlation. windowMs ≤ 0
+// uses DefaultWindowMs (30s).
+func WindowedBestLagCorrelation(a, b []Action, windowMs, maxLagMs, lagStepMs, resampleStepMs int) []WindowResult {
+	if windowMs <= 0 {
+		windowMs = DefaultWindowMs
+	}
+	if maxLagMs < 0 {
+		maxLagMs = DefaultMaxLagMs
+	}
+	if len(a) < 2 {
+		return nil
+	}
+	aSorted := sortActions(a)
+	bSorted := sortActions(b)
+	t0, t1 := aSorted[0].At, aSorted[len(aSorted)-1].At
+
+	var results []WindowResult
+	start := t0
+	for start < t1 {
+		end := start + int64(windowMs)
+		if end > t1 {
+			end = t1
+		}
+		aSlice := filterActionsInRange(aSorted, start, end)
+		pad := int64(maxLagMs)
+		bSlice := filterActionsInRange(bSorted, start-pad, end+pad)
+
+		row := WindowResult{WindowStartMs: start, WindowEndMs: end}
+		if len(aSlice) < 2 || len(bSlice) < 2 {
+			row.Reason = "too_few_actions_in_window"
+		} else {
+			best := BestLagCorrelation(aSlice, bSlice, maxLagMs, lagStepMs, resampleStepMs)
+			if best == nil {
+				row.Reason = "undefined_correlation"
+			} else {
+				row.Correlation = best
+			}
+		}
+		results = append(results, row)
+		start = end
+	}
+	return results
+}
+
+func filterActionsInRange(actions []Action, tStart, tEnd int64) []Action {
+	out := make([]Action, 0, len(actions))
+	for _, a := range actions {
+		if a.At >= tStart && a.At <= tEnd {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // DiagnosePhase applies the research-doc flow: if aligned correlation is
