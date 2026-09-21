@@ -65,7 +65,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E / Cursor A | #145 tip-only **DONE** #164; #119 + flow media remain |
 | **5** | **v0.5.18** | Cursor A | **DONE** #166 + tag `v0.5.18` |
 | **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | 4b **DONE** #167; bump **v0.5.19** |
-| **7** | **v0.5.19** | Cursor A | **IN PROGRESS** — bump + tag |
+| **7** | **v0.5.19** | Cursor A | **DONE** #168 + tag `v0.5.19` |
+| **8** | No-mark 4-zone in GUI | Cursor A | **IN PROGRESS** `cursor/nomark-4zone-gui-d7cb` |
 
 ---
 
@@ -86,7 +87,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-19-d7cb` | bump + tag **v0.5.19** (motion candidates) | **IN PROGRESS** |
+| A | Cursor | `cursor/nomark-4zone-gui-d7cb` | GUI: whole-frame 4-zone motion (no mark) | **IN PROGRESS** |
 | E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 

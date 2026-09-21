@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Whole-frame 4-zone motion (GUI):** Generate → “Track whole-frame motion
+  (4 zones)” / Advanced backend `region_fusion_auto` — no hand mark; splits
+  the frame into 2×2 and tracks motion (Python). Use with Normal/Autotune +
+  Contact vib. CSRT tip-mark remains default; Tf/Tj still needs two markers.
+
 ## [0.5.19] — September 21, 2026
 
 ### Added

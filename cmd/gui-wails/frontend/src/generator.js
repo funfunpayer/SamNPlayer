@@ -43,11 +43,13 @@ export function initGenerator(root, playback) {
           data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
           data-help="Shows all ranked motion regions as dashed boxes. Click one to set Zone 1 (primary stroke). Nothing is applied until you pick — Zone 2 is never auto-filled.">Show motion candidates</button>
+        <button id="gen-nomark" type="button" disabled
+          data-help="No hand mark: splits the whole frame into 4 zones and tracks motion (Python region_fusion_auto). Best for everyday Generate + Contact vib on Normal. Not the Tf/Tj distance path — mark tip+partner for that.">Track whole-frame motion (4 zones)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand. Candidates: pick primary yourself.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Mark primary, pick a candidate, or track whole-frame motion (4 zones) without marking.</p>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -164,12 +166,13 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
             data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
           <div class="row" style="align-items:center;">
-            <label style="width:auto;" data-help="Product tracking is CSRT on the Go path (portable: no Python). Research backends (flow, grid_lk, fusion) stay CLI --backend only — measured quality first.">Tracking method</label>
+            <label style="width:auto;" data-help="CSRT = marked tip (Go path). 4-zone = whole-frame motion, no mark (Python). Research backends stay CLI-only.">Tracking method</label>
             <select id="gen-backend">
-              <option value="csrt" selected>CSRT (standard, Go path)</option>
+              <option value="csrt" selected>CSRT (mark tip, Go path)</option>
+              <option value="region_fusion_auto">4-zone motion (no mark)</option>
             </select>
           </div>
-          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT only in the GUI. Weaker/faster research methods are CLI-only so Play/Generate stay dependency-light.</p>
+          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — use with Normal/Autotune + Contact vib; Tf/Tj still needs two markers.</p>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -373,16 +376,61 @@ export function initGenerator(root, playback) {
     perScene.title = twoPoint
       ? 'Not available for two-point measurement (2nd region set) — region is not re-searched there.'
       : '';
-    // Product GUI only exposes CSRT (Go path). Research backends are CLI-only.
-    if (el('#gen-backend').value !== 'csrt') {
+    // Product GUI: CSRT (mark) or region_fusion_auto (whole-frame 4-zone).
+    // Other research backends stay CLI-only.
+    const be = el('#gen-backend').value;
+    if (be !== 'csrt' && be !== 'region_fusion_auto') {
       el('#gen-backend').value = 'csrt';
     }
     updateGenerateEnabled();
   }
 
-  // Product path always needs a marked region (CSRT / Tf/Tj).
+  // CSRT / Tf need a tip mark. Whole-frame 4-zone does not.
   function backendNeedsRoi() {
-    return true;
+    return el('#gen-backend').value !== 'region_fusion_auto';
+  }
+
+  function isNoMarkMotion() {
+    return el('#gen-backend').value === 'region_fusion_auto';
+  }
+
+  function setNoMarkMotion(on) {
+    const backend = el('#gen-backend');
+    if (on) {
+      backend.value = 'region_fusion_auto';
+      backend.dataset.userTouched = '1';
+      // Distance partners need marks — drop to stroke profile for no-mark.
+      if (isTfTj()) {
+        el('#gen-profile').value = 'standard';
+        el('#gen-profile').dataset.userTouched = '1';
+        updateProfileUi();
+      }
+      candidates = [];
+      const btn = el('#gen-nomark');
+      if (btn) {
+        btn.style.outline = '2px solid #7ec8ff';
+        btn.style.background = 'rgba(126,200,255,0.18)';
+      }
+      el('#gen-status').textContent =
+        'Whole-frame 4-zone motion — no mark needed. Generate when ready (Contact vib uses stroke depth).';
+    } else {
+      backend.value = 'csrt';
+      const btn = el('#gen-nomark');
+      if (btn) {
+        btn.style.outline = '';
+        btn.style.background = '';
+      }
+    }
+    updateGenerateEnabled();
+    redraw();
+  }
+
+  function syncNoMarkButton() {
+    const btn = el('#gen-nomark');
+    if (!btn) return;
+    const on = isNoMarkMotion();
+    btn.style.outline = on ? '2px solid #7ec8ff' : '';
+    btn.style.background = on ? 'rgba(126,200,255,0.18)' : '';
   }
 
   function contactVibrationOn() {
@@ -414,9 +462,11 @@ export function initGenerator(root, playback) {
     const hasRoi1 = !!roi;
     const canRun = regionReadyForGenerate();
     const hasResult = !!lastOutputPath;
+    const noMark = isNoMarkMotion();
 
     const showRegion = hasVideo;
-    const showMotion = hasRoi1;
+    // Unlock motion/profile step once tip is marked OR whole-frame 4-zone is on.
+    const showMotion = hasRoi1 || (hasVideo && noMark);
     const showRun = canRun || generating;
     const showResult = hasResult;
 
@@ -446,8 +496,8 @@ export function initGenerator(root, playback) {
     if (!prompt) return;
     if (!hasVideo) {
       prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
-    } else if (!hasRoi1) {
-      prompt.textContent = 'Step 2: mark a region on the frame (drag) or find one automatically.';
+    } else if (!hasRoi1 && !noMark) {
+      prompt.textContent = 'Step 2: mark a region, show candidates, or track whole-frame motion (4 zones).';
     } else if (isTfTj() && !roi2) {
       prompt.textContent = 'Tf/Tj: mark Zone 2 / partner (two markers), then Generate appears.';
     } else if (!canRun && !generating) {
@@ -455,7 +505,9 @@ export function initGenerator(root, playback) {
     } else if (generating) {
       prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
     } else if (!hasResult) {
-      prompt.textContent = 'Step 4: Generate Funscript (Advanced optional). Review appears after a successful run.';
+      prompt.textContent = noMark
+        ? 'Step 4: Generate Funscript (4-zone whole-frame motion). Advanced optional.'
+        : 'Step 4: Generate Funscript (Advanced optional). Review appears after a successful run.';
     } else {
       prompt.textContent = 'Step 5: rate Signal Quality / usability — script is also in Play.';
     }
@@ -767,12 +819,14 @@ export function initGenerator(root, playback) {
       candidates = [];
       el('#gen-autoroi').disabled = false;
       el('#gen-candidates').disabled = false;
+      el('#gen-nomark').disabled = false;
+      syncNoMarkButton();
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact (2nd region / nipples…). Or show motion candidates and click primary.'
-        : 'Find region / show motion candidates / mark by hand. Seek time if the start is black.') + batchNote;
+        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact. Or track whole-frame motion for Normal stroke.'
+        : 'Mark / candidates / or track whole-frame motion (4 zones). Seek if the start is black.') + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
       el('#gen-quality').style.display = 'none';
@@ -962,11 +1016,13 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
+    el('#gen-nomark').disabled = false;
     if (result.error) {
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
     candidates = [];
+    syncNoMarkButton();
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     const hasRoi2 = result.w2 > 0 && result.h2 > 0;
     if (hasRoi2) {
@@ -1197,14 +1253,24 @@ export function initGenerator(root, playback) {
   updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', () => {
     el('#gen-backend').dataset.userTouched = '1';
+    syncNoMarkButton();
+    if (isNoMarkMotion() && isTfTj()) {
+      el('#gen-profile').value = 'standard';
+      el('#gen-profile').dataset.userTouched = '1';
+      updateProfileUi();
+      el('#gen-status').textContent =
+        '4-zone is whole-frame stroke — switched profile to Normal (Tf/Tj needs tip+partner marks).';
+    }
     updateGenerateEnabled();
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
+    setNoMarkMotion(false);
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const two = isTfTj();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
+    el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = useAI
       ? (two ? 'AI searching both regions (ONNX)…' : 'AI region search running (ONNX model)…')
       : (two ? 'Searching both regions (distance/Tf/Tj suggestion)…'
@@ -1215,16 +1281,24 @@ export function initGenerator(root, playback) {
 
   el('#gen-candidates').addEventListener('click', () => {
     if (!videoPath) return;
+    setNoMarkMotion(false);
     el('#gen-candidates').disabled = true;
     el('#gen-autoroi').disabled = true;
+    el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click one)…';
     SuggestROICandidates(videoPath);
+  });
+
+  el('#gen-nomark').addEventListener('click', () => {
+    if (!videoPath) return;
+    setNoMarkMotion(!isNoMarkMotion());
   });
 
   EventsOn('generate:roi-candidates', result => {
     hideProgress();
     el('#gen-candidates').disabled = false;
     el('#gen-autoroi').disabled = false;
+    el('#gen-nomark').disabled = false;
     if (result.error) {
       uiError('Motion candidates: ' + result.error, el('#gen-status'));
       return;

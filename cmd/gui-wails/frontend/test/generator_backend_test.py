@@ -1,8 +1,6 @@
-"""Product GUI exposes CSRT only (Go path, fewer deps).
+"""GUI: CSRT (mark) + region_fusion_auto (no-mark 4-zone).
 
-Research backends (flow, grid_lk, region_fusion*) stay CLI --backend.
-This test locks the product surface: dropdown = csrt; Generate needs a
-marked region; Tf/Tj still requires ROI2.
+Generate without ROI when 4-zone is selected. flow/grid_lk stay CLI-only.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_test.py
 """
@@ -51,18 +49,33 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         options = page.eval_on_selector_all("#gen-backend option", "els => els.map(e => e.value)")
-        check("Dropdown offers only CSRT", options == ["csrt"], str(options))
+        check("Dropdown offers CSRT + 4-zone",
+              options == ["csrt", "region_fusion_auto"], str(options))
         check("Weak research backends not in GUI",
               "flow" not in options and "grid_lk" not in options
-              and "region_fusion" not in options and "region_fusion_auto" not in options,
+              and "region_fusion" not in options,
               str(options))
 
         page.click("#gen-choose")
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
 
-        check("Generate stays disabled without ROI",
+        check("Generate stays disabled without ROI on CSRT",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
+
+        page.click("#gen-nomark")
+        page.wait_for_function(
+            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
+        check("4-zone no-mark enables Generate without ROI", True)
+        check("Backend is region_fusion_auto",
+              page.locator("#gen-backend").input_value() == "region_fusion_auto")
+
+        # Toggle off → back to CSRT, Generate disabled again without ROI.
+        page.click("#gen-nomark")
+        page.wait_for_function(
+            "document.querySelector('#gen-generate').disabled === true", timeout=5000)
+        check("Toggle off returns to CSRT needing ROI",
+              page.locator("#gen-backend").input_value() == "csrt")
 
         box = page.locator("#roi-canvas").bounding_box()
         page.mouse.move(box["x"] + 40, box["y"] + 40)
@@ -72,15 +85,10 @@ def main():
         page.wait_for_function(
             "document.querySelector('#gen-generate').disabled === false", timeout=5000)
         check("CSRT + one ROI enables Generate", True)
-        # Advanced lives in step 4 — only visible once Generate unlocks.
-        page.click("#gen-advanced summary")
-        check("Backend stays CSRT", page.locator("#gen-backend").input_value() == "csrt")
 
         browser.close()
-
     shutdown()
     harness.unlink(missing_ok=True)
-
     return check.report()
 
 
