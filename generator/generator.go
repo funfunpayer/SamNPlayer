@@ -64,6 +64,9 @@ type Options struct {
 	MinPeakDistanceMs         int
 	MaxFrames                 int
 	DisableCameraCompensation bool
+	// UseOpenCL is retained for API compatibility; ignored. Python enables
+	// OpenCL automatically when that path runs (log only). Does not force
+	// Python or block the Go CSRT path.
 	UseOpenCL                 bool
 	Threads                   int
 	ReportPath                string
