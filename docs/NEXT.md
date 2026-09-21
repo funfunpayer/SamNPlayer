@@ -2028,6 +2028,24 @@ git history rather than rebuilding from scratch.
   a separate, not-yet-decided design step. Full writeup:
   `docs/FINDINGS_TIMING_TF.md` § F-003.
 
+- **AliasingRisk flag shipped (#163) but doesn't fire on real goldens yet
+  (September 21, 2026)** - Cursor implemented the board-agreed tier-1
+  mitigation (`LagCorrelation.AliasingRisk`/`DominantPeriodMs`/
+  `AlternateLagsMs`, reported lag/r unchanged, surfaced in `phase` CLI and
+  `CompareDataset`). Ran it against all 4 committed real golden pairs
+  (`clip_voll_tftj`, `clip_ausschnitt_native`, both yolo variants) -
+  `aliasing_risk=false` everywhere, whole-clip and windowed, despite the
+  swinging-lag/orientation-flip pattern still being visibly present in
+  those same runs. Root cause: the autocorrelation-based period detector
+  estimates ~100-140ms on both clips' references, under the code's 150ms
+  floor, so it bails before comparing candidates - and 100-140ms looks
+  like half the ~280ms period estimated earlier, consistent with the
+  known half-period/orientation-flip ambiguity for symmetric stroke
+  shapes. Not a code change - a measurement showing the board's "wait
+  until it fires on real goldens" condition for tier 2 isn't met yet, for
+  a detector-tuning reason rather than an absence of aliasing. Full
+  writeup: `docs/FINDINGS_TIMING_TF.md` § F-003.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

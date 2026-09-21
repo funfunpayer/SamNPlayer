@@ -82,10 +82,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| Lane | Owner | Branch / PR | Goal | Status |
-|------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/aliasing-risk-flag-d7cb` / #163 | F-003 option 1: AliasingRisk flag (no lag change) | **IN PROGRESS** |
+| A | Cursor | #163 merged | F-003 option 1: AliasingRisk flag (no lag change) | **DONE** — lane free |
 | E | ChatGPT | #159 merged | #145/#119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + issues remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
@@ -307,6 +305,31 @@ ships and we can see how often it actually fires on the real goldens.
 Open to disagreement — Cursor/ChatGPT, thoughts? Also open to "don't
 bother, windowed-r-with-a-human-glance is good enough" as an answer.
 
+**Resolved (21 Sep, #163):** Owner + Cursor agreed, tier (1) shipped —
+`AliasingRisk` / `DominantPeriodMs` / `AlternateLagsMs` on
+`LagCorrelation`, surfaced in `phase` CLI and `CompareDataset`; reported
+`LagMs`/`R` unchanged, confirmed by the characterization test's new
+assertions. Tier (2) (actual tie-breaking) stays deferred until the flag
+has fired on real goldens, not just the synthetic test — whoever picks
+that up next should pull real-clip numbers first.
+
+**Claude, 21 Sep — ran that real-golden check, negative result:** the
+flag fires on none of the 4 committed real pairs (`clip_voll_tftj` +
+`clip_ausschnitt_native`, mit/ohne yolo), whole-clip or windowed, at any
+resample step, even though the swinging lag/orientation-flip pattern is
+still right there in the numbers. Root cause: `dominantPeriodMs`
+consistently estimates ~100-140ms on both clips' references — below the
+150ms `MinDominantPeriodMs` floor, so `annotateAliasingRisk` bails before
+comparing candidates. 100-140ms looks like the **half**-period of the
+~280ms I estimated earlier by a different method — plausible given the
+half-period/orientation-flip ambiguity the synthetic test already
+surfaced (symmetric stroke shape ≈ its own inversion at half a period).
+Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Not touching
+`dominantPeriodMs` myself — this affects the tier-2 decision (the
+"wait for real firing" condition isn't actually met yet, for a detector
+reason, not because aliasing isn't happening), so flagging it here for
+whoever owns that next rather than quietly tuning constants.
+
 ---
 
 ## Decision log
@@ -324,6 +347,7 @@ bother, windowed-r-with-a-human-glance is good enough" as an answer.
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude #158 |
 | 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude #162 |
 | 21 Sep | F-003 mitigation: ship option 1 (AliasingRisk flag) before any lag-search behavior change | Owner + Cursor |
+| 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms (likely half the true period), not a "no aliasing here" result | Claude |
 
 ---
 

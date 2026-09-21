@@ -176,6 +176,35 @@ Option **(2)** actual disambiguation of the lag search remains undecided
 and needs its own sign-off plus golden-clip verification before anyone
 trusts changed numbers.
 
+**AliasingRisk flag measured against the real golden clips (21 Sep
+2026): does not fire on any of them, at any tested resample step.** Ran
+`phase` (whole-clip and windowed) on all four committed real pairs
+(`clip_voll_tftj` and `clip_ausschnitt_native`, both `mit_yolo`/
+`ohne_yolo`) — every window on every pair reports `aliasing_risk=false`,
+despite the same swinging-lag/orientation-flip pattern that motivated
+this whole investigation still being clearly present in those numbers
+(see the r/lag tables in `docs/NEXT.md`'s bake-off and golden-clip
+entries). A direct probe of `dominantPeriodMs` on the reference signals
+(both clips, resample steps 20/40/100ms) explains why: it consistently
+estimates a period of **100-140ms**, never above it regardless of
+resample granularity — and `annotateAliasingRisk` requires
+`period >= MinDominantPeriodMs` (150ms) before it will even look for
+near-tied alternate lags, so it bails out before ever running the
+comparison. 100-140ms is suspiciously close to **half** of the ~280ms
+dominant period estimated earlier by a different (Python/autocorrelation)
+method on the same `ohne_yolo` reference — consistent with the half-period
+ambiguity already noted above (a symmetric up/down stroke shape
+time-shifted by half a period looks like its own vertical inversion, so
+autocorrelation can lock onto the half-period instead of the full stroke
+cycle). This is a measurement, not a code change: `MinDominantPeriodMs`
+and `dominantPeriodMs` are untouched. **Consequence for option (2):** the
+board's condition ("wait until the flag fires on real goldens") hasn't
+been met yet — not because aliasing isn't happening on these clips, but
+because the current period detector under-estimates it past the floor
+that's meant to reject noise. Whoever picks this up next should look at
+the half-period ambiguity in `dominantPeriodMs` (e.g. also test `2×period`
+candidates) before concluding option (2) isn't needed.
+
 **What does NOT change**: the practical guidance this finding produced
 ("don't judge a clip from whole-clip r alone, use windowed measurement")
 stays correct regardless of the underlying cause — `docs/
