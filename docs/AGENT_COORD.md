@@ -62,7 +62,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
 | **2** | **v0.5.17** | Cursor A | **DONE** #153 + tag `v0.5.17` |
 | **3** | TFTJ step 3 partner-mark | Cursor C | **DONE** #160 |
-| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Flow scaling **DONE** (#156 merged, CI passed); remaining triage claimed |
+| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E / Cursor A | #145 tip-only **DONE** #164; #119 + flow media remain |
+| **5** | **v0.5.18** | Cursor A | **IN PROGRESS** — bump + tag after this PR |
 
 ---
 
@@ -83,8 +84,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/triage-145-autotune-d7cb` (#164) | #145: stroke profiles ignore Zone 2 (tip-only) | **IN PROGRESS** |
-| E | ChatGPT | #159 merged | #145/#119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + issues remain |
+| A | Cursor | `cursor/release-0-5-18-d7cb` | bump + tag **v0.5.18** (incl. #164 tip-only) | **IN PROGRESS** |
+| E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
@@ -93,9 +94,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 Claim: lane E (docs claim #152 merged).
 
-- #146 closed. #145: Autotune+Zone2 misuse fix in flight (`cursor/triage-145-autotune-d7cb`); #119 still needs current-build AI-train reproduce.
-- Owner smoked **0.5.16**; **v0.5.17** tagged — portable live.
-- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163).
+- #146 closed. #145 tip-only fix **merged** (#164) — owner smoke on **0.5.18**; #119 still needs current-build AI-train reproduce.
+- Owner smoked **0.5.16**; **v0.5.17** live; **v0.5.18** tagging now (this train).
+- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163/#165).
 - Flow scaling #156 + timeout docs #159 merged — original media probe still needed.
 - Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
@@ -349,6 +350,7 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | F-003 mitigation: ship option 1 (AliasingRisk flag) before any lag-search behavior change | Owner + Cursor |
 | 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms (likely half the true period), not a "no aliasing here" result | Claude #165 |
 | 21 Sep | #163 AliasingRisk shipped; #145 triage: Autotune+ROI2 was MIL/two-point misuse | Cursor #164 |
+| 21 Sep | #164 merged — Autotune/stroke tip-only; cut **v0.5.18** for owner smoke | Cursor A |
 
 ---
 
