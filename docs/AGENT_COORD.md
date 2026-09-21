@@ -51,7 +51,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **0** | Cleanup | Claude + ChatGPT E | Done (#150/#151/#146/#152/#154) |
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
 | **2** | **v0.5.17** | Cursor A | **DONE** #153 + tag `v0.5.17` |
-| **3** | TFTJ step 3 partner-mark | ChatGPT or Cursor C | Queued after tag |
+| **3** | TFTJ step 3 partner-mark | Cursor C | **IN PROGRESS** `cursor/tftj-step3-partner-d7cb` |
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Flow scaling **DONE** (#156 merged, CI passed); remaining triage claimed |
 
 ---
@@ -72,10 +72,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | this PR | F-003 root-cause test: raw-vs-post scoring + real-PTS check | **DONE** — mechanism refuted, lane free |
+| B | Claude | #158 merged | F-003 root-cause test | **DONE** — lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | #156 merged; `codex/coord-pr156-merged` (board update) | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage claimed; original clip timeouts await reproduction data |
-| C | — | — | TFTJ step 3 partner-mark | **Next** — free to claim |
+| E | ChatGPT | #156 merged | #145/#119 and Flow timeout follow-up | Flow scaling **DONE** — remaining triage claimed |
+| C | Cursor | `cursor/tftj-step3-partner-d7cb` | TFTJ step 3: tracked partner when vib on | **IN PROGRESS** |
 
 ---
 
@@ -84,8 +84,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 Claim: lane E (docs claim #152 merged).
 
 - #146 closed. #145/#119 still open — need current-build reproduce before close.
-- Owner smoked **0.5.16**; **v0.5.17** tagged — download portable when Release finishes.
-- Next product: TFTJ step 3 (partner-mark) — lane C.
+- Owner smoked **0.5.16**; **v0.5.17** tagged — portable live.
+- Next product: TFTJ step 3 (partner-mark) — **Cursor claimed lane C**.
 - Flow scaling: #156 merged on 21 Sep at 09:50 UTC; [GitHub Tests](https://github.com/funfunpayer/SamNPlayer/actions/runs/35584874293) passed. No review pending for this fix.
 - Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
@@ -167,6 +167,7 @@ Farneback call itself, or just time a single-frame Farneback call at
 | 21 Sep | Bake-off: grid_lk/region_fusion do not beat CSRT; no Go port. flow hangs → E | Claude #154 |
 | 21 Sep | Owner smoked 0.5.16 → continue 0.5.17 | Owner |
 | 21 Sep | v0.5.17 tagged (#153) | Cursor A |
+| 21 Sep | TFTJ step 3: Cursor claims lane C — tracked partner when vib on | Cursor C |
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude, this PR |
 
 ---

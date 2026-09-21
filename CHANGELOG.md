@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **TFTJ step 3:** Contact vib on Tf/Tj → Zone 2 partner is **tracked by
+  default** (GUI no longer auto-checks “Fix Zone 2”). Vib off → Zone 2
+  optional; Generate with tip-only. Regression: simpletrack fixed vs
+  tracked partner on synthetic motion (`docs/TFTJ_PROFILE_DIRECTION.md`).
+
 ## [0.5.17] — September 21, 2026
 
 ### Added
