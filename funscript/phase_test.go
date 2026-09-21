@@ -226,13 +226,6 @@ func TestWindowedBestLagCorrelationDriftingLag(t *testing.T) {
 	}
 }
 
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
 // irregularHalfCycleActions builds a non-periodic stroke-like wave: it
 // alternates between LOW and HIGH, but each half-cycle's duration is drawn
 // fresh (deterministic PRNG) from [minHalfMs, maxHalfMs), so no two cycles
@@ -298,6 +291,15 @@ func TestPeriodicityAliasingCharacterization(t *testing.T) {
 			t.Fatalf("aliased lag=%d is not an integer number of periods away from true lag=%d (off=%d, period=%d)",
 				result.LagMs, -trueLagMs, off, periodMs)
 		}
+		// Option 1 annotation: when aliasing fired, the flag must light up
+		// without changing LagMs from what the search already returned.
+		if !result.AliasingRisk {
+			t.Fatalf("expected AliasingRisk when lag aliased (lag=%d period≈%d dominant=%d)",
+				result.LagMs, periodMs, result.DominantPeriodMs)
+		}
+		if len(result.AlternateLagsMs) == 0 {
+			t.Fatal("expected AlternateLagsMs when AliasingRisk is set")
+		}
 	})
 
 	t.Run("periodic motion: windowed lag search can swing across windows despite a constant true offset", func(t *testing.T) {
@@ -343,5 +345,32 @@ func TestPeriodicityAliasingCharacterization(t *testing.T) {
 		if confident < 3 {
 			t.Fatalf("expected >=3 confident windows, got %d", confident)
 		}
+		// Non-periodic: no aliasing risk on the confident windows.
+		for _, w := range windows {
+			if w.Correlation == nil {
+				continue
+			}
+			if w.Correlation.AliasingRisk {
+				t.Errorf("window %d-%dms: unexpected AliasingRisk on non-periodic motion (alts=%v)",
+					w.WindowStartMs, w.WindowEndMs, w.Correlation.AlternateLagsMs)
+			}
+		}
 	})
+}
+
+func TestAliasingRiskFlag_doesNotChangeReportedLag(t *testing.T) {
+	// Irregular motion recovers true lag; flag must stay off and lag stable.
+	const trueLagMs = 400
+	ref := irregularHalfCycleActions(40000, 7, 140, 420, 0, 20, 90)
+	shifted := irregularHalfCycleActions(40000, 7, 140, 420, trueLagMs, 20, 90)
+	result := BestLagCorrelation(ref, shifted, 1500, 20, 20)
+	if result == nil {
+		t.Fatal("expected result")
+	}
+	if absInt(result.LagMs-(-trueLagMs)) > 40 {
+		t.Fatalf("lag=%d want ~%d", result.LagMs, -trueLagMs)
+	}
+	if result.AliasingRisk {
+		t.Fatalf("unexpected AliasingRisk alts=%v period=%d", result.AlternateLagsMs, result.DominantPeriodMs)
+	}
 }

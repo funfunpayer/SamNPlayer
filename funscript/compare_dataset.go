@@ -16,16 +16,18 @@ var batchSuffixRE = regexp.MustCompile(`__(hub|tf|tj)\.funscript$`)
 
 // CompareRow is one reference × kind comparison (fungen_compare.compare_dataset).
 type CompareRow struct {
-	Reference     string   `json:"reference"`
-	Stem          string   `json:"stem"`
-	Kind          string   `json:"kind"`
-	R             float64  `json:"r"`
-	LagMs         int      `json:"lag_ms"`
-	Orientation   string   `json:"orientation"`
-	NSamples      int      `json:"n_samples"`
-	ShapeError    *float64 `json:"shape_error"`
-	RZeroLag      *float64 `json:"r_zero_lag"`
-	LowConfidence bool     `json:"low_confidence"`
+	Reference        string   `json:"reference"`
+	Stem             string   `json:"stem"`
+	Kind             string   `json:"kind"`
+	R                float64  `json:"r"`
+	LagMs            int      `json:"lag_ms"`
+	Orientation      string   `json:"orientation"`
+	NSamples         int      `json:"n_samples"`
+	ShapeError       *float64 `json:"shape_error"`
+	RZeroLag         *float64 `json:"r_zero_lag"`
+	LowConfidence    bool     `json:"low_confidence"`
+	AliasingRisk     bool     `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs int      `json:"dominant_period_ms,omitempty"`
 }
 
 // CompareDatasetResult mirrors fungen_compare.compare_dataset output.
@@ -87,16 +89,18 @@ func CompareDataset(datasetDir string, maxLagMs int) (CompareDatasetResult, erro
 				continue
 			}
 			rows = append(rows, CompareRow{
-				Reference:     filepath.Base(refPath),
-				Stem:          stem,
-				Kind:          kind,
-				R:             corr.R,
-				LagMs:         corr.LagMs,
-				Orientation:   corr.Orientation,
-				NSamples:      corr.NSamples,
-				ShapeError:    corr.ShapeError,
-				RZeroLag:      corr.RZeroLag,
-				LowConfidence: corr.LowConfidence,
+				Reference:        filepath.Base(refPath),
+				Stem:             stem,
+				Kind:             kind,
+				R:                corr.R,
+				LagMs:            corr.LagMs,
+				Orientation:      corr.Orientation,
+				NSamples:         corr.NSamples,
+				ShapeError:       corr.ShapeError,
+				RZeroLag:         corr.RZeroLag,
+				LowConfidence:    corr.LowConfidence,
+				AliasingRisk:     corr.AliasingRisk,
+				DominantPeriodMs: corr.DominantPeriodMs,
 			})
 		}
 	}
@@ -130,8 +134,12 @@ func FormatCompareReport(result CompareDatasetResult) string {
 		if row.LowConfidence {
 			low = " [LOW CONFIDENCE: short overlap]"
 		}
-		fmt.Fprintf(&b, "- %s vs **%s**: r=%.3f @ lag %s%s (r at zero-lag/normal: %s) shape_err=%s n=%d%s\n",
-			row.Reference, row.Kind, row.R, lagNote, orient, zero, shape, row.NSamples, low)
+		alias := ""
+		if row.AliasingRisk {
+			alias = fmt.Sprintf(" [ALIASING RISK period≈%dms]", row.DominantPeriodMs)
+		}
+		fmt.Fprintf(&b, "- %s vs **%s**: r=%.3f @ lag %s%s (r at zero-lag/normal: %s) shape_err=%s n=%d%s%s\n",
+			row.Reference, row.Kind, row.R, lagNote, orient, zero, shape, row.NSamples, low, alias)
 	}
 	if len(result.Excluded) > 0 {
 		b.WriteString("\n## Excluded (undefined correlation, not counted in any mean)\n")

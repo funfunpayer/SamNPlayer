@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **F-003 option 1:** `LagCorrelation.AliasingRisk` (+ `DominantPeriodMs`,
+  `AlternateLagsMs`) — flags near-tied lags at ±k×stroke period without
+  changing reported lag/r. CLI `phase` / compare report surface it.
+  (`docs/FINDINGS_TIMING_TF.md`, #162 follow-up)
+
 ### Changed
 
 - **TFTJ step 3:** Tf/Tj always needs **two markers** (tip + Zone 2). Contact

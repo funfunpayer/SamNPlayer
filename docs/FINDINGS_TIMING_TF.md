@@ -169,13 +169,12 @@ a bugfix — `BestLagCorrelation`/`WindowedBestLagCorrelation` are
 unchanged) so this failure mode is documented, reproducible, and can't
 silently regress or get "fixed" without anyone noticing.
 
-**What this means going forward (idea, not decided/implemented):** any
-future mitigation — e.g. constraining the lag search span relative to a
-detected dominant period, or flagging "high periodicity, aliasing risk"
-on near-tied best-lag candidates — is a real design change to a
-measurement primitive several docs now depend on, and needs its own
-sign-off before implementation, same as any other behavior change per
-this board's rules.
+**What this means going forward:** option **(1) additive AliasingRisk
+flag** is shipping (`LagCorrelation.AliasingRisk` /
+`AlternateLagsMs` / `DominantPeriodMs`) — reported lag values unchanged.
+Option **(2)** actual disambiguation of the lag search remains undecided
+and needs its own sign-off plus golden-clip verification before anyone
+trusts changed numbers.
 
 **What does NOT change**: the practical guidance this finding produced
 ("don't judge a clip from whole-clip r alone, use windowed measurement")
