@@ -1,30 +1,39 @@
 # Tf/Tj as profile — direction (not yet implementation)
 
-Owner direction, 21 Sep 2026. Think first; implement only after this
-shape is agreed. Related: `docs/ENGINE.md`, `docs/GENERATE_HEURISTICS.md`,
-`docs/NEXT.md` (§3 auto two-ROI, §5 contact vibration, region_fusion_auto),
-`docs/FINDINGS_TIMING_TF.md`, `docs/PRODUCTION_ROADMAP.md` (G1).
+Owner direction, 21 Sep 2026 (answers amended same day). Think first;
+implement only after this shape is agreed. Related: `docs/ENGINE.md`,
+`docs/GENERATE_HEURISTICS.md`, `docs/NEXT.md`, `docs/FINDINGS_TIMING_TF.md`,
+`docs/PRODUCTION_ROADMAP.md` (G1 / G3).
 
 ---
 
 ## What the owner wants (plain)
 
-1. **Tf/Tj should exist as a profile** — a feel / device recipe — not as
-   “the product mode where you must mark two points and hope recognition
-   works.”
-2. **Recognition for Tf/Tj is not the lever that feels relevant right
-   now.** Learning (classes / YOLO) we still need later; it is not the
-   everyday Generate path.
-3. **Automatic recognition currently misbehaves** — see open issues
-   (notably #145 on an old build: two-point + MIL + “no motion”; earlier
-   #126 auto-region missing packages). Fix / verify on v0.5.16 before
-   building more auto-ROI UI on top.
-4. **Contact vibration must move into Auto and into Normal** — not stay
-   a Tf/Tj-only checkbox. Users should not hunt a special profile just
-   to get that feel.
-5. **Do not force marking everything in the generator.** FunGen 2 does
-   not require that either — including without YOLO. That is why we
-   already sketched **4 zones + sampling (+ audio as check/hint)**.
+1. **Scene profiles are feel recipes**, not “recognition products.”
+   Names will be renamed for clarity; later the **right profile should
+   be suggested automatically from the motion/scene pattern** (likely AI).
+2. **Everyday Generate does not force marking everything.** FunGen 2
+   does not either (including without YOLO). Classical path: 4-zone
+   sampling (+ audio as check/hint).
+3. **Marking is optional and situational:** only for profiles that need
+   a **contact partner** (Tf / blow / similar) **and only when the user
+   wants contact vibration**. Then they mark the contact target. When
+   that mark moves with the scene, we must **compensate** (track the
+   partner, not assume a static box).
+4. **Contact vibration on Normal and Auto** — default available / on,
+   **user can turn it off**.
+5. **Learning / AI** is for (a) later **auto profile pick** from pattern
+   and (b) better partner proposals — not for inventing the 0–100 curve.
+
+---
+
+## Owner answers (21 Sep 2026) — locked
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | Auto / marking | **Mark only when needed:** Tf + blow (and similar contact scenes). Mark **only if contact vibration is wanted**. Not “mark everything.” When the marked partner **moves**, compensate (track it) — a dead static box will drift. |
+| 2 | Contact vib on Normal / Auto | **Yes — on by default; user can disable.** |
+| 3 | GUI names / profiles | **Rename** for clarity. Profiles stay **profiles**. Later: **auto-detect / suggest** profile from scene pattern (mix of current set + blow + more). That suggestion layer is **AI/pattern** work — not classical G1. |
 
 ---
 
@@ -34,137 +43,121 @@ shape is agreed. Related: `docs/ENGINE.md`, `docs/GENERATE_HEURISTICS.md`,
 |------|--------|-------------|
 | Whole-clip FunGen r≈0.06 on Tf/Tj goldens is mostly **lag drift**, not “Tf/Tj is noise” | windowed phase / #143, `clip_voll` | Do not redesign tracking from whole-clip r alone |
 | Hub (single-ROI) on same clip also drifts; Signal Quality ≠ Motion Fidelity | goldens + NEXT | Timing drift is not Tf/Tj-specific |
-| Two-point distance alone does not close FunGen gap on titjob POV | NEXT Sep 16 | Multi-mark Tf/Tj is not the FunGen parity path |
+| Two-point distance alone does not close FunGen gap on titjob POV | NEXT Sep 16 | Multi-mark is not the FunGen parity path |
 | `find_two_rois` was measured insufficient for default | NEXT §3, issue #8 | Never silent-auto-commit ROI2 |
-| `region_fusion` (4 sub-boxes **inside** a marked ROI) is competitive vs CSRT | NEXT Sep 16 | Useful, but still needs a mark |
-| `region_fusion_auto` (full-frame 4 zones, no mark) exists, synthetic only | NEXT Sep 16 | This is the classical “no mark” candidate — **not product-default yet** |
-| Contact vibration works when the distance signal is good; inherits Tf/Tj unreliability | NEXT §5 | Decouple vib recipe from “must be two-ROI track” |
-| OpenCL checkbox forced Python → MIL on old builds | #141 / #145 | v0.5.16 removes that trap; re-smoke before blaming “auto” |
+| `region_fusion` / `region_fusion_auto` exist; auto is synthetic-only | NEXT Sep 16 | No-mark classical candidate; measure before default |
+| Contact vib works when distance signal is good | NEXT §5 | Decouple vib recipe from “must be two-ROI”; when partner is marked, **track** it |
+| OpenCL checkbox forced Python → MIL on old builds | #141 / #145 | v0.5.16 removes trap; re-smoke before blaming “auto” |
 
-**Bottom line:** we conflated three different products under “Tf/Tj”:
+**Bottom line:** three layers were conflated:
 
 ```text
   A. Tracking mode   → how we get a 0–100 curve from video
   B. Device profile  → how that curve maps to Neo 2 (suction / vib / recipe)
-  C. Marking UX      → manual ROIs vs auto / no-mark classical vs AI propose
+  C. Marking UX      → none | one ROI | contact partner (only if vib on)
+  D. Profile suggest → later: pattern/AI picks B from the clip
 ```
-
-FunGen 2 (classical) mostly ships **A+C without forcing marks**, then a
-feel. We shipped **B glued to A=two-point** and **C=manual-first**.
 
 ---
 
 ## Target product shape
 
-### Profiles (B) — names the user picks for *feel*
+### Profiles (B) — feel recipes (rename in GUI)
 
-| Profile | Meaning (target) | Tracking (A) may be |
-|---------|------------------|---------------------|
-| **Normal / hub / standard** | Stroke feel, usual suction mapping | No-mark 4-zone **or** one ROI |
-| **Auto** | “Just generate” — classical default path | Prefer no-mark; fall back to propose+confirm |
-| **Weich / autotune** | Soft / filtered variants of Normal | Same as Normal |
-| **Tf / Tj** | **Suction-centric recipe** (tight = high suction); contact vib on by default once promoted | Same curve sources as Normal/Auto — *not* forced dual-ROI |
+Working set (names TBD in a small rename pass; keep CLI aliases):
 
-Tf and Tj stay **aliases for one profile** (already the direction in
-NEXT priority 2). They describe **device intent**, not “you marked a
-nipple.”
+| Profile (concept) | Feel | Marking (C) |
+|-------------------|------|-------------|
+| **Normal / hub** | Stroke / usual suction | None by default |
+| **Auto** | “Just generate” classical path | None by default |
+| **Weich / autotune** | Soft / filtered Normal | Same as Normal |
+| **Tf / Tj** (rename e.g. suction/contact family) | Suction-centric | Partner mark **only if contact vib enabled** |
+| **Blow** (and similar oral/contact) | Contact-centric recipe | Same rule as Tf |
+| **Mix / others** | Combinations we already have + more later | Per-recipe rules |
 
-### Tracking modes (A) — mostly invisible unless Advanced
+Tf and Tj remain **aliases** for one suction-family profile until rename
+ships. **Blow** is a sibling contact-family profile, not a second tracker.
 
-Priority order toward FunGen-like UX:
+### Contact vibration
 
-1. **No-mark classical** — full-frame 4-zone sampling
-   (`region_fusion_auto` family) + CSRT/grid primitives we already own
-2. **One-ROI** — manual or AI propose → confirm (today’s solid path)
-3. **N-point / tip+partners** — optional Advanced when the user *wants*
-   distance semantics or training labels; not the everyday entry
-4. **AI classes** (penis / breast / hand / …) — G3; learn when classical
-   plateaus; never invent the 0–100 curve (`AI_ADAPTER.md`)
+| Context | Behavior |
+|---------|----------|
+| Normal / Auto | **On by default; user can turn off** |
+| Tf / Blow (contact family) | On by default when that profile is selected; off disables partner-mark requirement |
+| Signal without partner mark | Envelope from **deep / high-`pos` slice** of the single curve (honest: stroke depth, not tip↔body) |
+| Signal with partner mark | Distance (or relative) envelope; **partner ROI is tracked** (motion compensation) — not a frozen box |
 
-### Contact vibration (recipe, not detection)
+### Marking UX (C) — situational
 
-Today: opt-in, Tf/Tj-only, derived from high `pos` on a suction/distance
-script.
+```text
+  Default Generate     → no marks (4-zone / single-curve classical)
+  Contact vib OFF      → no partner mark required (any profile)
+  Contact vib ON
+    + Normal/Auto      → optional partner mark; without it use depth envelope
+    + Tf / Blow / …    → partner mark expected; track partner over time
+```
 
-Target:
+**Compensation rule (owner):** if the user marks a contact target and the
+scene moves (camera, body, hands), the marked region must be **followed**.
+Static “paint once and forget” will desync vibration from real contact.
+Reuse existing multi-point / CSRT partner track; do not invent a new
+tracker family for this.
 
-- Available on **Normal** and **Auto** (and still on Tf/Tj).
-- On a **single-curve** script, “contact” means the **deep / high-`pos`
-  slice of that script’s own range** (same envelope math we already
-  use) — honest naming in UI: it follows depth of stroke, not a second
-  tracked object, unless an N-point / class path is active.
-- When a true partner distance exists, keep today’s distance-based
-  envelope (better semantic match for tip↔body).
-- Default **on** for Tf/Tj profile; **opt-in or gentle default** for
-  Normal/Auto after hardware feel check (ROADMAP still open).
+### Tracking modes (A)
 
-### Marking UX (C)
+1. No-mark classical (4-zone / hub) — everyday
+2. One primary ROI — override / Advanced
+3. Primary + **tracked contact partner** — only when contact vib needs it
+4. AI class proposals — G3; never write the curve
 
-| Everyday | Correction / Advanced |
-|----------|------------------------|
-| Generate without drawing boxes (4-zone / auto) | Drag ROI(s) when auto is wrong |
-| Audio = tempo plausibility / optional peak hint | Never “loudness → positions” |
+### Profile auto-suggest (D) — later, AI/pattern
 
-Same rule as G1: audio does not invent motion.
+Not G1. After classical Generate + vib recipes are solid:
 
-### Learning
-
-Keep training (#119 and friends) as the path to **better proposals and
-class-aware partners**, not as the gate for shipping no-mark Generate.
-Classical 4-zone must stand on its own first (FunGen without YOLO is the
-fair bar).
-
----
-
-## Bugs / debt to clear before building the new UX
-
-1. **#145** — confirm obsolete on portable **v0.5.16** (Go CSRT log, no
-   MIL). If still broken with Auto/two-point, file a fresh bug with
-   v0.5.16 log; else close as build trap.
-2. **Auto-region path** — package/bootstrap errors (#126 closed) must not
-   return; Auto must not silently land on Python MIL.
-3. **Do not wire `find_two_rois` as default** until real-clip bar is met
-   (unchanged; issue #8).
-4. **Goldens** — land `clip_voll` set (#146) so no-mark / profile bake-offs
-   are measurable (windowed Motion Fidelity, not only whole-clip r).
+- Input: motion signature, optional audio tempo, optional weak class scores
+- Output: **suggested profile** (Normal / Blow / Tf-family / Mix / …)
+- User can override; suggestion never silently locks a bad recipe
+- Needs labeled examples over time (same training loop as #119 family)
 
 ---
 
-## Proposed work order (clean approach)
+## Bugs / debt before new UX
 
-Do **not** start a 4-zone rewrite and a profile redesign in one PR.
+1. **#145** — smoke on portable **v0.5.16**; close or fresh bug with Go log.
+2. Auto path must not fall back to Python MIL.
+3. Do not default-wire `find_two_rois` (issue #8).
+4. Land goldens (`clip_voll` / #146 content now on main via #140) for
+   windowed Motion Fidelity bake-offs.
+
+---
+
+## Proposed work order
 
 | Step | Work | Exit gate |
 |------|------|-----------|
-| **0** | Agree this doc (owner) | This file accepted or amended |
-| **1** | Smoke v0.5.16; close or rewrite #145 | Log shows Go CSRT / Path: Go |
-| **2** | **Recipe:** expose contact vibration on Normal + Auto (shared envelope; Tf/Tj default on) | Unit tests + one golden script metadata check; no tracking change |
-| **3** | **Measure** `region_fusion_auto` (and/or successor) vs FunGen no-YOLO on `clip_voll` + 1–2 more clips, windowed | Numbers in NEXT/CHANGELOG; promote only if ≥ CSRT single-ROI |
-| **4** | **Product UX:** Auto Generate = no-mark path when gate passes; manual mark = override | GUI copy: profile = feel; Advanced = tracking |
-| **5** | **Decouple** Tf/Tj profile from mandatory ROI2 in GUI/CLI | Tf/Tj can run on single-curve; dual-ROI remains Advanced |
-| **6** | Learning / class partners | Only after 3–5; train data from optional marks |
-| **7** | ENGINE P2 “4-zone relative graph” (common-mode, reliability) | After goldens show need beyond activity-weighted fusion |
-
-Steps 2 and 3 can overlap once 0–1 are done; 4–5 depend on 3.
+| **0** | This doc + owner answers (done) | Accepted |
+| **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log |
+| **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Tests + GUI/CLI; no tracking change |
+| **3** | Contact-family rule: vib on → require/enable **tracked partner** mark for Tf/Blow; vib off → no mark | Tests for “static box vs tracked partner” compensation |
+| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT |
+| **5** | GUI rename of profiles; keep aliases | Copy review |
+| **6** | Decouple profile pick from forced dual-ROI when vib off | CLI/GUI |
+| **7** | AI/pattern **profile suggest** (Blow vs Normal vs Tf-family vs Mix) | After G1 goldens; G3; override always |
 
 ---
 
 ## Explicit non-goals (for now)
 
-- Making `find_two_rois` the silent default
+- Silent auto-commit of two ROIs
 - AI writing the funscript curve
-- Dropping manual ROI entirely before no-mark beats marked CSRT on goldens
+- Mandatory marking for Normal/Auto when contact vib is off
 - Treating whole-clip FunGen r as the only quality number
-- Another tracker dropdown (CSRT product path stays)
+- Shipping profile auto-detect before vib-on-Normal/Auto + partner track
 
 ---
 
-## Open questions for the owner (short)
+## Next concrete implementation (after this PR)
 
-1. **Auto profile** = “no-mark Generate” only, or also “autotune filtering”?
-2. Contact vib on Normal/Auto: default **off** until hardware feel, or
-   default **on** like Tf/Tj?
-3. Keep showing “Tf/Tj” as a profile name in the GUI, or rename to
-   something like “Suction / contact” once dual-ROI is Advanced-only?
-
-Amend this file when those are answered; then start at step 1–2.
+Start at **step 2** (contact vib → Normal/Auto, default on, can disable),
+then **step 3** (tracked partner only when vib on for Tf/Blow). Profile
+rename and AI suggest wait until those feel right on device.
