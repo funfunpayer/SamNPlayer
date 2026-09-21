@@ -144,6 +144,87 @@ func TestDiagnosePhaseTimingVsShape(t *testing.T) {
 	}
 }
 
+func chirpActions(durationMs, stepMs int, t0 int64) []Action {
+	// Non-periodic chirp — avoids sine half-period / inverted lag ambiguity.
+	var actions []Action
+	for t := 0; t <= durationMs; t += stepMs {
+		// Slowly rising frequency + a one-shot bump mid-range.
+		freq := 0.0004 + 0.0000008*float64(t)
+		pos := 50 + 35*math.Sin(2*math.Pi*freq*float64(t))
+		if t > 8000 && t < 10000 {
+			pos += 20
+		}
+		actions = append(actions, Action{At: t0 + int64(t), Pos: int(math.Round(pos))})
+	}
+	return actions
+}
+
+func TestWindowedBestLagCorrelationConstantLag(t *testing.T) {
+	// Constant +500ms time shift on a non-periodic chirp → every window ~-500ms.
+	reference := chirpActions(60000, 50, 0)
+	shifted := chirpActions(60000, 50, 500)
+	windows := WindowedBestLagCorrelation(reference, shifted, 15000, 2000, 50, 100)
+	if len(windows) < 3 {
+		t.Fatalf("expected ≥3 windows, got %d", len(windows))
+	}
+	var confident int
+	for _, w := range windows {
+		if w.Correlation == nil {
+			continue
+		}
+		confident++
+		if absInt(w.Correlation.LagMs-(-500)) > 100 {
+			t.Errorf("window %d-%d: lag_ms=%d, want ~-500", w.WindowStartMs, w.WindowEndMs, w.Correlation.LagMs)
+		}
+		if w.Correlation.R < 0.9 {
+			t.Errorf("window %d-%d: r=%.4f, want >0.9", w.WindowStartMs, w.WindowEndMs, w.Correlation.R)
+		}
+	}
+	if confident < 3 {
+		t.Fatalf("expected ≥3 confident windows, got %d", confident)
+	}
+}
+
+func TestWindowedBestLagCorrelationDriftingLag(t *testing.T) {
+	// First half lag 0, second half lag +800ms on a chirp. Windowed mode
+	// must report different lags; whole-clip BestLagCorrelation can only pick one.
+	ref := chirpActions(40000, 40, 0)
+	var cand []Action
+	for _, a := range ref {
+		lag := int64(0)
+		if a.At >= 20000 {
+			lag = 800
+		}
+		cand = append(cand, Action{At: a.At + lag, Pos: a.Pos})
+	}
+	windows := WindowedBestLagCorrelation(ref, cand, 10000, 2000, 50, 100)
+	if len(windows) < 3 {
+		t.Fatalf("expected ≥3 windows, got %d", len(windows))
+	}
+	var earlyLag, lateLag *int
+	for _, w := range windows {
+		if w.Correlation == nil {
+			continue
+		}
+		lag := w.Correlation.LagMs
+		if w.WindowEndMs <= 15000 {
+			earlyLag = &lag
+		}
+		if w.WindowStartMs >= 25000 {
+			lateLag = &lag
+		}
+	}
+	if earlyLag == nil || lateLag == nil {
+		t.Fatal("need both early and late confident windows")
+	}
+	if absInt(*earlyLag) > 150 {
+		t.Errorf("early lag=%d, want ~0", *earlyLag)
+	}
+	if absInt(*lateLag-(-800)) > 150 {
+		t.Errorf("late lag=%d, want ~-800", *lateLag)
+	}
+}
+
 func absInt(v int) int {
 	if v < 0 {
 		return -v
