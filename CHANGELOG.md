@@ -8,17 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.16] — September 21, 2026
+
 ### Changed
 
 - **Generate OpenCL:** no GUI checkbox — when the Python path runs, OpenCL
   is tried automatically and only logged (`OpenCL active` / not available).
   Checking the old toggle used to force Python and skip Go CSRT; that trap
-  is gone. CLI `--opencl` is a deprecated no-op; `--no-opencl` disables.
+  is gone. CLI `--opencl` is a deprecated no-op; `--no-opencl` disables (#141).
 
 ### Fixed
 
 - **CI Windows OpenCV:** install `libgfortran` before `opencv` so pacman
-  does not silently skip OpenCV after MSYS2 renamed `gcc-libs` → `cc-libs`.
+  does not silently skip OpenCV after MSYS2 renamed `gcc-libs` → `cc-libs`
+  (#142).
 
 ## [0.5.15] — September 20, 2026
 

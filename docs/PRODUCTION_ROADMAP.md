@@ -76,7 +76,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.13** | Shipped | Windows OpenCV CSRT + portable DLLs (G0.1) |
 | **v0.5.14** | Shipped | Tf/Tj tip-end + Zone 3+ class + Go TrackMultiPoints |
 | **v0.5.15** | Shipped | Tf/Tj fusion: exclude lost partners from min() (F-006) |
-| **v0.5.16+** | Next | OpenCL auto on Python path (no GUI toggle); then G1 after goldens |
+| **v0.5.16** | **This train** | OpenCL auto (no GUI toggle); MSYS2 OpenCV CI |
+| **v0.5.16** | **This train** | OpenCL auto (no GUI toggle forcing Python) + MSYS2 CI |
+| **v0.5.17+** | After G0 gate | G1 heuristics + windowed phase tooling; goldens |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
