@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
 import { CANONICAL } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
@@ -41,11 +41,13 @@ export function initGenerator(root, playback) {
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
           data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
+        <button id="gen-candidates" type="button" disabled
+          data-help="Shows all ranked motion regions as dashed boxes. Click one to set Zone 1 (primary stroke). Nothing is applied until you pick — Zone 2 is never auto-filled.">Show motion candidates</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Analyzes motion in the video — you can still correct the region by hand. Candidates: pick primary yourself.</p>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -249,6 +251,7 @@ export function initGenerator(root, playback) {
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in videopixeln
   let roi2 = null; // zweite Region für Tf/Tj (distance + suction)
+  let candidates = []; // TFTJ 4b: [{x,y,w,h,score,index}, ...] dashed until pick
   let extraTargets = []; // additional fixed Tf/Tj anchors (min-distance)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -529,6 +532,60 @@ export function initGenerator(root, playback) {
     ctx.restore();
   }
 
+  function drawCandidate(c) {
+    if (!c || !nativeW || !nativeH) return;
+    const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
+    const dx0 = c.x * scaleX, dy0 = c.y * scaleY, dw = c.w * scaleX, dh = c.h * scaleY;
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = 'rgba(120, 200, 255, 0.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(dx0, dy0, dw, dh);
+    ctx.fillStyle = 'rgba(120, 200, 255, 0.12)';
+    ctx.fillRect(dx0, dy0, dw, dh);
+    const label = '#' + (c.index || '?');
+    ctx.setLineDash([]);
+    ctx.font = '600 13px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(10, 20, 30, 0.75)';
+    ctx.fillRect(dx0 + 2, dy0 + 2, ctx.measureText(label).width + 8, 18);
+    ctx.fillStyle = '#dff3ff';
+    ctx.fillText(label, dx0 + 6, dy0 + 15);
+    ctx.restore();
+  }
+
+  function hitCandidate(canvasX, canvasY) {
+    if (!candidates.length || !nativeW || !nativeH) return null;
+    const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
+    const vx = canvasX / scaleX, vy = canvasY / scaleY;
+    // Prefer smallest containing box (most specific).
+    let best = null, bestArea = Infinity;
+    for (const c of candidates) {
+      if (vx >= c.x && vx <= c.x + c.w && vy >= c.y && vy <= c.y + c.h) {
+        const area = c.w * c.h;
+        if (area < bestArea) {
+          best = c;
+          bestArea = area;
+        }
+      }
+    }
+    return best;
+  }
+
+  function pickCandidate(c) {
+    if (!c) return;
+    roi = { x: c.x, y: c.y, w: c.w, h: c.h };
+    // Never auto-fill Zone 2 from candidates (issue #8 / TFTJ 4b).
+    updateRoiLabels();
+    updateProfileUi();
+    updateGenerateEnabled();
+    el('#gen-roi-label').textContent =
+      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, candidate #${c.index})`;
+    el('#gen-status').textContent = isTfTj() && !roi2
+      ? `Primary set from candidate #${c.index} — Tf/Tj still needs Zone 2.`
+      : `Primary set from candidate #${c.index} — correct by hand if needed.`;
+    redraw();
+  }
+
   function drawDragRect(stroke, fill, dashed) {
     const dx0 = Math.min(startX, curX), dy0 = Math.min(startY, curY);
     const dw = Math.abs(curX - startX), dh = Math.abs(curY - startY);
@@ -545,6 +602,7 @@ export function initGenerator(root, playback) {
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    for (const c of candidates) drawCandidate(c);
     const dragRoi2 = dragging && draggingSecond && !markMode;
     const dragRoi1 = dragging && !draggingSecond && !markMode;
     if (roi && !dragRoi1) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
@@ -580,7 +638,18 @@ export function initGenerator(root, playback) {
     const mode = markMode;
     draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
-    if (w < 4 || h < 4) { redraw(); return; }
+    // Tiny press: pick a motion candidate if shown (TFTJ 4b).
+    if (w < 8 && h < 8) {
+      if (!mode && !wasSecond && candidates.length) {
+        const hit = hitCandidate(startX, startY);
+        if (hit) {
+          pickCandidate(hit);
+          return;
+        }
+      }
+      redraw();
+      return;
+    }
     const scaleX = nativeW / canvas.width, scaleY = nativeH / canvas.height;
     const x0 = Math.min(startX, curX), y0 = Math.min(startY, curY);
     const box = {
@@ -695,13 +764,15 @@ export function initGenerator(root, playback) {
       : '';
     try {
       await showFrame(path, 0);
+      candidates = [];
       el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact (2nd region / nipples…). Seek time if the start is black.'
-        : 'Find region automatically or mark by hand (drag). Seek time if the start is black.') + batchNote;
+        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact (2nd region / nipples…). Or show motion candidates and click primary.'
+        : 'Find region / show motion candidates / mark by hand. Seek time if the start is black.') + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
       el('#gen-quality').style.display = 'none';
@@ -890,10 +961,12 @@ export function initGenerator(root, playback) {
   EventsOn('generate:autoroi', result => {
     hideProgress();
     el('#gen-autoroi').disabled = false;
+    el('#gen-candidates').disabled = false;
     if (result.error) {
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
+    candidates = [];
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     const hasRoi2 = result.w2 > 0 && result.h2 > 0;
     if (hasRoi2) {
@@ -1131,12 +1204,45 @@ export function initGenerator(root, playback) {
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const two = isTfTj();
     el('#gen-autoroi').disabled = true;
+    el('#gen-candidates').disabled = true;
     el('#gen-status').textContent = useAI
       ? (two ? 'AI searching both regions (ONNX)…' : 'AI region search running (ONNX model)…')
       : (two ? 'Searching both regions (distance/Tf/Tj suggestion)…'
         : 'Analyzing motion in video (may take a few seconds)…');
     const engine = useAI ? (two ? 'ai_two' : 'ai') : (two ? 'auto_two' : 'auto');
     AutoDetectROI(videoPath, engine);
+  });
+
+  el('#gen-candidates').addEventListener('click', () => {
+    if (!videoPath) return;
+    el('#gen-candidates').disabled = true;
+    el('#gen-autoroi').disabled = true;
+    el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click one)…';
+    SuggestROICandidates(videoPath);
+  });
+
+  EventsOn('generate:roi-candidates', result => {
+    hideProgress();
+    el('#gen-candidates').disabled = false;
+    el('#gen-autoroi').disabled = false;
+    if (result.error) {
+      uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      return;
+    }
+    const list = Array.isArray(result.candidates) ? result.candidates : [];
+    candidates = list.map((c, i) => ({
+      x: c.x, y: c.y, w: c.w, h: c.h,
+      score: c.score || 0,
+      index: c.index || (i + 1),
+    }));
+    if (!candidates.length) {
+      el('#gen-status').textContent = 'No motion candidates — mark primary by hand.';
+      redraw();
+      return;
+    }
+    el('#gen-status').textContent =
+      `${candidates.length} motion candidate${candidates.length === 1 ? '' : 's'} — click one to set Zone 1 (primary). Zone 2 never auto-filled.`;
+    redraw();
   });
 
   const PROFILE_VALUES = ['standard', 'weich', 'autotune', 'tf'];

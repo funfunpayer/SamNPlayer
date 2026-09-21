@@ -85,7 +85,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/tftj-auto-milestone-d7cb` | TFTJ milestone: Normal curve + Tf feel + show motion candidates | **IN PROGRESS** (docs → 0.5.19) |
+| A | Cursor | `cursor/tftj-auto-milestone-d7cb` | TFTJ 4b motion candidates + docs milestone | **IN PROGRESS** |
 | E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 

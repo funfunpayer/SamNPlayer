@@ -48,6 +48,17 @@ type ROI struct {
 	X, Y, W, H int
 }
 
+// ROICandidate is a ranked motion-region proposal for GUI pick-primary (TFTJ 4b).
+// Never auto-applied as ROI2.
+type ROICandidate struct {
+	X     int     `json:"x"`
+	Y     int     `json:"y"`
+	W     int     `json:"w"`
+	H     int     `json:"h"`
+	Score float64 `json:"score"`
+	Index int     `json:"index"` // 1-based rank
+}
+
 // NamedROI is a body-part box with optional fixed flag (Tf/Tj target / mask).
 type NamedROI struct {
 	X     int    `json:"x"`
@@ -343,6 +354,12 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 	return findROIViaScript("auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
 }
 
+// FindROICandidatesWithProgress lists ranked motion regions (auto_roi --list).
+// Read-only proposals — caller must not silently commit ROI2 (TFTJ step 4b).
+func FindROICandidatesWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	return findROICandidatesViaScript(videoPath, onProgress, onPercent)
+}
+
 // FindTwoROIsWithProgress schlägt ROI1+ROI2 vor (auto_roi --two). Nur
 // Vorschlag — GUI muss bestätigen/korrigieren (docs/NEXT.md Priorität 3).
 func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
@@ -537,6 +554,73 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	}
 	logging.Info("generator: region found automatically", "roi", fmt.Sprintf("%+v", roi))
 	return roi, nil
+}
+
+// findROICandidatesViaScript runs auto_roi.py --list and parses CANDIDATE lines.
+func findROICandidatesViaScript(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	py, err := FindPython()
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return nil, err
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return nil, err
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "auto_roi.py")
+	cmd := command(py, scriptPath, "--video", videoPath, "--list")
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("generator: stdout-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("generator: start failed: %w", err)
+	}
+	var stderrDone sync.WaitGroup
+	stderrDone.Add(1)
+	go func() {
+		defer stderrDone.Done()
+		sc := bufio.NewScanner(stderr)
+		for sc.Scan() {
+			line := sc.Text()
+			if done, total, ok := parseProgress(line); ok {
+				if onPercent != nil {
+					onPercent(percentOf(done, total))
+				}
+				continue
+			}
+			logging.Debug("auto_roi: " + line)
+			if onProgress != nil {
+				onProgress(line)
+			}
+		}
+	}()
+	var out []ROICandidate
+	sc := bufio.NewScanner(stdout)
+	for sc.Scan() {
+		var idx, x, y, w, h int
+		var score float64
+		line := sc.Text()
+		if n, _ := fmt.Sscanf(line, "CANDIDATE %d %d %d %d %d %f", &idx, &x, &y, &w, &h, &score); n == 6 {
+			out = append(out, ROICandidate{X: x, Y: y, W: w, H: h, Score: score, Index: idx})
+		}
+	}
+	stderrDone.Wait()
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("generator: motion candidate search failed: %w", err)
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("generator: no motion candidates — mark manually")
+	}
+	logging.Info("generator: motion candidates found", "count", len(out))
+	return out, nil
 }
 
 // findTwoROIsViaScript wie findROIViaScript, liest zusätzlich optional

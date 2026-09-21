@@ -4,6 +4,7 @@ export function ApplyRingDown(arg1, arg2) { return window['go']['main']['App']['
 export function ApplySuggestedOZone() { return window['go']['main']['App']['ApplySuggestedOZone'](); }
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
+export function SuggestROICandidates(arg1) { return window['go']['main']['App']['SuggestROICandidates'](arg1); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
 export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13) {
   return window['go']['main']['App']['BootstrapRoiTrainingSampleEx'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
