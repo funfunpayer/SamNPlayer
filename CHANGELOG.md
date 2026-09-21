@@ -8,27 +8,29 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.18] — September 21, 2026
+
 ### Fixed
 
 - **#145 Autotune + Zone 2:** stroke profiles (`autotune` / `standard` / `weich`)
   ignore Zone 2 and track tip ROI only; distance partners require Tf/Tj.
   Avoids two-point+bandpass “no discernible motion” crashes from mixed UI state.
-  Clearer posttrack error when the tip curve is flat.
+  Clearer posttrack error when the tip curve is flat (#164).
 
 ### Added
-
 
 - **F-003 option 1:** `LagCorrelation.AliasingRisk` (+ `DominantPeriodMs`,
   `AlternateLagsMs`) — flags near-tied lags at ±k×stroke period without
   changing reported lag/r. CLI `phase` / compare report surface it.
-  (`docs/FINDINGS_TIMING_TF.md`, #162 follow-up)
+  (`docs/FINDINGS_TIMING_TF.md`, #163). Note: flag does not yet fire on
+  committed goldens — period detector floors ~100–140ms (#165).
 
 ### Changed
 
 - **TFTJ step 3:** Tf/Tj always needs **two markers** (tip + Zone 2). Contact
   vib on → Zone 2 partner is **tracked by default** (GUI no longer
   auto-checks “Fix Zone 2”). Regression: simpletrack fixed vs tracked
-  partner on synthetic motion (`docs/TFTJ_PROFILE_DIRECTION.md`).
+  partner on synthetic motion (`docs/TFTJ_PROFILE_DIRECTION.md`, #160).
 
 ## [0.5.17] — September 21, 2026
 

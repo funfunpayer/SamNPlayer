@@ -79,8 +79,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.14** | Shipped | Tf/Tj tip-end + Zone 3+ class + Go TrackMultiPoints |
 | **v0.5.15** | Shipped | Tf/Tj fusion: exclude lost partners from min() (F-006) |
 | **v0.5.16** | Shipped | OpenCL auto (no GUI toggle forcing Python) + MSYS2 CI |
-| **v0.5.17** | **This train** | Contact vib on Normal/Autotune; AGENT_COORD; goldens + phase --window-ms |
-| **v0.5.18+** | After G0 smoke | G1 heuristics; TFTJ step 3; SAM bake-off follow-ups |
+| **v0.5.17** | Shipped | Contact vib on Normal/Autotune; AGENT_COORD; goldens + phase --window-ms |
+| **v0.5.18** | **This train** | #145 Autotune tip-only; TFTJ step 3; F-003 AliasingRisk flag |
+| **v0.5.19+** | After smoke | G1 heuristics; FunGen windowed; #119 reproduce |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
