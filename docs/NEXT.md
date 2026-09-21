@@ -2046,6 +2046,32 @@ git history rather than rebuilding from scratch.
   a detector-tuning reason rather than an absence of aliasing. Full
   writeup: `docs/FINDINGS_TIMING_TF.md` § F-003.
 
+- **Correction: the "half-period" explanation above was wrong; fixed the
+  real bug in `dominantPeriodMs` (September 21, 2026)** - dumping the raw
+  autocorrelation curve for both real clips' references showed no local
+  peak anywhere near 280ms at all; it just declines monotonically from
+  the smallest tested lag, because a smooth continuous motion curve
+  correlates strongly at short range regardless of periodicity. The old
+  `dominantPeriodMs` took the global max over the whole search range,
+  which for a declining curve is trivially the smallest lag tested - and
+  a second bug (`minLag := MinDominantPeriodMs / stepMs`, integer
+  division rounding down) let that floor itself sit below the documented
+  150ms for most resample steps. Both together explain the observed
+  100-140ms precisely: it was just the search's own too-low lower bound,
+  not a period measurement. Fixed: the floor now rounds up, and the
+  function only accepts a genuine local peak reached after the curve's
+  initial decline - a monotonically-declining curve now correctly
+  returns 0 ("no confident period") rather than a spurious floor value.
+  `BestLagCorrelation`/`WindowedBestLagCorrelation`'s reported `LagMs`/`R`
+  are unchanged; only the `AliasingRisk` diagnostic is affected. Locked
+  in by `TestDominantPeriodMsRequiresGenuineLocalPeak`
+  (`funscript/phase_test.go`). Re-measured against the real goldens: the
+  flag now fires on 1 of 4 real pairs (`clip_ausschnitt.funscript`
+  mit_yolo, whole-clip: `aliasing_risk=true lag_ms=-800
+  dominant_period_ms=1500 alternate_lags_ms=[700 800]`) - a real,
+  considered result this time, not an artifact. Full writeup:
+  `docs/FINDINGS_TIMING_TF.md` § F-003.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

@@ -293,26 +293,47 @@ func dominantPeriodMs(actions []Action, stepMs int) int {
 		return 0
 	}
 	minLag := MinDominantPeriodMs / stepMs
+	if minLag < 1 {
+		minLag = 1
+	}
+	// Round the floor UP, not down: integer division alone can let minLag
+	// fall short of MinDominantPeriodMs (e.g. 150/40 = 3 → 120ms, not
+	// 150ms), silently searching below the documented floor.
+	if minLag*stepMs < MinDominantPeriodMs {
+		minLag++
+	}
 	maxLag := MaxDominantPeriodMs / stepMs
 	if maxLag >= n/2 {
 		maxLag = n/2 - 1
 	}
-	if minLag < 1 {
-		minLag = 1
-	}
 	if maxLag <= minLag {
 		return 0
 	}
-	bestLag := 0
-	bestAC := 0.0
-	for lag := minLag; lag <= maxLag; lag++ {
+	acs := make([]float64, maxLag-minLag+1)
+	for idx, lag := 0, minLag; lag <= maxLag; idx, lag = idx+1, lag+1 {
 		var num float64
 		for i := 0; i+lag < n; i++ {
 			num += centered[i] * centered[i+lag]
 		}
-		ac := num / denom
-		if ac > bestAC {
-			bestAC = ac
+		acs[idx] = num / denom
+	}
+	// A real, continuous motion curve is smooth: nearby samples correlate
+	// strongly regardless of periodicity, so autocorrelation naturally
+	// declines from the smallest lag onward. A naive global-max over the
+	// whole range picks that smallest lag every time — a number that looks
+	// like a "period" but reflects only smoothness, not periodicity (see
+	// docs/FINDINGS_TIMING_TF.md § F-003, 21 Sep correction). Only accept a
+	// genuine LOCAL peak reached *after* that initial decline; a curve that
+	// declines the whole way through has no confident period here.
+	bestLag, bestAC := 0, 0.0
+	pastInitialDecline := false
+	for idx, lag := 0, minLag; lag <= maxLag; idx, lag = idx+1, lag+1 {
+		if idx > 0 && acs[idx] > acs[idx-1] {
+			pastInitialDecline = true
+		}
+		isLocalMax := idx > 0 && idx < len(acs)-1 && acs[idx] > acs[idx-1] && acs[idx] >= acs[idx+1]
+		if pastInitialDecline && isLocalMax && acs[idx] > bestAC {
+			bestAC = acs[idx]
 			bestLag = lag
 		}
 	}
