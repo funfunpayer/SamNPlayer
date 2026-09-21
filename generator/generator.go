@@ -67,25 +67,25 @@ type Options struct {
 	// UseOpenCL is retained for API compatibility; ignored. Python enables
 	// OpenCL automatically when that path runs (log only). Does not force
 	// Python or block the Go CSRT path.
-	UseOpenCL                 bool
-	Threads                   int
-	ReportPath                string
-	Backend                   string
-	Profile                   string
-	PeakProminence            float64
-	DynamicRangeMs            float64
-	MinActionIntervalMs       float64
-	MaxSpeed                  float64
-	Axis                      string
-	AutoRetry                 bool
-	AdaptiveKeyframeError     float64
-	PerSceneROI               bool
-	CacheDir                  string
-	DisableCache              bool
-	NormPercentile            float64
-	RDPTolerance              float64
-	DisableSceneCutDetection  bool
-	ROI2                      ROI
+	UseOpenCL                bool
+	Threads                  int
+	ReportPath               string
+	Backend                  string
+	Profile                  string
+	PeakProminence           float64
+	DynamicRangeMs           float64
+	MinActionIntervalMs      float64
+	MaxSpeed                 float64
+	Axis                     string
+	AutoRetry                bool
+	AdaptiveKeyframeError    float64
+	PerSceneROI              bool
+	CacheDir                 string
+	DisableCache             bool
+	NormPercentile           float64
+	RDPTolerance             float64
+	DisableSceneCutDetection bool
+	ROI2                     ROI
 	// ROI2Fixed keeps the second Tf/Tj box at its marked position (static
 	// anchor). ROI1 is still tracked. Distance then reflects tip motion only.
 	ROI2Fixed bool
