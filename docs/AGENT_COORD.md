@@ -1,112 +1,128 @@
 # Agent coordination (Cursor ↔ Claude ↔ ChatGPT)
 
 Shared board **inside the repo** so agents split work without colliding.
-Update this file in the same PR as the work you claim (or a tiny follow-up
-commit on your branch). Product docs stay English; talk to the owner in
-German.
+Update this file when you claim or finish work. Product docs English;
+talk to the owner in German.
 
-**Not** a second roadmap. Checklists live in `docs/ROADMAP.md` /
-`docs/PRODUCTION_ROADMAP.md`. Research journal: `docs/NEXT.md`.
-This file is only: **who owns what right now**, and the handoff rules.
-
-Agents: **Cursor** (cloud), **Claude** (`claude/keen-davinci-t2ysrs` and
-follow-ons), **ChatGPT** (when active — claim a free lane below).
-
-### Onboarding (ChatGPT — start here)
-
-1. Read this file’s **Active** table — do not take a lane marked RUNNING.
-2. Read `docs/TFTJ_PROFILE_DIRECTION.md` (product direction) and
-   `docs/SAM_ARCHITECTURE.md` § Perception v1 (bake-off, no premature Go).
-3. Prefer free lanes **C** (Tf/Tj step 3) or **E** (metadata stamp bug,
-   close #146) unless the owner assigns otherwise.
-4. Open a branch `cursor/…-d7cb` or your forge’s equivalent from **current
-   `main`**, put an `AGENT_COORD:` block in the PR body, update Active.
-5. Do **not** change tracker defaults or start a second bake-off while
-   Claude’s lane B is RUNNING.
+**Not** a second roadmap (`ROADMAP.md` / `PRODUCTION_ROADMAP.md`).
+This file = **who owns what now** + the shared target.
 
 ---
 
-## Rules (read before starting)
+## North star (do not lose this)
 
-1. **One theme per agent at a time.** Do not two/three-edit the same
-   product surface (GUI Generate, mapper contact vib, `VERSION`, release
-   workflow) in parallel.
-2. **Claim before code.** Add yourself under Active with branch + PR;
-   push this doc update early so the others see it.
-3. **Prefer `main` as base.** Rebase/merge `main` before new work on
-   long-lived branches.
-4. **Docs-only vs product.** Bake-offs and golden corrections must not
-   block a release bump unless they change shipped behavior.
-5. **No silent default changes.** Tracker/backend/profile defaults change
-   only after measured win + owner OK (`docs/SELF_BUILD.md`).
-6. **Close the loop.** When done: move row to Done (short), free the lane,
-   link the merged PR.
-7. **Three agents:** if a lane is taken, pick another or wait — never
-   force-push over someone else's claimed branch tip without asking.
+```text
+  Ship a boring, reliable Generate → funscript → Neo 2 path
+  that feels right without forcing the user to mark everything.
 
----
+  Order (PRODUCTION_ROADMAP):
+    G0 stable CSRT  →  G1 classical heuristics + audio
+                    →  G2 Neo2 feel  →  G3 AI helpers only
+```
 
-## Lanes (sensible split)
+Near-term product slice (owner-locked): `docs/TFTJ_PROFILE_DIRECTION.md`
+— Tf/Tj = **profile/feel**, contact vib on Normal (done #149), mark partner
+only when vib needs it, no-mark classical toward FunGen-like UX.
 
-| Lane | Typical owner | Examples | Do not mix with |
-|------|---------------|----------|-----------------|
-| **A — Product / release** | Cursor unless noted | Contact vib UX, version bump, portable smoke notes, GUI | Heavy bake-off compute |
-| **B — Measurement / goldens** | Claude unless noted | FunGen compare, provenance, `SAM_ARCHITECTURE` bake-off tables | Release tag PRs |
-| **C — Tf/Tj profile UX** | Claim explicitly (Cursor or ChatGPT) | Step 3 partner-mark, profile rename | SAM fusion implementation |
-| **D — Perception / SAM** | After bake-off data | Fusion, Go ports of flow/grid_lk | Shipping without numbers |
-| **E — Bugs / hygiene** | Free / ChatGPT good fit | Metadata stamp bug (#150 note), close stale PRs, issue triage | Competing with A on same files |
+Perception research (do **not** leapfrog product): `docs/SAM_ARCHITECTURE.md`
+§ Perception v1 — bake-off observers **before** any Go port / fusion default.
 
-Owner (funfunpayer) always overrides. If two agents need the same lane,
-**stop and write here** — do not race.
+**Rule:** piece by piece. One improvement ships and is measured before the
+next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 ---
 
-## Active (update me)
+## Sprint order (21 Sep — all agents)
+
+Do in this order unless the owner says otherwise:
+
+| # | What | Who | Why first |
+|---|------|-----|-----------|
+| **0** | **Cleanup** — stale PRs, wrong docs, board on `main` | Claude (+ ChatGPT E) | Claude already started (#150). Clear fog before new code. |
+| **1** | Finish **bake-off** (measurement only) | Claude lane B | Data for SAM v1; no product default change |
+| **2** | **v0.5.17** after owner smoke | Cursor lane A | Ship contact-vib Normal; portable Go CSRT check |
+| **3** | **TFTJ step 3** partner-mark when vib on | ChatGPT or Cursor lane C | Next locked UX slice |
+| **4** | Metadata stamp bug / #145/#119 triage | ChatGPT lane E | Hygiene; does not block 2–3 if slow |
+
+Improvements are **decided together** by writing proposals into this file
+or a short PR description — owner confirms; then one agent implements.
+
+---
+
+## Cleanup checklist (Claude owns — do now / next)
+
+- [x] #150 provenance fix for `clip_ausschnitt` (merged)
+- [ ] Land / sync **#151** `AGENT_COORD` on `main` (Cursor PR — merge when CI green)
+- [ ] **Close #146** (duplicate of #140 goldens) — owner or ChatGPT with permission
+- [ ] After bake-off: write results only into `SAM_ARCHITECTURE.md` + short NEXT note — no eleventh doc
+- [ ] Flag leftover wrong claims in NEXT/FINDINGS if bake-off contradicts #148-era text
+- [ ] Do **not** start Go ports of flow/grid_lk during cleanup
+
+When cleanup + bake-off PR are up, mark rows Done below and free lane B.
+
+---
+
+## Lanes
+
+| Lane | Owner default | Scope | Forbidden while busy |
+|------|---------------|-------|----------------------|
+| **A** Product / release | Cursor | VERSION, GUI, release.yml, smoke notes | Parallel bake-off edits to same release notes |
+| **B** Measurement / goldens | Claude | FunGen compare, bake-off tables, golden README | Changing Generate defaults |
+| **C** Tf/Tj UX | ChatGPT or Cursor | Step 3 partner-mark, profile rename | SAM fusion |
+| **D** Perception / SAM impl | *after* bake-off win | Fusion, Go observer ports | Before numbers exist |
+| **E** Bugs / hygiene | ChatGPT | Metadata stamp, close stale PRs, issue triage | Touching B’s running jobs |
+
+---
+
+## Active
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | **Claude** | local/background on goldens (branch TBD when PR opens) | Bake-off: CSRT vs **flow / grid_lk / region_fusion** on `clip_voll` (~280s) then `clip_ausschnitt` vs FunGen2; results → `docs/SAM_ARCHITECTURE.md` | **RUNNING** — flow on clip_voll in progress (21 Sep) |
-| A | Cursor | #151 `docs/AGENT_COORD` then release prep | Keep board current; v0.5.17 after owner smoke | Board PR open; release **waiting on owner** |
-| C | — | — | TFTJ step 3: partner mark only when contact vib on | Free — ChatGPT or Cursor after bake-off/release |
-| E | — | — | Metadata provenance stamp bug; close #146 | Free — good ChatGPT lane |
+| B | Claude | background job → PR later | Bake-off flow/grid_lk/region_fusion vs FunGen2 on clip_voll then clip_ausschnitt | **RUNNING** (flow on ~280s clip) |
+| A | Cursor | #151 | Board + later 0.5.17 bump | Board PR open; release **after owner smoke** |
+| E | ChatGPT (claim) | — | Cleanup assist: close #146, triage #145/#119 | **Free — claim here** |
+| C | ChatGPT (claim after 0 or with Cursor) | — | TFTJ step 3 | **Queued** until cleanup#0 + prefer after 0.5.17 |
 
 ---
 
-## Queued (not started)
+## Decision log (joint — append short lines)
 
-1. Metadata provenance bug (FunGen files stamped as SamNPlayer on
-   import/save) — flagged in #150 / golden README.
-2. Genuine same-tool internal-consistency test (two confirmed SamNPlayer
-   exports of one tracking run).
-3. TFTJ steps 4–7 — `docs/TFTJ_PROFILE_DIRECTION.md`.
-4. Issues #145 (likely obsolete MIL trap on pre-0.5.16), #119 AI Train.
-5. Close duplicate PR #146 (superseded by #140).
+| Date | Decision | By |
+|------|----------|-----|
+| 21 Sep | Contact vib on Normal/Auto default on | Owner → #149 |
+| 21 Sep | Bake-off before any observer Go port | Owner + Claude + Cursor agree |
+| 21 Sep | Three agents use this board; cleanup before new themes | Owner |
 
 ---
 
-## Done recently (short)
+## Rules
 
-| When | What | PR |
-|------|------|----|
-| 21 Sep | `clip_ausschnitt` provenance correction | #150 |
-| 21 Sep | Contact vib on Normal/Autotune (default on) | #149 |
-| 21 Sep | Tf/Tj-as-profile direction | #147 |
-| 21 Sep | `clip_voll` goldens + windowed compare | #140 |
-| 21 Sep | `phase --window-ms` | #143 |
-| 21 Sep | v0.5.16 OpenCL auto + MSYS2 CI | #144 / #141 / #142 |
+1. One theme per agent. Claim in **Active** before coding.
+2. Base on current `main`.
+3. Docs/bake-off do not block release tags unless behavior changes.
+4. No silent tracker/profile default changes.
+5. Finish → Done row + free lane + PR link.
+6. Never force-push another agent’s claimed tip.
+
+### ChatGPT onboarding
+
+1. Read **Active** — skip RUNNING lanes.  
+2. Read `TFTJ_PROFILE_DIRECTION.md` + `SAM_ARCHITECTURE.md` § Perception v1.  
+3. Claim **E** (cleanup) first if free; else **C** after sprint #0–2.  
+4. PR body must include `AGENT_COORD:` block; update Active in same PR.
 
 ---
 
-## Handoff template (paste into a commit/PR body)
+## Handoff template
 
 ```text
 AGENT_COORD:
   agent: Claude | Cursor | ChatGPT
-  lane: B
-  claim: bake-off flow/grid_lk/region_fusion vs FunGen2
+  lane: E
+  claim: close #146 + triage #145
   branch: …
   based_on: main @ <sha>
-  will_not_touch: VERSION, generator.js, release.yml
+  will_not_touch: generator.js, VERSION, golden bake-off scripts
   needs_from_other: —
 ```
 
@@ -116,8 +132,8 @@ AGENT_COORD:
 
 | Topic | Doc |
 |-------|-----|
-| Tf/Tj = profile, marking, vib | `docs/TFTJ_PROFILE_DIRECTION.md` |
-| Multi-observer / bake-off vision | `docs/SAM_ARCHITECTURE.md` (Perception v1) |
-| Signal Quality ≠ Motion Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
-| Production / release checklist | `docs/PRODUCTION_ROADMAP.md` |
-| Architecture overview | `HANDOFF.md` |
+| Tf/Tj direction | `docs/TFTJ_PROFILE_DIRECTION.md` |
+| SAM / bake-off | `docs/SAM_ARCHITECTURE.md` |
+| Release spine | `docs/PRODUCTION_ROADMAP.md` |
+| Signal ≠ Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
+| Architecture | `HANDOFF.md` |
