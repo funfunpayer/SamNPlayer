@@ -68,7 +68,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **7** | **v0.5.19** | Cursor A | **DONE** #168 + tag `v0.5.19` |
 | **8** | No-mark 4-zone in GUI + Contact-first | Cursor A | **DONE** #169 — step-4 measure: 4-zone < tip CSRT → keep opt-in |
 | **9** | **v0.5.20** | Cursor A | **DONE** #171 + tag `v0.5.20` — owner Flow / 4-zone smoke |
-| **10** | Prep **v0.5.21** (rename + feel-decouple + Flow soft warn) | Cursor A | **IN PROGRESS** `cursor/next-0521-prep-d7cb` |
+| **10** | Prep **v0.5.21** | Cursor A | **DONE** #172 |
+| **11** | **v0.5.21** bump + tag | Cursor A | **IN PROGRESS** `cursor/release-0-5-21-d7cb` |
 
 ---
 
@@ -89,7 +90,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | #172 | v0.5.21 prep: rename, feel-decouple Play, Flow soft warn + matrix | **rebasing** after #173 — merge next |
+| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **IN PROGRESS** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **blocked** — merge conflicts; #119 stays open |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
