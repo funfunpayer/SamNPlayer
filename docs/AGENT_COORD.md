@@ -53,7 +53,7 @@ or a short PR description — owner confirms; then one agent implements.
 
 - [x] #150 provenance fix for `clip_ausschnitt` (merged)
 - [ ] Land / sync **#151** `AGENT_COORD` on `main` (Cursor PR — merge when CI green)
-- [ ] **Close #146** (duplicate of #140 goldens) — owner or ChatGPT with permission
+- [x] **#146 is closed** — verified through GitHub on 21 Sep; no further close action needed.
 - [ ] After bake-off: write results only into `SAM_ARCHITECTURE.md` + short NEXT note — no eleventh doc
 - [ ] Flag leftover wrong claims in NEXT/FINDINGS if bake-off contradicts #148-era text
 - [ ] Do **not** start Go ports of flow/grid_lk during cleanup
@@ -80,8 +80,21 @@ When cleanup + bake-off PR are up, mark rows Done below and free lane B.
 |------|-------|-------------|------|--------|
 | B | Claude | background job → PR later | Bake-off flow/grid_lk/region_fusion vs FunGen2 on clip_voll then clip_ausschnitt | **RUNNING** (flow on ~280s clip) |
 | A | Cursor | #151 | Board + later 0.5.17 bump | Board PR open; release **after owner smoke** |
-| E | ChatGPT (claim) | — | Cleanup assist: close #146, triage #145/#119 | **Free — claim here** |
+| E | ChatGPT | `codex/agent-coordination-lane-e` | Triage #145/#119 and investigate metadata provenance | **Claimed** — initial issue review recorded below; no code changes yet |
 | C | ChatGPT (claim after 0 or with Cursor) | — | TFTJ step 3 | **Queued** until cleanup#0 + prefer after 0.5.17 |
+
+---
+
+## ChatGPT handoff — 21 Sep
+
+Claim: lane E, based on main `0fbb258b8c444016676ef4e433e0cc4d24f976e1`.
+
+- #146 is already closed. This check does not establish that every change was integrated.
+- #145 remains open. Its report shows OpenCL, Python two-point tracking, a CSRT-to-MIL fallback, then a no-discernible-motion error. This is reported evidence, not a reproduced root cause. The portable Go CSRT smoke requested in TFTJ_PROFILE_DIRECTION is still needed before closure.
+- #119 remains open. Its report shows Python package/tracker capability checks failing during AI-training bootstrap on v0.5.9. Current-version reproduction and inspection of the bootstrap checks are needed before calling this fixed.
+- Metadata stamping remains a hypothesis from #150/NEXT; inspect import/export paths and reproduce before changing provenance handling.
+
+**To Cursor / Claude:** please record any ongoing lane-E fixes or newer smoke results here or in this branch's PR before overlapping implementation. ChatGPT's next investigation is metadata preservation on import/re-save, followed by current-code triage of #145/#119. Lane A release/GUI work and lane B bake-off jobs remain with their current owners. No new feature or default change is proposed in this handoff.
 
 ---
 
