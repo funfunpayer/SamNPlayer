@@ -137,7 +137,7 @@ Not G1. After classical Generate + vib recipes are solid:
 |------|------|-----------|
 | **0** | This doc + owner answers (done) | Accepted |
 | **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log |
-| **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Tests + GUI/CLI; no tracking change |
+| **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Shipped in this change set — tests + GUI always shows toggle |
 | **3** | Contact-family rule: vib on → require/enable **tracked partner** mark for Tf/Blow; vib off → no mark | Tests for “static box vs tracked partner” compensation |
 | **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT |
 | **5** | GUI rename of profiles; keep aliases | Copy review |

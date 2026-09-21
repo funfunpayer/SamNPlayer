@@ -87,15 +87,11 @@ type MapOptions struct {
 	Smoothing    float64
 	Sync         SyncMode
 
-	// ContactVibration: nur bei Sync == SyncSuctionPosition (tf/tj) wirksam.
-	// Statt Vibration fest auf 0 zu halten, folgt sie dem Positionssignal
-	// selbst, sobald es nahe sein eigenes, über das ganze Skript beobachtetes
-	// Maximum steigt (ROI1 berührt/streift ROI2 - je nach ROI-Wahl z.B.
-	// Eichel an Brustwarze oder Zunge). Dauer und Stärke der Vibration
-	// ergeben sich so direkt aus dem gemessenen Abstandsverlauf dieses
-	// Videos, statt aus einem festen Impuls - siehe docs/NEXT.md, Priorität
-	// "Contact-triggered vibration for Tf/Tj". Reine Abstandsmessung, kein
-	// Akt-Detektor.
+	// ContactVibration: when true, vibration follows the top slice of this
+	// script's own pos range (deep / near-contact). Works for SyncSuctionPosition
+	// (Tf/Tj distance) and for stroke profiles (SyncIndependent / weich): at
+	// depth the contact envelope drives vibe; elsewhere Tf/Tj stays silent and
+	// stroke profiles keep speed-based vibe. See docs/TFTJ_PROFILE_DIRECTION.md.
 	ContactVibration bool
 
 	// ContactVibrationSpan (0-1): welcher Anteil des Positions-Spektrums
@@ -202,11 +198,10 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		envelope = DefaultContactEnvelopeSmooth
 	}
 
-	// Kontakt-Schwelle einmal über das ganze Skript bestimmen (nicht pro
-	// Frame neu), aus den rohen Pos-Werten (0-100, bei tf/tj auf 20-90
-	// geklemmt) - siehe ContactVibrationSpan.
+	// Contact threshold once over the whole script (raw pos 0–100; Tf/Tj
+	// actions are clamped 20–90 at generate time) — see ContactVibrationSpan.
 	var contactMin, contactMax float64
-	contactEnabled := opts.ContactVibration && opts.Sync == SyncSuctionPosition
+	contactEnabled := opts.ContactVibration
 	contactSpan := EffectiveContactSpan(opts.ContactVibrationSpan)
 	contactCurve := NormalizeContactCurve(opts.ContactVibrationCurve)
 	gaps := opts.TrackingGaps
@@ -235,6 +230,31 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			}
 		}
 		return false
+	}
+	// contactVibAt: envelope from deep pos; 0 outside the contact slice or in a gap.
+	contactVibAt := func(pos float64, t int64) float64 {
+		if !contactEnabled || inGap(t) || pos < contactMin {
+			return 0
+		}
+		linear := clamp01((pos - contactMin) / (contactMax - contactMin))
+		vib := applyContactCurve(linear, contactCurve)
+		if vib > 0 && opts.MinVibration > 0 {
+			vib = liftFloor(vib, opts.MinVibration)
+		}
+		return vib
+	}
+	smoothContact := func(vib float64, t int64) float64 {
+		if !contactEnabled || !envelopeOn || inGap(t) {
+			if inGap(t) {
+				prevContactVib = 0
+			}
+			return vib
+		}
+		if len(frames) > 0 {
+			vib = envelope*prevContactVib + (1-envelope)*vib
+		}
+		prevContactVib = vib
+		return vib
 	}
 	for t := int64(0); t <= duration; t += opts.TickMs {
 		var vib, suc float64
@@ -269,28 +289,25 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				vib, suc = 0, intensity
 			case SyncSuctionPosition:
 				vib, suc = 0, posSignal
-				inTrackingGap := inGap(t)
-				if contactEnabled && pos >= contactMin && !inTrackingGap {
-					linear := clamp01((pos - contactMin) / (contactMax - contactMin))
-					vib = applyContactCurve(linear, contactCurve)
-					if vib > 0 && opts.MinVibration > 0 {
-						vib = liftFloor(vib, opts.MinVibration)
-					}
-				}
-				// Kurze Envelope-Glättung nur für Kontakt-Vib außerhalb von
-				// Tracking-Gaps. Im Gap hart aus — sonst sickert prevContactVib
-				// über die Envelope in den Tracker-Verlust hinein.
-				if contactEnabled && envelopeOn && !inTrackingGap {
-					if len(frames) > 0 {
-						vib = envelope*prevContactVib + (1-envelope)*vib
-					}
-					prevContactVib = vib
-				} else if inTrackingGap {
+				if contactEnabled {
+					vib = contactVibAt(pos, t)
+					vib = smoothContact(vib, t)
+				} else if inGap(t) {
 					vib = 0
-					prevContactVib = 0
 				}
 			default:
 				vib, suc = intensity, posSignal
+				if contactEnabled {
+					if cv := contactVibAt(pos, t); cv > 0 {
+						// Deep slice: contact envelope owns vibe (stroke depth).
+						vib = smoothContact(cv, t)
+					} else if inGap(t) {
+						vib = 0
+						prevContactVib = 0
+					} else {
+						prevContactVib = 0
+					}
+				}
 			}
 			if opts.Sync != SyncSuctionOnly && opts.Sync != SyncSuctionPosition {
 				vib = liftFloor(vib, opts.MinVibration)
@@ -310,8 +327,8 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			vib = opts.Smoothing*prevVib + (1-opts.Smoothing)*vib
 			suc = opts.Smoothing*prevSuc + (1-opts.Smoothing)*suc
 		}
-		// Tracking-Gap gewinnt über Recipe-Smoothing (sonst sickert prevVib nach).
-		if (opts.Sync == SyncSuctionPosition || opts.UseExplicitAxes) && inGap(t) {
+		// Tracking gap wins over recipe smoothing (else prevVib leaks in).
+		if inGap(t) && (opts.Sync == SyncSuctionPosition || opts.UseExplicitAxes || opts.ContactVibration) {
 			vib = 0
 		}
 		prevVib, prevSuc = vib, suc

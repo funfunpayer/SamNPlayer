@@ -27,7 +27,17 @@ def test_device_recipe_contact_vibration():
     # Nicht angefordert -> Feld fehlt ganz, statt explizit False zu sein -
     # ältere Player, die das Feld nicht kennen, sollen nichts lesen müssen.
     assert "contact_vibration" not in m.device_recipe_for("tj", contact_vibration=False)
-    assert m.device_recipe_for("standard", contact_vibration=True) is None
+    # Stroke profiles: recipe only when contact vib is on.
+    stroke = m.device_recipe_for("standard", contact_vibration=True)
+    assert stroke is not None
+    assert stroke["sync"] == "independent"
+    assert stroke["contact_vibration"] is True
+    assert m.device_recipe_for("standard", contact_vibration=False) is None
+    weich = m.device_recipe_for("weich", contact_vibration=True)
+    assert weich["sync"] == "independent"
+    assert weich["contact_vibration"] is True
+    auto = m.device_recipe_for("autotune", contact_vibration=True)
+    assert auto["contact_vibration"] is True
 
 
 def test_device_recipe_contact_span_and_curve():
@@ -71,6 +81,19 @@ def test_metadata_contact_vibration():
     assert meta["device_recipe"]["contact_vibration"] is True
 
 
+def test_metadata_stroke_contact_vibration():
+    meta = m.apply_profile_metadata(
+        {"creator": "x"}, "standard", contact_vibration=True,
+        contact_vibration_curve="soft")
+    assert meta["profile"] == "standard"
+    assert meta["device_recipe"]["sync"] == "independent"
+    assert meta["device_recipe"]["contact_vibration"] is True
+    assert meta["device_recipe"]["contact_vibration_curve"] == "soft"
+    # Without contact vib, standard stays recipe-free.
+    bare = m.apply_profile_metadata({"creator": "x"}, "standard")
+    assert "device_recipe" not in bare
+
+
 def test_metadata_contact_curve():
     meta = m.apply_profile_metadata(
         {"creator": "x"}, "tj", contact_vibration=True,
@@ -88,5 +111,6 @@ if __name__ == "__main__":
     test_clamp()
     test_metadata()
     test_metadata_contact_vibration()
+    test_metadata_stroke_contact_vibration()
     test_metadata_contact_curve()
     print("ok")

@@ -232,9 +232,15 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if len(gaps) > 0 {
 		meta["tracking_gaps"] = gaps
 	}
-	if opts.Profile != "" && opts.Profile != "standard" {
+	if (opts.Profile != "" && opts.Profile != "standard") || opts.ContactVibration {
 		recipe := funscript.RecipeMeta(opts.Profile)
-		if opts.ContactVibration && funscript.IsDistanceProfile(opts.Profile) {
+		if opts.Profile == "" || opts.Profile == "standard" {
+			recipe = funscript.DeviceRecipe{
+				Sync:      funscript.SyncIndependent.String(),
+				Smoothing: 0.3,
+			}
+		}
+		if opts.ContactVibration {
 			recipe.ContactVibration = true
 			if opts.ContactVibrationSpan > 0 {
 				span := funscript.EffectiveContactSpan(opts.ContactVibrationSpan)
@@ -247,8 +253,12 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 				recipe.ContactVibrationCurve = curve
 			}
 		}
-		meta["profile"] = funscript.NormalizeProfile(opts.Profile)
-		if funscript.IsDistanceProfile(opts.Profile) {
+		if opts.Profile != "" && opts.Profile != "standard" {
+			meta["profile"] = funscript.NormalizeProfile(opts.Profile)
+		} else if opts.ContactVibration {
+			meta["profile"] = "standard"
+		}
+		if funscript.IsDistanceProfile(opts.Profile) || opts.ContactVibration {
 			meta["device_recipe"] = recipe
 		}
 	}

@@ -377,6 +377,41 @@ func TestRecipeTJContactGapWinsOverEnvelopeAndSmoothing(t *testing.T) {
 	}
 }
 
+func TestRecipeStandardContactVibrationTracksPosition(t *testing.T) {
+	// Stroke profile (SyncIndependent): contact vib owns vibe only in the
+	// deep slice; far from peak, speed-based vibe may still be non-zero on
+	// transitions — assert deep peak is high and a flat far window is low.
+	script := scriptFrom(
+		Action{At: 0, Pos: 20},
+		Action{At: 800, Pos: 20}, // flat far — intensity ~0
+		Action{At: 900, Pos: 90},
+		Action{At: 1200, Pos: 90}, // flat deep — contact on, intensity ~0
+		Action{At: 1300, Pos: 20},
+		Action{At: 1800, Pos: 20},
+	)
+	opts := DefaultMapOptions()
+	opts.ContactVibration = true
+	opts.ContactVibrationEnvelope = -1
+	opts.Smoothing = 0
+	opts.MinVibration = 0
+	frames := script.ToIntensityCurve(opts)
+	var vibFar, vibDeep float64
+	for _, f := range frames {
+		if f.At >= 200 && f.At <= 700 && f.Vibration > vibFar {
+			vibFar = f.Vibration
+		}
+		if f.At >= 1000 && f.At <= 1150 && f.Vibration > vibDeep {
+			vibDeep = f.Vibration
+		}
+	}
+	if vibFar > 0.05 {
+		t.Errorf("flat far window should stay near 0 vibe, got %.3f", vibFar)
+	}
+	if vibDeep < 0.5 {
+		t.Errorf("flat deep window should drive contact vibe, got %.3f", vibDeep)
+	}
+}
+
 func TestRecipeTFEqualsTJ(t *testing.T) {
 	a, b := RecipeFor("tf"), RecipeFor("tj")
 	if a.Sync != b.Sync || a.MinSuction != b.MinSuction {
