@@ -203,14 +203,14 @@ func main() {
 // runPhase compares two funscripts (reference vs candidate) via
 // BestLagCorrelation + DiagnosePhase, or WindowedBestLagCorrelation when
 // --window-ms is set. Args: A.funscript B.funscript [--max-lag-ms N]
-// [--window-ms N] [...]. Paths may come before or after flags.
+// [--window-ms N] [--lag-step-ms N] [--resample-ms N].
 func runPhase(args []string) int {
 	fs := flag.NewFlagSet("phase", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	maxLag := fs.Int("max-lag-ms", funscript.DefaultMaxLagMs, "Lag-Suchfenster ±ms")
 	lagStep := fs.Int("lag-step-ms", funscript.DefaultLagStepMs, "Lag-Schrittweite ms")
 	resample := fs.Int("resample-ms", funscript.DefaultResampleStepMs, "Resample-Schrittweite ms")
-	windowMs := fs.Int("window-ms", 0, "Windowed mode: fixed window size in ms (0 = whole-clip)")
+	windowMs := fs.Int("window-ms", 0, "Windowed mode: independent lag search per N ms window (0 = whole-clip)")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s phase A.funscript B.funscript [options]\n", os.Args[0])
 		fs.PrintDefaults()
@@ -237,10 +237,8 @@ func runPhase(args []string) int {
 	}
 
 	if *windowMs > 0 {
-		results := funscript.WindowedBestLagCorrelation(
-			a.Actions, b.Actions, *windowMs, *maxLag, *lagStep, *resample)
-		report := funscript.FormatWindowedReport(
-			results, filepath.Base(paths[0]), filepath.Base(paths[1]), *windowMs)
+		rows := funscript.WindowedBestLagCorrelation(a.Actions, b.Actions, *windowMs, *maxLag, *lagStep, *resample)
+		report := funscript.FormatWindowedReport(rows, filepath.Base(paths[0]), filepath.Base(paths[1]), *windowMs)
 		fmt.Print(report)
 		return 0
 	}

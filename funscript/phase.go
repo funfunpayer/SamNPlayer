@@ -17,6 +17,7 @@ const (
 	LowConfidenceSamples  = 30
 	DefaultTimingGainMin  = 0.30 // aligned r must beat raw by this much → "timing"
 	DefaultMinAlignedR    = 0.70 // below this after alignment → shape/perception
+	DefaultWindowMs       = 30000
 )
 
 // LagCorrelation is the result of BestLagCorrelation — same fields as
@@ -61,20 +62,6 @@ type MotionFidelityResult struct {
 	LagMs         *int           `json:"lag_ms"`
 	Orientation   string         `json:"orientation,omitempty"`
 	LowConfidence bool           `json:"low_confidence"`
-}
-
-// WindowResult is one absolute-time window from WindowedBestLagCorrelation.
-// R == nil means the window was undefined (too few actions or constant series);
-// Reason then holds a short machine-readable tag.
-type WindowResult struct {
-	WindowStartMs int64   `json:"window_start_ms"`
-	WindowEndMs   int64   `json:"window_end_ms"`
-	R             *float64 `json:"r"`
-	LagMs         int      `json:"lag_ms,omitempty"`
-	Orientation   string   `json:"orientation,omitempty"`
-	LowConfidence bool     `json:"low_confidence,omitempty"`
-	NSamples      int      `json:"n_samples,omitempty"`
-	Reason        string   `json:"reason,omitempty"`
 }
 
 // EvaluateMotionFidelity compares reference A against candidate B.
@@ -187,57 +174,50 @@ func BestLagCorrelation(a, b []Action, maxLagMs, lagStepMs, resampleStepMs int) 
 	return best
 }
 
+// WindowedLagRow is one window's result from WindowedBestLagCorrelation.
+// R is nil when the window has too few actions or an undefined correlation.
+type WindowedLagRow struct {
+	WindowStartMs int64           `json:"window_start_ms"`
+	WindowEndMs   int64           `json:"window_end_ms"`
+	R             *float64        `json:"r"`
+	LagMs         int             `json:"lag_ms,omitempty"`
+	Orientation   string          `json:"orientation,omitempty"`
+	NSamples      int             `json:"n_samples,omitempty"`
+	LowConfidence bool            `json:"low_confidence,omitempty"`
+	Reason        string          `json:"reason,omitempty"` // "too_few_actions_in_window" | "undefined_correlation"
+	Correlation   *LagCorrelation `json:"-"`
+}
+
 // WindowedBestLagCorrelation splits series a's absolute timeline into
 // windowMs windows and runs BestLagCorrelation independently on each
 // window's actions from a against b's actions padded by maxLagMs on both
 // sides (so a lag search near a window edge is not starved of b actions).
 // Port of generator/fungen_compare_windowed.windowed_correlation.
-// Never silently drops a window: too-few-actions or undefined correlation
-// appear as R==nil with a Reason tag.
-func WindowedBestLagCorrelation(a, b []Action, windowMs, maxLagMs, lagStepMs, resampleStepMs int) []WindowResult {
+func WindowedBestLagCorrelation(a, b []Action, windowMs, maxLagMs, lagStepMs, resampleStepMs int) []WindowedLagRow {
 	if windowMs <= 0 {
-		windowMs = 30000
+		windowMs = DefaultWindowMs
 	}
 	if maxLagMs < 0 {
 		maxLagMs = DefaultMaxLagMs
 	}
-	if lagStepMs <= 0 {
-		lagStepMs = DefaultLagStepMs
-	}
-	if resampleStepMs <= 0 {
-		resampleStepMs = DefaultResampleStepMs
-	}
 	if len(a) < 2 {
 		return nil
 	}
-
 	aSorted := sortActions(a)
 	bSorted := sortActions(b)
 	t0, t1 := aSorted[0].At, aSorted[len(aSorted)-1].At
 
-	var results []WindowResult
+	var results []WindowedLagRow
 	start := t0
 	for start < t1 {
 		end := start + int64(windowMs)
 		if end > t1 {
 			end = t1
 		}
-		row := WindowResult{WindowStartMs: start, WindowEndMs: end}
-
-		var aSlice []Action
-		for _, act := range aSorted {
-			if act.At >= start && act.At <= end {
-				aSlice = append(aSlice, act)
-			}
-		}
+		aSlice := filterActionsInRange(aSorted, start, end)
 		pad := int64(maxLagMs)
-		var bSlice []Action
-		for _, act := range bSorted {
-			if act.At >= start-pad && act.At <= end+pad {
-				bSlice = append(bSlice, act)
-			}
-		}
-
+		bSlice := filterActionsInRange(bSorted, start-pad, end+pad)
+		row := WindowedLagRow{WindowStartMs: start, WindowEndMs: end}
 		if len(aSlice) < 2 || len(bSlice) < 2 {
 			row.Reason = "too_few_actions_in_window"
 		} else {
@@ -249,8 +229,9 @@ func WindowedBestLagCorrelation(a, b []Action, windowMs, maxLagMs, lagStepMs, re
 				row.R = &r
 				row.LagMs = best.LagMs
 				row.Orientation = best.Orientation
-				row.LowConfidence = best.LowConfidence
 				row.NSamples = best.NSamples
+				row.LowConfidence = best.LowConfidence
+				row.Correlation = best
 			}
 		}
 		results = append(results, row)
@@ -259,15 +240,15 @@ func WindowedBestLagCorrelation(a, b []Action, windowMs, maxLagMs, lagStepMs, re
 	return results
 }
 
-// FormatWindowedReport produces a markdown summary matching the style of
+// FormatWindowedReport produces a human-readable markdown report matching
 // generator/fungen_compare_windowed.format_report.
-func FormatWindowedReport(results []WindowResult, refName, variantName string, windowMs int) string {
+func FormatWindowedReport(rows []WindowedLagRow, refName, variantName string, windowMs int) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Windowed FunGen comparison (%dms windows)\n\n", windowMs)
 	fmt.Fprintf(&b, "Reference: %s  ·  Variant: %s\n\n", refName, variantName)
 
-	var confident []WindowResult
-	for _, r := range results {
+	var confident []WindowedLagRow
+	for _, r := range rows {
 		w := fmt.Sprintf("%.1f-%.1fs", float64(r.WindowStartMs)/1000, float64(r.WindowEndMs)/1000)
 		if r.R == nil {
 			reason := r.Reason
@@ -290,32 +271,32 @@ func FormatWindowedReport(results []WindowResult, refName, variantName string, w
 			confident = append(confident, r)
 		}
 	}
-
 	b.WriteString("\n")
-	if len(confident) == 0 {
+	if len(confident) > 0 {
+		var sumR float64
+		minLag, maxLag := confident[0].LagMs, confident[0].LagMs
+		orients := map[string]struct{}{}
+		for _, r := range confident {
+			sumR += *r.R
+			if r.LagMs < minLag {
+				minLag = r.LagMs
+			}
+			if r.LagMs > maxLag {
+				maxLag = r.LagMs
+			}
+			orients[r.Orientation] = struct{}{}
+		}
+		meanR := sumR / float64(len(confident))
+		fmt.Fprintf(&b, "## Summary (n=%d confident windows of %d total)\n", len(confident), len(rows))
+		fmt.Fprintf(&b, "- mean r: %.3f\n", meanR)
+		fmt.Fprintf(&b, "- lag range: %+dms .. %+dms\n", minLag, maxLag)
+		if len(orients) > 1 {
+			b.WriteString("- orientation FLIPS across the clip (see per-window rows above) - " +
+				"check the source video around the flip, this is the one finding " +
+				"that could be a marking issue rather than timing drift\n")
+		}
+	} else {
 		b.WriteString("## Summary: no confident windows\n")
-		return b.String()
-	}
-	var sumR float64
-	minLag, maxLag := confident[0].LagMs, confident[0].LagMs
-	orients := map[string]struct{}{}
-	for _, r := range confident {
-		sumR += *r.R
-		if r.LagMs < minLag {
-			minLag = r.LagMs
-		}
-		if r.LagMs > maxLag {
-			maxLag = r.LagMs
-		}
-		orients[r.Orientation] = struct{}{}
-	}
-	fmt.Fprintf(&b, "## Summary (n=%d confident windows of %d total)\n", len(confident), len(results))
-	fmt.Fprintf(&b, "- mean r: %.3f\n", sumR/float64(len(confident)))
-	fmt.Fprintf(&b, "- lag range: %+dms .. %+dms\n", minLag, maxLag)
-	if len(orients) > 1 {
-		b.WriteString("- orientation FLIPS across the clip (see per-window rows above) - " +
-			"check the source video around the flip, this is the one finding " +
-			"that could be a marking issue rather than timing drift\n")
 	}
 	return b.String()
 }
@@ -355,6 +336,16 @@ func DiagnosePhase(corr *LagCorrelation, timingGainMin, minAlignedR float64) Pha
 	d.Verdict = PhaseOK
 	d.Detail = "Rohkorrelation und Alignierung sind beide brauchbar"
 	return d
+}
+
+func filterActionsInRange(actions []Action, tStart, tEnd int64) []Action {
+	var out []Action
+	for _, a := range actions {
+		if a.At >= tStart && a.At <= tEnd {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 func sortActions(in []Action) []Action {
