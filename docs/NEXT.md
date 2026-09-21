@@ -1976,6 +1976,37 @@ git history rather than rebuilding from scratch.
   no Go port of flow/grid_lk during cleanup; `flow`'s hang is lane E
   (hygiene), not lane B (measurement).
 
+  **Update (same day, lane E/ChatGPT via #156):** found and fixed a real
+  bug - the direct `--backend flow` CLI dispatch in `process_one` ignored
+  `--flow-downscale`, always running at full resolution regardless of the
+  flag. Confirmed a genuine scaling-control bug, not yet confirmed as the
+  root cause of the bake-off's specific hangs. Clarifying for lane E: my
+  bake-off commands never passed `--flow-downscale` at all (used the
+  backend's own default), both clips are 1280x720, so this exact fix
+  doesn't change what my invocation would compute either way - the hang
+  reproduces even at `flow`'s own default (no-downscale) settings. Root
+  cause of that specific hang is still open.
+
+- **F-003's proposed mechanism (VFR/frame-index timing drift) is refuted
+  (September 21, 2026)** - direct `ffprobe` check of `clip_ausschnitt.mp4`
+  against `generator/trackcv`'s `frame_index × 1000/fps` timestamps: the
+  discrepancy is a **constant 41.02ms at every sampled frame, start to
+  end** - genuine CFR video, no drift. A constant offset cannot produce
+  the observed swinging per-window lag (up to ±900ms, orientation flips)
+  - the math rules out the mechanism regardless of any one measurement.
+  Also compared raw (pre-`posttrack`) tracking against the FunGen2
+  references: r=0.097/0.344, *lower* than the already-committed
+  post-processed numbers (0.273/0.440) - `posttrack` isn't corrupting
+  otherwise-good timing either. The drift *signature* stays real
+  (measured twice, `clip_voll` and `clip_ausschnitt`) and still
+  practically means "don't trust whole-clip r alone" - only the *why* was
+  wrong. Leading new hypothesis: periodicity aliasing in the lag search
+  over near-periodic stroke motion (rough check: observed lag values
+  cluster within ±0.2-0.5 cycles of integer multiples of the clip's
+  dominant ~280ms period) - suggestive, not proven; needs a synthetic
+  clip with known ground-truth lag to test cleanly. Full writeup and the
+  exact PTS numbers: `docs/FINDINGS_TIMING_TF.md` § F-003.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.

@@ -47,15 +47,22 @@ Script Doctor / Quality Doctor = **Signal Quality**. FunGen /
 `docs/SIGNAL_VS_FIDELITY.md`. Next architecture milestone: Perception v1
 on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 
-## F-003: FrameIndex/FPS timing drift (open, confirmed on two real clips)
+## F-003: FrameIndex/FPS timing drift — **its proposed mechanism is refuted** (21 Sep 2026)
 
-**Claim (source research material, 16 Sep 2026):** funscript keyframe
-timestamps derived from frame *index* × nominal FPS drift from the
-video's real presentation timestamps under VFR/frame-rate imprecision,
-producing a growing (or otherwise non-constant) offset over a clip's
-length rather than one fixed lag.
+**Original claim (source research material, 16 Sep 2026):** funscript
+keyframe timestamps derived from frame *index* × nominal FPS drift from
+the video's real presentation timestamps under VFR/frame-rate
+imprecision, producing a growing (or otherwise non-constant) offset over
+a clip's length rather than one fixed lag.
 
-**Measured on two independent real clips, same signature both times:**
+**The drift signature itself is real, measured on two independent real
+clips** (see below), **but its proposed cause (VFR/frame-index drift) is
+directly refuted** by a same-day follow-up measurement — see "Root-cause
+test" below. The symptom (weak whole-clip r, much higher windowed r,
+non-constant per-window lag, orientation flips) is not in question; what
+was wrong is *why* it happens.
+
+**Drift signature, measured on two independent real clips:**
 
 1. `clip_voll` (21 Sep 2026, `docs/NEXT.md` "First real Tf/Tj golden-clip
    measurement"): SamNPlayer `tj`/`hub` vs. FunGen references — whole-clip
@@ -63,27 +70,62 @@ length rather than one fixed lag.
    -2600..+2800ms, orientation flip mid-clip.
 2. `clip_ausschnitt` (21 Sep 2026, `docs/NEXT.md` "Native Go pipeline vs.
    real FunGen2, `clip_ausschnitt`"): SamNPlayer native Go vs. real
-   FunGen2 references (**correction same day**: originally miscategorized
-   as an internal SamNPlayer-only consistency check due to a metadata
+   FunGen2 references (correction same day: originally miscategorized as
+   an internal SamNPlayer-only consistency check due to a metadata
    provenance bug — see that `docs/NEXT.md` entry) — whole-clip
    r=0.27–0.44, windowed (10s) mean r=0.53–0.59, per-window lag swings up
    to ±900ms, orientation flips.
 
-Both are cross-tool (SamNPlayer vs. FunGen2) comparisons, so neither on
-its own separates "SamNPlayer's `posttrack` assigns keyframe timestamps
-wrong" from "SamNPlayer and FunGen2 use different ROI/timing conventions
-that this correlation search can't reconcile" — the metadata bug in
-attempt 2 means we still don't have a same-tool internal-consistency
-confirmation that would isolate the mechanism. What's now solid: the same
-drift signature (weak whole-clip r, much higher windowed r, non-constant
-per-window lag, orientation flips) reproduces on two independent real
-clips with two different SamNPlayer generation paths (Python and native
-Go) against two different FunGen2 exports each — this is not a one-clip
-fluke. **Next step, still open:** get a genuine same-tool
-internal-consistency case (two confirmed-SamNPlayer exports of one
-tracking run, correct provenance metadata) to test whether `posttrack`'s
-frame-index-based keyframe timestamps are the mechanism, as originally
-hypothesized — that test has not actually been run yet.
+**Root-cause test (21 Sep 2026, `clip_ausschnitt`):**
+
+1. Confirmed `generator/trackcv/track.go` computes keyframe timestamps as
+   `frame_index × 1000/fps` — exactly the mechanism F-003 describes.
+2. Compared that against the video's **real** per-frame presentation
+   timestamps (`ffprobe`, `pts_time`) at every sampled frame across the
+   entire clip (0 → 1198, start to end).
+3. **Result: the discrepancy is a constant 41.02ms at every single
+   sampled frame — frame 0, frame 100, frame 600, frame 1198, no
+   exceptions, no growth.** `clip_ausschnitt.mp4` is genuine CFR (24fps,
+   `r_frame_rate` = `avg_frame_rate` = 24/1); the only error is a fixed
+   start-offset, not drift.
+4. A **constant** offset is absorbed instantly by any lag search (this
+   project's own `±1000ms` default easily covers 41ms) and structurally
+   **cannot** produce a lag that swings by up to ±900ms and flips
+   orientation across windows. The math doesn't support the mechanism,
+   independent of any single measurement.
+5. Separately, raw (pre-`posttrack`) tracking output was compared against
+   the same FunGen2 references: whole-clip r=0.097 (mit_yolo) / r=0.344
+   (ohne_yolo) — **lower** than the already-committed post-processed
+   numbers (0.273 / 0.440), not higher. `posttrack`'s smoothing/keyframe
+   reduction is not degrading fidelity relative to the raw signal; if
+   anything it mildly helps. This also rules out "raw signal is fine,
+   `posttrack` corrupts the timing" as an explanation.
+
+**Conclusion: F-003's VFR/frame-index mechanism does not explain the
+observed drift on this clip.** The drift signature stays real and
+unexplained pending a new hypothesis.
+
+**Leading alternative hypothesis (not yet proven): periodicity aliasing
+in the lag search itself.** Funscript motion is typically near-periodic
+(repeated stroke cycles); a wide lag search (±1000-3000ms here) over a
+periodic signal can lock onto a *different cycle* of the same motion that
+happens to correlate well by coincidence, rather than the true alignment
+— producing lag values that cluster near integer multiples of the
+dominant stroke period, not real timing offsets. A rough check (dominant
+period ≈280ms via autocorrelation on `clip_ausschnitt`'s `ohne_yolo`
+reference, compared against the windowed measurement's observed lag
+values) showed most residuals within ±0.2-0.5 cycles of an integer
+multiple — suggestive, not conclusive. **Next step, still open:** a
+cleaner test (e.g. a synthetic clip with known, non-periodic or
+irregular-period motion and a known true lag) to confirm or rule out
+aliasing directly, rather than inferring it from real-clip residuals.
+
+**What does NOT change**: the practical guidance this finding produced
+("don't judge a clip from whole-clip r alone, use windowed measurement")
+stays correct regardless of the underlying cause — `docs/
+TFTJ_PROFILE_DIRECTION.md`'s citation of this doesn't need reverting.
+What changes is that "F-003 (VFR drift)" is no longer the explanation to
+reach for when this pattern shows up elsewhere.
 
 ## Open inventory
 
