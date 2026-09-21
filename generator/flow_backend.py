@@ -232,6 +232,27 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
     Rückgabe: (timestamps_ms, positions, (width, height), scene_cuts, stats)
     """
     timing = os.environ.get("FLOW_BACKEND_TIMING", "").strip() in ("1", "true", "yes")
+    # Soft observability only — no default hard kill (owner Flow smoke first).
+    # FLOW_BACKEND_WALL_WARN_S: stderr once after this many wall seconds (default 120).
+    # FLOW_BACKEND_STALL_WARN_S: stderr if a single Farneback iteration exceeds this (default 60).
+    def _env_seconds(name, default):
+        raw = os.environ.get(name, "").strip()
+        if not raw:
+            return default
+        try:
+            v = float(raw)
+        except ValueError:
+            return default
+        # 0 disables the warning; negative falls back to default.
+        if v < 0:
+            return default
+        return v
+
+    wall_warn_s = _env_seconds("FLOW_BACKEND_WALL_WARN_S", 120.0)
+    stall_warn_s = _env_seconds("FLOW_BACKEND_STALL_WARN_S", 60.0)
+    wall_t0 = time.monotonic()
+    wall_warned = False
+    last_frame_t = wall_t0
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -339,6 +360,27 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         timestamps.append(idx * 1000.0 / fps)
         prev = gray
         idx += 1
+
+        now = time.monotonic()
+        if wall_warn_s > 0 and not wall_warned and (now - wall_t0) >= wall_warn_s:
+            wall_warned = True
+            import sys
+            print(
+                f"FLOW_WALL_WARN elapsed={now - wall_t0:.0f}s frame={idx}/{total or '?'} "
+                f"size={w}x{h} downscale={downscale} "
+                f"(soft warn only — set FLOW_BACKEND_WALL_WARN_S=0 to silence; "
+                f"CancelGenerate / Ctrl-C still stops the process)",
+                file=sys.stderr, flush=True,
+            )
+        frame_dt = now - last_frame_t
+        if stall_warn_s > 0 and frame_dt >= stall_warn_s:
+            import sys
+            print(
+                f"FLOW_STALL_WARN frame={idx} took {frame_dt:.1f}s "
+                f"(Farneback/camera/centers) size={w}x{h} downscale={downscale}",
+                file=sys.stderr, flush=True,
+            )
+        last_frame_t = now
 
         if timing and (idx <= 5 or idx % 50 == 0):
             import sys

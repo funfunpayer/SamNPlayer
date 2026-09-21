@@ -98,16 +98,16 @@ classical until YOLO is “perfect.”
 
 ### Profiles (B) — feel recipes (rename in GUI)
 
-Working set (names TBD in a small rename pass; keep CLI aliases):
+Working set (GUI rename ship in **v0.5.21** prep; keep CLI aliases):
 
-| Profile (concept) | Feel | Marking (C) |
-|-------------------|------|-------------|
-| **Normal / hub** | Stroke / usual suction | None by default |
-| **Auto** | “Just generate” classical path | None by default |
-| **Weich / autotune** | Soft / filtered Normal | Same as Normal |
-| **Tf / Tj** (rename e.g. suction/contact family) | Suction-centric | Partner mark **only if contact vib enabled** |
-| **Blow** (and similar oral/contact) | Contact-centric recipe | Same rule as Tf |
-| **Mix / others** | Combinations we already have + more later | Per-recipe rules |
+| Profile (concept) | GUI label (values) | Feel | Marking (C) |
+|-------------------|--------------------|------|-------------|
+| **Normal / hub** | Stroke (Normal) → `standard` | Stroke / usual suction | None by default |
+| **Auto** | Autotune → `autotune` | “Just generate” classical path | None by default |
+| **Weich** | Soft (rings) → `weich` | Soft / filtered Normal | Same as Normal |
+| **Tf / Tj** | CLI only (`tf`/`tj`) | Suction-centric | Partner mark **only if contact vib enabled** |
+| **Blow** (and similar oral/contact) | later | Contact-centric recipe | Same rule as Tf |
+| **Mix / others** | later | Combinations we already have + more later | Per-recipe rules |
 
 Tf and Tj remain **aliases** for one suction-family profile until rename
 ships. **Blow** is a sibling contact-family profile, not a second tracker.
@@ -176,8 +176,8 @@ Not G1. After classical Generate + vib recipes are solid:
 | **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | **DONE** on Claude `clip_ausschnitt` — 4-zone **below** tip CSRT (see below); keep opt-in, do **not** default |
 | **4b** | **Motion candidates UI** — show all usable motion/ROI proposals before Generate; user picks primary | **DONE** #167 — in **v0.5.19** |
 | **4c** | GUI opt-in **Track whole-frame motion (4 zones)** (`region_fusion_auto`) | **DONE** #169 — no mark; Normal + Contact vib; Contact-first (no Tf/Tj gate) |
-| **5** | GUI rename of profiles; keep aliases | Copy review |
-| **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | CLI/GUI — owner #4 |
+| **5** | GUI rename of profiles; keep aliases | **IN PROGRESS** — Stroke/Soft/Autotune labels (values unchanged) |
+| **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | **PARTIAL** — Play Contact save/preview + SuggestPipeline → Stroke; Zone2 distance still CLI / FEEL_DECOUPLE scaffold |
 | **6b** | YOLO class proposals (penis / glans / nipple) as opt-in helpers for primary + partner | Suggest ≠ commit; needs working AI Train (#119) |
 | **7** | AI/pattern **profile suggest** (Blow vs Normal vs Tf-family vs Mix) | After G1 goldens; G3; override always |
 
@@ -187,7 +187,8 @@ Not G1. After classical Generate + vib recipes are solid:
 |---------|------|-----|
 | **v0.5.19** | Step **4b** candidate overlay (read-only) | Show motion without forcing marks |
 | **v0.5.20** | Step **4c** GUI 4-zone opt-in + Contact-first (#169) | Everyday = stroke + Contact vib; 4-zone stays opt-in after measure |
-| **later** | Step **6** feel-decouple + **6b** YOLO + **7** profile suggest | Only after classical candidates feel trustworthy |
+| **v0.5.21** | Step **5** rename + step **6** Play feel-decouple + Flow soft warns | Owner Flow smoke on 0.5.20; do not default 4-zone or Zone2-distance |
+| **later** | Step **6** finish (stroke+tracked partner) + **6b** YOLO + **7** profile suggest | Only after classical candidates feel trustworthy |
 
 ### Step 4 measure — Claude `clip_ausschnitt` (21 Sep 2026)
 
@@ -221,9 +222,11 @@ tip CSRT, and far below committed hub 0.590). Keep GUI button as **opt-in**.
 
 ---
 
-## Next concrete implementation (after #169)
+## Next concrete implementation (after #169 / v0.5.20)
 
-Steps **2–4c** done on product path. Step **4** measure says keep 4-zone
-opt-in. Next: ship **v0.5.20**, then step **6** feel-decouple when vib on.
-Do **not** leapfrog to YOLO auto-commit or profile AI suggest. Re-run step 4
-on `clip_voll` when that media is available.
+Steps **2–4c** done. Step **4** measure keeps 4-zone opt-in. Prep for
+**v0.5.21**: profile rename (step 5), Play Contact on Stroke scripts +
+SuggestPipeline→standard (step 6 partial), Flow `FLOW_WALL_WARN` /
+`FLOW_STALL_WARN` (soft only). Do **not** leapfrog to YOLO auto-commit.
+Re-run step 4 on `clip_voll` when media is available. Finish step 6 Zone2
+distance on stroke only after owner smoke.

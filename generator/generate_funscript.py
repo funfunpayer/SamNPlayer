@@ -1775,7 +1775,9 @@ def _register_builtin_backends():
             max_frames=options.get("max_frames"),
             camera_compensation=options.get("camera_compensation", True),
             axis=options.get("axis", "auto"),
-            downscale=downscale)
+            downscale=downscale,
+            on_progress=options.get("on_progress"),
+        )
     def two_point(video_path, roi, options):
         roi2 = options.get("roi2")
         if not roi2:
