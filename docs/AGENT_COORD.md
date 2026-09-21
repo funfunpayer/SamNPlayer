@@ -39,7 +39,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |---|------|-----|--------|
 | **0** | Cleanup | Claude + ChatGPT E | Done (#150/#151/#146/#152/#154) |
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
-| **2** | **v0.5.17** | Cursor A | **IN PROGRESS** #153 — owner smoked 0.5.16 OK |
+| **2** | **v0.5.17** | Cursor A | **DONE** #153 + tag `v0.5.17` |
 | **3** | TFTJ step 3 partner-mark | ChatGPT or Cursor C | Queued after tag |
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Claimed (handoff #152 merged) |
 
@@ -61,9 +61,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #154 merged | Bake-off vs FunGen2 | **DONE** — lane free |
-| A | Cursor | #153 `cursor/release-0-5-17-d7cb` | v0.5.17 bump + tag | **IN PROGRESS** |
+| A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
 | E | ChatGPT | new branch off main | Triage #145/#119, metadata stamp, **flow hang** | **Claimed** — continue after #152 |
-| C | — | — | TFTJ step 3 | **Queued** after 0.5.17 |
+| C | — | — | TFTJ step 3 partner-mark | **Next** — free to claim |
 
 ---
 
@@ -72,7 +72,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 Claim: lane E (docs claim #152 merged).
 
 - #146 closed. #145/#119 still open — need current-build reproduce before close.
-- Owner: **0.5.16 portable smoke already done** (Go path) — proceed to 0.5.17 tag after #153.
+- Owner smoked **0.5.16**; **v0.5.17** tagged — download portable when Release finishes.
+- Next product: TFTJ step 3 (partner-mark) — lane C.
 - Metadata stamping: hypothesis from #150; inspect import/re-save before changing code.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
 
@@ -87,6 +88,7 @@ Claim: lane E (docs claim #152 merged).
 | 21 Sep | Three agents use this board | Owner |
 | 21 Sep | Bake-off: grid_lk/region_fusion do not beat CSRT; no Go port. flow hangs → E | Claude #154 |
 | 21 Sep | Owner smoked 0.5.16 → continue 0.5.17 | Owner |
+| 21 Sep | v0.5.17 tagged (#153) | Cursor A |
 
 ---
 
