@@ -35,9 +35,10 @@ Report both Quality Doctor and FunGen r. They are not proxies.
   local per above). See its `README.md` and `docs/NEXT.md`/
   `docs/FINDINGS_TIMING_TF.md` for the measurement.
 - `generator/testdata/golden_clips/clip_ausschnitt_native/` — native Go
-  pipeline vs. Python-path parity check on the same clip (no FunGen
-  reference for this one). See its `README.md` and `docs/NEXT.md` /
-  `docs/FINDINGS_TIMING_TF.md` (F-003) for the measurement.
+  pipeline (+ Python path, bonus) vs. real FunGen2 references. Corrected
+  21 Sep 2026 after a metadata-provenance mix-up (see its `README.md`
+  for the full story). See `docs/NEXT.md` / `docs/FINDINGS_TIMING_TF.md`
+  (F-003) for the measurement.
 
 ## Minimum set
 

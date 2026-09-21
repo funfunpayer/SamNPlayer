@@ -1,45 +1,86 @@
-# Golden clip: `clip_ausschnitt` (native Go pipeline vs. Python path)
+# Golden clip: `clip_ausschnitt` (SamNPlayer native Go vs. real FunGen2)
 
-Supplied by the user 21 Sep 2026, showing the new native Go pipeline's
-("Go Erkennung", `generator/trackcv` + `generator/posttrack`, no Python)
-output for `clip_ausschnitt` (~50s). No FunGen reference exists for this
-clip, so this dataset is a **parity/internal-consistency check**, not a
-Motion Fidelity score against ground truth. See `docs/NEXT.md` ("Native Go
-pipeline, `clip_ausschnitt`") and `docs/FINDINGS_TIMING_TF.md` (F-003) for
-the measurement and interpretation. Source video (`clip_ausschnitt.mp4`)
-is **not** committed (license + size, per `docs/GOLDEN_CLIPS.md`).
+**Correction (21 Sep 2026): this dataset was originally committed (and merged,
+#148) with the wrong provenance.** All three of the user's original uploads
+carried `metadata.creator: "SamNPlayer generator/native..."` plus a
+`native_pipeline` telemetry block (`frames=1199, lost=0,
+range_px=105.0539100525142`) - but two of the three (`mit_yolo/`,
+`ohne_yolo/` references below) are actually **FunGen 2.6.3's own tracking**,
+not SamNPlayer's. Confirmed by a follow-up upload correctly labeled
+`creator: "FunGen 2.6.3 (fungen.app)"` whose actions matched the
+`ohne_yolo` reference 715/716 exactly (the one difference: one keyframe's
+timestamp, not its position, right at a chapter boundary). The likely
+cause: some SamNPlayer import/export step stamps its own `creator` +
+`native_pipeline` metadata onto *any* loaded/re-saved funscript, regardless
+of true origin - a real metadata-provenance bug, separate from the F-003
+timing finding below, worth fixing (nothing in this dataset's own tooling;
+it's in SamNPlayer's funscript load/save path).
+
+This originally-published version described the three files as sharing
+"the exact same underlying CSRT tracking run" and treated the comparison as
+an internal SamNPlayer consistency check. That framing is wrong for two of
+the three files. This corrected version has real external FunGen2
+references instead - a genuine Motion Fidelity measurement, same
+methodology as `clip_voll_tftj/`. Source video not committed (license +
+size, per `docs/GOLDEN_CLIPS.md`).
 
 ## Contents
 
-| File | Actions | Source | Notes |
-|---|---|---|---|
-| `clip_ausschnitt_python_OLD.funscript` | 175 | Python path (`generate_funscript.py`, classical CV), earlier session | Baseline, pos clamped 20-90 |
-| `clip_ausschnitt_native_v1.funscript` | 71 | Native Go, sparse export, has chapters/tags metadata | |
-| `clip_ausschnitt_native_v2.funscript` | 738 | Native Go, dense export, has chapters/tags metadata | User named this upload "ohne_yolo" — misleading here: the native Go pipeline is classical CSRT only, no YOLO/detector involved at any point. Keep the label only as the user's original filename, not as a meaningful YOLO/no-YOLO distinction like the `clip_voll_tftj` FunGen dataset. |
-| `clip_ausschnitt_native_v3.funscript` | 145 | Native Go, minimal metadata (no chapters/tags) | User uploaded this exact file twice (byte-identical) |
+Laid out like `clip_voll_tftj/` for `fungen_compare.py --dataset DIR`:
 
-`v1`, `v2`, and `v3` all report the **identical** underlying CSRT tracking
-run in `metadata.native_pipeline`: `frames=1199, lost=0,
-range_px=105.0539100525142` (matching to 13 decimal places across all
-three — not a coincidence). Only their `posttrack`/export settings
-differ (keyframe density, chapters).
+| File | Actions | True source |
+|---|---|---|
+| `mit_yolo/clip_ausschnitt.funscript` | 71 | **FunGen 2.6.3**, YOLO on |
+| `mit_yolo/clip_ausschnitt__hub.funscript` | 145 | SamNPlayer native Go (`trackcv`+`posttrack`), `hub`/standard profile |
+| `ohne_yolo/clip_ausschnitt_ohne_yolo.funscript` | 738 | **FunGen 2.6.3**, YOLO off |
+| `ohne_yolo/clip_ausschnitt_ohne_yolo__hub.funscript` | 145 | Same SamNPlayer native Go file as above |
+| `samnplayer_python_OLD_bonus.funscript` | 175 | SamNPlayer **Python** path (`generate_funscript.py`), earlier session - not part of the FunGen dataset convention, kept for the Python-vs-Go bonus comparison below |
 
-## Measurement (reproduce with the Go `phase` CLI)
+The two `__hub.funscript` copies are byte-identical (same SamNPlayer run,
+compared against two FunGen references) - kept in separate sub-directories
+for the same `dedupe_by_content()` reason documented in `clip_voll_tftj/README.md`.
+
+## Measurement (reproduce)
 
 ```bash
-go run ./cmd/cli phase clip_ausschnitt_native_v1.funscript clip_ausschnitt_native_v3.funscript -max-lag-ms 1000
-go run ./cmd/cli phase clip_ausschnitt_native_v1.funscript clip_ausschnitt_native_v3.funscript -max-lag-ms 1000 -window-ms 10000
+python3 generator/fungen_compare.py --dataset generator/testdata/golden_clips/clip_ausschnitt_native/mit_yolo --max-lag-ms 1000
+python3 generator/fungen_compare.py --dataset generator/testdata/golden_clips/clip_ausschnitt_native/ohne_yolo --max-lag-ms 1000
+
+go run ./cmd/cli phase generator/testdata/golden_clips/clip_ausschnitt_native/mit_yolo/clip_ausschnitt.funscript generator/testdata/golden_clips/clip_ausschnitt_native/mit_yolo/clip_ausschnitt__hub.funscript -max-lag-ms 1000 -window-ms 10000
+go run ./cmd/cli phase generator/testdata/golden_clips/clip_ausschnitt_native/ohne_yolo/clip_ausschnitt_ohne_yolo.funscript generator/testdata/golden_clips/clip_ausschnitt_native/ohne_yolo/clip_ausschnitt_ohne_yolo__hub.funscript -max-lag-ms 1000 -window-ms 10000
 ```
 
-Whole-clip r between the three NEW exports (same tracking run): 0.27-0.47
-— not the >0.9 same-signal exports should read. Windowed (10s): mean r
-rises to 0.53-0.59, per-window lag swings up to ±700-900ms, orientation
-flips window to window. Old Python vs. any new Go export: similarly weak
-(whole-clip r=0.14-0.24, windowed mean r≈0.53-0.55) — the Go-native path
-is not obviously worse than Python on this clip, but neither is clean.
+**SamNPlayer native Go vs. real FunGen2** (this is a real Motion Fidelity
+score, not internal consistency):
 
-**Reading:** because the low-correlating pairs include two exports of the
-exact same tracked positions, this cannot be a cross-tool ROI-marking
-difference — it points at `posttrack`'s keyframe timestamp assignment
-(frame-index-based, not real per-frame PTS) as the mechanism. See F-003
-in `docs/FINDINGS_TIMING_TF.md`.
+| metric | vs. mit_yolo | vs. ohne_yolo |
+|---|---|---|
+| whole-clip r | 0.273 (lag -800ms, inverted) | 0.440 (lag 0ms) |
+| windowed (10s) mean r | 0.533 | 0.590 |
+| per-window lag range | +0..+700ms | -900..+0ms |
+| orientation | flips (3 normal / 2 inverted) | flips (2 normal / 3 inverted) |
+
+Same drift signature as `clip_voll_tftj/` (see `docs/FINDINGS_TIMING_TF.md`
+F-003): whole-clip r looks weak, windowed r rises substantially, lag isn't
+constant, orientation flips mid-clip.
+
+**Bonus: Python path vs. the same FunGen2 references**, same clip, same
+methodology:
+
+| metric | Python vs. mit_yolo | Python vs. ohne_yolo |
+|---|---|---|
+| whole-clip r | 0.236 (inverted) | 0.165 (inverted) |
+
+Native Go's whole-clip r (0.27 / 0.44) is comparable-to-better than the
+older Python path's (0.24 / 0.17) against the *same* real FunGen2
+references on this clip - the Go migration is not a regression here, but
+neither path is clean; F-003 affects both.
+
+## Open item
+
+No independent confirmation yet that F-003 (frame-index timestamp drift)
+is *specifically* a `posttrack` bug rather than a cross-tool ROI/timing
+convention difference - this dataset alone can't separate the two, same
+limit as `clip_voll_tftj/`. Would need two SamNPlayer exports confirmed to
+share one real tracking run (with correct, non-buggy provenance metadata)
+to isolate that, which this dataset does not currently provide.
