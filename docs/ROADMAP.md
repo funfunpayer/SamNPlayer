@@ -15,6 +15,10 @@ discussion stays German.
 - `docs/NEXT.md` — research journal (measurements / rejected approaches).
 - `docs/ENGINE.md` — lean engine direction (phases + DoD).
 - `docs/FINDINGS_TIMING_TF.md` — Go-migration / timing inventory.
+- `docs/TFTJ_PROFILE_DIRECTION.md` — **agreed direction (21 Sep 2026):**
+  Tf/Tj = device profile/feel; no-mark 4-zone classical; contact vib on
+  Normal/Auto; dual-ROI not the everyday path. Think-first; implement
+  only after owner amends/accepts that file.
 - `HANDOFF.md` — architecture and “tested and rejected”.
 - `CHANGELOG.md` — what shipped, release by release.
 
@@ -266,7 +270,10 @@ License stays **developer mode** until after G2.
        blocker.
 2. [ ] 📏 **G1 — Classical heuristics + audio** — one posttrack package;
        goldens + FunGen fixed-ROI bake-off; Tf/Tj classical stabilize;
-       audio warn-only. **No AI as script writer.**
+       audio warn-only. **No AI as script writer.** Product shape for
+       Tf/Tj-as-profile + no-mark 4-zone + contact vib on Normal/Auto:
+       follow `docs/TFTJ_PROFILE_DIRECTION.md` (steps 2–5), do not
+       parallelize with unrelated themes.
 3. [ ] 🔒 **G2 — Neo 2 raw-value layer** — Device Diagnose on real hardware;
        Intent→raw mapping for good feel (blocked on you + device).
 4. [ ] 📏 **G3 — AI helpers only after G1** — train/ROI suggest on strong

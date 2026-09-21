@@ -8,9 +8,9 @@ Operational checklist. Measurement history stays below; **what's open now**:
 |---|---|---|
 | 1 | Validate real hardware | **Blocked on you** — Sam Neo 2 + operator |
 | 2 | Match FunGen2 references | **Open** — Golden-Clip tool shipped; need real clips |
-| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient) |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 21 Sep):** mark partner only for Tf/Blow **when contact vib on**; everyday = no-mark / 4-zone — `docs/TFTJ_PROFILE_DIRECTION.md` |
 | 4 | Motion-signature/profile GUI | **Done** |
-| 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in) |
+| 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in); **next:** Normal+Auto default **on** (user can off); partner mark tracked when vib on — `TFTJ_PROFILE_DIRECTION.md` |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
 | 8 | Generator performance vs FunGen2 | **Open-ended** — several closed sub-questions |
 | 9 | SAM runtime wiring | **Started** — Densify + RuntimeAdjust + CLI/GUI live scale |

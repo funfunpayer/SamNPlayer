@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Docs:** `docs/TFTJ_PROFILE_DIRECTION.md` — Tf/Tj as device profile
+  (not dual-ROI recognition); contact vib on Normal/Auto (default on,
+  can disable); partner mark only for Tf/Blow when vib on (tracked
+  compensation); later AI profile suggest; owner answers locked 21 Sep.
+
 ## [0.5.16] — September 21, 2026
 
 ### Changed
