@@ -2631,6 +2631,7 @@ def process_one(args, ap):
             args.video, max_frames=args.max_frames,
             camera_compensation=not args.no_camera_compensation,
             axis=args.axis,
+            downscale=args.flow_downscale if args.flow_downscale > 0 else 1.0,
             on_progress=lambda done, total: print(f"PROGRESS {done} {total}",
                                                   file=sys.stderr, flush=True))
         if track_stats.get("center_disagreement", 0) > 5:

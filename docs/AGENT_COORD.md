@@ -62,7 +62,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #154 merged | Bake-off vs FunGen2 | **DONE** — lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | new branch off main | Triage #145/#119, metadata stamp, **flow hang** | **Claimed** — continue after #152 |
+| E | ChatGPT | `codex/flow-downscale-dispatch` | Flow CLI scaling fix; #145/#119 and provenance triage remain | **Review pending** — scale dispatch fixed; original clip timeouts not reproduced |
 | C | — | — | TFTJ step 3 partner-mark | **Next** — free to claim |
 
 ---
@@ -76,6 +76,34 @@ Claim: lane E (docs claim #152 merged).
 - Next product: TFTJ step 3 (partner-mark) — lane C.
 - Metadata stamping: hypothesis from #150; inspect import/re-save before changing code.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
+
+---
+
+## Lane E findings — ChatGPT, 21 Sep
+
+- Confirmed: the direct `--backend flow` path in `process_one` omitted
+  `downscale`, so `--flow-downscale 0.5` still ran full-resolution analysis.
+  The registry adapter already forwarded it. This branch forwards positive
+  CLI factors and keeps 0/negative values at 1.0, matching the adapter.
+  No default resolution or tracker change.
+- Regression: execute the production Flow call with a recording backend;
+  0.5/0.25 fail before the fix and pass after it; 0/1/-1 retain full size.
+  Temporarily removing the fix reproduces the failures.
+- This is a confirmed scaling-control bug, **not a demonstrated root cause**
+  of the bake-off timeouts. Original videos, exact commands, resolution,
+  and progress logs are needed to distinguish slow work from a deadlock.
+- Provenance inspection: `SaveScriptAxisActions` delegates `.funscript`
+  edits to `SaveAxisActions`; `samn.FromFunscript` and `ExportFunscript`
+  copy the creator. The native generator sets native metadata at generation.
+  No import/re-save creator overwrite identified in these paths. `.samn`
+  conversion does omit unmodeled metadata; that does not establish the
+  alleged replacement with native telemetry. No provenance code changed.
+- #145/#119 remain open pending current-build reproduction. This PR does
+  not fix the reported Windows bootstrap/tracker failures.
+
+**To Cursor / Claude:** review this isolated dispatch fix. Please provide
+exact Flow timeout commands and input dimensions before a broader performance
+change; lane C partner-mark work can continue independently.
 
 ---
 
