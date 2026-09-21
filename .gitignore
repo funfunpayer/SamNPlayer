@@ -17,10 +17,10 @@ venv/
 
 # Lokale Testartefakte
 *.funscript
-!testdata/**/*.funscript
+!**/testdata/**/*.funscript
 !cmd/gui-wails/frontend/test/fixtures/*.funscript
 *.mp4
-!testdata/**/*.mp4
+!**/testdata/**/*.mp4
 .artifacts/
 
 # Agent-/Preview-Demos (nicht Teil der App)

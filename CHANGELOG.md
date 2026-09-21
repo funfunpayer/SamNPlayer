@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Tf/Tj golden clip `clip_voll`:** FunGen refs + SamNPlayer hub/tj
+  funscripts under `generator/testdata/golden_clips/clip_voll_tftj/`, plus
+  `fungen_compare_windowed.py` (docs/measurement from #140).
+
 ## [0.5.16] — September 21, 2026
 
 ### Changed
