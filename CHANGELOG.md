@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Contact vibration on Normal / Autotune / Soft:** same depth-based
+  envelope as Tf/Tj (high pos → vibe). GUI shows the toggle for every
+  profile, **on by default**, user can turn off. CLI `--contact-vibration`
+  now applies to stroke profiles too (writes `device_recipe`). See
+  `docs/TFTJ_PROFILE_DIRECTION.md` step 2.
+
 ### Changed
 
 - **Docs:** `docs/TFTJ_PROFILE_DIRECTION.md` — Tf/Tj as device profile

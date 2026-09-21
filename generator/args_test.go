@@ -42,6 +42,8 @@ func TestGeneratorOptionsReachPython(t *testing.T) {
 		}, []string{"--target", "5,6,7,8,mouth"}},
 		{"Kontakt-Vibration", Options{Profile: "tj", ContactVibration: true},
 			[]string{"--contact-vibration"}},
+		{"Kontakt-Vibration Normal/standard", Options{Profile: "standard", ContactVibration: true},
+			[]string{"--contact-vibration"}},
 		{"Kontakt-Vibration Span+Kurve", Options{Profile: "tj", ContactVibration: true,
 			ContactVibrationSpan: 0.55, ContactVibrationCurve: "soft"},
 			[]string{"--contact-vibration", "--contact-vibration-span", "0.55",

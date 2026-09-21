@@ -41,11 +41,9 @@ type DeviceRecipe struct {
 	MaxSpeed   float64 `json:"max_speed"`
 	Smoothing  float64 `json:"smoothing"`
 
-	// ContactVibration: bei tf/tj optional gesetzt (generator/tf_tj_meta.py,
-	// --contact-vibration) - Vibration folgt dann zusätzlich zum Sog dem
-	// Abstandssignal, sobald es nahe sein eigenes, in diesem Skript
-	// beobachtetes Maximum steigt (siehe MapOptions.ContactVibration).
-	// Fehlt/false: unverändertes Verhalten, keine Vibration bei tf/tj.
+	// ContactVibration: optional on any profile (Tf/Tj distance or stroke).
+	// When set, playback adds depth/contact vibration — see MapOptions.
+	// Omitted/false: Tf/Tj stays silent; stroke profiles keep speed-based vibe.
 	ContactVibration bool `json:"contact_vibration,omitempty"`
 
 	// ContactVibrationSpan / Curve: nur sinnvoll mit ContactVibration.

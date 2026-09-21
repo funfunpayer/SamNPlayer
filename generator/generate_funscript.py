@@ -2187,23 +2187,16 @@ def main():
                          "und korrigiert nichts automatisch. Kein ffmpeg/keine Audiospur -> "
                          "kein Eintrag, kein Fehler.")
     ap.add_argument("--contact-vibration", action="store_true",
-                    help="Nur Profil tf/tj: Vibration am Gerät folgt zusätzlich zum Sog dem "
-                         "gemessenen Abstand ROI1<->ROI2 - sobald der Abstand nahe sein "
-                         "eigenes Minimum in diesem Video fällt (ROI1 berührt/streift ROI2, "
-                         "z.B. Eichel an Brustwarze oder Zunge), steigt die Vibration "
-                         "proportional zur Nähe und fällt mit ihr wieder ab. Dauer/Stärke "
-                         "kommen direkt aus dem gemessenen Signal, nicht aus einem festen "
-                         "Impuls - das passt sich von selbst an, wie lang/eng der Kontakt im "
-                         "Video tatsächlich ist. Kein Akt-Detektor, reine Abstandsmessung. "
-                         "Ohne diese Option bleibt tf/tj wie bisher ohne Vibration.")
+                    help="Contact vibration: vibe follows the deep/high-pos slice of this "
+                         "script (Tf/Tj distance or stroke/standard/autotune/weich). "
+                         "GUI defaults on; CLI opt-in. Without the flag Tf/Tj stays silent.")
     ap.add_argument("--contact-vibration-span", type=float, default=None, metavar="0.4-0.95",
-                    help="Nur mit --contact-vibration: Anteil des Positions-Spektrums, der "
-                         "als Kontakt zählt (Default 0.75). Niedriger = früher an; "
-                         "höher = nur tief.")
+                    help="With --contact-vibration: share of pos spectrum as contact "
+                         "(Default 0.75). Lower = earlier; higher = deep only.")
     ap.add_argument("--contact-vibration-curve", default=None,
                     choices=["linear", "soft", "peak"],
-                    help="Nur mit --contact-vibration: Hüllkurve linear (Default), "
-                         "soft (weicher Einstieg, t²) oder peak (stärkerer Peak, √t).")
+                    help="With --contact-vibration: envelope linear (Default), "
+                         "soft (gentle onset, t²) or peak (stronger peak, √t).")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
@@ -2855,12 +2848,9 @@ def process_one(args, ap):
     # Tracker-Verlustfenster: Playback schaltet Kontakt-Vibration dort aus
     # (gehaltene Last-Position würde sonst weiterbrummen).
     gaps = track_stats.get("tracking_gaps") or []
-    if gaps and is_distance_profile(args.profile):
+    if gaps and (is_distance_profile(args.profile) or args.contact_vibration):
         metadata["tracking_gaps"] = gaps
         print(f"Tracking-Gaps für Kontakt-Vibration: {len(gaps)} Fenster",
-              file=sys.stderr)
-    if args.contact_vibration and not is_distance_profile(args.profile):
-        print("Hint: --contact-vibration only applies with --profile tf/tj, ignored.",
               file=sys.stderr)
     metadata = apply_profile_metadata(
         metadata, args.profile,

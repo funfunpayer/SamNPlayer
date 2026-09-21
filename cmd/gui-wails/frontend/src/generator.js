@@ -113,20 +113,20 @@ export function initGenerator(root, playback) {
         Whole-penis mark is OK — distance uses the tip end toward the partner.
         Contact vibration is on by default; fine-tune later in Playback if needed.
       </p>
-      <div id="gen-contact-vibration-wrap" style="display:none;">
+      <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
           <label for="gen-contact-vibration"
-            data-help="Extra vibration when tip nears a contact zone (Zone 2 / Zone 3+). Strength follows measured distance — contact-like, not a fixed pulse. On by default for Tf/Tj.">Contact vibration (automatic for Tf/Tj)</label>
+            data-help="Extra vibration on deep strokes (high position). For Tf/Tj with a contact zone, strength follows tip→partner distance; for Normal/Autotune it follows stroke depth. On by default — turn off anytime.">Contact vibration (on by default)</label>
         </div>
         <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
           <div class="field-row" style="align-items:center;">
-            <label style="width:auto;" data-help="Lower = engages earlier (wider contact window). Higher = deep only (near minimum distance). Default 0.75 = top quarter of the video signal.">Sensitivity</label>
+            <label style="width:auto;" data-help="Lower = engages earlier (wider contact window). Higher = deep only (near peak position). Default 0.75 = top quarter of the video signal.">Sensitivity</label>
             <input type="range" id="gen-contact-span" min="40" max="95" step="5" value="75" style="flex:1;" />
             <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">deep only</span>
           </div>
           <div class="field-row" style="align-items:center;">
-            <label style="width:auto;" data-help="linear = 1:1 distance. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
+            <label style="width:auto;" data-help="linear = 1:1. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
             <select id="gen-contact-curve">
               <option value="linear">Linear</option>
               <option value="soft" selected>Soft onset (contact-like)</option>
@@ -455,7 +455,7 @@ export function initGenerator(root, playback) {
   let contactUserOverride = false;
 
   function updateContactVibrationOpts() {
-    const on = isTfTj() && el('#gen-contact-vibration').checked;
+    const on = el('#gen-contact-vibration').checked;
     el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
   }
 
@@ -470,11 +470,11 @@ export function initGenerator(root, playback) {
   function updateProfileUi() {
     const tftj = isTfTj();
     el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
-    el('#gen-contact-vibration-wrap').style.display = tftj ? 'block' : 'none';
-    el('#gen-contact-vibration-row').style.display = tftj ? 'flex' : 'none';
-    // Automatisch versuchen: bei Tf/Tj Kontakt an, solange der Nutzer nicht
-    // bewusst abgewählt hat — danach bleibt seine Wahl.
-    if (tftj && !contactUserOverride) {
+    // Contact vib is available on every profile (Normal/Auto + Tf/Tj); always shown.
+    el('#gen-contact-vibration-wrap').style.display = 'block';
+    el('#gen-contact-vibration-row').style.display = 'flex';
+    // Default on for all profiles unless the user explicitly turned it off.
+    if (!contactUserOverride) {
       el('#gen-contact-vibration').checked = true;
       if (!el('#gen-contact-curve').dataset.userTouched) {
         el('#gen-contact-curve').value = 'soft';
@@ -788,11 +788,11 @@ export function initGenerator(root, playback) {
       flowDownscale: parseFloat(el('#gen-flow-downscale')?.value) || 0,
       overwrite,
       aiQualityOpinion: el('#gen-ai-quality').checked,
-      contactVibration: isTfTj() && el('#gen-contact-vibration').checked,
-      contactVibrationSpan: (isTfTj() && el('#gen-contact-vibration').checked)
+      contactVibration: el('#gen-contact-vibration').checked,
+      contactVibrationSpan: el('#gen-contact-vibration').checked
         ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
         : 0,
-      contactVibrationCurve: (isTfTj() && el('#gen-contact-vibration').checked)
+      contactVibrationCurve: el('#gen-contact-vibration').checked
         ? (el('#gen-contact-curve').value || 'linear')
         : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
