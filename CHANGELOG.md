@@ -8,11 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.19] — September 21, 2026
+
 ### Added
 
 - **Motion candidates (TFTJ 4b):** Generate → “Show motion candidates” lists
   ranked classical motion regions as dashed overlays; click one to set Zone 1
-  only. Zone 2 is never auto-filled. CLI: `auto_roi.py --list`.
+  only. Zone 2 is never auto-filled. CLI: `auto_roi.py --list` (#167).
 
 ## [0.5.18] — September 21, 2026
 

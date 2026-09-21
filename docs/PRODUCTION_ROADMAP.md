@@ -81,8 +81,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.16** | Shipped | OpenCL auto (no GUI toggle forcing Python) + MSYS2 CI |
 | **v0.5.17** | Shipped | Contact vib on Normal/Autotune; AGENT_COORD; goldens + phase --window-ms |
 | **v0.5.18** | Shipped | #145 Autotune tip-only; TFTJ step 3; F-003 AliasingRisk flag |
-| **v0.5.19** | **Next** | TFTJ step 4 measure (no-mark vs FunGen) + motion-candidate overlay (4b) |
-| **v0.5.20+** | After 4b | Feel-decouple Tf/Tj on Normal path; YOLO class proposals |
+| **v0.5.19** | **This train** | TFTJ 4b motion-candidate overlay (pick primary) |
+| **v0.5.20+** | After smoke | Feel-decouple Tf/Tj on Normal path; step 4 FunGen measure; YOLO proposals |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
