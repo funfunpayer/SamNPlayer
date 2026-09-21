@@ -374,3 +374,36 @@ func TestAliasingRiskFlag_doesNotChangeReportedLag(t *testing.T) {
 		t.Fatalf("unexpected AliasingRisk alts=%v period=%d", result.AlternateLagsMs, result.DominantPeriodMs)
 	}
 }
+
+// TestDominantPeriodMsRequiresGenuineLocalPeak locks in a fix to
+// dominantPeriodMs (21 Sep 2026, docs/FINDINGS_TIMING_TF.md § F-003): a
+// naive global-max-over-the-search-range picked the smallest searched lag
+// on every real golden clip tested, because a smooth, continuous motion
+// curve's autocorrelation declines from lag→0 regardless of periodicity —
+// that decline alone was being reported as a "dominant period" (and,
+// separately, MinDominantPeriodMs's floor wasn't even reliably enforced by
+// integer division). The fix requires a genuine local peak reached *after*
+// the initial decline, and rounds the floor up rather than down.
+func TestDominantPeriodMsRequiresGenuineLocalPeak(t *testing.T) {
+	t.Run("periodic signal still detects its true period", func(t *testing.T) {
+		actions := sineActions(60000, 280, 20, 0, 35, 55)
+		period := dominantPeriodMs(actions, 20)
+		if absInt(period-280) > 40 {
+			t.Fatalf("period=%d, want ~280", period)
+		}
+	})
+
+	t.Run("floor is enforced even when the true period is shorter than it", func(t *testing.T) {
+		// True period (100ms) is below MinDominantPeriodMs (150ms). The old
+		// code could return a period under the floor for several step
+		// sizes (integer division rounding down); the fix must not.
+		actions := sineActions(60000, 100, 20, 0, 35, 55)
+		for _, step := range []int{100, 40, 20, 30} {
+			period := dominantPeriodMs(actions, step)
+			if period != 0 && period < MinDominantPeriodMs {
+				t.Errorf("stepMs=%d: period=%d is below MinDominantPeriodMs=%d",
+					step, period, MinDominantPeriodMs)
+			}
+		}
+	})
+}

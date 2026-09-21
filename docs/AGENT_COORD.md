@@ -85,7 +85,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
+| B | Claude | this PR | fix `dominantPeriodMs` (real bug, not half-period) | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-19-d7cb` | bump + tag **v0.5.19** (motion candidates) | **IN PROGRESS** |
 | E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
@@ -321,18 +321,33 @@ that up next should pull real-clip numbers first.
 flag fires on none of the 4 committed real pairs (`clip_voll_tftj` +
 `clip_ausschnitt_native`, mit/ohne yolo), whole-clip or windowed, at any
 resample step, even though the swinging lag/orientation-flip pattern is
-still right there in the numbers. Root cause: `dominantPeriodMs`
-consistently estimates ~100-140ms on both clips' references — below the
-150ms `MinDominantPeriodMs` floor, so `annotateAliasingRisk` bails before
-comparing candidates. 100-140ms looks like the **half**-period of the
-~280ms I estimated earlier by a different method — plausible given the
-half-period/orientation-flip ambiguity the synthetic test already
-surfaced (symmetric stroke shape ≈ its own inversion at half a period).
-Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Not touching
-`dominantPeriodMs` myself — this affects the tier-2 decision (the
-"wait for real firing" condition isn't actually met yet, for a detector
-reason, not because aliasing isn't happening), so flagging it here for
-whoever owns that next rather than quietly tuning constants.
+still right there in the numbers. Root cause (as I understood it then):
+`dominantPeriodMs` consistently estimates ~100-140ms on both clips'
+references, below the 150ms `MinDominantPeriodMs` floor — proposed as a
+"half-period" of the ~280ms I estimated earlier by a different method.
+
+**Claude, 21 Sep — correction, that explanation was wrong, and I fixed
+the real bug:** dumped the raw autocorrelation curve for both clips —
+there's no local peak anywhere near 280ms, it just declines monotonically
+from the smallest tested lag (smooth continuous motion curves correlate
+strongly at short range regardless of periodicity, and that dominates).
+The old `dominantPeriodMs` took a **global max over the whole range**,
+which for a declining curve is always the smallest lag tested — plus a
+second bug, `minLag := MinDominantPeriodMs / stepMs` rounds down, so the
+search floor itself often sat below the documented 150ms. Both explain
+the observed 100-140ms precisely (it was just the search's own too-low
+lower bound). Fixed in `funscript/phase.go`: floor now rounds up, and the
+function only accepts a genuine local peak reached after the initial
+decline — a monotonically-declining curve now correctly returns 0
+("no confident period") instead of a spurious floor value. Locked in by
+`TestDominantPeriodMsRequiresGenuineLocalPeak`. `LagMs`/`R` unchanged —
+still diagnostic-only. Re-measured after the fix: the flag now fires on
+1 of 4 real pairs (`clip_ausschnitt.funscript` mit_yolo, whole-clip:
+`aliasing_risk=true lag_ms=-800 dominant_period_ms=1500
+alternate_lags_ms=[700 800]`); the other 3 still don't, but now for a
+real reason (no confident periodic peak in range) rather than a detector
+bug. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Tier (2)'s
+"wait for real firing" condition is now genuinely met on that one pair.
 
 ---
 
@@ -351,7 +366,8 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude #158 |
 | 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude #162 |
 | 21 Sep | F-003 mitigation: ship option 1 (AliasingRisk flag) before any lag-search behavior change | Owner + Cursor |
-| 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms (likely half the true period), not a "no aliasing here" result | Claude #165 |
+| 21 Sep | AliasingRisk flag doesn't fire on any real golden clip yet — period detector floors out at ~100-140ms; my "half the true period" explanation for that was wrong, see next row | Claude #165 |
+| 21 Sep | Fixed `dominantPeriodMs`: real bug was global-max-over-range + floor rounding down, not a half-period lock. Flag now fires on 1 of 4 real pairs (`clip_ausschnitt` mit_yolo, period≈1500ms) | Claude |
 | 21 Sep | #163 AliasingRisk shipped; #145 triage: Autotune+ROI2 was MIL/two-point misuse | Cursor #164 |
 | 21 Sep | #164 merged — Autotune/stroke tip-only; cut **v0.5.18** for owner smoke | Cursor A |
 | 21 Sep | Milestone: Tf/Tj feel on Normal classical + show motion candidates; YOLO classes = proposals only; plan **0.5.19** (step 4+4b) | Owner + Cursor |

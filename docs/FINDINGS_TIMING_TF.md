@@ -177,33 +177,66 @@ and needs its own sign-off plus golden-clip verification before anyone
 trusts changed numbers.
 
 **AliasingRisk flag measured against the real golden clips (21 Sep
-2026): does not fire on any of them, at any tested resample step.** Ran
+2026): did not fire on any of them, at any tested resample step —
+root cause was NOT a half-period ambiguity, correction below.** Ran
 `phase` (whole-clip and windowed) on all four committed real pairs
 (`clip_voll_tftj` and `clip_ausschnitt_native`, both `mit_yolo`/
-`ohne_yolo`) — every window on every pair reports `aliasing_risk=false`,
+`ohne_yolo`) — every window on every pair reported `aliasing_risk=false`,
 despite the same swinging-lag/orientation-flip pattern that motivated
 this whole investigation still being clearly present in those numbers
 (see the r/lag tables in `docs/NEXT.md`'s bake-off and golden-clip
-entries). A direct probe of `dominantPeriodMs` on the reference signals
-(both clips, resample steps 20/40/100ms) explains why: it consistently
-estimates a period of **100-140ms**, never above it regardless of
-resample granularity — and `annotateAliasingRisk` requires
-`period >= MinDominantPeriodMs` (150ms) before it will even look for
-near-tied alternate lags, so it bails out before ever running the
-comparison. 100-140ms is suspiciously close to **half** of the ~280ms
-dominant period estimated earlier by a different (Python/autocorrelation)
-method on the same `ohne_yolo` reference — consistent with the half-period
-ambiguity already noted above (a symmetric up/down stroke shape
-time-shifted by half a period looks like its own vertical inversion, so
-autocorrelation can lock onto the half-period instead of the full stroke
-cycle). This is a measurement, not a code change: `MinDominantPeriodMs`
-and `dominantPeriodMs` are untouched. **Consequence for option (2):** the
-board's condition ("wait until the flag fires on real goldens") hasn't
-been met yet — not because aliasing isn't happening on these clips, but
-because the current period detector under-estimates it past the floor
-that's meant to reject noise. Whoever picks this up next should look at
-the half-period ambiguity in `dominantPeriodMs` (e.g. also test `2×period`
-candidates) before concluding option (2) isn't needed.
+entries).
+
+The first explanation offered here (same day, in the previous revision
+of this paragraph) was that a "half-period ambiguity" — a symmetric
+stroke shape time-shifted by half a period looking like its own vertical
+inversion — was causing `dominantPeriodMs` to lock onto half of the true
+period. **That explanation was wrong.** A closer look (dumping the raw
+autocorrelation curve for both real clips' references, lag by lag) shows
+no local peak anywhere near the ~280ms figure at all — autocorrelation
+just declines monotonically from the smallest tested lag (r≈0.99 at
+20ms) down through zero and into negative territory, because a real,
+continuously-varying motion curve is *smooth*: neighboring samples
+correlate strongly regardless of any periodicity, and that effect
+dominates the far weaker periodic signal. The old `dominantPeriodMs`
+took a **global max over the whole search range**, which for a smooth,
+declining curve is trivially the smallest lag tested — a number that
+looks like a period but reflects only smoothness, not periodicity. A
+second, independent bug compounded it: `minLag := MinDominantPeriodMs /
+stepMs` used integer division, which rounds *down* — so for most
+resample steps the search's own floor sat below the documented 150ms
+minimum (e.g. 150/40 = 3 → 120ms, not 150ms). Both bugs combined explain
+exactly why the reported "period" landed at 100-140ms on both clips: it
+was consistently just the search's own (incorrectly low) lower bound,
+not any measurement of periodicity.
+
+**Fixed (21 Sep 2026, `funscript/phase.go`):** `dominantPeriodMs` now (a)
+rounds the floor up so it never searches below `MinDominantPeriodMs`,
+and (b) only accepts a genuine **local** peak reached after the curve's
+initial decline — a curve that just declines the whole way through (as
+both real clips' references do within a couple hundred ms) correctly
+returns 0 ("no confident period"), instead of a spurious floor value.
+Locked in by `TestDominantPeriodMsRequiresGenuineLocalPeak`
+(`funscript/phase_test.go`): still detects a true synthetic 280ms period
+correctly, and no longer returns a period below the floor for a synthetic
+signal whose true period *is* below it. `BestLagCorrelation`/
+`WindowedBestLagCorrelation`'s reported `LagMs`/`R` are unchanged — this
+only affects the `AliasingRisk` diagnostic added in #163.
+
+**Re-measured against the real goldens after the fix:** the flag now
+fires on one of the four real pairs — `clip_ausschnitt.funscript`
+(`mit_yolo`, whole-clip): `aliasing_risk=true`, `lag_ms=-800`,
+`dominant_period_ms=1500`, `alternate_lags_ms=[700, 800]`. The other
+three pairs still report `aliasing_risk=false` — their references simply
+don't have a confident local autocorrelation peak in [150, 2000]ms, which
+is now a considered, honest "no" rather than an artifact of the two bugs
+above. **Consequence for option (2):** the board's "wait until the flag
+fires on real goldens" condition is now genuinely met on at least one
+real pair, with a real (not spurious) period estimate behind it — whoever
+picks up tier (2) next has one concrete real-clip case to verify against,
+though three of four pairs still show no measured periodicity risk by
+this method, so periodicity aliasing is evidently not the sole explanation
+for the swinging-lag pattern across all of them.
 
 **What does NOT change**: the practical guidance this finding produced
 ("don't judge a clip from whole-clip r alone, use windowed measurement")
