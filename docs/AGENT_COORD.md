@@ -66,7 +66,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **5** | **v0.5.18** | Cursor A | **DONE** #166 + tag `v0.5.18` |
 | **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | 4b **DONE** #167; bump **v0.5.19** |
 | **7** | **v0.5.19** | Cursor A | **DONE** #168 + tag `v0.5.19` |
-| **8** | No-mark 4-zone in GUI | Cursor A | **IN PROGRESS** `cursor/nomark-4zone-gui-d7cb` |
+| **8** | No-mark 4-zone in GUI + Contact-first | Cursor A | **DONE** #169 — CI green; step-4 measure: 4-zone < tip CSRT on `clip_ausschnitt` → keep opt-in |
 
 ---
 
@@ -87,7 +87,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/nomark-4zone-gui-d7cb` | GUI: whole-frame 4-zone motion (no mark) | **IN PROGRESS** |
+| A | Cursor | #169 | GUI 4-zone + Contact-first; Claude-clip step-4 measure | **DONE** — merge when ready |
 | E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
@@ -358,6 +358,7 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | Milestone: Tf/Tj feel on Normal classical + show motion candidates; YOLO classes = proposals only; plan **0.5.19** (step 4+4b) | Owner + Cursor |
 | 21 Sep | Owner smoked Autotune on 0.5.18 OK → #145 closed; ship **v0.5.19** motion-candidates button | Owner + Cursor |
 | 21 Sep | Product: **no Tf/Tj required** — Contact vibration + stroke/4-zone; Zone 2 optional | Owner |
+| 21 Sep | Step 4 measure on Claude `clip_ausschnitt`: 4-zone windowed r=0.363 < tip CSRT 0.468 < hub 0.590 vs FunGen ohne_yolo — keep 4-zone **opt-in**, do not default | Cursor A |
 
 ---
 

@@ -21,6 +21,13 @@ measurement history behind each entry; this file is the short version for
   Zone 2 is optional and no longer switches to Tf/Tj or blocks Generate.
   Legacy tip↔partner distance stays CLI `--profile tf|tj`.
 
+### Measured
+
+- **TFTJ step 4 (Claude `clip_ausschnitt`):** no-mark 4-zone windowed mean
+  FunGen r=0.363 vs tip CSRT 0.468 vs committed hub 0.590 (ohne_yolo).
+  Contact vib does not change stroke actions. **Do not default 4-zone.**
+  Details: `docs/TFTJ_PROFILE_DIRECTION.md` § Step 4 measure.
+
 ## [0.5.19] — September 21, 2026
 
 ### Added
