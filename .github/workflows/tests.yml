@@ -208,11 +208,27 @@ jobs:
         with:
           msystem: MINGW64
           update: true
+          # OpenCV is installed in the next step: pacman may skip it during
+          # setup-msys2 when fc-libs providers conflict (gcc-libgfortran still
+          # pins renamed gcc-libs after MSYS2 moved to cc-libs).
           install: >-
             mingw-w64-x86_64-go
             mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-opencv
             mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libgfortran
+
+      - name: Install OpenCV (MSYS2)
+        run: |
+          set -euo pipefail
+          # Prefer libgfortran as fc-libs provider so openblas/opencv resolve
+          # without the broken gcc-libgfortran → gcc-libs=… pin.
+          pacman -S --noconfirm --needed mingw-w64-x86_64-libgfortran
+          if ! pacman -S --noconfirm --needed mingw-w64-x86_64-opencv; then
+            echo "opencv install failed; retry after full sync"
+            pacman -Syuu --noconfirm
+            pacman -S --noconfirm --needed mingw-w64-x86_64-libgfortran mingw-w64-x86_64-opencv
+          fi
+          pacman -Q mingw-w64-x86_64-opencv
 
       - name: OpenCV pkg-config (MSYS2 = opencv5)
         run: |

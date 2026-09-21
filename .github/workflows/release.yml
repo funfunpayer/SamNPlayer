@@ -91,14 +91,26 @@ jobs:
         with:
           msystem: MINGW64
           update: true
+          # OpenCV installed in the next step — see tests.yml windows-opencv.
           install: >-
             mingw-w64-x86_64-go
             mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-opencv
             mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libgfortran
             mingw-w64-x86_64-nsis
             zip
             unzip
+
+      - name: Install OpenCV (MSYS2)
+        run: |
+          set -euo pipefail
+          pacman -S --noconfirm --needed mingw-w64-x86_64-libgfortran
+          if ! pacman -S --noconfirm --needed mingw-w64-x86_64-opencv; then
+            echo "opencv install failed; retry after full sync"
+            pacman -Syuu --noconfirm
+            pacman -S --noconfirm --needed mingw-w64-x86_64-libgfortran mingw-w64-x86_64-opencv
+          fi
+          pacman -Q mingw-w64-x86_64-opencv
 
       - uses: actions/setup-node@v4
         with:
