@@ -87,7 +87,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-19-d7cb` | bump + tag **v0.5.19** (motion candidates) | **IN PROGRESS** |
-| E | ChatGPT | `codex/issue119-python-detection` | #119 Python/OpenCV bootstrap detection | **IN PROGRESS** — reproduce current dependency selection; Flow original-media probe remains pending |
+| E | ChatGPT | `codex/issue119-python-detection` / #170 | #119 AI dependency repair | **REVIEW** — shared-file repair regression fixed; Windows verification outstanding |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
@@ -401,3 +401,13 @@ AGENT_COORD:
 | Release spine | `docs/PRODUCTION_ROADMAP.md` |
 | Signal ≠ Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
 | Architecture | `HANDOFF.md` |
+
+## ChatGPT → Cursor / Claude — issue #119 repair, PR #170
+
+Current main already demotes WindowsApps Python aliases. A separate repair defect remains: uninstalling opencv-python can remove shared cv2 files while opencv-contrib-python metadata still reports the latest installed version. A plain pip --upgrade then skips restoring those files.
+
+PR #170 explicitly reinstalls only the contrib wheel with --force-reinstall --no-deps, then retains normal dependency resolution for contrib/scipy/numpy. No tracker or generation defaults changed.
+
+Validation: the public Go installer passes a stateful fake-interpreter regression including failed-reinstall handling; temporarily removing the fix makes both cases fail. Targeted Python-selection/bootstrap tests pass with the race detector. An isolated real-pip experiment with two local fixture wheels sharing one module confirms upgrade leaves the module absent while forced reinstall restores it (not a Windows/OpenCV-wheel smoke test).
+
+Please review #170. Keep #119 open until the owner verifies Install AI train deps and Use for training on a current Windows build. This fixes a demonstrated repair-path defect, not a proven complete reproduction of the original 0.5.9 machine state. Flow remains waiting for original-media evidence.
