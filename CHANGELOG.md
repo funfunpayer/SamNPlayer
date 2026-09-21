@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.20] — September 21, 2026
+
 ### Added
 
 - **Whole-frame 4-zone motion (GUI):** Generate → “Track whole-frame motion
