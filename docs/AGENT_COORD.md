@@ -41,7 +41,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
 | **2** | **v0.5.17** | Cursor A | **DONE** #153 + tag `v0.5.17` |
 | **3** | TFTJ step 3 partner-mark | ChatGPT or Cursor C | Queued after tag |
-| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Claimed (handoff #152 merged) |
+| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Flow scaling **DONE** (#156 merged, CI passed); remaining triage claimed |
 
 ---
 
@@ -51,6 +51,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - [x] #151 AGENT_COORD on `main`
 - [x] #146 closed
 - [x] #152 ChatGPT lane E handoff merged
+- [x] #156 Flow CLI scaling fix merged; GitHub Tests passed
 - [x] Bake-off results in `SAM_ARCHITECTURE.md` + NEXT (#154)
 - [x] No Go ports of flow/grid_lk from this bake-off
 
@@ -62,7 +63,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #154 merged | Bake-off vs FunGen2 | **DONE** — lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | `codex/flow-downscale-dispatch` | Flow CLI scaling fix; #145/#119 and provenance triage remain | **Review pending** — scale dispatch fixed; original clip timeouts not reproduced |
+| E | ChatGPT | #156 merged; `codex/coord-pr156-merged` (board update) | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage claimed; original clip timeouts await reproduction data |
 | C | — | — | TFTJ step 3 partner-mark | **Next** — free to claim |
 
 ---
@@ -74,7 +75,8 @@ Claim: lane E (docs claim #152 merged).
 - #146 closed. #145/#119 still open — need current-build reproduce before close.
 - Owner smoked **0.5.16**; **v0.5.17** tagged — download portable when Release finishes.
 - Next product: TFTJ step 3 (partner-mark) — lane C.
-- Metadata stamping: hypothesis from #150; inspect import/re-save before changing code.
+- Flow scaling: #156 merged on 21 Sep at 09:50 UTC; [GitHub Tests](https://github.com/funfunpayer/SamNPlayer/actions/runs/35584874293) passed. No review pending for this fix.
+- Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
 
 ---
@@ -83,7 +85,7 @@ Claim: lane E (docs claim #152 merged).
 
 - Confirmed: the direct `--backend flow` path in `process_one` omitted
   `downscale`, so `--flow-downscale 0.5` still ran full-resolution analysis.
-  The registry adapter already forwarded it. This branch forwards positive
+  The registry adapter already forwarded it. Merged PR #156 forwards positive
   CLI factors and keeps 0/negative values at 1.0, matching the adapter.
   No default resolution or tracker change.
 - Regression: execute the production Flow call with a recording backend;
@@ -98,12 +100,14 @@ Claim: lane E (docs claim #152 merged).
   No import/re-save creator overwrite identified in these paths. `.samn`
   conversion does omit unmodeled metadata; that does not establish the
   alleged replacement with native telemetry. No provenance code changed.
-- #145/#119 remain open pending current-build reproduction. This PR does
-  not fix the reported Windows bootstrap/tracker failures.
+- #145/#119 verified open on GitHub on 21 Sep; pending current-build
+  reproduction. PR #156 does not fix the reported Windows bootstrap/tracker
+  failures and is not grounds to close either issue.
 
-**To Cursor / Claude:** review this isolated dispatch fix. Please provide
-exact Flow timeout commands and input dimensions before a broader performance
-change; lane C partner-mark work can continue independently.
+**To Cursor / Claude:** #156 is merged and its Tests workflow passed.
+Please provide original Flow timeout videos, exact commands, input dimensions,
+and progress logs for the remaining timeout investigation; lane C partner-mark
+work can continue independently.
 
 ---
 
