@@ -47,6 +47,37 @@ Script Doctor / Quality Doctor = **Signal Quality**. FunGen /
 `docs/SIGNAL_VS_FIDELITY.md`. Next architecture milestone: Perception v1
 on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 
+## F-003: FrameIndex/FPS timing drift (open, now measured twice)
+
+**Claim (source research material, 16 Sep 2026):** funscript keyframe
+timestamps derived from frame *index* × nominal FPS drift from the
+video's real presentation timestamps under VFR/frame-rate imprecision,
+producing a growing (or otherwise non-constant) offset over a clip's
+length rather than one fixed lag.
+
+**Measured twice now, independently:**
+
+1. `clip_voll` (21 Sep 2026, `docs/NEXT.md` "First real Tf/Tj golden-clip
+   measurement"): SamNPlayer `tj`/`hub` vs. FunGen references — whole-clip
+   r≈0.06, windowed (30s) mean r≈0.22–0.35, per-window lag range up to
+   -2600..+2800ms, orientation flip mid-clip.
+2. `clip_ausschnitt` (21 Sep 2026, `docs/NEXT.md` "Native Go pipeline,
+   `clip_ausschnitt`"): same pattern between **two SamNPlayer exports of
+   the identical CSRT tracking run** (native Go pipeline, no FunGen
+   involved at all) — whole-clip r=0.27–0.47, windowed (10s) mean
+   r=0.53–0.59, per-window lag swings up to ±900ms, orientation flips.
+
+The second measurement narrows the mechanism: since both signals in that
+comparison come from the *same* tracked positions (`frames`/`lost`/
+`range_px` identical to 13 decimals), the drift cannot be a cross-tool
+ROI/marking-convention difference — it has to be in how `generator/
+posttrack` assigns absolute timestamps to keyframes derived from frame
+indices. **Next step: instrument `posttrack`'s keyframe timestamp
+assignment against the video's real per-frame PTS (not `frame_index /
+nominal_fps`) and re-run this same `clip_ausschnitt` internal-consistency
+check** — this is now a concrete, scoped repro case, not just an external
+claim.
+
 ## Open inventory
 
 ### Already in Go
@@ -66,7 +97,7 @@ on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 |---|---|
 | Default `generate_funscript.py` | Native covers CSRT+single ROI only |
 | flow / grid_lk / fusion / Tf/Tj two-point | Need goldens before Go ports |
-| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts now committed at `generator/testdata/golden_clips/clip_voll_tftj/` (see `docs/NEXT.md`) — a same-day `hub`-profile run on the same clip measured similarly low Motion Fidelity despite much higher Signal Quality, so the drift finding below is not Tf/Tj-specific. `golden_clip_benchmark.py` manifest still not wired up to it, but no longer zero evidence |
+| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts committed at `generator/testdata/golden_clips/clip_voll_tftj/` and `clip_ausschnitt_native/` (see `docs/NEXT.md`, F-003 above) — a same-day `hub`-profile run on `clip_voll` measured similarly low Motion Fidelity despite much higher Signal Quality (not Tf/Tj-specific), and the `clip_ausschnitt` native-pipeline set shows the same drift between two SamNPlayer exports with no FunGen involved at all. `golden_clip_benchmark.py` manifest still not wired up to either, but no longer zero evidence |
 | Sam Neo 2 feel | Hardware |
 
 ### Next Go / product slices (quality-first)
