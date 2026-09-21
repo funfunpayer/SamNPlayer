@@ -171,8 +171,6 @@ export function initGenerator(root, playback) {
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
             data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-opencl" /><label for="gen-opencl"
-            data-help="Uses OpenCL for parts of tracking when drivers support it. Independent of AI training device (CUDA/DirectML).">GPU acceleration (OpenCL)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
             data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
@@ -782,7 +780,6 @@ export function initGenerator(root, playback) {
       adaptiveKeyframeError: el('#gen-adaptive').checked ? 6 : 0,
       autoRetry: el('#gen-retry').checked,
       backend: el('#gen-backend').value,
-      useOpenCl: el('#gen-opencl').checked,
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
       profile: el('#gen-profile').value,
       axis: el('#gen-axis').value,

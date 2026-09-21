@@ -74,7 +74,7 @@ Therefore:
 | Resource | Policy |
 |----------|--------|
 | **CPU** | Go uses all logical CPUs (`GOMAXPROCS`); do not fake extra parallelism that failed bake-offs |
-| **GPU** | Opt-in OpenCL on the **Python** path only; AI Train uses CUDA/DirectML when present; never claim CSRT is GPU-bound |
+| **GPU** | Python path tries OpenCL automatically (log only); AI Train uses CUDA/DirectML when present; never claim CSRT is GPU-bound |
 | **RAM** | Cache dirs under user config; clear-on-exit setting; avoid unbounded frame buffers |
 | **Stability** | Prefer cancelable contexts, no surprise downloads, portable ffmpeg, Quality Doctor gates |
 

@@ -862,25 +862,21 @@ def describe_hardware():
                      "opencv-contrib-python werden OHNE CUDA gebaut - dafür müsste OpenCV "
                      "selbst kompiliert werden.")
     if cv2.ocl.haveOpenCL():
-        lines.append("OpenCL: verfügbar - kann Teile des Optical Flow auf die Grafikkarte "
-                     "verlagern (--opencl)")
+        lines.append("OpenCL: available — Python path enables it automatically when "
+                     "useful (optical flow / UMat); log line only, no GUI toggle")
     else:
-        lines.append("OpenCL: nicht verfügbar (keine Treiber/Grafikkarte erkannt)")
+        lines.append("OpenCL: not available (no drivers/GPU detected)")
     return "\n".join(lines)
 
 
 def enable_opencl():
-    """Schaltet die OpenCL-Beschleunigung ein, falls vorhanden.
+    """Try OpenCL acceleration when present; always log the outcome.
 
-    Das ist der einzige Weg, die Grafikkarte OHNE selbst kompiliertes OpenCV
-    zu nutzen: die pip-Pakete enthalten keine CUDA-Unterstützung. OpenCV
-    verlagert dann geeignete Operationen über UMat auf die GPU und fällt
-    ansonsten still auf die CPU zurück - die Ergebnisse sind in beiden
-    Fällen dieselben (nachgemessen, Abweichung unter 1e-3).
-
-    Ob es tatsächlich schneller ist, hängt von Karte und Treiber ab und muss
-    auf dem Zielrechner gemessen werden. Deshalb ein Schalter und keine
-    stille Voreinstellung.
+    Pip OpenCV builds ship without CUDA. OpenCL is the only GPU path they
+    offer: suitable ops move to UMat, otherwise silent CPU fallback — results
+    match within 1e-3. Product path is Go CSRT (no OpenCL switch); this runs
+    only when Python still handles a job. No checkbox: enable when available,
+    log "OpenCL active" / "not available".
     """
     if not cv2.ocl.haveOpenCL():
         print("OpenCL not available — computing on CPU", file=sys.stderr)
@@ -918,7 +914,7 @@ def _batch_worker(payload):
     values, threads = payload
     args = argparse.Namespace(**values)
     configure_threads(threads)
-    if args.opencl:
+    if not getattr(args, "no_opencl", False):
         enable_opencl()
     try:
         process_one(args, None)
@@ -2133,9 +2129,10 @@ def main():
     ap.add_argument("--threads", type=int, default=0, metavar="N",
                     help="OpenCV-Threads je Prozess (0 = automatisch).")
     ap.add_argument("--opencl", action="store_true",
-                    help="OpenCL-Beschleunigung nutzen, falls vorhanden. Der einzige Weg, "
-                         "die Grafikkarte ohne selbst kompiliertes OpenCV einzusetzen - die "
-                         "pip-Pakete enthalten kein CUDA.")
+                    help="Deprecated no-op: OpenCL is tried automatically on the Python "
+                         "path when available (log only). Kept for old scripts.")
+    ap.add_argument("--no-opencl", action="store_true",
+                    help="Skip automatic OpenCL enable on the Python path (CPU only).")
     ap.add_argument("--hardware-info", action="store_true",
                     help="Verfügbare Beschleunigung anzeigen und beenden.")
     ap.add_argument("--report", default=None, metavar="DATEI",
@@ -2382,7 +2379,7 @@ def main():
         return
 
     configure_threads(args.threads)
-    if args.opencl:
+    if not args.no_opencl:
         enable_opencl()
 
     # --- Sonderpfade, die kein Video verarbeiten -------------------------
