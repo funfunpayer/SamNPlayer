@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Docs:** `docs/TFTJ_PROFILE_DIRECTION.md` — Tf/Tj as device profile
+  (not dual-ROI recognition), contact vibration toward Normal/Auto,
+  no-mark 4-zone classical as FunGen-like path; implement only after
+  owner agreement.
+
 ## [0.5.16] — September 21, 2026
 
 ### Changed

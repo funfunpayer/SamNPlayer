@@ -59,7 +59,7 @@ better** on clip tests — never ship a weaker self-build
 | P1 | Go `auto_roi` parity | after Windows CSRT; clip gate vs Python |
 | P2 | macOS release | Mac builder + notarization (`docs/PLATFORMS.md`) |
 | P2 | Mobile player (no generator) | share player/device/funscript/samn only |
-| P2 | 4-zone relative graph as default | bake-off vs two-ROI |
+| P2 | 4-zone relative graph as default | bake-off vs two-ROI; product shape in `docs/TFTJ_PROFILE_DIRECTION.md` |
 | P2 | Depth / pose / spatial | per-variant benchmark |
 | P2 | Prediction / look-ahead | only after measured latency |
 
