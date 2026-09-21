@@ -181,6 +181,30 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 	}()
 }
 
+// SuggestROICandidates lists ranked motion regions without applying any ROI.
+// Event generate:roi-candidates — TFTJ step 4b (pick primary yourself).
+func (a *App) SuggestROICandidates(videoPath string) {
+	go func() {
+		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
+		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
+		cands, err := generator.FindROICandidatesWithProgress(videoPath, onLine, onPct)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{"error": err.Error()})
+			return
+		}
+		list := make([]map[string]any, 0, len(cands))
+		for _, c := range cands {
+			list = append(list, map[string]any{
+				"x": c.X, "y": c.Y, "w": c.W, "h": c.H,
+				"score": c.Score, "index": c.Index,
+			})
+		}
+		runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{
+			"candidates": list,
+		})
+	}()
+}
+
 // attachROIVerify runs a lightweight Go second-pass motion check and adds
 // warning fields when the proposed box looks weak. Never changes the box.
 func attachROIVerify(payload map[string]any, videoPath string, roi generator.ROI) {

@@ -315,6 +315,46 @@ def find_two_rois(video_path, **kwargs):
     return to_box(best[1]), to_box(best[2])
 
 
+def find_roi_candidates(video_path, max_regions=6, **kwargs):
+    """Ranked motion regions as read-only proposals (TFTJ step 4b).
+
+    Returns a list of dicts ``{x, y, w, h, score}`` sorted by score
+    descending. Does **not** auto-pick a pair or commit a ROI — the GUI
+    shows every candidate and the user chooses the primary stroke mark.
+    Silent ROI2 commit stays forbidden (issue #8).
+    """
+    result = find_roi(video_path, _return_series=True, **kwargs)
+    scores, series, geometry = result
+    cell_w, cell_h, scale, width, height, fps = geometry
+    if float(scores.max()) <= 0:
+        raise RuntimeError("Keine rhythmische Bewegung gefunden - bitte Region von Hand markieren")
+
+    regions = _peak_regions(scores, max_regions=max_regions)
+    if not regions:
+        raise RuntimeError("Keine bewegten Regionen gefunden - bitte Region von Hand markieren")
+
+    def to_box(cells):
+        rs = [r for r, c in cells]
+        cs = [c for r, c in cells]
+        r0, r1 = min(rs), max(rs) + 1
+        c0, c1 = min(cs), max(cs) + 1
+        x = int(c0 * cell_w / scale)
+        y = int(r0 * cell_h / scale)
+        w = max(24, int((c1 - c0) * cell_w / scale))
+        h = max(24, int((r1 - r0) * cell_h / scale))
+        x = max(0, min(x, width - w))
+        y = max(0, min(y, height - h))
+        return (x, y, w, h)
+
+    out = []
+    for cells in regions:
+        score = float(max(scores[r, c] for r, c in cells))
+        x, y, w, h = to_box(cells)
+        out.append({"x": x, "y": y, "w": w, "h": h, "score": score})
+    out.sort(key=lambda c: c["score"], reverse=True)
+    return out
+
+
 def find_roi(video_path, grid_cols=12, grid_rows=8, max_seconds=45, sample_every=2,
              start_frame=0, end_frame=None, report_progress=True, _return_series=False):
     """Analysiert das Video und liefert (x, y, w, h) der besten Region.
@@ -452,7 +492,22 @@ def main():
     ap.add_argument("--two", action="store_true",
                     help="Zwei Regionen vorschlagen (find_two_rois) für Tf/Tj. "
                          "Nur Vorschlag — nie automatisch übernommen (docs/NEXT.md Priorität 3).")
+    ap.add_argument("--list", action="store_true",
+                    help="Alle Bewegungs-Kandidaten ausgeben (CANDIDATE i x y w h score). "
+                         "Read-only Vorschläge für die GUI — keine Auto-Übernahme (TFTJ 4b).")
     args = ap.parse_args()
+
+    if args.list:
+        try:
+            cands = find_roi_candidates(args.video, max_seconds=args.max_seconds)
+        except RuntimeError as exc:
+            print(f"Kandidaten-Suche fehlgeschlagen: {exc}", file=sys.stderr)
+            sys.exit(1)
+        for i, c in enumerate(cands, start=1):
+            print(f"CANDIDATE {i} {c['x']} {c['y']} {c['w']} {c['h']} {c['score']:.6f}")
+            print(f"Kandidat {i}: x={c['x']} y={c['y']} w={c['w']} h={c['h']} "
+                  f"score={c['score']:.4f}", file=sys.stderr)
+        return
 
     if args.two:
         try:
