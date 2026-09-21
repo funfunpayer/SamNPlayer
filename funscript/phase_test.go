@@ -2,6 +2,7 @@ package funscript
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -230,4 +231,117 @@ func absInt(v int) int {
 		return -v
 	}
 	return v
+}
+
+// irregularHalfCycleActions builds a non-periodic stroke-like wave: it
+// alternates between LOW and HIGH, but each half-cycle's duration is drawn
+// fresh (deterministic PRNG) from [minHalfMs, maxHalfMs), so no two cycles
+// repeat — unlike a real stroke motion, which is close to periodic.
+func irregularHalfCycleActions(durationMs int, seed int64, minHalfMs, maxHalfMs int, t0 int64, low, high int) []Action {
+	rng := rand.New(rand.NewSource(seed))
+	var actions []Action
+	at := 0
+	isLow := true
+	for at <= durationMs {
+		pos := low
+		if !isLow {
+			pos = high
+		}
+		actions = append(actions, Action{At: t0 + int64(at), Pos: pos})
+		at += minHalfMs + rng.Intn(maxHalfMs-minHalfMs)
+		isLow = !isLow
+	}
+	return actions
+}
+
+// TestPeriodicityAliasingCharacterization is a synthetic ground-truth
+// reproduction of the F-003 periodicity-aliasing hypothesis
+// (docs/FINDINGS_TIMING_TF.md § F-003): a lag search over near-periodic
+// motion can lock onto a lag offset by whole multiples of the dominant
+// stroke period — and produce a *swinging* per-window lag / orientation
+// flip — even when the true underlying offset is constant. Non-periodic
+// motion under the identical constant offset does not show this failure
+// mode. This does not change BestLagCorrelation/WindowedBestLagCorrelation
+// behavior — it locks in and documents a known limitation with an
+// executable, reproducible example so it can't silently drift or get
+// "fixed" without anyone noticing (per docs/FINDINGS_TIMING_TF.md's "what
+// does NOT change" note: the guidance to use windowed measurement, not the
+// windowed search itself, is what's trustworthy).
+func TestPeriodicityAliasingCharacterization(t *testing.T) {
+	const (
+		durationMs = 60000
+		periodMs   = 280 // measured dominant period, clip_ausschnitt ohne_yolo
+		trueLagMs  = 300 // constant, known, injected offset
+		windowMs   = 10000
+	)
+
+	t.Run("periodic motion: whole-clip lag search can alias onto a wrong multiple of the period", func(t *testing.T) {
+		ref := sineActions(durationMs, periodMs, 20, 0, 35, 55)
+		shifted := sineActions(durationMs, periodMs, 20, trueLagMs, 35, 55)
+		result := BestLagCorrelation(ref, shifted, 1500, 20, 20)
+		if result == nil {
+			t.Fatal("expected a correlation result")
+		}
+		if result.R < 0.99 {
+			t.Fatalf("periodic signal should correlate near-perfectly at its best lag; r=%.4f", result.R)
+		}
+		// The true recovered lag (matching the sign convention verified in
+		// TestBestLagCorrelationShiftedSine) would be -trueLagMs. Aliasing
+		// means the search is free to land on any -trueLagMs ± k*periodMs
+		// instead, since those all correlate equally well on a perfectly
+		// periodic wave.
+		if absInt(result.LagMs-(-trueLagMs)) < periodMs/2 {
+			t.Skip("search happened to land on the true lag this time (not guaranteed to alias every run)")
+		}
+		off := result.LagMs - (-trueLagMs)
+		if off%periodMs != 0 {
+			t.Fatalf("aliased lag=%d is not an integer number of periods away from true lag=%d (off=%d, period=%d)",
+				result.LagMs, -trueLagMs, off, periodMs)
+		}
+	})
+
+	t.Run("periodic motion: windowed lag search can swing across windows despite a constant true offset", func(t *testing.T) {
+		ref := sineActions(durationMs, periodMs, 20, 0, 35, 55)
+		shifted := sineActions(durationMs, periodMs, 20, trueLagMs, 35, 55)
+		windows := WindowedBestLagCorrelation(ref, shifted, windowMs, 1500, 20, 20)
+		if len(windows) < 3 {
+			t.Fatalf("expected >=3 windows, got %d", len(windows))
+		}
+		seen := map[int]bool{}
+		for _, w := range windows {
+			if w.Correlation == nil {
+				continue
+			}
+			seen[w.Correlation.LagMs] = true
+		}
+		if len(seen) < 2 {
+			t.Skip("all windows happened to agree this run (aliasing is not guaranteed on every seed/period)")
+		}
+	})
+
+	t.Run("non-periodic motion: windowed lag search recovers the true constant offset in every window", func(t *testing.T) {
+		ref := irregularHalfCycleActions(durationMs, 42, 130, 450, 0, 20, 90)
+		shifted := irregularHalfCycleActions(durationMs, 42, 130, 450, trueLagMs, 20, 90)
+		windows := WindowedBestLagCorrelation(ref, shifted, windowMs, 1500, 20, 20)
+		if len(windows) < 3 {
+			t.Fatalf("expected >=3 windows, got %d", len(windows))
+		}
+		confident := 0
+		for _, w := range windows {
+			if w.Correlation == nil {
+				continue
+			}
+			confident++
+			if absInt(w.Correlation.LagMs-(-trueLagMs)) > 20 {
+				t.Errorf("window %d-%dms: lag=%d, want ~%d (non-periodic motion should not alias)",
+					w.WindowStartMs, w.WindowEndMs, w.Correlation.LagMs, -trueLagMs)
+			}
+			if w.Correlation.Orientation != "normal" {
+				t.Errorf("window %d-%dms: orientation=%s, want normal", w.WindowStartMs, w.WindowEndMs, w.Correlation.Orientation)
+			}
+		}
+		if confident < 3 {
+			t.Fatalf("expected >=3 confident windows, got %d", confident)
+		}
+	})
 }

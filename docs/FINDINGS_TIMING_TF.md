@@ -47,7 +47,7 @@ Script Doctor / Quality Doctor = **Signal Quality**. FunGen /
 `docs/SIGNAL_VS_FIDELITY.md`. Next architecture milestone: Perception v1
 on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 
-## F-003: FrameIndex/FPS timing drift — **its proposed mechanism is refuted** (21 Sep 2026)
+## F-003: FrameIndex/FPS timing drift — **original mechanism refuted, periodicity aliasing confirmed** (21 Sep 2026)
 
 **Original claim (source research material, 16 Sep 2026):** funscript
 keyframe timestamps derived from frame *index* × nominal FPS drift from
@@ -105,20 +105,77 @@ was wrong is *why* it happens.
 observed drift on this clip.** The drift signature stays real and
 unexplained pending a new hypothesis.
 
-**Leading alternative hypothesis (not yet proven): periodicity aliasing
-in the lag search itself.** Funscript motion is typically near-periodic
-(repeated stroke cycles); a wide lag search (±1000-3000ms here) over a
-periodic signal can lock onto a *different cycle* of the same motion that
-happens to correlate well by coincidence, rather than the true alignment
-— producing lag values that cluster near integer multiples of the
-dominant stroke period, not real timing offsets. A rough check (dominant
-period ≈280ms via autocorrelation on `clip_ausschnitt`'s `ohne_yolo`
-reference, compared against the windowed measurement's observed lag
-values) showed most residuals within ±0.2-0.5 cycles of an integer
-multiple — suggestive, not conclusive. **Next step, still open:** a
-cleaner test (e.g. a synthetic clip with known, non-periodic or
-irregular-period motion and a known true lag) to confirm or rule out
-aliasing directly, rather than inferring it from real-clip residuals.
+**Alternative hypothesis: periodicity aliasing in the lag search itself
+— now CONFIRMED with a synthetic ground-truth test (21 Sep 2026).**
+Funscript motion is typically near-periodic (repeated stroke cycles); a
+wide lag search (±1000-3000ms here) over a periodic signal can lock onto
+a *different cycle* of the same motion that happens to correlate well by
+coincidence, rather than the true alignment — producing lag values that
+cluster near integer multiples of the dominant stroke period, not real
+timing offsets. The initial evidence (dominant period ≈280ms via
+autocorrelation on `clip_ausschnitt`'s `ohne_yolo` reference, compared
+against the windowed measurement's observed lag values, residuals mostly
+within ±0.2-0.5 cycles of an integer multiple) was suggestive but not
+conclusive on its own.
+
+**Synthetic ground-truth test (21 Sep 2026,
+`funscript.TestPeriodicityAliasingCharacterization` in
+`funscript/phase_test.go`, runs in CI, no external fixtures needed):**
+built two synthetic signals over a 60s span with a known, constant,
+injected 300ms lag (`shifted.At = ref.At + 300`, matching the sign
+convention already locked in by `TestBestLagCorrelationShiftedSine`,
+where the recovered lag is the negative of the injected offset, i.e.
+`-300`):
+
+1. **Periodic** — a 280ms-period sine wave (the same dominant period
+   measured on `clip_ausschnitt`).
+2. **Non-periodic** — a stroke-like wave alternating low/high, but with
+   each half-cycle duration drawn fresh from [130, 450)ms so no cycle
+   repeats.
+
+Both pairs are otherwise identical (same amplitude range, same known
+lag, same 10s window size). Results:
+
+- **Whole-clip, periodic:** best-lag search reports `r=1.0000` at
+  `lag_ms=-1140`, not the true `-300`. `-1140 = -(300 + 3×280)` — the
+  search locked onto a candidate exactly 3 full stroke periods away from
+  the true offset, because on a perfectly periodic wave every such
+  candidate correlates equally perfectly.
+- **Whole-clip, non-periodic:** best-lag search reports `r=1.0000` at
+  `lag_ms=-300` — the exact true offset, no aliasing possible without a
+  repeating cycle to alias onto.
+- **Windowed (10s windows), periodic:** lag swings `-1420ms` to
+  `+1240ms` across windows, **including one window flipping orientation
+  to `inverted`** (a perfectly symmetric triangle/sine stroke shape
+  time-shifted by half a period is indistinguishable from its own
+  vertical inversion) — despite the true injected offset being exactly
+  the same **constant** 300ms in every window, the whole clip through.
+  This reproduces, from a known-constant offset and nothing else, the
+  same *shape* of pathology seen on the real clips: swinging per-window
+  lag and a mid-clip orientation flip.
+- **Windowed (10s windows), non-periodic:** every single window reports
+  `lag_ms=-300`, `r=1.0000`, `orientation=normal` — exactly the true
+  offset, no swing, no flip.
+
+**Conclusion: periodicity aliasing is a real, demonstrated failure mode
+of the current lag search on periodic/near-periodic motion, sufficient
+on its own (no real drift required) to produce swinging windowed lag and
+spurious orientation flips.** This doesn't prove aliasing is the *only*
+thing happening on the real clips (real motion isn't perfectly periodic
+or noise-free the way this synthetic is), but it proves the mechanism is
+real and structurally capable of producing exactly what was observed.
+The synthetic test is committed as a permanent characterization test (not
+a bugfix — `BestLagCorrelation`/`WindowedBestLagCorrelation` are
+unchanged) so this failure mode is documented, reproducible, and can't
+silently regress or get "fixed" without anyone noticing.
+
+**What this means going forward (idea, not decided/implemented):** any
+future mitigation — e.g. constraining the lag search span relative to a
+detected dominant period, or flagging "high periodicity, aliasing risk"
+on near-tied best-lag candidates — is a real design change to a
+measurement primitive several docs now depend on, and needs its own
+sign-off before implementation, same as any other behavior change per
+this board's rules.
 
 **What does NOT change**: the practical guidance this finding produced
 ("don't judge a clip from whole-clip r alone, use windowed measurement")
