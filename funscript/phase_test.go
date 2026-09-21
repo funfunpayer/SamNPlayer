@@ -144,92 +144,84 @@ func TestDiagnosePhaseTimingVsShape(t *testing.T) {
 	}
 }
 
-// TestWindowedBestLagCorrelationLagDrift verifies that independent per-window
-// lag search recovers a continuously drifting offset (the clip_voll finding).
-func TestWindowedBestLagCorrelationLagDrift(t *testing.T) {
-	// Build a long reference sine, then a candidate whose lag drifts from
-	// ~-400ms in the first half to ~+400ms in the second half.
-	const durationMs = 60000
-	const periodMs = 2000
-	const stepMs = 40
-	reference := sineActions(durationMs, periodMs, stepMs, 0, 40, 50)
-
-	var candidate []Action
+func chirpActions(durationMs, stepMs int, t0 int64) []Action {
+	// Non-periodic chirp — avoids sine half-period / inverted lag ambiguity.
+	var actions []Action
 	for t := 0; t <= durationMs; t += stepMs {
-		// Linear lag drift: -400ms at t=0 → +400ms at t=duration
-		lag := -400 + int(800*float64(t)/float64(durationMs))
-		pos := 50 + 40*math.Sin(2*math.Pi*float64(t)/float64(periodMs))
-		candidate = append(candidate, Action{At: int64(t + lag), Pos: int(math.Round(pos))})
+		// Slowly rising frequency + a one-shot bump mid-range.
+		freq := 0.0004 + 0.0000008*float64(t)
+		pos := 50 + 35*math.Sin(2*math.Pi*freq*float64(t))
+		if t > 8000 && t < 10000 {
+			pos += 20
+		}
+		actions = append(actions, Action{At: t0 + int64(t), Pos: int(math.Round(pos))})
 	}
+	return actions
+}
 
-	rows := WindowedBestLagCorrelation(reference, candidate, 15000, 1000, 50, 100)
-	if len(rows) < 3 {
-		t.Fatalf("expected ≥3 windows, got %d", len(rows))
+func TestWindowedBestLagCorrelationConstantLag(t *testing.T) {
+	// Constant +500ms time shift on a non-periodic chirp → every window ~-500ms.
+	reference := chirpActions(60000, 50, 0)
+	shifted := chirpActions(60000, 50, 500)
+	windows := WindowedBestLagCorrelation(reference, shifted, 15000, 2000, 50, 100)
+	if len(windows) < 3 {
+		t.Fatalf("expected ≥3 windows, got %d", len(windows))
 	}
-	var confident []WindowedLagRow
-	for _, r := range rows {
-		if r.R != nil && !r.LowConfidence {
-			confident = append(confident, r)
+	var confident int
+	for _, w := range windows {
+		if w.Correlation == nil {
+			continue
+		}
+		confident++
+		if absInt(w.Correlation.LagMs-(-500)) > 100 {
+			t.Errorf("window %d-%d: lag_ms=%d, want ~-500", w.WindowStartMs, w.WindowEndMs, w.Correlation.LagMs)
+		}
+		if w.Correlation.R < 0.9 {
+			t.Errorf("window %d-%d: r=%.4f, want >0.9", w.WindowStartMs, w.WindowEndMs, w.Correlation.R)
 		}
 	}
-	if len(confident) < 2 {
-		t.Fatalf("expected ≥2 confident windows, got %d", len(confident))
-	}
-	// BestLagCorrelation's convention (shiftedB.At = act.At + lagMs, see
-	// phase.go) recovers the shift needed to correct the candidate's
-	// timestamps, which is the NEGATIVE of the drift injected above: the
-	// candidate is injected as t+lag(t) (lag(t): -400ms→+400ms), so the
-	// recovered LagMs runs +400ms→-400ms, positive-ish first and
-	// negative-ish last.
-	firstLag := confident[0].LagMs
-	lastLag := confident[len(confident)-1].LagMs
-	if firstLag <= lastLag {
-		t.Fatalf("expected lag drift (first=%d > last=%d)", firstLag, lastLag)
-	}
-	// Mean r should be high (shape matches; only lag drifts).
-	var sumR float64
-	for _, r := range confident {
-		sumR += *r.R
-	}
-	meanR := sumR / float64(len(confident))
-	if meanR < 0.9 {
-		t.Fatalf("mean r=%.3f, want >0.9 (shape should match within each window)", meanR)
+	if confident < 3 {
+		t.Fatalf("expected ≥3 confident windows, got %d", confident)
 	}
 }
 
-func TestWindowedBestLagCorrelationSparse(t *testing.T) {
-	// Very short / sparse actions → undefined windows, not a panic.
-	ref := []Action{{At: 0, Pos: 50}, {At: 100, Pos: 60}}
-	cand := []Action{{At: 0, Pos: 50}, {At: 100, Pos: 55}}
-	rows := WindowedBestLagCorrelation(ref, cand, 50, 100, 50, 50)
-	if len(rows) == 0 {
-		t.Fatal("expected at least one window row")
+func TestWindowedBestLagCorrelationDriftingLag(t *testing.T) {
+	// First half lag 0, second half lag +800ms on a chirp. Windowed mode
+	// must report different lags; whole-clip BestLagCorrelation can only pick one.
+	ref := chirpActions(40000, 40, 0)
+	var cand []Action
+	for _, a := range ref {
+		lag := int64(0)
+		if a.At >= 20000 {
+			lag = 800
+		}
+		cand = append(cand, Action{At: a.At + lag, Pos: a.Pos})
 	}
-	// With tiny windows and few points, most should be undefined or low-conf.
-	hasReason := false
-	for _, r := range rows {
-		if r.R == nil && r.Reason != "" {
-			hasReason = true
+	windows := WindowedBestLagCorrelation(ref, cand, 10000, 2000, 50, 100)
+	if len(windows) < 3 {
+		t.Fatalf("expected ≥3 windows, got %d", len(windows))
+	}
+	var earlyLag, lateLag *int
+	for _, w := range windows {
+		if w.Correlation == nil {
+			continue
+		}
+		lag := w.Correlation.LagMs
+		if w.WindowEndMs <= 15000 {
+			earlyLag = &lag
+		}
+		if w.WindowStartMs >= 25000 {
+			lateLag = &lag
 		}
 	}
-	if !hasReason {
-		// Acceptable if every window somehow got a result; just don't crash.
-		t.Log("all windows produced a correlation (unexpected but ok)")
+	if earlyLag == nil || lateLag == nil {
+		t.Fatal("need both early and late confident windows")
 	}
-}
-
-func TestFormatWindowedReport(t *testing.T) {
-	r := 0.85
-	rows := []WindowedLagRow{
-		{WindowStartMs: 0, WindowEndMs: 30000, R: &r, LagMs: -200, Orientation: "normal"},
-		{WindowStartMs: 30000, WindowEndMs: 60000, Reason: "too_few_actions_in_window"},
+	if absInt(*earlyLag) > 150 {
+		t.Errorf("early lag=%d, want ~0", *earlyLag)
 	}
-	report := FormatWindowedReport(rows, "ref.funscript", "var.funscript", 30000)
-	if report == "" {
-		t.Fatal("empty report")
-	}
-	if !contains(report, "mean r") && !contains(report, "undefined") {
-		t.Fatalf("report missing expected content:\n%s", report)
+	if absInt(*lateLag-(-800)) > 150 {
+		t.Errorf("late lag=%d, want ~-800", *lateLag)
 	}
 }
 

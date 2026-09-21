@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -201,16 +200,17 @@ func main() {
 }
 
 // runPhase compares two funscripts (reference vs candidate) via
-// BestLagCorrelation + DiagnosePhase, or WindowedBestLagCorrelation when
-// --window-ms is set. Args: A.funscript B.funscript [--max-lag-ms N]
-// [--window-ms N] [--lag-step-ms N] [--resample-ms N].
+// BestLagCorrelation + DiagnosePhase. With --window-ms > 0, runs
+// WindowedBestLagCorrelation and prints per-window lag/orientation/r
+// (docs/FINDINGS_TIMING_TF.md next slice).
+// Args: A.funscript B.funscript [--max-lag-ms N] [--window-ms N] ...
 func runPhase(args []string) int {
 	fs := flag.NewFlagSet("phase", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	maxLag := fs.Int("max-lag-ms", funscript.DefaultMaxLagMs, "Lag-Suchfenster ±ms")
 	lagStep := fs.Int("lag-step-ms", funscript.DefaultLagStepMs, "Lag-Schrittweite ms")
 	resample := fs.Int("resample-ms", funscript.DefaultResampleStepMs, "Resample-Schrittweite ms")
-	windowMs := fs.Int("window-ms", 0, "Windowed mode: independent lag search per N ms window (0 = whole-clip)")
+	windowMs := fs.Int("window-ms", 0, "Window size ms for per-window lag search (0 = whole-clip only)")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s phase A.funscript B.funscript [options]\n", os.Args[0])
 		fs.PrintDefaults()
@@ -237,10 +237,7 @@ func runPhase(args []string) int {
 	}
 
 	if *windowMs > 0 {
-		rows := funscript.WindowedBestLagCorrelation(a.Actions, b.Actions, *windowMs, *maxLag, *lagStep, *resample)
-		report := funscript.FormatWindowedReport(rows, filepath.Base(paths[0]), filepath.Base(paths[1]), *windowMs)
-		fmt.Print(report)
-		return 0
+		return runPhaseWindowed(a.Actions, b.Actions, *windowMs, *maxLag, *lagStep, *resample)
 	}
 
 	mf := funscript.EvaluateMotionFidelity(a.Actions, b.Actions, *maxLag, *lagStep, *resample)
@@ -258,6 +255,63 @@ func runPhase(args []string) int {
 	fmt.Printf("detail=%s\n", diag.Detail)
 	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s low_confidence=%v\n",
 		*mf.R, r0, *mf.LagMs, mf.Orientation, mf.LowConfidence)
+	return 0
+}
+
+func runPhaseWindowed(a, b []funscript.Action, windowMs, maxLag, lagStep, resample int) int {
+	windows := funscript.WindowedBestLagCorrelation(a, b, windowMs, maxLag, lagStep, resample)
+	fmt.Printf("kind=motion_fidelity_windowed\nwindow_ms=%d\n", windowMs)
+	var (
+		confident int
+		sumR      float64
+		minLag    int
+		maxLagW   int
+		haveLag   bool
+		orients   = map[string]int{}
+	)
+	for _, w := range windows {
+		ws := float64(w.WindowStartMs) / 1000
+		we := float64(w.WindowEndMs) / 1000
+		if w.Correlation == nil {
+			fmt.Printf("window %.1f-%.1fs: undefined (%s)\n", ws, we, w.Reason)
+			continue
+		}
+		c := w.Correlation
+		low := ""
+		if c.LowConfidence {
+			low = " [LOW CONFIDENCE]"
+		}
+		inv := ""
+		if c.Orientation == "inverted" {
+			inv = " INVERTED"
+		}
+		fmt.Printf("window %.1f-%.1fs: r=%.3f @ lag %+dms%s%s\n", ws, we, c.R, c.LagMs, inv, low)
+		if !c.LowConfidence {
+			confident++
+			sumR += c.R
+			orients[c.Orientation]++
+			if !haveLag {
+				minLag, maxLagW, haveLag = c.LagMs, c.LagMs, true
+			} else {
+				if c.LagMs < minLag {
+					minLag = c.LagMs
+				}
+				if c.LagMs > maxLagW {
+					maxLagW = c.LagMs
+				}
+			}
+		}
+	}
+	if confident > 0 {
+		fmt.Printf("summary: n=%d confident of %d total, mean_r=%.3f, lag_range=%+d..%+dms\n",
+			confident, len(windows), sumR/float64(confident), minLag, maxLagW)
+		if len(orients) > 1 {
+			fmt.Printf("summary: orientation FLIPS across the clip (normal=%d inverted=%d)\n",
+				orients["normal"], orients["inverted"])
+		}
+	} else {
+		fmt.Printf("summary: no confident windows\n")
+	}
 	return 0
 }
 

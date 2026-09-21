@@ -1888,10 +1888,14 @@ git history rather than rebuilding from scratch.
   `fungen_compare.py`. Verified it reproduces the finding against the
   committed dataset: whole-clip r=0.060/0.065, windowed (30s) mean
   r=0.268/0.349, lag drift up to -2600..+2800ms, orientation flip around
-  150-210s - matching the numbers above. The Go `phase --window-ms` CLI
-  variant is still not built (this stays Python, same as
-  `fungen_compare.py` itself - offline analysis tooling, not the runtime
-  generate path the Go-migration policy targets).
+  150-210s - matching the numbers above.
+
+  **Update 3 (same day): the Go `phase --window-ms` CLI shipped too**,
+  separately on `main` (#143: `funscript.WindowedBestLagCorrelation` +
+  `FormatWindowedReport`, CLI `SamNPlayer phase A B --window-ms 30000`).
+  The Python tool (`fungen_compare_windowed.py`) stays as the offline
+  dataset-runner twin, same relationship `fungen_compare.py` already has
+  to `BestLagCorrelation`.
 
   **Update 2 (same day): `hub` profile measured too, same clip.** The
   user supplied a second SamNPlayer run for `clip_voll` - `hub` profile
