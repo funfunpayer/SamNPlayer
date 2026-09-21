@@ -1,13 +1,4 @@
-"""Regressionstest für den Generator-Tab: Tf/Tj-Profil.
-
-Tf und Tj waren zwei separate Dropdown-Einträge, obwohl sie intern seit
-jeher dasselbe Rezept sind (funscript/recipe.go NormalizeProfile bildet
-beide auf denselben Wert ab) - zu einem Eintrag zusammengelegt. Zusätzlich
-wird das Profil jetzt automatisch ausgewählt, sobald eine 2. Region
-markiert wird: keine andere Kombination aus Verfahren/Profil wertet eine
-2. Region überhaupt aus (siehe generate_funscript.py), das Markieren IST
-also bereits die eindeutige Auswahl - die Dropdown-Wahl von Hand ist dann
-nur noch ein zusätzlicher, überflüssiger Schritt.
+"""Contact-first Generate: no Tf/Tj profile; Zone 2 optional; Contact vib on.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_tftj_test.py
 """
@@ -28,9 +19,6 @@ PAGE = """<!doctype html><html><body><div id="root"></div>
   window.__ready = true;
 </script></body></html>"""
 
-# 1x1-Pixel-PNG (transparent) - die tatsächlichen Bildmaße sind für den Test
-# egal, nativeW/nativeH kommen aus dem LoadFirstFrame-Stub, nicht aus dem
-# dekodierten Bild.
 TINY_PNG_B64 = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
                 "+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 
@@ -43,7 +31,7 @@ def main():
                           f"pngBase64: '{TINY_PNG_B64}' }})",
         "LoadFrameAt": f"async () => ({{ width: 640, height: 360, "
                        f"pngBase64: '{TINY_PNG_B64}' }})",
-        "SuggestPipeline": "async (w,h,w2,h2) => ({ Backend: w2>0?'csrt':'csrt', Profile: w2>0?'tf':'standard', Reason: 'test', GoPath: true })",
+        "SuggestPipeline": "async (w,h,w2,h2) => ({ Backend: 'csrt', Profile: 'standard', Reason: 'test', GoPath: true })",
         "CheckAIRoiAvailable": "async () => false",
         "CheckAudioCheckAvailable": "async () => false",
     }))
@@ -59,8 +47,8 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         options = page.eval_on_selector_all("#gen-profile option", "els => els.map(e => e.value)")
-        check("Dropdown hat nur einen Tf/Tj-Eintrag (kein separates 'tj' mehr)",
-              options == ["standard", "weich", "autotune", "tf"] and "tj" not in options,
+        check("No Tf/Tj in product profile dropdown",
+              options == ["standard", "weich", "autotune"] and "tf" not in options and "tj" not in options,
               str(options))
 
         page.click("#gen-choose")
@@ -69,7 +57,6 @@ def main():
 
         box = page.locator("#roi-canvas").bounding_box()
 
-        # --- 1. Region: ändert das Profil NICHT ------------------------------
         page.mouse.move(box["x"] + 40, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
@@ -80,8 +67,10 @@ def main():
         check("Profil bleibt 'standard' nach nur einer Region",
               page.locator("#gen-profile").input_value() == "standard",
               page.locator("#gen-profile").input_value())
+        check("Generate enabled with tip only (no Zone 2)",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
 
-        # --- 2. Region: Shift+drag (sets ROI2; auto-switches profile to Tf/Tj) -
+        # Zone 2: optional — must NOT switch profile to tf.
         page.keyboard.down("Shift")
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
@@ -89,27 +78,21 @@ def main():
         page.mouse.up()
         page.keyboard.up("Shift")
 
-        page.wait_for_function(
-            "document.querySelector('#gen-profile').value === 'tf'", timeout=5000)
-        check("2. Region markiert -> Profil automatisch auf Tf/Tj umgeschaltet", True)
-        check("2. Region ist gesetzt",
-              not page.locator("#gen-roi2-label").inner_text().startswith("Keine"),
+        page.wait_for_timeout(200)
+        check("Profil bleibt standard nach Zone 2",
+              page.locator("#gen-profile").input_value() == "standard",
+              page.locator("#gen-profile").input_value())
+        check("Zone 2 ist gesetzt",
+              "No 2nd" not in page.locator("#gen-roi2-label").inner_text(),
               page.locator("#gen-roi2-label").inner_text())
-        check("Tf/Tj-Hinweistext sichtbar",
-              page.locator("#gen-tftj-hint").evaluate("e => e.style.display") == "block")
         check("Kontakt-Vibration-Zeile sichtbar",
               page.locator("#gen-contact-vibration-row").evaluate("e => e.style.display") == "flex")
-        # Standard an bei Tf/Tj — Optionen sofort sichtbar
         check("Kontakt-Vibration standardmäßig aktiv",
               page.locator("#gen-contact-vibration").is_checked())
         check("Kontakt-Vibration-Optionen sichtbar",
               page.locator("#gen-contact-vibration-opts").evaluate("e => e.style.display") == "block")
         check("Default-Kurve soft (wie Berührung)",
               page.locator("#gen-contact-curve").input_value() == "soft")
-        check("Empfindlichkeits-Slider vorhanden",
-              page.locator("#gen-contact-span").count() == 1)
-        check("Kurvenwahl vorhanden",
-              page.locator("#gen-contact-curve").count() == 1)
 
         browser.close()
 

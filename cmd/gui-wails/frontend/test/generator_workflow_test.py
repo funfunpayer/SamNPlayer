@@ -1,8 +1,6 @@
 """Sequential Generate workflow: steps appear one after another.
 
-Only step 1 (Video) is visible at first. After choose → region panel,
-after ROI1 → motion panel, after regions ready → generate panel.
-Review stays hidden until a successful generate:done.
+Contact-first: tip ROI (or 4-zone) unlocks Generate — Zone 2 optional.
 
 Run: python3 cmd/gui-wails/frontend/test/generator_workflow_test.py
 """
@@ -88,17 +86,13 @@ def main():
         check("Generate button enabled",
               page.locator("#gen-generate").is_enabled())
 
-        # Switch to Tf/Tj → generate should hide until ROI2
-        page.select_option("#gen-profile", "tf")
-        page.wait_for_function(
-            "document.querySelector('#gen-step-run').hidden === true", timeout=5000)
-        check("Tf without ROI2: generate step hidden again",
-              not visible(page, "#gen-step-run"))
-        check("Prompt mentions 2nd region",
-              "2nd" in page.locator("#gen-step-prompt").inner_text().lower()
-              or "tf" in page.locator("#gen-step-prompt").inner_text().lower())
+        # No Tf/Tj in product dropdown — Contact-first.
+        profiles = page.eval_on_selector_all(
+            "#gen-profile option", "els => els.map(e => e.value)")
+        check("No tf profile option", "tf" not in profiles and "tj" not in profiles,
+              str(profiles))
 
-        box = page.locator("#roi-canvas").bounding_box()
+        # Optional Zone 2 must NOT hide Generate.
         page.keyboard.down("Shift")
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
@@ -109,10 +103,20 @@ def main():
             "() => { const l = document.querySelector('#gen-roi2-label');"
             " return l && !l.textContent.startsWith('No '); }",
             timeout=5000)
-        page.wait_for_function(
-            "!document.querySelector('#gen-step-run').hidden", timeout=5000)
-        check("After ROI2: generate step back", visible(page, "#gen-step-run"))
+        check("After optional Zone 2: generate still visible",
+              visible(page, "#gen-step-run"))
+        check("Generate still enabled", page.locator("#gen-generate").is_enabled())
         check("Review still hidden until done", not visible(page, "#gen-step-result"))
+
+        # 4-zone no-mark path: reload-ish by toggling nomark after clearing isn't
+        # trivial; click nomark should keep generate enabled.
+        page.click("#gen-nomark")
+        page.wait_for_function(
+            "document.querySelector('#gen-backend').value === 'region_fusion_auto'",
+            timeout=3000)
+        check("4-zone selected",
+              page.locator("#gen-backend").input_value() == "region_fusion_auto")
+        check("4-zone: generate enabled", page.locator("#gen-generate").is_enabled())
 
         browser.close()
 

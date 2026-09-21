@@ -37,6 +37,7 @@ implement only after this shape is agreed. Related: `docs/ENGINE.md`,
 | 4 | Where Tf/Tj “sits” | **Feel recipe on top of the best classical stroke path** — Normal/Auto recognition stays the curve writer; Tf/Tj (+ contact vib) is how Neo 2 *feels*, not a second tracker product. Owner (21 Sep pm): Normal recognition already works better; Tf/Tj should ride that, with Contact. |
 | 5 | Milestone UX | **Show every usable motion candidate** the system can find; user mainly marks the **primary stroke**. Quality must not equal “how well you painted boxes.” Silent auto-commit of ROI2 remains forbidden. |
 | 6 | YOLO while available | Optional class helpers (**penis / glans / nipple** and similar) as *proposals* for main + contact targets — never write the 0–100 curve. |
+| 7 | Tf/Tj vs Contact (21 Sep eve) | **Tf/Tj profile not required in the product GUI.** Everyday = stroke track (CSRT tip or 4-zone) + **Contact vibration**. Zone 2 optional. Distance Tf/Tj remains CLI/legacy only. |
 
 ---
 
@@ -172,8 +173,9 @@ Not G1. After classical Generate + vib recipes are solid:
 | **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log — tip-only Autotune **DONE** #164; smoke **0.5.18** |
 | **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | **DONE** #149 |
 | **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **DONE** #160 |
-| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT — **next measure** |
+| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | **DONE** on Claude `clip_ausschnitt` — 4-zone **below** tip CSRT (see below); keep opt-in, do **not** default |
 | **4b** | **Motion candidates UI** — show all usable motion/ROI proposals before Generate; user picks primary | **DONE** #167 — in **v0.5.19** |
+| **4c** | GUI opt-in **Track whole-frame motion (4 zones)** (`region_fusion_auto`) | **DONE** #169 — no mark; Normal + Contact vib; Contact-first (no Tf/Tj gate) |
 | **5** | GUI rename of profiles; keep aliases | Copy review |
 | **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | CLI/GUI — owner #4 |
 | **6b** | YOLO class proposals (penis / glans / nipple) as opt-in helpers for primary + partner | Suggest ≠ commit; needs working AI Train (#119) |
@@ -183,11 +185,29 @@ Not G1. After classical Generate + vib recipes are solid:
 
 | Release | Ship | Why |
 |---------|------|-----|
-| **v0.5.19** | Step **4** measure + start **4b** candidate overlay (read-only) | Prove no-mark ≥ CSRT before UX bet; show motion without forcing marks |
-| **v0.5.20** | Step **6** feel-decouple (Tf/Tj recipe on Normal path when vib on) + polish 4b pick-primary | Milestone “mark main stroke” usable |
-| **later** | **6b** YOLO proposals + step **7** profile suggest | Only after classical candidates feel trustworthy |
+| **v0.5.19** | Step **4b** candidate overlay (read-only) | Show motion without forcing marks |
+| **v0.5.20** | Step **4c** GUI 4-zone opt-in + Contact-first (#169) | Everyday = stroke + Contact vib; 4-zone stays opt-in after measure |
+| **later** | Step **6** feel-decouple + **6b** YOLO + **7** profile suggest | Only after classical candidates feel trustworthy |
 
-Owner media still needed for step 4 FunGen windowed (~3 min clips).
+### Step 4 measure — Claude `clip_ausschnitt` (21 Sep 2026)
+
+Video: `clip_ausschnitt_b76a.mp4` (~50s, 1280×720 CFR 24fps). FunGen refs from
+`generator/testdata/golden_clips/clip_ausschnitt_native/`. `clip_voll.mp4` not
+available in the agent environment (skipped). Windowed = 10s, max-lag 1000ms.
+
+| Variant | whole-clip r vs ohne_yolo | windowed mean r vs ohne_yolo |
+|---------|---------------------------|------------------------------|
+| CSRT hub (committed native Go) | 0.440 | **0.590** |
+| CSRT tip-tight (`426,450,320,180`, `--axis y`) | 0.447 | **0.468** |
+| **4-zone `region_fusion_auto` (no mark)** | 0.189 inv | **0.363** |
+| CSRT auto_roi huge box (bad tip) | 0.035 | 0.309 |
+| Python OLD bonus | 0.165 inv | 0.446 |
+
+Contact vib: stroke actions **identical** with/without `--contact-vibration`;
+recipe gets `contact_vibration=true` + `curve=soft` (device path only).
+
+**Gate:** promote 4-zone only if ≥ single-ROI CSRT → **not met** (0.363 < 0.468
+tip CSRT, and far below committed hub 0.590). Keep GUI button as **opt-in**.
 
 ---
 
@@ -201,8 +221,9 @@ Owner media still needed for step 4 FunGen windowed (~3 min clips).
 
 ---
 
-## Next concrete implementation (after this PR)
+## Next concrete implementation (after #169)
 
-Steps **2–3** done. After **0.5.18** Autotune smoke (#145): start **step 4**
-(windowed no-mark vs FunGen) in parallel with **4b** read-only motion
-candidates. Do **not** leapfrog to YOLO auto-commit or profile AI suggest.
+Steps **2–4c** done on product path. Step **4** measure says keep 4-zone
+opt-in. Next: ship **v0.5.20**, then step **6** feel-decouple when vib on.
+Do **not** leapfrog to YOLO auto-commit or profile AI suggest. Re-run step 4
+on `clip_voll` when that media is available.
