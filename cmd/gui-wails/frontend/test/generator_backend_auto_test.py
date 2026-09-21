@@ -1,4 +1,4 @@
-"""CSRT product path: Generate always needs a marked region (no flow/auto).
+"""CSRT still needs a marked region; 4-zone no-mark is a separate opt-in.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_auto_test.py
 """
@@ -47,7 +47,8 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         options = page.eval_on_selector_all("#gen-backend option", "els => els.map(e => e.value)")
-        check("Only CSRT in dropdown", options == ["csrt"], str(options))
+        check("CSRT + 4-zone in dropdown",
+              options == ["csrt", "region_fusion_auto"], str(options))
 
         check("Generate disabled without video",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is True)

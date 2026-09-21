@@ -65,7 +65,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E / Cursor A | #145 tip-only **DONE** #164; #119 + flow media remain |
 | **5** | **v0.5.18** | Cursor A | **DONE** #166 + tag `v0.5.18` |
 | **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | 4b **DONE** #167; bump **v0.5.19** |
-| **7** | **v0.5.19** | Cursor A | **IN PROGRESS** — bump + tag |
+| **7** | **v0.5.19** | Cursor A | **DONE** #168 + tag `v0.5.19` |
+| **8** | No-mark 4-zone in GUI + Contact-first | Cursor A | **DONE** #169 — step-4 measure: 4-zone < tip CSRT → keep opt-in |
+| **9** | **v0.5.20** | Cursor A | **IN PROGRESS** bump + tag — owner Flow smoke on this build |
 
 ---
 
@@ -86,8 +88,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | this PR | fix `dominantPeriodMs` (real bug, not half-period) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-19-d7cb` | bump + tag **v0.5.19** (motion candidates) | **IN PROGRESS** |
-| E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
+| A | Cursor | `cursor/release-0-5-20-d7cb` | bump **v0.5.20** + tag (4-zone + Contact-first; owner Flow smoke) | **IN PROGRESS** |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | ready for review — #119 stays open |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
@@ -372,6 +374,9 @@ bug. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Tier (2)'s
 | 21 Sep | #164 merged — Autotune/stroke tip-only; cut **v0.5.18** for owner smoke | Cursor A |
 | 21 Sep | Milestone: Tf/Tj feel on Normal classical + show motion candidates; YOLO classes = proposals only; plan **0.5.19** (step 4+4b) | Owner + Cursor |
 | 21 Sep | Owner smoked Autotune on 0.5.18 OK → #145 closed; ship **v0.5.19** motion-candidates button | Owner + Cursor |
+| 21 Sep | Product: **no Tf/Tj required** — Contact vibration + stroke/4-zone; Zone 2 optional | Owner |
+| 21 Sep | Step 4 measure on Claude `clip_ausschnitt`: 4-zone windowed r=0.363 < tip CSRT 0.468 < hub 0.590 vs FunGen ohne_yolo — keep 4-zone **opt-in**, do not default | Cursor A |
+| 21 Sep | Owner: Flow smoke on **v0.5.20** (after #169) | Owner |
 
 ---
 
