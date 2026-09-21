@@ -43,6 +43,9 @@ measurement history behind each entry; this file is the short version for
   FunGen r=0.363 vs tip CSRT 0.468 vs committed hub 0.590 (ohne_yolo).
   Contact vib does not change stroke actions. **Do not default 4-zone.**
   Details: `docs/TFTJ_PROFILE_DIRECTION.md` § Step 4 measure.
+- **Method matrix (same clip):** tip-matched `region_fusion` 0.562 /
+  `grid_lk` 0.494 / flow×0.5 0.231 windowed vs ohne_yolo. Full-res flow
+  incomplete at ~180s. Soft wall warn works. See TFTJ § Method matrix.
 
 ## [0.5.19] — September 21, 2026
 

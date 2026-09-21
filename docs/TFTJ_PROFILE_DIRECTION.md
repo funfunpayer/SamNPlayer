@@ -210,6 +210,30 @@ recipe gets `contact_vibration=true` + `curve=soft` (device path only).
 **Gate:** promote 4-zone only if ≥ single-ROI CSRT → **not met** (0.363 < 0.468
 tip CSRT, and far below committed hub 0.590). Keep GUI button as **opt-in**.
 
+### Method matrix (same clip, eve 21 Sep) — compare trackers
+
+Same tip ROI `426,450,320,180` `--axis y` where a mark is required. Windowed
+10s vs FunGen ohne_yolo (primary ranking):
+
+| Rank | Method | windowed mean r | whole-clip r | Notes |
+|------|--------|----------------:|-------------:|-------|
+| 1 | CSRT hub (native committed) | **0.590** | 0.440 | Best baseline |
+| 2 | `region_fusion` tip | **0.562** | **0.501** | Marked; near hub — revisit bake-off caveat (auto_roi ROI was weaker) |
+| 3 | `grid_lk` tip | 0.494 | 0.416 | Faster; below hub |
+| 4 | CSRT tip-tight | 0.468 | 0.447 | Same tip as rows 2–3 |
+| 5 | 4-zone `region_fusion_auto` | 0.363 | 0.189 inv | No mark — keep opt-in |
+| 6 | `flow --flow-downscale 0.5` | 0.231 | 0.077 | **Completes** ~50s 720p; QD 0.55 noisy |
+| — | `flow` full-res | — | — | Soft `FLOW_WALL_WARN` at 30s; hard kill ~180s at ~920/1199 |
+
+**Implications for next prep (Windows smoke can wait):**
+
+1. Do **not** default 4-zone or Flow in GUI.
+2. Optional later: Advanced `region_fusion` (marked) — only after a second clip
+   confirms tip-matched ≥ CSRT; values above beat Claude #154 auto_roi bake-off.
+3. CLI Flow: recommend `--flow-downscale 0.5` (full-res still too slow).
+4. Soft wall/stall warns (#172) are enough for owner Flow smoke when ready.
+5. Re-run matrix on `clip_voll` when media lands.
+
 ---
 
 ## Explicit non-goals (for now)

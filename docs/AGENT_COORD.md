@@ -385,6 +385,7 @@ bug. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Tier (2)'s
 | 21 Sep | Step 4 measure on Claude `clip_ausschnitt`: 4-zone windowed r=0.363 < tip CSRT 0.468 < hub 0.590 vs FunGen ohne_yolo — keep 4-zone **opt-in**, do not default | Cursor A |
 | 21 Sep | Owner: Flow smoke on **v0.5.20** (after #169) | Owner |
 | 21 Sep | Prep v0.5.21: Stroke/Soft/Autotune labels; Play Contact on stroke scripts; SuggestPipeline→standard; Flow WALL/STALL soft warn | Cursor A |
+| 21 Sep | Method matrix on Claude `clip_ausschnitt`: hub 0.590 > region_fusion tip 0.562 > grid_lk 0.494 > tip CSRT 0.468 > 4-zone 0.363 > flow×0.5 0.231; full flow still too slow — Windows smoke deferred | Cursor A |
 
 ---
 
