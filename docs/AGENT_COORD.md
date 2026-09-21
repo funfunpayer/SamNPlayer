@@ -89,7 +89,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | #172 | v0.5.21 prep: rename, feel-decouple Play, Flow soft warn + matrix | **rebasing** after #173 |
+| A | Cursor | #172 | v0.5.21 prep: rename, feel-decouple Play, Flow soft warn + matrix | **rebasing** after #173 — merge next |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **blocked** — merge conflicts; #119 stays open |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
