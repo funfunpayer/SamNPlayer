@@ -23,7 +23,16 @@ Zwei Messungen haben den Entwurf bestimmt:
 Warum überhaupt ein zweites Backend: CSRT kostet rund 100ms pro Frame,
 dichter Farneback-Flow 18ms - Faktor 5. Auf eine Stunde Video gerechnet
 150 statt 27 Minuten. Und es braucht keine von Hand markierte Region.
+
+Note (21 Sep 2026, lane E): the 18 ms/frame figure is historical and does
+not hold as a portable bound for full-resolution 1280×720 analysis. A
+bounded synthetic probe on current main averaged ~223 ms/input frame at
+scale 1.0 (OpenCV 5 / 8 threads). Progress is now emitted early so a
+wall-clock timeout can be distinguished from a true early hang.
 """
+
+import os
+import time
 
 import numpy as np
 
@@ -222,6 +231,8 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
 
     Rückgabe: (timestamps_ms, positions, (width, height), scene_cuts, stats)
     """
+    timing = os.environ.get("FLOW_BACKEND_TIMING", "").strip() in ("1", "true", "yes")
+
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
@@ -268,6 +279,11 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
     no_signal_frames = 0
     idx = 1
 
+    # Early progress so a wall-clock kill can be distinguished from a hang
+    # before the first regular report (previously every 10 frames only).
+    if on_progress:
+        on_progress(1, total)
+
     while True:
         if max_frames and idx >= max_frames:
             break
@@ -278,8 +294,12 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         if downscale != 1.0:
             gray = cv2.resize(gray, (w, h), interpolation=cv2.INTER_AREA)
 
+        t0 = time.perf_counter() if timing else None
         flow = cv2.calcOpticalFlowFarneback(prev, gray, None,
                                             0.5, 3, 15, 3, 5, 1.2, 0)
+        t_farneback = (time.perf_counter() - t0) * 1000.0 if timing else 0.0
+
+        t0 = time.perf_counter() if timing else None
         if camera_compensation:
             # Merkmalsbasiert und auf der POSITION - siehe
             # estimate_camera_shift zur Begründung.
@@ -290,7 +310,9 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
                 camera_shift_y += shift_y
             else:
                 camera_frames_lost += 1
+        t_camera = (time.perf_counter() - t0) * 1000.0 if timing else 0.0
 
+        t0 = time.perf_counter() if timing else None
         magnitude = np.linalg.norm(flow, axis=2)
         strength = float(np.percentile(magnitude, 95))
         strength_history.append(strength)
@@ -299,6 +321,8 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         min_motion = (float(np.median(strength_history)) * 0.25
                       if len(strength_history) >= 25 else 0.0)
         cy, cx, spread = estimate_centers(magnitude, ys, xs, min_motion=min_motion)
+        t_centers = (time.perf_counter() - t0) * 1000.0 if timing else 0.0
+
         if cy is None:
             # Kein verwertbares Zentrum (praktisch bewegungsloser Frame):
             # letzte Position fortschreiben und mitzählen, statt zu raten.
@@ -315,7 +339,19 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         timestamps.append(idx * 1000.0 / fps)
         prev = gray
         idx += 1
-        if on_progress and idx % 10 == 0:
+
+        if timing and (idx <= 5 or idx % 50 == 0):
+            import sys
+            print(
+                f"FLOW_TIMING frame={idx} farneback={t_farneback:.1f}ms "
+                f"camera={t_camera:.1f}ms centers={t_centers:.1f}ms "
+                f"size={w}x{h} downscale={downscale}",
+                file=sys.stderr, flush=True,
+            )
+
+        # Report every frame for the first 20, then every 10 — still cheap
+        # and makes an early hang visible long before a multi-minute kill.
+        if on_progress and (idx <= 20 or idx % 10 == 0):
             on_progress(idx, total)
 
     cap.release()
