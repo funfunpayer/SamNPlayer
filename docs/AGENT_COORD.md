@@ -37,11 +37,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | # | What | Who | Status |
 |---|------|-----|--------|
-| **0** | Cleanup | Claude + ChatGPT E | Mostly done (#150/#151/#146/#154) |
+| **0** | Cleanup | Claude + ChatGPT E | Done (#150/#151/#146/#152/#154) |
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
 | **2** | **v0.5.17** | Cursor A | **IN PROGRESS** #153 — owner smoked 0.5.16 OK |
 | **3** | TFTJ step 3 partner-mark | ChatGPT or Cursor C | Queued after tag |
-| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Claimed |
+| **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Claimed (handoff #152 merged) |
 
 ---
 
@@ -50,6 +50,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - [x] #150 provenance fix
 - [x] #151 AGENT_COORD on `main`
 - [x] #146 closed
+- [x] #152 ChatGPT lane E handoff merged
 - [x] Bake-off results in `SAM_ARCHITECTURE.md` + NEXT (#154)
 - [x] No Go ports of flow/grid_lk from this bake-off
 
@@ -61,14 +62,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #154 merged | Bake-off vs FunGen2 | **DONE** — lane free |
 | A | Cursor | #153 `cursor/release-0-5-17-d7cb` | v0.5.17 bump + tag | **IN PROGRESS** |
-| E | ChatGPT | #152 `codex/agent-coordination-lane-e` | Triage #145/#119, metadata stamp, **flow hang** (timeout on goldens) | **Claimed** |
+| E | ChatGPT | new branch off main | Triage #145/#119, metadata stamp, **flow hang** | **Claimed** — continue after #152 |
 | C | — | — | TFTJ step 3 | **Queued** after 0.5.17 |
 
 ---
 
 ## ChatGPT handoff — 21 Sep
 
-Claim: lane E (#152).
+Claim: lane E (docs claim #152 merged).
 
 - #146 closed. #145/#119 still open — need current-build reproduce before close.
 - Owner: **0.5.16 portable smoke already done** (Go path) — proceed to 0.5.17 tag after #153.
