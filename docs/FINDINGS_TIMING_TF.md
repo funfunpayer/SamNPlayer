@@ -66,7 +66,7 @@ on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 |---|---|
 | Default `generate_funscript.py` | Native covers CSRT+single ROI only |
 | flow / grid_lk / fusion / Tf/Tj two-point | Need goldens before Go ports |
-| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts now committed at `generator/testdata/golden_clips/clip_voll_tftj/` (see `docs/NEXT.md`) — `golden_clip_benchmark.py` manifest still not wired up to it, but no longer zero evidence |
+| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts now committed at `generator/testdata/golden_clips/clip_voll_tftj/` (see `docs/NEXT.md`) — a same-day `hub`-profile run on the same clip measured similarly low Motion Fidelity despite much higher Signal Quality, so the drift finding below is not Tf/Tj-specific. `golden_clip_benchmark.py` manifest still not wired up to it, but no longer zero evidence |
 | Sam Neo 2 feel | Hardware |
 
 ### Next Go / product slices (quality-first)

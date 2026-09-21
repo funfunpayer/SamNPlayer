@@ -1893,6 +1893,32 @@ git history rather than rebuilding from scratch.
   `fungen_compare.py` itself - offline analysis tooling, not the runtime
   generate path the Go-migration policy targets).
 
+  **Update 2 (same day): `hub` profile measured too, same clip.** The
+  user supplied a second SamNPlayer run for `clip_voll` - `hub` profile
+  (single ROI, no Tf/Tj) instead of `tj` - specifically to test whether
+  Tf/Tj mode itself was the problem. It is not:
+
+  | metric | `hub` (mit_yolo / ohne_yolo) | `tj` (mit_yolo / ohne_yolo) |
+  |---|---|---|
+  | whole-clip r | 0.074 / 0.059 | 0.065 / 0.060 |
+  | windowed (30s) mean r | 0.216 / 0.264 | 0.349 / 0.268 |
+  | Quality Doctor score | 0.90 | 0.57 |
+
+  `hub`'s Motion Fidelity is not better than `tj`'s despite a much higher
+  Signal Quality score (0.90 vs. 0.57, far fewer warnings) - a direct,
+  real-clip confirmation of `docs/SIGNAL_VS_FIDELITY.md` ("Signal Quality
+  ≠ Motion Fidelity"): the cleaner-looking `hub` curve is not a better
+  match to either FunGen reference. `hub` also flips correlation
+  orientation far more often across windows (near every window) than
+  `tj`'s one clean flip - consistent with `hub` sitting closer to true
+  zero correlation, where orientation choice is close to a coin flip
+  rather than reflecting one real mid-clip event. Practical reading: the
+  low Motion Fidelity measured on this clip is not specific to Tf/Tj
+  marking - whatever is driving it (most likely the same timing-drift
+  finding above) affects the single-ROI path too. Both `hub` funscripts
+  now sit alongside the `tj` ones in
+  `generator/testdata/golden_clips/clip_voll_tftj/{mit_yolo,ohne_yolo}/`.
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.
