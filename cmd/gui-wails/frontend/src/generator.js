@@ -44,7 +44,7 @@ export function initGenerator(root, playback) {
         <button id="gen-candidates" type="button" disabled
           data-help="Shows all ranked motion regions as dashed boxes. Click one to set Zone 1 (primary stroke). Nothing is applied until you pick — Zone 2 is never auto-filled.">Show motion candidates</button>
         <button id="gen-nomark" type="button" disabled
-          data-help="No hand mark: splits the whole frame into 4 zones and tracks motion (Python region_fusion_auto). Best for everyday Generate + Contact vib on Normal. Not the Tf/Tj distance path — mark tip+partner for that.">Track whole-frame motion (4 zones)</button>
+          data-help="No hand mark: splits the whole frame into 4 zones and tracks motion (Python region_fusion_auto). Everyday Generate + Contact vib — no Tf/Tj profile.">Track whole-frame motion (4 zones)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
@@ -64,9 +64,9 @@ export function initGenerator(root, playback) {
       <div class="path-label" id="gen-roi-label">No region marked</div>
       <div class="row" style="align-items:center; margin-top:6px;">
         <button id="gen-roi2-toggle" type="button"
-          data-help="Zone 2: primary contact (e.g. nipples). Tf/Tj distance + contact vibration use tip→this zone (and Zone 3+). Also via Shift+drag.">Zone 2 (contact)</button>
+          data-help="Optional contact target (e.g. nipples). Improves Contact vibration targeting when you want tip↔partner feel. Not required for Generate — Contact vib works from stroke depth alone.">Zone 2 (optional contact)</button>
         <button id="gen-target-add" type="button"
-          data-help="Zone 3+: extra Tf/Tj contact (magenta). Stroke = min distance tip → all contact zones. Defaults to fixed.">+ Zone 3+ (contact)</button>
+          data-help="Zone 3+: extra contact anchors (magenta). Optional.">+ Zone 3+ (contact)</button>
         <label style="width:auto; margin:0;" data-help="Body-part class applied to the next Zone 3+ mark (e.g. mouth, nipples).">Zone 3+ class</label>
         <select id="gen-target-class" style="min-width:7em;">
           <option value="">(any)</option>
@@ -75,7 +75,7 @@ export function initGenerator(root, playback) {
           data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
         <button id="gen-extras-clear" type="button"
           data-help="Clear all extra targets and soft masks (keeps Zone 1/Zone 2).">Clear extras</button>
-        <span class="hint" id="gen-roi2-hint" style="margin:0">Tf/Tj: tip + contact zones. Extras optional.</span>
+        <span class="hint" id="gen-roi2-hint" style="margin:0">Optional: contact target for vibration. Everyday Generate needs no Zone 2.</span>
       </div>
       <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
       <div class="path-label" id="gen-extras-label" style="display:none;"></div>
@@ -99,30 +99,22 @@ export function initGenerator(root, playback) {
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
       <h3 class="gen-step-title">3 · Motion type</h3>
       <div class="row" style="align-items:center;">
-        <label style="width:auto;" data-help="Default = classic stroke motion. Soft tissue filters ringing. Autotune = detrend+bandpass+speed cap (FunGen/Flow-inspired). Tf/Tj needs two regions.">Motion type</label>
+        <label style="width:auto;" data-help="Default = classic stroke. Soft filters ringing. Autotune = detrend+bandpass+speed. Everyday path: stroke + Contact vibration — no Tf/Tj profile required.">Motion type</label>
         <select id="gen-profile">
           <option value="standard">Stroke motion (default)</option>
           <option value="weich">Soft tissue (rings)</option>
           <option value="autotune">Autotune (detrend + bandpass + speed)</option>
-          <option value="tf">Tf/Tj (distance + suction)</option>
         </select>
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-        CSRT tracks the marked region(s). Optional Autotune / audio check live under Advanced in step 4.
-        Tf/Tj needs a 2nd region (step 2).
+        Track with CSRT tip mark or whole-frame 4-zone. Contact vibration (below) is the feel layer — on by default.
       </p>
-      <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;">
-        Zones: (1) tip — glans or whole penis, tracked; (2) primary contact e.g. nipples;
-        (3+) optional extra contacts. Nearest contact drives stroke + vibration.
-        Whole-penis mark is OK — distance uses the tip end toward the partner.
-        Contact vibration on → Zone 2 tracked by default (not a frozen box).
-        Zone 2 is always required for Tf/Tj (two markers: tip + partner).
-      </p>
+      <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
           <label for="gen-contact-vibration"
-            data-help="Extra vibration on deep strokes (high position). For Tf/Tj with a contact zone, strength follows tip→partner distance; for Normal/Autotune it follows stroke depth. On by default — turn off anytime.">Contact vibration (on by default)</label>
+            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default — turn off anytime. Optional Zone 2 can refine targeting later; not required.">Contact vibration (on by default)</label>
         </div>
         <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
           <div class="field-row" style="align-items:center;">
@@ -172,7 +164,7 @@ export function initGenerator(root, playback) {
               <option value="region_fusion_auto">4-zone motion (no mark)</option>
             </select>
           </div>
-          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — use with Normal/Autotune + Contact vib; Tf/Tj still needs two markers.</p>
+          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Normal/Autotune.</p>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -276,8 +268,20 @@ export function initGenerator(root, playback) {
   const MASK_FILL = 'rgba(120,120,130,0.12)';
 
   function isTfTj() {
-    const p = el('#gen-profile').value;
+    // Legacy distance profile (CLI / old saves). Product GUI no longer offers it —
+    // Contact vibration on Normal is the everyday feel layer (owner 21 Sep).
+    const p = (el('#gen-profile').value || '').toLowerCase();
     return p === 'tf' || p === 'tj';
+  }
+
+  function normalizeProductProfile() {
+    const sel = el('#gen-profile');
+    if (!sel) return;
+    const p = (sel.value || '').toLowerCase();
+    if (p === 'tf' || p === 'tj') {
+      sel.value = 'standard';
+      sel.dataset.userTouched = '1';
+    }
   }
 
   // KI-Regionssuche (ai_roi.py, lokales ONNX-Modell) ist optional - ohne
@@ -399,12 +403,7 @@ export function initGenerator(root, playback) {
     if (on) {
       backend.value = 'region_fusion_auto';
       backend.dataset.userTouched = '1';
-      // Distance partners need marks — drop to stroke profile for no-mark.
-      if (isTfTj()) {
-        el('#gen-profile').value = 'standard';
-        el('#gen-profile').dataset.userTouched = '1';
-        updateProfileUi();
-      }
+      normalizeProductProfile();
       candidates = [];
       const btn = el('#gen-nomark');
       if (btn) {
@@ -437,21 +436,18 @@ export function initGenerator(root, playback) {
     return !!el('#gen-contact-vibration')?.checked;
   }
 
-  // TFTJ: Zone 2 always required for Tf/Tj (two markers). Contact vib on →
-  // partner is tracked by default (Fix Zone 2 off) — see syncRoi2FixedDefault.
+  // Everyday Generate: tip mark (CSRT) or no-mark 4-zone. Zone 2 never required.
   function regionReadyForGenerate() {
     if (!videoPath) return false;
     if (backendNeedsRoi() && !roi) return false;
-    if (isTfTj() && !roi2) return false;
     return true;
   }
 
-  // Default Fix Zone 2 = off when vib needs a tracked partner (step 3).
-  // Respect user override via dataset.userTouched.
+  // Default Fix Zone 2 = off when an optional contact partner is marked + vib on.
   function syncRoi2FixedDefault() {
     const fix = el('#gen-roi2-fixed');
     if (!fix || fix.dataset.userTouched) return;
-    if (isTfTj() && contactVibrationOn()) {
+    if (roi2 && contactVibrationOn()) {
       fix.checked = false;
     }
   }
@@ -498,10 +494,8 @@ export function initGenerator(root, playback) {
       prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
     } else if (!hasRoi1 && !noMark) {
       prompt.textContent = 'Step 2: mark a region, show candidates, or track whole-frame motion (4 zones).';
-    } else if (isTfTj() && !roi2) {
-      prompt.textContent = 'Tf/Tj: mark Zone 2 / partner (two markers), then Generate appears.';
     } else if (!canRun && !generating) {
-      prompt.textContent = 'Step 3: pick motion type if needed — Generate unlocks when regions are ready.';
+      prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
     } else if (!hasResult) {
@@ -542,12 +536,11 @@ export function initGenerator(root, playback) {
   }
 
   function updateProfileUi() {
-    const tftj = isTfTj();
-    el('#gen-tftj-hint').style.display = tftj ? 'block' : 'none';
-    // Contact vib is available on every profile (Normal/Auto + Tf/Tj); always shown.
+    normalizeProductProfile();
+    el('#gen-tftj-hint').style.display = 'none';
+    // Contact vib is the product feel layer — always shown.
     el('#gen-contact-vibration-wrap').style.display = 'block';
     el('#gen-contact-vibration-row').style.display = 'flex';
-    // Default on for all profiles unless the user explicitly turned it off.
     if (!contactUserOverride) {
       el('#gen-contact-vibration').checked = true;
       if (!el('#gen-contact-curve').dataset.userTouched) {
@@ -556,17 +549,11 @@ export function initGenerator(root, playback) {
     }
     syncRoi2FixedDefault();
     updateContactVibrationOpts();
-    if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
-    if (tftj && videoPath) {
-      if (roi2) {
-        el('#gen-status').textContent = contactVibrationOn()
-          ? 'Tf/Tj: both markers set — partner tracked unless “Fix Zone 2” is on.'
-          : 'Tf/Tj: both markers set — ready (contact vib off).';
-      } else {
-        el('#gen-status').textContent =
-          'Tf/Tj needs two markers: tip (Zone 1) + partner (Zone 2). Shift+drag or “Zone 2”.';
-      }
+    if (videoPath && roi2) {
+      el('#gen-status').textContent = contactVibrationOn()
+        ? 'Optional contact zone set — tracked unless “Fix Zone 2” is on.'
+        : 'Optional contact zone set (Contact vib off).';
     }
   }
 
@@ -632,9 +619,8 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     el('#gen-roi-label').textContent =
       `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, candidate #${c.index})`;
-    el('#gen-status').textContent = isTfTj() && !roi2
-      ? `Primary set from candidate #${c.index} — Tf/Tj still needs Zone 2.`
-      : `Primary set from candidate #${c.index} — correct by hand if needed.`;
+    el('#gen-status').textContent =
+      `Primary set from candidate #${c.index} — correct by hand if needed.`;
     redraw();
   }
 
@@ -712,12 +698,8 @@ export function initGenerator(root, playback) {
       const cls = el('#gen-target-class')?.value || '';
       extraTargets.push({ ...box, fixed: true, class: cls });
       setMarkMode(null);
-      if (!isTfTj()) {
-        el('#gen-profile').value = 'tf';
-        updateProfileUi();
-      }
       const tag = cls ? ` (${cls})` : '';
-      el('#gen-status').textContent = `Zone 3+ #${extraTargets.length}${tag} added (min-distance partner).`;
+      el('#gen-status').textContent = `Zone 3+ #${extraTargets.length}${tag} added (optional contact).`;
     } else if (mode === 'mask') {
       maskRois.push(box);
       setMarkMode(null);
@@ -725,25 +707,16 @@ export function initGenerator(root, playback) {
     } else if (wasSecond) {
       roi2 = box;
       setRoi2Mode(false);
-      // Eine 2. Region ergibt nur im Tf/Tj-Modus (Abstand + Sog) einen Sinn
-      // - kein anderes Verfahren wertet sie aus (siehe generate_funscript.py).
-      // Automatisch erkennen statt den Nutzer zusätzlich noch die Dropdown
-      // umstellen zu lassen: das Markieren der 2. Region IST die Auswahl.
-      if (!isTfTj()) {
-        el('#gen-profile').value = 'tf';
-        updateProfileUi();
-      }
+      // Zone 2 is optional for Contact vib — do not switch to legacy Tf/Tj.
+      el('#gen-status').textContent = contactVibrationOn()
+        ? 'Optional contact zone set — Contact vib on (stroke depth / approach).'
+        : 'Optional contact zone set.';
     } else {
       roi = box;
-      if (isTfTj() && !roi2) setRoi2Mode(true);
     }
     updateRoiLabels();
     updateGenerateEnabled();
     autoApplyPipeline();
-    if (isTfTj() && videoPath && !roi2) {
-      el('#gen-status').textContent =
-        'First marker set — mark Zone 2 / partner (Shift+drag or “Zone 2”).';
-    }
     redraw();
   });
 
@@ -759,7 +732,8 @@ export function initGenerator(root, playback) {
       const profileTouched = el('#gen-profile').dataset.userTouched === '1';
       if (s.Backend && !backendTouched) el('#gen-backend').value = s.Backend;
       if (s.Profile && !profileTouched) {
-        el('#gen-profile').value = s.Profile;
+        const prof = (s.Profile === 'tf' || s.Profile === 'tj') ? 'standard' : s.Profile;
+        el('#gen-profile').value = prof;
         updateProfileUi();
       }
       const pipe = el('#gen-pipeline-auto');
@@ -805,7 +779,7 @@ export function initGenerator(root, playback) {
     // Neues video: Pipeline-Vorschläge wieder erlauben.
     delete el('#gen-backend').dataset.userTouched;
     delete el('#gen-profile').dataset.userTouched;
-    setRoi2Mode(isTfTj());
+    setRoi2Mode(false);
     el('#gen-generate').disabled = true;
     updateRoiLabels();
     // Stapelverarbeitung mehrerer videos gibt es noch nicht - vorher wurden
@@ -824,9 +798,9 @@ export function initGenerator(root, playback) {
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
-      el('#gen-status').textContent = (isTfTj()
-        ? 'Tf/Tj: draw tip (Zone 1), then Shift+drag or “Zone 2” for contact. Or track whole-frame motion for Normal stroke.'
-        : 'Mark / candidates / or track whole-frame motion (4 zones). Seek if the start is black.') + batchNote;
+      el('#gen-status').textContent = (
+        'Mark tip / candidates / or track whole-frame motion (4 zones). Contact vib on by default.'
+      ) + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
       el('#gen-quality').style.display = 'none';
@@ -879,11 +853,7 @@ export function initGenerator(root, playback) {
 
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
-    if (isTfTj() && !roi2) {
-      el('#gen-status').textContent =
-        'Tf/Tj needs two markers: Zone 1 (tip) + Zone 2 (partner).';
-      return;
-    }
+    normalizeProductProfile();
 
     // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
     // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
@@ -951,15 +921,14 @@ export function initGenerator(root, playback) {
       audioCheck: el('#gen-audio-check').checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
+    // Optional Zone 2 is UX-only for now on stroke profiles (Contact vib uses
+    // stroke depth). Legacy tip↔partner distance stays CLI --profile tf|tj.
     if (roi2 && isTfTj()) {
       payload.x2 = roi2.x;
       payload.y2 = roi2.y;
       payload.w2 = roi2.w;
       payload.h2 = roi2.h;
       payload.roi2Fixed = !!el('#gen-roi2-fixed')?.checked;
-    } else if (roi2 && !isTfTj()) {
-      el('#gen-status').textContent =
-        'Note: Zone 2 ignored for Autotune/stroke — tip ROI only. Switch profile to Tf/Tj for distance.';
     }
     payload.regionClass = el('#gen-region-class')?.value || '';
     payload.regionClass2 = el('#gen-region-class2')?.value || '';
@@ -1026,9 +995,8 @@ export function initGenerator(root, playback) {
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     const hasRoi2 = result.w2 > 0 && result.h2 > 0;
     if (hasRoi2) {
+      // Optional contact suggestion only — do not switch to legacy Tf/Tj.
       roi2 = { x: result.x2, y: result.y2, w: result.w2, h: result.h2 };
-      setRoi2Mode(true);
-      if (!isTfTj()) el('#gen-profile').value = 'tf';
     }
     updateRoiLabels();
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
@@ -1038,15 +1006,13 @@ export function initGenerator(root, playback) {
     }
     if (hasRoi2 && roi2) {
       el('#gen-roi2-label').textContent =
-        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — please review)`;
+        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — optional contact)`;
     }
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Both regions found (${via}) — suggestion, please review/correct.`
-      : (isTfTj() && !roi2
-        ? `Region found (${via}) — Tf/Tj still needs Zone 2 (second marker).`
-        : `Region found (${via}) — correct by hand if needed.`);
+      ? `Region + optional contact found (${via}) — review; Contact vib uses stroke depth.`
+      : `Region found (${via}) — correct by hand if needed.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));
@@ -1193,17 +1159,9 @@ export function initGenerator(root, playback) {
   el('#gen-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#gen-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
   el('#gen-roi2-toggle').addEventListener('click', () => {
-    // If Tf/Tj still needs ROI2, force mark mode ON (do not toggle off by accident).
-    if (isTfTj() && !roi2 && !roi2Mode) {
-      setRoi2Mode(true);
-    } else if (isTfTj() && !roi2 && roi2Mode) {
-      // already ready to mark — keep ON
-      setRoi2Mode(true);
-    } else {
-      setRoi2Mode(!roi2Mode);
-    }
+    setRoi2Mode(!roi2Mode);
     if (roi2Mode) {
-      el('#gen-status').textContent = 'Zone 2 (contact): drag on preview (gold).';
+      el('#gen-status').textContent = 'Optional Zone 2 (contact): drag on preview (gold).';
     }
   });
   el('#gen-target-add')?.addEventListener('click', () => {
@@ -1212,7 +1170,7 @@ export function initGenerator(root, playback) {
       return;
     }
     setMarkMode('target');
-    el('#gen-status').textContent = 'Extra target: drag on preview (magenta, fixed min-distance partner).';
+    el('#gen-status').textContent = 'Extra contact: drag on preview (magenta).';
   });
   el('#gen-mask-add')?.addEventListener('click', () => {
     if (markMode === 'mask') {
@@ -1232,15 +1190,8 @@ export function initGenerator(root, playback) {
   });
   el('#gen-profile').addEventListener('change', () => {
     el('#gen-profile').dataset.userTouched = '1';
+    normalizeProductProfile();
     updateProfileUi();
-    if (isTfTj()) {
-      const c1 = el('#gen-region-class');
-      const c2 = el('#gen-region-class2');
-      if (c1 && !c1.value) c1.value = 'glans';
-      if (c2 && !c2.value) c2.value = 'nipples';
-      // Step 3: vib on → tracked partner (Fix off). Do not auto-check static.
-      syncRoi2FixedDefault();
-    }
   });
   el('#gen-contact-vibration').addEventListener('change', () => {
     contactUserOverride = true;
@@ -1254,29 +1205,20 @@ export function initGenerator(root, playback) {
   el('#gen-backend').addEventListener('change', () => {
     el('#gen-backend').dataset.userTouched = '1';
     syncNoMarkButton();
-    if (isNoMarkMotion() && isTfTj()) {
-      el('#gen-profile').value = 'standard';
-      el('#gen-profile').dataset.userTouched = '1';
-      updateProfileUi();
-      el('#gen-status').textContent =
-        '4-zone is whole-frame stroke — switched profile to Normal (Tf/Tj needs tip+partner marks).';
-    }
+    normalizeProductProfile();
     updateGenerateEnabled();
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
     setNoMarkMotion(false);
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
-    const two = isTfTj();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
     el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = useAI
-      ? (two ? 'AI searching both regions (ONNX)…' : 'AI region search running (ONNX model)…')
-      : (two ? 'Searching both regions (distance/Tf/Tj suggestion)…'
-        : 'Analyzing motion in video (may take a few seconds)…');
-    const engine = useAI ? (two ? 'ai_two' : 'ai') : (two ? 'auto_two' : 'auto');
-    AutoDetectROI(videoPath, engine);
+      ? 'AI region search running (ONNX model)…'
+      : 'Analyzing motion in video (may take a few seconds)…';
+    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   });
 
   el('#gen-candidates').addEventListener('click', () => {
@@ -1319,7 +1261,7 @@ export function initGenerator(root, playback) {
     redraw();
   });
 
-  const PROFILE_VALUES = ['standard', 'weich', 'autotune', 'tf'];
+  const PROFILE_VALUES = ['standard', 'weich', 'autotune'];
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
@@ -1335,13 +1277,8 @@ export function initGenerator(root, playback) {
       const via = result.kind === 'ai'
         ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
         : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
-      // "tj" war früher ein zweiter, identisch behandelter Dropdown-Eintrag
-      // (siehe funscript/recipe.go NormalizeProfile) - inzwischen zu einem
-      // Eintrag "tf" zusammengelegt. Ältere, lokal gemerkte Szenen können
-      // noch mit "tj" beschriftet sein; hier auf den verbliebenen Wert
-      // abbilden, statt beim Übernehmen an einer verschwundenen Option
-      // stillschweigend hängenzubleiben.
-      const label = result.label === 'tj' ? 'tf' : result.label;
+      // Legacy "tf"/"tj" scene labels map to Stroke — Contact vib is the feel layer now.
+      let label = result.label === 'tj' || result.label === 'tf' ? 'standard' : result.label;
       if (PROFILE_VALUES.includes(label)) {
         status.textContent = `Suggestion: "${label}" (${via}) — `;
         const applyBtn = document.createElement('button');

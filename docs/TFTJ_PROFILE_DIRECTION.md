@@ -37,6 +37,7 @@ implement only after this shape is agreed. Related: `docs/ENGINE.md`,
 | 4 | Where Tf/Tj “sits” | **Feel recipe on top of the best classical stroke path** — Normal/Auto recognition stays the curve writer; Tf/Tj (+ contact vib) is how Neo 2 *feels*, not a second tracker product. Owner (21 Sep pm): Normal recognition already works better; Tf/Tj should ride that, with Contact. |
 | 5 | Milestone UX | **Show every usable motion candidate** the system can find; user mainly marks the **primary stroke**. Quality must not equal “how well you painted boxes.” Silent auto-commit of ROI2 remains forbidden. |
 | 6 | YOLO while available | Optional class helpers (**penis / glans / nipple** and similar) as *proposals* for main + contact targets — never write the 0–100 curve. |
+| 7 | Tf/Tj vs Contact (21 Sep eve) | **Tf/Tj profile not required in the product GUI.** Everyday = stroke track (CSRT tip or 4-zone) + **Contact vibration**. Zone 2 optional. Distance Tf/Tj remains CLI/legacy only. |
 
 ---
 

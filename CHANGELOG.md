@@ -12,8 +12,14 @@ measurement history behind each entry; this file is the short version for
 
 - **Whole-frame 4-zone motion (GUI):** Generate → “Track whole-frame motion
   (4 zones)” / Advanced backend `region_fusion_auto` — no hand mark; splits
-  the frame into 2×2 and tracks motion (Python). Use with Normal/Autotune +
-  Contact vib. CSRT tip-mark remains default; Tf/Tj still needs two markers.
+  the frame into 2×2 and tracks motion (Python). Pair with Contact vibration.
+
+### Changed
+
+- **Contact-first (no Tf/Tj required):** product profile dropdown is Stroke /
+  Soft / Autotune only. Contact vibration (default on) is the feel layer.
+  Zone 2 is optional and no longer switches to Tf/Tj or blocks Generate.
+  Legacy tip↔partner distance stays CLI `--profile tf|tj`.
 
 ## [0.5.19] — September 21, 2026
 

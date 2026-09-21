@@ -357,6 +357,7 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | #164 merged — Autotune/stroke tip-only; cut **v0.5.18** for owner smoke | Cursor A |
 | 21 Sep | Milestone: Tf/Tj feel on Normal classical + show motion candidates; YOLO classes = proposals only; plan **0.5.19** (step 4+4b) | Owner + Cursor |
 | 21 Sep | Owner smoked Autotune on 0.5.18 OK → #145 closed; ship **v0.5.19** motion-candidates button | Owner + Cursor |
+| 21 Sep | Product: **no Tf/Tj required** — Contact vibration + stroke/4-zone; Zone 2 optional | Owner |
 
 ---
 
