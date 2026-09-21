@@ -64,7 +64,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **3** | TFTJ step 3 partner-mark | Cursor C | **DONE** #160 |
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E / Cursor A | #145 tip-only **DONE** #164; #119 + flow media remain |
 | **5** | **v0.5.18** | Cursor A | **DONE** #166 + tag `v0.5.18` |
-| **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | **CLAIMED** — docs lock; implement 4/4b after #145 smoke |
+| **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | 4b **DONE** #167; bump **v0.5.19** |
+| **7** | **v0.5.19** | Cursor A | **IN PROGRESS** — bump + tag |
 
 ---
 
@@ -85,7 +86,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
-| A | Cursor | `cursor/tftj-auto-milestone-d7cb` | TFTJ 4b motion candidates + docs milestone | **IN PROGRESS** |
+| A | Cursor | `cursor/release-0-5-19-d7cb` | bump + tag **v0.5.19** (motion candidates) | **IN PROGRESS** |
 | E | ChatGPT | #159 merged | #119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + #119 remain |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
@@ -95,10 +96,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 Claim: lane E (docs claim #152 merged).
 
-- #146 closed. #145 tip-only fix **merged** (#164) — smoke on **0.5.18**; #119 still needs current-build AI-train reproduce.
-- Owner smoked **0.5.16**; **v0.5.17** + **v0.5.18** tagged — portable live.
-- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163/#165).
-- **Owner milestone (21 Sep pm):** Tf/Tj = feel on best classical Normal path + Contact; show all motion candidates; mark mainly primary stroke; YOLO penis/glans/nipple as proposals only. Next train: step 4 + 4b → **v0.5.19**.
+- #146 closed. **#145 closed** (owner smoked tip-only on 0.5.18). #119 still needs current-build AI-train reproduce.
+- Owner smoked **0.5.16** / **0.5.18**; **v0.5.19** tagging (motion candidates).
+- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163/#165); step **4b** candidates **DONE** (#167).
+- **Owner milestone:** Tf/Tj feel on classical Normal + show motion candidates; mark primary; YOLO proposals later. Next after 0.5.19: step 4 FunGen measure + feel-decouple.
 - Flow scaling #156 + timeout docs #159 merged — original media probe still needed.
 - Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
@@ -354,6 +355,7 @@ whoever owns that next rather than quietly tuning constants.
 | 21 Sep | #163 AliasingRisk shipped; #145 triage: Autotune+ROI2 was MIL/two-point misuse | Cursor #164 |
 | 21 Sep | #164 merged — Autotune/stroke tip-only; cut **v0.5.18** for owner smoke | Cursor A |
 | 21 Sep | Milestone: Tf/Tj feel on Normal classical + show motion candidates; YOLO classes = proposals only; plan **0.5.19** (step 4+4b) | Owner + Cursor |
+| 21 Sep | Owner smoked Autotune on 0.5.18 OK → #145 closed; ship **v0.5.19** motion-candidates button | Owner + Cursor |
 
 ---
 
