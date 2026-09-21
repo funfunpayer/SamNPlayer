@@ -19,8 +19,8 @@ discussion stays German.
   Tf/Tj = device profile/feel; no-mark 4-zone classical; contact vib on
   Normal/Auto; dual-ROI not the everyday path. Think-first; implement
   only after owner amends/accepts that file.
-- `docs/AGENT_COORD.md` — **Cursor ↔ Claude shared board:** who owns which
-  lane right now (claim before code; avoid colliding PRs).
+- `docs/AGENT_COORD.md` — **Cursor ↔ Claude ↔ ChatGPT shared board:** who
+  owns which lane right now (claim before code; avoid colliding PRs).
 - `HANDOFF.md` — architecture and “tested and rejected”.
 - `CHANGELOG.md` — what shipped, release by release.
 
