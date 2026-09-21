@@ -66,19 +66,25 @@ on real goldens — see `docs/ROADMAP.md` / `docs/ENGINE.md`.
 |---|---|
 | Default `generate_funscript.py` | Native covers CSRT+single ROI only |
 | flow / grid_lk / fusion / Tf/Tj two-point | Need goldens before Go ports |
-| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026 (see `docs/NEXT.md`) — manifest still not wired up, but no longer zero evidence |
+| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts now committed at `generator/testdata/golden_clips/clip_voll_tftj/` (see `docs/NEXT.md`) — `golden_clip_benchmark.py` manifest still not wired up to it, but no longer zero evidence |
 | Sam Neo 2 feel | Hardware |
 
 ### Next Go / product slices (quality-first)
 
 1. **`phase` CLI: windowed mode.** 21 Sep 2026 measurement: whole-clip
-   r≈0.06 on a real Tf/Tj clip, but r≈0.32 averaged over 30s windows with
-   the lag drifting -2600..+2800ms across the clip and one orientation
-   flip partway through. The shipped `BestLagCorrelation`/`DiagnosePhase`
-   only reports one lag for the whole clip, which is the wrong
-   granularity for a drifting offset — add `--window-ms` reporting
-   lag/orientation/r per window. Small addition to existing code, not the
-   full 8-point PTS chain below. See `docs/NEXT.md` for the numbers.
+   r≈0.06 on a real Tf/Tj clip, but r≈0.27–0.35 averaged over 30s windows
+   with the lag drifting -2600..+2800ms across the clip and one
+   orientation flip partway through. The shipped
+   `BestLagCorrelation`/`DiagnosePhase` only reports one lag for the whole
+   clip, which is the wrong granularity for a drifting offset. The
+   windowed measurement itself is now a real script -
+   `generator/fungen_compare_windowed.py` + `..._test.py` - reproducible
+   against the committed dataset at
+   `generator/testdata/golden_clips/clip_voll_tftj/`. Still open: a Go
+   `phase --window-ms` CLI equivalent (`funscript.BestLagCorrelation`
+   called per window) so this doesn't stay Python-only tooling. Small
+   addition to existing code, not the full 8-point PTS chain below. See
+   `docs/NEXT.md` for the numbers.
 2. Tf/Tj two-point in Go — only with goldens  
 3. Native CSRT default — after real-clip measurement  
 4. Full PTS→device phase chain — media work  

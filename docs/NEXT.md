@@ -1872,15 +1872,26 @@ git history rather than rebuilding from scratch.
   deferred in `docs/FINDINGS_TIMING_TF.md`) is a separate, bigger question
   this does not answer or require.
 
-  Raw data (funscripts, not committed - ask the user if this should become
-  a real `golden_clips.json` entry with committed reference/video, which
-  this project has not done before for binary media): SamNPlayer
-  `clip_voll.funscript`/`.samn` (profile `tj`), FunGen2.6.3
-  `clip_voll_2 mit yolo.funscript` / `clip_voll_2 ohne yolo.funscript`,
-  source `clip_voll.mp4` (~280s). Durations: 277.1s (no-YOLO ref) /
-  279.999s (YOLO ref) / 280.1s (SamNPlayer) - within a few seconds of each
-  other, not the ~54s clip/reference mismatch seen in the September 16
-  MILF-clip comparison, so duration alignment is not the confound here.
+  **Update (same day):** the user confirmed committing the raw funscripts.
+  Now at `generator/testdata/golden_clips/clip_voll_tftj/` (`mit_yolo/` +
+  `ohne_yolo/` subfolders, `README.md` with reproduction commands) -
+  source `clip_voll.mp4` itself stays local per `docs/GOLDEN_CLIPS.md`
+  (license + size), only the small `.funscript`/`.samn` files are
+  committed. Durations: 277.1s (no-YOLO ref) / 279.999s (YOLO ref) /
+  280.1s (SamNPlayer) - within a few seconds of each other, not the ~54s
+  clip/reference mismatch seen in the September 16 MILF-clip comparison,
+  so duration alignment is not the confound here.
+
+  The windowed-correlation "ad hoc script" mentioned above is now a real
+  tool: `generator/fungen_compare_windowed.py` (+
+  `fungen_compare_windowed_test.py`), same style/pattern as
+  `fungen_compare.py`. Verified it reproduces the finding against the
+  committed dataset: whole-clip r=0.060/0.065, windowed (30s) mean
+  r=0.268/0.349, lag drift up to -2600..+2800ms, orientation flip around
+  150-210s - matching the numbers above. The Go `phase --window-ms` CLI
+  variant is still not built (this stays Python, same as
+  `fungen_compare.py` itself - offline analysis tooling, not the runtime
+  generate path the Go-migration policy targets).
 
 ## Product requirements
 

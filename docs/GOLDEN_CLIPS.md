@@ -28,6 +28,13 @@ python3 generator/fungen_compare.py --dataset DIR --output report.md --max-lag-m
 
 Report both Quality Doctor and FunGen r. They are not proxies.
 
+## Committed example
+
+`generator/testdata/golden_clips/clip_voll_tftj/` — first real Tf/Tj
+dataset (funscripts only, video stays local per above). See its
+`README.md` for layout and reproduction commands, and
+`docs/NEXT.md`/`docs/FINDINGS_TIMING_TF.md` for the measurement.
+
 ## Minimum set
 
 Three clips is enough: one easy hub, one two-body (Tf/Tj), one with a cut
