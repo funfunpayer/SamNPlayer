@@ -43,7 +43,10 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 			onProgress(line)
 		}
 	}
-	twoPoint := opts.ROI2.W > 0 && opts.ROI2.H > 0
+	twoPoint := distancePartnersActive(opts)
+	if opts.ROI2.W > 0 && opts.ROI2.H > 0 && !twoPoint {
+		progress("ignoring Zone 2 — Autotune/stroke profiles use tip ROI only (switch to Tf/Tj for distance)")
+	}
 	multi := twoPoint && len(opts.ExtraTargets) > 0
 	if multi {
 		progress("Go multi-partner simpletrack (NCC) — PreferSimpletrack / lab path")

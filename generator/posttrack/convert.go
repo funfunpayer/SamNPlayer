@@ -144,7 +144,7 @@ func PositionsToActions(timestampsMs []float64, yPositions []float64, opts Optio
 			lo, hi = minMax(smoothed)
 		}
 		if hi-lo < 1e-6 {
-			return Result{}, fmt.Errorf("posttrack: keine erkennbare Bewegung in der verfolgten Region")
+			return Result{}, fmt.Errorf("posttrack: no discernible motion in the tracked region — check tip ROI size/placement (avoid near-full-frame boxes); Autotune filters need visible stroke motion")
 		}
 		for i := range smoothed {
 			pos[i] = clip01((smoothed[i]-lo)/(hi-lo)) * 100.0
