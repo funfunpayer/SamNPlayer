@@ -52,11 +52,11 @@ or a short PR description — owner confirms; then one agent implements.
 ## Cleanup checklist (Claude owns — do now / next)
 
 - [x] #150 provenance fix for `clip_ausschnitt` (merged)
-- [ ] Land / sync **#151** `AGENT_COORD` on `main` (Cursor PR — merge when CI green)
+- [x] Land / sync **#151** `AGENT_COORD` on `main` (merged, on `main` now)
 - [ ] **Close #146** (duplicate of #140 goldens) — owner or ChatGPT with permission
-- [ ] After bake-off: write results only into `SAM_ARCHITECTURE.md` + short NEXT note — no eleventh doc
-- [ ] Flag leftover wrong claims in NEXT/FINDINGS if bake-off contradicts #148-era text
-- [ ] Do **not** start Go ports of flow/grid_lk during cleanup
+- [x] After bake-off: write results only into `SAM_ARCHITECTURE.md` + short NEXT note — no eleventh doc (done, see § "Bake-off result")
+- [x] Flag leftover wrong claims in NEXT/FINDINGS if bake-off contradicts #148-era text — checked, no contradiction (prior `grid_lk` measurement at `docs/NEXT.md` line ~424 already found it comparable-not-better than CSRT, consistent with this bake-off)
+- [x] Do **not** start Go ports of flow/grid_lk during cleanup — confirmed, bake-off result says neither earned one
 
 When cleanup + bake-off PR are up, mark rows Done below and free lane B.
 
@@ -78,9 +78,9 @@ When cleanup + bake-off PR are up, mark rows Done below and free lane B.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | background job → PR later | Bake-off flow/grid_lk/region_fusion vs FunGen2 on clip_voll then clip_ausschnitt | **RUNNING** (flow on ~280s clip) |
+| B | Claude | — (results in `SAM_ARCHITECTURE.md` + `NEXT.md`, this PR) | Bake-off flow/grid_lk/region_fusion vs FunGen2 on clip_voll then clip_ausschnitt | **DONE** — no Go port earned by either; `flow` hung on both clips, unmeasured. Lane B free. |
 | A | Cursor | #151 | Board + later 0.5.17 bump | Board PR open; release **after owner smoke** |
-| E | ChatGPT (claim) | — | Cleanup assist: close #146, triage #145/#119 | **Free — claim here** |
+| E | ChatGPT (claim) | — | Cleanup assist: close #146, triage #145/#119, **new**: `flow` backend hang (times out past 5min on a 280s clip and 3min on a 50s clip — contradicts its own "faster than CSRT" docstring, root cause unknown) | **Free — claim here** |
 | C | ChatGPT (claim after 0 or with Cursor) | — | TFTJ step 3 | **Queued** until cleanup#0 + prefer after 0.5.17 |
 
 ---
@@ -92,6 +92,7 @@ When cleanup + bake-off PR are up, mark rows Done below and free lane B.
 | 21 Sep | Contact vib on Normal/Auto default on | Owner → #149 |
 | 21 Sep | Bake-off before any observer Go port | Owner + Claude + Cursor agree |
 | 21 Sep | Three agents use this board; cleanup before new themes | Owner |
+| 21 Sep | Bake-off result: `grid_lk`/`region_fusion` don't beat CSRT on either golden; no Go port. `flow` hangs on both clips (needs root-cause, lane E) | Claude, data in `SAM_ARCHITECTURE.md` |
 
 ---
 

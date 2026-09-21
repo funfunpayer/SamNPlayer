@@ -1964,6 +1964,18 @@ git history rather than rebuilding from scratch.
   `docs/GOLDEN_CLIPS.md`):
   `generator/testdata/golden_clips/clip_ausschnitt_native/`.
 
+- **SAM Perception v1 bake-off: no Go port earned yet (September 21,
+  2026)** - `flow`/`grid_lk`/`region_fusion` measured against both real
+  goldens per `docs/SAM_ARCHITECTURE.md`'s stated precondition. Neither
+  `grid_lk` nor `region_fusion` beats CSRT on `clip_voll` or
+  `clip_ausschnitt` (the latter: both land around a third of CSRT's r).
+  `flow` hung past timeout on both clips, including the short one -
+  contradicts its own "faster than CSRT" docstring, looks like a real
+  bug, not measured either way yet. Full table and caveats in
+  `docs/SAM_ARCHITECTURE.md` § "Bake-off result". Per `docs/AGENT_COORD.md`:
+  no Go port of flow/grid_lk during cleanup; `flow`'s hang is lane E
+  (hygiene), not lane B (measurement).
+
 ## Product requirements
 
 General generator quality and the result on the Sam Neo 2 are the priorities.
