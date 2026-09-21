@@ -144,11 +144,25 @@ func TestDiagnosePhaseTimingVsShape(t *testing.T) {
 	}
 }
 
+func chirpActions(durationMs, stepMs int, t0 int64) []Action {
+	// Non-periodic chirp — avoids sine half-period / inverted lag ambiguity.
+	var actions []Action
+	for t := 0; t <= durationMs; t += stepMs {
+		// Slowly rising frequency + a one-shot bump mid-range.
+		freq := 0.0004 + 0.0000008*float64(t)
+		pos := 50 + 35*math.Sin(2*math.Pi*freq*float64(t))
+		if t > 8000 && t < 10000 {
+			pos += 20
+		}
+		actions = append(actions, Action{At: t0 + int64(t), Pos: int(math.Round(pos))})
+	}
+	return actions
+}
+
 func TestWindowedBestLagCorrelationConstantLag(t *testing.T) {
-	// 60s sine, constant +500ms lag → every 15s window should recover ~+500ms
-	// and high r (reference leads; lag on candidate is negative of that).
-	reference := sineActions(60000, 2000, 50, 0, 40, 50)
-	shifted := sineActions(60000, 2000, 50, 500, 40, 50)
+	// Constant +500ms time shift on a non-periodic chirp → every window ~-500ms.
+	reference := chirpActions(60000, 50, 0)
+	shifted := chirpActions(60000, 50, 500)
 	windows := WindowedBestLagCorrelation(reference, shifted, 15000, 2000, 50, 100)
 	if len(windows) < 3 {
 		t.Fatalf("expected ≥3 windows, got %d", len(windows))
@@ -172,10 +186,9 @@ func TestWindowedBestLagCorrelationConstantLag(t *testing.T) {
 }
 
 func TestWindowedBestLagCorrelationDriftingLag(t *testing.T) {
-	// Build a reference and a candidate whose lag drifts: first half lag 0,
-	// second half lag +800ms. Windowed mode must report different lags;
-	// whole-clip BestLagCorrelation can only pick one.
-	ref := sineActions(40000, 2000, 40, 0, 40, 50)
+	// First half lag 0, second half lag +800ms on a chirp. Windowed mode
+	// must report different lags; whole-clip BestLagCorrelation can only pick one.
+	ref := chirpActions(40000, 40, 0)
 	var cand []Action
 	for _, a := range ref {
 		lag := int64(0)
@@ -204,7 +217,6 @@ func TestWindowedBestLagCorrelationDriftingLag(t *testing.T) {
 	if earlyLag == nil || lateLag == nil {
 		t.Fatal("need both early and late confident windows")
 	}
-	// Early should be near 0, late near -800 (candidate is delayed → negative lag on b).
 	if absInt(*earlyLag) > 150 {
 		t.Errorf("early lag=%d, want ~0", *earlyLag)
 	}

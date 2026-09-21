@@ -13,8 +13,8 @@ const (
 	DefaultResampleStepMs = 100
 	MinOverlapSamples     = 10
 	LowConfidenceSamples  = 30
-	DefaultTimingGainMin  = 0.30 // aligned r must beat raw by this much → "timing"
-	DefaultMinAlignedR    = 0.70 // below this after alignment → shape/perception
+	DefaultTimingGainMin  = 0.30  // aligned r must beat raw by this much → "timing"
+	DefaultMinAlignedR    = 0.70  // below this after alignment → shape/perception
 	DefaultWindowMs       = 30000 // 30s windows for windowed mode
 )
 
