@@ -1813,7 +1813,8 @@ def _register_builtin_backends():
                       "Kamera, braucht aber eine Region.")
     backends.register("flow", flow,
                       "Bewegungszentrum je Frame aus dichtem Optical Flow. Keine Region "
-                      "nötig, rund 4x schneller, bei Kameraschwenks ungenauer.")
+                      "nötig. Volle 720p ist oft LANGSAMER als CSRT (~200ms+/Frame gemessen); "
+                      "mit --flow-downscale 0.5 brauchbar, Qualität vs FunGen bisher schwach.")
     backends.register("two_point", two_point,
                       "Abstand zweier verfolgter Regionen. Von Kamerabewegung "
                       "mathematisch unabhängig, braucht --roi2.")
@@ -2222,7 +2223,8 @@ def main():
     ap.add_argument("--backend", default="csrt",
                     help="csrt = markierte Region per Tracker verfolgen (Standard). "
                          "flow = Bewegungszentrum je Frame aus dichtem Optical Flow, "
-                         "ohne Tracker und ohne markierte Region - rund 4x schneller. "
+                         "ohne Tracker/ROI — prefer --flow-downscale 0.5 (full 720p is "
+                         "often SLOWER than CSRT; quality vs FunGen still trails). "
                          "grid_lk = Gitter aus Punkten in der Region per Sparse Optical "
                          "Flow verfolgt (Median als Position) - braucht eine Region wie "
                          "csrt, rund 15x schneller, siehe docs/NEXT.md Abschnitt 8. Mit "
@@ -2255,8 +2257,9 @@ def main():
                     help="Stroke-Bandpass in Hz, z.B. 0.5,4 — typisches Geräteband. "
                          "Leer = aus.")
     ap.add_argument("--flow-downscale", type=float, default=0.0, metavar="FAKTOR",
-                    help="Optical-Flow-Backend: Frames skalieren (z.B. 0.5 = halbe "
-                         "Auflösung, deutlich schneller). 0 oder 1 = voll.")
+                    help="Optical-Flow-Backend: Frames skalieren. Prefer 0.5 on 720p "
+                         "(full-res often slower than CSRT and may not finish). "
+                         "0 or 1 = full resolution.")
     ap.add_argument("--roi2", default=None, metavar="x,y,w,h",
                     help="Zweite Region für die Zwei-Punkt-Messung. Das Signal ist dann der "
                          "ABSTAND beider Regionen. Ein Abstand ist von Kamerabewegung "
@@ -2632,12 +2635,17 @@ def process_one(args, ap):
                 max_frames=args.max_frames, start_frame=start_frame,
                 mask_rois=mask_rois or None)
     elif args.backend == "flow":
-        # Flow-Backend: kein Tracker, keine markierte Region. Deutlich
-        # schneller (dichter Farneback ~18ms/Frame gegen ~100ms für CSRT)
-        # und ohne Drift, weil pro Frame eine Position statt einer
-        # integrierten Geschwindigkeit bestimmt wird.
+        # Flow: no tracker, no ROI. Historical "~18ms/frame vs CSRT ~100ms" does
+        # NOT hold at full 1280×720 (measured ~223ms/frame). Prefer
+        # --flow-downscale 0.5; soft FLOW_WALL_WARN / FLOW_STALL_WARN in
+        # flow_backend.py. Quality vs FunGen2 still trails CSRT (clip_ausschnitt).
         import flow_backend
-        print("Backend: Optical Flow (ohne Tracker/ROI)", file=sys.stderr)
+        ds = args.flow_downscale if args.flow_downscale > 0 else 1.0
+        print(f"Backend: Optical Flow (ohne Tracker/ROI, downscale={ds})",
+              file=sys.stderr)
+        if ds >= 1.0:
+            print("Hinweis: full-res flow is often slower than CSRT on 720p — "
+                  "try --flow-downscale 0.5", file=sys.stderr)
         timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = flow_backend.analyze(
             args.video, max_frames=args.max_frames,
             camera_compensation=not args.no_camera_compensation,

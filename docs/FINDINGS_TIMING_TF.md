@@ -262,24 +262,22 @@ reach for when this pattern shows up elsewhere.
 
 | Piece | Notes |
 |---|---|
-| Default `generate_funscript.py` | Native covers CSRT+single ROI only |
-| flow / grid_lk / fusion / Tf/Tj two-point | Need goldens before Go ports |
-| Golden-clip real data | First real Tf/Tj comparison landed 21 Sep 2026, funscripts committed at `generator/testdata/golden_clips/clip_voll_tftj/` and `clip_ausschnitt_native/` (see `docs/NEXT.md`, F-003 above) — a same-day `hub`-profile run on `clip_voll` measured similarly low Motion Fidelity despite much higher Signal Quality (not Tf/Tj-specific); `clip_ausschnitt` (native Go vs. real FunGen2, after a same-day provenance correction) shows the same F-003 drift signature on a second independent clip. `golden_clip_benchmark.py` manifest still not wired up to either, but no longer zero evidence |
-| Sam Neo 2 feel | Hardware |
+| Non-CSRT backends | `flow` / `grid_lk` / `region_fusion` / `region_fusion_auto` — Python only; tip-matched fusion close to hub on one clip, **no Go port** until `clip_voll` confirms |
+| Soft masks, per-scene ROI, AI opinion | Gate native eligibility |
+| Auto-ROI / YOLO / AI train | Classical + ONNX helpers |
+| Default `generate_funscript.py` fallback | Used when native ineligible / no OpenCV |
 
-### Next Go / product slices (quality-first)
+**Already Go (do not re-port):** CSRT + two-point/multi-partner (`trackcv`),
+`posttrack`, Quality Doctor, phase/windowed FunGen compare, Contact recipe
+mapping. Product Generate prefers native Go CSRT when OpenCV-linked.
 
-1. **`phase` CLI: windowed mode.** **Shipped** (`funscript.WindowedBestLagCorrelation`
-   + `FormatWindowedReport`, CLI `SamNPlayer phase A B --window-ms 30000`).
-   21 Sep 2026 measurement: whole-clip r≈0.06 on a real Tf/Tj clip, but
-   r≈0.27–0.35 averaged over 30s windows with the lag drifting
-   -2600..+2800ms across the clip and one orientation flip partway
-   through. Whole-clip `BestLagCorrelation` cannot represent a drifting
-   offset; windowed mode can. Python twin remains at
-   `generator/fungen_compare_windowed.py` for offline dataset runs.
-2. Tf/Tj two-point in Go — only with goldens  
-3. Native CSRT default — after real-clip measurement  
-4. Full PTS→device phase chain — media work  
+### Next Go / product slices (quality-first — no loss)
+
+1. **Keep Go CSRT hub default** — best vs FunGen2 on `clip_ausschnitt` (r≈0.590 windowed).
+2. **AliasingRisk period floor** — Claude #173 (diagnostic only; does not change lag/r).
+3. **Do NOT Go-port** flow / grid_lk / region_fusion until a second golden beats hub.
+4. Optional later: Advanced marked `region_fusion` (Python) if `clip_voll` confirms tip-matched ≥ CSRT.
+5. Full PTS→device phase chain — media work.
 5. Windows OpenCV / accelerator abstraction — later  
 
 ### Not now

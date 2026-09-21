@@ -248,9 +248,17 @@ Same tip ROI `426,450,320,180` `--axis y` where a mark is required. Windowed
 
 ## Next concrete implementation (after #169 / v0.5.20)
 
-Steps **2–4c** done. Step **4** measure keeps 4-zone opt-in. Prep for
-**v0.5.21**: profile rename (step 5), Play Contact on Stroke scripts +
-SuggestPipeline→standard (step 6 partial), Flow `FLOW_WALL_WARN` /
-`FLOW_STALL_WARN` (soft only). Do **not** leapfrog to YOLO auto-commit.
-Re-run step 4 on `clip_voll` when media is available. Finish step 6 Zone2
-distance on stroke only after owner smoke.
+Steps **2–4c** done. Step **4** + method matrix: keep 4-zone/Flow opt-in /
+CLI; tip-matched `region_fusion` is interesting but needs `clip_voll`.
+
+**v0.5.21 prep (#172):** profile rename, Play Contact on stroke, Flow soft
+warns. **Windows owner smoke deferred** — continue prep from clip matrix.
+
+Next prep after #172 merges:
+1. Optional Advanced `region_fusion` (marked) — only after second-clip confirm
+2. CLI doc: prefer `--flow-downscale 0.5`
+3. AliasingRisk period-detector floor (~100–140ms)
+4. Finish step 6 Zone2→tracked partner on stroke (behind vib, not default)
+5. Re-run matrix when `clip_voll.mp4` available
+
+Do **not** leapfrog to YOLO auto-commit or profile AI suggest.

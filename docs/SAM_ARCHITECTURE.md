@@ -395,6 +395,6 @@ observer as a gap-filler or cross-check where CSRT's own `confidence`/
 `lost` telemetry flags trouble, not as an always-on second tracker) is
 still architecturally sound and matches this section's own design. The
 tip-matched rerun puts `region_fusion` back on the candidate list for
-that role — still opt-in / measure-first, not a default.
-gap-filling). Revisit only if a future candidate (a fixed `flow`, or a
-new observer) shows a real edge on these goldens.
+that role — still opt-in / measure-first, not a default. Revisit a Go
+port only if a second golden (`clip_voll`) and/or a fixed `flow` show a
+real edge.
