@@ -344,10 +344,48 @@ Preconditions (same review’s order):
    (`clip_voll_tftj`, `clip_ausschnitt_native` with FunGen2 refs; see
    #140 / #150). Provenance must stay honest before comparing.
 2. Same-segment bake-off of all backends (Motion Fidelity **and** Signal
-   Quality metrics — see `docs/SIGNAL_VS_FIDELITY.md`) — **next measurement
-   step**; claim/own via `docs/AGENT_COORD.md` lane B (no Go port until a
-   backend beats CSRT on these goldens).
+   Quality metrics — see `docs/SIGNAL_VS_FIDELITY.md`) — **done 21 Sep
+   2026, lane B (Claude)**, result below. No Go port earned yet.
 3. Raw tracking vs post-processing scored separately
 
 Only after a reproducible golden-clip win may a fusion path become the
 default. Go ports stay secondary to perception correctness.
+
+### Bake-off result (21 Sep 2026): no candidate beats CSRT yet
+
+`flow`, `grid_lk`, `region_fusion` run against both goldens (`clip_voll`
+30s-windowed, `clip_ausschnitt` whole-clip; same FunGen2 mit_yolo/ohne_yolo
+refs already committed), auto-detected ROI (`auto_roi.find_roi`, not the
+original hand-marked ROI — see caveat below):
+
+| Backend | `clip_voll` windowed mean r | `clip_ausschnitt` r (mit/ohne) |
+|---|---|---|
+| CSRT `tj`/native (existing baseline) | 0.349 | 0.273 / 0.440 |
+| CSRT `hub` (existing baseline) | 0.264 | — |
+| `grid_lk` | 0.241 | 0.121 / 0.105 |
+| `region_fusion` | 0.248 | 0.105 / 0.112 |
+| `flow` | **no result** — hung past a 5-min timeout on `clip_voll` (280s) and a 3-min timeout on `clip_ausschnitt` (50s). Contradicts its own docstring ("~4x faster than CSRT"); looks like a real performance bug, not just a slow long-clip case since it also failed on the short clip. Not root-caused yet — flag for lane E triage, not lane B. |||
+
+**Verdict**: neither `grid_lk` nor `region_fusion` beats CSRT on either
+golden (`clip_ausschnitt` especially: both land at roughly a third of
+CSRT's r). Per the standing rule ("Go only where it measurably helps"),
+**no Go port for either is justified by this data**. `flow` is
+unmeasurable until its hang is fixed — no verdict either way yet.
+
+**Caveat**: this bake-off used one auto-detected ROI per clip, not the
+original hand-marked ROI the committed CSRT baselines used — not a
+perfectly matched comparison. A rerun with the same ROI across all
+backends would be needed before treating "CSRT wins" as fully settled,
+but the gap (grid_lk/region_fusion at ~30-40% of CSRT's r on
+`clip_ausschnitt`) is large enough that ROI choice alone is an unlikely
+full explanation.
+
+**Consequence for fusion/cross-check**: the original idea (use a second
+observer as a gap-filler or cross-check where CSRT's own `confidence`/
+`lost` telemetry flags trouble, not as an always-on second tracker) is
+still architecturally sound and matches this section's own design, but
+has no evidence behind it yet — neither `grid_lk` nor `region_fusion`
+demonstrated it would help even in the easy case (whole-clip), so there's
+no basis yet to expect it would help in the harder case (targeted
+gap-filling). Revisit only if a future candidate (a fixed `flow`, or a
+new observer) shows a real edge on these goldens.
