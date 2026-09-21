@@ -8,22 +8,26 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.17] — September 21, 2026
+
 ### Added
 
-- **Docs:** `docs/AGENT_COORD.md` — shared Cursor ↔ Claude board (lanes,
-  active claims, handoff template) so agents split work via the repo.
 - **Contact vibration on Normal / Autotune / Soft:** same depth-based
   envelope as Tf/Tj (high pos → vibe). GUI shows the toggle for every
   profile, **on by default**, user can turn off. CLI `--contact-vibration`
   now applies to stroke profiles too (writes `device_recipe`). See
-  `docs/TFTJ_PROFILE_DIRECTION.md` step 2.
+  `docs/TFTJ_PROFILE_DIRECTION.md` step 2 (#149).
+- **Docs:** `docs/AGENT_COORD.md` — shared Cursor ↔ Claude ↔ ChatGPT board
+  (lanes, sprint order, handoff template) (#151).
+- **Docs/data:** Tf/Tj golden set `clip_voll` + windowed compare tool;
+  `clip_ausschnitt` FunGen refs (provenance corrected) (#140, #148, #150).
+- **CLI:** `phase --window-ms` — per-window BestLagCorrelation (#143).
 
 ### Changed
 
 - **Docs:** `docs/TFTJ_PROFILE_DIRECTION.md` — Tf/Tj as device profile
-  (not dual-ROI recognition); contact vib on Normal/Auto (default on,
-  can disable); partner mark only for Tf/Blow when vib on (tracked
-  compensation); later AI profile suggest; owner answers locked 21 Sep.
+  (not dual-ROI recognition); contact vib on Normal/Auto; partner mark
+  only for Tf/Blow when vib on; later AI profile suggest (#147).
 
 ## [0.5.16] — September 21, 2026
 
