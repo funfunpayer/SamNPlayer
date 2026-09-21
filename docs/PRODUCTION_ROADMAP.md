@@ -80,8 +80,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.15** | Shipped | Tf/Tj fusion: exclude lost partners from min() (F-006) |
 | **v0.5.16** | Shipped | OpenCL auto (no GUI toggle forcing Python) + MSYS2 CI |
 | **v0.5.17** | Shipped | Contact vib on Normal/Autotune; AGENT_COORD; goldens + phase --window-ms |
-| **v0.5.18** | **This train** | #145 Autotune tip-only; TFTJ step 3; F-003 AliasingRisk flag |
-| **v0.5.19+** | After smoke | G1 heuristics; FunGen windowed; #119 reproduce |
+| **v0.5.18** | Shipped | #145 Autotune tip-only; TFTJ step 3; F-003 AliasingRisk flag |
+| **v0.5.19** | **Next** | TFTJ step 4 measure (no-mark vs FunGen) + motion-candidate overlay (4b) |
+| **v0.5.20+** | After 4b | Feel-decouple Tf/Tj on Normal path; YOLO class proposals |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

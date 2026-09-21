@@ -34,8 +34,41 @@ implement only after this shape is agreed. Related: `docs/ENGINE.md`,
 | 1 | Auto / marking | **Mark only when needed:** Tf + blow (and similar contact scenes). Mark **only if contact vibration is wanted**. Not “mark everything.” When the marked partner **moves**, compensate (track it) — a dead static box will drift. |
 | 2 | Contact vib on Normal / Auto | **Yes — on by default; user can disable.** |
 | 3 | GUI names / profiles | **Rename** for clarity. Profiles stay **profiles**. Later: **auto-detect / suggest** profile from scene pattern (mix of current set + blow + more). That suggestion layer is **AI/pattern** work — not classical G1. |
+| 4 | Where Tf/Tj “sits” | **Feel recipe on top of the best classical stroke path** — Normal/Auto recognition stays the curve writer; Tf/Tj (+ contact vib) is how Neo 2 *feels*, not a second tracker product. Owner (21 Sep pm): Normal recognition already works better; Tf/Tj should ride that, with Contact. |
+| 5 | Milestone UX | **Show every usable motion candidate** the system can find; user mainly marks the **primary stroke**. Quality must not equal “how well you painted boxes.” Silent auto-commit of ROI2 remains forbidden. |
+| 6 | YOLO while available | Optional class helpers (**penis / glans / nipple** and similar) as *proposals* for main + contact targets — never write the 0–100 curve. |
 
 ---
+
+## Milestone (owner, 21 Sep pm) — “mark the main stroke”
+
+Product bar we are aiming at:
+
+```text
+  Classical path finds / shows motion candidates (4-zone + overlays)
+       ↓
+  User confirms or paints ONE primary stroke region (optimal mark)
+       ↓
+  Optional: YOLO/class proposes penis / glans / nipple / partner
+       ↓
+  Profile = feel (Normal stroke vs Tf/Tj suction + Contact vib)
+       ↓
+  Funscript + device_recipe — curve from classical track, not from AI
+```
+
+**Why this is the right split**
+
+- Measuring already showed: two-point distance alone does not close the
+  FunGen gap; hub/single-ROI timing issues are shared. So “more Tf/Tj
+  markers” is the wrong lever.
+- Contact vib on Normal/Auto (#149) already decouples vib from “must be
+  Tf profile.” Next is to make Tf/Tj *feel* the default when contact
+  scenes are suggested — without forcing dual-ROI everyday Generate.
+- Showing candidates (overlay / list) is honest UX; auto-committing
+  `find_two_rois` was measured bad (issue #8) and stays out.
+
+**Not this milestone:** AI invents positions; silent second ROI; park
+classical until YOLO is “perfect.”
 
 ## Diagnosis (what we already measured)
 
@@ -136,13 +169,25 @@ Not G1. After classical Generate + vib recipes are solid:
 | Step | Work | Exit gate |
 |------|------|-----------|
 | **0** | This doc + owner answers (done) | Accepted |
-| **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log |
-| **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Shipped in this change set — tests + GUI always shows toggle |
+| **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log — tip-only Autotune **DONE** #164; smoke **0.5.18** |
+| **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | **DONE** #149 |
 | **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **DONE** #160 |
-| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT |
+| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT — **next measure** |
+| **4b** | **Motion candidates UI** — show all usable motion/ROI proposals before Generate; user picks primary | Milestone #5 — overlay/list, no silent commit |
 | **5** | GUI rename of profiles; keep aliases | Copy review |
-| **6** | Decouple profile pick from forced dual-ROI when vib off | CLI/GUI |
+| **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | CLI/GUI — owner #4 |
+| **6b** | YOLO class proposals (penis / glans / nipple) as opt-in helpers for primary + partner | Suggest ≠ commit; needs working AI Train (#119) |
 | **7** | AI/pattern **profile suggest** (Blow vs Normal vs Tf-family vs Mix) | After G1 goldens; G3; override always |
+
+### Next release train (after 0.5.18 smoke)
+
+| Release | Ship | Why |
+|---------|------|-----|
+| **v0.5.19** | Step **4** measure + start **4b** candidate overlay (read-only) | Prove no-mark ≥ CSRT before UX bet; show motion without forcing marks |
+| **v0.5.20** | Step **6** feel-decouple (Tf/Tj recipe on Normal path when vib on) + polish 4b pick-primary | Milestone “mark main stroke” usable |
+| **later** | **6b** YOLO proposals + step **7** profile suggest | Only after classical candidates feel trustworthy |
+
+Owner media still needed for step 4 FunGen windowed (~3 min clips).
 
 ---
 
@@ -158,6 +203,6 @@ Not G1. After classical Generate + vib recipes are solid:
 
 ## Next concrete implementation (after this PR)
 
-Start at **step 2** (contact vib → Normal/Auto, default on, can disable),
-then **step 3** (tracked partner only when vib on for Tf/Blow — **done**).
-Profile rename and AI suggest wait until those feel right on device.
+Steps **2–3** done. After **0.5.18** Autotune smoke (#145): start **step 4**
+(windowed no-mark vs FunGen) in parallel with **4b** read-only motion
+candidates. Do **not** leapfrog to YOLO auto-commit or profile AI suggest.
