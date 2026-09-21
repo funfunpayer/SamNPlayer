@@ -74,7 +74,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | this PR | F-003 root-cause test: raw-vs-post scoring + real-PTS check | **DONE** — mechanism refuted, lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | #156 merged; `codex/coord-pr156-merged` (board update) | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage claimed; original clip timeouts await reproduction data |
+| E | ChatGPT | #156 merged; `codex/flow-timeout-investigation` | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage active; Claude's 720p/default-scale commands received, original media/environment still needed |
 | C | — | — | TFTJ step 3 partner-mark | **Next** — free to claim |
 
 ---
