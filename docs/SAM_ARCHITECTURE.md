@@ -380,12 +380,21 @@ but the gap (grid_lk/region_fusion at ~30-40% of CSRT's r on
 `clip_ausschnitt`) is large enough that ROI choice alone is an unlikely
 full explanation.
 
+**Update (same day, tip-matched rerun on `clip_ausschnitt`):** with a
+shared tip ROI `426,450,320,180` `--axis y`, windowed (10s) vs FunGen
+ohne_yolo: CSRT hub 0.590 > **region_fusion tip 0.562** > grid_lk 0.494 >
+CSRT tip 0.468 > 4-zone auto 0.363 > flow×0.5 0.231. So ROI choice *was*
+the main gap for region_fusion/grid_lk on this clip — tip-matched fusion
+nearly matches the committed hub. Still **no Go port** until a second
+golden (`clip_voll`) confirms. Flow full-res still incomplete (~180s /
+~77% frames); `--flow-downscale 0.5` completes but quality is poor.
+Full table: `docs/TFTJ_PROFILE_DIRECTION.md` § Method matrix.
+
 **Consequence for fusion/cross-check**: the original idea (use a second
 observer as a gap-filler or cross-check where CSRT's own `confidence`/
 `lost` telemetry flags trouble, not as an always-on second tracker) is
-still architecturally sound and matches this section's own design, but
-has no evidence behind it yet — neither `grid_lk` nor `region_fusion`
-demonstrated it would help even in the easy case (whole-clip), so there's
-no basis yet to expect it would help in the harder case (targeted
-gap-filling). Revisit only if a future candidate (a fixed `flow`, or a
-new observer) shows a real edge on these goldens.
+still architecturally sound and matches this section's own design. The
+tip-matched rerun puts `region_fusion` back on the candidate list for
+that role — still opt-in / measure-first, not a default. Revisit a Go
+port only if a second golden (`clip_voll`) and/or a fixed `flow` show a
+real edge.

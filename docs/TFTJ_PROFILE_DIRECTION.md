@@ -98,16 +98,16 @@ classical until YOLO is “perfect.”
 
 ### Profiles (B) — feel recipes (rename in GUI)
 
-Working set (names TBD in a small rename pass; keep CLI aliases):
+Working set (GUI rename ship in **v0.5.21** prep; keep CLI aliases):
 
-| Profile (concept) | Feel | Marking (C) |
-|-------------------|------|-------------|
-| **Normal / hub** | Stroke / usual suction | None by default |
-| **Auto** | “Just generate” classical path | None by default |
-| **Weich / autotune** | Soft / filtered Normal | Same as Normal |
-| **Tf / Tj** (rename e.g. suction/contact family) | Suction-centric | Partner mark **only if contact vib enabled** |
-| **Blow** (and similar oral/contact) | Contact-centric recipe | Same rule as Tf |
-| **Mix / others** | Combinations we already have + more later | Per-recipe rules |
+| Profile (concept) | GUI label (values) | Feel | Marking (C) |
+|-------------------|--------------------|------|-------------|
+| **Normal / hub** | Stroke (Normal) → `standard` | Stroke / usual suction | None by default |
+| **Auto** | Autotune → `autotune` | “Just generate” classical path | None by default |
+| **Weich** | Soft (rings) → `weich` | Soft / filtered Normal | Same as Normal |
+| **Tf / Tj** | CLI only (`tf`/`tj`) | Suction-centric | Partner mark **only if contact vib enabled** |
+| **Blow** (and similar oral/contact) | later | Contact-centric recipe | Same rule as Tf |
+| **Mix / others** | later | Combinations we already have + more later | Per-recipe rules |
 
 Tf and Tj remain **aliases** for one suction-family profile until rename
 ships. **Blow** is a sibling contact-family profile, not a second tracker.
@@ -176,8 +176,8 @@ Not G1. After classical Generate + vib recipes are solid:
 | **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | **DONE** on Claude `clip_ausschnitt` — 4-zone **below** tip CSRT (see below); keep opt-in, do **not** default |
 | **4b** | **Motion candidates UI** — show all usable motion/ROI proposals before Generate; user picks primary | **DONE** #167 — in **v0.5.19** |
 | **4c** | GUI opt-in **Track whole-frame motion (4 zones)** (`region_fusion_auto`) | **DONE** #169 — no mark; Normal + Contact vib; Contact-first (no Tf/Tj gate) |
-| **5** | GUI rename of profiles; keep aliases | Copy review |
-| **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | CLI/GUI — owner #4 |
+| **5** | GUI rename of profiles; keep aliases | **IN PROGRESS** — Stroke/Soft/Autotune labels (values unchanged) |
+| **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | **PARTIAL** — Play Contact save/preview + SuggestPipeline → Stroke; Zone2 distance still CLI / FEEL_DECOUPLE scaffold |
 | **6b** | YOLO class proposals (penis / glans / nipple) as opt-in helpers for primary + partner | Suggest ≠ commit; needs working AI Train (#119) |
 | **7** | AI/pattern **profile suggest** (Blow vs Normal vs Tf-family vs Mix) | After G1 goldens; G3; override always |
 
@@ -187,7 +187,8 @@ Not G1. After classical Generate + vib recipes are solid:
 |---------|------|-----|
 | **v0.5.19** | Step **4b** candidate overlay (read-only) | Show motion without forcing marks |
 | **v0.5.20** | Step **4c** GUI 4-zone opt-in + Contact-first (#169) | Everyday = stroke + Contact vib; 4-zone stays opt-in after measure |
-| **later** | Step **6** feel-decouple + **6b** YOLO + **7** profile suggest | Only after classical candidates feel trustworthy |
+| **v0.5.21** | Step **5** rename + step **6** Play feel-decouple + Flow soft warns | Owner Flow smoke on 0.5.20; do not default 4-zone or Zone2-distance |
+| **later** | Step **6** finish (stroke+tracked partner) + **6b** YOLO + **7** profile suggest | Only after classical candidates feel trustworthy |
 
 ### Step 4 measure — Claude `clip_ausschnitt` (21 Sep 2026)
 
@@ -209,6 +210,30 @@ recipe gets `contact_vibration=true` + `curve=soft` (device path only).
 **Gate:** promote 4-zone only if ≥ single-ROI CSRT → **not met** (0.363 < 0.468
 tip CSRT, and far below committed hub 0.590). Keep GUI button as **opt-in**.
 
+### Method matrix (same clip, eve 21 Sep) — compare trackers
+
+Same tip ROI `426,450,320,180` `--axis y` where a mark is required. Windowed
+10s vs FunGen ohne_yolo (primary ranking):
+
+| Rank | Method | windowed mean r | whole-clip r | Notes |
+|------|--------|----------------:|-------------:|-------|
+| 1 | CSRT hub (native committed) | **0.590** | 0.440 | Best baseline |
+| 2 | `region_fusion` tip | **0.562** | **0.501** | Marked; near hub — revisit bake-off caveat (auto_roi ROI was weaker) |
+| 3 | `grid_lk` tip | 0.494 | 0.416 | Faster; below hub |
+| 4 | CSRT tip-tight | 0.468 | 0.447 | Same tip as rows 2–3 |
+| 5 | 4-zone `region_fusion_auto` | 0.363 | 0.189 inv | No mark — keep opt-in |
+| 6 | `flow --flow-downscale 0.5` | 0.231 | 0.077 | **Completes** ~50s 720p; QD 0.55 noisy |
+| — | `flow` full-res | — | — | Soft `FLOW_WALL_WARN` at 30s; hard kill ~180s at ~920/1199 |
+
+**Implications for next prep (Windows smoke can wait):**
+
+1. Do **not** default 4-zone or Flow in GUI.
+2. Optional later: Advanced `region_fusion` (marked) — only after a second clip
+   confirms tip-matched ≥ CSRT; values above beat Claude #154 auto_roi bake-off.
+3. CLI Flow: recommend `--flow-downscale 0.5` (full-res still too slow).
+4. Soft wall/stall warns (#172) are enough for owner Flow smoke when ready.
+5. Re-run matrix on `clip_voll` when media lands.
+
 ---
 
 ## Explicit non-goals (for now)
@@ -221,9 +246,19 @@ tip CSRT, and far below committed hub 0.590). Keep GUI button as **opt-in**.
 
 ---
 
-## Next concrete implementation (after #169)
+## Next concrete implementation (after #169 / v0.5.20)
 
-Steps **2–4c** done on product path. Step **4** measure says keep 4-zone
-opt-in. Next: ship **v0.5.20**, then step **6** feel-decouple when vib on.
-Do **not** leapfrog to YOLO auto-commit or profile AI suggest. Re-run step 4
-on `clip_voll` when that media is available.
+Steps **2–4c** done. Step **4** + method matrix: keep 4-zone/Flow opt-in /
+CLI; tip-matched `region_fusion` is interesting but needs `clip_voll`.
+
+**v0.5.21 prep (#172):** profile rename, Play Contact on stroke, Flow soft
+warns. **Windows owner smoke deferred** — continue prep from clip matrix.
+
+Next prep after #172 merges:
+1. Optional Advanced `region_fusion` (marked) — only after second-clip confirm
+2. CLI doc: prefer `--flow-downscale 0.5`
+3. AliasingRisk period-detector floor (~100–140ms)
+4. Finish step 6 Zone2→tracked partner on stroke (behind vib, not default)
+5. Re-run matrix when `clip_voll.mp4` available
+
+Do **not** leapfrog to YOLO auto-commit or profile AI suggest.

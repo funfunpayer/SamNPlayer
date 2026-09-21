@@ -2,10 +2,10 @@ package funscript
 
 import "testing"
 
-func TestSuggestPipelineTwoROIUsesTf(t *testing.T) {
+func TestSuggestPipelineTwoROIUsesStroke(t *testing.T) {
 	s := SuggestPipeline(80, 80, 40, 40)
-	if s.Backend != "csrt" || s.Profile != "tf" || !s.GoPath {
-		t.Fatalf("got %+v", s)
+	if s.Backend != "csrt" || s.Profile != "standard" || !s.GoPath {
+		t.Fatalf("two ROI must suggest Stroke (standard), not tf; got %+v", s)
 	}
 }
 

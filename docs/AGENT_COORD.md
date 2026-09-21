@@ -67,7 +67,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **6** | TFTJ milestone: auto feel + motion candidates | Cursor A | 4b **DONE** #167; bump **v0.5.19** |
 | **7** | **v0.5.19** | Cursor A | **DONE** #168 + tag `v0.5.19` |
 | **8** | No-mark 4-zone in GUI + Contact-first | Cursor A | **DONE** #169 — step-4 measure: 4-zone < tip CSRT → keep opt-in |
-| **9** | **v0.5.20** | Cursor A | **IN PROGRESS** bump + tag — owner Flow smoke on this build |
+| **9** | **v0.5.20** | Cursor A | **DONE** #171 + tag `v0.5.20` — owner Flow / 4-zone smoke |
+| **10** | Prep **v0.5.21** (rename + feel-decouple + Flow soft warn) | Cursor A | **IN PROGRESS** `cursor/next-0521-prep-d7cb` |
 
 ---
 
@@ -87,9 +88,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | this PR | fix `dominantPeriodMs` (real bug, not half-period) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-20-d7cb` | bump **v0.5.20** + tag (4-zone + Contact-first; owner Flow smoke) | **IN PROGRESS** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | ready for review — #119 stays open |
+| B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
+| A | Cursor | #172 | v0.5.21 prep: rename, feel-decouple Play, Flow soft warn + matrix | **rebasing** after #173 — merge next |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **blocked** — merge conflicts; #119 stays open |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
@@ -377,6 +378,7 @@ bug. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Tier (2)'s
 | 21 Sep | Product: **no Tf/Tj required** — Contact vibration + stroke/4-zone; Zone 2 optional | Owner |
 | 21 Sep | Step 4 measure on Claude `clip_ausschnitt`: 4-zone windowed r=0.363 < tip CSRT 0.468 < hub 0.590 vs FunGen ohne_yolo — keep 4-zone **opt-in**, do not default | Cursor A |
 | 21 Sep | Owner: Flow smoke on **v0.5.20** (after #169) | Owner |
+| 21 Sep | Prep v0.5.21: Stroke/Soft/Autotune labels; Play Contact on stroke scripts; SuggestPipeline→standard; Flow WALL/STALL soft warn | Cursor A |
 
 ---
 

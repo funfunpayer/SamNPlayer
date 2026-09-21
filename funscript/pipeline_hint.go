@@ -14,10 +14,12 @@ type PipelineSuggestion struct {
 // in-binary CSRT ships (#120). Research backends remain CLI --backend only.
 func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 	if roi2W > 0 && roi2H > 0 && roiW > 0 && roiH > 0 {
+		// Contact-first: two marks do not force a Tf/Tj profile. Stroke +
+		// Contact vib is the product path; distance Tf/Tj stays CLI.
 		return PipelineSuggestion{
 			Backend: "csrt",
-			Profile: "tf",
-			Reason:  "Two regions → Tf/Tj (distance) on CSRT",
+			Profile: "standard",
+			Reason:  "Two regions → Stroke (CSRT); optional Contact partner — Tf/Tj is CLI-only",
 			GoPath:  true,
 		}
 	}

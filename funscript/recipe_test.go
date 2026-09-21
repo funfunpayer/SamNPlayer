@@ -15,6 +15,15 @@ func TestNormalizeProfile(t *testing.T) {
 	if IsDistanceProfile("standard") {
 		t.Fatal("standard ist kein Distanzprofil")
 	}
+	if !IsStrokeProfile("standard") || !IsStrokeProfile("weich") || !IsStrokeProfile("autotune") {
+		t.Fatal("standard/weich/autotune müssen Stroke-Profile sein")
+	}
+	if IsStrokeProfile("tj") || IsStrokeProfile("tf") {
+		t.Fatal("tf/tj sind keine Stroke-Profile")
+	}
+	if !AllowsContactSettings("standard") || !AllowsContactSettings("tj") {
+		t.Fatal("Stroke und Tf/Tj dürfen Contact-Settings erlauben")
+	}
 }
 
 func TestRecipeTJSuctionOnlyNoVibration(t *testing.T) {

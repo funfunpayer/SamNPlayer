@@ -8,6 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Flow soft observability:** `FLOW_WALL_WARN` / `FLOW_STALL_WARN` on stderr
+  (defaults 120s / 60s; set `FLOW_BACKEND_WALL_WARN_S=0` to silence). Registry
+  Flow path now forwards `on_progress`. No hard timeout / no GUI Flow yet.
+
+### Changed
+
+- **GUI profile rename (TFTJ step 5):** Stroke (Normal) / Soft (rings) /
+  Autotune — wire values `standard`/`weich`/`autotune` unchanged.
+- **Feel-decouple (TFTJ step 6 partial):** Play can save/preview Contact vib
+  on Stroke scripts; `SuggestPipeline` two-ROI → `standard` (not `tf`).
+  Zone2 distance on stroke still scaffold-only.
+
 ## [0.5.20] — September 21, 2026
 
 ### Added
@@ -29,6 +43,9 @@ measurement history behind each entry; this file is the short version for
   FunGen r=0.363 vs tip CSRT 0.468 vs committed hub 0.590 (ohne_yolo).
   Contact vib does not change stroke actions. **Do not default 4-zone.**
   Details: `docs/TFTJ_PROFILE_DIRECTION.md` § Step 4 measure.
+- **Method matrix (same clip):** tip-matched `region_fusion` 0.562 /
+  `grid_lk` 0.494 / flow×0.5 0.231 windowed vs ohne_yolo. Full-res flow
+  incomplete at ~180s. Soft wall warn works. See TFTJ § Method matrix.
 
 ## [0.5.19] — September 21, 2026
 

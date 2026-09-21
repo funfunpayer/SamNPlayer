@@ -38,6 +38,16 @@ class FlowDispatchTest(unittest.TestCase):
                 self.assertEqual(captured["axis"], "x")
                 self.assertTrue(callable(captured["on_progress"]))
 
+    def test_registry_flow_forwards_on_progress(self):
+        """Plugin/registry path used to drop on_progress — progress stayed silent."""
+        source = Path(__file__).with_name("generate_funscript.py").read_text(encoding="utf-8")
+        self.assertIn("on_progress=options.get(\"on_progress\")", source)
+        # Bound to the flow registry adapter, not only process_one.
+        self.assertRegex(
+            source,
+            r"def flow\(video_path, roi, options\):[\s\S]*?on_progress=options\.get\(\"on_progress\"\)",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

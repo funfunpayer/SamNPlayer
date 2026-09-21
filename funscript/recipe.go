@@ -32,6 +32,22 @@ func IsDistanceProfile(name string) bool {
 	return n == ProfileTJ || n == ProfileTF
 }
 
+// IsStrokeProfile: product stroke family (hub / soft / autotune). Contact
+// vibration is a feel layer on these — not Tf/Tj-only (TFTJ step 6).
+func IsStrokeProfile(name string) bool {
+	n := NormalizeProfile(name)
+	if n == ProfileStandard || n == ProfileWeich {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(name), "autotune")
+}
+
+// AllowsContactSettings: Play may edit contact recipe for stroke or distance
+// scripts. Rejects unknown/empty non-stroke profiles without a clear family.
+func AllowsContactSettings(name string) bool {
+	return IsDistanceProfile(name) || IsStrokeProfile(name)
+}
+
 // DeviceRecipe ist das, was in die Funscript-Metadata geschrieben wird,
 // damit die Wiedergabe ohne extra Klick denselben Aktor trifft.
 type DeviceRecipe struct {

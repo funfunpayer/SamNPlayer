@@ -97,13 +97,13 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
-      <h3 class="gen-step-title">3 · Motion type</h3>
+      <h3 class="gen-step-title">3 · Stroke profile</h3>
       <div class="row" style="align-items:center;">
-        <label style="width:auto;" data-help="Default = classic stroke. Soft filters ringing. Autotune = detrend+bandpass+speed. Everyday path: stroke + Contact vibration — no Tf/Tj profile required.">Motion type</label>
+        <label style="width:auto;" data-help="Stroke = classic hub curve. Soft = less ringing. Autotune = detrend+bandpass+speed. Everyday: stroke + Contact vibration — no Tf/Tj profile required. CLI aliases unchanged (standard/weich/autotune).">Stroke profile</label>
         <select id="gen-profile">
-          <option value="standard">Stroke motion (default)</option>
-          <option value="weich">Soft tissue (rings)</option>
-          <option value="autotune">Autotune (detrend + bandpass + speed)</option>
+          <option value="standard">Stroke (Normal)</option>
+          <option value="weich">Soft (rings)</option>
+          <option value="autotune">Autotune</option>
         </select>
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
@@ -164,7 +164,7 @@ export function initGenerator(root, playback) {
               <option value="region_fusion_auto">4-zone motion (no mark)</option>
             </select>
           </div>
-          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Normal/Autotune.</p>
+          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Stroke/Autotune.</p>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -923,6 +923,9 @@ export function initGenerator(root, playback) {
     };
     // Optional Zone 2 is UX-only for now on stroke profiles (Contact vib uses
     // stroke depth). Legacy tip↔partner distance stays CLI --profile tf|tj.
+    // FEEL_DECOUPLE(v0.5.21+): when enabling stroke+partner distance, gate on
+    // contactVibrationOn() && roi2 (tracked partner), not isTfTj() alone —
+    // do not silent-default that path yet (owner smoke first).
     if (roi2 && isTfTj()) {
       payload.x2 = roi2.x;
       payload.y2 = roi2.y;

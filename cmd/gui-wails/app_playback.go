@@ -49,6 +49,8 @@ type ContactPreviewOptions struct {
 // SaveContactSettings schreibt Kontakt-Vibration in die Skript-Metadata
 // (device_recipe / .samn recipe) und lädt das Skript neu — damit Preview und nächste
 // Wiedergabe denselben „wie die Berührung“-Stand nutzen.
+// Stroke profiles (standard/weich/autotune) are allowed — Contact vib is the
+// product feel layer, not Tf/Tj-only (TFTJ step 6 / Contact-first).
 func (a *App) SaveContactSettings(enabled bool, span float64, curve string) error {
 	path := a.loadedScriptPath()
 	if path == "" {
@@ -58,8 +60,8 @@ func (a *App) SaveContactSettings(enabled bool, span float64, curve string) erro
 	if script == nil {
 		return fmt.Errorf("no script loaded")
 	}
-	if !funscript.IsDistanceProfile(script.Metadata.Profile) {
-		return fmt.Errorf("contact vibration only for Tf/Tj scripts")
+	if !funscript.AllowsContactSettings(script.Metadata.Profile) {
+		return fmt.Errorf("contact vibration only for Stroke/Soft/Autotune or Tf/Tj scripts")
 	}
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)
@@ -99,7 +101,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	mapOpts := funscript.MapOptionsFromScript(script)
 	profile := script.Metadata.Profile
 	contactOn := false
-	if funscript.IsDistanceProfile(profile) {
+	// Live contact knobs for distance OR stroke+contact recipes (feel-decouple).
+	if funscript.IsDistanceProfile(profile) || mapOpts.ContactVibration {
 		if opts.ContactVibrationSpan > 0 {
 			mapOpts.ContactVibrationSpan = opts.ContactVibrationSpan
 		}
@@ -431,9 +434,11 @@ func (a *App) GetVibrationCurvePreview(preview ContactPreviewOptions) ([]Vibrati
 		return out, nil
 	}
 
-	if dr == nil || !dr.ContactVibration || !funscript.IsDistanceProfile(script.Metadata.Profile) {
+	if dr == nil || !dr.ContactVibration {
 		return nil, nil
 	}
+	// Stroke + Contact vib scripts use the same depth envelope as Tf/Tj;
+	// do not require IsDistanceProfile (TFTJ step 6).
 	opts := funscript.RecipeFor(script.Metadata.Profile)
 	opts.ContactVibration = true
 	opts.ContactVibrationSpan = dr.ContactVibrationSpan
