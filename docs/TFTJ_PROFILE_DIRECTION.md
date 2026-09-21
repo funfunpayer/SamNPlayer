@@ -91,10 +91,10 @@ ships. **Blow** is a sibling contact-family profile, not a second tracker.
 
 ```text
   Default Generate     → no marks (4-zone / single-curve classical)
-  Contact vib OFF      → no partner mark required (any profile)
+  Contact vib OFF      → Normal/Auto: no marks; Tf/Tj: still two markers (tip+partner)
   Contact vib ON
     + Normal/Auto      → optional partner mark; without it use depth envelope
-    + Tf / Blow / …    → partner mark expected; track partner over time
+    + Tf / Blow / …    → two markers required; track partner over time (not Fix default)
 ```
 
 **Compensation rule (owner):** if the user marks a contact target and the
@@ -138,7 +138,7 @@ Not G1. After classical Generate + vib recipes are solid:
 | **0** | This doc + owner answers (done) | Accepted |
 | **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log |
 | **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Shipped in this change set — tests + GUI always shows toggle |
-| **3** | Contact-family rule: vib on → require/enable **tracked partner** mark for Tf/Blow; vib off → no mark | Tests for “static box vs tracked partner” compensation |
+| **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **In PR** — GUI Fix Zone 2 default off when vib on; always require Zone 2; simpletrack fixed-vs-tracked test |
 | **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT |
 | **5** | GUI rename of profiles; keep aliases | Copy review |
 | **6** | Decouple profile pick from forced dual-ROI when vib off | CLI/GUI |
@@ -159,5 +159,5 @@ Not G1. After classical Generate + vib recipes are solid:
 ## Next concrete implementation (after this PR)
 
 Start at **step 2** (contact vib → Normal/Auto, default on, can disable),
-then **step 3** (tracked partner only when vib on for Tf/Blow). Profile
-rename and AI suggest wait until those feel right on device.
+then **step 3** (tracked partner only when vib on for Tf/Blow — **done**).
+Profile rename and AI suggest wait until those feel right on device.

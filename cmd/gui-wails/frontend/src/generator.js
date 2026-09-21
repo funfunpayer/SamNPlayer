@@ -85,7 +85,7 @@ export function initGenerator(root, playback) {
           <option value="">(any)</option>
         </select>
         <label class="checkbox-row" style="margin:0;"
-          data-help="Keep Zone 2 at the marked box (static contact). Only Zone 1 is tracked — better when nipples/mouth barely move.">
+          data-help="Keep Zone 2 at the marked box (static). Off = track the partner (default when contact vibration is on — scene/camera motion stays in sync). On only when the contact target barely moves.">
           <input type="checkbox" id="gen-roi2-fixed" /> Fix Zone 2 (static)
         </label>
       </div>
@@ -111,7 +111,8 @@ export function initGenerator(root, playback) {
         Zones: (1) tip — glans or whole penis, tracked; (2) primary contact e.g. nipples;
         (3+) optional extra contacts. Nearest contact drives stroke + vibration.
         Whole-penis mark is OK — distance uses the tip end toward the partner.
-        Contact vibration is on by default; fine-tune later in Playback if needed.
+        Contact vibration on → Zone 2 tracked by default (not a frozen box).
+        Zone 2 is always required for Tf/Tj (two markers: tip + partner).
       </p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
@@ -381,11 +382,27 @@ export function initGenerator(root, playback) {
     return true;
   }
 
+  function contactVibrationOn() {
+    return !!el('#gen-contact-vibration')?.checked;
+  }
+
+  // TFTJ: Zone 2 always required for Tf/Tj (two markers). Contact vib on →
+  // partner is tracked by default (Fix Zone 2 off) — see syncRoi2FixedDefault.
   function regionReadyForGenerate() {
     if (!videoPath) return false;
     if (backendNeedsRoi() && !roi) return false;
     if (isTfTj() && !roi2) return false;
     return true;
+  }
+
+  // Default Fix Zone 2 = off when vib needs a tracked partner (step 3).
+  // Respect user override via dataset.userTouched.
+  function syncRoi2FixedDefault() {
+    const fix = el('#gen-roi2-fixed');
+    if (!fix || fix.dataset.userTouched) return;
+    if (isTfTj() && contactVibrationOn()) {
+      fix.checked = false;
+    }
   }
 
   // Progressive steps: next panel appears only when the previous action is done.
@@ -429,7 +446,7 @@ export function initGenerator(root, playback) {
     } else if (!hasRoi1) {
       prompt.textContent = 'Step 2: mark a region on the frame (drag) or find one automatically.';
     } else if (isTfTj() && !roi2) {
-      prompt.textContent = 'Tf/Tj: mark Zone 2 / 2nd region (Shift+drag or “Zone 2”), then Generate appears.';
+      prompt.textContent = 'Tf/Tj: mark Zone 2 / partner (two markers), then Generate appears.';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Step 3: pick motion type if needed — Generate unlocks when regions are ready.';
     } else if (generating) {
@@ -457,6 +474,8 @@ export function initGenerator(root, playback) {
   function updateContactVibrationOpts() {
     const on = el('#gen-contact-vibration').checked;
     el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
+    syncRoi2FixedDefault();
+    updateGenerateEnabled();
   }
 
   function updateContactSpanLabel() {
@@ -480,13 +499,19 @@ export function initGenerator(root, playback) {
         el('#gen-contact-curve').value = 'soft';
       }
     }
+    syncRoi2FixedDefault();
     updateContactVibrationOpts();
     if (tftj) setRoi2Mode(true);
     updateGenerateEnabled();
     if (tftj && videoPath) {
-      el('#gen-status').textContent = roi2
-        ? 'Tf/Tj: both regions set — ready to generate.'
-        : 'Tf/Tj (distance + suction): mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
+      if (roi2) {
+        el('#gen-status').textContent = contactVibrationOn()
+          ? 'Tf/Tj: both markers set — partner tracked unless “Fix Zone 2” is on.'
+          : 'Tf/Tj: both markers set — ready (contact vib off).';
+      } else {
+        el('#gen-status').textContent =
+          'Tf/Tj needs two markers: tip (Zone 1) + partner (Zone 2). Shift+drag or “Zone 2”.';
+      }
     }
   }
 
@@ -595,7 +620,8 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     autoApplyPipeline();
     if (isTfTj() && videoPath && !roi2) {
-      el('#gen-status').textContent = 'First region set — now mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
+      el('#gen-status').textContent =
+        'First marker set — mark Zone 2 / partner (Shift+drag or “Zone 2”).';
     }
     redraw();
   });
@@ -729,7 +755,8 @@ export function initGenerator(root, playback) {
   async function generate() {
     if (!videoPath || (backendNeedsRoi() && !roi)) return;
     if (isTfTj() && !roi2) {
-      el('#gen-status').textContent = 'Tf/Tj needs Zone 2 / 2nd region (Shift+drag or “Zone 2”).';
+      el('#gen-status').textContent =
+        'Tf/Tj needs two markers: Zone 1 (tip) + Zone 2 (partner).';
       return;
     }
 
@@ -886,7 +913,7 @@ export function initGenerator(root, playback) {
     let status = hasRoi2
       ? `Both regions found (${via}) — suggestion, please review/correct.`
       : (isTfTj() && !roi2
-        ? `Region found (${via}) — for Tf/Tj mark Zone 2 / 2nd region (Shift+drag or “Zone 2”).`
+        ? `Region found (${via}) — Tf/Tj still needs Zone 2 (second marker).`
         : `Region found (${via}) — correct by hand if needed.`);
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
@@ -1079,8 +1106,8 @@ export function initGenerator(root, playback) {
       const c2 = el('#gen-region-class2');
       if (c1 && !c1.value) c1.value = 'glans';
       if (c2 && !c2.value) c2.value = 'nipples';
-      const fix = el('#gen-roi2-fixed');
-      if (fix && !fix.dataset.userTouched) fix.checked = true;
+      // Step 3: vib on → tracked partner (Fix off). Do not auto-check static.
+      syncRoi2FixedDefault();
     }
   });
   el('#gen-contact-vibration').addEventListener('change', () => {
