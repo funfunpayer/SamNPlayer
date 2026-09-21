@@ -38,9 +38,9 @@ type LagCorrelation struct {
 	// AliasingRisk is set when another lag near best±k×DominantPeriodMs
 	// scores within DefaultAliasingEpsilon of R. LagMs / R are unchanged —
 	// additive diagnostic only (TFTJ / F-003 option 1).
-	AliasingRisk      bool  `json:"aliasing_risk,omitempty"`
-	DominantPeriodMs  int   `json:"dominant_period_ms,omitempty"`
-	AlternateLagsMs   []int `json:"alternate_lags_ms,omitempty"`
+	AliasingRisk     bool  `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs int   `json:"dominant_period_ms,omitempty"`
+	AlternateLagsMs  []int `json:"alternate_lags_ms,omitempty"`
 }
 
 // WindowResult is one absolute-time window from WindowedBestLagCorrelation.
@@ -76,16 +76,16 @@ type PhaseDiagnosis struct {
 // (docs/SIGNAL_VS_FIDELITY.md) — reference vs candidate via BestLagCorrelation.
 // Distinct from ScriptQualityResult (Signal Quality only).
 type MotionFidelityResult struct {
-	Kind              string         `json:"kind"` // always "motion_fidelity"
-	Diagnosis         PhaseDiagnosis `json:"diagnosis"`
-	R                 *float64       `json:"r"`
-	RZeroLag          *float64       `json:"r_zero_lag"`
-	LagMs             *int           `json:"lag_ms"`
-	Orientation       string         `json:"orientation,omitempty"`
-	LowConfidence     bool           `json:"low_confidence"`
-	AliasingRisk      bool           `json:"aliasing_risk,omitempty"`
-	DominantPeriodMs  int            `json:"dominant_period_ms,omitempty"`
-	AlternateLagsMs   []int          `json:"alternate_lags_ms,omitempty"`
+	Kind             string         `json:"kind"` // always "motion_fidelity"
+	Diagnosis        PhaseDiagnosis `json:"diagnosis"`
+	R                *float64       `json:"r"`
+	RZeroLag         *float64       `json:"r_zero_lag"`
+	LagMs            *int           `json:"lag_ms"`
+	Orientation      string         `json:"orientation,omitempty"`
+	LowConfidence    bool           `json:"low_confidence"`
+	AliasingRisk     bool           `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs int            `json:"dominant_period_ms,omitempty"`
+	AlternateLagsMs  []int          `json:"alternate_lags_ms,omitempty"`
 }
 
 // EvaluateMotionFidelity compares reference A against candidate B.

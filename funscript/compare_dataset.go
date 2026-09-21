@@ -16,18 +16,18 @@ var batchSuffixRE = regexp.MustCompile(`__(hub|tf|tj)\.funscript$`)
 
 // CompareRow is one reference × kind comparison (fungen_compare.compare_dataset).
 type CompareRow struct {
-	Reference         string   `json:"reference"`
-	Stem              string   `json:"stem"`
-	Kind              string   `json:"kind"`
-	R                 float64  `json:"r"`
-	LagMs             int      `json:"lag_ms"`
-	Orientation       string   `json:"orientation"`
-	NSamples          int      `json:"n_samples"`
-	ShapeError        *float64 `json:"shape_error"`
-	RZeroLag          *float64 `json:"r_zero_lag"`
-	LowConfidence     bool     `json:"low_confidence"`
-	AliasingRisk      bool     `json:"aliasing_risk,omitempty"`
-	DominantPeriodMs  int      `json:"dominant_period_ms,omitempty"`
+	Reference        string   `json:"reference"`
+	Stem             string   `json:"stem"`
+	Kind             string   `json:"kind"`
+	R                float64  `json:"r"`
+	LagMs            int      `json:"lag_ms"`
+	Orientation      string   `json:"orientation"`
+	NSamples         int      `json:"n_samples"`
+	ShapeError       *float64 `json:"shape_error"`
+	RZeroLag         *float64 `json:"r_zero_lag"`
+	LowConfidence    bool     `json:"low_confidence"`
+	AliasingRisk     bool     `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs int      `json:"dominant_period_ms,omitempty"`
 }
 
 // CompareDatasetResult mirrors fungen_compare.compare_dataset output.
