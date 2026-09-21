@@ -16,6 +16,12 @@ const (
 	DefaultTimingGainMin  = 0.30  // aligned r must beat raw by this much → "timing"
 	DefaultMinAlignedR    = 0.70  // below this after alignment → shape/perception
 	DefaultWindowMs       = 30000 // 30s windows for windowed mode
+
+	// Aliasing annotation (F-003 option 1): flag near-tied lags at ±k×period
+	// without changing the reported best lag. See docs/FINDINGS_TIMING_TF.md.
+	DefaultAliasingEpsilon = 0.02 // alternate r must be within this of best.R
+	MinDominantPeriodMs    = 150
+	MaxDominantPeriodMs    = 2000
 )
 
 // LagCorrelation is the result of BestLagCorrelation — same fields as
@@ -29,6 +35,12 @@ type LagCorrelation struct {
 	ShapeError    *float64 `json:"shape_error"`
 	RZeroLag      *float64 `json:"r_zero_lag"`
 	LowConfidence bool     `json:"low_confidence"`
+	// AliasingRisk is set when another lag near best±k×DominantPeriodMs
+	// scores within DefaultAliasingEpsilon of R. LagMs / R are unchanged —
+	// additive diagnostic only (TFTJ / F-003 option 1).
+	AliasingRisk      bool  `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs  int   `json:"dominant_period_ms,omitempty"`
+	AlternateLagsMs   []int `json:"alternate_lags_ms,omitempty"`
 }
 
 // WindowResult is one absolute-time window from WindowedBestLagCorrelation.
@@ -64,13 +76,16 @@ type PhaseDiagnosis struct {
 // (docs/SIGNAL_VS_FIDELITY.md) — reference vs candidate via BestLagCorrelation.
 // Distinct from ScriptQualityResult (Signal Quality only).
 type MotionFidelityResult struct {
-	Kind          string         `json:"kind"` // always "motion_fidelity"
-	Diagnosis     PhaseDiagnosis `json:"diagnosis"`
-	R             *float64       `json:"r"`
-	RZeroLag      *float64       `json:"r_zero_lag"`
-	LagMs         *int           `json:"lag_ms"`
-	Orientation   string         `json:"orientation,omitempty"`
-	LowConfidence bool           `json:"low_confidence"`
+	Kind              string         `json:"kind"` // always "motion_fidelity"
+	Diagnosis         PhaseDiagnosis `json:"diagnosis"`
+	R                 *float64       `json:"r"`
+	RZeroLag          *float64       `json:"r_zero_lag"`
+	LagMs             *int           `json:"lag_ms"`
+	Orientation       string         `json:"orientation,omitempty"`
+	LowConfidence     bool           `json:"low_confidence"`
+	AliasingRisk      bool           `json:"aliasing_risk,omitempty"`
+	DominantPeriodMs  int            `json:"dominant_period_ms,omitempty"`
+	AlternateLagsMs   []int          `json:"alternate_lags_ms,omitempty"`
 }
 
 // EvaluateMotionFidelity compares reference A against candidate B.
@@ -90,6 +105,9 @@ func EvaluateMotionFidelity(reference, candidate []Action, maxLagMs, lagStepMs, 
 		out.LagMs = &lag
 		out.Orientation = corr.Orientation
 		out.LowConfidence = corr.LowConfidence
+		out.AliasingRisk = corr.AliasingRisk
+		out.DominantPeriodMs = corr.DominantPeriodMs
+		out.AlternateLagsMs = append([]int(nil), corr.AlternateLagsMs...)
 	}
 	return out
 }
@@ -120,6 +138,8 @@ func BestLagCorrelation(a, b []Action, maxLagMs, lagStepMs, resampleStepMs int) 
 
 	var best *LagCorrelation
 	var zeroLagR *float64
+	// Best r per lag (either orientation) — used only for aliasing annotation.
+	lagScores := map[int]float64{}
 
 	for lagMs := -maxLagMs; lagMs <= maxLagMs; lagMs += lagStepMs {
 		overlapStart := max64(aT0, bT0+int64(lagMs))
@@ -158,6 +178,9 @@ func BestLagCorrelation(a, b []Action, maxLagMs, lagStepMs, resampleStepMs int) 
 			if c.r == nil {
 				continue
 			}
+			if prev, ok := lagScores[lagMs]; !ok || *c.r > prev {
+				lagScores[lagMs] = *c.r
+			}
 			if best == nil || *c.r > best.R {
 				se := shapeNormalizedError(seriesA, c.sb)
 				best = &LagCorrelation{
@@ -180,7 +203,131 @@ func BestLagCorrelation(a, b []Action, maxLagMs, lagStepMs, resampleStepMs int) 
 	}
 	best.RZeroLag = zeroLagR
 	best.LowConfidence = best.NSamples < LowConfidenceSamples
+	annotateAliasingRisk(best, lagScores, aSorted, resampleStepMs, maxLagMs, lagStepMs)
 	return best
+}
+
+// annotateAliasingRisk sets AliasingRisk / AlternateLagsMs when another
+// searched lag near best±k×period scores almost as well. Never changes
+// LagMs or R (F-003 option 1).
+func annotateAliasingRisk(best *LagCorrelation, lagScores map[int]float64, ref []Action, resampleStepMs, maxLagMs, lagStepMs int) {
+	if best == nil || len(lagScores) < 2 {
+		return
+	}
+	period := dominantPeriodMs(ref, resampleStepMs)
+	if period < MinDominantPeriodMs {
+		return
+	}
+	best.DominantPeriodMs = period
+	tolerance := lagStepMs
+	if tolerance < 1 {
+		tolerance = DefaultLagStepMs
+	}
+	var alts []int
+	for k := 1; k*period <= maxLagMs*2; k++ {
+		for _, sign := range []int{1, -1} {
+			target := best.LagMs + sign*k*period
+			if target < -maxLagMs || target > maxLagMs {
+				continue
+			}
+			for lag, r := range lagScores {
+				if lag == best.LagMs {
+					continue
+				}
+				if absInt(lag-target) > tolerance {
+					continue
+				}
+				if best.R-r <= DefaultAliasingEpsilon {
+					alts = append(alts, lag)
+				}
+			}
+		}
+	}
+	if len(alts) == 0 {
+		return
+	}
+	sort.Ints(alts)
+	// Dedupe
+	uniq := alts[:0]
+	prev := math.MinInt32
+	for _, lag := range alts {
+		if lag == prev {
+			continue
+		}
+		uniq = append(uniq, lag)
+		prev = lag
+	}
+	best.AlternateLagsMs = uniq
+	best.AliasingRisk = true
+}
+
+// dominantPeriodMs estimates the dominant stroke period via normalized
+// autocorrelation of the resampled absolute position series. Returns 0
+// when no clear peak exists.
+func dominantPeriodMs(actions []Action, stepMs int) int {
+	if len(actions) < 4 || stepMs <= 0 {
+		return 0
+	}
+	sorted := sortActions(actions)
+	t0, t1 := sorted[0].At, sorted[len(sorted)-1].At
+	if t1-t0 < int64(MinDominantPeriodMs*2) {
+		return 0
+	}
+	series := resampleAbsolute(sorted, t0, t1, stepMs)
+	n := len(series)
+	if n < 16 {
+		return 0
+	}
+	mean := 0.0
+	for _, v := range series {
+		mean += v
+	}
+	mean /= float64(n)
+	var denom float64
+	centered := make([]float64, n)
+	for i, v := range series {
+		centered[i] = v - mean
+		denom += centered[i] * centered[i]
+	}
+	if denom < 1e-9 {
+		return 0
+	}
+	minLag := MinDominantPeriodMs / stepMs
+	maxLag := MaxDominantPeriodMs / stepMs
+	if maxLag >= n/2 {
+		maxLag = n/2 - 1
+	}
+	if minLag < 1 {
+		minLag = 1
+	}
+	if maxLag <= minLag {
+		return 0
+	}
+	bestLag := 0
+	bestAC := 0.0
+	for lag := minLag; lag <= maxLag; lag++ {
+		var num float64
+		for i := 0; i+lag < n; i++ {
+			num += centered[i] * centered[i+lag]
+		}
+		ac := num / denom
+		if ac > bestAC {
+			bestAC = ac
+			bestLag = lag
+		}
+	}
+	// Require a clear periodic peak (not flat noise).
+	if bestAC < 0.25 || bestLag == 0 {
+		return 0
+	}
+	return bestLag * stepMs
+}
+
+func absInt(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // WindowedBestLagCorrelation splits series a's absolute timeline into

@@ -253,8 +253,12 @@ func runPhase(args []string) int {
 	fmt.Printf("kind=motion_fidelity\n")
 	fmt.Printf("verdict=%s\n", diag.Verdict)
 	fmt.Printf("detail=%s\n", diag.Detail)
-	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s low_confidence=%v\n",
-		*mf.R, r0, *mf.LagMs, mf.Orientation, mf.LowConfidence)
+	fmt.Printf("r=%.4f r_zero_lag=%s lag_ms=%d orientation=%s low_confidence=%v aliasing_risk=%v",
+		*mf.R, r0, *mf.LagMs, mf.Orientation, mf.LowConfidence, mf.AliasingRisk)
+	if mf.AliasingRisk {
+		fmt.Printf(" dominant_period_ms=%d alternate_lags_ms=%v", mf.DominantPeriodMs, mf.AlternateLagsMs)
+	}
+	fmt.Printf("\n")
 	return 0
 }
 
@@ -285,7 +289,11 @@ func runPhaseWindowed(a, b []funscript.Action, windowMs, maxLag, lagStep, resamp
 		if c.Orientation == "inverted" {
 			inv = " INVERTED"
 		}
-		fmt.Printf("window %.1f-%.1fs: r=%.3f @ lag %+dms%s%s\n", ws, we, c.R, c.LagMs, inv, low)
+		alias := ""
+		if c.AliasingRisk {
+			alias = fmt.Sprintf(" [ALIASING RISK period≈%dms alts=%v]", c.DominantPeriodMs, c.AlternateLagsMs)
+		}
+		fmt.Printf("window %.1f-%.1fs: r=%.3f @ lag %+dms%s%s%s\n", ws, we, c.R, c.LagMs, inv, low, alias)
 		if !c.LowConfidence {
 			confident++
 			sumR += c.R

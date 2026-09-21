@@ -138,7 +138,7 @@ Not G1. After classical Generate + vib recipes are solid:
 | **0** | This doc + owner answers (done) | Accepted |
 | **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log |
 | **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | Shipped in this change set — tests + GUI always shows toggle |
-| **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **In PR** — GUI Fix Zone 2 default off when vib on; always require Zone 2; simpletrack fixed-vs-tracked test |
+| **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **DONE** #160 |
 | **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT |
 | **5** | GUI rename of profiles; keep aliases | Copy review |
 | **6** | Decouple profile pick from forced dual-ROI when vib off | CLI/GUI |

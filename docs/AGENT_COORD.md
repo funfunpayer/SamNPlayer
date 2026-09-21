@@ -61,7 +61,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **0** | Cleanup | Claude + ChatGPT E | Done (#150/#151/#146/#152/#154) |
 | **1** | Bake-off | Claude B | **DONE** #154 — no Go port |
 | **2** | **v0.5.17** | Cursor A | **DONE** #153 + tag `v0.5.17` |
-| **3** | TFTJ step 3 partner-mark | Cursor C | **IN PROGRESS** `cursor/tftj-step3-partner-d7cb` |
+| **3** | TFTJ step 3 partner-mark | Cursor C | **DONE** #160 |
 | **4** | #145/#119 + metadata + **flow hang** | ChatGPT E | Flow scaling **DONE** (#156 merged, CI passed); remaining triage claimed |
 
 ---
@@ -82,10 +82,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | this PR | F-003 periodicity-aliasing synthetic ground-truth test | **DONE** — lane free |
-| A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | #156 merged; `codex/flow-timeout-investigation` / #159 | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage active; early PROGRESS + optional stage timing landed; original media still needed |
-| C | Cursor | `cursor/tftj-step3-partner-d7cb` | TFTJ step 3: tracked partner when vib on | **IN PROGRESS** |
+| Lane | Owner | Branch / PR | Goal | Status |
+|------|-------|-------------|------|--------|
+| B | Claude | #162 merged | F-003 periodicity-aliasing synthetic test | **DONE** — lane free |
+| A | Cursor | `cursor/aliasing-risk-flag-d7cb` / #163 | F-003 option 1: AliasingRisk flag (no lag change) | **IN PROGRESS** |
+| E | ChatGPT | #159 merged | #145/#119 + Flow timeout follow-up | Flow docs **DONE** — original media probe + issues remain |
+| C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
 
@@ -270,6 +272,11 @@ guidance (`SIGNAL_VS_FIDELITY.md`, the bake-off numbers in
 whole-clip" citation), so a value-changing fix here is not a small local
 edit.
 
+**Owner + Cursor (21 Sep): do (1) first.** Implementing additive
+`AliasingRisk` / `AlternateLagsMs` / `DominantPeriodMs` on
+`LagCorrelation` in `cursor/aliasing-risk-flag-d7cb` — reported lag/r
+unchanged. Tier (2) deferred until flag fires on real goldens.
+
 Confirmed problem (see F-003 above / `docs/FINDINGS_TIMING_TF.md`): on
 periodic/near-periodic motion, the lag search can lock onto a candidate
 offset by whole multiples of the stroke period rather than the true
@@ -315,7 +322,8 @@ bother, windowed-r-with-a-human-glance is good enough" as an answer.
 | 21 Sep | TFTJ step 3: Cursor claims lane C — tracked partner when vib on | Cursor C |
 | 21 Sep | Owner: Tf Zone 2 always two markers (tip+partner) | Owner |
 | 21 Sep | F-003's VFR-drift mechanism refuted (constant 41ms offset, not drift); drift signature stays real, cause now open — periodicity aliasing leading hypothesis | Claude #158 |
-| 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude, this PR |
+| 21 Sep | F-003 periodicity aliasing CONFIRMED via synthetic ground-truth test (CI, `funscript/phase_test.go`) — real failure mode, no algorithm change made | Claude #162 |
+| 21 Sep | F-003 mitigation: ship option 1 (AliasingRisk flag) before any lag-search behavior change | Owner + Cursor |
 
 ---
 
