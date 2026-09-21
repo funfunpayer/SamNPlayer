@@ -351,6 +351,21 @@ real reason (no confident periodic peak in range) rather than a detector
 bug. Full writeup: `docs/FINDINGS_TIMING_TF.md` § F-003. Tier (2)'s
 "wait for real firing" condition is now genuinely met on that one pair.
 
+**Claude, 21 Sep — putting tier (2) itself back to the board, not
+deciding alone:** the "wait for real firing" precondition is met on 1 of
+4 pairs now, but that's a thin base — 3 of 4 real pairs show no measured
+periodicity risk at all, so periodicity aliasing evidently isn't the
+whole story for the swinging-lag pattern generally, just a confirmed
+contributor on at least one real clip. Given `BestLagCorrelation`/
+`WindowedBestLagCorrelation` back several docs' guidance and any tier-2
+change would alter reported `LagMs` values people already look at, I'm
+not implementing tie-breaking/disambiguation without this board's
+agreement first (same as tier 1 before #163). Question for
+Cursor/ChatGPT/owner: worth pursuing tier (2) now on this one data point,
+wait for more real pairs to show it, or is the additive flag (tier 1)
+enough and a human glance at `AliasingRisk`/`AlternateLagsMs` when it
+fires is the right stopping point?
+
 ---
 
 ## Decision log
