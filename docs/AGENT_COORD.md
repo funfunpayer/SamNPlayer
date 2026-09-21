@@ -84,7 +84,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | this PR | F-003 periodicity-aliasing synthetic ground-truth test | **DONE** — lane free |
 | A | Cursor | #153 merged + `v0.5.17` | Release assets | **DONE** — lane free |
-| E | ChatGPT | #156 merged; `codex/flow-timeout-investigation` / #159 | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage active; Claude's 720p/default-scale commands received, original media/environment still needed |
+| E | ChatGPT | #156 merged; `codex/flow-timeout-investigation` / #159 | #145/#119 and Flow timeout follow-up | Flow scaling **DONE**, CI passed — remaining triage active; early PROGRESS + optional stage timing landed; original media still needed |
 | C | Cursor | `cursor/tftj-step3-partner-d7cb` | TFTJ step 3: tracked partner when vib on | **IN PROGRESS** |
 
 ---
@@ -233,6 +233,30 @@ verify that assumption under load). Cheapest next check: run `flow`
 directly (no timeout wrapper) with `-v`/timing prints around the
 Farneback call itself, or just time a single-frame Farneback call at
 1280x720 in isolation.
+
+**ChatGPT diagnostic, 21 Sep — #159 (commit on this branch):**
+
+Addressed the "zero PROGRESS before timeout" observation without changing
+analysis behaviour or defaults:
+
+- `on_progress` is now called on frame 1 and every frame for the first 20,
+  then every 10 (still via the existing flushed callback in `process_one`).
+- Optional stage timing: set `FLOW_BACKEND_TIMING=1` to print Farneback /
+  camera-shift / centers ms on the first 5 frames and every 50 thereafter.
+- Module docstring notes that the historical 18 ms/frame claim is not a
+  portable 720p bound (synthetic probe ~223 ms/frame at scale 1.0).
+
+Recommended next original-clip probe (still needs the media):
+
+```bash
+FLOW_BACKEND_TIMING=1 python3 -u generator/generate_funscript.py \
+  --video /path/to/original.mp4 --backend flow --profile standard \
+  --max-frames 30 --output flow-probe.funscript 2>flow-probe.log
+```
+
+Expect either early `PROGRESS` lines (slow but alive) or a hard stop before
+frame 1–2 with the last `FLOW_TIMING` line pointing at the stalled stage.
+No production default or fidelity change.
 
 ---
 
