@@ -172,8 +172,9 @@ Not G1. After classical Generate + vib recipes are solid:
 | **1** | Smoke v0.5.16; resolve #145 | Go CSRT / Path: Go in log — tip-only Autotune **DONE** #164; smoke **0.5.18** |
 | **2** | Contact vib on **Normal + Auto**, default **on**, user toggle **off** | **DONE** #149 |
 | **3** | Contact-family: Zone 2 always two markers for Tf/Tj; vib on → **tracked** partner (not Fix default) | **DONE** #160 |
-| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT — **next measure** |
+| **4** | Measure no-mark 4-zone vs FunGen no-YOLO (windowed) | Promote only if ≥ single-ROI CSRT — measure after GUI opt-in smoke |
 | **4b** | **Motion candidates UI** — show all usable motion/ROI proposals before Generate; user picks primary | **DONE** #167 — in **v0.5.19** |
+| **4c** | GUI opt-in **Track whole-frame motion (4 zones)** (`region_fusion_auto`) | **IN PROGRESS** — no mark; Normal + Contact vib |
 | **5** | GUI rename of profiles; keep aliases | Copy review |
 | **6** | Decouple profile pick from forced dual-ROI when vib off; Tf/Tj feel available on Normal stroke path | CLI/GUI — owner #4 |
 | **6b** | YOLO class proposals (penis / glans / nipple) as opt-in helpers for primary + partner | Suggest ≠ commit; needs working AI Train (#119) |
