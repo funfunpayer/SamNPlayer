@@ -10,6 +10,8 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Docs:** `docs/AGENT_COORD.md` — shared Cursor ↔ Claude board (lanes,
+  active claims, handoff template) so agents split work via the repo.
 - **Contact vibration on Normal / Autotune / Soft:** same depth-based
   envelope as Tf/Tj (high pos → vibe). GUI shows the toggle for every
   profile, **on by default**, user can turn off. CLI `--contact-vibration`
