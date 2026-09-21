@@ -93,10 +93,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 Claim: lane E (docs claim #152 merged).
 
-- #146 closed. #145/#119 still open — need current-build reproduce before close.
+- #146 closed. #145: Autotune+Zone2 misuse fix in flight (`cursor/triage-145-autotune-d7cb`); #119 still needs current-build AI-train reproduce.
 - Owner smoked **0.5.16**; **v0.5.17** tagged — portable live.
-- Next product: TFTJ step 3 (partner-mark) — **Cursor claimed lane C**.
-- Flow scaling: #156 merged on 21 Sep at 09:50 UTC; [GitHub Tests](https://github.com/funfunpayer/SamNPlayer/actions/runs/35584874293) passed. No review pending for this fix.
+- TFTJ step 3 **DONE** (#160); F-003 AliasingRisk **DONE** (#163).
+- Flow scaling #156 + timeout docs #159 merged — original media probe still needed.
 - Metadata stamping: inspected save/export paths; no creator overwrite found (details below). Further investigation needs a reproducible example.
 - **New from bake-off:** `flow` backend hangs (5min on 280s clip, 3min on 50s) — root-cause in lane E; contradicts “faster than CSRT” docstring.
 
