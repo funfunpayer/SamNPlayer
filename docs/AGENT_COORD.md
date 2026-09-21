@@ -12,6 +12,18 @@ This file is only: **who owns what right now**, and the handoff rules.
 Agents: **Cursor** (cloud), **Claude** (`claude/keen-davinci-t2ysrs` and
 follow-ons), **ChatGPT** (when active — claim a free lane below).
 
+### Onboarding (ChatGPT — start here)
+
+1. Read this file’s **Active** table — do not take a lane marked RUNNING.
+2. Read `docs/TFTJ_PROFILE_DIRECTION.md` (product direction) and
+   `docs/SAM_ARCHITECTURE.md` § Perception v1 (bake-off, no premature Go).
+3. Prefer free lanes **C** (Tf/Tj step 3) or **E** (metadata stamp bug,
+   close #146) unless the owner assigns otherwise.
+4. Open a branch `cursor/…-d7cb` or your forge’s equivalent from **current
+   `main`**, put an `AGENT_COORD:` block in the PR body, update Active.
+5. Do **not** change tracker defaults or start a second bake-off while
+   Claude’s lane B is RUNNING.
+
 ---
 
 ## Rules (read before starting)
