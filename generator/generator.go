@@ -64,25 +64,28 @@ type Options struct {
 	MinPeakDistanceMs         int
 	MaxFrames                 int
 	DisableCameraCompensation bool
-	UseOpenCL                 bool
-	Threads                   int
-	ReportPath                string
-	Backend                   string
-	Profile                   string
-	PeakProminence            float64
-	DynamicRangeMs            float64
-	MinActionIntervalMs       float64
-	MaxSpeed                  float64
-	Axis                      string
-	AutoRetry                 bool
-	AdaptiveKeyframeError     float64
-	PerSceneROI               bool
-	CacheDir                  string
-	DisableCache              bool
-	NormPercentile            float64
-	RDPTolerance              float64
-	DisableSceneCutDetection  bool
-	ROI2                      ROI
+	// UseOpenCL is retained for API compatibility; ignored. Python enables
+	// OpenCL automatically when that path runs (log only). Does not force
+	// Python or block the Go CSRT path.
+	UseOpenCL                bool
+	Threads                  int
+	ReportPath               string
+	Backend                  string
+	Profile                  string
+	PeakProminence           float64
+	DynamicRangeMs           float64
+	MinActionIntervalMs      float64
+	MaxSpeed                 float64
+	Axis                     string
+	AutoRetry                bool
+	AdaptiveKeyframeError    float64
+	PerSceneROI              bool
+	CacheDir                 string
+	DisableCache             bool
+	NormPercentile           float64
+	RDPTolerance             float64
+	DisableSceneCutDetection bool
+	ROI2                     ROI
 	// ROI2Fixed keeps the second Tf/Tj box at its marked position (static
 	// anchor). ROI1 is still tracked. Distance then reflects tip motion only.
 	ROI2Fixed bool
@@ -881,9 +884,8 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 	if opts.DisableSceneCutDetection {
 		args = append(args, "--no-scene-cut-detection")
 	}
-	if opts.UseOpenCL {
-		args = append(args, "--opencl")
-	}
+	// OpenCL: Python enables automatically when available (log only).
+	// Do not pass --opencl / force a separate path — Go CSRT ignores it.
 	if opts.Threads > 0 {
 		args = append(args, "--threads", strconv.Itoa(opts.Threads))
 	}
