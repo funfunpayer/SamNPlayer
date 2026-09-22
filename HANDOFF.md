@@ -526,9 +526,17 @@ worth reaching for again when polishing other dialogs, not applied
 elsewhere yet:
 - Nested-`<g>` transform separation (see pitfall above) for any SVG
   element that needs both a static rotation and an animated transform.
-- Mirrored-half trick for a ring/arc that should visually fill from the
-  "wrong" side: `.mirror { transform-box: fill-box; transform-origin:
-  center; transform: scaleX(-1); }` around a normally-clockwise arc.
+- One shared full-circle track for two overlapping values (both fills
+  go 0–360° from the same start point) instead of splitting the ring
+  into a fixed half per value — lets either value dominate visually
+  without hardcoding which "side" it owns.
+- Overlapping colored regions: normal alpha blending (reduced
+  `stroke-opacity` on the top layer), not `mix-blend-mode: screen` —
+  screen washes two light/pastel colors toward white as soon as they
+  fully overlap (the common "both equal" case), losing the color
+  distinction entirely. Keep each gradient in its own color family
+  (light tint → saturated hue) rather than sharing one bright stop
+  color, for the same reason.
 - CSS custom properties set live from JS
   (`el.style.setProperty('--x-amp', ...)`) to drive keyframe animation
   *amplitude* proportional to a live value, instead of swapping CSS
@@ -538,10 +546,11 @@ elsewhere yet:
   gloss-highlight `<g>` (own `animation: rotate(...)`, separate from any
   other transform on the same element) reads as a specular highlight
   sweeping across a curved surface.
-- Two color regions blending into each other: give both gradients a
-  shared stop color right at the seam instead of ending each at its own
-  pure color — reads as one continuous surface, not two regions glued
-  together.
+- Deciding what pulses: a channel that should feel local (a vibration)
+  animates its own sub-element; a channel that should feel like it
+  affects the whole object (suction/contraction) animates the shared
+  parent wrapper instead — don't force every channel's motion onto the
+  same element just because they share a widget.
 
 ---
 

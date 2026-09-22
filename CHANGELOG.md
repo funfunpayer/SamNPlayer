@@ -37,41 +37,47 @@ measurement history behind each entry; this file is the short version for
   the same physical channel — `player.NormalizeTrainingScript` now
   derives the channel from the axis slot unconditionally, closing this
   for both built-in and custom scripts.
-- **Live intensity meter:** ONE ring, split into two mirrored halves
-  (left = Vibration, right = Suction) instead of two separate meters or
-  two concentric rings — a single glance shows both channels together,
-  in both colors on the same band. Each half's gradient blends into a
-  shared warm-white stop right at the seam instead of a hard color
-  border, so the two halves visually flow into one another rather than
-  looking like two rings glued side by side. Drop shadow and an inset
-  track groove give it a plastic/3D look instead of a flat fill; a
-  continuous, always-on subtle 3D tilt (`rotateX`/`rotateY` via CSS
-  `perspective`, `tr-ring-tilt3d`) plus a slowly rotating gloss highlight
-  sweep (`tr-ring-gloss-sweep`) make it read as a physical object with
-  depth rather than a flat graphic, independent of whether a session is
-  running. Each axis moves the way it feels, not just glows: the
-  vibration half genuinely pulses **outward** and the suction half
-  rhythmically **contracts inward** ("sucked in" — fast pull, slower
-  release), both with a smooth `ease-in-out` scale animation (no
-  mechanical `steps()` jitter). Amplitude for both scales with the
-  actual intensity (CSS custom properties `--vib-amp`/`--suc-amp`,
-  `updateIntensityRing` sets them live), not just on/off. Percentages
-  sit stacked in the center, a small legend names the two colors. Works
-  for both the simple Technique/Channel form and scripts, replacing the
-  plain "Current peak" text with something to actually watch move.
-  On-brand colors (`--accent`/`--teal`) throughout, including the
-  plan-preview curve (previously hardcoded blue/orange).
+- **Live intensity meter:** ONE ring, ONE full circular track shared by
+  both channels — "die Gräben gehen einmal rum": each channel's fill
+  goes all the way around the same 360° track (0–100% maps to 0–360°)
+  instead of being confined to its own half or its own concentric ring.
+  Where the two fills overlap (the shorter of the two runs), suction's
+  arc sits semi-transparently over vibration's, so the overlap reads as
+  a genuinely mixed color while the non-overlapping remainder stays each
+  channel's own pure color — normal alpha blending, not
+  `mix-blend-mode: screen` (that washed two light pastel gradients to
+  near-white whenever both channels were equal, e.g. the common "both"
+  channel case). Vibration's track is also drawn slightly wider (8px)
+  than suction's (4px), both centered on the same radius, so gold stays
+  visible as a rim on both sides of the overlap instead of being nearly
+  covered whenever suction's opacity alone dominated it. Drop shadow and
+  an inset track groove give it a
+  plastic/3D look instead of a flat fill; a continuous, always-on subtle
+  3D tilt (`rotateX`/`rotateY` via CSS `perspective`, `tr-ring-tilt3d`)
+  plus a slowly rotating gloss highlight sweep (`tr-ring-gloss-sweep`)
+  make it read as a physical object with depth, independent of whether a
+  session is running. The two channels move differently, not just glow
+  differently: vibration pulses its own arc gently **outward**
+  (`tr-ring-anim-vibration`, ease-in-out, amplitude via `--vib-amp`);
+  suction instead contracts the **entire ring** — track, both fills,
+  gloss, everything — smaller and back ("sucked in and released", fast
+  pull/slower release, amplitude via `--suc-amp` on `#tr-ring-wrap`
+  itself), not just its own arc. Percentages sit stacked in the center,
+  a small legend names the two colors. Works for both the simple
+  Technique/Channel form and scripts, replacing the plain "Current peak"
+  text with something to actually watch move. On-brand colors
+  (`--accent`/`--teal`) throughout, including the plan-preview curve
+  (previously hardcoded blue/orange).
   - **Reusable pattern, noted for later:** nested `<g>` transform
     separation (an outer group carries a CSS-animated `transform`, an
     inner group carries a static `transform="rotate(...)"` presentation
     attribute — putting both on the same SVG element makes the CSS
     transform silently replace the attribute instead of composing with
-    it), the mirrored-half trick (`transform-box: fill-box; transform:
-    scaleX(-1)` to reverse an arc's fill direction), and CSS-variable-
-    driven animation amplitude (`element.style.setProperty('--x-amp',
-    ...)` instead of separate CSS classes per intensity level) are all
-    worth reaching for again when polishing other GUI dialogs — not
-    applied elsewhere yet, just recorded here as a template.
+    it) and CSS-variable-driven animation amplitude
+    (`element.style.setProperty('--x-amp', ...)` instead of separate CSS
+    classes per intensity level) are worth reaching for again when
+    polishing other GUI dialogs — not applied elsewhere yet, just
+    recorded here as a template.
 - **Smoothed plan-preview/live curve:** corners where a ramp meets a
   hold are now gently rounded (quadratic-Bezier corner-cutting,
   `roundedPathD`) instead of sharp kinks, plus round line joins/caps.
