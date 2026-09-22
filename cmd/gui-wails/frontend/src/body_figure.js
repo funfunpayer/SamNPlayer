@@ -1,12 +1,12 @@
 /** Human body map for AI Train class picking (stylized line figure).
  *
- * Same idea as the Device tab silhouette Claude shipped: a clear visual
- * instead of text-only chips. Click a region → select that body-part class.
- * Anatomical outline only — no photographic detail.
- * Training-tab motion uses separate pixel pair figures (`pixel_figure.js`).
+ * Claude figure system (`figure_theme.js`): same teal/amber as Device shell.
+ * Click a region → select that body-part class. Anatomical outline only.
+ * Training-tab motion uses pixel pairs (`pixel_figure.js`) on the same theme.
  */
 
 import { CANONICAL, labelFor, normalizeClass } from './bodyparts.js';
+import { bodyMapZoneCSS } from './figure_theme.js';
 
 const REGION_HINTS = {
   face: 'Head / face box',
@@ -26,13 +26,7 @@ export function bodyFigureMarkup() {
 <svg class="body-figure-svg" viewBox="0 0 120 200" role="img"
      aria-label="Body parts for AI training">
   <defs>
-    <style>
-      .bf-outline { fill: none; stroke: #5a6478; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-      .bf-zone { fill: rgba(61,204,192,0.08); stroke: #3dccc0; stroke-width: 1.2; cursor: pointer; transition: fill .12s ease; }
-      .bf-zone:hover, .bf-zone.is-hot { fill: rgba(61,204,192,0.28); }
-      .bf-zone.is-active { fill: rgba(242,176,61,0.35); stroke: #f2b03d; stroke-width: 1.8; }
-      .bf-label { fill: #9aa3b5; font-size: 7px; font-family: inherit; pointer-events: none; }
-    </style>
+    <style>${bodyMapZoneCSS()}</style>
   </defs>
   <!-- soft body silhouette (non-interactive) -->
   <ellipse class="bf-outline" cx="60" cy="28" rx="16" ry="18"/>

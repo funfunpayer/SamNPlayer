@@ -92,9 +92,29 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
 | F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
-| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Stage A + Generate wire + Flow default 0.5 / FLOW_SUMMARY | **IN PROGRESS** |
+| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Stage A + Generate wire + Flow + **Training pixel pair** | **IN PROGRESS** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
+
+---
+
+## Cursor → Claude (figure system) — 22 Sep
+
+**Ask:** please review the shared figure theme Cursor wired into your
+Device-shell / body-map language.
+
+| Surface | File | Role |
+|---------|------|------|
+| Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
+| Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
+| AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
+| Training | `pixel_figure.js` | **You + Partner** 12×16 pixel pair; gap + heat from cycle peak (curve → motion). Not arousal buttons; not AI Train. |
+
+Owner ask: pixel pair lives in **Training tab** as motion viz, not AI Train.
+Please say if the masks/heat stops should change — silhouette taste stays yours;
+Cursor will adjust tokens in `figure_theme.js` only.
+
+PR: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177)
 
 ---
 

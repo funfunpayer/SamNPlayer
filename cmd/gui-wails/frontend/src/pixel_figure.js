@@ -1,9 +1,17 @@
 /** Pixel-art two-person figures for the Training tab (stamina / stop-start).
  *
- * Not AI Train — that keeps the vector body map (`body_figure.js`, Claude
- * silhouette language). These 12×16 pixel people visualize cycle motion:
- * intensity from the training curve drives heat fill + how close the pair is.
+ * Part of Claude’s figure system (`figure_theme.js`): same teal/amber heat as
+ * Device shell + AI Train body map. Not AI Train itself — that stays vector.
+ * These 12×16 people visualize cycle motion (curve → gap + fill).
  */
+
+import {
+  FIGURE_COOL,
+  FIGURE_COOL_PARTNER,
+  FIGURE_GROUND,
+  FIGURE_OUTLINE,
+  figureHeatColor,
+} from './figure_theme.js';
 
 /** Front-facing human mask (12×16). `.` empty, `#` body. */
 const MASK_STAND = [
@@ -52,37 +60,6 @@ function bits(mask) {
 const STAND = bits(MASK_STAND);
 const ENGAGED = bits(MASK_ENGAGED);
 
-function heatColor(level01) {
-  const t = Math.max(0, Math.min(1, level01));
-  if (t < 0.45) {
-    const u = t / 0.45;
-    return lerpHex('#2a6b66', '#2fd4c4', u);
-  }
-  if (t < 0.7) {
-    const u = (t - 0.45) / 0.25;
-    return lerpHex('#2fd4c4', '#f3b23c', u);
-  }
-  const u = (t - 0.7) / 0.3;
-  return lerpHex('#f3b23c', '#ef5f5f', u);
-}
-
-function lerpHex(a, b, t) {
-  const pa = hexToRgb(a), pb = hexToRgb(b);
-  const r = Math.round(pa.r + (pb.r - pa.r) * t);
-  const g = Math.round(pa.g + (pb.g - pa.g) * t);
-  const bl = Math.round(pa.b + (pb.b - pa.b) * t);
-  return `rgb(${r},${g},${bl})`;
-}
-
-function hexToRgb(hex) {
-  const h = hex.replace('#', '');
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-  };
-}
-
 /**
  * Paint one figure into an SVG string of <rect>s.
  * @param {{ level?: number, size?: number, mask?: string[], flip?: boolean, ox?: number, oy?: number, cool?: string }} opts
@@ -93,9 +70,8 @@ function figureRects(opts = {}) {
   const cols = 12, rows = 16;
   const mask = opts.mask || STAND;
   const fillFromRow = Math.floor((1 - level) * rows);
-  const hot = heatColor(level);
-  const cool = opts.cool || '#3a4558';
-  const outline = '#1a2030';
+  const hot = figureHeatColor(level);
+  const cool = opts.cool || FIGURE_COOL;
   const ox = opts.ox || 0;
   const oy = opts.oy || 0;
   let rects = '';
@@ -105,7 +81,7 @@ function figureRects(opts = {}) {
       const sx = opts.flip ? (cols - 1 - x) : x;
       if (row[sx] !== '1') continue;
       const lit = y >= fillFromRow;
-      rects += `<rect x="${ox + x * cell}" y="${oy + y * cell}" width="${cell}" height="${cell}" fill="${lit ? hot : cool}" stroke="${outline}" stroke-width="0.35"/>`;
+      rects += `<rect x="${ox + x * cell}" y="${oy + y * cell}" width="${cell}" height="${cell}" fill="${lit ? hot : cool}" stroke="${FIGURE_OUTLINE}" stroke-width="0.35"/>`;
     }
   }
   return { rects, w: cols * cell, h: rows * cell };
@@ -151,14 +127,14 @@ export function pixelPairSVG(opts = {}) {
     mask,
     flip: true,
     ox: figW + gap,
-    cool: '#454e62',
+    cool: FIGURE_COOL_PARTNER,
   });
   const w = figW * 2 + gap;
   const h = figH;
   const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
   // Soft ground line between feet (curve → motion cue)
   const groundY = h - cell * 0.5;
-  const ground = `<rect x="0" y="${groundY}" width="${w}" height="${Math.max(1, cell * 0.35)}" fill="#1e2533"/>`;
+  const ground = `<rect x="0" y="${groundY}" width="${w}" height="${Math.max(1, cell * 0.35)}" fill="${FIGURE_GROUND}"/>`;
   return `<svg class="pixel-figure-svg pixel-pair-svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"
     role="img" aria-label="${aria}" shape-rendering="crispEdges">${ground}${left.rects}${right.rects}</svg>`;
 }
