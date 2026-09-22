@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **MT-Seed:** Show motion candidates → Tip click / optional 2nd mark
+  (Shift-click or Suggest Tip+2nd → Apply). Zone 2 never auto-filled;
+  Everyday tip-CSRT if you skip. Aligns with Tip-first product stance.
 - **Tip/partner trajectory overlay (MT-Debug):** optional "Record tip/partner
   trajectory" checkbox in Generate → Advanced (off by default) records the
   raw per-frame (x,y) track path into the script's `metadata.trajectory` —

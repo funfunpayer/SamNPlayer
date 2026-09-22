@@ -41,7 +41,10 @@ export function initGenerator(root, playback) {
         <button id="gen-autoroi" class="primary" disabled
           data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows ranked motion regions. Click one to set Zone 1. Zone 2 is never auto-filled.">Show motion candidates</button>
+          data-help="Shows ranked motion regions (MT-Seed). Click = Tip (Zone 1). Optional: Shift-click / Zone 2 mode = second mark (contact or body-part region) — never auto-filled. Everyday = tip alone is enough.">Show motion candidates</button>
+        <button id="gen-seed-suggest" type="button" disabled hidden
+          data-help="MT-Seed: proposes Tip (#1) + optional second region (#2 non-overlapping). Apply required. Skip for Everyday tip-CSRT — Partner is not the default product path.">Suggest Tip+2nd</button>
+        <span class="hint" id="gen-seed-status" style="margin:0"></span>
         <button id="gen-nomark" type="button" disabled
           data-help="Advanced / weaker on measured clip (windowed r≈0.36 vs CSRT hub ≈0.59). Whole-frame 4-zone — opt-in only, not the everyday default.">4-zone (advanced)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
@@ -182,8 +185,6 @@ export function initGenerator(root, playback) {
             </select>
           </div>
           <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Stroke/Autotune.</p>
-          <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records the raw tip/partner (x,y) path per frame into the script, for the optional Review/Play trajectory overlay (MT-Debug). Off by default; only recorded on the CSRT (Go) path, not 4-zone.">Record tip/partner trajectory (Debug overlay)</label></div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -294,7 +295,8 @@ export function initGenerator(root, playback) {
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in videopixeln
   let roi2 = null; // zweite Region für Tf/Tj (distance + suction)
-  let candidates = []; // TFTJ 4b: [{x,y,w,h,score,index}, ...] dashed until pick
+  let candidates = []; // TFTJ 4b / MT-Seed: [{x,y,w,h,score,index}, ...] dashed until pick
+  let pendingSeed = null; // MT-Seed: { tip, partner } suggest ≠ auto-commit
   let extraTargets = []; // additional fixed Tf/Tj anchors (min-distance)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -542,6 +544,8 @@ export function initGenerator(root, playback) {
       backend.dataset.userTouched = '1';
       normalizeProductProfile();
       candidates = [];
+      clearPendingSeed();
+      setSeedSuggestEnabled(false);
       const btn = el('#gen-nomark');
       if (btn) {
         btn.style.outline = '2px solid #7ec8ff';
@@ -726,23 +730,117 @@ export function initGenerator(root, playback) {
     ctx.restore();
   }
 
+  // MT-Seed: IoU gate so Tip+Partner suggestions stay spatially distinct.
+  function boxesOverlap(a, b, iouThresh = 0.25) {
+    if (!a || !b) return false;
+    const ax2 = a.x + a.w, ay2 = a.y + a.h;
+    const bx2 = b.x + b.w, by2 = b.y + b.h;
+    const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(a.x, b.x));
+    const iy = Math.max(0, Math.min(ay2, by2) - Math.max(a.y, b.y));
+    const inter = ix * iy;
+    if (inter <= 0) return false;
+    const union = a.w * a.h + b.w * b.h - inter;
+    return union > 0 && (inter / union) >= iouThresh;
+  }
+
+  /** Ranked list → Tip (#1) + first non-overlapping partner. Suggest only. */
+  function suggestTipPartnerPair(list) {
+    if (!list || list.length < 2) return null;
+    const tip = list[0];
+    for (let i = 1; i < list.length; i++) {
+      if (!boxesOverlap(tip, list[i])) return { tip, partner: list[i] };
+    }
+    return { tip, partner: list[1] };
+  }
+
+  function setSeedSuggestEnabled(on) {
+    const btn = el('#gen-seed-suggest');
+    if (!btn) return;
+    btn.hidden = !on;
+    btn.disabled = !on;
+  }
+
+  function clearPendingSeed() {
+    pendingSeed = null;
+    const status = el('#gen-seed-status');
+    if (status) status.textContent = '';
+  }
+
+  function renderPendingSeedStatus() {
+    const status = el('#gen-seed-status');
+    if (!status) return;
+    status.textContent = '';
+    if (!pendingSeed) return;
+    const tip = pendingSeed.tip, partner = pendingSeed.partner;
+    status.appendChild(document.createTextNode(
+      `Suggest Tip #${tip.index} + 2nd #${partner.index} — `));
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.textContent = 'Apply';
+    applyBtn.addEventListener('click', () => applyPendingSeed());
+    const dismissBtn = document.createElement('button');
+    dismissBtn.type = 'button';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.style.marginLeft = '6px';
+    dismissBtn.addEventListener('click', () => {
+      clearPendingSeed();
+      el('#gen-status').textContent =
+        'Suggestion dismissed — Everyday tip-CSRT if you skip Zone 2.';
+      redraw();
+    });
+    status.appendChild(applyBtn);
+    status.appendChild(dismissBtn);
+  }
+
+  function applyPendingSeed() {
+    if (!pendingSeed) return;
+    const { tip, partner } = pendingSeed;
+    roi = { x: tip.x, y: tip.y, w: tip.w, h: tip.h };
+    roi2 = { x: partner.x, y: partner.y, w: partner.w, h: partner.h };
+    clearPendingSeed();
+    setRoi2Mode(false);
+    updateRoiLabels();
+    updateProfileUi();
+    updateGenerateEnabled();
+    autoApplyPipeline();
+    el('#gen-roi-label').textContent =
+      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, Tip candidate #${tip.index})`;
+    el('#gen-roi2-label').textContent =
+      `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, 2nd candidate #${partner.index})`;
+    el('#gen-status').textContent =
+      `Tip #${tip.index} + 2nd #${partner.index} applied — correct by hand if needed. Zone 2 was never auto-filled.`;
+    redraw();
+  }
+
   function drawCandidate(c) {
     if (!c || !nativeW || !nativeH) return;
     const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
     const dx0 = c.x * scaleX, dy0 = c.y * scaleY, dw = c.w * scaleX, dh = c.h * scaleY;
+    const isTip = pendingSeed && pendingSeed.tip && pendingSeed.tip.index === c.index;
+    const isPartner = pendingSeed && pendingSeed.partner && pendingSeed.partner.index === c.index;
     ctx.save();
     ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = 'rgba(120, 200, 255, 0.95)';
+    if (isTip) {
+      ctx.strokeStyle = 'rgba(61, 204, 192, 0.98)';
+      ctx.fillStyle = 'rgba(61, 204, 192, 0.22)';
+    } else if (isPartner) {
+      ctx.strokeStyle = 'rgba(242, 176, 61, 0.98)';
+      ctx.fillStyle = 'rgba(242, 176, 61, 0.22)';
+    } else {
+      ctx.strokeStyle = 'rgba(120, 200, 255, 0.95)';
+      ctx.fillStyle = 'rgba(120, 200, 255, 0.12)';
+    }
     ctx.lineWidth = 2;
     ctx.strokeRect(dx0, dy0, dw, dh);
-    ctx.fillStyle = 'rgba(120, 200, 255, 0.12)';
     ctx.fillRect(dx0, dy0, dw, dh);
-    const label = '#' + (c.index || '?');
+    let label = '#' + (c.index || '?');
+    if (isTip) label += ' Tip';
+    else if (isPartner) label += ' 2nd';
     ctx.setLineDash([]);
     ctx.font = '600 13px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(10, 20, 30, 0.75)';
     ctx.fillRect(dx0 + 2, dy0 + 2, ctx.measureText(label).width + 8, 18);
-    ctx.fillStyle = '#dff3ff';
+    ctx.fillStyle = isPartner ? '#ffe9c2' : '#dff3ff';
     ctx.fillText(label, dx0 + 6, dy0 + 15);
     ctx.restore();
   }
@@ -765,18 +863,34 @@ export function initGenerator(root, playback) {
     return best;
   }
 
-  function pickCandidate(c) {
+  /** zone 1 = tip, zone 2 = partner. Never fills the other zone (issue #8). */
+  function pickCandidate(c, zone = 1) {
     if (!c) return;
+    if (zone === 2) {
+      roi2 = { x: c.x, y: c.y, w: c.w, h: c.h };
+      setRoi2Mode(false);
+      updateRoiLabels();
+      updateGenerateEnabled();
+      el('#gen-roi2-label').textContent =
+        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, candidate #${c.index})`;
+      const msg = `2nd mark set from candidate #${c.index} — correct by hand if needed.`;
+      el('#gen-status').textContent = msg;
+      redraw();
+      // Re-assert status after pipeline hint (SuggestPipeline → updateProfileUi).
+      autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
+      return;
+    }
     roi = { x: c.x, y: c.y, w: c.w, h: c.h };
-    // Never auto-fill Zone 2 from candidates (issue #8 / TFTJ 4b).
+    // Never auto-fill Zone 2 from a Zone 1 pick (issue #8 / TFTJ 4b / MT-Seed).
     updateRoiLabels();
-    updateProfileUi();
     updateGenerateEnabled();
     el('#gen-roi-label').textContent =
       `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, candidate #${c.index})`;
-    el('#gen-status').textContent =
-      `Primary set from candidate #${c.index} — correct by hand if needed.`;
+    const msg =
+      `Tip set from candidate #${c.index} — optional: Shift-click a 2nd mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
+    el('#gen-status').textContent = msg;
     redraw();
+    autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
   }
 
   function drawDragRect(stroke, fill, dashed) {
@@ -831,12 +945,13 @@ export function initGenerator(root, playback) {
     const mode = markMode;
     draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
-    // Tiny press: pick a motion candidate if shown (TFTJ 4b).
+    // Tiny press: pick a motion candidate if shown (TFTJ 4b / MT-Seed).
+    // Click → Tip (Zone 1). Shift / Zone-2 mode → Partner (Zone 2). Never auto-fills the other.
     if (w < 8 && h < 8) {
-      if (!mode && !wasSecond && candidates.length) {
+      if (!mode && candidates.length) {
         const hit = hitCandidate(startX, startY);
         if (hit) {
-          pickCandidate(hit);
+          pickCandidate(hit, wasSecond ? 2 : 1);
           return;
         }
       }
@@ -949,6 +1064,8 @@ export function initGenerator(root, playback) {
     videoBatchNote = batchNote;    try {
       await showFrame(path, 0);
       candidates = [];
+      clearPendingSeed();
+      setSeedSuggestEnabled(false);
       // Region buttons stay disabled until generate:autoroi (auto-find owns them).
       el('#gen-autoroi').disabled = true;
       el('#gen-candidates').disabled = true;
@@ -1095,7 +1212,6 @@ export function initGenerator(root, playback) {
         : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
-      captureTrajectory: !!el('#gen-capture-trajectory')?.checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     // Optional Zone 2 is UX-only for now on stroke profiles (Contact vib uses
@@ -1177,6 +1293,8 @@ export function initGenerator(root, playback) {
       return;
     }
     candidates = [];
+    clearPendingSeed();
+    setSeedSuggestEnabled(false);
     // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
     if (!el('#gen-backend').dataset.userTouched) {
       el('#gen-backend').value = 'csrt';
@@ -1537,8 +1655,27 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = true;
     el('#gen-autoroi').disabled = true;
     el('#gen-nomark').disabled = true;
-    el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click one)…';
+    setSeedSuggestEnabled(false);
+    clearPendingSeed();
+    el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
+  });
+
+  el('#gen-seed-suggest')?.addEventListener('click', () => {
+    if (candidates.length < 2) {
+      el('#gen-status').textContent = 'Need at least two motion candidates for Tip+2nd.';
+      return;
+    }
+    const pair = suggestTipPartnerPair(candidates);
+    if (!pair) {
+      el('#gen-status').textContent = 'Could not form a Tip+2nd pair — pick by hand.';
+      return;
+    }
+    pendingSeed = pair;
+    renderPendingSeedStatus();
+    el('#gen-status').textContent =
+      `Tip #${pair.tip.index} + 2nd #${pair.partner.index} suggested — Apply to seed, or Dismiss. Tip alone = Everyday.`;
+    redraw();
   });
 
   el('#gen-nomark').addEventListener('click', () => {
@@ -1553,6 +1690,8 @@ export function initGenerator(root, playback) {
     el('#gen-nomark').disabled = false;
     if (result.error) {
       uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      setSeedSuggestEnabled(false);
+      clearPendingSeed();
       return;
     }
     const list = Array.isArray(result.candidates) ? result.candidates : [];
@@ -1561,13 +1700,17 @@ export function initGenerator(root, playback) {
       score: c.score || 0,
       index: c.index || (i + 1),
     }));
+    clearPendingSeed();
     if (!candidates.length) {
+      setSeedSuggestEnabled(false);
       el('#gen-status').textContent = 'No motion candidates — mark primary by hand.';
       redraw();
       return;
     }
-    el('#gen-status').textContent =
-      `${candidates.length} motion candidate${candidates.length === 1 ? '' : 's'} — click one to set Zone 1 (primary). Zone 2 never auto-filled.`;
+    setSeedSuggestEnabled(candidates.length >= 2);
+    el('#gen-status').textContent = candidates.length >= 2
+      ? `${candidates.length} motion candidates — click Tip; optional Shift-click 2nd mark or Suggest Tip+2nd (Apply). Tip alone = Everyday.`
+      : `1 motion candidate — click to set Tip (Zone 1). Zone 2 never auto-filled.`;
     redraw();
   });
 
