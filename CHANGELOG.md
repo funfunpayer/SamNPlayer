@@ -8,6 +8,24 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Playback: "Video ▶ also starts device" switch** — native `<video>` play
+  (browser's own button/spacebar with the video focused) used to always
+  start device playback, even with "Device follows video position" off.
+  Now gated by its own toggle (on by default, same behavior as before);
+  turning it off lets you watch the video without starting the device.
+
+### Fixed
+
+- **Playback: curve/heatmap render crisp on HiDPI/Retina** — canvas backing
+  store now scales with `devicePixelRatio` instead of a 1x bitmap stretched
+  to CSS size.
+- **Playback: 1–9 seek keys now jump to n×10%** of the script duration
+  (previously (n-1)/9, so key "1" jumped to 0% and key "9" only to ~88.9%).
+- **Playback: curve editor** clamps a dragged point to its direct neighbors,
+  so it no longer jumps in list order on mouse-up once points get sorted.
+
 ## [0.5.21] — September 21, 2026
 
 ### Added

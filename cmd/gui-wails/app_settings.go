@@ -38,6 +38,12 @@ const (
 	prefPlaybackEOMin       = "playback.extended_o_min"
 	prefPlaybackEOHoldS     = "playback.extended_o_hold_seconds"
 	prefPlaybackEORestoreMs = "playback.extended_o_restore_ms"
+	// prefPlaybackVideoPlayAutostart: startet das native <video>-Play-Event
+	// (Browser-eigener Button/Leertaste mit Fokus auf dem Video) auch die
+	// Geräte-/Kurven-Wiedergabe. Getrennt von "Device follows video
+	// position" (nur Positions-Sync während der Wiedergabe) - vorher lief
+	// das ungefragt immer mit, auch bei ausgeschaltetem Sync.
+	prefPlaybackVideoPlayAutostart = "playback.video_play_autostart"
 
 	prefTrainingMock                = "training.mock"
 	prefTrainingTechnique           = "training.technique"
@@ -66,6 +72,9 @@ type Settings struct {
 	PlaybackEOMin        float64 `json:"playbackEOMin"`
 	PlaybackEOHoldS      float64 `json:"playbackEOHoldS"`
 	PlaybackEORestoreMs  float64 `json:"playbackEORestoreMs"`
+	// PlaybackVideoPlayAutostart: siehe prefPlaybackVideoPlayAutostart.
+	// Default true - bisheriges Verhalten bleibt ohne Zutun erhalten.
+	PlaybackVideoPlayAutostart bool `json:"playbackVideoPlayAutostart"`
 
 	TrainingMock                bool    `json:"trainingMock"`
 	TrainingTechnique           string  `json:"trainingTechnique"`
@@ -152,6 +161,8 @@ func (a *App) GetSettings() Settings {
 		PlaybackEOMin:        s.GetFloat(prefPlaybackEOMin, 0.1),
 		PlaybackEOHoldS:      s.GetFloat(prefPlaybackEOHoldS, 10),
 		PlaybackEORestoreMs:  s.GetFloat(prefPlaybackEORestoreMs, 500),
+
+		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
 
 		TrainingMock:                s.GetBool(prefTrainingMock, true),
 		TrainingTechnique:           s.GetString(prefTrainingTechnique, "stopstart"),
