@@ -8,6 +8,23 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Training Interrupt clears carried channels:** `StopCycle` during a
+  suction-only phase now zeros vibration too when an earlier phase left it
+  active (`nil` curve = preserve previous — must still clear on interrupt).
+- **Feedback scales StartLevel:** flat/descending curves no longer resume
+  above the damped peak after high arousal.
+- **Live intensity for ring + clip:** `training:levels` from each device
+  write drives the meter and clip frame; cycle-peak events stay for
+  labels/log only.
+
+### Changed
+
+- **Training Motion card:** hi-res dual ring (larger SVG, halo, stronger
+  tilt/gloss/pulse) beside the pixel clip in one composition; README
+  screenshot `docs/media/gui-training.png`.
+
 ### Added
 
 - **Stroke preview in Generate:** Stage A pre-pass before track

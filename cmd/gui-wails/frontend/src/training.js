@@ -23,13 +23,13 @@ function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
 // stroke-dasharray/-dashoffset ist die Standardtechnik für SVG-
 // Ringfortschritt: die Dash-Länge ist der volle Umfang, der Offset
 // bestimmt, wie viel davon sichtbar ist.
-const RING_R = 28;
-const RING_CX = 36, RING_CY = 36;
+const RING_R = 52;
+const RING_CX = 64, RING_CY = 64;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 // Kurzer heller Bogen oben auf dem Ring, der wie ein Lichtreflex auf einer
 // gewölbten Oberfläche wirkt - EIN gemeinsamer Glanz für den ganzen Ring,
 // fix oben, unabhängig vom Füllstand darunter.
-const RING_HIGHLIGHT = RING_CIRCUMFERENCE * 0.08;
+const RING_HIGHLIGHT = RING_CIRCUMFERENCE * 0.1;
 
 // Vibration bekommt eine EIGENE Animations-Gruppe (tr-ring-anim-vibration),
 // getrennt von der Gruppe, die das statische rotate(-90) für die
@@ -55,7 +55,9 @@ function renderDualIntensityRing() {
   return `
     <div class="tr-ring-row">
       <div class="tr-ring-wrap" id="tr-ring-wrap">
-        <svg viewBox="0 0 72 72" class="tr-ring">
+        <div class="tr-ring-halo" aria-hidden="true"></div>
+        <svg viewBox="0 0 128 128" class="tr-ring" width="128" height="128"
+             shape-rendering="geometricPrecision">
           <defs>
             <linearGradient id="tr-ring-grad-vibration" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" class="tr-ring-grad-stop-a tr-ring-grad-vibration" />
@@ -65,7 +67,12 @@ function renderDualIntensityRing() {
               <stop offset="0%" class="tr-ring-grad-stop-a tr-ring-grad-suction" />
               <stop offset="100%" class="tr-ring-grad-stop-b tr-ring-grad-suction" />
             </linearGradient>
+            <filter id="tr-ring-soft-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.6" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
           </defs>
+          <circle class="tr-ring-track-outer" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R + 8}" />
           <circle class="tr-ring-track" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R}" />
           ${ringTrack('vibration', true)}
           ${ringTrack('suction', false)}
@@ -330,6 +337,9 @@ export function initTraining(root) {
 
   const el = id => root.querySelector(id);
   let running = false;
+  let liveLevelsActive = false;
+  let levelsRaf = 0;
+  let pendingLevels = null;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
   // One card: clip + meta + ring side-by-side (not a second stacked block).
   const ringSlot = el('#tr-ring-slot');
@@ -348,6 +358,7 @@ export function initTraining(root) {
     el('#tr-pause').disabled = !isRunning;
     el('#tr-arousal').disabled = !isRunning;
     if (!isRunning) {
+      liveLevelsActive = false;
       el('#tr-arousal-status').textContent = '';
       pixelStage.setIntensity(0);
       updateIntensityMeter({ vibration: 0, suction: 0 });
@@ -363,6 +374,14 @@ export function initTraining(root) {
     const sucPulsing = running && suction > 0;
     updateIntensityRing('vibration', vibration, vibPulsing);
     updateIntensityRing('suction', suction, sucPulsing);
+    const wrap = document.getElementById('tr-ring-wrap');
+    if (wrap) wrap.classList.toggle('tr-ring-live', running && (vibration > 0 || suction > 0));
+  }
+
+  function applyLiveLevels({ vibration = 0, suction = 0 }) {
+    liveLevelsActive = true;
+    updateIntensityMeter({ vibration, suction });
+    pixelStage.setLiveLevel(Math.max(vibration || 0, suction || 0));
   }
 
 
@@ -779,10 +798,22 @@ export function initTraining(root) {
   EventsOn('training:log', log);
   EventsOn('training:error', msg => log('ERROR: ' + msg));
   EventsOn('training:done', () => { setRunningState(false); log('Training finished.'); refreshHistory(); });
+  // Live channel levels (~50ms from ramp writes) — drives ring + clip, not
+  // completed-cycle peak summaries (those stay for labels/log only).
+  EventsOn('training:levels', payload => {
+    pendingLevels = payload || {};
+    if (levelsRaf) return;
+    levelsRaf = requestAnimationFrame(() => {
+      levelsRaf = 0;
+      applyLiveLevels(pendingLevels || {});
+    });
+  });
   EventsOn('training:cycle', c => {
     el('#tr-cycle-label').textContent = `${c.cycleIndex + 1} / ${c.cyclesTotal}`;
     el('#tr-peak-label').textContent = Math.round(c.peakIntensity * 100) + '%';
-    pixelStage.setIntensity(c.peakIntensity || 0);
+    if (!liveLevelsActive) {
+      pixelStage.setIntensity(c.peakIntensity || 0);
+    }
     const reached = c.reachedPeakAfterMs ? `, erreicht nach ${(c.reachedPeakAfterMs / 1000).toFixed(1)}s` : '';
     const stopped = c.stoppedByUser ? ' — auf Wunsch unterbrochen' : '';
     const fb = c.arousalBefore ? `, angepasst nach Feedback ${c.arousalBefore}` : '';
@@ -790,11 +821,13 @@ export function initTraining(root) {
 
     // Die einfache Technik/Kanal-Form kennt den Kanal nicht im Event
     // selbst (nur EIN peakIntensity), sondern über das eigene Formularfeld.
-    const channel = el('#tr-channel').value;
-    updateIntensityMeter({
-      vibration: (channel === 'vibration' || channel === 'both') ? c.peakIntensity : 0,
-      suction: (channel === 'suction' || channel === 'both') ? c.peakIntensity : 0,
-    });
+    if (!liveLevelsActive) {
+      const channel = el('#tr-channel').value;
+      updateIntensityMeter({
+        vibration: (channel === 'vibration' || channel === 'both') ? c.peakIntensity : 0,
+        suction: (channel === 'suction' || channel === 'both') ? c.peakIntensity : 0,
+      });
+    }
   });
 
   // Script-Sessions melden pro Kanal statt einer einzelnen Kurve - siehe
@@ -808,9 +841,10 @@ export function initTraining(root) {
     if (c.suctionPeak > 0) peaks.push(`Suction ${Math.round(c.suctionPeak * 100)}%`);
     el('#tr-peak-label').textContent = peaks.join(', ') || '-';
     highlightPhase(c.phaseIndex);
-    updateIntensityMeter({ vibration: c.vibrationPeak, suction: c.suctionPeak });
-    // Clip stroke follows the stronger axis (shared motion read)
-    pixelStage.setIntensity(Math.max(c.vibrationPeak || 0, c.suctionPeak || 0));
+    if (!liveLevelsActive) {
+      updateIntensityMeter({ vibration: c.vibrationPeak, suction: c.suctionPeak });
+      pixelStage.setIntensity(Math.max(c.vibrationPeak || 0, c.suctionPeak || 0));
+    }
 
     const stopped = c.stoppedByUser ? ' — interrupted on request' : '';
     log(`${c.phaseName} ${c.repeatIndex + 1}/${c.repeatsTotal}: ${peaks.join(', ') || '(no channel)'}, rest ${c.restMs}ms${stopped}`);

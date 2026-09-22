@@ -699,3 +699,125 @@ func TestBuiltinTrainingScriptLookup(t *testing.T) {
 		t.Errorf("bekannter Name nicht korrekt gefunden: ok=%v phases=%d", ok, len(script.Phases))
 	}
 }
+
+// Interrupt must zero a channel carried from an earlier phase even when the
+// current phase's curve for that channel is nil (preserve-previous semantics).
+// Reproduction: phase 1 leaves vibration at 0.2; phase 2 is suction-only;
+// StopCycle during phase 2 must clear vibration too (shipped preset pattern).
+func TestStopCycleClearsCarriedChannelFromEarlierPhase(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	script := TrainingScript{
+		Phases: []TrainingPhase{
+			{
+				Name:         "Vibration wave",
+				Vibration:    curve(ChannelVibration, 0, 0.5, 0.2, 40, 10, 40),
+				RepeatCycles: 1,
+				RestMs:       10,
+			},
+			{
+				Name:         "Suction focus",
+				Suction:      curve(ChannelSuction, 0, 1.0, 0, 2000, 2000, 2000),
+				RepeatCycles: 1,
+				RestMs:       10,
+			},
+		},
+	}
+
+	var phase2Stopped bool
+	done := make(chan error, 1)
+	go func() {
+		done <- RunTrainingScript(context.Background(), dev, script, control, func(r TrainingScriptCycleResult) {
+			if r.PhaseIndex == 1 && r.StoppedByUser {
+				phase2Stopped = true
+			}
+		})
+	}()
+
+	// Wait until phase 1 has finished writing (vibration ended near 0.2) and
+	// phase 2 has begun suction writes, then interrupt.
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if dev.maxSuction() > 0.05 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if dev.maxSuction() <= 0.05 {
+		t.Fatal("phase 2 suction never started")
+	}
+	control.StopCycle()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("RunTrainingScript: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("RunTrainingScript did not finish after StopCycle")
+	}
+
+	if !phase2Stopped {
+		t.Fatal("expected phase-2 completion with StoppedByUser")
+	}
+	if got := dev.last(); got != 0 {
+		t.Fatalf("carried vibration remains %v after Interrupt now (want 0)", got)
+	}
+	if got := dev.lastSuction(); got != 0 {
+		t.Fatalf("suction remains %v after Interrupt now (want 0)", got)
+	}
+}
+
+// Feedback damping must scale StartLevel too — flat 0.8→0.8→0.8 curves
+// otherwise resume at the undamped start above the reported peak.
+func TestScaledCurveScalesStartLevelWithFeedback(t *testing.T) {
+	peakF, holdF, _ := arousalFactors(10)
+	base := &ChannelCurve{
+		Channel: ChannelVibration, StartLevel: 0.8, PeakLevel: 0.8, EndLevel: 0.8, HoldMs: 1000,
+	}
+	got := scaledCurve(base, 1.0, peakF, holdF)
+	if got == nil {
+		t.Fatal("scaledCurve returned nil")
+	}
+	if got.StartLevel > got.PeakLevel+1e-9 {
+		t.Fatalf("StartLevel %v above PeakLevel %v after feedback 10", got.StartLevel, got.PeakLevel)
+	}
+	if absF(got.StartLevel-got.PeakLevel) > 1e-9 {
+		t.Fatalf("flat curve: StartLevel should match PeakLevel after scale, got start=%v peak=%v",
+			got.StartLevel, got.PeakLevel)
+	}
+	if got.PeakLevel >= 0.8-1e-9 {
+		t.Fatalf("expected peak damped below 0.8, got %v (factor %v)", got.PeakLevel, peakF)
+	}
+}
+
+func absF(v float64) float64 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+func TestLevelMirrorReportsLiveWrites(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	var lastVib, lastSuc float64
+	var n int
+	control.SetOnLevel(func(vib, suc float64) {
+		lastVib, lastSuc = vib, suc
+		n++
+	})
+	mirrored := mirrorLevels(dev, control)
+	if err := mirrored.SetVibration(0.4); err != nil {
+		t.Fatal(err)
+	}
+	if err := mirrored.SetSuction(0.7); err != nil {
+		t.Fatal(err)
+	}
+	if n < 2 {
+		t.Fatalf("expected >=2 level callbacks, got %d", n)
+	}
+	if lastVib != 0.4 || lastSuc != 0.7 {
+		t.Fatalf("last levels vib=%v suc=%v", lastVib, lastSuc)
+	}
+}

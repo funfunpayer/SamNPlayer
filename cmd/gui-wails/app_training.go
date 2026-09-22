@@ -326,6 +326,12 @@ func (a *App) StartTraining(req TrainingRequest) error {
 		runtime.EventsEmit(a.ctx, "training:log", "Training starting...")
 
 		control := player.NewTrainingControl()
+		control.SetOnLevel(func(vib, suc float64) {
+			runtime.EventsEmit(a.ctx, "training:levels", map[string]any{
+				"vibration": vib,
+				"suction":   suc,
+			})
+		})
 		a.stateMu.Lock()
 		a.trainingControl = control
 		a.stateMu.Unlock()

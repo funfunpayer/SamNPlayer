@@ -71,12 +71,26 @@ type TrainingControl struct {
 	mu            sync.Mutex
 	stopRequested bool // s.u. requested()/drain() - bewusst kein Channel mehr
 	arousal       int  // zuletzt gemeldeter Wert, 0 = nichts gemeldet
+	// onLevel is optional live intensity for the GUI ring/clip (per write).
+	onLevel func(vibration, suction float64)
 }
 
 // ArousalTarget ist der Zielbereich der Skala 1-10: nahe an der Grenze, aber
 // mit Abstand. Meldungen darüber führen zu kürzeren, sanfteren Zyklen mit
 // längerer Pause, Meldungen darunter zu längeren.
 const ArousalTarget = 7
+
+// SetOnLevel registers a live per-channel intensity callback. Fired on every
+// successful SetVibration/SetSuction while a session runs (via levelMirror).
+// Nil clears the listener. Safe to call before RunTraining*.
+func (c *TrainingControl) SetOnLevel(fn func(vibration, suction float64)) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.onLevel = fn
+	c.mu.Unlock()
+}
 
 // ReportArousal nimmt eine Rückmeldung auf der Skala 1-10 entgegen. Sie wirkt
 // auf den NÄCHSTEN Zyklus, nicht auf den laufenden - in den laufenden greift
@@ -230,6 +244,62 @@ type trainingDevice interface {
 	Stop() error
 }
 
+// levelMirror tracks last vibration/suction and fires TrainingControl.onLevel
+// after each successful write so the GUI can drive a live meter (not just
+// completed-cycle peak summaries).
+type levelMirror struct {
+	inner   trainingDevice
+	control *TrainingControl
+	mu      sync.Mutex
+	vib     float64
+	suc     float64
+}
+
+func mirrorLevels(dev trainingDevice, control *TrainingControl) trainingDevice {
+	if control == nil {
+		return dev
+	}
+	return &levelMirror{inner: dev, control: control}
+}
+
+func (m *levelMirror) notify() {
+	m.mu.Lock()
+	vib, suc := m.vib, m.suc
+	m.mu.Unlock()
+	m.control.mu.Lock()
+	fn := m.control.onLevel
+	m.control.mu.Unlock()
+	if fn != nil {
+		fn(vib, suc)
+	}
+}
+
+func (m *levelMirror) SetVibration(v float64) error {
+	if err := m.inner.SetVibration(v); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.vib = v
+	m.mu.Unlock()
+	m.notify()
+	return nil
+}
+
+func (m *levelMirror) SetSuction(v float64) error {
+	if err := m.inner.SetSuction(v); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.suc = v
+	m.mu.Unlock()
+	m.notify()
+	return nil
+}
+
+func (m *levelMirror) Stop() error {
+	return m.inner.Stop()
+}
+
 // RunTraining führt die konfigurierten Zyklen aus, bis sie abgeschlossen
 // sind oder ctx abgebrochen wird (z.B. Nutzer klickt Stop - "man muss die
 // Funktion auch ausschlagen können"). onCycle wird nach jedem Zyklus mit
@@ -242,6 +312,7 @@ func RunTraining(ctx context.Context, dev trainingDevice, opts TrainingOptions, 
 // vorzeitig zu beenden (siehe TrainingControl).
 func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts TrainingOptions,
 	control *TrainingControl, onCycle func(TrainingCycleResult)) error {
+	dev = mirrorLevels(dev, control)
 	if opts.Cycles <= 0 {
 		return fmt.Errorf("player: Training braucht mindestens 1 Zyklus")
 	}
@@ -559,17 +630,19 @@ func scaledCurve(base *ChannelCurve, progress, peakFactor, holdFactor float64) *
 		peak = clamp01(peak * (1 + delta))
 	}
 	end := base.EndLevel
+	start := base.StartLevel
 	if base.PeakLevel > 0 {
-		// EndLevel (z.B. der Plateau-Anteil) bleibt proportional zum
-		// SKALIERTEN Höhepunkt, statt gegenüber einem unskalierten
-		// Höhepunkt davonzulaufen - sonst würde eine gedämpfte Rückmeldung
-		// den Endwert relativ zum neuen (niedrigeren) Höhepunkt anheben
-		// statt ihn.
-		end = clamp01(base.EndLevel * (peak / base.PeakLevel))
+		// StartLevel and EndLevel stay proportional to the SCALED peak so
+		// feedback damping (and progression) actually lowers the whole
+		// curve — not just Peak/End while Start stays at the original
+		// high (flat 0.8→0.8→0.8 + high arousal was the failure mode).
+		ratio := peak / base.PeakLevel
+		start = clamp01(base.StartLevel * ratio)
+		end = clamp01(base.EndLevel * ratio)
 	}
 	return &ChannelCurve{
 		Channel:    base.Channel,
-		StartLevel: base.StartLevel,
+		StartLevel: start,
 		PeakLevel:  peak,
 		EndLevel:   end,
 		RampUpMs:   base.RampUpMs,
@@ -654,21 +727,20 @@ func runPhaseRepeat(ctx context.Context, dev trainingDevice, vib, suc *ChannelCu
 	return stoppedAny, nil
 }
 
-// stopBothChannels fährt beide Kanäle sofort auf 0 - dieselbe Reaktion wie
-// RunTrainingWithControl bei einem Stopp-Wunsch: "auf Wunsch abgebrochen,
-// sofort auf 0 und volle Pause, egal welche Kurve gerade lief".
-func stopBothChannels(dev trainingDevice, vib, suc *ChannelCurve) error {
-	if vib != nil {
-		if err := setChannel(dev, vib.Channel, 0); err != nil {
-			return err
-		}
+// stopBothChannels zeros BOTH physical channels immediately — same reaction
+// as a user Interrupt. Always clears vibration AND suction, even when the
+// current phase's curve for a channel is nil: nil means "preserve previous
+// output", so a carried level from an earlier phase can still be active.
+// Attempts the second channel even if the first write errors.
+func stopBothChannels(dev trainingDevice) error {
+	var firstErr error
+	if err := setChannel(dev, ChannelVibration, 0); err != nil {
+		firstErr = err
 	}
-	if suc != nil {
-		if err := setChannel(dev, suc.Channel, 0); err != nil {
-			return err
-		}
+	if err := setChannel(dev, ChannelSuction, 0); err != nil && firstErr == nil {
+		firstErr = err
 	}
-	return nil
+	return firstErr
 }
 
 // NormalizeTrainingScript sets each phase's ChannelCurve.Channel field
@@ -730,6 +802,7 @@ func ValidateTrainingScript(script TrainingScript) error {
 // einen Kanal, den eine einzelne geteilte Kurve zufällig traf.
 func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingScript,
 	control *TrainingControl, onCycle func(TrainingScriptCycleResult)) error {
+	dev = mirrorLevels(dev, control)
 	if err := ValidateTrainingScript(script); err != nil {
 		return err
 	}
@@ -780,7 +853,7 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 			result.StoppedByUser = stopped
 
 			if stopped {
-				if err := stopBothChannels(dev, vib, suc); err != nil {
+				if err := stopBothChannels(dev); err != nil {
 					return err
 				}
 			}

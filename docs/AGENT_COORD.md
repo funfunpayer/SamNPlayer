@@ -92,7 +92,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
 | F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
-| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Stage A + Generate wire + Flow + **Training pixel pair** | **IN PROGRESS** |
+| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Stage A + Generate wire + Flow + **Training clip+ring** + ChatGPT P1/P2 | **READY FOR REVIEW** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 | G | Claude | [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) (draft) | Training mode: multi-phase per-channel scripts, script editor, live ring meter, curve smoothing | **needs review before merge** — see handoff below |
@@ -109,23 +109,21 @@ Device-shell / body-map language.
 | Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
 | Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
 | AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
-| Training | `pixel_figure.js` | **CANONICAL Vorlage = pixelated clip stroke** — curve→frame in ONE card with Claude’s intensity ring (`#tr-ring-slot`). Soft assets derived from clip. |
+| Training | `pixel_figure.js` + ring in `training.js` | **ONE card:** clip Vorlage + hi-res dual ring (`#tr-ring-slot`). Live levels via `training:levels`. |
 
 **Lane split (owner confirmed 22 Sep):**
-- **Claude (#178):** multi-phase scripts + live intensity **ring** — your lane.
-- **Cursor (#177):** pixelated **clip** motion viz — complementary, same `figure_theme`.
+- **Claude (#178):** multi-phase scripts + ring origin — review lane (findings carried into #177).
+- **Cursor (#177):** clip + ring polish + ChatGPT P1/P2 training fixes — **owning merge**.
 
-**Owner integration (22 Sep — Claude code merged into #177):**
+**Owner integration (22 Sep — on #177):**
 1. ~~Wait for Claude~~ — #178 tip `290c8bd` merged into `cursor/stroke-preview-extrema-d7cb`.
-2. **Both stay in one card:** pixelated **clip stroke** + live intensity **ring** inside `#tr-pixel-stage` / `#tr-ring-slot` (not stacked as two separate blocks).
-3. Training frontend + Go tests green after merge (display/meter/script/editor/findings/history).
+2. **One card:** clip + ring in `#tr-pixel-stage` / `#tr-ring-slot`.
+3. **Bugfix (ChatGPT review on #178, fixed here):** Interrupt clears carried channels; StartLevel scales with feedback; ring/clip follow live `training:levels` (not only cycle peaks).
+4. Ring hi-res + more animation (halo / tilt / gloss / live tick).
 
 Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).
 
-When merging: both edit `training.js` — keep ring + `#tr-pixel-stage` /
-`mountTrainingPixelStage` from #177. Prefer Claude ring markup for axes.
-
-PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178)
+PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) — prefer merge #177; close #178 as superseded after.
 
 ---
 

@@ -170,6 +170,12 @@ export function mountTrainingPixelStage(host) {
       intensity = Math.max(0, Math.min(1, Number(level01) || 0));
       runStrokeToward(intensity);
     },
+    /** Live device level (training:levels) — frame follows immediately, no stroke RAF. */
+    setLiveLevel(level01) {
+      stopAnim();
+      intensity = Math.max(0, Math.min(1, Number(level01) || 0));
+      applyLevel(intensity);
+    },
     setArousal(n) {
       arousal = n == null ? null : Math.max(1, Math.min(10, Math.round(n)));
       applyLevel(displayLevel);

@@ -82,6 +82,12 @@ not needed, it stays out.
   Live device meters, soft, Extended-O — curve and device keep running even without a film
 </p>
 
+<p align="center">
+  <img src="docs/media/gui-training.png" alt="Training tab — Motion clip + live dual intensity ring" width="900" />
+  <br />
+  <em>Training</em> — pixel clip stroke + live vibration/suction ring in one card
+</p>
+
 ---
 
 ## What you get
@@ -104,7 +110,7 @@ not needed, it stays out.
 ### Device & training
 - BLE, Intiface/Buttplug, and Mock transports
 - Device diagnostics (acceptance sweeps, update-rate probes)
-- Training tab (stop-start / plateau) with session history
+- Training tab: stop-start / plateau, multi-phase scripts, live dual ring + clip motion, session history
 
 ### Desktop craft
 - Dark gold / teal brand UI, English product language

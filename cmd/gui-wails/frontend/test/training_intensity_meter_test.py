@@ -197,6 +197,21 @@ def main():
               ring_fill_fraction(page, "suction") > ring_fill_fraction(page, "vibration"),
               f"suction={ring_fill_fraction(page, 'suction')} vibration={ring_fill_fraction(page, 'vibration')}")
 
+        # Live levels (training:levels) override stale cycle-peak summaries.
+        page.evaluate("window.__triggerEvent('training:levels', {vibration:0.55, suction:0.25})")
+        page.wait_for_function("document.querySelector('#tr-ring-value-vibration').textContent === '55%'")
+        check("Live-Levels: Vibrationsring folgt training:levels",
+              ring_value(page, "vibration") == "55%", ring_value(page, "vibration"))
+        check("Live-Levels: Sog-Ring folgt training:levels",
+              ring_value(page, "suction") == "25%", ring_value(page, "suction"))
+        # Cycle peak must not overwrite live meter while levels are active
+        page.evaluate("window.__triggerEvent('training:scriptCycle', {"
+                      "phaseName:'X',phaseIndex:0,phasesTotal:1,repeatIndex:0,repeatsTotal:1,"
+                      "vibrationPeak:0.9,suctionPeak:0.9,restMs:100})")
+        page.wait_for_timeout(80)
+        check("Live-Levels: Peak-Event überschreibt den Ring nicht",
+              ring_value(page, "vibration") == "55%", ring_value(page, "vibration"))
+
         browser.close()
 
     shutdown()
