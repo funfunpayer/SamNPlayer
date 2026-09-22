@@ -1,40 +1,42 @@
-/** FunGen-style mosaic: woman on man, stroke motion up/down.
+/** FunGen-style Training motion: pixelated clip stroke + soft Partner ♀ cue.
  *
- * You (man) = base. Partner (woman) on top moves vertically with intensity;
- * bust layer scales/bobs with the stroke. Bigger-bust partner asset.
+ * Clip frames (heavily mosaic’d from real footage) drive the stroke read —
+ * breasts / contact motion. Soft Partner silhouette is a feminine bounce cue
+ * beside the clip (no muscle; man silhouette not shown).
  */
 
 import { figureHeatColor } from './figure_theme.js';
 
 const YOU_SRC = new URL('./assets/images/training-mosaic-you.png', import.meta.url).href;
 const PARTNER_SRC = new URL('./assets/images/training-mosaic-partner.png', import.meta.url).href;
-const BUST_SRC = new URL('./assets/images/training-mosaic-partner-bust.png', import.meta.url).href;
 
-/** @deprecated kept for callers — primary UI is mountTrainingPixelStage */
+const CLIP_BASE = new URL('./assets/images/training-mosaic-clip/', import.meta.url).href;
+const CLIP_COUNT = 12;
+const CLIP_FRAMES = Array.from({ length: CLIP_COUNT }, (_, i) =>
+  `${CLIP_BASE}f${String(i).padStart(2, '0')}.png`);
+
+/** @deprecated kept for callers */
 export function pixelPairSVG(opts = {}) {
   const level = Math.max(0, Math.min(1, opts.level ?? 0));
-  const y = Math.round(28 - level * 36);
+  const fi = Math.min(CLIP_COUNT - 1, Math.floor(level * (CLIP_COUNT - 1)));
   const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
-  return `<svg class="pixel-figure-svg pixel-pair-svg mosaic-pair-svg" viewBox="0 0 140 150"
-    width="140" height="150" role="img" aria-label="${aria}">
-    <rect width="140" height="150" fill="#0a0c10" rx="6"/>
-    <image href="${YOU_SRC}" x="20" y="40" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
-    <image href="${PARTNER_SRC}" x="22" y="${y}" width="96" height="96" opacity="0.92" preserveAspectRatio="xMidYMid slice"/>
+  return `<svg class="pixel-figure-svg pixel-pair-svg mosaic-pair-svg" viewBox="0 0 140 140"
+    width="140" height="140" role="img" aria-label="${aria}">
+    <image href="${CLIP_FRAMES[fi]}" x="0" y="0" width="140" height="140" preserveAspectRatio="xMidYMid slice"/>
   </svg>`;
 }
 
 export function pixelFigureSVG(opts = {}) {
-  const level = Math.max(0, Math.min(1, opts.level ?? 0.5));
   const src = opts.partner ? PARTNER_SRC : YOU_SRC;
-  const aria = opts.title || `Intensity ${Math.round(level * 100)}%`;
   return `<svg class="pixel-figure-svg mosaic-figure-svg" viewBox="0 0 100 100" width="72" height="72"
-    role="img" aria-label="${aria}">
+    role="img" aria-label="${opts.title || 'figure'}">
     <image href="${src}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
   </svg>`;
 }
 
 /**
- * Mount Training stage: woman-on-man mosaic with up/down stroke motion.
+ * Mount Training stage: pixelated clip stroke is primary.
+ * Soft Partner ♀ is a small feminine cue beside the clip (not overlaid).
  */
 export function mountTrainingPixelStage(host) {
   if (!host) {
@@ -45,20 +47,18 @@ export function mountTrainingPixelStage(host) {
     <div class="tr-pixel-card">
       <div class="tr-pixel-head">
         <strong>Motion (pair)</strong>
-        <span class="hint" id="tr-pixel-hint">Woman on man — she moves up/down with intensity; breasts follow</span>
+        <span class="hint" id="tr-pixel-hint">Pixelated clip (breasts / contact) · soft Partner ♀</span>
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
           <div class="tr-mosaic-stack" role="img" aria-label="Woman on man">
-            <div class="tr-mosaic-base">
-              <img class="tr-mosaic-img tr-mosaic-you" src="${YOU_SRC}" alt="" draggable="false" />
-            </div>
-            <div class="tr-mosaic-partner" id="tr-mosaic-partner">
-              <img class="tr-mosaic-img tr-mosaic-woman" src="${PARTNER_SRC}" alt="" draggable="false" />
-              <img class="tr-mosaic-bust" id="tr-mosaic-bust" src="${BUST_SRC}" alt="" draggable="false" />
-              <span class="tr-mosaic-heat" aria-hidden="true"></span>
+            <div class="tr-mosaic-clip-wrap">
+              <img class="tr-mosaic-clip" id="tr-mosaic-clip" src="${CLIP_FRAMES[0]}" alt="" draggable="false" />
             </div>
             <div class="tr-mosaic-ground" aria-hidden="true"></div>
+          </div>
+          <div class="tr-mosaic-soft-cue" id="tr-mosaic-partner" aria-hidden="true">
+            <img class="tr-mosaic-cue-img tr-mosaic-woman" src="${PARTNER_SRC}" alt="" draggable="false" />
           </div>
         </div>
         <div class="tr-pixel-meta">
@@ -68,55 +68,54 @@ export function mountTrainingPixelStage(host) {
         </div>
       </div>
       <div class="tr-pixel-labels tr-mosaic-labels tr-mosaic-labels-stack">
-        <span>You (base)</span>
-        <span>Partner ♀ (moves)</span>
+        <span>Clip (pixel)</span>
+        <span>Partner ♀ soft</span>
       </div>
     </div>`;
+
+  // Prefetch clip frames
+  CLIP_FRAMES.forEach((src) => { const im = new Image(); im.src = src; });
 
   let intensity = 0;
   let arousal = null;
   let technique = 'stopstart';
-  let animTimer = null;
   let displayLevel = 0;
   let raf = 0;
 
   const partnerEl = () => host.querySelector('#tr-mosaic-partner');
-  const bustEl = () => host.querySelector('#tr-mosaic-bust');
-  const youImg = () => host.querySelector('.tr-mosaic-you');
+  const clipEl = () => host.querySelector('#tr-mosaic-clip');
   const herImg = () => host.querySelector('.tr-mosaic-woman');
   const stackEl = () => host.querySelector('.tr-mosaic-stack');
-  const heatEl = () => host.querySelector('.tr-mosaic-heat');
 
   function applyLevel(level) {
     displayLevel = level;
-    const bodyY = Math.round(36 - level * 72);
-    const bustBob = Math.round(-6 - level * 14 - Math.sin(level * Math.PI) * 6);
-    const bustScale = 1.08 + level * 0.18;
+    // Soft Partner ♀ bounce (side cue — clip carries the real stroke)
+    const bodyY = Math.round(4 - level * 28);
     const warm = figureHeatColor(Math.max(0.12, level));
-    const youFilter = level < 0.05
-      ? 'saturate(0.75) brightness(0.9)'
-      : `saturate(${0.85 + level * 0.35}) brightness(${0.95 + level * 0.08})`;
     const herFilter = level < 0.05
-      ? 'saturate(0.95) brightness(1.06) hue-rotate(-8deg)'
-      : `saturate(${1.05 + level * 0.35}) brightness(${1.02 + level * 0.1}) hue-rotate(-12deg) sepia(${0.1 + level * 0.2})`;
+      ? 'saturate(1.08) brightness(1.1) hue-rotate(-4deg)'
+      : `saturate(${1.12 + level * 0.22}) brightness(${1.06 + level * 0.1}) hue-rotate(-8deg)`;
+    const herScale = 1 + level * 0.08;
 
     const p = partnerEl();
-    if (p) p.style.transform = `translate(-50%, ${bodyY}px)`;
-    const b = bustEl();
-    if (b) b.style.transform = `translateY(${bustBob}px) scale(${bustScale})`;
-    const yi = youImg();
-    if (yi) yi.style.filter = youFilter;
+    if (p) p.style.transform = `translateY(${bodyY}px) scale(${herScale})`;
     const hi = herImg();
     if (hi) hi.style.filter = herFilter;
-    if (b) b.style.filter = herFilter;
+
+    // Clip frame follows stroke (pixelated breasts / contact from footage)
+    const fi = Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(level * (CLIP_COUNT - 1))));
+    const clip = clipEl();
+    if (clip && clip.dataset.fi !== String(fi)) {
+      clip.dataset.fi = String(fi);
+      clip.src = CLIP_FRAMES[fi];
+    }
+
     const st = stackEl();
     if (st) {
       st.style.setProperty('--mosaic-warm', warm);
-      st.style.setProperty('--mosaic-overlay', (level * 0.14).toFixed(3));
+      st.style.setProperty('--mosaic-overlay', (level * 0.08).toFixed(3));
       st.setAttribute('aria-label', `Woman on man ${Math.round(level * 100)}%`);
     }
-    const heat = heatEl();
-    if (heat) heat.style.opacity = String(level * 0.14);
 
     const pct = host.querySelector('#tr-pixel-pct');
     if (pct) {
@@ -138,17 +137,12 @@ export function mountTrainingPixelStage(host) {
   }
 
   function stopAnim() {
-    if (animTimer) {
-      clearInterval(animTimer);
-      animTimer = null;
-    }
     if (raf) {
       cancelAnimationFrame(raf);
       raf = 0;
     }
   }
 
-  /** Animate woman up→down (or hold high on plateau) toward peak intensity. */
   function runStrokeToward(peak) {
     stopAnim();
     if (peak <= 0.02) {

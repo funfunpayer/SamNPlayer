@@ -1740,57 +1740,54 @@ button.primary:active:not(:disabled) {
 }
 .tr-mosaic-stack {
   position: relative;
-  width: 168px;
+  width: 220px;
   height: 220px;
-  margin: 0 auto;
+  margin: 0;
+  flex: 0 0 auto;
 }
-.tr-mosaic-base {
+/* Clip is the primary stroke read (pixelated breasts / contact). */
+.tr-mosaic-clip-wrap {
   position: absolute;
-  left: 50%;
-  bottom: 14px;
-  width: 148px;
-  height: 148px;
-  margin-left: -74px;
+  inset: 0;
   border-radius: 4px;
   overflow: hidden;
   background: #050608;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   z-index: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
-.tr-mosaic-partner {
-  position: absolute;
-  left: 50%;
-  bottom: 56px;
-  width: 128px;
-  height: 128px;
-  border-radius: 4px;
-  overflow: visible;
-  background: transparent;
-  z-index: 3;
-  transition: transform 0.05s linear;
-  will-change: transform;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
-}
-.tr-mosaic-partner .tr-mosaic-woman {
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(255, 180, 140, 0.18);
-  opacity: 1;
-}
-.tr-mosaic-bust {
-  position: absolute;
-  left: -4%;
-  top: 2%;
-  width: 108%;
-  height: 58%;
+.tr-mosaic-clip {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center center;
   image-rendering: pixelated;
-  pointer-events: none;
-  transform-origin: 50% 70%;
+  display: block;
+  opacity: 1;
+}
+.tr-pixel-main.tr-mosaic-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 16rem;
+}
+/* Soft Partner ♀ — beside clip, not overlaid (avoids stamp / misread). */
+.tr-mosaic-soft-cue {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
   transition: transform 0.05s linear;
   will-change: transform;
-  opacity: 1;
-  z-index: 4;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+.tr-mosaic-cue-img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  object-position: center center;
+  image-rendering: pixelated;
+  display: block;
+  background: transparent;
 }
 .tr-mosaic-slot {
   position: relative;
@@ -1823,20 +1820,21 @@ button.primary:active:not(:disabled) {
 .tr-mosaic-ground {
   position: absolute;
   left: 50%;
-  bottom: 8px;
+  bottom: 4px;
   width: 88px;
   height: 8px;
   margin-left: -44px;
   border-radius: 50%;
   background: radial-gradient(ellipse, rgba(61, 204, 192, 0.35), transparent 70%);
-  z-index: 0;
+  z-index: 2;
+  pointer-events: none;
 }
 .tr-mosaic-labels {
   max-width: 16rem;
   margin-left: 8px;
 }
 .tr-mosaic-labels-stack {
-  max-width: 12rem;
+  max-width: 14rem;
   margin-left: auto;
   margin-right: auto;
 }
@@ -1851,8 +1849,7 @@ button.primary:active:not(:disabled) {
   text-transform: uppercase;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tr-mosaic-partner,
-  .tr-mosaic-bust {
+  .tr-mosaic-soft-cue {
     transition: none;
   }
 }

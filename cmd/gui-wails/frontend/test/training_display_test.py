@@ -72,14 +72,11 @@ def main():
         check("Pixel-Paar-Stage ist da",
               page.locator("#tr-pixel-stage .tr-mosaic-stack").count() == 1)
         check("You/Partner-Labels",
-              "You" in page.locator(".tr-pixel-labels").inner_text()
-              and "Partner" in page.locator(".tr-pixel-labels").inner_text())
-        check("Mosaic-Torsi geladen",
-              page.locator("#tr-pixel-stage .tr-mosaic-img").count() >= 2,
-              str(page.locator("#tr-pixel-stage .tr-mosaic-img").count()))
-        check("Frau-auf-Mann Stack",
-              page.locator("#tr-pixel-stage .tr-mosaic-partner").count() == 1
-              and page.locator("#tr-pixel-stage .tr-mosaic-bust").count() == 1)
+              "Partner" in page.locator(".tr-pixel-labels").inner_text()
+              and ("Clip" in page.locator(".tr-pixel-labels").inner_text()
+                   or "You" in page.locator(".tr-pixel-labels").inner_text()))
+        check("Clip-Pixel-Strip geladen",
+              page.locator("#tr-pixel-stage .tr-mosaic-clip").count() == 1)
         check("Zielstufe 7 markiert",
               page.locator("#tr-arousal-buttons button.is-target").count() == 1)
 
