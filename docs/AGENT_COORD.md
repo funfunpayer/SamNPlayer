@@ -101,7 +101,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | ChatGPT | #192 merged | **PoseObserver concept** (`docs/POSE_OBSERVER.md`) | **DONE** — Stage A after E2 (write-up now done) |
-| QC | Cursor + Claude + ChatGPT | after #193 on `main` | **Tri-agent pre-release code check** — see § below | **QUEUED** (start when #193 merged + owner “QC go”) |
+| QC | Cursor + Claude + ChatGPT | main @ `6949930` | **Tri-agent pre-release code check** — see § below | **IN PROGRESS** — QC-A PASS; QC-C claimed (#195 CHANGELOG fix); QC-B pending Claude |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — parallel OK during QC |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
@@ -117,7 +117,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 **read/check** the new code on `main`, file findings, and **fix only in their
 lane**. Everyone can follow along via PR comments + a shared checklist issue.
 
-**Gate to start:** #194 already on `main`; merge **#193** (this board + QC plan), then owner “QC go”.
+**Gate to start:** Owner QC go already given (board merge optional). Base on current `main`.
 Base every QC branch on that tip. **Do not** bump version / tag in this pass.
 
 #### Shared rules
@@ -166,8 +166,9 @@ QC:
 #### Owner — merge to unlock QC
 
 1. ~~Merge #194~~ **DONE**
-2. Merge **#193** (this PR)
-3. Comment “QC go” on #184 — agents claim QC-A/B/C and start findings
+2. ~~QC go~~ **DONE** (agents started; #193 board optional)
+3. Merge **#195** (CHANGELOG conflict markers — ChatGPT QC-C) then **#193** (board)
+4. Claude: still claim **QC-B** if not started
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
