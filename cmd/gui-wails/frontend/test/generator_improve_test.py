@@ -15,7 +15,10 @@ FRONTEND = pathlib.Path(__file__).resolve().parents[1]
 PAGE = """<!doctype html><html><body><div id="root"></div>
 <script type="module">
   import { initGenerator } from '/src/generator.js';
-  initGenerator(document.querySelector('#root'), { loadScriptPath: () => {} });
+  window.__playLoads = [];
+  initGenerator(document.querySelector('#root'), {
+    loadScriptPath: (path, opts) => { window.__playLoads.push([path, opts || {}]); },
+  });
   window.__ready = true;
 </script></body></html>"""
 
@@ -103,6 +106,13 @@ def main():
         check("Trim end passed", req.get("endSec") == 40, str(req))
         check("Fill gaps passed", req.get("fillGaps") is True, str(req))
         check("Audio check passed", req.get("audioCheck") is True, str(req))
+
+        page.wait_for_function("window.__playLoads && window.__playLoads.length > 0", timeout=3000)
+        loads = page.evaluate("window.__playLoads")
+        check("Improve reloads Play for editor",
+              loads and loads[-1][0] == "/tmp/clip.funscript"
+              and loads[-1][1].get("review") is True,
+              str(loads))
 
         browser.close()
 

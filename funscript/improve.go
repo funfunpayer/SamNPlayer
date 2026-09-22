@@ -36,14 +36,14 @@ type ImproveOpts struct {
 
 // ImproveResult summarizes what changed.
 type ImproveResult struct {
-	Actions      []Action `json:"-"`
-	BeforeCount  int      `json:"beforeCount"`
-	AfterCount   int      `json:"afterCount"`
-	Trimmed      bool     `json:"trimmed"`
-	GapsFilled   int      `json:"gapsFilled"`
-	PointsAdded  int      `json:"pointsAdded"`
-	FillGapMs    int64    `json:"fillGapMs"`
-	FillStepMs   int64    `json:"fillStepMs"`
+	Actions     []Action `json:"-"`
+	BeforeCount int      `json:"beforeCount"`
+	AfterCount  int      `json:"afterCount"`
+	Trimmed     bool     `json:"trimmed"`
+	GapsFilled  int      `json:"gapsFilled"`
+	PointsAdded int      `json:"pointsAdded"`
+	FillGapMs   int64    `json:"fillGapMs"`
+	FillStepMs  int64    `json:"fillStepMs"`
 }
 
 // TrimActions keeps actions in [startMs, endMs] (inclusive).

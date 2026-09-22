@@ -289,6 +289,8 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   // After loadVideo, kick auto-find once (CSRT tip = measured first choice).
   let autoFindAfterLoad = false;
+  // Multi-drop batch note — keep visible through auto-find status updates.
+  let videoBatchNote = '';
 
   const DISPLAY_W = 560;
 
@@ -497,9 +499,9 @@ export function initGenerator(root, playback) {
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
     el('#gen-nomark').disabled = true;
-    el('#gen-status').textContent = useAI
+    el('#gen-status').textContent = (useAI
       ? 'AI region search (everyday path)…'
-      : 'Finding tip region automatically (CSRT — measured best vs FunGen)…';
+      : 'Finding tip region automatically (CSRT — measured best vs FunGen)…') + videoBatchNote;
     AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   }
 
@@ -564,7 +566,7 @@ export function initGenerator(root, playback) {
         ? 'Step 4: Generate (4-zone advanced). Prefer tip CSRT for best FunGen match.'
         : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
     } else {
-      prompt.textContent = 'Step 5: Improve (trim / fill gaps / audio) — then rate usability. Script is also in Play.';
+      prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve (FunGen-like).';
     }
   }
 
@@ -849,7 +851,7 @@ export function initGenerator(root, playback) {
     const batchNote = extraCount > 0
       ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
-    try {
+    videoBatchNote = batchNote;    try {
       await showFrame(path, 0);
       candidates = [];
       // Region buttons stay disabled until generate:autoroi (auto-find owns them).
@@ -1106,7 +1108,7 @@ export function initGenerator(root, playback) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));
     }
-    el('#gen-status').textContent = status;
+    el('#gen-status').textContent = status + videoBatchNote;
     redraw();
     const shouldGenerate = pendingGenerateAfterRoi;
     pendingGenerateAfterRoi = false;
@@ -1198,7 +1200,12 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent =
         `Improved: ${result.afterCount} points` +
         (result.pointsAdded ? ` (+${result.pointsAdded} fill)` : '') +
-        (result.trimmed ? ', trimmed' : '');
+        (result.trimmed ? ', trimmed' : '') +
+        ' — open Play to edit dots/curve.';
+      const reloadPath = result.path || lastOutputPath;
+      if (reloadPath && playback && typeof playback.loadScriptPath === 'function') {
+        playback.loadScriptPath(reloadPath, { review: true });
+      }
     } catch (err) {
       status.textContent = 'Improve failed: ' + err;
       uiError('Improve script: ' + err, el('#gen-status'));

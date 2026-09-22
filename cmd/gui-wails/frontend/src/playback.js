@@ -106,7 +106,7 @@ export function initPlayback(root) {
       <div class="pb-tools">
         <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
           <input type="checkbox" id="pb-curve-edit" />
-          <label for="pb-curve-edit">Edit curve</label>
+          <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
         <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <label style="width:auto;" data-help="General = community stroke. Vibration/Suction = Neo 2 channels in .samn (or baked axes).">Curve</label>
@@ -129,8 +129,8 @@ export function initPlayback(root) {
           <button type="button" id="pb-save-samn" title="Save/update native .samn">Save .samn</button>
         </div>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
-          data-help="Click+drag = move point. Click empty area = new point. Double-click = delete (keep at least 2). Each change saves immediately.">
-          Edit curve: drag / click / double-click — see “?”.</p>
+          data-help="FunGen-like: soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
+          Edit dots on the curve: drag / click / double-click — see “?”.</p>
 
         <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
           <label style="width:auto;" data-help="Positive value = script applies later. Takes effect immediately, including during playback. Saved per script.">Script offset</label>
@@ -297,6 +297,8 @@ export function initPlayback(root) {
   // ausdünnen.
   let editMode = false;
   let rawActions = null; // [{atMs, pos}] voller Auflösung, nur während editMode gesetzt
+  // FunGen-like: keyframe dots stay visible on the soft curve (and while playing).
+  let keyframeDots = null; // [{atMs, pos}] — display only when not editing
   let editDragIndex = null;
   let editDragStartValue = null; // {atMs, pos} des gegriffenen Punkts vor dem Ziehen, null bei neuem Punkt
   let editAxis = 'general'; // general | vibration | suction
@@ -304,6 +306,7 @@ export function initPlayback(root) {
   let scriptHasNeoAxes = false;
   const CURVE_PAD = 6;
   const EDIT_HIT_RADIUS_PX = 12;
+  const DOT_MAX_DRAW = 600; // dense scripts: subsample dots for draw cost
   let currentPosMs = 0;
 
   function setScriptLoaded(loaded) {
@@ -614,10 +617,8 @@ export function initPlayback(root) {
   // --- Funscript-Kurve unter dem Video -----------------------------------
   // Zeigt den tatsächlichen Positionsverlauf (0-100) über die Zeit, plus
   // einen mitlaufenden Positionszeiger. Die Heatmap-Leiste darunter bleibt
-  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form. Im
-  // Editiermodus werden die vollen Punkte (rawActions) statt der
-  // resampleten Anzeigekurve gezeichnet, plus je ein Punktmarker - sonst
-  // gäbe es nichts, worauf man klicken könnte.
+  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form.
+  // FunGen-like: soft curve + keyframe dots always (edit mode = drag those dots).
   function redrawCurve() {
     const points = (editMode && rawActions) ? rawActions : curvePoints;
     if (!points || points.length < 2) return;
@@ -656,7 +657,7 @@ export function initPlayback(root) {
       }
     }
 
-    // Die Kurve selbst - als weiche Spline statt gerader Segmente.
+    // Soft stroke curve (Catmull-Rom) — FunGen-like “schwingen”.
     ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
@@ -676,17 +677,29 @@ export function initPlayback(root) {
       ctx.setLineDash([]);
     }
 
-    if (editMode) {
-      for (let i = 0; i < points.length; i++) {
-        const isDragged = i === editDragIndex;
+    // Keyframe dots — always on (FunGen2-style); brighter / larger when editing.
+    const dots = (editMode && rawActions) ? rawActions : keyframeDots;
+    if (dots && dots.length) {
+      const step = dots.length > DOT_MAX_DRAW
+        ? Math.ceil(dots.length / DOT_MAX_DRAW) : 1;
+      for (let i = 0; i < dots.length; i += step) {
+        const isDragged = editMode && i === editDragIndex;
         ctx.beginPath();
-        ctx.arc(xOf(points[i].atMs), yOf(points[i].pos), isDragged ? 5 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = isDragged ? '#ffcc55' : '#ffffff';
+        ctx.arc(xOf(dots[i].atMs), yOf(dots[i].pos), isDragged ? 5 : (editMode ? 3.5 : 2.2), 0, Math.PI * 2);
+        ctx.fillStyle = isDragged ? '#ffcc55' : (editMode ? '#ffffff' : 'rgba(255,255,255,0.85)');
+        ctx.fill();
+      }
+      // Always draw the active drag index even if subsampled away.
+      if (editMode && editDragIndex != null && editDragIndex < dots.length && editDragIndex % step !== 0) {
+        const d = dots[editDragIndex];
+        ctx.beginPath();
+        ctx.arc(xOf(d.atMs), yOf(d.pos), 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffcc55';
         ctx.fill();
       }
     }
 
-    // Positionszeiger.
+    // Positionszeiger + live height marker (“schwingen” playhead).
     if (currentPosMs > 0 && totalMs > 0) {
       const x = Math.round(xOf(currentPosMs)) + 0.5;
       ctx.strokeStyle = '#ffffff';
@@ -695,7 +708,33 @@ export function initPlayback(root) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
+      const livePos = interpPosAt(points, currentPosMs);
+      if (livePos != null) {
+        ctx.beginPath();
+        ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#5fd0c8';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.25;
+        ctx.fill();
+        ctx.stroke();
+      }
     }
+  }
+
+  function interpPosAt(points, tMs) {
+    if (!points || points.length < 1) return null;
+    if (tMs <= points[0].atMs) return points[0].pos;
+    const last = points[points.length - 1];
+    if (tMs >= last.atMs) return last.pos;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      if (tMs >= a.atMs && tMs <= b.atMs) {
+        if (b.atMs === a.atMs) return b.pos;
+        const f = (tMs - a.atMs) / (b.atMs - a.atMs);
+        return a.pos + f * (b.pos - a.pos);
+      }
+    }
+    return last.pos;
   }
 
   // Woraus besteht das Skript? Der Quality Doctor sagt, ob es brauchbar
@@ -902,6 +941,7 @@ export function initPlayback(root) {
       }
     } catch (err) {
       curvePoints = null;
+      keyframeDots = null;
       vibrationCurvePoints = null;
       speedHighlights = [];
       curveCanvas.style.display = 'none';
@@ -909,11 +949,22 @@ export function initPlayback(root) {
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
+      keyframeDots = null;
       vibrationCurvePoints = null;
       speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       return;
+    }
+    // FunGen-like dots: load full keyframes even when not editing.
+    if (!editMode) {
+      try {
+        const acts = await GetScriptAxisActions(editAxis || 'general');
+        keyframeDots = (Array.isArray(acts) ? acts : []).map(a => ({ atMs: a.at, pos: a.pos }));
+        if (!keyframeDots.length) keyframeDots = null;
+      } catch (err) {
+        keyframeDots = null;
+      }
     }
     try {
       vibrationCurvePoints = scriptHasContactVibration
@@ -1029,6 +1080,7 @@ export function initPlayback(root) {
       return;
     }
     rawActions = sorted;
+    keyframeDots = sorted.map(p => ({ ...p }));
     redrawCurve();
     drawHeatmap();
   }
@@ -1045,6 +1097,7 @@ export function initPlayback(root) {
             rawActions = (Array.isArray(gen) ? gen : []).map(a => ({ atMs: a.at, pos: 0 }));
           }
         }
+        keyframeDots = rawActions.map(p => ({ ...p }));
       } catch (err) {
         logError('Editor: failed to load points: ' + err);
         el('#pb-curve-edit').checked = false;
@@ -1054,6 +1107,9 @@ export function initPlayback(root) {
     } else {
       editMode = false;
       editDragIndex = null;
+      if (rawActions && rawActions.length) {
+        keyframeDots = rawActions.map(p => ({ ...p }));
+      }
       rawActions = null;
     }
     el('#pb-curve-edit-hint').style.display = editMode ? 'block' : 'none';

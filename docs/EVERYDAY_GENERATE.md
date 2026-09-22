@@ -34,7 +34,7 @@ Do **not** default 4-zone or Flow.
   3. Optional: Contact vibration on (default) · optional Zone 2 “where it vibrates”
   4. Generate → .samn + .funscript
   5. Review & improve: trim start/end · fill gaps · audio check on/off
-       — then Play (editor) for hand polish
+       — then **Play**: soft curve + keyframe dots (FunGen-like); Edit curve to adjust
 ```
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
