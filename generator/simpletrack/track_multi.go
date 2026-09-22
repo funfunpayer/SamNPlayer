@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/funfunpayer/SamNPlayer/generator/trackutil"
 	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
@@ -108,8 +109,10 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 	}
 
 	include0 := make([]bool, len(partners))
+	coasts := make([]trackutil.Coast, len(partners))
 	for i := range include0 {
 		include0[i] = true
+		coasts[i].ObserveOK(boxes[i].X, boxes[i].Y, boxes[i].W, boxes[i].H)
 	}
 	d0, _ := minDist(tipBox, true, boxes, include0)
 	timestamps := []int{0}
@@ -118,6 +121,8 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 	lost, valid := 0, 1
 	frameIdx := 1
 	lastDist := d0
+	var tipCoast trackutil.Coast
+	tipCoast.ObserveOK(tipBox.X, tipBox.Y, tipBox.W, tipBox.H)
 
 	totalFrames := 0
 	if info.Duration > 0 && fps > 0 {
@@ -145,9 +150,13 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 		okTip = okTip && scoreTip >= 0.35
 		if okTip {
 			tipBox = bestTip
+			tipCoast.ObserveOK(tipBox.X, tipBox.Y, tipBox.W, tipBox.H)
 			if frameIdx%15 == 0 {
 				tmplTip = extract(frame.Pixels, w, h, tipBox)
 			}
+		} else if x, y, ww, hh, on := tipCoast.OnLost(); on {
+			tipBox = Rect{X: x, Y: y, W: ww, H: hh}
+			okTip = true
 		}
 		for i, p := range partners {
 			if p.Fixed {
@@ -158,10 +167,14 @@ func trackMultiNCC(ctx context.Context, videoPath string, tip Rect, partners []P
 			ok := found && score >= 0.35
 			if ok {
 				boxes[i] = best
+				coasts[i].ObserveOK(boxes[i].X, boxes[i].Y, boxes[i].W, boxes[i].H)
 				include[i] = true
 				if frameIdx%15 == 0 {
 					tmpls[i] = extract(frame.Pixels, w, h, boxes[i])
 				}
+			} else if x, y, ww, hh, on := coasts[i].OnLost(); on {
+				boxes[i] = Rect{X: x, Y: y, W: ww, H: hh}
+				include[i] = true
 			} else {
 				include[i] = false
 			}

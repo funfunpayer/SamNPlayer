@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/funfunpayer/SamNPlayer/generator/trackutil"
 	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
@@ -83,6 +84,9 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	frameIdx := 1
+	var coastA, coastB trackutil.Coast
+	coastA.ObserveOK(boxA.X, boxA.Y, boxA.W, boxA.H)
+	coastB.ObserveOK(boxB.X, boxB.Y, boxB.W, boxB.H)
 
 	totalFrames := 0
 	if info.Duration > 0 && fps > 0 {
@@ -109,22 +113,33 @@ func TrackTwoPoints(ctx context.Context, videoPath string, roiA, roiB Rect, opts
 		okA = okA && scoreA >= 0.35
 		if okA {
 			boxA = bestA
+			coastA.ObserveOK(boxA.X, boxA.Y, boxA.W, boxA.H)
 			if frameIdx%15 == 0 {
 				tmplA = extract(frame.Pixels, w, h, boxA)
 			}
+		} else if x, y, ww, hh, on := coastA.OnLost(); on {
+			boxA = Rect{X: x, Y: y, W: ww, H: hh}
+			okA = true // coasted tip still usable for fusion
 		}
 		okB := true
+		includeB := true
 		if !opts.FixedB {
 			bestB, scoreB, foundB := searchNCC(frame.Pixels, w, h, tmplB, boxB, margin, step)
 			okB = foundB && scoreB >= 0.35
 			if okB {
 				boxB = bestB
+				coastB.ObserveOK(boxB.X, boxB.Y, boxB.W, boxB.H)
 				if frameIdx%15 == 0 {
 					tmplB = extract(frame.Pixels, w, h, boxB)
 				}
+				includeB = true
+			} else if x, y, ww, hh, on := coastB.OnLost(); on {
+				boxB = Rect{X: x, Y: y, W: ww, H: hh}
+				includeB = true
+			} else {
+				includeB = false
 			}
 		}
-		includeB := opts.FixedB || okB
 		dist, fused := fuseTipPartners(boxA, okA, []Rect{boxB}, []bool{includeB})
 		frameLost := !fused
 		if frameLost {

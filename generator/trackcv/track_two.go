@@ -2,9 +2,12 @@
 
 package trackcv
 
+import "github.com/funfunpayer/SamNPlayer/generator/trackutil"
+
 // TrackTwoPoints follows two ROIs and returns tip→partner distance as Positions —
-// Go port of generate_funscript.track_two_points (CSRT, no appearance memory;
-// shared pan cancels in the distance by construction). Distance uses the tip
+// Go port of generate_funscript.track_two_points (CSRT; optional appearance
+// reacquire when Options.AppearanceMemory; tip/partner coast on brief loss).
+// Shared pan cancels in the distance by construction. Distance uses the tip
 // box point nearest the partner (TipPartnerDistance), not tip center.
 func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, error) {
 	cap := OpenVideo(videoPath)
@@ -39,10 +42,23 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		trackerB = NewTracker()
 		trackerB.Init(cap, roiB)
 	}
+	var memA, memB *appearanceMemory
+	if opts.appearanceMemoryEnabled() {
+		memA = newAppearanceMemory()
+		if trackerB != nil {
+			memB = newAppearanceMemory()
+		}
+	}
 	defer func() {
 		trackerA.Close()
 		if trackerB != nil {
 			trackerB.Close()
+		}
+		if memA != nil {
+			memA.close()
+		}
+		if memB != nil {
+			memB.close()
 		}
 	}()
 
@@ -52,6 +68,9 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	lostFlags := []bool{false}
 	lost, valid := 0, 1
 	idx := 1
+	var coastA, coastB trackutil.Coast
+	coastA.ObserveOK(boxA.X, boxA.Y, boxA.W, boxA.H)
+	coastB.ObserveOK(boxB.X, boxB.Y, boxB.W, boxB.H)
 
 	total := int(cap.Get(CapPropFrameCount))
 	if opts.MaxFrames > 0 && (total == 0 || opts.MaxFrames < total) {
@@ -70,21 +89,38 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		if !cap.Read() {
 			break
 		}
-		newA, okA := trackerA.Update(cap)
-		if okA {
-			boxA = newA
+		var gray *Gray
+		if memA != nil || memB != nil {
+			gray = cap.ToGray()
 		}
-		okB := true
-		if trackerB != nil {
-			var newB Rect
-			newB, okB = trackerB.Update(cap)
-			if okB {
-				boxB = newB
+		newA, okA := trackerA.Update(cap)
+		okA, boxA, trackerA = recoverOrCoast(cap, gray, trackerA, memA, &coastA, newA, okA, boxA, idx)
+		tipOK := okA
+		if !okA {
+			if x, y, w, h, on := coastA.OnLost(); on {
+				boxA = Rect{X: x, Y: y, W: w, H: h}
+				tipOK = true
 			}
 		}
-		// Fixed partner is always usable; tracked partner must update OK.
-		includeB := opts.FixedB || okB
-		dist, fused := FuseTipPartners(boxA, okA, []Rect{boxB}, []bool{includeB})
+
+		includeB := true
+		if trackerB != nil {
+			newB, okB := trackerB.Update(cap)
+			okB, boxB, trackerB = recoverOrCoast(cap, gray, trackerB, memB, &coastB, newB, okB, boxB, idx)
+			if okB {
+				includeB = true
+			} else if x, y, w, h, on := coastB.OnLost(); on {
+				boxB = Rect{X: x, Y: y, W: w, H: h}
+				includeB = true
+			} else {
+				includeB = false
+			}
+		} else {
+			// Fixed partner always included.
+			includeB = opts.FixedB
+		}
+
+		dist, fused := FuseTipPartners(boxA, tipOK, []Rect{boxB}, []bool{includeB})
 		frameLost := !fused
 		if frameLost {
 			lost++
@@ -92,6 +128,9 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		} else {
 			valid++
 			lastDist = dist
+		}
+		if gray != nil {
+			gray.Close()
 		}
 		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))
