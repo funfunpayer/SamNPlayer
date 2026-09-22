@@ -188,6 +188,8 @@ export function initGenerator(root, playback) {
             </select>
           </div>
           <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Stroke/Autotune.</p>
+          <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
+            data-help="Records the raw tip/partner (x,y) path per frame into the script, for the optional Review/Play trajectory overlay (MT-Debug). Off by default; only recorded on the CSRT (Go) path, not 4-zone.">Record tip/partner trajectory (Debug overlay)</label></div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -1293,6 +1295,7 @@ export function initGenerator(root, playback) {
         : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
+      captureTrajectory: !!el('#gen-capture-trajectory')?.checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     // Optional Zone 2 is UX-only for now on stroke profiles (Contact vib uses
