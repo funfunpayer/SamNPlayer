@@ -2,6 +2,8 @@
 
 package trackcv
 
+import "github.com/funfunpayer/SamNPlayer/generator/trackutil"
+
 // Partner is one Tf/Tj contact anchor (ROI2 or extra --target).
 type Partner struct {
 	ROI   Rect
@@ -10,8 +12,9 @@ type Partner struct {
 
 // TrackMultiPoints follows the tip ROI plus N contact partners and returns
 // min tip→partner distance (TipPartnerDistance) as Positions.
-// Lost tracked partners are excluded from min() for that frame (F-006);
-// tip loss or no usable partner keeps the previous distance.
+// Lost tracked partners are excluded from min() for that frame (F-006) after
+// a short coast budget; tip loss or no usable partner keeps the previous
+// distance. Appearance reacquire (when enabled) keeps the same partner slot.
 func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Options) (Result, error) {
 	if len(partners) == 0 {
 		return Result{}, &trackError{"TrackMultiPoints requires at least one partner"}
@@ -50,21 +53,39 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 	tipTracker.Init(cap, tip)
 	boxes := make([]Rect, len(partners))
 	trackers := make([]*Tracker, len(partners))
+	mems := make([]*appearanceMemory, len(partners))
+	coasts := make([]trackutil.Coast, len(partners))
 	include0 := make([]bool, len(partners))
+	var tipMem *appearanceMemory
+	if opts.appearanceMemoryEnabled() {
+		tipMem = newAppearanceMemory()
+	}
 	for i, p := range partners {
 		boxes[i] = p.ROI
-		include0[i] = true // first frame: all partners at marked boxes
+		include0[i] = true
+		coasts[i].ObserveOK(p.ROI.X, p.ROI.Y, p.ROI.W, p.ROI.H)
 		if !p.Fixed {
 			tr := NewTracker()
 			tr.Init(cap, p.ROI)
 			trackers[i] = tr
+			if tipMem != nil {
+				mems[i] = newAppearanceMemory()
+			}
 		}
 	}
+	var tipCoast trackutil.Coast
+	tipCoast.ObserveOK(tip.X, tip.Y, tip.W, tip.H)
 	defer func() {
 		tipTracker.Close()
-		for _, tr := range trackers {
+		if tipMem != nil {
+			tipMem.close()
+		}
+		for i, tr := range trackers {
 			if tr != nil {
 				tr.Close()
+			}
+			if mems[i] != nil {
+				mems[i].close()
 			}
 		}
 	}()
@@ -96,9 +117,18 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 		if !cap.Read() {
 			break
 		}
+		var gray *Gray
+		if tipMem != nil {
+			gray = cap.ToGray()
+		}
 		newTip, okTip := tipTracker.Update(cap)
-		if okTip {
-			tipBox = newTip
+		okTip, tipBox, tipTracker = recoverOrCoast(cap, gray, tipTracker, tipMem, &tipCoast, newTip, okTip, tipBox, idx)
+		tipOK := okTip
+		if !okTip {
+			if x, y, w, h, on := tipCoast.OnLost(); on {
+				tipBox = Rect{X: x, Y: y, W: w, H: h}
+				tipOK = true
+			}
 		}
 		for i := range partners {
 			if trackers[i] == nil {
@@ -106,14 +136,17 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 				continue
 			}
 			newB, okB := trackers[i].Update(cap)
+			okB, boxes[i], trackers[i] = recoverOrCoast(cap, gray, trackers[i], mems[i], &coasts[i], newB, okB, boxes[i], idx)
 			if okB {
-				boxes[i] = newB
+				include[i] = true
+			} else if x, y, w, h, on := coasts[i].OnLost(); on {
+				boxes[i] = Rect{X: x, Y: y, W: w, H: h}
 				include[i] = true
 			} else {
-				include[i] = false // exclude stale box from min()
+				include[i] = false
 			}
 		}
-		dist, fused := FuseTipPartners(tipBox, okTip, boxes, include)
+		dist, fused := FuseTipPartners(tipBox, tipOK, boxes, include)
 		frameLost := !fused
 		if frameLost {
 			lost++
@@ -121,6 +154,9 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 		} else {
 			valid++
 			lastDist = dist
+		}
+		if gray != nil {
+			gray.Close()
 		}
 		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))

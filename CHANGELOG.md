@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Tf/Tj partner coast (MT-Go):** brief tracker misses on tip/partner now
+  coast ~8 frames (last velocity / hold) before excluding from distance
+  fusion; OpenCV path also reacquires via appearance memory into the **same**
+  partner slot. Generate UI surfaces `tracker_lost_*` + tracking gap count.
+
 ## [0.5.22] — September 22, 2026
 
 ### Added

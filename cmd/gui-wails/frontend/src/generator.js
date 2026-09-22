@@ -1377,6 +1377,22 @@ export function initGenerator(root, playback) {
           + (result.aiOpinionReason ? `<br>${result.aiOpinionReason}` : '')
           + `</div>`;
       }
+      if (result.trackingGapCount > 0 || result.trackingReason) {
+        html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
+          + `<b>Tracking:</b> `;
+        const bits = [];
+        if (result.trackingReason === 'tracker_lost_heavy') {
+          bits.push('heavy tracker loss — Tip/Partner often lost; contact feel may mute in gaps');
+        } else if (result.trackingReason === 'tracker_lost_elevated') {
+          bits.push('elevated tracker loss — some Tip/Partner gaps');
+        } else if (result.trackingReason) {
+          bits.push(String(result.trackingReason));
+        }
+        if (result.trackingGapCount > 0) {
+          bits.push(`${result.trackingGapCount} gap window(s) (contact vib muted there on Tf/Tj)`);
+        }
+        html += bits.join(' · ') + `</div>`;
+      }
       if (result.audioCheckWarnings && result.audioCheckWarnings.length > 0) {
         html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
           + `<b>Audio tempo check:</b>`

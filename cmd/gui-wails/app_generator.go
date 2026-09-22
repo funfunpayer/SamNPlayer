@@ -395,6 +395,15 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 						if b, ok := np["backend"].(string); ok {
 							payload["backend"] = b
 						}
+						if r, ok := np["reason"].(string); ok && r != "" {
+							payload["trackingReason"] = r
+						}
+						if lost, ok := np["lost"].(float64); ok {
+							payload["trackingLostFrames"] = int(lost)
+						}
+					}
+					if gaps, ok := meta["tracking_gaps"].([]any); ok && len(gaps) > 0 {
+						payload["trackingGapCount"] = len(gaps)
 					}
 				}
 			}
@@ -414,6 +423,9 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			}
 			if script.Metadata.AudioCheck != nil {
 				payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
+			}
+			if len(script.Metadata.TrackingGaps) > 0 {
+				payload["trackingGapCount"] = len(script.Metadata.TrackingGaps)
 			}
 			if opts.AutoOZoneMarker {
 				zone, err := applyAutoOZoneMarker(outPath, script.Actions)

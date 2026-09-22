@@ -66,10 +66,11 @@ func nativeTrackMultiPoints(videoPath string, tip ROI, partners []nativePartner,
 		trackcv.Rect{X: tip.X, Y: tip.Y, W: tip.W, H: tip.H},
 		tps,
 		trackcv.Options{
-			MaxFrames:    opts.MaxFrames,
-			StartTimeSec: opts.StartTimeSec,
-			Cancel:       opts.Cancel,
-			OnProgress:   percentFromProgress(onPercent),
+			MaxFrames:        opts.MaxFrames,
+			StartTimeSec:     opts.StartTimeSec,
+			AppearanceMemory: opts.AppearanceMemory,
+			Cancel:           opts.Cancel,
+			OnProgress:       percentFromProgress(onPercent),
 		})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
