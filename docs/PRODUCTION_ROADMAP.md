@@ -84,8 +84,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.19** | Shipped | TFTJ 4b motion-candidate overlay (pick primary) |
 | **v0.5.20** | Shipped | 4-zone GUI opt-in + Contact-first (#169); owner Flow smoke |
 | **v0.5.21** | Shipped | Profile rename; Play feel-decouple; Flow soft warns (#172) |
-| **v0.5.22** | **This train** | Training clip+ring; Everyday Generate; Playback HiDPI/seek; bugfix P0/P1 (#177/#179/#176) |
-| **v0.5.23+** | After smoke | Finish stroke+partner distance; YOLO proposals; Flow hang if still open |
+| **v0.5.22** | Shipped | Training clip+ring; Everyday Generate; Playback HiDPI/seek; bugfix P0/P1 (#177/#179/#176); tag #181 |
+| **v0.5.23+** | After smoke | Tip↔partner distance; **multi-track Fahrplan** (below); Flow hang if still open |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
@@ -213,15 +213,42 @@ passes your usable bar — otherwise the model learns noise.
 | G3.2 | ROI proposal + VerifyROI; two-ROI suggest stays opt-in until bake-off win | G3.1 + G1.5 | Suggest ≠ auto-commit (principle 6) |
 | G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Adopt only if CV beats fixed rules |
 | G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 |
-| G3.5 | Depth / pose / ByteTrack / segmentation | Own go/no-go each | Parked until G3.4 |
-| G3.5a | **Multi-object track IDs** (YOLO + ByteTrack/BoT-SORT) as Tip+Partner(+region) **proposals** — not Stroke writer | After G3.2 | Parked note 22 Sep — see AGENT_COORD § multi-object (incl. Go upgrade table) |
+| G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | Parked until G3.4 |
+| G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | Ordered; measure each gate |
 
-**Parked runtime note (22 Sep, owner):** Ultralytics YOLO + BoT-SORT/ByteTrack
-is the practical stack for **multi-box IDs**. If a solid Go path for that
-does not appear (gocv alone is not Ultralytics), keep the long-term option
-open to **lean on Python** for this proposal/track layer — same pattern as
-today’s optional AI Train / `ai_roi` — while Go CSRT stays Everyday Stroke.
-Do not flip Generate defaults until measured.
+### Multi-track Fahrplan (22 Sep) — fold into G1 polish + G3
+
+Synthesizes owner research (YOLO26 + ByteTrack/BoT-SORT, speed knobs,
+VSDC “movement map”, Unite.ai lib filter, MovieGo architecture notes) with
+the existing spine. **Stroke writer stays Go CSRT.** Proposals ≠ script.
+
+```text
+  Motion candidates / YOLO-ONNX  →  Tip + Partner boxes (opt-in)
+           ↓
+  Go TrackMultiPoints (CSRT)     →  Stroke + optional distance/feel
+           ↓
+  (only if IDs still break)      →  Python ByteTrack/BoT-SORT ID layer
+```
+
+| Step | ID | What | Depends on | Done when |
+|------|-----|------|------------|-----------|
+| **1** | **MT-Go** | Go coast + track-ID continuity + honest lost UI (`LostFlags` / `lostHeavy`) on `TrackMultiPoints` | Current `main` | Partner re-acquire keeps ID; lost gaps visible in Generate/Review; no default change |
+| **2** | **MT-Seed** | Ranked N proposals → user/auto pick Tip + Partner → seed Go CSRT (motion candidates first; YOLO/ONNX when AI Train usable) | MT-Go + G3.2 | Suggest ≠ auto-commit; Everyday still tip-CSRT if user skips |
+| **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N frames, `half`/ONNX; ByteTrack before BoT-SORT unless occlusion demands ReID | MT-Seed | Proposal pass finishes in time budget on mid GPU / CPU fallback documented |
+| **4** | **MT-ID** | Optional Python Ultralytics track (ByteTrack/BoT-SORT) **only** if MT-Go still loses partners on goldens | MT-Seed fail gate | Measured ID stability win; still not Stroke writer |
+| **5** | **MT-Debug** | Optional Review polyline of tip/partner trajectory (VSDC “movement map” idea) | MT-Go | Debug overlay off by default |
+| **∥** | **MT-Infra** | When touching Improve/proxy: MovieGo lessons — rational PTS/rate where float drifts, FFmpeg filtergraph fastpath for pure trim/scale, single-owner decode + ctx kills ffmpeg | Orthogonal | No new editor product |
+
+**Libs we keep / adopt later vs ignore** (Unite.ai filter): keep OpenCV,
+NumPy/SciPy, optional ultralytics+ONNX; Train-only PyTorch/torchvision;
+ignore Diffusers/LLM/DeepSpeed/Pillow-first stacks for Generate.
+
+**Explicitly out of this Fahrplan:** frame-diff as Tip finder; YOLO every
+frame as Stroke; VSDC titles/captions/censor product; adopting MovieGo as
+a dependency for tracking.
+
+Detail table + Go upgrade mapping: `docs/AGENT_COORD.md` § Parked
+multi-object. Checklist mirrors: `docs/ROADMAP.md` § Multi-track.
 
 ---
 

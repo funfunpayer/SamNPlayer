@@ -103,11 +103,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 ## Parked (no lane) — multi-object track / Python vs Go · 22 Sep
 
-**Owner ask (hold only):** YOLO26 + BoT-SORT/ByteTrack can track **several**
-boxes with stable IDs (Tip + Partner + regions). Better than frame-diff;
-does **not** replace Everyday tip-CSRT Stroke.
+**Canonical Fahrplan:** `docs/PRODUCTION_ROADMAP.md` § **Multi-track Fahrplan
+(22 Sep)** — steps MT-Go → MT-Seed → MT-Speed → MT-ID → MT-Debug (+ MT-Infra).
 
-**Runtime stance (not building yet):**
+**Owner ask (hold / plan only until a lane claims MT-*):** YOLO26 +
+BoT-SORT/ByteTrack can track **several** boxes with stable IDs (Tip +
+Partner + regions). Better than frame-diff; does **not** replace Everyday
+tip-CSRT Stroke.
+
+**Runtime stance:**
 - Prefer keeping Stroke/Generate spine in **Go CSRT**.
 - Multi-object ID tracking is Ultralytics-native; a full Go reimplementation
   is unlikely to pay off soon.
@@ -116,26 +120,26 @@ does **not** replace Everyday tip-CSRT Stroke.
   Python Generate.
 - Gate: measure Tip+Partner proposal quality before any default change.
 
-### What we can learn → how to upgrade **our Go** (still parked)
+### What we can learn → how to upgrade **our Go** (maps to MT-Go / MT-Seed)
 
 Borrow MOT *ideas*, not the Ultralytics stack, into `trackcv` /
 `TrackMultiPoints` / proposal UX:
 
-| Learning (YOLO/MOT / editors) | Go upgrade (concrete) |
-|---|---|
-| Stable **track IDs** across occlusion | Per-ROI `TrackID` + `LostFlags` already exist — expose ID in metadata/GUI; on re-acquire, prefer **same ID** over inventing a new partner |
-| **ByteTrack two-stage** (low-conf rescue) | When CSRT confidence dips: short **coast** (Kalman/hold last velocity) before declaring lost; optional second-pass match on motion candidates near last box |
-| **track_buffer** | Configurable lost-frames budget before Zone2 drop (today: hold-last can lie — surface `lostHeavy` / gaps stronger in GUI) |
-| Detect ≠ track | Keep **proposal** (YOLO/ONNX or motion candidates) separate from **writer** (Go CSRT Stroke) — wire proposals into `AutoDetectROI` / Zone2 suggest only |
-| Multi-object | `TrackMultiPoints` already tracks tip+partners — add ranked **N proposals → pick Tip + Partner** (classes later); do not spawn N stroke writers |
-| Speed knobs (half/imgsz/N-frame) | For any Python/ONNX proposal path: detect every N frames, Go CSRT fills between; never run YOLO every frame for Stroke |
-| VSDC “movement map” | Optional debug: export tip/partner trajectories as overlay polyline (Review) — not product captions/masks |
-| Frame-diff pitfalls | Do not revive whole-frame absdiff as Tip finder; motion candidates stay **local**, with ghost-reference hygiene |
+| Learning (YOLO/MOT / editors) | Go upgrade (concrete) | Fahrplan step |
+|---|---|---|
+| Stable **track IDs** across occlusion | Per-ROI `TrackID` + `LostFlags` — expose in metadata/GUI; re-acquire same ID | MT-Go |
+| **ByteTrack two-stage** (low-conf rescue) | CSRT dip → short **coast** before lost; optional motion-candidate rematch | MT-Go |
+| **track_buffer** | Lost-frames budget; surface `lostHeavy` / gaps in GUI | MT-Go |
+| Detect ≠ track | Proposals → `AutoDetectROI` / Zone2 suggest only; writer = Go CSRT | MT-Seed |
+| Multi-object | Ranked N proposals → Tip + Partner; not N stroke writers | MT-Seed |
+| Speed knobs | Detect every N frames; small imgsz; ByteTrack before BoT-SORT | MT-Speed |
+| VSDC “movement map” | Optional Review trajectory polyline | MT-Debug |
+| MovieGo (compose toolkit) | Rational PTS/rate; FFmpeg filtergraph trim; ctx-kill decode | MT-Infra |
+| Frame-diff pitfalls | No whole-frame absdiff Tip finder | — (reject) |
 
-**Phased (when a lane opens — not now):**
-1. **Go-only polish:** better lost/coast + ID continuity + clearer lost UI on multi-partner.
-2. **Proposal bridge:** ONNX/Python YOLO boxes → seed Go CSRT (Tip+Partner).
-3. **Optional ID layer:** Python ByteTrack/BoT-SORT only if Go coast+IDs still lose partners on goldens.
+**Sources folded in:** Ultralytics track docs, Brave speed tips, SO frame-diff
+ghost issue, VSDC motion-map ideas, Unite.ai lib lists (filter),
+[mowshon/moviego](https://github.com/mowshon/moviego) architecture notes.
 
 ---
 
