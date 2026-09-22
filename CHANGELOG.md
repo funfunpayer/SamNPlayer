@@ -27,7 +27,6 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
-<<<<<<< HEAD
 - **FFmpeg process hygiene (MT-Infra):** frame-preview grabs (`DumpFrameAt`,
   used on every Generate scrub/seek) and the training-dataset still/audio
   helpers used to launch ffmpeg/ffprobe with no context at all — a hung or
@@ -36,15 +35,11 @@ measurement history behind each entry; this file is the short version for
   proxy requests for the same video (e.g. a double-click before the first
   finishes) could start two ffmpeg encoders writing the same output file;
   concurrent calls now share one in-flight run instead.
-=======
 - **Training display residuals (#185 verify):** production build now packages all
   16 clip frames (`pixel_figure.js` per-file `new URL`); pending/late
   `training:levels` after `training:done` no longer revive the ring; StartTraining
   that finishes before its promise resolves leaves the session stopped.
 
-### Fixed
-
->>>>>>> 27f1c57 (fix(training): display residuals — clip packaging + lifecycle races)
 - **Tf/Tj partner coast (MT-Go):** brief tracker misses on tip/partner now
   coast ~8 frames (last velocity / hold) before excluding from distance
   fusion; OpenCV path also reacquires via appearance memory into the **same**
