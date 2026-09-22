@@ -4,6 +4,7 @@ import {
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
+  OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
@@ -43,6 +44,16 @@ export function initPlayback(root) {
       <div class="pb-media">
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
+          <div id="pb-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
+            <div class="pos-gauge-scale" aria-hidden="true">
+              <span>100</span><span>50</span><span>0</span>
+            </div>
+            <div class="pos-gauge-track">
+              <div class="pos-gauge-fill" id="pb-pos-fill"></div>
+              <div class="pos-gauge-knob" id="pb-pos-knob"></div>
+            </div>
+            <div class="pos-gauge-value" id="pb-pos-value">—</div>
+          </div>
           <div class="pb-video-chrome" id="pb-video-chrome">
             <button type="button" id="pb-video-fs" title="Fullscreen (double-click)">Fullscreen</button>
             <button type="button" id="pb-video-change" title="Choose another video">Video…</button>
@@ -106,8 +117,13 @@ export function initPlayback(root) {
       <div class="pb-tools">
         <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
           <input type="checkbox" id="pb-curve-edit" />
-          <label for="pb-curve-edit">Edit curve</label>
+          <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
+        <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
+          data-help="FunGen-like 0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
+          <input type="checkbox" id="pb-pos-overlay-toggle" checked />
+          0–100 on video
+        </label>
         <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <label style="width:auto;" data-help="General = community stroke. Vibration/Suction = Neo 2 channels in .samn (or baked axes).">Curve</label>
           <select id="pb-axis" style="width:auto;">
@@ -125,12 +141,16 @@ export function initPlayback(root) {
             <option value="">—</option>
           </select>
           <button type="button" id="pb-bake-axes" title="Bake vibration/suction from recipe into .samn">Bake axes</button>
+          <button type="button" id="pb-optimize-neo2" class="primary"
+            title="Imported funscript → fill gaps, Contact on, bake Neo 2 axes, save .samn. Then edit multi-axis curves."
+            data-help="One click for community/other-tool .funscript files: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save native .samn. Use Curve dropdown to edit each axis afterward.">Optimize for Neo 2</button>
           <button type="button" id="pb-export-funscript" title="Export community .funscript (general only)">Export .funscript</button>
           <button type="button" id="pb-save-samn" title="Save/update native .samn">Save .samn</button>
         </div>
+        <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
-          data-help="Click+drag = move point. Click empty area = new point. Double-click = delete (keep at least 2). Each change saves immediately.">
-          Edit curve: drag / click / double-click — see “?”.</p>
+          data-help="FunGen-like: soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
+          Edit dots on the curve: drag / click / double-click — see “?”.</p>
 
         <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
           <label style="width:auto;" data-help="Positive value = script applies later. Takes effect immediately, including during playback. Saved per script.">Script offset</label>
@@ -318,6 +338,8 @@ export function initPlayback(root) {
   // ausdünnen.
   let editMode = false;
   let rawActions = null; // [{atMs, pos}] voller Auflösung, nur während editMode gesetzt
+  // FunGen-like: keyframe dots stay visible on the soft curve (and while playing).
+  let keyframeDots = null; // [{atMs, pos}] — display only when not editing
   let editDragIndex = null;
   let editDragStartValue = null; // {atMs, pos} des gegriffenen Punkts vor dem Ziehen, null bei neuem Punkt
   let editAxis = 'general'; // general | vibration | suction
@@ -325,7 +347,45 @@ export function initPlayback(root) {
   let scriptHasNeoAxes = false;
   const CURVE_PAD = 6;
   const EDIT_HIT_RADIUS_PX = 12;
+  const DOT_MAX_DRAW = 600; // dense scripts: subsample dots for draw cost
   let currentPosMs = 0;
+  const POS_OVERLAY_PREF = 'samn.pbPosOverlay';
+
+  function posOverlayWanted() {
+    const cb = el('#pb-pos-overlay-toggle');
+    if (!cb) return true;
+    try {
+      const saved = localStorage.getItem(POS_OVERLAY_PREF);
+      if (saved === '0') { cb.checked = false; return false; }
+      if (saved === '1') { cb.checked = true; return true; }
+    } catch (_) { /* ignore */ }
+    return !!cb.checked;
+  }
+
+  function updatePbPosOverlay(livePos) {
+    const box = el('#pb-pos-overlay');
+    const knob = el('#pb-pos-knob');
+    const fill = el('#pb-pos-fill');
+    const val = el('#pb-pos-value');
+    const row = el('#pb-pos-overlay-row');
+    if (!box || !knob || !fill || !val) return;
+    const hasCurve = curvePoints && curvePoints.length >= 2;
+    if (row) row.style.display = hasCurve ? 'flex' : 'none';
+    const show = hasCurve && posOverlayWanted();
+    box.hidden = !show;
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (!show) return;
+    let pos = livePos;
+    if (pos == null) pos = interpPosAt(curvePoints, currentPosMs);
+    if (pos == null || Number.isNaN(pos)) {
+      val.textContent = '—';
+      return;
+    }
+    const p = Math.max(0, Math.min(100, pos));
+    knob.style.bottom = `calc(${p}% - 7px)`;
+    fill.style.height = p + '%';
+    val.textContent = String(Math.round(p));
+  }
 
   function setScriptLoaded(loaded) {
     el('#pb-empty').hidden = !!loaded;
@@ -622,7 +682,11 @@ export function initPlayback(root) {
 
   function findNearestActionIndex(mx, my) {
     if (!rawActions) return -1;
-    let best = -1, bestDist = EDIT_HIT_RADIUS_PX;
+    // mx/my kommen aus curveMouseXY() in Canvas-Pixeln (= physische Pixel
+    // seit sizeCanvasForDPR) - EDIT_HIT_RADIUS_PX ist als CSS-Pixel-Wert
+    // gedacht, sonst schrumpft der Trefferradius auf HiDPI/Retina effektiv
+    // auf EDIT_HIT_RADIUS_PX/devicePixelRatio CSS-Pixel.
+    let best = -1, bestDist = EDIT_HIT_RADIUS_PX * (window.devicePixelRatio || 1);
     for (let i = 0; i < rawActions.length; i++) {
       const dx = curveXOf(rawActions[i].atMs) - mx;
       const dy = curveYOf(rawActions[i].pos) - my;
@@ -635,10 +699,8 @@ export function initPlayback(root) {
   // --- Funscript-Kurve unter dem Video -----------------------------------
   // Zeigt den tatsächlichen Positionsverlauf (0-100) über die Zeit, plus
   // einen mitlaufenden Positionszeiger. Die Heatmap-Leiste darunter bleibt
-  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form. Im
-  // Editiermodus werden die vollen Punkte (rawActions) statt der
-  // resampleten Anzeigekurve gezeichnet, plus je ein Punktmarker - sonst
-  // gäbe es nichts, worauf man klicken könnte.
+  // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form.
+  // FunGen-like: soft curve + keyframe dots always (edit mode = drag those dots).
   function redrawCurve() {
     const points = (editMode && rawActions) ? rawActions : curvePoints;
     if (!points || points.length < 2) return;
@@ -677,7 +739,7 @@ export function initPlayback(root) {
       }
     }
 
-    // Die Kurve selbst - als weiche Spline statt gerader Segmente.
+    // Soft stroke curve (Catmull-Rom) — FunGen-like “schwingen”.
     ctx.strokeStyle = '#5fd0c8';
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
@@ -697,26 +759,69 @@ export function initPlayback(root) {
       ctx.setLineDash([]);
     }
 
-    if (editMode) {
-      for (let i = 0; i < points.length; i++) {
-        const isDragged = i === editDragIndex;
+    // Keyframe dots — always on (FunGen2-style); brighter / larger when editing.
+    const dots = (editMode && rawActions) ? rawActions : keyframeDots;
+    if (dots && dots.length) {
+      const step = dots.length > DOT_MAX_DRAW
+        ? Math.ceil(dots.length / DOT_MAX_DRAW) : 1;
+      for (let i = 0; i < dots.length; i += step) {
+        const isDragged = editMode && i === editDragIndex;
         ctx.beginPath();
-        ctx.arc(xOf(points[i].atMs), yOf(points[i].pos), isDragged ? 5 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = isDragged ? '#ffcc55' : '#ffffff';
+        ctx.arc(xOf(dots[i].atMs), yOf(dots[i].pos), isDragged ? 5 : (editMode ? 3.5 : 2.2), 0, Math.PI * 2);
+        ctx.fillStyle = isDragged ? '#ffcc55' : (editMode ? '#ffffff' : 'rgba(255,255,255,0.85)');
+        ctx.fill();
+      }
+      // Always draw the active drag index even if subsampled away.
+      if (editMode && editDragIndex != null && editDragIndex < dots.length && editDragIndex % step !== 0) {
+        const d = dots[editDragIndex];
+        ctx.beginPath();
+        ctx.arc(xOf(d.atMs), yOf(d.pos), 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffcc55';
         ctx.fill();
       }
     }
 
-    // Positionszeiger.
-    if (currentPosMs > 0 && totalMs > 0) {
-      const x = Math.round(xOf(currentPosMs)) + 0.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
+    // Positionszeiger + live height marker (“schwingen” playhead).
+    if (totalMs > 0) {
+      const x = Math.round(xOf(Math.max(0, currentPosMs))) + 0.5;
+      if (currentPosMs > 0) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      const livePos = interpPosAt(points, currentPosMs);
+      if (livePos != null && currentPosMs > 0) {
+        ctx.beginPath();
+        ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#5fd0c8';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.25;
+        ctx.fill();
+        ctx.stroke();
+      }
+      updatePbPosOverlay(livePos);
+    } else {
+      updatePbPosOverlay(null);
     }
+  }
+
+  function interpPosAt(points, tMs) {
+    if (!points || points.length < 1) return null;
+    if (tMs <= points[0].atMs) return points[0].pos;
+    const last = points[points.length - 1];
+    if (tMs >= last.atMs) return last.pos;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      if (tMs >= a.atMs && tMs <= b.atMs) {
+        if (b.atMs === a.atMs) return b.pos;
+        const f = (tMs - a.atMs) / (b.atMs - a.atMs);
+        return a.pos + f * (b.pos - a.pos);
+      }
+    }
+    return last.pos;
   }
 
   // Woraus besteht das Skript? Der Quality Doctor sagt, ob es brauchbar
@@ -923,18 +1028,32 @@ export function initPlayback(root) {
       }
     } catch (err) {
       curvePoints = null;
+      keyframeDots = null;
       vibrationCurvePoints = null;
       speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
+      updatePbPosOverlay(null);
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
+      keyframeDots = null;
       vibrationCurvePoints = null;
       speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
+      updatePbPosOverlay(null);
       return;
+    }
+    // FunGen-like dots: load full keyframes even when not editing.
+    if (!editMode) {
+      try {
+        const acts = await GetScriptAxisActions(editAxis || 'general');
+        keyframeDots = (Array.isArray(acts) ? acts : []).map(a => ({ atMs: a.at, pos: a.pos }));
+        if (!keyframeDots.length) keyframeDots = null;
+      } catch (err) {
+        keyframeDots = null;
+      }
     }
     try {
       vibrationCurvePoints = scriptHasContactVibration
@@ -997,7 +1116,10 @@ export function initPlayback(root) {
       const next = rawActions[editDragIndex + 1];
       const lower = prev ? prev.atMs + 1 : 0;
       const upper = next ? next.atMs - 1 : totalMs;
-      atMs = Math.max(lower, Math.min(upper, atMs));
+      // Nachbarn <=1ms auseinander lassen kein gültiges Intervall übrig
+      // (lower > upper) - dann lieber nicht klemmen, statt den Punkt aus
+      // Versehen auf einen Wert außerhalb [lower, upper] zu zwingen.
+      if (lower <= upper) atMs = Math.max(lower, Math.min(upper, atMs));
       rawActions[editDragIndex] = { atMs, pos: curvePosOfY(e.clientY) };
       redrawCurve();
       hideChartTooltip();
@@ -1058,6 +1180,7 @@ export function initPlayback(root) {
       return;
     }
     rawActions = sorted;
+    keyframeDots = sorted.map(p => ({ ...p }));
     redrawCurve();
     drawHeatmap();
   }
@@ -1074,6 +1197,7 @@ export function initPlayback(root) {
             rawActions = (Array.isArray(gen) ? gen : []).map(a => ({ atMs: a.at, pos: 0 }));
           }
         }
+        keyframeDots = rawActions.map(p => ({ ...p }));
       } catch (err) {
         logError('Editor: failed to load points: ' + err);
         el('#pb-curve-edit').checked = false;
@@ -1083,6 +1207,9 @@ export function initPlayback(root) {
     } else {
       editMode = false;
       editDragIndex = null;
+      if (rawActions && rawActions.length) {
+        keyframeDots = rawActions.map(p => ({ ...p }));
+      }
       rawActions = null;
     }
     el('#pb-curve-edit-hint').style.display = editMode ? 'block' : 'none';
@@ -1090,6 +1217,12 @@ export function initPlayback(root) {
   }
 
   el('#pb-curve-edit').addEventListener('change', e => setEditMode(e.target.checked));
+  el('#pb-pos-overlay-toggle')?.addEventListener('change', () => {
+    const on = !!el('#pb-pos-overlay-toggle').checked;
+    try { localStorage.setItem(POS_OVERLAY_PREF, on ? '1' : '0'); } catch (_) { /* ignore */ }
+    updatePbPosOverlay(null);
+  });
+  posOverlayWanted();
 
   async function drawHeatmap() {
     try {
@@ -1444,8 +1577,10 @@ export function initPlayback(root) {
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
-    el('#pb-curve-edit').checked = !!opts.review;
-    await setEditMode(!!opts.review);
+    // review: show FunGen-like dots + contact focus — Edit stays off until
+    // the user checks “Edit curve (dots)” (avoids accidental saves).
+    el('#pb-curve-edit').checked = false;
+    await setEditMode(false);
     drawHeatmap();
     drawCurve();
     describeScript();
@@ -1460,7 +1595,7 @@ export function initPlayback(root) {
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
     if (opts.review) {
-      log('Freshly generated — review the curve and adjust contact/points if needed.');
+      log('Freshly generated — soft curve + dots visible. Enable “Edit curve (dots)” to adjust points.');
       if (showContact) {
         el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
@@ -2034,6 +2169,30 @@ export function initPlayback(root) {
       }
     });
   }
+  if (el('#pb-optimize-neo2')) {
+    el('#pb-optimize-neo2').addEventListener('click', async () => {
+      const status = el('#pb-optimize-neo2-status');
+      const btn = el('#pb-optimize-neo2');
+      btn.disabled = true;
+      if (status) {
+        status.style.display = 'block';
+        status.textContent = 'Optimizing for Neo 2 (fill gaps → contact → bake)…';
+      }
+      try {
+        const res = await OptimizeLoadedForNeo2(true);
+        if (status) status.textContent = res.message || 'Neo 2 ready';
+        log(res.message || 'Optimized for Neo 2');
+        if (res.path) {
+          await loadScript(res.path, 0, { keepPlaylist: true, review: true });
+        }
+      } catch (err) {
+        if (status) status.textContent = 'Optimize failed: ' + err;
+        logError('Optimize for Neo 2: ' + err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
   if (el('#pb-export-funscript')) {
     el('#pb-export-funscript').addEventListener('click', async () => {
       try {
@@ -2058,7 +2217,7 @@ export function initPlayback(root) {
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
-    // opts.review: Kurven-Editor an, Fokus auf Kontakt — frisch erzeugt.
+    // opts.review: open Play with dots visible; Edit curve stays off until checked.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,

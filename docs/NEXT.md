@@ -8,7 +8,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 |---|---|---|
 | 1 | Validate real hardware | **Blocked on you** — Sam Neo 2 + operator |
 | 2 | Match FunGen2 references | **Open** — Golden-Clip tool shipped; need real clips |
-| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 21 Sep):** mark partner only for Tf/Blow **when contact vib on**; everyday = no-mark / 4-zone — `docs/TFTJ_PROFILE_DIRECTION.md` |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 22 Sep):** everyday = auto-tip → CSRT (not 4-zone); Zone 2 only for vibe location — `docs/EVERYDAY_GENERATE.md` |
 | 4 | Motion-signature/profile GUI | **Done** |
 | 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in); **next:** Normal+Auto default **on** (user can off); partner mark tracked when vib on — `TFTJ_PROFILE_DIRECTION.md` |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
@@ -18,6 +18,8 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 10 | Sharper video display | **Closed** (negative) |
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
+| — | **Stroke preview (extrema + Abtastung)** | **Started** — Stage A library + CLI `stroke-preview` (timing/flags only; not a tracker). Gate: clip_ausschnitt vs hub peaks. See § below. |
+| — | **Everyday Generate (FunGen-like)** | **Done (UI)** — auto-find tip → CSRT; Review Improve (trim/fill gaps/audio). `docs/EVERYDAY_GENERATE.md`. Clip gate: hub CSRT windowed r≈0.59. |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
@@ -2071,6 +2073,90 @@ git history rather than rebuilding from scratch.
   dominant_period_ms=1500 alternate_lags_ms=[700 800]`) - a real,
   considered result this time, not an artifact. Full writeup:
   `docs/FINDINGS_TIMING_TF.md` § F-003.
+
+## Stroke preview — extrema + Abtastung (owner idea, 22 Sep 2026)
+
+**Idea (owner):** estimate **up-endpoints** and **logical down-points** from
+motion via sparse sampling to get **faster** timing; combine later with
+other modes for accuracy; **audio only when the preview/track looks bad**;
+use the same probe to help flag **hard cuts** and **camera motion**.
+
+**Product rule (locked):** preview is a **Vorstufe**, not a tracker.
+CSRT hub / marked tip / Tf-Tj remain the position path. Audio stays
+post-hoc / gate-only (`docs/AUDIO_WORKFLOW.md`) — never invent 0–100 from
+loudness. Fits G1 classical heuristics (`docs/GENERATE_HEURISTICS.md`),
+not a new GUI backend.
+
+### Stages
+
+| Stage | What ships | Gate |
+|-------|------------|------|
+| **A — sparse probe** | `generator/strokepreview` + CLI `stroke-preview`: peaks/valleys times, stroke Hz hint, cut events, pan share, `quality` ∈ {ok,weak,unstable}, `suggest_audio_check` | Synthetic bounce CI; `clip_ausschnitt` wall-time ≪ CSRT; extrema overlap vs hub peaks (directional) |
+| **B — steer** | Use flags to bias re-anchor / peak distance / “run audio check” after track | Golden Motion Fidelity not worse; audio still never writes actions |
+| **C — extrema as main path** | **Rejected until A/B prove value** | Would need hub-beating numbers |
+
+Related earlier work: `region_fusion` / `region_fusion_auto` were the
+**“Gitter + Abtastung”** position experiment (measured, competitive but not
+default). Stroke preview reuses the *sampling* idea for **timing + flags**,
+not for replacing CSRT.
+
+### CLI
+
+```text
+go run ./cmd/cli stroke-preview /path/to/clip.mp4
+go run ./cmd/cli stroke-preview clip.mp4 --json --max-seconds 50
+```
+
+### First measure target
+
+Known Claude golden: `tmp/clips/clip_ausschnitt_b76a.mp4` vs FunGen
+`ohne_yolo` / committed hub scripts under
+`generator/testdata/golden_clips/clip_ausschnitt_native/`.
+
+**First run (22 Sep, Stage A on this clip):**
+
+| Metric | Value |
+|--------|------:|
+| Wall clock | **~1.1 s** for ~50 s @1280×720 (analysis 12 fps, keep 1/2 → ~167 ms steps) |
+| quality | `ok` (suggest_audio=false) |
+| stroke_hz | ~1.50 |
+| extrema | 62 up / 62 down |
+| cuts | 0 |
+| pan_share | 0.61 (high — flag noisy; stroke still clear) |
+| Peak overlap ±300 ms vs hub | **14/18 = 0.78** |
+| Peak overlap ±300 ms vs FunGen ohne_yolo | **16/25 = 0.64** |
+
+Directional only: preview is not Motion Fidelity.
+
+**Wire-in (Stage B start, same PR train):** Generate pre-pass runs
+`strokepreview.RunQuick` → progress `STROKE_PREVIEW …` → optional audio
+gate + peak-distance bias → stamp `metadata.stroke_preview`. Failures
+are non-fatal.
+
+### Flow “suddenly long” — traced (22 Sep)
+
+Not a hang. Farneback cost on `clip_ausschnitt` (1280×720, ~1200 frames):
+
+| downscale | wall | ms/frame | note |
+|----------:|-----:|---------:|------|
+| **0.5** | **~56 s** | ~36 Farneback + ~10 other | measured `FLOW_BACKEND_TIMING=1` |
+| 1.0 (full) | ~3–4 min est. | ~4× area | matches owner bake-off timeouts |
+
+Always-on stderr: `FLOW_SUMMARY wall=… ms_per_frame=… downscale=…`.
+Product default for unset `--flow-downscale` / GUI 0 → **0.5**.
+
+## Bugfix board (22 Sep) — split tasks
+
+| ID | Task | Owner | Status |
+|----|------|-------|--------|
+| BF-1 | #176 bugfix PR (SaveContact Sync, #170 cv2, Zone2 copy, arousal) | Cursor | CI green / ready |
+| BF-2 | #177 stroke preview Stage A + Generate wire + Flow default 0.5 | Cursor | this branch |
+| BF-3 | Stage B finish: cut-rate → suggest PerSceneROI in GUI; pan → camera tip | Cursor | next |
+| BF-4 | #119 Windows AI-train smoke on current build (keep open) | Owner | blocked on hardware |
+| BF-5 | Close superseded #170 after #176 merges | Owner/Cursor | pending |
+| BF-6 | Flow GUI: show downscale row; Log surfaces FLOW_SUMMARY | Cursor | in BF-2 |
+| BF-7 | F-003 tier-2 agreement | Owner | board (#174) |
+| BF-8 | Main CI flake `TestArousal…` if still fails without #176 | Cursor | covered by #176 |
 
 ## Product requirements
 

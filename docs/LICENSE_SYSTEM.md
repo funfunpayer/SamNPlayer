@@ -38,6 +38,10 @@ production plan (`docs/PRODUCTION_ROADMAP.md` stream E).
 While enforcement is off, `EffectiveLicensed` is always true (full access).
 `Status.Licensed` still reflects the real key so you can test import.
 
+**Gates are wired** in `GenerateScript` (sets `MaxOutputMs=60000` when not
+effective) and `StartPlayback` (refuses `.samn` when not effective). Flipping
+`Enforcement=true` therefore activates trial/Play rules without further code.
+
 ---
 
 ## What is built now

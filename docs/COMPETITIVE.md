@@ -29,6 +29,7 @@ Do not turn the README into a dashboard of badges and feature piles.
 
 Visual language stays the existing dark gold/teal system (`style.css`
 tokens). No purple-on-white redesign, no card grids in the hero/rail.
+Makeup ideas + backlog: [`docs/GUI_MAKEUP.md`](GUI_MAKEUP.md).
 
 ## What “hervorragend” means here
 

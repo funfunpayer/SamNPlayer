@@ -69,6 +69,21 @@ def main():
         check("Skala hat zehn Stufen",
               page.locator("#tr-arousal-buttons button").count() == 10,
               str(page.locator("#tr-arousal-buttons button").count()))
+        check("Pixel-Paar-Stage ist da",
+              page.locator("#tr-pixel-stage .tr-mosaic-stack").count() == 1)
+        check("You/Partner-Labels",
+              "Clip" in page.locator(".tr-pixel-labels").inner_text()
+              and ("Curve" in page.locator(".tr-pixel-labels").inner_text()
+                   or "Partner" in page.locator(".tr-pixel-labels").inner_text()
+                   or "You" in page.locator(".tr-pixel-labels").inner_text()))
+        check("Clip-Pixel-Strip geladen",
+              page.locator("#tr-pixel-stage .tr-mosaic-clip").count() == 1)
+        check("Intensitätsring sitzt im Motion-Card (nicht darunter gestapelt)",
+              page.locator("#tr-pixel-stage #tr-ring-slot #tr-ring-wrap").count() == 1)
+        check("kein zweites Ring-Widget außerhalb der Card",
+              page.locator("#tr-ring-wrap").count() == 1)
+        check("Zielstufe 7 markiert",
+              page.locator("#tr-arousal-buttons button.is-target").count() == 1)
 
         page.click("#tr-pause")
         page.wait_for_function("window.__calls.some(c => c[0] === 'stopCycle')")
@@ -82,11 +97,29 @@ def main():
         check("Rückmeldung wird bestätigt",
               "9" in page.locator("#tr-arousal-status").inner_text(),
               page.locator("#tr-arousal-status").inner_text())
+        check("Pixel-Stage zeigt Feedback",
+              "9" in page.locator("#tr-pixel-fb").inner_text(),
+              page.locator("#tr-pixel-fb").inner_text())
+        check("gewählter Feedback-Button markiert",
+              page.locator("#tr-arousal-buttons button.is-picked").count() == 1)
+
+        # Live cycle intensity moves the pair (closer + warmer).
+        page.evaluate(
+            "window.__triggerEvent('training:cycle', "
+            "{cycleIndex:0,cyclesTotal:5,peakIntensity:0.8,holdMs:3000})")
+        page.wait_for_function(
+            "document.querySelector('#tr-pixel-pct')?.textContent.includes('80')")
+        check("Zyklus-Intensität auf Pixel-Paar",
+              "80%" in page.locator("#tr-pixel-pct").inner_text(),
+              page.locator("#tr-pixel-pct").inner_text())
 
         page.evaluate("window.__triggerEvent('training:done')")
         page.wait_for_function("document.querySelector('#tr-arousal').disabled === true",
                                timeout=5000)
         check("nach Sessionende wieder gesperrt", disabled("#tr-arousal"))
+        check("Pixel-Paar nach Ende idle",
+              "Idle" in page.locator("#tr-pixel-pct").inner_text(),
+              page.locator("#tr-pixel-pct").inner_text())
 
         browser.close()
 

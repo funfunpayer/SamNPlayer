@@ -57,6 +57,7 @@ export function GetStrengthPresets() { return window['go']['main']['App']['GetSt
 export function SetActiveStrength(arg1) { return window['go']['main']['App']['SetActiveStrength'](arg1); }
 export function ExportLoadedFunscript(arg1) { return window['go']['main']['App']['ExportLoadedFunscript'](arg1); }
 export function SaveLoadedAsSamn() { return window['go']['main']['App']['SaveLoadedAsSamn'](); }
+export function OptimizeLoadedForNeo2(arg1) { return window['go']['main']['App']['OptimizeLoadedForNeo2'](arg1); }
 export function BakeNeoAxesOnLoaded() { return window['go']['main']['App']['BakeNeoAxesOnLoaded'](); }
 export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['GetSpeedHighlights'](arg1); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
@@ -65,6 +66,7 @@ export function GetVibrationCurvePreview(arg1) { return window['go']['main']['Ap
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
 export function GetSettings() { return window['go']['main']['App']['GetSettings'](); }
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
+export function ImproveGeneratedScript(arg1) { return window['go']['main']['App']['ImproveGeneratedScript'](arg1); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
 export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }
@@ -115,6 +117,13 @@ export function TestSuction(arg1) { return window['go']['main']['App']['TestSuct
 export function TestVibration(arg1) { return window['go']['main']['App']['TestVibration'](arg1); }
 export function TrainQualityModel() { return window['go']['main']['App']['TrainQualityModel'](); }
 export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
+export function ExportTrainingHistoryCSV() { return window['go']['main']['App']['ExportTrainingHistoryCSV'](); }
+export function ListTrainingScripts() { return window['go']['main']['App']['ListTrainingScripts'](); }
+export function TrainingScriptPreview(arg1) { return window['go']['main']['App']['TrainingScriptPreview'](arg1); }
+export function SaveTrainingScript(arg1) { return window['go']['main']['App']['SaveTrainingScript'](arg1); }
+export function DeleteTrainingScript(arg1) { return window['go']['main']['App']['DeleteTrainingScript'](arg1); }
+export function LoadTrainingScriptForEditing(arg1) { return window['go']['main']['App']['LoadTrainingScriptForEditing'](arg1); }
+export function PreviewTrainingScriptDraft(arg1) { return window['go']['main']['App']['PreviewTrainingScriptDraft'](arg1); }
 export function TriggerExtendedO(arg1, arg2, arg3) { return window['go']['main']['App']['TriggerExtendedO'](arg1, arg2, arg3); }
 export function UpdateRoiTrainingSample(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['UpdateRoiTrainingSample'](arg1, arg2, arg3, arg4); }
 export function VideoFileURL() { return window['go']['main']['App']['VideoFileURL'](); }

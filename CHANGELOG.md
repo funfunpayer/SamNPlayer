@@ -26,6 +26,191 @@ measurement history behind each entry; this file is the short version for
 - **Playback: curve editor** clamps a dragged point to its direct neighbors,
   so it no longer jumps in list order on mouse-up once points get sorted.
 
+### Fixed
+
+- **Training Interrupt clears carried channels:** `StopCycle` during a
+  suction-only phase now zeros vibration too when an earlier phase left it
+  active (`nil` curve = preserve previous — must still clear on interrupt).
+- **Feedback scales StartLevel:** flat/descending curves no longer resume
+  above the damped peak after high arousal.
+- **Live intensity for ring + clip:** `training:levels` from each device
+  write drives the meter and clip frame; cycle-peak events stay for
+  labels/log only.
+
+### Changed
+
+- **Training Motion card:** hi-res dual ring (larger SVG, halo, stronger
+  tilt/gloss/pulse) beside the pixel clip in one composition; README
+  screenshot `docs/media/gui-training.png`. Ring arcs stay **always full**;
+  intensity is motion — vibration pulses outward, suction breathes the
+  whole ring in/out.
+
+### Added
+
+- **Stroke preview in Generate:** Stage A pre-pass before track
+  (`STROKE_PREVIEW` progress lines) — audio gate when weak/unstable, optional
+  peak-distance bias, `metadata.stroke_preview` stamp. CLI `stroke-preview`
+  unchanged. First measure: `clip_ausschnitt` ~1.1s, peak-overlap 0.78 vs hub.
+- **Everyday Generate (FunGen-like):** after choosing a video, auto-find tip
+  ROI → CSRT Stroke + Contact (measured first choice). Generate without a
+  painted box triggers the same find. 4-zone demoted to advanced. See
+  `docs/EVERYDAY_GENERATE.md`.
+- **Review → Improve:** trim start/end, fill gaps (optional audio-tempo
+  spacing), audio check on/off — FunGen-like polish after CSRT. Dead Advanced
+  knobs removed (AI second opinion, audio row moved to Review).
+- **Play curve = FunGen-like dots + soft stroke:** keyframe dots always drawn
+  (incl. during play); live playhead height marker; Edit curve still for
+  drag/add/delete. Improve reloads Play in review mode.
+- **Bugfix / Go-first / license:** AutoDetectROI stamps `videoPath`+`seq`
+  (stale finds dropped); post-generate auto fill-gaps; stroke-preview no
+  longer mutates peak distance; license gates wired (`MaxOutputMs` trial,
+  `.samn` Play block) — Enforcement still off. Review opens Play with dots,
+  Edit opt-in.
+- **Optimize for Neo 2 (Play):** one-click import path — fill gaps → Contact
+  → bake vibe/suction → `.samn`. Multi-axis editor then tunes channels.
+  Ballast trimmed (AI opinion / Flow downscale GUI gone; scene memory collapsed).
+  See `docs/CONTENT_SOURCES.md`.
+- **Post-generate fill-gaps:** auto pass right after Generate (status always
+  shown); auto mode also runs a median-aware second pass for medium holes
+  (never densifies slow natural stroke spacing).
+- **0–100 on video:** FunGen-like stroke gauge over Generator preview and
+  Play video; follows seek/playhead; toggle off anytime (remembered).
+- **AI Train body map:** stylized human figure (Claude device-silhouette
+  idea) — click Face/Mouth/Breasts/… to set the active mark class.
+- **GUI makeup pass:** calmer rail/active tab, crisp primary CTA, content
+  vignette, quieter Play empty — ideas in `docs/GUI_MAKEUP.md`.
+
+- **Multi-phase training scripts:** the Training tab's simple
+  Technique/Channel form now has a "Preset script" option alongside it.
+  A script (`player.TrainingScript`) is an ordered list of named phases,
+  each with its own independent vibration and suction curve — e.g. light
+  vibration ramping up then down, followed by a suction-focused phase
+  carrying a light constant vibration. Four built-in scripts ship,
+  researched from vacuum/cupping therapy and vibration-massager pattern
+  vocabulary (see `docs/TRAINING_MODE_RESEARCH.md`): vibration-wave +
+  suction-focus, a suction-only tissue-massage pattern (pumping / static
+  hold / gliding sweep), a vibration-only massage pattern (escalating
+  warm-up + wave), and an opt-in randomized "variable" pattern. A plan
+  preview draws both channels' planned curves before starting; the live
+  view highlights the current phase and shows the arousal-feedback
+  effect ("Feedback 9 → peak -30%, rest +50%, applied to both channels")
+  per cycle. The existing Technique/Channel form and its session-log
+  format are unchanged — this is additive.
+- **Training script editor:** a "Script editor" section builds an
+  arbitrary multi-phase script through form fields — phases, each with
+  two independent axes (Vibration/Suction), rather than only picking a
+  built-in preset. Saved as one JSON file per script
+  (`os.UserConfigDir()/SamNPlayer/training_scripts/`), listed alongside
+  the built-ins, editable/deletable, with a live preview while editing.
+  A found-and-fixed bug from this work: a curve stored under the wrong
+  axis (mismatched `Channel` field) would have raced the real curve for
+  the same physical channel — `player.NormalizeTrainingScript` now
+  derives the channel from the axis slot unconditionally, closing this
+  for both built-in and custom scripts.
+- **Live intensity meter:** ONE ring, ONE full circular track shared by
+  both channels — "die Gräben gehen einmal rum": each channel's fill
+  goes all the way around the same 360° track (0–100% maps to 0–360°)
+  instead of being confined to its own half or its own concentric ring.
+  Where the two fills overlap (the shorter of the two runs), suction's
+  arc sits semi-transparently over vibration's, so the overlap reads as
+  a genuinely mixed color while the non-overlapping remainder stays each
+  channel's own pure color — normal alpha blending, not
+  `mix-blend-mode: screen` (that washed two light pastel gradients to
+  near-white whenever both channels were equal, e.g. the common "both"
+  channel case). Vibration's track is also drawn slightly wider (8px)
+  than suction's (4px), both centered on the same radius, so gold stays
+  visible as a rim on both sides of the overlap instead of being nearly
+  covered whenever suction's opacity alone dominated it. Drop shadow and
+  an inset track groove give it a
+  plastic/3D look instead of a flat fill; a continuous, always-on subtle
+  3D tilt (`rotateX`/`rotateY` via CSS `perspective`, `tr-ring-tilt3d`)
+  plus a slowly rotating gloss highlight sweep (`tr-ring-gloss-sweep`)
+  make it read as a physical object with depth, independent of whether a
+  session is running. The two channels move differently, not just glow
+  differently: vibration pulses its own arc gently **outward**
+  (`tr-ring-anim-vibration`, ease-in-out, amplitude via `--vib-amp`);
+  suction instead contracts the **entire ring** — track, both fills,
+  gloss, everything — smaller and back ("sucked in and released", fast
+  pull/slower release, amplitude via `--suc-amp` on `#tr-ring-wrap`
+  itself), not just its own arc. Percentages sit stacked in the center,
+  a small legend names the two colors. Works for both the simple
+  Technique/Channel form and scripts, replacing the plain "Current peak"
+  text with something to actually watch move. On-brand colors
+  (`--accent`/`--teal`) throughout, including the plan-preview curve
+  (previously hardcoded blue/orange).
+  - **Reusable pattern, noted for later:** nested `<g>` transform
+    separation (an outer group carries a CSS-animated `transform`, an
+    inner group carries a static `transform="rotate(...)"` presentation
+    attribute — putting both on the same SVG element makes the CSS
+    transform silently replace the attribute instead of composing with
+    it) and CSS-variable-driven animation amplitude
+    (`element.style.setProperty('--x-amp', ...)` instead of separate CSS
+    classes per intensity level) are worth reaching for again when
+    polishing other GUI dialogs — not applied elsewhere yet, just
+    recorded here as a template.
+- **Smoothed plan-preview/live curve:** corners where a ramp meets a
+  hold are now gently rounded (quadratic-Bezier corner-cutting,
+  `roundedPathD`) instead of sharp kinks, plus round line joins/caps.
+  Deliberately NOT a spline through every point — that could overshoot
+  past the configured peak on a flat hold and visually misrepresent the
+  device as briefly exceeding its setting. The rounding is bounded by
+  each corner's own convex hull, so it can only soften a kink, never
+  show a value beyond what's actually configured.
+- **Session safety ceiling:** a session now auto-ends after a generous
+  3-hour wall-clock limit (`maxTrainingSessionDuration`), guarding
+  against a mistake (an extra zero on `restMs`, cycles in the hundreds)
+  running far longer than intended. Ends gracefully with a log line, not
+  an error.
+- **Strong feedback (9-10) now also interrupts the running cycle**
+  immediately, not just the next one — closes the gap between reporting
+  "this is too much" and the ramp actually responding.
+- **History-based suggestion:** the training tab now reads its own
+  session history (previously display-only) to suggest, for the
+  currently selected technique/script, easing off after a session with
+  early stops or trying a bit more after a clean streak.
+- **Randomized-script preview note:** the "variable" pattern's plan
+  preview now says the curve varies each cycle instead of silently
+  looking like a fixed wave that isn't what actually plays.
+- **Script editor: reorder and duplicate phases** — move-up/move-down
+  and a duplicate button per phase, not just add/remove.
+- **History CSV export** — a button next to "History" saves the full
+  session summary table as CSV via the OS save dialog.
+- **Script sessions in History show a readable name** ("vibration wave
+  suction focus: 6 cycles...") instead of a raw "scriptname/script"
+  channel suffix.
+
+### Fixed / observability
+
+- **Flow duration traced:** Farneback ~36 ms/frame at downscale 0.5 → ~56 s
+  for 50 s 720p (not a hang). Always-on `FLOW_SUMMARY` stderr line.
+  Unset/`0` flow downscale now defaults to **0.5** (CLI). Flow stays
+  CLI-only — Everyday GUI no longer shows a downscale control.
+
+### Fixed
+
+- **Training tab: an unclosed `<fieldset>`** (the Feedback section's
+  closing tag was a stray `</div>`, not `</fieldset>`) silently disabled
+  every control rendered after it — the intensity meter, log, and the
+  entire History section, including the new CSV export button —
+  whenever no session was running. Invisible before because nothing
+  after that point used to be an interactive form control; found when
+  the new export button turned out to be permanently unclickable.
+- **`runPhaseRepeat` could leave a channel's goroutine running
+  unsupervised** after the other channel's curve failed: it used to
+  return on the first error without draining or cancelling the sibling,
+  which could keep writing to the device past `dev.Stop()`/session
+  teardown. It now derives a cancellable child context shared by both
+  channels, cancels it as soon as either reports a real error, and
+  always waits for both to finish before returning.
+- **Custom training script names could silently collide:**
+  `scriptFileSlug` strips a name down to `[a-z0-9-]` for its filename,
+  so two different names (e.g. "My Routine!" and "My Routine?") could
+  reduce to the same file and the second save would silently overwrite
+  the first with no warning. `SaveTrainingScript` now checks the
+  already-saved script at that path and rejects the save if its stored
+  name differs — re-saving under the identical name (editing in place)
+  still works unchanged.
+
 ## [0.5.21] — September 21, 2026
 
 ### Added

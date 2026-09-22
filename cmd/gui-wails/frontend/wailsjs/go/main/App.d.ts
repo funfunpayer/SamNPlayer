@@ -111,6 +111,7 @@ export function GetSettings():Promise<main.Settings>;
 
 export function InvertLoadedScript():Promise<void>;
 
+export function ImproveGeneratedScript(arg1:any):Promise<any>;
 export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
@@ -211,6 +212,20 @@ export function TrainQualityModel():Promise<string>;
 
 export function TrainingHistory():Promise<Array<main.TrainingSessionSummary>>;
 
+export function ExportTrainingHistoryCSV():Promise<string>;
+
+export function ListTrainingScripts():Promise<Array<main.TrainingScriptInfo>>;
+
+export function TrainingScriptPreview(arg1:string):Promise<main.TrainingScriptPreviewResult>;
+
+export function SaveTrainingScript(arg1:player.TrainingScript):Promise<main.TrainingScriptInfo>;
+
+export function DeleteTrainingScript(arg1:string):Promise<void>;
+
+export function LoadTrainingScriptForEditing(arg1:string):Promise<player.TrainingScript>;
+
+export function PreviewTrainingScriptDraft(arg1:player.TrainingScript):Promise<main.TrainingScriptPreviewResult>;
+
 export function TriggerExtendedO(arg1:number,arg2:number,arg3:number):Promise<void>;
 
 export function UpdateRoiTrainingSample(arg1:string,arg2:string,arg3:string,arg4:Array<main.RoiTrainingBox>):Promise<void>;
@@ -230,3 +245,6 @@ export function GetScriptBookmarks():Promise<Array<funscript.Bookmark>>;
 export function SaveScriptBookmarks(arg1:Array<funscript.Bookmark>):Promise<void>;
 export function GetScriptChapterMarks():Promise<Array<funscript.ChapterMark>>;
 export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promise<void>;
+export function OptimizeLoadedForNeo2(arg1:boolean):Promise<any>;
+export function BakeNeoAxesOnLoaded():Promise<string>;
+export function SaveLoadedAsSamn():Promise<string>;

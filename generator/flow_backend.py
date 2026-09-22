@@ -428,4 +428,16 @@ def analyze(video_path, max_frames=None, camera_compensation=True,
         # liefern kann.
         "center_disagreement": round(float(np.median(spreads)), 2),
     }
+    wall_total = time.monotonic() - wall_t0
+    ms_per = (wall_total * 1000.0 / idx) if idx else 0.0
+    # Always emit one summary line so slow Flow runs are diagnosable without
+    # FLOW_BACKEND_TIMING=1 (owner: "suddenly long — must be traceable").
+    import sys
+    print(
+        f"FLOW_SUMMARY wall={wall_total:.1f}s frames={idx} "
+        f"ms_per_frame={ms_per:.1f} size={w}x{h} downscale={downscale} "
+        f"farneback_dominates=yes "
+        f"(full-res≈4× slower; prefer --flow-downscale 0.5 on 720p+)",
+        file=sys.stderr, flush=True,
+    )
     return np.asarray(timestamps), positions, (width, height), [], stats

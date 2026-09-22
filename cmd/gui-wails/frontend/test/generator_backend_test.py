@@ -1,6 +1,6 @@
-"""GUI: CSRT (mark) + region_fusion_auto (no-mark 4-zone).
+"""GUI: Everyday CSRT (auto tip) + region_fusion_auto (4-zone advanced).
 
-Generate without ROI when 4-zone is selected. flow/grid_lk stay CLI-only.
+After choose video, auto-find enables Generate on CSRT. 4-zone is opt-in.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_test.py
 """
@@ -56,35 +56,38 @@ def main():
               and "region_fusion" not in options,
               str(options))
 
+        check("Generate disabled without video",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
+
         page.click("#gen-choose")
         page.wait_for_function(
-            "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
+            "document.querySelector('#gen-autoroi').disabled === false && "
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
+            timeout=5000)
 
-        check("Generate stays disabled without ROI on CSRT",
-              page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
+        check("Everyday auto-find enables Generate on CSRT",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
+        check("Backend stays CSRT after auto-find",
+              page.locator("#gen-backend").input_value() == "csrt")
 
         page.click("#gen-nomark")
         page.wait_for_function(
-            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
-        check("4-zone no-mark enables Generate without ROI", True)
+            "document.querySelector('#gen-backend').value === 'region_fusion_auto'",
+            timeout=5000)
+        check("4-zone no-mark keeps Generate enabled",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
         check("Backend is region_fusion_auto",
               page.locator("#gen-backend").input_value() == "region_fusion_auto")
 
-        # Toggle off → back to CSRT, Generate disabled again without ROI.
+        # Toggle off → back to CSRT; tip ROI still present → Generate stays on.
         page.click("#gen-nomark")
         page.wait_for_function(
-            "document.querySelector('#gen-generate').disabled === true", timeout=5000)
-        check("Toggle off returns to CSRT needing ROI",
+            "document.querySelector('#gen-backend').value === 'csrt'",
+            timeout=5000)
+        check("Toggle off returns to CSRT",
               page.locator("#gen-backend").input_value() == "csrt")
-
-        box = page.locator("#roi-canvas").bounding_box()
-        page.mouse.move(box["x"] + 40, box["y"] + 40)
-        page.mouse.down()
-        page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
-        page.mouse.up()
-        page.wait_for_function(
-            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
-        check("CSRT + one ROI enables Generate", True)
+        check("CSRT with tip ROI keeps Generate enabled",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
 
         browser.close()
     shutdown()

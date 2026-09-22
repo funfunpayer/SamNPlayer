@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
@@ -134,6 +135,15 @@ type Options struct {
 	// FlowDownscale shrinks frames for the optical-flow backend (e.g. 0.5).
 	// 0 or 1 = full resolution. Ignored by CSRT/native.
 	FlowDownscale float64
+	// SkipStrokePreview disables the Stage-A sparse extrema pre-pass
+	// (docs/NEXT.md § Stroke preview). Default false = run on Generate.
+	SkipStrokePreview bool
+	// StrokePreviewHint is filled by GenerateWithContext after the pre-pass
+	// (nil if skipped/failed). Stamped into funscript metadata.
+	StrokePreviewHint map[string]any
+	// MaxOutputMs truncates written actions (license trial / hard clip).
+	// 0 = no cap. Applied in Go finishNativeGenerate after posttrack.
+	MaxOutputMs int64
 }
 
 func pythonCandidates() []string {
@@ -849,6 +859,10 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 		ctx = context.Background()
 	}
 	logging.Info("generator: starting generation", "video", videoPath, "roi", fmt.Sprintf("%+v", roi), "output", outputPath)
+	phaseT0 := time.Now()
+
+	opts = applyStrokePreview(ctx, videoPath, opts, onProgress)
+	logging.Info("generator: phase", "name", "stroke_preview", "ms", time.Since(phaseT0).Milliseconds())
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
 		if NativeTrackingAvailable() {

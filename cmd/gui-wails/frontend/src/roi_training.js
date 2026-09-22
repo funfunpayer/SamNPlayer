@@ -6,6 +6,7 @@ import {
   InstallRoiTrainingDeps, ListRoiTrainingDevices,
 } from '../wailsjs/go/main/App';
 import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor } from './bodyparts.js';
+import { mountBodyFigure } from './body_figure.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { wireDataHelp } from './help.js';
@@ -66,6 +67,7 @@ export function initRoiTraining(root) {
     </div>
     <div id="rt-mark-fields"></div>
     <datalist id="rt-class-list"></datalist>
+    <div id="rt-body-figure" class="body-figure-host" aria-label="Human body map for class picking"></div>
     <div id="rt-class-chips" class="rt-chips" aria-label="Known classes"></div>
     <div class="field-row"><label data-help="Write every N-th frame as a sample. Smaller = denser; larger = less redundancy.">Sampling (every N-th frame)</label>
       <input type="number" id="rt-sample-every" value="12" min="1" max="120" style="width:5em;" />
@@ -158,6 +160,31 @@ export function initRoiTraining(root) {
   let datasetDir = '';
   let seekSec = 0;
 
+  function applyClassToActiveMark(classId) {
+    const n = normalizeClass(classId);
+    if (!n) return;
+    // Prefer the first drawn box that still has no class — body-map clicks
+    // usually happen right after marking, when activeMark already advanced.
+    let idx = activeMark;
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (marks[i] && !(el(`#rt-class${i + 1}`)?.value || '').trim()) {
+        idx = i;
+        break;
+      }
+    }
+    const input = el(`#rt-class${idx + 1}`);
+    if (input) {
+      input.value = n;
+      updateBootstrapEnabled();
+    }
+    bodyFigure?.setActive(n);
+  }
+
+  const bodyFigure = mountBodyFigure(el('#rt-body-figure'), {
+    onSelect: applyClassToActiveMark,
+    getActive: () => el(`#rt-class${activeMark + 1}`)?.value || '',
+  });
+
   const DISPLAY_W = 560;
 
   function renderMarkFields() {
@@ -195,6 +222,7 @@ export function initRoiTraining(root) {
       wrap.appendChild(row);
     }
     el('#rt-active-mark').textContent = String(activeMark + 1);
+    bodyFigure?.setActive(el(`#rt-class${activeMark + 1}`)?.value || '');
     updateBootstrapEnabled();
   }
 
@@ -701,13 +729,7 @@ export function initRoiTraining(root) {
       btn.className = 'rt-chip';
       btn.textContent = labelFor(name) || name;
       btn.title = name;
-      btn.addEventListener('click', () => {
-        const input = el(`#rt-class${activeMark + 1}`);
-        if (input) {
-          input.value = normalizeClass(name) || name;
-          updateBootstrapEnabled();
-        }
-      });
+      btn.addEventListener('click', () => applyClassToActiveMark(name));
       wrap.appendChild(btn);
     });
   }

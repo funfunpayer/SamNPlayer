@@ -1,4 +1,4 @@
-"""CSRT still needs a marked region; 4-zone no-mark is a separate opt-in.
+"""Everyday: choose video → auto tip ROI → CSRT Generate ready.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/generator_backend_auto_test.py
 """
@@ -55,19 +55,19 @@ def main():
 
         page.click("#gen-choose")
         page.wait_for_function(
-            "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
+            "document.querySelector('#gen-autoroi').disabled === false && "
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
+            timeout=5000)
 
-        check("CSRT without ROI stays disabled",
-              page.eval_on_selector("#gen-generate", "e => e.disabled") is True)
-
-        box = page.locator("#roi-canvas").bounding_box()
-        page.mouse.move(box["x"] + 40, box["y"] + 40)
-        page.mouse.down()
-        page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
-        page.mouse.up()
-        page.wait_for_function(
-            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
-        check("CSRT + ROI enables Generate", True)
+        check("Everyday auto-find sets tip ROI",
+              "No region" not in page.locator("#gen-roi-label").inner_text(),
+              page.locator("#gen-roi-label").inner_text())
+        check("CSRT + auto tip enables Generate",
+              page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
+        check("Profile is Stroke (standard)",
+              page.locator("#gen-profile").input_value() == "standard")
+        check("AI region off by default",
+              page.locator("#gen-ai-roi").is_checked() is False)
 
         browser.close()
 
