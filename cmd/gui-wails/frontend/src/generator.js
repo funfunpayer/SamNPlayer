@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript } from '../wailsjs/go/main/App';
 import { CANONICAL } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
@@ -170,12 +170,12 @@ export function initGenerator(root, playback) {
             data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
             data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
-            data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-            data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
             data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
+          <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
+          <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
+          <!-- AI second opinion removed from Everyday Advanced: forces Python, does not change the curve. -->
+          <input type="checkbox" id="gen-ai-quality" style="display:none" aria-hidden="true" />
 
           <div class="opt-group">Keyframes</div>
           <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
@@ -216,7 +216,38 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-result" data-step="5" hidden>
-      <h3 class="gen-step-title">5 · Review</h3>
+      <h3 class="gen-step-title">5 · Review &amp; improve</h3>
+      <div id="gen-improve" style="display:none; margin-top:4px; padding:10px;
+           border:1px solid var(--border); border-radius:4px;">
+        <div style="margin-bottom:6px;">
+          FunGen-like polish on the CSRT result — trim ends, fill gaps, optional audio check.
+          Only options that change the script (or report tempo) are here.
+        </div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
+          <label style="width:auto;" data-help="Cut black intro / late credits. 0 = keep from start.">Start (s)</label>
+          <input type="number" id="gen-improve-start" value="0" min="0" step="0.5" style="width:5em;" />
+          <label style="width:auto;" data-help="Cut after this time. 0 = keep to end.">End (s)</label>
+          <input type="number" id="gen-improve-end" value="0" min="0" step="0.5" style="width:5em;" />
+        </div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Inserts linear points across long holes (tracker loss / sparse keyframes). Does not invent motion from audio.">
+            <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
+            <input type="checkbox" id="gen-improve-audio-fill" checked /> Align fill to audio tempo
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Compares script Hz to audio Hz and stamps warnings. Toggle off to skip. Needs ffmpeg.">
+            <input type="checkbox" id="gen-improve-audio" checked /> Audio check
+          </label>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
+          <span class="hint" id="gen-improve-status" style="margin:0 0 0 8px;"></span>
+        </div>
+      </div>
       <div id="gen-feedback" style="display:none; margin-top:4px; padding:10px;
            border:1px solid var(--border); border-radius:4px;">
         <div style="margin-bottom:6px;">Was the result usable? Your rating helps
@@ -307,18 +338,29 @@ export function initGenerator(root, playback) {
   window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
   // Audio-Tempo-Prüfung braucht nur ffmpeg auf dem PATH (Go-native post-hoc
-  // oder Python bei PreferPython). Gleiches Muster wie oben: einmal beim
-  // Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei jedem Versuch
-  // mit "nicht möglich" zu scheitern.
+  // oder Python bei PreferPython). Default-on at generate time; Review step
+  // exposes the user-facing toggle for improve / re-check.
   CheckAudioCheckAvailable().then(available => {
-    const checkbox = el('#gen-audio-check');
-    checkbox.disabled = !available;
-    if (!available) {
-      checkbox.checked = false;
-      checkbox.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
-    } else {
-      // Part of the normal workflow when ffmpeg is present (docs/AUDIO_WORKFLOW.md).
-      checkbox.checked = true;
+    const genCheck = el('#gen-audio-check');
+    const improveCheck = el('#gen-improve-audio');
+    const improveFill = el('#gen-improve-audio-fill');
+    if (genCheck) {
+      genCheck.disabled = !available;
+      if (!available) {
+        genCheck.checked = false;
+        genCheck.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
+      } else {
+        genCheck.checked = true;
+      }
+    }
+    if (improveCheck) {
+      improveCheck.disabled = !available;
+      if (!available) improveCheck.checked = false;
+      else improveCheck.checked = true;
+    }
+    if (improveFill) {
+      improveFill.disabled = !available;
+      if (!available) improveFill.checked = false;
     }
   }).catch(() => {});
 
@@ -522,7 +564,7 @@ export function initGenerator(root, playback) {
         ? 'Step 4: Generate (4-zone advanced). Prefer tip CSRT for best FunGen match.'
         : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
     } else {
-      prompt.textContent = 'Step 5: rate Signal Quality / usability — script is also in Play.';
+      prompt.textContent = 'Step 5: Improve (trim / fill gaps / audio) — then rate usability. Script is also in Play.';
     }
   }
 
@@ -823,6 +865,8 @@ export function initGenerator(root, playback) {
       ) + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
+      el('#gen-improve').style.display = 'none';
+      el('#gen-improve-status').textContent = '';
       el('#gen-quality').style.display = 'none';
       syncWorkflowSteps();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
@@ -1127,13 +1171,51 @@ export function initGenerator(root, playback) {
     });
   });
 
+  el('#gen-improve-apply')?.addEventListener('click', async () => {
+    if (!lastOutputPath) return;
+    const status = el('#gen-improve-status');
+    const btn = el('#gen-improve-apply');
+    btn.disabled = true;
+    status.textContent = 'Improving…';
+    try {
+      const audioOn = !!el('#gen-improve-audio')?.checked;
+      // Keep generate-time hidden flag in sync for any re-run.
+      if (el('#gen-audio-check')) el('#gen-audio-check').checked = audioOn;
+      const result = await ImproveGeneratedScript({
+        path: lastOutputPath,
+        videoPath: videoPath || '',
+        startSec: parseFloat(el('#gen-improve-start')?.value) || 0,
+        endSec: parseFloat(el('#gen-improve-end')?.value) || 0,
+        fillGaps: !!el('#gen-improve-fill')?.checked,
+        maxGapMs: 0,
+        audioCheck: audioOn,
+        useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
+      });
+      status.textContent = result.message || 'Done';
+      if (result.audioWarnings && result.audioWarnings.length) {
+        status.textContent += ' — ' + result.audioWarnings[0];
+      }
+      el('#gen-status').textContent =
+        `Improved: ${result.afterCount} points` +
+        (result.pointsAdded ? ` (+${result.pointsAdded} fill)` : '') +
+        (result.trimmed ? ', trimmed' : '');
+    } catch (err) {
+      status.textContent = 'Improve failed: ' + err;
+      uiError('Improve script: ' + err, el('#gen-status'));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   EventsOn('generate:done', result => {
     hideProgress();
     el('#gen-cancel').disabled = true;
     generating = false;
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
+    el('#gen-improve-status').textContent = '';
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
+    el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
     syncWorkflowSteps();
     if (result.error) {
@@ -1142,6 +1224,7 @@ export function initGenerator(root, playback) {
         return;
       }
       el('#gen-status').textContent = 'Failed: ' + result.error;
+      el('#gen-improve').style.display = 'none';
       return;
     }
     el('#gen-status').textContent = result.samPath

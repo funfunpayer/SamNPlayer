@@ -65,6 +65,7 @@ export function GetVibrationCurvePreview(arg1) { return window['go']['main']['Ap
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
 export function GetSettings() { return window['go']['main']['App']['GetSettings'](); }
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
+export function ImproveGeneratedScript(arg1) { return window['go']['main']['App']['ImproveGeneratedScript'](arg1); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
 export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }

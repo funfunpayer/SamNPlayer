@@ -32,10 +32,15 @@ Do **not** default 4-zone or Flow.
   2. Auto: find tip region (classic motion, or AI if checkbox on)
        — user may correct the box or pick a motion candidate
   3. Optional: Contact vibration on (default) · optional Zone 2 “where it vibrates”
-  4. Generate → .samn + .funscript → Play
+  4. Generate → .samn + .funscript
+  5. Review & improve: trim start/end · fill gaps · audio check on/off
+       — then Play (editor) for hand polish
 ```
 
-Advanced (collapsed): Soft/Autotune, 4-zone, Flow downscale, peak/RDP, …
+Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
+scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
+Removed from Everyday Advanced: AI second opinion (no curve effect), audio
+check row (moved to Review). Flow downscale stays hidden (Flow is CLI-only).
 
 AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 (`AI_ADAPTER.md`).
@@ -50,8 +55,10 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 | Profile | Stroke (`standard`) |
 | Contact vib | On by default |
 | Stroke preview | Stage A pre-pass (timing/flags; audio if weak) |
-| Audio check | On when ffmpeg present; forced if preview weak |
-| Flow downscale | 0.5 if Flow ever selected |
+| Audio check | On when ffmpeg present (generate + Review toggle) |
+| Fill gaps | Review step — linear bridge; optional audio-tempo spacing |
+| Trim start/end | Review step (start also via seek before Generate) |
+| Flow downscale | Hidden unless Flow (CLI) |
 | Tf/Tj distance | CLI / Advanced only — not everyday GUI |
 
 ---

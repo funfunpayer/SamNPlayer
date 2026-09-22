@@ -15,7 +15,8 @@ not a motion replacement. Native Go path runs the same check post-hoc
 | `generator/audiocheck.go` | Go port: compare script stroke tempo (Hz) to audio-energy envelope tempo |
 | `generator/audio_check.py` | Python equivalent (PreferPython / non-native backends) |
 | CLI `--audio-check` | Opt-in |
-| GUI Advanced → “Check script tempo against audio” | Opt-in (default **on** when ffmpeg is on PATH) |
+| GUI Advanced → “Check script tempo against audio” | *(removed from Advanced)* |
+| GUI Review → Improve → Audio check | Opt-in toggle (default **on** when ffmpeg is on PATH); also drives fill-gap spacing |
 | Result | Warnings in report / funscript `metadata.audio_check` — never changes Quality Doctor pass/score |
 
 ## What it is *not*

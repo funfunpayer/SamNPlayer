@@ -1,0 +1,79 @@
+package funscript
+
+import "testing"
+
+func TestTrimActionsMiddle(t *testing.T) {
+	in := []Action{{At: 0, Pos: 0}, {At: 1000, Pos: 100}, {At: 2000, Pos: 0}, {At: 3000, Pos: 50}}
+	out, err := TrimActions(in, 500, 2500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out[0].At != 500 || out[len(out)-1].At != 2500 {
+		t.Fatalf("ends: %+v", out)
+	}
+	if out[0].Pos != 50 { // halfway 0→100
+		t.Fatalf("start pos want 50 got %d", out[0].Pos)
+	}
+}
+
+func TestFillGapsInsertsPoints(t *testing.T) {
+	in := []Action{{At: 0, Pos: 0}, {At: 2000, Pos: 100}}
+	out, gaps, added := FillGaps(in, 500, 500, 0)
+	if gaps != 1 || added < 1 {
+		t.Fatalf("gaps=%d added=%d out=%+v", gaps, added, out)
+	}
+	if out[0].At != 0 || out[len(out)-1].At != 2000 {
+		t.Fatalf("endpoints changed: %+v", out)
+	}
+	// Midpoint at 1000 should be ~50
+	found := false
+	for _, a := range out {
+		if a.At == 1000 {
+			found = true
+			if a.Pos != 50 {
+				t.Fatalf("mid pos=%d", a.Pos)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("missing midpoint: %+v", out)
+	}
+}
+
+func TestFillGapsAudioHzStep(t *testing.T) {
+	in := []Action{{At: 0, Pos: 0}, {At: 2000, Pos: 100}}
+	// 1 Hz → half-period 500ms
+	_, _, addedDefault := FillGaps(in, 500, 0, 0)
+	_, _, addedAudio := FillGaps(in, 500, 0, 1.0)
+	if addedAudio <= 0 || addedDefault <= 0 {
+		t.Fatalf("default=%d audio=%d", addedDefault, addedAudio)
+	}
+}
+
+func TestImproveScriptTrimAndFill(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 10},
+		{At: 5000, Pos: 90}, // big gap
+		{At: 5100, Pos: 100},
+	}
+	res, err := ImproveScript(in, ImproveOpts{
+		StartMs:  50,
+		EndMs:    5050,
+		FillGaps: true,
+		MaxGapMs: 800,
+		StepMs:   200,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Trimmed {
+		t.Fatal("expected trim")
+	}
+	if res.GapsFilled < 1 || res.PointsAdded < 1 {
+		t.Fatalf("fill: %+v", res)
+	}
+	if res.AfterCount <= res.BeforeCount {
+		t.Fatalf("counts before=%d after=%d", res.BeforeCount, res.AfterCount)
+	}
+}

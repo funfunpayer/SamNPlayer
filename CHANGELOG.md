@@ -18,6 +18,9 @@ measurement history behind each entry; this file is the short version for
   ROI → CSRT Stroke + Contact (measured first choice). Generate without a
   painted box triggers the same find. 4-zone demoted to advanced. See
   `docs/EVERYDAY_GENERATE.md`.
+- **Review → Improve:** trim start/end, fill gaps (optional audio-tempo
+  spacing), audio check on/off — FunGen-like polish after CSRT. Dead Advanced
+  knobs removed (AI second opinion, audio row moved to Review).
 
 ### Fixed / observability
 

@@ -111,6 +111,7 @@ export function GetSettings():Promise<main.Settings>;
 
 export function InvertLoadedScript():Promise<void>;
 
+export function ImproveGeneratedScript(arg1:any):Promise<any>;
 export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
