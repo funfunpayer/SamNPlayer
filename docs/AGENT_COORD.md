@@ -70,7 +70,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **9** | **v0.5.20** | Cursor A | **DONE** #171 + tag `v0.5.20` — owner Flow / 4-zone smoke |
 | **10** | Prep **v0.5.21** | Cursor A | **DONE** #172 |
 | **11** | **v0.5.21** bump + tag | Cursor A | **DONE** #175 + tag `v0.5.21` |
-| **12** | **v0.5.22** bump + tag | Cursor A | **IN PROGRESS** `cursor/release-0-5-22-d7cb` |
+| **12** | **v0.5.22** bump + tag | Cursor A | **DONE** #181 + tag `v0.5.22` |
 
 ---
 
@@ -91,13 +91,30 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-22-d7cb` | bump **v0.5.22** + tag | **IN PROGRESS** |
+| A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #176 merged | bugfix P0/P1 | **DONE** (`495b0dc`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
 | E | ChatGPT | `codex/training-review-fixes` | verify training fixes on main — do not re-implement | **paused / verify later** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** — close after #176 merges |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **CLOSED** (superseded by #176) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
+
+---
+
+## Parked (no lane) — multi-object track / Python vs Go · 22 Sep
+
+**Owner ask (hold only):** YOLO26 + BoT-SORT/ByteTrack can track **several**
+boxes with stable IDs (Tip + Partner + regions). Better than frame-diff;
+does **not** replace Everyday tip-CSRT Stroke.
+
+**Runtime stance (not building yet):**
+- Prefer keeping Stroke/Generate spine in **Go CSRT**.
+- Multi-object ID tracking is Ultralytics-native; a full Go reimplementation
+  is unlikely to pay off soon.
+- If we adopt it: **Python (or ONNX export later) as opt-in proposal/track
+  layer** — same family as AI Train / `ai_roi` — not a wholesale return to
+  Python Generate.
+- Gate: measure Tip+Partner proposal quality before any default change.
 
 ---
 
@@ -516,6 +533,8 @@ ring revision before committing.
 | 21 Sep | Owner: Flow smoke on **v0.5.20** (after #169) | Owner |
 | 21 Sep | Prep v0.5.21: Stroke/Soft/Autotune labels; Play Contact on stroke scripts; SuggestPipeline→standard; Flow WALL/STALL soft warn | Cursor A |
 | 22 Sep | New theme: Training mode (multi-phase scripts + editor + live ring meter), claimed lane G, opened as draft #178 pending review per owner request | Claude |
+| 22 Sep | **v0.5.22** tagged (#181); #176/#177/#179 shipped; #170 closed superseded | Cursor A |
+| 22 Sep | Parked: multi-object YOLO+ByteTrack/BoT-SORT = Tip+Partner proposals; if no solid Go path → long-term Python track layer OK (not Stroke default) | Owner + Cursor |
 
 ---
 
