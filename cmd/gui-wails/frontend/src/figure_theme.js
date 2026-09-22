@@ -25,7 +25,7 @@ export const FIGURE_TEAL_DEEP = '#2a6b66';
 
 /**
  * Heat ramp for intensity 0..1 — same stops as Device vib/suc fills:
- * cool teal → Claude teal → amber → coral.
+ * cool teal → Claude teal → amber → coral. Returns #rrggbb.
  */
 export function figureHeatColor(level01) {
   const t = Math.max(0, Math.min(1, level01));
@@ -43,7 +43,7 @@ function lerpHex(a, b, t) {
   const r = Math.round(pa.r + (pb.r - pa.r) * t);
   const g = Math.round(pa.g + (pb.g - pa.g) * t);
   const bl = Math.round(pa.b + (pb.b - pa.b) * t);
-  return `rgb(${r},${g},${bl})`;
+  return `#${[r, g, bl].map(n => n.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function hexToRgb(hex) {

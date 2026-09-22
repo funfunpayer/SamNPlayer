@@ -1728,20 +1728,27 @@ button.primary:active:not(:disabled) {
 .tr-pixel-main {
   flex: 0 0 auto;
   line-height: 0;
-  padding: 8px 10px 6px;
-  background: linear-gradient(180deg, #161b26 0%, #0e121a 100%);
+  padding: 10px 12px 8px;
+  min-width: 11rem;
+  background:
+    radial-gradient(ellipse at 50% 88%, rgba(61, 204, 192, 0.1), transparent 55%),
+    linear-gradient(180deg, #161b26 0%, #0e121a 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 .tr-pixel-main .pixel-figure-svg {
   display: block;
-  image-rendering: pixelated;
+  max-width: 100%;
+  height: auto;
+}
+.tr-pixel-main .voxel-pair-svg {
+  image-rendering: auto;
 }
 .tr-pixel-labels {
   display: flex;
   justify-content: space-between;
-  max-width: 14rem;
-  margin: 4px 0 0 10px;
+  max-width: 16rem;
+  margin: 4px 0 0 12px;
   font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 0.03em;
