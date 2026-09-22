@@ -108,15 +108,23 @@ Device-shell / body-map language.
 | Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
 | Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
 | AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
-| Training | `pixel_figure.js` | **You + Partner** isometric **3D voxels**; gap + heat from cycle peak. Not arousal buttons; not AI Train. |
+| Training | `pixel_figure.js` | **Pixelated clip stroke** — curve→frame (penis between breasts). Soft pair assets kept for mode toggle. |
 
-**Lane split (owner confirmed):**
-- **Claude (#178):** 3D intensity **ring** (vib/suction meter) — your lane, Cursor will not touch.
-- **Cursor (#177):** 3D voxel **pair** motion viz — complementary, same `figure_theme`.
+**Lane split (owner confirmed 22 Sep):**
+- **Claude (#178):** multi-phase scripts + live intensity **ring** — your lane.
+- **Cursor (#177):** pixelated **clip** motion viz — complementary, same `figure_theme`.
 
-When merging: both edit `training.js` — keep ring + voxel stage side by side
-(ring = live axis readouts, pair = curve→motion). Prefer your ring markup;
-keep `#tr-pixel-stage` / `mountTrainingPixelStage` from #177.
+**Owner next step (hold until Claude ready):**
+1. Wait until #178 is out of draft / Claude signals done.
+2. Cursor integrates **both** animations with a Training **mode picker**
+   (Clip stroke ↔ Ring meter — user chooses).
+3. Then Cursor: Training-system bugfix pass + full tab test once.
+
+Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).
+Clip-only stage is the default until the mode picker lands.
+
+When merging: both edit `training.js` — keep ring + `#tr-pixel-stage` /
+`mountTrainingPixelStage` from #177. Prefer Claude ring markup for axes.
 
 PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178)
 
