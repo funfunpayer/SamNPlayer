@@ -101,17 +101,19 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | ChatGPT | #192 merged | **PoseObserver concept** (`docs/POSE_OBSERVER.md`) | **DONE** — Stage A after E2 (write-up now done) |
-| QC | Cursor + Claude + ChatGPT | main @ `6949930` | **Tri-agent pre-release code check** — see § below | **IN PROGRESS** — QC-A PASS; QC-C claimed (#195 CHANGELOG fix); QC-B pending Claude |
+| QC | Cursor + Claude + ChatGPT | main @ `6949930` | **Tri-agent pre-release code check** — see § below | **IN PROGRESS** — QC-A PASS; QC-C FAIL→**#195**; QC-B FAIL→Claude re-add `#gen-capture-trajectory` (PR pending) |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — parallel OK during QC |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (22 Sep late):**
-- **Merged:** #186 · #187 · #189 · #190 · #192 · #185 closed.
-- **Open docs:** **#194** then **#193**.
-- **Next (all three agents):** § **Tri-agent pre-release QC** below — after those merge. No release tag until QC + Owner smoke.
+- **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · #185 closed.
+- **QC IN PROGRESS:** QC-A **PASS**; QC-C **FAIL→#195** CHANGELOG markers; QC-B **FAIL** — Generate trajectory checkbox dropped in #186 rebase (Claude re-adding).
+- **Open:** #195 (CHANGELOG) · Claude QC-B fix (pending) · #193 (board).
+- **Owner merge when ready:** **#195** → Claude fix → **#193**.
+- **Owner later:** smoke before any 0.5.23 tag (not part of agent QC).
 
-### Tri-agent pre-release QC (owner 22 Sep — plan only until gate)
+### Tri-agent pre-release QC (owner 22 Sep — running)
 
 **Goal:** After the current docs wave lands, Cursor + Claude + ChatGPT each
 **read/check** the new code on `main`, file findings, and **fix only in their
@@ -166,9 +168,9 @@ QC:
 #### Owner — merge to unlock QC
 
 1. ~~Merge #194~~ **DONE**
-2. ~~QC go~~ **DONE** (agents started; #193 board optional)
-3. Merge **#195** (CHANGELOG conflict markers — ChatGPT QC-C) then **#193** (board)
-4. Claude: still claim **QC-B** if not started
+2. ~~QC go~~ **DONE** (all three lanes claimed + findings posted)
+3. Merge **#195** (CHANGELOG) → Claude QC-B trajectory GUI re-add → **#193** (board)
+4. ~~Claude QC-B claim~~ **DONE** (FAIL posted; fix PR pending)
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
