@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve } from '../wailsjs/go/main/App';
 import { CANONICAL } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
@@ -56,9 +56,24 @@ export function initGenerator(root, playback) {
         <button id="gen-seek-btn" type="button" disabled>Frame</button>
         <button id="gen-seek-plus" type="button" disabled>+1s</button>
         <button id="gen-seek-plus5" type="button" disabled>+5s</button>
+        <label class="checkbox-row" style="margin:0 0 0 8px;"
+          data-help="FunGen-like 0–100 stroke gauge over the preview. Moves with Time/Frame after Generate. Turn off anytime.">
+          <input type="checkbox" id="gen-pos-overlay-toggle" checked />
+          0–100 on video
+        </label>
       </div>
       <div id="roi-canvas-wrap">
         <canvas id="roi-canvas"></canvas>
+        <div id="gen-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
+          <div class="pos-gauge-scale" aria-hidden="true">
+            <span>100</span><span>50</span><span>0</span>
+          </div>
+          <div class="pos-gauge-track">
+            <div class="pos-gauge-fill" id="gen-pos-fill"></div>
+            <div class="pos-gauge-knob" id="gen-pos-knob"></div>
+          </div>
+          <div class="pos-gauge-value" id="gen-pos-value">—</div>
+        </div>
       </div>
       <div class="path-label" id="gen-roi-label">No region marked</div>
       <div class="row" style="align-items:center; margin-top:6px;">
@@ -290,7 +305,81 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
+  // FunGen-like 0–100 gauge over the preview (after Generate).
+  let genCurvePoints = null; // [{atMs, pos}, ...]
+  const POS_OVERLAY_PREF = 'samn.genPosOverlay';
 
+  function posOverlayWanted() {
+    const cb = el('#gen-pos-overlay-toggle');
+    if (!cb) return true;
+    try {
+      const saved = localStorage.getItem(POS_OVERLAY_PREF);
+      if (saved === '0') { cb.checked = false; return false; }
+      if (saved === '1') { cb.checked = true; return true; }
+    } catch (_) { /* ignore */ }
+    return !!cb.checked;
+  }
+
+  function setPosOverlayVisible(on) {
+    const box = el('#gen-pos-overlay');
+    if (!box) return;
+    const show = on && posOverlayWanted() && genCurvePoints && genCurvePoints.length >= 2;
+    box.hidden = !show;
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function interpGenPos(tMs) {
+    const pts = genCurvePoints;
+    if (!pts || pts.length < 1) return null;
+    if (tMs <= pts[0].atMs) return pts[0].pos;
+    const last = pts[pts.length - 1];
+    if (tMs >= last.atMs) return last.pos;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (tMs >= a.atMs && tMs <= b.atMs) {
+        if (b.atMs === a.atMs) return b.pos;
+        const f = (tMs - a.atMs) / (b.atMs - a.atMs);
+        return a.pos + f * (b.pos - a.pos);
+      }
+    }
+    return last.pos;
+  }
+
+  function updatePosOverlay() {
+    const knob = el('#gen-pos-knob');
+    const fill = el('#gen-pos-fill');
+    const val = el('#gen-pos-value');
+    if (!knob || !fill || !val) return;
+    setPosOverlayVisible(true);
+    if (el('#gen-pos-overlay')?.hidden) return;
+    const pos = interpGenPos(Math.round(seekSec * 1000));
+    if (pos == null || Number.isNaN(pos)) {
+      val.textContent = '—';
+      return;
+    }
+    const p = Math.max(0, Math.min(100, pos));
+    // CSS: bottom = 0, top = 100
+    const pct = p; // height from bottom
+    knob.style.bottom = `calc(${pct}% - 7px)`;
+    fill.style.height = pct + '%';
+    val.textContent = String(Math.round(p));
+  }
+
+  async function loadGenCurveFromPlay() {
+    try {
+      const pts = await GetScriptCurve(800);
+      if (Array.isArray(pts) && pts.length >= 2) {
+        genCurvePoints = pts.map(p => ({
+          atMs: p.atMs ?? p.AtMs ?? 0,
+          pos: p.pos ?? p.Pos ?? 0,
+        }));
+        updatePosOverlay();
+        return;
+      }
+    } catch (_) { /* no script loaded yet */ }
+    genCurvePoints = null;
+    setPosOverlayVisible(false);
+  }
   const DISPLAY_W = 560;
 
   const ROI1_STROKE = '#3dccc0';
@@ -865,6 +954,8 @@ export function initGenerator(root, playback) {
         'Everyday path: finding tip region for CSRT (best vs FunGen). Optional: AI checkbox / Zone 2 for vibe location.'
       ) + batchNote;
       lastOutputPath = null;
+      genCurvePoints = null;
+      setPosOverlayVisible(false);
       el('#gen-feedback').style.display = 'none';
       el('#gen-improve').style.display = 'none';
       el('#gen-improve-status').textContent = '';
@@ -903,7 +994,10 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
     try {
       await showFrame(videoPath, seekSec);
-      el('#gen-status').textContent = `Frame at ${seekSec}s — mark region.`;
+      el('#gen-status').textContent = genCurvePoints
+        ? `Frame at ${seekSec}s — 0–100 gauge follows the curve.`
+        : `Frame at ${seekSec}s — mark region.`;
+      updatePosOverlay();
     } catch (err) {
       uiError('Seek failed: ' + err, el('#gen-status'));
     }
@@ -1205,7 +1299,8 @@ export function initGenerator(root, playback) {
         ' — open Play to edit dots/curve.';
       const reloadPath = result.path || lastOutputPath;
       if (reloadPath && playback && typeof playback.loadScriptPath === 'function') {
-        playback.loadScriptPath(reloadPath, { review: true });
+        await playback.loadScriptPath(reloadPath, { review: true });
+        await loadGenCurveFromPlay();
       }
     } catch (err) {
       status.textContent = 'Improve failed: ' + err;
@@ -1331,10 +1426,25 @@ export function initGenerator(root, playback) {
       }
       lastOutputPath = path;
       el('#gen-status').textContent += ' — loaded in Playback (dots + Edit curve).';
-      playback.loadScriptPath(path, { review: true });
+      try {
+        await playback.loadScriptPath(path, { review: true });
+        await loadGenCurveFromPlay();
+      } catch (err) {
+        console.warn('post-generate Play/overlay:', err);
+        playback.loadScriptPath(path, { review: true });
+      }
     })();
   });
 
+  el('#gen-pos-overlay-toggle')?.addEventListener('change', () => {
+    const on = !!el('#gen-pos-overlay-toggle').checked;
+    try { localStorage.setItem(POS_OVERLAY_PREF, on ? '1' : '0'); } catch (_) { /* ignore */ }
+    setPosOverlayVisible(on);
+    if (on) updatePosOverlay();
+  });
+  // Restore toggle preference once DOM is ready.
+  posOverlayWanted();
+  setPosOverlayVisible(false);
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);

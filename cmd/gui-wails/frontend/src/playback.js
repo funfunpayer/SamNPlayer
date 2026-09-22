@@ -44,6 +44,16 @@ export function initPlayback(root) {
       <div class="pb-media">
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
+          <div id="pb-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
+            <div class="pos-gauge-scale" aria-hidden="true">
+              <span>100</span><span>50</span><span>0</span>
+            </div>
+            <div class="pos-gauge-track">
+              <div class="pos-gauge-fill" id="pb-pos-fill"></div>
+              <div class="pos-gauge-knob" id="pb-pos-knob"></div>
+            </div>
+            <div class="pos-gauge-value" id="pb-pos-value">—</div>
+          </div>
           <div class="pb-video-chrome" id="pb-video-chrome">
             <button type="button" id="pb-video-fs" title="Fullscreen (double-click)">Fullscreen</button>
             <button type="button" id="pb-video-change" title="Choose another video">Video…</button>
@@ -109,6 +119,11 @@ export function initPlayback(root) {
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
+        <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
+          data-help="FunGen-like 0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
+          <input type="checkbox" id="pb-pos-overlay-toggle" checked />
+          0–100 on video
+        </label>
         <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <label style="width:auto;" data-help="General = community stroke. Vibration/Suction = Neo 2 channels in .samn (or baked axes).">Curve</label>
           <select id="pb-axis" style="width:auto;">
@@ -313,6 +328,43 @@ export function initPlayback(root) {
   const EDIT_HIT_RADIUS_PX = 12;
   const DOT_MAX_DRAW = 600; // dense scripts: subsample dots for draw cost
   let currentPosMs = 0;
+  const POS_OVERLAY_PREF = 'samn.pbPosOverlay';
+
+  function posOverlayWanted() {
+    const cb = el('#pb-pos-overlay-toggle');
+    if (!cb) return true;
+    try {
+      const saved = localStorage.getItem(POS_OVERLAY_PREF);
+      if (saved === '0') { cb.checked = false; return false; }
+      if (saved === '1') { cb.checked = true; return true; }
+    } catch (_) { /* ignore */ }
+    return !!cb.checked;
+  }
+
+  function updatePbPosOverlay(livePos) {
+    const box = el('#pb-pos-overlay');
+    const knob = el('#pb-pos-knob');
+    const fill = el('#pb-pos-fill');
+    const val = el('#pb-pos-value');
+    const row = el('#pb-pos-overlay-row');
+    if (!box || !knob || !fill || !val) return;
+    const hasCurve = curvePoints && curvePoints.length >= 2;
+    if (row) row.style.display = hasCurve ? 'flex' : 'none';
+    const show = hasCurve && posOverlayWanted();
+    box.hidden = !show;
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (!show) return;
+    let pos = livePos;
+    if (pos == null) pos = interpPosAt(curvePoints, currentPosMs);
+    if (pos == null || Number.isNaN(pos)) {
+      val.textContent = '—';
+      return;
+    }
+    const p = Math.max(0, Math.min(100, pos));
+    knob.style.bottom = `calc(${p}% - 7px)`;
+    fill.style.height = p + '%';
+    val.textContent = String(Math.round(p));
+  }
 
   function setScriptLoaded(loaded) {
     el('#pb-empty').hidden = !!loaded;
@@ -705,16 +757,18 @@ export function initPlayback(root) {
     }
 
     // Positionszeiger + live height marker (“schwingen” playhead).
-    if (currentPosMs > 0 && totalMs > 0) {
-      const x = Math.round(xOf(currentPosMs)) + 0.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
+    if (totalMs > 0) {
+      const x = Math.round(xOf(Math.max(0, currentPosMs))) + 0.5;
+      if (currentPosMs > 0) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
       const livePos = interpPosAt(points, currentPosMs);
-      if (livePos != null) {
+      if (livePos != null && currentPosMs > 0) {
         ctx.beginPath();
         ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
         ctx.fillStyle = '#5fd0c8';
@@ -723,6 +777,9 @@ export function initPlayback(root) {
         ctx.fill();
         ctx.stroke();
       }
+      updatePbPosOverlay(livePos);
+    } else {
+      updatePbPosOverlay(null);
     }
   }
 
@@ -951,6 +1008,7 @@ export function initPlayback(root) {
       speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
+      updatePbPosOverlay(null);
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
@@ -959,6 +1017,7 @@ export function initPlayback(root) {
       speedHighlights = [];
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
+      updatePbPosOverlay(null);
       return;
     }
     // FunGen-like dots: load full keyframes even when not editing.
@@ -1122,6 +1181,12 @@ export function initPlayback(root) {
   }
 
   el('#pb-curve-edit').addEventListener('change', e => setEditMode(e.target.checked));
+  el('#pb-pos-overlay-toggle')?.addEventListener('change', () => {
+    const on = !!el('#pb-pos-overlay-toggle').checked;
+    try { localStorage.setItem(POS_OVERLAY_PREF, on ? '1' : '0'); } catch (_) { /* ignore */ }
+    updatePbPosOverlay(null);
+  });
+  posOverlayWanted();
 
   async function drawHeatmap() {
     try {

@@ -36,6 +36,8 @@ measurement history behind each entry; this file is the short version for
 - **Post-generate fill-gaps:** auto pass right after Generate (status always
   shown); auto mode also runs a median-aware second pass for medium holes
   (never densifies slow natural stroke spacing).
+- **0–100 on video:** FunGen-like stroke gauge over Generator preview and
+  Play video; follows seek/playhead; toggle off anytime (remembered).
 
 ### Fixed / observability
 
