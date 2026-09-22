@@ -115,14 +115,12 @@ Device-shell / body-map language.
 - **Claude (#178):** multi-phase scripts + live intensity **ring** — your lane.
 - **Cursor (#177):** pixelated **clip** motion viz — complementary, same `figure_theme`.
 
-**Owner next step (hold until Claude ready):**
-1. Wait until #178 is out of draft / Claude signals done.
-2. Cursor integrates **both** animations with a Training **mode picker**
-   (Clip stroke ↔ Ring meter — user chooses).
-3. Then Cursor: Training-system bugfix pass + full tab test once.
+**Owner integration (22 Sep — Claude code merged into #177):**
+1. ~~Wait for Claude~~ — #178 tip `290c8bd` merged into `cursor/stroke-preview-extrema-d7cb`.
+2. **Both stay:** pixelated **clip stroke** (`#tr-pixel-stage`) **and** live intensity **ring** (`.tr-meter`). Ring remains additionally.
+3. Training frontend + Go tests green after merge (display/meter/script/editor/findings/history).
 
 Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).
-Clip-only stage is the default until the mode picker lands.
 
 When merging: both edit `training.js` — keep ring + `#tr-pixel-stage` /
 `mountTrainingPixelStage` from #177. Prefer Claude ring markup for axes.
