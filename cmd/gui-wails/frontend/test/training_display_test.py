@@ -70,10 +70,13 @@ def main():
               page.locator("#tr-arousal-buttons button").count() == 10,
               str(page.locator("#tr-arousal-buttons button").count()))
         check("Pixel-Paar-Stage ist da",
-              page.locator("#tr-pixel-stage .pixel-pair-svg").count() == 1)
+              page.locator("#tr-pixel-stage .tr-mosaic-stage").count() == 1)
         check("You/Partner-Labels",
               "You" in page.locator(".tr-pixel-labels").inner_text()
               and "Partner" in page.locator(".tr-pixel-labels").inner_text())
+        check("Mosaic-Torsi geladen",
+              page.locator("#tr-pixel-stage .tr-mosaic-img").count() == 2,
+              str(page.locator("#tr-pixel-stage .tr-mosaic-img").count()))
         check("Zielstufe 7 markiert",
               page.locator("#tr-arousal-buttons button.is-target").count() == 1)
 

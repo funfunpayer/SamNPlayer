@@ -1728,21 +1728,58 @@ button.primary:active:not(:disabled) {
 .tr-pixel-main {
   flex: 0 0 auto;
   line-height: 0;
-  padding: 10px 12px 8px;
-  min-width: 11rem;
+  padding: 8px;
+  min-width: 14rem;
   background:
-    radial-gradient(ellipse at 50% 88%, rgba(61, 204, 192, 0.1), transparent 55%),
-    linear-gradient(180deg, #161b26 0%, #0e121a 100%);
+    radial-gradient(ellipse at 50% 88%, rgba(61, 204, 192, 0.12), transparent 55%),
+    linear-gradient(180deg, #12161f 0%, #0a0c10 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 .tr-pixel-main .pixel-figure-svg {
   display: block;
   max-width: 100%;
   height: auto;
 }
-.tr-pixel-main .voxel-pair-svg {
-  image-rendering: auto;
+.tr-mosaic-stage {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--mosaic-gap, 28px);
+  padding: 6px 8px 4px;
+  transition: gap 0.35s ease;
+}
+.tr-mosaic-slot {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #050608;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.tr-mosaic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  image-rendering: pixelated;
+  display: block;
+  transition: filter 0.35s ease;
+}
+.tr-mosaic-heat {
+  position: absolute;
+  inset: 0;
+  background: var(--mosaic-warm, transparent);
+  opacity: var(--mosaic-overlay, 0);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.tr-mosaic-labels {
+  max-width: 16rem;
+  margin-left: 8px;
 }
 .tr-pixel-labels {
   display: flex;
