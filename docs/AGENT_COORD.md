@@ -91,14 +91,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
-| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
-| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Everyday Generate + Training clip+ring (always-full pulse/breathe) + P1/P2 engine fixes | **DONE — ready to merge** (CI pending Windows) |
-| E | ChatGPT | `codex/training-review-fixes` (no unique commits yet) | Was claiming #178 P1/P2 — **already on #177 tip `c38b365`**; continue later as verify-only, don't re-implement | **paused / verify later** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
+| F | Cursor | #176 | bugfix P0/P1 (SaveContact Sync, #170 cv2, Zone2 copy, arousal) | **rebasing onto main** (after #177/#179) |
+| G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
+| E | ChatGPT | `codex/training-review-fixes` | verify training fixes on main — do not re-implement | **paused / verify later** |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** — close after #176 merges |
+| — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
-| G | Claude / Cloud | [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) (draft) | Training scripts+ring origin | **superseded by #177** — close after #177 merges |
-| — | Claude / Cloud | [#179](https://github.com/funfunpayer/SamNPlayer/pull/179) | Playback HiDPI / seek / editor clamp / video-autostart | **open** (separate lane — Player) |
-| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
 
 ---
 

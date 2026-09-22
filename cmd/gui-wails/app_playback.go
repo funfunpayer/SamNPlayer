@@ -79,7 +79,10 @@ func (a *App) SaveContactSettings(enabled bool, span float64, curve string) erro
 			return err
 		}
 		// Keep community export recipe (contact) aligned.
-		_ = doc.ExportFunscript(samn.CompanionFunscriptPath(path))
+		if err := doc.ExportFunscript(samn.CompanionFunscriptPath(path)); err != nil {
+			logging.Warn("app: companion funscript export failed after contact save",
+				"path", path, "error", err)
+		}
 		return a.reloadLoadedScript()
 	}
 	if err := funscript.SaveContactRecipe(path, enabled, span, curve); err != nil {

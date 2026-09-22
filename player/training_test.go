@@ -316,6 +316,9 @@ func TestArousalReachesRunningSession(t *testing.T) {
 	var results []TrainingCycleResult
 	var mu sync.Mutex
 	done := make(chan error, 1)
+	// Report before the session starts so cycle 0 always sees it. Reporting
+	// after go RunTraining raced takeArousal on CI (arousal landed on cycle 1).
+	control.ReportArousal(10)
 	go func() {
 		done <- RunTrainingWithControl(context.Background(), dev, opts, control,
 			func(r TrainingCycleResult) {
@@ -324,8 +327,6 @@ func TestArousalReachesRunningSession(t *testing.T) {
 				mu.Unlock()
 			})
 	}()
-
-	control.ReportArousal(10)
 
 	select {
 	case err := <-done:

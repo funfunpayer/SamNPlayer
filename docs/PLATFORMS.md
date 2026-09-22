@@ -9,7 +9,7 @@ accidentally couple mobile to the generator stack.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| **Windows** amd64 | Shipped | GUI + CLI; portable zip includes ffmpeg; CSRT via OpenCV on Linux builds, Windows GUI uses simpletrack until OpenCV is linked |
+| **Windows** amd64 | Shipped | GUI + CLI; portable zip includes ffmpeg + MinGW OpenCV DLLs; Go CSRT via `-tags opencv` (v0.5.13+). Without OpenCV tags, Generate falls back to Python CSRT / simpletrack. |
 | **Linux** amd64 | Shipped | GUI (WebKitGTK) + CLI; OpenCV CSRT in release tags; portable tar.gz with ffmpeg |
 | **macOS** (Intel / Apple Silicon) | **Not built yet** | No Mac CI runner / signing in this repo today. Code is Go+Wails — darwin is intended; needs a macOS builder, notarization, and ffmpeg tools for darwin. See below. |
 | **iOS / iPhone** | Later — **player only** | No Generate / AI Train / Bench. Share `player` + `device` + `funscript`/`samn`. |

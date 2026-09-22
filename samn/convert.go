@@ -197,12 +197,12 @@ func (d *Document) ActivePreset() *StrengthPreset {
 	return nil
 }
 
-// ApplyContactRecipe updates Tf/Tj contact-vibration fields on the recipe.
-// When playbackSource is axes, call BakeNeoAxes afterwards so the vibration
-// curve matches the new contact settings.
+// ApplyContactRecipe updates contact-vibration fields on the recipe
+// (stroke feel layer or Tf/Tj distance). When playbackSource is axes, call
+// BakeNeoAxes afterwards so the vibration curve matches the new contact settings.
 func (d *Document) ApplyContactRecipe(enabled bool, span float64, curve string) {
 	if d.Recipe.Sync == "" {
-		d.Recipe.Sync = funscript.SyncSuctionPosition.String()
+		d.Recipe.Sync = funscript.DefaultSyncForProfile(d.Profile)
 	}
 	d.Recipe.ContactVibration = enabled
 	if enabled {

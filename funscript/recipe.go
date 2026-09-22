@@ -48,6 +48,16 @@ func AllowsContactSettings(name string) bool {
 	return IsDistanceProfile(name) || IsStrokeProfile(name)
 }
 
+// DefaultSyncForProfile fills an empty device_recipe.sync from the profile
+// family. Distance (Tf/Tj) needs suction_position; stroke stays independent.
+// Never invent suction_position for Stroke — that drives the wrong actuator.
+func DefaultSyncForProfile(profile string) string {
+	if IsDistanceProfile(profile) {
+		return SyncSuctionPosition.String()
+	}
+	return SyncIndependent.String()
+}
+
 // DeviceRecipe ist das, was in die Funscript-Metadata geschrieben wird,
 // damit die Wiedergabe ohne extra Klick denselben Aktor trifft.
 type DeviceRecipe struct {

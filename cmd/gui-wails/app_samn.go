@@ -7,6 +7,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
@@ -270,7 +271,10 @@ func (a *App) BakeNeoAxesOnLoaded() (string, error) {
 	if err := samn.Save(out, doc); err != nil {
 		return "", err
 	}
-	_ = doc.ExportFunscript(samn.CompanionFunscriptPath(out))
+	if err := doc.ExportFunscript(samn.CompanionFunscriptPath(out)); err != nil {
+		logging.Warn("app: companion funscript export failed after bake",
+			"path", out, "error", err)
+	}
 	script, err := doc.ToFunscript()
 	if err != nil {
 		return "", err

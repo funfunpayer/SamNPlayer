@@ -27,15 +27,22 @@ func SaveContactRecipe(path string, enabled bool, span float64, curve string) er
 		}
 	}
 
+	profile := ""
+	if raw, ok := meta["profile"]; ok && len(raw) > 0 && string(raw) != "null" {
+		_ = json.Unmarshal(raw, &profile)
+	}
+
 	recipe := DeviceRecipe{}
 	if raw, ok := meta["device_recipe"]; ok && len(raw) > 0 && string(raw) != "null" {
 		if err := json.Unmarshal(raw, &recipe); err != nil {
 			return fmt.Errorf("funscript: device_recipe ungültig: %w", err)
 		}
 	}
-	// Sync fehlt oft bei älteren Skripten - Tf/Tj-Kontakt braucht suction_position.
+	// Sync fehlt oft bei älteren Skripten — fill from profile family
+	// (distance → suction_position, stroke → independent). Never force
+	// suction_position onto Stroke scripts.
 	if recipe.Sync == "" {
-		recipe.Sync = SyncSuctionPosition.String()
+		recipe.Sync = DefaultSyncForProfile(profile)
 	}
 	recipe.ContactVibration = enabled
 	if enabled {
