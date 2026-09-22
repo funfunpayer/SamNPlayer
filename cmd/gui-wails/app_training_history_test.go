@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -140,5 +141,49 @@ func TestTrainingHistoryNoSessionsDirIsNotAnError(t *testing.T) {
 	}
 	if len(history) != 0 {
 		t.Fatalf("erwartete leere Liste ohne sessions-Ordner, got %+v", history)
+	}
+}
+
+// trainingHistoryCSV is the pure formatting half of ExportTrainingHistoryCSV
+// (the other half opens a real Wails save dialog, untestable without a
+// bound frontend - see app_training_history.go's own comment on the split).
+func TestTrainingHistoryCSVFormatsRows(t *testing.T) {
+	history := []TrainingSessionSummary{
+		{
+			StartedAt: "2026-09-22T10:00:00Z", Technique: "stopstart", Channel: "vibration",
+			CyclesCompleted: 5, CyclesStoppedEarly: 2, MeanPeakIntensity: 0.75,
+			MeanReachedPeakAfterMs: 4000, MeanArousalReported: 7.5, ArousalReportsCount: 3,
+		},
+		{
+			StartedAt: "2026-09-20T10:00:00Z", Technique: "vibration-wave-suction-focus", Channel: "script",
+			CyclesCompleted: 6, CyclesStoppedEarly: 0, MeanPeakIntensity: 0.6,
+		},
+	}
+	csv, err := trainingHistoryCSV(history)
+	if err != nil {
+		t.Fatalf("trainingHistoryCSV: %v", err)
+	}
+	lines := strings.Split(strings.TrimRight(csv, "\n"), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected a header + 2 rows, got %d lines: %q", len(lines), csv)
+	}
+	if !strings.HasPrefix(lines[0], "startedAt,technique,channel,") {
+		t.Errorf("unexpected header: %q", lines[0])
+	}
+	if !strings.Contains(lines[1], "stopstart") || !strings.Contains(lines[1], "75.0") {
+		t.Errorf("first row missing expected fields: %q", lines[1])
+	}
+	if !strings.Contains(lines[2], "vibration-wave-suction-focus") || !strings.Contains(lines[2], "script") {
+		t.Errorf("second row (script session) missing expected fields: %q", lines[2])
+	}
+}
+
+func TestTrainingHistoryCSVEmptyHistoryIsJustHeader(t *testing.T) {
+	csv, err := trainingHistoryCSV(nil)
+	if err != nil {
+		t.Fatalf("trainingHistoryCSV: %v", err)
+	}
+	if strings.Count(csv, "\n") != 1 {
+		t.Fatalf("expected exactly one line (the header) for empty history, got %q", csv)
 	}
 }

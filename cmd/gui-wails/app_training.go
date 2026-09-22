@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,44 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
 )
+
+// maxTrainingSessionDuration is a generous safety ceiling on a session's
+// TOTAL wall-clock time - not a training-technique setting. It guards
+// against a mistake (an extra zero on restMs, cycles in the hundreds)
+// running far longer than intended without the user noticing, not
+// against a legitimate long session. var, not const, so tests can shrink
+// it instead of actually waiting hours.
+var maxTrainingSessionDuration = 3 * time.Hour
+
+// highArousalStopsCurrentCycle: a report at or above this level also
+// interrupts the CURRENTLY RUNNING cycle (StopCycle), not just the next
+// one adjustForArousal shapes. Two mechanisms existed for "this is too
+// much" - a soft report (next cycle only) and a hard stop (immediate) -
+// with a gap between them for the case where they clearly agree. See
+// docs/TRAINING_MODE_RESEARCH.md proposal (B). Kept at the GUI layer
+// (not inside player.TrainingControl.ReportArousal itself) deliberately:
+// baking it into the shared primitive would race player's own
+// drain()-at-cycle-start against a synthetic same-instant report in
+// tests exactly like the one PR #176 fixed a flake in; a real button
+// click happens at an arbitrary moment during a running cycle and
+// doesn't share that race.
+const highArousalStopsCurrentCycle = 9
+
+// trainingDoneMessages decides what to tell the user when a training
+// run function returns - a pure function (no ctx/runtime dependency) so
+// the one new distinction it makes (hit the safety ceiling vs. any other
+// failure) is unit-testable without a real Wails event sink. At most one
+// of the two return values is non-empty; both empty means "say nothing,
+// just training:done" (the ctx.Canceled/nil-error case).
+func trainingDoneMessages(runErr error) (logMsg, errMsg string) {
+	if errors.Is(runErr, context.DeadlineExceeded) {
+		return fmt.Sprintf("Session safety limit (%s) reached — ended automatically.", maxTrainingSessionDuration), ""
+	}
+	if runErr != nil && runErr != context.Canceled {
+		return "", runErr.Error()
+	}
+	return "", ""
+}
 
 // TrainingRequest kommt als JSON vom Frontend-Formular.
 type TrainingRequest struct {
@@ -100,6 +139,12 @@ type TrainingScriptPreviewResult struct {
 	Suction      []TrainingScriptCurvePoint `json:"suction"`
 	TotalMs      int                        `json:"totalMs"`
 	PhaseMarkers []TrainingPhaseMarker      `json:"phaseMarkers"`
+	// HasRandomJitter: true if any curve in the script randomizes its
+	// peak per repeat (player.ChannelCurve.RandomJitterFraction > 0).
+	// The plotted curve above is the NOMINAL, unjittered plan - without
+	// this flag a "Variable" script's preview looks like a plain fixed
+	// wave even though the actual run varies every repeat.
+	HasRandomJitter bool `json:"hasRandomJitter"`
 }
 
 // TrainingPhaseMarker markiert, wo im Zeitstrahl eine neue Phase beginnt
@@ -135,7 +180,12 @@ func buildScriptPreview(script player.TrainingScript) TrainingScriptPreviewResul
 		return at
 	}
 
+	hasJitter := func(c *player.ChannelCurve) bool { return c != nil && c.RandomJitterFraction > 0 }
+
 	for _, phase := range script.Phases {
+		if hasJitter(phase.Vibration) || hasJitter(phase.Suction) {
+			result.HasRandomJitter = true
+		}
 		result.PhaseMarkers = append(result.PhaseMarkers, TrainingPhaseMarker{AtMs: t, Name: phase.Name})
 		for i := 0; i < phase.RepeatCycles; i++ {
 			vibEnd := appendCurve(&result.Vibration, phase.Vibration, t, &lastVib)
@@ -243,12 +293,14 @@ func (a *App) StartTraining(req TrainingRequest) error {
 	if err != nil {
 		return err
 	}
+	ctx, cancelSafetyTimeout := context.WithTimeout(ctx, maxTrainingSessionDuration)
 	a.stateMu.Lock()
 	a.activeDevice = dev
 	a.stateMu.Unlock()
 
 	go func() {
 		defer a.endSession()
+		defer cancelSafetyTimeout()
 		if sessionFile != nil {
 			defer sessionFile.Close()
 		}
@@ -294,8 +346,12 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			})
 		}
 
-		if runErr != nil && runErr != context.Canceled {
-			runtime.EventsEmit(a.ctx, "training:error", runErr.Error())
+		logMsg, errMsg := trainingDoneMessages(runErr)
+		if logMsg != "" {
+			runtime.EventsEmit(a.ctx, "training:log", logMsg)
+		}
+		if errMsg != "" {
+			runtime.EventsEmit(a.ctx, "training:error", errMsg)
 		}
 		runtime.EventsEmit(a.ctx, "training:done")
 	}()
@@ -429,6 +485,14 @@ func (a *App) ReportArousal(level int) error {
 		return fmt.Errorf("value must be between 1 and 10 (got %d)", level)
 	}
 	control.ReportArousal(level)
+	if level >= highArousalStopsCurrentCycle {
+		// Reporting 9-10 clearly means "this is too much right now", not
+		// just "shape the next cycle a bit gentler" - close the gap
+		// between reporting it and the ramp actually responding instead
+		// of making the user reach for a second, separate button too.
+		control.StopCycle()
+		logging.Info("training: high feedback also interrupted the running cycle", "arousal", level)
+	}
 	logging.Info("training: feedback", "arousal", level)
 	return nil
 }

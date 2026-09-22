@@ -211,6 +211,8 @@ export function TrainQualityModel():Promise<string>;
 
 export function TrainingHistory():Promise<Array<main.TrainingSessionSummary>>;
 
+export function ExportTrainingHistoryCSV():Promise<string>;
+
 export function ListTrainingScripts():Promise<Array<main.TrainingScriptInfo>>;
 
 export function TrainingScriptPreview(arg1:string):Promise<main.TrainingScriptPreviewResult>;

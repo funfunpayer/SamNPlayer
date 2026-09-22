@@ -59,6 +59,12 @@ Two things checked directly rather than assumed:
 
 ### A. Feed history back into next-session defaults (small, high value)
 
+**Status: done, 22 Sep.** `computeHistorySuggestion` in `training.js` reads
+the already-fetched `TrainingHistory()` and shows a one-line suggestion
+(ease off after early stops, try a bit more after a clean streak) for
+whatever technique/script is currently selected — a suggestion only,
+never auto-applied.
+
 The data to do this already exists and is already summarized
 (`TrainingSessionSummary`) — nothing new needs measuring or logging. What
 is missing is using it. Concretely: when opening the training tab, if the
@@ -74,6 +80,12 @@ banner, not new plumbing.
 
 ### B. Let a high arousal report affect the *current* cycle, not just the next one
 
+**Status: done, 22 Sep.** `App.ReportArousal` (`app_training.go`) now also
+calls `control.StopCycle()` at level ≥9 — kept at the GUI layer rather than
+inside `player.TrainingControl.ReportArousal` itself, to avoid racing the
+player's own `drain()`-at-cycle-start against a synthetic same-instant
+report in tests (see the function's own comment for why).
+
 Right now, two independent mechanisms exist for "this is too much":
 `ReportArousal` (soft, affects only the next cycle) and `StopCycle`
 (hard, ends the current cycle immediately). A report of 9 or 10 sits in
@@ -87,6 +99,11 @@ two clearly agree.
 
 ### C. Session-length safety ceiling
 
+**Status: done, 22 Sep.** `maxTrainingSessionDuration` (3h, `app_training.go`)
+wraps the session context via `context.WithTimeout`; expiry is distinguished
+from a real failure (`trainingDoneMessages`) and ends the session with a log
+line, not an error.
+
 Nothing currently bounds how long a session can run beyond the
 user-chosen cycle count and per-cycle timings — there's no maximum
 elapsed-time cap independent of those settings. A generous, silent
@@ -99,6 +116,10 @@ outcomes for anyone within normal ranges.
 
 ### D. Global stop reachable without precise clicking
 
+**Status: done, 22 Sep.** Escape now calls `StopTrainingCycle` from
+anywhere in the tab while a session is running (`training.js`), sharing
+the same `interruptCurrentCycle` path as the "Interrupt now" button.
+
 The confirmed gap above (no keybinding, only buttons) is worth closing
 independently of anything else here: a single key (e.g. Space, mirroring
 playback's existing use of Space, or a dedicated key so it doesn't
@@ -109,6 +130,12 @@ that already exists — this only adds a second way to trigger the same
 call.
 
 ### E. Live intensity graph during a running session
+
+**Status: done (as a dual ring, not a graph), 22 Sep.** Went through two
+revisions based on owner feedback: bars → a single per-axis ring → one
+combined "breathing" dual ring (outer Vibration, inner Suction,
+activity-ring style, gradient/shadow/gloss for a 3D look) — see the
+"Live intensity meter" entries in `CHANGELOG.md`.
 
 The training tab currently shows only two text stats (cycle number,
 current peak) and a scrolling text log. The playback tab already has a

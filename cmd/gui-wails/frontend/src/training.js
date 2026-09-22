@@ -1,5 +1,5 @@
 import {
-  StartTraining, StopTraining, StopTrainingCycle, ReportArousal, TrainingHistory,
+  StartTraining, StopTraining, StopTrainingCycle, ReportArousal, TrainingHistory, ExportTrainingHistoryCSV,
   ListTrainingScripts, TrainingScriptPreview,
   SaveTrainingScript, DeleteTrainingScript, LoadTrainingScriptForEditing, PreviewTrainingScriptDraft,
 } from '../wailsjs/go/main/App';
@@ -12,91 +12,93 @@ const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both
 
 function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
 
-// Pixel-Figuren neben den Intensitätsbalken - eine Flamme (Vibration) und
-// ein Tropfen (Suction), je ein 7x9-Raster fester Silhouette. Von unten
-// nach oben werden Zeilen "beleuchtet", passend zur Intensität - dieselbe
-// Zahl, die auch der Balken zeigt, nur als kleines Pixelbild statt als
-// Füllstand. Als String-Zeilen statt verschachtelter Arrays, damit die
-// Form beim Lesen als Bild erkennbar bleibt.
-const PIXEL_FIGURES = {
-  vibration: [
-    '0001000',
-    '0011100',
-    '0111110',
-    '0111110',
-    '1111111',
-    '1111111',
-    '1111111',
-    '0111110',
-    '0011100',
-  ],
-  suction: [
-    '0001000',
-    '0001000',
-    '0011100',
-    '0111110',
-    '1111111',
-    '1111111',
-    '1111111',
-    '0111110',
-    '0011100',
-  ],
+// EIN atmender Intensitätsring statt zweier getrennter - zwei konzentrische
+// Bahnen (außen Vibration, innen Suction) in einem Widget, wie bei
+// Aktivitätsringen: ein Blick zeigt beide Werte zusammen statt zweier
+// nebeneinander stehender Einzelanzeigen. stroke-dasharray/-dashoffset ist
+// die Standardtechnik für SVG-Ringfortschritt: der gesamte Kreisumfang wird
+// als gestrichelte Linie mit EINEM Strich der Länge "Umfang" gezeichnet,
+// stroke-dashoffset verschiebt, wie viel davon sichtbar ist. Verlaufsfarbe +
+// Schlagschatten (CSS) + Glanzlicht-Bogen pro Bahn machen den Ring
+// plastisch/3D-artig statt einer Flachfarbe.
+const RING_GEOMETRY = {
+  vibration: { r: 30, cx: 36, cy: 36 },
+  suction: { r: 19, cx: 36, cy: 36 },
 };
+const RING_CIRCUMFERENCE = {
+  vibration: 2 * Math.PI * RING_GEOMETRY.vibration.r,
+  suction: 2 * Math.PI * RING_GEOMETRY.suction.r,
+};
+// Kurzer heller Bogen oben auf jeder Bahn, der wie ein Lichtreflex auf
+// einer gewölbten Oberfläche wirkt - fixe Länge, IMMER oben, unabhängig
+// vom Füllstand darunter.
+const RING_HIGHLIGHT_FRACTION = 0.16;
 
-function renderPixelGrid(axisName) {
-  const rows = PIXEL_FIGURES[axisName];
-  const cells = rows.map((row, r) => [...row].map((bit, c) =>
-    `<div class="tr-pixel-cell${bit === '1' ? ' tr-pixel-silhouette' : ''}" data-row="${r}" data-col="${c}"></div>`
-  ).join('')).join('');
-  return `<div class="tr-pixel-grid" id="tr-pixel-${axisName}">${cells}</div>`;
-}
-
-// Beleuchtet die Silhouette-Zellen von unten nach oben passend zu level
-// (0-1) - dieselbe Zahl wie updateIntensityMeter's Balken bekommt.
-function updatePixelGrid(axisName, level, pulsing) {
-  const grid = document.getElementById(`tr-pixel-${axisName}`);
-  if (!grid) return;
-  const rows = PIXEL_FIGURES[axisName].length;
-  const litRows = Math.round(clamp01(level) * rows);
-  grid.querySelectorAll('.tr-pixel-cell.tr-pixel-silhouette').forEach(cell => {
-    const fromBottom = rows - 1 - Number(cell.dataset.row);
-    cell.classList.toggle('tr-pixel-lit', fromBottom < litRows);
-    cell.classList.toggle(`tr-pixel-${axisName}`, fromBottom < litRows);
-  });
-  grid.classList.toggle('tr-pulsing', pulsing);
-}
-
-// Atmender Intensitätsring (Vibration/Sog) - ein radialer Fortschritts-
-// ring statt eines Balkens, mit Prozentzahl in der Mitte. stroke-dasharray/
-// -dashoffset ist die Standardtechnik für SVG-Ringfortschritt: der
-// gesamte Kreisumfang wird als gestrichelte Linie mit EINEM Strich der
-// Länge "Umfang" gezeichnet, stroke-dashoffset verschiebt, wie viel davon
-// sichtbar ist.
-const RING_RADIUS = 24;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
-function renderIntensityRing(axisName) {
+function ringArc(axisName) {
+  const { r, cx, cy } = RING_GEOMETRY[axisName];
+  const c = RING_CIRCUMFERENCE[axisName];
+  const highlight = c * RING_HIGHLIGHT_FRACTION;
   return `
-    <div class="tr-ring-wrap tr-ring-${axisName}-wrap" id="tr-ring-wrap-${axisName}">
-      <svg viewBox="0 0 60 60" class="tr-ring">
-        <circle class="tr-ring-track" cx="30" cy="30" r="${RING_RADIUS}" />
-        <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="30" cy="30" r="${RING_RADIUS}"
-                transform="rotate(-90 30 30)"
-                stroke-dasharray="${RING_CIRCUMFERENCE.toFixed(2)}"
-                stroke-dashoffset="${RING_CIRCUMFERENCE.toFixed(2)}" />
-      </svg>
-      <span class="tr-ring-value" id="tr-ring-value-${axisName}">0%</span>
+    <circle class="tr-ring-track" cx="${cx}" cy="${cy}" r="${r}" />
+    <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${cx}" cy="${cy}" r="${r}"
+            stroke="url(#tr-ring-grad-${axisName})"
+            transform="rotate(-90 ${cx} ${cy})"
+            stroke-dasharray="${c.toFixed(2)}"
+            stroke-dashoffset="${c.toFixed(2)}" />
+    <circle class="tr-ring-gloss" cx="${cx}" cy="${cy}" r="${r}"
+            transform="rotate(-90 ${cx} ${cy})"
+            stroke-dasharray="${highlight.toFixed(2)} ${c.toFixed(2)}" />`;
+}
+
+function renderDualIntensityRing() {
+  return `
+    <div class="tr-ring-row">
+      <div class="tr-ring-wrap" id="tr-ring-wrap">
+        <svg viewBox="0 0 72 72" class="tr-ring">
+          <defs>
+            <linearGradient id="tr-ring-grad-vibration" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" class="tr-ring-grad-stop-a tr-ring-grad-vibration" />
+              <stop offset="100%" class="tr-ring-grad-stop-b tr-ring-grad-vibration" />
+            </linearGradient>
+            <linearGradient id="tr-ring-grad-suction" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" class="tr-ring-grad-stop-a tr-ring-grad-suction" />
+              <stop offset="100%" class="tr-ring-grad-stop-b tr-ring-grad-suction" />
+            </linearGradient>
+          </defs>
+          ${ringArc('vibration')}
+          ${ringArc('suction')}
+        </svg>
+        <div class="tr-ring-value-stack">
+          <span class="tr-ring-value tr-ring-value-vibration" id="tr-ring-value-vibration">0%</span>
+          <span class="tr-ring-value tr-ring-value-suction" id="tr-ring-value-suction">0%</span>
+        </div>
+      </div>
+      <div class="tr-ring-legend">
+        <span><i class="tr-ring-swatch tr-ring-swatch-vibration"></i> Vibration</span>
+        <span><i class="tr-ring-swatch tr-ring-swatch-suction"></i> Suction</span>
+      </div>
     </div>`;
 }
 
+// Aktualisiert EINE Bahn (Kreis + Zahl + eigenes Glanz-Glühen). Der
+// gemeinsame "Atem" (Skalierung des ganzen Widgets) ist bewusst separat
+// (updateRingBreathing unten) - sonst würden zwei unabhängig pulsierende
+// Bahnen sich gegenseitig die Skalierung kaputt machen.
 function updateIntensityRing(axisName, level, pulsing) {
   const pct = Math.round(clamp01(level) * 100);
+  const c = RING_CIRCUMFERENCE[axisName];
   const circle = document.getElementById(`tr-ring-${axisName}`);
-  if (circle) circle.style.strokeDashoffset = (RING_CIRCUMFERENCE * (1 - pct / 100)).toFixed(2);
+  if (circle) {
+    circle.style.strokeDashoffset = (c * (1 - pct / 100)).toFixed(2);
+    circle.classList.toggle('tr-pulsing', pulsing);
+  }
   const value = document.getElementById(`tr-ring-value-${axisName}`);
   if (value) value.textContent = pct + '%';
-  const wrap = document.getElementById(`tr-ring-wrap-${axisName}`);
-  if (wrap) wrap.classList.toggle('tr-pulsing', pulsing);
+}
+
+function updateRingBreathing(anyPulsing) {
+  const wrap = document.getElementById('tr-ring-wrap');
+  if (wrap) wrap.classList.toggle('tr-pulsing', anyPulsing);
 }
 
 // Farben für die zwei Kanal-Linien in der Script-Vorschau/Live-Anzeige -
@@ -211,6 +213,8 @@ export function initTraining(root) {
       </select>
     </div>
     <p class="hint" id="tr-script-description" style="margin-top:0; display:none;"></p>
+    <p class="hint" id="tr-script-jitter-note" style="margin-top:0; display:none; color:var(--accent);">
+      ⚡ Randomized — the curve below is the nominal plan; actual peaks vary a bit each cycle.</p>
     <div id="tr-script-preview" style="display:none; margin-bottom:10px;"></div>
 
     <details id="tr-editor" style="margin-bottom:12px; border:1px solid var(--border); border-radius:4px; padding:8px 10px;">
@@ -277,30 +281,25 @@ export function initTraining(root) {
         rest. Target is 7 — close, but with margin.</p>
       <div class="row" id="tr-arousal-buttons" style="flex-wrap:wrap; gap:4px;"></div>
       <div id="tr-arousal-status" class="hint" style="margin-top:6px;"></div>
-    </div>
+    </fieldset>
 
     <div class="stat-row">
       <span>Cycle: <b id="tr-cycle-label">-</b></span>
       <span>Current peak: <b id="tr-peak-label">-</b></span>
     </div>
     <div class="tr-meter">
-      <div class="tr-meter-row">
-        ${renderPixelGrid('vibration')}
-        <span class="tr-meter-label">Vibration</span>
-        ${renderIntensityRing('vibration')}
-      </div>
-      <div class="tr-meter-row">
-        ${renderPixelGrid('suction')}
-        <span class="tr-meter-label">Suction</span>
-        ${renderIntensityRing('suction')}
-      </div>
+      ${renderDualIntensityRing()}
     </div>
     <div id="tr-feedback-effect" class="hint" style="min-height:1.2em;"></div>
     <div id="tr-log" style="background:var(--bg-alt); border:1px solid var(--border); border-radius:4px; padding:8px; height:100px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--text-dim); white-space:pre-wrap;"></div>
 
-    <h3 style="margin-top:16px;">History</h3>
-    <p class="hint" style="margin-top:0;">Jede Session wird mitgeschrieben (siehe oben) -
-      hier eine Zeile je vergangener Session, neueste zuerst.</p>
+    <div class="row" style="align-items:baseline; margin-top:16px; justify-content:space-between;">
+      <h3 style="margin:0;">History</h3>
+      <button id="tr-history-export">Export CSV</button>
+    </div>
+    <p class="hint" style="margin-top:0;">Every session is logged (see above) -
+      one line per past session, newest first.</p>
+    <div id="tr-history-suggestion" class="hint" style="display:none;"></div>
     <div id="tr-history" class="hint">Loading…</div>
   `;
 
@@ -325,15 +324,16 @@ export function initTraining(root) {
     }
   }
 
-  // Zwei pulsierende Balken statt nur Text im stat-row - "etwas zum
+  // Ein atmender Doppelring statt nur Text im stat-row - "etwas zum
   // Nachvollziehen" für die laufende Intensität. running (Closure-Variable
-  // oben) entscheidet, ob die Balken pulsieren oder nur ihre Füllhöhe
-  // zeigen (z.B. beim Zurücksetzen nach Sessionende).
+  // oben) entscheidet, ob die Bahnen pulsieren/das Widget atmet oder nur
+  // ihre Füllung zeigen (z.B. beim Zurücksetzen nach Sessionende).
   function updateIntensityMeter({ vibration = 0, suction = 0 }) {
-    updateIntensityRing('vibration', vibration, running && vibration > 0);
-    updateIntensityRing('suction', suction, running && suction > 0);
-    updatePixelGrid('vibration', vibration, running && vibration > 0);
-    updatePixelGrid('suction', suction, running && suction > 0);
+    const vibPulsing = running && vibration > 0;
+    const sucPulsing = running && suction > 0;
+    updateIntensityRing('vibration', vibration, vibPulsing);
+    updateIntensityRing('suction', suction, sucPulsing);
+    updateRingBreathing(vibPulsing || sucPulsing);
   }
 
 
@@ -399,6 +399,7 @@ export function initTraining(root) {
     currentTotalMs = preview.totalMs || 0;
     previewBox.innerHTML = renderScriptCurveSvg(preview);
     previewBox.style.display = '';
+    el('#tr-script-jitter-note').style.display = preview.hasRandomJitter ? '' : 'none';
   }
 
   // Hebt die gerade laufende Phase in der Vorschau hervor (siehe
@@ -474,13 +475,17 @@ export function initTraining(root) {
   }
 
   function renderEditorPhases() {
+    const last = editorScript.phases.length - 1;
     el('#tr-editor-phases').innerHTML = editorScript.phases.map((phase, i) => `
       <div class="tr-editor-phase" data-phase-index="${i}" style="border:1px solid var(--border); border-radius:4px; padding:8px; margin-top:8px;">
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
           <input type="text" data-field="name" value="${phase.name.replace(/"/g, '&quot;')}" placeholder="Phase name" style="flex:1; min-width:120px;" />
           <label>Repeats <input type="number" data-field="repeatCycles" value="${phase.repeatCycles}" min="1" style="width:55px;" /></label>
           <label>Rest ms <input type="number" data-field="restMs" value="${phase.restMs}" min="0" step="100" style="width:75px;" /></label>
-          <button data-action="remove-phase" ${editorScript.phases.length <= 1 ? 'disabled' : ''}>✕</button>
+          <button data-action="move-phase-up" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button data-action="move-phase-down" title="Move down" ${i === last ? 'disabled' : ''}>↓</button>
+          <button data-action="duplicate-phase" title="Duplicate">⧉</button>
+          <button data-action="remove-phase" title="Remove" ${editorScript.phases.length <= 1 ? 'disabled' : ''}>✕</button>
         </div>
         <div class="row" style="margin-top:6px; flex-wrap:wrap;">
           ${axisFieldsHtml('vibration', phase.vibration, 'Vibration')}
@@ -564,9 +569,27 @@ export function initTraining(root) {
   });
 
   el('#tr-editor-phases').addEventListener('click', e => {
-    if (e.target.dataset.action !== 'remove-phase') return;
+    const action = e.target.dataset.action;
+    if (!action) return;
     const phaseEl = e.target.closest('.tr-editor-phase');
-    editorScript.phases.splice(Number(phaseEl.dataset.phaseIndex), 1);
+    const i = Number(phaseEl.dataset.phaseIndex);
+    const phases = editorScript.phases;
+    switch (action) {
+      case 'remove-phase':
+        phases.splice(i, 1);
+        break;
+      case 'move-phase-up':
+        if (i > 0) [phases[i - 1], phases[i]] = [phases[i], phases[i - 1]];
+        break;
+      case 'move-phase-down':
+        if (i < phases.length - 1) [phases[i], phases[i + 1]] = [phases[i + 1], phases[i]];
+        break;
+      case 'duplicate-phase':
+        phases.splice(i + 1, 0, { ...structuredClone(phases[i]), name: phases[i].name + ' copy' });
+        break;
+      default:
+        return;
+    }
     renderEditorPhases();
     scheduleEditorPreview();
   });
@@ -619,28 +642,74 @@ export function initTraining(root) {
     }
   });
 
+  // formatHistoryLabel: eine Script-Session trägt ihren Script-Namen im
+  // technique-Feld und "script" im channel-Feld (siehe emitTrainingScriptCycle
+  // in app_training.go) - "vibration-wave-suction-focus/script" läse sich
+  // unpoliert, darum hier ohne den technischen Kanal-Suffix.
+  function formatHistoryLabel(s) {
+    if (s.channel === 'script') return s.technique.replace(/-/g, ' ');
+    const technique = TECHNIQUE_LABELS[s.technique] || s.technique;
+    const channel = CHANNEL_LABELS[s.channel] || s.channel;
+    return `${technique}/${channel}`;
+  }
+
+  let lastHistory = [];
+
   async function refreshHistory() {
     const box = el('#tr-history');
     try {
       const history = await TrainingHistory();
-      if (!Array.isArray(history) || history.length === 0) {
+      lastHistory = Array.isArray(history) ? history : [];
+      if (lastHistory.length === 0) {
         box.textContent = 'No completed session yet.';
-        return;
+      } else {
+        box.innerHTML = lastHistory.map(s => {
+          const stopped = s.cyclesStoppedEarly > 0
+            ? `, ${s.cyclesStoppedEarly}× interrupted` : '';
+          const arousal = s.arousalReportsCount > 0
+            ? `, avg feedback ${s.meanArousalReported.toFixed(1)}` : '';
+          return `<div>${formatHistoryDate(s.startedAt)} — ${formatHistoryLabel(s)}: `
+            + `${s.cyclesCompleted} cycles, avg peak ${Math.round(s.meanPeakIntensity * 100)}%`
+            + `${stopped}${arousal}</div>`;
+        }).join('');
       }
-      box.innerHTML = history.map(s => {
-        const technique = TECHNIQUE_LABELS[s.technique] || s.technique;
-        const channel = CHANNEL_LABELS[s.channel] || s.channel;
-        const stopped = s.cyclesStoppedEarly > 0
-          ? `, ${s.cyclesStoppedEarly}× interrupted` : '';
-        const arousal = s.arousalReportsCount > 0
-          ? `, avg feedback ${s.meanArousalReported.toFixed(1)}` : '';
-        return `<div>${formatHistoryDate(s.startedAt)} — ${technique}/${channel}: `
-          + `${s.cyclesCompleted} cycles, avg peak ${Math.round(s.meanPeakIntensity * 100)}%`
-          + `${stopped}${arousal}</div>`;
-      }).join('');
     } catch (err) {
       box.textContent = 'Could not load history: ' + err;
     }
+    updateHistorySuggestion();
+  }
+
+  // Nutzt die ohnehin schon geladene History, um einen Vorschlag für die
+  // GERADE gewählte Technik/das Script zu geben - Daten, die bisher nur
+  // angezeigt, nie für die nächste Session genutzt wurden (siehe
+  // docs/TRAINING_MODE_RESEARCH.md Vorschlag A). Reiner Vorschlag, ändert
+  // kein Feld automatisch.
+  function currentHistoryKey() {
+    return el('#tr-script').value || el('#tr-technique').value;
+  }
+
+  function computeHistorySuggestion(history, key) {
+    if (!key) return null;
+    const matching = history.filter(s => s.technique === key).slice(0, 3);
+    if (matching.length === 0) return null;
+    const mostRecent = matching[0];
+    if (mostRecent.cyclesStoppedEarly > 0) {
+      const n = mostRecent.cyclesStoppedEarly;
+      return `Last session of this pattern had ${n} early stop${n > 1 ? 's' : ''} — `
+        + `maybe ease off a bit (lower peak or longer rest) this time.`;
+    }
+    if (matching.length >= 2 && matching.every(s => s.cyclesStoppedEarly === 0)) {
+      return `Last ${matching.length} sessions of this pattern completed with no early stops — `
+        + `maybe a slightly higher peak this time.`;
+    }
+    return null;
+  }
+
+  function updateHistorySuggestion() {
+    const box = el('#tr-history-suggestion');
+    const suggestion = computeHistorySuggestion(lastHistory, currentHistoryKey());
+    box.textContent = suggestion || '';
+    box.style.display = suggestion ? '' : 'none';
   }
 
   async function start() {
@@ -748,20 +817,51 @@ export function initTraining(root) {
   // Unterbricht nur den laufenden Zyklus - die Session geht danach weiter.
   // Das ist der Kern der Stop-Start-Methode: nicht eine Stoppuhr entscheidet,
   // wann unterbrochen wird, sondern du.
-  el('#tr-pause').addEventListener('click', async () => {
+  async function interruptCurrentCycle(source) {
     try {
       await StopTrainingCycle();
-      log('Cycle interrupted — pause running, then continues.');
+      log(`Cycle interrupted${source ? ` (${source})` : ''} — pause running, then continues.`);
     } catch (err) {
       log('Could not interrupt: ' + err);
     }
+  }
+  el('#tr-pause').addEventListener('click', () => interruptCurrentCycle());
+
+  // Globaler Stopp-Shortcut: Escape unterbricht den laufenden Zyklus, egal
+  // wo der Fokus gerade liegt - der Button allein war im Ernstfall zu
+  // umständlich zu treffen. Harmlos ohne laufende Session (running-Check),
+  // und kollidiert nicht mit playback.js's eigenem Escape-Handler dort
+  // (der nur bei Vollbild reagiert, unabhängig von diesem hier).
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && running) {
+      e.preventDefault();
+      interruptCurrentCycle('Escape');
+    }
   });
+
   el('#tr-technique').addEventListener('change', updateTechniqueVisibility);
+  el('#tr-technique').addEventListener('change', updateHistorySuggestion);
   updateTechniqueVisibility();
   refreshHistory();
 
   el('#tr-script').addEventListener('change', updateScriptVisibility);
+  el('#tr-script').addEventListener('change', updateHistorySuggestion);
   loadScripts().then(updateScriptVisibility);
+
+  el('#tr-history-export').addEventListener('click', async () => {
+    const btn = el('#tr-history-export');
+    const original = btn.textContent;
+    btn.disabled = true;
+    try {
+      const path = await ExportTrainingHistoryCSV();
+      btn.textContent = path ? 'Saved ✓' : original;
+    } catch (err) {
+      uiError('Export CSV: ' + err, el('#tr-log'));
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    }
+  });
 
   renderEditorPhases();
   scheduleEditorPreview();

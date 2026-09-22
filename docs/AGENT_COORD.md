@@ -436,6 +436,25 @@ AGENT_COORD:
   needs_from_other: a look before merge (owner asked specifically for this) — especially #177's style.css/App.js overlap above
 ```
 
+**Claude, 22 Sep — update, still on #178, still draft:** owner asked for
+more training-tab work after the above, landed on the same branch/PR
+(still not merging myself, per the original ask): the 8 findings from
+`docs/TRAINING_MODE_RESEARCH.md` proposals A-D + three more found while
+implementing (script editor phase reorder/duplicate, a readable label for
+script sessions in History, a CSV export), plus two rounds of visual
+iteration on the live intensity meter (bars → single ring → one combined
+"breathing" dual ring, per owner feedback) after removing the pixel-art
+icons the owner decided against. Also found and fixed a real pre-existing
+bug while adding the CSV export button: the Feedback `<fieldset>`'s
+closing tag was a stray `</div>`, which silently kept it (and everything
+`disabled`-scoped under it) open around everything rendered afterward —
+invisible before because nothing after it used to be an interactive form
+control. `style.css`/`App.js`/`App.d.ts` touched further (more bound
+methods, ring/legend CSS) — same files #177 also touches, so the overlap
+note above still applies. Full `go test ./... -race` + 6 Playwright test
+files green; visually re-checked via Playwright screenshot after each
+ring revision before committing.
+
 ---
 
 ## Decision log

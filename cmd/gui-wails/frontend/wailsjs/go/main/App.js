@@ -115,6 +115,7 @@ export function TestSuction(arg1) { return window['go']['main']['App']['TestSuct
 export function TestVibration(arg1) { return window['go']['main']['App']['TestVibration'](arg1); }
 export function TrainQualityModel() { return window['go']['main']['App']['TrainQualityModel'](); }
 export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
+export function ExportTrainingHistoryCSV() { return window['go']['main']['App']['ExportTrainingHistoryCSV'](); }
 export function ListTrainingScripts() { return window['go']['main']['App']['ListTrainingScripts'](); }
 export function TrainingScriptPreview(arg1) { return window['go']['main']['App']['TrainingScriptPreview'](arg1); }
 export function SaveTrainingScript(arg1) { return window['go']['main']['App']['SaveTrainingScript'](arg1); }

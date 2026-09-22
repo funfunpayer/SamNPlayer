@@ -184,3 +184,46 @@ func TestPreviewTrainingScriptDraftValidatesFirst(t *testing.T) {
 		t.Errorf("expected a positive TotalMs for a valid draft, got %d", preview.TotalMs)
 	}
 }
+
+// The nominal preview curve is unjittered even for a script with random
+// jitter on a curve - HasRandomJitter is the flag the GUI uses to say
+// "this pattern varies each cycle" instead of the preview silently
+// looking like a plain fixed wave that isn't what actually plays.
+func TestPreviewTrainingScriptDraftFlagsRandomJitter(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	a := NewApp()
+
+	plain := sampleCustomScript("Plain")
+	preview, err := a.PreviewTrainingScriptDraft(plain)
+	if err != nil {
+		t.Fatalf("PreviewTrainingScriptDraft: %v", err)
+	}
+	if preview.HasRandomJitter {
+		t.Error("a script with no jitter on any curve must not be flagged")
+	}
+
+	jittered := sampleCustomScript("Jittered")
+	jittered.Phases[0].Vibration.RandomJitterFraction = 0.25
+	preview, err = a.PreviewTrainingScriptDraft(jittered)
+	if err != nil {
+		t.Fatalf("PreviewTrainingScriptDraft: %v", err)
+	}
+	if !preview.HasRandomJitter {
+		t.Error("a script with RandomJitterFraction > 0 on a curve must be flagged")
+	}
+
+	builtinPreview, err := a.TrainingScriptPreview("variable")
+	if err != nil {
+		t.Fatalf("TrainingScriptPreview(variable): %v", err)
+	}
+	if !builtinPreview.HasRandomJitter {
+		t.Error(`the built-in "variable" script uses RandomJitterFraction and must be flagged too`)
+	}
+	stopStartPreview, err := a.TrainingScriptPreview("vibration-wave-suction-focus")
+	if err != nil {
+		t.Fatalf("TrainingScriptPreview(vibration-wave-suction-focus): %v", err)
+	}
+	if stopStartPreview.HasRandomJitter {
+		t.Error("a built-in script without jitter must not be flagged")
+	}
+}

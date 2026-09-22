@@ -37,14 +37,17 @@ measurement history behind each entry; this file is the short version for
   the same physical channel — `player.NormalizeTrainingScript` now
   derives the channel from the axis slot unconditionally, closing this
   for both built-in and custom scripts.
-- **Live intensity meter:** a breathing radial progress ring per axis
-  (Vibration/Suction), percentage in the center, plus a small pixel-art
-  flame/droplet icon lighting up bottom-to-top alongside it — works for
-  both the simple Technique/Channel form and scripts, replacing the
-  plain "Current peak" text with something to actually watch move.
-  On-brand colors (`--accent`/`--teal`) instead of the plan-preview
-  curve's previous hardcoded blue/orange, which now also applies to the
-  ring.
+- **Live intensity meter:** one breathing dual ring (outer = Vibration,
+  inner = Suction, activity-ring style) instead of two separate meters —
+  a single glance shows both channels together. Verlaufsfarbe (gradient),
+  drop shadow, and a specular highlight arc per band give it a plastic/3D
+  look instead of a flat fill; the whole widget "breathes" (scale) while
+  either channel is active, each band also glows in its own color.
+  Percentages sit stacked in the center, a small legend names the two
+  colors. Works for both the simple Technique/Channel form and scripts,
+  replacing the plain "Current peak" text with something to actually
+  watch move. On-brand colors (`--accent`/`--teal`) throughout, including
+  the plan-preview curve (previously hardcoded blue/orange).
 - **Smoothed plan-preview/live curve:** corners where a ramp meets a
   hold are now gently rounded (quadratic-Bezier corner-cutting,
   `roundedPathD`) instead of sharp kinks, plus round line joins/caps.
@@ -53,6 +56,38 @@ measurement history behind each entry; this file is the short version for
   device as briefly exceeding its setting. The rounding is bounded by
   each corner's own convex hull, so it can only soften a kink, never
   show a value beyond what's actually configured.
+- **Session safety ceiling:** a session now auto-ends after a generous
+  3-hour wall-clock limit (`maxTrainingSessionDuration`), guarding
+  against a mistake (an extra zero on `restMs`, cycles in the hundreds)
+  running far longer than intended. Ends gracefully with a log line, not
+  an error.
+- **Strong feedback (9-10) now also interrupts the running cycle**
+  immediately, not just the next one — closes the gap between reporting
+  "this is too much" and the ramp actually responding.
+- **History-based suggestion:** the training tab now reads its own
+  session history (previously display-only) to suggest, for the
+  currently selected technique/script, easing off after a session with
+  early stops or trying a bit more after a clean streak.
+- **Randomized-script preview note:** the "variable" pattern's plan
+  preview now says the curve varies each cycle instead of silently
+  looking like a fixed wave that isn't what actually plays.
+- **Script editor: reorder and duplicate phases** — move-up/move-down
+  and a duplicate button per phase, not just add/remove.
+- **History CSV export** — a button next to "History" saves the full
+  session summary table as CSV via the OS save dialog.
+- **Script sessions in History show a readable name** ("vibration wave
+  suction focus: 6 cycles...") instead of a raw "scriptname/script"
+  channel suffix.
+
+### Fixed
+
+- **Training tab: an unclosed `<fieldset>`** (the Feedback section's
+  closing tag was a stray `</div>`, not `</fieldset>`) silently disabled
+  every control rendered after it — the intensity meter, log, and the
+  entire History section, including the new CSV export button —
+  whenever no session was running. Invisible before because nothing
+  after that point used to be an interactive form control; found when
+  the new export button turned out to be permanently unclickable.
 
 ## [0.5.21] — September 21, 2026
 
