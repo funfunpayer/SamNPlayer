@@ -130,6 +130,7 @@ fine-tunes on **your** body-part boxes → ONNX for Generate proposals.
 | More corrected samples | Highest leverage | Review/correct beats bigger YOLO |
 | `yolov8s` / YOLO26 later | Opt-in `--base-model` | Only after n plateaus on your classes |
 | External body/hand ONNX as **proposal helper** | Idea (extra) | Suggest boxes only; never write Stroke; measure vs CSRT auto-ROI first |
+| **PoseObserver** (RTMPose/MediaPipe) | Concept #191/#192 | Propose seeds → Go CSRT measures; see `docs/POSE_OBSERVER.md` when merged |
 | ByteTrack/BoT-SORT ID layer | Fahrplan MT-Speed/ID | After classical MT-Seed; not Stroke writer |
 | Freeze backbone / fewer epochs | Easy CLI knobs later | Good once sample count is stable |
 

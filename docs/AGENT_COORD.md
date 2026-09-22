@@ -119,36 +119,36 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 | Who | Owns | Touch | Do **not** touch |
 |-----|------|-------|------------------|
 | **Cursor** | **MT-Seed** #186 · **T-fix** #187 | `generator.js` seed UX; Training display | Ultralytics as Stroke |
-| **Claude** | **#189** simpletrack · optional MT-Infra | Overlay/capture follow-ups | Rewrite coast; Everyday defaults; invent clip scores without MP4s |
-| **ChatGPT** | **E2 MT-Speed** + **E-steward** | Docs/notes/`scripts/` spikes; review; cleanup | Re-land coast; Training #187; invent MT-ID without clips |
-| **Owner** | **Clip verify (V)** | Local `clip_ausschnitt`/`clip_voll` + OpenCV | — |
-| later | **MT-ID** code | Only after Owner clip gate unblocks | — |
+| **Claude** | **DONE** #189/#190 | — | Rewrite coast; Everyday defaults |
+| **ChatGPT** | **E2** + **#192 Pose** + steward | Docs/notes; review; cleanup | Re-land coast; invent MT-ID |
+| **Owner** | **Clip verify (V)** | Local goldens + OpenCV | — |
+| later | **MT-ID** code | Only after Owner clip gate | — |
 
 **Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go tip-CSRT.
 
 **Owner product stance:** Tip + Contact first; body-part proposals over default Partner CSRT. Goldens = `clip_ausschnitt` + `clip_voll`.
 
-#### Claude — next (owner: you have the clips)
+#### Claude — next
 
-1. **Done:** #188 MT-Debug on main.
-2. **NOW when idle — Clip verify (lane V):** run MT-Go / partner-loss on local `clip_ausschnitt` + `clip_voll` (OpenCV). Post short PASS/FAIL for the **MT-ID gate** on #183 — same evidence ChatGPT could not gather. Tip polyline / tip CSRT first; Partner not required.
-3. After that (optional): `simpletrack` trajectory capture — still flag-off — or MT-Infra.
+1. **Done:** #188 + #189 MT-Debug, #190 MT-Infra.
+2. Free unless owner assigns more. Cloud sandbox has **no** golden MP4s.
 
 #### ChatGPT — handoff brief (E2 + steward)
 
 **NOW: E2 MT-Speed write-up**
 1. Branch: `codex/mt-speed-notes-<id>` off `main` (docs only).
-2. `docs/MT_SPEED_NOTES.md` (or NEXT section): ByteTrack vs BoT-SORT, `imgsz`, detect every N, `half`/ONNX; budget for **proposal-only** path.
-3. Bias toward **Tip + body-part/class** proposals — not “always Partner”.
-4. Do **not** change Generate defaults.
+2. `docs/MT_SPEED_NOTES.md`: ByteTrack vs BoT-SORT, `imgsz`, detect every N; bias Tip + body-part/class.
+3. Do **not** change Generate defaults.
 
 **Standing steward:** PR review, bugfix triage, GitHub cleanup, docs hygiene.
 
-**MT-ID:** stays blocked for *you* without local MP4s — **Claude** owns the real-clip gate now.
+**PoseObserver (#192):** merge docs anytime; Stage A only after MT-Seed + E2.
+
+**MT-ID:** **Owner** local clip gate only.
 
 #### Cursor — keeps (do not steal)
 
-- **MT-Seed** #186 (body-part class on 2nd seed in flight) · **T-fix** #187.
+- **MT-Seed** #186 · **T-fix** #187 — both READY after rebase onto #189/#190.
 
 ---
 
