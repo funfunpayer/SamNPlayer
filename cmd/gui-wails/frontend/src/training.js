@@ -2,6 +2,7 @@ import { StartTraining, StopTraining, StopTrainingCycle, ReportArousal, Training
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
+import { arousalPixelButtonHTML, mountTrainingPixelStage } from './pixel_figure.js';
 
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
 const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both' };
@@ -52,6 +53,8 @@ export function initTraining(root) {
     <div class="field-row" id="tr-plateau-row"><label>Plateau fraction</label><input type="number" min="0" max="1" step="0.05" id="tr-plateaufrac" value="0.7" /></div>
     <div class="field-row"><label>Progression per cycle</label><input type="number" min="0" max="1" step="0.05" id="tr-progression" value="0.15" /></div>
 
+    <div id="tr-pixel-stage" aria-label="Training pixel figure"></div>
+
     <div class="row">
       <button id="tr-start" class="primary">▶ Start training</button>
       <button id="tr-pause" class="primary" disabled>Interrupt now</button>
@@ -61,12 +64,11 @@ export function initTraining(root) {
     <fieldset id="tr-arousal" disabled style="margin-top:12px; border:1px solid var(--border);
               border-radius:4px; padding:10px;">
       <legend style="padding:0 6px;">Feedback</legend>
-      <p class="hint" style="margin-top:0;">How close are you right now? Your rating affects the
-        <em>next</em> cycle: high values lead to shorter, gentler cycles with longer
-        rest. Target is 7 — close, but with margin.</p>
-      <div class="row" id="tr-arousal-buttons" style="flex-wrap:wrap; gap:4px;"></div>
+      <p class="hint" style="margin-top:0;">How close are you right now? Pixel fill = intensity.
+        High values → shorter, gentler next cycles with longer rest. Target is <b>7</b>.</p>
+      <div class="row tr-arousal-pix-row" id="tr-arousal-buttons" style="flex-wrap:wrap; gap:6px;"></div>
       <div id="tr-arousal-status" class="hint" style="margin-top:6px;"></div>
-    </div>
+    </fieldset>
 
     <div class="stat-row">
       <span>Cycle: <b id="tr-cycle-label">-</b></span>
@@ -82,6 +84,7 @@ export function initTraining(root) {
 
   const el = id => root.querySelector(id);
   let running = false;
+  const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
 
   function log(line) {
     const box = el('#tr-log');
@@ -95,11 +98,15 @@ export function initTraining(root) {
     el('#tr-stop').disabled = !isRunning;
     el('#tr-pause').disabled = !isRunning;
     el('#tr-arousal').disabled = !isRunning;
-    if (!isRunning) el('#tr-arousal-status').textContent = '';
+    if (!isRunning) {
+      el('#tr-arousal-status').textContent = '';
+      pixelStage.setIntensity(0);
+    }
   }
 
   function updateTechniqueVisibility() {
     el('#tr-plateau-row').style.display = el('#tr-technique').value === 'plateau' ? 'flex' : 'none';
+    pixelStage.setTechnique(el('#tr-technique').value);
   }
 
   async function refreshHistory() {
@@ -160,30 +167,34 @@ export function initTraining(root) {
   EventsOn('training:cycle', c => {
     el('#tr-cycle-label').textContent = `${c.cycleIndex + 1} / ${c.cyclesTotal}`;
     el('#tr-peak-label').textContent = Math.round(c.peakIntensity * 100) + '%';
+    pixelStage.setIntensity(c.peakIntensity || 0);
     const reached = c.reachedPeakAfterMs ? `, erreicht nach ${(c.reachedPeakAfterMs / 1000).toFixed(1)}s` : '';
     const stopped = c.stoppedByUser ? ' — auf Wunsch unterbrochen' : '';
     const fb = c.arousalBefore ? `, angepasst nach Feedback ${c.arousalBefore}` : '';
     log(`Zyklus ${c.cycleIndex + 1}/${c.cyclesTotal}: Spitze ${Math.round(c.peakIntensity * 100)}%, Halten ${c.holdMs}ms${fb}${reached}${stopped}`);
   });
 
-  // Skala 1-10 aufbauen.
+  // Skala 1-10 — pixel figures (fill height = arousal).
   const scale = el('#tr-arousal-buttons');
+  scale.innerHTML = '';
   for (let i = 1; i <= 10; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    btn.style.minWidth = '38px';
-    if (i === 7) btn.classList.add('primary');   // Zielwert hervorheben
+    scale.insertAdjacentHTML('beforeend', arousalPixelButtonHTML(i));
+  }
+  scale.querySelectorAll('.tr-arousal-pix').forEach(btn => {
     btn.addEventListener('click', async () => {
+      const i = parseInt(btn.getAttribute('data-arousal'), 10);
       try {
         await ReportArousal(i);
+        pixelStage.setArousal(i);
+        scale.querySelectorAll('.tr-arousal-pix').forEach(b => b.classList.remove('is-picked'));
+        btn.classList.add('is-picked');
         el('#tr-arousal-status').textContent =
           `${i} reported — affects the next cycle.`;
       } catch (err) {
         el('#tr-arousal-status').textContent = 'Not applied: ' + err;
       }
     });
-    scale.appendChild(btn);
-  }
+  });
 
   el('#tr-start').addEventListener('click', start);
   el('#tr-stop').addEventListener('click', stop);
