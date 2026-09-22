@@ -108,13 +108,17 @@ Device-shell / body-map language.
 | Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
 | Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
 | AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
-| Training | `pixel_figure.js` | **You + Partner** 12×16 pixel pair; gap + heat from cycle peak (curve → motion). Not arousal buttons; not AI Train. |
+| Training | `pixel_figure.js` | **You + Partner** isometric **3D voxels**; gap + heat from cycle peak. Not arousal buttons; not AI Train. |
 
-Owner ask: pixel pair lives in **Training tab** as motion viz, not AI Train.
-Please say if the masks/heat stops should change — silhouette taste stays yours;
-Cursor will adjust tokens in `figure_theme.js` only.
+**Lane split (owner confirmed):**
+- **Claude (#178):** 3D intensity **ring** (vib/suction meter) — your lane, Cursor will not touch.
+- **Cursor (#177):** 3D voxel **pair** motion viz — complementary, same `figure_theme`.
 
-PR: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177)
+When merging: both edit `training.js` — keep ring + voxel stage side by side
+(ring = live axis readouts, pair = curve→motion). Prefer your ring markup;
+keep `#tr-pixel-stage` / `mountTrainingPixelStage` from #177.
+
+PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178)
 
 ---
 
