@@ -10,10 +10,27 @@ import { figureHeatColor } from './figure_theme.js';
 const YOU_SRC = new URL('./assets/images/training-mosaic-you.png', import.meta.url).href;
 const PARTNER_SRC = new URL('./assets/images/training-mosaic-partner.png', import.meta.url).href;
 
-const CLIP_BASE = new URL('./assets/images/training-mosaic-clip/', import.meta.url).href;
+// Each frame as its own static `new URL` so Vite emits all 16 into dist.
+// (A directory-based `new URL(.../clip/, …)` does not — 0/16 in production.)
 const CLIP_COUNT = 16;
-const CLIP_FRAMES = Array.from({ length: CLIP_COUNT }, (_, i) =>
-  `${CLIP_BASE}f${String(i).padStart(2, '0')}.png`);
+const CLIP_FRAMES = [
+  new URL('./assets/images/training-mosaic-clip/f00.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f01.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f02.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f03.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f04.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f05.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f06.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f07.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f08.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f09.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f10.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f11.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f12.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f13.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f14.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f15.png', import.meta.url).href,
+];
 
 /** Map training curve level (0..1) → clip frame index.
  * f00 = retracted (penis low between breasts), fN = peak (tip toward face).
