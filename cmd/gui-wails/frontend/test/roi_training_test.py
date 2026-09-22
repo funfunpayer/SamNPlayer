@@ -100,8 +100,6 @@ def main():
         check("Body map present", page.locator("#rt-body-figure .body-figure-svg").count() == 1)
         check("Nine legend body parts",
               page.locator(".body-figure-legend [data-class]").count() == 9)
-        check("Pixel cue next to body map",
-              page.locator("#rt-body-figure .body-figure-pixel-cue .pixel-figure-svg").count() == 1)
 
         page.click("#rt-pick-video")
         page.wait_for_function(

@@ -3,11 +3,10 @@
  * Same idea as the Device tab silhouette Claude shipped: a clear visual
  * instead of text-only chips. Click a region → select that body-part class.
  * Anatomical outline only — no photographic detail.
- * Optional tiny pixel cue shares the Training-tab silhouette language.
+ * Training-tab motion uses separate pixel pair figures (`pixel_figure.js`).
  */
 
 import { CANONICAL, labelFor, normalizeClass } from './bodyparts.js';
-import { pixelFigureSVG } from './pixel_figure.js';
 
 const REGION_HINTS = {
   face: 'Head / face box',
@@ -69,10 +68,6 @@ export function mountBodyFigure(host, opts = {}) {
       <div class="body-figure-head">
         <strong>Body map</strong>
         <span class="hint">Click a region — same classes as chips (Claude-style silhouette, human).</span>
-        <span class="body-figure-pixel-cue" title="Same pixel silhouette language as the Training tab">
-          ${pixelFigureSVG({ level: 0.55, size: 2, title: 'Pixel cue (Training style)' })}
-          <span class="body-figure-pixel-cue-label">pixel cue</span>
-        </span>
       </div>
       <div class="body-figure-row">
         ${bodyFigureMarkup()}

@@ -69,13 +69,13 @@ def main():
         check("Skala hat zehn Stufen",
               page.locator("#tr-arousal-buttons button").count() == 10,
               str(page.locator("#tr-arousal-buttons button").count()))
-        check("Pixel-Sessionfigur ist da",
-              page.locator("#tr-pixel-stage .pixel-figure-svg").count() >= 1)
-        check("Arousal-Buttons sind Pixel-Figuren",
-              page.locator("#tr-arousal-buttons .tr-arousal-pix .pixel-figure-svg").count() == 10,
-              str(page.locator("#tr-arousal-buttons .tr-arousal-pix .pixel-figure-svg").count()))
+        check("Pixel-Paar-Stage ist da",
+              page.locator("#tr-pixel-stage .pixel-pair-svg").count() == 1)
+        check("You/Partner-Labels",
+              "You" in page.locator(".tr-pixel-labels").inner_text()
+              and "Partner" in page.locator(".tr-pixel-labels").inner_text())
         check("Zielstufe 7 markiert",
-              page.locator("#tr-arousal-buttons .tr-arousal-pix.is-target").count() == 1)
+              page.locator("#tr-arousal-buttons button.is-target").count() == 1)
 
         page.click("#tr-pause")
         page.wait_for_function("window.__calls.some(c => c[0] === 'stopCycle')")
@@ -92,16 +92,16 @@ def main():
         check("Pixel-Stage zeigt Feedback",
               "9" in page.locator("#tr-pixel-fb").inner_text(),
               page.locator("#tr-pixel-fb").inner_text())
-        check("gewählter Pixel-Button markiert",
-              page.locator("#tr-arousal-buttons .tr-arousal-pix.is-picked").count() == 1)
+        check("gewählter Feedback-Button markiert",
+              page.locator("#tr-arousal-buttons button.is-picked").count() == 1)
 
-        # Live cycle intensity fills the session figure.
+        # Live cycle intensity moves the pair (closer + warmer).
         page.evaluate(
             "window.__triggerEvent('training:cycle', "
             "{cycleIndex:0,cyclesTotal:5,peakIntensity:0.8,holdMs:3000})")
         page.wait_for_function(
             "document.querySelector('#tr-pixel-pct')?.textContent.includes('80')")
-        check("Zyklus-Intensität auf Pixel-Figur",
+        check("Zyklus-Intensität auf Pixel-Paar",
               "80%" in page.locator("#tr-pixel-pct").inner_text(),
               page.locator("#tr-pixel-pct").inner_text())
 
@@ -109,7 +109,7 @@ def main():
         page.wait_for_function("document.querySelector('#tr-arousal').disabled === true",
                                timeout=5000)
         check("nach Sessionende wieder gesperrt", disabled("#tr-arousal"))
-        check("Pixel-Figur nach Ende idle",
+        check("Pixel-Paar nach Ende idle",
               "Idle" in page.locator("#tr-pixel-pct").inner_text(),
               page.locator("#tr-pixel-pct").inner_text())
 

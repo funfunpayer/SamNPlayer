@@ -1,12 +1,12 @@
-/** Pixel-art human figures for the Training tab (stamina / stop-start).
+/** Pixel-art two-person figures for the Training tab (stamina / stop-start).
  *
- * Not AI Train — that keeps the vector body map. These are small pixel
- * people that show arousal feedback (1–10) and live cycle intensity.
+ * Not AI Train — that keeps the vector body map (`body_figure.js`, Claude
+ * silhouette language). These 12×16 pixel people visualize cycle motion:
+ * intensity from the training curve drives heat fill + how close the pair is.
  */
 
-/** 12×16 pixel silhouette — front-facing human (head, torso, arms, legs). */
-const BASE_MASK = [
-  // y=0..15, bits left→right (12 wide). 1 = body pixel.
+/** Front-facing human mask (12×16). `.` empty, `#` body. */
+const MASK_STAND = [
   '....####....',
   '...######...',
   '...##..##...',
@@ -23,11 +23,37 @@ const BASE_MASK = [
   '..##....##..',
   '..##....##..',
   '..##....##..',
-].map(row => row.replace(/\./g, '0').replace(/#/g, '1'));
+];
+
+/** Slightly “engaged” pose — arms in, stance narrower (peak intensity). */
+const MASK_ENGAGED = [
+  '....####....',
+  '...######...',
+  '...##..##...',
+  '...######...',
+  '....####....',
+  '...######...',
+  '..########..',
+  '.##########.',
+  '..########..',
+  '...######...',
+  '..###..###..',
+  '..###..###..',
+  '..###..###..',
+  '..##....##..',
+  '..##....##..',
+  '..##....##..',
+];
+
+function bits(mask) {
+  return mask.map(row => row.replace(/\./g, '0').replace(/#/g, '1'));
+}
+
+const STAND = bits(MASK_STAND);
+const ENGAGED = bits(MASK_ENGAGED);
 
 function heatColor(level01) {
   const t = Math.max(0, Math.min(1, level01));
-  // cool teal → amber → warm coral
   if (t < 0.45) {
     const u = t / 0.45;
     return lerpHex('#2a6b66', '#2fd4c4', u);
@@ -58,50 +84,87 @@ function hexToRgb(hex) {
 }
 
 /**
- * Build a pixel-human SVG.
- * @param {{ level?: number, size?: number, label?: string, title?: string }} opts
- *   level 0..1 fill height from feet (intensity / arousal/10)
+ * Paint one figure into an SVG string of <rect>s.
+ * @param {{ level?: number, size?: number, mask?: string[], flip?: boolean, ox?: number, oy?: number, cool?: string }} opts
+ */
+function figureRects(opts = {}) {
+  const level = Math.max(0, Math.min(1, opts.level ?? 0.5));
+  const cell = opts.size || 3;
+  const cols = 12, rows = 16;
+  const mask = opts.mask || STAND;
+  const fillFromRow = Math.floor((1 - level) * rows);
+  const hot = heatColor(level);
+  const cool = opts.cool || '#3a4558';
+  const outline = '#1a2030';
+  const ox = opts.ox || 0;
+  const oy = opts.oy || 0;
+  let rects = '';
+  for (let y = 0; y < rows; y++) {
+    const row = mask[y];
+    for (let x = 0; x < cols; x++) {
+      const sx = opts.flip ? (cols - 1 - x) : x;
+      if (row[sx] !== '1') continue;
+      const lit = y >= fillFromRow;
+      rects += `<rect x="${ox + x * cell}" y="${oy + y * cell}" width="${cell}" height="${cell}" fill="${lit ? hot : cool}" stroke="${outline}" stroke-width="0.35"/>`;
+    }
+  }
+  return { rects, w: cols * cell, h: rows * cell };
+}
+
+/**
+ * Single pixel-human SVG (shared silhouette language with AI body map colors).
+ * @param {{ level?: number, size?: number, title?: string, engaged?: boolean, flip?: boolean }} opts
  */
 export function pixelFigureSVG(opts = {}) {
   const level = Math.max(0, Math.min(1, opts.level ?? 0.5));
-  const cell = opts.size || 3; // px per pixel
-  const cols = 12, rows = 16;
-  const w = cols * cell;
-  const h = rows * cell;
-  const fillFromRow = Math.floor((1 - level) * rows); // rows above this are dim
-  const hot = heatColor(level);
-  const cool = '#3a4558';
-  const outline = '#1a2030';
-
-  let rects = '';
-  for (let y = 0; y < rows; y++) {
-    const row = BASE_MASK[y];
-    for (let x = 0; x < cols; x++) {
-      if (row[x] !== '1') continue;
-      const lit = y >= fillFromRow;
-      const fill = lit ? hot : cool;
-      rects += `<rect x="${x * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${fill}" stroke="${outline}" stroke-width="0.35"/>`;
-    }
-  }
-
+  const cell = opts.size || 3;
+  const mask = opts.engaged ? ENGAGED : STAND;
+  const { rects, w, h } = figureRects({
+    level, size: cell, mask, flip: !!opts.flip,
+  });
   const aria = opts.title || `Intensity ${Math.round(level * 100)}%`;
   return `<svg class="pixel-figure-svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"
     role="img" aria-label="${aria}" shape-rendering="crispEdges">${rects}</svg>`;
 }
 
-/** Compact markup for arousal button 1–10. */
-export function arousalPixelButtonHTML(n) {
-  const level = n / 10;
-  const target = n === 7 ? ' is-target' : '';
-  return `<button type="button" class="tr-arousal-pix${target}" data-arousal="${n}"
-    title="Feedback ${n}${n === 7 ? ' (target)' : ''}">
-    ${pixelFigureSVG({ level, size: 2, title: `Feedback ${n}` })}
-    <span class="tr-arousal-pix-n">${n}</span>
-  </button>`;
+/**
+ * Two facing pixel people — motion viz for training intensity / curve.
+ * Gap shrinks as intensity rises (pair moves together).
+ * @param {{ level?: number, size?: number, title?: string }} opts
+ */
+export function pixelPairSVG(opts = {}) {
+  const level = Math.max(0, Math.min(1, opts.level ?? 0));
+  const cell = opts.size || 4;
+  const cols = 12, rows = 16;
+  const figW = cols * cell;
+  const figH = rows * cell;
+  // Gap: idle ~10 cells, peak ~2 cells between people
+  const gapCells = Math.round(10 - level * 8);
+  const gap = gapCells * cell;
+  const engaged = level >= 0.55;
+  const mask = engaged ? ENGAGED : STAND;
+  // Partner (right) can read slightly cooler / offset for “curve response”
+  const left = figureRects({ level, size: cell, mask, ox: 0 });
+  const right = figureRects({
+    level: Math.min(1, level * 0.92 + 0.05),
+    size: cell,
+    mask,
+    flip: true,
+    ox: figW + gap,
+    cool: '#454e62',
+  });
+  const w = figW * 2 + gap;
+  const h = figH;
+  const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
+  // Soft ground line between feet (curve → motion cue)
+  const groundY = h - cell * 0.5;
+  const ground = `<rect x="0" y="${groundY}" width="${w}" height="${Math.max(1, cell * 0.35)}" fill="#1e2533"/>`;
+  return `<svg class="pixel-figure-svg pixel-pair-svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"
+    role="img" aria-label="${aria}" shape-rendering="crispEdges">${ground}${left.rects}${right.rects}</svg>`;
 }
 
 /**
- * Mount live training pixel stage (technique + intensity figure).
+ * Mount live training two-person pixel stage (technique + intensity motion).
  * @returns {{ setIntensity(level01: number): void, setArousal(n: number|null): void, setTechnique(t: string): void }}
  */
 export function mountTrainingPixelStage(host) {
@@ -112,8 +175,8 @@ export function mountTrainingPixelStage(host) {
   host.innerHTML = `
     <div class="tr-pixel-card">
       <div class="tr-pixel-head">
-        <strong>Session figure</strong>
-        <span class="hint" id="tr-pixel-hint">Fills with peak intensity · feedback tints the pose</span>
+        <strong>Motion (pair)</strong>
+        <span class="hint" id="tr-pixel-hint">Two pixel people — closer + warmer as peak intensity rises (curve → motion)</span>
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main" id="tr-pixel-main"></div>
@@ -123,6 +186,10 @@ export function mountTrainingPixelStage(host) {
           <div class="hint" id="tr-pixel-fb">No feedback yet</div>
         </div>
       </div>
+      <div class="tr-pixel-labels">
+        <span>You</span>
+        <span>Partner</span>
+      </div>
     </div>`;
 
   let intensity = 0;
@@ -130,13 +197,13 @@ export function mountTrainingPixelStage(host) {
   let technique = 'stopstart';
 
   function paint() {
-    const level = arousal != null ? Math.max(intensity, arousal / 10) : intensity;
+    const level = intensity;
     const main = host.querySelector('#tr-pixel-main');
     if (main) {
-      main.innerHTML = pixelFigureSVG({
+      main.innerHTML = pixelPairSVG({
         level,
         size: 5,
-        title: `Training intensity ${Math.round(level * 100)}%`,
+        title: `Training pair motion ${Math.round(level * 100)}%`,
       });
     }
     const pct = host.querySelector('#tr-pixel-pct');
