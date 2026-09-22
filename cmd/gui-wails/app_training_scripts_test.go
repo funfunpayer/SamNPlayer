@@ -168,6 +168,47 @@ func TestSaveTrainingScriptNormalizesChannelField(t *testing.T) {
 	}
 }
 
+// scriptFileSlug strips everything outside [a-z0-9-], so two different
+// names can reduce to the same file. Without a collision check,
+// "My Routine?" would silently overwrite "My Routine!"'s file on disk -
+// no error, no warning, the first script just gone. Re-saving under the
+// SAME name (editing a script in place) must still work unchanged.
+func TestSaveTrainingScriptRejectsSlugCollisionWithDifferentName(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	a := NewApp()
+
+	if _, err := a.SaveTrainingScript(sampleCustomScript("My Routine!")); err != nil {
+		t.Fatalf("SaveTrainingScript(first): %v", err)
+	}
+
+	if _, err := a.SaveTrainingScript(sampleCustomScript("My Routine?")); err == nil {
+		t.Fatal("a differently-named script that slugs to the same file name should be rejected, not silently overwrite the first one")
+	}
+
+	// The original script must still be there, untouched.
+	loaded, err := a.LoadTrainingScriptForEditing("My Routine!")
+	if err != nil {
+		t.Fatalf("original script was lost after the rejected collision: %v", err)
+	}
+	if loaded.Name != "My Routine!" {
+		t.Fatalf("original script content changed: %+v", loaded)
+	}
+
+	// Re-saving under the identical name (editing in place) must keep working.
+	edited := sampleCustomScript("My Routine!")
+	edited.Description = "edited"
+	if _, err := a.SaveTrainingScript(edited); err != nil {
+		t.Fatalf("re-saving under the same name should still work: %v", err)
+	}
+	loaded, err = a.LoadTrainingScriptForEditing("My Routine!")
+	if err != nil {
+		t.Fatalf("LoadTrainingScriptForEditing after edit-in-place: %v", err)
+	}
+	if loaded.Description != "edited" {
+		t.Fatalf("edit-in-place did not take effect: %+v", loaded)
+	}
+}
+
 func TestPreviewTrainingScriptDraftValidatesFirst(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	a := NewApp()

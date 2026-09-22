@@ -12,51 +12,46 @@ const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both
 
 function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
 
-// EIN atmender Intensitätsring statt zweier getrennter - zwei konzentrische
-// Bahnen (außen Vibration, innen Suction) in einem Widget, wie bei
-// Aktivitätsringen: ein Blick zeigt beide Werte zusammen statt zweier
-// nebeneinander stehender Einzelanzeigen. stroke-dasharray/-dashoffset ist
-// die Standardtechnik für SVG-Ringfortschritt: der gesamte Kreisumfang wird
-// als gestrichelte Linie mit EINEM Strich der Länge "Umfang" gezeichnet,
-// stroke-dashoffset verschiebt, wie viel davon sichtbar ist. Verlaufsfarbe +
-// Schlagschatten (CSS) + Glanzlicht-Bogen pro Bahn machen den Ring
-// plastisch/3D-artig statt einer Flachfarbe.
-const RING_GEOMETRY = {
-  vibration: { r: 30, cx: 36, cy: 36 },
-  suction: { r: 19, cx: 36, cy: 36 },
-};
-const RING_CIRCUMFERENCE = {
-  vibration: 2 * Math.PI * RING_GEOMETRY.vibration.r,
-  suction: 2 * Math.PI * RING_GEOMETRY.suction.r,
-};
-// Kurzer heller Bogen oben auf jeder Bahn, der wie ein Lichtreflex auf
-// einer gewölbten Oberfläche wirkt - fixe Länge, IMMER oben, unabhängig
-// vom Füllstand darunter.
-const RING_HIGHLIGHT_FRACTION = 0.16;
+// EIN Ring statt zweier konzentrischer Bahnen - EINE Kreisbahn, links zur
+// Hälfte in Gold (Vibration), rechts zur Hälfte in Teal (Suction), jede
+// Hälfte füllt sich von oben (12 Uhr) nach unten (6 Uhr) mit der eigenen
+// Intensität. stroke-dasharray/-dashoffset ist die Standardtechnik für
+// SVG-Ringfortschritt; für eine HALBE Bahn ist die Dash-Länge einfach der
+// halbe Umfang statt des ganzen. Die linke Hälfte braucht zusätzlich eine
+// Spiegelung (sonst würde ihr Fortschritt von 12 Uhr nach RECHTS statt nach
+// links laufen, da ein SVG-Kreis von Haus aus im Uhrzeigersinn gezeichnet
+// wird) - siehe .tr-ring-mirror weiter unten.
+const RING_R = 28;
+const RING_CX = 36, RING_CY = 36;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
+const RING_HALF = RING_CIRCUMFERENCE / 2;
+// Kurzer heller Bogen oben auf dem Ring, der wie ein Lichtreflex auf einer
+// gewölbten Oberfläche wirkt - EIN gemeinsamer Glanz für den ganzen Ring
+// (nicht mehr pro Achse, seit es nur noch eine Bahn ist), fix oben,
+// unabhängig vom Füllstand darunter.
+const RING_HIGHLIGHT = RING_CIRCUMFERENCE * 0.08;
 
-// Jede Bahn steckt in einer EIGENEN Animations-Gruppe (tr-ring-anim-*),
-// getrennt von der Gruppe, die das statische rotate(-90) für die
-// Fortschritts-Mathematik trägt - CSS-transform auf demselben Element wie
-// das transform-PRÄSENTATIONSATTRIBUT würde dieses ersetzen statt sich
-// damit zu kombinieren (SVG2/CSS-Transforms-Spec), was die Rampe aus der
-// 12-Uhr-Startposition gerissen hätte. So bleibt die Rotation unberührt,
-// während die äußere Gruppe frei "zittern" (Vibration) oder sich
-// "zusammenziehen" (Suction) kann - siehe updateIntensityRing/CSS.
-function ringArc(axisName) {
-  const { r, cx, cy } = RING_GEOMETRY[axisName];
-  const c = RING_CIRCUMFERENCE[axisName];
-  const highlight = c * RING_HIGHLIGHT_FRACTION;
+// Jede Hälfte steckt in einer EIGENEN Animations-Gruppe (tr-ring-anim-*),
+// getrennt von der Gruppe, die das statische rotate(-90) (und bei
+// Vibration zusätzlich die Spiegelung) für die Fortschritts-Mathematik
+// trägt - CSS-transform auf demselben Element wie ein transform-
+// PRÄSENTATIONSATTRIBUT würde dieses ersetzen statt sich damit zu
+// kombinieren (SVG2/CSS-Transforms-Spec). So bleiben Rotation/Spiegelung
+// unberührt, während die äußere Gruppe frei sanft pulsieren kann - siehe
+// updateIntensityRing/CSS.
+function ringHalf(axisName, mirror) {
+  const staticGroupOpen = mirror
+    ? `<g class="tr-ring-mirror"><g transform="rotate(-90 ${RING_CX} ${RING_CY})">`
+    : `<g transform="rotate(-90 ${RING_CX} ${RING_CY})">`;
+  const staticGroupClose = mirror ? '</g></g>' : '</g>';
   return `
     <g class="tr-ring-anim tr-ring-anim-${axisName}" id="tr-ring-anim-${axisName}">
-      <g transform="rotate(-90 ${cx} ${cy})">
-        <circle class="tr-ring-track" cx="${cx}" cy="${cy}" r="${r}" />
-        <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${cx}" cy="${cy}" r="${r}"
+      ${staticGroupOpen}
+        <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R}"
                 stroke="url(#tr-ring-grad-${axisName})"
-                stroke-dasharray="${c.toFixed(2)}"
-                stroke-dashoffset="${c.toFixed(2)}" />
-        <circle class="tr-ring-gloss" cx="${cx}" cy="${cy}" r="${r}"
-                stroke-dasharray="${highlight.toFixed(2)} ${c.toFixed(2)}" />
-      </g>
+                stroke-dasharray="${RING_HALF.toFixed(2)} ${RING_HALF.toFixed(2)}"
+                stroke-dashoffset="${RING_HALF.toFixed(2)}" />
+      ${staticGroupClose}
     </g>`;
 }
 
@@ -75,8 +70,14 @@ function renderDualIntensityRing() {
               <stop offset="100%" class="tr-ring-grad-stop-b tr-ring-grad-suction" />
             </linearGradient>
           </defs>
-          ${ringArc('vibration')}
-          ${ringArc('suction')}
+          <circle class="tr-ring-track" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R}" />
+          ${ringHalf('vibration', true)}
+          ${ringHalf('suction', false)}
+          <g class="tr-ring-gloss-spin">
+            <circle class="tr-ring-gloss" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R}"
+                    transform="rotate(${-90 - (RING_HIGHLIGHT / RING_CIRCUMFERENCE) * 180} ${RING_CX} ${RING_CY})"
+                    stroke-dasharray="${RING_HIGHLIGHT.toFixed(2)} ${RING_CIRCUMFERENCE.toFixed(2)}" />
+          </g>
         </svg>
         <div class="tr-ring-value-stack">
           <span class="tr-ring-value tr-ring-value-vibration" id="tr-ring-value-vibration">0%</span>
@@ -90,33 +91,29 @@ function renderDualIntensityRing() {
     </div>`;
 }
 
-// Aktualisiert EINE Bahn (Kreis + Zahl + eigenes Glanz-Glühen). Der
+// Aktualisiert EINE Hälfte (Kreis + Zahl + eigenes sanftes Pulsieren). Der
 // gemeinsame "Atem" (Skalierung des ganzen Widgets) ist bewusst separat
 // (updateRingBreathing unten) - sonst würden zwei unabhängig pulsierende
-// Bahnen sich gegenseitig die Skalierung kaputt machen.
+// Hälften sich gegenseitig die Skalierung kaputt machen.
 function updateIntensityRing(axisName, level, pulsing) {
   const pct = Math.round(clamp01(level) * 100);
-  const c = RING_CIRCUMFERENCE[axisName];
   const circle = document.getElementById(`tr-ring-${axisName}`);
   if (circle) {
-    circle.style.strokeDashoffset = (c * (1 - pct / 100)).toFixed(2);
+    circle.style.strokeDashoffset = (RING_HALF * (1 - pct / 100)).toFixed(2);
     circle.classList.toggle('tr-pulsing', pulsing);
   }
   const value = document.getElementById(`tr-ring-value-${axisName}`);
   if (value) value.textContent = pct + '%';
 
-  // Achsen-eigene Bewegung statt nur Farbe: Vibration lässt die Bahn
-  // tatsächlich zittern, Suction zieht sie rhythmisch nach innen zusammen
-  // ("gesaugt") - beide Male mit Amplitude proportional zur Intensität
-  // (CSS-Variable, die die Keyframes unten skalieren), nicht nur an/aus.
+  // Achsen-eigene, aber SANFTE Bewegung statt nur Farbe: beide Hälften
+  // pulsieren mit ease-in-out (kein hartes steps()-Zittern mehr) - flüssig
+  // und ruhig statt mechanisch. Amplitude (Skalierungs-Delta) proportional
+  // zur Intensität via CSS-Variable, nicht nur an/aus.
   const animGroup = document.getElementById(`tr-ring-anim-${axisName}`);
   if (animGroup) {
     animGroup.classList.toggle('tr-pulsing', pulsing);
-    if (axisName === 'vibration') {
-      animGroup.style.setProperty('--vib-amp', (clamp01(level) * 2.2).toFixed(2) + 'px');
-    } else if (axisName === 'suction') {
-      animGroup.style.setProperty('--suc-amp', (clamp01(level) * 0.16).toFixed(3));
-    }
+    const amp = axisName === 'vibration' ? clamp01(level) * 0.09 : clamp01(level) * 0.14;
+    animGroup.style.setProperty(`--${axisName === 'vibration' ? 'vib' : 'suc'}-amp`, amp.toFixed(3));
   }
 }
 

@@ -37,23 +37,41 @@ measurement history behind each entry; this file is the short version for
   the same physical channel — `player.NormalizeTrainingScript` now
   derives the channel from the axis slot unconditionally, closing this
   for both built-in and custom scripts.
-- **Live intensity meter:** one breathing dual ring (outer = Vibration,
-  inner = Suction, activity-ring style) instead of two separate meters —
-  a single glance shows both channels together. Verlaufsfarbe (gradient),
-  drop shadow, and a specular highlight arc per band give it a plastic/3D
-  look instead of a flat fill; the whole widget "breathes" (scale) while
-  either channel is active, each band also glows in its own color. Each
-  axis moves the way it feels, not just glows: the vibration band
-  genuinely **shakes** (small high-frequency jitter, `steps()` timing so
-  it reads as mechanical rather than a smooth wobble), the suction band
+- **Live intensity meter:** ONE ring, split into two mirrored halves
+  (left = Vibration, right = Suction) instead of two separate meters or
+  two concentric rings — a single glance shows both channels together,
+  in both colors on the same band. Each half's gradient blends into a
+  shared warm-white stop right at the seam instead of a hard color
+  border, so the two halves visually flow into one another rather than
+  looking like two rings glued side by side. Drop shadow and an inset
+  track groove give it a plastic/3D look instead of a flat fill; a
+  continuous, always-on subtle 3D tilt (`rotateX`/`rotateY` via CSS
+  `perspective`, `tr-ring-tilt3d`) plus a slowly rotating gloss highlight
+  sweep (`tr-ring-gloss-sweep`) make it read as a physical object with
+  depth rather than a flat graphic, independent of whether a session is
+  running. Each axis moves the way it feels, not just glows: the
+  vibration half genuinely pulses **outward** and the suction half
   rhythmically **contracts inward** ("sucked in" — fast pull, slower
-  release). Amplitude for both scales with the actual intensity (a CSS
-  custom property `updateIntensityRing` sets live), not just on/off.
-  Percentages sit stacked in the center, a small legend names the two
-  colors. Works for both the simple Technique/Channel form and scripts,
-  replacing the plain "Current peak" text with something to actually
-  watch move. On-brand colors (`--accent`/`--teal`) throughout, including
-  the plan-preview curve (previously hardcoded blue/orange).
+  release), both with a smooth `ease-in-out` scale animation (no
+  mechanical `steps()` jitter). Amplitude for both scales with the
+  actual intensity (CSS custom properties `--vib-amp`/`--suc-amp`,
+  `updateIntensityRing` sets them live), not just on/off. Percentages
+  sit stacked in the center, a small legend names the two colors. Works
+  for both the simple Technique/Channel form and scripts, replacing the
+  plain "Current peak" text with something to actually watch move.
+  On-brand colors (`--accent`/`--teal`) throughout, including the
+  plan-preview curve (previously hardcoded blue/orange).
+  - **Reusable pattern, noted for later:** nested `<g>` transform
+    separation (an outer group carries a CSS-animated `transform`, an
+    inner group carries a static `transform="rotate(...)"` presentation
+    attribute — putting both on the same SVG element makes the CSS
+    transform silently replace the attribute instead of composing with
+    it), the mirrored-half trick (`transform-box: fill-box; transform:
+    scaleX(-1)` to reverse an arc's fill direction), and CSS-variable-
+    driven animation amplitude (`element.style.setProperty('--x-amp',
+    ...)` instead of separate CSS classes per intensity level) are all
+    worth reaching for again when polishing other GUI dialogs — not
+    applied elsewhere yet, just recorded here as a template.
 - **Smoothed plan-preview/live curve:** corners where a ramp meets a
   hold are now gently rounded (quadratic-Bezier corner-cutting,
   `roundedPathD`) instead of sharp kinks, plus round line joins/caps.
@@ -94,6 +112,21 @@ measurement history behind each entry; this file is the short version for
   whenever no session was running. Invisible before because nothing
   after that point used to be an interactive form control; found when
   the new export button turned out to be permanently unclickable.
+- **`runPhaseRepeat` could leave a channel's goroutine running
+  unsupervised** after the other channel's curve failed: it used to
+  return on the first error without draining or cancelling the sibling,
+  which could keep writing to the device past `dev.Stop()`/session
+  teardown. It now derives a cancellable child context shared by both
+  channels, cancels it as soon as either reports a real error, and
+  always waits for both to finish before returning.
+- **Custom training script names could silently collide:**
+  `scriptFileSlug` strips a name down to `[a-z0-9-]` for its filename,
+  so two different names (e.g. "My Routine!" and "My Routine?") could
+  reduce to the same file and the second save would silently overwrite
+  the first with no warning. `SaveTrainingScript` now checks the
+  already-saved script at that path and rejects the save if its stored
+  name differs — re-saving under the identical name (editing in place)
+  still works unchanged.
 
 ## [0.5.21] — September 21, 2026
 

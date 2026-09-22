@@ -624,6 +624,72 @@ func TestRunTrainingScriptNormalizesMismatchedChannelField(t *testing.T) {
 	}
 }
 
+// errorAfterFirstSuctionDevice fails the very first SetSuction call while
+// still recording SetVibration calls - used to prove that runPhaseRepeat
+// cancels the sibling channel's goroutine on error instead of letting it
+// keep writing to the device unsupervised after runPhaseRepeat has already
+// returned (see runPhaseRepeat's innerCtx/cancel doc comment).
+type errorAfterFirstSuctionDevice struct {
+	mu         sync.Mutex
+	vibrations int
+	suctionErr error
+}
+
+func (d *errorAfterFirstSuctionDevice) SetVibration(v float64) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.vibrations++
+	return nil
+}
+
+func (d *errorAfterFirstSuctionDevice) SetSuction(v float64) error {
+	return d.suctionErr
+}
+
+func (d *errorAfterFirstSuctionDevice) Stop() error { return nil }
+
+func (d *errorAfterFirstSuctionDevice) vibrationCount() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.vibrations
+}
+
+// Ohne den innerCtx/cancel-Fix in runPhaseRepeat würde diese Funktion beim
+// ersten Fehler (hier: Sog-Kanal) sofort zurückkehren, während die
+// Vibrations-Goroutine ihre eigene, viel längere Rampe unbeaufsichtigt zu
+// Ende laufen lässt - sie teilt sich dann keinen abbrechbaren Kontext mit
+// dem Fehlerpfad. Dieser Test schlägt ohne den Fix fehl: runPhaseRepeat
+// bräuchte dann ~6s statt <500ms, und SetVibration würde nach der Rückkehr
+// noch weiter aufgerufen.
+func TestRunPhaseRepeatCancelsSiblingChannelOnError(t *testing.T) {
+	dev := &errorAfterFirstSuctionDevice{suctionErr: errors.New("device write failed")}
+	vib := &ChannelCurve{Channel: ChannelVibration, StartLevel: 0, PeakLevel: 1, EndLevel: 0,
+		RampUpMs: 2000, HoldMs: 2000, RampDownMs: 2000}
+	suc := &ChannelCurve{Channel: ChannelSuction, StartLevel: 0, PeakLevel: 1, EndLevel: 0,
+		RampUpMs: 100, HoldMs: 100, RampDownMs: 100}
+
+	start := time.Now()
+	stopped, err := runPhaseRepeat(context.Background(), dev, vib, suc, nil)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("erwartete einen Fehler vom fehlschlagenden Sog-Kanal, bekam nil")
+	}
+	if stopped {
+		t.Error("stopped sollte bei einem echten Fehler false sein, das ist kein Nutzer-Stopp-Wunsch")
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Errorf("runPhaseRepeat brauchte %v bis zur Rückkehr nach dem Sog-Fehler - die 6s-Vibrationskurve wurde nicht abgebrochen", elapsed)
+	}
+
+	countAtReturn := dev.vibrationCount()
+	time.Sleep(150 * time.Millisecond)
+	countAfterWait := dev.vibrationCount()
+	if countAfterWait > countAtReturn {
+		t.Errorf("SetVibration wurde noch nach der Rückkehr von runPhaseRepeat aufgerufen (%d -> %d Aufrufe) - die Vibrations-Goroutine lief unbeaufsichtigt weiter", countAtReturn, countAfterWait)
+	}
+}
+
 func TestBuiltinTrainingScriptLookup(t *testing.T) {
 	if _, ok := BuiltinTrainingScript("does-not-exist"); ok {
 		t.Error("unbekannter Name hätte nicht gefunden werden dürfen")

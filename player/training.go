@@ -597,40 +597,59 @@ func runChannelCurve(ctx context.Context, dev trainingDevice, curve *ChannelCurv
 // nacheinander - beide Kurven laufen über dieselbe Zeitachse. device.go's
 // SamNeo2/Intiface schützen ihren Zustand bereits mit einem eigenen Mutex
 // (writeChannel), gleichzeitige SetVibration/SetSuction-Aufrufe aus zwei
-// Goroutinen sind also sicher. Der gepufferte Ergebniskanal (Größe 2)
-// verhindert einen Goroutine-Leak, falls ein früher Fehler-Return die
-// zweite Antwort nie abholt - beide Goroutinen senden immer genau einmal
-// und blockieren dabei nicht.
+// Goroutinen sind also sicher.
+//
+// Ein eigener, ableitbarer Kontext sorgt dafür, dass diese Funktion NIE
+// zurückkehrt, während eine der beiden Goroutinen noch am Gerät schreibt:
+// meldet ein Kanal einen echten Fehler, bricht cancel() den jeweils
+// anderen sofort ab (rampChannel/waitInterruptible/waitOrDone prüfen
+// ctx.Done() bereits überall), statt ihn seine volle Rampe zu Ende laufen
+// zu lassen. Vorher konnte ein früher Fehler-Return die zweite Goroutine
+// unbeaufsichtigt weiterlaufen lassen - kein Goroutine-Leak im
+// Laufzeit-Sinn (der gepufferte Kanal verhindert das), aber ein
+// Gerät, das nach dem scheinbaren Sessionende weiter angesteuert wird,
+// potenziell über den defer dev.Stop() hinweg oder in eine inzwischen
+// neu beanspruchte Session hinein.
 func runPhaseRepeat(ctx context.Context, dev trainingDevice, vib, suc *ChannelCurve, control *TrainingControl) (bool, error) {
 	type outcome struct {
 		stopped bool
 		err     error
 	}
+	innerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	outcomes := make(chan outcome, 2)
 	n := 0
 	if vib != nil {
 		n++
 		go func() {
-			stopped, err := runChannelCurve(ctx, dev, vib, control)
+			stopped, err := runChannelCurve(innerCtx, dev, vib, control)
 			outcomes <- outcome{stopped, err}
 		}()
 	}
 	if suc != nil {
 		n++
 		go func() {
-			stopped, err := runChannelCurve(ctx, dev, suc, control)
+			stopped, err := runChannelCurve(innerCtx, dev, suc, control)
 			outcomes <- outcome{stopped, err}
 		}()
 	}
 	stoppedAny := false
+	var firstErr error
 	for i := 0; i < n; i++ {
 		o := <-outcomes
 		if o.err != nil {
-			return false, o.err
+			if firstErr == nil {
+				firstErr = o.err
+			}
+			cancel() // die andere Kurve muss nicht mehr zu Ende laufen
 		}
 		if o.stopped {
 			stoppedAny = true
 		}
+	}
+	if firstErr != nil {
+		return false, firstErr
 	}
 	return stoppedAny, nil
 }

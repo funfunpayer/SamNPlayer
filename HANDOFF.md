@@ -500,6 +500,48 @@ These issues have already cost development time:
   any signal into a zigzag that appears rhythmic.
 - **Build with `-trimpath`.** Otherwise the build machine's path, including
   the username, is embedded in the executable.
+- **A CSS `transform` and an SVG `transform="rotate(...)"` presentation
+  attribute on the SAME element don't compose** — the CSS one silently
+  replaces the attribute instead of adding to it (SVG2/CSS Transforms
+  spec). Split them onto nested `<g>`s: outer group carries the
+  CSS-animated transform, inner group carries the static
+  `transform="rotate(...)"` attribute.
+- **Playwright's click/screenshot "stability" check compares
+  `getBoundingClientRect()` between two frames for exact equality** — a
+  page with ANY continuously running CSS animation nearby (even a
+  cosmetic, sub-pixel one that never actually moves the target element)
+  can make this never pass, timing out after 30s. Confirm it's cosmetic
+  by disabling all animations/transitions (`page.add_style_tag(content=
+  "*{animation:none!important;transition:none!important}")`) and
+  re-sampling the target's bounding box — if the "drift" disappears,
+  use `force=True` on the click (or `animations="disabled"` on
+  `screenshot()`) rather than chasing it as a real layout bug.
+
+### Reusable GUI pattern: the training-tab intensity ring
+
+Built for the Training tab's live intensity meter
+(`cmd/gui-wails/frontend/src/training.js`'s `renderDualIntensityRing`/
+`updateIntensityRing`, styles in `style.css`'s `.tr-ring-*` block) —
+worth reaching for again when polishing other dialogs, not applied
+elsewhere yet:
+- Nested-`<g>` transform separation (see pitfall above) for any SVG
+  element that needs both a static rotation and an animated transform.
+- Mirrored-half trick for a ring/arc that should visually fill from the
+  "wrong" side: `.mirror { transform-box: fill-box; transform-origin:
+  center; transform: scaleX(-1); }` around a normally-clockwise arc.
+- CSS custom properties set live from JS
+  (`el.style.setProperty('--x-amp', ...)`) to drive keyframe animation
+  *amplitude* proportional to a live value, instead of swapping CSS
+  classes per intensity level.
+- `perspective` on the parent + animated `rotateX`/`rotateY` on the
+  child for a genuine (not just scaled) 3D tilt; a slowly rotating
+  gloss-highlight `<g>` (own `animation: rotate(...)`, separate from any
+  other transform on the same element) reads as a specular highlight
+  sweeping across a curved surface.
+- Two color regions blending into each other: give both gradients a
+  shared stop color right at the seam instead of ending each at its own
+  pure color — reads as one continuous surface, not two regions glued
+  together.
 
 ---
 

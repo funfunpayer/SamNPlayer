@@ -582,20 +582,34 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   color: var(--text-dim); white-space: pre-wrap;
 }
 
-/* Trainings-Intensitätsmesser: EIN atmender Doppelring statt zweier
-   getrennter Ringe - zwei konzentrische Bahnen (außen Vibration, innen
-   Suction) in einem Widget, wie bei Aktivitätsringen, mit Verlaufsfarbe,
-   Schlagschatten und Glanzlicht-Bogen je Bahn für einen plastischen statt
-   flachen Look. */
+/* Trainings-Intensitätsmesser: EIN Ring statt zweier konzentrischer Bahnen
+   - eine Kreisbahn, links zur Hälfte Gold (Vibration), rechts zur Hälfte
+   Teal (Suction), mit Verlaufsfarbe, Schlagschatten und einem
+   gemeinsamen Glanzlicht-Bogen oben für einen plastischen statt flachen
+   Look. Beide Hälften pulsieren sanft (ease-in-out) mit der Intensität -
+   bewusst kein hartes Zittern, siehe tr-ring-pulse-* unten. */
 .tr-meter { margin: 10px 0; }
 .tr-ring-row { display: flex; align-items: center; gap: 16px; }
 
-.tr-ring-wrap { position: relative; width: 84px; height: 84px; flex-shrink: 0; transition: transform 0.4s ease; }
+.tr-ring-wrap {
+  position: relative; width: 84px; height: 84px; flex-shrink: 0; transition: transform 0.4s ease;
+  /* Tiefe für die Kippbewegung des Rings unten - ohne perspective auf dem
+     Elternelement bliebe rotateX/Y flach/wirkungslos. */
+  perspective: 260px;
+}
 .tr-ring {
   width: 100%; height: 100%; overflow: visible;
   /* Schlagschatten unter dem ganzen Ring - hebt ihn optisch von der
      Fläche ab, statt flach draufzuliegen. */
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+  /* Dauerhaftes, sehr sanftes Kippen (echtes 3D-transform, nicht nur
+     Skalierung) - macht aus dem Ring ein Objekt mit Tiefe statt einer
+     flachen Grafik, unabhängig davon, ob gerade eine Session läuft. */
+  animation: tr-ring-tilt3d 6s ease-in-out infinite;
+}
+@keyframes tr-ring-tilt3d {
+  0%, 100% { transform: rotateX(5deg) rotateY(-7deg); }
+  50%      { transform: rotateX(-5deg) rotateY(7deg); }
 }
 .tr-ring-track {
   fill: none; stroke: var(--surface-2); stroke-width: 6;
@@ -607,19 +621,45 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   fill: none; stroke-width: 6; stroke-linecap: round;
   transition: stroke-dashoffset 0.45s ease;
 }
-/* Verlauf statt Flachfarbe je Bahn - simuliert Licht auf einer gewölbten
-   Oberfläche (hell oben-links, satter unten-rechts). */
-.tr-ring-grad-vibration.tr-ring-grad-stop-a { stop-color: var(--accent-hover); }
+/* Die linke (Vibrations-)Hälfte wird um die Ringmitte gespiegelt, damit
+   ihr Fortschritt von 12 Uhr aus nach LINKS statt nach rechts läuft (ein
+   SVG-Kreis wird von Haus aus im Uhrzeigersinn gezeichnet) - auf einer
+   eigenen, unbewegten Zwischenebene, damit die Spiegelung sich nicht mit
+   dem Puls-transform weiter unten beißt (getrennte Elemente statt
+   dasselbe transform zu überschreiben). */
+.tr-ring-mirror { transform-box: fill-box; transform-origin: center; transform: scaleX(-1); }
+/* Verlauf statt Flachfarbe je Hälfte - simuliert Licht auf einer
+   gewölbten Oberfläche. Beide starten nahe der Nahtstelle (wo sich die
+   Hälften treffen) auf demselben warmen Weißton statt direkt mit der
+   eigenen Farbe - dieselbe Machart, mit der zwei farbige Lichtstränge in
+   echten Langzeitbelichtungen an ihrer Kreuzung hell/weiß statt hart
+   zweifarbig aussehen (Referenzbild) - und wandern erst zur eigenen
+   satten Farbe, je weiter sie sich von der Naht entfernen. */
+.tr-ring-grad-vibration.tr-ring-grad-stop-a { stop-color: #fff3d6; }
 .tr-ring-grad-vibration.tr-ring-grad-stop-b { stop-color: var(--accent); }
-.tr-ring-grad-suction.tr-ring-grad-stop-a { stop-color: #6ff0e3; }
+.tr-ring-grad-suction.tr-ring-grad-stop-a { stop-color: #fff3d6; }
 .tr-ring-grad-suction.tr-ring-grad-stop-b { stop-color: var(--teal); }
-/* Kurzer heller Bogen oben auf jeder Bahn - der eigentliche
+/* Kurzer heller Bogen oben auf dem Ring - der eigentliche
    "Glanzlicht"-Trick, der aus einer flachen Linie einen gewölbten Reflex
-   macht. Liegt über Track UND Fill (letztes Element je Bahn = oberste
-   Ebene innerhalb dieser Bahn). */
+   macht. Liegt über Track UND beiden Hälften (letztes Element im SVG =
+   oberste Ebene). */
 .tr-ring-gloss {
   fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 2;
   stroke-linecap: round; pointer-events: none;
+}
+/* Der Glanz wandert langsam und gleichmäßig einmal um den Ring - wie ein
+   Lichtreflex, der über eine gewölbte, sich drehende Oberfläche läuft,
+   statt fix an einer Stelle zu kleben. Eigene Gruppe (nicht das gloss-
+   Element selbst), aus demselben Grund wie bei den Puls-Animationen: ein
+   CSS-transform auf demselben Element wie das statische rotate(...)-
+   Attribut würde dieses ersetzen statt sich damit zu kombinieren. */
+.tr-ring-gloss-spin {
+  transform-box: fill-box; transform-origin: center;
+  animation: tr-ring-gloss-sweep 6s linear infinite;
+}
+@keyframes tr-ring-gloss-sweep {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 .tr-ring-value-stack {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -640,9 +680,9 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
 .tr-ring-swatch-suction { background: linear-gradient(135deg, #6ff0e3, var(--teal)); }
 
 /* "Atmen": das ganze Widget skaliert sanft (ausgelöst, sobald IRGENDEINE
-   Bahn aktiv ist), plus ein weicher Glow auf der jeweils aktiven Bahn -
-   getrennte Animationen auf getrennten Elementen, damit der Glow einer
-   Bahn nicht die Skalierung des ganzen Widgets verzerrt. */
+   Hälfte aktiv ist), plus ein weicher Glow auf der jeweils aktiven
+   Hälfte - getrennte Animationen auf getrennten Elementen, damit der
+   Glow einer Hälfte nicht die Skalierung des ganzen Widgets verzerrt. */
 .tr-ring-wrap.tr-pulsing { animation: tr-ring-breathe 1.6s ease-in-out infinite; }
 .tr-ring-fill.tr-ring-vibration.tr-pulsing { animation: tr-ring-glow-accent 1.6s ease-in-out infinite; }
 .tr-ring-fill.tr-ring-suction.tr-pulsing { animation: tr-ring-glow-teal 1.6s ease-in-out infinite; }
@@ -659,34 +699,27 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   50% { filter: drop-shadow(0 0 5px var(--teal-soft)); }
 }
 
-/* Achsen-eigene Bewegung statt nur Farbe/Glow - siehe updateIntensityRing's
-   eigener Kommentar. --vib-amp/--suc-amp werden dort live in px bzw. als
-   Skalierungs-Delta gesetzt, proportional zur Intensität; 0 macht beide
-   Animationen praktisch unsichtbar, ohne sie ein-/auszuschalten zu müssen. */
-.tr-ring-anim { --vib-amp: 0px; --suc-amp: 0; transform-box: fill-box; transform-origin: center; }
+/* Achsen-eigene, aber SANFTE Bewegung statt nur Farbe/Glow - siehe
+   updateIntensityRing's eigener Kommentar. --vib-amp/--suc-amp sind
+   Skalierungs-Deltas, live proportional zur Intensität gesetzt; 0 macht
+   die Animation praktisch unsichtbar, ohne sie ein-/auszuschalten zu
+   müssen. Beide nutzen dieselbe ease-in-out-Mechanik (kein steps()-Ruckeln
+   mehr) - Vibration pulst sanft nach AUSSEN (energetischer, kürzere
+   Taktung), Suction zieht sich sanft nach INNEN zusammen ("gesaugt",
+   asymmetrisch: schneller Zug, langsameres Loslassen) - unterscheidbar
+   durch Richtung und Tempo, nicht durch Ruckeln. */
+.tr-ring-anim { --vib-amp: 0; --suc-amp: 0; transform-box: fill-box; transform-origin: center; }
 .tr-ring-anim-vibration.tr-pulsing {
-  animation: tr-ring-vibrate 0.18s steps(2, jump-none) infinite;
+  animation: tr-ring-pulse-out 0.6s ease-in-out infinite;
 }
 .tr-ring-anim-suction.tr-pulsing {
-  animation: tr-ring-suck 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: tr-ring-pulse-in 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-/* Echtes Zittern: wechselt in kurzen, unregelmäßig wirkenden Schritten
-   zwischen mehreren Versätzen statt sanft zu interpolieren (steps() statt
-   ease) - fühlt sich mechanisch/vibrierend an statt wie ein Wackeln. */
-@keyframes tr-ring-vibrate {
-  0%   { transform: translate(var(--vib-amp), calc(var(--vib-amp) * -0.6)); }
-  20%  { transform: translate(calc(var(--vib-amp) * -0.8), var(--vib-amp)); }
-  40%  { transform: translate(var(--vib-amp), var(--vib-amp)); }
-  60%  { transform: translate(calc(var(--vib-amp) * -1), calc(var(--vib-amp) * -0.4)); }
-  80%  { transform: translate(calc(var(--vib-amp) * 0.6), calc(var(--vib-amp) * -1)); }
-  100% { transform: translate(var(--vib-amp), calc(var(--vib-amp) * -0.6)); }
+@keyframes tr-ring-pulse-out {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(calc(1 + var(--vib-amp))); }
 }
-/* "Gesaugt": zieht sich schnell zusammen und lässt danach langsamer wieder
-   los - asymmetrisch (40% Haltepunkt statt 50%), damit es nach einem Zug
-   statt einem gleichmäßigen Atmen aussieht. Tiefe (--suc-amp) wächst mit
-   der Sog-Intensität - bei wenig Sog kaum sichtbar, bei viel ein
-   deutliches Einwärtsziehen. */
-@keyframes tr-ring-suck {
+@keyframes tr-ring-pulse-in {
   0%   { transform: scale(1); }
   40%  { transform: scale(calc(1 - var(--suc-amp))); }
   100% { transform: scale(1); }

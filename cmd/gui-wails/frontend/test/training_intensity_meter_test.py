@@ -85,7 +85,10 @@ def main():
               "Vibration" in page.locator(".tr-ring-legend").inner_text()
               and "Suction" in page.locator(".tr-ring-legend").inner_text())
 
-        page.click("#tr-start")
+        # force=True siehe Kommentar beim zweiten #tr-start-Klick weiter
+        # unten - der Ring animiert (Kippen/Glanz) schon ab dem ersten
+        # Render, nicht erst nach einer Session.
+        page.click("#tr-start", force=True)
         page.select_option("#tr-channel", "both")
         page.evaluate("window.__triggerEvent('training:cycle', "
                        "{ cycleIndex: 0, cyclesTotal: 3, peakIntensity: 0.7, holdMs: 1000 })")
@@ -100,37 +103,38 @@ def main():
         check("laufende Session: Vibrationsbahn glüht", ring_pulsing(page, "vibration"))
         check("laufende Session: Sog-Bahn glüht", ring_pulsing(page, "suction"))
 
-        # Echte Bewegung, nicht nur Farbe: Vibration zittert (Position
-        # ändert sich mehrfach über Zeit), Suction zieht sich zusammen
-        # (Skalierung sinkt zeitweise unter 1). Amplitude kommt aus einer
-        # CSS-Variable, die updateIntensityRing proportional zur
-        # Intensität setzt.
+        # Echte, aber SANFTE Bewegung statt nur Farbe: beide Hälften pulsen
+        # per Skalierung (ease-in-out, kein hartes Zittern) - Vibration
+        # sanft nach außen, Suction sanft nach innen ("gesaugt"). Amplitude
+        # kommt aus einer CSS-Variable, die updateIntensityRing proportional
+        # zur Intensität setzt.
         vib_amp = page.locator("#tr-ring-anim-vibration").evaluate(
             "e => getComputedStyle(e).getPropertyValue('--vib-amp')").strip()
         suc_amp = page.locator("#tr-ring-anim-suction").evaluate(
             "e => getComputedStyle(e).getPropertyValue('--suc-amp')").strip()
-        check("Vibration-Amplitude proportional zur Intensität (70% -> ~1.54px)",
-              vib_amp == "1.54px", vib_amp)
-        check("Suction-Amplitude proportional zur Intensität (70% -> ~0.112)",
-              suc_amp == "0.112", suc_amp)
+        check("Vibration-Amplitude proportional zur Intensität (70% -> ~0.063)",
+              vib_amp == "0.063", vib_amp)
+        check("Suction-Amplitude proportional zur Intensität (70% -> ~0.098)",
+              suc_amp == "0.098", suc_amp)
 
-        positions = set()
-        for _ in range(5):
-            box = page.locator("#tr-ring-anim-vibration").bounding_box()
-            positions.add((round(box["x"], 1), round(box["y"], 1)))
-            page.wait_for_timeout(60)
-        check("Vibrationsbahn bewegt sich tatsächlich (mehrere Positionen über Zeit)",
-              len(positions) > 1, str(positions))
+        def sample_scales(selector, n, wait_ms):
+            values = set()
+            for _ in range(n):
+                values.add(page.locator(selector).evaluate("e => getComputedStyle(e).transform"))
+                page.wait_for_timeout(wait_ms)
+            return values
 
-        scales = set()
-        for _ in range(6):
-            m = page.locator("#tr-ring-anim-suction").evaluate("e => getComputedStyle(e).transform")
-            scales.add(m)
-            page.wait_for_timeout(160)
-        check("Suction-Bahn skaliert sich tatsächlich (mehrere Werte über Zeit)",
-              len(scales) > 1, str(scales))
-        check("Suction-Bahn zieht sich zeitweise unter volle Größe zusammen",
-              any("1, 0, 0, 1" not in m for m in scales), str(scales))
+        vib_scales = sample_scales("#tr-ring-anim-vibration", 6, 100)
+        check("Vibrationshälfte pulsiert tatsächlich (mehrere Skalierungswerte über Zeit)",
+              len(vib_scales) > 1, str(vib_scales))
+        check("Vibrationshälfte pulst zeitweise über volle Größe hinaus (nach außen)",
+              any("1, 0, 0, 1" not in m for m in vib_scales), str(vib_scales))
+
+        suc_scales = sample_scales("#tr-ring-anim-suction", 6, 160)
+        check("Suction-Hälfte pulsiert tatsächlich (mehrere Skalierungswerte über Zeit)",
+              len(suc_scales) > 1, str(suc_scales))
+        check("Suction-Hälfte zieht sich zeitweise unter volle Größe zusammen (nach innen)",
+              any("1, 0, 0, 1" not in m for m in suc_scales), str(suc_scales))
         check("laufende Session: das ganze Widget atmet", widget_breathing(page))
 
         page.select_option("#tr-channel", "vibration")
@@ -157,7 +161,18 @@ def main():
 
         # Script-Pfad: beide Werte kommen getrennt im Event, kein
         # Formularfeld-Umweg wie bei der einfachen Form oben.
-        page.click("#tr-start")
+        # force=True: der Ring kippt/glänzt jetzt DAUERHAFT (tr-ring-tilt3d/
+        # tr-ring-gloss-sweep, siehe style.css) - ein rein kosmetisches,
+        # sub-Pixel-kleines 3D-transform+filter auf dem Ring, das einen
+        # echten Mausklick nicht im Geringsten stört. Playwrights
+        # Stabilitätsprüfung vergleicht #tr-starts getBoundingClientRect()
+        # aber zwischen zwei Frames auf exakte Gleichheit - bei einer
+        # dauerhaft animierten Seite (egal wie klein die Bewegung) trifft
+        # das praktisch nie zu (mit allen Animationen/Transitions
+        # abgeschaltet verschwindet die "Instabilität" komplett - es ist
+        # kein echter Layout-Sprung des Buttons). force überspringt genau
+        # diese hier irreführende Prüfung.
+        page.click("#tr-start", force=True)
         page.evaluate("window.__triggerEvent('training:scriptCycle', {"
                        "phaseIndex: 0, phaseName: 'Wave', phasesTotal: 1,"
                        "repeatIndex: 0, repeatsTotal: 1, vibrationPeak: 0.3, suctionPeak: 0.9,"

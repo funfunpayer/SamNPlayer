@@ -82,11 +82,27 @@ func (a *App) SaveTrainingScript(script player.TrainingScript) (TrainingScriptIn
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return TrainingScriptInfo{}, err
 	}
+
+	// scriptFileSlug strips everything but [a-z0-9-], so two DIFFERENT
+	// names (e.g. "My Routine!" and "My Routine?") can reduce to the same
+	// slug and thus the same file. Without this check, saving the second
+	// one would silently overwrite the first - same file name, but
+	// SaveTrainingScript never even loads the old content to notice the
+	// name changed. Re-saving under the SAME name (editing a script in
+	// place) must keep working, so only reject when a script already
+	// lives at that path under a DIFFERENT name.
+	scriptPath := filepath.Join(dir, slug+".json")
+	if existing, readErr := readScriptFile(scriptPath); readErr == nil && existing.Name != script.Name {
+		return TrainingScriptInfo{}, fmt.Errorf(
+			"script name %q reduces to the same file name (%q) as the already-saved script %q - pick a name that differs in letters or digits, not just spelling/punctuation/case",
+			script.Name, slug, existing.Name)
+	}
+
 	b, err := json.MarshalIndent(script, "", "  ")
 	if err != nil {
 		return TrainingScriptInfo{}, err
 	}
-	if err := os.WriteFile(filepath.Join(dir, slug+".json"), b, 0644); err != nil {
+	if err := os.WriteFile(scriptPath, b, 0644); err != nil {
 		return TrainingScriptInfo{}, err
 	}
 	return TrainingScriptInfo{Name: script.Name, Description: script.Description, Custom: true}, nil
@@ -113,18 +129,27 @@ func listCustomTrainingScripts() ([]player.TrainingScript, error) {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
 			continue
 		}
-		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		script, err := readScriptFile(filepath.Join(dir, e.Name()))
 		if err != nil {
-			continue // eine unlesbare Datei darf die anderen nicht mitreißen
-		}
-		var script player.TrainingScript
-		if err := json.Unmarshal(b, &script); err != nil {
-			continue // dasselbe für eine beschädigte Datei
+			continue // eine unlesbare/beschädigte Datei darf die anderen nicht mitreißen
 		}
 		scripts = append(scripts, script)
 	}
 	sort.Slice(scripts, func(i, j int) bool { return scripts[i].Name < scripts[j].Name })
 	return scripts, nil
+}
+
+// readScriptFile reads and decodes one saved custom script's JSON file.
+func readScriptFile(path string) (player.TrainingScript, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return player.TrainingScript{}, err
+	}
+	var script player.TrainingScript
+	if err := json.Unmarshal(b, &script); err != nil {
+		return player.TrainingScript{}, err
+	}
+	return script, nil
 }
 
 // loadAnyTrainingScript looks a script up by name across BOTH sources -
