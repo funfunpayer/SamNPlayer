@@ -321,6 +321,9 @@ export function initTraining(root) {
   let liveLevelsActive = false;
   let levelsRaf = 0;
   let pendingLevels = null;
+  // Bumped on training:done / failed start so an in-flight StartTraining
+  // that finishes after done cannot call setRunningState(true) again.
+  let startEpoch = 0;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
   // One card: clip + meta + ring side-by-side (not a second stacked block).
   const ringSlot = el('#tr-ring-slot');
@@ -332,6 +335,14 @@ export function initTraining(root) {
     box.scrollTop = box.scrollHeight;
   }
 
+  function cancelPendingLevels() {
+    if (levelsRaf) {
+      cancelAnimationFrame(levelsRaf);
+      levelsRaf = 0;
+    }
+    pendingLevels = null;
+  }
+
   function setRunningState(isRunning) {
     running = isRunning;
     el('#tr-start').disabled = isRunning;
@@ -339,6 +350,7 @@ export function initTraining(root) {
     el('#tr-pause').disabled = !isRunning;
     el('#tr-arousal').disabled = !isRunning;
     if (!isRunning) {
+      cancelPendingLevels();
       liveLevelsActive = false;
       el('#tr-arousal-status').textContent = '';
       pixelStage.setIntensity(0);
@@ -762,13 +774,19 @@ export function initTraining(root) {
           plateauFraction: parseFloat(el('#tr-plateaufrac').value) || 0,
           progressionPerCycle: parseFloat(el('#tr-progression').value) || 0,
         };
+    const epoch = ++startEpoch;
+    setRunningState(true);
     try {
       await StartTraining(req);
     } catch (err) {
-      uiError('Start training: ' + err, el('#tr-log'));
+      if (epoch === startEpoch) {
+        setRunningState(false);
+        uiError('Start training: ' + err, el('#tr-log'));
+      }
       return;
     }
-    setRunningState(true);
+    // training:done may have fired (and bumped startEpoch) before resolve.
+    if (epoch !== startEpoch) return;
   }
 
   async function stop() {
@@ -778,14 +796,25 @@ export function initTraining(root) {
 
   EventsOn('training:log', log);
   EventsOn('training:error', msg => log('ERROR: ' + msg));
-  EventsOn('training:done', () => { setRunningState(false); log('Training finished.'); refreshHistory(); });
+  EventsOn('training:done', () => {
+    startEpoch++; // invalidate in-flight start() that still awaits StartTraining
+    cancelPendingLevels();
+    setRunningState(false);
+    log('Training finished.');
+    refreshHistory();
+  });
   // Live channel levels (~50ms from ramp writes) — drives ring + clip, not
   // completed-cycle peak summaries (those stay for labels/log only).
   EventsOn('training:levels', payload => {
+    if (!running) return; // ignore late events after done / before start
     pendingLevels = payload || {};
     if (levelsRaf) return;
     levelsRaf = requestAnimationFrame(() => {
       levelsRaf = 0;
+      if (!running) {
+        pendingLevels = null;
+        return;
+      }
       applyLiveLevels(pendingLevels || {});
     });
   });
