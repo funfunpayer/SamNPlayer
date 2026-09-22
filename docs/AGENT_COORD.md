@@ -90,7 +90,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT only) + Review/Play polyline overlay, both off by default | **open — CI pending (no OpenCV in agent sandbox to pre-verify trackcv changes)** |
+| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) merged + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT + simpletrack NCC) + Review/Play polyline overlay, both off by default | **#188 DONE** (`b7f5d2d`); **#189 open** (simpletrack gap closed, verified locally incl. `-tags opencv -race`) |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | next | **MT-Seed** — ranked motion-candidate → Tip+Partner seed CSRT (GUI suggest ≠ auto-commit) | **NEXT (Cursor)** |
@@ -617,6 +617,7 @@ ring revision before committing.
 | 22 Sep | **Multi-track Fahrplan** written into `PRODUCTION_ROADMAP` (MT-Go→Seed→Speed→ID→Debug+Infra); sources: MOT/YOLO, VSDC, Unite.ai filter, MovieGo | Owner + Cursor |
 | 22 Sep | **MT-Go** shipped #183; lanes split: Cursor=MT-Seed, Claude=MT-Debug/(Infra), ChatGPT=verify then MT-Speed | Owner + Cursor |
 | 22 Sep | **MT-Debug data gap found:** no per-frame tip/partner (x,y) survived anywhere (trackcv discarded box centers after computing the fused distance) — flagged on #184, Cursor green-lit an additive opt-in capture hook in `trackcv` (zero behavior change when off). Opened #188: capture (CSRT path only, `simpletrack` not yet wired) + Review/Play polyline overlay, both off by default | Claude ↔ Cursor |
+| 22 Sep | **#188 merged.** Follow-up #189 wires the same opt-in capture into `simpletrack` (the non-OpenCV Windows fallback) so "Record tip/partner trajectory" works on both native Go tracking backends; no GUI/schema changes needed, both backends feed the same `metadata.trajectory`. New `reflect.DeepEqual` regression test locks in byte-identical output when the flag is off | Claude |
 
 ---
 
