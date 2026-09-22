@@ -19,7 +19,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 | — | **Stroke preview (extrema + Abtastung)** | **Started** — Stage A library + CLI `stroke-preview` (timing/flags only; not a tracker). Gate: clip_ausschnitt vs hub peaks. See § below. |
-| — | **Everyday Generate (FunGen-like)** | **Done (UI)** — auto-find tip → CSRT first; AI/Zone2 optional. `docs/EVERYDAY_GENERATE.md`. Clip gate: hub CSRT windowed r≈0.59. |
+| — | **Everyday Generate (FunGen-like)** | **Done (UI)** — auto-find tip → CSRT; Review Improve (trim/fill gaps/audio). `docs/EVERYDAY_GENERATE.md`. Clip gate: hub CSRT windowed r≈0.59. |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
