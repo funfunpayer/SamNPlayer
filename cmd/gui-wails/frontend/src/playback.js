@@ -251,6 +251,11 @@ export function initPlayback(root) {
             <input type="checkbox" id="pb-use-video-sync" checked />
             <label for="pb-use-video-sync">Device follows video position</label>
           </div>
+          <div class="checkbox-row" id="pb-video-autostart-row" style="display:none">
+            <input type="checkbox" id="pb-video-play-autostart" checked />
+            <label for="pb-video-play-autostart"
+              data-help="Off: the video's own play button/spacebar (with the video focused) plays the video only, without starting the device/curve — use the app's Play button for that. On (default): native video play also starts device playback, same as before.">Video ▶ also starts device</label>
+          </div>
           <div class="field-row"><label>Device</label>
             <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (no device)</label></span>
           </div>
@@ -302,6 +307,22 @@ export function initPlayback(root) {
   let scriptHasContactVibration = false;
   const curveCanvas = el('#pb-curve');
   const chartTooltip = el('#pb-chart-tooltip');
+
+  // sizeCanvasForDPR setzt die Backing-Store-Auflösung auf CSS-Größe ×
+  // devicePixelRatio, statt 1:1 auf clientWidth/Height - sonst wird auf
+  // HiDPI/Retina-Displays ein 1x-Bitmap hochskaliert und wirkt unscharf,
+  // während der Rest der UI (CSS) gestochen scharf bleibt. Die gesamte
+  // Koordinatenmathematik unten (curveXOf/curveYOf/curveMouseXY/...)
+  // rechnet bereits mit canvas.width/height statt mit clientWidth/Height,
+  // bleibt also automatisch korrekt, sobald der Backing-Store größer ist -
+  // kein zusätzlicher ctx-Transform nötig.
+  function sizeCanvasForDPR(canvas, fallbackW, fallbackH) {
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth || fallbackW;
+    const cssH = canvas.clientHeight || fallbackH;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+  }
   const CURVE_MAX_POINTS = 1200;
   const PLAYLIST_SHUFFLE_KEY = 'pb.playlist.shuffle';
   const PLAYLIST_REPEAT_KEY = 'pb.playlist.repeat';
@@ -659,9 +680,16 @@ export function initPlayback(root) {
     ctx.stroke();
   }
 
+  function editHitRadiusCanvasPx() {
+    // EDIT_HIT_RADIUS_PX is a CSS-pixel feel; on HiDPI the backing store is
+    // larger, so convert to canvas pixels or hits get harder on Retina.
+    const rect = curveCanvas.getBoundingClientRect();
+    const scale = curveCanvas.width / Math.max(1, rect.width);
+    return EDIT_HIT_RADIUS_PX * scale;
+  }
   function findNearestActionIndex(mx, my) {
     if (!rawActions) return -1;
-    let best = -1, bestDist = EDIT_HIT_RADIUS_PX;
+    let best = -1, bestDist = editHitRadiusCanvasPx();
     for (let i = 0; i < rawActions.length; i++) {
       const dx = curveXOf(rawActions[i].atMs) - mx;
       const dy = curveYOf(rawActions[i].pos) - my;
@@ -1045,7 +1073,7 @@ export function initPlayback(root) {
     }
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
-    curveCanvas.width = curveCanvas.clientWidth || 800;
+    sizeCanvasForDPR(curveCanvas, 800, 120);
     redrawCurve();
   }
 
@@ -1083,7 +1111,17 @@ export function initPlayback(root) {
 
   curveCanvas.addEventListener('mousemove', (e) => {
     if (editMode && editDragIndex !== null) {
-      const atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
+      let atMs = Math.max(0, Math.min(totalMs, curveMsOfX(e.clientX)));
+      // Nicht über die direkten Nachbarn hinausziehen lassen - sonst
+      // "springt" der Punkt beim Loslassen im Index, weil persistRawActions
+      // danach chronologisch neu sortiert (siehe dort).
+      const prev = rawActions[editDragIndex - 1];
+      const next = rawActions[editDragIndex + 1];
+      const lower = prev ? prev.atMs + 1 : 0;
+      const upper = next ? next.atMs - 1 : totalMs;
+      // Adjacent neighbors (1ms gap) can make lower > upper — freeze then.
+      if (lower <= upper) atMs = Math.max(lower, Math.min(upper, atMs));
+      else atMs = prev ? prev.atMs + 1 : atMs;
       rawActions[editDragIndex] = { atMs, pos: curvePosOfY(e.clientY) };
       redrawCurve();
       hideChartTooltip();
@@ -1207,7 +1245,7 @@ export function initPlayback(root) {
     heatmapCanvas.style.display = 'block';
     el('#pb-marker-hint').style.display = 'block';
     el('#pb-marker-auto-row').style.display = 'flex';
-    heatmapCanvas.width = heatmapCanvas.clientWidth || 800;
+    sizeCanvasForDPR(heatmapCanvas, 800, 28);
     redrawHeatmap();
   }
 
@@ -1375,6 +1413,7 @@ export function initPlayback(root) {
       stage.classList.add('has-video');
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
+      el('#pb-video-autostart-row').style.display = 'flex';
       log('Video linked: ' + path);
       await refreshVideoPlayability(path);
     } catch (err) {
@@ -1508,6 +1547,7 @@ export function initPlayback(root) {
       stage.classList.add('has-video');
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
+      el('#pb-video-autostart-row').style.display = 'flex';
       refreshVideoPlayability(videoPath);
     } else {
       videoPath = null;
@@ -1515,6 +1555,7 @@ export function initPlayback(root) {
       stage.classList.remove('has-video', 'is-fs', 'is-playing');
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
+      el('#pb-video-autostart-row').style.display = 'none';
       el('#pb-video-fs').textContent = 'Fullscreen';
       const warn = el('#pb-video-warn');
       const conv = el('#pb-video-convert');
@@ -1762,8 +1803,16 @@ export function initPlayback(root) {
   // die Prüfung hier sofort ab. currentTime wird bewusst NICHT
   // zurückgesetzt (anders als play()) - das Video läuft hier schon an
   // seiner aktuellen Position, ein Sprung auf 0 wäre ein sichtbarer Bug.
+  //
+  // pb-video-play-autostart ist ein eigener Schalter (getrennt von "Device
+  // follows video position", das nur die Positions-Verfolgung WÄHREND der
+  // Wiedergabe betrifft): vorher startete jedes native Video-Play immer
+  // auch das Gerät, selbst bei ausgeschaltetem Sync - wer nur das Video
+  // ansehen wollte, ohne das Gerät zu starten, hatte keine Möglichkeit,
+  // das zu verhindern.
   videoEl.addEventListener('play', () => {
     if (playing || !scriptPath) return;
+    if (!el('#pb-video-play-autostart').checked) return;
     startScriptPlayback();
   });
 
@@ -1786,11 +1835,11 @@ export function initPlayback(root) {
   // verzerrt skaliert dargestellt.
   window.addEventListener('resize', () => {
     if (curvePoints) {
-      curveCanvas.width = curveCanvas.clientWidth || 800;
+      sizeCanvasForDPR(curveCanvas, 800, 120);
       redrawCurve();
     }
     if (heatmapPoints) {
-      heatmapCanvas.width = heatmapCanvas.clientWidth || 800;
+      sizeCanvasForDPR(heatmapCanvas, 800, 28);
       redrawHeatmap();
     }
   });
@@ -1966,7 +2015,9 @@ export function initPlayback(root) {
       el('#pb-loop').checked = !el('#pb-loop').checked;
       log(el('#pb-loop').checked ? 'Loop on.' : 'Loop off.');
     } else if (e.key >= '1' && e.key <= '9') {
-      if (totalMs > 0) seekTo(Math.round(totalMs * (Number(e.key) - 1) / 9));
+      // Taste n -> n*10% der Laufzeit, wie in VLC/YouTube üblich (statt
+      // (n-1)/9, was Taste 1 auf 0% und Taste 9 nur auf ~88.9% legte).
+      if (totalMs > 0) seekTo(Math.round(totalMs * Number(e.key) / 10));
     } else if (e.key.toLowerCase() === 'e') {
       if (!el('#pb-eo-trigger').disabled) triggerEO();
     }
@@ -1997,6 +2048,7 @@ export function initPlayback(root) {
     el('#pb-eo-min').value = s.playbackEOMin;
     el('#pb-eo-hold').value = s.playbackEOHoldS;
     el('#pb-eo-restore').value = s.playbackEORestoreMs;
+    el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart;
   });
   el('#pb-mock').addEventListener('change', e => saveSetting('playback.mock', e.target.checked));
   el('#pb-sync').addEventListener('change', e => saveSetting('playback.sync_mode', e.target.value));
@@ -2008,6 +2060,7 @@ export function initPlayback(root) {
   el('#pb-eo-min').addEventListener('change', e => saveSetting('playback.extended_o_min', parseFloat(e.target.value)));
   el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));
   el('#pb-eo-restore').addEventListener('change', e => saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value)));
+  el('#pb-video-play-autostart').addEventListener('change', e => saveSetting('playback.video_play_autostart', e.target.checked));
 
   async function refreshScriptVisuals() {
     if (!scriptPath) return;
