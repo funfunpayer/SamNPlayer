@@ -1,8 +1,7 @@
 /** FunGen-style mosaic body pairs for the Training tab (You + Partner).
  *
- * Not Minecraft voxels — a photoreal torso shown as chunky mosaic pixels
- * (same look as FunGen 2 marketing). Intensity drives proximity + warmth.
- * Colors still share Claude’s figure theme for overlays.
+ * Photoreal torsos as chunky mosaic pixels (FunGen 2 look). You = man,
+ * Partner = woman — same motion stage (gap + warmth from intensity).
  */
 
 import { FIGURE_AMBER, FIGURE_TEAL, figureHeatColor } from './figure_theme.js';
@@ -69,7 +68,7 @@ export function mountTrainingPixelStage(host) {
     <div class="tr-pixel-card">
       <div class="tr-pixel-head">
         <strong>Motion (pair)</strong>
-        <span class="hint" id="tr-pixel-hint">FunGen-style mosaic bodies — closer + warmer as peak rises</span>
+        <span class="hint" id="tr-pixel-hint">FunGen-style mosaic — You + Partner (woman), closer + warmer as peak rises</span>
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main"></div>
@@ -81,7 +80,7 @@ export function mountTrainingPixelStage(host) {
       </div>
       <div class="tr-pixel-labels tr-mosaic-labels">
         <span>You</span>
-        <span>Partner</span>
+        <span>Partner ♀</span>
       </div>
     </div>`;
 
