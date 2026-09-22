@@ -25,6 +25,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Axis:               opts.Axis,
 		Cancel:             opts.Cancel,
 		OnProgress:         percentFromProgress(onPercent),
+		CaptureTrajectory:  opts.CaptureTrajectory,
 	})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -47,7 +48,21 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		ValidFrames:  tr.Stats.ValidFrames,
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
+		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
 	}, nil
+}
+
+// convertTrackcvPoints maps trackcv.Point (only meaningful inside this
+// cgo+opencv-tagged file) onto the tag-free NativePoint used by native.go.
+func convertTrackcvPoints(pts []trackcv.Point) []NativePoint {
+	if len(pts) == 0 {
+		return nil
+	}
+	out := make([]NativePoint, len(pts))
+	for i, p := range pts {
+		out[i] = NativePoint{X: p.X, Y: p.Y}
+	}
+	return out
 }
 
 func nativeTrackTwoPoints(videoPath string, roi, roi2 ROI, opts nativeTrackOptions, onPercent func(int)) (nativeTrackResult, error) {
@@ -66,11 +81,12 @@ func nativeTrackMultiPoints(videoPath string, tip ROI, partners []nativePartner,
 		trackcv.Rect{X: tip.X, Y: tip.Y, W: tip.W, H: tip.H},
 		tps,
 		trackcv.Options{
-			MaxFrames:        opts.MaxFrames,
-			StartTimeSec:     opts.StartTimeSec,
-			AppearanceMemory: opts.AppearanceMemory,
-			Cancel:           opts.Cancel,
-			OnProgress:       percentFromProgress(onPercent),
+			MaxFrames:         opts.MaxFrames,
+			StartTimeSec:      opts.StartTimeSec,
+			AppearanceMemory:  opts.AppearanceMemory,
+			Cancel:            opts.Cancel,
+			OnProgress:        percentFromProgress(onPercent),
+			CaptureTrajectory: opts.CaptureTrajectory,
 		})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -93,5 +109,7 @@ func nativeTrackMultiPoints(videoPath string, tip ROI, partners []nativePartner,
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
 		LostFlags:    tr.LostFlags,
+		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
+		TrajectoryB:  convertTrackcvPoints(tr.TrajectoryB),
 	}, nil
 }

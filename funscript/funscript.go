@@ -29,7 +29,31 @@ type Script struct {
 		TrackingGaps    []TrackingGap `json:"tracking_gaps,omitempty"`
 		AIOpinion       *AIOpinion    `json:"ai_opinion,omitempty"`
 		AudioCheck      *AudioCheck   `json:"audio_check,omitempty"`
+		// Trajectory: optional per-frame tip/partner track positions
+		// (MT-Debug Review/Play overlay). Only present when generated
+		// with the opt-in "capture trajectory" flag - off by default.
+		Trajectory *TrajectoryData `json:"trajectory,omitempty"`
 	} `json:"metadata,omitempty"`
+}
+
+// TrajectoryPoint is one sampled tip/partner position in video-pixel space
+// (0,0 = top-left), timestamped against the same clock as Actions.
+type TrajectoryPoint struct {
+	AtMs int64   `json:"atMs"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+}
+
+// TrajectoryData is the optional MT-Debug trajectory payload: Width/Height
+// are the video's pixel dimensions at generation time (the coordinate
+// space Tip/Partner points are in). Partner is empty when the script has
+// no second tracked point (single-ROI Stroke) or when generated against
+// 2+ contact partners (ambiguous "the" partner).
+type TrajectoryData struct {
+	Width   int               `json:"width"`
+	Height  int               `json:"height"`
+	Tip     []TrajectoryPoint `json:"tip,omitempty"`
+	Partner []TrajectoryPoint `json:"partner,omitempty"`
 }
 
 // AIOpinion ist die optionale KI-Zweitmeinung zur Qualität (--ai-quality-

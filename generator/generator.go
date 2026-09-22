@@ -144,6 +144,11 @@ type Options struct {
 	// MaxOutputMs truncates written actions (license trial / hard clip).
 	// 0 = no cap. Applied in Go finishNativeGenerate after posttrack.
 	MaxOutputMs int64
+	// CaptureTrajectory opts into recording raw per-frame tip/partner
+	// (x,y) track positions into the script's metadata.trajectory (MT-
+	// Debug Review/Play overlay). Off by default; only honored on the Go
+	// CSRT (trackcv) path today, not simpletrack or Python.
+	CaptureTrajectory bool
 }
 
 func pythonCandidates() []string {

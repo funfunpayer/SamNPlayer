@@ -41,6 +41,10 @@ type Options struct {
 	// OnProgress is called ~every 1% of frames (done, total). total may be 0
 	// when the container reports no frame count — GUI then shows indeterminate.
 	OnProgress func(done, total int)
+	// CaptureTrajectory opts into keeping raw per-frame tip/partner center
+	// points on Result.TrajectoryA/B (MT-Debug overlay data). Off by
+	// default: zero extra allocation/behavior when false.
+	CaptureTrajectory bool
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -70,6 +74,19 @@ type Result struct {
 	Canceled     bool // true if Options.Cancel aborted the loop
 	// LostFlags is set by TrackTwoPoints (per-frame: either tracker lost).
 	LostFlags []bool
+	// TrajectoryA/B: per-frame tip/partner center points in video-pixel
+	// space, same length/order as TimestampsMs - only populated when
+	// Options.CaptureTrajectory is true (MT-Debug overlay data). TrackROI
+	// only ever fills TrajectoryA (single ROI, no partner).
+	TrajectoryA []Point
+	TrajectoryB []Point
+}
+
+// Point is a video-pixel-space (x,y) sample - MT-Debug trajectory capture.
+type Point struct{ X, Y float64 }
+
+func boxCenter(r Rect) Point {
+	return Point{X: float64(r.X) + float64(r.W)/2, Y: float64(r.Y) + float64(r.H)/2}
 }
 
 // ErrCanceled is returned when Options.Cancel aborts the tracking loop.
@@ -283,12 +300,23 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		reason = "tracker_lost_elevated"
 	}
 
+	var trajA []Point
+	if opts.CaptureTrajectory {
+		// xPositions/yPositions already track the box center each frame
+		// (camera-compensated on Y when enabled) - just zip them.
+		trajA = make([]Point, len(xPositions))
+		for i := range xPositions {
+			trajA[i] = Point{X: xPositions[i], Y: yPositions[i]}
+		}
+	}
+
 	return Result{
 		TimestampsMs: timestampsMs,
 		Positions:    positions,
 		Width:        width,
 		Height:       height,
 		SceneCuts:    sceneCuts,
+		TrajectoryA:  trajA,
 		Stats: Stats{
 			TrackerLostFrames: trackerLostFrames,
 			CameraFramesLost:  cameraFramesLost,

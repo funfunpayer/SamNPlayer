@@ -119,6 +119,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		Axis:               opts.Axis,
 		Cancel:             func() bool { return ctx.Err() != nil },
 		FixedB:             opts.ROI2Fixed,
+		CaptureTrajectory:  opts.CaptureTrajectory,
 	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
@@ -180,7 +181,15 @@ type nativeTrackResult struct {
 	Confidence   float64
 	Reason       string
 	LostFlags    []bool // two-point: per-frame tracker loss
+	// TrajectoryA/B: per-frame tip/partner center points (video-pixel
+	// space), only set when nativeTrackOptions.CaptureTrajectory is true.
+	TrajectoryA []NativePoint
+	TrajectoryB []NativePoint
 }
+
+// NativePoint mirrors trackcv.Point/simpletrack.Point without importing
+// either build-tag-gated package from this tag-free file.
+type NativePoint struct{ X, Y float64 }
 
 type nativeTrackOptions struct {
 	MaxFrames          int
@@ -191,6 +200,8 @@ type nativeTrackOptions struct {
 	Axis               string
 	Cancel             func() bool
 	FixedB             bool
+	// CaptureTrajectory: see Options.CaptureTrajectory.
+	CaptureTrajectory bool
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
@@ -234,6 +245,9 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	gaps := trackingGapsFromFlags(tr.TimestampsMs, tr.LostFlags, 100)
 	if len(gaps) > 0 {
 		meta["tracking_gaps"] = gaps
+	}
+	if len(tr.TrajectoryA) > 0 {
+		meta["trajectory"] = buildTrajectoryData(tr)
 	}
 	if (opts.Profile != "" && opts.Profile != "standard") || opts.ContactVibration {
 		recipe := funscript.RecipeMeta(opts.Profile)
@@ -283,4 +297,31 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 		return err
 	}
 	return writeCompanionSamn(path, actions, opts, gaps, quality)
+}
+
+// buildTrajectoryData zips tr.TrajectoryA/B with tr.TimestampsMs into the
+// funscript.TrajectoryData shape written to metadata.trajectory. Only
+// called when len(tr.TrajectoryA) > 0 (opts.CaptureTrajectory was set and
+// the tracking backend supports it - see nativeTrackOptions.CaptureTrajectory).
+func buildTrajectoryData(tr nativeTrackResult) *funscript.TrajectoryData {
+	toPoints := func(pts []NativePoint) []funscript.TrajectoryPoint {
+		if len(pts) == 0 {
+			return nil
+		}
+		out := make([]funscript.TrajectoryPoint, len(pts))
+		for i, p := range pts {
+			atMs := int64(0)
+			if i < len(tr.TimestampsMs) {
+				atMs = int64(tr.TimestampsMs[i])
+			}
+			out[i] = funscript.TrajectoryPoint{AtMs: atMs, X: p.X, Y: p.Y}
+		}
+		return out
+	}
+	return &funscript.TrajectoryData{
+		Width:   tr.Width,
+		Height:  tr.Height,
+		Tip:     toPoints(tr.TrajectoryA),
+		Partner: toPoints(tr.TrajectoryB),
+	}
 }

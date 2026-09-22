@@ -107,6 +107,8 @@ export function GetVibrationCurvePreview(arg1:main.ContactPreviewOptions):Promis
 
 export function GetScriptOffset():Promise<number>;
 
+export function GetTrajectory():Promise<funscript.TrajectoryData>;
+
 export function GetSettings():Promise<main.Settings>;
 
 export function InvertLoadedScript():Promise<void>;

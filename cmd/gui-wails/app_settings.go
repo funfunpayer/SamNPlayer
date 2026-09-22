@@ -38,6 +38,11 @@ const (
 	prefPlaybackEOMin       = "playback.extended_o_min"
 	prefPlaybackEOHoldS     = "playback.extended_o_hold_seconds"
 	prefPlaybackEORestoreMs = "playback.extended_o_restore_ms"
+	// prefPlaybackTrajectoryOverlay: MT-Debug — zeigt die aufgezeichnete
+	// Tip/Partner-Trajektorie (falls im Skript vorhanden) als Polylinie
+	// über dem Video. Default aus (Debug-Werkzeug, nicht jedes Skript hat
+	// die Daten).
+	prefPlaybackTrajectoryOverlay = "playback.trajectory_overlay"
 	// prefPlaybackVideoPlayAutostart: startet das native <video>-Play-Event
 	// (Browser-eigener Button/Leertaste mit Fokus auf dem Video) auch die
 	// Geräte-/Kurven-Wiedergabe. Getrennt von "Device follows video
@@ -75,6 +80,9 @@ type Settings struct {
 	// PlaybackVideoPlayAutostart: siehe prefPlaybackVideoPlayAutostart.
 	// Default true - bisheriges Verhalten bleibt ohne Zutun erhalten.
 	PlaybackVideoPlayAutostart bool `json:"playbackVideoPlayAutostart"`
+	// PlaybackTrajectoryOverlay: siehe prefPlaybackTrajectoryOverlay.
+	// Default false - Debug-Overlay, nicht jeder Nutzer/jedes Skript hat es.
+	PlaybackTrajectoryOverlay bool `json:"playbackTrajectoryOverlay"`
 
 	TrainingMock                bool    `json:"trainingMock"`
 	TrainingTechnique           string  `json:"trainingTechnique"`
@@ -163,6 +171,7 @@ func (a *App) GetSettings() Settings {
 		PlaybackEORestoreMs:  s.GetFloat(prefPlaybackEORestoreMs, 500),
 
 		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
+		PlaybackTrajectoryOverlay:  s.GetBool(prefPlaybackTrajectoryOverlay, false),
 
 		TrainingMock:                s.GetBool(prefTrainingMock, true),
 		TrainingTechnique:           s.GetString(prefTrainingTechnique, "stopstart"),
