@@ -92,10 +92,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
 | A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
 | F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
-| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Stage A + Generate wire + Flow + **Training clip+ring** + ChatGPT P1/P2 | **READY FOR REVIEW** |
+| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Everyday Generate + Training clip+ring (always-full pulse/breathe) + P1/P2 engine fixes | **DONE — ready to merge** (CI pending Windows) |
+| E | ChatGPT | `codex/training-review-fixes` (no unique commits yet) | Was claiming #178 P1/P2 — **already on #177 tip `c38b365`**; continue later as verify-only, don't re-implement | **paused / verify later** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
-| G | Claude | [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) (draft) | Training mode: multi-phase per-channel scripts, script editor, live ring meter, curve smoothing | **needs review before merge** — see handoff below |
+| G | Claude / Cloud | [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) (draft) | Training scripts+ring origin | **superseded by #177** — close after #177 merges |
+| — | Claude / Cloud | [#179](https://github.com/funfunpayer/SamNPlayer/pull/179) | Playback HiDPI / seek / editor clamp / video-autostart | **open** (separate lane — Player) |
+| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
 
 ---
 
@@ -115,15 +118,16 @@ Device-shell / body-map language.
 - **Claude (#178):** multi-phase scripts + ring origin — review lane (findings carried into #177).
 - **Cursor (#177):** clip + ring polish + ChatGPT P1/P2 training fixes — **owning merge**.
 
-**Owner integration (22 Sep — on #177):**
+**Owner integration (22 Sep — on #177) — DONE:**
 1. ~~Wait for Claude~~ — #178 tip `290c8bd` merged into `cursor/stroke-preview-extrema-d7cb`.
 2. **One card:** clip + ring in `#tr-pixel-stage` / `#tr-ring-slot`.
-3. **Bugfix (ChatGPT review on #178, fixed here):** Interrupt clears carried channels; StartLevel scales with feedback; ring/clip follow live `training:levels` (not only cycle peaks).
-4. Ring hi-res + more animation (halo / tilt / gloss / live tick).
+3. **Bugfix (ChatGPT review on #178, implemented on #177):** Interrupt clears carried channels; StartLevel scales with feedback; ring/clip follow live `training:levels`.
+4. Ring always full — vibration pulses, suction breathes in/out.
+5. Tip `c38b365`. ChatGPT branch `codex/training-review-fixes` still at `e1aea45` (no unique commits) — when ChatGPT resumes: **verify against #177 tip**, do not re-land the same engine fixes in parallel.
 
 Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).
 
-PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) — prefer merge #177; close #178 as superseded after.
+PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) — merge **#177**; close **#178** as superseded after.
 
 ---
 
