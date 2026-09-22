@@ -1468,8 +1468,10 @@ export function initPlayback(root) {
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
-    el('#pb-curve-edit').checked = !!opts.review;
-    await setEditMode(!!opts.review);
+    // review: show FunGen-like dots + contact focus — Edit stays off until
+    // the user checks “Edit curve (dots)” (avoids accidental saves).
+    el('#pb-curve-edit').checked = false;
+    await setEditMode(false);
     drawHeatmap();
     drawCurve();
     describeScript();
@@ -1484,7 +1486,7 @@ export function initPlayback(root) {
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
     if (opts.review) {
-      log('Freshly generated — review the curve and adjust contact/points if needed.');
+      log('Freshly generated — soft curve + dots visible. Enable “Edit curve (dots)” to adjust points.');
       if (showContact) {
         el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
@@ -2065,7 +2067,7 @@ export function initPlayback(root) {
 
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
-    // opts.review: Kurven-Editor an, Fokus auf Kontakt — frisch erzeugt.
+    // opts.review: open Play with dots visible; Edit curve stays off until checked.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,

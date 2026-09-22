@@ -40,14 +40,11 @@ func applyStrokePreview(ctx context.Context, videoPath string, opts Options, onP
 			onProgress("STROKE_PREVIEW: enabling audio tempo check (weak/unstable preview)")
 		}
 	}
-	// Bias peak distance only when caller left it at profile default (0).
-	if opts.MinPeakDistanceMs == 0 && h.SuggestedMinPeakDistanceMs > 0 &&
-		(h.Quality == "ok" || h.Quality == "unstable") {
-		opts.MinPeakDistanceMs = h.SuggestedMinPeakDistanceMs
-		if onProgress != nil {
-			onProgress(fmt.Sprintf("STROKE_PREVIEW: min peak distance → %dms (from ~%.2f Hz)",
-				opts.MinPeakDistanceMs, h.StrokeHz))
-		}
+	// Peak-distance suggestion is advisory only — do not mutate MinPeakDistanceMs
+	// (0 means “use posttrack default 150”, not “let preview invent a value”).
+	if h.SuggestedMinPeakDistanceMs > 0 && onProgress != nil {
+		onProgress(fmt.Sprintf("STROKE_PREVIEW: tip peak spacing ~%dms (from ~%.2f Hz) — Advanced can override",
+			h.SuggestedMinPeakDistanceMs, h.StrokeHz))
 	}
 	if h.CutRatePerMin > 4 && onProgress != nil {
 		onProgress(fmt.Sprintf("STROKE_PREVIEW: high cut rate (%.1f/min) — consider “Re-find region after each cut”",

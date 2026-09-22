@@ -98,6 +98,13 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if script == nil {
 		return fmt.Errorf("no script loaded")
 	}
+	// License gate: unlicensed Play may use community .funscript only —
+	// Neo-2 .samn requires a key (docs/LICENSE_SYSTEM.md). No-op while
+	// Enforcement is off (EffectiveLicensed always true).
+	path := a.loadedScriptPath()
+	if !a.LicenseAllowsFullFeatures() && samn.IsSamnPath(path) {
+		return fmt.Errorf("Neo-2 .samn playback requires a license — import a key in Settings, or export/play a .funscript")
+	}
 	mapOpts := funscript.MapOptionsFromScript(script)
 	profile := script.Metadata.Profile
 	contactOn := false

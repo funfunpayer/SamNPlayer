@@ -56,10 +56,11 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 | Contact vib | On by default |
 | Stroke preview | Stage A pre-pass (timing/flags; audio if weak) |
 | Audio check | On when ffmpeg present (generate + Review toggle) |
-| Fill gaps | Review step — linear bridge; optional audio-tempo spacing |
+| Fill gaps | **Auto after Generate** + Review step — linear bridge; optional audio-tempo spacing |
 | Trim start/end | Review step (start also via seek before Generate) |
 | Flow downscale | Hidden unless Flow (CLI) |
 | Tf/Tj distance | CLI / Advanced only — not everyday GUI |
+| License | Gates wired (`MaxOutputMs` trial / `.samn` Play); Enforcement still **off** |
 
 ---
 
@@ -69,3 +70,16 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 2. Result path is CSRT Stroke, not 4-zone, unless they opted in.
 3. AI off by default; on only proposes ROI.
 4. Clip gate: everyday path ≤ few % behind measured tip/hub CSRT on goldens.
+5. After Generate: gaps filled once (Go); Play shows dots; Edit is opt-in.
+6. Stale auto-ROI results from a previous video are ignored.
+
+---
+
+## Remaining Python (Everyday)
+
+| Step | Still Python? | Notes |
+|------|---------------|-------|
+| Auto-find tip | Yes (`auto_roi.py`) | Highest-value Go port next |
+| CSRT track + posttrack + QD + audio | **Go** when OpenCV linked | Windows → Python CSRT until #120 |
+| Improve trim/fill | **Go** (`funscript.ImproveScript`) | |
+| AI region | ONNX (`ai_roi.py`) | Opt-in only |

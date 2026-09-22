@@ -36,7 +36,10 @@ func TestApplyStrokePreviewSynthetic(t *testing.T) {
 		t.Fatalf("no progress lines: %s", joined)
 	}
 	if opts.MinPeakDistanceMs == 0 && opts.StrokePreviewHint["quality"] == "ok" {
-		t.Fatal("ok preview should bias peak distance when unset")
+		// Peak bias is advisory-only now — still expect a tip in the hint map.
+		if _, ok := opts.StrokePreviewHint["suggested_min_peak_distance_ms"]; !ok {
+			t.Fatal("ok preview should suggest peak distance in hint metadata")
+		}
 	}
 }
 

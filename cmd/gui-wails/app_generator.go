@@ -110,8 +110,19 @@ type GenerateOptions struct {
 // Wert (leer, "auto", ...) bleibt bei der klassischen Rhythmus-Heuristik
 // (auto_roi.py) - so bricht ein alter Frontend-Aufruf ohne engine-Argument
 // nicht, er bekommt nur weiterhin das klassische Verhalten.
+//
+// Each call bumps roiSeq; only the latest seq may emit generate:autoroi
+// (stale finds are dropped). Payload always includes videoPath + seq.
 func (a *App) AutoDetectROI(videoPath string, engine string) {
+	a.stateMu.Lock()
+	a.roiSeq++
+	mySeq := a.roiSeq
+	a.stateMu.Unlock()
+
 	go func() {
+		emitErr := func(msg string) {
+			a.emitAutoROI(videoPath, mySeq, map[string]any{"error": msg})
+		}
 		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
 		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
 		switch engine {
@@ -121,7 +132,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				a.settings.GetString(prefAIPreferredClasses, ""),
 				onLine, onPct)
 			if err != nil {
-				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				emitErr(err.Error())
 				return
 			}
 			payload := map[string]any{
@@ -134,11 +145,11 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["h2"] = roi2.H
 			}
 			attachROIVerify(payload, videoPath, roi)
-			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+			a.emitAutoROI(videoPath, mySeq, payload)
 		case "auto_two":
 			roi, roi2, err := generator.FindTwoROIsWithProgress(videoPath, onLine, onPct)
 			if err != nil {
-				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				emitErr(err.Error())
 				return
 			}
 			payload := map[string]any{
@@ -151,34 +162,47 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 				payload["h2"] = roi2.H
 			}
 			attachROIVerify(payload, videoPath, roi)
-			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+			a.emitAutoROI(videoPath, mySeq, payload)
 		case "ai":
 			roi, err := generator.FindROIAIWithProgress(videoPath,
 				a.settings.GetString(prefAIRoiModelPath, ""),
 				a.settings.GetString(prefAIPreferredClasses, ""),
 				onLine, onPct)
 			if err != nil {
-				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				emitErr(err.Error())
 				return
 			}
 			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
 			}
 			attachROIVerify(payload, videoPath, roi)
-			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+			a.emitAutoROI(videoPath, mySeq, payload)
 		default:
 			roi, err := generator.FindROIWithProgress(videoPath, onLine, onPct)
 			if err != nil {
-				runtime.EventsEmit(a.ctx, "generate:autoroi", map[string]any{"error": err.Error()})
+				emitErr(err.Error())
 				return
 			}
 			payload := map[string]any{
 				"x": roi.X, "y": roi.Y, "w": roi.W, "h": roi.H, "engine": engine,
 			}
 			attachROIVerify(payload, videoPath, roi)
-			runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
+			a.emitAutoROI(videoPath, mySeq, payload)
 		}
 	}()
+}
+
+// emitAutoROI drops superseded finds (newer AutoDetectROI started).
+func (a *App) emitAutoROI(videoPath string, seq uint64, payload map[string]any) {
+	a.stateMu.RLock()
+	current := a.roiSeq
+	a.stateMu.RUnlock()
+	if seq != current {
+		return
+	}
+	payload["videoPath"] = videoPath
+	payload["seq"] = seq
+	runtime.EventsEmit(a.ctx, "generate:autoroi", payload)
 }
 
 // SuggestROICandidates lists ranked motion regions without applying any ROI.
@@ -312,8 +336,14 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			BandpassLowHz:             0,
 			BandpassHighHz:            0,
 		}
-		// Autotune defaults are applied in native_simple / Python profile;
-		// still pass MaxSpeed from GUI when set.
+		// License gate (docs/LICENSE_SYSTEM.md): while Enforcement is off,
+		// EffectiveLicensed is always true. When sharp, unlicensed Generate
+		// is capped to 60s output (trial).
+		if !a.LicenseAllowsFullFeatures() {
+			genOpts.MaxOutputMs = 60_000
+			runtime.EventsEmit(a.ctx, "generate:progress",
+				"License: trial mode — output capped to 60s (Settings → License for full Generate)")
+		}
 		_ = opts.FlowDownscale
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}

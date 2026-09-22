@@ -287,8 +287,6 @@ export function initGenerator(root, playback) {
   let lastOutputPath = null;
   // Everyday FunGen-like: Generate with no ROI → auto-find tip then generate.
   let pendingGenerateAfterRoi = false;
-  // After loadVideo, kick auto-find once (CSRT tip = measured first choice).
-  let autoFindAfterLoad = false;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
 
@@ -882,7 +880,6 @@ export function initGenerator(root, playback) {
         }
       }).catch(() => {});
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
-      autoFindAfterLoad = true;
       startAutoFindRegion();
     } catch (err) {
       uiError('Load video: ' + err, el('#gen-status'));
@@ -1066,9 +1063,12 @@ export function initGenerator(root, playback) {
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
     el('#gen-nomark').disabled = false;
+    // Drop stale finds from a previous video / superseded AutoDetectROI.
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
     if (result.error) {
       pendingGenerateAfterRoi = false;
-      autoFindAfterLoad = false;
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
@@ -1112,7 +1112,6 @@ export function initGenerator(root, playback) {
     redraw();
     const shouldGenerate = pendingGenerateAfterRoi;
     pendingGenerateAfterRoi = false;
-    autoFindAfterLoad = false;
     if (shouldGenerate && roi) {
       generate();
     }
@@ -1288,9 +1287,37 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'none';
     }
 
-    // Fertiges Skript immer zum Anschauen/Bearbeiten laden — kein Popup.
-    el('#gen-status').textContent += ' — loaded in Playback (review & adjust).';
-    playback.loadScriptPath(result.path, { review: true });
+    // Fertiges Skript: fill gaps once (Go Improve), then open Play with dots.
+    (async () => {
+      let path = result.path;
+      try {
+        el('#gen-status').textContent += ' — filling gaps…';
+        const polished = await ImproveGeneratedScript({
+          path,
+          videoPath: videoPath || '',
+          startSec: 0,
+          endSec: 0,
+          fillGaps: true,
+          maxGapMs: 0,
+          audioCheck: !!(el('#gen-improve-audio')?.checked || el('#gen-audio-check')?.checked),
+          useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
+        });
+        if (polished && polished.path) path = polished.path;
+        if (polished && polished.pointsAdded > 0) {
+          el('#gen-status').textContent +=
+            ` (+${polished.pointsAdded} fill)`;
+          if (el('#gen-improve-status')) {
+            el('#gen-improve-status').textContent = polished.message || 'Gaps filled';
+          }
+        }
+      } catch (err) {
+        // Non-fatal — still open Play with the raw generate output.
+        console.warn('post-generate fill gaps:', err);
+      }
+      lastOutputPath = path;
+      el('#gen-status').textContent += ' — loaded in Playback (dots + Edit curve).';
+      playback.loadScriptPath(path, { review: true });
+    })();
   });
 
   el('#gen-choose').addEventListener('click', chooseVideo);

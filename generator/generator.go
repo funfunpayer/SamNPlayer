@@ -141,6 +141,9 @@ type Options struct {
 	// StrokePreviewHint is filled by GenerateWithContext after the pre-pass
 	// (nil if skipped/failed). Stamped into funscript metadata.
 	StrokePreviewHint map[string]any
+	// MaxOutputMs truncates written actions (license trial / hard clip).
+	// 0 = no cap. Applied in Go finishNativeGenerate after posttrack.
+	MaxOutputMs int64
 }
 
 func pythonCandidates() []string {

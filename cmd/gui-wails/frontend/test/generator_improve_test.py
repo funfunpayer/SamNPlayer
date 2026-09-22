@@ -85,6 +85,15 @@ def main():
             "document.querySelector('#gen-improve').style.display !== 'none'",
             timeout=5000)
 
+        # Auto fill-gaps runs on generate:done before Play load.
+        page.wait_for_function(
+            "() => (window.__calls || []).some(c => c[0] === 'ImproveGeneratedScript')",
+            timeout=5000)
+        auto = page.evaluate(
+            "() => (window.__calls || []).filter(c => c[0] === 'ImproveGeneratedScript')")
+        check("Auto fill-gaps after Generate",
+              auto and auto[0][1].get("fillGaps") is True, str(auto))
+
         check("Improve panel shown after generate",
               page.locator("#gen-improve").evaluate("e => e.style.display !== 'none'"))
         check("Fill gaps on by default",
@@ -94,13 +103,14 @@ def main():
 
         page.fill("#gen-improve-start", "1")
         page.fill("#gen-improve-end", "40")
+        page.evaluate("window.__calls = (window.__calls || []).filter(c => c[0] !== 'ImproveGeneratedScript')")
         page.click("#gen-improve-apply")
         page.wait_for_function(
             "() => (window.__calls || []).some(c => c[0] === 'ImproveGeneratedScript')",
             timeout=5000)
         calls = page.evaluate(
             "() => (window.__calls || []).filter(c => c[0] === 'ImproveGeneratedScript')")
-        check("ImproveGeneratedScript called", len(calls) == 1, str(calls))
+        check("ImproveGeneratedScript called from button", len(calls) == 1, str(calls))
         req = calls[0][1] if calls else {}
         check("Trim start passed", req.get("startSec") == 1, str(req))
         check("Trim end passed", req.get("endSec") == 40, str(req))
@@ -109,9 +119,8 @@ def main():
 
         page.wait_for_function("window.__playLoads && window.__playLoads.length > 0", timeout=3000)
         loads = page.evaluate("window.__playLoads")
-        check("Improve reloads Play for editor",
-              loads and loads[-1][0] == "/tmp/clip.funscript"
-              and loads[-1][1].get("review") is True,
+        check("Improve/Generate reloads Play for editor",
+              loads and any(l[1].get("review") is True for l in loads),
               str(loads))
 
         browser.close()

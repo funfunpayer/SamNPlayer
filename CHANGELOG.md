@@ -24,6 +24,11 @@ measurement history behind each entry; this file is the short version for
 - **Play curve = FunGen-like dots + soft stroke:** keyframe dots always drawn
   (incl. during play); live playhead height marker; Edit curve still for
   drag/add/delete. Improve reloads Play in review mode.
+- **Bugfix / Go-first / license:** AutoDetectROI stamps `videoPath`+`seq`
+  (stale finds dropped); post-generate auto fill-gaps; stroke-preview no
+  longer mutates peak distance; license gates wired (`MaxOutputMs` trial,
+  `.samn` Play block) — Enforcement still off. Review opens Play with dots,
+  Edit opt-in.
 
 ### Fixed / observability
 

@@ -312,6 +312,15 @@ func finishNativeGenerate(
 
 	progress(fmt.Sprintf("%d Keyframes aus %d Frames", len(actions), len(tr.TimestampsMs)))
 
+	if opts.MaxOutputMs > 0 {
+		before := len(actions)
+		actions = truncateActionsMs(actions, opts.MaxOutputMs)
+		if len(actions) < before {
+			progress(fmt.Sprintf("License/trial cap: truncated to %dms (%d → %d actions)",
+				opts.MaxOutputMs, before, len(actions)))
+		}
+	}
+
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -350,4 +359,22 @@ func finishNativeGenerate(
 		onPercent(100)
 	}
 	return nil
+}
+
+// truncateActionsMs keeps actions with At <= maxMs (inclusive), ensuring ≥2 points.
+func truncateActionsMs(actions []funscript.Action, maxMs int64) []funscript.Action {
+	if maxMs <= 0 || len(actions) < 2 {
+		return actions
+	}
+	out := make([]funscript.Action, 0, len(actions))
+	for _, a := range actions {
+		if a.At <= maxMs {
+			out = append(out, a)
+		}
+	}
+	if len(out) >= 2 {
+		return out
+	}
+	// Keep first two even if beyond cap (degenerate short script).
+	return actions[:2]
 }
