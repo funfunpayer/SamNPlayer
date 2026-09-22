@@ -119,9 +119,10 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 | Who | Owns | Touch | Do **not** touch |
 |-----|------|-------|------------------|
 | **Cursor** | **MT-Seed** #186 · **T-fix** #187 | `generator.js` seed UX; Training display | Ultralytics as Stroke |
-| **Claude** | **Clip verify (V)** when idle · optional Infra / simpletrack | Local goldens; comment on #183 | Rewrite coast/reacquire; Everyday defaults |
+| **Claude** | **#189** simpletrack · optional MT-Infra | Overlay/capture follow-ups | Rewrite coast; Everyday defaults; invent clip scores without MP4s |
 | **ChatGPT** | **E2 MT-Speed** + **E-steward** | Docs/notes/`scripts/` spikes; review; cleanup | Re-land coast; Training #187; invent MT-ID without clips |
-| later | **MT-ID** code | Only after Claude clip gate unblocks | — |
+| **Owner** | **Clip verify (V)** | Local `clip_ausschnitt`/`clip_voll` + OpenCV | — |
+| later | **MT-ID** code | Only after Owner clip gate unblocks | — |
 
 **Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go tip-CSRT.
 
