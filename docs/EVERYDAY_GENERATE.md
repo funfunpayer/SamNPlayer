@@ -35,6 +35,7 @@ Do **not** default 4-zone or Flow.
   4. Generate → .samn + .funscript
   5. Review & improve: trim start/end · fill gaps · audio check on/off
        — then **Play**: soft curve + keyframe dots (FunGen-like); Edit curve to adjust
+       — **0–100 on video** gauge over Generator preview / Play (toggleable)
 ```
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
