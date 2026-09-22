@@ -10,12 +10,68 @@ import { uiError } from './notify.js';
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
 const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both' };
 
+function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
+
+// Pixel-Figuren neben den Intensitätsbalken - eine Flamme (Vibration) und
+// ein Tropfen (Suction), je ein 7x9-Raster fester Silhouette. Von unten
+// nach oben werden Zeilen "beleuchtet", passend zur Intensität - dieselbe
+// Zahl, die auch der Balken zeigt, nur als kleines Pixelbild statt als
+// Füllstand. Als String-Zeilen statt verschachtelter Arrays, damit die
+// Form beim Lesen als Bild erkennbar bleibt.
+const PIXEL_FIGURES = {
+  vibration: [
+    '0001000',
+    '0011100',
+    '0111110',
+    '0111110',
+    '1111111',
+    '1111111',
+    '1111111',
+    '0111110',
+    '0011100',
+  ],
+  suction: [
+    '0001000',
+    '0001000',
+    '0011100',
+    '0111110',
+    '1111111',
+    '1111111',
+    '1111111',
+    '0111110',
+    '0011100',
+  ],
+};
+
+function renderPixelGrid(axisName) {
+  const rows = PIXEL_FIGURES[axisName];
+  const cells = rows.map((row, r) => [...row].map((bit, c) =>
+    `<div class="tr-pixel-cell${bit === '1' ? ' tr-pixel-silhouette' : ''}" data-row="${r}" data-col="${c}"></div>`
+  ).join('')).join('');
+  return `<div class="tr-pixel-grid" id="tr-pixel-${axisName}">${cells}</div>`;
+}
+
+// Beleuchtet die Silhouette-Zellen von unten nach oben passend zu level
+// (0-1) - dieselbe Zahl wie updateIntensityMeter's Balken bekommt.
+function updatePixelGrid(axisName, level, pulsing) {
+  const grid = document.getElementById(`tr-pixel-${axisName}`);
+  if (!grid) return;
+  const rows = PIXEL_FIGURES[axisName].length;
+  const litRows = Math.round(clamp01(level) * rows);
+  grid.querySelectorAll('.tr-pixel-cell.tr-pixel-silhouette').forEach(cell => {
+    const fromBottom = rows - 1 - Number(cell.dataset.row);
+    cell.classList.toggle('tr-pixel-lit', fromBottom < litRows);
+    cell.classList.toggle(`tr-pixel-${axisName}`, fromBottom < litRows);
+  });
+  grid.classList.toggle('tr-pulsing', pulsing);
+}
+
 // Farben für die zwei Kanal-Linien in der Script-Vorschau/Live-Anzeige -
-// bewusst fest statt aus CSS-Variablen, damit Vibration/Sog in beiden
-// Themes klar unterscheidbar bleiben (siehe dataviz-Grundsatz: konsistente
-// Farbe je Serie).
-const VIBRATION_COLOR = '#7c9cff';
-const SUCTION_COLOR = '#ff9a4d';
+// dieselben Marken-Tokens wie der Intensitätsmesser unten (--accent/--teal),
+// damit Vorschau, Live-Anzeige und Meter dieselbe Kanal-Farbe zeigen statt
+// drei verschiedene Paare im selben Tab.
+const VIBRATION_COLOR = 'var(--accent)';
+const SUCTION_COLOR = 'var(--teal)';
 
 // renderScriptCurveSvg zeichnet die geplante Kurve eines Scripts (siehe
 // app_training.go's TrainingScriptPreview): zwei Linien (Vibration/Sog)
@@ -157,6 +213,18 @@ export function initTraining(root) {
       <span>Cycle: <b id="tr-cycle-label">-</b></span>
       <span>Current peak: <b id="tr-peak-label">-</b></span>
     </div>
+    <div class="tr-meter">
+      <div class="tr-meter-row">
+        ${renderPixelGrid('vibration')}
+        <span class="tr-meter-label">Vibration</span>
+        <div class="tr-meter-track"><div class="tr-meter-fill tr-meter-vibration" id="tr-meter-vibration"></div></div>
+      </div>
+      <div class="tr-meter-row">
+        ${renderPixelGrid('suction')}
+        <span class="tr-meter-label">Suction</span>
+        <div class="tr-meter-track"><div class="tr-meter-fill tr-meter-suction" id="tr-meter-suction"></div></div>
+      </div>
+    </div>
     <div id="tr-feedback-effect" class="hint" style="min-height:1.2em;"></div>
     <div id="tr-log" style="background:var(--bg-alt); border:1px solid var(--border); border-radius:4px; padding:8px; height:100px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--text-dim); white-space:pre-wrap;"></div>
 
@@ -181,8 +249,29 @@ export function initTraining(root) {
     el('#tr-stop').disabled = !isRunning;
     el('#tr-pause').disabled = !isRunning;
     el('#tr-arousal').disabled = !isRunning;
-    if (!isRunning) el('#tr-arousal-status').textContent = '';
+    if (!isRunning) {
+      el('#tr-arousal-status').textContent = '';
+      updateIntensityMeter({ vibration: 0, suction: 0 });
+    }
   }
+
+  // Zwei pulsierende Balken statt nur Text im stat-row - "etwas zum
+  // Nachvollziehen" für die laufende Intensität. running (Closure-Variable
+  // oben) entscheidet, ob die Balken pulsieren oder nur ihre Füllhöhe
+  // zeigen (z.B. beim Zurücksetzen nach Sessionende).
+  function updateIntensityMeter({ vibration = 0, suction = 0 }) {
+    const setBar = (id, level) => {
+      const bar = el(id);
+      const pct = Math.round(clamp01(level) * 100);
+      bar.style.width = pct + '%';
+      bar.classList.toggle('tr-pulsing', running && pct > 0);
+    };
+    setBar('#tr-meter-vibration', vibration);
+    setBar('#tr-meter-suction', suction);
+    updatePixelGrid('vibration', vibration, running && vibration > 0);
+    updatePixelGrid('suction', suction, running && suction > 0);
+  }
+
 
   function updateTechniqueVisibility() {
     el('#tr-plateau-row').style.display = el('#tr-technique').value === 'plateau' ? 'flex' : 'none';
@@ -493,6 +582,7 @@ export function initTraining(root) {
   async function start() {
     el('#tr-log').textContent = '';
     el('#tr-feedback-effect').textContent = '';
+    updateIntensityMeter({ vibration: 0, suction: 0 });
     const scriptName = el('#tr-script').value;
     const req = scriptName
       ? { mock: el('#tr-mock').checked, scriptName }
@@ -532,6 +622,14 @@ export function initTraining(root) {
     const stopped = c.stoppedByUser ? ' — auf Wunsch unterbrochen' : '';
     const fb = c.arousalBefore ? `, angepasst nach Feedback ${c.arousalBefore}` : '';
     log(`Zyklus ${c.cycleIndex + 1}/${c.cyclesTotal}: Spitze ${Math.round(c.peakIntensity * 100)}%, Halten ${c.holdMs}ms${fb}${reached}${stopped}`);
+
+    // Die einfache Technik/Kanal-Form kennt den Kanal nicht im Event
+    // selbst (nur EIN peakIntensity), sondern über das eigene Formularfeld.
+    const channel = el('#tr-channel').value;
+    updateIntensityMeter({
+      vibration: (channel === 'vibration' || channel === 'both') ? c.peakIntensity : 0,
+      suction: (channel === 'suction' || channel === 'both') ? c.peakIntensity : 0,
+    });
   });
 
   // Script-Sessions melden pro Kanal statt einer einzelnen Kurve - siehe
@@ -545,6 +643,7 @@ export function initTraining(root) {
     if (c.suctionPeak > 0) peaks.push(`Suction ${Math.round(c.suctionPeak * 100)}%`);
     el('#tr-peak-label').textContent = peaks.join(', ') || '-';
     highlightPhase(c.phaseIndex);
+    updateIntensityMeter({ vibration: c.vibrationPeak, suction: c.suctionPeak });
 
     const stopped = c.stoppedByUser ? ' — interrupted on request' : '';
     log(`${c.phaseName} ${c.repeatIndex + 1}/${c.repeatsTotal}: ${peaks.join(', ') || '(no channel)'}, rest ${c.restMs}ms${stopped}`);

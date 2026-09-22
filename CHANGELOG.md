@@ -37,6 +37,13 @@ measurement history behind each entry; this file is the short version for
   the same physical channel — `player.NormalizeTrainingScript` now
   derives the channel from the axis slot unconditionally, closing this
   for both built-in and custom scripts.
+- **Live intensity meter:** two pulsing bars (Vibration/Suction) plus a
+  small pixel-art flame/droplet icon per axis, lighting up bottom-to-top
+  with the current cycle's intensity — works for both the simple
+  Technique/Channel form and scripts, replacing the plain "Current peak"
+  text with something to actually watch move. On-brand colors
+  (`--accent`/`--teal`) instead of the plan-preview curve's previous
+  hardcoded blue/orange.
 
 ## [0.5.21] — September 21, 2026
 

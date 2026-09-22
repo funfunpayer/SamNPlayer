@@ -582,6 +582,54 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   color: var(--text-dim); white-space: pre-wrap;
 }
 
+/* Trainings-Intensitätsmesser: zwei pulsierende Balken (Vibration/Sog),
+   damit die laufende Intensität etwas zum Verfolgen hat statt nur Text
+   im stat-row zu sein. Bewusst Balken statt Figur/Sprite - passt zum
+   bestehenden Dashboard-Look (siehe .pb-progress-bar oben, gleiches
+   Gradient-Paar), keine neue Bildsprache nötig. */
+.tr-meter { margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+.tr-meter-row { display: flex; align-items: center; gap: 10px; }
+.tr-meter-label { width: 70px; flex-shrink: 0; color: var(--text-dim); font-size: 12.5px; }
+.tr-meter-track {
+  flex: 1; height: 10px; border-radius: var(--radius-pill);
+  background: var(--surface-2); border: 1px solid var(--border); overflow: hidden;
+}
+.tr-meter-fill {
+  height: 100%; width: 0%; border-radius: inherit;
+  transition: width 0.4s ease;
+}
+.tr-meter-fill.tr-meter-vibration { background: var(--accent); }
+.tr-meter-fill.tr-meter-suction { background: var(--teal); }
+.tr-meter-fill.tr-pulsing.tr-meter-vibration { animation: tr-meter-pulse-accent 1.4s ease-in-out infinite; }
+.tr-meter-fill.tr-pulsing.tr-meter-suction { animation: tr-meter-pulse-teal 1.4s ease-in-out infinite; }
+@keyframes tr-meter-pulse-accent {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { box-shadow: 0 0 10px 2px var(--accent-soft); }
+}
+@keyframes tr-meter-pulse-teal {
+  0%, 100% { box-shadow: 0 0 0 0 var(--teal-soft); }
+  50% { box-shadow: 0 0 10px 2px var(--teal-soft); }
+}
+
+/* Pixel-Figuren (Flamme/Tropfen) neben den Balken - dieselbe Intensität,
+   nur als kleines Pixel-Raster statt als Balken. Bewusst klein (4px-
+   Zellen) und in den Marken-Farben, damit die "Pixel-Optik" als
+   Detail-Akzent funktioniert statt gegen den Rest des Dashboards zu
+   wirken. */
+.tr-pixel-grid {
+  display: grid; grid-template-columns: repeat(7, 4px); grid-template-rows: repeat(9, 4px);
+  gap: 1px; flex-shrink: 0; image-rendering: pixelated;
+}
+.tr-pixel-cell { width: 4px; height: 4px; }
+.tr-pixel-cell.tr-pixel-silhouette { background: var(--surface-2); border: 1px solid var(--border); }
+.tr-pixel-cell.tr-pixel-lit.tr-pixel-vibration { background: var(--accent); border-color: var(--accent-hover); }
+.tr-pixel-cell.tr-pixel-lit.tr-pixel-suction { background: var(--teal); border-color: var(--teal); }
+.tr-pixel-grid.tr-pulsing { animation: tr-pixel-flicker 0.9s steps(2, jump-none) infinite; }
+@keyframes tr-pixel-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+
 .log-view {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 10px 12px; height: min(60vh, 520px); overflow: auto;
