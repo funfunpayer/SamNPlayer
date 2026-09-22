@@ -192,18 +192,18 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 #### Claude — next
 
 1. **Done:** #188 + #189 MT-Debug, #190 MT-Infra.
-2. After owner “QC go”: claim **QC-B** (Debug/Infra check) — findings comment first.
+2. **QC-B:** FAIL posted (Generate `#gen-capture-trajectory` missing) — finish scoped fix PR, then stop.
 
 #### ChatGPT — next
 
 1. **Done:** E2 write-up in #194 (`MT_SPEED_NOTES.md`).
-2. Steward continues.
-3. After owner “QC go”: claim **QC-C** (docs/CI/steward verify of tip).
+2. **QC-C:** FAIL→**#195** CHANGELOG markers — steward continues after merge.
+3. Steward continues (review / bugfix / cleanup).
 
 #### Cursor — next
 
-1. **Done:** #186 MT-Seed · #187 T-fix.
-2. After owner “QC go”: claim **QC-A** (Generate/Training GUI check) — findings then small fix PRs only.
+1. **Done:** #186 MT-Seed · #187 T-fix · QC-A PASS (no product FAIL).
+2. Hold product fixes; board (#193) after #195 + Claude fix land.
 3. Version bump / tag **only when owner asks** after QC + smoke.
 
 ---
