@@ -1060,14 +1060,15 @@ export function initGenerator(root, playback) {
   // genauso gesetzt, als hätte der Nutzer sie gezogen, und lässt sich
   // danach frei korrigieren.
   EventsOn('generate:autoroi', result => {
+    // Drop stale finds before touching UI — a late result for video A must not
+    // hide progress / unlock buttons while video B is still searching.
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
     el('#gen-nomark').disabled = false;
-    // Drop stale finds from a previous video / superseded AutoDetectROI.
-    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
-      return;
-    }
     if (result.error) {
       pendingGenerateAfterRoi = false;
       uiError('Automatic region search: ' + result.error, el('#gen-status'));

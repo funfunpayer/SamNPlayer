@@ -51,7 +51,8 @@ func TestFillGapsAudioHzStep(t *testing.T) {
 }
 
 func TestImproveScriptAutoSecondPass(t *testing.T) {
-	// Long gap (fills on first pass) + medium hole (only second @ 400ms).
+	// Fast stroke (~100ms) + long gap + medium hole (500ms) — second pass
+	// at max(400, 4×median) fills the medium hole without needing MaxGapMs.
 	in := []Action{
 		{At: 0, Pos: 0},
 		{At: 100, Pos: 20},
@@ -68,8 +69,28 @@ func TestImproveScriptAutoSecondPass(t *testing.T) {
 		t.Fatalf("want ≥2 gaps filled, got gaps=%d pts=%d fillGapMs=%d",
 			res.GapsFilled, res.PointsAdded, res.FillGapMs)
 	}
-	if res.FillGapMs != DefaultFillGapMs/2 {
-		t.Fatalf("report tight threshold, got %d", res.FillGapMs)
+}
+
+func TestImproveScriptNoDensifySlowStroke(t *testing.T) {
+	// Natural ~500ms extrema — fixed 400ms second pass would densify everything.
+	in := make([]Action, 0, 20)
+	for i := 0; i < 20; i++ {
+		pos := 20
+		if i%2 == 1 {
+			pos = 85
+		}
+		in = append(in, Action{At: int64(i * 500), Pos: pos})
+	}
+	res, err := ImproveScript(in, ImproveOpts{FillGaps: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.PointsAdded != 0 || res.GapsFilled != 0 {
+		t.Fatalf("slow stroke densified: gaps=%d pts=%d after=%d",
+			res.GapsFilled, res.PointsAdded, res.AfterCount)
+	}
+	if res.AfterCount != len(in) {
+		t.Fatalf("count changed %d → %d", len(in), res.AfterCount)
 	}
 }
 

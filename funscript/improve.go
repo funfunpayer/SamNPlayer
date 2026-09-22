@@ -192,11 +192,21 @@ func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 			maxGap = autoFillGapThreshold(cur)
 		}
 		step := opts.StepMs
+		// Median of the *original* spacing — after filling long holes with
+		// stepMs points the median collapses and must not drive a second pass.
+		origMed := medianSpacingMs(cur)
 		filled, nGaps, nPts := FillGaps(cur, maxGap, step, opts.AudioHz)
-		// Auto mode (MaxGapMs==0): second tighter pass catches medium
-		// tracker holes left after bridging the long gaps (post-generate).
+		// Auto mode: second pass only for medium outliers below the first
+		// threshold. Floor 400ms, but never below ~4× natural stroke spacing
+		// (slow strokes must not get densified into 100ms linear ramps).
 		if opts.MaxGapMs <= 0 {
 			tight := DefaultFillGapMs / 2 // 400ms
+			if origMed > 0 {
+				rel := int64(math.Round(origMed * 4))
+				if rel > tight {
+					tight = rel
+				}
+			}
 			if tight > 0 && tight < maxGap {
 				var g2, p2 int
 				filled, g2, p2 = FillGaps(filled, tight, step, opts.AudioHz)
@@ -244,6 +254,20 @@ func autoFillGapThreshold(actions []Action) int64 {
 	}
 	// Prefer filling shorter tracker holes than the doctor threshold alone.
 	return DefaultFillGapMs
+}
+
+func medianSpacingMs(actions []Action) float64 {
+	var dts []float64
+	for i := 1; i < len(actions); i++ {
+		d := float64(actions[i].At - actions[i-1].At)
+		if d > 0 {
+			dts = append(dts, d)
+		}
+	}
+	if len(dts) == 0 {
+		return 0
+	}
+	return medianFloat(dts)
 }
 
 func interpAt(actions []Action, t int64) int {
