@@ -20,7 +20,14 @@ from _harness import Checker, app_stub, serve
 
 FRONTEND = pathlib.Path(__file__).resolve().parents[1]
 
-PAGE = """<!doctype html><html><body><div id="root"></div>
+# style.css geladen (mit "?raw=1", weil der Harness den bloßen Pfad
+# "/src/style.css" auf ein leeres JS-Modul umbiegt - für main.js's
+# CSS-Import gedacht, siehe _harness.py). Andere Trainings-Tests brauchen
+# das nicht (sie prüfen nur DOM-Klassen/-Attribute), aber die
+# Zittern/Zusammenziehen-Animationen unten sind selbst CSS-Keyframes -
+# ohne geladenes Stylesheet bliebe computed transform immer "none".
+PAGE = """<!doctype html><html><head><link rel="stylesheet" href="/src/style.css?raw=1"></head>
+<body><div id="root"></div>
 <script type="module">
   import { initTraining } from '/src/training.js';
   initTraining(document.querySelector('#root'));
@@ -92,6 +99,38 @@ def main():
               str(ring_fill_fraction(page, "vibration")))
         check("laufende Session: Vibrationsbahn glüht", ring_pulsing(page, "vibration"))
         check("laufende Session: Sog-Bahn glüht", ring_pulsing(page, "suction"))
+
+        # Echte Bewegung, nicht nur Farbe: Vibration zittert (Position
+        # ändert sich mehrfach über Zeit), Suction zieht sich zusammen
+        # (Skalierung sinkt zeitweise unter 1). Amplitude kommt aus einer
+        # CSS-Variable, die updateIntensityRing proportional zur
+        # Intensität setzt.
+        vib_amp = page.locator("#tr-ring-anim-vibration").evaluate(
+            "e => getComputedStyle(e).getPropertyValue('--vib-amp')").strip()
+        suc_amp = page.locator("#tr-ring-anim-suction").evaluate(
+            "e => getComputedStyle(e).getPropertyValue('--suc-amp')").strip()
+        check("Vibration-Amplitude proportional zur Intensität (70% -> ~1.54px)",
+              vib_amp == "1.54px", vib_amp)
+        check("Suction-Amplitude proportional zur Intensität (70% -> ~0.112)",
+              suc_amp == "0.112", suc_amp)
+
+        positions = set()
+        for _ in range(5):
+            box = page.locator("#tr-ring-anim-vibration").bounding_box()
+            positions.add((round(box["x"], 1), round(box["y"], 1)))
+            page.wait_for_timeout(60)
+        check("Vibrationsbahn bewegt sich tatsächlich (mehrere Positionen über Zeit)",
+              len(positions) > 1, str(positions))
+
+        scales = set()
+        for _ in range(6):
+            m = page.locator("#tr-ring-anim-suction").evaluate("e => getComputedStyle(e).transform")
+            scales.add(m)
+            page.wait_for_timeout(160)
+        check("Suction-Bahn skaliert sich tatsächlich (mehrere Werte über Zeit)",
+              len(scales) > 1, str(scales))
+        check("Suction-Bahn zieht sich zeitweise unter volle Größe zusammen",
+              any("1, 0, 0, 1" not in m for m in scales), str(scales))
         check("laufende Session: das ganze Widget atmet", widget_breathing(page))
 
         page.select_option("#tr-channel", "vibration")

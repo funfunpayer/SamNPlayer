@@ -42,7 +42,13 @@ measurement history behind each entry; this file is the short version for
   a single glance shows both channels together. Verlaufsfarbe (gradient),
   drop shadow, and a specular highlight arc per band give it a plastic/3D
   look instead of a flat fill; the whole widget "breathes" (scale) while
-  either channel is active, each band also glows in its own color.
+  either channel is active, each band also glows in its own color. Each
+  axis moves the way it feels, not just glows: the vibration band
+  genuinely **shakes** (small high-frequency jitter, `steps()` timing so
+  it reads as mechanical rather than a smooth wobble), the suction band
+  rhythmically **contracts inward** ("sucked in" — fast pull, slower
+  release). Amplitude for both scales with the actual intensity (a CSS
+  custom property `updateIntensityRing` sets live), not just on/off.
   Percentages sit stacked in the center, a small legend names the two
   colors. Works for both the simple Technique/Channel form and scripts,
   replacing the plain "Current peak" text with something to actually

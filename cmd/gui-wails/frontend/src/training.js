@@ -34,20 +34,30 @@ const RING_CIRCUMFERENCE = {
 // vom Füllstand darunter.
 const RING_HIGHLIGHT_FRACTION = 0.16;
 
+// Jede Bahn steckt in einer EIGENEN Animations-Gruppe (tr-ring-anim-*),
+// getrennt von der Gruppe, die das statische rotate(-90) für die
+// Fortschritts-Mathematik trägt - CSS-transform auf demselben Element wie
+// das transform-PRÄSENTATIONSATTRIBUT würde dieses ersetzen statt sich
+// damit zu kombinieren (SVG2/CSS-Transforms-Spec), was die Rampe aus der
+// 12-Uhr-Startposition gerissen hätte. So bleibt die Rotation unberührt,
+// während die äußere Gruppe frei "zittern" (Vibration) oder sich
+// "zusammenziehen" (Suction) kann - siehe updateIntensityRing/CSS.
 function ringArc(axisName) {
   const { r, cx, cy } = RING_GEOMETRY[axisName];
   const c = RING_CIRCUMFERENCE[axisName];
   const highlight = c * RING_HIGHLIGHT_FRACTION;
   return `
-    <circle class="tr-ring-track" cx="${cx}" cy="${cy}" r="${r}" />
-    <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${cx}" cy="${cy}" r="${r}"
-            stroke="url(#tr-ring-grad-${axisName})"
-            transform="rotate(-90 ${cx} ${cy})"
-            stroke-dasharray="${c.toFixed(2)}"
-            stroke-dashoffset="${c.toFixed(2)}" />
-    <circle class="tr-ring-gloss" cx="${cx}" cy="${cy}" r="${r}"
-            transform="rotate(-90 ${cx} ${cy})"
-            stroke-dasharray="${highlight.toFixed(2)} ${c.toFixed(2)}" />`;
+    <g class="tr-ring-anim tr-ring-anim-${axisName}" id="tr-ring-anim-${axisName}">
+      <g transform="rotate(-90 ${cx} ${cy})">
+        <circle class="tr-ring-track" cx="${cx}" cy="${cy}" r="${r}" />
+        <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${cx}" cy="${cy}" r="${r}"
+                stroke="url(#tr-ring-grad-${axisName})"
+                stroke-dasharray="${c.toFixed(2)}"
+                stroke-dashoffset="${c.toFixed(2)}" />
+        <circle class="tr-ring-gloss" cx="${cx}" cy="${cy}" r="${r}"
+                stroke-dasharray="${highlight.toFixed(2)} ${c.toFixed(2)}" />
+      </g>
+    </g>`;
 }
 
 function renderDualIntensityRing() {
@@ -94,6 +104,20 @@ function updateIntensityRing(axisName, level, pulsing) {
   }
   const value = document.getElementById(`tr-ring-value-${axisName}`);
   if (value) value.textContent = pct + '%';
+
+  // Achsen-eigene Bewegung statt nur Farbe: Vibration lässt die Bahn
+  // tatsächlich zittern, Suction zieht sie rhythmisch nach innen zusammen
+  // ("gesaugt") - beide Male mit Amplitude proportional zur Intensität
+  // (CSS-Variable, die die Keyframes unten skalieren), nicht nur an/aus.
+  const animGroup = document.getElementById(`tr-ring-anim-${axisName}`);
+  if (animGroup) {
+    animGroup.classList.toggle('tr-pulsing', pulsing);
+    if (axisName === 'vibration') {
+      animGroup.style.setProperty('--vib-amp', (clamp01(level) * 2.2).toFixed(2) + 'px');
+    } else if (axisName === 'suction') {
+      animGroup.style.setProperty('--suc-amp', (clamp01(level) * 0.16).toFixed(3));
+    }
+  }
 }
 
 function updateRingBreathing(anyPulsing) {
