@@ -90,68 +90,65 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) merged + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT + simpletrack NCC) + Review/Play polyline overlay, both off by default | **DONE** (`b7f5d2d`, `5762629`) |
+| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
-| F2 | Cursor | next | **MT-Seed** — ranked motion-candidate → Tip+Partner seed CSRT (GUI suggest ≠ auto-commit) | **NEXT (Cursor)** |
+| F2 | Cursor | #186 | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **READY** — rebased on #189/#190 |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
-| E | ChatGPT | — | **MT-Go verify** on `main` tip `94b2bae` + partner-loss golden notes (do not re-implement coast) | **CLAIMED — verify-only** |
-| E2 | ChatGPT | (after E) | **MT-Speed doc/spike** — ByteTrack vs BoT-SORT knobs + N-frame detect budget (write-up / tiny spike only; no Generate default) | **queued after verify** |
-| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) merged | **MT-Infra** — ffmpeg ctx-kill hygiene (`DumpFrameAt` + roi_still helpers) + proxy single-owner decode (singleflight, race-tested). Rational-PTS/filtergraph-fastpath angles checked, already fine | **DONE** (`7802a14`) |
+| T-fix | Cursor | #187 | **Training display residuals** (#185) | **READY** — rebased; ChatGPT verify PASS |
+| E0 | ChatGPT | #185 | Training verify report | **DONE** — close after #187 merges |
+| E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
+| E2 | ChatGPT | next | **MT-Speed notes** — ByteTrack/BoT-SORT; bias **part/class** | **NEXT (ChatGPT)** |
+| E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
+| R-pose | ChatGPT | [#192](https://github.com/funfunpayer/SamNPlayer/pull/192) / #191 | **PoseObserver concept** | **READY** — merge anytime |
+| V | Owner | local machine | **Clip verify** MT-Go / MT-ID gate | **OWNER only** — cloud agents have no MP4s |
+| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (22 Sep late):**
+- **Owner merge order:** **#187** → **#186**; then #192 anytime. #189/#190 already on main.
+- **ChatGPT:** **E2 MT-Speed notes** next; steward OK.
+- **Claude:** B+C DONE. No cloud clip verify.
+- **Cursor:** both PRs rebased onto main after #189/#190.
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
 Canonical steps: `PRODUCTION_ROADMAP.md` § Multi-track Fahrplan.
-Base every PR on current `main` (includes #183 MT-Go).
+Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 
 | Who | Owns | Touch | Do **not** touch |
 |-----|------|-------|------------------|
-| **Cursor** | **MT-Seed** (after #183) | `generator.js` suggest UX, motion-candidate → Zone1/2 seed, `AutoDetectROI` wiring | Ultralytics track; Playback; Training |
-| **Claude** | **MT-Debug** | Review/Play overlay polyline for tip/partner path; pref off | `trackcv` coast logic (#183 done); Generate defaults |
-| **ChatGPT** | **MT-Go verify** then **MT-Speed write-up** | Tests/notes against `94b2bae`; optional spike script under `scripts/` or docs only | Re-landing coast/reacquire; merging YOLO as Stroke |
-| later | **MT-ID** | Only if verify shows partner IDs still die on goldens | — |
+| **Cursor** | **MT-Seed** #186 · **T-fix** #187 | `generator.js` seed UX; Training display | Ultralytics as Stroke |
+| **Claude** | **DONE** #189/#190 | — | Rewrite coast; Everyday defaults |
+| **ChatGPT** | **E2** + **#192 Pose** + steward | Docs/notes; review; cleanup | Re-land coast; invent MT-ID |
+| **Owner** | **Clip verify (V)** | Local goldens + OpenCV | — |
+| later | **MT-ID** code | Only after Owner clip gate | — |
 
-**Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go CSRT.
+**Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go tip-CSRT.
 
-#### Claude — handoff brief (lane B → optional C)
+**Owner product stance:** Tip + Contact first; body-part proposals over default Partner CSRT. Goldens = `clip_ausschnitt` + `clip_voll`.
 
-**Primary: MT-Debug**
-1. Branch: `claude/mt-debug-trajectory-<id>` off `main`.
-2. Goal: optional Review/Play overlay drawing tip (+ partner if present)
-   trajectory polylines from script metadata / track series — **pref OFF**.
-3. Likely touch: `cmd/gui-wails/frontend/src/playback.js` (or review surface),
-   `style.css`, small settings key via existing `saveSetting` pattern.
-4. DoD: toggle works; no Generate default change; no edits under
-   `generator/trackcv/` / `trackutil/` (already shipped in #183).
-5. PR body: `AGENT_COORD:` claim lane B; link Fahrplan MT-Debug.
+#### Claude — next
 
-**Optional after Debug (or instead if Debug blocked): MT-Infra**
-- Improve trim / H.264 proxy path: rational time or FFmpeg filtergraph
-  fastpath / ensure cancel kills ffmpeg (MovieGo lessons).
-- Touch: Improve/proxy helpers only — not Tracking, not Training.
+1. **Done:** #188 + #189 MT-Debug, #190 MT-Infra.
+2. Free unless owner assigns more. Cloud sandbox has **no** golden MP4s.
 
-#### ChatGPT — handoff brief (lane E → E2)
+#### ChatGPT — handoff brief (E2 + steward)
 
-**Primary: MT-Go verify (no code re-implement)**
-1. Branch only if you add a test/doc note: `codex/mt-go-verify-<id>` off `main`.
-2. Check tip `94b2bae` / #183: coast + reacquire + Generate “Tracking:” UI.
-3. Deliverable: short comment on #183 or PR note — partner-loss behavior on
-   1–2 clips / goldens if available; **pass/fail for MT-ID gate**.
-4. Do **not** re-land `trackutil.Coast` or appearance reacquire.
+**NOW: E2 MT-Speed write-up**
+1. Branch: `codex/mt-speed-notes-<id>` off `main` (docs only).
+2. `docs/MT_SPEED_NOTES.md`: ByteTrack vs BoT-SORT, `imgsz`, detect every N; bias Tip + body-part/class.
+3. Do **not** change Generate defaults.
 
-**Then: MT-Speed write-up / tiny spike**
-1. Doc under `docs/` (e.g. short section in NEXT or new
-   `docs/MT_SPEED_NOTES.md`) — ByteTrack vs BoT-SORT, `imgsz`, detect every N,
-   `half`/ONNX; time budget for proposal-only path.
-2. Optional: non-product spike under `scripts/` — **must not** change Everyday
-   Generate defaults or Stroke writer.
-3. DoD: Cursor can implement MT-Seed/Speed later without re-researching knobs.
+**Standing steward:** PR review, bugfix triage, GitHub cleanup, docs hygiene.
+
+**PoseObserver (#192):** merge docs anytime; Stage A only after MT-Seed + E2.
+
+**MT-ID:** **Owner** local clip gate only.
 
 #### Cursor — keeps (do not steal)
 
-- **MT-Seed** next: ranked motion candidates → Tip+Partner → seed CSRT;
-  suggest ≠ auto-commit (`generator.js` / AutoDetectROI).
+- **MT-Seed** #186 · **T-fix** #187 — both READY after rebase onto #189/#190.
 
 ---
 
@@ -620,6 +617,9 @@ ring revision before committing.
 | 22 Sep | **MT-Debug data gap found:** no per-frame tip/partner (x,y) survived anywhere (trackcv discarded box centers after computing the fused distance) — flagged on #184, Cursor green-lit an additive opt-in capture hook in `trackcv` (zero behavior change when off). Opened #188: capture (CSRT path only, `simpletrack` not yet wired) + Review/Play polyline overlay, both off by default | Claude ↔ Cursor |
 | 22 Sep | **#188 merged.** Follow-up #189 wires the same opt-in capture into `simpletrack` (the non-OpenCV Windows fallback) so "Record tip/partner trajectory" works on both native Go tracking backends; no GUI/schema changes needed, both backends feed the same `metadata.trajectory`. New `reflect.DeepEqual` regression test locks in byte-identical output when the flag is off | Claude |
 | 22 Sep | **#189 and #190 merged** (`5762629`, `7802a14`). Lane B (MT-Debug) and Lane C (MT-Infra) both DONE | Claude |
+| 22 Sep | ChatGPT E: MT-Go unit/race **PASS**; OpenCV local + real-clip MT-ID **BLOCKED** → E2 next | ChatGPT |
+| 22 Sep | Clip verify = **Owner local only** (cloud Claude/ChatGPT have no MP4s) | Owner |
+| 22 Sep | Rebase hygiene + PoseObserver #192 slow path after MT-Seed+E2 | Owner + Cursor |
 
 ---
 
@@ -631,6 +631,17 @@ ring revision before committing.
 4. No silent tracker/profile default changes.
 5. Finish → Done row + free lane + PR link.
 6. Never force-push another agent’s claimed tip.
+
+### Rebase hygiene (owner 22 Sep — stop the chaos)
+
+Rebases were colliding (`AGENT_COORD` / Fahrplan / cherry-picks). Prefer this:
+
+1. **One tip owner per PR.** Only that agent rebases/force-pushes that branch.
+2. **Rebase once onto current `main` after a foreign merge lands** — not after every mid-flight doc edit.
+3. **Conflict policy for `docs/AGENT_COORD.md`:** keep the **newer Active table intent** (who is DONE / NEXT), then re-apply your claim row. Do not invent a third board.
+4. **Prefer merge-main only if rebase would rewrite shared history others already pulled.** Cloud agents: rebase own draft PRs; do not rebase another agent’s open tip.
+5. **Avoid cherry-pick ladders.** If two Cursor PRs both need the same board refresh, put the board refresh on **one** PR and let the other rebase once after merge — or accept temporary drift until owner merges.
+6. **No silent `git reset --hard` on `main`.** Feature branches only.
 
 ### ChatGPT onboarding
 

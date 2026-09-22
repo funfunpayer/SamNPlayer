@@ -213,39 +213,51 @@ passes your usable bar — otherwise the model learns noise.
 | G3.2 | ROI proposal + VerifyROI; two-ROI suggest stays opt-in until bake-off win | G3.1 + G1.5 | Suggest ≠ auto-commit (principle 6) |
 | G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Adopt only if CV beats fixed rules |
 | G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 |
-| G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | Parked until G3.4 |
+| G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | **PoseObserver** #191/#192 — Stage A after MT-Seed + E2 |
 | G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | Ordered; measure each gate |
 
 ### Multi-track Fahrplan (22 Sep) — fold into G1 polish + G3
 
 Synthesizes owner research (YOLO26 + ByteTrack/BoT-SORT, speed knobs,
 VSDC “movement map”, Unite.ai lib filter, MovieGo architecture notes) with
-the existing spine. **Stroke writer stays Go CSRT.** Proposals ≠ script.
+the existing spine. **Stroke writer stays Go CSRT tip.** Proposals ≠ script.
+
+**Product stance (owner 22 Sep — aligns Everyday):**
+- **Tip CSRT + Contact layer** is the product path. Do **not** treat “always
+  track a Partner box” as the default multi-object goal.
+- Zone 2 / Partner CSRT mainly pays off for **tip↔partner distance** (legacy
+  Tf/Tj). On Stroke + Contact vib, Zone 2 is often preview-only (vib =
+  stroke depth).
+- Prefer **body-part zones/classes** (mouth, hand, …) as ranked **proposals**
+  — not N stroke writers.
+- Multi-track IDs = stable IDs for **parts/regions** when useful; generic
+  Partner tracking only when distance/feel truly needs it.
 
 ```text
-  Motion candidates / YOLO-ONNX  →  Tip + Partner boxes (opt-in)
+  Motion candidates / YOLO-ONNX / (later) PoseObserver  →  Tip + optional body-part proposals
            ↓
-  Go TrackMultiPoints (CSRT)     →  Stroke + optional distance/feel
+  Go CSRT tip (TrackMultiPoints when multi marks exist)  →  Stroke + Contact
            ↓
-  (only if IDs still break)      →  Python ByteTrack/BoT-SORT ID layer
+  (only if part IDs still break on goldens)  →  Python ByteTrack/BoT-SORT ID layer
 ```
 
 | Step | ID | What | Depends on | Done when |
 |------|-----|------|------------|-----------|
 | **1** | **MT-Go** | Go coast + track-ID continuity + honest lost UI (`LostFlags` / `lostHeavy`) on `TrackMultiPoints` | Current `main` | **DONE** #183 (`94b2bae`) — Cursor |
-| **2** | **MT-Seed** | Ranked N proposals → user/auto pick Tip + Partner → seed Go CSRT (motion candidates first; YOLO/ONNX when AI Train usable) | MT-Go + G3.2 | **Cursor next** — Suggest ≠ auto-commit; Everyday tip-CSRT if user skips |
-| **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N frames, `half`/ONNX; ByteTrack before BoT-SORT unless occlusion demands ReID | MT-Seed | **ChatGPT** write-up/spike after MT-Go verify |
-| **4** | **MT-ID** | Optional Python Ultralytics track (ByteTrack/BoT-SORT) **only** if MT-Go still loses partners on goldens | MT-Seed fail gate | Gate = ChatGPT verify notes |
-| **5** | **MT-Debug** | Optional Review polyline of tip/partner trajectory (VSDC “movement map” idea) | MT-Go | **Claude** — overlay off by default |
-| **∥** | **MT-Infra** | When touching Improve/proxy: MovieGo lessons — rational PTS/rate where float drifts, FFmpeg filtergraph fastpath for pure trim/scale, single-owner decode + ctx kills ffmpeg | Orthogonal | **Claude optional** |
+| **2** | **MT-Seed** | Ranked N proposals → user picks **Tip** (+ optional Partner/body-part Zone 2+) → seed Go CSRT; suggest ≠ auto-commit | MT-Go + G3.2 | **#186** — Everyday tip-CSRT if user skips extras |
+| **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N; ByteTrack before BoT-SORT unless ReID needed — bias toward **part/class** proposals | MT-Seed | **ChatGPT** E2 write-up |
+| **4** | **MT-ID** | Optional Ultralytics track **only** if tip or named part IDs still die on `clip_ausschnitt` / `clip_voll` | MT-Seed fail gate | Gate = **Owner** clip verify |
+| **5** | **MT-Debug** | Optional Review polyline of tip (+ other marks if present); pref off | MT-Go | **DONE** #188 + #189 (`b7f5d2d`, `5762629`) |
+| **∥** | **MT-Infra** | ffmpeg ctx-kill + proxy single-owner (filtergraph/PTS already fine) | Orthogonal | **DONE** #190 (`7802a14`) |
+| **∥ later** | **PoseObserver** | Pretrained RTMPose/MediaPipe as **proposal** layer (`POSE_OBSERVER.md` / #191/#192) | MT-Seed + E2 | Stage A → bake-off; never Stroke writer |
 
 **Libs we keep / adopt later vs ignore** (Unite.ai filter): keep OpenCV,
 NumPy/SciPy, optional ultralytics+ONNX; Train-only PyTorch/torchvision;
 ignore Diffusers/LLM/DeepSpeed/Pillow-first stacks for Generate.
 
 **Explicitly out of this Fahrplan:** frame-diff as Tip finder; YOLO every
-frame as Stroke; VSDC titles/captions/censor product; adopting MovieGo as
-a dependency for tracking.
+frame as Stroke; **default Partner CSRT for Everyday**; VSDC titles/captions/
+censor product; adopting MovieGo as a dependency for tracking.
 
 Detail table + Go upgrade mapping: `docs/AGENT_COORD.md` § Parked
 multi-object. Checklist mirrors: `docs/ROADMAP.md` § Multi-track.

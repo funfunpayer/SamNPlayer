@@ -117,6 +117,27 @@ python generator/train_yolo_model.py \
 - After training: Generate tab → AI detection; in Settings set **Preferred classes** for multi-class models (e.g. `hand,breast`)
 - 3D / depth / pose: experimental scaffold only — see `docs/DEPTH_POSE.md`; golden-clip win required before default
 
+## Already transfer learning — how to go faster (22 Sep)
+
+Training is **not** from scratch. `train_yolo_model.py` defaults to
+`--base-model yolov8n.pt` (COCO-pretrained Ultralytics weights), then
+fine-tunes on **your** body-part boxes → ONNX for Generate proposals.
+
+| Speed / quality lever | Status | Notes |
+|-----------------------|--------|-------|
+| COCO `yolov8n.pt` fine-tune | **Already default** | Small + fast; keep unless data is huge |
+| GPU (`--device auto`) | Wired | CUDA → MPS → DirectML → CPU |
+| More corrected samples | Highest leverage | Review/correct beats bigger YOLO |
+| `yolov8s` / YOLO26 later | Opt-in `--base-model` | Only after n plateaus on your classes |
+| External body/hand ONNX as **proposal helper** | Idea (extra) | Suggest boxes only; never write Stroke; measure vs CSRT auto-ROI first |
+| **PoseObserver** (RTMPose/MediaPipe) | Concept #191/#192 | Propose seeds → Go CSRT measures; see `docs/POSE_OBSERVER.md` when merged |
+| ByteTrack/BoT-SORT ID layer | Fahrplan MT-Speed/ID | After classical MT-Seed; not Stroke writer |
+| Freeze backbone / fewer epochs | Easy CLI knobs later | Good once sample count is stable |
+
+**Product rule stays:** AI may **suggest** Tip/body-part regions; CSRT
+(Everyday, no AI required) still writes the curve. Do not swap Everyday
+to a third-party model just to “train faster.”
+
 ## Troubleshooting
 
 | Symptom | Cause / fix |
