@@ -92,7 +92,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
-| F | Cursor | #176 merged | bugfix P0/P1 | **DONE** (`495b0dc`) |
+| F | Cursor | `cursor/mt-go-coast-ids-d7cb` | **MT-Go:** partner/tip coast + appearance reacquire + lost UI | **IN PROGRESS** |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
 | E | ChatGPT | `codex/training-review-fixes` | verify training fixes on main — do not re-implement | **paused / verify later** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **CLOSED** (superseded by #176) |
