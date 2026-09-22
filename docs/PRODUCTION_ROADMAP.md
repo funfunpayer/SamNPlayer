@@ -214,7 +214,7 @@ passes your usable bar — otherwise the model learns noise.
 | G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Adopt only if CV beats fixed rules |
 | G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 |
 | G3.5 | Depth / pose / ByteTrack / segmentation | Own go/no-go each | Parked until G3.4 |
-| G3.5a | **Multi-object track IDs** (YOLO + ByteTrack/BoT-SORT) as Tip+Partner(+region) **proposals** — not Stroke writer | After G3.2 | Parked note 22 Sep — see AGENT_COORD |
+| G3.5a | **Multi-object track IDs** (YOLO + ByteTrack/BoT-SORT) as Tip+Partner(+region) **proposals** — not Stroke writer | After G3.2 | Parked note 22 Sep — see AGENT_COORD § multi-object (incl. Go upgrade table) |
 
 **Parked runtime note (22 Sep, owner):** Ultralytics YOLO + BoT-SORT/ByteTrack
 is the practical stack for **multi-box IDs**. If a solid Go path for that
