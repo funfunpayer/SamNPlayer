@@ -244,7 +244,7 @@ the existing spine. **Stroke writer stays Go CSRT tip.** Proposals ≠ script.
 | Step | ID | What | Depends on | Done when |
 |------|-----|------|------------|-----------|
 | **1** | **MT-Go** | Go coast + track-ID continuity + honest lost UI (`LostFlags` / `lostHeavy`) on `TrackMultiPoints` | Current `main` | **DONE** #183 (`94b2bae`) — Cursor |
-| **2** | **MT-Seed** | Ranked N proposals → user picks **Tip** (+ optional Partner/body-part Zone 2+) → seed Go CSRT; suggest ≠ auto-commit | MT-Go + G3.2 | **#186** — Everyday tip-CSRT if user skips extras |
+| **2** | **MT-Seed** | Ranked N proposals → user picks **Tip** (+ optional Partner/body-part Zone 2+) → seed Go CSRT; suggest ≠ auto-commit | MT-Go + G3.2 | **DONE** #186 (`5715b6b`) |
 | **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N; ByteTrack before BoT-SORT unless ReID needed — bias toward **part/class** proposals | MT-Seed | **DONE (write-up)** — [MT_SPEED_NOTES.md](MT_SPEED_NOTES.md); implementation/owner measurement pending |
 | **4** | **MT-ID** | Optional Ultralytics track **only** if tip or named part IDs still die on `clip_ausschnitt` / `clip_voll` | MT-Seed fail gate | Gate = **Owner** clip verify |
 | **5** | **MT-Debug** | Optional Review polyline of tip (+ other marks if present); pref off | MT-Go | **DONE** #188 + #189 (`b7f5d2d`, `5762629`) |
