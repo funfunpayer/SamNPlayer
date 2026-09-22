@@ -73,6 +73,11 @@ def main():
               page.locator("label[for='gen-ai-quality']").count() == 0)
         check("Audio check not a visible Advanced checkbox",
               page.locator("label[for='gen-audio-check']").count() == 0)
+        check("Flow downscale control gone from GUI",
+              page.locator("#gen-flow-downscale").count() == 0)
+        check("Scene memory collapsed under power-user",
+              page.locator("#gen-power-user").count() == 1
+              and page.locator("#gen-label-scene").count() == 1)
 
         page.click("#gen-choose")
         page.wait_for_function(

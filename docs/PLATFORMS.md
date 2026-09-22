@@ -24,6 +24,9 @@ phone-shaped compromise.
 
 Checklist: [`docs/COMPETITIVE.md`](COMPETITIVE.md).
 
+Imported community scripts / Neo 2 optimize / future catalog APIs:
+[`docs/CONTENT_SOURCES.md`](CONTENT_SOURCES.md).
+
 ## Mobile player (later) — scope fence
 
 **In:**

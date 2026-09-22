@@ -231,3 +231,6 @@ export function GetScriptBookmarks():Promise<Array<funscript.Bookmark>>;
 export function SaveScriptBookmarks(arg1:Array<funscript.Bookmark>):Promise<void>;
 export function GetScriptChapterMarks():Promise<Array<funscript.ChapterMark>>;
 export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promise<void>;
+export function OptimizeLoadedForNeo2(arg1:boolean):Promise<any>;
+export function BakeNeoAxesOnLoaded():Promise<string>;
+export function SaveLoadedAsSamn():Promise<string>;

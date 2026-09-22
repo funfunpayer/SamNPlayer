@@ -40,7 +40,9 @@ Do **not** default 4-zone or Flow.
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
 scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
 Removed from Everyday Advanced: AI second opinion (no curve effect), audio
-check row (moved to Review). Flow downscale stays hidden (Flow is CLI-only).
+check row (moved to Review), Flow downscale (Flow is CLI-only). Scene memory
+collapsed under Power-user. Imported scripts → Play **Optimize for Neo 2**
+(`docs/CONTENT_SOURCES.md`).
 
 AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 (`AI_ADAPTER.md`).

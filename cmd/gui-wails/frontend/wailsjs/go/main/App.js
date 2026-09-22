@@ -57,6 +57,7 @@ export function GetStrengthPresets() { return window['go']['main']['App']['GetSt
 export function SetActiveStrength(arg1) { return window['go']['main']['App']['SetActiveStrength'](arg1); }
 export function ExportLoadedFunscript(arg1) { return window['go']['main']['App']['ExportLoadedFunscript'](arg1); }
 export function SaveLoadedAsSamn() { return window['go']['main']['App']['SaveLoadedAsSamn'](); }
+export function OptimizeLoadedForNeo2(arg1) { return window['go']['main']['App']['OptimizeLoadedForNeo2'](arg1); }
 export function BakeNeoAxesOnLoaded() { return window['go']['main']['App']['BakeNeoAxesOnLoaded'](); }
 export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['GetSpeedHighlights'](arg1); }
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }

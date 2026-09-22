@@ -132,16 +132,19 @@ export function initGenerator(root, playback) {
         </div>
       </div>
 
-      <div class="row" style="align-items:center;">
-        <button id="gen-suggest-profile" disabled
-          data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
-        <span class="hint" id="gen-suggest-status" style="margin:0"></span>
-      </div>
-      <div class="row" style="align-items:center;">
-        <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
-        <button id="gen-label-scene" disabled
-          data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
-      </div>
+      <details id="gen-power-user" style="margin:6px 0 8px 0;">
+        <summary style="cursor:pointer;">Power-user: scene memory</summary>
+        <div class="row" style="align-items:center; margin-top:8px;">
+          <button id="gen-suggest-profile" disabled
+            data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
+          <span class="hint" id="gen-suggest-status" style="margin:0"></span>
+        </div>
+        <div class="row" style="align-items:center;">
+          <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
+          <button id="gen-label-scene" disabled
+            data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
+        </div>
+      </details>
     </section>
 
     <section class="gen-step-panel" id="gen-step-run" data-step="4" hidden>
@@ -174,8 +177,7 @@ export function initGenerator(root, playback) {
             data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
           <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
           <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
-          <!-- AI second opinion removed from Everyday Advanced: forces Python, does not change the curve. -->
-          <input type="checkbox" id="gen-ai-quality" style="display:none" aria-hidden="true" />
+          <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
 
           <div class="opt-group">Keyframes</div>
           <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
@@ -193,7 +195,6 @@ export function initGenerator(root, playback) {
           <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
           <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
           <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-          <div class="field-row" id="gen-flow-downscale-row" style="display:none;"><label data-help="Flow only. 0 = product default 0.5 (full-res Farneback is often slower than CSRT on 720p — watch FLOW_SUMMARY in the Log).">Flow downscale (0→0.5)</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
         </div>
       </details>
 
@@ -981,9 +982,9 @@ export function initGenerator(root, playback) {
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
-      flowDownscale: parseFloat(el('#gen-flow-downscale')?.value) || 0,
+      flowDownscale: 0,
       overwrite,
-      aiQualityOpinion: el('#gen-ai-quality').checked,
+      aiQualityOpinion: false,
       contactVibration: el('#gen-contact-vibration').checked,
       contactVibrationSpan: el('#gen-contact-vibration').checked
         ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
@@ -1375,8 +1376,6 @@ export function initGenerator(root, playback) {
     syncNoMarkButton();
     normalizeProductProfile();
     updateGenerateEnabled();
-    const flowRow = el('#gen-flow-downscale-row');
-    if (flowRow) flowRow.style.display = el('#gen-backend').value === 'flow' ? '' : 'none';
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;

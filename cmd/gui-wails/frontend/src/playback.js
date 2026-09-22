@@ -4,6 +4,7 @@ import {
   ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
+  OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
@@ -125,9 +126,13 @@ export function initPlayback(root) {
             <option value="">—</option>
           </select>
           <button type="button" id="pb-bake-axes" title="Bake vibration/suction from recipe into .samn">Bake axes</button>
+          <button type="button" id="pb-optimize-neo2" class="primary"
+            title="Imported funscript → fill gaps, Contact on, bake Neo 2 axes, save .samn. Then edit multi-axis curves."
+            data-help="One click for community/other-tool .funscript files: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save native .samn. Use Curve dropdown to edit each axis afterward.">Optimize for Neo 2</button>
           <button type="button" id="pb-export-funscript" title="Export community .funscript (general only)">Export .funscript</button>
           <button type="button" id="pb-save-samn" title="Save/update native .samn">Save .samn</button>
         </div>
+        <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
           data-help="FunGen-like: soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
           Edit dots on the curve: drag / click / double-click — see “?”.</p>
@@ -2040,6 +2045,30 @@ export function initPlayback(root) {
         await loadScript(out, 0, { keepPlaylist: true });
       } catch (err) {
         logError('Bake axes: ' + err);
+      }
+    });
+  }
+  if (el('#pb-optimize-neo2')) {
+    el('#pb-optimize-neo2').addEventListener('click', async () => {
+      const status = el('#pb-optimize-neo2-status');
+      const btn = el('#pb-optimize-neo2');
+      btn.disabled = true;
+      if (status) {
+        status.style.display = 'block';
+        status.textContent = 'Optimizing for Neo 2 (fill gaps → contact → bake)…';
+      }
+      try {
+        const res = await OptimizeLoadedForNeo2(true);
+        if (status) status.textContent = res.message || 'Neo 2 ready';
+        log(res.message || 'Optimized for Neo 2');
+        if (res.path) {
+          await loadScript(res.path, 0, { keepPlaylist: true, review: true });
+        }
+      } catch (err) {
+        if (status) status.textContent = 'Optimize failed: ' + err;
+        logError('Optimize for Neo 2: ' + err);
+      } finally {
+        btn.disabled = false;
       }
     });
   }

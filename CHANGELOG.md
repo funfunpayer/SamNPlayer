@@ -29,13 +29,17 @@ measurement history behind each entry; this file is the short version for
   longer mutates peak distance; license gates wired (`MaxOutputMs` trial,
   `.samn` Play block) — Enforcement still off. Review opens Play with dots,
   Edit opt-in.
+- **Optimize for Neo 2 (Play):** one-click import path — fill gaps → Contact
+  → bake vibe/suction → `.samn`. Multi-axis editor then tunes channels.
+  Ballast trimmed (AI opinion / Flow downscale GUI gone; scene memory collapsed).
+  See `docs/CONTENT_SOURCES.md`.
 
 ### Fixed / observability
 
 - **Flow duration traced:** Farneback ~36 ms/frame at downscale 0.5 → ~56 s
   for 50 s 720p (not a hang). Always-on `FLOW_SUMMARY` stderr line.
-  Unset/`0` flow downscale now defaults to **0.5**; GUI shows the control
-  when backend=flow. Full-res still available via `--flow-downscale 1`.
+  Unset/`0` flow downscale now defaults to **0.5** (CLI). Flow stays
+  CLI-only — Everyday GUI no longer shows a downscale control.
 
 ## [0.5.21] — September 21, 2026
 
