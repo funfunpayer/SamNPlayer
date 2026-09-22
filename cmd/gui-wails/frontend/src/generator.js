@@ -222,7 +222,7 @@ export function initGenerator(root, playback) {
            border:1px solid var(--border); border-radius:4px;">
         <div style="margin-bottom:6px;">
           FunGen-like polish on the CSRT result — trim ends, fill gaps, optional audio check.
-          Only options that change the script (or report tempo) are here.
+          Gaps already get an auto pass right after Generate; re-run here after trim or with audio spacing.
         </div>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
           <label style="width:auto;" data-help="Cut black intro / late credits. 0 = keep from start.">Start (s)</label>
@@ -1288,32 +1288,45 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'none';
     }
 
-    // Fertiges Skript: fill gaps once (Go Improve), then open Play with dots.
+    // Right after Generate: fill gaps (auto + tighter second pass in Go),
+    // then open Play with dots. Review Improve can re-run with trim/audio.
     (async () => {
       let path = result.path;
       try {
         el('#gen-status').textContent += ' — filling gaps…';
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'Auto fill-gaps after generate…';
+        }
+        // Force fill on; honor Review audio toggles (defaults checked).
+        if (el('#gen-improve-fill')) el('#gen-improve-fill').checked = true;
         const polished = await ImproveGeneratedScript({
           path,
           videoPath: videoPath || '',
           startSec: 0,
           endSec: 0,
           fillGaps: true,
-          maxGapMs: 0,
+          maxGapMs: 0, // auto + second pass @ 400ms
           audioCheck: !!(el('#gen-improve-audio')?.checked || el('#gen-audio-check')?.checked),
-          useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
+          useAudioForFill: el('#gen-improve-audio-fill')
+            ? !!el('#gen-improve-audio-fill').checked
+            : true,
         });
         if (polished && polished.path) path = polished.path;
+        const msg = (polished && polished.message) || 'Gaps checked';
         if (polished && polished.pointsAdded > 0) {
-          el('#gen-status').textContent +=
-            ` (+${polished.pointsAdded} fill)`;
-          if (el('#gen-improve-status')) {
-            el('#gen-improve-status').textContent = polished.message || 'Gaps filled';
-          }
+          el('#gen-status').textContent += ` (+${polished.pointsAdded} fill)`;
+        } else {
+          el('#gen-status').textContent += ' (gaps ok)';
+        }
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'After generate: ' + msg;
         }
       } catch (err) {
         // Non-fatal — still open Play with the raw generate output.
         console.warn('post-generate fill gaps:', err);
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'Auto fill skipped: ' + err;
+        }
       }
       lastOutputPath = path;
       el('#gen-status').textContent += ' — loaded in Playback (dots + Edit curve).';

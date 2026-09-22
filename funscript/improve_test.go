@@ -50,6 +50,29 @@ func TestFillGapsAudioHzStep(t *testing.T) {
 	}
 }
 
+func TestImproveScriptAutoSecondPass(t *testing.T) {
+	// Long gap (fills on first pass) + medium hole (only second @ 400ms).
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 20},
+		{At: 3000, Pos: 80}, // >800 → first pass
+		{At: 3100, Pos: 90},
+		{At: 3600, Pos: 40}, // 500ms hole → second pass only
+		{At: 3700, Pos: 50},
+	}
+	res, err := ImproveScript(in, ImproveOpts{FillGaps: true}) // MaxGapMs 0 = auto+second
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GapsFilled < 2 || res.PointsAdded < 2 {
+		t.Fatalf("want ≥2 gaps filled, got gaps=%d pts=%d fillGapMs=%d",
+			res.GapsFilled, res.PointsAdded, res.FillGapMs)
+	}
+	if res.FillGapMs != DefaultFillGapMs/2 {
+		t.Fatalf("report tight threshold, got %d", res.FillGapMs)
+	}
+}
+
 func TestImproveScriptTrimAndFill(t *testing.T) {
 	in := []Action{
 		{At: 0, Pos: 0},

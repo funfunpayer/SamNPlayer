@@ -98,6 +98,12 @@ def main():
             "() => (window.__calls || []).filter(c => c[0] === 'ImproveGeneratedScript')")
         check("Auto fill-gaps after Generate",
               auto and auto[0][1].get("fillGaps") is True, str(auto))
+        page.wait_for_function(
+            "() => (document.querySelector('#gen-improve-status') || {}).textContent "
+            "&& document.querySelector('#gen-improve-status').textContent.includes('After generate')",
+            timeout=5000)
+        check("Improve status mentions After generate",
+              "After generate" in page.locator("#gen-improve-status").inner_text())
 
         check("Improve panel shown after generate",
               page.locator("#gen-improve").evaluate("e => e.style.display !== 'none'"))

@@ -193,6 +193,18 @@ func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 		}
 		step := opts.StepMs
 		filled, nGaps, nPts := FillGaps(cur, maxGap, step, opts.AudioHz)
+		// Auto mode (MaxGapMs==0): second tighter pass catches medium
+		// tracker holes left after bridging the long gaps (post-generate).
+		if opts.MaxGapMs <= 0 {
+			tight := DefaultFillGapMs / 2 // 400ms
+			if tight > 0 && tight < maxGap {
+				var g2, p2 int
+				filled, g2, p2 = FillGaps(filled, tight, step, opts.AudioHz)
+				nGaps += g2
+				nPts += p2
+				maxGap = tight
+			}
+		}
 		res.GapsFilled = nGaps
 		res.PointsAdded = nPts
 		res.FillGapMs = maxGap

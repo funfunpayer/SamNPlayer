@@ -33,6 +33,8 @@ measurement history behind each entry; this file is the short version for
   → bake vibe/suction → `.samn`. Multi-axis editor then tunes channels.
   Ballast trimmed (AI opinion / Flow downscale GUI gone; scene memory collapsed).
   See `docs/CONTENT_SOURCES.md`.
+- **Post-generate fill-gaps:** auto pass right after Generate (status always
+  shown); auto mode also runs a tighter second pass (~400 ms) for medium holes.
 
 ### Fixed / observability
 
