@@ -2125,9 +2125,37 @@ Known Claude golden: `tmp/clips/clip_ausschnitt_b76a.mp4` vs FunGen
 | Peak overlap ±300 ms vs hub | **14/18 = 0.78** |
 | Peak overlap ±300 ms vs FunGen ohne_yolo | **16/25 = 0.64** |
 
-Directional only: preview is not Motion Fidelity. Next (Stage B): use
-cut/pan/weak flags to steer re-anchor + audio gate after CSRT — do not
-replace hub.
+Directional only: preview is not Motion Fidelity.
+
+**Wire-in (Stage B start, same PR train):** Generate pre-pass runs
+`strokepreview.RunQuick` → progress `STROKE_PREVIEW …` → optional audio
+gate + peak-distance bias → stamp `metadata.stroke_preview`. Failures
+are non-fatal.
+
+### Flow “suddenly long” — traced (22 Sep)
+
+Not a hang. Farneback cost on `clip_ausschnitt` (1280×720, ~1200 frames):
+
+| downscale | wall | ms/frame | note |
+|----------:|-----:|---------:|------|
+| **0.5** | **~56 s** | ~36 Farneback + ~10 other | measured `FLOW_BACKEND_TIMING=1` |
+| 1.0 (full) | ~3–4 min est. | ~4× area | matches owner bake-off timeouts |
+
+Always-on stderr: `FLOW_SUMMARY wall=… ms_per_frame=… downscale=…`.
+Product default for unset `--flow-downscale` / GUI 0 → **0.5**.
+
+## Bugfix board (22 Sep) — split tasks
+
+| ID | Task | Owner | Status |
+|----|------|-------|--------|
+| BF-1 | #176 bugfix PR (SaveContact Sync, #170 cv2, Zone2 copy, arousal) | Cursor | CI green / ready |
+| BF-2 | #177 stroke preview Stage A + Generate wire + Flow default 0.5 | Cursor | this branch |
+| BF-3 | Stage B finish: cut-rate → suggest PerSceneROI in GUI; pan → camera tip | Cursor | next |
+| BF-4 | #119 Windows AI-train smoke on current build (keep open) | Owner | blocked on hardware |
+| BF-5 | Close superseded #170 after #176 merges | Owner/Cursor | pending |
+| BF-6 | Flow GUI: show downscale row; Log surfaces FLOW_SUMMARY | Cursor | in BF-2 |
+| BF-7 | F-003 tier-2 agreement | Owner | board (#174) |
+| BF-8 | Main CI flake `TestArousal…` if still fails without #176 | Cursor | covered by #176 |
 
 ## Product requirements
 

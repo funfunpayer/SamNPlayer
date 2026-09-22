@@ -44,25 +44,25 @@ type CutEvent struct {
 
 // Report is the Stage-A preview — timing + flags, not a funscript.
 type Report struct {
-	DurationMs      int       `json:"duration_ms"`
-	SampleCount     int       `json:"sample_count"`
-	AnalysisFPS     float64   `json:"analysis_fps"`
-	SampleStepMs    float64   `json:"sample_step_ms"`
-	Width           int       `json:"width"`
-	Height          int       `json:"height"`
-	Extrema         []Extrema `json:"extrema"`
-	UpCount         int       `json:"up_count"`
-	DownCount       int       `json:"down_count"`
-	StrokeHz        float64   `json:"stroke_hz"` // from median up→up interval; 0 if unknown
-	Cuts            []CutEvent `json:"cuts"`
-	CutRatePerMin   float64   `json:"cut_rate_per_min"`
-	PanFrames       int       `json:"pan_frames"`
-	PanShare        float64   `json:"pan_share"` // 0..1 of samples flagged as pan-like
-	SignalSpan      float64   `json:"signal_span"`
-	Quality         string    `json:"quality"` // "ok" | "weak" | "unstable"
-	SuggestAudio    bool      `json:"suggest_audio_check"`
-	Reason          string    `json:"reason,omitempty"`
-	ElapsedWallMs   int64     `json:"elapsed_wall_ms"`
+	DurationMs    int        `json:"duration_ms"`
+	SampleCount   int        `json:"sample_count"`
+	AnalysisFPS   float64    `json:"analysis_fps"`
+	SampleStepMs  float64    `json:"sample_step_ms"`
+	Width         int        `json:"width"`
+	Height        int        `json:"height"`
+	Extrema       []Extrema  `json:"extrema"`
+	UpCount       int        `json:"up_count"`
+	DownCount     int        `json:"down_count"`
+	StrokeHz      float64    `json:"stroke_hz"` // from median up→up interval; 0 if unknown
+	Cuts          []CutEvent `json:"cuts"`
+	CutRatePerMin float64    `json:"cut_rate_per_min"`
+	PanFrames     int        `json:"pan_frames"`
+	PanShare      float64    `json:"pan_share"` // 0..1 of samples flagged as pan-like
+	SignalSpan    float64    `json:"signal_span"`
+	Quality       string     `json:"quality"` // "ok" | "weak" | "unstable"
+	SuggestAudio  bool       `json:"suggest_audio_check"`
+	Reason        string     `json:"reason,omitempty"`
+	ElapsedWallMs int64      `json:"elapsed_wall_ms"`
 }
 
 func (o *Options) normalize() {

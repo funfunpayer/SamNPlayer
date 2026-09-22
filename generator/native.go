@@ -268,6 +268,9 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if audio != nil {
 		meta["audio_check"] = audio
 	}
+	if opts.StrokePreviewHint != nil {
+		meta["stroke_preview"] = opts.StrokePreviewHint
+	}
 	doc := map[string]any{
 		"actions":  actions,
 		"metadata": meta,

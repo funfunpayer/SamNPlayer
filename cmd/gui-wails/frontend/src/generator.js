@@ -194,7 +194,7 @@ export function initGenerator(root, playback) {
           <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
           <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
           <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-          <div class="field-row" style="display:none;"><label>Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
+          <div class="field-row" id="gen-flow-downscale-row" style="display:none;"><label data-help="Flow only. 0 = product default 0.5 (full-res Farneback is often slower than CSRT on 720p — watch FLOW_SUMMARY in the Log).">Flow downscale (0→0.5)</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
         </div>
       </details>
 
@@ -1210,6 +1210,8 @@ export function initGenerator(root, playback) {
     syncNoMarkButton();
     normalizeProductProfile();
     updateGenerateEnabled();
+    const flowRow = el('#gen-flow-downscale-row');
+    if (flowRow) flowRow.style.display = el('#gen-backend').value === 'flow' ? '' : 'none';
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;

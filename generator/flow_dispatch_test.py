@@ -22,8 +22,8 @@ class FlowDispatchTest(unittest.TestCase):
                  and n.func.value.id == "flow_backend" and n.func.attr == "analyze"]
         self.assertEqual(len(calls), 1)
         call = compile(ast.Expression(calls[0]), str(source), "eval")
-        for requested, expected in [(0.5, 0.5), (0.25, 0.25), (0, 1.0),
-                                    (1, 1.0), (-1, 1.0)]:
+        for requested, expected in [(0.5, 0.5), (0.25, 0.25), (0, 0.5),
+                                    (1, 1.0), (-1, 0.5)]:
             with self.subTest(scale=requested):
                 captured = {}
                 def analyze(path, **kwargs):

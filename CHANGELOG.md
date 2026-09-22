@@ -10,12 +10,17 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
-- **Stroke preview (Stage A):** sparse motion probe
-  (`generator/strokepreview`) estimates up/down extrema times, stroke Hz,
-  hard-cut spikes, pan share, and `suggest_audio_check` — timing/flags only,
-  not a funscript. CLI: `stroke-preview VIDEO`. First measure on
-  `clip_ausschnitt`: ~1.1s wall, peak-overlap recall 0.78 vs hub / 0.64 vs
-  FunGen ohne_yolo (±300ms). Docs: `NEXT.md` § Stroke preview.
+- **Stroke preview in Generate:** Stage A pre-pass before track
+  (`STROKE_PREVIEW` progress lines) — audio gate when weak/unstable, optional
+  peak-distance bias, `metadata.stroke_preview` stamp. CLI `stroke-preview`
+  unchanged. First measure: `clip_ausschnitt` ~1.1s, peak-overlap 0.78 vs hub.
+
+### Fixed / observability
+
+- **Flow duration traced:** Farneback ~36 ms/frame at downscale 0.5 → ~56 s
+  for 50 s 720p (not a hang). Always-on `FLOW_SUMMARY` stderr line.
+  Unset/`0` flow downscale now defaults to **0.5**; GUI shows the control
+  when backend=flow. Full-res still available via `--flow-downscale 1`.
 
 ## [0.5.21] — September 21, 2026
 
