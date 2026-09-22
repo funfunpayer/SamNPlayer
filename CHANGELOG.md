@@ -8,6 +8,36 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Multi-phase training scripts:** the Training tab's simple
+  Technique/Channel form now has a "Preset script" option alongside it.
+  A script (`player.TrainingScript`) is an ordered list of named phases,
+  each with its own independent vibration and suction curve — e.g. light
+  vibration ramping up then down, followed by a suction-focused phase
+  carrying a light constant vibration. Four built-in scripts ship,
+  researched from vacuum/cupping therapy and vibration-massager pattern
+  vocabulary (see `docs/TRAINING_MODE_RESEARCH.md`): vibration-wave +
+  suction-focus, a suction-only tissue-massage pattern (pumping / static
+  hold / gliding sweep), a vibration-only massage pattern (escalating
+  warm-up + wave), and an opt-in randomized "variable" pattern. A plan
+  preview draws both channels' planned curves before starting; the live
+  view highlights the current phase and shows the arousal-feedback
+  effect ("Feedback 9 → peak -30%, rest +50%, applied to both channels")
+  per cycle. The existing Technique/Channel form and its session-log
+  format are unchanged — this is additive.
+- **Training script editor:** a "Script editor" section builds an
+  arbitrary multi-phase script through form fields — phases, each with
+  two independent axes (Vibration/Suction), rather than only picking a
+  built-in preset. Saved as one JSON file per script
+  (`os.UserConfigDir()/SamNPlayer/training_scripts/`), listed alongside
+  the built-ins, editable/deletable, with a live preview while editing.
+  A found-and-fixed bug from this work: a curve stored under the wrong
+  axis (mismatched `Channel` field) would have raced the real curve for
+  the same physical channel — `player.NormalizeTrainingScript` now
+  derives the channel from the axis slot unconditionally, closing this
+  for both built-in and custom scripts.
+
 ## [0.5.21] — September 21, 2026
 
 ### Added

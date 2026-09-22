@@ -16,7 +16,16 @@ import (
 
 // TrainingRequest kommt als JSON vom Frontend-Formular.
 type TrainingRequest struct {
-	Mock                bool    `json:"mock"`
+	Mock bool `json:"mock"`
+
+	// ScriptName wählt eines der Multi-Phasen-Scripts aus
+	// player.BuiltinTrainingScripts() (siehe ListTrainingScripts) - wenn
+	// gesetzt, werden Technique/Channel/... unten ignoriert und
+	// StartTraining läuft über player.RunTrainingScript statt über die
+	// einfache Technik/Kanal-Form. Siehe docs/TRAINING_MODE_RESEARCH.md
+	// ("Follow-up design: multi-phase, per-channel scripts").
+	ScriptName string `json:"scriptName"`
+
 	Technique           string  `json:"technique"` // "stopstart" | "plateau"
 	Channel             string  `json:"channel"`   // "vibration" | "suction" | "both"
 	Cycles              int     `json:"cycles"`
@@ -26,6 +35,126 @@ type TrainingRequest struct {
 	PeakIntensity       float64 `json:"peakIntensity"`
 	PlateauFraction     float64 `json:"plateauFraction"`
 	ProgressionPerCycle float64 `json:"progressionPerCycle"`
+}
+
+// TrainingScriptInfo ist die GUI-taugliche Kurzform eines
+// player.TrainingScript für ListTrainingScripts - die Preisgabe der
+// vollen Kurvendaten (für die Vorschau-Anzeige) geschieht separat, siehe
+// TrainingScriptPreview.
+type TrainingScriptInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// Custom marks a user-saved script (cmd/gui-wails/app_training_scripts.go)
+	// as opposed to one of player.BuiltinTrainingScripts() - the GUI only
+	// offers "edit"/"delete" for these.
+	Custom bool `json:"custom"`
+}
+
+// ListTrainingScripts füllt das Preset-Dropdown im Trainings-Tab: erst
+// die eingebauten Scripts, dann die vom Nutzer im Editor gespeicherten
+// (siehe app_training_scripts.go). Ein Fehler beim Lesen der
+// Custom-Scripts (z.B. Verzeichnis nicht lesbar) lässt die eingebauten
+// trotzdem durch, statt das ganze Dropdown leer zu lassen.
+func (a *App) ListTrainingScripts() []TrainingScriptInfo {
+	scripts := player.BuiltinTrainingScripts()
+	out := make([]TrainingScriptInfo, len(scripts))
+	for i, s := range scripts {
+		out[i] = TrainingScriptInfo{Name: s.Name, Description: s.Description}
+	}
+	custom, err := listCustomTrainingScripts()
+	if err != nil {
+		logging.Warn("app: custom training scripts could not be listed", "error", err)
+		return out
+	}
+	for _, s := range custom {
+		out = append(out, TrainingScriptInfo{Name: s.Name, Description: s.Description, Custom: true})
+	}
+	return out
+}
+
+// TrainingScriptCurvePoint ist eine Ecke im Vorschau-/Live-Kurvenzug: ein
+// Zeitpunkt (ab Script-Beginn) mit dem Pegel, den dieser Kanal DANN hat -
+// das Frontend verbindet diese Punkte zu einer Linie statt selbst die
+// Rampenform nachzubauen.
+type TrainingScriptCurvePoint struct {
+	AtMs  int     `json:"atMs"`
+	Level float64 `json:"level"`
+}
+
+// TrainingScriptPreview liefert die volle Kurve eines Scripts (Vibration
+// und Sog getrennt) für die Plan-Vorschau, BEVOR eine Session startet -
+// siehe docs/TRAINING_MODE_RESEARCH.md's "Plan preview". Reine
+// Vorschau-Nennung, läuft nicht über das Gerät.
+func (a *App) TrainingScriptPreview(scriptName string) (TrainingScriptPreviewResult, error) {
+	script, err := loadAnyTrainingScript(scriptName)
+	if err != nil {
+		return TrainingScriptPreviewResult{}, err
+	}
+	return buildScriptPreview(script), nil
+}
+
+// TrainingScriptPreviewResult trägt beide Kanäle getrennt, damit das
+// Frontend zwei unterschiedlich eingefärbte Linien zeichnen kann.
+type TrainingScriptPreviewResult struct {
+	Vibration    []TrainingScriptCurvePoint `json:"vibration"`
+	Suction      []TrainingScriptCurvePoint `json:"suction"`
+	TotalMs      int                        `json:"totalMs"`
+	PhaseMarkers []TrainingPhaseMarker      `json:"phaseMarkers"`
+}
+
+// TrainingPhaseMarker markiert, wo im Zeitstrahl eine neue Phase beginnt
+// - fürs Beschriften der Vorschau ("Vibration wave" | "Suction focus").
+type TrainingPhaseMarker struct {
+	AtMs int    `json:"atMs"`
+	Name string `json:"name"`
+}
+
+// buildScriptPreview rechnet ein Script (ohne Rückmeldungs-/
+// Fortschritts-Anpassung - das ist der NOMINALE Plan) in Zeitpunkte um.
+// Ein Kanal, den eine Phase nicht anfasst (nil), hält einfach den
+// zuletzt bekannten Pegel bis zur nächsten Phase, die ihn wieder anfasst
+// - dieselbe "unberührt bleibt unberührt"-Regel wie im Player selbst.
+func buildScriptPreview(script player.TrainingScript) TrainingScriptPreviewResult {
+	var result TrainingScriptPreviewResult
+	t := 0
+	lastVib, lastSuc := 0.0, 0.0
+
+	appendCurve := func(points *[]TrainingScriptCurvePoint, curve *player.ChannelCurve, startAt int, last *float64) int {
+		if curve == nil {
+			return startAt
+		}
+		at := startAt
+		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.StartLevel})
+		at += curve.RampUpMs
+		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.PeakLevel})
+		at += curve.HoldMs
+		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.PeakLevel})
+		at += curve.RampDownMs
+		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.EndLevel})
+		*last = curve.EndLevel
+		return at
+	}
+
+	for _, phase := range script.Phases {
+		result.PhaseMarkers = append(result.PhaseMarkers, TrainingPhaseMarker{AtMs: t, Name: phase.Name})
+		for i := 0; i < phase.RepeatCycles; i++ {
+			vibEnd := appendCurve(&result.Vibration, phase.Vibration, t, &lastVib)
+			sucEnd := appendCurve(&result.Suction, phase.Suction, t, &lastSuc)
+			repeatEnd := vibEnd
+			if sucEnd > repeatEnd {
+				repeatEnd = sucEnd
+			}
+			if phase.Vibration == nil {
+				result.Vibration = append(result.Vibration, TrainingScriptCurvePoint{AtMs: repeatEnd, Level: lastVib})
+			}
+			if phase.Suction == nil {
+				result.Suction = append(result.Suction, TrainingScriptCurvePoint{AtMs: repeatEnd, Level: lastSuc})
+			}
+			t = repeatEnd + phase.RestMs
+		}
+	}
+	result.TotalMs = t
+	return result
 }
 
 // sessionLogEntry ist eine Zeile im Trainings-Sitzungsprotokoll (JSONL -
@@ -55,19 +184,43 @@ type sessionLogEntry struct {
 	// eine falsche Einstellung aus statt wie eine Reaktion.
 	ArousalBefore int `json:"arousalBefore"`
 	RestMs        int `json:"restMs"`
+
+	// Die folgenden Felder sind nur bei Script-Sessions gesetzt (siehe
+	// player.RunTrainingScript) - bei der einfachen Technik/Kanal-Form
+	// bleiben sie auf ihrem Nullwert und tauchen im JSON als 0/"" auf,
+	// bestehende Auswertung (summarizeSessionLog) liest sie nicht.
+	// PeakIntensity oben trägt bei Script-Sessions den GRÖSSEREN der
+	// beiden Kanal-Höhepunkte, damit MeanPeakIntensity ein sinnvolles
+	// "wie intensiv insgesamt" bleibt, auch ohne diese Felder zu kennen.
+	PhaseName         string  `json:"phaseName,omitempty"`
+	VibrationPeak     float64 `json:"vibrationPeak,omitempty"`
+	SuctionPeak       float64 `json:"suctionPeak,omitempty"`
+	PeakFactorApplied float64 `json:"peakFactorApplied,omitempty"`
+	RestFactorApplied float64 `json:"restFactorApplied,omitempty"`
 }
 
 // StartTraining startet eine Trainings-Session in einer eigenen Goroutine.
 // Fortschritt kommt über Events ("training:cycle", "training:done",
 // "training:error") - derselbe Aufbau wie StartPlayback.
 func (a *App) StartTraining(req TrainingRequest) error {
-	if req.Cycles <= 0 {
+	var script player.TrainingScript
+	if req.ScriptName != "" {
+		var err error
+		script, err = loadAnyTrainingScript(req.ScriptName)
+		if err != nil {
+			return err
+		}
+	} else if req.Cycles <= 0 {
 		return fmt.Errorf("at least 1 cycle required")
 	}
 
 	dev, reusedDevice := a.claimSessionDevice(req.Mock)
 
-	sessionFile, sessionErr := a.openSessionLog(req.Technique)
+	logName := req.Technique
+	if req.ScriptName != "" {
+		logName = req.ScriptName
+	}
+	sessionFile, sessionErr := a.openSessionLog(logName)
 	if sessionErr != nil {
 		logging.Warn("app: session log could not be created", "error", sessionErr)
 	}
@@ -130,48 +283,119 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			a.stateMu.Unlock()
 		}()
 
-		err := player.RunTrainingWithControl(ctx, dev, opts, control, func(result player.TrainingCycleResult) {
-			runtime.EventsEmit(a.ctx, "training:cycle", map[string]any{
-				"cycleIndex":         result.CycleIndex,
-				"cyclesTotal":        req.Cycles,
-				"peakIntensity":      result.PeakIntensity,
-				"holdMs":             result.HoldMs,
-				"stoppedByUser":      result.StoppedByUser,
-				"reachedPeakAfterMs": result.ReachedPeakAfterMs,
-				"arousalBefore":      result.ArousalBefore,
-				"restMs":             result.RestMs,
+		var runErr error
+		if req.ScriptName != "" {
+			runErr = player.RunTrainingScript(ctx, dev, script, control, func(result player.TrainingScriptCycleResult) {
+				a.emitTrainingScriptCycle(req, sessionFile, result)
 			})
-			if sessionFile != nil {
-				entry := sessionLogEntry{
-					Timestamp:     result.EndedAt.Format(time.RFC3339),
-					Technique:     req.Technique,
-					Channel:       req.Channel,
-					CycleIndex:    result.CycleIndex,
-					CyclesTotal:   req.Cycles,
-					PeakIntensity: result.PeakIntensity,
-					HoldMs:        result.HoldMs,
-					DurationMs:    result.EndedAt.Sub(result.StartedAt).Milliseconds(),
+		} else {
+			runErr = player.RunTrainingWithControl(ctx, dev, opts, control, func(result player.TrainingCycleResult) {
+				a.emitTrainingCycle(req, sessionFile, result)
+			})
+		}
 
-					StoppedByUser:      result.StoppedByUser,
-					ReachedPeakAfterMs: result.ReachedPeakAfterMs,
-					ArousalBefore:      result.ArousalBefore,
-					RestMs:             result.RestMs,
-				}
-				if b, err := json.Marshal(entry); err == nil {
-					if _, writeErr := sessionFile.Write(append(b, '\n')); writeErr != nil {
-						logging.Warn("app: training cycle could not be written to session log", "error", writeErr)
-					}
-				}
-			}
-		})
-
-		if err != nil && err != context.Canceled {
-			runtime.EventsEmit(a.ctx, "training:error", err.Error())
+		if runErr != nil && runErr != context.Canceled {
+			runtime.EventsEmit(a.ctx, "training:error", runErr.Error())
 		}
 		runtime.EventsEmit(a.ctx, "training:done")
 	}()
 
 	return nil
+}
+
+// emitTrainingCycle behandelt ein TrainingCycleResult der einfachen
+// Technik/Kanal-Form (RunTrainingWithControl) - Event fürs Live-Update,
+// Zeile fürs Sessionprotokoll.
+func (a *App) emitTrainingCycle(req TrainingRequest, sessionFile *os.File, result player.TrainingCycleResult) {
+	runtime.EventsEmit(a.ctx, "training:cycle", map[string]any{
+		"cycleIndex":         result.CycleIndex,
+		"cyclesTotal":        req.Cycles,
+		"peakIntensity":      result.PeakIntensity,
+		"holdMs":             result.HoldMs,
+		"stoppedByUser":      result.StoppedByUser,
+		"reachedPeakAfterMs": result.ReachedPeakAfterMs,
+		"arousalBefore":      result.ArousalBefore,
+		"restMs":             result.RestMs,
+	})
+	if sessionFile == nil {
+		return
+	}
+	entry := sessionLogEntry{
+		Timestamp:     result.EndedAt.Format(time.RFC3339),
+		Technique:     req.Technique,
+		Channel:       req.Channel,
+		CycleIndex:    result.CycleIndex,
+		CyclesTotal:   req.Cycles,
+		PeakIntensity: result.PeakIntensity,
+		HoldMs:        result.HoldMs,
+		DurationMs:    result.EndedAt.Sub(result.StartedAt).Milliseconds(),
+
+		StoppedByUser:      result.StoppedByUser,
+		ReachedPeakAfterMs: result.ReachedPeakAfterMs,
+		ArousalBefore:      result.ArousalBefore,
+		RestMs:             result.RestMs,
+	}
+	writeSessionLogEntry(sessionFile, entry)
+}
+
+// emitTrainingScriptCycle ist emitTrainingCycle's Gegenstück für
+// player.RunTrainingScript - eigenes Event ("training:scriptCycle" statt
+// "training:cycle"), weil eine Script-Wiederholung zwei Kanal-Höhepunkte
+// und eine Phase trägt statt einer einzelnen Kurve, und das Frontend
+// beide Formen unterschiedlich anzeigt (siehe training.js).
+func (a *App) emitTrainingScriptCycle(req TrainingRequest, sessionFile *os.File, result player.TrainingScriptCycleResult) {
+	runtime.EventsEmit(a.ctx, "training:scriptCycle", map[string]any{
+		"phaseIndex":        result.PhaseIndex,
+		"phaseName":         result.PhaseName,
+		"phasesTotal":       result.PhasesTotal,
+		"repeatIndex":       result.RepeatIndex,
+		"repeatsTotal":      result.RepeatsTotal,
+		"vibrationPeak":     result.VibrationPeak,
+		"suctionPeak":       result.SuctionPeak,
+		"restMs":            result.RestMs,
+		"stoppedByUser":     result.StoppedByUser,
+		"arousalBefore":     result.ArousalBefore,
+		"peakFactorApplied": result.PeakFactorApplied,
+		"restFactorApplied": result.RestFactorApplied,
+	})
+	if sessionFile == nil {
+		return
+	}
+	peak := result.VibrationPeak
+	if result.SuctionPeak > peak {
+		peak = result.SuctionPeak
+	}
+	entry := sessionLogEntry{
+		Timestamp:     result.EndedAt.Format(time.RFC3339),
+		Technique:     req.ScriptName,
+		Channel:       "script",
+		CycleIndex:    result.PhaseIndex*1000 + result.RepeatIndex, // grob, nur fürs Protokoll lesbar geordnet
+		PeakIntensity: peak,
+		DurationMs:    result.EndedAt.Sub(result.StartedAt).Milliseconds(),
+
+		StoppedByUser:      result.StoppedByUser,
+		ReachedPeakAfterMs: result.ReachedPeakAfterMs,
+		ArousalBefore:      result.ArousalBefore,
+		RestMs:             result.RestMs,
+
+		PhaseName:         result.PhaseName,
+		VibrationPeak:     result.VibrationPeak,
+		SuctionPeak:       result.SuctionPeak,
+		PeakFactorApplied: result.PeakFactorApplied,
+		RestFactorApplied: result.RestFactorApplied,
+	}
+	writeSessionLogEntry(sessionFile, entry)
+}
+
+func writeSessionLogEntry(sessionFile *os.File, entry sessionLogEntry) {
+	b, err := json.Marshal(entry)
+	if err != nil {
+		logging.Warn("app: training cycle could not be encoded for the session log", "error", err)
+		return
+	}
+	if _, writeErr := sessionFile.Write(append(b, '\n')); writeErr != nil {
+		logging.Warn("app: training cycle could not be written to session log", "error", writeErr)
+	}
 }
 
 // StopTrainingCycle bricht den laufenden Zyklus ab und geht in die Pause -

@@ -289,6 +289,87 @@ it:
    ja wirklich dann reagieren" concern: the adjustment becomes something
    you can see per cycle, not just an internal number.
 
+### Patterns from existing massage/suction practice (owner ask, 22 Sep 2026)
+
+Owner asked specifically to look at what suction-based tissue work and
+vibration massage routines already do elsewhere, since the phase model
+above needs *some* starting shapes, not just the one worked example.
+Researched rather than invented — sources below.
+
+**Vacuum/cupping therapy (maps to the Suction channel):** manual therapy
+distinguishes a small number of named suction patterns: **static**
+(constant suction held for minutes, tissue drawn up and left), **pumping**
+(fast repeated suction-then-release, "begins the gentle separation of
+fascia strands without the stress of continuous suction" — can be
+shallow/fast or deeper/slower), and **gliding/dynamic** (suction level
+moved smoothly rather than held). Our device can't physically move
+across skin, but "gliding" translates directly to a slow, continuous
+intensity sweep instead of a held plateau — the same distinction the
+sources draw between "pumping tones hypotonic tissue" and "long gliding
+movements loosen hypertonic tissue" maps onto short-sharp `ChannelCurve`s
+versus one long, slow one.
+[Massage Magazine](https://www.massagemag.com/cupping-manual-therapy-116076/),
+[MBLExGuide](https://mblexguide.com/cupping-therapy-for-massage-therapists/),
+[AIAM](https://www.aiam.edu/massage-therapy/gliding-cupping-massage/).
+
+**Vibration massage / personal-massager pattern libraries (maps to the
+Vibration channel, and to suction-product pulse timing):** the common,
+named pattern vocabulary across this product category is small and
+consistent — **wave** (smooth high/low transitions, gentler than pulse),
+**pulse** (sharp on/off), **escalating** (starts soft, builds gradually —
+"easiest for beginners because the lower starting point gives the body
+more time to adjust"), and **random/variable** (unpredictable rhythm
+changes, used specifically because it "reduces sensory adaptation").
+[Xindari](https://xindari.com/blogs/news/vibration-patterns-personal-massager-variable-intensity),
+[Pamper Pulse](https://pamperpulse.in/blogs/news/vibration-101-understanding-different-settings-and-what-they-do),
+[myluxurytoys](https://myluxurytoys.com/blogs/all-about-sex-toys/vibrator-patterns-explained-beginners-guide).
+Pleasure-air/suction products in this same space apply the identical
+idea to suction pulse rate: a slower pulse "creates a deeper, more
+controlled sensation" than a faster, more direct one — pulse *rate*,
+not just level, is a deliberate design parameter there too.
+[biozzing](https://www.biozzing.com/2026/04/25/air-pulse-vibrators-explained/).
+One product line's "Autopilot" (automatically varying intensity over a
+session) is the same idea proposal (A) already argued for from this
+project's own session-history data, independently arrived at.
+
+**Named pattern library, built from `ChannelCurve` alone** — none of
+these need a new field beyond what's already in the struct (levels +
+ramp/hold/ramp-down durations), confirming the model is expressive
+enough without growing it further:
+
+| Name | Channel(s) | Shape |
+|---|---|---|
+| Static hold | Suction | `RampUp` short, long `HoldMs`, `EndLevel == PeakLevel` (no drop) |
+| Pumping | Suction | Short `RampUp`/`RampDown`, near-zero `HoldMs`, repeated (`RepeatCycles` high) — fast, shallow suction/release |
+| Gliding sweep | Suction | One long `RampUp` across most of the phase, `HoldMs` ≈ 0, single repeat — a slow continuous rise rather than a held plateau |
+| Escalating warm-up | Vibration | Low `StartLevel`, `ProgressionPerCycle` > 0 carries the rise **across repeats** rather than within one curve |
+| Wave | Vibration | Symmetric `RampUp`/`RampDown`, `HoldMs == 0` — no hard plateau, unlike Stop-Start/Plateau's held peak |
+| Pulse | Either | `RampUpMs`/`RampDownMs` ≈ 0 — near-instant on/off |
+| Variable/Random | Either | Any of the above, with `RandomJitterFraction > 0` — perturbs `PeakLevel` per repeat within a bound, opt-in only |
+
+`RandomJitterFraction` is the one genuinely new field this research adds
+to `ChannelCurve` (proposed model above didn't have it) — justified now
+by a *stated reason* (sensory-adaptation reduction is a named, sourced
+design goal in the researched products), not speculation. This also
+revises this document's earlier "explicitly not proposed: randomizing
+cycle timing" entry — that entry stands for *silent* jitter added to
+every pattern; an explicit, named, opt-in "Variable" preset the user
+selects is a different thing and is what ships instead.
+
+**Two new built-in scripts**, composed entirely from the table above, in
+addition to the owner's vibration-wave/suction-focus example already
+designed:
+
+- **"Tissue massage"** (suction-only, cupping-inspired): Pumping (several
+  short repeats) → Static hold (one long hold) → Gliding sweep (one slow
+  rise). Vibration stays off throughout — this one is deliberately not
+  an endurance/arousal exercise, it's the suction-only massage pattern
+  the owner asked to look into.
+- **"Vibration massage"**: Escalating warm-up (vibration only, low start,
+  rising via `ProgressionPerCycle`) → Wave (vibration only, symmetric
+  ramps, no hard hold) — the vibration-only counterpart, built the same
+  way from the same table.
+
 ### Backward compatibility
 
 Today's two techniques become the two built-in single-phase scripts:
@@ -336,3 +417,32 @@ loop — that alone proves the phase mechanism without yet building a
 script editor UI. The plan-preview/live-adjustment display and the
 owner's two-phase vibration/suction example as a shippable preset are a
 natural second slice once the first is running and tested.
+
+### Implementation status (22 Sep 2026)
+
+Both slices above are done: `player.RunTrainingScript` (the phase engine,
+concurrent per-channel curves, `arousalFactors` applied to every active
+channel plus the shared rest — `player/training.go`), four built-in
+scripts researched from the patterns table above
+(`player.BuiltinTrainingScripts`), the plan-preview/live-adjustment
+display (`cmd/gui-wails/frontend/src/training.js`), and the mismatched-
+channel-field bug this design flagged as a risk (a curve stored under
+`phase.Suction` carrying the wrong `Channel` value would race the real
+suction curve for the same physical channel) — closed by
+`player.NormalizeTrainingScript`, which the engine now calls
+unconditionally rather than trusting the field.
+
+**Script editor**, one step beyond what this document originally scoped:
+the Training tab has a "Script editor" section that builds an arbitrary
+`player.TrainingScript` through form fields — phases, and per phase the
+two **axes** (Vibration/Suction), each an independent ramp/hold/ramp-down
+curve. Saved scripts are user files (`SaveTrainingScript` /
+`cmd/gui-wails/app_training_scripts.go`, one JSON document per script
+under `os.UserConfigDir()/SamNPlayer/training_scripts/`), listed
+alongside the built-ins (marked `custom: true`) and loadable back into
+the editor. `NormalizeTrainingScript` is applied before saving, so an
+editor-built script gets the same channel-mismatch guarantee as the
+built-ins even though the editor's own axis rows never expose the
+`channel` field for a user to get wrong in the first place. A live
+preview (`PreviewTrainingScriptDraft`) validates and renders the draft
+curve as it's edited, before anything is saved or started.

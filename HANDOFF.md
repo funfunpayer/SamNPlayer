@@ -93,6 +93,39 @@ address, signal strength, vibration/suction function tests, and a raw-value test
 ends the current cycle rather than the entire session. An arousal scale
 from 1–10 adjusts the next cycle. Sessions are logged.
 
+**Training scripts (multi-phase, per-channel):** the simple Technique/
+Channel form can only shape one curve, applied identically to whichever
+channel(s) are selected. `player.TrainingScript` generalizes that into an
+ordered list of named phases, each with an independent vibration and
+suction curve — vibration can ramp up then down while suction stays off,
+followed by a phase where suction ramps and vibration holds at a light
+constant level untouched from the previous phase. Four built-in scripts
+(`player.BuiltinTrainingScripts`) are shipped, researched from vacuum/
+cupping therapy technique names (static hold, pumping, gliding sweep) and
+vibration-massager pattern vocabulary (escalating, wave, pulse, random) -
+see `docs/TRAINING_MODE_RESEARCH.md` for sources and the full design. The
+arousal-feedback math is unchanged (`adjustForArousal`, tested directly)
+but is now applied as one shared factor to every active channel and to
+the shared rest, closing a gap the single-curve form had: "both channels"
+only got weaker together because it happened to send both the same
+number, not because the feedback loop understood there were two. The GUI
+adds a plan-preview curve (both channels drawn as two lines before
+starting) and a live per-cycle "feedback effect" readout.
+
+**Script editor:** a "Script editor" section on the Training tab builds
+an arbitrary `player.TrainingScript` through form fields instead of only
+picking a built-in preset — phases, and per phase two independent
+**axes** (Vibration/Suction), each its own ramp/hold/ramp-down curve.
+Saved as one JSON file per script under
+`os.UserConfigDir()/SamNPlayer/training_scripts/`
+(`cmd/gui-wails/app_training_scripts.go`), listed alongside the built-ins
+and loadable back for editing. The script name is user text turned into
+a filename, so it is sanitized against path traversal
+(`scriptFileSlug`); `player.NormalizeTrainingScript` runs before saving,
+the same guarantee `RunTrainingScript` itself applies, so a hand-edited
+script cannot end up with two curves racing for the same physical
+channel.
+
 **Generator:** three interchangeable tracking backends (`generator/backends.py`)
 — CSRT (default, one bounding box), flow (no region, dense optical flow,
 ~4x faster), and grid_lk (a grid of independently tracked points, median
