@@ -90,14 +90,28 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
+| B | Claude | — | **MT-Debug** (Review tip/partner trajectory polyline, off by default) | **CLAIMED — free to start** after reading Fahrplan |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
-| F | Cursor | `cursor/mt-go-coast-ids-d7cb` | **MT-Go:** partner/tip coast + appearance reacquire + lost UI | **IN PROGRESS** |
+| F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
+| F2 | Cursor | next | **MT-Seed** — ranked motion-candidate → Tip+Partner seed CSRT (GUI suggest ≠ auto-commit) | **NEXT (Cursor)** |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
-| E | ChatGPT | `codex/training-review-fixes` | verify training fixes on main — do not re-implement | **paused / verify later** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **CLOSED** (superseded by #176) |
+| E | ChatGPT | — | **MT-Go verify** on `main` tip `94b2bae` + partner-loss golden notes (do not re-implement coast) | **CLAIMED — verify-only** |
+| E2 | ChatGPT | (after E) | **MT-Speed doc/spike** — ByteTrack vs BoT-SORT knobs + N-frame detect budget (write-up / tiny spike only; no Generate default) | **queued after verify** |
+| C | Claude | (optional ∥ B) | **MT-Infra** — Improve/proxy: rational PTS or FFmpeg filtergraph trim / ctx-kill hygiene (MovieGo lessons) | **optional if B done or skipped** |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
-| C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
+
+### Multi-track lane split (owner 22 Sep — parallelize safely)
+
+Canonical steps: `PRODUCTION_ROADMAP.md` § Multi-track Fahrplan.
+
+| Who | Owns | Touch | Do **not** touch |
+|-----|------|-------|------------------|
+| **Cursor** | **MT-Seed** (after #183) | `generator.js` suggest UX, motion-candidate → Zone1/2 seed, `AutoDetectROI` wiring | Ultralytics track; Playback; Training |
+| **Claude** | **MT-Debug** | Review/Play overlay polyline for tip/partner path; pref off | `trackcv` coast logic (#183 done); Generate defaults |
+| **ChatGPT** | **MT-Go verify** then **MT-Speed write-up** | Tests/notes against `94b2bae`; optional spike script under `scripts/` or docs only | Re-landing coast/reacquire; merging YOLO as Stroke |
+| later | **MT-ID** | Only if verify shows partner IDs still die on goldens | — |
+
+**Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go CSRT.
 
 ---
 
@@ -561,6 +575,7 @@ ring revision before committing.
 | 22 Sep | **v0.5.22** tagged (#181); #176/#177/#179 shipped; #170 closed superseded | Cursor A |
 | 22 Sep | Parked: multi-object YOLO+ByteTrack/BoT-SORT = Tip+Partner proposals; if no solid Go path → long-term Python track layer OK (not Stroke default) | Owner + Cursor |
 | 22 Sep | **Multi-track Fahrplan** written into `PRODUCTION_ROADMAP` (MT-Go→Seed→Speed→ID→Debug+Infra); sources: MOT/YOLO, VSDC, Unite.ai filter, MovieGo | Owner + Cursor |
+| 22 Sep | **MT-Go** shipped #183; lanes split: Cursor=MT-Seed, Claude=MT-Debug/(Infra), ChatGPT=verify then MT-Speed | Owner + Cursor |
 
 ---
 

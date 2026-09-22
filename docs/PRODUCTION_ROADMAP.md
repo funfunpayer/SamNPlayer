@@ -232,12 +232,12 @@ the existing spine. **Stroke writer stays Go CSRT.** Proposals ≠ script.
 
 | Step | ID | What | Depends on | Done when |
 |------|-----|------|------------|-----------|
-| **1** | **MT-Go** | Go coast + track-ID continuity + honest lost UI (`LostFlags` / `lostHeavy`) on `TrackMultiPoints` | Current `main` | Partner re-acquire keeps ID; lost gaps visible in Generate/Review; no default change |
-| **2** | **MT-Seed** | Ranked N proposals → user/auto pick Tip + Partner → seed Go CSRT (motion candidates first; YOLO/ONNX when AI Train usable) | MT-Go + G3.2 | Suggest ≠ auto-commit; Everyday still tip-CSRT if user skips |
-| **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N frames, `half`/ONNX; ByteTrack before BoT-SORT unless occlusion demands ReID | MT-Seed | Proposal pass finishes in time budget on mid GPU / CPU fallback documented |
-| **4** | **MT-ID** | Optional Python Ultralytics track (ByteTrack/BoT-SORT) **only** if MT-Go still loses partners on goldens | MT-Seed fail gate | Measured ID stability win; still not Stroke writer |
-| **5** | **MT-Debug** | Optional Review polyline of tip/partner trajectory (VSDC “movement map” idea) | MT-Go | Debug overlay off by default |
-| **∥** | **MT-Infra** | When touching Improve/proxy: MovieGo lessons — rational PTS/rate where float drifts, FFmpeg filtergraph fastpath for pure trim/scale, single-owner decode + ctx kills ffmpeg | Orthogonal | No new editor product |
+| **1** | **MT-Go** | Go coast + track-ID continuity + honest lost UI (`LostFlags` / `lostHeavy`) on `TrackMultiPoints` | Current `main` | **DONE** #183 (`94b2bae`) — Cursor |
+| **2** | **MT-Seed** | Ranked N proposals → user/auto pick Tip + Partner → seed Go CSRT (motion candidates first; YOLO/ONNX when AI Train usable) | MT-Go + G3.2 | **Cursor next** — Suggest ≠ auto-commit; Everyday tip-CSRT if user skips |
+| **3** | **MT-Speed** | Proposal path: small model, `imgsz`↓, detect every N frames, `half`/ONNX; ByteTrack before BoT-SORT unless occlusion demands ReID | MT-Seed | **ChatGPT** write-up/spike after MT-Go verify |
+| **4** | **MT-ID** | Optional Python Ultralytics track (ByteTrack/BoT-SORT) **only** if MT-Go still loses partners on goldens | MT-Seed fail gate | Gate = ChatGPT verify notes |
+| **5** | **MT-Debug** | Optional Review polyline of tip/partner trajectory (VSDC “movement map” idea) | MT-Go | **Claude** — overlay off by default |
+| **∥** | **MT-Infra** | When touching Improve/proxy: MovieGo lessons — rational PTS/rate where float drifts, FFmpeg filtergraph fastpath for pure trim/scale, single-owner decode + ctx kills ffmpeg | Orthogonal | **Claude optional** |
 
 **Libs we keep / adopt later vs ignore** (Unite.ai filter): keep OpenCV,
 NumPy/SciPy, optional ultralytics+ONNX; Train-only PyTorch/torchvision;
