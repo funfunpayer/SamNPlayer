@@ -30,6 +30,7 @@ export function saveSetting(key, value) {
       'playback.extended_o_min': 'playbackEOMin',
       'playback.extended_o_hold_seconds': 'playbackEOHoldS',
       'playback.extended_o_restore_ms': 'playbackEORestoreMs',
+      'playback.video_play_autostart': 'playbackVideoPlayAutostart',
       'training.mock': 'trainingMock',
       'training.technique': 'trainingTechnique',
       'training.channel': 'trainingChannel',
