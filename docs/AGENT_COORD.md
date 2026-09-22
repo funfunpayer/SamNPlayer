@@ -109,7 +109,7 @@ Device-shell / body-map language.
 | Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
 | Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
 | AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
-| Training | `pixel_figure.js` | **CANONICAL Vorlage = pixelated clip stroke** — curve→frame (penis between breasts). Soft assets derived from clip. Ring (Claude) stays zusätzlich. |
+| Training | `pixel_figure.js` | **CANONICAL Vorlage = pixelated clip stroke** — curve→frame in ONE card with Claude’s intensity ring (`#tr-ring-slot`). Soft assets derived from clip. |
 
 **Lane split (owner confirmed 22 Sep):**
 - **Claude (#178):** multi-phase scripts + live intensity **ring** — your lane.
@@ -117,7 +117,7 @@ Device-shell / body-map language.
 
 **Owner integration (22 Sep — Claude code merged into #177):**
 1. ~~Wait for Claude~~ — #178 tip `290c8bd` merged into `cursor/stroke-preview-extrema-d7cb`.
-2. **Both stay:** pixelated **clip stroke** (`#tr-pixel-stage`) **and** live intensity **ring** (`.tr-meter`). Ring remains additionally.
+2. **Both stay in one card:** pixelated **clip stroke** + live intensity **ring** inside `#tr-pixel-stage` / `#tr-ring-slot` (not stacked as two separate blocks).
 3. Training frontend + Go tests green after merge (display/meter/script/editor/findings/history).
 
 Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).

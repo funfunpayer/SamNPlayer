@@ -78,6 +78,10 @@ def main():
                    or "You" in page.locator(".tr-pixel-labels").inner_text()))
         check("Clip-Pixel-Strip geladen",
               page.locator("#tr-pixel-stage .tr-mosaic-clip").count() == 1)
+        check("Intensitätsring sitzt im Motion-Card (nicht darunter gestapelt)",
+              page.locator("#tr-pixel-stage #tr-ring-slot #tr-ring-wrap").count() == 1)
+        check("kein zweites Ring-Widget außerhalb der Card",
+              page.locator("#tr-ring-wrap").count() == 1)
         check("Zielstufe 7 markiert",
               page.locator("#tr-arousal-buttons button.is-target").count() == 1)
 

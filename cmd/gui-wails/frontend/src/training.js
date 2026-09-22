@@ -315,9 +315,6 @@ export function initTraining(root) {
       <span>Cycle: <b id="tr-cycle-label">-</b></span>
       <span>Current peak: <b id="tr-peak-label">-</b></span>
     </div>
-    <div class="tr-meter">
-      ${renderDualIntensityRing()}
-    </div>
     <div id="tr-feedback-effect" class="hint" style="min-height:1.2em;"></div>
     <div id="tr-log" style="background:var(--bg-alt); border:1px solid var(--border); border-radius:4px; padding:8px; height:100px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--text-dim); white-space:pre-wrap;"></div>
 
@@ -334,6 +331,9 @@ export function initTraining(root) {
   const el = id => root.querySelector(id);
   let running = false;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
+  // One card: clip + meta + ring side-by-side (not a second stacked block).
+  const ringSlot = el('#tr-ring-slot');
+  if (ringSlot) ringSlot.innerHTML = renderDualIntensityRing();
 
   function log(line) {
     const box = el('#tr-log');

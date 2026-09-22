@@ -1,9 +1,8 @@
 /** Training motion — CANONICAL Vorlage = pixelated clip stroke.
  *
  * Soft mosaic assets are derived FROM the clip frames (for pixelFigureSVG
- * callers only). The stage shows only the clip strip: curve → frame
- * (penis between breasts). Claude’s ring meter stays additionally in
- * training.js — complementary, not a replacement.
+ * callers only). The stage shows the clip strip + Claude’s intensity ring
+ * in ONE card (curve → frame; ring lives in #tr-ring-slot).
  */
 
 import { figureHeatColor } from './figure_theme.js';
@@ -58,13 +57,18 @@ export function mountTrainingPixelStage(host) {
         <strong>Motion (pair)</strong>
         <span class="hint" id="tr-pixel-hint">Pixel clip — penis between breasts follows training curve</span>
       </div>
-      <div class="tr-pixel-body">
-        <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
-          <div class="tr-mosaic-stack" role="img" aria-label="Clip stroke Vorlage">
-            <div class="tr-mosaic-clip-wrap">
-              <img class="tr-mosaic-clip" id="tr-mosaic-clip" src="${CLIP_FRAMES[0]}" alt="" draggable="false" />
+      <div class="tr-pixel-body tr-pixel-body-with-ring">
+        <div class="tr-pixel-clip-col">
+          <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
+            <div class="tr-mosaic-stack" role="img" aria-label="Clip stroke Vorlage">
+              <div class="tr-mosaic-clip-wrap">
+                <img class="tr-mosaic-clip" id="tr-mosaic-clip" src="${CLIP_FRAMES[0]}" alt="" draggable="false" />
+              </div>
             </div>
-            <div class="tr-mosaic-ground" aria-hidden="true"></div>
+          </div>
+          <div class="tr-pixel-labels tr-mosaic-labels">
+            <span>Clip (pixel)</span>
+            <span>Curve → frame</span>
           </div>
         </div>
         <div class="tr-pixel-meta">
@@ -72,10 +76,7 @@ export function mountTrainingPixelStage(host) {
           <div class="tr-pixel-readout"><span id="tr-pixel-pct">—</span></div>
           <div class="hint" id="tr-pixel-fb">No feedback yet</div>
         </div>
-      </div>
-      <div class="tr-pixel-labels tr-mosaic-labels tr-mosaic-labels-stack">
-        <span>Clip (pixel)</span>
-        <span>Curve → frame</span>
+        <div class="tr-meter tr-meter-inline" id="tr-ring-slot"></div>
       </div>
     </div>`;
 
