@@ -23,7 +23,9 @@ measurement history behind each entry; this file is the short version for
 
 - **Training Motion card:** hi-res dual ring (larger SVG, halo, stronger
   tilt/gloss/pulse) beside the pixel clip in one composition; README
-  screenshot `docs/media/gui-training.png`.
+  screenshot `docs/media/gui-training.png`. Ring arcs stay **always full**;
+  intensity is motion — vibration pulses outward, suction breathes the
+  whole ring in/out.
 
 ### Added
 

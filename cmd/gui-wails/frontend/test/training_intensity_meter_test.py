@@ -89,7 +89,8 @@ def main():
               page.locator("#tr-ring-wrap").count() == 1)
         check("vor dem Start: Vibrationsring zeigt 0%", ring_value(page, "vibration") == "0%")
         check("vor dem Start: Sog-Ring zeigt 0%", ring_value(page, "suction") == "0%")
-        check("vor dem Start: Vibrationsring ist leer", ring_fill_fraction(page, "vibration") < 0.01,
+        check("vor dem Start: Vibrationsbahn ist VOLL (Intensität = Bewegung, nicht Füllanteil)",
+              ring_fill_fraction(page, "vibration") > 0.98,
               str(ring_fill_fraction(page, "vibration")))
         check("Legende nennt beide Achsen",
               "Vibration" in page.locator(".tr-ring-legend").inner_text()
@@ -107,20 +108,17 @@ def main():
               ring_value(page, "vibration") == "70%", ring_value(page, "vibration"))
         check("Kanal 'both': Sog-Ring zeigt dieselbe Intensität",
               ring_value(page, "suction") == "70%", ring_value(page, "suction"))
-        check("Kanal 'both': Vibrationsring ist zu ~70% gefüllt (VOLLE Bahn, nicht nur eine Hälfte)",
-              abs(ring_fill_fraction(page, "vibration") - 0.7) < 0.02,
+        check("Kanal 'both': Vibrationsbahn bleibt VOLL (kein Füllanteil-Meter)",
+              ring_fill_fraction(page, "vibration") > 0.98,
               str(ring_fill_fraction(page, "vibration")))
         check("laufende Session: Vibrationsbahn glüht", ring_pulsing(page, "vibration"))
         check("laufende Session: Sog-Bahn glüht", ring_pulsing(page, "suction"))
 
-        # Echte, aber SANFTE Bewegung statt nur Farbe: Vibration pulsiert auf
-        # der eigenen Bahn sanft nach außen (ease-in-out, kein hartes
-        # Zittern). Amplitude kommt aus einer CSS-Variable, die
-        # updateIntensityRing proportional zur Intensität setzt.
+        # Vibration → Puls nach außen; Amplitude proportional zur Intensität.
         vib_amp = page.locator("#tr-ring-anim-vibration").evaluate(
             "e => getComputedStyle(e).getPropertyValue('--vib-amp')").strip()
-        check("Vibration-Amplitude proportional zur Intensität (70% -> ~0.063)",
-              vib_amp == "0.063", vib_amp)
+        check("Vibration-Amplitude proportional zur Intensität (70% -> ~0.098)",
+              vib_amp == "0.098", vib_amp)
 
         vib_scales = sample_scales(page, "#tr-ring-anim-vibration", 6, 100)
         check("Vibrationsbahn pulsiert tatsächlich (mehrere Skalierungswerte über Zeit)",
@@ -128,19 +126,17 @@ def main():
         check("Vibrationsbahn pulst zeitweise über volle Größe hinaus (nach außen)",
               any("1, 0, 0, 1" not in m for m in vib_scales), str(vib_scales))
 
-        # "Der Ring muss sich für Sog kleiner und größer bewegen" - nicht nur
-        # die eigene Bahn wie bei Vibration, sondern der GANZE Ring
-        # (#tr-ring-wrap: beide Bahnen, Glanz, alles zusammen) kontrahiert.
+        # Sog → ganzer Ring zusammen / auseinander.
         suc_amp = page.locator("#tr-ring-wrap").evaluate(
             "e => getComputedStyle(e).getPropertyValue('--suc-amp')").strip()
-        check("Sog-Amplitude proportional zur Intensität (70% -> ~0.098)",
-              suc_amp == "0.098", suc_amp)
-        check("laufende Session: der GANZE Ring kontrahiert (Sog aktiv)", wrap_suck_pulsing(page))
+        check("Sog-Amplitude proportional zur Intensität (70% -> ~0.126)",
+              suc_amp == "0.126", suc_amp)
+        check("laufende Session: der GANZE Ring atmet (Sog aktiv)", wrap_suck_pulsing(page))
 
         wrap_scales = sample_scales(page, "#tr-ring-wrap", 8, 140)
         check("der ganze Ring bewegt sich tatsächlich (mehrere Skalierungswerte über Zeit)",
               len(wrap_scales) > 1, str(wrap_scales))
-        check("der ganze Ring wird zeitweise kleiner als seine volle Größe (Sog, \"eingesaugt\")",
+        check("der ganze Ring wird zeitweise kleiner/größer als Ruhemaß (Sog)",
               any("1, 0, 0, 1" not in m for m in wrap_scales), str(wrap_scales))
 
         page.select_option("#tr-channel", "vibration")
@@ -153,7 +149,7 @@ def main():
               ring_value(page, "suction") == "0%", ring_value(page, "suction"))
         check("Kanal 'vibration': Sog-Bahn glüht nicht mehr",
               not ring_pulsing(page, "suction"))
-        check("Kanal 'vibration': der ganze Ring kontrahiert NICHT mehr (kein Sog aktiv)",
+        check("Kanal 'vibration': der ganze Ring atmet NICHT mehr (kein Sog aktiv)",
               not wrap_suck_pulsing(page))
         check("Kanal 'vibration': Vibrationsbahn pulsiert weiter (noch aktiv)",
               ring_pulsing(page, "vibration"))
@@ -165,21 +161,8 @@ def main():
         check("nach Sessionende: Sog-Ring zurückgesetzt",
               ring_value(page, "suction") == "0%")
         check("nach Sessionende: keine Bahn glüht mehr", not ring_pulsing(page, "vibration"))
-        check("nach Sessionende: der ganze Ring kontrahiert nicht mehr", not wrap_suck_pulsing(page))
+        check("nach Sessionende: der ganze Ring atmet nicht mehr", not wrap_suck_pulsing(page))
 
-        # Script-Pfad: beide Werte kommen getrennt im Event, kein
-        # Formularfeld-Umweg wie bei der einfachen Form oben.
-        # force=True: der Ring kippt/glänzt jetzt DAUERHAFT (tr-ring-tilt3d/
-        # tr-ring-gloss-sweep, siehe style.css) - ein rein kosmetisches,
-        # sub-Pixel-kleines 3D-transform+filter auf dem Ring, das einen
-        # echten Mausklick nicht im Geringsten stört. Playwrights
-        # Stabilitätsprüfung vergleicht #tr-starts getBoundingClientRect()
-        # aber zwischen zwei Frames auf exakte Gleichheit - bei einer
-        # dauerhaft animierten Seite (egal wie klein die Bewegung) trifft
-        # das praktisch nie zu (mit allen Animationen/Transitions
-        # abgeschaltet verschwindet die "Instabilität" komplett - es ist
-        # kein echter Layout-Sprung des Buttons). force überspringt genau
-        # diese hier irreführende Prüfung.
         page.click("#tr-start", force=True)
         page.evaluate("window.__triggerEvent('training:scriptCycle', {"
                        "phaseIndex: 0, phaseName: 'Wave', phasesTotal: 1,"
@@ -192,10 +175,17 @@ def main():
               ring_value(page, "suction") == "90%", ring_value(page, "suction"))
         check("Script-Event: beide Bahnen glühen, wenn beide > 0",
               ring_pulsing(page, "vibration") and ring_pulsing(page, "suction"))
-        check("Script-Event: der ganze Ring kontrahiert (Sog aktiv)", wrap_suck_pulsing(page))
-        check("Script-Event: Sog-Ring ist voller gefüllt als Vibrationsring (0.9 > 0.3)",
-              ring_fill_fraction(page, "suction") > ring_fill_fraction(page, "vibration"),
-              f"suction={ring_fill_fraction(page, 'suction')} vibration={ring_fill_fraction(page, 'vibration')}")
+        check("Script-Event: der ganze Ring atmet (Sog aktiv)", wrap_suck_pulsing(page))
+        vib_amp_s = float(page.locator("#tr-ring-anim-vibration").evaluate(
+            "e => getComputedStyle(e).getPropertyValue('--vib-amp')").strip() or "0")
+        suc_amp_s = float(page.locator("#tr-ring-wrap").evaluate(
+            "e => getComputedStyle(e).getPropertyValue('--suc-amp')").strip() or "0")
+        check("Script-Event: Sog-Amplitude stärker als Vibrations-Amplitude (0.9 > 0.3)",
+              suc_amp_s > vib_amp_s,
+              f"suction={suc_amp_s} vibration={vib_amp_s}")
+        check("Script-Event: beide Bahnen bleiben VOLL",
+              ring_fill_fraction(page, "vibration") > 0.98
+              and ring_fill_fraction(page, "suction") > 0.98)
 
         # Live levels (training:levels) override stale cycle-peak summaries.
         page.evaluate("window.__triggerEvent('training:levels', {vibration:0.55, suction:0.25})")

@@ -13,39 +13,24 @@ const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both
 
 function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
 
-// EIN Ring, EINE volle Bahn (nicht mehr in zwei Halbkreise geteilt) - beide
-// Kanäle füllen denselben KOMPLETTEN Kreis (0-360°, von 12 Uhr im
-// Uhrzeigersinn) mit ihrer eigenen Intensität, statt sich je eine Hälfte zu
-// teilen. Dort, wo sich beide Füllungen überlappen (die kürzere Strecke der
-// beiden), blenden sich die Farben (mix-blend-mode, siehe .tr-ring-suction
-// in style.css) - dieselbe "Farben vermischen sich" Optik wie zuvor, jetzt
-// als echte Überlappung statt einer festen Nahtstelle in der Mitte.
-// stroke-dasharray/-dashoffset ist die Standardtechnik für SVG-
-// Ringfortschritt: die Dash-Länge ist der volle Umfang, der Offset
-// bestimmt, wie viel davon sichtbar ist.
+// EIN Ring, immer VOLL gezeichnet (beide Kanäle = volle 360°-Bahnen).
+// Intensität steckt NICHT mehr im Füllanteil (stroke-dashoffset), sondern
+// in der Bewegung: Vibration → Puls nach außen; Sog → ganzer Ring
+// zusammenziehen / auseinanderziehen. Die %-Zahlen in der Mitte bleiben.
 const RING_R = 52;
 const RING_CX = 64, RING_CY = 64;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
-// Kurzer heller Bogen oben auf dem Ring, der wie ein Lichtreflex auf einer
-// gewölbten Oberfläche wirkt - EIN gemeinsamer Glanz für den ganzen Ring,
-// fix oben, unabhängig vom Füllstand darunter.
 const RING_HIGHLIGHT = RING_CIRCUMFERENCE * 0.1;
 
-// Vibration bekommt eine EIGENE Animations-Gruppe (tr-ring-anim-vibration),
-// getrennt von der Gruppe, die das statische rotate(-90) für die
-// Fortschritts-Mathematik trägt - CSS-transform auf demselben Element wie
-// ein transform-PRÄSENTATIONSATTRIBUT würde dieses ersetzen statt sich
-// damit zu kombinieren (SVG2/CSS-Transforms-Spec). So bleibt die Rotation
-// unberührt, während die äußere Gruppe frei sanft pulsieren kann - siehe
-// updateIntensityRing/CSS. Suction braucht diese eigene Gruppe NICHT (mehr):
-// "der Ring muss sich für Sog kleiner und größer bewegen" heißt, der
-// GANZE Ring (#tr-ring-wrap) kontrahiert für Sog, nicht nur die eigene
-// Bahn - siehe updateRingSuction/.tr-ring-wrap.tr-suck-pulsing in style.css.
+// Vibration: eigene Animations-Gruppe (tr-ring-anim-vibration), getrennt vom
+// rotate(-90)-Attribut — sonst würde CSS-transform das Präsentationsattribut
+// ersetzen. Sog bewegt den GANZEN Ring (#tr-ring-wrap).
 function ringTrack(axisName, ownAnimGroup) {
+  // Immer volle Bahn (dashoffset 0) — Intensität kommt aus Puls/Atem.
   const circle = `<circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="${RING_CX}" cy="${RING_CY}" r="${RING_R}"
                 stroke="url(#tr-ring-grad-${axisName})"
                 stroke-dasharray="${RING_CIRCUMFERENCE.toFixed(2)} ${RING_CIRCUMFERENCE.toFixed(2)}"
-                stroke-dashoffset="${RING_CIRCUMFERENCE.toFixed(2)}" />`;
+                stroke-dashoffset="0" />`;
   const positioned = `<g transform="rotate(-90 ${RING_CX} ${RING_CY})">${circle}</g>`;
   if (!ownAnimGroup) return positioned;
   return `<g class="tr-ring-anim tr-ring-anim-${axisName}" id="tr-ring-anim-${axisName}">${positioned}</g>`;
@@ -94,45 +79,41 @@ function renderDualIntensityRing() {
     </div>`;
 }
 
-// Aktualisiert EINEN Kanal (volle Kreisbahn + Zahl). Vibration pulsiert
-// sanft auf ihrer EIGENEN Bahn (eigene Animations-Gruppe, siehe ringTrack);
-// Sog bewegt stattdessen den GANZEN Ring (updateRingSuction) - "der Ring
-// muss sich für Sog kleiner und größer bewegen", nicht nur die eigene Bahn.
+// Kanal-Update: Bahn bleibt immer voll; Intensität = Bewegung + Opazität.
+// Vibration pulsiert auf ihrer Bahn nach außen; Sog atmet den ganzen Ring
+// (zusammen / auseinander).
 function updateIntensityRing(axisName, level, pulsing) {
-  const pct = Math.round(clamp01(level) * 100);
+  const t = clamp01(level);
+  const pct = Math.round(t * 100);
   const circle = document.getElementById(`tr-ring-${axisName}`);
   if (circle) {
-    circle.style.strokeDashoffset = (RING_CIRCUMFERENCE * (1 - pct / 100)).toFixed(2);
+    circle.style.strokeDashoffset = '0';
+    // Idle dim; active brightens with level so motion stays readable.
+    circle.style.opacity = t > 0.01 ? String(0.45 + 0.55 * t) : '0.28';
     circle.classList.toggle('tr-pulsing', pulsing);
   }
   const value = document.getElementById(`tr-ring-value-${axisName}`);
   if (value) value.textContent = pct + '%';
 
   if (axisName === 'vibration') {
-    // Sanfte Bewegung statt nur Farbe: die eigene Bahn pulsiert mit
-    // ease-in-out (kein hartes steps()-Zittern) leicht nach außen.
-    // Amplitude (Skalierungs-Delta) proportional zur Intensität via
-    // CSS-Variable, nicht nur an/aus.
     const animGroup = document.getElementById('tr-ring-anim-vibration');
     if (animGroup) {
       animGroup.classList.toggle('tr-pulsing', pulsing);
-      animGroup.style.setProperty('--vib-amp', (clamp01(level) * 0.09).toFixed(3));
+      // Stronger outward pulse at higher vibration.
+      animGroup.style.setProperty('--vib-amp', (t * 0.14).toFixed(3));
     }
   } else {
     updateRingSuction(level, pulsing);
   }
 }
 
-// "Der Ring muss sich für Sog kleiner und größer bewegen" - Sog kontrahiert
-// den GANZEN Ring (#tr-ring-wrap: Bahnen, Glanz, alles zusammen), nicht nur
-// die eigene Bahn wie bei Vibration - fühlt sich wie ein Objekt an, das als
-// Ganzes eingesaugt und wieder losgelassen wird. Amplitude proportional zur
-// Intensität, dieselbe CSS-Var-Mechanik wie bei Vibration.
+// Sog: ganzer Ring (#tr-ring-wrap) zusammenziehen und auseinanderziehen —
+// Amplitude proportional zur Intensität.
 function updateRingSuction(level, pulsing) {
   const wrap = document.getElementById('tr-ring-wrap');
   if (!wrap) return;
   wrap.classList.toggle('tr-suck-pulsing', pulsing);
-  wrap.style.setProperty('--suc-amp', (clamp01(level) * 0.14).toFixed(3));
+  wrap.style.setProperty('--suc-amp', (clamp01(level) * 0.18).toFixed(3));
 }
 
 // Farben für die zwei Kanal-Linien in der Script-Vorschau/Live-Anzeige -
