@@ -90,14 +90,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) merged + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT + simpletrack NCC) + Review/Play polyline overlay, both off by default | **#188 DONE** (`b7f5d2d`); **#189 open** (simpletrack gap closed, verified locally incl. `-tags opencv -race`) |
+| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) merged + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT + simpletrack NCC) + Review/Play polyline overlay, both off by default | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | next | **MT-Seed** — ranked motion-candidate → Tip+Partner seed CSRT (GUI suggest ≠ auto-commit) | **NEXT (Cursor)** |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
 | E | ChatGPT | — | **MT-Go verify** on `main` tip `94b2bae` + partner-loss golden notes (do not re-implement coast) | **CLAIMED — verify-only** |
 | E2 | ChatGPT | (after E) | **MT-Speed doc/spike** — ByteTrack vs BoT-SORT knobs + N-frame detect budget (write-up / tiny spike only; no Generate default) | **queued after verify** |
-| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) | **MT-Infra** — ffmpeg ctx-kill hygiene (`DumpFrameAt` + roi_still helpers) + proxy single-owner decode (singleflight, race-tested). Rational-PTS/filtergraph-fastpath angles checked, already fine | **open** |
+| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) merged | **MT-Infra** — ffmpeg ctx-kill hygiene (`DumpFrameAt` + roi_still helpers) + proxy single-owner decode (singleflight, race-tested). Rational-PTS/filtergraph-fastpath angles checked, already fine | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
@@ -619,6 +619,7 @@ ring revision before committing.
 | 22 Sep | **MT-Infra scoped:** researched rational-PTS/filtergraph-fastpath/ctx-kill/single-owner-decode first — proxy fastpath and PTS precision already fine, no fix needed there. Opened #190 for the two real findings: `DumpFrameAt`/`roi_still.go` ffmpeg calls had no context (uncancellable), and `EnsurePlayableProxy` had no reentrancy guard (concurrent "Make playable" could double-write the same proxy file) | Claude |
 | 22 Sep | **MT-Debug data gap found:** no per-frame tip/partner (x,y) survived anywhere (trackcv discarded box centers after computing the fused distance) — flagged on #184, Cursor green-lit an additive opt-in capture hook in `trackcv` (zero behavior change when off). Opened #188: capture (CSRT path only, `simpletrack` not yet wired) + Review/Play polyline overlay, both off by default | Claude ↔ Cursor |
 | 22 Sep | **#188 merged.** Follow-up #189 wires the same opt-in capture into `simpletrack` (the non-OpenCV Windows fallback) so "Record tip/partner trajectory" works on both native Go tracking backends; no GUI/schema changes needed, both backends feed the same `metadata.trajectory`. New `reflect.DeepEqual` regression test locks in byte-identical output when the flag is off | Claude |
+| 22 Sep | **#189 and #190 merged** (`5762629`, `7802a14`). Lane B (MT-Debug) and Lane C (MT-Infra) both DONE | Claude |
 
 ---
 
