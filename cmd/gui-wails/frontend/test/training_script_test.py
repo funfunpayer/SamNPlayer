@@ -33,7 +33,11 @@ SCRIPTS = [
 ]
 
 PREVIEW = {
-    "vibration": [{"atMs": 0, "level": 0.2}, {"atMs": 1000, "level": 0.8}],
+    # Vier Punkte (Start/Höhepunkt/Höhepunkt/Ende) statt nur zwei - eine
+    # echte Rampe-Halten-Rampe-Form mit einer inneren Ecke, damit die
+    # Kurven-Rundung (roundedPathD, training.js) etwas zu glätten hat.
+    "vibration": [{"atMs": 0, "level": 0.2}, {"atMs": 300, "level": 0.8},
+                  {"atMs": 700, "level": 0.8}, {"atMs": 1000, "level": 0.2}],
     "suction": [{"atMs": 0, "level": 0.0}, {"atMs": 1000, "level": 0.0}],
     "totalMs": 1000,
     "phaseMarkers": [{"atMs": 0, "name": "Vibration wave"}],
@@ -84,6 +88,19 @@ def main():
               page.locator("#tr-script-preview svg").count() == 1)
         check("Beschreibung wird angezeigt",
               "Wave then suction focus" in page.locator("#tr-script-description").inner_text())
+
+        # Die Vibrationskurve hat eine innere Ecke (Rampe->Halten->Rampe,
+        # siehe PREVIEW oben) - roundedPathD muss sie mit einer
+        # quadratischen Bezier ("Q") abrunden statt sie scharfkantig
+        # ("L" an "L") stehen zu lassen.
+        vib_path_d = page.locator("#tr-script-preview svg path").first.get_attribute("d")
+        check("Vibrationskurve hat eine abgerundete Ecke (Q-Befehl)",
+              "Q" in vib_path_d, vib_path_d)
+        # Die Sog-Kurve hat nur Start/Ende (zwei Punkte, keine innere Ecke) -
+        # da darf nichts gerundet werden, es gibt nichts zu runden.
+        suc_path_d = page.locator("#tr-script-preview svg path").nth(1).get_attribute("d")
+        check("Sog-Kurve (nur 2 Punkte) bleibt eine gerade Linie",
+              "Q" not in suc_path_d and "L" in suc_path_d, suc_path_d)
 
         page.click("#tr-start")
         page.wait_for_function("window.__calls.some(c => c[0] === 'start')")

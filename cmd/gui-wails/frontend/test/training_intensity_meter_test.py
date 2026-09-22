@@ -1,4 +1,4 @@
-"""Regressionstest für den Intensitätsmesser (zwei pulsierende Balken,
+"""Regressionstest für den Intensitätsmesser (zwei atmende Ringe,
 Vibration/Suction) im Trainings-Tab.
 
 Muss für BEIDE Ereignisquellen funktionieren: die einfache Technik/Kanal-
@@ -40,11 +40,21 @@ def main():
     harness = FRONTEND / "test" / "_training_meter_harness.html"
     harness.write_text(PAGE)
 
-    def bar_width(page, which):
-        return page.locator(f"#tr-meter-{which}").evaluate("e => e.style.width")
+    def ring_value(page, which):
+        return page.locator(f"#tr-ring-value-{which}").inner_text()
 
-    def bar_pulsing(page, which):
-        return page.locator(f"#tr-meter-{which}").evaluate("e => e.classList.contains('tr-pulsing')")
+    def ring_pulsing(page, which):
+        return page.locator(f"#tr-ring-wrap-{which}").evaluate("e => e.classList.contains('tr-pulsing')")
+
+    def ring_fill_fraction(page, which):
+        """Wie weit der Fortschrittsbogen gefüllt ist, aus stroke-dashoffset
+        errechnet (0 = leer, 1 = voll) - die eigentliche visuelle Aussage
+        des Rings, nicht nur der Textwert daneben."""
+        return page.locator(f"#tr-ring-{which}").evaluate("""e => {
+            const circumference = parseFloat(e.getAttribute('stroke-dasharray'));
+            const offset = parseFloat(e.style.strokeDashoffset || e.getAttribute('stroke-dashoffset'));
+            return 1 - (offset / circumference);
+        }""")
 
     def lit_pixel_count(page, which):
         return page.locator(f"#tr-pixel-{which} .tr-pixel-lit").count()
@@ -56,10 +66,10 @@ def main():
         page.goto(f"{base}/test/_training_meter_harness.html")
         page.wait_for_function("window.__ready === true")
 
-        check("vor dem Start: Vibrationsbalken auf 0",
-              bar_width(page, "vibration") in ("0%", ""))
-        check("vor dem Start: Sog-Balken auf 0",
-              bar_width(page, "suction") in ("0%", ""))
+        check("vor dem Start: Vibrationsring zeigt 0%", ring_value(page, "vibration") == "0%")
+        check("vor dem Start: Sog-Ring zeigt 0%", ring_value(page, "suction") == "0%")
+        check("vor dem Start: Vibrationsring ist leer", ring_fill_fraction(page, "vibration") < 0.01,
+              str(ring_fill_fraction(page, "vibration")))
         check("Pixel-Raster (Vibration) ist im DOM vorhanden",
               page.locator("#tr-pixel-vibration .tr-pixel-cell").count() > 0)
         check("vor dem Start: keine Pixel beleuchtet", lit_pixel_count(page, "vibration") == 0)
@@ -68,13 +78,16 @@ def main():
         page.select_option("#tr-channel", "both")
         page.evaluate("window.__triggerEvent('training:cycle', "
                        "{ cycleIndex: 0, cyclesTotal: 3, peakIntensity: 0.7, holdMs: 1000 })")
-        page.wait_for_function("document.querySelector('#tr-meter-vibration').style.width === '70%'")
-        check("Kanal 'both': Vibrationsbalken zeigt die Intensität",
-              bar_width(page, "vibration") == "70%", bar_width(page, "vibration"))
-        check("Kanal 'both': Sog-Balken zeigt dieselbe Intensität",
-              bar_width(page, "suction") == "70%", bar_width(page, "suction"))
-        check("laufende Session: Vibrationsbalken pulsiert", bar_pulsing(page, "vibration"))
-        check("laufende Session: Sog-Balken pulsiert", bar_pulsing(page, "suction"))
+        page.wait_for_function("document.querySelector('#tr-ring-value-vibration').textContent === '70%'")
+        check("Kanal 'both': Vibrationsring zeigt die Intensität",
+              ring_value(page, "vibration") == "70%", ring_value(page, "vibration"))
+        check("Kanal 'both': Sog-Ring zeigt dieselbe Intensität",
+              ring_value(page, "suction") == "70%", ring_value(page, "suction"))
+        check("Kanal 'both': Vibrationsring ist zu ~70% gefüllt",
+              abs(ring_fill_fraction(page, "vibration") - 0.7) < 0.02,
+              str(ring_fill_fraction(page, "vibration")))
+        check("laufende Session: Vibrationsring pulsiert/atmet", ring_pulsing(page, "vibration"))
+        check("laufende Session: Sog-Ring pulsiert/atmet", ring_pulsing(page, "suction"))
         lit_at_70 = lit_pixel_count(page, "vibration")
         check("bei 70% sind Pixel beleuchtet", lit_at_70 > 0, str(lit_at_70))
         check("Pixel-Raster pulsiert mit", page.locator("#tr-pixel-vibration").evaluate(
@@ -83,13 +96,13 @@ def main():
         page.select_option("#tr-channel", "vibration")
         page.evaluate("window.__triggerEvent('training:cycle', "
                        "{ cycleIndex: 1, cyclesTotal: 3, peakIntensity: 0.5, holdMs: 1000 })")
-        page.wait_for_function("document.querySelector('#tr-meter-vibration').style.width === '50%'")
-        check("Kanal 'vibration': nur der Vibrationsbalken bewegt sich",
-              bar_width(page, "vibration") == "50%", bar_width(page, "vibration"))
-        check("Kanal 'vibration': Sog-Balken geht auf 0 zurück",
-              bar_width(page, "suction") == "0%", bar_width(page, "suction"))
-        check("Kanal 'vibration': Sog-Balken pulsiert nicht mehr",
-              not bar_pulsing(page, "suction"))
+        page.wait_for_function("document.querySelector('#tr-ring-value-vibration').textContent === '50%'")
+        check("Kanal 'vibration': nur der Vibrationsring bewegt sich",
+              ring_value(page, "vibration") == "50%", ring_value(page, "vibration"))
+        check("Kanal 'vibration': Sog-Ring geht auf 0% zurück",
+              ring_value(page, "suction") == "0%", ring_value(page, "suction"))
+        check("Kanal 'vibration': Sog-Ring pulsiert nicht mehr",
+              not ring_pulsing(page, "suction"))
         check("weniger Intensität -> weniger beleuchtete Pixel",
               lit_pixel_count(page, "vibration") < lit_at_70,
               f"{lit_pixel_count(page, 'vibration')} >= {lit_at_70}")
@@ -97,12 +110,12 @@ def main():
               lit_pixel_count(page, "suction") == 0)
 
         page.evaluate("window.__triggerEvent('training:done')")
-        page.wait_for_function("document.querySelector('#tr-meter-vibration').style.width === '0%'")
-        check("nach Sessionende: Vibrationsbalken zurückgesetzt",
-              bar_width(page, "vibration") == "0%")
-        check("nach Sessionende: Sog-Balken zurückgesetzt",
-              bar_width(page, "suction") == "0%")
-        check("nach Sessionende: kein Pulsieren mehr", not bar_pulsing(page, "vibration"))
+        page.wait_for_function("document.querySelector('#tr-ring-value-vibration').textContent === '0%'")
+        check("nach Sessionende: Vibrationsring zurückgesetzt",
+              ring_value(page, "vibration") == "0%")
+        check("nach Sessionende: Sog-Ring zurückgesetzt",
+              ring_value(page, "suction") == "0%")
+        check("nach Sessionende: kein Pulsieren/Atmen mehr", not ring_pulsing(page, "vibration"))
         check("nach Sessionende: keine Pixel mehr beleuchtet",
               lit_pixel_count(page, "vibration") == 0)
 
@@ -113,13 +126,16 @@ def main():
                        "phaseIndex: 0, phaseName: 'Wave', phasesTotal: 1,"
                        "repeatIndex: 0, repeatsTotal: 1, vibrationPeak: 0.3, suctionPeak: 0.9,"
                        "restMs: 1000, stoppedByUser: false, arousalBefore: 0 })")
-        page.wait_for_function("document.querySelector('#tr-meter-suction').style.width === '90%'")
-        check("Script-Event: Vibrationsbalken übernimmt vibrationPeak",
-              bar_width(page, "vibration") == "30%", bar_width(page, "vibration"))
-        check("Script-Event: Sog-Balken übernimmt suctionPeak",
-              bar_width(page, "suction") == "90%", bar_width(page, "suction"))
-        check("Script-Event: beide pulsieren, wenn beide > 0",
-              bar_pulsing(page, "vibration") and bar_pulsing(page, "suction"))
+        page.wait_for_function("document.querySelector('#tr-ring-value-suction').textContent === '90%'")
+        check("Script-Event: Vibrationsring übernimmt vibrationPeak",
+              ring_value(page, "vibration") == "30%", ring_value(page, "vibration"))
+        check("Script-Event: Sog-Ring übernimmt suctionPeak",
+              ring_value(page, "suction") == "90%", ring_value(page, "suction"))
+        check("Script-Event: beide Ringe pulsieren, wenn beide > 0",
+              ring_pulsing(page, "vibration") and ring_pulsing(page, "suction"))
+        check("Script-Event: Sog-Ring ist voller gefüllt als Vibrationsring (0.9 > 0.3)",
+              ring_fill_fraction(page, "suction") > ring_fill_fraction(page, "vibration"),
+              f"suction={ring_fill_fraction(page, 'suction')} vibration={ring_fill_fraction(page, 'vibration')}")
         check("Script-Event: Sog hat mehr beleuchtete Pixel als Vibration (0.9 > 0.3)",
               lit_pixel_count(page, "suction") > lit_pixel_count(page, "vibration"),
               f"suction={lit_pixel_count(page, 'suction')} vibration={lit_pixel_count(page, 'vibration')}")

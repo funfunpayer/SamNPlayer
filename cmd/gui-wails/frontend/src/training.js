@@ -66,6 +66,39 @@ function updatePixelGrid(axisName, level, pulsing) {
   grid.classList.toggle('tr-pulsing', pulsing);
 }
 
+// Atmender Intensitätsring (Vibration/Sog) - ein radialer Fortschritts-
+// ring statt eines Balkens, mit Prozentzahl in der Mitte. stroke-dasharray/
+// -dashoffset ist die Standardtechnik für SVG-Ringfortschritt: der
+// gesamte Kreisumfang wird als gestrichelte Linie mit EINEM Strich der
+// Länge "Umfang" gezeichnet, stroke-dashoffset verschiebt, wie viel davon
+// sichtbar ist.
+const RING_RADIUS = 24;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+function renderIntensityRing(axisName) {
+  return `
+    <div class="tr-ring-wrap tr-ring-${axisName}-wrap" id="tr-ring-wrap-${axisName}">
+      <svg viewBox="0 0 60 60" class="tr-ring">
+        <circle class="tr-ring-track" cx="30" cy="30" r="${RING_RADIUS}" />
+        <circle class="tr-ring-fill tr-ring-${axisName}" id="tr-ring-${axisName}" cx="30" cy="30" r="${RING_RADIUS}"
+                transform="rotate(-90 30 30)"
+                stroke-dasharray="${RING_CIRCUMFERENCE.toFixed(2)}"
+                stroke-dashoffset="${RING_CIRCUMFERENCE.toFixed(2)}" />
+      </svg>
+      <span class="tr-ring-value" id="tr-ring-value-${axisName}">0%</span>
+    </div>`;
+}
+
+function updateIntensityRing(axisName, level, pulsing) {
+  const pct = Math.round(clamp01(level) * 100);
+  const circle = document.getElementById(`tr-ring-${axisName}`);
+  if (circle) circle.style.strokeDashoffset = (RING_CIRCUMFERENCE * (1 - pct / 100)).toFixed(2);
+  const value = document.getElementById(`tr-ring-value-${axisName}`);
+  if (value) value.textContent = pct + '%';
+  const wrap = document.getElementById(`tr-ring-wrap-${axisName}`);
+  if (wrap) wrap.classList.toggle('tr-pulsing', pulsing);
+}
+
 // Farben für die zwei Kanal-Linien in der Script-Vorschau/Live-Anzeige -
 // dieselben Marken-Tokens wie der Intensitätsmesser unten (--accent/--teal),
 // damit Vorschau, Live-Anzeige und Meter dieselbe Kanal-Farbe zeigen statt
@@ -79,14 +112,49 @@ const SUCTION_COLOR = 'var(--teal)';
 // SVG statt Canvas, damit es sich ohne Animationsschleife einfach neu
 // zeichnen lässt (Vorschau vor dem Start, dann erneut mit angepassten
 // Werten während der Session).
+// roundedPathD baut eine SVG-Pfad-"d"-Angabe aus Wegpunkten, deren Ecken
+// (Rampe-zu-Halten, Halten-zu-Rampe) leicht abgerundet statt kantig
+// scharf sind - rein optische Glättung an den Knicken, keine Glättung des
+// KURVENVERLAUFS selbst: die Rampen bleiben linear, das Halten bleibt
+// flach, weil das genau ist, was das Gerät tatsächlich tut. Eine
+// Catmull-Rom-Spline durch alle Punkte sähe "runder" aus, könnte an
+// flachen Haltephasen aber über den eingestellten Höhepunkt hinaus
+// überschwingen und optisch behaupten, das Gerät ginge kurz über die
+// Einstellung - genau das darf eine Vorschau nicht zeigen. Die
+// quadratische Bezier hier nutzt den Eckpunkt selbst als Kontrollpunkt:
+// das Ergebnis liegt IMMER in der konvexen Hülle von (Vorgänger, Ecke,
+// Nachfolger), kann also nie über den lokal höchsten/niedrigsten Wert
+// hinausschießen - nur die Ecke selbst wird leicht "abgeschnitten".
+function roundedPathD(points, radius = 5) {
+  if (!points || points.length === 0) return '';
+  if (points.length === 1) return `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+  const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+
+  let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1], cur = points[i], next = points[i + 1];
+    const d1 = dist(prev, cur), d2 = dist(cur, next);
+    // Nie mehr als die halbe Segmentlänge abschneiden - sonst würden sich
+    // bei sehr kurzen Segmenten (z.B. RampUpMs=0) zwei Rundungen überlappen.
+    const t1 = d1 > 0 ? Math.min(radius, d1 / 2) / d1 : 0;
+    const t2 = d2 > 0 ? Math.min(radius, d2 / 2) / d2 : 0;
+    const startX = cur.x + (prev.x - cur.x) * t1;
+    const startY = cur.y + (prev.y - cur.y) * t1;
+    const endX = cur.x + (next.x - cur.x) * t2;
+    const endY = cur.y + (next.y - cur.y) * t2;
+    d += ` L${startX.toFixed(1)},${startY.toFixed(1)} Q${cur.x.toFixed(1)},${cur.y.toFixed(1)} ${endX.toFixed(1)},${endY.toFixed(1)}`;
+  }
+  const last = points[points.length - 1];
+  d += ` L${last.x.toFixed(1)},${last.y.toFixed(1)}`;
+  return d;
+}
+
 function renderScriptCurveSvg(preview) {
   const W = 600, H = 130, TOP = 14, BOTTOM = 116;
   const x = ms => preview.totalMs > 0 ? (ms / preview.totalMs) * W : 0;
   const y = level => BOTTOM - level * (BOTTOM - TOP);
 
-  const toPath = points => (points || [])
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.atMs).toFixed(1)},${y(p.level).toFixed(1)}`)
-    .join(' ');
+  const toPath = points => roundedPathD((points || []).map(p => ({ x: x(p.atMs), y: y(p.level) })));
 
   const phaseLines = (preview.phaseMarkers || []).map(m => `
     <line x1="${x(m.atMs).toFixed(1)}" y1="${TOP}" x2="${x(m.atMs).toFixed(1)}" y2="${BOTTOM}"
@@ -99,8 +167,10 @@ function renderScriptCurveSvg(preview) {
       <rect id="tr-phase-highlight" x="0" y="${TOP}" width="0" height="${BOTTOM - TOP}"
             fill="var(--accent, #7c9cff)" opacity="0.08" />
       ${phaseLines}
-      <path d="${toPath(preview.vibration)}" fill="none" stroke="${VIBRATION_COLOR}" stroke-width="2" />
-      <path d="${toPath(preview.suction)}" fill="none" stroke="${SUCTION_COLOR}" stroke-width="2" />
+      <path d="${toPath(preview.vibration)}" fill="none" stroke="${VIBRATION_COLOR}" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${toPath(preview.suction)}" fill="none" stroke="${SUCTION_COLOR}" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
     </svg>
     <div class="hint" style="display:flex; gap:14px; margin-top:2px;">
       <span><span style="display:inline-block;width:10px;height:10px;background:${VIBRATION_COLOR};border-radius:2px;"></span> Vibration</span>
@@ -217,12 +287,12 @@ export function initTraining(root) {
       <div class="tr-meter-row">
         ${renderPixelGrid('vibration')}
         <span class="tr-meter-label">Vibration</span>
-        <div class="tr-meter-track"><div class="tr-meter-fill tr-meter-vibration" id="tr-meter-vibration"></div></div>
+        ${renderIntensityRing('vibration')}
       </div>
       <div class="tr-meter-row">
         ${renderPixelGrid('suction')}
         <span class="tr-meter-label">Suction</span>
-        <div class="tr-meter-track"><div class="tr-meter-fill tr-meter-suction" id="tr-meter-suction"></div></div>
+        ${renderIntensityRing('suction')}
       </div>
     </div>
     <div id="tr-feedback-effect" class="hint" style="min-height:1.2em;"></div>
@@ -260,14 +330,8 @@ export function initTraining(root) {
   // oben) entscheidet, ob die Balken pulsieren oder nur ihre Füllhöhe
   // zeigen (z.B. beim Zurücksetzen nach Sessionende).
   function updateIntensityMeter({ vibration = 0, suction = 0 }) {
-    const setBar = (id, level) => {
-      const bar = el(id);
-      const pct = Math.round(clamp01(level) * 100);
-      bar.style.width = pct + '%';
-      bar.classList.toggle('tr-pulsing', running && pct > 0);
-    };
-    setBar('#tr-meter-vibration', vibration);
-    setBar('#tr-meter-suction', suction);
+    updateIntensityRing('vibration', vibration, running && vibration > 0);
+    updateIntensityRing('suction', suction, running && suction > 0);
     updatePixelGrid('vibration', vibration, running && vibration > 0);
     updatePixelGrid('suction', suction, running && suction > 0);
   }
