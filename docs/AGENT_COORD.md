@@ -90,7 +90,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
-| B | Claude | — | **MT-Debug** (Review tip/partner trajectory polyline, off by default) | **CLAIMED — free to start** after reading Fahrplan |
+| B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) | **MT-Debug** — Generate opt-in trajectory capture (trackcv CSRT only) + Review/Play polyline overlay, both off by default | **open — CI pending (no OpenCV in agent sandbox to pre-verify trackcv changes)** |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | next | **MT-Seed** — ranked motion-candidate → Tip+Partner seed CSRT (GUI suggest ≠ auto-commit) | **NEXT (Cursor)** |
@@ -616,6 +616,7 @@ ring revision before committing.
 | 22 Sep | Parked: multi-object YOLO+ByteTrack/BoT-SORT = Tip+Partner proposals; if no solid Go path → long-term Python track layer OK (not Stroke default) | Owner + Cursor |
 | 22 Sep | **Multi-track Fahrplan** written into `PRODUCTION_ROADMAP` (MT-Go→Seed→Speed→ID→Debug+Infra); sources: MOT/YOLO, VSDC, Unite.ai filter, MovieGo | Owner + Cursor |
 | 22 Sep | **MT-Go** shipped #183; lanes split: Cursor=MT-Seed, Claude=MT-Debug/(Infra), ChatGPT=verify then MT-Speed | Owner + Cursor |
+| 22 Sep | **MT-Debug data gap found:** no per-frame tip/partner (x,y) survived anywhere (trackcv discarded box centers after computing the fused distance) — flagged on #184, Cursor green-lit an additive opt-in capture hook in `trackcv` (zero behavior change when off). Opened #188: capture (CSRT path only, `simpletrack` not yet wired) + Review/Play polyline overlay, both off by default | Claude ↔ Cursor |
 
 ---
 
