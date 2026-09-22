@@ -97,7 +97,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
 | E | ChatGPT | — | **MT-Go verify** on `main` tip `94b2bae` + partner-loss golden notes (do not re-implement coast) | **CLAIMED — verify-only** |
 | E2 | ChatGPT | (after E) | **MT-Speed doc/spike** — ByteTrack vs BoT-SORT knobs + N-frame detect budget (write-up / tiny spike only; no Generate default) | **queued after verify** |
-| C | Claude | (optional ∥ B) | **MT-Infra** — Improve/proxy: rational PTS or FFmpeg filtergraph trim / ctx-kill hygiene (MovieGo lessons) | **optional if B done or skipped** |
+| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) | **MT-Infra** — ffmpeg ctx-kill hygiene (`DumpFrameAt` + roi_still helpers) + proxy single-owner decode (singleflight, race-tested). Rational-PTS/filtergraph-fastpath angles checked, already fine | **open** |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
@@ -616,6 +616,7 @@ ring revision before committing.
 | 22 Sep | Parked: multi-object YOLO+ByteTrack/BoT-SORT = Tip+Partner proposals; if no solid Go path → long-term Python track layer OK (not Stroke default) | Owner + Cursor |
 | 22 Sep | **Multi-track Fahrplan** written into `PRODUCTION_ROADMAP` (MT-Go→Seed→Speed→ID→Debug+Infra); sources: MOT/YOLO, VSDC, Unite.ai filter, MovieGo | Owner + Cursor |
 | 22 Sep | **MT-Go** shipped #183; lanes split: Cursor=MT-Seed, Claude=MT-Debug/(Infra), ChatGPT=verify then MT-Speed | Owner + Cursor |
+| 22 Sep | **MT-Infra scoped:** researched rational-PTS/filtergraph-fastpath/ctx-kill/single-owner-decode first — proxy fastpath and PTS precision already fine, no fix needed there. Opened #190 for the two real findings: `DumpFrameAt`/`roi_still.go` ffmpeg calls had no context (uncancellable), and `EnsurePlayableProxy` had no reentrancy guard (concurrent "Make playable" could double-write the same proxy file) | Claude |
 | 22 Sep | **MT-Debug data gap found:** no per-frame tip/partner (x,y) survived anywhere (trackcv discarded box centers after computing the fused distance) — flagged on #184, Cursor green-lit an additive opt-in capture hook in `trackcv` (zero behavior change when off). Opened #188: capture (CSRT path only, `simpletrack` not yet wired) + Review/Play polyline overlay, both off by default | Claude ↔ Cursor |
 
 ---
