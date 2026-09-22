@@ -40,6 +40,8 @@ measurement history behind each entry; this file is the short version for
   Play video; follows seek/playhead; toggle off anytime (remembered).
 - **AI Train body map:** stylized human figure (Claude device-silhouette
   idea) — click Face/Mouth/Breasts/… to set the active mark class.
+- **GUI makeup pass:** calmer rail/active tab, crisp primary CTA, content
+  vignette, quieter Play empty — ideas in `docs/GUI_MAKEUP.md`.
 
 ### Fixed / observability
 

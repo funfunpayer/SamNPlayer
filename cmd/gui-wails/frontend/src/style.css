@@ -157,7 +157,9 @@ body {
 #rail {
   width: var(--rail);
   flex-shrink: 0;
-  background: linear-gradient(180deg, #0c1018 0%, #0a0d14 100%);
+  background:
+    linear-gradient(180deg, rgba(243, 178, 60, 0.04) 0%, transparent 28%),
+    linear-gradient(180deg, #0e131c 0%, #090c12 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -169,11 +171,12 @@ body {
 #rail::after {
   content: "";
   position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--accent) 0%, var(--teal) 55%, transparent 100%);
-  opacity: 0.75;
+  top: 12%; right: 0; bottom: 18%;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--teal) 70%, transparent 100%);
+  opacity: 0.85;
   pointer-events: none;
+  border-radius: 2px 0 0 2px;
 }
 /* Logo + Wordmark-Lockup — SamNPlayer als Markenzeichen neben dem SN */
 .brand-lockup {
@@ -247,9 +250,18 @@ body {
 .tab-btn span { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; }
 .tab-btn:hover { background: var(--surface); color: var(--text); transform: translateY(-1px); }
 .tab-btn.active {
-  background: var(--accent-soft);
+  background: linear-gradient(180deg, rgba(243, 178, 60, 0.16) 0%, rgba(243, 178, 60, 0.06) 100%);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(243, 178, 60, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(243, 178, 60, 0.28);
+  position: relative;
+}
+.tab-btn.active::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 18%; bottom: 18%;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 .tab-btn.active .dot { background: var(--accent); }
 .dot { width: 5px; height: 5px; border-radius: var(--radius-pill); background: transparent; transition: background-color .18s ease; }
@@ -258,13 +270,15 @@ body {
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
 #topbar {
-  height: 52px;
+  height: 54px;
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 22px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(12, 16, 24, 0.92);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(61, 77, 102, 0.85);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 36, 0.96) 0%, rgba(10, 14, 22, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(243, 178, 60, 0.06);
 }
 .update-banner {
   display: flex;
@@ -426,20 +440,27 @@ body {
 .topbar-device-wrap.is-searching .topbar-device-led { background: var(--accent); }
 
 .stage { flex: 1; display: flex; min-height: 0; }
-.stage-main { flex: 1; overflow-y: auto; min-width: 0; }
+.stage-main {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+  background:
+    radial-gradient(900px 320px at 50% -10%, rgba(47, 212, 196, 0.05), transparent 55%),
+    linear-gradient(180deg, rgba(12, 16, 24, 0.35) 0%, transparent 28%);
+}
 
 .tab-panel {
   display: none;
-  max-width: 920px;
-  padding: 22px 26px 44px;
+  max-width: 960px;
+  padding: 26px 28px 52px;
 }
 .tab-panel.active {
   display: block;
-  animation: tabIn .28s cubic-bezier(.2, .8, .2, 1) both;
+  animation: tabIn .26s cubic-bezier(.22, .9, .25, 1) both;
 }
 @keyframes tabIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.994); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .tab-panel.active { animation: none; }
@@ -502,23 +523,31 @@ body {
 }
 
 h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px;
-  padding-bottom: 10px;
+  font-size: 19px;
+  font-weight: 650;
+  margin: 0 0 18px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
   position: relative;
 }
 h2::after {
   content: "";
   position: absolute;
   left: 0; bottom: -1px;
-  width: 48px; height: 2px;
+  width: 56px; height: 2px;
   background: linear-gradient(90deg, var(--accent), var(--teal));
+  border-radius: 2px;
 }
-h3 { font-size: 13px; font-weight: 600; margin: 26px 0 8px; color: var(--text); letter-spacing: 0.03em; text-transform: uppercase; }
+h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 28px 0 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 .row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .field-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -1520,44 +1549,52 @@ legend { font-size: 12.5px; color: var(--text-dim); padding: 0 6px; font-weight:
   animation: wordmarkIn .48s cubic-bezier(.2, .8, .2, 1) .06s both;
 }
 #rail::after {
-  animation: railGlow 4.5s ease-in-out infinite;
+  animation: none;
 }
 
-/* Active rail tab: soft gold halo */
+/* Active rail tab — amber edge, no soft halo */
 .tab-btn.active {
-  box-shadow:
-    inset 0 0 0 1px rgba(243, 178, 60, 0.28),
-    0 0 16px rgba(243, 178, 60, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(243, 178, 60, 0.28);
 }
 .tab-btn.active .dot {
-  box-shadow: 0 0 7px rgba(243, 178, 60, 0.7);
+  box-shadow: none;
 }
 
-/* Primary CTA: living gradient on hover */
+/* Primary CTA: crisp gold — hover shifts, no endless float */
 button.primary {
-  background-size: 200% 100%;
-  background-image: linear-gradient(105deg, #ffd06a 0%, var(--accent) 42%, #ff9a3c 72%, var(--accent) 100%);
-  transition: background-position .35s ease, box-shadow .18s ease, transform .1s ease;
+  background-size: 180% 100%;
+  background-image: linear-gradient(105deg, #ffd27a 0%, var(--accent) 45%, #e8922a 100%);
+  color: #14110a;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background-position .22s ease, box-shadow .16s ease, transform .1s ease, filter .16s ease;
 }
 button.primary:hover:not(:disabled) {
-  background-position: 100% 50%;
-  animation: softFloat 1.8s ease-in-out infinite;
+  background-position: 88% 50%;
+  filter: brightness(1.04);
+  animation: none;
+  box-shadow: 0 2px 10px rgba(243, 178, 60, 0.22);
+}
+button.primary:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: brightness(0.98);
 }
 
-/* Progress fill shimmer */
+/* Progress fill — slow brand sweep */
 .progress-bar-fill {
   background: linear-gradient(90deg, var(--accent), var(--teal), var(--accent));
   background-size: 200% 100%;
-  animation: progressShimmer 1.8s linear infinite;
+  animation: progressShimmer 2.4s linear infinite;
 }
 
-/* Empty Play stage: quiet drift */
+/* Empty Play stage: quiet inset, no bobbing */
 .pb-empty {
   transition: border-color .25s ease, box-shadow .25s ease;
 }
 .pb-empty:not([hidden]) {
-  animation: softFloat 5.5s ease-in-out infinite;
-  box-shadow: inset 0 0 56px rgba(243, 178, 60, 0.04);
+  animation: none;
+  box-shadow: inset 0 0 64px rgba(243, 178, 60, 0.05);
+  border-color: rgba(61, 77, 102, 0.9);
 }
 
 /* Device LED while searching */
