@@ -93,6 +93,39 @@ address, signal strength, vibration/suction function tests, and a raw-value test
 ends the current cycle rather than the entire session. An arousal scale
 from 1–10 adjusts the next cycle. Sessions are logged.
 
+**Training scripts (multi-phase, per-channel):** the simple Technique/
+Channel form can only shape one curve, applied identically to whichever
+channel(s) are selected. `player.TrainingScript` generalizes that into an
+ordered list of named phases, each with an independent vibration and
+suction curve — vibration can ramp up then down while suction stays off,
+followed by a phase where suction ramps and vibration holds at a light
+constant level untouched from the previous phase. Four built-in scripts
+(`player.BuiltinTrainingScripts`) are shipped, researched from vacuum/
+cupping therapy technique names (static hold, pumping, gliding sweep) and
+vibration-massager pattern vocabulary (escalating, wave, pulse, random) -
+see `docs/TRAINING_MODE_RESEARCH.md` for sources and the full design. The
+arousal-feedback math is unchanged (`adjustForArousal`, tested directly)
+but is now applied as one shared factor to every active channel and to
+the shared rest, closing a gap the single-curve form had: "both channels"
+only got weaker together because it happened to send both the same
+number, not because the feedback loop understood there were two. The GUI
+adds a plan-preview curve (both channels drawn as two lines before
+starting) and a live per-cycle "feedback effect" readout.
+
+**Script editor:** a "Script editor" section on the Training tab builds
+an arbitrary `player.TrainingScript` through form fields instead of only
+picking a built-in preset — phases, and per phase two independent
+**axes** (Vibration/Suction), each its own ramp/hold/ramp-down curve.
+Saved as one JSON file per script under
+`os.UserConfigDir()/SamNPlayer/training_scripts/`
+(`cmd/gui-wails/app_training_scripts.go`), listed alongside the built-ins
+and loadable back for editing. The script name is user text turned into
+a filename, so it is sanitized against path traversal
+(`scriptFileSlug`); `player.NormalizeTrainingScript` runs before saving,
+the same guarantee `RunTrainingScript` itself applies, so a hand-edited
+script cannot end up with two curves racing for the same physical
+channel.
+
 **Generator:** three interchangeable tracking backends (`generator/backends.py`)
 — CSRT (default, one bounding box), flow (no region, dense optical flow,
 ~4x faster), and grid_lk (a grid of independently tracked points, median
@@ -467,6 +500,57 @@ These issues have already cost development time:
   any signal into a zigzag that appears rhythmic.
 - **Build with `-trimpath`.** Otherwise the build machine's path, including
   the username, is embedded in the executable.
+- **A CSS `transform` and an SVG `transform="rotate(...)"` presentation
+  attribute on the SAME element don't compose** — the CSS one silently
+  replaces the attribute instead of adding to it (SVG2/CSS Transforms
+  spec). Split them onto nested `<g>`s: outer group carries the
+  CSS-animated transform, inner group carries the static
+  `transform="rotate(...)"` attribute.
+- **Playwright's click/screenshot "stability" check compares
+  `getBoundingClientRect()` between two frames for exact equality** — a
+  page with ANY continuously running CSS animation nearby (even a
+  cosmetic, sub-pixel one that never actually moves the target element)
+  can make this never pass, timing out after 30s. Confirm it's cosmetic
+  by disabling all animations/transitions (`page.add_style_tag(content=
+  "*{animation:none!important;transition:none!important}")`) and
+  re-sampling the target's bounding box — if the "drift" disappears,
+  use `force=True` on the click (or `animations="disabled"` on
+  `screenshot()`) rather than chasing it as a real layout bug.
+
+### Reusable GUI pattern: the training-tab intensity ring
+
+Built for the Training tab's live intensity meter
+(`cmd/gui-wails/frontend/src/training.js`'s `renderDualIntensityRing`/
+`updateIntensityRing`, styles in `style.css`'s `.tr-ring-*` block) —
+worth reaching for again when polishing other dialogs, not applied
+elsewhere yet:
+- Nested-`<g>` transform separation (see pitfall above) for any SVG
+  element that needs both a static rotation and an animated transform.
+- One shared full-circle track for two overlapping values (both fills
+  go 0–360° from the same start point) instead of splitting the ring
+  into a fixed half per value — lets either value dominate visually
+  without hardcoding which "side" it owns.
+- Overlapping colored regions: normal alpha blending (reduced
+  `stroke-opacity` on the top layer), not `mix-blend-mode: screen` —
+  screen washes two light/pastel colors toward white as soon as they
+  fully overlap (the common "both equal" case), losing the color
+  distinction entirely. Keep each gradient in its own color family
+  (light tint → saturated hue) rather than sharing one bright stop
+  color, for the same reason.
+- CSS custom properties set live from JS
+  (`el.style.setProperty('--x-amp', ...)`) to drive keyframe animation
+  *amplitude* proportional to a live value, instead of swapping CSS
+  classes per intensity level.
+- `perspective` on the parent + animated `rotateX`/`rotateY` on the
+  child for a genuine (not just scaled) 3D tilt; a slowly rotating
+  gloss-highlight `<g>` (own `animation: rotate(...)`, separate from any
+  other transform on the same element) reads as a specular highlight
+  sweeping across a curved surface.
+- Deciding what pulses: a channel that should feel local (a vibration)
+  animates its own sub-element; a channel that should feel like it
+  affects the whole object (suction/contraction) animates the shared
+  parent wrapper instead — don't force every channel's motion onto the
+  same element just because they share a widget.
 
 ---
 

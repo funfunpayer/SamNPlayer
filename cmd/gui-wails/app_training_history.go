@@ -2,11 +2,17 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
@@ -147,4 +153,72 @@ func summarizeSessionLog(path string) (*TrainingSessionSummary, error) {
 		summary.MeanArousalReported = sumArousal / float64(arousalCount)
 	}
 	return &summary, nil
+}
+
+// trainingHistoryCSV renders TrainingHistory's summaries as CSV - a plain
+// function (no dialog, no App) so the actual formatting is testable
+// without touching the filesystem or Wails runtime. One row per session,
+// newest first (same order TrainingHistory already returns).
+func trainingHistoryCSV(history []TrainingSessionSummary) (string, error) {
+	var buf strings.Builder
+	w := csv.NewWriter(&buf)
+	header := []string{"startedAt", "technique", "channel", "cyclesCompleted", "cyclesStoppedEarly",
+		"meanPeakIntensityPct", "meanReachedPeakAfterMs", "meanArousalReported", "arousalReportsCount"}
+	if err := w.Write(header); err != nil {
+		return "", err
+	}
+	for _, s := range history {
+		row := []string{
+			s.StartedAt,
+			s.Technique,
+			s.Channel,
+			strconv.Itoa(s.CyclesCompleted),
+			strconv.Itoa(s.CyclesStoppedEarly),
+			strconv.FormatFloat(s.MeanPeakIntensity*100, 'f', 1, 64),
+			strconv.FormatFloat(s.MeanReachedPeakAfterMs, 'f', 0, 64),
+			strconv.FormatFloat(s.MeanArousalReported, 'f', 1, 64),
+			strconv.Itoa(s.ArousalReportsCount),
+		}
+		if err := w.Write(row); err != nil {
+			return "", err
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// ExportTrainingHistoryCSV lets the user save the full session history
+// (cmd/gui-wails/app_training.go's sessionLogEntry, summarized by
+// TrainingHistory) as a CSV file for their own tracking outside the app.
+// Returns the chosen path, or "" if the user canceled the dialog - not
+// an error, so the GUI can distinguish "nothing to report" from
+// "cancel is fine, don't show an error".
+func (a *App) ExportTrainingHistoryCSV() (string, error) {
+	history, err := a.TrainingHistory()
+	if err != nil {
+		return "", err
+	}
+	content, err := trainingHistoryCSV(history)
+	if err != nil {
+		return "", err
+	}
+	defaultName := fmt.Sprintf("training-history-%s.csv", time.Now().Format("20060102"))
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:                "Export training history as",
+		DefaultFilename:      defaultName,
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "CSV (*.csv)", Pattern: "*.csv"},
+		},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return "", err
+	}
+	return path, nil
 }

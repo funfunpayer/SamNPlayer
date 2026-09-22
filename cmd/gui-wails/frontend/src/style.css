@@ -611,6 +611,154 @@ button.danger:hover:not(:disabled) { background: rgba(232,93,93,0.12); }
   color: var(--text-dim); white-space: pre-wrap;
 }
 
+/* Trainings-Intensitätsmesser: EIN Ring statt zweier konzentrischer Bahnen
+   - eine Kreisbahn, links zur Hälfte Gold (Vibration), rechts zur Hälfte
+   Teal (Suction), mit Verlaufsfarbe, Schlagschatten und einem
+   gemeinsamen Glanzlicht-Bogen oben für einen plastischen statt flachen
+   Look. Beide Hälften pulsieren sanft (ease-in-out) mit der Intensität -
+   bewusst kein hartes Zittern, siehe tr-ring-pulse-* unten. */
+.tr-meter { margin: 10px 0; }
+.tr-ring-row { display: flex; align-items: center; gap: 16px; }
+
+.tr-ring-wrap {
+  position: relative; width: 84px; height: 84px; flex-shrink: 0; transition: transform 0.4s ease;
+  /* Tiefe für die Kippbewegung des Rings unten - ohne perspective auf dem
+     Elternelement bliebe rotateX/Y flach/wirkungslos. */
+  perspective: 260px;
+}
+.tr-ring {
+  width: 100%; height: 100%; overflow: visible;
+  /* Schlagschatten unter dem ganzen Ring - hebt ihn optisch von der
+     Fläche ab, statt flach draufzuliegen. */
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+  /* Dauerhaftes, sehr sanftes Kippen (echtes 3D-transform, nicht nur
+     Skalierung) - macht aus dem Ring ein Objekt mit Tiefe statt einer
+     flachen Grafik, unabhängig davon, ob gerade eine Session läuft. */
+  animation: tr-ring-tilt3d 6s ease-in-out infinite;
+}
+@keyframes tr-ring-tilt3d {
+  0%, 100% { transform: rotateX(5deg) rotateY(-7deg); }
+  50%      { transform: rotateX(-5deg) rotateY(7deg); }
+}
+.tr-ring-track {
+  fill: none; stroke: var(--surface-2); stroke-width: 8;
+  /* Eigener, dezenter Schlagschatten NACH INNEN auf der Trackspur -
+     wirkt wie eine leicht eingelassene Rille statt einer reinen Linie. */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+.tr-ring-fill {
+  fill: none; stroke-linecap: round;
+  transition: stroke-dashoffset 0.45s ease;
+}
+/* Beide Kanäle füllen jetzt dieselbe VOLLE Kreisbahn (0-360° ab 12 Uhr),
+   nicht mehr je eine feste Hälfte - "die Gräben gehen einmal rum". Vibration
+   ist die BREITERE Bahn (8px), Sog liegt schmaler (4px) mittig darüber -
+   dadurch bleibt Gold IMMER als sichtbarer Rand rechts und links vom Sog
+   sichtbar, egal wie stark sich beide überlappen (bei reiner Opazitäts-
+   Überlagerung ohne Breitenunterschied verschwand Gold bei hoher Sog-
+   Deckkraft fast komplett). Sogs eigene Bahn liegt zusätzlich
+   halbtransparent über der Vibrations-Bahn, sodass die Mitte der
+   Überlappung noch einen erkennbar gemischten Ton zeigt statt purem Teal -
+   normales Alpha-Blending statt mix-blend-mode: screen, das zwei helle
+   Pastelltöne (v.a. bei gleich hohen Werten, z.B. Kanal "both") fast
+   komplett zu Weiß ausgewaschen hat. */
+.tr-ring-fill.tr-ring-vibration { stroke-width: 8; }
+.tr-ring-fill.tr-ring-suction { stroke-width: 4; stroke-opacity: 0.82; }
+/* Verlauf statt Flachfarbe je Bahn - simuliert Licht auf einer gewölbten
+   Oberfläche. Jede Bahn bleibt dabei in der eigenen Farbfamilie (heller
+   Farbton -> satter Farbton), statt beide bei einem gemeinsamen Weißton
+   zu starten - sonst wäre jede Überlappung nahe dem Bahnanfang (12 Uhr)
+   unabhängig von den tatsächlichen Werten immer nahezu weiß. */
+.tr-ring-grad-vibration.tr-ring-grad-stop-a { stop-color: #ffe4a8; }
+.tr-ring-grad-vibration.tr-ring-grad-stop-b { stop-color: var(--accent); }
+.tr-ring-grad-suction.tr-ring-grad-stop-a { stop-color: #b8f3ea; }
+.tr-ring-grad-suction.tr-ring-grad-stop-b { stop-color: var(--teal); }
+/* Kurzer heller Bogen oben auf dem Ring - der eigentliche
+   "Glanzlicht"-Trick, der aus einer flachen Linie einen gewölbten Reflex
+   macht. Liegt über Track UND beiden Hälften (letztes Element im SVG =
+   oberste Ebene). */
+.tr-ring-gloss {
+  fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 2;
+  stroke-linecap: round; pointer-events: none;
+}
+/* Der Glanz wandert langsam und gleichmäßig einmal um den Ring - wie ein
+   Lichtreflex, der über eine gewölbte, sich drehende Oberfläche läuft,
+   statt fix an einer Stelle zu kleben. Eigene Gruppe (nicht das gloss-
+   Element selbst), aus demselben Grund wie bei den Puls-Animationen: ein
+   CSS-transform auf demselben Element wie das statische rotate(...)-
+   Attribut würde dieses ersetzen statt sich damit zu kombinieren. */
+.tr-ring-gloss-spin {
+  transform-box: fill-box; transform-origin: center;
+  animation: tr-ring-gloss-sweep 6s linear infinite;
+}
+@keyframes tr-ring-gloss-sweep {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.tr-ring-value-stack {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px;
+}
+.tr-ring-value {
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.tr-ring-value-vibration { color: var(--accent-hover); }
+.tr-ring-value-suction { color: var(--teal); }
+.tr-ring-legend { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text-dim); }
+.tr-ring-swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle;
+}
+.tr-ring-swatch-vibration { background: linear-gradient(135deg, var(--accent-hover), var(--accent)); }
+.tr-ring-swatch-suction { background: linear-gradient(135deg, #6ff0e3, var(--teal)); }
+
+/* Weicher Glow auf der jeweils aktiven Bahn - unabhängig von der
+   Bewegung (Vibrations-Pulsieren bzw. Sog-Kontraktion), eigene Animation
+   auf dem Kreis selbst statt auf einer der bewegten Gruppen. */
+.tr-ring-fill.tr-ring-vibration.tr-pulsing { animation: tr-ring-glow-accent 1.6s ease-in-out infinite; }
+.tr-ring-fill.tr-ring-suction.tr-pulsing { animation: tr-ring-glow-teal 1.6s ease-in-out infinite; }
+@keyframes tr-ring-glow-accent {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 5px var(--accent-soft)); }
+}
+@keyframes tr-ring-glow-teal {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 5px var(--teal-soft)); }
+}
+
+/* Vibration pulsiert sanft auf ihrer EIGENEN Bahn (kleine, energetische
+   Bewegung nach AUSSEN) - siehe updateIntensityRing's Kommentar.
+   --vib-amp ist ein Skalierungs-Delta, live proportional zur Intensität
+   gesetzt; 0 macht die Animation praktisch unsichtbar, ohne sie
+   ein-/auszuschalten zu müssen. ease-in-out, kein steps()-Ruckeln. */
+.tr-ring-anim { --vib-amp: 0; transform-box: fill-box; transform-origin: center; }
+.tr-ring-anim-vibration.tr-pulsing {
+  animation: tr-ring-pulse-out 0.6s ease-in-out infinite;
+}
+@keyframes tr-ring-pulse-out {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(calc(1 + var(--vib-amp))); }
+}
+
+/* "Der Ring muss sich für Sog kleiner und größer bewegen" - Sog kontrahiert
+   den GANZEN Ring (#tr-ring-wrap: beide Bahnen, Glanz, alles zusammen), im
+   Unterschied zu Vibrations eigener, lokaler Bahn-Bewegung oben - fühlt
+   sich wie ein Objekt an, das als Ganzes eingesaugt und wieder losgelassen
+   wird (schneller Zug, langsameres Loslassen: asymmetrisches Timing statt
+   eines symmetrischen "Atmens"). --suc-amp ist dasselbe
+   Skalierungs-Delta-Prinzip wie --vib-amp, live proportional zur
+   Intensität gesetzt. */
+.tr-ring-wrap { --suc-amp: 0; }
+.tr-ring-wrap.tr-suck-pulsing {
+  animation: tr-ring-suck-breathe 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes tr-ring-suck-breathe {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(calc(1 - var(--suc-amp))); }
+  100% { transform: scale(1); }
+}
+
 .log-view {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 10px 12px; height: min(60vh, 520px); overflow: auto;
