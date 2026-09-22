@@ -11,13 +11,15 @@ measurement history behind each entry; this file is the short version for
 ### Added
 
 - **Tip/partner trajectory overlay (MT-Debug):** optional "Record tip/partner
-  trajectory" checkbox in Generate → Advanced (off by default, CSRT/Go path
-  only) records the raw per-frame (x,y) track path into the script's
-  `metadata.trajectory`. Review/Play gets a matching "Show tip/partner
-  trajectory" toggle (also off by default) that draws it as a polyline over
-  the video, with a live position marker — helps see what the tracker
-  actually followed, independent of the derived 0–100 curve. No effect on
-  Everyday Generate defaults or existing scripts without recorded data.
+  trajectory" checkbox in Generate → Advanced (off by default) records the
+  raw per-frame (x,y) track path into the script's `metadata.trajectory` —
+  works on both Go CSRT (OpenCV builds) and the simpletrack (NCC) fallback
+  used when OpenCV isn't linked. Review/Play gets a matching "Show
+  tip/partner trajectory" toggle (also off by default) that draws it as a
+  polyline over the video, with a live position marker — helps see what the
+  tracker actually followed, independent of the derived 0–100 curve. No
+  effect on Everyday Generate defaults or existing scripts without recorded
+  data.
 
 ### Fixed
 

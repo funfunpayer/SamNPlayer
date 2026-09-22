@@ -30,6 +30,11 @@ type Options struct {
 	// OnProgress is called ~every 1% of frames (done, total). total may be 0
 	// when duration is unknown.
 	OnProgress func(done, total int)
+	// CaptureTrajectory opts into keeping raw per-frame tip/partner center
+	// points on Result.TrajectoryA/B (MT-Debug overlay data, mirrors
+	// trackcv.Options.CaptureTrajectory). Off by default: zero extra
+	// allocation/behavior when false.
+	CaptureTrajectory bool
 }
 
 // Stats mirrors trackcv observation fields for native metadata.
@@ -54,6 +59,19 @@ type Result struct {
 	// LostFlags is set by TrackTwoPoints: true when at least one of the two
 	// trackers failed that frame (for tracking_gaps / contact mute).
 	LostFlags []bool
+	// TrajectoryA/B: per-frame tip/partner center points (same pixel space
+	// as Width/Height), same length/order as TimestampsMs - only populated
+	// when Options.CaptureTrajectory is true. TrackROI only ever fills
+	// TrajectoryA (single ROI, no partner).
+	TrajectoryA []Point
+	TrajectoryB []Point
+}
+
+// Point is a video-pixel-space (x,y) sample - MT-Debug trajectory capture.
+type Point struct{ X, Y float64 }
+
+func boxCenter(r Rect) Point {
+	return Point{X: float64(r.X) + float64(r.W)/2, Y: float64(r.Y) + float64(r.H)/2}
 }
 
 // ErrCanceled is returned when Options.Cancel aborts.
@@ -207,11 +225,21 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 		reason = "tracker_lost_elevated"
 	}
 
+	var trajA []Point
+	if opts.CaptureTrajectory {
+		// xs/ys already track the box center each frame - just zip them.
+		trajA = make([]Point, len(xs))
+		for i := range xs {
+			trajA[i] = Point{X: xs[i], Y: ys[i]}
+		}
+	}
+
 	return Result{
 		TimestampsMs: timestamps,
 		Positions:    positions,
 		Width:        w,
 		Height:       h,
+		TrajectoryA:  trajA,
 		Stats: Stats{
 			TrackerLostFrames: lost,
 			TotalFrames:       frameIdx,

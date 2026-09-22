@@ -146,8 +146,8 @@ type Options struct {
 	MaxOutputMs int64
 	// CaptureTrajectory opts into recording raw per-frame tip/partner
 	// (x,y) track positions into the script's metadata.trajectory (MT-
-	// Debug Review/Play overlay). Off by default; only honored on the Go
-	// CSRT (trackcv) path today, not simpletrack or Python.
+	// Debug Review/Play overlay). Off by default; honored on both Go CSRT
+	// (trackcv) and the simpletrack (NCC) fallback, not the Python path.
 	CaptureTrajectory bool
 }
 

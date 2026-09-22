@@ -62,12 +62,13 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		axis = "auto"
 	}
 	stOpts := simpletrack.Options{
-		MaxFrames:    opts.MaxFrames,
-		StartTimeSec: opts.StartTimeSec,
-		Axis:         axis,
-		Cancel:       func() bool { return ctx.Err() != nil },
-		FixedB:       opts.ROI2Fixed,
-		OnProgress:   percentFromProgress(onPercent),
+		MaxFrames:         opts.MaxFrames,
+		StartTimeSec:      opts.StartTimeSec,
+		Axis:              axis,
+		Cancel:            func() bool { return ctx.Err() != nil },
+		FixedB:            opts.ROI2Fixed,
+		OnProgress:        percentFromProgress(onPercent),
+		CaptureTrajectory: opts.CaptureTrajectory,
 	}
 
 	var tr simpletrack.Result
@@ -119,6 +120,8 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
 		LostFlags:    tr.LostFlags,
+		TrajectoryA:  convertSimpletrackPoints(tr.TrajectoryA),
+		TrajectoryB:  convertSimpletrackPoints(tr.TrajectoryB),
 	}
 	backend := "ncc"
 	if multi {
@@ -127,6 +130,19 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 		backend = "two_point_ncc"
 	}
 	return finishNativeGenerate(ctx, videoPath, outputPath, opts, ntr, "simpletrack", backend, progress, onPercent, start)
+}
+
+// convertSimpletrackPoints maps simpletrack.Point onto the shared
+// NativePoint used by native.go (mirrors convertTrackcvPoints).
+func convertSimpletrackPoints(pts []simpletrack.Point) []NativePoint {
+	if len(pts) == 0 {
+		return nil
+	}
+	out := make([]NativePoint, len(pts))
+	for i, p := range pts {
+		out[i] = NativePoint{X: p.X, Y: p.Y}
+	}
+	return out
 }
 
 // finishNativeGenerate shared posttrack + quality + write for CSRT and simple.
