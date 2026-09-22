@@ -282,8 +282,9 @@ License stays **developer mode** until after G2.
        classical scripts; two-ROI AI stays opt-in until bake-off win.
        **Multi-track Fahrplan** (opt-in Tip+Partner IDs/proposals, Stroke
        stays Go CSRT): see `PRODUCTION_ROADMAP.md` § Multi-track Fahrplan —
-       [ ] MT-Go · [ ] MT-Seed · [ ] MT-Speed · [ ] MT-ID (only if needed) ·
-       [ ] MT-Debug · [ ] MT-Infra (Improve/proxy ops).
+       [x] MT-Go (#183) · [ ] MT-Seed (Cursor) · [ ] MT-Speed (ChatGPT after
+       verify) · [ ] MT-ID (only if needed) · [ ] MT-Debug (Claude) ·
+       [ ] MT-Infra (Claude optional).
 5. [ ] 🎨 **G4 orthogonal** — GUI improve slices (C5–C7) if Generate
        untouched; license enforcement (E5) only after your go-live;
        site/macOS/mobile later.
