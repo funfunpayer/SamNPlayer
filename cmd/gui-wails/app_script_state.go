@@ -14,7 +14,7 @@ func (a *App) setLoadedScript(path string, script *funscript.Script) {
 	a.scriptPath = path
 	a.currentScriptPath = path
 	a.currentFrames = nil
-	if path != "" {
+	if path != "" && a.settings != nil {
 		a.scriptOffsetMs = int64(a.settings.GetFloat(offsetKeyFor(path), 0))
 	}
 }

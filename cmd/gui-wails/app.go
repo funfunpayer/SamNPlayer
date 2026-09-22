@@ -69,6 +69,9 @@ type App struct {
 	// identifies the owner so a finished run does not clear a newer cancel.
 	genCancel context.CancelFunc
 	genSeq    uint64
+	// roiSeq stamps AutoDetectROI results so a late find for video A cannot
+	// paint the tip onto video B after a quick switch.
+	roiSeq uint64
 
 	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
 	// gespeichert, weil er am Videoschnitt hängt und nicht an einer

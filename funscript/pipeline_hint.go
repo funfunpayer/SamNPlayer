@@ -19,7 +19,7 @@ func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 		return PipelineSuggestion{
 			Backend: "csrt",
 			Profile: "standard",
-			Reason:  "Two regions → Stroke (CSRT); optional Contact partner — Tf/Tj is CLI-only",
+			Reason:  "Everyday: CSRT tip + Stroke (Contact vib optional) — measured best vs FunGen",
 			GoPath:  true,
 		}
 	}
@@ -27,7 +27,7 @@ func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 		return PipelineSuggestion{
 			Backend: "csrt",
 			Profile: "standard",
-			Reason:  "No region yet — mark a region, then CSRT",
+			Reason:  "Everyday: auto-find tip → CSRT Stroke (4-zone is advanced / weaker)",
 			GoPath:  true,
 		}
 	}
@@ -35,7 +35,7 @@ func SuggestPipeline(roiW, roiH, roi2W, roi2H int) PipelineSuggestion {
 	return PipelineSuggestion{
 		Backend: "csrt",
 		Profile: "standard",
-		Reason:  "One region → CSRT (Go when OpenCV linked; else Python product path)",
+		Reason:  "CSRT tip — first choice on clip_ausschnitt (windowed r≈0.59 hub)",
 		GoPath:  true,
 	}
 }

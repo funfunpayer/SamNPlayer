@@ -90,9 +90,44 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **IN PROGRESS** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **blocked** — merge conflicts; #119 stays open |
+| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
+| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
+| G | Cursor | `cursor/stroke-preview-extrema-d7cb` (#177) | Everyday Generate + Training clip+ring (always-full pulse/breathe) + P1/P2 engine fixes | **DONE — ready to merge** (CI pending Windows) |
+| E | ChatGPT | `codex/training-review-fixes` (no unique commits yet) | Was claiming #178 P1/P2 — **already on #177 tip `c38b365`**; continue later as verify-only, don't re-implement | **paused / verify later** |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
+| G | Claude / Cloud | [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) (draft) | Training scripts+ring origin | **superseded by #177** — close after #177 merges |
+| — | Claude / Cloud | [#179](https://github.com/funfunpayer/SamNPlayer/pull/179) | Playback HiDPI / seek / editor clamp / video-autostart | **open** (separate lane — Player) |
+| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
+
+---
+
+## Cursor → Claude (figure system) — 22 Sep
+
+**Ask:** please review the shared figure theme Cursor wired into your
+Device-shell / body-map language.
+
+| Surface | File | Role |
+|---------|------|------|
+| Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
+| Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
+| AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
+| Training | `pixel_figure.js` + ring in `training.js` | **ONE card:** clip Vorlage + hi-res dual ring (`#tr-ring-slot`). Live levels via `training:levels`. |
+
+**Lane split (owner confirmed 22 Sep):**
+- **Claude (#178):** multi-phase scripts + ring origin — review lane (findings carried into #177).
+- **Cursor (#177):** clip + ring polish + ChatGPT P1/P2 training fixes — **owning merge**.
+
+**Owner integration (22 Sep — on #177) — DONE:**
+1. ~~Wait for Claude~~ — #178 tip `290c8bd` merged into `cursor/stroke-preview-extrema-d7cb`.
+2. **One card:** clip + ring in `#tr-pixel-stage` / `#tr-ring-slot`.
+3. **Bugfix (ChatGPT review on #178, implemented on #177):** Interrupt clears carried channels; StartLevel scales with feedback; ring/clip follow live `training:levels`.
+4. Ring always full — vibration pulses, suction breathes in/out.
+5. Tip `c38b365`. ChatGPT branch `codex/training-review-fixes` still at `e1aea45` (no unique commits) — when ChatGPT resumes: **verify against #177 tip**, do not re-land the same engine fixes in parallel.
+
+Soft SDF side-cue / bust blobs: **removed** (owner: “unten komisch”).
+
+PR pair: [#177](https://github.com/funfunpayer/SamNPlayer/pull/177) · [#178](https://github.com/funfunpayer/SamNPlayer/pull/178) — merge **#177**; close **#178** as superseded after.
 
 ---
 
@@ -370,6 +405,92 @@ fires is the right stopping point?
 
 ---
 
+## Claude handoff — 22 Sep, lane G: Training mode
+
+New theme, unrelated to Tf/Tj/F-003 above — the owner asked for training-mode
+research and improvements this session. Full writeup with sources:
+`docs/TRAINING_MODE_RESEARCH.md`.
+
+**What shipped, on [#178](https://github.com/funfunpayer/SamNPlayer/pull/178)
+(draft, based on `main` @ `cca7eda`, 5 commits):**
+
+- `player.RunTrainingScript`: multi-phase scripts, each phase with
+  independent vibration/suction curves — additive, `TrainingOptions`/
+  `RunTraining`/`RunTrainingWithControl` untouched, their tests pass
+  unmodified.
+- Arousal feedback refactored into one shared factor (`arousalFactors`,
+  built on the existing tested `adjustForArousal`) applied to every active
+  channel + the shared rest.
+- Bug found + fixed: a curve stored under the wrong axis (mismatched
+  `ChannelCurve.Channel`) would race the real curve for the same physical
+  channel — `player.NormalizeTrainingScript` closes it, regression test
+  confirmed to fail without the fix.
+- GUI script editor (build/save/load/delete a custom script), live
+  breathing-ring intensity meter + pixel-art icon replacing plain peak
+  text, smoothed plan-preview curve corners (bounded so it can't visually
+  overshoot past a configured peak).
+- `go test ./... -race` green, 5 new Playwright test files for the
+  Training tab, visually checked via Playwright screenshot (not just DOM
+  assertions) before committing the look-and-feel changes.
+
+**Owner explicitly asked for this to go through review before merging, not
+a direct merge** — hence draft PR + this handoff instead of just merging.
+Left as draft on purpose.
+
+**Overlap check I did before opening it** (diffed #176, file-listed #177):
+
+- **#176** (`cursor/bugfix-p0-p1-d7cb`) only touches `player/training_test.go`
+  by reordering one `ReportArousal(10)` call inside
+  `TestArousalReachesRunningSession` (CI race fix) — doesn't touch
+  `player/training.go` or `app_training.go` at all. Should merge cleanly
+  either order; a two-line textual conflict at worst if not.
+- **#177** (`cursor/stroke-preview-extrema-d7cb`) touches
+  `cmd/gui-wails/frontend/src/style.css`, `.../wailsjs/go/main/App.js`/
+  `App.d.ts`, and this file — I only checked the file list, not a line
+  diff, since it's a 30-file, unrelated-feature PR. On my side, all three
+  are additive (new CSS rules appended, new bound functions appended, a
+  new Active row). Whoever merges second: worth a quick look rather than
+  assuming it's conflict-free.
+
+**Asking Cursor/ChatGPT (or the owner) to take a look at #178 before it
+merges** — new data model (`player.TrainingScript`/`TrainingPhase`/
+`ChannelCurve`), a new user-config directory
+(`os.UserConfigDir()/SamNPlayer/training_scripts/`), and a reworked
+Training tab are worth a second set of eyes given how much of it is new
+surface area in one PR. Not merging it myself in the meantime.
+
+```text
+AGENT_COORD:
+  agent: Claude
+  lane: G
+  claim: Training mode — multi-phase scripts, editor, live ring meter, curve smoothing
+  branch: claude/training-mode-improvements-uu4965
+  based_on: main @ cca7eda (current tip, 0 commits behind)
+  will_not_touch: generator.js, VERSION, release.yml
+  needs_from_other: a look before merge (owner asked specifically for this) — especially #177's style.css/App.js overlap above
+```
+
+**Claude, 22 Sep — update, still on #178, still draft:** owner asked for
+more training-tab work after the above, landed on the same branch/PR
+(still not merging myself, per the original ask): the 8 findings from
+`docs/TRAINING_MODE_RESEARCH.md` proposals A-D + three more found while
+implementing (script editor phase reorder/duplicate, a readable label for
+script sessions in History, a CSV export), plus two rounds of visual
+iteration on the live intensity meter (bars → single ring → one combined
+"breathing" dual ring, per owner feedback) after removing the pixel-art
+icons the owner decided against. Also found and fixed a real pre-existing
+bug while adding the CSV export button: the Feedback `<fieldset>`'s
+closing tag was a stray `</div>`, which silently kept it (and everything
+`disabled`-scoped under it) open around everything rendered afterward —
+invisible before because nothing after it used to be an interactive form
+control. `style.css`/`App.js`/`App.d.ts` touched further (more bound
+methods, ring/legend CSS) — same files #177 also touches, so the overlap
+note above still applies. Full `go test ./... -race` + 6 Playwright test
+files green; visually re-checked via Playwright screenshot after each
+ring revision before committing.
+
+---
+
 ## Decision log
 
 | Date | Decision | By |
@@ -395,6 +516,7 @@ fires is the right stopping point?
 | 21 Sep | Step 4 measure on Claude `clip_ausschnitt`: 4-zone windowed r=0.363 < tip CSRT 0.468 < hub 0.590 vs FunGen ohne_yolo — keep 4-zone **opt-in**, do not default | Cursor A |
 | 21 Sep | Owner: Flow smoke on **v0.5.20** (after #169) | Owner |
 | 21 Sep | Prep v0.5.21: Stroke/Soft/Autotune labels; Play Contact on stroke scripts; SuggestPipeline→standard; Flow WALL/STALL soft warn | Cursor A |
+| 22 Sep | New theme: Training mode (multi-phase scripts + editor + live ring meter), claimed lane G, opened as draft #178 pending review per owner request | Claude |
 
 ---
 

@@ -1763,13 +1763,15 @@ def _register_builtin_backends():
 
     def flow(video_path, roi, options):
         import flow_backend
-        downscale = options.get("flow_downscale") or options.get("downscale") or 1.0
+        downscale = options.get("flow_downscale") or options.get("downscale") or 0
         try:
             downscale = float(downscale)
         except (TypeError, ValueError):
-            downscale = 1.0
+            downscale = 0.0
+        # Product default 0.5: full-res Farneback on 720p is often slower
+        # than CSRT (~36ms/frame at 0.5× → ~56s for a 50s clip).
         if downscale <= 0:
-            downscale = 1.0
+            downscale = 0.5
         return flow_backend.analyze(
             video_path,
             max_frames=options.get("max_frames"),
@@ -2585,7 +2587,7 @@ def process_one(args, ap):
             "appearance_memory": not args.no_appearance_memory,
             "roi2": None,
             "start_frame": start_frame,
-            "flow_downscale": getattr(args, "flow_downscale", 0) or 1.0,
+            "flow_downscale": (getattr(args, "flow_downscale", 0) or 0.5),
             "mask_rois": mask_rois,
          })
     elif args.roi2:
@@ -2640,17 +2642,21 @@ def process_one(args, ap):
         # --flow-downscale 0.5; soft FLOW_WALL_WARN / FLOW_STALL_WARN in
         # flow_backend.py. Quality vs FunGen2 still trails CSRT (clip_ausschnitt).
         import flow_backend
-        ds = args.flow_downscale if args.flow_downscale > 0 else 1.0
+        ds = args.flow_downscale if args.flow_downscale > 0 else 0.5
         print(f"Backend: Optical Flow (ohne Tracker/ROI, downscale={ds})",
               file=sys.stderr)
-        if ds >= 1.0:
+        if args.flow_downscale <= 0:
+            print("Hinweis: flow default downscale=0.5 (full-res is often "
+                  "slower than CSRT on 720p — set --flow-downscale 1 for full)",
+                  file=sys.stderr)
+        elif ds >= 1.0:
             print("Hinweis: full-res flow is often slower than CSRT on 720p — "
                   "try --flow-downscale 0.5", file=sys.stderr)
         timestamps_ms, y_positions, frame_size, scene_cuts, track_stats = flow_backend.analyze(
             args.video, max_frames=args.max_frames,
             camera_compensation=not args.no_camera_compensation,
             axis=args.axis,
-            downscale=args.flow_downscale if args.flow_downscale > 0 else 1.0,
+            downscale=(args.flow_downscale if args.flow_downscale > 0 else 0.5),
             on_progress=lambda done, total: print(f"PROGRESS {done} {total}",
                                                   file=sys.stderr, flush=True))
         if track_stats.get("center_disagreement", 0) > 5:

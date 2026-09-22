@@ -1,6 +1,7 @@
-"""Sequential Generate workflow: steps appear one after another.
+"""Sequential Generate workflow: FunGen-like everyday path.
 
-Contact-first: tip ROI (or 4-zone) unlocks Generate — Zone 2 optional.
+Contact-first: choose video → auto tip ROI → Generate ready.
+Optional Zone 2 / 4-zone advanced. No Tf/Tj in product dropdown.
 
 Run: python3 cmd/gui-wails/frontend/test/generator_workflow_test.py
 """
@@ -66,24 +67,29 @@ def main():
                   "e => e.classList.contains('is-current')"))
 
         page.click("#gen-choose")
+        # Everyday: after video, region + motion + generate unlock (auto-find tip).
         page.wait_for_function(
             "document.querySelector('#gen-step-region') && "
-            "!document.querySelector('#gen-step-region').hidden",
+            "!document.querySelector('#gen-step-region').hidden && "
+            "!document.querySelector('#gen-step-motion').hidden && "
+            "!document.querySelector('#gen-step-run').hidden",
             timeout=5000)
         check("After video: region step appears", visible(page, "#gen-step-region"))
-        check("After video: motion still hidden", not visible(page, "#gen-step-motion"))
-        check("After video: generate still hidden", not visible(page, "#gen-step-run"))
+        check("After video: motion step appears (everyday)", visible(page, "#gen-step-motion"))
+        check("After video: generate appears (everyday)", visible(page, "#gen-step-run"))
 
-        box = page.locator("#roi-canvas").bounding_box()
-        page.mouse.move(box["x"] + 40, box["y"] + 40)
-        page.mouse.down()
-        page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
-        page.mouse.up()
+        # Wait for auto-find tip (harness AutoDetectROI stub).
         page.wait_for_function(
-            "!document.querySelector('#gen-step-motion').hidden", timeout=5000)
-        check("After ROI1: motion step appears", visible(page, "#gen-step-motion"))
-        check("After ROI1 (standard): generate appears", visible(page, "#gen-step-run"))
-        check("Generate button enabled",
+            "document.querySelector('#gen-autoroi').disabled === false && "
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
+            timeout=5000)
+        check("Auto tip ROI applied",
+              "auto" in page.locator("#gen-roi-label").inner_text().lower()
+              or "found" in page.locator("#gen-roi-label").inner_text().lower(),
+              page.locator("#gen-roi-label").inner_text())
+        check("Everyday backend is CSRT",
+              page.locator("#gen-backend").input_value() == "csrt")
+        check("Generate enabled after auto-find",
               page.locator("#gen-generate").is_enabled())
 
         # No Tf/Tj in product dropdown — Contact-first.
@@ -93,6 +99,7 @@ def main():
               str(profiles))
 
         # Optional Zone 2 must NOT hide Generate.
+        box = page.locator("#roi-canvas").bounding_box()
         page.keyboard.down("Shift")
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
@@ -108,8 +115,7 @@ def main():
         check("Generate still enabled", page.locator("#gen-generate").is_enabled())
         check("Review still hidden until done", not visible(page, "#gen-step-result"))
 
-        # 4-zone no-mark path: reload-ish by toggling nomark after clearing isn't
-        # trivial; click nomark should keep generate enabled.
+        # 4-zone advanced opt-in.
         page.click("#gen-nomark")
         page.wait_for_function(
             "document.querySelector('#gen-backend').value === 'region_fusion_auto'",

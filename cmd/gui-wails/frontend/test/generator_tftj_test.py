@@ -53,16 +53,18 @@ def main():
 
         page.click("#gen-choose")
         page.wait_for_function(
-            "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
+            "document.querySelector('#gen-autoroi').disabled === false && "
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
+            timeout=5000)
 
         box = page.locator("#roi-canvas").bounding_box()
 
+        # Manual tip correction still allowed after auto-find.
         page.mouse.move(box["x"] + 40, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
         page.mouse.up()
-        page.wait_for_function(
-            "!document.querySelector('#gen-roi-label').textContent.includes('No ')", timeout=5000)
+        page.wait_for_timeout(100)
         check("1. Region gesetzt", True)
         check("Profil bleibt 'standard' nach nur einer Region",
               page.locator("#gen-profile").input_value() == "standard",

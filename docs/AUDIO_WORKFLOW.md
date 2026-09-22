@@ -15,7 +15,8 @@ not a motion replacement. Native Go path runs the same check post-hoc
 | `generator/audiocheck.go` | Go port: compare script stroke tempo (Hz) to audio-energy envelope tempo |
 | `generator/audio_check.py` | Python equivalent (PreferPython / non-native backends) |
 | CLI `--audio-check` | Opt-in |
-| GUI Advanced → “Check script tempo against audio” | Opt-in (default **on** when ffmpeg is on PATH) |
+| GUI Advanced → “Check script tempo against audio” | *(removed from Advanced)* |
+| GUI Review → Improve → Audio check | Opt-in toggle (default **on** when ffmpeg is on PATH); also drives fill-gap spacing |
 | Result | Warnings in report / funscript `metadata.audio_check` — never changes Quality Doctor pass/score |
 
 ## What it is *not*
@@ -43,8 +44,8 @@ A pre-pass can only estimate a *tempo hint*, not the stroke shape.
 | Idea | Fit | Notes |
 |------|-----|--------|
 | **Default-on post-check** | Yes | Already GUI default when ffmpeg present |
-| **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape |
-| **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness |
+| **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape. Stroke preview (Stage A) may supply a *video* tempo hint without audio. |
+| **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness. Prefer `strokepreview.Report.SuggestAudio` after weak/unstable preview. |
 | **Audio-driven chapters** | Later | Energy peaks as chapter candidates — separate from tempo check |
 
 ### Recommended product rule

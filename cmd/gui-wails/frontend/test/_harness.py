@@ -42,6 +42,15 @@ def app_stub(overrides=None):
             f"Keine Bindings in {bindings} gefunden - wurde 'wails build' schon ausgeführt?")
 
     overrides = overrides or {}
+    # Everyday Generate auto-finds tip after video load. Stub must emit
+    # generate:autoroi or buttons stay disabled forever in Playwright tests.
+    if "AutoDetectROI" not in overrides:
+        overrides["AutoDetectROI"] = (
+            "async (path, engine) => { "
+            "setTimeout(() => window.__triggerEvent && window.__triggerEvent("
+            "'generate:autoroi', {x:40,y:40,w:120,h:120,engine: engine || 'auto',"
+            "videoPath: path, seq: 1}), 0); }"
+        )
     lines = ["window.__calls = window.__calls || [];"]
     for name in names:
         lines.append(f"export const {name} = {overrides.get(name, 'async () => ({})')};")

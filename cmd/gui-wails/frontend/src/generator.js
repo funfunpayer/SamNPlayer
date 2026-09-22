@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve } from '../wailsjs/go/main/App';
 import { CANONICAL } from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
@@ -32,24 +32,23 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
-      <h3 class="gen-step-title">2 · Mark region</h3>
+      <h3 class="gen-step-title">2 · Region (auto)</h3>
       <p class="hint" style="margin-top:0">
-        Drag on the frame (or find automatically). Classical CSRT tracks this box —
-        AI may only propose the start region (optional). For Tf/Tj add contact zones
-        (Zone 2 / Zone 3+) — e.g. nipples — so suction + contact vibration follow approach.
+        FunGen-like: we find the tip region for you (best measured path = CSRT).
+        Correct the box if needed. Optional: AI detection, or mark where Contact should feel (Zone 2).
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
-          data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
+          data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows all ranked motion regions as dashed boxes. Click one to set Zone 1 (primary stroke). Nothing is applied until you pick — Zone 2 is never auto-filled.">Show motion candidates</button>
+          data-help="Shows ranked motion regions. Click one to set Zone 1. Zone 2 is never auto-filled.">Show motion candidates</button>
         <button id="gen-nomark" type="button" disabled
-          data-help="No hand mark: splits the whole frame into 4 zones and tracks motion (Python region_fusion_auto). Everyday Generate + Contact vib — no Tf/Tj profile.">Track whole-frame motion (4 zones)</button>
+          data-help="Advanced / weaker on measured clip (windowed r≈0.36 vs CSRT hub ≈0.59). Whole-frame 4-zone — opt-in only, not the everyday default.">4-zone (advanced)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
-            data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
+            data-help="Local ONNX model proposes the tip box only — never writes the stroke curve. Needs Settings → AI model.">AI region (optional)</label></span>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Mark primary, pick a candidate, or track whole-frame motion (4 zones) without marking.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip region automatically. Generate uses CSRT + Contact vibration.</p>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -57,9 +56,24 @@ export function initGenerator(root, playback) {
         <button id="gen-seek-btn" type="button" disabled>Frame</button>
         <button id="gen-seek-plus" type="button" disabled>+1s</button>
         <button id="gen-seek-plus5" type="button" disabled>+5s</button>
+        <label class="checkbox-row" style="margin:0 0 0 8px;"
+          data-help="FunGen-like 0–100 stroke gauge over the preview. Moves with Time/Frame after Generate. Turn off anytime.">
+          <input type="checkbox" id="gen-pos-overlay-toggle" checked />
+          0–100 on video
+        </label>
       </div>
       <div id="roi-canvas-wrap">
         <canvas id="roi-canvas"></canvas>
+        <div id="gen-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
+          <div class="pos-gauge-scale" aria-hidden="true">
+            <span>100</span><span>50</span><span>0</span>
+          </div>
+          <div class="pos-gauge-track">
+            <div class="pos-gauge-fill" id="gen-pos-fill"></div>
+            <div class="pos-gauge-knob" id="gen-pos-knob"></div>
+          </div>
+          <div class="pos-gauge-value" id="gen-pos-value">—</div>
+        </div>
       </div>
       <div class="path-label" id="gen-roi-label">No region marked</div>
       <div class="row" style="align-items:center; margin-top:6px;">
@@ -133,16 +147,19 @@ export function initGenerator(root, playback) {
         </div>
       </div>
 
-      <div class="row" style="align-items:center;">
-        <button id="gen-suggest-profile" disabled
-          data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
-        <span class="hint" id="gen-suggest-status" style="margin:0"></span>
-      </div>
-      <div class="row" style="align-items:center;">
-        <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
-        <button id="gen-label-scene" disabled
-          data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
-      </div>
+      <details id="gen-power-user" style="margin:6px 0 8px 0;">
+        <summary style="cursor:pointer;">Power-user: scene memory</summary>
+        <div class="row" style="align-items:center; margin-top:8px;">
+          <button id="gen-suggest-profile" disabled
+            data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
+          <span class="hint" id="gen-suggest-status" style="margin:0"></span>
+        </div>
+        <div class="row" style="align-items:center;">
+          <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
+          <button id="gen-label-scene" disabled
+            data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
+        </div>
+      </details>
     </section>
 
     <section class="gen-step-panel" id="gen-step-run" data-step="4" hidden>
@@ -171,12 +188,11 @@ export function initGenerator(root, playback) {
             data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
             data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-ai-quality" /><label for="gen-ai-quality"
-            data-help="Optionally asks a local AI server for a second opinion. Does not change the Quality Doctor score.">AI second opinion on quality</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-audio-check" /><label for="gen-audio-check"
-            data-help="Compares script tempo to the audio track. Needs ffmpeg (portable release or Settings → Install video tools). Classic; does not change Quality Doctor score.">Check script tempo against audio</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
             data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
+          <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
+          <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
+          <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
 
           <div class="opt-group">Keyframes</div>
           <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
@@ -194,7 +210,6 @@ export function initGenerator(root, playback) {
           <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
           <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
           <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-          <div class="field-row" style="display:none;"><label>Flow downscale</label><input type="number" id="gen-flow-downscale" value="0" step="0.1" min="0" max="1" /></div>
         </div>
       </details>
 
@@ -217,7 +232,38 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-result" data-step="5" hidden>
-      <h3 class="gen-step-title">5 · Review</h3>
+      <h3 class="gen-step-title">5 · Review &amp; improve</h3>
+      <div id="gen-improve" style="display:none; margin-top:4px; padding:10px;
+           border:1px solid var(--border); border-radius:4px;">
+        <div style="margin-bottom:6px;">
+          FunGen-like polish on the CSRT result — trim ends, fill gaps, optional audio check.
+          Gaps already get an auto pass right after Generate; re-run here after trim or with audio spacing.
+        </div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
+          <label style="width:auto;" data-help="Cut black intro / late credits. 0 = keep from start.">Start (s)</label>
+          <input type="number" id="gen-improve-start" value="0" min="0" step="0.5" style="width:5em;" />
+          <label style="width:auto;" data-help="Cut after this time. 0 = keep to end.">End (s)</label>
+          <input type="number" id="gen-improve-end" value="0" min="0" step="0.5" style="width:5em;" />
+        </div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Inserts linear points across long holes (tracker loss / sparse keyframes). Does not invent motion from audio.">
+            <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
+            <input type="checkbox" id="gen-improve-audio-fill" checked /> Align fill to audio tempo
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Compares script Hz to audio Hz and stamps warnings. Toggle off to skip. Needs ffmpeg.">
+            <input type="checkbox" id="gen-improve-audio" checked /> Audio check
+          </label>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
+          <span class="hint" id="gen-improve-status" style="margin:0 0 0 8px;"></span>
+        </div>
+      </div>
       <div id="gen-feedback" style="display:none; margin-top:4px; padding:10px;
            border:1px solid var(--border); border-radius:4px;">
         <div style="margin-bottom:6px;">Was the result usable? Your rating helps
@@ -255,7 +301,85 @@ export function initGenerator(root, playback) {
   let seekSec = 0;
   let generating = false;
   let lastOutputPath = null;
+  // Everyday FunGen-like: Generate with no ROI → auto-find tip then generate.
+  let pendingGenerateAfterRoi = false;
+  // Multi-drop batch note — keep visible through auto-find status updates.
+  let videoBatchNote = '';
+  // FunGen-like 0–100 gauge over the preview (after Generate).
+  let genCurvePoints = null; // [{atMs, pos}, ...]
+  const POS_OVERLAY_PREF = 'samn.genPosOverlay';
 
+  function posOverlayWanted() {
+    const cb = el('#gen-pos-overlay-toggle');
+    if (!cb) return true;
+    try {
+      const saved = localStorage.getItem(POS_OVERLAY_PREF);
+      if (saved === '0') { cb.checked = false; return false; }
+      if (saved === '1') { cb.checked = true; return true; }
+    } catch (_) { /* ignore */ }
+    return !!cb.checked;
+  }
+
+  function setPosOverlayVisible(on) {
+    const box = el('#gen-pos-overlay');
+    if (!box) return;
+    const show = on && posOverlayWanted() && genCurvePoints && genCurvePoints.length >= 2;
+    box.hidden = !show;
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function interpGenPos(tMs) {
+    const pts = genCurvePoints;
+    if (!pts || pts.length < 1) return null;
+    if (tMs <= pts[0].atMs) return pts[0].pos;
+    const last = pts[pts.length - 1];
+    if (tMs >= last.atMs) return last.pos;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (tMs >= a.atMs && tMs <= b.atMs) {
+        if (b.atMs === a.atMs) return b.pos;
+        const f = (tMs - a.atMs) / (b.atMs - a.atMs);
+        return a.pos + f * (b.pos - a.pos);
+      }
+    }
+    return last.pos;
+  }
+
+  function updatePosOverlay() {
+    const knob = el('#gen-pos-knob');
+    const fill = el('#gen-pos-fill');
+    const val = el('#gen-pos-value');
+    if (!knob || !fill || !val) return;
+    setPosOverlayVisible(true);
+    if (el('#gen-pos-overlay')?.hidden) return;
+    const pos = interpGenPos(Math.round(seekSec * 1000));
+    if (pos == null || Number.isNaN(pos)) {
+      val.textContent = '—';
+      return;
+    }
+    const p = Math.max(0, Math.min(100, pos));
+    // CSS: bottom = 0, top = 100
+    const pct = p; // height from bottom
+    knob.style.bottom = `calc(${pct}% - 7px)`;
+    fill.style.height = pct + '%';
+    val.textContent = String(Math.round(p));
+  }
+
+  async function loadGenCurveFromPlay() {
+    try {
+      const pts = await GetScriptCurve(800);
+      if (Array.isArray(pts) && pts.length >= 2) {
+        genCurvePoints = pts.map(p => ({
+          atMs: p.atMs ?? p.AtMs ?? 0,
+          pos: p.pos ?? p.Pos ?? 0,
+        }));
+        updatePosOverlay();
+        return;
+      }
+    } catch (_) { /* no script loaded yet */ }
+    genCurvePoints = null;
+    setPosOverlayVisible(false);
+  }
   const DISPLAY_W = 560;
 
   const ROI1_STROKE = '#3dccc0';
@@ -304,18 +428,29 @@ export function initGenerator(root, playback) {
   window.addEventListener('samn-ai-roi-refresh', refreshAIRoiAvailability);
 
   // Audio-Tempo-Prüfung braucht nur ffmpeg auf dem PATH (Go-native post-hoc
-  // oder Python bei PreferPython). Gleiches Muster wie oben: einmal beim
-  // Öffnen des Tabs geprüft, Checkbox ausgegraut statt bei jedem Versuch
-  // mit "nicht möglich" zu scheitern.
+  // oder Python bei PreferPython). Default-on at generate time; Review step
+  // exposes the user-facing toggle for improve / re-check.
   CheckAudioCheckAvailable().then(available => {
-    const checkbox = el('#gen-audio-check');
-    checkbox.disabled = !available;
-    if (!available) {
-      checkbox.checked = false;
-      checkbox.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
-    } else {
-      // Part of the normal workflow when ffmpeg is present (docs/AUDIO_WORKFLOW.md).
-      checkbox.checked = true;
+    const genCheck = el('#gen-audio-check');
+    const improveCheck = el('#gen-improve-audio');
+    const improveFill = el('#gen-improve-audio-fill');
+    if (genCheck) {
+      genCheck.disabled = !available;
+      if (!available) {
+        genCheck.checked = false;
+        genCheck.title = 'ffmpeg not found — use portable release or Settings → Install video tools';
+      } else {
+        genCheck.checked = true;
+      }
+    }
+    if (improveCheck) {
+      improveCheck.disabled = !available;
+      if (!available) improveCheck.checked = false;
+      else improveCheck.checked = true;
+    }
+    if (improveFill) {
+      improveFill.disabled = !available;
+      if (!available) improveFill.checked = false;
     }
   }).catch(() => {});
 
@@ -437,10 +572,25 @@ export function initGenerator(root, playback) {
   }
 
   // Everyday Generate: tip mark (CSRT) or no-mark 4-zone. Zone 2 never required.
+  // FunGen-like: video alone is enough — Generate will auto-find tip if missing.
   function regionReadyForGenerate() {
     if (!videoPath) return false;
-    if (backendNeedsRoi() && !roi) return false;
+    if (isNoMarkMotion()) return true;
+    if (backendNeedsRoi() && !roi) return true; // Generate triggers auto-find
     return true;
+  }
+
+  function startAutoFindRegion() {
+    if (!videoPath) return;
+    setNoMarkMotion(false);
+    const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    el('#gen-autoroi').disabled = true;
+    el('#gen-candidates').disabled = true;
+    el('#gen-nomark').disabled = true;
+    el('#gen-status').textContent = (useAI
+      ? 'AI region search (everyday path)…'
+      : 'Finding tip region automatically (CSRT — measured best vs FunGen)…') + videoBatchNote;
+    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   }
 
   // Default Fix Zone 2 = off when an optional contact partner is marked + vib on.
@@ -461,8 +611,9 @@ export function initGenerator(root, playback) {
     const noMark = isNoMarkMotion();
 
     const showRegion = hasVideo;
-    // Unlock motion/profile step once tip is marked OR whole-frame 4-zone is on.
-    const showMotion = hasRoi1 || (hasVideo && noMark);
+    // Unlock motion/profile once tip is marked, 4-zone is on, OR video is loaded
+    // (Generate will auto-find tip — FunGen-like everyday path).
+    const showMotion = hasVideo;
     const showRun = canRun || generating;
     const showResult = hasResult;
 
@@ -493,17 +644,17 @@ export function initGenerator(root, playback) {
     if (!hasVideo) {
       prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
     } else if (!hasRoi1 && !noMark) {
-      prompt.textContent = 'Step 2: mark a region, show candidates, or track whole-frame motion (4 zones).';
+      prompt.textContent = 'Finding tip region… or mark / pick a candidate. Then Generate (CSRT + Contact).';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
     } else if (!hasResult) {
       prompt.textContent = noMark
-        ? 'Step 4: Generate Funscript (4-zone whole-frame motion). Advanced optional.'
-        : 'Step 4: Generate Funscript (Advanced optional). Review appears after a successful run.';
+        ? 'Step 4: Generate (4-zone advanced). Prefer tip CSRT for best FunGen match.'
+        : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
     } else {
-      prompt.textContent = 'Step 5: rate Signal Quality / usability — script is also in Play.';
+      prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve (FunGen-like).';
     }
   }
 
@@ -788,21 +939,26 @@ export function initGenerator(root, playback) {
     const batchNote = extraCount > 0
       ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
-    try {
+    videoBatchNote = batchNote;    try {
       await showFrame(path, 0);
       candidates = [];
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-      el('#gen-nomark').disabled = false;
+      // Region buttons stay disabled until generate:autoroi (auto-find owns them).
+      el('#gen-autoroi').disabled = true;
+      el('#gen-candidates').disabled = true;
+      el('#gen-nomark').disabled = true;
       syncNoMarkButton();
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
-        'Mark tip / candidates / or track whole-frame motion (4 zones). Contact vib on by default.'
+        'Everyday path: finding tip region for CSRT (best vs FunGen). Optional: AI checkbox / Zone 2 for vibe location.'
       ) + batchNote;
       lastOutputPath = null;
+      genCurvePoints = null;
+      setPosOverlayVisible(false);
       el('#gen-feedback').style.display = 'none';
+      el('#gen-improve').style.display = 'none';
+      el('#gen-improve-status').textContent = '';
       el('#gen-quality').style.display = 'none';
       syncWorkflowSteps();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
@@ -815,6 +971,8 @@ export function initGenerator(root, playback) {
           status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
         }
       }).catch(() => {});
+      // FunGen-like: auto-find tip after preview loads (CSRT first choice).
+      startAutoFindRegion();
     } catch (err) {
       uiError('Load video: ' + err, el('#gen-status'));
     }
@@ -836,7 +994,10 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
     try {
       await showFrame(videoPath, seekSec);
-      el('#gen-status').textContent = `Frame at ${seekSec}s — mark region.`;
+      el('#gen-status').textContent = genCurvePoints
+        ? `Frame at ${seekSec}s — 0–100 gauge follows the curve.`
+        : `Frame at ${seekSec}s — mark region.`;
+      updatePosOverlay();
     } catch (err) {
       uiError('Seek failed: ' + err, el('#gen-status'));
     }
@@ -852,8 +1013,16 @@ export function initGenerator(root, playback) {
   }
 
   async function generate() {
-    if (!videoPath || (backendNeedsRoi() && !roi)) return;
+    if (!videoPath) return;
     normalizeProductProfile();
+
+    // Everyday: no tip yet + CSRT → auto-find then continue (FunGen-like).
+    if (backendNeedsRoi() && !roi) {
+      pendingGenerateAfterRoi = true;
+      el('#gen-status').textContent = 'No tip yet — finding region, then generating…';
+      startAutoFindRegion();
+      return;
+    }
 
     // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
     // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
@@ -901,15 +1070,15 @@ export function initGenerator(root, playback) {
       perSceneRoi: el('#gen-perscene').checked,
       adaptiveKeyframeError: el('#gen-adaptive').checked ? 6 : 0,
       autoRetry: el('#gen-retry').checked,
-      backend: el('#gen-backend').value,
+      backend: el('#gen-backend').value || 'csrt',
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
-      profile: el('#gen-profile').value,
+      profile: el('#gen-profile').value || 'standard',
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
-      flowDownscale: parseFloat(el('#gen-flow-downscale')?.value) || 0,
+      flowDownscale: 0,
       overwrite,
-      aiQualityOpinion: el('#gen-ai-quality').checked,
+      aiQualityOpinion: false,
       contactVibration: el('#gen-contact-vibration').checked,
       contactVibrationSpan: el('#gen-contact-vibration').checked
         ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
@@ -985,16 +1154,31 @@ export function initGenerator(root, playback) {
   // genauso gesetzt, als hätte der Nutzer sie gezogen, und lässt sich
   // danach frei korrigieren.
   EventsOn('generate:autoroi', result => {
+    // Drop stale finds before touching UI — a late result for video A must not
+    // hide progress / unlock buttons while video B is still searching.
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
     el('#gen-nomark').disabled = false;
     if (result.error) {
+      pendingGenerateAfterRoi = false;
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
     candidates = [];
-    syncNoMarkButton();
+    // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
+    if (!el('#gen-backend').dataset.userTouched) {
+      el('#gen-backend').value = 'csrt';
+      setNoMarkMotion(false);
+    } else {
+      syncNoMarkButton();
+    }
+    if (!el('#gen-profile').dataset.userTouched) {
+      el('#gen-profile').value = 'standard';
+    }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     const hasRoi2 = result.w2 > 0 && result.h2 > 0;
     if (hasRoi2) {
@@ -1014,14 +1198,19 @@ export function initGenerator(root, playback) {
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Region + optional contact found (${via}) — review; Contact vib uses stroke depth.`
-      : `Region found (${via}) — correct by hand if needed.`;
+      ? `Tip + optional contact found (${via}) — CSRT ready. Contact vib uses stroke depth unless you refine Zone 2.`
+      : `Tip region found (${via}) — CSRT + Contact is the everyday path. Correct by hand if needed.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));
     }
-    el('#gen-status').textContent = status;
+    el('#gen-status').textContent = status + videoBatchNote;
     redraw();
+    const shouldGenerate = pendingGenerateAfterRoi;
+    pendingGenerateAfterRoi = false;
+    if (shouldGenerate && roi) {
+      generate();
+    }
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
   // des videos unknown war. In dem Fall wird ein unbestimmter
@@ -1079,13 +1268,57 @@ export function initGenerator(root, playback) {
     });
   });
 
+  el('#gen-improve-apply')?.addEventListener('click', async () => {
+    if (!lastOutputPath) return;
+    const status = el('#gen-improve-status');
+    const btn = el('#gen-improve-apply');
+    btn.disabled = true;
+    status.textContent = 'Improving…';
+    try {
+      const audioOn = !!el('#gen-improve-audio')?.checked;
+      // Keep generate-time hidden flag in sync for any re-run.
+      if (el('#gen-audio-check')) el('#gen-audio-check').checked = audioOn;
+      const result = await ImproveGeneratedScript({
+        path: lastOutputPath,
+        videoPath: videoPath || '',
+        startSec: parseFloat(el('#gen-improve-start')?.value) || 0,
+        endSec: parseFloat(el('#gen-improve-end')?.value) || 0,
+        fillGaps: !!el('#gen-improve-fill')?.checked,
+        maxGapMs: 0,
+        audioCheck: audioOn,
+        useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
+      });
+      status.textContent = result.message || 'Done';
+      if (result.audioWarnings && result.audioWarnings.length) {
+        status.textContent += ' — ' + result.audioWarnings[0];
+      }
+      el('#gen-status').textContent =
+        `Improved: ${result.afterCount} points` +
+        (result.pointsAdded ? ` (+${result.pointsAdded} fill)` : '') +
+        (result.trimmed ? ', trimmed' : '') +
+        ' — open Play to edit dots/curve.';
+      const reloadPath = result.path || lastOutputPath;
+      if (reloadPath && playback && typeof playback.loadScriptPath === 'function') {
+        await playback.loadScriptPath(reloadPath, { review: true });
+        await loadGenCurveFromPlay();
+      }
+    } catch (err) {
+      status.textContent = 'Improve failed: ' + err;
+      uiError('Improve script: ' + err, el('#gen-status'));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   EventsOn('generate:done', result => {
     hideProgress();
     el('#gen-cancel').disabled = true;
     generating = false;
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
+    el('#gen-improve-status').textContent = '';
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
+    el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
     syncWorkflowSteps();
     if (result.error) {
@@ -1094,6 +1327,7 @@ export function initGenerator(root, playback) {
         return;
       }
       el('#gen-status').textContent = 'Failed: ' + result.error;
+      el('#gen-improve').style.display = 'none';
       return;
     }
     el('#gen-status').textContent = result.samPath
@@ -1150,11 +1384,67 @@ export function initGenerator(root, playback) {
       qualityBox.style.display = 'none';
     }
 
-    // Fertiges Skript immer zum Anschauen/Bearbeiten laden — kein Popup.
-    el('#gen-status').textContent += ' — loaded in Playback (review & adjust).';
-    playback.loadScriptPath(result.path, { review: true });
+    // Right after Generate: fill gaps (auto + tighter second pass in Go),
+    // then open Play with dots. Review Improve can re-run with trim/audio.
+    (async () => {
+      let path = result.path;
+      try {
+        el('#gen-status').textContent += ' — filling gaps…';
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'Auto fill-gaps after generate…';
+        }
+        // Force fill on; honor Review audio toggles (defaults checked).
+        if (el('#gen-improve-fill')) el('#gen-improve-fill').checked = true;
+        const polished = await ImproveGeneratedScript({
+          path,
+          videoPath: videoPath || '',
+          startSec: 0,
+          endSec: 0,
+          fillGaps: true,
+          maxGapMs: 0, // auto + second pass @ 400ms
+          audioCheck: !!(el('#gen-improve-audio')?.checked || el('#gen-audio-check')?.checked),
+          useAudioForFill: el('#gen-improve-audio-fill')
+            ? !!el('#gen-improve-audio-fill').checked
+            : true,
+        });
+        if (polished && polished.path) path = polished.path;
+        const msg = (polished && polished.message) || 'Gaps checked';
+        if (polished && polished.pointsAdded > 0) {
+          el('#gen-status').textContent += ` (+${polished.pointsAdded} fill)`;
+        } else {
+          el('#gen-status').textContent += ' (gaps ok)';
+        }
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'After generate: ' + msg;
+        }
+      } catch (err) {
+        // Non-fatal — still open Play with the raw generate output.
+        console.warn('post-generate fill gaps:', err);
+        if (el('#gen-improve-status')) {
+          el('#gen-improve-status').textContent = 'Auto fill skipped: ' + err;
+        }
+      }
+      lastOutputPath = path;
+      el('#gen-status').textContent += ' — loaded in Playback (dots + Edit curve).';
+      try {
+        await playback.loadScriptPath(path, { review: true });
+        await loadGenCurveFromPlay();
+      } catch (err) {
+        console.warn('post-generate Play/overlay:', err);
+        playback.loadScriptPath(path, { review: true });
+      }
+    })();
   });
 
+  el('#gen-pos-overlay-toggle')?.addEventListener('change', () => {
+    const on = !!el('#gen-pos-overlay-toggle').checked;
+    try { localStorage.setItem(POS_OVERLAY_PREF, on ? '1' : '0'); } catch (_) { /* ignore */ }
+    setPosOverlayVisible(on);
+    if (on) updatePosOverlay();
+  });
+  // Restore toggle preference once DOM is ready.
+  posOverlayWanted();
+  setPosOverlayVisible(false);
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
@@ -1213,15 +1503,8 @@ export function initGenerator(root, playback) {
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
-    const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
-    el('#gen-status').textContent = useAI
-      ? 'AI region search running (ONNX model)…'
-      : 'Analyzing motion in video (may take a few seconds)…';
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+    pendingGenerateAfterRoi = false;
+    startAutoFindRegion();
   });
 
   el('#gen-candidates').addEventListener('click', () => {

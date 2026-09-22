@@ -53,9 +53,11 @@ optional tempo *hint* that only biases peak distance — G1.3, gated).
 | Weak-ROI / tiny span | Hint, not rewrite | “Check ROI / axis” — never invent motion |
 | Tracking gaps | Metadata + warning | Visible in Quality Doctor / report |
 | Audio Hz vs script Hz | Plausibility | Post-hoc; fail open; see `AUDIO_WORKFLOW.md` |
+| **Stroke preview (Stage A)** | Sparse extrema + cut/pan flags before/beside track | Timing/flags only — `generator/strokepreview`; never invent curve; audio gate when `suggest_audio_check` |
 
 Implementation homes today: `generator/posttrack`,
-`generate_funscript.py`, `generator/audiocheck.go`, Quality Doctor.
+`generate_funscript.py`, `generator/audiocheck.go`, Quality Doctor,
+`generator/strokepreview` (Stage A probe).
 G1 work is **unify + document + tune as one package**, not three
 scattered knobs.
 

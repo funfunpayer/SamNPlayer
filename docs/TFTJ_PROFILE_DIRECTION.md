@@ -139,10 +139,10 @@ tracker family for this.
 
 ### Tracking modes (A)
 
-1. No-mark classical (4-zone / hub) — everyday
-2. One primary ROI — override / Advanced
-3. Primary + **tracked contact partner** — only when contact vib needs it
-4. AI class proposals — G3; never write the curve
+1. **Auto tip → CSRT Stroke + Contact** — everyday first choice (measured best vs FunGen; see `EVERYDAY_GENERATE.md`)
+2. No-mark classical (4-zone) — advanced / weaker opt-in
+3. Primary + **tracked contact partner (Zone 2)** — only for where Contact should feel
+4. AI class proposals — region box only; never write the curve
 
 ### Profile auto-suggest (D) — later, AI/pattern
 

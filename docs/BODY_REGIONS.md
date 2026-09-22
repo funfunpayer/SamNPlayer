@@ -62,6 +62,7 @@ ExtraTargets use Go `TrackMultiPoints` when OpenCV (or simpletrack) is available
 | Surface | Capacity |
 |---------|----------|
 | AI training marks | up to **9** boxes/classes per frame |
+| AI Train body map | Clickable human silhouette + legend (same 9 IDs) |
 | Generate / Tf/Tj stroke | ROI1 + ROI2 + N extra targets (min distance) + soft masks |
 | AI suggest | prefers canonical class list (`preferred_classes`) |
 
