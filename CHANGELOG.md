@@ -21,6 +21,9 @@ measurement history behind each entry; this file is the short version for
 - **Review → Improve:** trim start/end, fill gaps (optional audio-tempo
   spacing), audio check on/off — FunGen-like polish after CSRT. Dead Advanced
   knobs removed (AI second opinion, audio row moved to Review).
+- **Play curve = FunGen-like dots + soft stroke:** keyframe dots always drawn
+  (incl. during play); live playhead height marker; Edit curve still for
+  drag/add/delete. Improve reloads Play in review mode.
 
 ### Fixed / observability
 
