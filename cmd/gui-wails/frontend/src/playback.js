@@ -1911,7 +1911,12 @@ export function initPlayback(root) {
     el('#pb-eo-min').value = s.playbackEOMin;
     el('#pb-eo-hold').value = s.playbackEOHoldS;
     el('#pb-eo-restore').value = s.playbackEORestoreMs;
-    el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart;
+    // !== false statt einer direkten Zuweisung: das Backend-Default ist
+    // true (siehe prefPlaybackVideoPlayAutostart), und ein fehlendes Feld
+    // (älterer Settings-Stand, Test-Stub ohne GetSettings-Override) soll
+    // nicht durch undefined -> false versehentlich das native Video-Play
+    // stummschalten.
+    el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart !== false;
   });
   el('#pb-mock').addEventListener('change', e => saveSetting('playback.mock', e.target.checked));
   el('#pb-sync').addEventListener('change', e => saveSetting('playback.sync_mode', e.target.value));
