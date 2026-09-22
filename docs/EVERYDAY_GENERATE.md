@@ -58,7 +58,7 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 | Contact vib | On by default |
 | Stroke preview | Stage A pre-pass (timing/flags; audio if weak) |
 | Audio check | On when ffmpeg present (generate + Review toggle) |
-| Fill gaps | **Auto after Generate** (auto + tighter second pass) + Review step — linear bridge; optional audio-tempo spacing |
+| Fill gaps | **Auto after Generate** (auto + median-aware second pass) + Review step — linear bridge; optional audio-tempo spacing |
 | Trim start/end | Review step (start also via seek before Generate) |
 | Flow downscale | Hidden unless Flow (CLI) |
 | Tf/Tj distance | CLI / Advanced only — not everyday GUI |
