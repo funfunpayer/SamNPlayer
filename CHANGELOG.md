@@ -38,6 +38,8 @@ measurement history behind each entry; this file is the short version for
   (never densifies slow natural stroke spacing).
 - **0–100 on video:** FunGen-like stroke gauge over Generator preview and
   Play video; follows seek/playhead; toggle off anytime (remembered).
+- **AI Train body map:** stylized human figure (Claude device-silhouette
+  idea) — click Face/Mouth/Breasts/… to set the active mark class.
 
 ### Fixed / observability
 

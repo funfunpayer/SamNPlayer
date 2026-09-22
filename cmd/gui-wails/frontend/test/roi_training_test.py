@@ -97,6 +97,10 @@ def main():
             "document.querySelector('#rt-dataset-dir').value === '/data'", timeout=5000)
         check("Datensatzordner wird aus den Einstellungen übernommen", True)
 
+        check("Body map present", page.locator("#rt-body-figure .body-figure-svg").count() == 1)
+        check("Nine legend body parts",
+              page.locator(".body-figure-legend [data-class]").count() == 9)
+
         page.click("#rt-pick-video")
         page.wait_for_function(
             "document.querySelector('#rt-video-path').textContent.includes('video.mp4')", timeout=5000)
@@ -112,12 +116,27 @@ def main():
         check("Ohne Klassennamen bleibt 'Use for training' gesperrt",
               page.locator("#rt-bootstrap").is_disabled())
 
+        # Body map sets class without typing — then clear for the text-fill check.
+        page.locator('.bf-zone[data-class="glans"]').first.click()
+        page.wait_for_timeout(50)
+        check("Body map click sets Class 1 to glans",
+              page.locator("#rt-class1").input_value() == "glans")
+        check("Body map unlocks Use for training",
+              not page.locator("#rt-bootstrap").is_disabled())
+        page.fill("#rt-class1", "")
+        page.locator("#rt-class1").dispatch_event("input")
+        check("Cleared class locks Use for training again",
+              page.locator("#rt-bootstrap").is_disabled())
+
         page.fill("#rt-class1", "brust")
+        page.locator("#rt-class1").dispatch_event("input")
         check("Mit Klassenname und 1 Region wird der Knopf frei",
               not page.locator("#rt-bootstrap").is_disabled())
 
         # --- 2. Region ohne deren Klassenname: wieder gesperrt ----------------
         page.click("#rt-mark-next")
+        page.locator("#rt-canvas").scroll_into_view_if_needed()
+        box = page.locator("#rt-canvas").bounding_box()
         page.mouse.move(box["x"] + 200, box["y"] + 40)
         page.mouse.down()
         page.mouse.move(box["x"] + 280, box["y"] + 120, steps=5)
@@ -126,6 +145,7 @@ def main():
               page.locator("#rt-bootstrap").is_disabled())
 
         page.fill("#rt-class2", "hand")
+        page.locator("#rt-class2").dispatch_event("input")
         check("Mit beiden Klassennamen wieder frei",
               not page.locator("#rt-bootstrap").is_disabled())
 
