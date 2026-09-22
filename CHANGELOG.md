@@ -14,6 +14,10 @@ measurement history behind each entry; this file is the short version for
   (`STROKE_PREVIEW` progress lines) — audio gate when weak/unstable, optional
   peak-distance bias, `metadata.stroke_preview` stamp. CLI `stroke-preview`
   unchanged. First measure: `clip_ausschnitt` ~1.1s, peak-overlap 0.78 vs hub.
+- **Everyday Generate (FunGen-like):** after choosing a video, auto-find tip
+  ROI → CSRT Stroke + Contact (measured first choice). Generate without a
+  painted box triggers the same find. 4-zone demoted to advanced. See
+  `docs/EVERYDAY_GENERATE.md`.
 
 ### Fixed / observability
 

@@ -8,7 +8,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 |---|---|---|
 | 1 | Validate real hardware | **Blocked on you** — Sam Neo 2 + operator |
 | 2 | Match FunGen2 references | **Open** — Golden-Clip tool shipped; need real clips |
-| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 21 Sep):** mark partner only for Tf/Blow **when contact vib on**; everyday = no-mark / 4-zone — `docs/TFTJ_PROFILE_DIRECTION.md` |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 22 Sep):** everyday = auto-tip → CSRT (not 4-zone); Zone 2 only for vibe location — `docs/EVERYDAY_GENERATE.md` |
 | 4 | Motion-signature/profile GUI | **Done** |
 | 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in); **next:** Normal+Auto default **on** (user can off); partner mark tracked when vib on — `TFTJ_PROFILE_DIRECTION.md` |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
@@ -19,6 +19,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
 | — | **Stroke preview (extrema + Abtastung)** | **Started** — Stage A library + CLI `stroke-preview` (timing/flags only; not a tracker). Gate: clip_ausschnitt vs hub peaks. See § below. |
+| — | **Everyday Generate (FunGen-like)** | **Done (UI)** — auto-find tip → CSRT first; AI/Zone2 optional. `docs/EVERYDAY_GENERATE.md`. Clip gate: hub CSRT windowed r≈0.59. |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 

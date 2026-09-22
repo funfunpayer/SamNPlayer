@@ -32,24 +32,23 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
-      <h3 class="gen-step-title">2 · Mark region</h3>
+      <h3 class="gen-step-title">2 · Region (auto)</h3>
       <p class="hint" style="margin-top:0">
-        Drag on the frame (or find automatically). Classical CSRT tracks this box —
-        AI may only propose the start region (optional). For Tf/Tj add contact zones
-        (Zone 2 / Zone 3+) — e.g. nipples — so suction + contact vibration follow approach.
+        FunGen-like: we find the tip region for you (best measured path = CSRT).
+        Correct the box if needed. Optional: AI detection, or mark where Contact should feel (Zone 2).
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
-          data-help="Finds a start region from motion in the frame (for Tf/Tj, both regions as a suggestion). You can always correct the box by hand — never applied silently.">Find region automatically</button>
+          data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows all ranked motion regions as dashed boxes. Click one to set Zone 1 (primary stroke). Nothing is applied until you pick — Zone 2 is never auto-filled.">Show motion candidates</button>
+          data-help="Shows ranked motion regions. Click one to set Zone 1. Zone 2 is never auto-filled.">Show motion candidates</button>
         <button id="gen-nomark" type="button" disabled
-          data-help="No hand mark: splits the whole frame into 4 zones and tracks motion (Python region_fusion_auto). Everyday Generate + Contact vib — no Tf/Tj profile.">Track whole-frame motion (4 zones)</button>
+          data-help="Advanced / weaker on measured clip (windowed r≈0.36 vs CSRT hub ≈0.59). Whole-frame 4-zone — opt-in only, not the everyday default.">4-zone (advanced)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
-            data-help="Uses a local ONNX model instead of classic motion search. Needs a trained model under Settings → AI region detection. Stays off if onnxruntime or the model file is missing.">AI detection (ONNX)</label></span>
+            data-help="Local ONNX model proposes the tip box only — never writes the stroke curve. Needs Settings → AI model.">AI region (optional)</label></span>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Mark primary, pick a candidate, or track whole-frame motion (4 zones) without marking.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip region automatically. Generate uses CSRT + Contact vibration.</p>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -255,6 +254,10 @@ export function initGenerator(root, playback) {
   let seekSec = 0;
   let generating = false;
   let lastOutputPath = null;
+  // Everyday FunGen-like: Generate with no ROI → auto-find tip then generate.
+  let pendingGenerateAfterRoi = false;
+  // After loadVideo, kick auto-find once (CSRT tip = measured first choice).
+  let autoFindAfterLoad = false;
 
   const DISPLAY_W = 560;
 
@@ -437,10 +440,25 @@ export function initGenerator(root, playback) {
   }
 
   // Everyday Generate: tip mark (CSRT) or no-mark 4-zone. Zone 2 never required.
+  // FunGen-like: video alone is enough — Generate will auto-find tip if missing.
   function regionReadyForGenerate() {
     if (!videoPath) return false;
-    if (backendNeedsRoi() && !roi) return false;
+    if (isNoMarkMotion()) return true;
+    if (backendNeedsRoi() && !roi) return true; // Generate triggers auto-find
     return true;
+  }
+
+  function startAutoFindRegion() {
+    if (!videoPath) return;
+    setNoMarkMotion(false);
+    const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    el('#gen-autoroi').disabled = true;
+    el('#gen-candidates').disabled = true;
+    el('#gen-nomark').disabled = true;
+    el('#gen-status').textContent = useAI
+      ? 'AI region search (everyday path)…'
+      : 'Finding tip region automatically (CSRT — measured best vs FunGen)…';
+    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   }
 
   // Default Fix Zone 2 = off when an optional contact partner is marked + vib on.
@@ -461,8 +479,9 @@ export function initGenerator(root, playback) {
     const noMark = isNoMarkMotion();
 
     const showRegion = hasVideo;
-    // Unlock motion/profile step once tip is marked OR whole-frame 4-zone is on.
-    const showMotion = hasRoi1 || (hasVideo && noMark);
+    // Unlock motion/profile once tip is marked, 4-zone is on, OR video is loaded
+    // (Generate will auto-find tip — FunGen-like everyday path).
+    const showMotion = hasVideo;
     const showRun = canRun || generating;
     const showResult = hasResult;
 
@@ -493,15 +512,15 @@ export function initGenerator(root, playback) {
     if (!hasVideo) {
       prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
     } else if (!hasRoi1 && !noMark) {
-      prompt.textContent = 'Step 2: mark a region, show candidates, or track whole-frame motion (4 zones).';
+      prompt.textContent = 'Finding tip region… or mark / pick a candidate. Then Generate (CSRT + Contact).';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
     } else if (!hasResult) {
       prompt.textContent = noMark
-        ? 'Step 4: Generate Funscript (4-zone whole-frame motion). Advanced optional.'
-        : 'Step 4: Generate Funscript (Advanced optional). Review appears after a successful run.';
+        ? 'Step 4: Generate (4-zone advanced). Prefer tip CSRT for best FunGen match.'
+        : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
     } else {
       prompt.textContent = 'Step 5: rate Signal Quality / usability — script is also in Play.';
     }
@@ -791,15 +810,16 @@ export function initGenerator(root, playback) {
     try {
       await showFrame(path, 0);
       candidates = [];
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-      el('#gen-nomark').disabled = false;
+      // Region buttons stay disabled until generate:autoroi (auto-find owns them).
+      el('#gen-autoroi').disabled = true;
+      el('#gen-candidates').disabled = true;
+      el('#gen-nomark').disabled = true;
       syncNoMarkButton();
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
-        'Mark tip / candidates / or track whole-frame motion (4 zones). Contact vib on by default.'
+        'Everyday path: finding tip region for CSRT (best vs FunGen). Optional: AI checkbox / Zone 2 for vibe location.'
       ) + batchNote;
       lastOutputPath = null;
       el('#gen-feedback').style.display = 'none';
@@ -815,6 +835,9 @@ export function initGenerator(root, playback) {
           status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
         }
       }).catch(() => {});
+      // FunGen-like: auto-find tip after preview loads (CSRT first choice).
+      autoFindAfterLoad = true;
+      startAutoFindRegion();
     } catch (err) {
       uiError('Load video: ' + err, el('#gen-status'));
     }
@@ -852,8 +875,16 @@ export function initGenerator(root, playback) {
   }
 
   async function generate() {
-    if (!videoPath || (backendNeedsRoi() && !roi)) return;
+    if (!videoPath) return;
     normalizeProductProfile();
+
+    // Everyday: no tip yet + CSRT → auto-find then continue (FunGen-like).
+    if (backendNeedsRoi() && !roi) {
+      pendingGenerateAfterRoi = true;
+      el('#gen-status').textContent = 'No tip yet — finding region, then generating…';
+      startAutoFindRegion();
+      return;
+    }
 
     // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
     // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
@@ -901,9 +932,9 @@ export function initGenerator(root, playback) {
       perSceneRoi: el('#gen-perscene').checked,
       adaptiveKeyframeError: el('#gen-adaptive').checked ? 6 : 0,
       autoRetry: el('#gen-retry').checked,
-      backend: el('#gen-backend').value,
+      backend: el('#gen-backend').value || 'csrt',
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
-      profile: el('#gen-profile').value,
+      profile: el('#gen-profile').value || 'standard',
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
@@ -990,11 +1021,22 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = false;
     el('#gen-nomark').disabled = false;
     if (result.error) {
+      pendingGenerateAfterRoi = false;
+      autoFindAfterLoad = false;
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
     candidates = [];
-    syncNoMarkButton();
+    // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
+    if (!el('#gen-backend').dataset.userTouched) {
+      el('#gen-backend').value = 'csrt';
+      setNoMarkMotion(false);
+    } else {
+      syncNoMarkButton();
+    }
+    if (!el('#gen-profile').dataset.userTouched) {
+      el('#gen-profile').value = 'standard';
+    }
     roi = { x: result.x, y: result.y, w: result.w, h: result.h };
     const hasRoi2 = result.w2 > 0 && result.h2 > 0;
     if (hasRoi2) {
@@ -1014,14 +1056,20 @@ export function initGenerator(root, playback) {
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Region + optional contact found (${via}) — review; Contact vib uses stroke depth.`
-      : `Region found (${via}) — correct by hand if needed.`;
+      ? `Tip + optional contact found (${via}) — CSRT ready. Contact vib uses stroke depth unless you refine Zone 2.`
+      : `Tip region found (${via}) — CSRT + Contact is the everyday path. Correct by hand if needed.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));
     }
     el('#gen-status').textContent = status;
     redraw();
+    const shouldGenerate = pendingGenerateAfterRoi;
+    pendingGenerateAfterRoi = false;
+    autoFindAfterLoad = false;
+    if (shouldGenerate && roi) {
+      generate();
+    }
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
   // des videos unknown war. In dem Fall wird ein unbestimmter
@@ -1215,15 +1263,8 @@ export function initGenerator(root, playback) {
   });
   el('#gen-autoroi').addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
-    const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
-    el('#gen-status').textContent = useAI
-      ? 'AI region search running (ONNX model)…'
-      : 'Analyzing motion in video (may take a few seconds)…';
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+    pendingGenerateAfterRoi = false;
+    startAutoFindRegion();
   });
 
   el('#gen-candidates').addEventListener('click', () => {
