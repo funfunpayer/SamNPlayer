@@ -69,7 +69,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **8** | No-mark 4-zone in GUI + Contact-first | Cursor A | **DONE** #169 — step-4 measure: 4-zone < tip CSRT → keep opt-in |
 | **9** | **v0.5.20** | Cursor A | **DONE** #171 + tag `v0.5.20` — owner Flow / 4-zone smoke |
 | **10** | Prep **v0.5.21** | Cursor A | **DONE** #172 |
-| **11** | **v0.5.21** bump + tag | Cursor A | **IN PROGRESS** `cursor/release-0-5-21-d7cb` |
+| **11** | **v0.5.21** bump + tag | Cursor A | **DONE** #175 + tag `v0.5.21` |
+| **12** | **v0.5.22** bump + tag | Cursor A | **IN PROGRESS** `cursor/release-0-5-22-d7cb` |
 
 ---
 
@@ -90,8 +91,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
-| F | Cursor | #176 | bugfix P0/P1 (SaveContact Sync, #170 cv2, Zone2 copy, arousal) | **rebasing onto main** (after #177/#179) |
+| A | Cursor | `cursor/release-0-5-22-d7cb` | bump **v0.5.22** + tag | **IN PROGRESS** |
+| F | Cursor | #176 merged | bugfix P0/P1 | **DONE** (`495b0dc`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
 | E | ChatGPT | `codex/training-review-fixes` | verify training fixes on main — do not re-implement | **paused / verify later** |
 | E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** — close after #176 merges |

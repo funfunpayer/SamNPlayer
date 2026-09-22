@@ -83,8 +83,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.18** | Shipped | #145 Autotune tip-only; TFTJ step 3; F-003 AliasingRisk flag |
 | **v0.5.19** | Shipped | TFTJ 4b motion-candidate overlay (pick primary) |
 | **v0.5.20** | Shipped | 4-zone GUI opt-in + Contact-first (#169); owner Flow smoke |
-| **v0.5.21** | **This train** | Profile rename; Play feel-decouple; Flow soft warns (#172) |
-| **v0.5.22+** | After smoke | Finish stroke+partner distance; YOLO proposals; Flow hang if still open |
+| **v0.5.21** | Shipped | Profile rename; Play feel-decouple; Flow soft warns (#172) |
+| **v0.5.22** | **This train** | Training clip+ring; Everyday Generate; Playback HiDPI/seek; bugfix P0/P1 (#177/#179/#176) |
+| **v0.5.23+** | After smoke | Finish stroke+partner distance; YOLO proposals; Flow hang if still open |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

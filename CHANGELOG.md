@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.22] — September 22, 2026
+
 ### Added
 
 - **Playback: "Video ▶ also starts device" switch** — native `<video>` play
