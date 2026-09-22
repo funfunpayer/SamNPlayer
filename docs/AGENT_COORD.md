@@ -118,8 +118,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 **read/check** the new code on `main`, file findings, and **fix only in their
 lane**. Everyone can follow along via PR comments + a shared checklist issue.
 
-**Gate to start:** Owner QC go already given (board merge optional). Base on current `main`.
-Base every QC branch on that tip. **Do not** bump version / tag in this pass.
+**Gate to start:** ~~Owner QC go~~ **DONE**. Fixes #195/#196 and board #193 merged on `b7d18ac`.
 
 #### Shared rules
 
