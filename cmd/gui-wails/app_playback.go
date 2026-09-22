@@ -524,6 +524,18 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	return points, nil
 }
 
+// GetTrajectory returns the MT-Debug tip/partner trajectory for the loaded
+// script (nil when the script was not generated with "capture trajectory"
+// on, or has none loaded). Frontend maps Width/Height (video-pixel space at
+// generation time) onto the currently rendered <video> box.
+func (a *App) GetTrajectory() (*funscript.TrajectoryData, error) {
+	script := a.loadedScript()
+	if script == nil {
+		return nil, fmt.Errorf("no script loaded")
+	}
+	return script.Metadata.Trajectory, nil
+}
+
 // contactFrames: bevorzugt vorhandenes .sam-Sidecar mit Kontakt-Intensity,
 // sonst Enrich aus dem Funscript. Dünne Sidecars (nur Position) werden
 // übersprungen — sonst bliebe Vibration still auf 0.

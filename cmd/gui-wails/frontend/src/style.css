@@ -1196,6 +1196,16 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
 #roi-canvas-wrap { position: relative; display: inline-block; margin: 10px 0; border-radius: var(--radius); overflow: hidden; }
 #roi-canvas { border: 1px solid var(--border); border-radius: var(--radius); cursor: crosshair; max-width: 100%; display: block; }
 
+/* MT-Debug: tip/partner trajectory polyline over the Play video. Sits
+   inside .pb-video-stage (position:relative), sized/positioned in JS to
+   match the video's rendered content box (letterboxing from object-fit:
+   contain means it is not simply inset:0 of the stage). */
+.pb-trajectory-canvas {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+}
+
 /* FunGen-like 0–100 stroke gauge over Generator / Play video */
 .pos-gauge {
   position: absolute;

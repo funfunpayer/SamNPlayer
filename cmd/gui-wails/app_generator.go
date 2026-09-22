@@ -102,6 +102,9 @@ type GenerateOptions struct {
 	ExtraTargets []generator.NamedROI `json:"extraTargets"`
 	// MaskROIs: soft-exclude boxes for feature masks.
 	MaskROIs []generator.ROI `json:"maskRois"`
+	// CaptureTrajectory: opt-in raw tip/partner (x,y) recording for the
+	// Review/Play MT-Debug trajectory overlay. Off by default; Go CSRT only.
+	CaptureTrajectory bool `json:"captureTrajectory"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -332,6 +335,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			NativePipeline:            opts.NativePipeline,
 			StartTimeSec:              opts.StartTimeSec,
 			FlowDownscale:             opts.FlowDownscale,
+			CaptureTrajectory:         opts.CaptureTrajectory,
 			DetrendWindowMs:           0,
 			BandpassLowHz:             0,
 			BandpassHighHz:            0,

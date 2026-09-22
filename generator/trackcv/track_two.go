@@ -71,6 +71,11 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	var coastA, coastB trackutil.Coast
 	coastA.ObserveOK(boxA.X, boxA.Y, boxA.W, boxA.H)
 	coastB.ObserveOK(boxB.X, boxB.Y, boxB.W, boxB.H)
+	var trajA, trajB []Point
+	if opts.CaptureTrajectory {
+		trajA = []Point{boxCenter(boxA)}
+		trajB = []Point{boxCenter(boxB)}
+	}
 
 	total := int(cap.Get(CapPropFrameCount))
 	if opts.MaxFrames > 0 && (total == 0 || opts.MaxFrames < total) {
@@ -135,6 +140,10 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		distances = append(distances, dist)
 		timestamps = append(timestamps, int(float64(idx)*1000.0/fps))
 		lostFlags = append(lostFlags, frameLost)
+		if opts.CaptureTrajectory {
+			trajA = append(trajA, boxCenter(boxA))
+			trajB = append(trajB, boxCenter(boxB))
+		}
 		prog.report(idx)
 		idx++
 	}
@@ -164,6 +173,8 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		Width:        width,
 		Height:       height,
 		LostFlags:    lostFlags,
+		TrajectoryA:  trajA,
+		TrajectoryB:  trajB,
 		Stats: Stats{
 			TrackerLostFrames: lost,
 			TotalFrames:       idx,

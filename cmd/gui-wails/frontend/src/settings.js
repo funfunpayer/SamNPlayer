@@ -31,6 +31,7 @@ export function saveSetting(key, value) {
       'playback.extended_o_hold_seconds': 'playbackEOHoldS',
       'playback.extended_o_restore_ms': 'playbackEORestoreMs',
       'playback.video_play_autostart': 'playbackVideoPlayAutostart',
+      'playback.trajectory_overlay': 'playbackTrajectoryOverlay',
       'training.mock': 'trainingMock',
       'training.technique': 'trainingTechnique',
       'training.channel': 'trainingChannel',

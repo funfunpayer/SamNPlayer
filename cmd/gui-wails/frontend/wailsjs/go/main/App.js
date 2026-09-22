@@ -64,6 +64,7 @@ export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetSc
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }
 export function GetVibrationCurvePreview(arg1) { return window['go']['main']['App']['GetVibrationCurvePreview'](arg1); }
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
+export function GetTrajectory() { return window['go']['main']['App']['GetTrajectory'](); }
 export function GetSettings() { return window['go']['main']['App']['GetSettings'](); }
 export function InvertLoadedScript() { return window['go']['main']['App']['InvertLoadedScript'](); }
 export function ImproveGeneratedScript(arg1) { return window['go']['main']['App']['ImproveGeneratedScript'](arg1); }

@@ -8,7 +8,7 @@ import {
   ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
-  ProbePlaybackVideo, EnsurePlayablePlaybackVideo,
+  ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -44,6 +44,7 @@ export function initPlayback(root) {
       <div class="pb-media">
         <div class="pb-video-stage" id="pb-video-stage">
           <video id="pb-video" controls playsinline></video>
+          <canvas id="pb-trajectory" class="pb-trajectory-canvas" hidden aria-hidden="true"></canvas>
           <div id="pb-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
             <div class="pos-gauge-scale" aria-hidden="true">
               <span>100</span><span>50</span><span>0</span>
@@ -256,6 +257,12 @@ export function initPlayback(root) {
             <label for="pb-video-play-autostart"
               data-help="Off: the video's own play button/spacebar (with the video focused) plays the video only, without starting the device/curve — use the app's Play button for that. On (default): native video play also starts device playback, same as before.">Video ▶ also starts device</label>
           </div>
+          <div class="checkbox-row" id="pb-trajectory-row" style="display:none">
+            <input type="checkbox" id="pb-trajectory-toggle" />
+            <label for="pb-trajectory-toggle"
+              data-help="Draws the tip/partner track path over the video (MT-Debug) — only available on scripts generated with 'Record tip/partner trajectory' on. Off by default.">Show tip/partner trajectory</label>
+          </div>
+          <p class="hint" id="pb-trajectory-hint" style="display:none; margin-top:0;">This script has no recorded trajectory — regenerate with “Record tip/partner trajectory (Debug overlay)” on to use this.</p>
           <div class="field-row"><label>Device</label>
             <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (no device)</label></span>
           </div>
@@ -292,6 +299,7 @@ export function initPlayback(root) {
   const el = id => root.querySelector(id);
   const videoEl = el('#pb-video');
   const heatmapCanvas = el('#pb-heatmap');
+  const trajectoryCanvas = el('#pb-trajectory');
   let scriptPath = null;
   let videoPath = null;
   let totalMs = 1;
@@ -305,6 +313,7 @@ export function initPlayback(root) {
   let speedHighlights = [];
   let vibrationCurvePoints = null;
   let scriptHasContactVibration = false;
+  let trajectoryData = null; // MT-Debug: {width,height,tip:[{atMs,x,y}],partner:[...]} or null
   const curveCanvas = el('#pb-curve');
   const chartTooltip = el('#pb-chart-tooltip');
 
@@ -574,6 +583,120 @@ export function initPlayback(root) {
     renderOMarkerList();
     redrawHeatmap();
     redrawCurve();
+  }
+
+  // --- MT-Debug: Tip/Partner-Trajektorie über dem Video -------------------
+  // videoContentRect berechnet die tatsächlich sichtbare Videofläche
+  // innerhalb von #pb-video - object-fit:contain lässt bei abweichendem
+  // Seitenverhältnis Letterbox-Balken entstehen, und das Overlay muss auf
+  // den eingebetteten Pixeln liegen, nicht auf der ganzen Box (sonst
+  // driftet die Linie in den Balken hinein).
+  function videoContentRect() {
+    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+    const boxW = videoEl.clientWidth, boxH = videoEl.clientHeight;
+    if (!vw || !vh || !boxW || !boxH) return null;
+    const videoRatio = vw / vh, boxRatio = boxW / boxH;
+    let w, h, x, y;
+    if (videoRatio > boxRatio) {
+      w = boxW; h = boxW / videoRatio; x = 0; y = (boxH - h) / 2;
+    } else {
+      h = boxH; w = boxH * videoRatio; y = 0; x = (boxW - w) / 2;
+    }
+    return { x, y, w, h };
+  }
+
+  function sizeTrajectoryCanvas(rect) {
+    const dpr = window.devicePixelRatio || 1;
+    trajectoryCanvas.style.left = rect.x + 'px';
+    trajectoryCanvas.style.top = rect.y + 'px';
+    trajectoryCanvas.style.width = rect.w + 'px';
+    trajectoryCanvas.style.height = rect.h + 'px';
+    trajectoryCanvas.width = Math.max(1, Math.round(rect.w * dpr));
+    trajectoryCanvas.height = Math.max(1, Math.round(rect.h * dpr));
+  }
+
+  function drawTrajectoryPath(ctx, points, w, h, color) {
+    if (!points || points.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 * (window.devicePixelRatio || 1);
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = (p.x / trajectoryData.width) * w;
+      const y = (p.y / trajectoryData.height) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // nearestTrajectoryPoint: points sind chronologisch (gleiche Reihenfolge
+  // wie beim Tracking) - lineare Suche reicht, typische Skriptlänge macht
+  // das nicht spürbar teuer, und es läuft nur bei Toggle+Daten aktiv.
+  function nearestTrajectoryPoint(points, atMs) {
+    if (!points || points.length === 0) return null;
+    let best = points[0], bestDist = Math.abs(points[0].atMs - atMs);
+    for (let i = 1; i < points.length; i++) {
+      const d = Math.abs(points[i].atMs - atMs);
+      if (d < bestDist) { bestDist = d; best = points[i]; }
+    }
+    return best;
+  }
+
+  function trajectoryWanted() {
+    return !!(videoPath && trajectoryData && el('#pb-trajectory-toggle').checked);
+  }
+
+  function redrawTrajectory() {
+    if (!trajectoryWanted()) {
+      trajectoryCanvas.hidden = true;
+      return;
+    }
+    const rect = videoContentRect();
+    if (!rect) {
+      // Video-Metadaten (videoWidth/Height) noch nicht geladen - erneut
+      // via 'loadedmetadata' versucht, hier nur sauber nichts zeichnen.
+      trajectoryCanvas.hidden = true;
+      return;
+    }
+    trajectoryCanvas.hidden = false;
+    sizeTrajectoryCanvas(rect);
+    const ctx = trajectoryCanvas.getContext('2d');
+    const w = trajectoryCanvas.width, h = trajectoryCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(243, 178, 60, 0.85)');
+    drawTrajectoryPath(ctx, trajectoryData.partner, w, h, 'rgba(95, 208, 200, 0.85)');
+    const tipNow = nearestTrajectoryPoint(trajectoryData.tip, currentPosMs);
+    if (tipNow) {
+      const dpr = window.devicePixelRatio || 1;
+      const x = (tipNow.x / trajectoryData.width) * w;
+      const y = (tipNow.y / trajectoryData.height) * h;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = '#f3b23c';
+      ctx.fill();
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+    }
+  }
+
+  // loadTrajectory holt die optionale MT-Debug-Trajektorie fürs geladene
+  // Skript (null, wenn ohne "Record tip/partner trajectory" erzeugt) -
+  // eigener Aufruf statt Teil von loadScript()'s großem try/catch-Block,
+  // damit ein Fehlschlag hier nie den restlichen Skript-Ladevorgang stört.
+  async function loadTrajectory() {
+    trajectoryData = null;
+    if (videoPath) {
+      try {
+        const data = await GetTrajectory();
+        trajectoryData = (data && Array.isArray(data.tip) && data.tip.length >= 2) ? data : null;
+      } catch (err) {
+        trajectoryData = null;
+      }
+    }
+    const hint = el('#pb-trajectory-hint');
+    if (hint) hint.style.display = (el('#pb-trajectory-toggle').checked && !trajectoryData) ? 'block' : 'none';
+    redrawTrajectory();
   }
 
   // drawHeatmap zeichnet die grob gerasterte Intensityskurve als
@@ -1472,6 +1595,7 @@ export function initPlayback(root) {
     if (!stage.classList.contains('has-video')) return;
     const on = stage.classList.toggle('is-fs');
     el('#pb-video-fs').textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+    redrawTrajectory();
   }
 
   async function refreshSamnControls(info) {
@@ -1546,6 +1670,7 @@ export function initPlayback(root) {
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
       el('#pb-video-autostart-row').style.display = 'flex';
+      el('#pb-trajectory-row').style.display = 'flex';
       refreshVideoPlayability(videoPath);
     } else {
       videoPath = null;
@@ -1554,6 +1679,8 @@ export function initPlayback(root) {
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
       el('#pb-video-autostart-row').style.display = 'none';
+      el('#pb-trajectory-row').style.display = 'none';
+      el('#pb-trajectory-hint').style.display = 'none';
       el('#pb-video-fs').textContent = 'Fullscreen';
       const warn = el('#pb-video-warn');
       const conv = el('#pb-video-convert');
@@ -1584,6 +1711,7 @@ export function initPlayback(root) {
     drawHeatmap();
     drawCurve();
     describeScript();
+    loadTrajectory();
     el('#pb-omarker-hint').style.display = 'block';
     el('#pb-omarker-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
@@ -1763,7 +1891,11 @@ export function initPlayback(root) {
     if (playing && el('#pb-use-video-sync').checked) {
       ReportVideoPosition(Math.round(videoEl.currentTime * 1000));
     }
+    redrawTrajectory();
   });
+  // Video-Maße (videoWidth/Height) stehen erst nach 'loadedmetadata' fest -
+  // vorher liefert videoContentRect() null und das Overlay bleibt versteckt.
+  videoEl.addEventListener('loadedmetadata', () => redrawTrajectory());
 
   // Historische video:pause/resume-Events. Extended-O skaliert nur noch die
   // Amplitude und pausiert das Video nicht mehr - Listener bleiben harmlos.
@@ -1840,6 +1972,7 @@ export function initPlayback(root) {
       sizeCanvasForDPR(heatmapCanvas, 800, 28);
       redrawHeatmap();
     }
+    redrawTrajectory();
   });
 
   el('#pb-script-doctor').addEventListener('click', async () => {
@@ -2052,6 +2185,8 @@ export function initPlayback(root) {
     // nicht durch undefined -> false versehentlich das native Video-Play
     // stummschalten.
     el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart !== false;
+    el('#pb-trajectory-toggle').checked = !!s.playbackTrajectoryOverlay;
+    redrawTrajectory();
   });
   el('#pb-mock').addEventListener('change', e => saveSetting('playback.mock', e.target.checked));
   el('#pb-sync').addEventListener('change', e => saveSetting('playback.sync_mode', e.target.value));
@@ -2064,6 +2199,12 @@ export function initPlayback(root) {
   el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));
   el('#pb-eo-restore').addEventListener('change', e => saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value)));
   el('#pb-video-play-autostart').addEventListener('change', e => saveSetting('playback.video_play_autostart', e.target.checked));
+  el('#pb-trajectory-toggle').addEventListener('change', e => {
+    saveSetting('playback.trajectory_overlay', e.target.checked);
+    const hint = el('#pb-trajectory-hint');
+    if (hint) hint.style.display = (e.target.checked && !trajectoryData) ? 'block' : 'none';
+    redrawTrajectory();
+  });
 
   async function refreshScriptVisuals() {
     if (!scriptPath) return;
