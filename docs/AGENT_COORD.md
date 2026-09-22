@@ -560,6 +560,7 @@ ring revision before committing.
 | 22 Sep | New theme: Training mode (multi-phase scripts + editor + live ring meter), claimed lane G, opened as draft #178 pending review per owner request | Claude |
 | 22 Sep | **v0.5.22** tagged (#181); #176/#177/#179 shipped; #170 closed superseded | Cursor A |
 | 22 Sep | Parked: multi-object YOLO+ByteTrack/BoT-SORT = Tip+Partner proposals; if no solid Go path → long-term Python track layer OK (not Stroke default) | Owner + Cursor |
+| 22 Sep | **Multi-track Fahrplan** written into `PRODUCTION_ROADMAP` (MT-Go→Seed→Speed→ID→Debug+Infra); sources: MOT/YOLO, VSDC, Unite.ai filter, MovieGo | Owner + Cursor |
 
 ---
 
