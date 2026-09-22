@@ -8,7 +8,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 |---|---|---|
 | 1 | Validate real hardware | **Blocked on you** — Sam Neo 2 + operator |
 | 2 | Match FunGen2 references | **Open** — Golden-Clip tool shipped; need real clips |
-| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 22 Sep):** everyday = auto-tip → CSRT (not 4-zone); Zone 2 only for vibe location — `docs/EVERYDAY_GENERATE.md` |
+| 3 | Improve automatic two-ROI suggestions | **Open** — `find_two_rois` not wired (measured insufficient); **direction (owner 22 Sep):** everyday = auto-tip → CSRT (not 4-zone); Zone 2 only for vibe location — `docs/EVERYDAY_GENERATE.md`. **Parked:** multi-object YOLO+ByteTrack/BoT-SORT as Tip+Partner proposals; if no solid Go path → Python opt-in track layer (not Stroke default) — `AGENT_COORD` |
 | 4 | Motion-signature/profile GUI | **Done** |
 | 5 | Contact-triggered vibration Tf/Tj | **Done** (opt-in); **next:** Normal+Auto default **on** (user can off); partner mark tracked when vib on — `TFTJ_PROFILE_DIRECTION.md` |
 | 6–7 | O-markers | **Done** (manual + auto-suggest) |
