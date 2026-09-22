@@ -116,6 +116,27 @@ does **not** replace Everyday tip-CSRT Stroke.
   Python Generate.
 - Gate: measure Tip+Partner proposal quality before any default change.
 
+### What we can learn → how to upgrade **our Go** (still parked)
+
+Borrow MOT *ideas*, not the Ultralytics stack, into `trackcv` /
+`TrackMultiPoints` / proposal UX:
+
+| Learning (YOLO/MOT / editors) | Go upgrade (concrete) |
+|---|---|
+| Stable **track IDs** across occlusion | Per-ROI `TrackID` + `LostFlags` already exist — expose ID in metadata/GUI; on re-acquire, prefer **same ID** over inventing a new partner |
+| **ByteTrack two-stage** (low-conf rescue) | When CSRT confidence dips: short **coast** (Kalman/hold last velocity) before declaring lost; optional second-pass match on motion candidates near last box |
+| **track_buffer** | Configurable lost-frames budget before Zone2 drop (today: hold-last can lie — surface `lostHeavy` / gaps stronger in GUI) |
+| Detect ≠ track | Keep **proposal** (YOLO/ONNX or motion candidates) separate from **writer** (Go CSRT Stroke) — wire proposals into `AutoDetectROI` / Zone2 suggest only |
+| Multi-object | `TrackMultiPoints` already tracks tip+partners — add ranked **N proposals → pick Tip + Partner** (classes later); do not spawn N stroke writers |
+| Speed knobs (half/imgsz/N-frame) | For any Python/ONNX proposal path: detect every N frames, Go CSRT fills between; never run YOLO every frame for Stroke |
+| VSDC “movement map” | Optional debug: export tip/partner trajectories as overlay polyline (Review) — not product captions/masks |
+| Frame-diff pitfalls | Do not revive whole-frame absdiff as Tip finder; motion candidates stay **local**, with ghost-reference hygiene |
+
+**Phased (when a lane opens — not now):**
+1. **Go-only polish:** better lost/coast + ID continuity + clearer lost UI on multi-partner.
+2. **Proposal bridge:** ONNX/Python YOLO boxes → seed Go CSRT (Tip+Partner).
+3. **Optional ID layer:** Python ByteTrack/BoT-SORT only if Go coast+IDs still lose partners on goldens.
+
 ---
 
 ## Cursor → Claude (figure system) — 22 Sep
