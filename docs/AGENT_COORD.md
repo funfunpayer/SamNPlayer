@@ -98,7 +98,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | T-fix | Cursor | #187 | **Training display residuals** (#185) | **READY** — rebased; ChatGPT verify PASS |
 | E0 | ChatGPT | #185 | Training verify report | **DONE** — close after #187 merges |
 | E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
-| E2 | ChatGPT | next | **MT-Speed notes** — ByteTrack/BoT-SORT; bias **part/class** | **NEXT (ChatGPT)** |
+| E2 | ChatGPT | `codex/mt-speed-notes-22sep` / [MT_SPEED_NOTES.md](MT_SPEED_NOTES.md) | **MT-Speed notes** — ByteTrack/BoT-SORT; bias **part/class** | **DONE — write-up; measurement pending Owner** |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | ChatGPT | [#192](https://github.com/funfunpayer/SamNPlayer/pull/192) / #191 | **PoseObserver concept** | **READY** — merge anytime |
 | V | Owner | local machine | **Clip verify** MT-Go / MT-ID gate | **OWNER only** — cloud agents have no MP4s |
@@ -107,7 +107,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (22 Sep late):**
 - **Owner merge order:** **#187** → **#186**; then #192 anytime. #189/#190 already on main.
-- **ChatGPT:** **E2 MT-Speed notes** next; steward OK.
+- **ChatGPT:** **E2 write-up DONE** — see `MT_SPEED_NOTES.md`; runtime performance unmeasured. Steward OK.
 - **Claude:** B+C DONE. No cloud clip verify.
 - **Cursor:** both PRs rebased onto main after #189/#190.
 
@@ -135,7 +135,7 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 
 #### ChatGPT — handoff brief (E2 + steward)
 
-**NOW: E2 MT-Speed write-up**
+**DONE: E2 MT-Speed write-up**
 1. Branch: `codex/mt-speed-notes-<id>` off `main` (docs only).
 2. `docs/MT_SPEED_NOTES.md`: ByteTrack vs BoT-SORT, `imgsz`, detect every N; bias Tip + body-part/class.
 3. Do **not** change Generate defaults.
