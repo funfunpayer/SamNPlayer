@@ -103,6 +103,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
 Canonical steps: `PRODUCTION_ROADMAP.md` § Multi-track Fahrplan.
+Base every PR on current `main` (includes #183 MT-Go).
 
 | Who | Owns | Touch | Do **not** touch |
 |-----|------|-------|------------------|
@@ -112,6 +113,45 @@ Canonical steps: `PRODUCTION_ROADMAP.md` § Multi-track Fahrplan.
 | later | **MT-ID** | Only if verify shows partner IDs still die on goldens | — |
 
 **Rules:** one theme per agent; claim in Active before push; base on current `main`; no silent Everyday default change; Stroke stays Go CSRT.
+
+#### Claude — handoff brief (lane B → optional C)
+
+**Primary: MT-Debug**
+1. Branch: `claude/mt-debug-trajectory-<id>` off `main`.
+2. Goal: optional Review/Play overlay drawing tip (+ partner if present)
+   trajectory polylines from script metadata / track series — **pref OFF**.
+3. Likely touch: `cmd/gui-wails/frontend/src/playback.js` (or review surface),
+   `style.css`, small settings key via existing `saveSetting` pattern.
+4. DoD: toggle works; no Generate default change; no edits under
+   `generator/trackcv/` / `trackutil/` (already shipped in #183).
+5. PR body: `AGENT_COORD:` claim lane B; link Fahrplan MT-Debug.
+
+**Optional after Debug (or instead if Debug blocked): MT-Infra**
+- Improve trim / H.264 proxy path: rational time or FFmpeg filtergraph
+  fastpath / ensure cancel kills ffmpeg (MovieGo lessons).
+- Touch: Improve/proxy helpers only — not Tracking, not Training.
+
+#### ChatGPT — handoff brief (lane E → E2)
+
+**Primary: MT-Go verify (no code re-implement)**
+1. Branch only if you add a test/doc note: `codex/mt-go-verify-<id>` off `main`.
+2. Check tip `94b2bae` / #183: coast + reacquire + Generate “Tracking:” UI.
+3. Deliverable: short comment on #183 or PR note — partner-loss behavior on
+   1–2 clips / goldens if available; **pass/fail for MT-ID gate**.
+4. Do **not** re-land `trackutil.Coast` or appearance reacquire.
+
+**Then: MT-Speed write-up / tiny spike**
+1. Doc under `docs/` (e.g. short section in NEXT or new
+   `docs/MT_SPEED_NOTES.md`) — ByteTrack vs BoT-SORT, `imgsz`, detect every N,
+   `half`/ONNX; time budget for proposal-only path.
+2. Optional: non-product spike under `scripts/` — **must not** change Everyday
+   Generate defaults or Stroke writer.
+3. DoD: Cursor can implement MT-Seed/Speed later without re-researching knobs.
+
+#### Cursor — keeps (do not steal)
+
+- **MT-Seed** next: ranked motion candidates → Tip+Partner → seed CSRT;
+  suggest ≠ auto-commit (`generator.js` / AutoDetectROI).
 
 ---
 
