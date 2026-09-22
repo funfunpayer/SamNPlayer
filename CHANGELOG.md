@@ -26,6 +26,17 @@ measurement history behind each entry; this file is the short version for
 - **Playback: curve editor** clamps a dragged point to its direct neighbors,
   so it no longer jumps in list order on mouse-up once points get sorted.
 
+- **SaveContact Sync:** empty `device_recipe.sync` on Stroke fills `independent`
+  (not `suction_position`). Same for `.samn` `ApplyContactRecipe`. Refs bugfix.
+- **AI Train deps (#119/#170):** force-reinstall `opencv-contrib-python --no-deps`
+  after uninstalling plain OpenCV wheels so shared `cv2` files are restored.
+- **Train arousal test:** report arousal before starting the session to avoid
+  CI race with `takeArousal`.
+- **Zone 2 copy:** Stroke UI no longer claims Zone 2 improves Contact targeting
+  (preview-only until Tf/Tj / feel-decouple).
+- Companion `.funscript` export failures after contact/review/bake now log a warn.
+- `docs/PLATFORMS.md`: Windows OpenCV CSRT (v0.5.13+) reflected honestly.
+
 ### Fixed
 
 - **Training Interrupt clears carried channels:** `StopCycle` during a

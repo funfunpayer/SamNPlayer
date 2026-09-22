@@ -78,7 +78,7 @@ export function initGenerator(root, playback) {
       <div class="path-label" id="gen-roi-label">No region marked</div>
       <div class="row" style="align-items:center; margin-top:6px;">
         <button id="gen-roi2-toggle" type="button"
-          data-help="Optional contact target (e.g. nipples). Improves Contact vibration targeting when you want tip↔partner feel. Not required for Generate — Contact vib works from stroke depth alone.">Zone 2 (optional contact)</button>
+          data-help="Optional partner mark (gold). On Stroke today this is preview-only — Contact vibration still follows stroke depth. Tip↔partner distance needs Tf/Tj (or a later feel-decouple). Not required for Generate.">Zone 2 (optional contact)</button>
         <button id="gen-target-add" type="button"
           data-help="Zone 3+: extra contact anchors (magenta). Optional.">+ Zone 3+ (contact)</button>
         <label style="width:auto; margin:0;" data-help="Body-part class applied to the next Zone 3+ mark (e.g. mouth, nipples).">Zone 3+ class</label>
@@ -89,7 +89,7 @@ export function initGenerator(root, playback) {
           data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
         <button id="gen-extras-clear" type="button"
           data-help="Clear all extra targets and soft masks (keeps Zone 1/Zone 2).">Clear extras</button>
-        <span class="hint" id="gen-roi2-hint" style="margin:0">Optional: contact target for vibration. Everyday Generate needs no Zone 2.</span>
+        <span class="hint" id="gen-roi2-hint" style="margin:0">Optional mark. Stroke: preview only (vib = depth). Tf/Tj: tip↔partner distance.</span>
       </div>
       <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
       <div class="path-label" id="gen-extras-label" style="display:none;"></div>
@@ -98,7 +98,7 @@ export function initGenerator(root, playback) {
         <select id="gen-region-class" style="min-width:8em;">
           <option value="">(any)</option>
         </select>
-        <label style="width:auto;" data-help="Zone 2 class — contact target (e.g. nipples). Contact vibration fires when tip approaches this zone.">Zone 2 (contact)</label>
+        <label style="width:auto;" data-help="Zone 2 class — partner / contact target. Used for tip↔partner distance on Tf/Tj. On Stroke profiles the mark is stored for later; Contact vib still uses stroke depth.">Zone 2 (contact)</label>
         <select id="gen-region-class2" style="min-width:8em;">
           <option value="">(any)</option>
         </select>
@@ -128,7 +128,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
           <label for="gen-contact-vibration"
-            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default — turn off anytime. Optional Zone 2 can refine targeting later; not required.">Contact vibration (on by default)</label>
+            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default — turn off anytime. Zone 2 does not change Stroke vib yet (preview mark only).">Contact vibration (on by default)</label>
         </div>
         <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
           <div class="field-row" style="align-items:center;">
@@ -702,9 +702,11 @@ export function initGenerator(root, playback) {
     updateContactVibrationOpts();
     updateGenerateEnabled();
     if (videoPath && roi2) {
-      el('#gen-status').textContent = contactVibrationOn()
-        ? 'Optional contact zone set — tracked unless “Fix Zone 2” is on.'
-        : 'Optional contact zone set (Contact vib off).';
+      el('#gen-status').textContent = isTfTj()
+        ? (contactVibrationOn()
+          ? 'Zone 2 set — tip↔partner distance; tracked unless “Fix Zone 2” is on.'
+          : 'Zone 2 set (Contact vib off) — tip↔partner distance still uses both regions.')
+        : 'Zone 2 marked (preview on Stroke) — Contact vib follows stroke depth until Tf/Tj / feel-decouple.';
     }
   }
 
@@ -892,7 +894,10 @@ export function initGenerator(root, playback) {
         pipe.textContent = (s.Reason || '') + (s.GoPath ? ' · Go path' : ' · Python path');
       }
       updateGenerateEnabled();
-    } catch (_) { /* ignore */ }
+    } catch (err) {
+      const pipe = el('#gen-pipeline-auto');
+      if (pipe) pipe.textContent = 'Pipeline hint unavailable';
+    }
   }
 
   // Fallengelassenes video Apply. Teilt sich den Ladeweg mit der

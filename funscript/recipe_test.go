@@ -24,6 +24,12 @@ func TestNormalizeProfile(t *testing.T) {
 	if !AllowsContactSettings("standard") || !AllowsContactSettings("tj") {
 		t.Fatal("Stroke und Tf/Tj dürfen Contact-Settings erlauben")
 	}
+	if DefaultSyncForProfile("tj") != SyncSuctionPosition.String() {
+		t.Fatal("tj DefaultSync muss suction_position sein")
+	}
+	if DefaultSyncForProfile("standard") != SyncIndependent.String() {
+		t.Fatal("stroke DefaultSync muss independent sein")
+	}
 }
 
 func TestRecipeTJSuctionOnlyNoVibration(t *testing.T) {

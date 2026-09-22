@@ -107,6 +107,17 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	un := command(py, "-m", "pip", "uninstall", "-y", "opencv-python", "opencv-python-headless")
 	unOut, _ := un.CombinedOutput()
 	emitPipLines(string(unOut), onProgress)
+	// Both OpenCV distributions own cv2 files. Uninstalling the plain wheel
+	// can remove those files while contrib's installed-version metadata stays
+	// intact. --upgrade alone then reports "already satisfied" and cannot
+	// repair cv2. Reinstall only contrib; do not force-reinstall the full
+	// numerical stack (or the much larger training dependencies). Refs #119/#170.
+	restore := command(py, "-m", "pip", "install", "--upgrade", "--force-reinstall", "--no-deps", "opencv-contrib-python>=4.8")
+	restoreOut, restoreErr := restore.CombinedOutput()
+	emitPipLines(string(restoreOut), onProgress)
+	if restoreErr != nil {
+		return fmt.Errorf("generator: opencv-contrib-python restore failed: %w", restoreErr)
+	}
 	fix := command(py, "-m", "pip", "install", "--upgrade", "opencv-contrib-python>=4.8", "scipy>=1.10", "numpy>=1.24")
 	fixOut, fixErr := fix.CombinedOutput()
 	emitPipLines(string(fixOut), onProgress)
