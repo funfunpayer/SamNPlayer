@@ -30,8 +30,11 @@ Do **not** default 4-zone or Flow.
 ```text
   1. Choose video
   2. Auto: find tip region (classic motion, or AI if checkbox on)
-       — user may correct the box or pick a motion candidate
+       — user may correct the box, or **Show motion candidates**:
+         click = Tip; optional Shift-click / Suggest Tip+2nd = body-part mark
+         (Apply required; never auto-fills Zone 2)
   3. Optional: Contact vibration on (default) · optional Zone 2 “where it vibrates”
+       — pick Zone 2 body-part class (mouth/hand/…) when a 2nd mark exists
   4. Generate → .samn + .funscript
   5. Review & improve: trim start/end · fill gaps · audio check on/off
        — then **Play**: soft curve + keyframe dots (FunGen-like); Edit curve to adjust
