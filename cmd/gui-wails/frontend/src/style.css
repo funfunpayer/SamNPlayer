@@ -1888,16 +1888,16 @@ button.primary:active:not(:disabled) {
 }
 .tr-mosaic-stack {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: 320px;
+  height: 320px;
   margin: 0;
   flex: 0 0 auto;
 }
-/* Clip is the only stroke read (pixelated full woman + contact). */
+/* Clip Vorlage — pixelated full woman + contact (canonical motion read). */
 .tr-mosaic-clip-wrap {
   position: absolute;
   inset: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   background: #050608;
   z-index: 1;

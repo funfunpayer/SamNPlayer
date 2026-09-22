@@ -1,9 +1,9 @@
-/** FunGen-style Training motion: pixelated clip stroke.
+/** Training motion — CANONICAL Vorlage = pixelated clip stroke.
  *
- * Clip frames (heavily mosaic’d from real footage) drive the stroke read —
- * full woman + contact; penis between breasts moves with the training curve.
- * Soft Partner assets remain available for pixelFigureSVG / future mode toggle
- * after Claude’s ring lands; the stage itself is clip-only.
+ * Soft mosaic assets are derived FROM the clip frames (for pixelFigureSVG
+ * callers only). The stage shows only the clip strip: curve → frame
+ * (penis between breasts). Claude’s ring meter stays additionally in
+ * training.js — complementary, not a replacement.
  */
 
 import { figureHeatColor } from './figure_theme.js';
@@ -24,7 +24,7 @@ function frameForLevel(level) {
   return Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(t * (CLIP_COUNT - 1))));
 }
 
-/** @deprecated kept for callers */
+/** @deprecated use clip strip; kept for callers */
 export function pixelPairSVG(opts = {}) {
   const level = Math.max(0, Math.min(1, opts.level ?? 0));
   const fi = frameForLevel(level);
@@ -35,6 +35,7 @@ export function pixelPairSVG(opts = {}) {
   </svg>`;
 }
 
+/** Clip-derived soft mosaics (static callers only — stage uses clip strip). */
 export function pixelFigureSVG(opts = {}) {
   const src = opts.partner ? PARTNER_SRC : YOU_SRC;
   return `<svg class="pixel-figure-svg mosaic-figure-svg" viewBox="0 0 100 100" width="72" height="72"
@@ -44,7 +45,7 @@ export function pixelFigureSVG(opts = {}) {
 }
 
 /**
- * Mount Training stage: pixelated clip only — frames follow stroke curve.
+ * Mount Training stage: clip Vorlage only — frames follow stroke curve.
  */
 export function mountTrainingPixelStage(host) {
   if (!host) {
@@ -59,7 +60,7 @@ export function mountTrainingPixelStage(host) {
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
-          <div class="tr-mosaic-stack" role="img" aria-label="Clip stroke">
+          <div class="tr-mosaic-stack" role="img" aria-label="Clip stroke Vorlage">
             <div class="tr-mosaic-clip-wrap">
               <img class="tr-mosaic-clip" id="tr-mosaic-clip" src="${CLIP_FRAMES[0]}" alt="" draggable="false" />
             </div>

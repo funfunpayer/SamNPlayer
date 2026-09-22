@@ -109,7 +109,7 @@ Device-shell / body-map language.
 | Tokens | `cmd/gui-wails/frontend/src/figure_theme.js` | Claude teal `#3dccc0` + amber `#f2b03d` + heat ramp |
 | Device | `device.js` + `.dev-shell` CSS | Your original shell fill (unchanged; theme mirrors it) |
 | AI Train | `body_figure.js` | Vector body map — now pulls zone CSS from `figure_theme` |
-| Training | `pixel_figure.js` | **Pixelated clip stroke** — curve→frame (penis between breasts). Soft pair assets kept for mode toggle. |
+| Training | `pixel_figure.js` | **CANONICAL Vorlage = pixelated clip stroke** — curve→frame (penis between breasts). Soft assets derived from clip. Ring (Claude) stays zusätzlich. |
 
 **Lane split (owner confirmed 22 Sep):**
 - **Claude (#178):** multi-phase scripts + live intensity **ring** — your lane.
