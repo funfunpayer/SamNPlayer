@@ -93,23 +93,81 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
-| F2 | Cursor | #186 | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **READY** — rebased on #189/#190 |
+| F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
-| T-fix | Cursor | #187 | **Training display residuals** (#185) | **READY** — rebased; ChatGPT verify PASS |
-| E0 | ChatGPT | #185 | Training verify report | **DONE** — close after #187 merges |
+| T-fix | Cursor | #187 merged | **Training display residuals** (#185) | **DONE** (`9815de1`) — close #185 |
+| E0 | ChatGPT | #185 | Training verify report | **DONE** — superseded by #187; close |
 | E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
-| E2 | ChatGPT | `codex/mt-speed-notes-22sep` / [MT_SPEED_NOTES.md](MT_SPEED_NOTES.md) | **MT-Speed notes** — ByteTrack/BoT-SORT; bias **part/class** | **DONE — write-up; measurement pending Owner** |
+| E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
-| R-pose | ChatGPT | [#192](https://github.com/funfunpayer/SamNPlayer/pull/192) / #191 | **PoseObserver concept** | **READY** — merge anytime |
-| V | Owner | local machine | **Clip verify** MT-Go / MT-ID gate | **OWNER only** — cloud agents have no MP4s |
-| C | Claude | [#190](https://github.com/funfunpayer/SamNPlayer/pull/190) merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
+| R-pose | ChatGPT | #192 merged | **PoseObserver concept** (`docs/POSE_OBSERVER.md`) | **DONE** — Stage A after E2 (write-up now done) |
+| QC | Cursor + Claude + ChatGPT | after #193 on `main` | **Tri-agent pre-release code check** — see § below | **QUEUED** (start when #193 merged + owner “QC go”) |
+| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — parallel OK during QC |
+| C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (22 Sep late):**
-- **Owner merge order:** **#187** → **#186**; then #192 anytime. #189/#190 already on main.
-- **ChatGPT:** **E2 write-up DONE** — see `MT_SPEED_NOTES.md`; runtime performance unmeasured. Steward OK.
-- **Claude:** B+C DONE. No cloud clip verify.
-- **Cursor:** both PRs rebased onto main after #189/#190.
+- **Merged:** #186 · #187 · #189 · #190 · #192 · #185 closed.
+- **Open docs:** **#194** then **#193**.
+- **Next (all three agents):** § **Tri-agent pre-release QC** below — after those merge. No release tag until QC + Owner smoke.
+
+### Tri-agent pre-release QC (owner 22 Sep — plan only until gate)
+
+**Goal:** After the current docs wave lands, Cursor + Claude + ChatGPT each
+**read/check** the new code on `main`, file findings, and **fix only in their
+lane**. Everyone can follow along via PR comments + a shared checklist issue.
+
+**Gate to start:** #194 already on `main`; merge **#193** (this board + QC plan), then owner “QC go”.
+Base every QC branch on that tip. **Do not** bump version / tag in this pass.
+
+#### Shared rules
+
+1. One theme per agent (same as always). Claim row in Active before coding a fix.
+2. **Findings first, fixes second.** Post a short checklist comment (PASS / FAIL / N/A + file:line) before opening a fix PR.
+3. Fixes are **small, scoped PRs** — no Everyday default changes, no YOLO-as-Stroke, no Pose Stage A implementation in this pass.
+4. If two agents hit the same bug: first claimer owns the fix; the other reviews.
+5. Report template (comment on the QC tracking PR or #184):
+
+```text
+QC:
+  agent: Cursor | Claude | ChatGPT
+  lane: QC-A | QC-B | QC-C
+  tip: main @ <sha>
+  findings:
+    - [PASS|FAIL|N/A] <item> — <note / file:line>
+  fix_pr: <none | #N>
+```
+
+#### Lanes (parallel, no overlap)
+
+| Lane | Who | Scope (check + may fix) | Do **not** touch |
+|------|-----|-------------------------|------------------|
+| **QC-A** | **Cursor** | Generate GUI / MT-Seed: `generator.js`, `bodyparts.js`, seed tests; Training display: `training.js`, `pixel_figure.js`, lifecycle tests; Everyday docs consistency | `trackcv/`, `simpletrack/`, ffmpeg/proxy |
+| **QC-B** | **Claude** | MT-Debug + MT-Infra: `trackcv`/`simpletrack` trajectory (flag off = byte-identical), Review/Play overlay, `DumpFrameAt`/proxy ctx-kill (#189/#190) | `generator.js` seed UX; Training tab |
+| **QC-C** | **ChatGPT** | Steward verify: CI green on tip; CHANGELOG vs merged PRs; `AGENT_COORD`/`PRODUCTION_ROADMAP` accuracy; spot `MT_SPEED_NOTES` + `POSE_OBSERVER` cross-links; bugfix triage of QC-A/B findings (claim before product fix) | Rewrite coast/reacquire; large feature PRs |
+
+#### Check focus (what “fertig” means for QC)
+
+| Area | Must look good |
+|------|----------------|
+| Everyday Generate | Video → auto tip / candidates → Generate → `.samn`/`.funscript`; AI off by default |
+| MT-Seed | Suggest ≠ auto-commit; Zone 2 never silent-filled; body-part class optional |
+| Training | 16/16 clip frames in build; no ring revive after done; Start race idle |
+| MT-Debug | Capture/overlay **off** by default; no change to Positions/LostFlags when off |
+| MT-Infra | No hung ffmpeg on cancel/seek; no double proxy encode |
+| Docs | Unreleased CHANGELOG matches merges; board Active not stale |
+
+#### After QC
+
+1. Owner runs pre-release checklist (`PRODUCTION_ROADMAP` § Owner pre-release).
+2. Owner optional local clip verify (V) — not a cloud-agent blocker.
+3. Only then: version bump / tag (separate Cursor lane when owner says go).
+
+#### Owner — merge to unlock QC
+
+1. ~~Merge #194~~ **DONE**
+2. Merge **#193** (this PR)
+3. Comment “QC go” on #184 — agents claim QC-A/B/C and start findings
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
@@ -131,24 +189,19 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 #### Claude — next
 
 1. **Done:** #188 + #189 MT-Debug, #190 MT-Infra.
-2. Free unless owner assigns more. Cloud sandbox has **no** golden MP4s.
+2. After owner “QC go”: claim **QC-B** (Debug/Infra check) — findings comment first.
 
-#### ChatGPT — handoff brief (E2 + steward)
+#### ChatGPT — next
 
-**DONE: E2 MT-Speed write-up**
-1. Branch: `codex/mt-speed-notes-<id>` off `main` (docs only).
-2. `docs/MT_SPEED_NOTES.md`: ByteTrack vs BoT-SORT, `imgsz`, detect every N; bias Tip + body-part/class.
-3. Do **not** change Generate defaults.
+1. **Done:** E2 write-up in #194 (`MT_SPEED_NOTES.md`).
+2. Steward continues.
+3. After owner “QC go”: claim **QC-C** (docs/CI/steward verify of tip).
 
-**Standing steward:** PR review, bugfix triage, GitHub cleanup, docs hygiene.
+#### Cursor — next
 
-**PoseObserver (#192):** merge docs anytime; Stage A only after MT-Seed + E2.
-
-**MT-ID:** **Owner** local clip gate only.
-
-#### Cursor — keeps (do not steal)
-
-- **MT-Seed** #186 · **T-fix** #187 — both READY after rebase onto #189/#190.
+1. **Done:** #186 MT-Seed · #187 T-fix.
+2. After owner “QC go”: claim **QC-A** (Generate/Training GUI check) — findings then small fix PRs only.
+3. Version bump / tag **only when owner asks** after QC + smoke.
 
 ---
 
@@ -620,6 +673,10 @@ ring revision before committing.
 | 22 Sep | ChatGPT E: MT-Go unit/race **PASS**; OpenCV local + real-clip MT-ID **BLOCKED** → E2 next | ChatGPT |
 | 22 Sep | Clip verify = **Owner local only** (cloud Claude/ChatGPT have no MP4s) | Owner |
 | 22 Sep | Rebase hygiene + PoseObserver #192 slow path after MT-Seed+E2 | Owner + Cursor |
+| 22 Sep | **#187** Training display + **#186** MT-Seed merged | Cursor |
+| 22 Sep | **#192** PoseObserver concept docs merged (`POSE_OBSERVER.md`) | ChatGPT |
+| 22 Sep | **#194** E2 MT-Speed notes merged (`MT_SPEED_NOTES.md`) | ChatGPT |
+| 22 Sep | Tri-agent pre-release QC planned (QC-A Cursor / QC-B Claude / QC-C ChatGPT) — start after #193 | Owner |
 
 ---
 
