@@ -11,30 +11,55 @@
     "f08.png",
     "f09.png",
     "f10.png",
-    "f11.png"
+    "f11.png",
+    "f12.png",
+    "f13.png",
+    "f14.png",
+    "f15.png"
   ],
   "source_idxs": [
-    520,
-    523,
-    527,
-    531,
-    535,
-    539,
-    542,
-    546,
-    550,
-    554,
-    558,
-    562
+    441,
+    482,
+    453,
+    414,
+    394,
+    393,
+    392,
+    391,
+    368,
+    390,
+    389,
+    370,
+    387,
+    386,
+    384,
+    379
   ],
-  "crop": [
+  "depths": [
+    0.0,
+    0.0673,
+    0.1339,
+    0.1966,
+    0.2663,
+    0.3314,
+    0.402,
+    0.4776,
+    0.5298,
+    0.5645,
+    0.6523,
+    0.7357,
+    0.8071,
+    0.863,
+    0.9403,
+    1.0
+  ],
+  "crop_display": [
     250,
     0,
     1050,
     720
   ],
   "cell": 14,
-  "cycle_start": 520,
-  "cycle_len": 43,
-  "note": "full-woman + contact; level maps f00..f11 along one stroke cycle"
+  "count": 16,
+  "note": "f00=curve0 retracted \u2026 f15=curve1 peak; penis between breasts follows training curve"
 }

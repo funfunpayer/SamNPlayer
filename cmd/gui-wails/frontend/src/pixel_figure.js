@@ -12,14 +12,22 @@ const YOU_SRC = new URL('./assets/images/training-mosaic-you.png', import.meta.u
 const PARTNER_SRC = new URL('./assets/images/training-mosaic-partner.png', import.meta.url).href;
 
 const CLIP_BASE = new URL('./assets/images/training-mosaic-clip/', import.meta.url).href;
-const CLIP_COUNT = 12;
+const CLIP_COUNT = 16;
 const CLIP_FRAMES = Array.from({ length: CLIP_COUNT }, (_, i) =>
   `${CLIP_BASE}f${String(i).padStart(2, '0')}.png`);
+
+/** Map training curve level (0..1) → clip frame index.
+ * f00 = retracted (penis low between breasts), fN = peak (tip toward face).
+ */
+function frameForLevel(level) {
+  const t = Math.max(0, Math.min(1, Number(level) || 0));
+  return Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(t * (CLIP_COUNT - 1))));
+}
 
 /** @deprecated kept for callers */
 export function pixelPairSVG(opts = {}) {
   const level = Math.max(0, Math.min(1, opts.level ?? 0));
-  const fi = Math.min(CLIP_COUNT - 1, Math.floor(level * (CLIP_COUNT - 1)));
+  const fi = frameForLevel(level);
   const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
   return `<svg class="pixel-figure-svg pixel-pair-svg mosaic-pair-svg" viewBox="0 0 140 140"
     width="140" height="140" role="img" aria-label="${aria}">
@@ -47,7 +55,7 @@ export function mountTrainingPixelStage(host) {
     <div class="tr-pixel-card">
       <div class="tr-pixel-head">
         <strong>Motion (pair)</strong>
-        <span class="hint" id="tr-pixel-hint">Pixelated clip — stroke follows training curve</span>
+        <span class="hint" id="tr-pixel-hint">Pixel clip — penis between breasts follows training curve</span>
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
@@ -86,8 +94,8 @@ export function mountTrainingPixelStage(host) {
     displayLevel = level;
     const warm = figureHeatColor(Math.max(0.12, level));
 
-    // Clip frame follows stroke curve (penis / breast contact from footage)
-    const fi = Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(level * (CLIP_COUNT - 1))));
+    // Curve → frame: penis between breasts moves with training intensity
+    const fi = frameForLevel(level);
     const clip = clipEl();
     if (clip && clip.dataset.fi !== String(fi)) {
       clip.dataset.fi = String(fi);
@@ -98,7 +106,7 @@ export function mountTrainingPixelStage(host) {
     if (st) {
       st.style.setProperty('--mosaic-warm', warm);
       st.style.setProperty('--mosaic-overlay', (level * 0.06).toFixed(3));
-      st.setAttribute('aria-label', `Clip stroke ${Math.round(level * 100)}%`);
+      st.setAttribute('aria-label', `Clip stroke ${Math.round(level * 100)}% frame ${fi}`);
     }
 
     const pct = host.querySelector('#tr-pixel-pct');
