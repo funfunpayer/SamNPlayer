@@ -2,6 +2,13 @@ package posttrack
 
 import "sort"
 
+// FindPeaks is the exported form of findPeaks (scipy-compatible subset).
+// Used by strokepreview and other callers that need peak indices without
+// running the full Convert pipeline.
+func FindPeaks(y []float64, distance int, prominence float64) []int {
+	return findPeaks(y, distance, prominence)
+}
+
 // findPeaks mirrors scipy.signal.find_peaks for the subset we use:
 // local maxima, optional minimum distance (samples), optional minimum
 // prominence. Distance selection prefers taller peaks (scipy order).

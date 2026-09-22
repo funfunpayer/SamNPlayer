@@ -43,8 +43,8 @@ A pre-pass can only estimate a *tempo hint*, not the stroke shape.
 | Idea | Fit | Notes |
 |------|-----|--------|
 | **Default-on post-check** | Yes | Already GUI default when ffmpeg present |
-| **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape |
-| **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness |
+| **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape. Stroke preview (Stage A) may supply a *video* tempo hint without audio. |
+| **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness. Prefer `strokepreview.Report.SuggestAudio` after weak/unstable preview. |
 | **Audio-driven chapters** | Later | Energy peaks as chapter candidates — separate from tempo check |
 
 ### Recommended product rule

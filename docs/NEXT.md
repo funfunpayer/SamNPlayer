@@ -18,6 +18,7 @@ Operational checklist. Measurement history stays below; **what's open now**:
 | 10 | Sharper video display | **Closed** (negative) |
 | — | Go-native generator | **Automatic** for single-ROI CSRT (CSRT or simpletrack + dense doctor); special cases still Python |
 | — | Script Doctor / Phase / Signal≠Fidelity | **Done** (v0.5.0) |
+| — | **Stroke preview (extrema + Abtastung)** | **Started** — Stage A library + CLI `stroke-preview` (timing/flags only; not a tracker). Gate: clip_ausschnitt vs hub peaks. See § below. |
 
 Engine direction: [`ENGINE.md`](ENGINE.md). Checklist: [`ROADMAP.md`](ROADMAP.md).
 
@@ -2071,6 +2072,62 @@ git history rather than rebuilding from scratch.
   dominant_period_ms=1500 alternate_lags_ms=[700 800]`) - a real,
   considered result this time, not an artifact. Full writeup:
   `docs/FINDINGS_TIMING_TF.md` § F-003.
+
+## Stroke preview — extrema + Abtastung (owner idea, 22 Sep 2026)
+
+**Idea (owner):** estimate **up-endpoints** and **logical down-points** from
+motion via sparse sampling to get **faster** timing; combine later with
+other modes for accuracy; **audio only when the preview/track looks bad**;
+use the same probe to help flag **hard cuts** and **camera motion**.
+
+**Product rule (locked):** preview is a **Vorstufe**, not a tracker.
+CSRT hub / marked tip / Tf-Tj remain the position path. Audio stays
+post-hoc / gate-only (`docs/AUDIO_WORKFLOW.md`) — never invent 0–100 from
+loudness. Fits G1 classical heuristics (`docs/GENERATE_HEURISTICS.md`),
+not a new GUI backend.
+
+### Stages
+
+| Stage | What ships | Gate |
+|-------|------------|------|
+| **A — sparse probe** | `generator/strokepreview` + CLI `stroke-preview`: peaks/valleys times, stroke Hz hint, cut events, pan share, `quality` ∈ {ok,weak,unstable}, `suggest_audio_check` | Synthetic bounce CI; `clip_ausschnitt` wall-time ≪ CSRT; extrema overlap vs hub peaks (directional) |
+| **B — steer** | Use flags to bias re-anchor / peak distance / “run audio check” after track | Golden Motion Fidelity not worse; audio still never writes actions |
+| **C — extrema as main path** | **Rejected until A/B prove value** | Would need hub-beating numbers |
+
+Related earlier work: `region_fusion` / `region_fusion_auto` were the
+**“Gitter + Abtastung”** position experiment (measured, competitive but not
+default). Stroke preview reuses the *sampling* idea for **timing + flags**,
+not for replacing CSRT.
+
+### CLI
+
+```text
+go run ./cmd/cli stroke-preview /path/to/clip.mp4
+go run ./cmd/cli stroke-preview clip.mp4 --json --max-seconds 50
+```
+
+### First measure target
+
+Known Claude golden: `tmp/clips/clip_ausschnitt_b76a.mp4` vs FunGen
+`ohne_yolo` / committed hub scripts under
+`generator/testdata/golden_clips/clip_ausschnitt_native/`.
+
+**First run (22 Sep, Stage A on this clip):**
+
+| Metric | Value |
+|--------|------:|
+| Wall clock | **~1.1 s** for ~50 s @1280×720 (analysis 12 fps, keep 1/2 → ~167 ms steps) |
+| quality | `ok` (suggest_audio=false) |
+| stroke_hz | ~1.50 |
+| extrema | 62 up / 62 down |
+| cuts | 0 |
+| pan_share | 0.61 (high — flag noisy; stroke still clear) |
+| Peak overlap ±300 ms vs hub | **14/18 = 0.78** |
+| Peak overlap ±300 ms vs FunGen ohne_yolo | **16/25 = 0.64** |
+
+Directional only: preview is not Motion Fidelity. Next (Stage B): use
+cut/pan/weak flags to steer re-anchor + audio gate after CSRT — do not
+replace hub.
 
 ## Product requirements
 

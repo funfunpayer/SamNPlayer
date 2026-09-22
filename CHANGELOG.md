@@ -8,6 +8,15 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Stroke preview (Stage A):** sparse motion probe
+  (`generator/strokepreview`) estimates up/down extrema times, stroke Hz,
+  hard-cut spikes, pan share, and `suggest_audio_check` — timing/flags only,
+  not a funscript. CLI: `stroke-preview VIDEO`. First measure on
+  `clip_ausschnitt`: ~1.1s wall, peak-overlap recall 0.78 vs hub / 0.64 vs
+  FunGen ohne_yolo (±300ms). Docs: `NEXT.md` § Stroke preview.
+
 ## [0.5.21] — September 21, 2026
 
 ### Added

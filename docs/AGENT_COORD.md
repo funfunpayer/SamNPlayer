@@ -90,8 +90,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | #173 merged | fix `dominantPeriodMs` (AliasingRisk period floor) | **DONE** — lane free |
-| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **IN PROGRESS** |
-| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **blocked** — merge conflicts; #119 stays open |
+| A | Cursor | `cursor/release-0-5-21-d7cb` | bump **v0.5.21** + tag | **DONE** (cca7eda) |
+| F | Cursor | #176 | bugfix P0/P1 | **CI green / ready** |
+| G | Cursor | `cursor/stroke-preview-extrema-d7cb` | Stage A stroke preview (extrema + Abtastung) | **IN PROGRESS** |
+| E | ChatGPT | #170 | restore shared cv2 files during AI train deps repair | **superseded by #176** |
 | C | Cursor | #160 merged | TFTJ step 3: two markers + tracked partner | **DONE** — lane free |
 
 ---
