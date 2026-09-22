@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -39,7 +40,12 @@ func (a *App) LoadFrameAt(videoPath string, timeSec float64) (FramePreview, erro
 		return FramePreview{}, err
 	}
 	defer removeFile(tmpPNG)
-	w, h, err := generator.DumpFrameAt(videoPath, tmpPNG, timeSec)
+	// Bounded ctx so a hung/huge-file ffmpeg on a scrub preview can actually
+	// be killed (MT-Infra ctx-kill hygiene) — same pattern as
+	// app_playback_video.go's Probe/EnsurePlayableProxy timeouts.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	w, h, err := generator.DumpFrameAt(ctx, videoPath, tmpPNG, timeSec)
 	if err != nil {
 		// Fall back to Python dump for time 0 if ffmpeg path fails.
 		if timeSec <= 0 {

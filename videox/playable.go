@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -85,69 +86,115 @@ func EnsurePlayableProxy(ctx context.Context, src string, onProgress func(string
 		return "", false, fmt.Errorf("ffmpeg missing — codec %q likely not playable (use portable zip or Settings → Install video tools)", info.Codec)
 	}
 	dst := ProxyPath(src)
-	if st, err := os.Stat(dst); err == nil && !st.IsDir() && st.Size() > 1024 {
-		// Reuse if newer than source.
-		srcSt, _ := os.Stat(src)
-		if srcSt == nil || !srcSt.ModTime().After(st.ModTime()) {
-			if onProgress != nil {
-				onProgress("Existing playable copy: " + filepath.Base(dst))
-			}
-			return dst, true, nil
-		}
-	}
 
-	// Prefer remux when video is already H.264 (no quality loss, much faster).
-	if isH264Family(info.Codec) {
-		if onProgress != nil {
-			onProgress(fmt.Sprintf("Remux to MP4 (stream copy, %s)…", info.Codec))
-		}
-		if err := remuxCopyMP4(ctx, src, dst); err == nil {
-			if onProgress != nil {
-				onProgress("Done (remux): " + filepath.Base(dst))
+	// Single-owner decode (MT-Infra): dst is a deterministic sibling path
+	// with no lock before this — two overlapping calls for the same src
+	// (e.g. a double-click on "Make playable" before the first finishes)
+	// would otherwise launch two ffmpeg writers on the same dst file.
+	// Concurrent callers for the same dst wait for the first and share its
+	// result instead.
+	return singleflightProxy(dst, func() (string, bool, error) {
+		if st, err := os.Stat(dst); err == nil && !st.IsDir() && st.Size() > 1024 {
+			// Reuse if newer than source.
+			srcSt, _ := os.Stat(src)
+			if srcSt == nil || !srcSt.ModTime().After(st.ModTime()) {
+				if onProgress != nil {
+					onProgress("Existing playable copy: " + filepath.Base(dst))
+				}
+				return dst, true, nil
 			}
-			return dst, true, nil
 		}
-		_ = os.Remove(dst)
-		if onProgress != nil {
-			onProgress("Remux failed — re-encoding…")
-		}
-	}
 
-	if onProgress != nil {
-		onProgress(fmt.Sprintf("Converting to H.264/AAC (%s → mp4)…", info.Codec))
-	}
-	args := []string{
-		"-y", "-hide_banner", "-loglevel", "error",
-		"-i", src,
-		"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-		"-pix_fmt", "yuv420p",
-	}
-	w, _ := info.Rotated()
-	if w > SoftProxyMaxWidth {
-		// Soft Lanczos downscale only — never upscale in the proxy.
-		args = append(args, "-vf", fmt.Sprintf("scale='min(%d,iw)':-2:flags=lanczos", SoftProxyMaxWidth))
-	}
-	args = append(args,
-		"-c:a", "aac", "-b:a", "160k",
-		"-movflags", "+faststart",
-		dst,
-	)
-	cmd, err := CommandContext(ctx, args...)
-	if err != nil {
-		return "", false, err
-	}
-	if b, err := cmd.CombinedOutput(); err != nil {
-		_ = os.Remove(dst)
-		msg := strings.TrimSpace(string(b))
-		if msg == "" {
-			msg = err.Error()
+		// Prefer remux when video is already H.264 (no quality loss, much faster).
+		if isH264Family(info.Codec) {
+			if onProgress != nil {
+				onProgress(fmt.Sprintf("Remux to MP4 (stream copy, %s)…", info.Codec))
+			}
+			if err := remuxCopyMP4(ctx, src, dst); err == nil {
+				if onProgress != nil {
+					onProgress("Done (remux): " + filepath.Base(dst))
+				}
+				return dst, true, nil
+			}
+			_ = os.Remove(dst)
+			if onProgress != nil {
+				onProgress("Remux failed — re-encoding…")
+			}
 		}
-		return "", false, fmt.Errorf("ffmpeg: %s", msg)
+
+		if onProgress != nil {
+			onProgress(fmt.Sprintf("Converting to H.264/AAC (%s → mp4)…", info.Codec))
+		}
+		args := []string{
+			"-y", "-hide_banner", "-loglevel", "error",
+			"-i", src,
+			"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+			"-pix_fmt", "yuv420p",
+		}
+		w, _ := info.Rotated()
+		if w > SoftProxyMaxWidth {
+			// Soft Lanczos downscale only — never upscale in the proxy.
+			args = append(args, "-vf", fmt.Sprintf("scale='min(%d,iw)':-2:flags=lanczos", SoftProxyMaxWidth))
+		}
+		args = append(args,
+			"-c:a", "aac", "-b:a", "160k",
+			"-movflags", "+faststart",
+			dst,
+		)
+		cmd, err := CommandContext(ctx, args...)
+		if err != nil {
+			return "", false, err
+		}
+		if b, err := cmd.CombinedOutput(); err != nil {
+			_ = os.Remove(dst)
+			msg := strings.TrimSpace(string(b))
+			if msg == "" {
+				msg = err.Error()
+			}
+			return "", false, fmt.Errorf("ffmpeg: %s", msg)
+		}
+		if onProgress != nil {
+			onProgress("Fertig: " + filepath.Base(dst))
+		}
+		return dst, true, nil
+	})
+}
+
+var (
+	proxyFlightMu sync.Mutex
+	proxyFlight   = map[string]*proxyCall{}
+)
+
+// proxyCall is the in-flight/most-recent result for one dst path.
+type proxyCall struct {
+	wg        sync.WaitGroup
+	outPath   string
+	converted bool
+	err       error
+}
+
+// singleflightProxy runs fn for dst, or — if another goroutine is already
+// running it for the same dst — waits and returns that call's result
+// instead of starting a second ffmpeg process on the same output file.
+func singleflightProxy(dst string, fn func() (string, bool, error)) (string, bool, error) {
+	proxyFlightMu.Lock()
+	if c, ok := proxyFlight[dst]; ok {
+		proxyFlightMu.Unlock()
+		c.wg.Wait()
+		return c.outPath, c.converted, c.err
 	}
-	if onProgress != nil {
-		onProgress("Fertig: " + filepath.Base(dst))
-	}
-	return dst, true, nil
+	c := &proxyCall{}
+	c.wg.Add(1)
+	proxyFlight[dst] = c
+	proxyFlightMu.Unlock()
+
+	c.outPath, c.converted, c.err = fn()
+
+	proxyFlightMu.Lock()
+	delete(proxyFlight, dst)
+	proxyFlightMu.Unlock()
+	c.wg.Done()
+	return c.outPath, c.converted, c.err
 }
 
 func remuxCopyMP4(ctx context.Context, src, dst string) error {

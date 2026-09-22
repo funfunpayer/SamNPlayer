@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,11 +12,14 @@ import (
 
 // DumpFrameAt extracts a single PNG frame at timeSec (seconds from start)
 // via ffmpeg — no Python. Used for seek-past-black-intro in the GUI.
-func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height int, err error) {
+// ctx may be nil (treated as context.Background by videox.CommandContext),
+// but callers should pass a bounded context so a hung/huge-file ffmpeg can
+// actually be killed instead of leaking (MT-Infra ctx-kill hygiene).
+func DumpFrameAt(ctx context.Context, videoPath, outputPNG string, timeSec float64) (width, height int, err error) {
 	if timeSec < 0 {
 		timeSec = 0
 	}
-	cmd, err := videox.CommandContext(nil,
+	cmd, err := videox.CommandContext(ctx,
 		"-v", "error", "-y",
 		"-ss", strconv.FormatFloat(timeSec, 'f', 3, 64),
 		"-i", videoPath,
@@ -30,7 +34,7 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 	if err != nil {
 		return 0, 0, fmt.Errorf("generator: Frame bei %.2fs fehlgeschlagen: %w\n%s", timeSec, err, string(out))
 	}
-	probe, err := videox.ProbeCommandContext(nil, "-v", "error", "-select_streams", "v:0",
+	probe, err := videox.ProbeCommandContext(ctx, "-v", "error", "-select_streams", "v:0",
 		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", outputPNG)
 	if err != nil {
 		w, h, err2 := pngSize(outputPNG)
@@ -67,8 +71,8 @@ func DumpFrameAt(videoPath, outputPNG string, timeSec float64) (width, height in
 
 // DumpFirstFrameFast is ffmpeg-based first-frame dump (no Python). Prefer
 // this over DumpFirstFrame when Python deps are unavailable.
-func DumpFirstFrameFast(videoPath, outputPNG string) (width, height int, err error) {
-	return DumpFrameAt(videoPath, outputPNG, 0)
+func DumpFirstFrameFast(ctx context.Context, videoPath, outputPNG string) (width, height int, err error) {
+	return DumpFrameAt(ctx, videoPath, outputPNG, 0)
 }
 
 func pngSize(path string) (int, int, error) {

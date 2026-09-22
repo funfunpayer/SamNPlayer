@@ -21,6 +21,14 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **FFmpeg process hygiene (MT-Infra):** frame-preview grabs (`DumpFrameAt`,
+  used on every Generate scrub/seek) and the training-dataset still/audio
+  helpers used to launch ffmpeg/ffprobe with no context at all — a hung or
+  oversized file could leave an unkillable process running forever. All now
+  run under a bounded context. Separately, two overlapping "Make playable"
+  proxy requests for the same video (e.g. a double-click before the first
+  finishes) could start two ffmpeg encoders writing the same output file;
+  concurrent calls now share one in-flight run instead.
 - **Tf/Tj partner coast (MT-Go):** brief tracker misses on tip/partner now
   coast ~8 frames (last velocity / hold) before excluding from distance
   fusion; OpenCV path also reacquires via appearance memory into the **same**

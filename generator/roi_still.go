@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/funfunpayer/SamNPlayer/videox"
 )
@@ -151,8 +153,16 @@ func stillImageSize(path string) (int, int, error) {
 	return w, h, nil
 }
 
+// Bounded, per-call contexts (rather than nil/Background) so a hung or
+// oversized still/clip can't leave an unkillable ffmpeg/ffprobe process
+// behind — MT-Infra ctx-kill hygiene. This tooling has no natural caller
+// context to thread through (dataset bootstrap, not a live request), so
+// each function derives its own budget instead of accepting a ctx param.
+
 func imageSizeViaFFmpeg(path string) (int, int, error) {
-	cmd, err := videox.ProbeCommandContext(nil, "-v", "error", "-select_streams", "v:0",
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd, err := videox.ProbeCommandContext(ctx, "-v", "error", "-select_streams", "v:0",
 		"-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", path)
 	if err != nil {
 		return 0, 0, fmt.Errorf("ffprobe nicht gefunden")
@@ -174,7 +184,9 @@ func imageSizeViaFFmpeg(path string) (int, int, error) {
 }
 
 func convertStillToJPEG(src, dst string) error {
-	cmd, err := videox.CommandContext(nil, "-v", "error", "-y", "-i", src, "-q:v", "2", dst)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	cmd, err := videox.CommandContext(ctx, "-v", "error", "-y", "-i", src, "-q:v", "2", dst)
 	if err != nil {
 		return fmt.Errorf("ffmpeg not found (needed for WebP/HEIC stills)")
 	}
@@ -202,7 +214,9 @@ func ExtractTrainingAudio(videoPath, outputDir, samplePrefix string, startSecond
 		args = append(args, "-ss", strconv.FormatFloat(startSeconds, 'f', 3, 64))
 	}
 	args = append(args, "-i", videoPath, "-vn", "-ac", "1", "-ar", "16000", out)
-	cmd, err := videox.CommandContext(nil, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	cmd, err := videox.CommandContext(ctx, args...)
 	if err != nil {
 		return "", fmt.Errorf("ffmpeg nicht gefunden")
 	}
