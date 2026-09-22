@@ -1,8 +1,9 @@
-/** FunGen-style Training motion: pixelated clip stroke + soft Partner ♀ cue.
+/** FunGen-style Training motion: pixelated clip stroke.
  *
  * Clip frames (heavily mosaic’d from real footage) drive the stroke read —
- * breasts / contact motion. Soft Partner silhouette is a feminine bounce cue
- * beside the clip (no muscle; man silhouette not shown).
+ * full woman + contact; penis between breasts moves with the training curve.
+ * Soft Partner assets remain available for pixelFigureSVG / future mode toggle
+ * after Claude’s ring lands; the stage itself is clip-only.
  */
 
 import { figureHeatColor } from './figure_theme.js';
@@ -22,7 +23,7 @@ export function pixelPairSVG(opts = {}) {
   const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
   return `<svg class="pixel-figure-svg pixel-pair-svg mosaic-pair-svg" viewBox="0 0 140 140"
     width="140" height="140" role="img" aria-label="${aria}">
-    <image href="${CLIP_FRAMES[fi]}" x="0" y="0" width="140" height="140" preserveAspectRatio="xMidYMid slice"/>
+    <image href="${CLIP_FRAMES[fi]}" x="0" y="0" width="140" height="140" preserveAspectRatio="xMidYMid meet"/>
   </svg>`;
 }
 
@@ -35,8 +36,7 @@ export function pixelFigureSVG(opts = {}) {
 }
 
 /**
- * Mount Training stage: pixelated clip stroke is primary.
- * Soft Partner ♀ is a small feminine cue beside the clip (not overlaid).
+ * Mount Training stage: pixelated clip only — frames follow stroke curve.
  */
 export function mountTrainingPixelStage(host) {
   if (!host) {
@@ -47,18 +47,15 @@ export function mountTrainingPixelStage(host) {
     <div class="tr-pixel-card">
       <div class="tr-pixel-head">
         <strong>Motion (pair)</strong>
-        <span class="hint" id="tr-pixel-hint">Pixelated clip (breasts / contact) · soft Partner ♀</span>
+        <span class="hint" id="tr-pixel-hint">Pixelated clip — stroke follows training curve</span>
       </div>
       <div class="tr-pixel-body">
         <div class="tr-pixel-main tr-mosaic-main" id="tr-pixel-main">
-          <div class="tr-mosaic-stack" role="img" aria-label="Woman on man">
+          <div class="tr-mosaic-stack" role="img" aria-label="Clip stroke">
             <div class="tr-mosaic-clip-wrap">
               <img class="tr-mosaic-clip" id="tr-mosaic-clip" src="${CLIP_FRAMES[0]}" alt="" draggable="false" />
             </div>
             <div class="tr-mosaic-ground" aria-hidden="true"></div>
-          </div>
-          <div class="tr-mosaic-soft-cue" id="tr-mosaic-partner" aria-hidden="true">
-            <img class="tr-mosaic-cue-img tr-mosaic-woman" src="${PARTNER_SRC}" alt="" draggable="false" />
           </div>
         </div>
         <div class="tr-pixel-meta">
@@ -69,7 +66,7 @@ export function mountTrainingPixelStage(host) {
       </div>
       <div class="tr-pixel-labels tr-mosaic-labels tr-mosaic-labels-stack">
         <span>Clip (pixel)</span>
-        <span>Partner ♀ soft</span>
+        <span>Curve → frame</span>
       </div>
     </div>`;
 
@@ -82,27 +79,14 @@ export function mountTrainingPixelStage(host) {
   let displayLevel = 0;
   let raf = 0;
 
-  const partnerEl = () => host.querySelector('#tr-mosaic-partner');
   const clipEl = () => host.querySelector('#tr-mosaic-clip');
-  const herImg = () => host.querySelector('.tr-mosaic-woman');
   const stackEl = () => host.querySelector('.tr-mosaic-stack');
 
   function applyLevel(level) {
     displayLevel = level;
-    // Soft Partner ♀ bounce (side cue — clip carries the real stroke)
-    const bodyY = Math.round(4 - level * 28);
     const warm = figureHeatColor(Math.max(0.12, level));
-    const herFilter = level < 0.05
-      ? 'saturate(1.08) brightness(1.1) hue-rotate(-4deg)'
-      : `saturate(${1.12 + level * 0.22}) brightness(${1.06 + level * 0.1}) hue-rotate(-8deg)`;
-    const herScale = 1 + level * 0.08;
 
-    const p = partnerEl();
-    if (p) p.style.transform = `translateY(${bodyY}px) scale(${herScale})`;
-    const hi = herImg();
-    if (hi) hi.style.filter = herFilter;
-
-    // Clip frame follows stroke (pixelated breasts / contact from footage)
+    // Clip frame follows stroke curve (penis / breast contact from footage)
     const fi = Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(level * (CLIP_COUNT - 1))));
     const clip = clipEl();
     if (clip && clip.dataset.fi !== String(fi)) {
@@ -113,14 +97,14 @@ export function mountTrainingPixelStage(host) {
     const st = stackEl();
     if (st) {
       st.style.setProperty('--mosaic-warm', warm);
-      st.style.setProperty('--mosaic-overlay', (level * 0.08).toFixed(3));
-      st.setAttribute('aria-label', `Woman on man ${Math.round(level * 100)}%`);
+      st.style.setProperty('--mosaic-overlay', (level * 0.06).toFixed(3));
+      st.setAttribute('aria-label', `Clip stroke ${Math.round(level * 100)}%`);
     }
 
     const pct = host.querySelector('#tr-pixel-pct');
     if (pct) {
       pct.textContent = intensity > 0
-        ? `${Math.round(intensity * 100)}% · ${level > 0.55 ? 'up' : 'down'}`
+        ? `${Math.round(intensity * 100)}% · ${level > 0.55 ? 'up' : 'down'} · f${String(fi).padStart(2, '0')}`
         : 'Idle';
     }
     const tech = host.querySelector('#tr-pixel-tech');

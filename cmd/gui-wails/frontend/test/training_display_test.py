@@ -72,8 +72,9 @@ def main():
         check("Pixel-Paar-Stage ist da",
               page.locator("#tr-pixel-stage .tr-mosaic-stack").count() == 1)
         check("You/Partner-Labels",
-              "Partner" in page.locator(".tr-pixel-labels").inner_text()
-              and ("Clip" in page.locator(".tr-pixel-labels").inner_text()
+              "Clip" in page.locator(".tr-pixel-labels").inner_text()
+              and ("Curve" in page.locator(".tr-pixel-labels").inner_text()
+                   or "Partner" in page.locator(".tr-pixel-labels").inner_text()
                    or "You" in page.locator(".tr-pixel-labels").inner_text()))
         check("Clip-Pixel-Strip geladen",
               page.locator("#tr-pixel-stage .tr-mosaic-clip").count() == 1)

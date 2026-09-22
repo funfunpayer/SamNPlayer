@@ -1,1 +1,40 @@
-["f00.png", "f01.png", "f02.png", "f03.png", "f04.png", "f05.png", "f06.png", "f07.png", "f08.png", "f09.png", "f10.png", "f11.png"]
+{
+  "frames": [
+    "f00.png",
+    "f01.png",
+    "f02.png",
+    "f03.png",
+    "f04.png",
+    "f05.png",
+    "f06.png",
+    "f07.png",
+    "f08.png",
+    "f09.png",
+    "f10.png",
+    "f11.png"
+  ],
+  "source_idxs": [
+    520,
+    523,
+    527,
+    531,
+    535,
+    539,
+    542,
+    546,
+    550,
+    554,
+    558,
+    562
+  ],
+  "crop": [
+    250,
+    0,
+    1050,
+    720
+  ],
+  "cell": 14,
+  "cycle_start": 520,
+  "cycle_len": 43,
+  "note": "full-woman + contact; level maps f00..f11 along one stroke cycle"
+}
