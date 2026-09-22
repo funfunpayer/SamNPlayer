@@ -16,6 +16,16 @@ export const CANONICAL = [
 
 export const CLASS_PRESETS = CANONICAL.map(p => p.id);
 
+/** Zone 2 / contact proposals — body-part first (not generic "Partner"). */
+export const CONTACT_CLASS_ORDER = [
+  'mouth', 'hand_1', 'hand_2', 'vagina', 'nipples', 'breasts', 'face',
+];
+
+/** Zone 1 tip proposals — glans/penis preferred for Everyday CSRT. */
+export const TIP_CLASS_ORDER = [
+  'glans', 'penis', 'hand_1', 'hand_2',
+];
+
 const ALIAS = (() => {
   const m = Object.create(null);
   for (const p of CANONICAL) {
@@ -40,6 +50,24 @@ export function labelFor(id) {
   const n = normalizeClass(id);
   const hit = CANONICAL.find(p => p.id === n);
   return hit ? hit.label : (id || '');
+}
+
+/** Ordered CANONICAL entries for a select; leftovers appended in taxonomy order. */
+export function orderedCanonical(preferIds) {
+  const seen = new Set();
+  const out = [];
+  for (const id of preferIds || []) {
+    const n = normalizeClass(id);
+    const hit = CANONICAL.find(p => p.id === n);
+    if (hit && !seen.has(hit.id)) {
+      seen.add(hit.id);
+      out.push(hit);
+    }
+  }
+  for (const p of CANONICAL) {
+    if (!seen.has(p.id)) out.push(p);
+  }
+  return out;
 }
 
 export function defaultRole(classId) {

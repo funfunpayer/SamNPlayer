@@ -1,5 +1,8 @@
 import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve } from '../wailsjs/go/main/App';
-import { CANONICAL } from './bodyparts.js';
+import {
+  CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
+  labelFor, normalizeClass, orderedCanonical,
+} from './bodyparts.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
@@ -41,9 +44,9 @@ export function initGenerator(root, playback) {
         <button id="gen-autoroi" class="primary" disabled
           data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows ranked motion regions (MT-Seed). Click = Tip (Zone 1). Optional: Shift-click / Zone 2 mode = second mark (contact or body-part region) — never auto-filled. Everyday = tip alone is enough.">Show motion candidates</button>
+          data-help="Shows ranked motion regions (MT-Seed). Click = Tip (Zone 1). Optional: Shift-click / Zone 2 mode = second body-part mark (mouth/hand/…) — never auto-filled. Everyday = tip alone is enough.">Show motion candidates</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
-          data-help="MT-Seed: proposes Tip (#1) + optional second region (#2 non-overlapping). Apply required. Skip for Everyday tip-CSRT — Partner is not the default product path.">Suggest Tip+2nd</button>
+          data-help="MT-Seed: proposes Tip (#1) + optional second body-part region (#2 non-overlapping). Apply required. Skip for Everyday tip-CSRT — Partner is not the default product path.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
         <button id="gen-nomark" type="button" disabled
           data-help="Advanced / weaker on measured clip (windowed r≈0.36 vs CSRT hub ≈0.59). Whole-frame 4-zone — opt-in only, not the everyday default.">4-zone (advanced)</button>
@@ -101,9 +104,9 @@ export function initGenerator(root, playback) {
         <select id="gen-region-class" style="min-width:8em;">
           <option value="">(any)</option>
         </select>
-        <label style="width:auto;" data-help="Zone 2 class — partner / contact target. Used for tip↔partner distance on Tf/Tj. On Stroke profiles the mark is stored for later; Contact vib still uses stroke depth.">Zone 2 (contact)</label>
+        <label style="width:auto;" data-help="Zone 2 body-part class (mouth, hand, …) — preferred over a nameless Partner. Used for tip↔partner distance on Tf/Tj. On Stroke the mark is stored for later; Contact vib still uses stroke depth.">Zone 2 (body-part)</label>
         <select id="gen-region-class2" style="min-width:8em;">
-          <option value="">(any)</option>
+          <option value="">(pick class)</option>
         </select>
         <label class="checkbox-row" style="margin:0;"
           data-help="Keep Zone 2 at the marked box (static). Off = track the partner (default when contact vibration is on — scene/camera motion stays in sync). On only when the contact target barely moves.">
@@ -494,7 +497,7 @@ export function initGenerator(root, playback) {
       ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels)`
       : 'No region marked';
     el('#gen-roi2-label').textContent = roi2
-      ? `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, gold)`
+      ? secondRegionLabel(roi2, 'gold')
       : 'No 2nd region marked';
     const extras = el('#gen-extras-label');
     if (extras) {
@@ -730,7 +733,7 @@ export function initGenerator(root, playback) {
     ctx.restore();
   }
 
-  // MT-Seed: IoU gate so Tip+Partner suggestions stay spatially distinct.
+  // MT-Seed: IoU gate so Tip+2nd suggestions stay spatially distinct.
   function boxesOverlap(a, b, iouThresh = 0.25) {
     if (!a || !b) return false;
     const ax2 = a.x + a.w, ay2 = a.y + a.h;
@@ -741,6 +744,47 @@ export function initGenerator(root, playback) {
     if (inter <= 0) return false;
     const union = a.w * a.h + b.w * b.h - inter;
     return union > 0 && (inter / union) >= iouThresh;
+  }
+
+  function regionClass2Value() {
+    return normalizeClass(el('#gen-region-class2')?.value || '');
+  }
+
+  function regionClass1Value() {
+    return normalizeClass(el('#gen-region-class')?.value || '');
+  }
+
+  /** Apply optional body-part class on Zone 2 (suggest ≠ invent Partner). */
+  function applySecondClassFromCandidate(c) {
+    const sel = el('#gen-region-class2');
+    if (!sel) return '';
+    const fromCand = normalizeClass(c?.class || '');
+    if (fromCand) {
+      if (![...sel.options].some(o => o.value === fromCand)) {
+        const opt = document.createElement('option');
+        opt.value = fromCand;
+        opt.textContent = labelFor(fromCand) || fromCand;
+        sel.appendChild(opt);
+      }
+      sel.value = fromCand;
+      return fromCand;
+    }
+    return regionClass2Value();
+  }
+
+  function secondRegionLabel(roiBox, via) {
+    const cls = regionClass2Value();
+    const clsTag = cls ? `, ${labelFor(cls) || cls}` : '';
+    return `2nd region: x=${roiBox.x} y=${roiBox.y} w=${roiBox.w} h=${roiBox.h}`
+      + ` (video pixels${via ? `, ${via}` : ''}${clsTag})`;
+  }
+
+  function nudgeZone2ClassIfEmpty() {
+    const sel = el('#gen-region-class2');
+    if (!sel || sel.value) return '';
+    sel.style.outline = '2px solid rgba(242,176,61,0.85)';
+    setTimeout(() => { if (sel) sel.style.outline = ''; }, 2400);
+    return ' Pick Zone 2 body-part class (mouth/hand/…) — Partner is not the default.';
   }
 
   /** Ranked list → Tip (#1) + first non-overlapping partner. Suggest only. */
@@ -797,18 +841,35 @@ export function initGenerator(root, playback) {
     const { tip, partner } = pendingSeed;
     roi = { x: tip.x, y: tip.y, w: tip.w, h: tip.h };
     roi2 = { x: partner.x, y: partner.y, w: partner.w, h: partner.h };
+    const tipCls = normalizeClass(tip.class || '');
+    if (tipCls && el('#gen-region-class')) {
+      const sel = el('#gen-region-class');
+      if (![...sel.options].some(o => o.value === tipCls)) {
+        const opt = document.createElement('option');
+        opt.value = tipCls;
+        opt.textContent = labelFor(tipCls) || tipCls;
+        sel.appendChild(opt);
+      }
+      sel.value = tipCls;
+    }
+    applySecondClassFromCandidate(partner);
     clearPendingSeed();
     setRoi2Mode(false);
     updateRoiLabels();
     updateProfileUi();
     updateGenerateEnabled();
     autoApplyPipeline();
+    const tipTag = regionClass1Value()
+      ? `, ${labelFor(regionClass1Value())}` : '';
     el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, Tip candidate #${tip.index})`;
+      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
+      + ` (video pixels, Tip candidate #${tip.index}${tipTag})`;
     el('#gen-roi2-label').textContent =
-      `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, 2nd candidate #${partner.index})`;
+      secondRegionLabel(roi2, `2nd candidate #${partner.index}`);
+    const nudge = nudgeZone2ClassIfEmpty();
     el('#gen-status').textContent =
-      `Tip #${tip.index} + 2nd #${partner.index} applied — correct by hand if needed. Zone 2 was never auto-filled.`;
+      `Tip #${tip.index} + 2nd #${partner.index} applied — correct by hand if needed.`
+      + ` Zone 2 was never auto-filled.${nudge}`;
     redraw();
   }
 
@@ -836,6 +897,10 @@ export function initGenerator(root, playback) {
     let label = '#' + (c.index || '?');
     if (isTip) label += ' Tip';
     else if (isPartner) label += ' 2nd';
+    const cls = normalizeClass(c.class || '')
+      || (isPartner ? regionClass2Value() : '')
+      || (isTip ? regionClass1Value() : '');
+    if (cls) label += ' ' + (labelFor(cls) || cls);
     ctx.setLineDash([]);
     ctx.font = '600 13px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(10, 20, 30, 0.75)';
@@ -863,17 +928,19 @@ export function initGenerator(root, playback) {
     return best;
   }
 
-  /** zone 1 = tip, zone 2 = partner. Never fills the other zone (issue #8). */
+  /** zone 1 = tip, zone 2 = body-part / contact. Never fills the other zone (issue #8). */
   function pickCandidate(c, zone = 1) {
     if (!c) return;
     if (zone === 2) {
       roi2 = { x: c.x, y: c.y, w: c.w, h: c.h };
+      applySecondClassFromCandidate(c);
       setRoi2Mode(false);
       updateRoiLabels();
       updateGenerateEnabled();
       el('#gen-roi2-label').textContent =
-        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, candidate #${c.index})`;
-      const msg = `2nd mark set from candidate #${c.index} — correct by hand if needed.`;
+        secondRegionLabel(roi2, `candidate #${c.index}`);
+      const nudge = nudgeZone2ClassIfEmpty();
+      const msg = `2nd mark set from candidate #${c.index} — correct by hand if needed.${nudge}`;
       el('#gen-status').textContent = msg;
       redraw();
       // Re-assert status after pipeline hint (SuggestPipeline → updateProfileUi).
@@ -881,13 +948,27 @@ export function initGenerator(root, playback) {
       return;
     }
     roi = { x: c.x, y: c.y, w: c.w, h: c.h };
+    const tipCls = normalizeClass(c.class || '');
+    if (tipCls && el('#gen-region-class')) {
+      const sel = el('#gen-region-class');
+      if (![...sel.options].some(o => o.value === tipCls)) {
+        const opt = document.createElement('option');
+        opt.value = tipCls;
+        opt.textContent = labelFor(tipCls) || tipCls;
+        sel.appendChild(opt);
+      }
+      sel.value = tipCls;
+    }
     // Never auto-fill Zone 2 from a Zone 1 pick (issue #8 / TFTJ 4b / MT-Seed).
     updateRoiLabels();
     updateGenerateEnabled();
+    const tipTag = regionClass1Value()
+      ? `, ${labelFor(regionClass1Value())}` : '';
     el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, candidate #${c.index})`;
+      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
+      + ` (video pixels, candidate #${c.index}${tipTag})`;
     const msg =
-      `Tip set from candidate #${c.index} — optional: Shift-click a 2nd mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
+      `Tip set from candidate #${c.index} — optional: Shift-click a 2nd body-part mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
     el('#gen-status').textContent = msg;
     redraw();
     autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
@@ -1699,6 +1780,7 @@ export function initGenerator(root, playback) {
       x: c.x, y: c.y, w: c.w, h: c.h,
       score: c.score || 0,
       index: c.index || (i + 1),
+      class: normalizeClass(c.class || c.label || ''),
     }));
     clearPendingSeed();
     if (!candidates.length) {
@@ -1709,7 +1791,7 @@ export function initGenerator(root, playback) {
     }
     setSeedSuggestEnabled(candidates.length >= 2);
     el('#gen-status').textContent = candidates.length >= 2
-      ? `${candidates.length} motion candidates — click Tip; optional Shift-click 2nd mark or Suggest Tip+2nd (Apply). Tip alone = Everyday.`
+      ? `${candidates.length} motion candidates — click Tip; optional Shift-click 2nd body-part or Suggest Tip+2nd (Apply). Tip alone = Everyday.`
       : `1 motion candidate — click to set Tip (Zone 1). Zone 2 never auto-filled.`;
     redraw();
   });
@@ -1771,17 +1853,28 @@ export function initGenerator(root, playback) {
     }
   });
 
-  // Body-part class selects (docs/BODY_REGIONS.md)
-  for (const selId of ['#gen-region-class', '#gen-region-class2', '#gen-target-class']) {
+  // Body-part class selects (docs/BODY_REGIONS.md) — tip-first / contact-first.
+  const fillClassSelect = (selId, preferIds) => {
     const sel = el(selId);
-    if (!sel) continue;
-    for (const p of CANONICAL) {
+    if (!sel) return;
+    for (const p of orderedCanonical(preferIds)) {
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.label;
       sel.appendChild(opt);
     }
-  }
+  };
+  fillClassSelect('#gen-region-class', TIP_CLASS_ORDER);
+  fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
+  fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
+  el('#gen-region-class2')?.addEventListener('change', () => {
+    const sel = el('#gen-region-class2');
+    if (sel) sel.style.outline = '';
+    if (roi2) {
+      el('#gen-roi2-label').textContent = secondRegionLabel(roi2);
+      redraw();
+    }
+  });
   el('#gen-roi2-fixed')?.addEventListener('change', () => {
     el('#gen-roi2-fixed').dataset.userTouched = '1';
   });

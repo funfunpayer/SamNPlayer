@@ -50,7 +50,8 @@ type ROI struct {
 }
 
 // ROICandidate is a ranked motion-region proposal for GUI pick-primary (TFTJ 4b).
-// Never auto-applied as ROI2.
+// Never auto-applied as ROI2. Optional Class is a body-part id when a detector
+// provides one (MT-Seed); empty for classical motion candidates.
 type ROICandidate struct {
 	X     int     `json:"x"`
 	Y     int     `json:"y"`
@@ -58,6 +59,7 @@ type ROICandidate struct {
 	H     int     `json:"h"`
 	Score float64 `json:"score"`
 	Index int     `json:"index"` // 1-based rank
+	Class string  `json:"class,omitempty"`
 }
 
 // NamedROI is a body-part box with optional fixed flag (Tf/Tj target / mask).

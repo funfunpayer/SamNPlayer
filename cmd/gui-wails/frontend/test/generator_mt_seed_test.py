@@ -29,8 +29,8 @@ TINY_PNG_B64 = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
                 "+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 
 CANDIDATES = [
-    {"x": 40, "y": 40, "w": 80, "h": 80, "score": 0.9, "index": 1},
-    {"x": 400, "y": 200, "w": 90, "h": 70, "score": 0.7, "index": 2},
+    {"x": 40, "y": 40, "w": 80, "h": 80, "score": 0.9, "index": 1, "class": "glans"},
+    {"x": 400, "y": 200, "w": 90, "h": 70, "score": 0.7, "index": 2, "class": "mouth"},
     {"x": 200, "y": 120, "w": 60, "h": 60, "score": 0.5, "index": 3},
 ]
 
@@ -128,7 +128,13 @@ def main():
             timeout=5000)
         check("Shift-click sets Zone 2 from candidate #2",
               "candidate #2" in page.locator("#gen-roi2-label").inner_text())
+        check("Shift-click applies body-part class from candidate",
+              page.eval_on_selector("#gen-region-class2", "e => e.value") == "mouth")
+        check("Zone 2 label shows Mouth class",
+              "Mouth" in page.locator("#gen-roi2-label").inner_text())
 
+        # Clear class to verify Apply nudge path still seeds boxes.
+        page.select_option("#gen-region-class2", "")
         page.click("#gen-seed-suggest")
         page.wait_for_function(
             "() => document.querySelector('#gen-seed-status')"
@@ -156,8 +162,20 @@ def main():
         check("Apply seeds Tip #1 + 2nd #2",
               "Tip candidate #1" in page.locator("#gen-roi-label").inner_text()
               and "2nd candidate #2" in page.locator("#gen-roi2-label").inner_text())
+        check("Apply restores mouth class from 2nd candidate",
+              page.eval_on_selector("#gen-region-class2", "e => e.value") == "mouth")
+        check("Apply sets tip class from candidate when present",
+              page.eval_on_selector("#gen-region-class", "e => e.value") == "glans")
         check("Generate ready after Tip+2nd Apply",
               page.locator("#gen-generate").is_enabled())
+
+        # Contact-first Zone 2 dropdown (mouth before glans).
+        z2_opts = page.eval_on_selector(
+            "#gen-region-class2",
+            "e => [...e.options].map(o => o.value).filter(Boolean)")
+        check("Zone 2 class list is contact-first (mouth before glans)",
+              z2_opts.index("mouth") < z2_opts.index("glans"),
+              str(z2_opts[:6]))
 
         browser.close()
 
