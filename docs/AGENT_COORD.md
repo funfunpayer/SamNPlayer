@@ -95,10 +95,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Z4→1 | Cursor | [#209](https://github.com/funfunpayer/SamNPlayer/pull/209) merged | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **DONE** (`3421b97`) |
 | Marks | Cursor | [#211](https://github.com/funfunpayer/SamNPlayer/pull/211) merged | Persist `metadata.contact_marks` + Play overlay | **DONE** (`7f81db3`) |
 | TipBox | Cursor | [#212](https://github.com/funfunpayer/SamNPlayer/pull/212) merged | Stamp tip ROI into `contact_marks.tip` + blue overlay | **DONE** (`d207ece`) |
-| Feel | Cursor | [#214](https://github.com/funfunpayer/SamNPlayer/pull/214) | Feel-decouple Stage A: spatial vib near marks when trajectory present | **THIS** |
+| Feel | Cursor | [#214](https://github.com/funfunpayer/SamNPlayer/pull/214) merged | Feel-decouple Stage A: spatial vib near marks when trajectory present | **DONE** (`f1d0517`) |
+| Traj | Cursor | `cursor/feel-traj-default-d7cb` | Soft-on tip-path capture with Contact vib (Stage A needs it) | **THIS** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames (was 16), picked by real funscript curve value per target depth, not chronological order | **DONE** |
-| T-fix-suction | Claude | `claude/training-suction-fixes` | Owner real-hardware feedback: some built-in scripts never drove Suction at all; a script that ends naturally with a channel above 0 stayed there until the abrupt device stop instead of ramping down | **IN PROGRESS** — `player/training.go` only, do not steal |
+| TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) | Owner real-hardware feedback: some built-in scripts never drove Suction at all; a script that ends naturally with a channel above 0 stayed there until the abrupt device stop instead of ramping down | **CI green, rebasing on fast-moving main** — `player/training.go` only, do not steal |
 | V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |
@@ -118,7 +119,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.26** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26
-- Cursor: **#214** feel-decouple Stage A. Claude **T-clip #215** DONE.
+- **Feel #214 DONE.** Cursor: tip-path soft-default. Claude **#216** Training suction (leave alone — rebase).
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 

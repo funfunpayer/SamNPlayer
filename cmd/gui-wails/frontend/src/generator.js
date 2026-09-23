@@ -200,7 +200,7 @@ export function initGenerator(root, playback) {
           </div>
           <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs a tip mark (auto-find or draw). Contact vibration is the feel layer — optional marks when vib is on.</p>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records the raw tip/partner (x,y) path per frame into the script, for the optional Review/Play trajectory overlay (MT-Debug). Off by default; CSRT path only.">Record tip/partner trajectory (Debug overlay)</label></div>
+            data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -718,10 +718,19 @@ export function initGenerator(root, playback) {
           tc.value = 'nipples';
         }
       }
+      // Feel Stage A needs tip trajectory — soft-on with Contact vib.
+      const traj = el('#gen-capture-trajectory');
+      if (traj && !traj.dataset.userTouched) {
+        traj.checked = true;
+      }
     } else {
       // Leaving contact-mark mode when vib is off.
       if (roi2Mode) setRoi2Mode(false);
       if (markMode === 'target' || markMode === 'mask') setMarkMode(null);
+      const traj = el('#gen-capture-trajectory');
+      if (traj && !traj.dataset.userTouched) {
+        traj.checked = false;
+      }
     }
     syncRoi2FixedDefault();
     updateGenerateEnabled();
@@ -755,7 +764,7 @@ export function initGenerator(root, playback) {
         ? (contactVibrationOn()
           ? 'Contact area set — tip↔partner distance; tracked unless “Fix contact area” is on.'
           : 'Contact area set (Contact vib off) — tip↔partner distance still uses both regions.')
-        : 'Contact area marked — vib follows stroke depth until feel-decouple / Tf/Tj.';
+        : 'Contact area marked — vib = depth and/or tip-near-mark when tip path is recorded.';
     }
   }
 
@@ -1751,6 +1760,9 @@ export function initGenerator(root, playback) {
   el('#gen-contact-vibration').addEventListener('change', () => {
     contactUserOverride = true;
     updateContactVibrationOpts();
+  });
+  el('#gen-capture-trajectory')?.addEventListener('change', () => {
+    el('#gen-capture-trajectory').dataset.userTouched = '1';
   });
   el('#gen-contact-curve').addEventListener('change', () => {
     el('#gen-contact-curve').dataset.userTouched = '1';
