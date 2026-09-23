@@ -59,11 +59,26 @@ Two things checked directly rather than assumed:
 
 ### A. Feed history back into next-session defaults (small, high value)
 
-**Status: done, 22 Sep.** `computeHistorySuggestion` in `training.js` reads
-the already-fetched `TrainingHistory()` and shows a one-line suggestion
-(ease off after early stops, try a bit more after a clean streak) for
-whatever technique/script is currently selected — a suggestion only,
-never auto-applied.
+**Status: done, 22 Sep; extended 23 Sep.** `computeHistorySuggestion` in
+`training.js` reads the already-fetched `TrainingHistory()` and shows a
+one-line suggestion (ease off after early stops, try a bit more after a
+clean streak) for whatever technique/script is currently selected.
+
+23 Sep: for scripts specifically, this stopped being suggestion-only.
+`player.ScaleTrainingScript(script, factor)` multiplies every curve's
+levels (not timing) by a factor, clamped to 0-1 per level; the GUI
+combines two sources into one factor before sending it as
+`TrainingRequest.IntensityFactor` — an explicit difficulty tier the user
+picks (Gentle ×0.8 / Standard ×1 / Intense ×1.2, `#tr-intensity`) and the
+SAME history read `computeHistorySuggestion` already did, now also
+expressed as a number (`historyAdjustment` in `training.js` — ease-off
+→ ×0.85, clean streak → ×1.1), combined and clamped to [0.55, 1.35].
+Applied via `resolveTrainingScript` (`app_training.go`) in both
+`StartTraining` and `TrainingScriptPreview`, so the plan preview shows
+the curve that's actually about to run, not the nominal one. The history
+nudge has an opt-out checkbox (`#tr-history-autoadjust`, default on) —
+it's still "let the data set the next parameter, but with visible,
+reversible consent", not a silent automatic changes to what's running.
 
 The data to do this already exists and is already summarized
 (`TrainingSessionSummary`) — nothing new needs measuring or logging. What
@@ -396,6 +411,25 @@ designed:
   rising via `ProgressionPerCycle`) → Wave (vibration only, symmetric
   ramps, no hard hold) — the vibration-only counterpart, built the same
   way from the same table.
+
+23 Sep: a third addition, **"pulse-rhythm"**, closes the one gap left in
+the table above — every other built-in script used Static/Pumping/
+Gliding/Escalating/Wave, but none used **Pulse** (`RampUpMs`/
+`RampDownMs` ≈ 0, sharp on/off). Alternates a fast vibration-pulse phase
+with a fast suction-pulse phase rather than mixing both into every
+repeat, so each phase's rhythm stays distinct instead of blurring
+together — a punchier, more staccato feel than any of the wave-based
+scripts. `player.BuiltinTrainingScripts()`.
+
+**Difficulty tiers, folded into the same mechanism instead of more
+scripts:** the owner also asked for tiered variants per profile
+(gentle/standard/intense). Shipping 2-3 more *named scripts* per profile
+was considered and rejected — same content tripled, more to keep in
+sync when a curve's timing changes, more dropdown entries to read
+through. `ScaleTrainingScript` (see proposal A above) already provides
+exactly this as a generic knob — a difficulty tier is just a
+user-chosen scale factor instead of a history-derived one, same
+mechanism, same code path, zero new scripts.
 
 ### Backward compatibility
 

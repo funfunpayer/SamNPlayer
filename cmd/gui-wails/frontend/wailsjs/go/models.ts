@@ -1148,6 +1148,7 @@ export namespace main {
 	}
 	export class TrainingRequest {
 	    mock: boolean;
+	    intensityFactor: number;
 	    technique: string;
 	    channel: string;
 	    cycles: number;
@@ -1165,6 +1166,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.mock = source["mock"];
+	        this.intensityFactor = source["intensityFactor"];
 	        this.technique = source["technique"];
 	        this.channel = source["channel"];
 	        this.cycles = source["cycles"];

@@ -218,7 +218,7 @@ export function ExportTrainingHistoryCSV():Promise<string>;
 
 export function ListTrainingScripts():Promise<Array<main.TrainingScriptInfo>>;
 
-export function TrainingScriptPreview(arg1:string):Promise<main.TrainingScriptPreviewResult>;
+export function TrainingScriptPreview(arg1:string, arg2:number):Promise<main.TrainingScriptPreviewResult>;
 
 export function SaveTrainingScript(arg1:player.TrainingScript):Promise<main.TrainingScriptInfo>;
 
