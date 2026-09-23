@@ -21,6 +21,13 @@ measurement history behind each entry; this file is the short version for
   Doctor — the dense per-frame tracker data from raw Generate isn't
   available here) and re-derives the `.sam` sidecar, for both `.funscript`
   and `.samn` targets.
+- **Training presets:** classic **Stop-Start** and **Plateau** are back in the
+  Preset script dropdown (first two built-ins), alongside the newer
+  wave/massage/variable scripts. Custom → Technique still fine-tunes timings.
+  They were never removed from the engine — only missing as named presets.
+- **Generate “Re-find region after each cut”:** optional Zone 2 (Stroke
+  preview) no longer disables/unchecks this box. It only stays off for real
+  Tf/Tj two-point distance (where per-scene re-search is unsupported).
 
 ## [0.5.23] — September 23, 2026
 

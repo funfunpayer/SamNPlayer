@@ -11,6 +11,21 @@ import { mountTrainingPixelStage } from './pixel_figure.js';
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
 const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both' };
 
+// Friendly Preset-dropdown labels — classic methods first (see BuiltinTrainingScripts).
+const PRESET_LABELS = {
+  'stop-start': 'Stop-Start (classic)',
+  plateau: 'Plateau / Edging (classic)',
+  'vibration-wave-suction-focus': 'Vibration wave → Suction focus',
+  'tissue-massage': 'Tissue massage (suction)',
+  'vibration-massage': 'Vibration massage',
+  variable: 'Variable / randomized wave',
+};
+
+function presetLabel(name) {
+  if (PRESET_LABELS[name]) return PRESET_LABELS[name];
+  return String(name || '').replace(/-/g, ' ');
+}
+
 function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
 
 // EIN Ring, immer VOLL gezeichnet (beide Kanäle = volle 360°-Bahnen).
@@ -211,10 +226,10 @@ export function initTraining(root) {
     <h2>Training</h2>
     <p class="hint">
       Standalone up/down cycles for stamina/control training — no
-      video or script required. "Stop-start": fully to 0 between cycles.
-      "Plateau": stays at a high level instead of dropping all the way
-      ("edging"). Vibration and suction are both stepless, so either
-      channel is free to choose. Each cycle is logged
+      video or script required. Classic <b>Stop-Start</b> and
+      <b>Plateau</b> stay available (Preset dropdown + Custom → Technique).
+      Newer multi-phase presets (wave / massage / variable) sit beside them.
+      Vibration and suction are both stepless. Each cycle is logged
       (Settings → log folder) so drive can be tuned later.
     </p>
 
@@ -224,7 +239,7 @@ export function initTraining(root) {
 
     <div class="field-row"><label>Preset script</label>
       <select id="tr-script">
-        <option value="">Custom (settings below)</option>
+        <option value="">Custom (Stop-Start / Plateau + timings below)</option>
       </select>
     </div>
     <p class="hint" id="tr-script-description" style="margin-top:0; display:none;"></p>
@@ -402,7 +417,7 @@ export function initTraining(root) {
       for (const s of scripts) {
         const opt = document.createElement('option');
         opt.value = s.name;
-        opt.textContent = (s.custom ? '★ ' : '') + s.name.replace(/-/g, ' ');
+        opt.textContent = (s.custom ? '★ ' : '') + presetLabel(s.name);
         opt.title = s.description;
         select.appendChild(opt);
       }

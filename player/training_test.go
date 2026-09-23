@@ -699,6 +699,20 @@ func TestBuiltinTrainingScriptLookup(t *testing.T) {
 	if !ok || len(script.Phases) != 2 {
 		t.Errorf("bekannter Name nicht korrekt gefunden: ok=%v phases=%d", ok, len(script.Phases))
 	}
+	// Classic methods remain first-class presets (research: Stop-Start/Plateau
+	// become built-in single-phase scripts — improve, don't remove).
+	stop, ok := BuiltinTrainingScript("stop-start")
+	if !ok || len(stop.Phases) != 1 || stop.Phases[0].Vibration == nil || stop.Phases[0].Vibration.EndLevel != 0 {
+		t.Fatalf("stop-start builtin fehlt oder falsch: %+v", stop)
+	}
+	plat, ok := BuiltinTrainingScript("plateau")
+	if !ok || len(plat.Phases) != 1 || plat.Phases[0].Vibration == nil || plat.Phases[0].Vibration.EndLevel <= 0 {
+		t.Fatalf("plateau builtin fehlt oder falsch: %+v", plat)
+	}
+	all := BuiltinTrainingScripts()
+	if len(all) < 6 || all[0].Name != "stop-start" || all[1].Name != "plateau" {
+		t.Fatalf("Klassiker müssen BuiltinTrainingScripts anführen, got %d first=%q", len(all), all[0].Name)
+	}
 }
 
 // Interrupt must zero a channel carried from an earlier phase even when the
