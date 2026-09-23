@@ -96,6 +96,15 @@ def main():
         check("Default-Kurve soft (wie Berührung)",
               page.locator("#gen-contact-curve").input_value() == "soft")
 
+        # Optional Zone 2 must not block Advanced → Re-find region after each cut
+        # (that gate is only for real Tf/Tj two-point distance).
+        page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
+        check("Re-find region stays enabled with Stroke Zone 2",
+              page.locator("#gen-perscene").is_disabled() is False)
+        page.locator("#gen-perscene").check()
+        check("Re-find region can be checked with Zone 2 marked",
+              page.locator("#gen-perscene").is_checked())
+
         browser.close()
 
     shutdown()
