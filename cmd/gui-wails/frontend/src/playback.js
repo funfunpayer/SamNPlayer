@@ -62,6 +62,12 @@ export function initPlayback(root) {
           </div>
           <div id="pb-video-warn" class="pb-video-warn" hidden></div>
           <p class="pb-keys-hint hint" id="pb-keys-hint">Space play/stop · ←/→ seek · ,/. fine · +/- offset · E Extended-O · Esc leave fullscreen</p>
+          <div class="checkbox-row" id="pb-contact-marks-row" style="display:none; margin:0.35rem 0 0;">
+            <input type="checkbox" id="pb-contact-marks-toggle" checked />
+            <label for="pb-contact-marks-toggle"
+              data-help="Draws contact areas stored at Generate (gold = primary, magenta = extras). Feel labels only — Everyday stroke still follows tip CSRT depth.">Show contact marks</label>
+          </div>
+          <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0.2rem 0 0;"></p>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Script only</p>
             <p class="hint">Runs on device and curve alone — video is optional. Play starts immediately.</p>
@@ -263,12 +269,6 @@ export function initPlayback(root) {
               data-help="Draws the tip/partner track path over the video (MT-Debug) — only available on scripts generated with 'Record tip/partner trajectory' on. Off by default.">Show tip/partner trajectory</label>
           </div>
           <p class="hint" id="pb-trajectory-hint" style="display:none; margin-top:0;">This script has no recorded trajectory — regenerate with “Record tip/partner trajectory (Debug overlay)” on to use this.</p>
-          <div class="checkbox-row" id="pb-contact-marks-row" style="display:none">
-            <input type="checkbox" id="pb-contact-marks-toggle" checked />
-            <label for="pb-contact-marks-toggle"
-              data-help="Draws contact areas stored at Generate (gold = primary, magenta = extras). Feel labels only — Everyday stroke still follows tip CSRT depth.">Show contact marks</label>
-          </div>
-          <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0;"></p>
           <div class="field-row"><label>Device</label>
             <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (no device)</label></span>
           </div>
