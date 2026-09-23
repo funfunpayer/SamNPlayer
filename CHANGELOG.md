@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Training scripts: suction no longer missing or stuck.** Real-hardware
+  feedback: some built-in scripts (`stop-start`, `plateau`, `vibration-massage`,
+  `variable`) never touched the Suction channel at all — every script now
+  carries a suction layer from the start. Separately, a script that finished
+  naturally with a channel above 0 (a deliberate mid-script floor like
+  `plateau`'s edging hold, or a later phase that never revisited a channel an
+  earlier one raised) used to sit there until the abrupt device stop cut it —
+  it now ramps back down to 0 like every other transition in the script.
+
 ## [0.5.26] — September 23, 2026
 
 ### Added

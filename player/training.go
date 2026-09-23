@@ -853,6 +853,16 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 	defer dev.Stop() //nolint:errcheck // best effort beim Beenden
 
 	globalIdx := 0
+	// lastVib/lastSuc track where each channel's level actually sits after
+	// the most recently run curve - a nil phase.Vibration/.Suction means
+	// "don't touch this channel", not "it's at 0" (see TrainingPhase's doc
+	// comment), so a script whose last phase only drives one channel can
+	// still finish with the OTHER channel sitting wherever an earlier
+	// phase left it. Used below to wind both channels down gracefully
+	// instead of leaving them elevated for the deferred dev.Stop() to cut
+	// abruptly.
+	var lastVib, lastSuc float64
+	interrupted := false
 	for pi := range script.Phases {
 		phase := script.Phases[pi]
 		for ri := 0; ri < phase.RepeatCycles; ri++ {
@@ -892,8 +902,17 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 			result.StoppedByUser = stopped
 
 			if stopped {
+				interrupted = true
 				if err := stopBothChannels(dev); err != nil {
 					return err
+				}
+				lastVib, lastSuc = 0, 0
+			} else {
+				if vib != nil {
+					lastVib = vib.EndLevel
+				}
+				if suc != nil {
+					lastSuc = suc.EndLevel
 				}
 			}
 			if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
@@ -907,6 +926,22 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 			globalIdx++
 		}
 	}
+
+	// A script that finishes naturally (not via user Interrupt, which
+	// already hard-cuts above) can still leave a channel above 0 - either
+	// its last phase's EndLevel is nonzero by design (e.g. "plateau"'s
+	// edging floor), or a phase later in the script never touched a
+	// channel an earlier one raised. Without this, the only thing that
+	// followed was the deferred dev.Stop() - an abrupt cut, not a
+	// ramp-down, that read as the level "just staying" until it suddenly
+	// dropped. Ramp whichever channel(s) are still elevated back to 0
+	// instead, same as the felt shape of every other ramp-down in the
+	// script.
+	if !interrupted && (lastVib > 0 || lastSuc > 0) {
+		if _, err := runPhaseRepeat(ctx, dev, closingRamp(ChannelVibration, lastVib), closingRamp(ChannelSuction, lastSuc), control); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -915,6 +950,24 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 func curve(channel TrainingChannel, start, peak, end float64, rampUpMs, holdMs, rampDownMs int) *ChannelCurve {
 	return &ChannelCurve{Channel: channel, StartLevel: start, PeakLevel: peak, EndLevel: end,
 		RampUpMs: rampUpMs, HoldMs: holdMs, RampDownMs: rampDownMs}
+}
+
+// closingRampMs is how long RunTrainingScript takes to wind an elevated
+// channel back down to 0 after a script finishes naturally - short enough
+// not to drag out the ending, long enough to still read as a ramp instead
+// of another abrupt cut.
+const closingRampMs = 2000
+
+// closingRamp builds the "wind this channel down to 0" curve
+// RunTrainingScript runs once after a script's last phase, for whichever
+// channel(s) it left above 0. nil for a channel already at (or below) 0,
+// so runPhaseRepeat only touches the channel(s) that actually need it.
+func closingRamp(channel TrainingChannel, level float64) *ChannelCurve {
+	if level <= 0 {
+		return nil
+	}
+	return &ChannelCurve{Channel: channel, StartLevel: level, PeakLevel: level, EndLevel: 0,
+		RampDownMs: closingRampMs}
 }
 
 // BuiltinTrainingScripts returns the named scripts shipped with the app,
@@ -934,16 +987,24 @@ func BuiltinTrainingScripts() []TrainingScript {
 		classicRest   = 10000
 		classicCycles = 5
 		plateauFrac   = 0.7
+		// lightSuctionFrac scales a vibration-led classic technique's peak
+		// down into a light accompanying suction layer - every script gets
+		// a suction curve from the start (owner, 23 Sep 2026: a script with
+		// no suction at all wasn't intentional), but stop-start/plateau are
+		// still vibration-led methods, so suction rides alongside at a
+		// clearly lower intensity rather than matching it 1:1.
+		lightSuctionFrac = 0.4
 	)
 	return []TrainingScript{
 		{
 			Name: "stop-start",
-			Description: "Classic Stop-Start (Semans): ramp to peak, hold, fully to 0, rest. " +
-				"Same method as Custom → Technique Stop-start; Vibration. Fine-tune timings under Custom.",
+			Description: "Classic Stop-Start (Semans): ramp to peak, hold, fully to 0, rest, with a lighter " +
+				"suction layer riding along. Same method as Custom → Technique Stop-start; Vibration. Fine-tune timings under Custom.",
 			Phases: []TrainingPhase{
 				{
 					Name:         "Stop-Start cycle",
 					Vibration:    curve(ChannelVibration, 0, classicPeak, 0, classicRampUp, classicHold, classicRampUp),
+					Suction:      curve(ChannelSuction, 0, classicPeak*lightSuctionFrac, 0, classicRampUp, classicHold, classicRampUp),
 					RepeatCycles: classicCycles,
 					RestMs:       classicRest,
 				},
@@ -952,12 +1013,17 @@ func BuiltinTrainingScripts() []TrainingScript {
 		},
 		{
 			Name: "plateau",
-			Description: "Classic Plateau/edging: ramp to peak, hold, down to a high floor (not 0), rest. " +
-				"Same method as Custom → Technique Plateau; Vibration. Fine-tune under Custom.",
+			Description: "Classic Plateau/edging: ramp to peak, hold, down to a high floor (not 0), rest, with a lighter " +
+				"suction layer that (unlike vibration) fully releases each cycle. Same method as Custom → Technique Plateau; Vibration. Fine-tune under Custom.",
 			Phases: []TrainingPhase{
 				{
-					Name:         "Plateau cycle",
-					Vibration:    curve(ChannelVibration, 0, classicPeak, classicPeak*plateauFrac, classicRampUp, classicHold, classicRampUp),
+					Name:      "Plateau cycle",
+					Vibration: curve(ChannelVibration, 0, classicPeak, classicPeak*plateauFrac, classicRampUp, classicHold, classicRampUp),
+					// Suction ends at 0 even though Vibration deliberately
+					// holds its high floor - the edging feel belongs to
+					// vibration; suction is just an accent, not a second
+					// channel stuck above 0 between reps.
+					Suction:      curve(ChannelSuction, 0, classicPeak*lightSuctionFrac, 0, classicRampUp, classicHold, classicRampUp),
 					RepeatCycles: classicCycles,
 					RestMs:       classicRest,
 				},
@@ -995,8 +1061,18 @@ func BuiltinTrainingScripts() []TrainingScript {
 					RestMs:       300,
 				},
 				{
+					// Was HoldMs=20000 at PeakLevel=0.7 - real-hardware
+					// feedback (owner, 23 Sep 2026): 20s of continuous
+					// suction at 70% was too much for the device. Every
+					// other phase across all scripts holds its peak for at
+					// most a few seconds (Pumping: instant; Gliding sweep:
+					// 0ms, it's a transient rise/fall, not a held plateau)
+					// - 20s was the one real outlier. Cut hold to 6s and
+					// peak to 0.6 (matching Pumping's already-used level)
+					// rather than guessing a single "which one" fix without
+					// hardware to test further adjustments against.
 					Name:         "Static hold",
-					Suction:      curve(ChannelSuction, 0, 0.7, 0.7, 3000, 20000, 0),
+					Suction:      curve(ChannelSuction, 0, 0.6, 0.6, 3000, 6000, 0),
 					RepeatCycles: 1,
 					RestMs:       3000,
 				},
@@ -1010,17 +1086,19 @@ func BuiltinTrainingScripts() []TrainingScript {
 		},
 		{
 			Name:        "vibration-massage",
-			Description: "Vibration-only: a gentle escalating warm-up, then a wave rhythm with no hard hold.",
+			Description: "Vibration-led: a gentle escalating warm-up, then a wave rhythm with no hard hold, with a light suction layer under both.",
 			Phases: []TrainingPhase{
 				{
 					Name:         "Escalating warm-up",
 					Vibration:    curve(ChannelVibration, 0.15, 0.5, 0.3, 4000, 1500, 3000),
+					Suction:      curve(ChannelSuction, 0.05, 0.25, 0.15, 4000, 1500, 3000),
 					RepeatCycles: 4,
 					RestMs:       2000,
 				},
 				{
 					Name:         "Wave",
 					Vibration:    curve(ChannelVibration, 0.2, 0.85, 0.2, 3000, 0, 3000),
+					Suction:      curve(ChannelSuction, 0.1, 0.35, 0.1, 3000, 0, 3000),
 					RepeatCycles: 6,
 					RestMs:       1000,
 				},
@@ -1028,12 +1106,14 @@ func BuiltinTrainingScripts() []TrainingScript {
 			ProgressionPerCycle: 0.2,
 		},
 		{
-			Name:        "variable",
-			Description: "Wave rhythm with randomized peak per repeat - reduces sensory adaptation instead of a fully predictable rhythm.",
+			Name: "variable",
+			Description: "Wave rhythm with randomized peak per repeat - reduces sensory adaptation instead of a fully predictable " +
+				"rhythm - with a light, steadier suction layer alongside.",
 			Phases: []TrainingPhase{
 				{
 					Name:         "Randomized wave",
 					Vibration:    withJitter(curve(ChannelVibration, 0.2, 0.75, 0.2, 3000, 500, 3000), 0.25),
+					Suction:      curve(ChannelSuction, 0.1, 0.3, 0.1, 3000, 500, 3000),
 					RepeatCycles: 8,
 					RestMs:       2000,
 				},
