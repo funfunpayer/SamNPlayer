@@ -32,8 +32,9 @@ Do **not** default 4-zone or Flow.
   2. Auto: find tip region (classic motion, or AI if checkbox on)
        — user may correct the box, or **Show motion candidates**:
          click = Tip; optional Shift-click = contact area (only if Contact vib on)
-  3. Contact vibration on (default) · Step 2 then shows Contact area marks
-       — Mark contact area / + Another (e.g. both nipples); type defaults to Nipples
+  3. Contact vibration on (default) · Step 2 then shows optional class + contact marks
+       — Tip class (Glans/Penis soft-default) · Contact type (Nipples) — neither required
+       — Mark contact area / + Another (e.g. both nipples)
        — Marks optional; Stroke vib still follows depth until feel-decouple
   4. Generate → .samn + .funscript
   5. Review & improve: trim start/end · fill gaps · audio check on/off

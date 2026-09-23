@@ -57,6 +57,10 @@ def main():
               page.locator("#gen-contact-vibration").is_checked())
         check("Contact marks wrap visible when vib on",
               page.locator("#gen-contact-marks-wrap").is_visible())
+        check("Tip class inside contact wrap when vib on",
+              page.locator("#gen-contact-marks-wrap #gen-region-class").is_visible())
+        check("Default tip class glans",
+              page.locator("#gen-region-class").input_value() == "glans")
         check("Mark contact area button present",
               page.locator("#gen-roi2-toggle").inner_text().lower().find("contact") >= 0)
         check("Default contact type nipples",
@@ -68,11 +72,15 @@ def main():
         page.wait_for_timeout(50)
         check("Contact marks wrap hidden when vib off",
               page.locator("#gen-contact-marks-wrap").is_hidden())
+        check("Tip class hidden when vib off",
+              page.locator("#gen-region-class").is_hidden())
 
         page.check("#gen-contact-vibration")
         page.wait_for_timeout(50)
         check("Contact marks wrap returns when vib on again",
               page.locator("#gen-contact-marks-wrap").is_visible())
+        check("Tip class returns when vib on again",
+              page.locator("#gen-region-class").is_visible())
 
         browser.close()
 

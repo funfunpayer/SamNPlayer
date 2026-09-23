@@ -80,19 +80,28 @@ export function initGenerator(root, playback) {
         </div>
       </div>
       <div class="path-label" id="gen-roi-label">No region marked</div>
-      <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
-        <label style="width:auto;" data-help="Tip / tracked part class (optional). Prefer glans for tip tracking.">Tip class</label>
-        <select id="gen-region-class" style="min-width:8em;">
-          <option value="">(any)</option>
-        </select>
-      </div>
       <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration is on — mark where touch should feel (nipples, mouth, hand…).
-          Multiple areas OK. Vibration still follows stroke depth today; marks are stored for feel.
+          Contact vibration is on — optional labels &amp; contact areas (not required to Generate).
+          Tip class = Glans/Penis for the tracked tip. Contact areas = where touch should feel (nipples…).
+          Multiple contact areas OK. Vib still follows stroke depth today.
         </p>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+          <label style="width:auto;" data-help="Optional. Label the tracked tip (Glans preferred, or whole Penis). Empty = any. Only shown while Contact vibration is on — not required for CSRT.">Tip class</label>
+          <select id="gen-region-class" style="min-width:8em;">
+            <option value="">(any)</option>
+          </select>
+          <label style="width:auto;" data-help="What the main contact area is (nipples, mouth, hand…). Defaults to Nipples when empty. Optional.">Contact type</label>
+          <select id="gen-region-class2" style="min-width:8em;">
+            <option value="">(pick class)</option>
+          </select>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipples/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+            <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
+          </label>
+        </div>
         <div class="row" style="align-items:center; margin-top:6px;">
           <button id="gen-roi2-toggle" type="button"
             data-help="Mark the main contact area (gold). Example: one nipple, mouth, or hand. On Stroke, Contact vibration still follows stroke depth — the mark is for location/feel later. Tip↔partner distance needs Tf/Tj.">Mark contact area</button>
@@ -104,20 +113,10 @@ export function initGenerator(root, playback) {
           </select>
           <button id="gen-extras-clear" type="button"
             data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
-          <span class="hint" id="gen-roi2-hint" style="margin:0">Contact marks optional. Vib = stroke depth unless Tf/Tj distance.</span>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">All optional. Vib = stroke depth unless Tf/Tj distance.</span>
         </div>
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
-        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
-          <label style="width:auto;" data-help="What the main contact area is (nipples, mouth, hand…). Defaults to Nipples when empty.">Contact type</label>
-          <select id="gen-region-class2" style="min-width:8em;">
-            <option value="">(pick class)</option>
-          </select>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipples/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
-            <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
-          </label>
-        </div>
         <div class="row" style="align-items:center; margin-top:4px;">
           <button id="gen-mask-add" type="button"
             data-help="Advanced: soft-exclude mask (dashed gray). Punched out of camera/grid features — does not drive the stroke.">+ Soft mask (advanced)</button>
@@ -705,6 +704,13 @@ export function initGenerator(root, playback) {
       marks.hidden = !on;
     }
     if (on) {
+      const tip = el('#gen-region-class');
+      if (tip && !tip.value && !tip.dataset.userTouched) {
+        // Soft default: Glans (tip) — optional, user can clear to (any).
+        if ([...tip.options].some((o) => o.value === 'glans')) {
+          tip.value = 'glans';
+        }
+      }
       const c2 = el('#gen-region-class2');
       if (c2 && !c2.value && !c2.dataset.userTouched) {
         // Default contact type: nipples (common dual-side touch target).
@@ -1908,6 +1914,10 @@ export function initGenerator(root, playback) {
   fillClassSelect('#gen-region-class', TIP_CLASS_ORDER);
   fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
   fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
+  el('#gen-region-class')?.addEventListener('change', () => {
+    const sel = el('#gen-region-class');
+    if (sel) sel.dataset.userTouched = '1';
+  });
   el('#gen-region-class2')?.addEventListener('change', () => {
     const sel = el('#gen-region-class2');
     if (sel) {
