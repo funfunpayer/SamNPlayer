@@ -92,6 +92,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
+| T-train | Claude | `claude/training-intensity-tiers` | **T-train** (Owner order via #204) — landed `claude/training-mode-improvements-uu4965`'s last unmerged commit (profile intensity tiers + history auto-adjust + pulse-rhythm script) cleanly on current `main`; rest of that old branch already superseded by #177 | **IN PROGRESS** — this PR, then **T-clip** next |
 | A | Cursor | `cursor/release-0-5-23-d7cb` | bump **v0.5.23** + tag + Release | **THIS PR** — portable Training clip fix + MT wave |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
@@ -677,6 +678,7 @@ ring revision before committing.
 | 22 Sep | **#192** PoseObserver concept docs merged (`POSE_OBSERVER.md`) | ChatGPT |
 | 22 Sep | **#194** E2 MT-Speed notes merged (`MT_SPEED_NOTES.md`) | ChatGPT |
 | 22 Sep | Tri-agent pre-release QC planned (QC-A Cursor / QC-B Claude / QC-C ChatGPT) — start after #193 | Owner |
+| 23 Sep | **T-train** (Owner order via #204): checked `claude/training-mode-improvements-uu4965` (42 commits behind `main`, 11 unique) before touching it — `player/training.go` diff showed main independently reimplemented most of it differently (`onLevel`/`levelMirror` live-meter mechanism, a different `StartLevel`-scaling bugfix) and the whole `TrainingScript`/`TrainingPhase`/`RunTrainingScript` multi-phase engine already exists on `main` (from #177, per board history: "findings carried into #177"). Cherry-picking the whole branch would have regressed already-shipped work. Only the branch's last commit (profile intensity tiers + history auto-adjust + pulse-rhythm script) was genuinely still missing — cherry-picked clean (zero conflicts), confirming it never touched code main also changed | Claude |
 
 ---
 
