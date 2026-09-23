@@ -386,13 +386,13 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generation cancelled", "cancelled": true})
+				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generation cancelled", "cancelled": true, "seq": mySeq})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error()})
+			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error(), "seq": mySeq})
 			return
 		}
-		payload := map[string]any{"path": openPathAfterGenerate(outPath), "funscriptPath": outPath, "pipeline": "python"}
+		payload := map[string]any{"path": openPathAfterGenerate(outPath), "funscriptPath": outPath, "pipeline": "python", "seq": mySeq}
 		if data, readErr := os.ReadFile(outPath); readErr == nil {
 			var raw map[string]any
 			if json.Unmarshal(data, &raw) == nil {

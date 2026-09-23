@@ -247,8 +247,10 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if len(gaps) > 0 {
 		meta["tracking_gaps"] = gaps
 	}
+	var traj *funscript.TrajectoryData
 	if len(tr.TrajectoryA) > 0 {
-		meta["trajectory"] = buildTrajectoryData(tr)
+		traj = buildTrajectoryData(tr)
+		meta["trajectory"] = traj
 	}
 	if (opts.Profile != "" && opts.Profile != "standard") || opts.ContactVibration {
 		recipe := funscript.RecipeMeta(opts.Profile)
@@ -298,7 +300,7 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return err
 	}
-	return writeCompanionSamn(path, actions, opts, gaps, quality)
+	return writeCompanionSamn(path, actions, opts, gaps, quality, traj)
 }
 
 // buildTrajectoryData zips tr.TrajectoryA/B with tr.TimestampsMs into the

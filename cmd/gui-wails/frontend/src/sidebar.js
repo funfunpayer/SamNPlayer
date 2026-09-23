@@ -61,7 +61,8 @@ export function initSidebar(root) {
   function refreshRecipe() {
     const pathLabel = document.getElementById('pb-script-path');
     const syncSelect = document.getElementById('pb-sync');
-    if (!pathLabel || pathLabel.textContent === 'No script selected') {
+    if (!pathLabel || pathLabel.textContent === 'No script selected'
+        || pathLabel.textContent === 'No Emotion Script selected') {
       el('#sb-recipe-chip').textContent = 'No script loaded';
       el('#sb-recipe-hint').textContent = '';
       return;
@@ -69,7 +70,7 @@ export function initSidebar(root) {
     const name = pathLabel.textContent.split(/[\\/]/).pop();
     el('#sb-recipe-chip').textContent = name;
     el('#sb-recipe-hint').textContent = syncSelect
-      ? `Sync mode: ${syncSelect.value} (Playback tab)`
+      ? `Sync mode: ${syncSelect.value} (Play tab)`
       : '';
   }
 
