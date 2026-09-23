@@ -231,20 +231,41 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		}
 		return false
 	}
-	// contactVibAt: envelope from deep pos; 0 outside the contact slice or in a gap.
+	// contactVibAt: depth envelope from deep pos, OR spatial proximity of tip
+	// trajectory to marked contact areas (feel-decouple Stage A). max(depth,
+	// spatial) — stroke curve unchanged; vib can rise when tip grazes a mark
+	// even if stroke is not deep.
+	spatialOn := opts.ContactVibration &&
+		marksHasContactAreas(s.Metadata.ContactMarks) &&
+		s.Metadata.Trajectory != nil &&
+		len(s.Metadata.Trajectory.Tip) > 0
 	contactVibAt := func(pos float64, t int64) float64 {
-		if !contactEnabled || inGap(t) || pos < contactMin {
+		if (!contactEnabled && !spatialOn) || inGap(t) {
 			return 0
 		}
-		linear := clamp01((pos - contactMin) / (contactMax - contactMin))
-		vib := applyContactCurve(linear, contactCurve)
+		depth := 0.0
+		if contactEnabled && pos >= contactMin {
+			linear := clamp01((pos - contactMin) / (contactMax - contactMin))
+			depth = applyContactCurve(linear, contactCurve)
+		}
+		spatial := 0.0
+		if spatialOn {
+			spatial = applyContactCurve(
+				SpatialContactIntensity(s.Metadata.ContactMarks, s.Metadata.Trajectory, t),
+				contactCurve,
+			)
+		}
+		vib := depth
+		if spatial > vib {
+			vib = spatial
+		}
 		if vib > 0 && opts.MinVibration > 0 {
 			vib = liftFloor(vib, opts.MinVibration)
 		}
 		return vib
 	}
 	smoothContact := func(vib float64, t int64) float64 {
-		if !contactEnabled || !envelopeOn || inGap(t) {
+		if (!contactEnabled && !spatialOn) || !envelopeOn || inGap(t) {
 			if inGap(t) {
 				prevContactVib = 0
 			}
@@ -289,7 +310,7 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				vib, suc = 0, intensity
 			case SyncSuctionPosition:
 				vib, suc = 0, posSignal
-				if contactEnabled {
+				if contactEnabled || spatialOn {
 					vib = contactVibAt(pos, t)
 					vib = smoothContact(vib, t)
 				} else if inGap(t) {
@@ -297,9 +318,9 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				}
 			default:
 				vib, suc = intensity, posSignal
-				if contactEnabled {
+				if contactEnabled || spatialOn {
 					if cv := contactVibAt(pos, t); cv > 0 {
-						// Deep slice: contact envelope owns vibe (stroke depth).
+						// Contact envelope owns vibe (depth and/or spatial marks).
 						vib = smoothContact(cv, t)
 					} else if inGap(t) {
 						vib = 0

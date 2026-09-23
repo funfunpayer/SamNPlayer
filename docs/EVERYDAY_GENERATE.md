@@ -48,6 +48,10 @@ soft masks, Tf/Tj distance are optional. **4-zone is CLI-only** — not in the G
 Contact marks (when vib on) are **stored** in `metadata.contact_marks` for feel /
 later feel-decouple — they do **not** change the tip-CSRT stroke curve today.
 **Play** shows them under the video (**Show contact marks**, default on when present).
+**Feel-decouple Stage A:** when the script also has a recorded tip trajectory and
+contact areas, Play vibration is `max(depth-slice, tip-near-mark)` — tip grazing a
+nipple mark can buzz even on a shallow stroke. Opt-in data: Generate with
+“Record tip/partner trajectory” when you want spatial feel.
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
 scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
