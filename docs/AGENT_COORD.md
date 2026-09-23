@@ -96,7 +96,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Marks | Cursor | [#211](https://github.com/funfunpayer/SamNPlayer/pull/211) merged | Persist `metadata.contact_marks` + Play overlay | **DONE** (`7f81db3`) |
 | TipBox | Cursor | [#212](https://github.com/funfunpayer/SamNPlayer/pull/212) merged | Stamp tip ROI into `contact_marks.tip` + blue overlay | **DONE** (`d207ece`) |
 | Feel | Cursor | next | Feel-decouple Stage A: spatial vib near marks when trajectory present | **NEXT** |
-| T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude (do not steal) |
+| T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames (was 16), picked by real funscript curve value per target depth, not chronological order | **DONE** (this PR) |
 | V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |

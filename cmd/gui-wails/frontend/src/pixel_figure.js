@@ -10,9 +10,13 @@ import { figureHeatColor } from './figure_theme.js';
 const YOU_SRC = new URL('./assets/images/training-mosaic-you.png', import.meta.url).href;
 const PARTNER_SRC = new URL('./assets/images/training-mosaic-partner.png', import.meta.url).href;
 
-// Each frame as its own static `new URL` so Vite emits all 16 into dist.
-// (A directory-based `new URL(.../clip/, …)` does not — 0/16 in production.)
-const CLIP_COUNT = 16;
+// Each frame as its own static `new URL` so Vite emits all of them into
+// dist. (A directory-based `new URL(.../clip/, …)` does not — 0/N in
+// production.) 24 frames from the full clip 2:14-2:40 (134000-160000ms),
+// picked by the REAL clip_voll.funscript curve value at each timestamp
+// (not chronological order) so index-by-level below lines up with the
+// actual measured signal — see frames.json's source_ts_ms/depths.
+const CLIP_COUNT = 24;
 const CLIP_FRAMES = [
   new URL('./assets/images/training-mosaic-clip/f00.png', import.meta.url).href,
   new URL('./assets/images/training-mosaic-clip/f01.png', import.meta.url).href,
@@ -30,6 +34,14 @@ const CLIP_FRAMES = [
   new URL('./assets/images/training-mosaic-clip/f13.png', import.meta.url).href,
   new URL('./assets/images/training-mosaic-clip/f14.png', import.meta.url).href,
   new URL('./assets/images/training-mosaic-clip/f15.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f16.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f17.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f18.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f19.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f20.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f21.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f22.png', import.meta.url).href,
+  new URL('./assets/images/training-mosaic-clip/f23.png', import.meta.url).href,
 ];
 
 /** Map training curve level (0..1) → clip frame index.

@@ -8,6 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Training clip mosaic — full clip, more frames, data-driven sync:**
+  the Training tab's pixel-art clip strip now uses 24 frames (was 16)
+  extracted from `clip_voll.mp4`'s 2:14–2:40 range, chosen by the
+  *actual* `clip_voll.funscript` curve value at each timestamp — not
+  chronological order — so `frameForLevel`'s curve→frame lookup matches
+  the real measured signal instead of an eyeballed sequence.
+  `pixel_figure.js`'s `CLIP_COUNT`/`CLIP_FRAMES` and
+  `training-mosaic-clip/frames.json` (now recording `source_ts_ms` and
+  the source funscript window) updated together.
+
 ## [0.5.26] — September 23, 2026
 
 ### Added
