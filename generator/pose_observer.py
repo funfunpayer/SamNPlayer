@@ -475,5 +475,62 @@ def jitter_px(prev: Sequence[Landmark], cur: Sequence[Landmark], frame_w: int, f
     return float(sum(dists) / len(dists))
 
 
+def filter_seeds_by_confidence(
+    seeds: Sequence[SeedProposal],
+    min_confidence: float = 0.25,
+) -> List[SeedProposal]:
+    """Drop weak proposals before MT-Seed ranking (Stage A helper)."""
+    return [s for s in seeds if s.confidence >= min_confidence]
+
+
+def fuse_proposal_lists(
+    *lists: Sequence[SeedProposal],
+    min_confidence: float = 0.0,
+) -> List[SeedProposal]:
+    """Merge classical + pose seeds; keep provenance; rank by confidence desc.
+
+    Deterministic: equal confidence → provenance then class_id. Does not
+    silently commit — caller / GUI still chooses.
+    """
+    merged: List[SeedProposal] = []
+    for lst in lists:
+        for s in lst:
+            if s.confidence >= min_confidence:
+                merged.append(s)
+    merged.sort(key=lambda s: (-s.confidence, s.provenance, s.class_id))
+    return merged
+
+
+def summarize_metrics_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """Roll up spike JSONL rows into bake-off observer metrics (no video needed)."""
+    n = len(rows)
+    if n == 0:
+        return {
+            "frames": 0,
+            "availability": 0.0,
+            "mean_wall_time_ms": 0.0,
+            "mean_jitter_px": 0.0,
+            "mean_seed_count": 0.0,
+            "error_frames": 0,
+            "backends": [],
+        }
+    with_people = sum(1 for r in rows if int(r.get("people") or 0) > 0)
+    wall = [float(r.get("wall_time_ms") or 0) for r in rows]
+    jit = [float(r.get("jitter_px") or 0) for r in rows]
+    seeds = [float(r.get("seed_count") or 0) for r in rows]
+    errs = sum(1 for r in rows if r.get("error"))
+    backends = sorted({str(r.get("backend") or "") for r in rows if r.get("backend")})
+    return {
+        "frames": n,
+        "availability": with_people / n,
+        "mean_wall_time_ms": sum(wall) / n,
+        "p95_wall_time_ms": sorted(wall)[min(n - 1, int(0.95 * (n - 1)))] if n else 0.0,
+        "mean_jitter_px": sum(jit) / n,
+        "mean_seed_count": sum(seeds) / n,
+        "error_frames": errs,
+        "backends": backends,
+    }
+
+
 def observation_json(obs: PoseObservation) -> str:
     return json.dumps(obs.to_dict(), indent=2, sort_keys=True)

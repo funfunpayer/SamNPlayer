@@ -19,6 +19,10 @@ Examples (weights must already be on disk — no auto-download):
     --mediapipe-model ~/models/pose_landmarker_lite.task \\
     --out /tmp/pose_metrics.jsonl
 
+  # Roll up an existing JSONL bake-off file (no model / video needed)
+  python3 generator/pose_observer_spike.py \\
+    --summary /tmp/pose_metrics.jsonl
+
 MediaPipe weights (owner downloads once, Apache-2.0 / Google terms apply to
 weights separately — record license in bake-off notes):
   https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
@@ -79,6 +83,8 @@ def _iter_frames(video_path: str, every: int, max_frames: int):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="PoseObserver Stage A spike (offline)")
     ap.add_argument("--status", action="store_true", help="Print backend availability and exit")
+    ap.add_argument("--summary", default="", metavar="JSONL",
+                    help="Roll up bake-off JSONL metrics and exit (no video/model)")
     ap.add_argument("--video", default=None, help="Input video path")
     ap.add_argument("--frame", type=int, default=0, help="Single-frame index (default 0)")
     ap.add_argument("--every", type=int, default=0, help="If >0, sample every N frames → JSONL")
@@ -100,8 +106,25 @@ def main(argv=None) -> int:
         print(json.dumps(st, indent=2))
         return 0
 
+    if args.summary:
+        rows = []
+        with open(args.summary, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rows.append(json.loads(line))
+        summary = po.summarize_metrics_rows(rows)
+        text = json.dumps(summary, indent=2, sort_keys=True) + "\n"
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as out_f:
+                out_f.write(text)
+        else:
+            sys.stdout.write(text)
+        return 0
+
     if not args.video:
-        ap.error("--video required unless --status")
+        ap.error("--video required unless --status or --summary")
 
     backend = "onnx" if args.backend in ("onnx", "rtmpose") else "mediapipe"
 

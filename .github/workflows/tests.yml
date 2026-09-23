@@ -137,7 +137,7 @@ jobs:
           for t in backends_test.py quality_doctor_test.py device_profile_test.py \
                    fusion_test.py report_test.py quality_model_test.py \
                    bootstrap_yolo_dataset_test.py audio_check_test.py \
-                   golden_clip_benchmark_test.py; do
+                   golden_clip_benchmark_test.py pose_observer_test.py; do
             echo "== $t"
             python3 "$t"
           done

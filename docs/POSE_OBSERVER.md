@@ -143,15 +143,21 @@ python3 generator/pose_observer_spike.py \
   --video clip.mp4 --every 15 --max-frames 120 --backend mediapipe \
   --mediapipe-model "$HOME/models/pose_landmarker_lite.task" \
   --out /tmp/pose_metrics.jsonl
+
+# Roll up JSONL → availability / wall-time / jitter summary
+python3 generator/pose_observer_spike.py --summary /tmp/pose_metrics.jsonl
 ```
 
 **No auto-download.** Owner places MediaPipe `.task` or RTMPose ONNX locally.
 Missing model → soft `error` field, empty `people` (tests cover this).
 
+CI runs `pose_observer_test.py` in the Python (Generator) fast suite (no weights).
+
 Seed proposals map pose landmarks → product body-part ids (`mouth`,
 `hand_1`/`hand_2`, `face`, weak `penis` from hip midline). Tip/glans is
 **not** in COCO/MediaPipe pose — treat hip-midline Tip as low-confidence
-only. Feed into MT-Seed ranking later (Stage B); do not silent-commit.
+only. `fuse_proposal_lists` ranks classical + pose proposals with provenance;
+Feed into MT-Seed ranking later (Stage B); do not silent-commit.
 
 ### Stage B — opt-in adapter
 

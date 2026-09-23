@@ -105,6 +105,79 @@ class PoseObserverContractTests(unittest.TestCase):
         for k in ("mediapipe_import", "mediapipe_model", "onnxruntime", "onnx_model"):
             self.assertIn(k, st)
 
+    def test_multi_person_uses_highest_confidence(self):
+        weak = {
+            "person_id": 0, "confidence": 0.2,
+            "landmarks": [
+                {"name": "left_wrist", "x_norm": 0.1, "y_norm": 0.5, "confidence": 0.9},
+                {"name": "left_index", "x_norm": 0.1, "y_norm": 0.5, "confidence": 0.9},
+                {"name": "left_pinky", "x_norm": 0.1, "y_norm": 0.5, "confidence": 0.9},
+            ],
+        }
+        strong = {
+            "person_id": 1, "confidence": 0.95,
+            "landmarks": [
+                {"name": "left_wrist", "x_norm": 0.7, "y_norm": 0.5, "confidence": 0.9},
+                {"name": "left_index", "x_norm": 0.72, "y_norm": 0.5, "confidence": 0.9},
+                {"name": "left_pinky", "x_norm": 0.68, "y_norm": 0.5, "confidence": 0.9},
+            ],
+        }
+        obs = po.parse_observation({
+            "timestamp_ms": 0, "frame_width": 100, "frame_height": 100,
+            "people": [weak, strong], "model": {"family": "fixture"},
+        })
+        seeds = po.observation_to_seed_proposals(obs)
+        hand = next(s for s in seeds if s.class_id == "hand_1")
+        self.assertGreater(hand.x, 50)  # from strong person at x≈0.7
+
+    def test_malformed_partial_observation(self):
+        obs = po.parse_observation({
+            "people": [{"landmarks": [{"name": "nose"}]}],  # missing coords
+            "model": {},
+        })
+        self.assertEqual(obs.frame_width, 0)
+        self.assertEqual(len(obs.people), 1)
+        self.assertEqual(obs.people[0].landmarks[0].x_norm, 0.0)
+        self.assertEqual(po.observation_to_seed_proposals(obs), [])
+
+    def test_confidence_filter_and_fuse_ranking(self):
+        classical = [
+            po.SeedProposal("penis", 10, 10, 20, 20, 0.8, "classical:motion"),
+            po.SeedProposal("hand_1", 1, 1, 10, 10, 0.3, "classical:motion"),
+        ]
+        pose = [
+            po.SeedProposal("hand_1", 50, 50, 10, 10, 0.9, "mediapipe:hand_1"),
+            po.SeedProposal("penis", 12, 12, 20, 20, 0.2, "mediapipe:hip_midline_weak_tip"),
+        ]
+        fused = po.fuse_proposal_lists(classical, pose)
+        self.assertEqual(fused[0].provenance, "mediapipe:hand_1")
+        self.assertEqual(fused[1].provenance, "classical:motion")
+        filtered = po.filter_seeds_by_confidence(fused, min_confidence=0.5)
+        self.assertEqual([s.provenance for s in filtered], [
+            "mediapipe:hand_1", "classical:motion",
+        ])
+
+    def test_summarize_metrics_rows(self):
+        rows = [
+            {"people": 1, "wall_time_ms": 10, "jitter_px": 1.0, "seed_count": 3,
+             "backend": "mediapipe", "error": ""},
+            {"people": 0, "wall_time_ms": 20, "jitter_px": 0.0, "seed_count": 0,
+             "backend": "mediapipe", "error": "no pose"},
+        ]
+        s = po.summarize_metrics_rows(rows)
+        self.assertEqual(s["frames"], 2)
+        self.assertEqual(s["availability"], 0.5)
+        self.assertEqual(s["mean_wall_time_ms"], 15.0)
+        self.assertEqual(s["error_frames"], 1)
+        self.assertEqual(s["backends"], ["mediapipe"])
+
+    def test_unknown_backend_soft_error(self):
+        import numpy as np
+        frame = np.zeros((16, 16, 3), dtype="uint8")
+        obs = po.observe(frame, backend="nope")
+        self.assertIn("unknown backend", obs.error)
+        self.assertEqual(obs.people, [])
+
 
 if __name__ == "__main__":
     unittest.main()
