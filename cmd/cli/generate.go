@@ -26,6 +26,7 @@ func runGenerate(args []string) int {
 	preferPython := fs.Bool("prefer-python", false, "force Python even when Go path is eligible")
 	maxFrames := fs.Int("max-frames", 0, "limit frames (0 = all)")
 	autoRetry := fs.Bool("auto-retry", true, "signal-param auto-retry")
+	rhythmGrid := fs.Bool("rhythm-grid", false, "stroke signal from the most rhythmic flow cell near the box (drift-robust, Go CSRT only)")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s generate --video FILE --roi x,y,w,h [--output FILE] [options]\n", os.Args[0])
 		fs.PrintDefaults()
@@ -70,6 +71,7 @@ func runGenerate(args []string) int {
 		PreferPython: *preferPython,
 		MaxFrames:    *maxFrames,
 		AutoRetry:    *autoRetry,
+		RhythmGrid:   *rhythmGrid,
 	}
 	err := generator.GenerateWithContext(context.Background(), *video, roi, out, opts,
 		func(line string) { fmt.Fprintln(os.Stderr, line) },

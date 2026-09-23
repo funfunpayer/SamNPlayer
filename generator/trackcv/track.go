@@ -45,6 +45,12 @@ type Options struct {
 	// points on Result.TrajectoryA/B (MT-Debug overlay data). Off by
 	// default: zero extra allocation/behavior when false.
 	CaptureTrajectory bool
+	// RhythmGrid takes the stroke signal from the most rhythmic optical-flow
+	// cell near the box instead of the box's own motion (see
+	// rhythm_grid.go). CSRT still tracks - it anchors the search and gives
+	// the sign - so trajectory/stats are unchanged; only Positions differ.
+	// Opt-in: costs a Farneback flow per frame (measured ~+18% runtime).
+	RhythmGrid bool
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -138,7 +144,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	defer func() { tracker.Close() }()
 	tracker.Init(cap, roi)
 
-	needsGray := opts.CameraCompensation || opts.SceneCutDetection || opts.AppearanceMemory
+	needsGray := opts.CameraCompensation || opts.SceneCutDetection || opts.AppearanceMemory || opts.RhythmGrid
 	var prevGray *Gray
 	if needsGray {
 		prevGray = cap.ToGray()
@@ -169,6 +175,12 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	yPositions := []float64{float64(roi.Y) + float64(roi.H)/2.0}
 	xPositions := []float64{float64(roi.X) + float64(roi.W)/2.0}
 	cameraDyCumulative := []float64{0.0}
+	gridRows := rhythmGridRows(width, height)
+	var flowX, flowY [][]float32 // per frame, only with opts.RhythmGrid
+	if opts.RhythmGrid {
+		flowX = [][]float32{make([]float32, rhythmGridCols*gridRows)}
+		flowY = [][]float32{make([]float32, rhythmGridCols*gridRows)}
+	}
 	lastBbox := roi
 	var guard dispGuard
 	trackerLostFrames := 0
@@ -274,6 +286,18 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			cameraDyCumulative = append(cameraDyCumulative, 0.0)
 		}
 
+		if opts.RhythmGrid {
+			if isCut {
+				// Motion across a cut is not motion.
+				flowX = append(flowX, make([]float32, rhythmGridCols*gridRows))
+				flowY = append(flowY, make([]float32, rhythmGridCols*gridRows))
+			} else {
+				vx, vy := FlowCells(prevGray, gray, rhythmGridCols, gridRows)
+				flowX = append(flowX, vx)
+				flowY = append(flowY, vy)
+			}
+		}
+
 		if needsGray {
 			prevGray.Close()
 			prevGray = gray
@@ -303,18 +327,18 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	horizontalRange := ptp(xPositions)
 	axisIsHorizontal := horizontalRange > verticalRange*1.5 && horizontalRange > 5
 
-	var positions []float64
-	switch opts.Axis {
-	case "x":
+	useX := opts.Axis == "x" || (opts.Axis != "y" && axisIsHorizontal)
+	positions := yPositions
+	if useX {
 		positions = xPositions
-	case "y":
-		positions = yPositions
-	default:
-		if axisIsHorizontal {
-			positions = xPositions
-		} else {
-			positions = yPositions
+	}
+	if opts.RhythmGrid {
+		cellV := flowY
+		if useX {
+			cellV = flowX
 		}
+		positions = rhythmGridPositions(cellV, rhythmGridCols, gridRows, width, height,
+			xPositions, yPositions, positions, fps)
 	}
 
 	confidence := 0.0

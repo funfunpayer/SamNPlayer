@@ -26,6 +26,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Cancel:             opts.Cancel,
 		OnProgress:         percentFromProgress(onPercent),
 		CaptureTrajectory:  opts.CaptureTrajectory,
+		RhythmGrid:         opts.RhythmGrid,
 	})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {

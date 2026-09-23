@@ -121,9 +121,13 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		Cancel:             func() bool { return ctx.Err() != nil },
 		FixedB:             opts.ROI2Fixed,
 		CaptureTrajectory:  opts.CaptureTrajectory,
+		RhythmGrid:         opts.RhythmGrid,
 	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
+	}
+	if opts.RhythmGrid && !twoPoint {
+		progress("TRACK: rhythm grid on - stroke signal from the most rhythmic flow cell near the box")
 	}
 
 	var tr nativeTrackResult
@@ -203,6 +207,8 @@ type nativeTrackOptions struct {
 	FixedB             bool
 	// CaptureTrajectory: see Options.CaptureTrajectory.
 	CaptureTrajectory bool
+	// RhythmGrid: see Options.RhythmGrid (single-ROI trackcv only).
+	RhythmGrid bool
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
