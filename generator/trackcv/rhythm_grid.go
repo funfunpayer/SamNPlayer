@@ -15,7 +15,7 @@ import "math"
 //
 // Measured against both FunGen references through the production post
 // pipeline (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed
-// r 0.386/0.552 -> 0.415/0.656, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
+// r 0.386/0.552 -> 0.411/0.767, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
 const (
 	rhythmGridCols    = 16
 	rhythmWindowSec   = 8.0
@@ -28,6 +28,13 @@ const (
 	rhythmTotalHiHz   = 6.0
 	rhythmTopCells    = 10
 	rhythmAnchorSec   = 2.0 // detrend window for the CSRT sign reference
+	// rhythmSignMinR: below this |r| between the cell and the tracker the
+	// tracker's sign is a coin toss, so orientation comes from continuity
+	// with the curve already written instead. clip_voll: 4 of 140 chunks
+	// (all |r| <= 0.04), windowed r vs the YOLO reference 0.658 -> 0.766
+	// and 10/10 windows consistently oriented. Raising it to >= 0.25 also
+	// overrides still-informative tracker signs and measured worse.
+	rhythmSignMinR = 0.1
 )
 
 // rhythmGridRows keeps cells roughly square for the frame's aspect ratio.
@@ -68,6 +75,7 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 		return append([]float64(nil), anchor...)
 	}
 	x := make([][]float64, cells) // per-cell window, reused
+	written := 0                  // v[:written] already comes from grid cells
 	for s := -win/2 + step/2; s < n; s += step {
 		a, b := max(0, s), min(n, s+win)
 		m := b - a
@@ -108,14 +116,19 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 		// Cell flow has no inherent orientation relative to the stroke
 		// (a cell may sit on a part moving opposite to the tip): take the
 		// sign from the tracker, which is locally right even when drifting.
+		r := pearson(x[best], signRef[a:b])
+		if math.Abs(r) < rhythmSignMinR && written-a > step {
+			r = continuityR(cellV, best, v, a, written)
+		}
 		sgn := 1.0
-		if pearson(x[best], signRef[a:b]) < 0 {
+		if r < 0 {
 			sgn = -1
 		}
 		c0, c1 := max(1, mid-step/2), min(n, mid+step/2)
 		for i := c0; i < c1; i++ {
 			v[i] = sgn * float64(cellV[i][best])
 		}
+		written = c1
 	}
 
 	out := make([]float64, n)
@@ -124,6 +137,21 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 		out[i] = out[i-1] + v[i]
 	}
 	return out
+}
+
+// continuityR correlates cell's integrated motion over [a, end) with the
+// curve already written there (v), so a new chunk keeps the orientation of
+// the chunks before it.
+func continuityR(cellV [][]float32, cell int, v []float64, a, end int) float64 {
+	m := end - a
+	cellPos, curve := make([]float64, m), make([]float64, m)
+	var accC, accV float64
+	for i := 0; i < m; i++ {
+		accC += float64(cellV[a+i][cell])
+		accV += v[a+i]
+		cellPos[i], curve[i] = accC, accV
+	}
+	return pearson(cellPos, curve)
 }
 
 // rhythmScores returns, per cell, how strongly its motion in this window

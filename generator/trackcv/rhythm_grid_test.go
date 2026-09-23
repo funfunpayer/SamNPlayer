@@ -108,3 +108,28 @@ func TestRhythmGridRows(t *testing.T) {
 		}
 	}
 }
+
+// Where the box's own motion carries no stroke at all, the tracker's sign is
+// a coin toss per chunk; orientation must then come from the curve already
+// written, or the stroke flips back and forth.
+func TestRhythmGridKeepsOrientationWhereTrackerIsUninformative(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.1, 24 * 90
+	target := 5*16 + 8
+	cellV, stroke := synthClip(frames, fps, hz, target, -1, -1)
+	tx, ty := cellCenter(target)
+	rng := rand.New(rand.NewSource(3))
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = tx, ty
+		follow := 0.3
+		if i > frames/3 && i < 2*frames/3 {
+			follow = 0 // middle third: box sits on something that doesn't stroke
+		}
+		anchor[i] = ty + follow*stroke[i] + 4*rng.NormFloat64()
+	}
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	k := int(2 * fps)
+	if r := pearson(subtractRollingMean(got, k), stroke); r < 0.95 {
+		t.Errorf("grid curve r=%.3f vs stroke, want >= 0.95 (orientation flips where the tracker is uninformative)", r)
+	}
+}
