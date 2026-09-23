@@ -25,12 +25,12 @@ function renderResult(result) {
   const scoreLine = typeof s.mean_quality_score === 'number'
     ? `Avg quality score: ${Math.round(s.mean_quality_score * 100)}%` : '';
   const corrLine = typeof s.mean_correlation === 'number'
-    ? ` · avg FunGen correlation: ${s.mean_correlation.toFixed(3)} (${s.clips_with_reference} clip(s) with reference)` : '';
+    ? ` · avg reference correlation: ${s.mean_correlation.toFixed(3)} (${s.clips_with_reference} clip(s) with reference)` : '';
   return `
     <p><b>${s.ok}/${s.total} clips succeeded</b>, ${s.quality_passed}/${s.ok || 1} passed Quality Doctor
       ${result.git_commit ? ` · Commit ${result.git_commit}` : ''}</p>
     <p class="hint" style="margin:0 0 8px 0;">${scoreLine}${corrLine}</p>
-    <table class="bench-table"><thead><tr><th>Clip</th><th>Quality</th><th>FunGen</th><th>Warnings</th></tr></thead>
+    <table class="bench-table"><thead><tr><th>Clip</th><th>Quality</th><th>Reference</th><th>Warnings</th></tr></thead>
       <tbody>${result.clips.map(renderClipRow).join('')}</tbody></table>
   `;
 }
@@ -40,7 +40,7 @@ function renderHistoryRow(r) {
   const score = typeof s.mean_quality_score === 'number' ? `${Math.round(s.mean_quality_score * 100)}%` : 'n/a';
   const corr = typeof s.mean_correlation === 'number' ? `, r=${s.mean_correlation.toFixed(3)}` : '';
   return `<div>${formatDate(r.timestamp)}${r.git_commit ? ` (${r.git_commit})` : ''} — `
-    + `${s.ok}/${s.total} ok, Ø-Score ${score}${corr}</div>`;
+    + `${s.ok}/${s.total} ok, avg score ${score}${corr}</div>`;
 }
 
 // Golden-Clip-Benchmark: läuft ein festes, vom Nutzer gepflegtes Manifest
@@ -56,7 +56,7 @@ export function initBenchmark(root) {
     <h2>Golden-Clip Benchmark</h2>
     <p class="hint">
       Runs a fixed set of your comparison clips through the real pipeline
-      and measures Quality Doctor score plus FunGen agreement when a
+      and measures Quality Doctor score plus reference agreement when a
       reference is present — so improvements (or regressions) can be
       tracked over time instead of one-off chat measurements. The manifest
       points at local video files; nothing is uploaded.

@@ -63,7 +63,7 @@ def main():
         check("ohne Video: Stage hat no-video",
               page.locator("#pb-video-stage").evaluate("e => e.classList.contains('no-video')"))
         check("ohne Video: Hinweis sichtbar",
-              "Script only" in page.locator("#pb-novideo").inner_text())
+              "Feel without film" in page.locator("#pb-novideo").inner_text())
         check("ohne Video: Abspielen-Knopf in der Stage",
               page.locator("#pb-play-novideo").count() == 1)
 

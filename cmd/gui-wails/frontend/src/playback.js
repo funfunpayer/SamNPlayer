@@ -34,8 +34,8 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
-        <p class="pb-empty-title">Nothing loaded yet</p>
-        <p class="hint">Drop an Emotion Script — with or without a video. Without video it still plays on the device. Multiple scripts play as a list. Files from other apps are welcome too.</p>
+        <p class="pb-empty-title">Ready when you are</p>
+        <p class="hint">Open an Emotion Script — with a film or without. Feel still reaches the device. Add more for a quiet list. Other apps’ files are welcome too.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
       </div>
     </div>
@@ -65,12 +65,12 @@ export function initPlayback(root) {
           <div class="checkbox-row" id="pb-contact-marks-row" style="display:none; margin:0.35rem 0 0;">
             <input type="checkbox" id="pb-contact-marks-toggle" checked />
             <label for="pb-contact-marks-toggle"
-              data-help="Draws contact areas stored at Generate (gold = primary, magenta = extras). Feel labels only — Everyday stroke still follows tip CSRT depth.">Show contact marks</label>
+              data-help="Draws contact areas stored at Create (gold = primary, magenta = extras). Feel labels only — Everyday stroke still follows tip CSRT depth.">Show contact marks</label>
           </div>
           <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0.2rem 0 0;"></p>
           <div id="pb-novideo" class="pb-novideo">
-            <p class="pb-novideo-title">Script only</p>
-            <p class="hint">Runs on device and curve alone — video is optional. Play starts immediately.</p>
+            <p class="pb-novideo-title">Feel without film</p>
+            <p class="hint">Device and curve alone — video is optional. Play starts immediately.</p>
             <div class="pb-novideo-actions">
               <button type="button" id="pb-play-novideo" class="primary">Play</button>
               <button type="button" id="pb-pick-video">Link video…</button>
@@ -127,7 +127,7 @@ export function initPlayback(root) {
           <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
         <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
-          data-help="FunGen-like 0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
+          data-help="0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
           <input type="checkbox" id="pb-pos-overlay-toggle" checked />
           0–100 on video
         </label>
@@ -156,7 +156,7 @@ export function initPlayback(root) {
         </div>
         <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
-          data-help="FunGen-like: soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
+          data-help="Soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
           Edit dots on the curve: drag / click / double-click — see “?”.</p>
 
         <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
@@ -226,15 +226,15 @@ export function initPlayback(root) {
           <div class="checkbox-row" id="pb-contact-off-row">
             <input type="checkbox" id="pb-contact-off" />
             <label for="pb-contact-off"
-              data-help="Turns off contact vibration stored in the script for this playback only — without regenerating. The curve preview stays visible.">Contact vibration off</label>
+              data-help="Turns off contact vibration stored in the script for this play only — without creating again. The curve preview stays visible.">Contact vibration off</label>
           </div>
           <div class="field-row" id="pb-contact-intensity-row">
-            <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as generated, 0 = off, up to 2 = stronger.">Contact strength</label>
+            <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as created, 0 = off, up to 2 = stronger.">Contact strength</label>
             <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
             <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
           </div>
           <div class="field-row" id="pb-contact-span-row">
-            <label data-help="Live sensitivity without re-generating. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
+            <label data-help="Live sensitivity without creating again. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
             <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
             <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
           </div>
@@ -266,7 +266,7 @@ export function initPlayback(root) {
           <div class="checkbox-row" id="pb-trajectory-row" style="display:none">
             <input type="checkbox" id="pb-trajectory-toggle" />
             <label for="pb-trajectory-toggle"
-              data-help="Draws the tip/partner track path over the video (MT-Debug) — only available on scripts generated with 'Record tip/partner trajectory' on. Off by default.">Show tip/partner trajectory</label>
+              data-help="Draws the tip/partner track path over the video (MT-Debug) — only available on scripts created with 'Record tip path' on. Off by default.">Show tip/partner trajectory</label>
           </div>
           <p class="hint" id="pb-trajectory-hint" style="display:none; margin-top:0;">This script has no recorded trajectory — regenerate with “Record tip/partner trajectory (Debug overlay)” on to use this.</p>
           <div class="field-row"><label>Device</label>

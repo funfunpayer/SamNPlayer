@@ -8,8 +8,12 @@ import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
+  root.classList.add('tab-create');
   root.innerHTML = `
-    <h2>Create Emotion Script</h2>
+    <header class="create-head">
+      <h2>Create Emotion Script</h2>
+      <p class="create-lede">From a quiet video — motion becomes feel you can play.</p>
+    </header>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
         <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
@@ -20,7 +24,7 @@ export function initGenerator(root, playback) {
       </ol>
     </nav>
     <p class="hint gen-step-prompt" id="gen-step-prompt" style="margin-top:0">
-      Start with a video — we find the motion and build your Emotion Script.
+      Start gently — choose a video; we find the motion and shape your Emotion Script.
     </p>
     <div class="path-label" id="gen-status"></div>
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
@@ -60,7 +64,7 @@ export function initGenerator(root, playback) {
         <button id="gen-seek-plus" type="button" disabled>+1s</button>
         <button id="gen-seek-plus5" type="button" disabled>+5s</button>
         <label class="checkbox-row" style="margin:0 0 0 8px;"
-          data-help="FunGen-like 0–100 stroke gauge over the preview. Moves with Time/Frame after Generate. Turn off anytime.">
+          data-help="0–100 stroke gauge over the preview. Moves with Time/Frame after Create. Turn off anytime.">
           <input type="checkbox" id="gen-pos-overlay-toggle" checked />
           0–100 on video
         </label>
@@ -83,7 +87,7 @@ export function initGenerator(root, playback) {
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration is on — optional labels &amp; contact areas (not required to Generate).
+          Contact vibration is on — optional labels &amp; contact areas (not required to Create).
           Tip class = Glans/Penis for the tracked tip. Contact areas = where touch should feel (nipples…).
           Multiple contact areas OK. Vib still follows stroke depth today.
         </p>
@@ -123,7 +127,7 @@ export function initGenerator(root, playback) {
       </div>
       <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
       <button id="gen-nomark" type="button" disabled hidden
-        data-help="Removed from Generate GUI — use tip CSRT. 4-zone remains CLI-only.">4-zone (advanced)</button>
+        data-help="Removed from Create GUI — use tip CSRT. 4-zone remains CLI-only.">4-zone (advanced)</button>
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
@@ -185,7 +189,7 @@ export function initGenerator(root, playback) {
         <div style="margin-top:8px;">
           <div class="opt-group">Tracking</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-            data-help="Flips the stroke curve up↔down (100−pos). Use when FunGen / your feel goes the other way — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
+            data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
             data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
@@ -252,8 +256,8 @@ export function initGenerator(root, playback) {
       <div id="gen-improve" style="display:none; margin-top:4px; padding:10px;
            border:1px solid var(--border); border-radius:4px;">
         <div style="margin-bottom:6px;">
-          FunGen-like polish on the CSRT result — trim ends, fill gaps, optional audio check.
-          Gaps already get an auto pass right after Generate; re-run here after trim or with audio spacing.
+          Soft polish on the CSRT result — trim ends, fill gaps, optional audio check.
+          Gaps already get an auto pass right after Create; re-run here after trim or with audio spacing.
         </div>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
           <label style="width:auto;" data-help="Cut black intro / late credits. 0 = keep from start.">Start (s)</label>
@@ -606,7 +610,7 @@ export function initGenerator(root, playback) {
     el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = (useAI
       ? 'AI region search (everyday path)…'
-      : 'Finding tip region automatically (CSRT — measured best vs FunGen)…') + videoBatchNote;
+      : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
     AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
   }
 
@@ -1204,7 +1208,7 @@ export function initGenerator(root, playback) {
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
-        'Everyday path: finding tip region for CSRT (best vs FunGen). Contact marks appear when Contact vib is on.'
+        'Everyday path: finding tip region for CSRT. Contact marks appear when Contact vib is on.'
       ) + batchNote;
       lastOutputPath = null;
       genCurvePoints = null;
@@ -1706,7 +1710,7 @@ export function initGenerator(root, playback) {
         }
       }
       lastOutputPath = path;
-      el('#gen-status').textContent += ' — loaded in Playback (dots + Edit curve).';
+      el('#gen-status').textContent += ' — loaded in Play (dots + Edit curve).';
       try {
         await playback.loadScriptPath(path, { review: true });
         await loadGenCurveFromPlay();
