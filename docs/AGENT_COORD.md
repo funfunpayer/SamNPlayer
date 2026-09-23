@@ -71,6 +71,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **10** | Prep **v0.5.21** | Cursor A | **DONE** #172 |
 | **11** | **v0.5.21** bump + tag | Cursor A | **DONE** #175 + tag `v0.5.21` |
 | **12** | **v0.5.22** bump + tag | Cursor A | **DONE** #181 + tag `v0.5.22` |
+| **13** | **v0.5.23** bump + tag | Cursor A | **THIS PR** — Training clip frames in portable + MT wave |
 
 ---
 
@@ -91,7 +92,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
-| A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
+| A | Cursor | `cursor/release-0-5-23-d7cb` | bump **v0.5.23** + tag + Release | **THIS PR** — portable Training clip fix + MT wave |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |

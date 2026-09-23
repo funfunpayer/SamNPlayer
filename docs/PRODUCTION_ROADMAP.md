@@ -85,7 +85,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.20** | Shipped | 4-zone GUI opt-in + Contact-first (#169); owner Flow smoke |
 | **v0.5.21** | Shipped | Profile rename; Play feel-decouple; Flow soft warns (#172) |
 | **v0.5.22** | Shipped | Training clip+ring; Everyday Generate; Playback HiDPI/seek; bugfix P0/P1 (#177/#179/#176); tag #181 |
-| **v0.5.23+** | After smoke | Tip↔partner distance; **multi-track Fahrplan** (below); Flow hang if still open |
+| **v0.5.23** | Ready to tag | Training portable clip frames (#187); MT-Go/Seed/Debug/Infra; QC fixes #195/#196 |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
