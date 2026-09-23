@@ -38,18 +38,16 @@ export function initGenerator(root, playback) {
       <h3 class="gen-step-title">2 · Region (auto)</h3>
       <p class="hint" style="margin-top:0">
         FunGen-like: we find the tip region for you (best measured path = CSRT).
-        Correct the box if needed. Optional: AI detection, or mark where Contact should feel (Zone 2).
+        Correct the box if needed. Contact areas (below) only appear when Contact vibration is on.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
           data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows ranked motion regions (MT-Seed). Click = Tip (Zone 1). Optional: Shift-click / Zone 2 mode = second body-part mark (mouth/hand/…) — never auto-filled. Everyday = tip alone is enough.">Show motion candidates</button>
+          data-help="Shows ranked motion regions (MT-Seed). Click = Tip. Shift-click = optional contact area when Contact vibration is on. Everyday = tip alone is enough.">Show motion candidates</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
-          data-help="MT-Seed: proposes Tip (#1) + optional second body-part region (#2 non-overlapping). Apply required. Skip for Everyday tip-CSRT — Partner is not the default product path.">Suggest Tip+2nd</button>
+          data-help="MT-Seed: proposes Tip (#1) + optional contact area (#2). Apply required. Skip for Everyday tip-CSRT.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
-        <button id="gen-nomark" type="button" disabled
-          data-help="Advanced / weaker on measured clip (windowed r≈0.36 vs CSRT hub ≈0.59). Whole-frame 4-zone — opt-in only, not the everyday default.">4-zone (advanced)</button>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Local ONNX model proposes the tip box only — never writes the stroke curve. Needs Settings → AI model.">AI region (optional)</label></span>
@@ -82,38 +80,52 @@ export function initGenerator(root, playback) {
         </div>
       </div>
       <div class="path-label" id="gen-roi-label">No region marked</div>
-      <div class="row" style="align-items:center; margin-top:6px;">
-        <button id="gen-roi2-toggle" type="button"
-          data-help="Optional partner mark (gold). On Stroke today this is preview-only — Contact vibration still follows stroke depth. Tip↔partner distance needs Tf/Tj (or a later feel-decouple). Not required for Generate.">Zone 2 (optional contact)</button>
-        <button id="gen-target-add" type="button"
-          data-help="Zone 3+: extra contact anchors (magenta). Optional.">+ Zone 3+ (contact)</button>
-        <label style="width:auto; margin:0;" data-help="Body-part class applied to the next Zone 3+ mark (e.g. mouth, nipples).">Zone 3+ class</label>
-        <select id="gen-target-class" style="min-width:7em;">
-          <option value="">(any)</option>
-        </select>
-        <button id="gen-mask-add" type="button"
-          data-help="Soft-exclude mask (dashed gray). Punched out of camera/grid feature masks — does not drive the stroke.">+ Mask</button>
-        <button id="gen-extras-clear" type="button"
-          data-help="Clear all extra targets and soft masks (keeps Zone 1/Zone 2).">Clear extras</button>
-        <span class="hint" id="gen-roi2-hint" style="margin:0">Optional mark. Stroke: preview only (vib = depth). Tf/Tj: tip↔partner distance.</span>
-      </div>
-      <div class="path-label" id="gen-roi2-label">No 2nd region marked</div>
-      <div class="path-label" id="gen-extras-label" style="display:none;"></div>
       <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
-        <label style="width:auto;" data-help="Zone 1 class — tip / tracked part. Prefer glans for Tf/Tj; whole penis also works — distance uses the end toward the contact zone.">Zone 1 (tip)</label>
+        <label style="width:auto;" data-help="Tip / tracked part class (optional). Prefer glans for tip tracking.">Tip class</label>
         <select id="gen-region-class" style="min-width:8em;">
           <option value="">(any)</option>
         </select>
-        <label style="width:auto;" data-help="Zone 2 body-part class (mouth, hand, …) — preferred over a nameless Partner. Used for tip↔partner distance on Tf/Tj. On Stroke the mark is stored for later; Contact vib still uses stroke depth.">Zone 2 (body-part)</label>
-        <select id="gen-region-class2" style="min-width:8em;">
-          <option value="">(pick class)</option>
-        </select>
-        <label class="checkbox-row" style="margin:0;"
-          data-help="Keep Zone 2 at the marked box (static). Off = track the partner (default when contact vibration is on — scene/camera motion stays in sync). On only when the contact target barely moves.">
-          <input type="checkbox" id="gen-roi2-fixed" /> Fix Zone 2 (static)
-        </label>
       </div>
       <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
+
+      <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
+        <p class="hint" style="margin:0 0 6px 0;">
+          Contact vibration is on — mark where touch should feel (nipples, mouth, hand…).
+          Multiple areas OK. Vibration still follows stroke depth today; marks are stored for feel.
+        </p>
+        <div class="row" style="align-items:center; margin-top:6px;">
+          <button id="gen-roi2-toggle" type="button"
+            data-help="Mark the main contact area (gold). Example: one nipple, mouth, or hand. On Stroke, Contact vibration still follows stroke depth — the mark is for location/feel later. Tip↔partner distance needs Tf/Tj.">Mark contact area</button>
+          <button id="gen-target-add" type="button"
+            data-help="Add another contact area (magenta) — e.g. second nipple. Same idea as the first contact mark; you can mark several.">+ Another contact area</button>
+          <label style="width:auto; margin:0;" data-help="Body-part type for the next extra contact mark.">Extra type</label>
+          <select id="gen-target-class" style="min-width:7em;">
+            <option value="">(any)</option>
+          </select>
+          <button id="gen-extras-clear" type="button"
+            data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">Contact marks optional. Vib = stroke depth unless Tf/Tj distance.</span>
+        </div>
+        <div class="path-label" id="gen-roi2-label">No contact area marked</div>
+        <div class="path-label" id="gen-extras-label" style="display:none;"></div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+          <label style="width:auto;" data-help="What the main contact area is (nipples, mouth, hand…). Defaults to Nipples when empty.">Contact type</label>
+          <select id="gen-region-class2" style="min-width:8em;">
+            <option value="">(pick class)</option>
+          </select>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipples/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+            <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
+          </label>
+        </div>
+        <div class="row" style="align-items:center; margin-top:4px;">
+          <button id="gen-mask-add" type="button"
+            data-help="Advanced: soft-exclude mask (dashed gray). Punched out of camera/grid features — does not drive the stroke.">+ Soft mask (advanced)</button>
+        </div>
+      </div>
+      <!-- Keep 4-zone opt-in for tests / power users; hidden from everyday row — Advanced backends still list it. -->
+      <button id="gen-nomark" type="button" disabled hidden
+        data-help="Advanced / weaker on measured clip. Whole-frame 4-zone — opt-in only via Advanced → Tracking method.">4-zone (advanced)</button>
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
@@ -127,14 +139,15 @@ export function initGenerator(root, playback) {
         </select>
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-        Track with CSRT tip mark or whole-frame 4-zone. Contact vibration (below) is the feel layer — on by default.
+        Track tip with CSRT. Contact vibration (below) is the feel layer — on by default.
+        Contact area marks appear in Step 2 only while vib is on.
       </p>
       <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
           <label for="gen-contact-vibration"
-            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default — turn off anytime. Zone 2 does not change Stroke vib yet (preview mark only).">Contact vibration (on by default)</label>
+            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default. When on, Step 2 shows Contact area marks (nipples/mouth/…). Marks do not change Stroke vib yet (still depth-based) — they store where touch should feel.">Contact vibration (on by default)</label>
         </div>
         <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
           <div class="field-row" style="align-items:center;">
@@ -175,7 +188,7 @@ export function initGenerator(root, playback) {
         <div style="margin-top:8px;">
           <div class="opt-group">Tracking</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-            data-help="Inverts motion direction (polarity). Often the FunGen difference — not a tracking bug.">Invert motion direction</label></div>
+            data-help="Flips the stroke curve up↔down (100−pos). Use when FunGen / your feel goes the other way — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
             data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
@@ -500,13 +513,13 @@ export function initGenerator(root, playback) {
       : 'No region marked';
     el('#gen-roi2-label').textContent = roi2
       ? secondRegionLabel(roi2, 'gold')
-      : 'No 2nd region marked';
+      : 'No contact area marked';
     const extras = el('#gen-extras-label');
     if (extras) {
       const parts = [];
       if (extraTargets.length) {
         const named = extraTargets.map((t, i) => t.class ? t.class : `#${i + 1}`).join(', ');
-        parts.push(`${extraTargets.length} Zone 3+ (${named}, magenta, fixed)`);
+        parts.push(`${extraTargets.length} extra contact (${named}, magenta)`);
       }
       if (maskRois.length) {
         parts.push(`${maskRois.length} soft mask${maskRois.length === 1 ? '' : 's'} (dashed)`);
@@ -686,6 +699,30 @@ export function initGenerator(root, playback) {
   function updateContactVibrationOpts() {
     const on = el('#gen-contact-vibration').checked;
     el('#gen-contact-vibration-opts').style.display = on ? 'block' : 'none';
+    const marks = el('#gen-contact-marks-wrap');
+    if (marks) {
+      marks.style.display = on ? 'block' : 'none';
+      marks.hidden = !on;
+    }
+    if (on) {
+      const c2 = el('#gen-region-class2');
+      if (c2 && !c2.value && !c2.dataset.userTouched) {
+        // Default contact type: nipples (common dual-side touch target).
+        if ([...c2.options].some((o) => o.value === 'nipples')) {
+          c2.value = 'nipples';
+        }
+      }
+      const tc = el('#gen-target-class');
+      if (tc && !tc.value && !tc.dataset.userTouched) {
+        if ([...tc.options].some((o) => o.value === 'nipples')) {
+          tc.value = 'nipples';
+        }
+      }
+    } else {
+      // Leaving contact-mark mode when vib is off.
+      if (roi2Mode) setRoi2Mode(false);
+      if (markMode === 'target' || markMode === 'mask') setMarkMode(null);
+    }
     syncRoi2FixedDefault();
     updateGenerateEnabled();
   }
@@ -716,9 +753,9 @@ export function initGenerator(root, playback) {
     if (videoPath && roi2) {
       el('#gen-status').textContent = isTfTj()
         ? (contactVibrationOn()
-          ? 'Zone 2 set — tip↔partner distance; tracked unless “Fix Zone 2” is on.'
-          : 'Zone 2 set (Contact vib off) — tip↔partner distance still uses both regions.')
-        : 'Zone 2 marked (preview on Stroke) — Contact vib follows stroke depth until Tf/Tj / feel-decouple.';
+          ? 'Contact area set — tip↔partner distance; tracked unless “Fix contact area” is on.'
+          : 'Contact area set (Contact vib off) — tip↔partner distance still uses both regions.')
+        : 'Contact area marked — vib follows stroke depth until feel-decouple / Tf/Tj.';
     }
   }
 
@@ -778,7 +815,7 @@ export function initGenerator(root, playback) {
   function secondRegionLabel(roiBox, via) {
     const cls = regionClass2Value();
     const clsTag = cls ? `, ${labelFor(cls) || cls}` : '';
-    return `2nd region: x=${roiBox.x} y=${roiBox.y} w=${roiBox.w} h=${roiBox.h}`
+    return `Contact area: x=${roiBox.x} y=${roiBox.y} w=${roiBox.w} h=${roiBox.h}`
       + ` (video pixels${via ? `, ${via}` : ''}${clsTag})`;
   }
 
@@ -787,7 +824,7 @@ export function initGenerator(root, playback) {
     if (!sel || sel.value) return '';
     sel.style.outline = '2px solid rgba(242,176,61,0.85)';
     setTimeout(() => { if (sel) sel.style.outline = ''; }, 2400);
-    return ' Pick Zone 2 body-part class (mouth/hand/…) — Partner is not the default.';
+    return ' Pick contact type (nipples/mouth/hand…) — Partner is not the default.';
   }
 
   /** Ranked list → Tip (#1) + first non-overlapping partner. Suggest only. */
@@ -1159,7 +1196,7 @@ export function initGenerator(root, playback) {
       el('#gen-label-scene').disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
-        'Everyday path: finding tip region for CSRT (best vs FunGen). Optional: AI checkbox / Zone 2 for vibe location.'
+        'Everyday path: finding tip region for CSRT (best vs FunGen). Contact marks appear when Contact vib is on.'
       ) + batchNote;
       lastOutputPath = null;
       genCurvePoints = null;
@@ -1404,12 +1441,12 @@ export function initGenerator(root, playback) {
     }
     if (hasRoi2 && roi2) {
       el('#gen-roi2-label').textContent =
-        `2nd region: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — optional contact)`;
+        `Contact area: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via})`;
     }
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Tip + optional contact found (${via}) — CSRT ready. Contact vib uses stroke depth unless you refine Zone 2.`
+      ? `Tip + contact area found (${via}) — CSRT ready. Vib still follows stroke depth until feel-decouple.`
       : `Tip region found (${via}) — CSRT + Contact is the everyday path. Correct by hand if needed.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
@@ -1681,7 +1718,7 @@ export function initGenerator(root, playback) {
   el('#gen-roi2-toggle').addEventListener('click', () => {
     setRoi2Mode(!roi2Mode);
     if (roi2Mode) {
-      el('#gen-status').textContent = 'Optional Zone 2 (contact): drag on preview (gold).';
+      el('#gen-status').textContent = 'Contact area: drag on preview (gold).';
     }
   });
   el('#gen-target-add')?.addEventListener('click', () => {
@@ -1690,7 +1727,7 @@ export function initGenerator(root, playback) {
       return;
     }
     setMarkMode('target');
-    el('#gen-status').textContent = 'Extra contact: drag on preview (magenta).';
+    el('#gen-status').textContent = 'Another contact area: drag on preview (magenta).';
   });
   el('#gen-mask-add')?.addEventListener('click', () => {
     if (markMode === 'mask') {
@@ -1873,15 +1910,23 @@ export function initGenerator(root, playback) {
   fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
   el('#gen-region-class2')?.addEventListener('change', () => {
     const sel = el('#gen-region-class2');
-    if (sel) sel.style.outline = '';
+    if (sel) {
+      sel.dataset.userTouched = '1';
+      sel.style.outline = '';
+    }
     if (roi2) {
       el('#gen-roi2-label').textContent = secondRegionLabel(roi2);
       redraw();
     }
   });
+  el('#gen-target-class')?.addEventListener('change', () => {
+    const sel = el('#gen-target-class');
+    if (sel) sel.dataset.userTouched = '1';
+  });
   el('#gen-roi2-fixed')?.addEventListener('change', () => {
     el('#gen-roi2-fixed').dataset.userTouched = '1';
   });
 
+  updateContactVibrationOpts();
   syncWorkflowSteps();
 }

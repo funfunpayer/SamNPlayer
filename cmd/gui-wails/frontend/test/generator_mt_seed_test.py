@@ -98,7 +98,7 @@ def main():
             "#gen-seed-suggest",
             "e => ({ hidden: e.hidden, disabled: e.disabled })")
         check("Candidates listed without writing Zone 2",
-              "No 2nd" in page.locator("#gen-roi2-label").inner_text())
+              "No contact" in page.locator("#gen-roi2-label").inner_text())
         check("Suggest Tip+2nd enabled with ≥2 candidates",
               (not seed["hidden"]) and (not seed["disabled"]),
               str(seed))
@@ -115,7 +115,7 @@ def main():
         check("Click sets Zone 1 from candidate #1",
               "candidate #1" in page.locator("#gen-roi-label").inner_text())
         check("Click does not auto-fill Zone 2",
-              "No 2nd" in page.locator("#gen-roi2-label").inner_text())
+              "No contact" in page.locator("#gen-roi2-label").inner_text())
 
         # Shift-click Partner via locator modifiers (reliable vs mouse+keyboard).
         p2_x = 445 * (box["width"] / nw)

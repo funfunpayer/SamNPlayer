@@ -100,7 +100,7 @@ def main():
             " return l && !l.textContent.startsWith('No '); }",
             timeout=5000)
         check("Zone 2 optional for vibe location",
-              "No 2nd" not in page.locator("#gen-roi2-label").inner_text())
+              "No contact" not in page.locator("#gen-roi2-label").inner_text())
         check("Generate still ready with Zone 2",
               page.locator("#gen-generate").is_enabled())
 

@@ -31,18 +31,23 @@ Do **not** default 4-zone or Flow.
   1. Choose video
   2. Auto: find tip region (classic motion, or AI if checkbox on)
        — user may correct the box, or **Show motion candidates**:
-         click = Tip; optional Shift-click / Suggest Tip+2nd = body-part mark
-         (Apply required; never auto-fills Zone 2)
-  3. Optional: Contact vibration on (default) · optional Zone 2 “where it vibrates”
-       — pick Zone 2 body-part class (mouth/hand/…) when a 2nd mark exists
+         click = Tip; optional Shift-click = contact area (only if Contact vib on)
+  3. Contact vibration on (default) · Step 2 then shows Contact area marks
+       — Mark contact area / + Another (e.g. both nipples); type defaults to Nipples
+       — Marks optional; Stroke vib still follows depth until feel-decouple
   4. Generate → .samn + .funscript
   5. Review & improve: trim start/end · fill gaps · audio check on/off
        — then **Play**: soft curve + keyframe dots (FunGen-like); Edit curve to adjust
        — **0–100 on video** gauge over Generator preview / Play (toggleable)
 ```
 
+**Everyday needs (CSRT):** tip box (auto or mark) + Contact vib on/off. Contact marks,
+soft masks, 4-zone, Tf/Tj distance are optional / advanced — not required for a good script.
+
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
 scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
+- **Invert motion direction** — flips the curve (100−pos). FunGen polarity mismatch, not a tracker bug.
+- **Fix contact area (static)** (Step 2, when Contact vib on) — keep the gold contact box fixed; off = track it (better with camera motion).
 Removed from Everyday Advanced: AI second opinion (no curve effect), audio
 check row (moved to Review), Flow downscale (Flow is CLI-only). Scene memory
 collapsed under Power-user. Imported scripts → Play **Optimize for Neo 2**
