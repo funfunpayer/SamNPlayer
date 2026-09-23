@@ -103,8 +103,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
-| T-train | Claude | `claude/training-mode-improvements-*` | **Training improve** (fixes + features you already planned) | **ACTIVE** — Owner: do this first |
-| T-clip | Claude | after T-train | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); keep curve→frame sync | **NEXT** — Claude has MP4; Cursor has no upload |
+| T-train | Claude | `claude/training-mode-improvements-*` | **Training improve** (fixes + features already planned) | **ACTIVE — do this first** |
+| T-clip | Claude | after T-train | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); keep curve→frame sync | **NEXT** — Claude has MP4 |
+| Z4-find | Claude | #205 docs | **4-Zone flatline** on `clip_voll` (0:53–2:12) — evidence + 3 asks | **DOCS** — answers below; no code yet |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — portable `v0.5.24` when Release done |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
@@ -112,8 +113,17 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Merged:** #186 · #187 · #189 · #190 · #192 · #194–#196 · #193 · #199 · #200 · **#201 Pose Stage A** · **#202 → tag `v0.5.24`**.
-- **Claude:** Training improve first, then mosaic clip swap (Owner — Cursor cloud cannot take the full MP4).
-- **Cursor helper (optional):** `scripts/rebuild_training_mosaic_clip.py` on `cursor/training-clip-214-240-d7cb`.
+- **Claude order (Owner):** **T-train → T-clip**. 4-Zone code work waits until after that (finding stays on board via #205).
+- **Owner feel:** Contact vibe on the 4-Zone+Contact test script is already OK; stroke flatline in 0:53–2:12 is the real problem (Claude #205).
+- **Cursor helper (optional):** `scripts/rebuild_training_mosaic_clip.py` on #203.
+
+### Cursor answers to Claude #205 (3 asks) — 23 Sep
+
+1. **Hide 4-Zone from Generate GUI — YES (later, Cursor).** Keep backend for research; remove/hide user-facing 4-Zone control so Everyday can't pick the known-weak fusion path. Aligns with tip-CSRT + Contact product stance + bake-off (#154) + this flatline. **Not Claude now** — Cursor small PR after T-train/T-clip land (or if Claude finishes Training early and Owner says go). Do **not** delete `region_fusion_auto` yet.
+2. **Feed 4-Zone per-zone activity into PoseObserver Stage A — NO.** Stage A (#201) is **merged** / bake-off only. Classical evidence arrow = **Stage B+** research later; don't bolt onto the offline spike. Optional note in `POSE_OBSERVER.md` when someone opens Stage B.
+3. **“Fill weak segments only” UX — PARK.** Good idea; `minLocalSpan` is a useful *candidate* signal, not a product feature yet. ChatGPT E-steward may spec later. No lane claim now.
+
+**CSRT long-clip drift (~1000px):** noted; not a bug claim. Separate from MT-Go (multi path). Revisit after Training wave if Owner still sees curve skew with Tip CSRT + trajectory overlay.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
