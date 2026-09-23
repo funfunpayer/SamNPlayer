@@ -105,9 +105,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) merged | Emotion GUI look (Sora/Figtree) | **DONE** |
 | Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) + tag `v0.5.28` | bump **v0.5.28** + Release (look + feel + CSRT guards) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.28 |
 | Rel29 | Cursor | [#232](https://github.com/funfunpayer/SamNPlayer/pull/232) + tag `v0.5.29` | bump **v0.5.29** + Release (#230 stroke detrend on by default) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.29 |
-| Rel30 | Cursor | this PR + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **THIS** — tag after CI green; release bookkeeping + board answers |
+| Rel30 | Cursor | [#238](https://github.com/funfunpayer/SamNPlayer/pull/238) + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 |
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
-| G1next | Cursor | after Rel30 | **Fahrplan next:** G1 heuristics package inventory / stroke-preview Stage B gate — claim before coding | **NEXT** |
+| BF3 | Cursor | this PR | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **THIS** |
+| G1next | Cursor | after BF3 | G1 heuristics package inventory (unify posttrack knobs) — claim before coding | **NEXT** |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -129,10 +130,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (23 Sep eve):**
-- **Shipped:** **v0.5.29** (detrend default #230). Rhythm grid backend #233 + GUI #236 on `main` → cut as **v0.5.30** (this PR).
-- **Drift DONE:** opt-in rhythm grid + Advanced toggle. Default stays off until Owner runs ≥4–5 clips (gate: r-gain + no orientation regression where refs agree).
-- **Cursor THIS:** Rel30 tag; then **G1next** (heuristics / stroke-preview Stage B) — claim before coding. F-003 tier 2 = **don’t** (see answers below).
+**Status board (23 Sep night):**
+- **Shipped:** **v0.5.30** — rhythm grid opt-in (#233) + Advanced GUI toggle (#236). Default stays off until Owner ≥4–5 clips.
+- **Cursor THIS:** BF-3 stroke-preview Stage B (cut→PerSceneROI, pan→camera) — this PR. Then G1 heuristics inventory.
+- F-003 tier 2 = **don’t**. Drift lane closed.
 - ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
@@ -862,6 +863,7 @@ ring revision before committing.
 | 23 Sep | **Cursor answers Claude (rhythm grid):** GUI toggle **YES** → shipped Advanced opt-in (#236); default **KEEP OPT-IN** until ≥4–5 owner clips (r-gain + orientation gate where refs agree) | Cursor |
 | 23 Sep | **Cursor answers Claude (F-003 tier 2):** do **not** implement lag tie-breaking now (fires on 1/4 real pairs); tier-1 `AliasingRisk`/`AlternateLagsMs` + human glance is the stopping point; revisit only on majority real-firing or a concrete blocker | Cursor |
 | 23 Sep | **Rel30 prep** (Cursor): cut **v0.5.30** — #233 rhythm grid + #236 Advanced GUI toggle. `VERSION`/`BaseVersion` 0.5.29→0.5.30; CHANGELOG Unreleased→0.5.30; Drift/Rel29 DONE; Rel30 THIS; G1next NEXT. Closed obsolete #234 (answers folded here). Tag `v0.5.30` after CI green | Cursor |
+| 23 Sep | **BF-3 Stage B** (Cursor): high cut rate (>4/min) enables `PerSceneROI` for the current Generate run; high pan share (>0.4) re-enables camera compensation when off — same pattern as audio gate. GUI syncs Advanced checkboxes + tip from progress lines. Peak-distance stays advisory. Metadata `stage=B` when steered | Cursor |
 
 ---
 

@@ -32,10 +32,20 @@ func applyStrokePreview(ctx context.Context, videoPath string, opts Options, onP
 		onProgress(h.ProgressLine())
 	}
 	opts.StrokePreviewHint = h.MetadataMap()
+	return applyStrokePreviewSteers(opts, h, onProgress)
+}
+
+// applyStrokePreviewSteers folds Stage-B flags into the current Generate run
+// (same pattern as the audio gate): high cut rate → PerSceneROI; high pan →
+// camera compensation on. Never invents curve positions. Peak-distance stays
+// advisory-only in metadata/progress.
+func applyStrokePreviewSteers(opts Options, h strokepreview.Hint, onProgress func(string)) Options {
+	steered := false
 
 	// Audio only when preview looks bad — never invents positions.
 	if h.SuggestAudioCheck && !opts.AudioCheck {
 		opts.AudioCheck = true
+		steered = true
 		if onProgress != nil {
 			onProgress("STROKE_PREVIEW: enabling audio tempo check (weak/unstable preview)")
 		}
@@ -46,13 +56,43 @@ func applyStrokePreview(ctx context.Context, videoPath string, opts Options, onP
 		onProgress(fmt.Sprintf("STROKE_PREVIEW: tip peak spacing ~%dms (from ~%.2f Hz) — Advanced can override",
 			h.SuggestedMinPeakDistanceMs, h.StrokeHz))
 	}
-	if h.CutRatePerMin > 4 && onProgress != nil {
-		onProgress(fmt.Sprintf("STROKE_PREVIEW: high cut rate (%.1f/min) — consider “Re-find region after each cut”",
+	// BF-3: cut-rate → enable Re-find region (PerSceneROI) for this run.
+	if h.CutRatePerMin > 4 && !opts.PerSceneROI {
+		opts.PerSceneROI = true
+		steered = true
+		if onProgress != nil {
+			onProgress(fmt.Sprintf(
+				"STROKE_PREVIEW: high cut rate (%.1f/min) — enabling “Re-find region after each cut”",
+				h.CutRatePerMin))
+		}
+	} else if h.CutRatePerMin > 4 && onProgress != nil {
+		onProgress(fmt.Sprintf(
+			"STROKE_PREVIEW: high cut rate (%.1f/min) — Re-find region already on",
 			h.CutRatePerMin))
 	}
-	if h.PanShare > 0.4 && onProgress != nil {
-		onProgress(fmt.Sprintf("STROKE_PREVIEW: pan-like energy share=%.0f%% — camera compensation matters",
+	// BF-3: pan → camera compensation for this run (tip when already on).
+	if h.PanShare > 0.4 && opts.DisableCameraCompensation {
+		opts.DisableCameraCompensation = false
+		steered = true
+		if onProgress != nil {
+			onProgress(fmt.Sprintf(
+				"STROKE_PREVIEW: pan-like energy share=%.0f%% — enabling camera motion compensation",
+				h.PanShare*100))
+		}
+	} else if h.PanShare > 0.4 && onProgress != nil {
+		onProgress(fmt.Sprintf(
+			"STROKE_PREVIEW: pan-like energy share=%.0f%% — camera compensation on",
 			h.PanShare*100))
+	}
+
+	if steered && opts.StrokePreviewHint != nil {
+		opts.StrokePreviewHint["stage"] = "B"
+		if opts.PerSceneROI && h.CutRatePerMin > 4 {
+			opts.StrokePreviewHint["steered_per_scene_roi"] = true
+		}
+		if !opts.DisableCameraCompensation && h.PanShare > 0.4 {
+			opts.StrokePreviewHint["steered_camera_compensation"] = true
+		}
 	}
 	return opts
 }
