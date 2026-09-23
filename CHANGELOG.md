@@ -8,6 +8,21 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.26] — September 23, 2026
+
+### Added
+
+- **Contact marks in script metadata:** with Contact vib on, tip class + tip box +
+  contact areas are stored in `metadata.contact_marks` (`drive_stroke: false` on
+  Everyday — tip CSRT still writes the stroke).
+- **Play overlay:** **Show contact marks** under the video (blue tip, gold primary,
+  magenta extras) when marks are present.
+
+### Changed
+
+- **4-zone removed from Generate GUI** (including Advanced tracking dropdown) —
+  Everyday is CSRT 1-Zone only; 4-zone remains CLI/research.
+
 ## [0.5.25] — September 23, 2026
 
 ### Changed
