@@ -53,8 +53,8 @@ number over a feature wall (`docs/COMPETITIVE.md`).
 
 Already decided in `docs/LICENSE_SYSTEM.md`:
 
-- **Retail:** **€40** / year — 1 person, full Generate + `.samn` play  
-- **Trial:** 1 minute Generate; Funscript play without Neo-2 `.samn`  
+- **Retail:** **€40** / year — 1 person, full Create + Emotion Script (`.samn`) play  
+- **Trial:** 1 minute Create; imported community scripts still play without Neo-2 Emotion Script 
 - **Invite / internal:** no expiry for testers  
 
 Still to decide with the owner (not inferred here):
@@ -134,7 +134,7 @@ screenshot or number. Do **not** paste internal `docs/*.md` verbatim.
 
 | Priority | Topic | Source material (private) | Buyer takeaway |
 |----------|--------|---------------------------|----------------|
-| 1 | AI proposes, tracking writes | `AI_ADAPTER.md`, README | Why no silent AI Funscripts |
+| 1 | AI proposes, tracking writes | `AI_ADAPTER.md`, README | Why no silent AI-only Emotion Scripts |
 | 2 | Signal quality ≠ motion fidelity | `SIGNAL_VS_FIDELITY.md` | How to read Quality Doctor |
 | 3 | Portable zip on a clean PC | `FFMPEG_TOOLS.md`, SELLING trust | “It runs without installing ffmpeg” |
 | 4 | Tf/Tj + contact vibration | `TF_TJ.md`, `SAMN_FORMAT.md` | Why Neo 2 needs two axes / contact |
@@ -147,7 +147,7 @@ screenshot or number. Do **not** paste internal `docs/*.md` verbatim.
 - **FAQ** page: platforms, Mac status, trial 1 min, local-only, €40 seat  
 - **Short silent screen recording** of Play → device meters (no NSFW required if script-alone + mock)  
 - **Hardware shopping list** (UB500 / USB-BT500) — reduces support load  
-- **`.samn` vs `.funscript`** one-pager for Neo 2 buyers  
+- **`.samn` / Emotion Script vs Funscript share** one-pager for Neo 2 buyers  
 
 ### Skip for now (dilutes the sell)
 

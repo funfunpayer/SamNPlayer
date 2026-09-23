@@ -99,8 +99,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
 | Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
 | Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
-| Drift | Claude | free | **CSRT long-clip drift (~1000px)** — measure with tip trajectory overlay; findings first (not a bug claim yet). See § below + AGENT_COORD note | **THIS** — Claude first (do not steal) |
-| BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
+| Face | Cursor | [#223](https://github.com/funfunpayer/SamNPlayer/pull/223) | GitHub face: README + website + screenshots → Emotion Generator / Emotion Script / v0.5.27; sync script includes guides/blog | **DONE** — CI green; merge + owner `./scripts/sync-public-site.sh` (agent 403 on SamNPlayer-site) |
+| Drift | Claude | free | **CSRT long-clip drift (~1000px)** — Go generator / trackcv core; measure with tip trajectory; findings first | **THIS** — Claude first (do not steal) |
+| BugE | ChatGPT | [#222](https://github.com/funfunpayer/SamNPlayer/pull/222) | Overwrite confirm shows `.samn` + `.funscript`; Create copy docs | **NEXT** — ChatGPT (CI green) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -123,8 +124,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
-- **Claude THIS:** CSRT long-clip drift (~1000px) — measure first (trajectory overlay). Cursor will not steal.
-- ChatGPT: Emotion Script copy / general bugfix.
+- **Face (#223):** public README/website/screenshots updated — merge when ready; owner syncs showcase.
+- **Claude THIS:** CSRT long-clip drift in Go generator core — Cursor stays off that lane.
+- **ChatGPT:** #222 overwrite/copy (ready) + steward bugfix.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 

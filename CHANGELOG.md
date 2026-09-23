@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **GitHub / public face:** Emotion Generator + Emotion Script framing on README,
+  landing, guides, FAQ; fresh Create/Play screenshots (#223). Showcase sync:
+  `./scripts/sync-public-site.sh` (owner — agent cannot push SamNPlayer-site).
+- **Product language:** Emotion Script / Emotion Generator called out in
+  `docs/LANGUAGE.md` and selling copy (#220 already shipped GUI strings).
+
 ## [0.5.27] — September 23, 2026
 
 ### Added

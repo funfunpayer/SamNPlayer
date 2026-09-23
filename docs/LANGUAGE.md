@@ -25,8 +25,10 @@ language keeps the product and the repository aligned.
   `pfad`→`path`, `hinweis`→`hint`, `zeile`→`line`).
 - **Code comments** may still be German in older files; new comments
   preferably English. Do not mass-rewrite comments for translation alone.
-- **Brand / domain terms** stay: SamNPlayer, Funscript, Extended-O, Tf/Tj,
-  CSRT, ONNX, OFS, etc.
+- **Brand / domain terms** stay: SamNPlayer, **Emotion Script** / **Emotion Generator**,
+  Funscript (interchange only), Extended-O, Tf/Tj, CSRT, ONNX, OFS, etc.
+  User-facing product copy prefers Emotion Script (`.samn`); do not lead with
+  “Funscript” as the product format — see `docs/EMOTION_SCRIPT.md`.
 
 ## Contributing
 
