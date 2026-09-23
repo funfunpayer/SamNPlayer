@@ -8,6 +8,10 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Stroke preview Stage B steers** — high cut rate enables “Re-find region after each cut” (`PerSceneROI`) for the current Create run; high pan-like energy re-enables camera motion compensation when it was off. GUI Advanced checkboxes stay in sync. Peak spacing remains advisory-only (BF-3).
+
 ## [0.5.30] — September 23, 2026
 
 ### Added

@@ -92,8 +92,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.27** | Shipped | Feel Stage A + tip-path soft-on + Training mosaic/suction (#214–#217) |
 | **v0.5.28** | Shipped | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
-| **v0.5.30** | **THIS** | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
-| next | After Rel30 | Owner: ≥4–5 clips with Advanced rhythm-grid for default gate; residual CSRT drift = detector path; Cursor → G1 heuristics / stroke-preview Stage B |
+| **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
+| next | After Rel30 | Owner: ≥4–5 clips with Advanced rhythm-grid for default gate; Cursor BF-3 Stage B (this) → G1 heuristics; residual CSRT drift = detector path |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

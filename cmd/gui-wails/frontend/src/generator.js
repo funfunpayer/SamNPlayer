@@ -246,6 +246,7 @@ export function initGenerator(root, playback) {
                transition:width .2s linear;"></div>
         </div>
         <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
+        <div id="gen-preview-steer-tip" class="hint" style="margin-top:4px;"></div>
       </div>
       <pre id="gen-log" class="run-log" aria-label="Creation progress"></pre>
       <p class="hint">
@@ -1314,6 +1315,8 @@ export function initGenerator(root, playback) {
       el('#gen-progress-bar').style.width = '0%';
       el('#gen-progress-bar').style.opacity = '1';
       el('#gen-progress-text').textContent = 'Starting…';
+      const tip = el('#gen-preview-steer-tip');
+      if (tip) tip.textContent = '';
       progressStartedAt = Date.now();
     }
     // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
@@ -1397,9 +1400,23 @@ export function initGenerator(root, playback) {
       wrap.style.display = 'block';
       progressStartedAt = Date.now();
     }
+    // Stage B steers (stroke preview): keep Advanced checkboxes in sync with
+    // what Generate enabled for this run (same lines as applyStrokePreviewSteers).
+    const s = String(line);
+    if (/STROKE_PREVIEW:.*enabling .Re-find region after each cut/i.test(s)) {
+      const box = el('#gen-perscene');
+      if (box && !box.checked) box.checked = true;
+      const tip = el('#gen-preview-steer-tip');
+      if (tip) tip.textContent = 'Stroke preview: enabled Re-find region after each cut (high cut rate).';
+    }
+    if (/STROKE_PREVIEW:.*enabling camera motion compensation/i.test(s)) {
+      const box = el('#gen-camcomp');
+      if (box && !box.checked) box.checked = true;
+      const tip = el('#gen-preview-steer-tip');
+      if (tip) tip.textContent = 'Stroke preview: enabled camera motion compensation (pan-like energy).';
+    }
     const pipe = el('#gen-pipeline');
     if (!pipe) return;
-    const s = String(line);
     if (/Go-Pipeline|Go-native|trackcv/i.test(s) && !/simpletrack|NCC/i.test(s)) {
       pipe.textContent = 'Path: Go CSRT';
     } else if (/PreferSimpletrack|simpletrack|NCC/i.test(s)) {

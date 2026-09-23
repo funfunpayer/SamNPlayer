@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/funfunpayer/SamNPlayer/generator/strokepreview"
 )
 
 func TestApplyStrokePreviewSynthetic(t *testing.T) {
@@ -47,5 +49,57 @@ func TestApplyStrokePreviewSkip(t *testing.T) {
 	opts := applyStrokePreview(context.Background(), "/nope.mp4", Options{SkipStrokePreview: true}, nil)
 	if opts.StrokePreviewHint != nil {
 		t.Fatal("skip must not run")
+	}
+}
+
+func TestApplyStrokePreviewSteersCutRateEnablesPerSceneROI(t *testing.T) {
+	h := strokepreview.Hint{CutRatePerMin: 5.0, PanShare: 0.1}
+	var lines []string
+	opts := applyStrokePreviewSteers(Options{
+		StrokePreviewHint: map[string]any{"stage": "A"},
+	}, h, func(s string) { lines = append(lines, s) })
+	if !opts.PerSceneROI {
+		t.Fatal("expected PerSceneROI enabled for high cut rate")
+	}
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "enabling “Re-find region after each cut”") {
+		t.Fatalf("missing enable progress: %s", joined)
+	}
+	if opts.StrokePreviewHint["stage"] != "B" {
+		t.Fatalf("stage=%v want B", opts.StrokePreviewHint["stage"])
+	}
+	if opts.StrokePreviewHint["steered_per_scene_roi"] != true {
+		t.Fatal("expected steered_per_scene_roi metadata")
+	}
+}
+
+func TestApplyStrokePreviewSteersPanEnablesCamera(t *testing.T) {
+	h := strokepreview.Hint{CutRatePerMin: 0, PanShare: 0.55}
+	var lines []string
+	opts := applyStrokePreviewSteers(Options{
+		DisableCameraCompensation: true,
+		StrokePreviewHint:         map[string]any{"stage": "A"},
+	}, h, func(s string) { lines = append(lines, s) })
+	if opts.DisableCameraCompensation {
+		t.Fatal("expected camera compensation enabled for high pan share")
+	}
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "enabling camera motion compensation") {
+		t.Fatalf("missing enable progress: %s", joined)
+	}
+	if opts.StrokePreviewHint["steered_camera_compensation"] != true {
+		t.Fatal("expected steered_camera_compensation metadata")
+	}
+}
+
+func TestApplyStrokePreviewSteersNoopWhenAlreadyOn(t *testing.T) {
+	h := strokepreview.Hint{CutRatePerMin: 6, PanShare: 0.5}
+	opts := applyStrokePreviewSteers(Options{
+		PerSceneROI:               true,
+		DisableCameraCompensation: false,
+		StrokePreviewHint:         map[string]any{"stage": "A"},
+	}, h, nil)
+	if opts.StrokePreviewHint["stage"] != "A" {
+		t.Fatalf("no new steers → stage should stay A, got %v", opts.StrokePreviewHint["stage"])
 	}
 }
