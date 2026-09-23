@@ -97,7 +97,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | TipBox | Cursor | [#212](https://github.com/funfunpayer/SamNPlayer/pull/212) merged | Stamp tip ROI into `contact_marks.tip` + blue overlay | **DONE** (`d207ece`) |
 | Feel | Cursor | [#214](https://github.com/funfunpayer/SamNPlayer/pull/214) merged | Feel-decouple Stage A: spatial vib near marks when trajectory present | **DONE** (`f1d0517`) |
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
-| Rel27 | Cursor | `cursor/release-0-5-27-d7cb` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **THIS** |
+| Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -119,8 +119,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Claude #216 DONE** on main. Cursor: **v0.5.27** bump (Feel + Traj + Training).
-- **Shipped:** **v0.5.26** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26
+- **Shipped:** **v0.5.27** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27
+- Claude Training (#215/#216) DONE. Cursor free for next slice.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 
