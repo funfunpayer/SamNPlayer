@@ -133,6 +133,8 @@ def main():
               opts.get("profile") == "standard", str(opts))
         check("Contact vib passed through",
               opts.get("contactVibration") is True, str(opts))
+        check("Contact area (roi2) persisted on Stroke+Contact",
+              opts.get("w2", 0) > 0 and opts.get("h2", 0) > 0, str(opts))
         check("Trajectory capture opt-in reaches GenerateScript payload",
               opts.get("captureTrajectory") is True, str(opts))
 

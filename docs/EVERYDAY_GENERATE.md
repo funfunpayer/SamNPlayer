@@ -45,6 +45,8 @@ Do **not** default 4-zone or Flow.
 **Everyday needs (CSRT):** tip box (auto or mark) + Contact vib on/off. Contact marks,
 soft masks, Tf/Tj distance are optional. **4-zone is CLI-only** — not in the Generate GUI
 (weaker on measured clips; backend kept for evidence experiments).
+Contact marks (when vib on) are **stored** in `metadata.contact_marks` for feel /
+later feel-decouple — they do **not** change the tip-CSRT stroke curve today.
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
 scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).

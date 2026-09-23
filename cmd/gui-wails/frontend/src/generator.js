@@ -1336,12 +1336,10 @@ export function initGenerator(root, playback) {
       captureTrajectory: !!el('#gen-capture-trajectory')?.checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
-    // Optional Zone 2 is UX-only for now on stroke profiles (Contact vib uses
-    // stroke depth). Legacy tip↔partner distance stays CLI --profile tf|tj.
-    // FEEL_DECOUPLE(v0.5.21+): when enabling stroke+partner distance, gate on
-    // contactVibrationOn() && roi2 (tracked partner), not isTfTj() alone —
-    // do not silent-default that path yet (owner smoke first).
-    if (roi2 && isTfTj()) {
+    // Contact marks: persist when Contact vib is on (or legacy Tf/Tj distance).
+    // Everyday stroke still uses tip-only CSRT — marks go to metadata.contact_marks
+    // for feel / later feel-decouple (native pipeline stamps them; drive_stroke=false).
+    if (roi2 && (contactVibrationOn() || isTfTj())) {
       payload.x2 = roi2.x;
       payload.y2 = roi2.y;
       payload.w2 = roi2.w;
