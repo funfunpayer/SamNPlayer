@@ -203,6 +203,8 @@ export function initGenerator(root, playback) {
           <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs a tip mark (auto-find or draw). Contact vibration is the feel layer — optional marks when vib is on.</p>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
+            data-help="Takes the stroke signal from the most rhythmic motion cell near the tracked box instead of the box itself. More robust when CSRT slowly drifts off target on long clips — the box only has to stay near the action. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (anti-drift, long clips)</label></div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -1348,6 +1350,7 @@ export function initGenerator(root, playback) {
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
       captureTrajectory: !!el('#gen-capture-trajectory')?.checked,
+      rhythmGrid: !!el('#gen-rhythm-grid')?.checked,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     // Contact marks: persist when Contact vib is on (or legacy Tf/Tj distance).
