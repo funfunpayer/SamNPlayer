@@ -107,11 +107,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (22 Sep late):**
+**Status board (22–23 Sep):**
 - **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · **#195** · **#196** · **#193** · #185 closed.
-- **QC DONE:** QC-A PASS; QC-C fix #195; QC-B fix #196; board #193.
-- **Owner next:** smoke (then optional clip verify V). Version/tag only when owner says go.
-- **Open product PRs:** none from this wave.
+- **QC DONE** on `b7d18ac`.
+- **Release:** **v0.5.23** bump in this PR — ships Training clip packaging (#187) so portable Training tab shows the left image again.
+- **Owner after merge:** tag `v0.5.23` on main (CI builds portable), then smoke the new portable Training tab.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
@@ -200,8 +200,8 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 
 #### Cursor — next
 
-1. **Done:** #186/#187 · QC-A PASS · board #193.
-2. Version bump / tag **only when owner asks** after smoke.
+1. **Done:** #186/#187 · QC-A PASS · board #193 · QC-done board.
+2. **This PR:** bump **v0.5.23** — owner tags after merge; new portable fixes Training left clip.
 
 ---
 
