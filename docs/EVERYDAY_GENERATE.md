@@ -52,9 +52,11 @@ nipple mark can buzz even on a shallow stroke. Generate soft-enables
 **Record tip path** whenever Contact vib is on (Advanced; user can turn off).
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
-scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
+scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed,
+**Rhythm-robust signal**).
 Tracking method = CSRT tip only in the product GUI.
 - **Invert motion direction** — flips the curve (100−pos). FunGen polarity mismatch, not a tracker bug.
+- **Rhythm-robust signal** — opt-in; stroke from the most rhythmic flow cell near the tip box (anti-drift on long clips). Off by default; Everyday unchanged.
 - **Fix contact area (static)** (Step 2, when Contact vib on) — keep the gold contact box fixed; off = track it (better with camera motion).
 Removed from Everyday Advanced: AI second opinion (no curve effect), audio
 check row (moved to Review), Flow downscale (Flow is CLI-only), **4-zone stroke mode**. Scene memory
