@@ -20,6 +20,36 @@ measurement history behind each entry; this file is the short version for
   `training-mosaic-clip/frames.json` (now recording `source_ts_ms` and
   the source funscript window) updated together.
 
+## [0.5.26] — September 23, 2026
+
+### Added
+
+- **Contact marks in script metadata:** with Contact vib on, tip class + tip box +
+  contact areas are stored in `metadata.contact_marks` (`drive_stroke: false` on
+  Everyday — tip CSRT still writes the stroke).
+- **Play overlay:** **Show contact marks** under the video (blue tip, gold primary,
+  magenta extras) when marks are present.
+
+### Changed
+
+- **4-zone removed from Generate GUI** (including Advanced tracking dropdown) —
+  Everyday is CSRT 1-Zone only; 4-zone remains CLI/research.
+
+## [0.5.25] — September 23, 2026
+
+### Changed
+
+- **Contact marks only when Contact vibration is on:** Step 2 shows Tip class
+  (Glans/Penis soft-default), Contact type (Nipples), and Mark contact area /
+  + Another contact area only while Contact vib is enabled — all optional,
+  not required for Generate. Everyday 4-zone button hidden (Advanced →
+  Tracking method still offers it). Clearer Invert / Fix contact area help.
+
+### Added
+
+- **Training improve (#206):** profile intensity tiers, history auto-adjust,
+  pulse-rhythm script (already on main before this tag).
+
 ## [0.5.24] — September 23, 2026
 
 ### Added

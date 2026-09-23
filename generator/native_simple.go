@@ -30,6 +30,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	opts = withTipROI(opts, roi)
 	if !nativeOptionsEligible(opts, roi) {
 		return fmt.Errorf("generator: native simple pipeline not eligible for these options")
 	}
@@ -45,7 +46,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	}
 	twoPoint := distancePartnersActive(opts)
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 && !twoPoint {
-		progress("ignoring Zone 2 — Autotune/stroke profiles use tip ROI only (switch to Tf/Tj for distance)")
+		progress("storing contact mark (feel) — tip CSRT writes the stroke (not tip↔partner distance)")
 	}
 	multi := twoPoint && len(opts.ExtraTargets) > 0
 	if multi {

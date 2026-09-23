@@ -33,6 +33,10 @@ type Script struct {
 		// (MT-Debug Review/Play overlay). Only present when generated
 		// with the opt-in "capture trajectory" flag - off by default.
 		Trajectory *TrajectoryData `json:"trajectory,omitempty"`
+		// ContactMarks: optional tip/contact boxes + classes from Generate
+		// when Contact vibration is on. Everyday stroke curve stays tip-CSRT
+		// (drive_stroke=false); marks are for feel / later feel-decouple.
+		ContactMarks *ContactMarks `json:"contact_marks,omitempty"`
 	} `json:"metadata,omitempty"`
 }
 

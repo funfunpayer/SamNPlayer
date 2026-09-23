@@ -91,10 +91,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
+| Rel | Cursor | [#208](https://github.com/funfunpayer/SamNPlayer/pull/208) + tag `v0.5.25` | Contact marks UI + bump **v0.5.25** + Release | **DONE** — portable live |
+| Z4→1 | Cursor | [#209](https://github.com/funfunpayer/SamNPlayer/pull/209) merged | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **DONE** (`3421b97`) |
+| Marks | Cursor | [#211](https://github.com/funfunpayer/SamNPlayer/pull/211) merged | Persist `metadata.contact_marks` + Play overlay | **DONE** (`7f81db3`) |
+| TipBox | Cursor | [#212](https://github.com/funfunpayer/SamNPlayer/pull/212) merged | Stamp tip ROI into `contact_marks.tip` + blue overlay | **DONE** (`d207ece`) |
+| Feel | Cursor | next | Feel-decouple Stage A: spatial vib near marks when trajectory present | **NEXT** |
+| T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames (was 16), picked by real funscript curve value per target depth, not chronological order | **DONE** (this PR) |
+| V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
-| T-train | Claude | #206 merged | **T-train** (Owner order via #204) — profile intensity tiers + history auto-adjust + pulse-rhythm script | **DONE** — lane free |
-| T-clip | Claude | `claude/training-clip-mosaic` | **T-clip** (Owner order via #204) — Training pixel-clip mosaic rebuilt from `clip_voll` 2:14-2:40, 24 frames (was 16), chosen by real funscript curve value not chronological order | **IN PROGRESS** — this PR, then post-Claude split → v0.5.25 |
-| A | Cursor | `cursor/release-0-5-23-d7cb` | bump **v0.5.23** + tag + Release | **THIS PR** — portable Training clip fix + MT wave |
+| A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
@@ -103,17 +108,47 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
-| R-pose | Cursor | #201 `cursor/pose-observer-stage-a-d7cb` | **PoseObserver Stage A** offline spike | **ACTIVE** — CI fixtures + fuse/summary; bake-off = Owner |
+| R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
+| T-train | Claude | **#206 merged** | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **DONE** (`23c3a0e`) |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (22–23 Sep):**
-- **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · **#195** · **#196** · **#193** · #185 closed.
-- **QC DONE** on `b7d18ac`.
-- **Release:** **v0.5.23** bump in this PR — ships Training clip packaging (#187) so portable Training tab shows the left image again.
-- **Owner after merge:** tag `v0.5.23` on main (CI builds portable), then smoke the new portable Training tab.
+**Status board (23 Sep):**
+- **Shipped:** **v0.5.25** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.25
+- **Owner smoked v0.5.25.** **#211/#212** contact marks persist + tip box + Play overlay **merged**. Cursor: feel-decouple Stage A next (or **v0.5.26** tag).
+- **Claude T-clip** still open (do not steal).
+
+### Owner decision — 4-Zone → 1-Zone (23 Sep)
+
+Agreed direction (Cursor + Owner):
+- **Stroke writer:** single Tip/Auto-ROI + CSRT (1-Zone). Do **not** mix 4 fused weights into the curve (flatline root cause #205).
+- **Keep the learning:** per-zone activity from `region_fusion_auto` may still **suggest** where that one box should be; CSRT measures.
+- **GUI:** hide/remove 4-Zone as a Generate stroke mode (Cursor after T-clip).
+- **Do not delete** the backend yet — needed for evidence/proposal experiments.
+
+### After Claude finishes T-clip — open work + who
+
+| # | Work | Who | Notes |
+|---|------|-----|-------|
+| 1 | Merge mosaic clip PR | Cursor | When CI green |
+| 2 | **Hide 4-Zone Generate mode + tip 1-Zone path** | **Cursor** | Product decision above; backend stays |
+| 3 | Review Training UX / edge cases on tip (#206) | **ChatGPT** E-steward | Findings first; small docs/tests OK |
+| 4 | Spec **fill-weak-segments** UX (parked ask #3) | **ChatGPT** | Docs only — `minLocalSpan` as candidate signal |
+| 5 | CHANGELOG / board / ROADMAP hygiene for 0.5.25 | **ChatGPT** + Cursor | Steward drafts; Cursor bumps VERSION |
+| 6 | Optional: CSRT long-clip drift note → measure with trajectory overlay | Owner + Claude idle | Not a bug claim yet |
+| 7 | Pose Stage B / classical evidence (zone activity → seed) | — | **Later** — not required for 0.5.25 |
+| 8 | **Tag v0.5.25** + Release portable | **Cursor** | After 1–5 green + Owner smoke go |
+
+**Not open for 0.5.25:** Everyday defaults rewrite, YOLO-as-Stroke, Pose Stage B implementation, deleting `region_fusion_auto`.
+
+### Cursor answers to Claude #205 (3 asks) — 23 Sep
+
+1. **Hide 4-Zone from Generate GUI — YES (Cursor after T-clip).** Superseded/clarified by Owner 1-Zone decision above. Backend stays for proposal/evidence.
+2. **Feed 4-Zone per-zone activity into PoseObserver Stage A — NO.** Stage A (#201) is **merged** / bake-off only. Classical evidence arrow = **Stage B+** / 1-Zone seed helper later.
+3. **“Fill weak segments only” UX — PARK.** Good idea; `minLocalSpan` is a useful *candidate* signal, not a product feature yet. ChatGPT E-steward may spec later. No lane claim now.
+
+**CSRT long-clip drift (~1000px):** noted; not a bug claim. Separate from MT-Go (multi path). Revisit after Training wave if Owner still sees curve skew with Tip CSRT + trajectory overlay.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 

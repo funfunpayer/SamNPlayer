@@ -47,8 +47,10 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         options = page.eval_on_selector_all("#gen-backend option", "els => els.map(e => e.value)")
-        check("CSRT + 4-zone in dropdown",
-              options == ["csrt", "region_fusion_auto"], str(options))
+        check("CSRT-only dropdown (1-Zone)",
+              options == ["csrt"], str(options))
+        check("4-zone not in Generate GUI",
+              "region_fusion_auto" not in options, str(options))
 
         check("Generate disabled without video",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is True)

@@ -100,7 +100,7 @@ def main():
             " return l && !l.textContent.startsWith('No '); }",
             timeout=5000)
         check("Zone 2 optional for vibe location",
-              "No 2nd" not in page.locator("#gen-roi2-label").inner_text())
+              "No contact" not in page.locator("#gen-roi2-label").inner_text())
         check("Generate still ready with Zone 2",
               page.locator("#gen-generate").is_enabled())
 
@@ -133,6 +133,8 @@ def main():
               opts.get("profile") == "standard", str(opts))
         check("Contact vib passed through",
               opts.get("contactVibration") is True, str(opts))
+        check("Contact area (roi2) persisted on Stroke+Contact",
+              opts.get("w2", 0) > 0 and opts.get("h2", 0) > 0, str(opts))
         check("Trajectory capture opt-in reaches GenerateScript payload",
               opts.get("captureTrajectory") is True, str(opts))
 

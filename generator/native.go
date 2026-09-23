@@ -80,6 +80,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	opts = withTipROI(opts, roi)
 	if !NativeTrackingAvailable() {
 		return errNativeUnavailable
 	}
@@ -98,7 +99,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	twoPoint := distancePartnersActive(opts)
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 && !twoPoint {
-		progress("ignoring Zone 2 — Autotune/stroke profiles use tip ROI only (switch to Tf/Tj for distance)")
+		progress("storing contact mark (feel) — tip CSRT writes the stroke (not tip↔partner distance)")
 	}
 	multi := twoPoint && len(opts.ExtraTargets) > 0
 	if multi {
@@ -285,6 +286,7 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if opts.StrokePreviewHint != nil {
 		meta["stroke_preview"] = opts.StrokePreviewHint
 	}
+	stampContactMarks(meta, opts)
 	doc := map[string]any{
 		"actions":  actions,
 		"metadata": meta,

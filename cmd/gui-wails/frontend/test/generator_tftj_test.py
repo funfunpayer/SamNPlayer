@@ -85,7 +85,7 @@ def main():
               page.locator("#gen-profile").input_value() == "standard",
               page.locator("#gen-profile").input_value())
         check("Zone 2 ist gesetzt",
-              "No 2nd" not in page.locator("#gen-roi2-label").inner_text(),
+              "No contact" not in page.locator("#gen-roi2-label").inner_text(),
               page.locator("#gen-roi2-label").inner_text())
         check("Kontakt-Vibration-Zeile sichtbar",
               page.locator("#gen-contact-vibration-row").evaluate("e => e.style.display") == "flex")
