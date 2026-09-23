@@ -103,7 +103,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **THIS** — merge when CI green |
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) — rebased on Bugfix | **THIS** — merge after #227 |
-| Rel28 | Cursor | `cursor/release-0-5-28-d7cb` | bump **v0.5.28** + CHANGELOG/ROADMAP — stacks #226+#227+#225 | **THIS** — open after docs; merge after #227+#225 |
+| Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) | bump **v0.5.28** + CHANGELOG/ROADMAP — stacks #226+#227+#225 | **THIS** — merge after #227+#225 |
 | Engine | Cursor | after Rel28 | Residual CSRT gradual drift — scale clamp first, then detector path (Claude #226) | **NEXT** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
