@@ -43,6 +43,50 @@ func (m *appearanceMemory) remember(gray *Gray, box Rect) {
 	}
 }
 
+// matchesOriginal reports how well box (the tracker's CURRENT belief, in
+// full-resolution gray coordinates) still resembles templates[0] - the
+// very first remembered crop, kept forever by remember() specifically as
+// the "user-confirmed start region" (see its comment above).
+//
+// Why this exists: TrackROI's CSRT can drift gradually off the true
+// target over a long continuous run (a handful/no single frame ever
+// moves far enough to look wrong, but the box still ends up somewhere
+// else entirely after a couple of minutes - confirmed on a real clip,
+// docs/AGENT_COORD.md 23 Sep "CSRT long-clip drift"). remember() runs
+// periodically on whatever the tracker CURRENTLY believes, with no check
+// against reality, so once drift sets in, the memory bank keeps filling
+// with crops of the wrong region. When the tracker then genuinely loses
+// the target (which it eventually did on that same clip), reacquire()
+// searches for a match to those poisoned templates and confidently
+// re-anchors on the SAME wrong region - not a bug in reacquire() itself,
+// it faithfully found what it was told to look for.
+//
+// ok=false means "nothing to compare against yet" (no templates
+// remembered) - callers should treat that as "allow it", not "reject
+// it": there's no basis for suspicion this early.
+func (m *appearanceMemory) matchesOriginal(gray *Gray, box Rect) (score float64, ok bool) {
+	if len(m.templates) == 0 {
+		return 0, false
+	}
+	orig := m.templates[0]
+	// A local neighborhood around the current box, not another
+	// full-frame search (that's reacquire()'s job) - large enough that
+	// orig fits strictly inside per MatchTemplate's own requirement.
+	region := gray.ExtractTemplate(Rect{
+		X: box.X - box.W, Y: box.Y - box.H,
+		W: box.W * 3, H: box.H * 3,
+	}, m.downscale)
+	if region == nil {
+		return 0, false
+	}
+	defer region.Close()
+	if orig.Width() >= region.Width() || orig.Height() >= region.Height() {
+		return 0, false
+	}
+	_, _, matchScore, matched := MatchTemplate(region, orig)
+	return matchScore, matched
+}
+
 // reacquire sucht die Region im ganzen Bild. ok=false, wenn nichts
 // Verlässliches gefunden wurde (unterhalb minScore wird NICHT neu
 // verankert - eine geratene Position ist schlechter als die alte).

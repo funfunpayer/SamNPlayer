@@ -153,6 +153,16 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	if opts.AppearanceMemory {
 		memory = newAppearanceMemory()
 		defer memory.close()
+		// Seed templates[0] with the ACTUAL frame-0 crop (prevGray still
+		// holds it - needsGray is true whenever AppearanceMemory is, so
+		// it's always available here). remember()'s own comment already
+		// calls templates[0] "the user-confirmed start region"; without
+		// this call that was only true once the tracker happened to
+		// survive to the first periodic remember() ~1s in, already after
+		// however much it had drifted by then.
+		if prevGray != nil {
+			memory.remember(prevGray, roi)
+		}
 	}
 
 	timestampsMs := []int{0}
@@ -208,17 +218,11 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			if ok {
 				if d := math.Hypot(float64(bbox.X+bbox.W/2-lastBbox.X-lastBbox.W/2),
 					float64(bbox.Y+bbox.H/2-lastBbox.Y-lastBbox.H/2)); guard.implausible(d) {
-					// CSRT reported success but the box teleported
-					// implausibly far in a single frame - not a scene
-					// cut, not a reported loss, just the tracker's own
-					// correlation filter locking onto a different patch
-					// (confirmed on a real clip: two single-frame jumps
-					// of 107px/295px, zero scene cuts, zero ordinary
-					// loss flags nearby - docs/AGENT_COORD.md 23 Sep
-					// "CSRT long-clip drift"). Treat it exactly like a
-					// loss so the same reacquire-or-coast path below
-					// handles it, instead of silently accepting a jump
-					// onto the wrong target.
+					// CSRT reported success but the box moved implausibly
+					// far for a single frame - see dispGuard's package
+					// comment. Treat it exactly like a loss so the same
+					// reacquire-or-coast path below handles it, instead of
+					// silently accepting a jump onto the wrong target.
 					ok = false
 				} else {
 					guard.accept(d)
@@ -244,7 +248,15 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			xPositions = append(xPositions, float64(bbox.X)+float64(bbox.W)/2.0)
 			lastBbox = bbox
 			if memory != nil && frameIdx%rememberEveryNFrames == 0 {
-				memory.remember(gray, bbox)
+				// Only add this crop to the memory bank if it still
+				// resembles where tracking started - otherwise a slow
+				// drift (see matchesOriginal's comment) keeps feeding the
+				// bank crops of whatever the tracker has wandered onto,
+				// so a later genuine loss reacquires onto that same wrong
+				// spot instead of recovering the real target.
+				if score, known := memory.matchesOriginal(gray, bbox); !known || score >= memory.minScore {
+					memory.remember(gray, bbox)
+				}
 			}
 		}
 

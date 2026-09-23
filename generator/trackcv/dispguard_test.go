@@ -4,13 +4,16 @@ package trackcv
 
 import "testing"
 
-// Pure unit tests against the exact real-clip numbers that motivated this
-// guard (docs/AGENT_COORD.md, 23 Sep "CSRT long-clip drift"): median
-// per-frame displacement ~1.5px, largest genuine single-frame motion
-// ~41.5px across a ~6700-frame clip, and two confirmed teleport jumps of
-// 107px and 295px with zero scene cuts nearby.
+// Pure unit tests against real-clip scale numbers (docs/AGENT_COORD.md, 23
+// Sep "CSRT long-clip drift"): median per-frame displacement ~1.5px,
+// largest genuine single-frame motion ~41.5px across a ~6700-frame clip.
+// 107px/295px are that clip's own two position jumps - dispGuard's
+// package comment explains those turned out to be a different mechanism
+// (bad reacquire, not this guard's case), so these are used here only as
+// realistic "clearly too large" reference values, not as jumps this guard
+// is claimed to have caught on that clip.
 
-func TestDispGuardFlagsConfirmedRealJumps(t *testing.T) {
+func TestDispGuardFlagsImplausibleJumpsAtRealClipScale(t *testing.T) {
 	var g dispGuard
 	// Feed a calm baseline like the clip's typical frame-to-frame motion.
 	for _, d := range []float64{1.2, 1.5, 1.4, 1.6, 1.3, 1.5, 1.4, 1.5, 1.6, 1.4} {
@@ -21,7 +24,7 @@ func TestDispGuardFlagsConfirmedRealJumps(t *testing.T) {
 	}
 	for _, d := range []float64{106.8, 294.5} {
 		if !g.implausible(d) {
-			t.Errorf("confirmed real-clip jump %.1fpx was not flagged", d)
+			t.Errorf("real-clip-scale jump %.1fpx was not flagged", d)
 		}
 	}
 }

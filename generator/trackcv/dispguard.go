@@ -4,17 +4,25 @@ package trackcv
 
 import "sort"
 
-// dispGuard flags an implausible single-frame CSRT jump: OpenCV's CSRT
-// tracker can report Update() as successful ("ok=true") while the
-// returned box has actually snapped onto a completely different,
-// unrelated location - not a scene cut, not a reported loss, just the
-// tracker's own internal correlation filter locking onto a different,
-// higher-scoring patch elsewhere in the frame. Confirmed on a real clip
-// (docs/AGENT_COORD.md, 23 Sep "CSRT long-clip drift"): two single-frame
-// jumps of 107px and 295px, both with SceneCutDetection reporting no cut
-// and no other lost frame anywhere nearby, while every genuine motion
-// across that same ~6700-frame clip stayed under ~50px in a single
-// ~40ms frame.
+// dispGuard flags an implausible single-frame jump out of a SUCCESSFUL
+// tracker.Update() (ok=true): in principle OpenCV's CSRT can report
+// success while the returned box has actually snapped onto a completely
+// different, unrelated location - its own internal correlation filter
+// locking onto a different, higher-scoring patch elsewhere in the frame,
+// no scene cut or reported loss involved. Investigating a real clip's
+// "~1000px long-clip drift" (docs/AGENT_COORD.md, 23 Sep) found two
+// single-frame position jumps of 107px and 295px - but debug
+// instrumentation traced those to a DIFFERENT mechanism (tracker.Update()
+// genuinely, permanently lost the target; the appearance-memory
+// reacquire() fallback then matched onto the wrong region because its
+// own remembered templates were already poisoned by prior gradual drift
+// - see appearance_memory.go's matchesOriginal, the actual fix for that
+// clip's jumps). dispGuard never fired on that clip. It stays in as a
+// second, independent line of defense against the ok=true-with-a-bad-box
+// case specifically, which this investigation didn't rule out in
+// general - cheap, and every genuine motion across that same ~6700-frame
+// clip stayed under ~50px in a single ~40ms frame, so it has clean room
+// to trigger without touching real motion if that case ever does occur.
 //
 // A fixed pixel threshold would need separate tuning per clip/ROI size -
 // too low and it clips real fast motion, too high and it misses a slow
@@ -40,7 +48,9 @@ const (
 	// median sits close to 0 (a tiny ratio there would flag ordinary
 	// jitter). Comfortably above the largest genuine single-frame motion
 	// measured on the real clip above (~50px) and comfortably below the
-	// smallest confirmed violation (107px).
+	// smallest of its two position jumps (107px) - see the package
+	// comment for why those turned out not to be dispGuard's case, but
+	// they're still the only real-world scale reference available.
 	dispGuardFloorPx = 60.0
 )
 
