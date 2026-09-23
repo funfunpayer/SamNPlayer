@@ -69,12 +69,28 @@ func (m *appearanceMemory) matchesOriginal(gray *Gray, box Rect) (score float64,
 		return 0, false
 	}
 	orig := m.templates[0]
-	// A local neighborhood around the current box, not another
-	// full-frame search (that's reacquire()'s job) - large enough that
-	// orig fits strictly inside per MatchTemplate's own requirement.
+	// The search window is sized off orig's OWN dimensions, not box's -
+	// CSRT's scale estimate can drift independently of position (found
+	// investigating this same real clip: the box shrank from its
+	// original ~171x216 down to ~50x65 over ~175s of continuous
+	// tracking). Sizing the window off box would make it shrink right
+	// along with it, and once smaller than orig, the size check below
+	// would always fail closed to "unknown" - silently disabling this
+	// entire check exactly when the tracker's belief has drifted most.
+	// Centered on box's current center (position, unlike size, stayed a
+	// reasonable anchor throughout).
+	scale := 1.0
+	if m.downscale != 0 {
+		scale = 1.0 / m.downscale
+	}
+	origW := int(float64(orig.Width()) * scale)
+	origH := int(float64(orig.Height()) * scale)
+	searchW := origW*2 + 16
+	searchH := origH*2 + 16
+	cx, cy := box.X+box.W/2, box.Y+box.H/2
 	region := gray.ExtractTemplate(Rect{
-		X: box.X - box.W, Y: box.Y - box.H,
-		W: box.W * 3, H: box.H * 3,
+		X: cx - searchW/2, Y: cy - searchH/2,
+		W: searchW, H: searchH,
 	}, m.downscale)
 	if region == nil {
 		return 0, false

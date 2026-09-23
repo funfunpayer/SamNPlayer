@@ -73,12 +73,50 @@ func TestAppearanceMemoryMatchesOriginalRejectsDriftedRegion(t *testing.T) {
 
 	// A small box in the far corner, over plain textured background -
 	// clearly disjoint from the circle even after matchesOriginal's own
-	// padded local-neighborhood search around it (padding scales with
-	// box size, so this needs to stay well clear at 3x its own size too).
+	// padded local-neighborhood search around it.
 	driftedBox := Rect{X: 0, Y: 0, W: 20, H: 20}
 	score, ok := m.matchesOriginal(gray, driftedBox)
 	if ok && score >= m.minScore {
 		t.Errorf("drifted-away box scored %.3f (ok=%v), wanted below minScore (%.3f) - the gate would wrongly accept it into memory",
+			score, ok, m.minScore)
+	}
+}
+
+// Regression: an earlier version of matchesOriginal sized its search
+// window off the CURRENT box's own dimensions. On the real clip that
+// motivated this fix, CSRT's box didn't just drift position - it shrank
+// from its original ~171x216 down to ~50x65 over ~175s (its own,
+// independent scale-adaptation drift). Once the box got small enough,
+// a box-sized search window became SMALLER than templates[0] itself,
+// so the size guard silently returned ok=false ("nothing to compare")
+// for essentially every check from then on - defeating this whole gate
+// exactly when it mattered most, without ever looking like an error
+// (score stayed a quiet 0.000, easy to miss without exact instrumentation).
+func TestAppearanceMemoryMatchesOriginalNotDefeatedByShrunkBox(t *testing.T) {
+	const cx, cy, radius = 160, 120, 35
+	roi := Rect{X: cx - radius, Y: cy - radius, W: 2 * radius, H: 2 * radius} // 70x70
+	gray := grayFrameFromVideo(t, func(buf []byte) {
+		fillCircle(buf, testW, testH, cx, cy, radius, 250, 250, 250)
+	})
+	defer gray.Close()
+
+	m := newAppearanceMemory()
+	defer m.close()
+	m.remember(gray, roi)
+
+	// A much smaller box (as if CSRT's scale estimate had collapsed),
+	// still centered on the real circle - must still be recognized.
+	shrunkOnTarget := Rect{X: cx - 8, Y: cy - 8, W: 16, H: 16}
+	if score, ok := m.matchesOriginal(gray, shrunkOnTarget); !ok || score < m.minScore {
+		t.Errorf("shrunk-but-still-on-target box scored %.3f (ok=%v), want >= minScore (%.3f) - "+
+			"a box-sized search window would have missed this", score, ok, m.minScore)
+	}
+
+	// Same tiny size, but drifted away too - must still be rejected (the
+	// fix must not have become so generous it stops catching real drift).
+	shrunkAndDrifted := Rect{X: 2, Y: 2, W: 16, H: 16}
+	if score, ok := m.matchesOriginal(gray, shrunkAndDrifted); ok && score >= m.minScore {
+		t.Errorf("shrunk AND drifted box scored %.3f (ok=%v), want below minScore (%.3f)",
 			score, ok, m.minScore)
 	}
 }
