@@ -99,7 +99,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
 | Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
 | Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
-| Drift | Claude | free | **CSRT long-clip drift (~1000px)** — measure with tip trajectory overlay; findings first (not a bug claim yet). See § below + AGENT_COORD note | **THIS** — Claude first (do not steal) |
+| Drift | Claude | `claude/csrt-jump-guard` | **CSRT long-clip drift** — measured + partially fixed (dispGuard + appearance-memory gating), root cause identified, full fix needs a trained detector (out of scope here). See Decision log 23 Sep | **DONE (partial) — findings posted** |
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -123,7 +123,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
-- **Claude THIS:** CSRT long-clip drift (~1000px) — measure first (trajectory overlay). Cursor will not steal.
+- **Claude DONE (partial):** CSRT long-clip drift — 2 real fixes shipped (`claude/csrt-jump-guard`), root cause found, full fix needs a trained detector (documented as future work, no lane claim). Cursor free on this lane again.
 - ChatGPT: Emotion Script copy / general bugfix.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
@@ -143,7 +143,7 @@ Agreed direction (Cursor + Owner):
 | 3 | Review Training UX / edge cases on tip (#206) | **ChatGPT** E-steward | Findings first; small docs/tests OK |
 | 4 | Spec **fill-weak-segments** UX (parked ask #3) | **ChatGPT** | Docs only — `minLocalSpan` as candidate signal |
 | 5 | CHANGELOG / board / ROADMAP hygiene for 0.5.25 | **ChatGPT** + Cursor | Steward drafts; Cursor bumps VERSION |
-| 6 | Optional: CSRT long-clip drift note → measure with trajectory overlay | Owner + Claude idle | Not a bug claim yet |
+| 6 | Optional: CSRT long-clip drift note → measure with trajectory overlay | Owner + Claude idle | **DONE** — see Decision log 23 Sep + `claude/csrt-jump-guard` |
 | 7 | Pose Stage B / classical evidence (zone activity → seed) | — | **Later** — not required for 0.5.25 |
 | 8 | **Tag v0.5.25** + Release portable | **Cursor** | After 1–5 green + Owner smoke go |
 
@@ -156,10 +156,14 @@ Agreed direction (Cursor + Owner):
 3. **“Fill weak segments only” UX — PARK.** Good idea; `minLocalSpan` is a useful *candidate* signal, not a product feature yet. ChatGPT E-steward may spec later. No lane claim now.
 
 **CSRT long-clip drift (~1000px):** Owner (23 Sep): **Claude looks at this first.**
-Not a bug claim yet. Separate from MT-Go (multi path). Measure Tip CSRT +
-trajectory overlay on a long clip; report whether drift reaches the final
-0–100 curve or is absorbed by normalize. Cursor / ChatGPT stay off this lane
-until Claude posts findings.
+**Findings posted (23 Sep) — see Decision log entry "CSRT long-clip drift —
+measured, partially fixed, root cause identified" and PR
+`claude/csrt-jump-guard`.** Short version: real, reaches the final curve,
+root-caused as two mechanisms (gradual per-frame-undetectable CSRT drift +
+independent box-shrink), two safe fixes shipped, a third (active
+correction) tried and reverted for making it worse, residual drift remains
+and needs a trained-detector-based fix (bigger scope, not claimed here).
+Lane free again.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
@@ -811,6 +815,7 @@ ring revision before committing.
 | 22 Sep | Tri-agent pre-release QC planned (QC-A Cursor / QC-B Claude / QC-C ChatGPT) — start after #193 | Owner |
 | 23 Sep | **T-train** (Owner order via #204): checked `claude/training-mode-improvements-uu4965` (42 commits behind `main`, 11 unique) before touching it — `player/training.go` diff showed main independently reimplemented most of it differently (`onLevel`/`levelMirror` live-meter mechanism, a different `StartLevel`-scaling bugfix) and the whole `TrainingScript`/`TrainingPhase`/`RunTrainingScript` multi-phase engine already exists on `main` (from #177, per board history: "findings carried into #177"). Cherry-picking the whole branch would have regressed already-shipped work. Only the branch's last commit (profile intensity tiers + history auto-adjust + pulse-rhythm script) was genuinely still missing — cherry-picked clean (zero conflicts), confirming it never touched code main also changed | Claude |
 | 23 Sep | **Training suction fixes** (Owner real-hardware feedback, direct): (1) `tissue-massage`'s "Static hold" held 20s continuous suction at 0.7 — too much for the device; cut to 6s/0.6. (2) Owner corrected an initial assumption that vibration-only built-ins (`stop-start`, `plateau`, `vibration-massage`, `variable`) were intentional design — not intentional; every built-in now carries a light suction layer from the start. (3) A script that finishes naturally with a channel left above 0 (a deliberate mid-script floor like `plateau`'s edging hold, or a phase that never revisits a channel an earlier one raised) used to sit there until the deferred abrupt `dev.Stop()` cut it — felt like "stays, doesn't fall". `RunTrainingScript` now tracks each channel's last level and, only on natural completion (never after a user Interrupt, which already hard-cuts), ramps both back to 0 over 2s. New tests: `TestBuiltinTrainingScriptsHaveSuctionFromStart`, `TestRunTrainingScriptRampsDownElevatedChannelsAtNaturalEnd`, `TestRunTrainingScriptSkipsRampDownAfterInterrupt` | Claude |
+| 23 Sep | **CSRT long-clip drift — measured, partially fixed, root cause identified (not fully fixed)** (Owner order via #221: "Claude looks at this first"). Ran the real Generate pipeline (`trackcv.TrackROI` + trajectory capture) over the full 280s `clip_voll.mp4` with a manually-verified correct starting ROI. Findings, most to least resolved: **(1) Confirmed the drift reaches the final funscript curve** — `posttrack/normalize.go` does not catch it; bucketed `Pos` values track the bad raw position 1:1. **(2) Root-caused it as two distinct, unrelated mechanisms**, not the single "slow pixel creep" the `~1000px drift` name implied: (a) CSRT's own per-frame `tracker.Update()` genuinely, gradually walks the box off the true target over 100+ continuous seconds — confirmed visually (tracked point sat on the man's hand/the woman's breast, not the tip, by minute ~2-3) — with **zero individual frame ever looking anomalous** (per-frame displacement stayed tiny throughout, median ~1.5px); (b) CSRT's box also **shrinks** over the same period (confirmed ~171×216 → ~50×65 over ~175s, an independent scale-adaptation drift, previously unknown) which turned out to interact badly with any size-relative fix. **Shipped (`generator/trackcv`, PR below), both real, tested, low-risk, neither found to make anything worse:** `dispGuard` — flags an implausible single-frame jump out of an otherwise-successful `tracker.Update()` (never observed firing on this clip — its failure mode turned out to be different — kept as independent defense since the mechanism is real in principle); `matchesOriginal`-gated `remember()` — before periodically adding a crop to the appearance-memory recovery bank, checks it still resembles `templates[0]` (now seeded from the true frame-0 ROI, not whatever the tracker believed ~1s in); stops the recovery bank from being poisoned by already-drifted content, which is what previously made a genuine loss reacquire onto the SAME wrong region instead of the real target. Fixing this required first finding and fixing a bug in the fix itself: the search window was originally sized off the *current* (shrinking) box, so once the box shrank far enough the check silently defeated itself (`score=0.000, known=false` on literally every check from ~160s on) — resized off the *original* template's stable dimensions instead. **Tried and reverted:** active correction — instead of only gating what gets remembered, proactively re-anchor via `reacquire()` every 25 frames whenever `matchesOriginal` scores low, rather than waiting for CSRT to self-report a loss (which gradual drift never triggers). Made it measurably **worse** on the real clip (10 large jumps up to 924px, vs. 2-3 before) — `reacquire()`'s raw template-correlation match quality isn't reliable enough to trust as a *proactive* steering signal on this content (skin-toned/self-similar textures produce enough false-positive matches that frequent forced re-anchoring does more harm than good); reverted via `git revert`, not force-push. **Residual, NOT fixed:** 2-3 large position jumps still remain on the reference clip after the shipped fixes — the underlying continuous, per-frame-undetectable drift during nominally "successful" CSRT tracking has no cheap fix; a real fix needs a materially more discriminative periodic-verification signal than pixel-correlation matching (a trained detector, not raw template matching). **Checked what that would take:** YOLO training/export infra already exists (`bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `export_yolo_onnx.py`) but **no trained model ships in the repo** (`ai_roi.py`'s own comment: "kein Modell im Repo") — this is SAM Perception v1 / PoseObserver territory (data collection + training + validation + Go integration), a multi-day project requiring its own scoping and team alignment, explicitly **not** something to build solo off this finding. Recommendation: ship the two real fixes now, log the residual drift + detector-based path as documented future work, no lane claim on the bigger piece. PR: `claude/csrt-jump-guard` | Claude |
 
 ---
 
