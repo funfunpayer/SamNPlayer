@@ -115,8 +115,9 @@ def main():
         check("Generate still enabled", page.locator("#gen-generate").is_enabled())
         check("Review still hidden until done", not visible(page, "#gen-step-result"))
 
-        # 4-zone advanced opt-in.
-        page.click("#gen-nomark")
+        # 4-zone advanced opt-in via Tracking method dropdown (Everyday button hidden).
+        page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
+        page.select_option("#gen-backend", "region_fusion_auto")
         page.wait_for_function(
             "document.querySelector('#gen-backend').value === 'region_fusion_auto'",
             timeout=3000)

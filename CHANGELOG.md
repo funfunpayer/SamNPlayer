@@ -8,6 +8,21 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.25] — September 23, 2026
+
+### Changed
+
+- **Contact marks only when Contact vibration is on:** Step 2 shows Tip class
+  (Glans/Penis soft-default), Contact type (Nipples), and Mark contact area /
+  + Another contact area only while Contact vib is enabled — all optional,
+  not required for Generate. Everyday 4-zone button hidden (Advanced →
+  Tracking method still offers it). Clearer Invert / Fix contact area help.
+
+### Added
+
+- **Training improve (#206):** profile intensity tiers, history auto-adjust,
+  pulse-rhythm script (already on main before this tag).
+
 ## [0.5.24] — September 23, 2026
 
 ### Added

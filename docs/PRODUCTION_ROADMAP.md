@@ -86,7 +86,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.21** | Shipped | Profile rename; Play feel-decouple; Flow soft warns (#172) |
 | **v0.5.22** | Shipped | Training clip+ring; Everyday Generate; Playback HiDPI/seek; bugfix P0/P1 (#177/#179/#176); tag #181 |
 | **v0.5.23** | Shipped | Training portable clip frames (#187); MT-Go/Seed/Debug/Infra; QC fixes |
-| **v0.5.24** | Ready to tag | Improve sidecar (#200); Training presets + Re-find Zone2 (#199); Pose Stage A research (#201) |
+| **v0.5.24** | Shipped | Improve sidecar (#200); Training presets + Re-find Zone2 (#199); Pose Stage A research (#201) |
+| **v0.5.25** | Ready to tag | Contact marks UI (#208); Training improve (#206); 4-zone Everyday button hidden |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
