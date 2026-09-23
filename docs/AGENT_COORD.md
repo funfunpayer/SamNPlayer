@@ -98,9 +98,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Feel | Cursor | [#214](https://github.com/funfunpayer/SamNPlayer/pull/214) merged | Feel-decouple Stage A: spatial vib near marks when trajectory present | **DONE** (`f1d0517`) |
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
 | Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
-| Brand | Cursor | `cursor/emotion-script-brand-d7cb` | **Emotion Script** product name; one format (`.samn`); less technical GUI | **THIS** |
-| Bugfix | Claude | free | Owner: bugfix pass on main @ v0.5.27 — Training + Play feel | **NEXT** — Claude |
-| BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI strings; steward | **NEXT** — ChatGPT |
+| Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
+| Drift | Claude | free | **CSRT long-clip drift (~1000px)** — measure with tip trajectory overlay; findings first (not a bug claim yet). See § below + AGENT_COORD note | **THIS** — Claude first (do not steal) |
+| BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -122,8 +122,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Shipped:** **v0.5.27** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27
-- Cursor: **Emotion Script** branding + one product format. Claude + ChatGPT: **bugfix** on main.
+- **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
+- **Claude THIS:** CSRT long-clip drift (~1000px) — measure first (trajectory overlay). Cursor will not steal.
+- ChatGPT: Emotion Script copy / general bugfix.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 
@@ -154,7 +155,11 @@ Agreed direction (Cursor + Owner):
 2. **Feed 4-Zone per-zone activity into PoseObserver Stage A — NO.** Stage A (#201) is **merged** / bake-off only. Classical evidence arrow = **Stage B+** / 1-Zone seed helper later.
 3. **“Fill weak segments only” UX — PARK.** Good idea; `minLocalSpan` is a useful *candidate* signal, not a product feature yet. ChatGPT E-steward may spec later. No lane claim now.
 
-**CSRT long-clip drift (~1000px):** noted; not a bug claim. Separate from MT-Go (multi path). Revisit after Training wave if Owner still sees curve skew with Tip CSRT + trajectory overlay.
+**CSRT long-clip drift (~1000px):** Owner (23 Sep): **Claude looks at this first.**
+Not a bug claim yet. Separate from MT-Go (multi path). Measure Tip CSRT +
+trajectory overlay on a long clip; report whether drift reaches the final
+0–100 curve or is absorbed by normalize. Cursor / ChatGPT stay off this lane
+until Claude posts findings.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
