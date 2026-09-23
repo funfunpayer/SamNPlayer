@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.24] — September 23, 2026
+
 ### Added
 
 - **PoseObserver Stage A (research):** offline Python spike
