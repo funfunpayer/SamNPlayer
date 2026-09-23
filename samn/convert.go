@@ -37,6 +37,19 @@ func FromFunscript(s *funscript.Script, videoPath string) *Document {
 	d.QualityScore = s.Metadata.QualityScore
 	d.QualityPassed = s.Metadata.QualityPassed
 	d.QualityWarnings = append([]string(nil), s.Metadata.QualityWarnings...)
+	if s.Metadata.ContactMarks != nil {
+		cm := *s.Metadata.ContactMarks
+		if len(cm.Extras) > 0 {
+			cm.Extras = append([]funscript.ContactMarkBox(nil), cm.Extras...)
+		}
+		d.ContactMarks = &cm
+	}
+	if s.Metadata.Trajectory != nil {
+		tr := *s.Metadata.Trajectory
+		tr.Tip = append([]funscript.TrajectoryPoint(nil), tr.Tip...)
+		tr.Partner = append([]funscript.TrajectoryPoint(nil), tr.Partner...)
+		d.Trajectory = &tr
+	}
 	return d
 }
 
@@ -75,6 +88,20 @@ func (d *Document) ToFunscript() (*funscript.Script, error) {
 	s.Metadata.QualityPassed = d.QualityPassed
 	s.Metadata.QualityWarnings = append([]string(nil), d.QualityWarnings...)
 	s.Metadata.TrackingGaps = append([]funscript.TrackingGap(nil), d.TrackingGaps...)
+
+	if d.ContactMarks != nil {
+		cm := *d.ContactMarks
+		if len(cm.Extras) > 0 {
+			cm.Extras = append([]funscript.ContactMarkBox(nil), cm.Extras...)
+		}
+		s.Metadata.ContactMarks = &cm
+	}
+	if d.Trajectory != nil {
+		tr := *d.Trajectory
+		tr.Tip = append([]funscript.TrajectoryPoint(nil), tr.Tip...)
+		tr.Partner = append([]funscript.TrajectoryPoint(nil), tr.Partner...)
+		s.Metadata.Trajectory = &tr
+	}
 
 	recipe := d.Recipe
 	recipe.PlaybackSource = funscript.NormalizePlaybackSource(d.PlaybackSource)
@@ -120,6 +147,12 @@ func (d *Document) ExportFunscript(path string) error {
 	}
 	if len(d.TrackingGaps) > 0 {
 		meta["tracking_gaps"] = d.TrackingGaps
+	}
+	if d.ContactMarks != nil {
+		meta["contact_marks"] = d.ContactMarks
+	}
+	if d.Trajectory != nil && len(d.Trajectory.Tip) > 0 {
+		meta["trajectory"] = d.Trajectory
 	}
 	if d.QualityScore != nil {
 		meta["quality_score"] = *d.QualityScore

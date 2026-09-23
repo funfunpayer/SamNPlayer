@@ -320,6 +320,8 @@ export function initGenerator(root, playback) {
   let lastOutputPath = null;
   // Everyday FunGen-like: Generate with no ROI → auto-find tip then generate.
   let pendingGenerateAfterRoi = false;
+  let userCancelRequested = false;
+  let activeCreateSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
   // FunGen-like 0–100 gauge over the preview (after Generate).
@@ -661,7 +663,7 @@ export function initGenerator(root, playback) {
     } else if (!hasRoi1 && !noMark) {
       prompt.textContent = 'Finding tip… or mark / pick a spot. Then Create.';
     } else if (!canRun && !generating) {
-      prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
+      prompt.textContent = 'Step 3: Contact vibration is on by default — Create unlocks when tracking is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
@@ -669,7 +671,7 @@ export function initGenerator(root, playback) {
         ? 'Step 4: Create your Emotion Script.'
         : 'Step 4: Create Emotion Script — optional Advanced settings below.';
     } else {
-      prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve (FunGen-like).';
+      prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve.';
     }
   }
 
@@ -1267,36 +1269,38 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     normalizeProductProfile();
 
-    // Everyday: no tip yet + CSRT → auto-find then continue (FunGen-like).
+    // Everyday: no tip yet + CSRT → auto-find then continue.
     if (backendNeedsRoi() && !roi) {
       pendingGenerateAfterRoi = true;
-      el('#gen-status').textContent = 'No tip yet — finding region, then generating…';
+      generating = true;
+      el('#gen-generate').disabled = true;
+      el('#gen-cancel').disabled = false;
+      el('#gen-status').textContent = 'No tip yet — finding region, then creating…';
+      syncWorkflowSteps();
       startAutoFindRegion();
       return;
     }
 
-    // Vorhandenes Skript nicht kommentarlos überschreiben - der Nutzer
-    // könnte ein von Hand erstelltes oder heruntergeladenes Skript neben
-    // dem video liegen haben.
+    // Do not silently overwrite an existing script beside the video.
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.samn';
-        if (!confirm(`An Emotion Script already exists:\n${target}\n\nOverwrite it?`)) {
+        const target = videoPath.replace(/\.[^.\\/]+$/, '');
+        if (!confirm(`A script already exists for this video. Creating again can replace these files:\n${target}.samn (Emotion Script)\n${target}.funscript (copy for other apps)\n\nReplace existing files?`)) {
           return;
         }
         overwrite = true;
       }
     } catch (err) {
-      // Prüfung fehlgeschlagen - lieber nicht überschreiben, das Backend
-      // lehnt dann ohnehin ab und meldet es sauber.
+      // Existence check failed — prefer not to overwrite; backend will refuse cleanly.
     }
 
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
     generating = true;
+    userCancelRequested = false;
     syncWorkflowSteps();
-    el('#gen-status').textContent = 'Generating…';
+    el('#gen-status').textContent = 'Creating…';
     el('#gen-log').textContent = '';
     {
       const wrap = el('#gen-progress-wrap');
@@ -1368,6 +1372,8 @@ export function initGenerator(root, playback) {
   }
 
   el('#gen-cancel').addEventListener('click', () => {
+    userCancelRequested = true;
+    pendingGenerateAfterRoi = false;
     CancelGenerate();
     el('#gen-status').textContent = 'Cancel requested…';
   });
@@ -1415,6 +1421,10 @@ export function initGenerator(root, playback) {
     el('#gen-nomark').disabled = false;
     if (result.error) {
       pendingGenerateAfterRoi = false;
+      generating = false;
+      el('#gen-cancel').disabled = true;
+      updateGenerateEnabled();
+      syncWorkflowSteps();
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
     }
@@ -1563,6 +1573,15 @@ export function initGenerator(root, playback) {
   });
 
   EventsOn('generate:done', result => {
+    // Ignore stale cancel from a superseded run (new Create already active).
+    if (result && result.cancelled && !userCancelRequested) {
+      return;
+    }
+    if (typeof result?.seq === 'number') {
+      if (result.seq < activeCreateSeq) return;
+      activeCreateSeq = result.seq;
+    }
+    userCancelRequested = false;
     hideProgress();
     el('#gen-cancel').disabled = true;
     generating = false;

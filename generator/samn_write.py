@@ -50,6 +50,10 @@ def write_companion_samn(funscript_path, actions, metadata, profile,
     gaps = metadata.get("tracking_gaps") or []
     if gaps:
         doc["trackingGaps"] = gaps
+    if metadata.get("contact_marks"):
+        doc["contactMarks"] = metadata["contact_marks"]
+    if metadata.get("trajectory"):
+        doc["trajectory"] = metadata["trajectory"]
     if "quality_score" in metadata:
         doc["qualityScore"] = metadata["quality_score"]
     if "quality_passed" in metadata:

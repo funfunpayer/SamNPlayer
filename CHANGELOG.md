@@ -10,6 +10,14 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Create → Play feel on `.samn`:** companion Emotion Scripts now keep Contact
+  vibration recipe, `contactMarks`, and tip `trajectory` (Play prefers `.samn`).
+  Improve export no longer strips those fields from the companion `.funscript`.
+- **Create overwrite confirm:** names both `.samn` and `.funscript` when a script
+  already exists beside the video (#222 copy).
+- **Create cancel / tip-find busy:** Cancel no longer clears a newer Create run;
+  auto-find tip disables Create until ready or failed.
+- **Sidebar empty script:** recognizes “No Emotion Script selected”.
 - **CSRT long-clip drift, partial fix:** on long continuous Generate runs, the
   Tip CSRT tracker could (a) confidently report a single-frame position jump
   of 100-300+ px with no scene cut involved, and (b) recover from a genuine

@@ -101,6 +101,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
 | Drift | Claude | `claude/csrt-jump-guard` | **CSRT long-clip drift** — measured + partially fixed (dispGuard + appearance-memory gating), root cause identified, full fix needs a trained detector (out of scope here). See Decision log 23 Sep | **DONE (partial) — findings posted** |
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
+| Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **THIS** |
+| Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) | **NEXT** — rebase after #227 |
+| Engine | Cursor | after Rel28 | Residual CSRT gradual drift — scale clamp first, then detector path (Claude #226) | **NEXT** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |

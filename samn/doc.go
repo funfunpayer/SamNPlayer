@@ -61,6 +61,11 @@ type Document struct {
 	StrengthPresets []StrengthPreset `json:"strengthPresets,omitempty"`
 	ActiveStrength  string           `json:"activeStrength,omitempty"`
 
+	// ContactMarks + Trajectory: Everyday feel (Stage A) and Play overlays.
+	// Must survive companion .samn write — Play prefers .samn over .funscript.
+	ContactMarks *funscript.ContactMarks   `json:"contactMarks,omitempty"`
+	Trajectory   *funscript.TrajectoryData `json:"trajectory,omitempty"`
+
 	// Optional quality copy from generation (informational).
 	QualityScore    *float64 `json:"qualityScore,omitempty"`
 	QualityPassed   *bool    `json:"qualityPassed,omitempty"`
