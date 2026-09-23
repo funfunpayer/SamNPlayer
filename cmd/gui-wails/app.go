@@ -150,18 +150,20 @@ func findMatchingVideo(scriptPath string) (string, bool) {
 
 // ScriptInfo wird als JSON ans Frontend zurückgegeben.
 type ScriptInfo struct {
-	Path                  string  `json:"path"`
-	ActionCount           int     `json:"actionCount"`
-	DurationMs            int64   `json:"durationMs"`
-	VideoPath             string  `json:"videoPath"`
-	HasVideo              bool    `json:"hasVideo"`
-	Profile               string  `json:"profile"`
-	ContactVibration      bool    `json:"contactVibration"`
-	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
-	ContactVibrationCurve string  `json:"contactVibrationCurve"`
-	NativeFormat          bool    `json:"nativeFormat"`
-	PlaybackSource        string  `json:"playbackSource"`
-	HasNeoAxes            bool    `json:"hasNeoAxes"`
+	Path                  string                `json:"path"`
+	ActionCount           int                   `json:"actionCount"`
+	DurationMs            int64                 `json:"durationMs"`
+	VideoPath             string                `json:"videoPath"`
+	HasVideo              bool                  `json:"hasVideo"`
+	Profile               string                `json:"profile"`
+	ContactVibration      bool                  `json:"contactVibration"`
+	ContactVibrationSpan  float64               `json:"contactVibrationSpan"`
+	ContactVibrationCurve string                `json:"contactVibrationCurve"`
+	NativeFormat          bool                  `json:"nativeFormat"`
+	PlaybackSource        string                `json:"playbackSource"`
+	HasNeoAxes            bool                  `json:"hasNeoAxes"`
+	HasContactMarks       bool                  `json:"hasContactMarks"`
+	ContactMarks          *funscript.ContactMarks `json:"contactMarks,omitempty"`
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
@@ -188,6 +190,10 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 	}
 	if ax := script.Metadata.SamnAxes; ax != nil {
 		info.HasNeoAxes = ax.HasAxes()
+	}
+	if cm := script.Metadata.ContactMarks; cm != nil {
+		info.ContactMarks = cm
+		info.HasContactMarks = cm.HasAreas() || cm.TipClass != ""
 	}
 	a.stateMu.Lock()
 	if video, ok := findMatchingVideo(path); ok {

@@ -1,6 +1,10 @@
 package generator
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
+)
 
 func TestBuildContactMarksMetaEmpty(t *testing.T) {
 	if buildContactMarksMeta(Options{}) != nil {
@@ -47,7 +51,7 @@ func TestBuildContactMarksMetaDistanceDrives(t *testing.T) {
 func TestStampContactMarks(t *testing.T) {
 	meta := map[string]any{}
 	stampContactMarks(meta, Options{RegionClass: "glans"})
-	raw, ok := meta["contact_marks"].(*ContactMarksMeta)
+	raw, ok := meta["contact_marks"].(*funscript.ContactMarks)
 	if !ok || raw == nil || raw.TipClass != "glans" {
 		t.Fatalf("stamp failed: %#v", meta["contact_marks"])
 	}
