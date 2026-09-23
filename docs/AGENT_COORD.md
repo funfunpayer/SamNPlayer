@@ -101,7 +101,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
-| R-pose | ChatGPT | #192 merged | **PoseObserver concept** (`docs/POSE_OBSERVER.md`) | **DONE** — Stage A after E2 (write-up now done) |
+| R-pose | Cursor | #201 `cursor/pose-observer-stage-a-d7cb` | **PoseObserver Stage A** offline spike | **ACTIVE** — CI fixtures + fuse/summary; bake-off = Owner |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |

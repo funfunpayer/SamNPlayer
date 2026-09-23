@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **PoseObserver Stage A (research):** offline Python spike
+  (`generator/pose_observer.py` + `pose_observer_spike.py`) — MediaPipe /
+  RTMPose-ONNX adapters emit the neutral PoseObservation contract and
+  body-part seed proposals. Optional deps only
+  (`requirements-pose-observer.txt`). Fixture tests in CI; `--summary`
+  rolls up bake-off JSONL. No Everyday Generate wiring, no auto-download,
+  no Funscript writer. Bake-off before Stage B.
+
 ### Fixed
 
 - **Review → Improve refreshes quality score + Tf/Tj `.sam` sidecar:**

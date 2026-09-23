@@ -1,6 +1,6 @@
 # Pretrained pose observer for Generate
 
-Status: research proposal for issue #191. No Generate default or runtime dependency changes.
+Status: **Stage A spike landed** (offline Python; outside Everyday Generate). Concept from #191/#192.
 
 ## Decision to test
 
@@ -115,9 +115,49 @@ The classical proposal path is the baseline. A pretrained model earns integratio
 
 ## Runtime strategy
 
-### Stage A — research
+### Stage A — research (**code spike ready**)
 
-Use the model in its easiest supported local runtime. This may be Python for the spike. Keep it outside Everyday Generate.
+Use the model in its easiest supported local runtime (Python). Keep it
+**outside Everyday Generate**.
+
+| Artifact | Path |
+|----------|------|
+| Contract + adapters | `generator/pose_observer.py` |
+| Bake-off CLI | `generator/pose_observer_spike.py` |
+| Fixture tests (no weights) | `generator/pose_observer_test.py` |
+| Optional pip | `generator/requirements-pose-observer.txt` |
+
+```bash
+# Status (no video)
+python3 generator/pose_observer_spike.py --status \
+  --mediapipe-model "$HOME/models/pose_landmarker_lite.task"
+
+# Single frame → PoseObservation JSON + --seeds
+python3 generator/pose_observer_spike.py \
+  --video clip.mp4 --frame 0 --backend mediapipe \
+  --mediapipe-model "$HOME/models/pose_landmarker_lite.task" \
+  --seeds --out /tmp/pose.json
+
+# Metrics JSONL every 15 frames
+python3 generator/pose_observer_spike.py \
+  --video clip.mp4 --every 15 --max-frames 120 --backend mediapipe \
+  --mediapipe-model "$HOME/models/pose_landmarker_lite.task" \
+  --out /tmp/pose_metrics.jsonl
+
+# Roll up JSONL → availability / wall-time / jitter summary
+python3 generator/pose_observer_spike.py --summary /tmp/pose_metrics.jsonl
+```
+
+**No auto-download.** Owner places MediaPipe `.task` or RTMPose ONNX locally.
+Missing model → soft `error` field, empty `people` (tests cover this).
+
+CI runs `pose_observer_test.py` in the Python (Generator) fast suite (no weights).
+
+Seed proposals map pose landmarks → product body-part ids (`mouth`,
+`hand_1`/`hand_2`, `face`, weak `penis` from hip midline). Tip/glans is
+**not** in COCO/MediaPipe pose — treat hip-midline Tip as low-confidence
+only. `fuse_proposal_lists` ranks classical + pose proposals with provenance;
+Feed into MT-Seed ranking later (Stage B); do not silent-commit.
 
 ### Stage B — opt-in adapter
 
