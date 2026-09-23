@@ -30,6 +30,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	opts = withTipROI(opts, roi)
 	if !nativeOptionsEligible(opts, roi) {
 		return fmt.Errorf("generator: native simple pipeline not eligible for these options")
 	}

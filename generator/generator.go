@@ -100,6 +100,9 @@ type Options struct {
 	RDPTolerance             float64
 	DisableSceneCutDetection bool
 	ROI2                     ROI
+	// TipROI is the Everyday tip box (Generate x/y/w/h). Stored in
+	// metadata.contact_marks.tip for Play overlay; stroke still from CSRT.
+	TipROI ROI
 	// ROI2Fixed keeps the second Tf/Tj box at its marked position (static
 	// anchor). ROI1 is still tracked. Distance then reflects tip motion only.
 	ROI2Fixed bool

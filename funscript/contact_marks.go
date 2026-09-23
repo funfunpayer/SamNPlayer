@@ -16,15 +16,19 @@ type ContactMarkBox struct {
 // only for Tf/Tj distance profiles; Everyday stroke keeps it false.
 type ContactMarks struct {
 	TipClass    string           `json:"tip_class,omitempty"`
+	Tip         *ContactMarkBox  `json:"tip,omitempty"`
 	Primary     *ContactMarkBox  `json:"primary,omitempty"`
 	Extras      []ContactMarkBox `json:"extras,omitempty"`
 	DriveStroke bool             `json:"drive_stroke"`
 }
 
-// HasAreas reports whether any drawable contact box is present.
+// HasAreas reports whether any drawable tip or contact box is present.
 func (c *ContactMarks) HasAreas() bool {
 	if c == nil {
 		return false
+	}
+	if c.Tip != nil && c.Tip.W > 0 && c.Tip.H > 0 {
+		return true
 	}
 	if c.Primary != nil && c.Primary.W > 0 && c.Primary.H > 0 {
 		return true

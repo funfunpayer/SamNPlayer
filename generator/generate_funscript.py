@@ -2585,7 +2585,19 @@ def process_one(args, ap):
             raise
         except Exception:
             pass
-    if tip_cls or stored_roi2 or extras_boxes:
+    tip_box = None
+    try:
+        if getattr(args, "roi", None):
+            tip_t = tuple(int(v) for v in args.roi.split(","))
+            if len(tip_t) == 4 and tip_t[2] > 0 and tip_t[3] > 0:
+                tip_box = {
+                    "x": tip_t[0], "y": tip_t[1],
+                    "w": tip_t[2], "h": tip_t[3],
+                    "class": tip_cls or "",
+                }
+    except (ValueError, AttributeError):
+        tip_box = None
+    if tip_cls or tip_box or stored_roi2 or extras_boxes:
         primary = None
         if stored_roi2:
             primary = {
@@ -2600,6 +2612,8 @@ def process_one(args, ap):
             "extras": extras_boxes,
             "drive_stroke": bool(is_distance_profile(args.profile)),
         }
+        if tip_box:
+            contact_marks_meta["tip"] = tip_box
 
     if args.roi2 and args.profile not in ("tf", "tj"):
         print("Hint: storing --roi2 as contact mark (feel) — tip CSRT writes the "

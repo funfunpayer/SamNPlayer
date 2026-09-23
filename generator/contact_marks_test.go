@@ -17,6 +17,7 @@ func TestBuildContactMarksMetaStrokeFeelOnly(t *testing.T) {
 		Profile:      "standard",
 		RegionClass:  "glans",
 		RegionClass2: "nipples",
+		TipROI:       ROI{X: 1, Y: 2, W: 50, H: 60},
 		ROI2:         ROI{X: 10, Y: 20, W: 30, H: 40},
 		ROI2Fixed:    false,
 		ExtraTargets: []NamedROI{{X: 50, Y: 60, W: 20, H: 20, Class: "nipples", Fixed: true}},
@@ -26,6 +27,9 @@ func TestBuildContactMarksMetaStrokeFeelOnly(t *testing.T) {
 	}
 	if cm.TipClass != "glans" {
 		t.Fatalf("tip_class=%q", cm.TipClass)
+	}
+	if cm.Tip == nil || cm.Tip.W != 50 || cm.Tip.Class != "glans" {
+		t.Fatalf("tip=%+v", cm.Tip)
 	}
 	if cm.Primary == nil || cm.Primary.Class != "nipples" || cm.Primary.W != 30 {
 		t.Fatalf("primary=%+v", cm.Primary)

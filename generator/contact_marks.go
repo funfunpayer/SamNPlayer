@@ -4,7 +4,14 @@ import "github.com/funfunpayer/SamNPlayer/funscript"
 
 // buildContactMarksMeta returns nil when there is nothing to store.
 func buildContactMarksMeta(opts Options) *funscript.ContactMarks {
-	tip := opts.RegionClass
+	tipClass := opts.RegionClass
+	var tip *funscript.ContactMarkBox
+	if opts.TipROI.W > 0 && opts.TipROI.H > 0 {
+		tip = &funscript.ContactMarkBox{
+			X: opts.TipROI.X, Y: opts.TipROI.Y, W: opts.TipROI.W, H: opts.TipROI.H,
+			Class: tipClass,
+		}
+	}
 	var primary *funscript.ContactMarkBox
 	if opts.ROI2.W > 0 && opts.ROI2.H > 0 {
 		primary = &funscript.ContactMarkBox{
@@ -24,14 +31,15 @@ func buildContactMarksMeta(opts Options) *funscript.ContactMarks {
 			Fixed: t.Fixed,
 		})
 	}
-	if tip == "" && primary == nil && len(extras) == 0 {
+	if tipClass == "" && tip == nil && primary == nil && len(extras) == 0 {
 		return nil
 	}
 	// Distance profiles already use ROI2 for tip↔partner; still stamp marks
 	// so classes / extras survive. Everyday stroke never drives from marks.
 	drive := funscript.IsDistanceProfile(opts.Profile)
 	return &funscript.ContactMarks{
-		TipClass:    tip,
+		TipClass:    tipClass,
+		Tip:         tip,
 		Primary:     primary,
 		Extras:      extras,
 		DriveStroke: drive,
@@ -48,4 +56,12 @@ func stampContactMarks(meta map[string]any, opts Options) {
 		return
 	}
 	meta["contact_marks"] = cm
+}
+
+// withTipROI returns a copy of opts with TipROI set from the tracked tip box.
+func withTipROI(opts Options, tip ROI) Options {
+	if tip.W > 0 && tip.H > 0 {
+		opts.TipROI = tip
+	}
+	return opts
 }

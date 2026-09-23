@@ -655,7 +655,8 @@ export function initPlayback(root) {
 
   function contactMarksWanted() {
     return !!(videoPath && contactMarksData && el('#pb-contact-marks-toggle')?.checked
-      && (contactMarksData.primary || (contactMarksData.extras && contactMarksData.extras.length)));
+      && (contactMarksData.tip || contactMarksData.primary
+        || (contactMarksData.extras && contactMarksData.extras.length)));
   }
 
   function overlayWanted() {
@@ -719,6 +720,11 @@ export function initPlayback(root) {
     if (contactMarksWanted()) {
       const vw = videoEl.videoWidth || 0;
       const vh = videoEl.videoHeight || 0;
+      const tip = contactMarksData.tip;
+      if (tip) {
+        const label = tip.class || contactMarksData.tip_class || 'tip';
+        drawContactMarkBox(ctx, tip, vw, vh, w, h, 'rgba(80,180,255,0.95)', label);
+      }
       const primary = contactMarksData.primary;
       if (primary) {
         const label = primary.class || 'contact';
@@ -737,19 +743,20 @@ export function initPlayback(root) {
     contactMarksData = info?.contactMarks || null;
     const row = el('#pb-contact-marks-row');
     const hint = el('#pb-contact-marks-hint');
-    const has = !!(contactMarksData && (contactMarksData.primary
+    const has = !!(contactMarksData && (contactMarksData.tip || contactMarksData.primary
       || (contactMarksData.extras && contactMarksData.extras.length)
       || contactMarksData.tip_class));
     if (row) row.style.display = (videoPath && has) ? 'flex' : 'none';
     if (hint) {
       if (videoPath && has) {
         const tip = contactMarksData.tip_class ? `Tip: ${contactMarksData.tip_class}` : '';
-        const n = (contactMarksData.primary ? 1 : 0)
+        const n = (contactMarksData.tip ? 1 : 0)
+          + (contactMarksData.primary ? 1 : 0)
           + ((contactMarksData.extras && contactMarksData.extras.length) || 0);
         const drive = contactMarksData.drive_stroke
           ? 'distance drives stroke'
           : 'feel only (tip CSRT stroke)';
-        hint.textContent = [tip, n ? `${n} contact area${n === 1 ? '' : 's'}` : '', drive]
+        hint.textContent = [tip, n ? `${n} marked box${n === 1 ? '' : 'es'}` : '', drive]
           .filter(Boolean).join(' · ');
         hint.style.display = 'block';
       } else {

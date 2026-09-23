@@ -80,6 +80,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	opts = withTipROI(opts, roi)
 	if !NativeTrackingAvailable() {
 		return errNativeUnavailable
 	}

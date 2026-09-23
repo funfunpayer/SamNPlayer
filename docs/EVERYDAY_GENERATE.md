@@ -2,7 +2,7 @@
 
 Product target (owner, 22 Sep 2026): pick a clip; barely choose anything
 else — at most **AI region on/off** and **where vibration should feel**
-(Contact on/off + optional Zone 2). Everything else automatic.
+(Contact on/off + optional contact marks). Everything else automatic.
 **Best measured method is the first choice.**
 
 Related: `TFTJ_PROFILE_DIRECTION.md`, `GENERATE_HEURISTICS.md`,
