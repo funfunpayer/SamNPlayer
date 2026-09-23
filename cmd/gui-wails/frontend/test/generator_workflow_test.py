@@ -115,15 +115,15 @@ def main():
         check("Generate still enabled", page.locator("#gen-generate").is_enabled())
         check("Review still hidden until done", not visible(page, "#gen-step-result"))
 
-        # 4-zone advanced opt-in via Tracking method dropdown (Everyday button hidden).
-        page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
-        page.select_option("#gen-backend", "region_fusion_auto")
-        page.wait_for_function(
-            "document.querySelector('#gen-backend').value === 'region_fusion_auto'",
-            timeout=3000)
-        check("4-zone selected",
-              page.locator("#gen-backend").input_value() == "region_fusion_auto")
-        check("4-zone: generate enabled", page.locator("#gen-generate").is_enabled())
+        # 4-zone removed from product GUI (CLI-only).
+        options = page.eval_on_selector_all(
+            "#gen-backend option", "els => els.map(e => e.value)")
+        check("4-zone not in Tracking method",
+              "region_fusion_auto" not in options, str(options))
+        check("Backend stays CSRT",
+              page.locator("#gen-backend").input_value() == "csrt")
+        check("Generate still enabled on CSRT",
+              page.locator("#gen-generate").is_enabled())
 
         browser.close()
 

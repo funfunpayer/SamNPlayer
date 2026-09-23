@@ -122,9 +122,9 @@ export function initGenerator(root, playback) {
             data-help="Advanced: soft-exclude mask (dashed gray). Punched out of camera/grid features — does not drive the stroke.">+ Soft mask (advanced)</button>
         </div>
       </div>
-      <!-- Keep 4-zone opt-in for tests / power users; hidden from everyday row — Advanced backends still list it. -->
+      <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
       <button id="gen-nomark" type="button" disabled hidden
-        data-help="Advanced / weaker on measured clip. Whole-frame 4-zone — opt-in only via Advanced → Tracking method.">4-zone (advanced)</button>
+        data-help="Removed from Generate GUI — use tip CSRT. 4-zone remains CLI-only.">4-zone (advanced)</button>
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
@@ -193,15 +193,14 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
             data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
           <div class="row" style="align-items:center;">
-            <label style="width:auto;" data-help="CSRT = marked tip (Go path). 4-zone = whole-frame motion, no mark (Python). Research backends stay CLI-only.">Tracking method</label>
+            <label style="width:auto;" data-help="CSRT tip tracking (Go path) — Everyday stroke writer. Whole-frame 4-zone stays CLI-only (weaker on measured clips; not a product stroke mode).">Tracking method</label>
             <select id="gen-backend">
               <option value="csrt" selected>CSRT (mark tip, Go path)</option>
-              <option value="region_fusion_auto">4-zone motion (no mark)</option>
             </select>
           </div>
-          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs Zone 1. 4-zone tracks the whole frame — pair with Contact vibration on Stroke/Autotune.</p>
+          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs a tip mark (auto-find or draw). Contact vibration is the feel layer — optional marks when vib is on.</p>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records the raw tip/partner (x,y) path per frame into the script, for the optional Review/Play trajectory overlay (MT-Debug). Off by default; only recorded on the CSRT (Go) path, not 4-zone.">Record tip/partner trajectory (Debug overlay)</label></div>
+            data-help="Records the raw tip/partner (x,y) path per frame into the script, for the optional Review/Play trajectory overlay (MT-Debug). Off by default; CSRT path only.">Record tip/partner trajectory (Debug overlay)</label></div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -537,16 +536,15 @@ export function initGenerator(root, playback) {
     perScene.title = twoPoint
       ? 'Not available for Tf/Tj tip↔partner distance — region is not re-searched there.'
       : '';
-    // Product GUI: CSRT (mark) or region_fusion_auto (whole-frame 4-zone).
-    // Other research backends stay CLI-only.
+    // Product GUI: CSRT tip only (1-Zone). 4-zone / research backends = CLI.
     const be = el('#gen-backend').value;
-    if (be !== 'csrt' && be !== 'region_fusion_auto') {
+    if (be !== 'csrt') {
       el('#gen-backend').value = 'csrt';
     }
     updateGenerateEnabled();
   }
 
-  // CSRT / Tf need a tip mark. Whole-frame 4-zone does not.
+  // CSRT needs a tip mark. (Legacy no-mark backends are CLI-only now.)
   function backendNeedsRoi() {
     return el('#gen-backend').value !== 'region_fusion_auto';
   }
@@ -556,29 +554,25 @@ export function initGenerator(root, playback) {
   }
 
   function setNoMarkMotion(on) {
+    // Product: never enable 4-zone from the GUI — force CSRT.
     const backend = el('#gen-backend');
+    backend.value = 'csrt';
+    delete backend.dataset.userTouched;
+    const btn = el('#gen-nomark');
+    if (btn) {
+      btn.style.outline = '';
+      btn.style.background = '';
+      btn.textContent = '4-zone (CLI only)';
+    }
     if (on) {
-      backend.value = 'region_fusion_auto';
-      backend.dataset.userTouched = '1';
       normalizeProductProfile();
       candidates = [];
       clearPendingSeed();
       setSeedSuggestEnabled(false);
-      const btn = el('#gen-nomark');
-      if (btn) {
-        btn.style.outline = '2px solid #7ec8ff';
-        btn.style.background = 'rgba(126,200,255,0.18)';
-      }
       el('#gen-status').textContent =
-        'Whole-frame 4-zone motion — no mark needed. Generate when ready (Contact vib uses stroke depth).';
-    } else {
-      backend.value = 'csrt';
-      const btn = el('#gen-nomark');
-      if (btn) {
-        btn.style.outline = '';
-        btn.style.background = '';
-      }
+        'Tip CSRT is the Everyday stroke writer — 4-zone is CLI-only (not a GUI mode).';
     }
+    syncNoMarkButton();
     updateGenerateEnabled();
     redraw();
   }
@@ -675,7 +669,7 @@ export function initGenerator(root, playback) {
       prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
     } else if (!hasResult) {
       prompt.textContent = noMark
-        ? 'Step 4: Generate (4-zone advanced). Prefer tip CSRT for best FunGen match.'
+        ? 'Step 4: Generate (tip CSRT). 4-zone is CLI-only.'
         : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve (FunGen-like).';
@@ -875,7 +869,7 @@ export function initGenerator(root, playback) {
     dismissBtn.addEventListener('click', () => {
       clearPendingSeed();
       el('#gen-status').textContent =
-        'Suggestion dismissed — Everyday tip-CSRT if you skip Zone 2.';
+        'Suggestion dismissed — Everyday tip-CSRT if you skip the contact mark.';
       redraw();
     });
     status.appendChild(applyBtn);
@@ -914,8 +908,8 @@ export function initGenerator(root, playback) {
       secondRegionLabel(roi2, `2nd candidate #${partner.index}`);
     const nudge = nudgeZone2ClassIfEmpty();
     el('#gen-status').textContent =
-      `Tip #${tip.index} + 2nd #${partner.index} applied — correct by hand if needed.`
-      + ` Zone 2 was never auto-filled.${nudge}`;
+      `Tip #${tip.index} + contact #${partner.index} applied — correct by hand if needed.`
+      + ` Contact mark was never auto-filled.${nudge}`;
     redraw();
   }
 
@@ -1096,7 +1090,7 @@ export function initGenerator(root, playback) {
       extraTargets.push({ ...box, fixed: true, class: cls });
       setMarkMode(null);
       const tag = cls ? ` (${cls})` : '';
-      el('#gen-status').textContent = `Zone 3+ #${extraTargets.length}${tag} added (optional contact).`;
+      el('#gen-status').textContent = `Extra contact #${extraTargets.length}${tag} added.`;
     } else if (mode === 'mask') {
       maskRois.push(box);
       setMarkMode(null);
@@ -1839,7 +1833,7 @@ export function initGenerator(root, playback) {
     setSeedSuggestEnabled(candidates.length >= 2);
     el('#gen-status').textContent = candidates.length >= 2
       ? `${candidates.length} motion candidates — click Tip; optional Shift-click 2nd body-part or Suggest Tip+2nd (Apply). Tip alone = Everyday.`
-      : `1 motion candidate — click to set Tip (Zone 1). Zone 2 never auto-filled.`;
+      : `1 motion candidate — click to set Tip. Contact mark never auto-filled.`;
     redraw();
   });
 
