@@ -8,6 +8,7 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/sam"
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
@@ -116,6 +117,14 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		if req.AudioCheck && audioMeta != nil {
 			_ = funscript.StampAudioCheck(funPath, audioMeta)
 		}
+		// Tf/Tj: re-derive the .sam sidecar from the just-rewritten funscript
+		// so it matches the improved curve instead of the raw-Generate one
+		// (same gate as the original write in app_generator.go).
+		if funscript.IsDistanceProfile(script.Metadata.Profile) {
+			if refreshed, err := funscript.Load(funPath); err == nil {
+				_ = sam.WriteEnrichedSidecar(funPath, refreshed)
+			}
+		}
 		loaded := a.loadedScriptPath()
 		if loaded == path || loaded == funPath || loaded == req.Path {
 			_ = a.reloadLoadedScript()
@@ -152,19 +161,35 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	return out, nil
 }
 
+// saveImprovedActions writes the edited action list back and refreshes the
+// quality score/warnings to match it - the score/warnings baked in at raw
+// Generate time otherwise silently describe the pre-edit curve forever
+// (QC-B Finding 1, PR #184: reported as a stale-looking .sam sidecar and
+// "only 32% movement" warning on a script that Improve had since reshaped).
+// Dense per-frame tracker data isn't available here, so this recomputes the
+// actions-only Script Doctor quality (EstimatedFromScriptOnly) rather than
+// reproducing the original dense-signal score - a genuine, if weaker,
+// estimate of the current curve beats a stale snapshot of a different one.
 func saveImprovedActions(path string, actions []funscript.Action) error {
+	quality := funscript.EvaluateScriptQuality(actions)
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)
 		if err != nil {
 			return err
 		}
 		doc.General = actions
+		doc.QualityScore = &quality.Score
+		doc.QualityPassed = &quality.Passed
+		doc.QualityWarnings = quality.Warnings
 		if err := samn.Save(path, doc); err != nil {
 			return err
 		}
 		return doc.ExportFunscript(samn.CompanionFunscriptPath(path))
 	}
-	return funscript.SaveActions(path, actions)
+	if err := funscript.SaveActions(path, actions); err != nil {
+		return err
+	}
+	return funscript.StampQuality(path, quality)
 }
 
 func guessVideoBesideScript(scriptPath string) string {
