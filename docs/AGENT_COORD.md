@@ -99,12 +99,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
 | Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
 | Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
-| Drift | Claude | `claude/csrt-jump-guard` | **CSRT long-clip drift** — measured + partially fixed (dispGuard + appearance-memory gating), root cause identified, full fix needs a trained detector (out of scope here). See Decision log 23 Sep | **DONE (partial) — findings posted** |
+| Drift | Claude | `claude/csrt-jump-guard` + follow-up | **CSRT long-clip drift** — #226 shipped (dispGuard + appearance-memory); residual gradual drift / scale / detector | **THIS** — Claude owns residual; Cursor waits |
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) merged | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **DONE** |
-| Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) — rebased on main after #227 squash | **THIS** — CI after rebase |
+| Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) — rebased on main after #227 squash | **THIS** — merge when CI green |
 | Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) | bump **v0.5.28** + CHANGELOG/ROADMAP — stacks #226+#227+#225 | **THIS** — merge after #225 |
-| Engine | Cursor | after Rel28 | Residual CSRT gradual drift — scale clamp first, then detector path (Claude #226) | **NEXT** |
+| Engine | Claude | after #226 | Residual CSRT gradual drift (Claude findings) — Cursor does **not** claim | **Claude THIS** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -126,9 +126,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
-- **Claude DONE (partial):** CSRT long-clip drift — 2 real fixes shipped (#226), residual gradual drift needs engine follow-up after Rel28.
-- **Cursor THIS:** #227 **DONE** on main. Merge #225 → Rel28 (#228). Then Engine residual drift (scale clamp).
+- **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main; #227 feel bugfix on main.
+- **Claude THIS:** residual CSRT drift follow-up (Owner: Cursor waits — do not steal).
+- **Cursor THIS:** Rel28 only — merge #225 → #228 (`v0.5.28`), then idle on engine until Claude frees the lane.
 - ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
