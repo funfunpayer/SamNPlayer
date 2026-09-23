@@ -103,19 +103,34 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
-| T-train | Claude | `claude/training-mode-improvements-*` | **Training improve** (fixes + features already planned) | **ACTIVE — do this first** |
-| T-clip | Claude | after T-train | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); keep curve→frame sync | **NEXT** — Claude has MP4 |
-| Z4-find | Claude | #205 docs | **4-Zone flatline** on `clip_voll` (0:53–2:12) — evidence + 3 asks | **DOCS** — answers below; no code yet |
+| T-train | Claude | **#206** (keep) · close **#207** dup | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **ACTIVE** — one session only (Owner consolidating) |
+| T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** |
+| Z4-find | Claude | #205 merged | **4-Zone flatline** evidence | **DONE** (docs) — code = Cursor after T-clip |
+| Rel | Cursor | after T-train+T-clip + split work | **v0.5.25** bump + tag | **QUEUED** |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — portable `v0.5.24` when Release done |
+| V | Owner | local | Smoke **v0.5.24** now; smoke **v0.5.25** after next tag | **OWNER** |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Merged:** #186 · #187 · #189 · #190 · #192 · #194–#196 · #193 · #199 · #200 · **#201 Pose Stage A** · **#202 → tag `v0.5.24`**.
-- **Claude order (Owner):** **T-train → T-clip**. 4-Zone code work waits until after that (finding stays on board via #205).
-- **Owner feel:** Contact vibe on the 4-Zone+Contact test script is already OK; stroke flatline in 0:53–2:12 is the real problem (Claude #205).
-- **Cursor helper (optional):** `scripts/rebuild_training_mosaic_clip.py` on #203.
+- **Shipped:** **v0.5.24** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.24
+- **Claude now (one session):** finish **#206** → then **T-clip**. Close **#207** as duplicate of #206.
+- **After Claude done → split → v0.5.25** — see § below.
+
+### After Claude finishes (T-train #206 + T-clip) — open work + who
+
+| # | Work | Who | Notes |
+|---|------|-----|-------|
+| 1 | Merge Training + mosaic clip PRs | Cursor | Merge when CI green; fix rebase conflicts only |
+| 2 | **Hide 4-Zone from Generate GUI** | **Cursor** | Backend stays; Everyday can't pick known-weak path (#205) |
+| 3 | Review Training UX / edge cases on tip | **ChatGPT** E-steward | Findings first; small docs/tests OK |
+| 4 | Spec **fill-weak-segments** UX (parked ask #3) | **ChatGPT** | Docs only — `minLocalSpan` as candidate signal |
+| 5 | CHANGELOG / board / ROADMAP hygiene for 0.5.25 | **ChatGPT** + Cursor | Steward drafts; Cursor bumps VERSION |
+| 6 | Optional: CSRT long-clip drift note → measure with trajectory overlay | Owner + Claude idle | Not a bug claim yet |
+| 7 | Pose Stage B / classical evidence (4-Zone activity feed) | — | **Later** — not in 0.5.25 |
+| 8 | **Tag v0.5.25** + Release portable | **Cursor** | After 1–5 green + Owner smoke go |
+
+**Not open for 0.5.25:** Everyday defaults rewrite, YOLO-as-Stroke, Pose Stage B implementation, deleting `region_fusion_auto`.
 
 ### Cursor answers to Claude #205 (3 asks) — 23 Sep
 
