@@ -127,7 +127,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
 - **Claude DONE (partial):** CSRT long-clip drift — 2 real fixes shipped (#226), residual gradual drift needs engine follow-up after Rel28.
-- **Cursor THIS:** Bugfix #227 + Emotion look #225 (rebased). Then Rel28 → Engine.
+- **Cursor THIS:** Rel28 (`v0.5.28`) — after #227+#225 merge. Then Engine residual drift.
 - ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
