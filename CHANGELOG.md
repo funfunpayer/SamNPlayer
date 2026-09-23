@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.27] — September 23, 2026
+
+### Added
+
+- **Feel-decouple Stage A:** with Contact vib + contact marks + tip trajectory,
+  Play vibration is `max(depth-slice, tip-near-mark)` — tip grazing a marked
+  contact area can buzz even on a shallow stroke (#214).
+- **Tip path soft-on with Contact vib:** Advanced “Record tip path” defaults on
+  when Contact vibration is enabled so Stage A has data without a debug hunt (#217).
+
 ### Fixed
 
 - **Training scripts: suction no longer missing or stuck.** Real-hardware
@@ -17,7 +27,7 @@ measurement history behind each entry; this file is the short version for
   naturally with a channel above 0 (a deliberate mid-script floor like
   `plateau`'s edging hold, or a later phase that never revisited a channel an
   earlier one raised) used to sit there until the abrupt device stop cut it —
-  it now ramps back down to 0 like every other transition in the script.
+  it now ramps back down to 0 like every other transition in the script (#216).
 
 ### Changed
 
@@ -26,10 +36,7 @@ measurement history behind each entry; this file is the short version for
   extracted from `clip_voll.mp4`'s 2:14–2:40 range, chosen by the
   *actual* `clip_voll.funscript` curve value at each timestamp — not
   chronological order — so `frameForLevel`'s curve→frame lookup matches
-  the real measured signal instead of an eyeballed sequence.
-  `pixel_figure.js`'s `CLIP_COUNT`/`CLIP_FRAMES` and
-  `training-mosaic-clip/frames.json` (now recording `source_ts_ms` and
-  the source funscript window) updated together.
+  the real measured signal instead of an eyeballed sequence (#215).
 
 ## [0.5.26] — September 23, 2026
 
