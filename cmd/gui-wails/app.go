@@ -150,19 +150,19 @@ func findMatchingVideo(scriptPath string) (string, bool) {
 
 // ScriptInfo wird als JSON ans Frontend zurückgegeben.
 type ScriptInfo struct {
-	Path                  string                `json:"path"`
-	ActionCount           int                   `json:"actionCount"`
-	DurationMs            int64                 `json:"durationMs"`
-	VideoPath             string                `json:"videoPath"`
-	HasVideo              bool                  `json:"hasVideo"`
-	Profile               string                `json:"profile"`
-	ContactVibration      bool                  `json:"contactVibration"`
-	ContactVibrationSpan  float64               `json:"contactVibrationSpan"`
-	ContactVibrationCurve string                `json:"contactVibrationCurve"`
-	NativeFormat          bool                  `json:"nativeFormat"`
-	PlaybackSource        string                `json:"playbackSource"`
-	HasNeoAxes            bool                  `json:"hasNeoAxes"`
-	HasContactMarks       bool                  `json:"hasContactMarks"`
+	Path                  string                  `json:"path"`
+	ActionCount           int                     `json:"actionCount"`
+	DurationMs            int64                   `json:"durationMs"`
+	VideoPath             string                  `json:"videoPath"`
+	HasVideo              bool                    `json:"hasVideo"`
+	Profile               string                  `json:"profile"`
+	ContactVibration      bool                    `json:"contactVibration"`
+	ContactVibrationSpan  float64                 `json:"contactVibrationSpan"`
+	ContactVibrationCurve string                  `json:"contactVibrationCurve"`
+	NativeFormat          bool                    `json:"nativeFormat"`
+	PlaybackSource        string                  `json:"playbackSource"`
+	HasNeoAxes            bool                    `json:"hasNeoAxes"`
+	HasContactMarks       bool                    `json:"hasContactMarks"`
 	ContactMarks          *funscript.ContactMarks `json:"contactMarks,omitempty"`
 }
 
