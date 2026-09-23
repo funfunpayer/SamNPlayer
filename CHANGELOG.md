@@ -8,18 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.30] — September 23, 2026
+
 ### Added
 
 - **Rhythm grid (opt-in, Go CSRT)** — `Options.RhythmGrid` / CLI
-  `generate --rhythm-grid` / GUI backend field `rhythmGrid`: the stroke
-  signal comes from the most rhythmic optical-flow cell near the CSRT box
-  instead of the box's own motion, so gradual CSRT drift on long clips no
-  longer degrades the curve (the box only has to stay near the action).
-  Measured vs. both FunGen references (windowed r, production detrend):
-  `clip_voll` 0.386/0.552 → 0.411/0.767, `clip_ausschnitt` 0.449/0.712 →
-  0.466/0.877; every 30 s window oriented consistently vs. the YOLO
-  reference on both clips. ~+18% tracking time. Off by default — no GUI
-  toggle yet.
+  `generate --rhythm-grid` / GUI Advanced checkbox *Rhythm-robust signal*:
+  the stroke signal comes from the most rhythmic optical-flow cell near the
+  CSRT box instead of the box's own motion, so gradual CSRT drift on long
+  clips no longer degrades the curve (the box only has to stay near the
+  action). Measured vs. both FunGen references (windowed r, production
+  detrend): `clip_voll` 0.386/0.552 → 0.411/0.767, `clip_ausschnitt`
+  0.449/0.712 → 0.466/0.877; every 30 s window oriented consistently vs. the
+  YOLO reference on both clips. ~+18% tracking time. **Off by default** —
+  Advanced opt-in only; default-on needs ≥4–5 owner clips (#233, #236).
 
 ## [0.5.29] — September 23, 2026
 
