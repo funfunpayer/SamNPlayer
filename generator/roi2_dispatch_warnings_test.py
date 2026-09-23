@@ -4,8 +4,8 @@ alle --backend-Werte kennt (nur csrt/grid_lk haben einen Zwei-Punkt-Pfad).
 Beide Fälle wurden bisher kommentarlos ignoriert - das Häkchen/die Option
 war gesetzt und tat nichts, ohne jede Rückmeldung.
 
-Zwei-Punkt-Hints gelten nur bei --profile tf/tj. Stroke/Autotune ignorieren
---roi2 (tip-only, #145) und melden das separat.
+Zwei-Punkt-Hints gelten nur bei --profile tf/tj. Stroke/Autotune keep
+--roi2 as contact_marks metadata (feel) and tip-track only (#145 / #211).
 
 Geprüft wird nur die Sichtbarkeit des jetzt ausgegebenen Hinweises auf
 stderr (nicht die Tracking-Qualität selbst - die ist bereits durch
@@ -15,6 +15,7 @@ Lauf trotzdem eine Ausgabedatei erzeugt statt abzubrechen.
 Ausführen: python3 generator/roi2_dispatch_warnings_test.py
 """
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -50,14 +51,26 @@ def main():
         video = Path(tmp) / "two_point.mp4"
         write_video(video)
 
-        # Stroke/Autotune + roi2: tip-only — Zone 2 ignored (#145).
+        # Stroke/Autotune + roi2: tip curve; contact mark stored (#211).
         out0 = Path(tmp) / "autotune.funscript"
         result = run(video, out0, "--profile", "autotune")
         check("autotune + roi2: Exit-Code 0", result.returncode == 0, result.stderr)
-        check("autotune + roi2: tip-only hint on stderr",
-              "ignoring --roi2" in result.stderr and "tip ROI only" in result.stderr,
+        check("autotune + roi2: tip-only / contact-mark hint on stderr",
+              ("storing --roi2 as contact mark" in result.stderr
+               or "ignoring --roi2" in result.stderr)
+              and ("tip CSRT writes the stroke" in result.stderr
+                   or "tip ROI only" in result.stderr),
               result.stderr)
         check("autotune + roi2: output file still created", out0.exists())
+        if out0.exists():
+            meta = json.loads(out0.read_text()).get("metadata") or {}
+            cm = meta.get("contact_marks") or {}
+            primary = cm.get("primary") or {}
+            check("autotune + roi2: contact_marks stamped",
+                  primary.get("w") == ROI_B[2] and primary.get("h") == ROI_B[3],
+                  str(cm))
+            check("autotune + roi2: drive_stroke false",
+                  cm.get("drive_stroke") is False, str(cm))
 
         # --per-scene-roi zusammen mit --roi2 (Tf/Tj): bisher stillschweigend
         # wirkungslos (der roi2-Zweig kommt vor dem per-scene-roi-Zweig

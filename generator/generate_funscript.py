@@ -2559,12 +2559,51 @@ def process_one(args, ap):
 
     mask_rois = [_parse_box("--mask", s) for s in (getattr(args, "mask", None) or [])] or None
 
-    # Stroke profiles (standard/weich/autotune) use tip ROI only. Zone 2 under
-    # Autotune previously ran two-point + bandpass and often failed with
-    # "no discernible motion" (#145). Distance partners need --profile tf/tj.
+    # Stroke profiles (standard/weich/autotune) use tip ROI only for the curve.
+    # Keep --roi2 / extras as contact_marks metadata (feel) — do not clear them
+    # before stamping. Distance partners still need --profile tf/tj.
+    contact_marks_meta = None
+    tip_cls = getattr(args, "region_class", None) or None
+    primary_cls = getattr(args, "region_class2", None) or None
+    stored_roi2 = None
+    if args.roi2:
+        try:
+            stored_roi2 = tuple(int(v) for v in args.roi2.split(","))
+            if len(stored_roi2) != 4:
+                stored_roi2 = None
+        except ValueError:
+            stored_roi2 = None
+    extras_boxes = []
+    for spec in (getattr(args, "target", None) or []):
+        try:
+            box, cls = _parse_target(spec)
+            extras_boxes.append({
+                "x": box[0], "y": box[1], "w": box[2], "h": box[3],
+                "class": cls or "", "fixed": True,
+            })
+        except SystemExit:
+            raise
+        except Exception:
+            pass
+    if tip_cls or stored_roi2 or extras_boxes:
+        primary = None
+        if stored_roi2:
+            primary = {
+                "x": stored_roi2[0], "y": stored_roi2[1],
+                "w": stored_roi2[2], "h": stored_roi2[3],
+                "class": primary_cls or "",
+                "fixed": bool(getattr(args, "roi2_fixed", False)),
+            }
+        contact_marks_meta = {
+            "tip_class": tip_cls or "",
+            "primary": primary,
+            "extras": extras_boxes,
+            "drive_stroke": bool(is_distance_profile(args.profile)),
+        }
+
     if args.roi2 and args.profile not in ("tf", "tj"):
-        print("Hint: ignoring --roi2 — Autotune/stroke profiles use tip ROI only "
-              "(use --profile tf or tj for tip↔partner distance).",
+        print("Hint: storing --roi2 as contact mark (feel) — tip CSRT writes the "
+              "stroke (use --profile tf or tj for tip↔partner distance).",
               file=sys.stderr)
         args.roi2 = None
 
@@ -2883,6 +2922,13 @@ def process_one(args, ap):
         contact_vibration=args.contact_vibration,
         contact_vibration_span=args.contact_vibration_span,
         contact_vibration_curve=args.contact_vibration_curve)
+    if contact_marks_meta:
+        # Drop empty tip_class key for cleaner JSON when unset.
+        if not contact_marks_meta.get("tip_class"):
+            contact_marks_meta.pop("tip_class", None)
+        if not contact_marks_meta.get("extras"):
+            contact_marks_meta.pop("extras", None)
+        metadata["contact_marks"] = contact_marks_meta
 
     with open(args.output, "w") as f:
         json.dump({

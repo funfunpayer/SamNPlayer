@@ -62,6 +62,12 @@ export function initPlayback(root) {
           </div>
           <div id="pb-video-warn" class="pb-video-warn" hidden></div>
           <p class="pb-keys-hint hint" id="pb-keys-hint">Space play/stop · ←/→ seek · ,/. fine · +/- offset · E Extended-O · Esc leave fullscreen</p>
+          <div class="checkbox-row" id="pb-contact-marks-row" style="display:none; margin:0.35rem 0 0;">
+            <input type="checkbox" id="pb-contact-marks-toggle" checked />
+            <label for="pb-contact-marks-toggle"
+              data-help="Draws contact areas stored at Generate (gold = primary, magenta = extras). Feel labels only — Everyday stroke still follows tip CSRT depth.">Show contact marks</label>
+          </div>
+          <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0.2rem 0 0;"></p>
           <div id="pb-novideo" class="pb-novideo">
             <p class="pb-novideo-title">Script only</p>
             <p class="hint">Runs on device and curve alone — video is optional. Play starts immediately.</p>
@@ -314,6 +320,7 @@ export function initPlayback(root) {
   let vibrationCurvePoints = null;
   let scriptHasContactVibration = false;
   let trajectoryData = null; // MT-Debug: {width,height,tip:[{atMs,x,y}],partner:[...]} or null
+  let contactMarksData = null; // { tip_class, primary:{x,y,w,h,class,fixed}, extras:[...], drive_stroke }
   const curveCanvas = el('#pb-curve');
   const chartTooltip = el('#pb-chart-tooltip');
 
@@ -646,8 +653,35 @@ export function initPlayback(root) {
     return !!(videoPath && trajectoryData && el('#pb-trajectory-toggle').checked);
   }
 
+  function contactMarksWanted() {
+    return !!(videoPath && contactMarksData && el('#pb-contact-marks-toggle')?.checked
+      && (contactMarksData.primary || (contactMarksData.extras && contactMarksData.extras.length)));
+  }
+
+  function overlayWanted() {
+    return trajectoryWanted() || contactMarksWanted();
+  }
+
+  function drawContactMarkBox(ctx, box, vw, vh, canvasW, canvasH, color, label) {
+    if (!box || !(box.w > 0) || !(box.h > 0) || !(vw > 0) || !(vh > 0)) return;
+    const dpr = window.devicePixelRatio || 1;
+    const x = (box.x / vw) * canvasW;
+    const y = (box.y / vh) * canvasH;
+    const w = (box.w / vw) * canvasW;
+    const h = (box.h / vh) * canvasH;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 * dpr;
+    ctx.setLineDash([]);
+    ctx.strokeRect(x, y, w, h);
+    if (label) {
+      ctx.fillStyle = color;
+      ctx.font = `${11 * dpr}px sans-serif`;
+      ctx.fillText(label, x + 3 * dpr, Math.max(12 * dpr, y - 4 * dpr));
+    }
+  }
+
   function redrawTrajectory() {
-    if (!trajectoryWanted()) {
+    if (!overlayWanted()) {
       trajectoryCanvas.hidden = true;
       return;
     }
@@ -663,21 +697,67 @@ export function initPlayback(root) {
     const ctx = trajectoryCanvas.getContext('2d');
     const w = trajectoryCanvas.width, h = trajectoryCanvas.height;
     ctx.clearRect(0, 0, w, h);
-    drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(243, 178, 60, 0.85)');
-    drawTrajectoryPath(ctx, trajectoryData.partner, w, h, 'rgba(95, 208, 200, 0.85)');
-    const tipNow = nearestTrajectoryPoint(trajectoryData.tip, currentPosMs);
-    if (tipNow) {
-      const dpr = window.devicePixelRatio || 1;
-      const x = (tipNow.x / trajectoryData.width) * w;
-      const y = (tipNow.y / trajectoryData.height) * h;
-      ctx.beginPath();
-      ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
-      ctx.fillStyle = '#f3b23c';
-      ctx.fill();
-      ctx.lineWidth = 1.5 * dpr;
-      ctx.strokeStyle = '#fff';
-      ctx.stroke();
+
+    if (trajectoryWanted()) {
+      drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(243, 178, 60, 0.85)');
+      drawTrajectoryPath(ctx, trajectoryData.partner, w, h, 'rgba(95, 208, 200, 0.85)');
+      const tipNow = nearestTrajectoryPoint(trajectoryData.tip, currentPosMs);
+      if (tipNow) {
+        const dpr = window.devicePixelRatio || 1;
+        const x = (tipNow.x / trajectoryData.width) * w;
+        const y = (tipNow.y / trajectoryData.height) * h;
+        ctx.beginPath();
+        ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#f3b23c';
+        ctx.fill();
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+      }
     }
+
+    if (contactMarksWanted()) {
+      const vw = videoEl.videoWidth || 0;
+      const vh = videoEl.videoHeight || 0;
+      const primary = contactMarksData.primary;
+      if (primary) {
+        const label = primary.class || 'contact';
+        drawContactMarkBox(ctx, primary, vw, vh, w, h, 'rgba(242,176,61,0.95)', label);
+      }
+      const extras = contactMarksData.extras || [];
+      for (let i = 0; i < extras.length; i++) {
+        const e = extras[i];
+        const label = e.class || `extra ${i + 1}`;
+        drawContactMarkBox(ctx, e, vw, vh, w, h, 'rgba(220,80,200,0.9)', label);
+      }
+    }
+  }
+
+  function applyContactMarksInfo(info) {
+    contactMarksData = info?.contactMarks || null;
+    const row = el('#pb-contact-marks-row');
+    const hint = el('#pb-contact-marks-hint');
+    const has = !!(contactMarksData && (contactMarksData.primary
+      || (contactMarksData.extras && contactMarksData.extras.length)
+      || contactMarksData.tip_class));
+    if (row) row.style.display = (videoPath && has) ? 'flex' : 'none';
+    if (hint) {
+      if (videoPath && has) {
+        const tip = contactMarksData.tip_class ? `Tip: ${contactMarksData.tip_class}` : '';
+        const n = (contactMarksData.primary ? 1 : 0)
+          + ((contactMarksData.extras && contactMarksData.extras.length) || 0);
+        const drive = contactMarksData.drive_stroke
+          ? 'distance drives stroke'
+          : 'feel only (tip CSRT stroke)';
+        hint.textContent = [tip, n ? `${n} contact area${n === 1 ? '' : 's'}` : '', drive]
+          .filter(Boolean).join(' · ');
+        hint.style.display = 'block';
+      } else {
+        hint.style.display = 'none';
+        hint.textContent = '';
+      }
+    }
+    redrawTrajectory();
   }
 
   // loadTrajectory holt die optionale MT-Debug-Trajektorie fürs geladene
@@ -698,7 +778,6 @@ export function initPlayback(root) {
     if (hint) hint.style.display = (el('#pb-trajectory-toggle').checked && !trajectoryData) ? 'block' : 'none';
     redrawTrajectory();
   }
-
   // drawHeatmap zeichnet die grob gerasterte Intensityskurve als
   // Farbverlauf (blau=ruhig -> rot=intensiv) - dieselbe Idee wie die
   // Heatmap-Leisten in MultiFunPlayer & Co, zeigt auf einen Blick, wo im
@@ -1681,6 +1760,8 @@ export function initPlayback(root) {
       el('#pb-video-autostart-row').style.display = 'none';
       el('#pb-trajectory-row').style.display = 'none';
       el('#pb-trajectory-hint').style.display = 'none';
+      if (el('#pb-contact-marks-row')) el('#pb-contact-marks-row').style.display = 'none';
+      if (el('#pb-contact-marks-hint')) el('#pb-contact-marks-hint').style.display = 'none';
       el('#pb-video-fs').textContent = 'Fullscreen';
       const warn = el('#pb-video-warn');
       const conv = el('#pb-video-convert');
@@ -1688,6 +1769,7 @@ export function initPlayback(root) {
       if (conv) conv.hidden = true;
       try { ClearPlaybackVideo().catch(() => {}); } catch (_) {}
     }
+    applyContactMarksInfo(info);
     try {
       marker = await GetMarker(scriptPath);
     } catch (err) {
@@ -2203,6 +2285,9 @@ export function initPlayback(root) {
     saveSetting('playback.trajectory_overlay', e.target.checked);
     const hint = el('#pb-trajectory-hint');
     if (hint) hint.style.display = (e.target.checked && !trajectoryData) ? 'block' : 'none';
+    redrawTrajectory();
+  });
+  el('#pb-contact-marks-toggle')?.addEventListener('change', () => {
     redrawTrajectory();
   });
 
