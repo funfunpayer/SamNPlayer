@@ -103,7 +103,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | Cursor | #201 `cursor/pose-observer-stage-a-d7cb` | **PoseObserver Stage A** offline spike | **ACTIVE** — CI fixtures + fuse/summary; bake-off = Owner |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| H | Claude | `claude/training-mode-improvements-uu4965`, based on main @ `8167c67` | **Training profile intensity** — tiers (Gentle/Standard/Intense) + history auto-adjust (`player.ScaleTrainingScript`) + new "pulse-rhythm" built-in script; the two pieces of lane G's #178 that didn't make it into #177 | **PR pending** |
+| H | Claude | [#207](https://github.com/funfunpayer/SamNPlayer/pull/207), based on main @ `8167c67` | **Training profile intensity** — tiers (Gentle/Standard/Intense) + history auto-adjust (`player.ScaleTrainingScript`) + new "pulse-rhythm" built-in script; the two pieces of lane G's #178 that didn't make it into #177 | **DRAFT** — CI running, owner smoke pending |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
