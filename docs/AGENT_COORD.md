@@ -102,17 +102,18 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E | ChatGPT | #183 comments | **MT-Go verify** — race/unit PASS; real-clip MT-ID **BLOCKED** | **DONE** |
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
-| R-pose | Cursor | #201 `cursor/pose-observer-stage-a-d7cb` | **PoseObserver Stage A** offline spike | **ACTIVE** — CI fixtures + fuse/summary; bake-off = Owner |
+| R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
+| T-train | Claude | `claude/training-mode-improvements-*` | **Training improve** (fixes + features you already planned) | **ACTIVE** — Owner: do this first |
+| T-clip | Claude | after T-train | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); keep curve→frame sync | **NEXT** — Claude has MP4; Cursor has no upload |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
+| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — portable `v0.5.24` when Release done |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (22–23 Sep):**
-- **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · **#195** · **#196** · **#193** · #185 closed.
-- **QC DONE** on `b7d18ac`.
-- **Release:** **v0.5.23** bump in this PR — ships Training clip packaging (#187) so portable Training tab shows the left image again.
-- **Owner after merge:** tag `v0.5.23` on main (CI builds portable), then smoke the new portable Training tab.
+**Status board (23 Sep):**
+- **Merged:** #186 · #187 · #189 · #190 · #192 · #194–#196 · #193 · #199 · #200 · **#201 Pose Stage A** · **#202 → tag `v0.5.24`**.
+- **Claude:** Training improve first, then mosaic clip swap (Owner — Cursor cloud cannot take the full MP4).
+- **Cursor helper (optional):** `scripts/rebuild_training_mosaic_clip.py` on `cursor/training-clip-214-240-d7cb`.
 
 ### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
