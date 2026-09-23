@@ -515,14 +515,15 @@ export function initGenerator(root, playback) {
       extras.textContent = parts.length ? parts.join(' · ') : '';
     }
 
-    // Zwei-Punkt-Messung (2. Region gesetzt): Per-Scene-ROI abschalten —
-    // der Zwei-Punkt-Pfad sucht die Region nicht neu.
-    const twoPoint = !!roi2;
+    // Per-scene ROI is unsupported on the real Tf/Tj two-point distance path.
+    // Optional Zone 2 on Stroke is UX-only (not sent in payload) — do NOT
+    // disable “Re-find region after each cut” just because Zone 2 is marked.
+    const twoPoint = !!roi2 && isTfTj();
     const perScene = el('#gen-perscene');
     perScene.disabled = twoPoint;
     if (twoPoint) perScene.checked = false;
     perScene.title = twoPoint
-      ? 'Not available for two-point measurement (2nd region set) — region is not re-searched there.'
+      ? 'Not available for Tf/Tj tip↔partner distance — region is not re-searched there.'
       : '';
     // Product GUI: CSRT (mark) or region_fusion_auto (whole-frame 4-zone).
     // Other research backends stay CLI-only.

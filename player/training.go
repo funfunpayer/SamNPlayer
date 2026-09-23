@@ -886,7 +886,45 @@ func curve(channel TrainingChannel, start, peak, end float64, rampUpMs, holdMs, 
 // intensities - starting guesses to revise once real hardware (NEXT.md
 // priority 1) shows what these floats actually do.
 func BuiltinTrainingScripts() []TrainingScript {
+	// Defaults match the Training tab "Custom" form so classic methods and
+	// the named presets stay one family — improve, don't replace.
+	const (
+		classicPeak   = 0.8
+		classicRampUp = 8000
+		classicHold   = 3000
+		classicRest   = 10000
+		classicCycles = 5
+		plateauFrac   = 0.7
+	)
 	return []TrainingScript{
+		{
+			Name: "stop-start",
+			Description: "Classic Stop-Start (Semans): ramp to peak, hold, fully to 0, rest. " +
+				"Same method as Custom → Technique Stop-start; Vibration. Fine-tune timings under Custom.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Stop-Start cycle",
+					Vibration:    curve(ChannelVibration, 0, classicPeak, 0, classicRampUp, classicHold, classicRampUp),
+					RepeatCycles: classicCycles,
+					RestMs:       classicRest,
+				},
+			},
+			ProgressionPerCycle: 0.15,
+		},
+		{
+			Name: "plateau",
+			Description: "Classic Plateau/edging: ramp to peak, hold, down to a high floor (not 0), rest. " +
+				"Same method as Custom → Technique Plateau; Vibration. Fine-tune under Custom.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Plateau cycle",
+					Vibration:    curve(ChannelVibration, 0, classicPeak, classicPeak*plateauFrac, classicRampUp, classicHold, classicRampUp),
+					RepeatCycles: classicCycles,
+					RestMs:       classicRest,
+				},
+			},
+			ProgressionPerCycle: 0.15,
+		},
 		{
 			Name:        "vibration-wave-suction-focus",
 			Description: "Light vibration ramps up then back down, then a suction-focused phase carries a light constant vibration alongside it.",

@@ -449,9 +449,9 @@ natural second slice once the first is running and tested.
 
 Both slices above are done: `player.RunTrainingScript` (the phase engine,
 concurrent per-channel curves, `arousalFactors` applied to every active
-channel plus the shared rest — `player/training.go`), four built-in
-scripts researched from the patterns table above
-(`player.BuiltinTrainingScripts`), the plan-preview/live-adjustment
+channel plus the shared rest — `player/training.go`), built-in
+scripts including classic **stop-start** / **plateau** plus the researched
+multi-phase patterns (`player.BuiltinTrainingScripts`), the plan-preview/live-adjustment
 display (`cmd/gui-wails/frontend/src/training.js`), and the mismatched-
 channel-field bug this design flagged as a risk (a curve stored under
 `phase.Suction` carrying the wrong `Channel` value would race the real
