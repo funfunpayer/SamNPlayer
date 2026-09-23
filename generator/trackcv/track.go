@@ -160,6 +160,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	xPositions := []float64{float64(roi.X) + float64(roi.W)/2.0}
 	cameraDyCumulative := []float64{0.0}
 	lastBbox := roi
+	var guard dispGuard
 	trackerLostFrames := 0
 	cameraFramesLost := 0
 	var sceneCuts []int
@@ -204,6 +205,25 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			ok, bbox = true, anchor
 		} else {
 			bbox, ok = tracker.Update(cap)
+			if ok {
+				if d := math.Hypot(float64(bbox.X+bbox.W/2-lastBbox.X-lastBbox.W/2),
+					float64(bbox.Y+bbox.H/2-lastBbox.Y-lastBbox.H/2)); guard.implausible(d) {
+					// CSRT reported success but the box teleported
+					// implausibly far in a single frame - not a scene
+					// cut, not a reported loss, just the tracker's own
+					// correlation filter locking onto a different patch
+					// (confirmed on a real clip: two single-frame jumps
+					// of 107px/295px, zero scene cuts, zero ordinary
+					// loss flags nearby - docs/AGENT_COORD.md 23 Sep
+					// "CSRT long-clip drift"). Treat it exactly like a
+					// loss so the same reacquire-or-coast path below
+					// handles it, instead of silently accepting a jump
+					// onto the wrong target.
+					ok = false
+				} else {
+					guard.accept(d)
+				}
+			}
 			if !ok && memory != nil {
 				if found, reacquired := memory.reacquire(gray); reacquired {
 					tracker.Close()
