@@ -92,8 +92,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | Rel | Cursor | [#208](https://github.com/funfunpayer/SamNPlayer/pull/208) + tag `v0.5.25` | Contact marks UI + bump **v0.5.25** + Release | **DONE** — portable live |
-| Z4→1 | Cursor | `cursor/z4-one-zone-gui-d7cb` | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **THIS** |
+| Z4→1 | Cursor | [#209](https://github.com/funfunpayer/SamNPlayer/pull/209) merged | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **DONE** (`3421b97`) |
 | T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude (do not steal) |
+| V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
@@ -107,14 +108,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
 | T-train | Claude | **#206 merged** | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **DONE** (`23c3a0e`) |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| V | Owner | local | Smoke **v0.5.25** | **OWNER** |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.25** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.25
-- **Now:** Cursor finishes **Z4→1 GUI** (4-zone out of Advanced dropdown too). Claude **T-clip** untouched.
-- **Owner:** smoke v0.5.25; then optional next Generator+Markierungen idea.
+- **Owner smoked v0.5.25.** **Z4→1 GUI DONE** (#209). Claude **T-clip** still open (do not steal).
+- **Next:** Claude T-clip; Owner’s Generator+Markierungen idea when described; ChatGPT Training review / fill-weak optional.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 
