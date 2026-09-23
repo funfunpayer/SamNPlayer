@@ -71,6 +71,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | **10** | Prep **v0.5.21** | Cursor A | **DONE** #172 |
 | **11** | **v0.5.21** bump + tag | Cursor A | **DONE** #175 + tag `v0.5.21` |
 | **12** | **v0.5.22** bump + tag | Cursor A | **DONE** #181 + tag `v0.5.22` |
+| **13** | **v0.5.23** bump + tag | Cursor A | **THIS PR** — Training clip frames in portable + MT wave |
 
 ---
 
@@ -91,7 +92,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
-| A | Cursor | #181 / `v0.5.22` | bump **v0.5.22** + tag + Release | **DONE** |
+| A | Cursor | `cursor/release-0-5-23-d7cb` | bump **v0.5.23** + tag + Release | **THIS PR** — portable Training clip fix + MT wave |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
 | G | Cursor | #177 merged | Everyday Generate + Training clip+ring + P1/P2 engine | **DONE** (`af6cf0a`) |
@@ -101,26 +102,24 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | ChatGPT | #192 merged | **PoseObserver concept** (`docs/POSE_OBSERVER.md`) | **DONE** — Stage A after E2 (write-up now done) |
-| QC | Cursor + Claude + ChatGPT | main @ `6949930` | **Tri-agent pre-release code check** — see § below | **IN PROGRESS** — QC-A PASS; QC-C FAIL→**#195**; QC-B FAIL→**#196** trajectory checkbox |
-| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — parallel OK during QC |
+| QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
+| V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (22 Sep late):**
-- **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · #185 closed.
-- **QC IN PROGRESS:** QC-A **PASS**; QC-C **FAIL→#195**; QC-B **FAIL→#196** (trajectory checkbox re-add).
-- **Open:** #195 · #196 · #193.
-- **Owner merge when ready:** **#195** → **#196** → **#193**.
-- **Owner later:** smoke before any 0.5.23 tag (not part of agent QC).
+**Status board (22–23 Sep):**
+- **Merged:** #186 · #187 · #189 · #190 · #192 · **#194 E2** · **#195** · **#196** · **#193** · #185 closed.
+- **QC DONE** on `b7d18ac`.
+- **Release:** **v0.5.23** bump in this PR — ships Training clip packaging (#187) so portable Training tab shows the left image again.
+- **Owner after merge:** tag `v0.5.23` on main (CI builds portable), then smoke the new portable Training tab.
 
-### Tri-agent pre-release QC (owner 22 Sep — running)
+### Tri-agent pre-release QC (owner 22 Sep — DONE)
 
 **Goal:** After the current docs wave lands, Cursor + Claude + ChatGPT each
 **read/check** the new code on `main`, file findings, and **fix only in their
 lane**. Everyone can follow along via PR comments + a shared checklist issue.
 
-**Gate to start:** Owner QC go already given (board merge optional). Base on current `main`.
-Base every QC branch on that tip. **Do not** bump version / tag in this pass.
+**Gate to start:** ~~Owner QC go~~ **DONE**. Fixes #195/#196 and board #193 merged on `b7d18ac`.
 
 #### Shared rules
 
@@ -168,9 +167,9 @@ QC:
 #### Owner — merge to unlock QC
 
 1. ~~Merge #194~~ **DONE**
-2. ~~QC go~~ **DONE** (all three lanes claimed + findings posted)
-3. Merge **#195** (CHANGELOG) → **#196** (trajectory checkbox) → **#193** (board)
-4. ~~Claude QC-B claim + fix PR~~ **DONE** (#196 open)
+2. ~~QC go~~ **DONE**
+3. ~~#195 → #196 → #193~~ **DONE** (`b7d18ac`)
+4. **Next:** Owner smoke → then version bump only on ask
 
 ### Multi-track lane split (owner 22 Sep — parallelize safely)
 
@@ -191,20 +190,18 @@ Base every PR on current `main` (includes #183 MT-Go + #188 MT-Debug).
 
 #### Claude — next
 
-1. **Done:** #188 + #189 MT-Debug, #190 MT-Infra.
-2. **QC-B:** FAIL→**#196** (checkbox + payload + regression test) — CI then stop.
+1. **Done:** #188/#189/#190 · QC-B **#196**.
+2. Idle / optional Infra polish — no new product theme without owner ask.
 
 #### ChatGPT — next
 
-1. **Done:** E2 write-up in #194 (`MT_SPEED_NOTES.md`).
-2. **QC-C:** FAIL→**#195** CHANGELOG markers — steward continues after merge.
-3. Steward continues (review / bugfix / cleanup).
+1. **Done:** E2 #194 · QC-C **#195**.
+2. Steward continues (review / bugfix / cleanup).
 
 #### Cursor — next
 
-1. **Done:** #186 MT-Seed · #187 T-fix · QC-A PASS (no product FAIL).
-2. Hold product fixes; board (#193) after #195 + Claude fix land.
-3. Version bump / tag **only when owner asks** after QC + smoke.
+1. **Done:** #186/#187 · QC-A PASS · board #193 · QC-done board.
+2. **This PR:** bump **v0.5.23** — owner tags after merge; new portable fixes Training left clip.
 
 ---
 

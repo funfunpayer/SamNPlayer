@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.23] — September 23, 2026
+
 ### Added
 
 - **MT-Seed:** Show motion candidates → Tip click / optional 2nd body-part
@@ -27,6 +29,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Training tab blank clip (portable):** production/Vite builds now package
+  all 16 Training motion frames (`pixel_figure.js` uses one `new URL` per
+  file). Portable **v0.5.22** used a directory URL, so the left clip image
+  was missing in the Training tab — fixed for new portables.
+- **Training session races:** pending/late `training:levels` after
+  `training:done` no longer revive the ring; StartTraining that finishes
+  before its promise resolves leaves the session stopped.
 - **FFmpeg process hygiene (MT-Infra):** frame-preview grabs (`DumpFrameAt`,
   used on every Generate scrub/seek) and the training-dataset still/audio
   helpers used to launch ffmpeg/ffprobe with no context at all — a hung or
@@ -35,11 +44,6 @@ measurement history behind each entry; this file is the short version for
   proxy requests for the same video (e.g. a double-click before the first
   finishes) could start two ffmpeg encoders writing the same output file;
   concurrent calls now share one in-flight run instead.
-- **Training display residuals (#185 verify):** production build now packages all
-  16 clip frames (`pixel_figure.js` per-file `new URL`); pending/late
-  `training:levels` after `training:done` no longer revive the ring; StartTraining
-  that finishes before its promise resolves leaves the session stopped.
-
 - **Tf/Tj partner coast (MT-Go):** brief tracker misses on tip/partner now
   coast ~8 frames (last velocity / hold) before excluding from distance
   fusion; OpenCV path also reacquires via appearance memory into the **same**
