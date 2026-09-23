@@ -550,6 +550,90 @@ fires is the right stopping point?
 
 ---
 
+## Claude — real-clip finding for PoseObserver/Perception-v1, asking before touching anything — 23 Sep
+
+New theme, from the owner testing a real generate run directly with me
+(not a lane claim yet — asking first, per the owner's own instruction).
+Not duplicating R-pose (#201) or MT-Seed — this is evidence to feed
+those, plus two small, separate asks.
+
+**What happened:** owner generated `clip_voll` with 4-Zone
+(`region_fusion_auto`) + Contact-vibe, uploaded the `.samn`/`.funscript`
+and, on request, the source video. Reported: mostly good, but 0:53–2:12
+"didn't work well," and the curve rarely reaches low values.
+
+**Confirmed real, not a calm scene:** extracted frames across 0:53–2:12 —
+there is real, visible up/down motion in that window. But `general`,
+`suction`, *and* `vibration` axes in the `.samn` all collapse to a
+near-flat band simultaneously (range 5-9 on a 0-100 scale, vs. 46-100
+elsewhere) — a shared-root-cause tracking issue, not per-axis
+post-processing.
+
+**Root cause, traced through the actual code:**
+1. `generator/region_fusion_auto_backend.py` fuses 4 zones by an EMA
+   "activity" (per-frame point-grid displacement) weight, normalized
+   across zones (`weights[i] = activity[i] / sum(activity)`). If the true
+   target's activity dips relative to an irrelevant zone (hair/cloth
+   jitter) for a while, weight shifts away from it — the fused signal
+   becomes dominated by a zone whose own normalized position is fairly
+   static. Matches the observed pattern exactly.
+2. `generator/posttrack/normalize.go`'s `dynamicRangeNormalize` — the
+   step meant to rescue weak sections — only applies gain when the local
+   span already exceeds `minLocalSpan=0.12` (12%) of the global span.
+   Below that, `gain=1`, passthrough. The collapsed 4-Zone segment (~5-9%
+   local span) is *below* that gate, so it isn't rescued, and ships flat.
+   This is a deliberate, reasonable design (don't invent amplitude you're
+   not confident about) — but it means the gate can't currently tell
+   "camera lost the target" from "genuinely calm scene," so it does
+   nothing for either case.
+3. Ran the native Go `trackcv.TrackROI` (single-ROI CSRT, appearance
+   memory on, same clip, auto-ROI via `auto_roi.find_roi`) over the same
+   window as a comparison: 25-88px of real local range per 10s bucket —
+   it did not lose the target there. I have **not** run CSRT through the
+   full generate+normalize pipeline for an exact like-for-like 0-100
+   number — this is a qualitative "CSRT kept a real signal, 4-Zone's
+   fused output didn't" finding, not a precise percentage.
+
+**Separate, smaller finding — long-clip CSRT drift:** the same raw
+`TrackROI` run, over the full 280s clip, shows the tracked pixel position
+drifting by ~1000px total from start to end (not just local oscillation)
+— consistent with slow CSRT drift onto a similar-looking patch over a
+very long continuous run. Checked: this path already has single-target
+appearance-memory reacquisition on (`track.go`'s `memory.reacquire`); the
+newer `coast`/`recoverOrCoast` budget logic from MT-Go (#183) lives in
+`track_multi.go`/`multi_recover.go` for the tip+partner multi-object
+path, not this single-ROI one, so MT-Go doesn't already cover this. Not
+yet confirmed whether the full generate pipeline's own normalization
+absorbs this drift in practice or whether it reaches the final curve —
+flagging, not claiming it's a bug yet.
+
+**What the owner asked me to do:** write down what could be fixed, ask,
+then act on agreement. Three concrete asks, not claiming any lane yet:
+
+1. **Remove 4-Zone from the Generate-tab GUI** (not user-selectable) —
+   touches `generator.js` (Cursor's usual scope). It's already opt-in
+   only, and now has a documented, reproducible failure mode on top of
+   the earlier bake-off's weaker-than-CSRT numbers (#154 step-4 measure).
+   Cursor/owner OK for me (or you) to do this?
+2. **Use 4-Zone's per-zone signal as a training/evidence input** rather
+   than a standalone generator — the owner's idea, and it maps cleanly
+   onto the *already-planned* "classical evidence" arrow in
+   `docs/POSE_OBSERVER.md`'s target architecture diagram, not a new
+   concept. Should this literally feed R-pose/#201's fuse/summary work
+   (Cursor), or is that scope already full? I don't want to duplicate it.
+3. **"Fill gaps, don't fully regenerate" UX** — after a generate run,
+   offer "regenerate" vs. "fill weak/flat segments only." The
+   `dynamicRangeNormalize` 12%-gate from finding #2 above is a ready-made
+   signal for "this segment is suspect" — could mark candidate gaps
+   without inventing a new detector. Worth a lane? Who?
+
+Not touching `generator.js`, `region_fusion_auto_backend.py`, or
+`normalize.go` until one of these gets a yes — all three cross into
+lanes/rules (`generator.js` = Cursor's QC-A scope; "no silent
+tracker/profile default changes"; don't duplicate #201).
+
+---
+
 ## Claude handoff — 22 Sep, lane G: Training mode
 
 New theme, unrelated to Tf/Tj/F-003 above — the owner asked for training-mode
