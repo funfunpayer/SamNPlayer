@@ -9,18 +9,18 @@ import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
   root.innerHTML = `
-    <h2>Generate script</h2>
-    <nav class="gen-steps" id="gen-steps" aria-label="Generate workflow">
+    <h2>Create Emotion Script</h2>
+    <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
         <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
-        <li class="gen-step-item" data-step="2"><span class="gen-step-num">2</span> Region</li>
-        <li class="gen-step-item" data-step="3"><span class="gen-step-num">3</span> Motion</li>
-        <li class="gen-step-item" data-step="4"><span class="gen-step-num">4</span> Generate</li>
+        <li class="gen-step-item" data-step="2"><span class="gen-step-num">2</span> Where</li>
+        <li class="gen-step-item" data-step="3"><span class="gen-step-num">3</span> Feel</li>
+        <li class="gen-step-item" data-step="4"><span class="gen-step-num">4</span> Create</li>
         <li class="gen-step-item" data-step="5"><span class="gen-step-num">5</span> Review</li>
       </ol>
     </nav>
     <p class="hint gen-step-prompt" id="gen-step-prompt" style="margin-top:0">
-      Start here: choose a video. The next step appears when this one is done.
+      Start with a video — we find the motion and build your Emotion Script.
     </p>
     <div class="path-label" id="gen-status"></div>
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
@@ -35,24 +35,23 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
-      <h3 class="gen-step-title">2 · Region (auto)</h3>
+      <h3 class="gen-step-title">2 · Where it moves</h3>
       <p class="hint" style="margin-top:0">
-        FunGen-like: we find the tip region for you (best measured path = CSRT).
-        Correct the box if needed. Contact areas (below) only appear when Contact vibration is on.
+        We pick the tip area automatically (you can adjust). Contact areas only appear when Contact vibration is on.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
-          data-help="Finds the tip start region from motion (or AI if checked). Everyday first choice — measured best vs FunGen on clip_ausschnitt. You can always correct the box.">Find region automatically</button>
+          data-help="Finds the tip start region from motion (or AI if checked). You can always correct the box.">Find tip area</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows ranked motion regions (MT-Seed). Click = Tip. Shift-click = optional contact area when Contact vibration is on. Everyday = tip alone is enough.">Show motion candidates</button>
+          data-help="Shows ranked motion regions. Click = Tip. Shift-click = optional contact area when Contact vibration is on.">Show other spots</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
-          data-help="MT-Seed: proposes Tip (#1) + optional contact area (#2). Apply required. Skip for Everyday tip-CSRT.">Suggest Tip+2nd</button>
+          data-help="Proposes Tip + optional contact area. Apply required.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
-            data-help="Local ONNX model proposes the tip box only — never writes the stroke curve. Needs Settings → AI model.">AI region (optional)</label></span>
+            data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip region automatically. Generate uses CSRT + Contact vibration.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically.</p>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -128,18 +127,17 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
-      <h3 class="gen-step-title">3 · Stroke profile</h3>
+      <h3 class="gen-step-title">3 · How it feels</h3>
       <div class="row" style="align-items:center;">
-        <label style="width:auto;" data-help="Stroke = classic hub curve. Soft = less ringing. Autotune = detrend+bandpass+speed. Everyday: stroke + Contact vibration — no Tf/Tj profile required. CLI aliases unchanged (standard/weich/autotune).">Stroke profile</label>
+        <label style="width:auto;" data-help="Normal = everyday feel. Soft = gentler. Autotune = extra cleanup for noisy clips.">Style</label>
         <select id="gen-profile">
-          <option value="standard">Stroke (Normal)</option>
-          <option value="weich">Soft (rings)</option>
+          <option value="standard">Normal</option>
+          <option value="weich">Soft</option>
           <option value="autotune">Autotune</option>
         </select>
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-        Track tip with CSRT. Contact vibration (below) is the feel layer — on by default.
-        Contact area marks appear in Step 2 only while vib is on.
+        We follow the tip. Contact vibration (below) adds feel on deep strokes — on by default.
       </p>
       <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
@@ -181,7 +179,7 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-run" data-step="4" hidden>
-      <h3 class="gen-step-title">4 · Generate</h3>
+      <h3 class="gen-step-title">4 · Create</h3>
       <details id="gen-advanced" style="margin:6px 0 10px 0;">
         <summary style="cursor:pointer;">Advanced settings</summary>
         <div style="margin-top:8px;">
@@ -233,7 +231,7 @@ export function initGenerator(root, playback) {
       </details>
 
       <div class="row">
-        <button id="gen-generate" class="primary" disabled>Generate Funscript</button>
+        <button id="gen-generate" class="primary" disabled>Create Emotion Script</button>
         <button id="gen-cancel" type="button" disabled>Cancel</button>
       </div>
       <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
@@ -243,10 +241,9 @@ export function initGenerator(root, playback) {
         </div>
         <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
       </div>
-      <pre id="gen-log" class="run-log" aria-label="Generation progress log"></pre>
+      <pre id="gen-log" class="run-log" aria-label="Creation progress"></pre>
       <p class="hint">
-        Classic CV tracking on <b>CSRT</b> — one strong product path.
-        Go CSRT when OpenCV is linked; otherwise Python CSRT (Windows today).
+        Creates one <b>Emotion Script</b> for Play. Share to other apps is optional later.
       </p>
     </section>
 
@@ -662,15 +659,15 @@ export function initGenerator(root, playback) {
     if (!hasVideo) {
       prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
     } else if (!hasRoi1 && !noMark) {
-      prompt.textContent = 'Finding tip region… or mark / pick a candidate. Then Generate (CSRT + Contact).';
+      prompt.textContent = 'Finding tip… or mark / pick a spot. Then Create.';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
     } else if (generating) {
-      prompt.textContent = 'Step 4: generating… you can Cancel if needed.';
+      prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
       prompt.textContent = noMark
-        ? 'Step 4: Generate (tip CSRT). 4-zone is CLI-only.'
-        : 'Step 4: Generate Funscript (CSRT tip — everyday first choice). Advanced optional.';
+        ? 'Step 4: Create your Emotion Script.'
+        : 'Step 4: Create Emotion Script — optional Advanced settings below.';
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve (FunGen-like).';
     }
@@ -1284,8 +1281,8 @@ export function initGenerator(root, playback) {
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.funscript (and .samn)';
-        if (!confirm(`A script already exists:\n${target}\n\nOverwrite it?`)) {
+        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.samn';
+        if (!confirm(`An Emotion Script already exists:\n${target}\n\nOverwrite it?`)) {
           return;
         }
         overwrite = true;
@@ -1585,16 +1582,10 @@ export function initGenerator(root, playback) {
       el('#gen-improve').style.display = 'none';
       return;
     }
-    el('#gen-status').textContent = result.samPath
-      ? `Done: ${result.path} (+ SAM model)`
-      : 'Done: ' + result.path;
+    el('#gen-status').textContent = 'Done — Emotion Script ready in Play.';
     const pipe = el('#gen-pipeline');
     if (pipe) {
-      if (result.pipeline === 'go') {
-        pipe.textContent = `Path: Go (${result.tracking || 'native'} / ${result.backend || '?'})`;
-      } else {
-        pipe.textContent = 'Path: Python';
-      }
+      pipe.textContent = '';
     }
     if (typeof result.oZoneMarkerStartMs === 'number') {
       const s = Math.round(result.oZoneMarkerStartMs / 1000);

@@ -1,9 +1,7 @@
-# Everyday Generate — FunGen2-like (clip → done)
+# Everyday Create — Emotion Script (clip → done)
 
-Product target (owner, 22 Sep 2026): pick a clip; barely choose anything
-else — at most **AI region on/off** and **where vibration should feel**
-(Contact on/off + optional contact marks). Everything else automatic.
-**Best measured method is the first choice.**
+Product target: pick a clip; barely choose anything else. Output is one
+**Emotion Script** (`.samn`). Funscript is share/import only — see `docs/EMOTION_SCRIPT.md`.
 
 Related: `TFTJ_PROFILE_DIRECTION.md`, `GENERATE_HEURISTICS.md`,
 `AUDIO_WORKFLOW.md`, `NEXT.md` § Stroke preview / clip_ausschnitt matrix.

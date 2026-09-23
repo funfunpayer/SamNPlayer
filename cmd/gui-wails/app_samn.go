@@ -285,8 +285,8 @@ func (a *App) BakeNeoAxesOnLoaded() (string, error) {
 
 func scriptFileFilters() []runtime.FileFilter {
 	return []runtime.FileFilter{
-		{DisplayName: "SamNPlayer / Funscript", Pattern: "*.samn;*.funscript"},
-		{DisplayName: "SamNPlayer native (*.samn)", Pattern: "*.samn"},
-		{DisplayName: "Funscript (*.funscript)", Pattern: "*.funscript"},
+		{DisplayName: "Emotion Script (*.samn)", Pattern: "*.samn"},
+		{DisplayName: "Emotion Script + other apps", Pattern: "*.samn;*.funscript"},
+		{DisplayName: "Other apps (*.funscript)", Pattern: "*.funscript"},
 	}
 }

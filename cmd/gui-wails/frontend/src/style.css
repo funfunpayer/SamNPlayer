@@ -230,6 +230,18 @@ body {
 .brand-wordmark .wm-rest {
   color: var(--accent);
 }
+.brand-tagline {
+  margin: -6px 0 12px;
+  padding: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teal, #5fd0c8);
+  opacity: 0.9;
+  line-height: 1.2;
+  max-width: 72px;
+}
 .tab-btn {
   width: 100%;
   border: 0;

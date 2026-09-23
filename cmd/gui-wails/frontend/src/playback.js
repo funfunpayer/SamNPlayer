@@ -23,20 +23,20 @@ export function initPlayback(root) {
   root.innerHTML = `
     <div class="pb-head">
       <div class="pb-head-text">
-        <h2>Playback</h2>
-        <span class="path-label" id="pb-script-path">No script selected</span>
+        <h2>Play</h2>
+        <span class="path-label" id="pb-script-path">No Emotion Script selected</span>
       </div>
       <div class="pb-head-actions">
-        <button id="pb-choose" class="primary" type="button">Choose script…</button>
-        <button id="pb-queue-add" type="button" title="Append another script to the list" hidden>Add to list</button>
+        <button id="pb-choose" class="primary" type="button">Choose Emotion Script…</button>
+        <button id="pb-queue-add" type="button" title="Add another Emotion Script to the list" hidden>Add to list</button>
       </div>
     </div>
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
         <p class="pb-empty-title">Nothing loaded yet</p>
-        <p class="hint">Drop one or more scripts (.samn / .funscript) — with or without a video. Without video, the script runs alone (device + curve). Multiple scripts play as a list.</p>
-        <button type="button" id="pb-choose-empty" class="primary">Choose script…</button>
+        <p class="hint">Drop an Emotion Script — with or without a video. Without video it still plays on the device. Multiple scripts play as a list. Files from other apps are welcome too.</p>
+        <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
       </div>
     </div>
 
@@ -132,7 +132,7 @@ export function initPlayback(root) {
           0–100 on video
         </label>
         <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <label style="width:auto;" data-help="General = community stroke. Vibration/Suction = Neo 2 channels in .samn (or baked axes).">Curve</label>
+          <label style="width:auto;" data-help="Motion = main stroke. Vibration / Suction = Neo 2 feel channels on Emotion Scripts.">Curve</label>
           <select id="pb-axis" style="width:auto;">
             <option value="general">General</option>
             <option value="vibration">Vibration</option>
@@ -143,16 +143,16 @@ export function initPlayback(root) {
             <option value="recipe">Recipe</option>
             <option value="axes">Axes</option>
           </select>
-          <label style="width:auto;" data-help="Named strength scales on .samn (soft/normal/strong).">Strength</label>
+          <label style="width:auto;" data-help="Soft / normal / strong feel scales on Emotion Scripts.">Strength</label>
           <select id="pb-strength" style="width:auto;">
             <option value="">—</option>
           </select>
-          <button type="button" id="pb-bake-axes" title="Bake vibration/suction from recipe into .samn">Bake axes</button>
+          <button type="button" id="pb-bake-axes" title="Bake vibration/suction into this Emotion Script">Bake feel channels</button>
           <button type="button" id="pb-optimize-neo2" class="primary"
-            title="Imported funscript → fill gaps, Contact on, bake Neo 2 axes, save .samn. Then edit multi-axis curves."
-            data-help="One click for community/other-tool .funscript files: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save native .samn. Use Curve dropdown to edit each axis afterward.">Optimize for Neo 2</button>
-          <button type="button" id="pb-export-funscript" title="Export community .funscript (general only)">Export .funscript</button>
-          <button type="button" id="pb-save-samn" title="Save/update native .samn">Save .samn</button>
+            title="Imported file → polish, Contact on, bake Neo 2 feel, save as Emotion Script."
+            data-help="One click for files from other apps: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save as Emotion Script. Then edit each curve if you want.">Optimize for Neo 2</button>
+          <button type="button" id="pb-export-funscript" title="Share stroke for other apps (.funscript)">Share for other apps</button>
+          <button type="button" id="pb-save-samn" title="Save Emotion Script">Save Emotion Script</button>
         </div>
         <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
@@ -1890,7 +1890,7 @@ export function initPlayback(root) {
   // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
   // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
   async function startScriptPlayback() {
-    if (!scriptPath) { log('Choose a .samn or .funscript file first.'); return false; }
+    if (!scriptPath) { log('Choose an Emotion Script first.'); return false; }
     el('#pb-log').textContent = '';
     userStopRequested = false;
 
@@ -2443,7 +2443,7 @@ export function initPlayback(root) {
         log('Saved native script → ' + out);
         await loadScript(out, 0, { keepPlaylist: true });
       } catch (err) {
-        logError('Save .samn: ' + err);
+        logError('Save Emotion Script: ' + err);
       }
     });
   }
