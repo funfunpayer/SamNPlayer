@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Stroke curves: detrend is now on by default** (standard, soft, Autotune —
+  Go CSRT and Python paths alike; Tf/Tj distance profiles untouched). Window
+  = 2 stroke periods from the stroke pre-pass tempo, clamped 1.5–4 s (3 s
+  when the tempo is unknown). Removes baseline shifts from tracker drift so
+  the curve no longer gets stuck in a narrow high/low band for minutes.
+  Measured vs. both FunGen references on `clip_voll`: windowed r
+  0.275/0.261 → 0.386/0.552, curve stuck in a <25-point band in 62% → 3%
+  of 10 s windows. Opt out per run with `DetrendWindowMs < 0`.
+
 ## [0.5.28] — September 23, 2026
 
 ### Added
