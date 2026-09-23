@@ -267,14 +267,14 @@ EventsOn('files:dropped', data => {
     return;
   }
   if (data.ignored) {
-    uiWarn('Drop ignored — please drop a video file or a script (.samn / .funscript).');
+    uiWarn('Drop ignored — please drop a video or an Emotion Script.');
   }
 });
 
 // Sichtbare Feedback, solange etwas über dem Fenster schwebt.
 const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
-overlay.innerHTML = '<div>Drop video or script (.samn / .funscript) here</div>';
+overlay.innerHTML = '<div>Drop video or Emotion Script here</div>';
 document.body.appendChild(overlay);
 
 let dragDepth = 0;

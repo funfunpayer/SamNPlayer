@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="SamNPlayer — local Generate · Play · Train for .samn / .funscript and SVAKOM Sam Neo 2. Desktop first; mobile player later." />
-  <title>SamNPlayer</title>
+  <meta name="description" content="SamNPlayer — Emotion Generator: create Emotion Scripts, play on Sam Neo 2. Desktop first." />
+  <title>SamNPlayer — Emotion Generator</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <div id="app">
     <nav id="rail">
-      <div class="brand-lockup" title="SamNPlayer">
+      <div class="brand-lockup" title="SamNPlayer — Emotion Generator">
         <div class="brand">
           <img src="/src/assets/images/logo-universal.png" alt="" />
         </div>
-        <h1 class="brand-wordmark" aria-label="SamNPlayer">
+        <h1 class="brand-wordmark" aria-label="SamNPlayer Emotion Generator">
           <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
         </h1>
       </div>
-      <button class="tab-btn active" data-tab="playback" title="Playback">
+      <p class="brand-tagline" id="brand-tagline">Emotion Generator</p>
+      <button class="tab-btn active" data-tab="playback" title="Play Emotion Script">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="8.2"/>
           <path d="M10.2 8.6v6.8l6-3.4z" fill="currentColor" stroke="none"/>
@@ -33,13 +34,13 @@
         </svg>
         <span>Training</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="generator" title="Generate script">
+      <button class="tab-btn" data-tab="generator" title="Create Emotion Script">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4.5" y="4.5" width="15" height="15" rx="3"/>
           <path d="M8 9.2h5.5M8 12h8M8 14.8h4"/>
           <path d="M16.2 8.2l2.6 2.1-2.6 2.1"/>
         </svg>
-        <span>Generate</span><i class="dot"></i>
+        <span>Create</span><i class="dot"></i>
       </button>
       <button class="tab-btn" data-tab="benchmark" title="Golden-Clip-Benchmark">
         <svg viewBox="0 0 24 24" aria-hidden="true">

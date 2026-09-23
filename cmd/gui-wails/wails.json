@@ -15,6 +15,6 @@
     "productName": "SamNPlayer",
     "productVersion": "0.5.8",
     "copyright": "Copyright (c) 2026 funfunplayer",
-    "comments": "Player and generator for .funscript files"
+    "comments": "Emotion Generator — create and play Emotion Scripts (.samn); Funscript import/export for other apps"
   }
 }
