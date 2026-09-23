@@ -24,7 +24,7 @@ export function enhanceGeneratorPreview(root) {
     if (input && label) {
       input.id = 'gen-invert-visible';
       label.htmlFor = 'gen-invert-visible';
-      label.textContent = 'Invert motion direction (polarity — often FunGen difference, not a tracking bug)';
+      label.textContent = 'Invert motion direction (polarity — often feel direction, not a tracking bug)';
       input.addEventListener('change', () => {
         const orig = root.querySelector('#gen-invert');
         if (orig) orig.checked = input.checked;

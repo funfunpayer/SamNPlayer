@@ -940,10 +940,10 @@ export function initTraining(root) {
     if (!liveLevelsActive) {
       pixelStage.setIntensity(c.peakIntensity || 0);
     }
-    const reached = c.reachedPeakAfterMs ? `, erreicht nach ${(c.reachedPeakAfterMs / 1000).toFixed(1)}s` : '';
-    const stopped = c.stoppedByUser ? ' — auf Wunsch unterbrochen' : '';
-    const fb = c.arousalBefore ? `, angepasst nach Feedback ${c.arousalBefore}` : '';
-    log(`Zyklus ${c.cycleIndex + 1}/${c.cyclesTotal}: Spitze ${Math.round(c.peakIntensity * 100)}%, Halten ${c.holdMs}ms${fb}${reached}${stopped}`);
+    const reached = c.reachedPeakAfterMs ? `, reached after ${(c.reachedPeakAfterMs / 1000).toFixed(1)}s` : '';
+    const stopped = c.stoppedByUser ? ' — stopped by you' : '';
+    const fb = c.arousalBefore ? `, adjusted after feedback ${c.arousalBefore}` : '';
+    log(`Cycle ${c.cycleIndex + 1}/${c.cyclesTotal}: peak ${Math.round(c.peakIntensity * 100)}%, hold ${c.holdMs}ms${fb}${reached}${stopped}`);
 
     // Die einfache Technik/Kanal-Form kennt den Kanal nicht im Event
     // selbst (nur EIN peakIntensity), sondern über das eigene Formularfeld.

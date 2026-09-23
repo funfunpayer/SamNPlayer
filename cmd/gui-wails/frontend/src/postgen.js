@@ -24,7 +24,7 @@ export function initPostGenerateReview() {
     }
     // Invert nur vorschlagen, nicht per Popup erzwingen — Nutzer prüft in der Playback.
     if (pol.suggestInvert && status) {
-      status.textContent += ' (Direction uncertain — review in Playback; invert curve if needed.)';
+      status.textContent += ' (Direction uncertain — review in Play; invert curve if needed.)';
     }
   });
 }

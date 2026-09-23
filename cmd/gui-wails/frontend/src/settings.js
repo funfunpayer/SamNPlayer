@@ -68,16 +68,16 @@ export function initSettings(root) {
 
     <h3>What you need (keep it lean)</h3>
     <ul class="hint" style="margin:0 0 12px; padding-left:1.2em; line-height:1.55;">
-      <li><b>Play + Generate (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
+      <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
       <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
-      <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Generate path does not need it.</li>
-      <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Generate.</li>
+      <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
+      <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
     </ul>
 
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
       Enforcement is <b>off</b> in this build — import works so we can test the path;
-      Generate/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
+      Create/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
     <p class="hint" id="st-license-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:flex-start;">
       <textarea id="st-license-paste" rows="3" placeholder="Paste license token (SNP1.…)" style="flex:1; font-family:ui-monospace,monospace; font-size:12px;"></textarea>
@@ -116,7 +116,7 @@ export function initSettings(root) {
 
     <h3>AI region detection (local, optional)</h3>
     <p class="hint">Local ONNX object detector as an alternative to the classical
-      rhythm heuristic in the Generate tab (“Find region automatically”). No model
+      rhythm heuristic in the Create tab (“Find tip area”). No model
       ships with the app and none is downloaded — without your own <code>.onnx</code>
       file, classical detection stays in use. Leave empty to use the default folder
       (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> on Windows).</p>
@@ -134,7 +134,7 @@ export function initSettings(root) {
     <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
     <p class="hint">Address of a local Colibri server (<code>coli serve</code>,
       see docs/AI_ADAPTER.md) for the “Suggest profile” button and the AI quality
-      opinion in the Generate tab. Both work without this server — measured scene
+      opinion in the Create tab. Both work without this server — measured scene
       similarity (no AI) remains the only source for profile suggestions. Leave
       empty to use the default address.</p>
     <div class="row">
@@ -162,9 +162,9 @@ export function initSettings(root) {
     </div>
 
     <h3>Generator metrics</h3>
-    <p class="hint">Appends a line of metrics for every generate run (motion amplitude,
+    <p class="hint">Appends a line of metrics for every Create run (motion amplitude,
       spectral concentration, tracker loss, runtime). Together with your judgments in
-      the Generate tab, this is the basis for tuning quality scoring on real material —
+      the Create tab, this is the basis for tuning quality scoring on real material —
       so far it relies on synthetic test videos. Leave empty to disable recording.</p>
     <div class="row">
       <input type="text" id="st-report-path" placeholder="(no recording)"
@@ -398,7 +398,7 @@ export function initSettings(root) {
     try {
       const available = await CheckAIRoiAvailable();
       status.textContent = available
-        ? 'Available — the Generate tab now offers AI detection.'
+        ? 'Available — the Create tab now offers smarter tip find.'
         : 'Not available — onnxruntime missing or no .onnx at '
           + '(specified or default) path.';
     } catch (err) {

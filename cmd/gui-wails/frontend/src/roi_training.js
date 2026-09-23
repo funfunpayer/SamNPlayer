@@ -35,10 +35,10 @@ export function initRoiTraining(root) {
       <h3 style="margin-top:0; margin-bottom:8px;">From marks to a good script</h3>
       <ol class="hint" style="margin:0; padding-left:1.2em; line-height:1.55;">
         <li><b>Train here</b> — marks → “Use for training” → discard bad samples → start training. Result: <code>roi_detector.onnx</code>.</li>
-        <li><b>Then Generate</b> — Load video → enable “AI detection (ONNX)” → “Find region automatically”. AI suggests the box only.</li>
+        <li><b>Then Create</b> — Load video → enable “Smarter tip find” → “Find tip area”. AI suggests the box only.</li>
         <li><b>Verify/correct boxes</b> — never apply blindly. For Tf/Tj, tip + fixed target (e.g. Glans + Nipples).</li>
-        <li><b>Generate Funscript</b> — classic tracking (CSRT/Flow/…) writes the script. AI does not track by itself.</li>
-        <li><b>Review in Playback</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
+        <li><b>Create Emotion Script</b> — classic tracking (CSRT) writes the script. AI does not track by itself.</li>
+        <li><b>Review in Play</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>
     </div>
 
@@ -106,7 +106,7 @@ export function initRoiTraining(root) {
 
     <h3>4. Train model</h3>
     <p class="hint">Optional. Only needed if you want your own ONNX region model.
-      Play / Generate work without this. Device: Auto picks CUDA → MPS → DirectML → CPU.</p>
+      Play / Create work without this. Device: Auto picks CUDA → MPS → DirectML → CPU.</p>
     <div class="field-row"><label data-help="Training passes. 50–100 typical for small sets.">Epochs</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
     <div class="field-row"><label data-help="auto = best available backend.">Device</label>
       <select id="rt-device">
@@ -563,7 +563,7 @@ export function initRoiTraining(root) {
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.textContent = 'Correct box';
-        editBtn.title = 'Box neu auf dem Vorschaubild ziehen und speichern';
+        editBtn.title = 'Redraw the box on the preview, then save';
         const btnRow = document.createElement('div');
         btnRow.className = 'row';
         btnRow.style.gap = '6px';
@@ -798,7 +798,7 @@ export function initRoiTraining(root) {
       return;
     }
     el('#rt-train-status').textContent = 'Done: ' + payload.modelPath
-      + ' — AI detection in the Generate tab updates automatically.';
+      + ' — AI detection in the Create tab updates automatically.';
     window.dispatchEvent(new CustomEvent('samn-ai-roi-refresh'));
   });
 

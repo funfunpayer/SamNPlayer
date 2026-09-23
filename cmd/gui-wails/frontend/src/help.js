@@ -1,5 +1,5 @@
 // Shared option help: small "?" chips with a popover explaining what a
-// control does. Keeps the form itself short while answering "wozu ist das?".
+// control does. Keeps the form itself short while answering “what is this?”.
 
 export function helpChip(text) {
   const btn = document.createElement('button');
