@@ -8,6 +8,20 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Review → Improve refreshes quality score + Tf/Tj `.sam` sidecar:**
+  `quality_score`/`quality_warnings` and the `.sam` sidecar (Tf/Tj profiles)
+  were written once right after raw Generate and never touched again, so a
+  later trim/fill-gaps/audio-check pass silently left them describing the
+  pre-edit curve — found via real `clip_voll` output where the sidecar and
+  quality warning ("only 32% movement") no longer matched the shipped
+  `.funscript` at all (QC-B Finding 1, owner-reported on #184). Improve now
+  recomputes quality from the actions it just wrote (actions-only Script
+  Doctor — the dense per-frame tracker data from raw Generate isn't
+  available here) and re-derives the `.sam` sidecar, for both `.funscript`
+  and `.samn` targets.
+
 ## [0.5.23] — September 23, 2026
 
 ### Added
