@@ -8,6 +8,19 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **CSRT long-clip drift, partial fix:** on long continuous Generate runs, the
+  Tip CSRT tracker could (a) confidently report a single-frame position jump
+  of 100-300+ px with no scene cut involved, and (b) recover from a genuine
+  tracking loss onto the wrong region because its appearance-memory recovery
+  bank had already been fed crops of a previously-drifted (wrong) position.
+  Both are now guarded against in `generator/trackcv`. A third, deeper
+  mechanism — the tracker gradually walking off the true target over 100+
+  continuous seconds, with no single frame ever looking anomalous — is not
+  fully fixed; a real fix needs a more reliable periodic-verification signal
+  than pixel template-matching (tracked as future work, not started).
+
 ## [0.5.27] — September 23, 2026
 
 ### Added
