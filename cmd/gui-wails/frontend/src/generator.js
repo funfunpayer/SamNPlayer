@@ -661,7 +661,7 @@ export function initGenerator(root, playback) {
     } else if (!hasRoi1 && !noMark) {
       prompt.textContent = 'Finding tip… or mark / pick a spot. Then Create.';
     } else if (!canRun && !generating) {
-      prompt.textContent = 'Step 3: Contact vibration is on by default — Generate unlocks when tracking is ready.';
+      prompt.textContent = 'Step 3: Contact vibration is on by default — Create unlocks when tracking is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
@@ -1281,8 +1281,8 @@ export function initGenerator(root, playback) {
     let overwrite = false;
     try {
       if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '') + '.samn';
-        if (!confirm(`An Emotion Script already exists:\n${target}\n\nOverwrite it?`)) {
+        const target = videoPath.replace(/\.[^.\\/]+$/, '');
+        if (!confirm(`A script already exists for this video. Creating again can replace these files:\n${target}.samn (Emotion Script)\n${target}.funscript (copy for other apps)\n\nReplace existing files?`)) {
           return;
         }
         overwrite = true;

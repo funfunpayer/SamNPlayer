@@ -15,6 +15,10 @@
 Generate writes / opens Emotion Script (`.samn`). Companion `.funscript` may still
 exist for tooling sync, but the GUI talks about **one** Emotion Script.
 
+Overwrite confirmations must disclose both the Emotion Script and its
+`.funscript` companion when either can be replaced. The companion may be the
+only existing file. One product format must not hide a destructive side effect.
+
 Do not present `.sam` as a script type in the GUI.
 
 ## Why not “Funscript” in the product UI
@@ -25,5 +29,5 @@ Export for other apps still offers `.funscript` under a share-style label.
 
 ## Related
 
-- Wire format: `docs/SAMN_FORMAT.md`
-- Everyday Generate: `docs/EVERYDAY_GENERATE.md`
+- Wire format: [SAMN format](SAMN_FORMAT.md)
+- Everyday Create: [Everyday Create](EVERYDAY_GENERATE.md)

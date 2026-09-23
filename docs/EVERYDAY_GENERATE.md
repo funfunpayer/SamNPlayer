@@ -1,7 +1,7 @@
 # Everyday Create — Emotion Script (clip → done)
 
 Product target: pick a clip; barely choose anything else. Output is one
-**Emotion Script** (`.samn`). Funscript is share/import only — see `docs/EMOTION_SCRIPT.md`.
+**Emotion Script** (`.samn`). Funscript is the import/share format — see [Emotion Script](EMOTION_SCRIPT.md).
 
 Related: `TFTJ_PROFILE_DIRECTION.md`, `GENERATE_HEURISTICS.md`,
 `AUDIO_WORKFLOW.md`, `NEXT.md` § Stroke preview / clip_ausschnitt matrix.
@@ -28,13 +28,13 @@ Do **not** default 4-zone or Flow.
 ```text
   1. Choose video
   2. Auto: find tip region (classic motion, or AI if checkbox on)
-       — user may correct the box, or **Show motion candidates**:
+       — user may correct the box, or **Show other spots**:
          click = Tip; optional Shift-click = contact area (only if Contact vib on)
   3. Contact vibration on (default) · Step 2 then shows optional class + contact marks
        — Tip class (Glans/Penis soft-default) · Contact type (Nipples) — neither required
        — Mark contact area / + Another (e.g. both nipples)
-       — Marks optional; Stroke vib still follows depth until feel-decouple
-  4. Generate → .samn + .funscript
+       — Marks optional; with a recorded tip path, nearby marks also contribute to vibration
+  4. Create Emotion Script → open in Play
   5. Review & improve: trim start/end · fill gaps · audio check on/off
        — then **Play**: soft curve + keyframe dots (FunGen-like); Edit curve to adjust
        — **0–100 on video** gauge over Generator preview / Play (toggleable)
@@ -43,8 +43,8 @@ Do **not** default 4-zone or Flow.
 **Everyday needs (CSRT):** tip box (auto or mark) + Contact vib on/off. Contact marks,
 soft masks, Tf/Tj distance are optional. **4-zone is CLI-only** — not in the Generate GUI
 (weaker on measured clips; backend kept for evidence experiments).
-Contact marks (when vib on) are **stored** in `metadata.contact_marks` for feel /
-later feel-decouple — they do **not** change the tip-CSRT stroke curve today.
+Contact marks (when vib on) are **stored** in `metadata.contact_marks` for the feel
+layer — they do **not** change the tip-CSRT stroke curve.
 **Play** shows them under the video (**Show contact marks**, default on when present).
 **Feel Stage A:** when the script also has a recorded tip trajectory and
 contact areas, Play vibration is `max(depth-slice, tip-near-mark)` — tip grazing a
@@ -85,8 +85,8 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 
 ## Acceptance
 
-1. New user: video → Generate without painting a box (auto-ROI ran).
-2. Result path is CSRT Stroke, not 4-zone, unless they opted in.
+1. New user: video → Create Emotion Script without painting a box (auto-ROI ran).
+2. The GUI uses the single-tip CSRT Stroke path; 4-zone experiments remain CLI-only.
 3. AI off by default; on only proposes ROI.
 4. Clip gate: everyday path ≤ few % behind measured tip/hub CSRT on goldens.
 5. After Generate: gaps filled once (Go); Play shows dots; Edit is opt-in.
