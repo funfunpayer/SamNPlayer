@@ -774,6 +774,45 @@ func NormalizeTrainingScript(script TrainingScript) TrainingScript {
 	return out
 }
 
+// ScaleTrainingScript multiplies every curve's StartLevel/PeakLevel/
+// EndLevel by factor (each result clamped to 0-1), leaving timing
+// (ramp/hold durations, RepeatCycles, RestMs) untouched - a single knob
+// for "make this whole profile gentler/stronger" without reshaping it.
+// factor <= 0 or == 1 returns script unchanged (0 would zero out every
+// curve, never the intent of "no adjustment" - see app_training.go's
+// TrainingRequest.IntensityFactor for the caller-side convention). Two
+// independent inputs are meant to combine into one shared factor before
+// calling this: an explicit difficulty tier the user picks, and an
+// implicit nudge from how the same profile's recent sessions went (see
+// docs/TRAINING_MODE_RESEARCH.md proposal A). Returns a copy; does not
+// mutate script.
+func ScaleTrainingScript(script TrainingScript, factor float64) TrainingScript {
+	if factor <= 0 || factor == 1 {
+		return script
+	}
+	out := script
+	out.Phases = make([]TrainingPhase, len(script.Phases))
+	for i, p := range script.Phases {
+		if p.Vibration != nil {
+			v := scaleCurveLevels(*p.Vibration, factor)
+			p.Vibration = &v
+		}
+		if p.Suction != nil {
+			s := scaleCurveLevels(*p.Suction, factor)
+			p.Suction = &s
+		}
+		out.Phases[i] = p
+	}
+	return out
+}
+
+func scaleCurveLevels(c ChannelCurve, factor float64) ChannelCurve {
+	c.StartLevel = clamp01(c.StartLevel * factor)
+	c.PeakLevel = clamp01(c.PeakLevel * factor)
+	c.EndLevel = clamp01(c.EndLevel * factor)
+	return c
+}
+
 // ValidateTrainingScript checks a script's shape before it runs (or
 // before it's offered in the GUI) - cheap, no device access, no waiting.
 // RunTrainingScript calls this itself; exported so the GUI/tests can
@@ -997,6 +1036,32 @@ func BuiltinTrainingScripts() []TrainingScript {
 					Vibration:    withJitter(curve(ChannelVibration, 0.2, 0.75, 0.2, 3000, 500, 3000), 0.25),
 					RepeatCycles: 8,
 					RestMs:       2000,
+				},
+			},
+		},
+		{
+			// The one named shape from docs/TRAINING_MODE_RESEARCH.md's
+			// pattern table ("Pulse | Either | RampUpMs/RampDownMs ≈ 0")
+			// that none of the scripts above used yet - near-instant on/off
+			// instead of a smooth ramp, a distinctly different feel from
+			// every wave/hold/sweep shape above. Alternates a vibration
+			// pulse phase with a suction pulse phase rather than mixing
+			// both channels into every repeat, so each phase's rhythm
+			// stays sharp and readable instead of blurring together.
+			Name:        "pulse-rhythm",
+			Description: "Sharp on/off pulses (near-instant ramps): a fast vibration pulse phase, then a fast suction pulse phase - punchier and more staccato than the wave-based scripts above.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Vibration pulses",
+					Vibration:    curve(ChannelVibration, 0, 0.7, 0, 80, 150, 80),
+					RepeatCycles: 6,
+					RestMs:       200,
+				},
+				{
+					Name:         "Suction pulses",
+					Suction:      curve(ChannelSuction, 0, 0.65, 0, 100, 150, 100),
+					RepeatCycles: 6,
+					RestMs:       200,
 				},
 			},
 		},

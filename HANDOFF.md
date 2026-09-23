@@ -99,11 +99,18 @@ channel(s) are selected. `player.TrainingScript` generalizes that into an
 ordered list of named phases, each with an independent vibration and
 suction curve — vibration can ramp up then down while suction stays off,
 followed by a phase where suction ramps and vibration holds at a light
-constant level untouched from the previous phase. Four built-in scripts
+constant level untouched from the previous phase. Five built-in scripts
 (`player.BuiltinTrainingScripts`) are shipped, researched from vacuum/
 cupping therapy technique names (static hold, pumping, gliding sweep) and
 vibration-massager pattern vocabulary (escalating, wave, pulse, random) -
-see `docs/TRAINING_MODE_RESEARCH.md` for sources and the full design. The
+see `docs/TRAINING_MODE_RESEARCH.md` for sources and the full design.
+`player.ScaleTrainingScript(script, factor)` multiplies every curve's
+levels (not timing) by a factor — the Training tab combines an explicit
+difficulty tier the user picks and an automatic nudge from that same
+script's recent session history into one factor (`TrainingRequest.
+IntensityFactor`), applied to both the real run and its plan preview via
+`resolveTrainingScript`, so any profile (built-in or custom) scales
+without needing separate tiered scripts. The
 arousal-feedback math is unchanged (`adjustForArousal`, tested directly)
 but is now applied as one shared factor to every active channel and to
 the shared rest, closing a gap the single-curve form had: "both channels"

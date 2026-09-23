@@ -172,12 +172,14 @@ measurement history behind each entry; this file is the short version for
   A script (`player.TrainingScript`) is an ordered list of named phases,
   each with its own independent vibration and suction curve — e.g. light
   vibration ramping up then down, followed by a suction-focused phase
-  carrying a light constant vibration. Four built-in scripts ship,
+  carrying a light constant vibration. Five built-in scripts ship,
   researched from vacuum/cupping therapy and vibration-massager pattern
   vocabulary (see `docs/TRAINING_MODE_RESEARCH.md`): vibration-wave +
   suction-focus, a suction-only tissue-massage pattern (pumping / static
   hold / gliding sweep), a vibration-only massage pattern (escalating
-  warm-up + wave), and an opt-in randomized "variable" pattern. A plan
+  warm-up + wave), an opt-in randomized "variable" pattern, and (23 Sep)
+  "pulse-rhythm" — sharp on/off pulses, the one named pattern shape
+  (Pulse) none of the others used yet. A plan
   preview draws both channels' planned curves before starting; the live
   view highlights the current phase and shows the arousal-feedback
   effect ("Feedback 9 → peak -30%, rest +50%, applied to both channels")
@@ -194,6 +196,20 @@ measurement history behind each entry; this file is the short version for
   the same physical channel — `player.NormalizeTrainingScript` now
   derives the channel from the axis slot unconditionally, closing this
   for both built-in and custom scripts.
+- **Profile intensity — tiers and history auto-adjust (23 Sep):** any
+  script (built-in or custom) can now be run overall gentler or
+  stronger without rebuilding it. `player.ScaleTrainingScript` scales
+  every curve's levels (not timing) by a factor; the Training tab
+  combines two independent sources into one factor: an explicit
+  "Intensity" tier (Gentle ×0.8 / Standard ×1 / Intense ×1.2) and an
+  automatic nudge from how the SAME script's recent sessions went
+  (ease off ×0.85 after early stops, push a bit ×1.1 after a clean
+  streak — the existing history-suggestion *text* from proposal A,
+  now also actually applied, with an "Auto-adjust from recent
+  sessions" checkbox to opt out). The plan preview reflects the
+  combined factor too, so it always shows the curve that's about to
+  run, not the unscaled nominal one. Session log/start request carries
+  the applied factor (`intensityFactor`) for later review.
 - **Live intensity meter:** ONE ring, ONE full circular track shared by
   both channels — "die Gräben gehen einmal rum": each channel's fill
   goes all the way around the same 360° track (0–100% maps to 0–360°)

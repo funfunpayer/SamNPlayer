@@ -253,14 +253,14 @@ func TestPreviewTrainingScriptDraftFlagsRandomJitter(t *testing.T) {
 		t.Error("a script with RandomJitterFraction > 0 on a curve must be flagged")
 	}
 
-	builtinPreview, err := a.TrainingScriptPreview("variable")
+	builtinPreview, err := a.TrainingScriptPreview("variable", 1)
 	if err != nil {
 		t.Fatalf("TrainingScriptPreview(variable): %v", err)
 	}
 	if !builtinPreview.HasRandomJitter {
 		t.Error(`the built-in "variable" script uses RandomJitterFraction and must be flagged too`)
 	}
-	stopStartPreview, err := a.TrainingScriptPreview("vibration-wave-suction-focus")
+	stopStartPreview, err := a.TrainingScriptPreview("vibration-wave-suction-focus", 1)
 	if err != nil {
 		t.Fatalf("TrainingScriptPreview(vibration-wave-suction-focus): %v", err)
 	}
