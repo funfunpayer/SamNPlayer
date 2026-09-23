@@ -35,7 +35,7 @@ export function initPlayback(root) {
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
         <p class="pb-empty-title">Ready when you are</p>
-        <p class="hint">Open an Emotion Script — with or without a video. Feel still runs on the device alone. Add more for a list. Files from other apps are welcome too.</p>
+        <p class="hint">Open an Emotion Script — with a film or without. Feel still reaches the device. Add more for a quiet list. Other apps’ files are welcome too.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
       </div>
     </div>

@@ -12,7 +12,7 @@ export function initGenerator(root, playback) {
   root.innerHTML = `
     <header class="create-head">
       <h2>Create Emotion Script</h2>
-      <p class="create-lede">From a video — motion becomes feel you can play.</p>
+      <p class="create-lede">From a quiet video — motion becomes feel you can play.</p>
     </header>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
@@ -24,7 +24,7 @@ export function initGenerator(root, playback) {
       </ol>
     </nav>
     <p class="hint gen-step-prompt" id="gen-step-prompt" style="margin-top:0">
-      Start with a video — we find the motion and build your Emotion Script.
+      Start gently — choose a video; we find the motion and shape your Emotion Script.
     </p>
     <div class="path-label" id="gen-status"></div>
     <div class="hint" id="gen-pipeline" style="margin-top:4px;"></div>
