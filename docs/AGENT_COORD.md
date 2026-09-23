@@ -100,7 +100,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames (was 16), picked by real funscript curve value per target depth, not chronological order | **DONE** (this PR) |
 =======
 | Feel | Cursor | `cursor/feel-decouple-stage-a-d7cb` | Feel-decouple Stage A: spatial vib near marks when trajectory present | **THIS** |
-| Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **THIS** — workflow running |
+| Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude (do not steal) |
 >>>>>>> 730baf4 (feat(feel): Stage A — spatial contact vib from tip trajectory)
 | V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
@@ -122,7 +122,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.25** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.25
-- **Owner smoked v0.5.25.** **#211/#212** contact marks persist + tip box + Play overlay **merged**. Cursor: feel-decouple Stage A next (or **v0.5.26** tag).
+- **v0.5.26** portable live. Cursor: **#214** feel-decouple Stage A. Claude T-clip still open.
 - **Claude T-clip** still open (do not steal).
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
