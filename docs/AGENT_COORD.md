@@ -92,7 +92,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
-| T-train | Claude | `claude/training-intensity-tiers` | **T-train** (Owner order via #204) — landed `claude/training-mode-improvements-uu4965`'s last unmerged commit (profile intensity tiers + history auto-adjust + pulse-rhythm script) cleanly on current `main`; rest of that old branch already superseded by #177 | **IN PROGRESS** — this PR, then **T-clip** next |
+| T-train | Claude | #206 merged | **T-train** (Owner order via #204) — profile intensity tiers + history auto-adjust + pulse-rhythm script | **DONE** — lane free |
+| T-clip | Claude | `claude/training-clip-mosaic` | **T-clip** (Owner order via #204) — Training pixel-clip mosaic rebuilt from `clip_voll` 2:14-2:40, 24 frames (was 16), chosen by real funscript curve value not chronological order | **IN PROGRESS** — this PR, then post-Claude split → v0.5.25 |
 | A | Cursor | `cursor/release-0-5-23-d7cb` | bump **v0.5.23** + tag + Release | **THIS PR** — portable Training clip fix + MT wave |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
 | F2 | Cursor | #186 merged | **MT-Seed** — Tip (+ optional body-part/Zone2) from motion candidates | **DONE** (`5715b6b`) |
