@@ -90,8 +90,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.25** | Shipped | Contact marks UI (#208); Training improve (#206); 4-zone Everyday button hidden |
 | **v0.5.26** | Shipped | Contact marks metadata + Play overlay (#211/#212) |
 | **v0.5.27** | Shipped | Feel Stage A + tip-path soft-on + Training mosaic/suction (#214–#217) |
-| **v0.5.28** | **THIS** | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
-| next | After Rel28 | Residual CSRT drift — **Claude** (Cursor waits); roadmap long items |
+| **v0.5.28** | Shipped | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
+| next | After Rel28 | #230 adaptive detrend on main; Claude rhythm-grid next; Cursor free elsewhere |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

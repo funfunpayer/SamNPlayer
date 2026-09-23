@@ -99,12 +99,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Traj | Cursor | [#217](https://github.com/funfunpayer/SamNPlayer/pull/217) merged | Soft-on tip-path capture with Contact vib (Stage A needs it) | **DONE** (`3ca37d1`) |
 | Rel27 | Cursor | [#218](https://github.com/funfunpayer/SamNPlayer/pull/218) + tag `v0.5.27` | bump **v0.5.27** + Release (Feel + Traj + Training mosaic/suction) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.27 |
 | Brand | Cursor | [#220](https://github.com/funfunpayer/SamNPlayer/pull/220) merged | **Emotion Script** product name; one format (`.samn`); less technical GUI | **DONE** (`8009331`) |
-| Drift | Claude | #226 merged + `claude/csrt-drift-round2` | **CSRT long-clip drift** — #226 guards shipped; round 2: adaptive detrend default (2× stroke period) — big measured win, see Decision log; scale-lock + slow filter_lr measured and rejected. Next proposed: rhythm-grid drift check (per-cell stroke-frequency energy) | **THIS** — Claude keeps `trackcv` drift-check only; rest of engine free for Cursor |
+| Drift | Claude | [#226](https://github.com/funfunpayer/SamNPlayer/pull/226) + [#230](https://github.com/funfunpayer/SamNPlayer/pull/230) | **CSRT long-clip drift** — #226 guards; #230 adaptive detrend (2× stroke period) measured win. Scale-lock + slow filter_lr rejected. Next: rhythm-grid drift check | **THIS** — Claude keeps `trackcv` rhythm-grid only; rest of engine free for Cursor |
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) merged | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **DONE** |
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) merged | Emotion GUI look (Sora/Figtree) | **DONE** |
-| Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) | bump **v0.5.28** + CHANGELOG/ROADMAP — stacks #226+#227+#225 | **THIS** — merge when CI green |
-| Engine | Claude | after #226 | Residual CSRT gradual drift (Claude findings) — Cursor does **not** claim | **Claude THIS** |
+| Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) + tag `v0.5.28` | bump **v0.5.28** + Release (look + feel + CSRT guards) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.28 |
+| Engine | — | free (except Claude rhythm-grid) | Cursor free outside Claude’s `trackcv` drift-check lane | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -126,9 +126,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main; #227 feel bugfix on main.
-- **Claude THIS:** drift round 2 — adaptive detrend default (PR `claude/csrt-drift-round2`); next proposed: rhythm-grid drift check. Claude only holds `trackcv` drift-check — Cursor free on the rest of the engine.
-- **Cursor THIS:** Rel28 only — #225 **DONE**; merge #228 (`v0.5.28`) when CI green. Idle on engine until Claude frees drift.
+- **Shipped:** **v0.5.28** portable live — #226+#227+#225; #230 adaptive detrend on main (post-tag).
+- **Claude THIS:** rhythm-grid drift check (proposed next) — only `trackcv` lane.
+- **Cursor:** Rel28 **DONE**. Engine free except Claude’s rhythm-grid; board hygiene this PR.
 - ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
