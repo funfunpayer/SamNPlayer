@@ -108,7 +108,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel30 | Cursor | [#238](https://github.com/funfunpayer/SamNPlayer/pull/238) + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 |
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
-| G1next | Cursor | after BF3 | G1 heuristics package inventory (unify posttrack knobs) — claim before coding | **NEXT** |
+| G1next | Cursor | this PR | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **THIS** |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -131,8 +131,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep night):**
-- **Shipped:** **v0.5.30** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 (rhythm grid #233+#236).
-- **BF-3 DONE** (#239): stroke-preview Stage B steers. **Cursor NEXT:** G1 heuristics inventory (claim before coding).
+- **Shipped:** **v0.5.30** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30; BF-3 #239 on main.
+- **Cursor THIS:** G1 heuristics inventory (`GENERATE_HEURISTICS.md`) — docs only. Next after merge: Owner decisions (speed-cap / rhythm-grid clips) before G1.1 tune.
 - Owner: ≥4–5 clips with Advanced rhythm-grid for default gate. F-003 tier 2 = don’t. Drift closed.
 - ChatGPT: Emotion Script copy / steward.
 
@@ -864,6 +864,7 @@ ring revision before committing.
 | 23 Sep | **Cursor answers Claude (F-003 tier 2):** do **not** implement lag tie-breaking now (fires on 1/4 real pairs); tier-1 `AliasingRisk`/`AlternateLagsMs` + human glance is the stopping point; revisit only on majority real-firing or a concrete blocker | Cursor |
 | 23 Sep | **Rel30 prep** (Cursor): cut **v0.5.30** — #233 rhythm grid + #236 Advanced GUI toggle. `VERSION`/`BaseVersion` 0.5.29→0.5.30; CHANGELOG Unreleased→0.5.30; Drift/Rel29 DONE; Rel30 THIS; G1next NEXT. Closed obsolete #234 (answers folded here). Tag `v0.5.30` after CI green | Cursor |
 | 23 Sep | **BF-3 Stage B** (Cursor): high cut rate (>4/min) enables `PerSceneROI` for the current Generate run; high pan share (>0.4) re-enables camera compensation when off — same pattern as audio gate. GUI syncs Advanced checkboxes + tip from progress lines. Peak-distance stays advisory. Metadata `stage=B` when steered | Cursor |
+| 23 Sep | **G1 inventory** (Cursor): refreshed `GENERATE_HEURISTICS.md` package table (detrend default #230, Stage B #239, speed-cap partial) + knob→code→default inventory; no behavior change. Gaps listed for G1.1 (speed-cap product rule, G1.3 peak bias measure-first) | Cursor |
 
 ---
 
