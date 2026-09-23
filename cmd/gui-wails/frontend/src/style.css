@@ -244,8 +244,8 @@ body {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--feel);
-  opacity: 0.85;
+  color: var(--accent);
+  opacity: 0.72;
   line-height: 1.25;
   max-width: 76px;
 }
@@ -2124,4 +2124,34 @@ button.primary:active:not(:disabled) {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--text);
+}
+
+/* Soften remaining instrument borders app-wide */
+.log-view,
+.list,
+fieldset,
+.rt-card,
+#roi-canvas,
+#rt-canvas,
+.pb-media,
+.badge,
+details.adv,
+.gen-adv,
+.checkbox-row input,
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  border-color: rgba(50, 54, 74, 0.55);
+}
+.log-view,
+.list,
+fieldset,
+.rt-card {
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.hint {
+  font-family: var(--font-soft);
 }
