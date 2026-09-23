@@ -5,8 +5,8 @@
 <h1 align="center">SamNPlayer</h1>
 
 <p align="center">
-  <strong>Generate · Play · Train</strong> — local desktop app for
-  <code>.samn</code> / <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
+  <strong>Emotion Generator</strong> — create and play
+  <strong>Emotion Scripts</strong> (<code>.samn</code>) for SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
 </p>
 
 <p align="center">
@@ -40,8 +40,9 @@
 | | Typical alternatives | **SamNPlayer** |
 |---|---|---|
 | App size | Electron often 100+ MB | **~13 MB** native GUI |
-| Scope | Play *or* generate | **Play + generate + device + training** |
-| AI | Cloud / AI-only scripts | **Local optional ONNX** — AI proposes, classical tracking writes scripts |
+| Scope | Play *or* generate | **Play + Create + device + training** |
+| Format | Funscript-only UI | **Emotion Script** (`.samn`) — Funscript share/import only |
+| AI | Cloud / AI-only scripts | **Local optional ONNX** — AI proposes, classical tracking writes |
 | Privacy | Telemetry common | **Local-only** |
 | Video tools | Install ffmpeg yourself | **Portable zip** ships ffmpeg next to the app |
 | Device | Generic clients | **Sam Neo 2 first-class** |
@@ -52,18 +53,18 @@
 ## Screenshots
 
 <p align="center">
-  <img src="docs/media/gui-generator.png" alt="Generator" width="900" /><br />
-  <em>Generate</em> — mark ROI(s), Tf/Tj, Quality Doctor on the rail
+  <img src="docs/media/gui-generator.png" alt="Create Emotion Script" width="900" /><br />
+  <em>Create</em> — video → Emotion Script workflow
 </p>
 
 <p align="center">
-  <img src="docs/media/gui-playback.png" alt="Playback" width="900" /><br />
-  <em>Playback</em> — video sync or script-alone; heatmap, contact vibration
+  <img src="docs/media/gui-playback.png" alt="Play Emotion Script" width="900" /><br />
+  <em>Play</em> — Emotion Script with or without video; contact feel, playlist
 </p>
 
 <p align="center">
   <img src="docs/media/gui-player-rail.png" alt="Player meters" width="900" /><br />
-  Live device meters, soft, Extended-O
+  Live device meters, Script rail, Quality Doctor
 </p>
 
 ---
@@ -73,7 +74,7 @@
 Windows and Linux **GUI + CLI** builds (prefer **portable** — ffmpeg included)
 are attached to releases on **this** repository:
 
-**→ [Latest release](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**
+**→ [Latest release](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)** (v0.5.27)
 
 Verify with `checksums.txt` in the same release.
 

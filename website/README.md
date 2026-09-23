@@ -2,7 +2,8 @@
 
 Static landing + guides + notes for SamNPlayer. English product language
 (`docs/LANGUAGE.md`). Visual tokens match the desktop GUI (dark ink,
-gold + teal, Space Grotesk).
+gold + teal, Space Grotesk). Product framing: **Emotion Generator** /
+**Emotion Script** (`docs/EMOTION_SCRIPT.md`).
 
 ## Structure
 
@@ -13,11 +14,19 @@ website/
   changelog.html
   guides/             Getting started, Neo 2 BLE, license import
   blog/               Buyer-facing notes (AI, quality, portable, Tf/Tj, vs FunGen)
-  media/              Mirrored screenshots + logo
+  media/              Mirrored screenshots + logo (from docs/media/)
   fonts/              Space Grotesk
 ```
 
 Content plan: `docs/SELLING.md` → “Site content map”.
+
+Refresh GUI screenshots after UI branding changes:
+
+```bash
+cd cmd/gui-wails/frontend && npm run build
+python3 scripts/capture-gui-screenshots.py
+cp -a docs/media/gui-*.png docs/media/logo.png docs/media/wordmark.png website/media/
+```
 
 ## Local preview
 
@@ -33,13 +42,20 @@ The public face is [`funfunpayer/SamNPlayer-site`](https://github.com/funfunpaye
 (no application source). After this tree is approved:
 
 ```bash
+./scripts/sync-public-site.sh
+```
+
+Or manually:
+
+```bash
 git clone https://github.com/funfunpayer/SamNPlayer-site.git
 rsync -a \
   --exclude README.md \
   website/ SamNPlayer-site/
 # keep SamNPlayer-site SETUP.md / LICENSE; site root = Pages /
+cp docs/site-README.md SamNPlayer-site/README.md
 cd SamNPlayer-site
-git add -A && git commit -m "site: landing, guides, notes, FAQ" && git push
+git add -A && git commit -m "site: Emotion Generator landing" && git push
 ```
 
 Then enable **GitHub Pages** on `SamNPlayer-site` (branch `main`, `/` root)
@@ -54,3 +70,4 @@ working when the app repo is private (`docs/CLOSED_SOURCE.md`).
   the app repo is private.
 - Turn the first viewport into a dashboard of stats or feature cards.
 - Paste internal engineering journals into `/blog/`.
+- Call the product format “Funscript” in buyer-facing copy — use Emotion Script.

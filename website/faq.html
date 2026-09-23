@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FAQ — SamNPlayer</title>
-  <meta name="description" content="SamNPlayer FAQ: platforms, €40 license, trial, privacy, Mac and mobile status." />
+  <meta name="description" content="SamNPlayer FAQ: Emotion Script, platforms, €40 license, trial, privacy, Mac and mobile status." />
   <link rel="icon" type="image/png" href="media/logo.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -27,23 +27,28 @@
   </header>
 
   <main class="prose">
+    <h2>What is an Emotion Script?</h2>
+    <p>
+      <strong>Emotion Script</strong> is the product name for the native <code>.samn</code> file —
+      multi-axis motion for Sam Neo&nbsp;2 (stroke + feel channels). That is what Create writes and
+      what Play opens by default. Community <code>.funscript</code> files are welcome as
+      <strong>import</strong> and optional <strong>share</strong> for other apps — not the product format.
+    </p>
+
     <h2>What platforms are supported?</h2>
-    <p><strong>Windows and Linux amd64</strong> GUI + CLI now (prefer portable archives). <strong>macOS</strong> and a <strong>mobile player</strong> (play + device only, no Generate) are planned — not shipped.</p>
+    <p><strong>Windows and Linux amd64</strong> GUI + CLI now (prefer portable archives). <strong>macOS</strong> and a <strong>mobile player</strong> (play + device only, no Create) are planned — not shipped.</p>
 
     <h2>How much is a license?</h2>
-    <p><strong>€40 / year</strong>, one named person. Full Generate + Neo&nbsp;2 <code>.samn</code> play. See <a href="guides/license.html">Import a license key</a>.</p>
+    <p><strong>€40 / year</strong>, one named person. Full Create + Neo&nbsp;2 Emotion Script play. See <a href="guides/license.html">Import a license key</a>.</p>
 
     <h2>Is there a trial?</h2>
-    <p>When enforcement is on: unlicensed Generate capped at <strong>1 minute</strong>; Funscript playback stays available. Until go-live, builds may still be fully open while you test import.</p>
+    <p>When enforcement is on: unlicensed Create capped at <strong>1 minute</strong>; imported community scripts still play. Until go-live, builds may still be fully open while you test import.</p>
 
     <h2>Does anything leave my PC?</h2>
     <p><strong>No</strong> by design — local-only, no telemetry, no bundled model, no cloud AI calls. Optional ONNX stays on your machine.</p>
 
     <h2>Do I need ffmpeg installed?</h2>
     <p>Not if you use the <strong>portable</strong> release (ffmpeg next to the GUI) or Settings → Install video tools. Details: <a href="blog/portable-clean-pc.html">Portable zip on a clean PC</a>.</p>
-
-    <h2>.samn or .funscript?</h2>
-    <p><code>.samn</code> is the native Neo&nbsp;2 document (multi-axis + recipe). <code>.funscript</code> remains community import/export. You can bake and export either way from Play.</p>
 
     <h2>Is this open source?</h2>
     <p>Application source is <strong>private</strong>. This site and public release binaries are the showcase. Older MIT copies of past public trees may still exist elsewhere — new distribution is binaries + license.</p>

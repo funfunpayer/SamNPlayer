@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SamNPlayer — Generate · Play · Train</title>
-  <meta name="description" content="Local desktop app for .samn / .funscript and SVAKOM Sam Neo 2. Play, generate, and train in one ~13 MB native window — no Electron, no cloud AI. Personal license €40 / year." />
-  <meta property="og:title" content="SamNPlayer" />
-  <meta property="og:description" content="Generate · Play · Train — local desktop for Sam Neo 2 and Funscript. €40 / year." />
+  <title>SamNPlayer — Emotion Generator</title>
+  <meta name="description" content="Emotion Generator for Sam Neo 2. Create and play Emotion Scripts (.samn) in one ~13 MB native window — no Electron, no cloud AI. Personal license €40 / year." />
+  <meta property="og:title" content="SamNPlayer — Emotion Generator" />
+  <meta property="og:description" content="Create and play Emotion Scripts for Sam Neo 2. €40 / year." />
   <meta property="og:image" content="media/gui-player-rail.png" />
   <link rel="icon" type="image/png" href="media/logo.png" />
   <link rel="stylesheet" href="styles.css" />
@@ -39,10 +39,10 @@
           <img src="media/logo.png" alt="" width="72" height="72" />
           <span class="wordmark wordmark-lg"><span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-player">Player</span></span>
         </p>
-        <h1 class="reveal delay-1">Generate · Play · Train</h1>
+        <h1 class="reveal delay-1">Emotion Generator</h1>
         <p class="lede reveal delay-2">
-          One local desktop app for <code>.samn</code> / <code>.funscript</code>
-          and SVAKOM Sam Neo&nbsp;2 — measured scripts, first-class device control,
+          Create and play <strong>Emotion Scripts</strong> (<code>.samn</code>)
+          for SVAKOM Sam Neo&nbsp;2 — measured motion, first-class device control,
           optional on-device AI that never writes alone.
         </p>
         <div class="cta-row reveal delay-3">
@@ -56,7 +56,7 @@
       <h2>Why this app</h2>
       <p class="section-lede">
         Most tools are a player <em>or</em> a generator — often inside a 100+&nbsp;MB Electron shell.
-        SamNPlayer keeps the full loop honest and small.
+        SamNPlayer keeps the full Emotion Script loop honest and small.
       </p>
       <dl class="compare">
         <div>
@@ -65,7 +65,11 @@
         </div>
         <div>
           <dt>Scope</dt>
-          <dd>Play + generate + device + training in one window</dd>
+          <dd>Play + Create + device + training in one window</dd>
+        </div>
+        <div>
+          <dt>Format</dt>
+          <dd>Emotion Script (<code>.samn</code>) first — Funscript only for share / import</dd>
         </div>
         <div>
           <dt>AI</dt>
@@ -88,16 +92,16 @@
 
     <section id="product" class="section product">
       <h2>What you get</h2>
-      <p class="section-lede">Three jobs. One composition. English UI.</p>
+      <p class="section-lede">Create · Play · Train. One composition. English UI.</p>
 
       <figure class="shot reveal">
-        <img src="media/gui-playback.png" alt="Playback tab with video sync, heatmap, and live device meters" width="1200" height="675" loading="lazy" />
-        <figcaption>Playback — video sync or script-alone; heatmap, curve, contact vibration, playlist</figcaption>
+        <img src="media/gui-playback.png" alt="Play tab — choose an Emotion Script" width="1200" height="675" loading="lazy" />
+        <figcaption>Play — Emotion Script with or without video; heatmap, contact feel, playlist</figcaption>
       </figure>
 
       <figure class="shot reveal">
-        <img src="media/gui-generator.png" alt="Generator tab with ROI workflow and Quality Doctor" width="1200" height="675" loading="lazy" />
-        <figcaption>Generate — mark ROI(s), pick profile / backend, Quality Doctor on the rail</figcaption>
+        <img src="media/gui-generator.png" alt="Create Emotion Script workflow" width="1200" height="675" loading="lazy" />
+        <figcaption>Create — video → Emotion Script; Quality Doctor on the rail</figcaption>
       </figure>
     </section>
 
@@ -109,7 +113,7 @@
       <ul class="link-list">
         <li>
           <a href="guides/start.html">Getting started
-            <span class="meta">Portable download, Windows / Linux, first Play + Generate</span>
+            <span class="meta">Portable download, Windows / Linux, first Play + Create</span>
           </a>
         </li>
         <li>
@@ -129,7 +133,7 @@
         </li>
         <li>
           <a href="faq.html">FAQ
-            <span class="meta">Platforms, trial, privacy, Mac / mobile status</span>
+            <span class="meta">Emotion Script, platforms, trial, privacy, Mac / mobile</span>
           </a>
         </li>
       </ul>
@@ -139,12 +143,12 @@
       <h2>Personal license</h2>
       <p class="price reveal"><span class="price-amount">€40</span> <span class="price-unit">/ year</span></p>
       <p class="section-lede">
-        One person. One year. Full Generate + Neo&nbsp;2 <code>.samn</code> playback.
+        One person. One year. Full Create + Neo&nbsp;2 Emotion Script playback.
         Invite / internal keys for early testers.
       </p>
       <ul class="license-points">
         <li><strong>Retail — €40 / year</strong> — named seat, expires after 365 days from issue</li>
-        <li><strong>Trial path</strong> — unlicensed Generate capped at 1&nbsp;minute; Funscript play stays available</li>
+        <li><strong>Trial path</strong> — unlicensed Create capped at 1&nbsp;minute; imported community scripts still play</li>
         <li><strong>Import</strong> — paste or file in Settings → License (Ed25519 <code>SNP1</code> token)</li>
       </ul>
       <p class="license-note">
@@ -162,7 +166,7 @@
       <h2>Download</h2>
       <p class="section-lede">
         Prefer the <strong>portable</strong> archive — ffmpeg / ffprobe ship next to the GUI.
-        Windows and Linux amd64 today; macOS when a Mac builder exists.
+        Windows and Linux amd64 today; macOS when a Mac builder exists. Latest: <strong>v0.5.27</strong>.
       </p>
       <p class="cta-row">
         <a class="btn btn-primary" id="dl-latest"
@@ -181,7 +185,7 @@
     <section id="honesty" class="section honesty">
       <h2>Honest limits</h2>
       <ul class="limits">
-        <li>No FunGen clone theater — no silent AI-only Funscripts</li>
+        <li>No FunGen clone theater — no silent AI-only Emotion Scripts</li>
         <li>No cloud sync, telemetry, or bundled model weights</li>
         <li>macOS / mobile player: planned, not shipped</li>
         <li>Application source is private; this site ships binaries and screenshots only</li>

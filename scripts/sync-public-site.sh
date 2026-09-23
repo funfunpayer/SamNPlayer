@@ -19,13 +19,17 @@ trap cleanup EXIT
 echo "Cloning $SITE_REPO …"
 gh repo clone "$SITE_REPO" "$DIR/site" -- --depth 1
 
-# Landing page files at repo root (keep remote README/SETUP/LICENSE/git)
-for f in index.html styles.css script.js; do
+# Landing + product pages at repo root (keep remote LICENSE / SETUP / git)
+for f in index.html styles.css script.js faq.html changelog.html; do
+  [[ -f "$ROOT/website/$f" ]] || continue
   cp -a "$ROOT/website/$f" "$DIR/site/$f"
 done
-rm -rf "$DIR/site/fonts" "$DIR/site/media"
+
+rm -rf "$DIR/site/fonts" "$DIR/site/media" "$DIR/site/guides" "$DIR/site/blog"
 cp -a "$ROOT/website/fonts" "$DIR/site/fonts"
 cp -a "$ROOT/website/media" "$DIR/site/media"
+cp -a "$ROOT/website/guides" "$DIR/site/guides"
+cp -a "$ROOT/website/blog" "$DIR/site/blog"
 
 mkdir -p "$DIR/site/docs/media"
 cp -a "$ROOT/docs/media/." "$DIR/site/docs/media/"
@@ -44,7 +48,7 @@ if git diff --cached --quiet; then
   echo "No site changes to push."
   exit 0
 fi
-git commit -m "site: sync landing + media from private SamNPlayer"
+git commit -m "site: Emotion Generator / Emotion Script landing + media"
 git push origin HEAD
 echo "Synced → https://github.com/$SITE_REPO"
 echo "Enable Pages: Settings → Pages → Deploy from branch main / (root)"
