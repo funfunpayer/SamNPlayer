@@ -107,7 +107,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel29 | Cursor | [#232](https://github.com/funfunpayer/SamNPlayer/pull/232) + tag `v0.5.29` | bump **v0.5.29** + Release (#230 stroke detrend on by default) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.29 |
 | Rel30 | Cursor | [#238](https://github.com/funfunpayer/SamNPlayer/pull/238) + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 |
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
-| BF3 | Cursor | this PR | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **THIS** |
+| BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | after BF3 | G1 heuristics package inventory (unify posttrack knobs) — claim before coding | **NEXT** |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
@@ -131,9 +131,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep night):**
-- **Shipped:** **v0.5.30** — rhythm grid opt-in (#233) + Advanced GUI toggle (#236). Default stays off until Owner ≥4–5 clips.
-- **Cursor THIS:** BF-3 stroke-preview Stage B (cut→PerSceneROI, pan→camera) — this PR. Then G1 heuristics inventory.
-- F-003 tier 2 = **don’t**. Drift lane closed.
+- **Shipped:** **v0.5.30** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 (rhythm grid #233+#236).
+- **BF-3 DONE** (#239): stroke-preview Stage B steers. **Cursor NEXT:** G1 heuristics inventory (claim before coding).
+- Owner: ≥4–5 clips with Advanced rhythm-grid for default gate. F-003 tier 2 = don’t. Drift closed.
 - ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
