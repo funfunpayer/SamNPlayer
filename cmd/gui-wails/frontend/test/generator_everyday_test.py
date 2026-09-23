@@ -67,10 +67,10 @@ def main():
               page.locator("#gen-ai-roi").is_checked() is False)
         check("Contact vibration on by default",
               page.locator("#gen-contact-vibration").is_checked())
-        check("Trajectory capture checkbox present (MT-Debug opt-in)",
+        check("Trajectory capture checkbox present (feel Stage A soft-on)",
               page.locator("#gen-capture-trajectory").count() == 1)
-        check("Trajectory capture off by default",
-              page.locator("#gen-capture-trajectory").is_checked() is False)
+        check("Trajectory capture soft-on with Contact vib",
+              page.locator("#gen-capture-trajectory").is_checked())
 
         page.click("#gen-choose")
         page.wait_for_function(
@@ -113,12 +113,7 @@ def main():
         check("Generate still ready with AI on",
               page.locator("#gen-generate").is_enabled())
 
-        # Explicit opt-in for MT-Debug trajectory capture reaches the payload
-        # (checkbox lives inside the collapsed Advanced <details>, so set it
-        # directly rather than via a real click on a hidden element).
-        page.eval_on_selector(
-            "#gen-capture-trajectory",
-            "e => { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })); }")
+        # Tip path is soft-on with Contact vib (Feel Stage A); already checked above.
 
         page.click("#gen-generate")
         page.wait_for_function(
@@ -135,7 +130,7 @@ def main():
               opts.get("contactVibration") is True, str(opts))
         check("Contact area (roi2) persisted on Stroke+Contact",
               opts.get("w2", 0) > 0 and opts.get("h2", 0) > 0, str(opts))
-        check("Trajectory capture opt-in reaches GenerateScript payload",
+        check("Trajectory capture soft-on reaches GenerateScript payload",
               opts.get("captureTrajectory") is True, str(opts))
 
         browser.close()
