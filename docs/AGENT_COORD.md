@@ -93,7 +93,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 |------|-------|-------------|------|--------|
 | Rel | Cursor | [#208](https://github.com/funfunpayer/SamNPlayer/pull/208) + tag `v0.5.25` | Contact marks UI + bump **v0.5.25** + Release | **DONE** — portable live |
 | Z4→1 | Cursor | [#209](https://github.com/funfunpayer/SamNPlayer/pull/209) merged | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **DONE** (`3421b97`) |
-| Marks | Cursor | [#211](https://github.com/funfunpayer/SamNPlayer/pull/211) | Persist `metadata.contact_marks` + Play overlay | **THIS** — CI then merge |
+| Marks | Cursor | [#211](https://github.com/funfunpayer/SamNPlayer/pull/211) merged | Persist `metadata.contact_marks` + Play overlay | **DONE** (`7f81db3`) |
+| TipBox | Cursor | `cursor/contact-marks-tip-box-d7cb` | Stamp tip ROI box into `contact_marks.tip` + blue overlay | **THIS** |
 | T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude (do not steal) |
 | V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
@@ -114,7 +115,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.25** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.25
-- **Owner smoked v0.5.25.** **Z4→1 GUI DONE** (#209). Cursor: **#211** persist contact marks + Play overlay.
+- **Owner smoked v0.5.25.** **Z4→1 GUI DONE** (#209). **#211** contact marks persist + Play overlay **merged**. Cursor: tip box in marks next.
 - **Claude T-clip** still open (do not steal). Feel-decouple (marks → vib) still later.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
