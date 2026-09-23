@@ -65,6 +65,19 @@ type TrainingRequest struct {
 	// ("Follow-up design: multi-phase, per-channel scripts").
 	ScriptName string `json:"scriptName"`
 
+	// IntensityFactor, if > 0 and != 1, scales every curve level (not
+	// timing) of the selected script by this factor before running it -
+	// see player.ScaleTrainingScript. Only applies with ScriptName set.
+	// The frontend combines two independent sources into this one number
+	// before sending it: an explicit difficulty tier the user picks, and
+	// an implicit nudge from how the SAME script's recent sessions went
+	// (docs/TRAINING_MODE_RESEARCH.md proposal A - previously only shown
+	// as suggestion text, now actually applied, with an opt-out checkbox)
+	// - StartTraining itself doesn't know or care which. <= 0 (including
+	// the zero value from an omitted field) means "no adjustment",
+	// matching player.ScaleTrainingScript's own no-op convention.
+	IntensityFactor float64 `json:"intensityFactor,omitempty"`
+
 	Technique           string  `json:"technique"` // "stopstart" | "plateau"
 	Channel             string  `json:"channel"`   // "vibration" | "suction" | "both"
 	Cycles              int     `json:"cycles"`
@@ -123,13 +136,28 @@ type TrainingScriptCurvePoint struct {
 // TrainingScriptPreview liefert die volle Kurve eines Scripts (Vibration
 // und Sog getrennt) für die Plan-Vorschau, BEVOR eine Session startet -
 // siehe docs/TRAINING_MODE_RESEARCH.md's "Plan preview". Reine
-// Vorschau-Nennung, läuft nicht über das Gerät.
-func (a *App) TrainingScriptPreview(scriptName string) (TrainingScriptPreviewResult, error) {
-	script, err := loadAnyTrainingScript(scriptName)
+// Vorschau-Nennung, läuft nicht über das Gerät. intensityFactor wendet
+// dieselbe Skalierung an, die gleich beim echten Start gilt (siehe
+// TrainingRequest.IntensityFactor) - sonst würde die Vorschau eine andere
+// Kurve zeigen als die, die tatsächlich läuft.
+func (a *App) TrainingScriptPreview(scriptName string, intensityFactor float64) (TrainingScriptPreviewResult, error) {
+	script, err := resolveTrainingScript(scriptName, intensityFactor)
 	if err != nil {
 		return TrainingScriptPreviewResult{}, err
 	}
 	return buildScriptPreview(script), nil
+}
+
+// resolveTrainingScript lädt ein benanntes Script (built-in oder eigenes)
+// und wendet optional eine Intensitäts-Anpassung an (siehe
+// TrainingRequest.IntensityFactor) - aus StartTraining herausgezogen,
+// damit es ohne die nil-ctx-Event-Goroutine drumherum testbar ist.
+func resolveTrainingScript(scriptName string, intensityFactor float64) (player.TrainingScript, error) {
+	script, err := loadAnyTrainingScript(scriptName)
+	if err != nil {
+		return player.TrainingScript{}, err
+	}
+	return player.ScaleTrainingScript(script, intensityFactor), nil
 }
 
 // TrainingScriptPreviewResult trägt beide Kanäle getrennt, damit das
@@ -256,7 +284,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 	var script player.TrainingScript
 	if req.ScriptName != "" {
 		var err error
-		script, err = loadAnyTrainingScript(req.ScriptName)
+		script, err = resolveTrainingScript(req.ScriptName, req.IntensityFactor)
 		if err != nil {
 			return err
 		}

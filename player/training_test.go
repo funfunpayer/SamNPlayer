@@ -625,6 +625,74 @@ func TestRunTrainingScriptNormalizesMismatchedChannelField(t *testing.T) {
 	}
 }
 
+// ScaleTrainingScript is the shared mechanism behind both the difficulty
+// tier a user picks and the history-based nudge (app_training.go's
+// TrainingRequest.IntensityFactor) - it has to scale levels without
+// touching timing, clamp instead of overflow, and leave factor<=0/==1
+// (the "no adjustment" sentinels) as true no-ops.
+func TestScaleTrainingScriptScalesLevelsNotTiming(t *testing.T) {
+	script := TrainingScript{
+		Phases: []TrainingPhase{{
+			Name:         "p",
+			Vibration:    curve(ChannelVibration, 0.2, 0.6, 0.3, 1000, 2000, 1000),
+			Suction:      curve(ChannelSuction, 0.1, 0.5, 0.2, 500, 1500, 500),
+			RepeatCycles: 3,
+			RestMs:       400,
+		}},
+	}
+	scaled := ScaleTrainingScript(script, 0.5)
+	v := scaled.Phases[0].Vibration
+	if v.StartLevel != 0.1 || v.PeakLevel != 0.3 || v.EndLevel != 0.15 {
+		t.Errorf("Vibrations-Level nicht korrekt skaliert: %+v", v)
+	}
+	if v.RampUpMs != 1000 || v.HoldMs != 2000 || v.RampDownMs != 1000 {
+		t.Errorf("Timing hätte unangetastet bleiben müssen: %+v", v)
+	}
+	s := scaled.Phases[0].Suction
+	if s.StartLevel != 0.05 || s.PeakLevel != 0.25 || s.EndLevel != 0.1 {
+		t.Errorf("Sog-Level nicht korrekt skaliert: %+v", s)
+	}
+	if scaled.Phases[0].RepeatCycles != 3 || scaled.Phases[0].RestMs != 400 {
+		t.Errorf("Phasen-Struktur (Wiederholungen/Pause) hätte unangetastet bleiben müssen: %+v", scaled.Phases[0])
+	}
+}
+
+func TestScaleTrainingScriptClampsToOne(t *testing.T) {
+	script := TrainingScript{Phases: []TrainingPhase{{
+		Name:         "p",
+		Vibration:    curve(ChannelVibration, 0.5, 0.9, 0.5, 100, 100, 100),
+		RepeatCycles: 1,
+	}}}
+	scaled := ScaleTrainingScript(script, 2.0)
+	v := scaled.Phases[0].Vibration
+	if v.StartLevel != 1 || v.PeakLevel != 1 || v.EndLevel != 1 {
+		t.Errorf("Level hätten auf 1 gekappt werden müssen, nicht darüber: %+v", v)
+	}
+}
+
+func TestScaleTrainingScriptNeutralFactorIsNoop(t *testing.T) {
+	script := TrainingScript{Phases: []TrainingPhase{{
+		Name:         "p",
+		Vibration:    curve(ChannelVibration, 0.2, 0.6, 0.3, 100, 100, 100),
+		RepeatCycles: 1,
+	}}}
+	for _, factor := range []float64{0, -1, 1} {
+		scaled := ScaleTrainingScript(script, factor)
+		if scaled.Phases[0].Vibration.PeakLevel != 0.6 {
+			t.Errorf("factor=%v hätte ein No-op sein müssen, PeakLevel=%v", factor, scaled.Phases[0].Vibration.PeakLevel)
+		}
+	}
+}
+
+func TestScaleTrainingScriptDoesNotMutateInput(t *testing.T) {
+	original := curve(ChannelVibration, 0.2, 0.6, 0.3, 100, 100, 100)
+	script := TrainingScript{Phases: []TrainingPhase{{Name: "p", Vibration: original, RepeatCycles: 1}}}
+	ScaleTrainingScript(script, 0.5)
+	if original.PeakLevel != 0.6 {
+		t.Errorf("das Original-Script wurde verändert: PeakLevel=%v", original.PeakLevel)
+	}
+}
+
 // errorAfterFirstSuctionDevice fails the very first SetSuction call while
 // still recording SetVibration calls - used to prove that runPhaseRepeat
 // cancels the sibling channel's goroutine on error instead of letting it

@@ -8,6 +8,28 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Profile intensity — tiers and history auto-adjust:** any training
+  script (built-in or custom) can now be run overall gentler or
+  stronger without rebuilding it. `player.ScaleTrainingScript` scales
+  every curve's levels (not timing) by a factor; the Training tab
+  combines two independent sources into one factor: an explicit
+  "Intensity" tier (Gentle ×0.8 / Standard ×1 / Intense ×1.2) and an
+  automatic nudge from how the SAME script's recent sessions went
+  (ease off ×0.85 after early stops, push a bit ×1.1 after a clean
+  streak — the existing history-suggestion *text* from proposal A,
+  now also actually applied, with an "Auto-adjust from recent
+  sessions" checkbox to opt out). The plan preview reflects the
+  combined factor too, so it always shows the curve that's about to
+  run, not the unscaled nominal one. Start request carries the applied
+  factor (`intensityFactor`) for later review.
+- **New built-in script "pulse-rhythm":** closes the one named pattern
+  shape (Pulse — near-instant on/off) from the researched pattern
+  table (`docs/TRAINING_MODE_RESEARCH.md`) that none of the other
+  built-in scripts used yet — a fast vibration-pulse phase, then a
+  fast suction-pulse phase.
+
 ## [0.5.24] — September 23, 2026
 
 ### Added

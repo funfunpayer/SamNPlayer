@@ -243,6 +243,20 @@ export function initTraining(root) {
       </select>
     </div>
     <p class="hint" id="tr-script-description" style="margin-top:0; display:none;"></p>
+
+    <div class="field-row" id="tr-intensity-row" style="display:none;"><label>Intensity</label>
+      <select id="tr-intensity">
+        <option value="0.8">Gentle</option>
+        <option value="1" selected>Standard</option>
+        <option value="1.2">Intense</option>
+      </select>
+    </div>
+    <div class="field-row" id="tr-history-autoadjust-row" style="display:none;">
+      <span class="checkbox-row" style="margin:0"><input type="checkbox" id="tr-history-autoadjust" checked />
+      <label for="tr-history-autoadjust" style="width:auto">Auto-adjust from recent sessions with this profile</label></span>
+    </div>
+    <p class="hint" id="tr-intensity-note" style="margin-top:0; display:none;"></p>
+
     <p class="hint" id="tr-script-jitter-note" style="margin-top:0; display:none; color:var(--accent);">
       ⚡ Randomized — the curve below is the nominal plan; actual peaks vary a bit each cycle.</p>
     <div id="tr-script-preview" style="display:none; margin-bottom:10px;"></div>
@@ -401,9 +415,82 @@ export function initTraining(root) {
   // Script-Vorschau: Presets aus player.BuiltinTrainingScripts() (siehe
   // ListTrainingScripts) statt der einfachen Technik/Kanal-Form. Bei
   // "Custom" bleibt das alte Formular unverändert die einzige Quelle.
-  let scriptPreviews = {}; // name -> TrainingScriptPreviewResult, lazily geladen
+  let scriptPreviews = {}; // "name@factor" -> TrainingScriptPreviewResult, lazily geladen
   let currentPhaseMarkers = [];
   let currentTotalMs = 0;
+
+  // Ein Profil (built-in oder selbst gebaut) lässt sich jetzt insgesamt
+  // sanfter/stärker fahren, ohne es neu zu bauen - player.ScaleTrainingScript
+  // skaliert jede Kurve um einen Faktor, Timing bleibt unangetastet. Zwei
+  // unabhängige Quellen kombinieren sich zu EINEM Faktor, den Backend/
+  // Vorschau bekommen: eine explizit gewählte Stufe (Gentle/Standard/
+  // Intense) und ein impliziter Schubser aus der History DIESES Profils
+  // (siehe docs/TRAINING_MODE_RESEARCH.md Vorschlag A - vorher nur Text,
+  // jetzt tatsächlich angewendet, mit Opt-out-Checkbox statt stillem
+  // Automatismus).
+  function tierFactor() {
+    return parseFloat(el('#tr-intensity').value) || 1;
+  }
+
+  // historyAdjustment ist die gemeinsame Grundlage für den Vorschlagstext
+  // (computeHistorySuggestion) UND den tatsächlichen Zahlenfaktor hier -
+  // beide lesen dieselben letzten 3 Sessions DIESES Profils, damit Text
+  // und angewendeter Wert nie auseinanderlaufen.
+  function historyAdjustment(history, key) {
+    if (!key) return { factor: 1, message: null };
+    const matching = history.filter(s => s.technique === key).slice(0, 3);
+    if (matching.length === 0) return { factor: 1, message: null };
+    const mostRecent = matching[0];
+    if (mostRecent.cyclesStoppedEarly > 0) {
+      const n = mostRecent.cyclesStoppedEarly;
+      return {
+        factor: 0.85,
+        message: `Last session of this pattern had ${n} early stop${n > 1 ? 's' : ''} — `
+          + `maybe ease off a bit (lower peak or longer rest) this time.`,
+      };
+    }
+    if (matching.length >= 2 && matching.every(s => s.cyclesStoppedEarly === 0)) {
+      return {
+        factor: 1.1,
+        message: `Last ${matching.length} sessions of this pattern completed with no early stops — `
+          + `maybe a slightly higher peak this time.`,
+      };
+    }
+    return { factor: 1, message: null };
+  }
+
+  // Kombiniert Stufe und History-Schubser zu EINEM Faktor - auf einen
+  // gemeinsamen Bereich gekappt, damit zwei unabhängige Anpassungen
+  // (Nutzerwahl UND History) sich nicht gegenseitig zu einem extremeren
+  // Ergebnis aufschaukeln, als jede einzelne für sich vorgesehen war.
+  function combinedIntensityFactor() {
+    const scriptName = el('#tr-script').value;
+    if (!scriptName) return 1;
+    let factor = tierFactor();
+    if (el('#tr-history-autoadjust').checked) {
+      factor *= historyAdjustment(lastHistory, scriptName).factor;
+    }
+    return Math.min(1.35, Math.max(0.55, factor));
+  }
+
+  function updateIntensityNote() {
+    const note = el('#tr-intensity-note');
+    const name = el('#tr-script').value;
+    if (!name) { note.style.display = 'none'; return; }
+    const parts = [];
+    const t = tierFactor();
+    if (t !== 1) parts.push(`${t > 1 ? 'Intense' : 'Gentle'} tier ×${t}`);
+    if (el('#tr-history-autoadjust').checked) {
+      const hf = historyAdjustment(lastHistory, name).factor;
+      if (hf !== 1) parts.push(`history nudge ×${hf}`);
+    }
+    if (parts.length === 0) {
+      note.style.display = 'none';
+      return;
+    }
+    note.textContent = `Applied intensity: ×${combinedIntensityFactor().toFixed(2)} (${parts.join(', ')})`;
+    note.style.display = '';
+  }
 
   async function loadScripts() {
     try {
@@ -432,9 +519,12 @@ export function initTraining(root) {
     el('#tr-manual-fields').style.display = name ? 'none' : '';
     const descBox = el('#tr-script-description');
     const previewBox = el('#tr-script-preview');
+    el('#tr-intensity-row').style.display = name ? '' : 'none';
+    el('#tr-history-autoadjust-row').style.display = name ? '' : 'none';
     if (!name) {
       descBox.style.display = 'none';
       previewBox.style.display = 'none';
+      el('#tr-intensity-note').style.display = 'none';
       return;
     }
     const scripts = await ListTrainingScripts().catch(() => []);
@@ -442,21 +532,35 @@ export function initTraining(root) {
     descBox.textContent = info ? info.description : '';
     descBox.style.display = info ? '' : 'none';
 
-    if (!scriptPreviews[name]) {
+    await refreshScriptPreview();
+  }
+
+  // Läuft nach JEDER Änderung, die den anzuwendenden Faktor beeinflusst
+  // (Script gewählt, Stufe geändert, Auto-Anpassen umgeschaltet) - die
+  // Vorschau muss die TATSÄCHLICH gleich laufende Kurve zeigen, nicht die
+  // nominale, sonst zeigt sie etwas anderes an als das, was gleich passiert.
+  async function refreshScriptPreview() {
+    const name = el('#tr-script').value;
+    const previewBox = el('#tr-script-preview');
+    if (!name) { previewBox.style.display = 'none'; return; }
+    const factor = combinedIntensityFactor();
+    const cacheKey = `${name}@${factor.toFixed(3)}`;
+    if (!scriptPreviews[cacheKey]) {
       try {
-        scriptPreviews[name] = await TrainingScriptPreview(name);
+        scriptPreviews[cacheKey] = await TrainingScriptPreview(name, factor);
       } catch (err) {
         previewBox.style.display = 'none';
         log('Could not load preview: ' + err);
         return;
       }
     }
-    const preview = scriptPreviews[name];
+    const preview = scriptPreviews[cacheKey];
     currentPhaseMarkers = preview.phaseMarkers || [];
     currentTotalMs = preview.totalMs || 0;
     previewBox.innerHTML = renderScriptCurveSvg(preview);
     previewBox.style.display = '';
     el('#tr-script-jitter-note').style.display = preview.hasRandomJitter ? '' : 'none';
+    updateIntensityNote();
   }
 
   // Hebt die gerade laufende Phase in der Vorschau hervor (siehe
@@ -745,21 +849,12 @@ export function initTraining(root) {
     return el('#tr-script').value || el('#tr-technique').value;
   }
 
+  // computeHistorySuggestion ist ein dünner Wrapper um historyAdjustment
+  // (siehe dessen Kommentar weiter oben) - dieselbe Auswertung liefert
+  // hier nur den Satz, dort auch den tatsächlich angewendeten
+  // Zahlenfaktor, aus DENSELBEN letzten 3 Sessions.
   function computeHistorySuggestion(history, key) {
-    if (!key) return null;
-    const matching = history.filter(s => s.technique === key).slice(0, 3);
-    if (matching.length === 0) return null;
-    const mostRecent = matching[0];
-    if (mostRecent.cyclesStoppedEarly > 0) {
-      const n = mostRecent.cyclesStoppedEarly;
-      return `Last session of this pattern had ${n} early stop${n > 1 ? 's' : ''} — `
-        + `maybe ease off a bit (lower peak or longer rest) this time.`;
-    }
-    if (matching.length >= 2 && matching.every(s => s.cyclesStoppedEarly === 0)) {
-      return `Last ${matching.length} sessions of this pattern completed with no early stops — `
-        + `maybe a slightly higher peak this time.`;
-    }
-    return null;
+    return historyAdjustment(history, key).message;
   }
 
   function updateHistorySuggestion() {
@@ -767,6 +862,7 @@ export function initTraining(root) {
     const suggestion = computeHistorySuggestion(lastHistory, currentHistoryKey());
     box.textContent = suggestion || '';
     box.style.display = suggestion ? '' : 'none';
+    updateIntensityNote();
   }
 
   async function start() {
@@ -775,8 +871,12 @@ export function initTraining(root) {
     updateIntensityMeter({ vibration: 0, suction: 0 });
     pixelStage.setIntensity(0);
     const scriptName = el('#tr-script').value;
+    const intensityFactor = scriptName ? combinedIntensityFactor() : 1;
+    if (scriptName && intensityFactor !== 1) {
+      log(`Profile intensity adjusted: ×${intensityFactor.toFixed(2)}`);
+    }
     const req = scriptName
-      ? { mock: el('#tr-mock').checked, scriptName }
+      ? { mock: el('#tr-mock').checked, scriptName, intensityFactor }
       : {
           mock: el('#tr-mock').checked,
           technique: el('#tr-technique').value,
@@ -945,6 +1045,8 @@ export function initTraining(root) {
 
   el('#tr-script').addEventListener('change', updateScriptVisibility);
   el('#tr-script').addEventListener('change', updateHistorySuggestion);
+  el('#tr-intensity').addEventListener('change', refreshScriptPreview);
+  el('#tr-history-autoadjust').addEventListener('change', refreshScriptPreview);
   loadScripts().then(updateScriptVisibility);
 
   el('#tr-history-export').addEventListener('click', async () => {

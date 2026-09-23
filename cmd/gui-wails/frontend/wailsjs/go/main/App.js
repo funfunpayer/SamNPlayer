@@ -120,7 +120,7 @@ export function TrainQualityModel() { return window['go']['main']['App']['TrainQ
 export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
 export function ExportTrainingHistoryCSV() { return window['go']['main']['App']['ExportTrainingHistoryCSV'](); }
 export function ListTrainingScripts() { return window['go']['main']['App']['ListTrainingScripts'](); }
-export function TrainingScriptPreview(arg1) { return window['go']['main']['App']['TrainingScriptPreview'](arg1); }
+export function TrainingScriptPreview(arg1, arg2) { return window['go']['main']['App']['TrainingScriptPreview'](arg1, arg2); }
 export function SaveTrainingScript(arg1) { return window['go']['main']['App']['SaveTrainingScript'](arg1); }
 export function DeleteTrainingScript(arg1) { return window['go']['main']['App']['DeleteTrainingScript'](arg1); }
 export function LoadTrainingScriptForEditing(arg1) { return window['go']['main']['App']['LoadTrainingScriptForEditing'](arg1); }

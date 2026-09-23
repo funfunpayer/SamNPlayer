@@ -103,6 +103,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | Cursor | #201 `cursor/pose-observer-stage-a-d7cb` | **PoseObserver Stage A** offline spike | **ACTIVE** — CI fixtures + fuse/summary; bake-off = Owner |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
+| H | Claude | `claude/training-mode-improvements-uu4965`, based on main @ `8167c67` | **Training profile intensity** — tiers (Gentle/Standard/Intense) + history auto-adjust (`player.ScaleTrainingScript`) + new "pulse-rhythm" built-in script; the two pieces of lane G's #178 that didn't make it into #177 | **PR pending** |
 | V | Owner | local machine | **Clip verify** + smoke checklist | **OWNER** — next before any 0.5.23 tag |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
@@ -677,6 +678,7 @@ ring revision before committing.
 | 22 Sep | **#192** PoseObserver concept docs merged (`POSE_OBSERVER.md`) | ChatGPT |
 | 22 Sep | **#194** E2 MT-Speed notes merged (`MT_SPEED_NOTES.md`) | ChatGPT |
 | 22 Sep | Tri-agent pre-release QC planned (QC-A Cursor / QC-B Claude / QC-C ChatGPT) — start after #193 | Owner |
+| 23 Sep | Lane G's #178 confirmed closed/superseded by #177 (merged `af6cf0a`) — found by re-checking PR state, not everything from #178's branch had landed: `player.ScaleTrainingScript`/`TrainingRequest.IntensityFactor` (profile intensity tiers + history auto-adjust) and a new "pulse-rhythm" built-in script were pushed to the old branch AFTER #177 merged and never made it to main. Restarted the branch from current `main` (rebase attempt hit heavy add/add conflicts from months of independent doc/ring rewrites — abandoned in favor of a clean restart) and re-applied just the two still-missing pieces as fresh commits. Claiming lane H for this | Claude |
 
 ---
 
