@@ -67,6 +67,9 @@ def main():
               page.locator("#gen-region-class2").input_value() == "nipples")
         check("4-zone everyday button hidden",
               page.locator("#gen-nomark").is_hidden())
+        check("4-zone not in Tracking method dropdown",
+              "region_fusion_auto" not in page.eval_on_selector_all(
+                  "#gen-backend option", "els => els.map(e => e.value)"))
 
         page.uncheck("#gen-contact-vibration")
         page.wait_for_timeout(50)

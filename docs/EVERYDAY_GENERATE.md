@@ -43,14 +43,16 @@ Do **not** default 4-zone or Flow.
 ```
 
 **Everyday needs (CSRT):** tip box (auto or mark) + Contact vib on/off. Contact marks,
-soft masks, 4-zone, Tf/Tj distance are optional / advanced — not required for a good script.
+soft masks, Tf/Tj distance are optional. **4-zone is CLI-only** — not in the Generate GUI
+(weaker on measured clips; backend kept for evidence experiments).
 
 Advanced (collapsed): knobs that **change CSRT output** (invert, cam-comp,
 scene-cut, dynamics, retry, axis, smooth, peak spacing, RDP, max speed).
+Tracking method = CSRT tip only in the product GUI.
 - **Invert motion direction** — flips the curve (100−pos). FunGen polarity mismatch, not a tracker bug.
 - **Fix contact area (static)** (Step 2, when Contact vib on) — keep the gold contact box fixed; off = track it (better with camera motion).
 Removed from Everyday Advanced: AI second opinion (no curve effect), audio
-check row (moved to Review), Flow downscale (Flow is CLI-only). Scene memory
+check row (moved to Review), Flow downscale (Flow is CLI-only), **4-zone stroke mode**. Scene memory
 collapsed under Power-user. Imported scripts → Play **Optimize for Neo 2**
 (`docs/CONTENT_SOURCES.md`).
 
