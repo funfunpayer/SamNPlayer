@@ -87,6 +87,33 @@ func (d *recordingDevice) count() int {
 	return len(d.vibrations)
 }
 
+// vibrationsContainApprox reports whether any recorded vibration write is
+// within tol of want - used where a value must have been reached and held
+// at some point, but isn't necessarily (or shouldn't be, once a later
+// rundown changes it) the LAST recorded value.
+func (d *recordingDevice) vibrationsContainApprox(want, tol float64) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, v := range d.vibrations {
+		if v >= want-tol && v <= want+tol {
+			return true
+		}
+	}
+	return false
+}
+
+// suctionsContainApprox mirrors vibrationsContainApprox for the Suction channel.
+func (d *recordingDevice) suctionsContainApprox(want, tol float64) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, v := range d.suctions {
+		if v >= want-tol && v <= want+tol {
+			return true
+		}
+	}
+	return false
+}
+
 func fastOptions(cycles int) TrainingOptions {
 	return TrainingOptions{
 		Technique:     TechniqueStopStart,
@@ -408,8 +435,11 @@ func TestContextCancelDuringHoldStopsImmediately(t *testing.T) {
 // ---- TrainingScript (Multi-Phasen, pro Kanal eigene Kurve) ----
 
 // Zwei Phasen, jede mit genau einem aktiven Kanal: Phase 2 lässt Vibration
-// unangetastet (nil) - der Kanal muss auf dem Wert bleiben, den Phase 1
-// zuletzt gesetzt hat, statt auf 0 zurückzufallen.
+// unangetastet (nil) - der Kanal muss WÄHREND Phase 2 auf dem Wert bleiben,
+// den Phase 1 zuletzt gesetzt hat (nicht sofort auf 0 zurückfallen), wird
+// aber am Ende des GESAMTEN Skripts trotzdem sanft auf 0 heruntergefahren
+// (siehe TestRunTrainingScriptRampsDownElevatedChannelsAtNaturalEnd) statt
+// bis zum abrupten dev.Stop() erhöht stehen zu bleiben.
 func TestRunTrainingScriptCarriesUntouchedChannelBetweenPhases(t *testing.T) {
 	dev := &recordingDevice{}
 	script := TrainingScript{
@@ -443,13 +473,24 @@ func TestRunTrainingScriptCarriesUntouchedChannelBetweenPhases(t *testing.T) {
 		t.Errorf("Phasennamen falsch: %q / %q", results[0].PhaseName, results[1].PhaseName)
 	}
 	// Phase 1 endet bei EndLevel 0.2 - Phase 2 fasst Vibration nicht an,
-	// also muss der zuletzt gesendete Vibrationswert bei 0.2 bleiben
-	// (Toleranz wegen der schrittweisen Rampe in rampChannel).
-	if got := dev.last(); got < 0.19 || got > 0.21 {
-		t.Errorf("Vibration wurde in Phase 2 verändert oder nicht auf EndLevel gefahren: %v", got)
+	// also muss dieser Wert irgendwann im Verlauf erreicht und gehalten
+	// worden sein (Toleranz wegen der schrittweisen Rampe in rampChannel),
+	// bevor der abschließende Rundown ihn wieder auf 0 fährt.
+	if !dev.vibrationsContainApprox(0.2, 0.01) {
+		t.Errorf("Vibration hat den aus Phase 1 übernommenen Wert 0.2 nie erreicht/gehalten: %v", dev.vibrations)
 	}
 	if got := dev.maxSuction(); got < 0.55 {
 		t.Errorf("Sog-Höhepunkt aus Phase 2 wurde nicht erreicht: max=%v", got)
+	}
+	// Das Skript endet natürlich (kein Interrupt) mit Vibration noch bei
+	// 0.2 (Phase 2 hat sie nie angefasst) - der abschließende Rundown muss
+	// sie trotzdem auf 0 fahren, statt sie bis zum abrupten dev.Stop()
+	// erhöht stehen zu lassen.
+	if got := dev.last(); got != 0 {
+		t.Errorf("Vibration wurde am Skriptende nicht auf 0 heruntergefahren: %v", got)
+	}
+	if got := dev.lastSuction(); got != 0 {
+		t.Errorf("Sog wurde am Skriptende nicht auf 0 heruntergefahren: %v", got)
 	}
 }
 
@@ -574,6 +615,130 @@ func TestBuiltinTrainingScriptsAreValid(t *testing.T) {
 				t.Errorf("Script %q hat keine Beschreibung fürs GUI-Dropdown", script.Name)
 			}
 		})
+	}
+}
+
+// Real-hardware feedback (owner, 23 Sep 2026): "tissue-massage"'s
+// "Static hold" phase held 20s continuous suction at PeakLevel=0.7 -
+// too much for the device. Cut to 6s/0.6. Locks in a bound so nobody
+// re-introduces a long sustained hold at a high level by accident -
+// every phase across every built-in script should stay within a
+// conservative sustained-load budget until real hardware says
+// otherwise (see BuiltinTrainingScripts' own doc comment: these are
+// starting guesses, not calibrated physical intensities).
+func TestBuiltinTrainingScriptsNoLongHighSuctionHold(t *testing.T) {
+	const maxHoldMsAtHighLevel = 10000
+	const highLevel = 0.65
+	for _, script := range BuiltinTrainingScripts() {
+		for _, phase := range script.Phases {
+			if phase.Suction == nil {
+				continue
+			}
+			c := phase.Suction
+			if c.HoldMs > maxHoldMsAtHighLevel && c.PeakLevel >= highLevel {
+				t.Errorf("%s/%s: HoldMs=%d at PeakLevel=%.2f - sustained suction this long at this level was reported too much for real hardware",
+					script.Name, phase.Name, c.HoldMs, c.PeakLevel)
+			}
+		}
+	}
+}
+
+// Real-hardware feedback (owner, 23 Sep 2026): some built-in scripts never
+// touched the Suction channel at all - that wasn't intentional design, every
+// script should have a suction curve somewhere from the start. Locks in that
+// every built-in script has at least one phase driving Suction, so a future
+// addition can't silently ship vibration-only again.
+func TestBuiltinTrainingScriptsHaveSuctionFromStart(t *testing.T) {
+	for _, script := range BuiltinTrainingScripts() {
+		hasSuction := false
+		for _, phase := range script.Phases {
+			if phase.Suction != nil {
+				hasSuction = true
+				break
+			}
+		}
+		if !hasSuction {
+			t.Errorf("%s: no phase drives the Suction channel", script.Name)
+		}
+	}
+}
+
+// Real-hardware feedback (owner, 23 Sep 2026): a script whose last active
+// phase for a channel ends above 0 (a deliberate mid-script floor, like
+// "plateau"'s edging hold, or simply a later phase that never touches a
+// channel an earlier one raised) left that channel elevated until the
+// deferred dev.Stop() cut it abruptly - felt like the level "just staying"
+// instead of ramping down. RunTrainingScript must wind both channels back
+// to 0 gracefully once the script completes naturally.
+func TestRunTrainingScriptRampsDownElevatedChannelsAtNaturalEnd(t *testing.T) {
+	dev := &recordingDevice{}
+	script := TrainingScript{
+		Phases: []TrainingPhase{
+			{
+				Name:         "Ends elevated",
+				Vibration:    curve(ChannelVibration, 0, 0.8, 0.5, 50, 50, 50),
+				Suction:      curve(ChannelSuction, 0, 0.6, 0.3, 50, 50, 50),
+				RepeatCycles: 1,
+				RestMs:       10,
+			},
+		},
+	}
+
+	if err := RunTrainingScript(context.Background(), dev, script, nil, nil); err != nil {
+		t.Fatalf("RunTrainingScript: %v", err)
+	}
+
+	if !dev.vibrationsContainApprox(0.5, 0.01) {
+		t.Errorf("Vibration hat ihr EndLevel 0.5 nie erreicht: %v", dev.vibrations)
+	}
+	if got := dev.last(); got != 0 {
+		t.Errorf("Vibration wurde am Skriptende nicht auf 0 heruntergefahren: %v", got)
+	}
+	if !dev.suctionsContainApprox(0.3, 0.01) {
+		t.Errorf("Sog hat sein EndLevel 0.3 nie erreicht: %v", dev.suctions)
+	}
+	if got := dev.lastSuction(); got != 0 {
+		t.Errorf("Sog wurde am Skriptende nicht auf 0 heruntergefahren: %v", got)
+	}
+}
+
+// Ein Interrupt fährt beide Kanäle schon per stopBothChannels() sofort auf
+// 0 (bewusst abrupt, wie ein Nutzer-Stopp reagieren soll) - der zusätzliche
+// sanfte Rundown am natürlichen Skriptende darf danach nicht noch einmal
+// anlaufen und die Reaktion verzögern.
+func TestRunTrainingScriptSkipsRampDownAfterInterrupt(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	script := TrainingScript{
+		Phases: []TrainingPhase{
+			{
+				Name:         "Long hold",
+				Vibration:    curve(ChannelVibration, 0, 0.8, 0.5, 50, 2000, 50),
+				RepeatCycles: 1,
+				RestMs:       10,
+			},
+		},
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- RunTrainingScript(context.Background(), dev, script, control, nil)
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	control.StopCycle()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("RunTrainingScript: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("RunTrainingScript hat auf StopCycle nicht reagiert")
+	}
+
+	if got := dev.last(); got != 0 {
+		t.Errorf("nach Interrupt sollte Vibration bei 0 stehen, ist aber: %v", got)
 	}
 }
 
