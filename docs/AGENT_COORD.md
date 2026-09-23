@@ -91,6 +91,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
+| Rel | Cursor | [#208](https://github.com/funfunpayer/SamNPlayer/pull/208) + tag `v0.5.25` | Contact marks UI + bump **v0.5.25** + Release | **THIS PR** |
+| T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude after rate limit (~13:31) |
+| Z4→1 | Cursor | partial in #208 | **4-Zone Everyday button hidden**; deeper 1-Zone path after T-clip | **PARTIAL** — GUI hide done; proposal path later |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
@@ -103,19 +106,16 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
 | T-train | Claude | **#206 merged** | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **DONE** (`23c3a0e`) |
-| T-clip | Claude | after #206 | **Training mosaic frames** from full clip **2:14–2:40**; **>16 OK** (24–32); curve→frame sync | **NEXT** — Claude still |
-| Z4→1 | Cursor | after T-clip | **4-Zone → 1-Zone product path** — see Owner decision below | **QUEUED** |
-| Rel | Cursor | after T-clip + Z4→1 + ChatGPT bits | **v0.5.25** bump + tag | **QUEUED** |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
-| V | Owner | local | Smoke **v0.5.24** now; smoke **v0.5.25** after next tag | **OWNER** |
+| V | Owner | local | Smoke **v0.5.25** after tag | **OWNER** |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (23 Sep):**
-- **Shipped:** **v0.5.24** portable live — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.24
-- **#206 T-train DONE.** Claude: **T-clip** still open. **#207** closed (dup).
-- **Owner product (23 Sep):** 4-Zone fusion as stroke writer → retire from Everyday. Reuse zone **activity as evidence** to propose **one** ROI, then **CSRT** writes the curve (1-Zone track). Backend kept for that learning path — not deleted.
-- **After T-clip → split → v0.5.25** — see § below.
+- **Shipping:** **v0.5.25** — Contact marks only when Contact vib on (#208) + Training #206 already on main.
+- **Claude:** **T-clip** still open (rate-limited earlier; resume later). Cursor does **not** steal that lane.
+- **Owner product (23 Sep):** 4-Zone Everyday button hidden in #208; backend kept for evidence/proposal. Deeper 1-Zone seed path after T-clip if needed.
+- **After v0.5.25:** Owner smoke; Claude T-clip → then optional Training review / fill-weak spec (ChatGPT).
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 

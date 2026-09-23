@@ -70,21 +70,23 @@ def main():
         check("Backend stays CSRT after auto-find",
               page.locator("#gen-backend").input_value() == "csrt")
 
-        page.click("#gen-nomark")
+        # 4-zone is Advanced → Tracking method (Everyday button hidden).
+        page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
+        page.select_option("#gen-backend", "region_fusion_auto")
         page.wait_for_function(
             "document.querySelector('#gen-backend').value === 'region_fusion_auto'",
             timeout=5000)
-        check("4-zone no-mark keeps Generate enabled",
+        check("4-zone via Advanced keeps Generate enabled",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
         check("Backend is region_fusion_auto",
               page.locator("#gen-backend").input_value() == "region_fusion_auto")
 
-        # Toggle off → back to CSRT; tip ROI still present → Generate stays on.
-        page.click("#gen-nomark")
+        # Back to CSRT; tip ROI still present → Generate stays on.
+        page.select_option("#gen-backend", "csrt")
         page.wait_for_function(
             "document.querySelector('#gen-backend').value === 'csrt'",
             timeout=5000)
-        check("Toggle off returns to CSRT",
+        check("Switch back to CSRT",
               page.locator("#gen-backend").input_value() == "csrt")
         check("CSRT with tip ROI keeps Generate enabled",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is False)
