@@ -34,8 +34,8 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
-        <p class="pb-empty-title">Nothing loaded yet</p>
-        <p class="hint">Drop an Emotion Script — with or without a video. Without video it still plays on the device. Multiple scripts play as a list. Files from other apps are welcome too.</p>
+        <p class="pb-empty-title">Ready when you are</p>
+        <p class="hint">Open an Emotion Script — with or without a video. Feel still runs on the device alone. Add more for a list. Files from other apps are welcome too.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
       </div>
     </div>
@@ -69,8 +69,8 @@ export function initPlayback(root) {
           </div>
           <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0.2rem 0 0;"></p>
           <div id="pb-novideo" class="pb-novideo">
-            <p class="pb-novideo-title">Script only</p>
-            <p class="hint">Runs on device and curve alone — video is optional. Play starts immediately.</p>
+            <p class="pb-novideo-title">Feel without film</p>
+            <p class="hint">Device and curve alone — video is optional. Play starts immediately.</p>
             <div class="pb-novideo-actions">
               <button type="button" id="pb-play-novideo" class="primary">Play</button>
               <button type="button" id="pb-pick-video">Link video…</button>

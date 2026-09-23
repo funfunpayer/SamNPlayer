@@ -102,7 +102,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Drift | Claude | `claude/csrt-jump-guard` | **CSRT long-clip drift** — measured + partially fixed (dispGuard + appearance-memory gating), root cause identified, full fix needs a trained detector (out of scope here). See Decision log 23 Sep | **DONE (partial) — findings posted** |
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **THIS** |
-| Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) | **NEXT** — rebase after #227 |
+| Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) | Emotion GUI look (Sora/Figtree) — rebased on Bugfix | **THIS** |
 | Engine | Cursor | after Rel28 | Residual CSRT gradual drift — scale clamp first, then detector path (Claude #226) | **NEXT** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -126,8 +126,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (23 Sep):**
 - **Shipped:** **v0.5.27** + Emotion Script branding (#220) on main.
-- **Claude DONE (partial):** CSRT long-clip drift — 2 real fixes shipped (`claude/csrt-jump-guard`), root cause found, full fix needs a trained detector (documented as future work, no lane claim). Cursor free on this lane again.
-- ChatGPT: Emotion Script copy / general bugfix.
+- **Claude DONE (partial):** CSRT long-clip drift — 2 real fixes shipped (#226), residual gradual drift needs engine follow-up after Rel28.
+- **Cursor THIS:** Bugfix #227 + Emotion look #225 (rebased). Then Rel28 → Engine.
+- ChatGPT: Emotion Script copy / steward.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 

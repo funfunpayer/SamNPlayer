@@ -8,8 +8,12 @@ import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 
 export function initGenerator(root, playback) {
+  root.classList.add('tab-create');
   root.innerHTML = `
-    <h2>Create Emotion Script</h2>
+    <header class="create-head">
+      <h2>Create Emotion Script</h2>
+      <p class="create-lede">From a video — motion becomes feel you can play.</p>
+    </header>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
         <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
