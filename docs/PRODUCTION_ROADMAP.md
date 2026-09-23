@@ -88,7 +88,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.23** | Shipped | Training portable clip frames (#187); MT-Go/Seed/Debug/Infra; QC fixes |
 | **v0.5.24** | Shipped | Improve sidecar (#200); Training presets + Re-find Zone2 (#199); Pose Stage A research (#201) |
 | **v0.5.25** | Shipped | Contact marks UI (#208); Training improve (#206); 4-zone Everyday button hidden |
-| **v0.5.26** | Prep | Contact marks metadata + Play overlay (#211/#212) |
+| **v0.5.26** | Shipped | Contact marks metadata + Play overlay (#211/#212) |
+| **v0.5.27** | Prep | Feel Stage A + tip-path soft-on + Training mosaic/suction (#214–#217) |
 | next | In progress | 4-Zone fully out of Generate GUI (1-Zone CSRT); T-clip (Claude) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
