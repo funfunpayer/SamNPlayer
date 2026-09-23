@@ -63,7 +63,7 @@ type Document struct {
 
 	// ContactMarks + Trajectory: Everyday feel (Stage A) and Play overlays.
 	// Must survive companion .samn write — Play prefers .samn over .funscript.
-	ContactMarks *funscript.ContactMarks  `json:"contactMarks,omitempty"`
+	ContactMarks *funscript.ContactMarks   `json:"contactMarks,omitempty"`
 	Trajectory   *funscript.TrajectoryData `json:"trajectory,omitempty"`
 
 	// Optional quality copy from generation (informational).
