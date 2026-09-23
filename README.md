@@ -82,11 +82,6 @@ not needed, it stays out.
   Live device meters, soft, Extended-O — curve and device keep running even without a film
 </p>
 
-<p align="center">
-  <img src="docs/media/gui-training.png" alt="Training tab — Motion clip + live dual intensity ring" width="900" />
-  <br />
-  <em>Training</em> — pixel clip stroke + live vibration/suction ring in one card
-</p>
 
 ---
 
