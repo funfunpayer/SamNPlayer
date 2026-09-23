@@ -249,7 +249,7 @@ the existing spine. **Stroke writer stays Go CSRT tip.** Proposals ≠ script.
 | **4** | **MT-ID** | Optional Ultralytics track **only** if tip or named part IDs still die on `clip_ausschnitt` / `clip_voll` | MT-Seed fail gate | Gate = **Owner** clip verify |
 | **5** | **MT-Debug** | Optional Review polyline of tip (+ other marks if present); pref off | MT-Go | **DONE** #188 + #189 (`b7f5d2d`, `5762629`) |
 | **∥** | **MT-Infra** | ffmpeg ctx-kill + proxy single-owner (filtergraph/PTS already fine) | Orthogonal | **DONE** #190 (`7802a14`) |
-| **∥ later** | **PoseObserver** | Pretrained RTMPose/MediaPipe as **proposal** layer (`POSE_OBSERVER.md` / #191/#192) | MT-Seed + E2 | Stage A → bake-off; never Stroke writer |
+| **∥ later** | **PoseObserver** | Pretrained RTMPose/MediaPipe as **proposal** layer (`POSE_OBSERVER.md` / #191/#192) | MT-Seed + E2 | **Stage A spike** (offline Python) — bake-off Owner/local; Stage B only after metrics |
 
 **Libs we keep / adopt later vs ignore** (Unite.ai filter): keep OpenCV,
 NumPy/SciPy, optional ultralytics+ONNX; Train-only PyTorch/torchvision;
