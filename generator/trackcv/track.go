@@ -248,38 +248,15 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			xPositions = append(xPositions, float64(bbox.X)+float64(bbox.W)/2.0)
 			lastBbox = bbox
 			if memory != nil && frameIdx%rememberEveryNFrames == 0 {
-				// Does the current belief still resemble where tracking
-				// started? If not, don't just skip remembering it (that
-				// alone only stops the memory bank from getting WORSE -
-				// it does nothing about the tracker itself continuing to
-				// run, successfully by CSRT's own accounting, on the
-				// wrong target). Actively try to correct course right
-				// now instead, the same reacquire() an ordinary loss
-				// already uses, applied here BEFORE that loss happens -
-				// gradual drift (see matchesOriginal's comment) never
-				// trips CSRT's own ok=false, so waiting for a loss to
-				// self-correct means recovering from a much worse
-				// position, if it ever comes at all.
+				// Only add this crop to the memory bank if it still
+				// resembles where tracking started - otherwise a slow
+				// drift (see matchesOriginal's comment) keeps feeding the
+				// bank crops of whatever the tracker has wandered onto,
+				// so a later genuine loss reacquires onto that same wrong
+				// spot instead of recovering the real target.
 				if score, known := memory.matchesOriginal(gray, bbox); !known || score >= memory.minScore {
 					memory.remember(gray, bbox)
-				} else if found, reacquired := memory.reacquire(gray); reacquired {
-					tracker.Close()
-					tracker = NewTracker()
-					tracker.Init(cap, found)
-					bbox = found
-					lastBbox = found
-					// Correct THIS frame's own already-recorded position
-					// too, so the fix takes effect immediately rather
-					// than one period (up to rememberEveryNFrames frames)
-					// late.
-					yPositions[len(yPositions)-1] = float64(found.Y) + float64(found.H)/2.0
-					xPositions[len(xPositions)-1] = float64(found.X) + float64(found.W)/2.0
-					memory.remember(gray, found)
 				}
-				// else: no good correction available either - keep
-				// tracking as-is rather than force a change with
-				// nothing better to go on, and don't remember this
-				// still-unverified crop.
 			}
 		}
 

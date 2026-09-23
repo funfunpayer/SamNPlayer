@@ -3,7 +3,6 @@
 package trackcv
 
 import (
-	"math"
 	"path/filepath"
 	"testing"
 )
@@ -132,45 +131,6 @@ func TestAppearanceMemoryMatchesOriginalNoTemplatesYetAllowsRemembering(t *testi
 
 	if score, ok := m.matchesOriginal(gray, Rect{X: 10, Y: 10, W: 20, H: 20}); ok {
 		t.Errorf("expected ok=false with no templates yet, got ok=true score=%.3f", score)
-	}
-}
-
-// TrackROI's periodic check (track.go) is a two-step active correction:
-// (1) matchesOriginal flags that the current box has drifted off target,
-// then (2) reacquire() is asked to find something better right then,
-// instead of waiting for CSRT to eventually report an outright loss
-// (which gradual drift, by construction, never does). This test proves
-// step 2 actually works once step 1 has fired: with the true target
-// still present elsewhere in the same frame, reacquire() must find it.
-func TestAppearanceMemoryActiveCorrectionRecoversTrueTarget(t *testing.T) {
-	const cx, cy, radius = 160, 120, 35
-	roi := Rect{X: cx - radius, Y: cy - radius, W: 2 * radius, H: 2 * radius}
-	gray := grayFrameFromVideo(t, func(buf []byte) {
-		fillCircle(buf, testW, testH, cx, cy, radius, 250, 250, 250)
-	})
-	defer gray.Close()
-
-	m := newAppearanceMemory()
-	defer m.close()
-	m.remember(gray, roi)
-
-	// Step 1: a box that has wandered off target, as gradual drift would
-	// produce - CSRT itself would still call this an "ok=true" update.
-	driftedBox := Rect{X: 0, Y: 0, W: 20, H: 20}
-	if score, known := m.matchesOriginal(gray, driftedBox); known && score >= m.minScore {
-		t.Fatalf("test setup: drifted box unexpectedly matched (score=%.3f)", score)
-	}
-
-	// Step 2: the correction itself - the true target is still right
-	// there in the frame, reacquire() must land back on it.
-	found, reacquired := m.reacquire(gray)
-	if !reacquired {
-		t.Fatal("reacquire() failed to recover the true target still present in the frame")
-	}
-	foundCx, foundCy := found.X+found.W/2, found.Y+found.H/2
-	dist := math.Hypot(float64(foundCx-cx), float64(foundCy-cy))
-	if dist > radius {
-		t.Errorf("reacquire() landed %.1fpx from the true circle center, want within its radius (%d)", dist, radius)
 	}
 }
 
