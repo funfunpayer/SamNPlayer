@@ -133,7 +133,9 @@ type Options struct {
 	PreferSimpletrack bool
 	// NativePipeline is retained for JSON/API compat and ignored for routing.
 	NativePipeline bool
-	// DetrendWindowMs / Bandpass* — FunGen/Flow-inspired post filters (0 = off).
+	// DetrendWindowMs / Bandpass* — FunGen/Flow-inspired post filters.
+	// Bandpass 0 = off. DetrendWindowMs 0 = automatic on stroke profiles
+	// (2x stroke period, see detrend_default.go), <0 = explicitly off.
 	DetrendWindowMs float64
 	BandpassLowHz   float64
 	BandpassHighHz  float64
@@ -873,6 +875,7 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 
 	opts = applyStrokePreview(ctx, videoPath, opts, onProgress)
 	logging.Info("generator: phase", "name", "stroke_preview", "ms", time.Since(phaseT0).Milliseconds())
+	opts = applyDefaultDetrend(opts, onProgress)
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
 		if NativeTrackingAvailable() {
