@@ -85,6 +85,18 @@ func EstimateCameraMotionY(prev, gray *Gray, exclude Rect) float64 {
 		C.int(exclude.X), C.int(exclude.Y), C.int(exclude.W), C.int(exclude.H)))
 }
 
+// FlowCells liefert die vertikale/horizontale Bewegung pro Gitterzelle
+// zwischen prev und gray (Farneback-Fluss minus Median = Kamerabewegung) in
+// Originalpixeln pro Frame, zeilenweise gw*gh Werte - Rohdaten fürs
+// Rhythmus-Gitter (rhythm_grid.go).
+func FlowCells(prev, gray *Gray, gw, gh int) (vx, vy []float32) {
+	vx = make([]float32, gw*gh)
+	vy = make([]float32, gw*gh)
+	C.Gray_FlowCells(prev.h, gray.h, C.int(gw), C.int(gh),
+		(*C.float)(unsafe.Pointer(&vx[0])), (*C.float)(unsafe.Pointer(&vy[0])))
+	return vx, vy
+}
+
 // ExtractTemplate entspricht AppearanceMemory._prepare()+Ausschnitt -
 // nil, wenn der Ausschnitt zu klein ist (Rand des Bilds, degenerierte Box).
 func (g *Gray) ExtractTemplate(box Rect, downscale float64) *Gray {

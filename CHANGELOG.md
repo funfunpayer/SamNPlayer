@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Rhythm grid (opt-in, Go CSRT)** — `Options.RhythmGrid` / CLI
+  `generate --rhythm-grid` / GUI backend field `rhythmGrid`: the stroke
+  signal comes from the most rhythmic optical-flow cell near the CSRT box
+  instead of the box's own motion, so gradual CSRT drift on long clips no
+  longer degrades the curve (the box only has to stay near the action).
+  Measured vs. both FunGen references (windowed r, production detrend):
+  `clip_voll` 0.386/0.552 → 0.415/0.656, `clip_ausschnitt` 0.449/0.712 →
+  0.466/0.877. ~+18% tracking time. Off by default — no GUI toggle yet.
+
 ## [0.5.29] — September 23, 2026
 
 ### Changed

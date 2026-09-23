@@ -307,3 +307,40 @@ func TestMain_videoWriterProducesReadableFile(t *testing.T) {
 		t.Fatalf("expected a non-empty video file, err=%v", err)
 	}
 }
+
+// RhythmGrid only swaps the stroke signal source: the curve must still follow
+// the real motion (ground-truth sine) and the CSRT trajectory must be
+// unchanged.
+func TestTrackROIRhythmGrid(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moving.mp4")
+	const amplitude, freq = 80.0, 1.2
+	writeMovingVideo(t, path, 12, amplitude, freq)
+	roi := Rect{X: 100, Y: 40, W: 120, H: 160}
+	base := Options{Axis: "y", CaptureTrajectory: true}
+	plain, err := TrackROI(path, roi, base)
+	if err != nil {
+		t.Fatalf("TrackROI: %v", err)
+	}
+	withGrid := base
+	withGrid.RhythmGrid = true
+	grid, err := TrackROI(path, roi, withGrid)
+	if err != nil {
+		t.Fatalf("TrackROI RhythmGrid: %v", err)
+	}
+	if len(grid.Positions) != len(grid.TimestampsMs) {
+		t.Fatalf("positions/timestamps: %d vs %d", len(grid.Positions), len(grid.TimestampsMs))
+	}
+	for i := range plain.TrajectoryA {
+		if plain.TrajectoryA[i] != grid.TrajectoryA[i] {
+			t.Fatalf("frame %d: trajectory changed %v -> %v", i, plain.TrajectoryA[i], grid.TrajectoryA[i])
+		}
+	}
+	truth := make([]float64, len(grid.Positions))
+	for i := range truth {
+		truth[i] = math.Sin(2 * math.Pi * freq * float64(i) / testFPS)
+	}
+	k := int(2 * testFPS)
+	if r := pearson(subtractRollingMean(grid.Positions, k), truth); r < 0.9 {
+		t.Errorf("rhythm-grid curve r=%.3f vs ground truth, want >= 0.9", r)
+	}
+}

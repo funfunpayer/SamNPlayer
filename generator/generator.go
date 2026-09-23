@@ -156,6 +156,11 @@ type Options struct {
 	// Debug Review/Play overlay). Off by default; honored on both Go CSRT
 	// (trackcv) and the simpletrack (NCC) fallback, not the Python path.
 	CaptureTrajectory bool
+	// RhythmGrid takes the stroke signal from the most rhythmic optical-
+	// flow cell near the CSRT box instead of the box's own motion - robust
+	// against gradual CSRT drift on long clips (trackcv/rhythm_grid.go).
+	// Opt-in; Go CSRT single-ROI stroke path only, ignored elsewhere.
+	RhythmGrid bool
 }
 
 func pythonCandidates() []string {

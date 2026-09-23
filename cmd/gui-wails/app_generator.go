@@ -111,6 +111,8 @@ type GenerateOptions struct {
 	// CaptureTrajectory: opt-in raw tip/partner (x,y) recording for the
 	// Review/Play MT-Debug trajectory overlay. Off by default; Go CSRT only.
 	CaptureTrajectory bool `json:"captureTrajectory"`
+	// RhythmGrid: opt-in drift-robust stroke signal (Go CSRT single ROI).
+	RhythmGrid bool `json:"rhythmGrid"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -342,6 +344,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			StartTimeSec:              opts.StartTimeSec,
 			FlowDownscale:             opts.FlowDownscale,
 			CaptureTrajectory:         opts.CaptureTrajectory,
+			RhythmGrid:                opts.RhythmGrid,
 			DetrendWindowMs:           0,
 			BandpassLowHz:             0,
 			BandpassHighHz:            0,

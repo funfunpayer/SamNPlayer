@@ -180,6 +180,34 @@ int Gray_MatchTemplate(MatHandle frame, MatHandle tmpl, int *outX, int *outY, do
     return 1;
 }
 
+void Gray_FlowCells(MatHandle prevGray, MatHandle gray, int gw, int gh,
+                    float *outVx, float *outVy) {
+    const int fw = 320;
+    int w = prevGray->mat.cols, h = prevGray->mat.rows;
+    int fh = std::max(1, (int)std::lround((double)fw * h / w));
+    cv::Mat a, b, flow;
+    cv::resize(prevGray->mat, a, cv::Size(fw, fh), 0, 0, cv::INTER_AREA);
+    cv::resize(gray->mat, b, cv::Size(fw, fh), 0, 0, cv::INTER_AREA);
+    cv::calcOpticalFlowFarneback(a, b, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+
+    // Subtract the per-frame median flow: camera pans/shake move every cell
+    // alike and must not count as stroke rhythm.
+    std::vector<cv::Mat> ch(2);
+    cv::split(flow, ch);
+    double scale = (double)w / fw;
+    for (int c = 0; c < 2; c++) {
+        std::vector<float> v(ch[c].begin<float>(), ch[c].end<float>());
+        std::nth_element(v.begin(), v.begin() + v.size() / 2, v.end());
+        float med = v[v.size() / 2];
+        cv::Mat cells;
+        cv::resize(ch[c] - med, cells, cv::Size(gw, gh), 0, 0, cv::INTER_AREA);
+        float *out = c == 0 ? outVx : outVy;
+        for (int y = 0; y < gh; y++)
+            for (int x = 0; x < gw; x++)
+                out[y * gw + x] = (float)(cells.at<float>(y, x) * scale);
+    }
+}
+
 TrackerHandle Tracker_Create(void) {
     Tracker_ *t = new Tracker_();
     t->tracker = cv::TrackerCSRT::create();

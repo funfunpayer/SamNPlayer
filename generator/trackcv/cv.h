@@ -82,6 +82,15 @@ MatHandle Gray_Downscale(MatHandle gray, double downscale);
 // größer als der Suchrahmen ist (kein Versuch).
 int Gray_MatchTemplate(MatHandle frame, MatHandle tmpl, int *outX, int *outY, double *outScore);
 
+// --- Rhythmus-Gitter (siehe rhythm_grid.go) --------------------------------
+
+// Dichter optischer Fluss (Farneback, auf 320px Breite verkleinert) zwischen
+// zwei Graubildern, abzüglich des Median-Flusses (Kamerabewegung), gemittelt
+// auf ein gw x gh Zellgitter. Schreibt gw*gh Werte (zeilenweise, in
+// Originalpixeln pro Frame) nach outVx/outVy.
+void Gray_FlowCells(MatHandle prevGray, MatHandle gray, int gw, int gh,
+                    float *outVx, float *outVy);
+
 // --- CSRT-Tracker ------------------------------------------------------------
 
 TrackerHandle Tracker_Create(void);
