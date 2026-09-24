@@ -83,6 +83,7 @@ export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFu
 export function OpenLogFolder() { return window['go']['main']['App']['OpenLogFolder'](); }
 export function PickBenchmarkManifest() { return window['go']['main']['App']['PickBenchmarkManifest'](); }
 export function PickFunscriptFile() { return window['go']['main']['App']['PickFunscriptFile'](); }
+export function PickPlaybackProject() { return window['go']['main']['App']['PickPlaybackProject'](); }
 export function PickReportPath() { return window['go']['main']['App']['PickReportPath'](); }
 export function PickVideoFile() { return window['go']['main']['App']['PickVideoFile'](); }
 export function QualityModelInfo() { return window['go']['main']['App']['QualityModelInfo'](); }
@@ -143,12 +144,12 @@ export function EnsurePlayablePlaybackVideo() { return window['go']['main']['App
 export function EnsureVideoTools() { return window['go']['main']['App']['EnsureVideoTools'](); }
 export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
 export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
+export function LoadPlaybackProject(arg1) { return window['go']['main']['App']['LoadPlaybackProject'](arg1); }
 export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }
 export function EditDeleteRange(arg1, arg2) { return window['go']['main']['App']['EditDeleteRange'](arg1, arg2); }
+export function EditScaleRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3); }
 export function SnapTimeMs(arg1, arg2) { return window['go']['main']['App']['SnapTimeMs'](arg1, arg2); }
 export function GetScriptBookmarks() { return window['go']['main']['App']['GetScriptBookmarks'](); }
 export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }
 export function GetScriptChapterMarks() { return window['go']['main']['App']['GetScriptChapterMarks'](); }
 export function SaveScriptChapterMarks(arg1) { return window['go']['main']['App']['SaveScriptChapterMarks'](arg1); }
-export function LoadPlaybackProject(arg1) { return window['go']['main']['App']['LoadPlaybackProject'](arg1); }
-export function EditScaleRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3); }

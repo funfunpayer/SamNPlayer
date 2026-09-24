@@ -145,6 +145,8 @@ export function PickBenchmarkManifest():Promise<string>;
 
 export function PickFunscriptFile():Promise<string>;
 
+export function PickPlaybackProject():Promise<string>;
+
 export function PickReportPath():Promise<string>;
 
 export function PickVideoFile():Promise<string>;

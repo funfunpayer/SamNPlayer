@@ -16,6 +16,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play — Load project + Scale range in GUI** — `.snp.json` Save already existed;
+  Load project (picker + restore script/video/offset/seek/loop) and Scale range ×0.8
+  now wire the existing Go APIs. Owner rule: shipped functions must load in the GUI.
 - **G1.2 — QD fail + clear audio Hz hint** — when Signal Quality fails and audio
   tempo is readable, Generate appends English *“Audio suggests ~X Hz — check ROI /
   axis”* (Go + Python). Warn only; never rewrites the curve. Audio mismatch

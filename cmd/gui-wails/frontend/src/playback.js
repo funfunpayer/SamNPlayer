@@ -5,7 +5,8 @@ import {
   GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
-  ExportScriptHeatmapPNG, SavePlaybackProject, EditCapSpeedRange, EditDeleteRange, SnapTimeMs,
+  ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
+  EditCapSpeedRange, EditDeleteRange, EditScaleRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
@@ -185,7 +186,9 @@ export function initPlayback(root) {
         <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
           <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
           <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
+          <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
           <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection">Speed-cap selection</button>
+          <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (×0.8)">Scale range ×0.8</button>
           <button type="button" id="pb-del-range" title="Delete points in the heatmap selection">Delete range</button>
           <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
             data-help="If >0: seeks and new curve points snap to frame grid (ms). 0 = off.">
@@ -1811,14 +1814,50 @@ export function initPlayback(root) {
     el('#pb-offset-row').style.display = 'flex';
     el('#pb-offset-hint').style.display = 'block';
     GetScriptOffset().then(v => { el('#pb-offset').value = v || 0; }).catch(() => {});
+    if (opts.project) {
+      await applyPlaybackProject(opts.project);
+    }
     if (opts.review) {
       log('Freshly generated — soft curve + dots visible. Enable “Edit curve (dots)” to adjust points.');
       if (showContact) {
         el('#pb-contact-block').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
-    } else if (!info.hasVideo) {
+    } else if (!info.hasVideo && !(opts.project && opts.project.videoPath)) {
       log('Script loaded without video — Play drives device + curve only.');
     }
+  }
+
+  async function applyPlaybackProject(p) {
+    if (!p || typeof p !== 'object') return;
+    if (typeof p.offsetMs === 'number') {
+      await applyOffset(p.offsetMs);
+    }
+    if (p.loopMarker && typeof p.loopMarker.startMs === 'number' && typeof p.loopMarker.endMs === 'number') {
+      marker = { startMs: p.loopMarker.startMs, endMs: p.loopMarker.endMs };
+      updateMarkerHint();
+      redrawHeatmap();
+    }
+    const wantVideo = (p.videoPath || '').trim();
+    if (wantVideo && wantVideo !== videoPath) {
+      try {
+        const url = await SetPlaybackVideo(wantVideo);
+        videoPath = wantVideo;
+        videoEl.src = url;
+        const stage = el('#pb-video-stage');
+        stage.classList.add('has-video');
+        stage.classList.remove('no-video');
+        el('#pb-video-sync-row').style.display = 'flex';
+        el('#pb-video-autostart-row').style.display = 'flex';
+        el('#pb-trajectory-row').style.display = 'flex';
+        await refreshVideoPlayability(wantVideo);
+      } catch (err) {
+        uiWarn('Project video: ' + err);
+      }
+    }
+    if (typeof p.seekMs === 'number' && p.seekMs > 0) {
+      await seekTo(p.seekMs);
+    }
+    ofsStatus('Project loaded');
   }
 
   function nextPlaylistIndexAfterAdvance() {
@@ -2122,6 +2161,25 @@ export function initPlayback(root) {
       uiError('Project: ' + err, el('#pb-ofs-status'));
     }
   });
+  el('#pb-project-load')?.addEventListener('click', async () => {
+    try {
+      const path = await PickPlaybackProject();
+      restoreKeyboardFocus();
+      if (!path) return;
+      const project = await LoadPlaybackProject(path);
+      const script = (project && project.scriptPath) || '';
+      if (!script) {
+        uiError('Project has no script path', el('#pb-ofs-status'));
+        return;
+      }
+      replacePlaylist([script], 0);
+      await loadScript(script, { keepPlaylist: true, project });
+      ofsStatus('Project: ' + path);
+      uiInfo('Project loaded: ' + path);
+    } catch (err) {
+      uiError('Load project: ' + err, el('#pb-ofs-status'));
+    }
+  });
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {
       uiWarn('Mark a range on the heatmap first.');
@@ -2134,6 +2192,19 @@ export function initPlayback(root) {
       await reloadAfterRangeEdit();
     } catch (err) {
       uiError('Speed cap: ' + err, el('#pb-ofs-status'));
+    }
+  });
+  el('#pb-scale-range')?.addEventListener('click', async () => {
+    if (!marker) {
+      uiWarn('Mark a range on the heatmap first.');
+      return;
+    }
+    try {
+      await EditScaleRange(marker.startMs, marker.endMs, 0.8);
+      ofsStatus('Scale ×0.8 applied');
+      await reloadAfterRangeEdit();
+    } catch (err) {
+      uiError('Scale: ' + err, el('#pb-ofs-status'));
     }
   });
   el('#pb-del-range')?.addEventListener('click', async () => {
