@@ -170,6 +170,10 @@ export function ScriptChapters():Promise<Array<motionx.Chapter>>;
 
 export function ScriptExistsForVideo(arg1:string):Promise<boolean>;
 
+export function ScanSceneMap(arg1:string,arg2:number):Promise<generator.SceneMapDTO>;
+
+export function SceneMapAvailable():Promise<boolean>;
+
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;

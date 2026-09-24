@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -205,6 +205,11 @@ export function initGenerator(root, playback) {
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Takes the stroke signal from the most rhythmic motion cell near the tracked box instead of the box itself. More robust when CSRT slowly drifts off target on long clips — the box only has to stay near the action. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (anti-drift, long clips)</label></div>
+          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="secondary" id="gen-scene-map" disabled
+              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner). Map drawing/marks = later Advanced step.">Show scene map</button>
+            <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
+          </div>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
@@ -311,6 +316,7 @@ export function initGenerator(root, playback) {
   const ctx = canvas.getContext('2d');
 
   let videoPath = null;
+  let lastSceneMap = null;
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in videopixeln
@@ -691,6 +697,41 @@ export function initGenerator(root, playback) {
     }
     el('#gen-generate').disabled = generating;
     syncWorkflowSteps();
+  }
+
+  let sceneMapAvailable = false;
+
+  function updateSceneMapButton() {
+    const btn = el('#gen-scene-map');
+    if (!btn) return;
+    // Explicit Advanced control only (Owner § 6) — needs video + OpenCV path.
+    btn.disabled = !videoPath || !sceneMapAvailable || generating;
+  }
+
+  async function runSceneMapScan() {
+    if (!videoPath || !sceneMapAvailable) return;
+    const btn = el('#gen-scene-map');
+    const status = el('#gen-scene-map-status');
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = 'Scanning rhythm map…';
+    try {
+      const map = await ScanSceneMap(videoPath, 0);
+      lastSceneMap = map || null;
+      const n = Array.isArray(map?.windows) ? map.windows.length : 0;
+      const grid = map?.cols && map?.rows ? `${map.cols}×${map.rows}` : '';
+      if (status) {
+        status.textContent = n
+          ? `Map ready: ${n} windows${grid ? ` · ${grid}` : ''} (marks/draw = later)`
+          : 'Map scan returned no windows.';
+      }
+      uiInfo(status?.textContent || 'Scene map scan done.', el('#gen-status'));
+    } catch (err) {
+      lastSceneMap = null;
+      if (status) status.textContent = '';
+      uiError('Scene map: ' + err, el('#gen-status'));
+    } finally {
+      updateSceneMapButton();
+    }
   }
 
   let contactUserOverride = false;
@@ -1172,6 +1213,9 @@ export function initGenerator(root, playback) {
 
   async function loadVideo(path, extraCount = 0) {
     videoPath = path;
+    lastSceneMap = null;
+    const smStatus = el('#gen-scene-map-status');
+    if (smStatus) smStatus.textContent = '';
     seekSec = 0;
     el('#gen-seek').value = '0';
     el('#gen-seek').disabled = false;
@@ -1209,6 +1253,7 @@ export function initGenerator(root, playback) {
       syncNoMarkButton();
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
+      updateSceneMapButton();
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
         'Everyday path: finding tip region for CSRT. Contact marks appear when Contact vib is on.'
@@ -1279,9 +1324,10 @@ export function initGenerator(root, playback) {
     // Everyday: no tip yet + CSRT → auto-find then continue.
     if (backendNeedsRoi() && !roi) {
       pendingGenerateAfterRoi = true;
-      generating = true;
-      el('#gen-generate').disabled = true;
-      el('#gen-cancel').disabled = false;
+    generating = true;
+    el('#gen-generate').disabled = true;
+    el('#gen-cancel').disabled = false;
+    updateSceneMapButton();
       el('#gen-status').textContent = 'No tip yet — finding region, then creating…';
       syncWorkflowSteps();
       startAutoFindRegion();
@@ -1307,6 +1353,7 @@ export function initGenerator(root, playback) {
     generating = true;
     userCancelRequested = false;
     syncWorkflowSteps();
+    updateSceneMapButton();
     el('#gen-status').textContent = 'Creating…';
     el('#gen-log').textContent = '';
     {
@@ -1448,6 +1495,7 @@ export function initGenerator(root, playback) {
       generating = false;
       el('#gen-cancel').disabled = true;
       updateGenerateEnabled();
+      updateSceneMapButton();
       syncWorkflowSteps();
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
       return;
@@ -1615,6 +1663,7 @@ export function initGenerator(root, playback) {
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
     el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
+    updateSceneMapButton();
     syncWorkflowSteps();
     if (result.error) {
       if (result.cancelled) {
@@ -1753,6 +1802,14 @@ export function initGenerator(root, playback) {
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
+  el('#gen-scene-map')?.addEventListener('click', runSceneMapScan);
+  SceneMapAvailable().then((ok) => {
+    sceneMapAvailable = !!ok;
+    updateSceneMapButton();
+  }).catch(() => {
+    sceneMapAvailable = false;
+    updateSceneMapButton();
+  });
   el('#gen-seek-btn').addEventListener('click', () => seekTo(parseFloat(el('#gen-seek').value) || 0));
   el('#gen-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#gen-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
