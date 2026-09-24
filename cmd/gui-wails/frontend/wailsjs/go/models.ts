@@ -594,6 +594,34 @@ export namespace generator {
 		    return a;
 		}
 	}
+	export class LearningExportResult {
+	    outDir: string;
+	    windows: number;
+	    negatives: number;
+	    autoCandidates: number;
+	    userRegionMarks: number;
+	    tracePath: string;
+	    negativesPath: string;
+	    autoPath: string;
+	    userRegionsPath: string;
+
+	    static createFrom(source: any = {}) {
+	        return new LearningExportResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.outDir = source["outDir"];
+	        this.windows = source["windows"];
+	        this.negatives = source["negatives"];
+	        this.autoCandidates = source["autoCandidates"];
+	        this.userRegionMarks = source["userRegionMarks"];
+	        this.tracePath = source["tracePath"];
+	        this.negativesPath = source["negativesPath"];
+	        this.autoPath = source["autoPath"];
+	        this.userRegionsPath = source["userRegionsPath"];
+	    }
+	}
 	export class ScriptQualityResult {
 	    score: number;
 	    passed: boolean;
@@ -1243,6 +1271,7 @@ export namespace main {
 	    defaultDiagnosticsHistoryPath: string;
 	    roiDatasetDir: string;
 	    defaultRoiDatasetDir: string;
+	    collectLearningData: boolean;
 
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -1288,6 +1317,7 @@ export namespace main {
 	        this.defaultDiagnosticsHistoryPath = source["defaultDiagnosticsHistoryPath"];
 	        this.roiDatasetDir = source["roiDatasetDir"];
 	        this.defaultRoiDatasetDir = source["defaultRoiDatasetDir"];
+	        this.collectLearningData = source["collectLearningData"];
 	    }
 	}
 	export class TrainingRequest {

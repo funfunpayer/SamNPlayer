@@ -30,15 +30,15 @@ type LearningExportOptions struct {
 
 // LearningExportResult is a short summary of what was written.
 type LearningExportResult struct {
-	OutDir          string
-	Windows         int
-	Negatives       int
-	AutoCandidates  int
-	UserRegionMarks int
-	TracePath       string
-	NegativesPath   string
-	AutoPath        string
-	UserRegionsPath string
+	OutDir          string `json:"outDir"`
+	Windows         int    `json:"windows"`
+	Negatives       int    `json:"negatives"`
+	AutoCandidates  int    `json:"autoCandidates"`
+	UserRegionMarks int    `json:"userRegionMarks"`
+	TracePath       string `json:"tracePath"`
+	NegativesPath   string `json:"negativesPath"`
+	AutoPath        string `json:"autoPath"`
+	UserRegionsPath string `json:"userRegionsPath"`
 }
 
 // DefaultSceneMapLearningDir is …/roi_training_dataset/scene_map_learning.

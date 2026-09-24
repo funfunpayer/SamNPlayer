@@ -27,6 +27,8 @@ const (
 	prefBenchmarkHistoryPath = "generator.benchmarkHistoryPath"
 	prefDiagnosticsHistory   = "device.diagnosticsHistoryPath"
 	prefRoiDatasetDir        = "generator.roiTrainingDatasetDir"
+	// prefCollectLearningData: SceneMap P5 — local L0 collect (default OFF).
+	prefCollectLearningData = "generator.collectLearningData"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -152,6 +154,10 @@ type Settings struct {
 	// analog zu DefaultBenchmarkHistoryPath.
 	RoiDatasetDir        string `json:"roiDatasetDir"`
 	DefaultRoiDatasetDir string `json:"defaultRoiDatasetDir"`
+
+	// CollectLearningData: SceneMap P5 — write scene_map_learning JSON locally.
+	// Default false (Owner: opt-in only). Never uploads; never YOLO train write.
+	CollectLearningData bool `json:"collectLearningData"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -204,6 +210,8 @@ func (a *App) GetSettings() Settings {
 
 		RoiDatasetDir:        s.GetString(prefRoiDatasetDir, ""),
 		DefaultRoiDatasetDir: generator.DefaultRoiDatasetDir(),
+
+		CollectLearningData: s.GetBool(prefCollectLearningData, false),
 	}
 }
 

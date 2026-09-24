@@ -118,7 +118,7 @@ From the binary: Settings / or later “Export requirements” —
 | What | Typical path |
 |------|----------------|
 | Dataset | `%AppData%/SamNPlayer/roi_training_dataset` or `~/.config/SamNPlayer/…` |
-| Scene-map learning (P5a) | `<dataset>/scene_map_learning/` — JSON/JSONL only; **not** YOLO train |
+| Scene-map learning (P5) | `<dataset>/scene_map_learning/` — JSON/JSONL only; **not** YOLO train |
 | Model | `%LOCALAPPDATA%/SamNPlayer/models/roi_detector.onnx` |
 | Checkpoints | `<dataset>/runs/samnplayer_roi/weights/best.pt` |
 | Audio (optional) | `<dataset>/audio/*.wav` — not used in training yet |
@@ -132,12 +132,13 @@ python generator/bootstrap_yolo_dataset.py \
   --video clip.mp4 --roi x,y,w,h --class-name hand \
   --output-dir ~/.config/SamNPlayer/roi_training_dataset
 
-# SceneMap P5a — L0 collect from companion .samn (requires --opt-in; default off)
+# SceneMap P5 — L0 collect from companion .samn (CLI --opt-in, or GUI Settings
+# Collect learning data + Create → Export for learning). Default off.
 SamNPlayer export-learning clip.samn --opt-in \
   --output-dir ~/.config/SamNPlayer/roi_training_dataset/scene_map_learning
 # auto_candidates.jsonl stays reviewed:false until you review — not for train_yolo yet
 SamNPlayer export-learning --delete
-
+# GUI: Settings → Delete learning data (same subdir only)
 python generator/train_yolo_model.py \
   --dataset-dir ~/.config/SamNPlayer/roi_training_dataset \
   --output ~/.config/SamNPlayer/models/roi_detector.onnx \

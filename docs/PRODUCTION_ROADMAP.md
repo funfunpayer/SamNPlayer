@@ -94,7 +94,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
 | **v0.5.31** | Shipped | Profilemodel #244 + semantic target lock #248 + SceneMap P1/P2 #246/#247 + BF-3 Stage B #239 |
-| next | After Rel31 | Owner: ≥4–5 rhythm-grid clips; G1.1 after speed-cap; SceneMap P3 marks→engine |
+| next | After Rel31 | Owner: ≥4–5 rhythm-grid clips; G1.1 after speed-cap; SceneMap P5b [#256](https://github.com/funfunpayer/SamNPlayer/pull/256). **HW:** Neo 2 smoke OK 24 Sep (G2.1) — G2.2+ parked |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
@@ -197,7 +197,7 @@ Chain (do not skip):
 
 | ID | Item | Prerequisites | Your test |
 |----|------|---------------|-----------|
-| G2.1 | Device diagnostics on **real** Neo 2 (already coded; needs hardware) | Device + you | Device tab → Diagnose; save JSONL |
+| G2.1 | Device diagnostics on **real** Neo 2 (already coded; needs hardware) | Device + you | **Owner smoked OK 24 Sep** — Connect / Play feel good; further raw-profile (G2.2) parked until Owner opens |
 | G2.2 | Per-channel raw-value profile (resolution, accept range, interaction) | G2.1 | Note feel vs log; issue `test: neo2-raw` |
 | G2.3 | Intent → raw mapping for Tf/Tj + Hub (suction floor, contact vib, Extended-O) measured, not guessed | G2.2 + G1 exit | Same script: before/after feel notes |
 | G2.4 | Keep Signal Quality ≠ Motion Fidelity in reports when mapping changes | G2.3 | Labels still correct in GUI |
