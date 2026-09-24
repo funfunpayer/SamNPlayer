@@ -93,7 +93,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.28** | Shipped | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
-| next | After Rel30 | Owner: ≥4–5 rhythm-grid clips; Cursor G1 inventory (this) → G1.1 tune after Owner speed-cap call; residual CSRT drift = detector path |
+| **v0.5.31** | Shipped | Profilemodel #244 + semantic target lock #248 + SceneMap P1/P2 #246/#247 + BF-3 Stage B #239 |
+| next | After Rel31 | Owner: ≥4–5 rhythm-grid clips; G1.1 after speed-cap; SceneMap P3 marks→engine |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

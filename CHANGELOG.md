@@ -8,9 +8,28 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.31] — September 24, 2026
+
+### Added
+
+- **Local Go motion-profile learning** (#244) — `generator/profilemodel` trains
+  per-style centroids from motion signatures; AI Training tab can train/refresh;
+  Create suggestions stay suggest-only (Apply required).
+- **Semantic target lock** (#248) — strict expected body-point ONNX proposal
+  (no wrong-class fallback; Apply target required) + rhythm-grid seed lock so a
+  stronger neighbour (e.g. thigh) cannot take the stroke signal.
+- **SceneMap P1+P2** (#246/#247) — Advanced *Show scene map* heatmap scan;
+  window slider, overlay toggle, exclude/source/region marks scoped to the
+  current map window (marks do not Generate; engine consume = P3).
+
 ### Changed
 
-- **Stroke preview Stage B steers** — high cut rate enables “Re-find region after each cut” (`PerSceneROI`) for the current Create run; high pan-like energy re-enables camera motion compensation when it was off. GUI Advanced checkboxes stay in sync. Peak spacing remains advisory-only (BF-3).
+- **Stroke preview Stage B steers** (#239) — high cut rate enables “Re-find
+  region after each cut” (`PerSceneROI`) for the current Create run; high
+  pan-like energy re-enables camera motion compensation when it was off. GUI
+  Advanced checkboxes stay in sync. Peak spacing remains advisory-only (BF-3).
+- **Rhythm-robust signal** help text — documents target-locked cell identity
+  (pairs with #248).
 
 ## [0.5.30] — September 23, 2026
 

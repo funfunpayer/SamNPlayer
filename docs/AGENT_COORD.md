@@ -136,7 +136,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (24 Sep):**
-- **Release branch (this):** #244 + #248 finished + #247 SceneMap P2 — merge to main then tag **v0.5.31**.
+- **Rel31 THIS:** #244 + #248 + #247 (+ Stage B already on main) — merging; tag **v0.5.31**.
 - **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next: SceneMap **P3** engine consume marks.
 
 **Status board (23 Sep night):**
