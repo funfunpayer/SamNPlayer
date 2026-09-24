@@ -52,6 +52,10 @@ type Options struct {
 	// Opt-in: costs a Farneback flow per frame (measured ~+18% runtime).
 	// When on, Result.SceneMap is filled as a free by-product (P1 / SceneMap plan).
 	RhythmGrid bool
+	// SceneMarks filter rhythm-grid candidates and punch camera-motion
+	// features (M3). Soft MaskROIs should be converted to kind=exclude
+	// marks at the call site before TrackROI.
+	SceneMarks []SceneMark
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -281,7 +285,9 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			if isCut {
 				cameraDyCumulative = append(cameraDyCumulative, 0.0)
 			} else {
-				dy := EstimateCameraMotionY(prevGray, gray, lastBbox)
+				excludes := cameraExcludeRects(lastBbox, opts.SceneMarks,
+					int64(float64(frameIdx)*1000.0/fps))
+				dy := EstimateCameraMotionYExcludes(prevGray, gray, excludes)
 				if dy == 0.0 {
 					cameraFramesLost++
 				}
@@ -344,8 +350,8 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			cellV = flowX
 		}
 		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
-		positions, sceneMap = rhythmGridPositionsWithMap(cellV, rhythmGridCols, gridRows, width, height,
-			xPositions, yPositions, positions, seed, sceneCuts, fps)
+		positions, sceneMap = rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
+			xPositions, yPositions, positions, seed, sceneCuts, fps, opts.SceneMarks)
 	}
 
 	confidence := 0.0

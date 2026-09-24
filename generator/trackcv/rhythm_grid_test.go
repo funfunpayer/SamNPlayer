@@ -360,3 +360,147 @@ func TestScoreWindowsQuickScanNoBox(t *testing.T) {
 		}
 	}
 }
+
+// P3: exclude mark skips a high-scoring thigh cell so the search lands on the tip.
+func TestRhythmGridExcludeSkipsHighScoringThigh(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.0, 24 * 40
+	target := 5*16 + 7
+	thigh := target + 1
+	cellV, _ := synthClip(frames, fps, hz, target, thigh, 1)
+	tx, ty := cellCenter(thigh) // box sits on the thigh (closer than tip)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = tx, ty
+		anchor[i] = ty
+	}
+	// No seed → radius search around the box; thigh wins by distance.
+	emptySeed := rhythmSeed{}
+	_, without := rhythmGridPositionsWithMapMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		emptySeed, nil, fps, nil)
+	if len(without.Windows) == 0 {
+		t.Fatal("expected windows")
+	}
+	pickedThigh := false
+	for _, w := range without.Windows {
+		if w.ChosenCell == thigh {
+			pickedThigh = true
+			break
+		}
+	}
+	if !pickedThigh {
+		t.Fatalf("precondition: without exclude expected thigh cell %d among chosen, got %+v",
+			thigh, chosenCells(without))
+	}
+
+	thx, thy := cellCenter(thigh)
+	exclude := []SceneMark{{
+		Kind: "exclude", ID: "thigh",
+		Rect: Rect{X: int(thx) - 40, Y: int(thy) - 40, W: 80, H: 80},
+	}}
+	_, withEx := rhythmGridPositionsWithMapMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		emptySeed, nil, fps, exclude)
+	for _, w := range withEx.Windows {
+		if w.ChosenCell == thigh {
+			t.Fatalf("exclude must skip thigh cell %d, window marks=%v chosen=%d",
+				thigh, w.Marks, w.ChosenCell)
+		}
+		if len(w.Marks) != 1 || w.Marks[0] != "thigh" {
+			t.Errorf("expected Marks=[thigh], got %v", w.Marks)
+		}
+	}
+	pickedTarget := false
+	for _, w := range withEx.Windows {
+		if w.ChosenCell == target {
+			pickedTarget = true
+			break
+		}
+	}
+	if !pickedTarget {
+		t.Fatalf("with exclude expected tip cell %d among chosen, got %+v",
+			target, chosenCells(withEx))
+	}
+}
+
+// P3: source hint prefers the hinted cell when its score is ≥ 0.5× best outside.
+func TestRhythmGridSourceHintPreference(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.0, 24 * 40
+	near := 5*16 + 7   // closer to box, weaker rhythm
+	hinted := near + 2 // farther, stronger rhythm (distractor amp)
+	cellV, _ := synthClip(frames, fps, hz, near, hinted, 1)
+	// Boost the "near" cell as the seed target signal; synthClip already
+	// puts stronger motion on distractor (hinted).
+	nx, ny := cellCenter(near)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = nx, ny
+		anchor[i] = ny
+	}
+	emptySeed := rhythmSeed{}
+	hx, hy := cellCenter(hinted)
+	source := []SceneMark{{
+		Kind: "source", ID: "stroke",
+		Rect: Rect{X: int(hx) - 40, Y: int(hy) - 40, W: 80, H: 80},
+	}}
+	_, withSrc := rhythmGridPositionsWithMapMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		emptySeed, nil, fps, source)
+	pickedHint := false
+	for _, w := range withSrc.Windows {
+		if w.ChosenCell == hinted {
+			pickedHint = true
+		}
+		if len(w.Marks) != 1 || w.Marks[0] != "stroke" {
+			t.Errorf("expected Marks=[stroke], got %v", w.Marks)
+		}
+	}
+	if !pickedHint {
+		t.Fatalf("source hint should prefer hinted cell %d, got %+v",
+			hinted, chosenCells(withSrc))
+	}
+
+	// Without the hint, distance-to-box picks the nearer cell.
+	_, noSrc := rhythmGridPositionsWithMapMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		emptySeed, nil, fps, nil)
+	pickedNear := false
+	for _, w := range noSrc.Windows {
+		if w.ChosenCell == near {
+			pickedNear = true
+			break
+		}
+	}
+	if !pickedNear {
+		t.Fatalf("precondition: without source expected near cell %d, got %+v",
+			near, chosenCells(noSrc))
+	}
+}
+
+// P3: nil SceneMarks keep the pre-M3 curve bit-identical.
+func TestRhythmGridMarksNilBitIdentical(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.1, 24 * 40
+	target := 5*16 + 8
+	cellV, stroke := synthClip(frames, fps, hz, target, -1, -1)
+	tx, ty := cellCenter(target)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = tx, ty
+		anchor[i] = ty + 0.4*stroke[i]
+	}
+	seed := seedAtCell(target)
+	a := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, seed, nil, fps)
+	b := rhythmGridPositionsMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor, seed, nil, fps, nil)
+	if len(a) != len(b) {
+		t.Fatalf("len %d vs %d", len(a), len(b))
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			t.Fatalf("frame %d: %v != %v", i, a[i], b[i])
+		}
+	}
+}
+
+func chosenCells(m SceneMap) []int {
+	var out []int
+	for _, w := range m.Windows {
+		out = append(out, w.ChosenCell)
+	}
+	return out
+}

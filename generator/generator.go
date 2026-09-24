@@ -114,7 +114,12 @@ type Options struct {
 	// Distance signal = min(tip, ROI2, ExtraTargets…). Defaults to fixed.
 	ExtraTargets []NamedROI
 	// MaskROIs soft-exclude boxes (feature mask punch-outs); not distance drivers.
-	MaskROIs              []ROI
+	// With RhythmGrid on the Go single-ROI path they become exclude SceneMarks
+	// (M3); without RhythmGrid they still force the Python path.
+	MaskROIs []ROI
+	// SceneMarks are Advanced scene-map annotations (exclude/source/region)
+	// honoured by the rhythm grid and camera punch-outs when RhythmGrid is on.
+	SceneMarks            []SceneMark
 	AIQualityOpinion      bool
 	AIBaseURL             string
 	ContactVibration      bool
@@ -161,6 +166,18 @@ type Options struct {
 	// against gradual CSRT drift on long clips (trackcv/rhythm_grid.go).
 	// Opt-in; Go CSRT single-ROI stroke path only, ignored elsewhere.
 	RhythmGrid bool
+}
+
+// SceneMark is an Advanced scene-map annotation passed into Generate (M3).
+// Kind: exclude | source | region. Rect is pixel-space; FromMs/ToMs both 0
+// means the whole clip.
+type SceneMark struct {
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Rect   ROI    `json:"rect"`
+	FromMs int64  `json:"fromMs"`
+	ToMs   int64  `json:"toMs"`
+	Class  string `json:"class,omitempty"`
 }
 
 func pythonCandidates() []string {

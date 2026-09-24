@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **SceneMap P3 — engine honours marks** — rhythm-grid `chooseAndStitch` skips
+  cells inside active `exclude` marks and prefers `source` hints (unless score
+  < 0.5× best outside); soft `MaskROIs` stay on the Go path when RhythmGrid
+  is on (single-ROI) with camera multi-exclude punch-outs; Generate accepts
+  `sceneMapMarks` from Advanced.
+
 ## [0.5.31] — September 24, 2026
 
 ### Added

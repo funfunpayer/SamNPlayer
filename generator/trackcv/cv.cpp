@@ -98,15 +98,18 @@ double Gray_SignatureDiff(MatHandle a, MatHandle b) {
     return cv::mean(diff)[0];
 }
 
-double EstimateCameraMotionY(MatHandle prevGray, MatHandle gray,
-                              int exX, int exY, int exW, int exH) {
+double EstimateCameraMotionYExcludes(MatHandle prevGray, MatHandle gray,
+                                      const int *exX, const int *exY,
+                                      const int *exW, const int *exH, int n) {
     int h = prevGray->mat.rows, w = prevGray->mat.cols;
     cv::Mat mask = cv::Mat::ones(h, w, CV_8U) * 255;
     int pad = 10;
-    int x0 = std::max(0, exX - pad), y0 = std::max(0, exY - pad);
-    int x1 = std::min(w, exX + exW + pad), y1 = std::min(h, exY + exH + pad);
-    if (x1 > x0 && y1 > y0) {
-        mask(cv::Rect(x0, y0, x1 - x0, y1 - y0)).setTo(0);
+    for (int i = 0; i < n; i++) {
+        int x0 = std::max(0, exX[i] - pad), y0 = std::max(0, exY[i] - pad);
+        int x1 = std::min(w, exX[i] + exW[i] + pad), y1 = std::min(h, exY[i] + exH[i] + pad);
+        if (x1 > x0 && y1 > y0) {
+            mask(cv::Rect(x0, y0, x1 - x0, y1 - y0)).setTo(0);
+        }
     }
 
     std::vector<cv::Point2f> prevPts;
@@ -131,6 +134,11 @@ double EstimateCameraMotionY(MatHandle prevGray, MatHandle gray,
     cv::Mat transform = cv::estimateAffinePartial2D(goodPrev, goodCurr, inliers, cv::RANSAC);
     if (transform.empty()) return 0.0;
     return transform.at<double>(1, 2);
+}
+
+double EstimateCameraMotionY(MatHandle prevGray, MatHandle gray,
+                              int exX, int exY, int exW, int exH) {
+    return EstimateCameraMotionYExcludes(prevGray, gray, &exX, &exY, &exW, &exH, 1);
 }
 
 MatHandle Gray_ExtractTemplate(MatHandle gray, int x, int y, int w, int h, double downscale) {
