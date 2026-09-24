@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **SceneMap P5a — local learning export (CLI)** — `export-learning FILE.samn --opt-in`
+  writes `scene_map_learning/` (engine_trace.jsonl, negatives, auto_candidates
+  with `reviewed:false`, user region marks). Default off; never writes
+  `images/train` / `labels/train`. `--delete` clears only that subdir.
 - **SceneMap P4 follow-up — Create restores scene map from `.samn`** — opening a
   video with a companion `.samn` that has `sceneMap` reloads Advanced
   `sceneMapMarks` and map windows so marks survive Play↔Create. Generate

@@ -40,6 +40,9 @@ func main() {
 	if len(os.Args) >= 2 && (os.Args[1] == "stroke-preview" || os.Args[1] == "strokepreview") {
 		os.Exit(runStrokePreview(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && (os.Args[1] == "export-learning" || os.Args[1] == "scene-map-export") {
+		os.Exit(runExportLearning(os.Args[2:]))
+	}
 
 	scriptPath := flag.String("script", "", "Pfad zur .funscript-Datei (Pflicht)")
 	mock := flag.Bool("mock", false, "Kein BLE - Befehle nur auf der Konsole ausgeben")
@@ -69,7 +72,7 @@ func main() {
 		"Live-Kurve linear|soft|peak (leer=aus DeviceRecipe)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N] [--window-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE --roi x,y,w,h [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n  %s stroke-preview VIDEO [--json] [--max-seconds N]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N] [--window-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE --roi x,y,w,h [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n  %s stroke-preview VIDEO [--json] [--max-seconds N]\n  %s export-learning FILE.samn --opt-in [--output-dir DIR]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		fmt.Fprintf(os.Stderr, "Playback options:\n")
 		flag.PrintDefaults()
 	}

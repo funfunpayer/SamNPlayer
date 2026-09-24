@@ -114,11 +114,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
 | SceneP3 | Cursor | [#251](https://github.com/funfunpayer/SamNPlayer/pull/251) merged | **SceneMap P3** — engine honours marks (candidate filter, Go masks+rhythm grid, camera multi-exclude) | **DONE** (`9d20e05`) |
 | SceneP4 | Cursor | [#253](https://github.com/funfunpayer/SamNPlayer/pull/253) merged | **SceneMap P4** — `.samn` `sceneMap` persist (writer+reader+round-trip; no funscript export) | **DONE** |
-| SceneP4b | Cursor | [#254](https://github.com/funfunpayer/SamNPlayer/pull/254) | **SceneMap P4 GUI** — restore marks/map from companion `.samn` on Create load | **IN REVIEW** |
+| SceneP4b | Cursor | [#254](https://github.com/funfunpayer/SamNPlayer/pull/254) merged | **SceneMap P4 GUI** — restore marks/map from companion `.samn` on Create load | **DONE** |
+| SceneP5a | Cursor | [#255](https://github.com/funfunpayer/SamNPlayer/pull/255) | **SceneMap P5a** — CLI `export-learning` L0 collect (opt-in; no YOLO train write) | **IN REVIEW** |
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
-| Engine | — | free | SceneMap P4 on main; P4b GUI load [#254](https://github.com/funfunpayer/SamNPlayer/pull/254); next = P5 / Claude M3 / G1.1 after Owner gates | **OPEN** |
+| Engine | — | free | P4/P4b on main; P5a [#255](https://github.com/funfunpayer/SamNPlayer/pull/255); Claude M3 / G1.1 after Owner gates | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -141,11 +142,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (24 Sep evening):**
 - **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
-- **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252); **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253).
-- **In flight:** SceneMap **P4b** GUI restore [#254](https://github.com/funfunpayer/SamNPlayer/pull/254). Claude/Manus pause.
+- **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252); **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253); **P4b** [#254](https://github.com/funfunpayer/SamNPlayer/pull/254).
+- **In flight:** **P5a** [#255](https://github.com/funfunpayer/SamNPlayer/pull/255). Claude/Manus pause.
+- **Parked (Owner 24 Sep):** [LosslessCut](https://losslesscut.net/) — hold. Later: thin ffmpeg `-c copy` Export clip; optional open external. No GPL fork / Smart Cut.
+- **Parked (Owner 24 Sep) — Emotion GUI look v2:** thinner chrome; friendlier palette; subtle graphics; **rounded / organic** (no sharp corners). Keep Emotion brand (Sora/Figtree); evolve `style.css` tokens — not a second theme fork. No lane until after SceneMap P5a / Owner opens Look.
 - **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** finish P4b [#254](https://github.com/funfunpayer/SamNPlayer/pull/254); then P5 learning export / Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
-- **Parked (Owner 24 Sep):** [LosslessCut](https://losslesscut.net/) ideas — **hold**. Do **not** fork/embed (GPL-2.0). Candidate later: thin Advanced *Export clip (lossless)* via existing ffmpeg (`-c copy`, keyframe snap) for Create In/Out → file beside video; optional “open in LosslessCut”. No Smart Cut / full timeline editor. No lane claim.
+- **Cursor NEXT:** land P5a [#255](https://github.com/funfunpayer/SamNPlayer/pull/255); Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
 - **ChatGPT:** steward / copy review welcome; no open feature claim.
 
 **Status board (24 Sep):**
