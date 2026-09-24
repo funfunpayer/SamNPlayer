@@ -110,7 +110,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
-| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) | **SceneMap P1** — score/choose split, `ScanSceneMap`, Wails; curve bit-identical | **THIS** |
+| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) | **SceneMap P1** — score/choose split, `ScanSceneMap`, Wails + Advanced Show scene map | **DONE** — CI green; merging |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -134,9 +134,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (24 Sep):**
 - **Claude #243 MERGED** — SceneMap plan + Owner § 6 on main.
-- **Cursor #246 THIS** — SceneMap P1 (score/choose + ScanSceneMap + Wails); gofmt fix + rebase on plan.
+- **Cursor #246** — SceneMap P1 **CI green** (score/choose + ScanSceneMap + Show scene map button); merging.
 - **ChatGPT #244** — still READY (Manus may still iterate); do not expand; merge when Manus done.
-- **Still Owner:** speed-cap; ≥4–5 rhythm clips.
+- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next after P1: **P2** map draw + marks.
 
 **Status board (23 Sep night):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
