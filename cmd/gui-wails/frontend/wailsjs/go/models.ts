@@ -518,6 +518,82 @@ export namespace generator {
 		    return a;
 		}
 	}
+	export class SceneMark {
+	    kind: string;
+	    id: string;
+	    rect: ROI;
+	    fromMs: number;
+	    toMs: number;
+	    class: string;
+
+	    static createFrom(source: any = {}) {
+	        return new SceneMark(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.id = source["id"];
+	        this.rect = this.convertValues(source["rect"], ROI);
+	        this.fromMs = source["fromMs"];
+	        this.toMs = source["toMs"];
+	        this.class = source["class"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class SceneMapLoad {
+	    path: string;
+	    map: SceneMapDTO;
+	    marks: SceneMark[];
+	    found: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new SceneMapLoad(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.map = this.convertValues(source["map"], SceneMapDTO);
+	        this.marks = this.convertValues(source["marks"], SceneMark);
+	        this.found = source["found"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ScriptQualityResult {
 	    score: number;
 	    passed: boolean;

@@ -183,6 +183,8 @@ export function ScanSceneMap(arg1:string,arg2:number):Promise<generator.SceneMap
 
 export function SceneMapAvailable():Promise<boolean>;
 
+export function LoadSceneMapForVideo(arg1:string):Promise<generator.SceneMapLoad>;
+
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;
