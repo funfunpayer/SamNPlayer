@@ -16,6 +16,7 @@ Ausführen: python3 generator/profile_suggestion_test.py
 import subprocess
 import sys
 import tempfile
+import json
 from pathlib import Path
 
 import cv2
@@ -62,10 +63,23 @@ def main():
 
         # --- --label-scene: speichert, ohne die Tracking-Pipeline zu laufen -----
         r1 = run("--video", str(video), "--label-scene", "meine-szene",
-                 "--signature-path", str(sig_path))
+                 "--scene-profile", "standard", "--signature-path", str(sig_path))
         check("--label-scene beendet erfolgreich", r1.returncode == 0, r1.stderr)
         check("Signaturdatei wurde angelegt", sig_path.is_file(), str(sig_path))
         check("Bestätigung auf stderr", "meine-szene" in r1.stderr, r1.stderr)
+        saved = json.loads(sig_path.read_text().splitlines()[0])
+        check("bestätigtes Profil wird als Trainingsziel gespeichert",
+              saved.get("parameters", {}).get("profile") == "standard", str(saved))
+
+        # --- Go bridge: feature extraction can be requested as JSON ------------
+        r0 = run("--video", str(video), "--dump-motion-signature")
+        try:
+            dumped = json.loads(r0.stdout)
+        except json.JSONDecodeError:
+            dumped = {}
+        check("--dump-motion-signature beendet erfolgreich", r0.returncode == 0, r0.stderr)
+        check("Signaturbrücke liefert die acht erklärbaren Merkmale",
+              len(dumped) == 8 and "rhythm_strength" in dumped, r0.stdout)
 
         # --- --suggest-profile: findet die gerade gespeicherte Szene wieder -----
         # Dasselbe Video gegen seine eigene gespeicherte Signatur hat Abstand 0 -
@@ -93,7 +107,8 @@ def main():
         check("PROFILE_SUGGESTION wird NICHT ausgegeben, wenn nichts sicher ist",
               "PROFILE_SUGGESTION" not in r3.stdout, r3.stdout)
         check("meldet den nicht erreichbaren Server statt zu schweigen",
-              "Kein Colibri-Server" in r3.stderr, r3.stderr)
+              "No Colibri server" in r3.stderr or "Kein Colibri-Server" in r3.stderr,
+              r3.stderr)
 
     print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
     return 1 if failures else 0

@@ -433,10 +433,10 @@ export namespace generator {
 		}
 	}
 	export class ProfileSuggestion {
-	    Found: boolean;
-	    Label: string;
-	    Kind: string;
-	    Confidence: number;
+	    found: boolean;
+	    label: string;
+	    kind: string;
+	    confidence: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProfileSuggestion(source);
@@ -444,10 +444,10 @@ export namespace generator {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Found = source["Found"];
-	        this.Label = source["Label"];
-	        this.Kind = source["Kind"];
-	        this.Confidence = source["Confidence"];
+	        this.found = source["found"];
+	        this.label = source["label"];
+	        this.kind = source["kind"];
+	        this.confidence = source["confidence"];
 	    }
 	}
 	export class ScriptQualityResult {
@@ -1323,3 +1323,64 @@ export namespace update {
 
 }
 
+export namespace profilemodel {
+
+	export class ProfileCount {
+	    profile: string;
+	    count: number;
+
+	    static createFrom(source: any = {}) {
+	        return new ProfileCount(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profile = source["profile"];
+	        this.count = source["count"];
+	    }
+	}
+
+	export class Status {
+	    labelsPath: string;
+	    modelPath: string;
+	    labelledScenes: number;
+	    usableSamples: number;
+	    readyToTrain: boolean;
+	    modelAvailable: boolean;
+	    trainedSamples: number;
+	    trainedAt: string;
+	    modelWarning?: string;
+	    profiles: ProfileCount[];
+
+	    static createFrom(source: any = {}) {
+	        return new Status(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.labelsPath = source["labelsPath"];
+	        this.modelPath = source["modelPath"];
+	        this.labelledScenes = source["labelledScenes"];
+	        this.usableSamples = source["usableSamples"];
+	        this.readyToTrain = source["readyToTrain"];
+	        this.modelAvailable = source["modelAvailable"];
+	        this.trainedSamples = source["trainedSamples"];
+	        this.trainedAt = source["trainedAt"];
+	        this.modelWarning = source["modelWarning"];
+	        this.profiles = this.convertValues(source["profiles"], ProfileCount);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) return a;
+		    if (a.slice && a.map) return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) a[key] = new classs(a[key]);
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+}

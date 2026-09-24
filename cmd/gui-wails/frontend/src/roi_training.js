@@ -4,6 +4,7 @@ import {
   ListRoiTrainingSamples, DiscardRoiTrainingSample, UpdateRoiTrainingSample, GetRoiDatasetSummary,
   GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, CheckRoiTrainingStatus,
   InstallRoiTrainingDeps, ListRoiTrainingDevices,
+  GetMotionProfileModelStatus, TrainMotionProfileModel,
 } from '../wailsjs/go/main/App';
 import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor } from './bodyparts.js';
 import { mountBodyFigure } from './body_figure.js';
@@ -40,6 +41,23 @@ export function initRoiTraining(root) {
         <li><b>Create Emotion Script</b> — classic tracking (CSRT) writes the script. AI does not track by itself.</li>
         <li><b>Review in Play</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>
+    </div>
+
+    <div class="card" id="rt-motion-profile-card" style="margin-bottom:16px; padding:12px 14px;">
+      <h3 style="margin-top:0; margin-bottom:6px;">Learned generation profile (Go)</h3>
+      <p class="hint" style="margin:0 0 8px;">
+        Learns from scenes remembered in <b>Create → Power-user: scene memory</b> and the
+        Style selected there. Training/classification are pure Go and offline; measuring a
+        new video's signature uses the existing local OpenCV adapter. It suggests
+        Normal / Soft / Autotune only; it never changes settings or writes a script without Apply/Create.
+      </p>
+      <div class="row" style="align-items:center; flex-wrap:wrap;">
+        <button id="rt-profile-refresh" type="button">Refresh learning data</button>
+        <button id="rt-profile-train" class="primary" type="button" disabled>Train Go profile model</button>
+        <button id="rt-open-create" type="button">Generate in Create…</button>
+      </div>
+      <div class="path-label" id="rt-profile-status">Checking saved scenes…</div>
+      <p class="hint" id="rt-profile-path" style="margin:4px 0 0;"></p>
     </div>
 
     <h3>1. Collect training data</h3>
@@ -148,6 +166,57 @@ export function initRoiTraining(root) {
   const el = sel => root.querySelector(sel);
   const canvas = el('#rt-canvas');
   const ctx = canvas.getContext('2d');
+
+  async function refreshMotionProfileModelStatus() {
+    const statusEl = el('#rt-profile-status');
+    const pathEl = el('#rt-profile-path');
+    const trainBtn = el('#rt-profile-train');
+    try {
+      const status = await GetMotionProfileModelStatus();
+      const profiles = (status.profiles || []).map(p => `${p.profile}: ${p.count}`).join(' · ');
+      const modelText = status.modelAvailable
+        ? `Model ready (${status.trainedSamples} samples)`
+        : 'No trained model yet';
+      statusEl.textContent = `${status.usableSamples || 0} usable saved scenes · ${modelText}`
+        + (profiles ? ` · ${profiles}` : '');
+      pathEl.textContent = status.readyToTrain
+        ? 'Ready to train. New remembered scenes are included on the next training run.'
+        : 'Remember at least two scenes with a selected Style in Create before training.';
+      if (status.modelWarning) {
+        pathEl.textContent += ' Existing model is unreadable/incompatible; training will replace it.';
+      }
+      pathEl.title = `Labels: ${status.labelsPath || ''}\nModel: ${status.modelPath || ''}`;
+      trainBtn.disabled = !status.readyToTrain;
+      return status;
+    } catch (err) {
+      statusEl.textContent = 'Profile learning status unavailable: ' + err;
+      trainBtn.disabled = true;
+      return null;
+    }
+  }
+
+  el('#rt-profile-refresh').addEventListener('click', refreshMotionProfileModelStatus);
+  el('#rt-profile-train').addEventListener('click', async () => {
+    const btn = el('#rt-profile-train');
+    const statusEl = el('#rt-profile-status');
+    btn.disabled = true;
+    statusEl.textContent = 'Training Go profile model…';
+    try {
+      const status = await TrainMotionProfileModel();
+      statusEl.textContent = `Model trained from ${status.trainedSamples || status.usableSamples || 0} scenes. `
+        + 'Create can now ask it for a profile suggestion.';
+      uiInfo('Local motion-profile model trained. Suggestions stay opt-in in Create.');
+      window.dispatchEvent(new CustomEvent('samn-motion-profile-refresh'));
+      await refreshMotionProfileModelStatus();
+    } catch (err) {
+      uiError('Profile model training: ' + err, statusEl);
+      await refreshMotionProfileModelStatus();
+    }
+  });
+  el('#rt-open-create').addEventListener('click', () => {
+    document.querySelector('.tab-btn[data-tab="generator"]')?.click();
+  });
+  refreshMotionProfileModelStatus();
 
   let sourcePath = null;
   let sourceKind = null; // 'video' | 'image'

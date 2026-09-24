@@ -2162,6 +2162,15 @@ def main():
                     help="Bewegungssignatur von --video unter NAME speichern (Wiedererkennung "
                          "ähnlicher Szenen, siehe motion_signature.py). Braucht --video, "
                          "verarbeitet das Video sonst nicht, beendet danach.")
+    ap.add_argument("--scene-profile", default=None,
+                    choices=["standard", "weich", "autotune"],
+                    help="Mit --label-scene: das vom Nutzer bestätigte Generatorprofil "
+                         "zusammen mit der Signatur speichern. Grundlage für das lokale "
+                         "Go-Profilmodell; setzt bei späteren Vorschlägen nichts automatisch.")
+    ap.add_argument("--dump-motion-signature", action="store_true",
+                    help="Bewegungssignatur von --video als JSON ausgeben und beenden. "
+                         "Die Messung bleibt OpenCV-basiert; Training und Inferenz können "
+                         "danach im Go-Backend laufen.")
     ap.add_argument("--suggest-profile", action="store_true",
                     help="Bewegungssignatur von --video gegen gespeicherte Szenen (siehe "
                          "--label-scene) vergleichen und ein Profil vorschlagen. Findet sich "
@@ -2457,11 +2466,18 @@ def process_one(args, ap):
         print(f"Geschrieben: {args.dump_first_frame}", file=sys.stderr)
         return
 
+    if args.dump_motion_signature:
+        import motion_signature
+        signature = motion_signature.extract(args.video)
+        print(json.dumps(signature, ensure_ascii=False, sort_keys=True))
+        return
+
     if args.label_scene:
         import motion_signature
         signature = motion_signature.extract(args.video)
         path = args.signature_path or motion_signature.default_labels_path()
-        motion_signature.save_labelled(path, args.label_scene, signature)
+        parameters = {"profile": args.scene_profile} if args.scene_profile else None
+        motion_signature.save_labelled(path, args.label_scene, signature, parameters)
         print(f"Szene als '{args.label_scene}' gespeichert unter {path}", file=sys.stderr)
         return
 
