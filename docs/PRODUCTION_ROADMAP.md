@@ -94,7 +94,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
 | **v0.5.31** | Shipped | Profilemodel #244 + semantic target lock #248 + SceneMap P1/P2 #246/#247 + BF-3 Stage B #239 |
-| next | After Rel31 | Owner: ≥4–5 rhythm-grid clips; G1.1 after speed-cap; SceneMap P5b [#256](https://github.com/funfunpayer/SamNPlayer/pull/256). **HW:** Neo 2 smoke OK 24 Sep (G2.1) — G2.2+ parked |
+| next | After Rel31 | SceneMap P5 done; G1.2 shipped (#257). Owner: ≥4–5 rhythm clips; speed-cap; G1.3. **Next Cursor:** G3 suggest-only harden + Look v2 (preserve CSRT) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
@@ -218,12 +218,12 @@ passes your usable bar — otherwise the model learns noise.
 
 | ID | Item | Prerequisites | Your test |
 |----|------|---------------|-----------|
-| G3.1 | AI Train only after G1 goldens + usable classical scripts | G1 exit | Collect samples from good runs |
-| G3.2 | ROI proposal + VerifyROI; two-ROI suggest stays opt-in until bake-off win | G3.1 + G1.5 | Suggest ≠ auto-commit (principle 6) |
-| G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Adopt only if CV beats fixed rules |
-| G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 |
-| G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | **PoseObserver** #191/#192 — Stage A after MT-Seed + E2 |
-| G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | Ordered; measure each gate |
+| G3.1 | AI Train only after G1 goldens + usable classical scripts | G1 exit | Collect samples from good runs — tooling ready; formal goldens still Owner |
+| G3.2 | ROI proposal + VerifyROI; two-ROI suggest stays opt-in until bake-off win | G3.1 + G1.5 | **Helpers shipped** (VerifyROI; AI/semantic/MT-Seed suggest ≠ Apply). Two-ROI AI default still off |
+| G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Scaffold exists; adopt only if CV beats fixed rules |
+| G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 — **do not start** |
+| G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | PoseObserver Stage A #201; Stage B / depth default = Owner bake-off |
+| G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | MT-Go/Seed/Debug/Infra **DONE**; MT-ID gated on Owner clips |
 
 ### Multi-track Fahrplan (22 Sep) — fold into G1 polish + G3
 

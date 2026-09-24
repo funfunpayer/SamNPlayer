@@ -2414,10 +2414,10 @@ export function initGenerator(root, playback) {
         return;
       }
       const via = result.kind === 'local_model'
-        ? `lokales Go-Modell, Konfidenz ${Math.round(result.confidence * 100)}%`
+        ? `local Go model, confidence ${Math.round(result.confidence * 100)}%`
         : result.kind === 'ai'
-          ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
-          : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
+          ? `AI server, confidence ${Math.round(result.confidence * 100)}%`
+          : `measured, distance ${result.confidence.toFixed(3)}`;
       // Legacy "tf"/"tj" scene labels map to Stroke — Contact vib is the feel layer now.
       let label = result.label === 'tj' || result.label === 'tf' ? 'standard' : result.label;
       if (PROFILE_VALUES.includes(label)) {

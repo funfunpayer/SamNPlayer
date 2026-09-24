@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **G3 suggest-only copy** — Create profile-suggestion status strings English
+  (`local Go model` / `AI server` / `measured`); CSRT writer and Apply gate
+  unchanged. G3 roadmap status synced (helpers shipped; fuse/Stage B still gated).
+
 ### Added
 
 - **G1.2 — QD fail + clear audio Hz hint** — when Signal Quality fails and audio
