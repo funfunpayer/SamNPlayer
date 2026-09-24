@@ -110,11 +110,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
-| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** (`80f50bd`) |
-| SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) | **SceneMap P2** — Advanced map heatmap overlay + exclude/source/region marks | **in release branch** |
-| AIScript | ChatGPT | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local script-model foundation** — Go profilemodel + AI Training | **in release branch** |
-| TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) | **Semantic target lock** — strict body class + rhythm seed lock | **in release branch** (Cursor finished CI) |
-| Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
+| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
+| SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
+| AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
+| TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
+| Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
+| Engine | — | free | Drift lane closed; next = SceneMap P3 / G1.1 after Owner gates | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -135,8 +136,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
+**Status board (24 Sep evening):**
+- **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
+- **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
+- **Cursor NEXT:** SceneMap **P3** (engine consume marks) *or* docs/site sync — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **ChatGPT:** steward / copy review welcome; no open feature claim.
+
 **Status board (24 Sep):**
-- **Rel31 THIS:** #244 + #248 + #247 (+ Stage B already on main) — merging; tag **v0.5.31**.
+- **Rel31 DONE** — see evening board above.
 - **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next: SceneMap **P3** engine consume marks.
 
 **Status board (23 Sep night):**
