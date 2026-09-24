@@ -133,3 +133,83 @@ func TestRhythmGridKeepsOrientationWhereTrackerIsUninformative(t *testing.T) {
 		t.Errorf("grid curve r=%.3f vs stroke, want >= 0.95 (orientation flips where the tracker is uninformative)", r)
 	}
 }
+
+// P1: scoreWindows + chooseAndStitch must produce the same curve as the
+// combined rhythmGridPositions path (bit-identical on synthetic data).
+func TestRhythmGridSplitBitIdentical(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.1, 24 * 60
+	target := 5*16 + 8
+	cellV, stroke := synthClip(frames, fps, hz, target, -1, -1)
+	tx, ty := cellCenter(target)
+	rng := rand.New(rand.NewSource(4))
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = tx, ty
+		anchor[i] = ty + 0.4*stroke[i] + 3*rng.NormFloat64()
+	}
+	viaWrapper := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	viaMap, m := rhythmGridPositionsWithMap(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	if len(viaWrapper) != len(viaMap) {
+		t.Fatalf("length mismatch: wrapper %d map %d", len(viaWrapper), len(viaMap))
+	}
+	for i := range viaWrapper {
+		if viaWrapper[i] != viaMap[i] {
+			t.Fatalf("frame %d: wrapper %v != map path %v (not bit-identical)", i, viaWrapper[i], viaMap[i])
+		}
+	}
+	if m.Cols != 16 || m.Rows != 9 || m.Width != 1280 || m.Height != 720 {
+		t.Fatalf("map shape: cols=%d rows=%d %dx%d", m.Cols, m.Rows, m.Width, m.Height)
+	}
+	if len(m.Windows) == 0 {
+		t.Fatal("expected scored windows")
+	}
+	for _, w := range m.Windows {
+		if len(w.Score) != 16*9 {
+			t.Fatalf("window score len %d, want %d", len(w.Score), 16*9)
+		}
+		if w.TempoHz < rhythmTempoLoHz || w.TempoHz > rhythmTempoHiHz {
+			t.Errorf("tempo %.3f outside stroke band", w.TempoHz)
+		}
+		// Full-run path should pick a cell near the target.
+		if w.ChosenCell < 0 {
+			continue
+		}
+		if w.SignRule != "tracker" && w.SignRule != "continuity" {
+			t.Errorf("unexpected SignRule %q", w.SignRule)
+		}
+	}
+}
+
+func TestNormalizeScores(t *testing.T) {
+	s := normalizeScores([]float64{0, 1, 0.5})
+	if s[1] != 255 || s[2] != 128 {
+		t.Fatalf("got %v, want max=255 mid≈128", s)
+	}
+	z := normalizeScores([]float64{0, 0, 0})
+	for _, v := range z {
+		if v != 0 {
+			t.Fatalf("zero scores should stay 0, got %v", z)
+		}
+	}
+}
+
+func TestScoreWindowsQuickScanNoBox(t *testing.T) {
+	const fps, frames = 24.0, 24 * 30
+	target := 5*16 + 8
+	cellV, _ := synthClip(frames, fps, 1.0, target, -1, 1)
+	m := scoreWindows(cellV, 16, 9, 1280, 720, nil, nil, fps)
+	if m.Cols != 16 || m.Rows != 9 {
+		t.Fatalf("shape %dx%d", m.Cols, m.Rows)
+	}
+	if len(m.Windows) == 0 {
+		t.Fatal("expected windows")
+	}
+	for _, w := range m.Windows {
+		if w.ChosenCell != -1 {
+			t.Errorf("quick-scan ChosenCell should stay -1, got %d", w.ChosenCell)
+		}
+		if len(w.Score) != 144 {
+			t.Fatalf("score len %d", len(w.Score))
+		}
+	}
+}

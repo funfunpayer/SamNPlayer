@@ -50,6 +50,7 @@ type Options struct {
 	// rhythm_grid.go). CSRT still tracks - it anchors the search and gives
 	// the sign - so trajectory/stats are unchanged; only Positions differ.
 	// Opt-in: costs a Farneback flow per frame (measured ~+18% runtime).
+	// When on, Result.SceneMap is filled as a free by-product (P1 / SceneMap plan).
 	RhythmGrid bool
 }
 
@@ -86,6 +87,10 @@ type Result struct {
 	// only ever fills TrajectoryA (single ROI, no partner).
 	TrajectoryA []Point
 	TrajectoryB []Point
+	// SceneMap is the per-window rhythm heatmap (docs/SCENE_MAP_PLAN.md M1).
+	// Set only when Options.RhythmGrid is true; empty otherwise. Full runs
+	// include ChosenCell / box / sign; quick scans use ScanSceneMap.
+	SceneMap SceneMap
 }
 
 // Point is a video-pixel-space (x,y) sample - MT-Debug trajectory capture.
@@ -332,12 +337,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	if useX {
 		positions = xPositions
 	}
+	var sceneMap SceneMap
 	if opts.RhythmGrid {
 		cellV := flowY
 		if useX {
 			cellV = flowX
 		}
-		positions = rhythmGridPositions(cellV, rhythmGridCols, gridRows, width, height,
+		positions, sceneMap = rhythmGridPositionsWithMap(cellV, rhythmGridCols, gridRows, width, height,
 			xPositions, yPositions, positions, fps)
 	}
 
@@ -373,6 +379,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		Height:       height,
 		SceneCuts:    sceneCuts,
 		TrajectoryA:  trajA,
+		SceneMap:     sceneMap,
 		Stats: Stats{
 			TrackerLostFrames: trackerLostFrames,
 			CameraFramesLost:  cameraFramesLost,
