@@ -82,6 +82,7 @@ A smoother script (higher Signal Quality) that loses phase is a
 | Mode | Status | Rule |
 |------|--------|------|
 | Post-check script Hz vs audio energy Hz | Shipped; keep default-on when ffmpeg present | Warn only |
+| QD fail + clear audio Hz → English ROI/axis hint | **Shipped** G1.2 (#this) | Warn only; no curve rewrite |
 | Pre-pass tempo hint → bias peak distance | G1.3 optional | Only after goldens show help > harm |
 | “No motion → write from audio” | **Rejected** | Audio is not a position curve |
 
@@ -148,6 +149,7 @@ owes.
 | Weak-ROI hint | Quality Doctor / VerifyROI | warn-only | **Shipped** |
 | Tracking gaps | `tracking_gaps` metadata | stamped when flags present | **Shipped** |
 | Audio post-check | `audiocheck.go`; Stage B may force on | on when ffmpeg + preview weak | **Shipped** |
+| QD fail + clear audio Hz hint (G1.2) | `AppendQualityAudioHint` / `append_quality_audio_hint` | warn on Generate when QD failed | **Shipped** |
 | Peak bias from audio/preview (G1.3) | preview `suggested_min_peak_distance_ms` | advisory progress only | **Open** — measure before applying |
 | Stroke preview A | `strokepreview.RunQuick` | always (unless `SkipStrokePreview`) | **Shipped** #177 |
 | Stroke preview B | `applyStrokePreviewSteers` | cut→PerSceneROI; pan→camera (this run) | **Shipped** #239 |
@@ -155,10 +157,13 @@ owes.
 
 ### Gaps to close for “heuristics v1 done” (G1.1+)
 
-1. **Speed cap product rule** — decide: leave Normal uncapped, or Neo-2-safe default with opt-out (needs Owner + device smoke; not silent).
-2. **G1.3 peak-distance bias** — only after goldens show help > harm; today Stage A suggests, Convert ignores.
-3. **One Generate-help blurb** — Everyday already lists Advanced; fold this inventory’s workflow into help/`EVERYDAY_GENERATE.md` when Exit criterion 1 is chased.
-4. **Python `generate_funscript.py` parity** — Go native is the product path; keep Python emergency path knob-compatible, don’t invent a second package.
+1. **Speed cap product rule** — Owner still decides: leave Normal uncapped (current;
+   HW smoke 24 Sep OK without forcing a cap), or Neo-2-safe default with opt-out.
+   **Not silent.** Cursor keeps Normal/Soft uncapped until that decision.
+2. **G1.3 peak-distance bias** — only after goldens show help > harm; today Stage A
+   suggests, Convert ignores. Needs Owner clips / measure first.
+3. ~~One Generate-help blurb~~ — **DONE** in `EVERYDAY_GENERATE.md` + Review audio `data-help`.
+4. **Python `generate_funscript.py` parity** — G1.2 hint mirrored; emergency path only.
 
 ### Explicitly not G1 inventory work
 
@@ -166,14 +171,8 @@ owes.
 - F-003 tier-2 lag tie-break (board: don’t)
 - New trackers / YOLO-as-Stroke / Pose Stage B
 - Changing Everyday Contact-vib or Stroke backend defaults
+- Applying G1.3 peak bias without golden evidence
 
-```text
-AGENT_COORD:
-  agent: Cursor
-  lane: G1next
-  claim: heuristics inventory — document knob→code→default; fix stale detrend/speed rows
-  branch: cursor/g1-heuristics-inventory-95d8
-  based_on: main @ post-#240
-  will_not_touch: generator behavior, VERSION
-  needs_from_other: Owner for speed-cap product rule + rhythm-grid clips
-```
+**G1 status (24 Sep, without Owner):** package knobs shipped + documented; G1.2
+hint shipped; G1.3 + speed-cap default + rhythm default-on remain Owner-gated.
+Function preserved — no silent default changes.

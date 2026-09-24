@@ -43,6 +43,28 @@ func TestEstimateScriptTempoHz(t *testing.T) {
 	}
 }
 
+func TestAppendQualityAudioHint(t *testing.T) {
+	hz := 1.25
+	audio := &funscript.AudioCheck{AudioHz: &hz}
+	AppendQualityAudioHint(funscript.ScriptQualityResult{Passed: true, Score: 0.9}, audio)
+	if len(audio.Warnings) != 0 {
+		t.Fatalf("passed quality must not add hint, got %v", audio.Warnings)
+	}
+	AppendQualityAudioHint(funscript.ScriptQualityResult{Passed: false, Score: 0.2}, audio)
+	if len(audio.Warnings) != 1 {
+		t.Fatalf("want 1 warning, got %v", audio.Warnings)
+	}
+	AppendQualityAudioHint(funscript.ScriptQualityResult{Passed: false, Score: 0.2}, audio)
+	if len(audio.Warnings) != 1 {
+		t.Fatalf("hint must be idempotent, got %v", audio.Warnings)
+	}
+	noHz := &funscript.AudioCheck{}
+	AppendQualityAudioHint(funscript.ScriptQualityResult{Passed: false}, noHz)
+	if len(noHz.Warnings) != 0 {
+		t.Fatal("no AudioHz → no hint")
+	}
+}
+
 func TestCompareTempo(t *testing.T) {
 	one, two, off := 1.0, 2.0, 3.7
 	exact := compareTempo(&one, &one, 0.25, audioDefaultHarmonics)

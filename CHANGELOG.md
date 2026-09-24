@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **G1.2 — QD fail + clear audio Hz hint** — when Signal Quality fails and audio
+  tempo is readable, Generate appends English *“Audio suggests ~X Hz — check ROI /
+  axis”* (Go + Python). Warn only; never rewrites the curve. Audio mismatch
+  warnings Englishized for product UI.
 - **SceneMap P5b — learning export in GUI** — Settings → Collect learning data
   (default off) + Delete learning data; Create Advanced → Export for learning
   (companion `.samn`). Same local `scene_map_learning/` as CLI; never YOLO train.

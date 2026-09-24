@@ -2913,10 +2913,11 @@ def process_one(args, ap):
         import audio_check
         audio_check_result = audio_check.check(args.video, actions)
         if audio_check_result["available"]:
-            print(f"Audio-Tempo-Prüfung: Skript {audio_check_result['script_hz']}, "
-                  f"Audio {audio_check_result['audio_hz']}", file=sys.stderr)
+            audio_check.append_quality_audio_hint(bool(quality.get("passed")), audio_check_result)
+            print(f"Audio tempo check: script {audio_check_result['script_hz']}, "
+                  f"audio {audio_check_result['audio_hz']}", file=sys.stderr)
             for w in audio_check_result["warnings"]:
-                print(f"WARNUNG (Audio-Tempo-Prüfung): {w}", file=sys.stderr)
+                print(f"WARNING (audio tempo check): {w}", file=sys.stderr)
         else:
             print(f"Audio tempo check not possible: {audio_check_result['reason']}",
                   file=sys.stderr)

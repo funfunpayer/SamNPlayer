@@ -168,7 +168,7 @@ Detail: `docs/AUDIO_WORKFLOW.md`, `docs/FUNSCRIPT_ALGOS.md`,
 | ID | Item | Prerequisites | Your test |
 |----|------|---------------|-----------|
 | G1.1 | **Heuristics package v1** — document + implement as one coherent set: axis choice, peak distance, smooth window, RDP, speed cap, weak-ROI hint, tracking-gap messaging | G0 exit | Same ROI → better or equal usable rate vs 0.5.11 |
-| G1.2 | Audio post-check always when ffmpeg available; if Quality Doctor fails *and* audio Hz clear → English hint (“check ROI / axis”), **never** invent positions from loudness | G1.1 sketch | Toggle Advanced; see warning, no auto-script |
+| G1.2 | Audio post-check always when ffmpeg available; if Quality Doctor fails *and* audio Hz clear → English hint (“check ROI / axis”), **never** invent positions from loudness | G1.1 sketch | **Shipped** (warn only; Go + Python) |
 | G1.3 | Optional audio **pre-pass tempo hint** (bias peak distance only) — only if golden numbers help | G1.2 + A1 goldens | Before/after on 2–3 clips |
 | G1.4 | Golden-clip manifest populated (your clips + FunGen refs) | Your material | Bench tab report pasted to issue |
 | G1.5 | FunGen / phase bake-off on fixed ROI (Motion Fidelity), not Auto-ROI | G1.4 | Correlation + lag; no invented ROI2 |
