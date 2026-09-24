@@ -17,9 +17,11 @@ applies to the AI extension:
 - The proposal runs through **the same** classical pipeline (CSRT/flow
   tracking, Quality Doctor, mapper) as a manually marked one — there is no
   second, AI-only output path that produces a `.funscript` on its own.
-- If the AI fails (no model, no detection, server unreachable), the system
-  falls back to the non-AI method, the same way `track_by_scenes()` already
-  catches any `roi_finder` failure and reuses the previous region.
+- A generic AI suggestion may fall back to the non-AI method. An explicit
+  **expected body point** is different: strict target matching fails closed
+  when that class is missing, weak or ambiguous. It never substitutes another
+  class or silently invokes motion auto-ROI; the user may keep the existing
+  region or mark the intended point manually.
 - Both engines are **optional** and run **locally** — no model in the
   repository, no automatic download, no telemetry. Anyone who does not
   install or start them notices nothing of their existence.
@@ -71,6 +73,28 @@ export format.
   `classes.json` is copied next to the `.onnx` automatically.
 - GUI: Settings → **Preferred classes**; Generate uses that preference for
   AI ROI proposals.
+- Generate also has a stricter, user-selected **expected body point** path.
+  `ai_roi.py --expected-class … --strict-class` resolves that canonical class
+  through the `classes.json` beside the ONNX model. It returns a typed result
+  with matched class and confidence, or a stable failure code such as
+  `manifest_missing`, `manifest_invalid`, `class_conflict`,
+  `target_not_detected`, `below_confidence` or `ambiguous_target`. The Wails
+  event remains only a proposal: Create draws a
+  dashed box and requires **Apply target** before replacing the active ROI.
+  This path has no preferred-class fallback and no coordinate-only success. It
+  evaluates a PNG produced by the same `DumpFrameAt` FFmpeg path and timestamp
+  as the preview currently shown in Create, instead of re-seeking through
+  OpenCV or pooling detections from different scenes or people. Changing the video,
+  preview time, expected class or AI mode cancels the superseded local process;
+  stale result and progress events are sequence-gated.
+- When the optional Rhythm Grid writes the signal, its first cell must lie in
+  the selected start box and remains the signal cell for that entire shot.
+  Rhythm similarity alone is deliberately not allowed to switch cells: a
+  stronger adjacent limb can be perfectly in-phase or anti-phase. FFT windows
+  are clipped to shot boundaries, sign continuity is reset there, and the next
+  shot re-seeds from its tracker position. Until enough frames exist in the new
+  shot, the signal falls back to the tracker rather than mixing two scenes or
+  inventing a different target.
 - `onnxruntime` lives in `generator/requirements-ai.txt`, NOT in
   `requirements.txt`.
 - **GUI wiring done:** `generator.go` gained `FindROIAIWithProgress`/

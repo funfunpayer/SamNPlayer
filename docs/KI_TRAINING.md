@@ -12,7 +12,7 @@ in the Training tab (stop-start/plateau).
 |-----|---------|
 | Suggest region(s) | Write Funscripts |
 | Suggest Normal / Soft / Autotune | Change a profile without Apply |
-| Set box in the GUI | Replace tracking |
+| Offer a typed box; **Apply target** sets it | Replace tracking or auto-apply a semantic target |
 | Learn locally on your machine | Cloud / telemetry / bundled model |
 
 Classic tracking (CSRT / flow / …) writes `.samn` (native) plus a
@@ -106,7 +106,12 @@ From the binary: Settings / or later “Export requirements” —
 6. **Review:** discard bad samples, **correct** boxes (important — bootstrap box size is fixed; tracker may drift)
 7. **Start training** (epochs, device Auto/CUDA/DirectML/CPU)
 8. Result: `roi_detector.onnx` under model path (Settings)
-9. **Generate** tab → enable **AI detection (ONNX)** → find region → verify box → generate Funscript
+9. **Generate** tab → enable **Smarter tip find** → select the exact expected
+   body point → seek to a frame where that point is clearly visible → **Find
+   tip area**. Only that displayed frame is evaluated. Verify the displayed
+   class, confidence and dashed box, then choose **Apply target**. A missing,
+   weak or ambiguous class is not replaced by another detection; mark it
+   manually or improve the data.
 
 ## Folders
 
@@ -149,7 +154,15 @@ python generator/train_yolo_model.py \
 - Optional **box scale** 1.1–1.2 for padding around the mark
 - At least one val example (still path switches automatically)
 - GPU strongly recommended; CPU only for smoke tests (few epochs)
-- After training: Generate tab → AI detection; in Settings set **Preferred classes** for multi-class models (e.g. `hand,breast`)
+- Keep `classes.json` beside the exported `.onnx`; strict target matching uses
+  it to bind the canonical GUI class to the model-specific numeric ID.
+- After training: use Generate → Smarter tip find → expected body point. The
+  Settings **Preferred classes** list remains for legacy generic proposals; it
+  is deliberately not a fallback for strict target matching.
+- Draw the initial target box tightly. The optional target-locked Rhythm Grid
+  starts inside that box and keeps the same grid cell for the whole shot;
+  rhythm similarity alone cannot hand control to a stronger moving thigh. A
+  scene cut starts a new, separately seeded shot without cross-cut FFT windows.
 - 3D / depth / pose: experimental scaffold only — see `docs/DEPTH_POSE.md`; golden-clip win required before default
 
 ## Already transfer learning — how to go faster (22 Sep)
@@ -184,6 +197,9 @@ to a third-party model just to “train faster.”
 | AI checkbox gray | no `.onnx` at model path |
 | Poor suggestions | more/corrected samples; preferred classes; not “bigger YOLO” |
 | Preferred class ignored | `classes.json` beside `.onnx` missing (retrain or copy) |
+| Strict target reports `manifest_missing` / `manifest_invalid` / `class_unresolved` | keep a valid exported `classes.json` beside the ONNX model and ensure the selected canonical class exists in it |
+| Strict target reports `target_not_detected` / `below_confidence` | keep the existing ROI, mark the target manually, or add corrected examples of that exact class |
+| Strict target reports `ambiguous_target` | two separate boxes were similarly plausible; choose the correct point manually instead of allowing an automatic guess |
 
 ## Related files
 
