@@ -116,7 +116,7 @@ def main():
         page.wait_for_timeout(100)
         check("Older automatic suggestion cannot erase manual Apply",
               page.locator("#gen-suggest-status button:text('Apply')").count() == 1
-              and "lokal" in page.locator("#gen-suggest-status").inner_text().lower())
+              and "local" in page.locator("#gen-suggest-status").inner_text().lower())
         page.locator("#gen-power-user summary").click()
 
         # No Tf/Tj in product dropdown — Contact-first.

@@ -244,13 +244,18 @@ competing with one:
 
 All three steps from the original plan (region, profile, quality) are now
 implemented AND wired into the GUI end-to-end (region proposal, profile
-suggestion, quality second opinion). What remains for the adapter as a
-whole: nobody has yet trained a real region model with the new bootstrap/
-export tooling (step 1) on a real, multi-clip, manually-refined dataset —
-the tooling was only proven against a tiny CPU smoke run — and there is
-still no field data on step 2/3 usefulness from a real Colibri server. No
-bundled ONNX model is planned regardless (see step 1 above): training stays
-something each user runs locally against their own material.
+suggestion, quality second opinion). **Product rule (unchanged):** Everyday
+stroke writer stays **Go CSRT tip**; every AI/local-model path is
+**suggest → Apply** (profile, semantic target, MT-Seed). No silent ROI2 /
+curve rewrite from AI.
+
+What remains for the adapter as a whole: nobody has yet trained a real region
+model with the new bootstrap/export tooling (step 1) on a real, multi-clip,
+manually-refined dataset — the tooling was only proven against a tiny CPU smoke
+run — and there is still no field data on step 2/3 usefulness from a real
+Colibri server. No bundled ONNX model is planned regardless (see step 1 above):
+training stays something each user runs locally against their own material.
+SceneMap P5 learning collect is opt-in local JSON only (not YOLO train write).
 
 ### 4. Depth / pose supporting signals — experimental
 
