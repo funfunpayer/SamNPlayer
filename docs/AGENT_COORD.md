@@ -109,8 +109,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
-| AIScript | ChatGPT | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local script-model foundation** — Go data/model contract, AI-Training-tab workflow, opt-in Create profile suggestion through existing pipeline + fallback; no default flip or license enforcement | **REVIEW** — first measurable slice; `trackcv` and G1 defaults untouched |
-| TargetLock | ChatGPT | `chatgpt/semantic-target-lock` (stacked on #244) | **Semantic target lock** — strict expected body class (no wrong-class fallback) + rhythm-grid seed/continuity guard against thigh takeover | **THIS** — opt-in AI proposal, explicit Apply; generic defaults unchanged |
+| SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
+| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** (`80f50bd`) |
+| SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) | **SceneMap P2** — Advanced map heatmap overlay + exclude/source/region marks | **in release branch** |
+| AIScript | ChatGPT | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local script-model foundation** — Go profilemodel + AI Training | **in release branch** |
+| TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) | **Semantic target lock** — strict body class + rhythm seed lock | **in release branch** (Cursor finished CI) |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -131,6 +134,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (24 Sep):**
+- **Release branch (this):** #244 + #248 finished + #247 SceneMap P2 — merge to main then tag **v0.5.31**.
+- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next: SceneMap **P3** engine consume marks.
 
 **Status board (23 Sep night):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
