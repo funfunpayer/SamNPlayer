@@ -110,8 +110,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | Steer | Cursor | this PR | **Bau/Planung lock** — `ENGINEERING_STANCE.md` + board/roadmap: merge order #243 → review #244 → SceneMap P1; essay keep/reject; Owner gates | **THIS** |
-| SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) | **Scene map plan** — rhythm heatmap preview + marks + Go masks when RhythmGrid on + `metadata.scene_map` + learning export → L0–L4. `docs/SCENE_MAP_PLAN.md` | **PLAN PR** — merge first; Cursor builds P1–P5 after; Claude reviews + goldens; Owner § 6 |
-| AIScript | ChatGPT / Manus | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local Go motion-profile foundation** — `generator/profilemodel`, AI Training train/status, Create Suggest→Apply; suggest-only; no default / license flip | **READY** — CI green, GUI wired; merge OK (parallel to #243) |
+| SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) | **Scene map plan** — rhythm heatmap + marks + Go masks when RhythmGrid on + `metadata.scene_map` + learning export → L0–L4. `docs/SCENE_MAP_PLAN.md` | **PLAN DONE** — Owner § 6 decided + **P1 approved**; merge #243 then Cursor P1→P2→P3 |
+| AIScript | ChatGPT / Manus | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local Go motion-profile foundation** — `generator/profilemodel`, AI Training train/status, Create Suggest→Apply; suggest-only; no default / license flip | **READY** tip `7c1c0bc` (CI green, GUI wired); last push ~03:26 — wait if Manus still iterating, else merge OK |
 | Engine | — | free | Drift closed; G1.1 blocked on Owner; SceneMap code waits on #243 | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -135,10 +135,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (24 Sep):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
-- **Merge:** [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) SceneMap plan + [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) AIScript may land **in parallel** (different layers; #244 already GUI-wired, CI green). Then Cursor SceneMap P1. Do **not** fold Claude’s plan into Manus’s PR — stack later via P5/L2 labels.
-- **Cursor:** Steer docs [#245](https://github.com/funfunpayer/SamNPlayer/pull/245) (`ENGINEERING_STANCE.md`); SceneMap code after #243. **Owner gates:** speed-cap, ≥4–5 rhythm clips, SceneMap § 6.
-- F-003 tier 2 = don’t. Drift closed. Detrend ≠ Speed Cap.
-- **ChatGPT / Manus:** #244 READY to merge (suggest-only). Steward continues.
+- **Claude #243:** SceneMap plan CI green; Owner **§ 6 decided** (button scan, learning off, review auto-labels, marks = current scene) + **P1 approved**. Merge → Cursor builds P1.
+- **Manus #244:** tip `7c1c0bc`, CI green, GUI wired. Last remote ~03:26 — if Manus still iterating locally, wait for push; else mergeable parallel to #243.
+- **Cursor:** Steer [#245](https://github.com/funfunpayer/SamNPlayer/pull/245); SceneMap P1 after #243. **Still Owner:** speed-cap; ≥4–5 rhythm clips.
+- Do not fold Claude plan into Manus PR — stack later via P5/L2.
 
 **Status board (23 Sep night):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
@@ -875,7 +875,7 @@ ring revision before committing.
 | 23 Sep | **Rel30 prep** (Cursor): cut **v0.5.30** — #233 rhythm grid + #236 Advanced GUI toggle. `VERSION`/`BaseVersion` 0.5.29→0.5.30; CHANGELOG Unreleased→0.5.30; Drift/Rel29 DONE; Rel30 THIS; G1next NEXT. Closed obsolete #234 (answers folded here). Tag `v0.5.30` after CI green | Cursor |
 | 23 Sep | **BF-3 Stage B** (Cursor): high cut rate (>4/min) enables `PerSceneROI` for the current Generate run; high pan share (>0.4) re-enables camera compensation when off — same pattern as audio gate. GUI syncs Advanced checkboxes + tip from progress lines. Peak-distance stays advisory. Metadata `stage=B` when steered | Cursor |
 | 23 Sep | **G1 inventory** (Cursor): refreshed `GENERATE_HEURISTICS.md` package table (detrend default #230, Stage B #239, speed-cap partial) + knob→code→default inventory; no behavior change. Gaps listed for G1.1 (speed-cap product rule, G1.3 peak bias measure-first) | Cursor |
-| 24 Sep | **Scene map plan (Owner order: plan only, Cursor builds).** Plan in `docs/SCENE_MAP_PLAN.md` (#243): M1–M6 / P1–P5; masks on Go only when RhythmGrid on (announced); learning suggest-only until gates. Owner § 6 open | Claude |
+| 24 Sep | **Scene map plan (Owner order: plan only, Cursor builds).** Plan in `docs/SCENE_MAP_PLAN.md` (#243): M1–M6 / P1–P5; masks on Go only when RhythmGrid on (announced); learning suggest-only until gates. **Owner § 6 DECIDED** (button scan; learning off; auto-label review; marks = current scene) + **P1 approved** | Claude + Owner |
 | 24 Sep | **AIScript foundation (#244, ChatGPT/Manus):** pure-Go `generator/profilemodel` + AI Training train + Create Suggest→Apply; classical path still writes; no Everyday default / license change. **READY to merge** (CI green, GUI wired, no trackcv overlap) — parallel OK with #243 | ChatGPT |
 | 24 Sep | **Engineering stance (Cursor Wagenheber):** `docs/ENGINEERING_STANCE.md` — keep videox/stdlib/Py-train·Go-infer; reject LLM curve writers / RAG-first Generate / PGO priority / blog dep stacks; product locks (detrend ≠ speed-cap; Tf/Tj legacy; rhythm opt-in); #243+#244 parallel then SceneMap P1; Claude plan stacks with Manus via P5/L2 later (do not code-merge PRs); Go/video link dump filtered (GoCV/MOSSE/cloud/RKNN/webcam/stream out; CSRT+videox+YOLO-propose+MT keep) | Cursor |
 

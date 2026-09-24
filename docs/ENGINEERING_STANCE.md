@@ -57,7 +57,7 @@ reviewed as **input**, not a shopping list.
 
   After both on main:
     Cursor builds SceneMap P1 → P5 per SCENE_MAP_PLAN.md
-    (Claude reviews engine + goldens; Owner answers § 6)
+    (Claude reviews engine + goldens; Owner § 6 already decided on #243)
 ```
 
 **#244 may land on main now.** It is already GUI-wired (Remember scene +
@@ -107,9 +107,10 @@ quality). Field data still needed before threshold tuning.
 
 1. **Speed-cap product rule** — Normal uncapped vs Neo-2-safe default + opt-out.
 2. **Rhythm-grid default** — ≥4–5 real clips; r and orientation gates.
-3. **SceneMap § 6** — quick-scan trigger; learning-data default; auto-label
-   review; mark time-scope default.
+3. ~~**SceneMap § 6**~~ — **DECIDED 24 Sep** (on #243 tip): scan = **Show scene map** button (not auto); learning collect **off**/opt-in; auto-labels need **review**; marks default to **current scene**. Cursor must not re-open these while building.
 4. **Any learned stage (L2/L3) or fusion default** — golden win required.
+
+**SceneMap P1 approved** (Owner via Claude #243): start after #243 merges; order P1→P2→P3; curve bit-identical to `main` @ `e9e697e` baseline.
 
 ---
 
