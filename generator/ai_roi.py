@@ -43,15 +43,31 @@ Nutzung (eigenständig oder aus generate_funscript.py importiert):
 """
 
 import argparse
+import json
 import os
 import sys
 
 import cv2
 import numpy as np
 
+import bodyparts
+
 
 class ModelUnavailable(RuntimeError):
     """onnxruntime fehlt oder das Modell wurde nicht gefunden."""
+
+
+class StrictClassBindingError(RuntimeError):
+    """A strict semantic target could not be bound safely.
+
+    ``code`` is stable for the Go/Wails bridge; the human message may evolve.
+    Strict failures never fall back to another class or to motion auto-ROI.
+    """
+
+    def __init__(self, code, message, expected_class=""):
+        super().__init__(message)
+        self.code = str(code)
+        self.expected_class = bodyparts.normalize(expected_class)
 
 
 def default_model_path():
@@ -227,7 +243,6 @@ def select_two_best_boxes(detections, frame_w, frame_h, min_size_px=16, max_iou=
 
 def load_class_registry(path):
     """Load name->id map from classes.json (dataset dir or file path)."""
-    import json
     if not path:
         return {}
     file_path = path
@@ -263,6 +278,80 @@ def resolve_preferred_class_ids(names_or_ids, registry=None):
         if cid is not None:
             out.append(cid)
     return out or None
+
+
+def resolve_expected_class_id(expected_class, registry):
+    """Resolve one canonical semantic class to exactly one model-specific ID.
+
+    Unlike the legacy preferred-class helper, this is fail-closed: aliases are
+    normalized, but a missing/conflicting manifest never becomes "all classes".
+    """
+    expected = bodyparts.normalize(expected_class)
+    if not expected or not bodyparts.is_canonical(expected):
+        raise StrictClassBindingError(
+            "class_unresolved", f"Unknown expected body class: {expected_class!r}", expected)
+    if not registry:
+        raise StrictClassBindingError(
+            "manifest_missing", "classes.json is required for strict AI target matching", expected)
+    ids = {
+        int(class_id)
+        for name, class_id in registry.items()
+        if bodyparts.normalize(name) == expected
+    }
+    if not ids:
+        raise StrictClassBindingError(
+            "class_unresolved",
+            f"Expected class {expected!r} is not present in classes.json",
+            expected,
+        )
+    if len(ids) != 1:
+        raise StrictClassBindingError(
+            "class_conflict",
+            f"Expected class {expected!r} maps to conflicting model IDs: {sorted(ids)}",
+            expected,
+        )
+    expected_id = ids.pop()
+    claims = {
+        bodyparts.normalize(name)
+        for name, class_id in registry.items()
+        if int(class_id) == expected_id
+    }
+    if claims != {expected}:
+        raise StrictClassBindingError(
+            "class_conflict",
+            f"Model ID {expected_id} is shared by different classes: {sorted(claims)}",
+            expected,
+        )
+    return expected_id
+
+
+def select_strict_detection(detections, expected_class_id, frame_w, frame_h,
+                            confidence_threshold=0.35, ambiguity_margin=0.08,
+                            use_depth_rank=False, depth_map=None):
+    """Choose only the requested class or raise a typed fail-closed error."""
+    exact = [d for d in detections if int(d.get("class_id", -1)) == int(expected_class_id)]
+    if not exact:
+        raise StrictClassBindingError(
+            "target_not_detected", "Expected body class was not detected")
+    eligible = [d for d in exact if float(d.get("confidence", 0.0)) >= confidence_threshold]
+    if not eligible:
+        raise StrictClassBindingError(
+            "below_confidence", "Expected body class was detected below the confidence threshold")
+    ranked = sorted(
+        eligible,
+        key=lambda d: _detection_rank_score(d, frame_w, frame_h, depth_map, use_depth_rank),
+        reverse=True,
+    )
+    best = ranked[0]
+    best_score = _detection_rank_score(best, frame_w, frame_h, depth_map, use_depth_rank)
+    second = next((d for d in ranked[1:] if _iou(d, best) <= 0.3), None)
+    if second is not None:
+        second_score = _detection_rank_score(second, frame_w, frame_h, depth_map, use_depth_rank)
+        if best_score-second_score <= max(0.0, float(ambiguity_margin)):
+            raise StrictClassBindingError(
+                "ambiguous_target", "Two distinct target boxes are too close in confidence")
+    return best, select_best_box([best], frame_w, frame_h, use_depth_rank=use_depth_rank,
+                                 depth_map=depth_map)
 
 
 def _preprocess_frame(frame_bgr, input_size):
@@ -353,6 +442,143 @@ def find_roi(video_path, start_frame=0, end_frame=None, report_progress=True,
                            use_depth_rank=use_depth_rank)
 
 
+def find_expected_roi(video_path, expected_class, expected_class_id,
+                      start_frame=0, end_frame=None, report_progress=True,
+                      model_path=None, confidence_threshold=0.35, sample_frames=1,
+                      time_sec=None,
+                      ambiguity_margin=0.08, use_depth_rank=False, _run_model_fn=None):
+    """Return a typed proposal for exactly one expected semantic target.
+
+    The strongest unrelated detection is never considered. Product inference
+    uses one exact preview frame (``time_sec``), so a same-class instance from
+    another scene cannot silently replace the object the user is looking at.
+    """
+    expected = bodyparts.normalize(expected_class)
+    model_path = model_path or default_model_path()
+    if _run_model_fn is None:
+        session = _load_session(model_path)
+        _run_model_fn = lambda frame: _run_model(session, frame)
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+    best = None
+    best_box = None
+    best_score = -1.0
+    best_index = -1
+    saw_target = False
+    saw_ambiguous = False
+    try:
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if time_sec is not None:
+            fps = float(cap.get(cv2.CAP_PROP_FPS)) or 30.0
+            start_frame = max(
+                0,
+                min(max(0, total - 1), int(round(float(time_sec) * fps))),
+            )
+            end_frame = start_frame + 1
+            sample_frames = 1
+        end = min(end_frame, total) if end_frame is not None else total
+        end = max(end, start_frame + 1)
+        indices = sorted(set(
+            int(start_frame + i * (end - start_frame - 1) / max(1, sample_frames - 1))
+            for i in range(sample_frames)
+        ))
+        for n, idx in enumerate(indices):
+            if report_progress:
+                print(f"PROGRESS {n} {len(indices)}", file=sys.stderr, flush=True)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ok, frame = cap.read()
+            if not ok:
+                continue
+            raw = _run_model_fn(frame)
+            # Keep sub-threshold boxes long enough to distinguish "not present"
+            # from "present but too weak" for an honest UI message.
+            detections = decode_detections(raw, 0.0)
+            if any(int(d.get("class_id", -1)) == int(expected_class_id) for d in detections):
+                saw_target = True
+            depth_map = _optional_depth_map(frame, use_depth_rank)
+            try:
+                det, box = select_strict_detection(
+                    detections, expected_class_id, width, height,
+                    confidence_threshold=confidence_threshold,
+                    ambiguity_margin=ambiguity_margin,
+                    use_depth_rank=use_depth_rank,
+                    depth_map=depth_map,
+                )
+            except StrictClassBindingError as exc:
+                if exc.code == "ambiguous_target":
+                    saw_ambiguous = True
+                continue
+            score = _detection_rank_score(det, width, height, depth_map, use_depth_rank)
+            if score > best_score:
+                best, best_box, best_score, best_index = det, box, score, idx
+        if report_progress:
+            print(f"PROGRESS {len(indices)} {len(indices)}", file=sys.stderr, flush=True)
+    finally:
+        cap.release()
+
+    if best is None:
+        if saw_ambiguous:
+            code = "ambiguous_target"
+            message = f"Multiple {expected} boxes were equally plausible"
+        elif saw_target:
+            code = "below_confidence"
+            message = f"Detected {expected}, but confidence was below {confidence_threshold:.2f}"
+        else:
+            code = "target_not_detected"
+            message = f"No {expected} detection was found"
+        raise StrictClassBindingError(code, message, expected)
+
+    return {
+        "x": best_box[0], "y": best_box[1], "w": best_box[2], "h": best_box[3],
+        "expectedClass": expected,
+        "matchedClass": expected,
+        "matchedClassId": int(expected_class_id),
+        "confidence": float(best["confidence"]),
+        "sampleIndex": int(best_index),
+        "match": True,
+        "status": "matched",
+    }
+
+
+def find_expected_image(image_path, expected_class, expected_class_id,
+                        model_path=None, confidence_threshold=0.35,
+                        ambiguity_margin=0.08, use_depth_rank=False,
+                        _run_model_fn=None):
+    """Strict proposal from the exact preview image shown by the GUI."""
+    expected = bodyparts.normalize(expected_class)
+    model_path = model_path or default_model_path()
+    if _run_model_fn is None:
+        session = _load_session(model_path)
+        _run_model_fn = lambda frame: _run_model(session, frame)
+    frame = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise RuntimeError(f"Preview image could not be opened: {image_path}")
+    height, width = frame.shape[:2]
+    detections = decode_detections(_run_model_fn(frame), 0.0)
+    depth_map = _optional_depth_map(frame, use_depth_rank)
+    det, box = select_strict_detection(
+        detections, expected_class_id, width, height,
+        confidence_threshold=confidence_threshold,
+        ambiguity_margin=ambiguity_margin,
+        use_depth_rank=use_depth_rank,
+        depth_map=depth_map,
+    )
+    return {
+        "x": box[0], "y": box[1], "w": box[2], "h": box[3],
+        "expectedClass": expected,
+        "matchedClass": expected,
+        "matchedClassId": int(expected_class_id),
+        "confidence": float(det["confidence"]),
+        "sampleIndex": -1,
+        "match": True,
+        "status": "matched",
+    }
+
+
 def find_two_rois(video_path, start_frame=0, end_frame=None, report_progress=True,
                    model_path=None, confidence_threshold=0.35, sample_frames=5,
                    preferred_class_ids=None, use_depth_rank=False, _run_model_fn=None):
@@ -410,7 +636,8 @@ def find_two_rois(video_path, start_frame=0, end_frame=None, report_progress=Tru
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--video", help="Pfad zum Video (nicht nötig mit --check)")
+    ap.add_argument("--video", help="Pfad zum Video (nicht nötig mit --check/--image)")
+    ap.add_argument("--image", help="Exact preview image for strict target matching")
     ap.add_argument("--model", default=None, help="Pfad zur .onnx-Datei (sonst Standardordner)")
     ap.add_argument("--confidence", type=float, default=0.35)
     ap.add_argument("--preferred-classes", default=None,
@@ -419,6 +646,18 @@ def main():
     ap.add_argument("--classes-json", default=None,
                      help="Path to classes.json or its dataset directory "
                           "(default: sibling of --model, then dataset under config).")
+    ap.add_argument("--expected-class", default=None,
+                    help="Canonical body class required for strict target matching "
+                         "(e.g. glans, nipples, mouth). Requires --strict-class.")
+    ap.add_argument("--strict-class", action="store_true",
+                    help="Fail closed when the expected class is absent, weak or ambiguous. "
+                         "Never falls back to another class or the motion finder.")
+    ap.add_argument("--ambiguity-margin", type=float, default=0.08,
+                    help="Maximum score gap considered ambiguous between two distinct "
+                         "detections of the expected class (default: 0.08).")
+    ap.add_argument("--time-sec", type=float, default=0.0,
+                    help="Exact preview time used by strict target matching. The strict "
+                         "path evaluates this frame only, avoiding cross-scene instance swaps.")
     ap.add_argument("--check", action="store_true",
                      help="Nur prüfen, ob KI-Erkennung nutzbar ist (onnxruntime + Modell "
                           "vorhanden), ohne Video zu öffnen - für die GUI, um den KI-Knopf "
@@ -437,8 +676,68 @@ def main():
         print(f"model_path={path}", file=sys.stderr)
         return
 
-    if not args.video:
-        ap.error("--video ist erforderlich, außer bei --check")
+    if not args.video and not (args.strict_class and args.image):
+        ap.error("--video ist erforderlich, außer bei --check oder strict --image")
+
+    if args.strict_class and args.two:
+        ap.error("--strict-class currently supports one expected Tip target, not --two")
+
+    if args.strict_class:
+        if not args.expected_class:
+            ap.error("--expected-class is required with --strict-class")
+        registry_path = args.classes_json
+        if not registry_path:
+            registry_path = os.path.dirname(os.path.abspath(
+                args.model or default_model_path()))
+        try:
+            try:
+                registry = load_class_registry(registry_path)
+            except (OSError, ValueError, TypeError) as exc:
+                raise StrictClassBindingError(
+                    "manifest_invalid",
+                    f"classes.json could not be read: {exc}",
+                    args.expected_class,
+                ) from exc
+            expected_id = resolve_expected_class_id(args.expected_class, registry)
+            kwargs = {
+                "expected_class": args.expected_class,
+                "expected_class_id": expected_id,
+                "model_path": args.model,
+                "confidence_threshold": args.confidence,
+                "ambiguity_margin": args.ambiguity_margin,
+            }
+            if args.image:
+                result = find_expected_image(args.image, **kwargs)
+            else:
+                result = find_expected_roi(args.video, time_sec=args.time_sec, **kwargs)
+        except StrictClassBindingError as exc:
+            payload = {
+                "code": exc.code,
+                "expectedClass": exc.expected_class or bodyparts.normalize(args.expected_class),
+                "message": str(exc),
+                "match": False,
+            }
+            print("TIP_ERROR " + json.dumps(payload, ensure_ascii=False, sort_keys=True))
+            print(f"Strict AI target failed [{exc.code}]: {exc}", file=sys.stderr)
+            sys.exit(2)
+        except (ModelUnavailable, RuntimeError) as exc:
+            payload = {
+                "code": "detector_failed",
+                "expectedClass": bodyparts.normalize(args.expected_class),
+                "message": str(exc),
+                "match": False,
+            }
+            print("TIP_ERROR " + json.dumps(payload, ensure_ascii=False, sort_keys=True))
+            print(f"Strict AI target failed: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print("TIP_DETECTION " + json.dumps(result, ensure_ascii=False, sort_keys=True))
+        print("ROI {x} {y} {w} {h}".format(**result))
+        print(
+            f"Strict AI target found: {result['matchedClass']} "
+            f"confidence={result['confidence']:.3f}",
+            file=sys.stderr,
+        )
+        return
 
     preferred = None
     if args.preferred_classes:
