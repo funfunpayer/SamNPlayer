@@ -110,7 +110,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | G1safe | Cursor | [#257](https://github.com/funfunpayer/SamNPlayer/pull/257) merged | **G1 without Owner** — G1.2 QD×audio English hint + Everyday blurb; **no** default changes | **DONE** (`1a4929e`) |
-| G3safe | Cursor | this branch | **G3 suggest-only harden** — English profile-suggest copy + G3 status sync; **no** CSRT/ROI default changes | **THIS** |
+| G3safe | Cursor | [#258](https://github.com/funfunpayer/SamNPlayer/pull/258) | **G3 suggest-only harden** — English profile-suggest copy + G3 status sync; **no** CSRT/ROI default changes | **IN REVIEW** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
