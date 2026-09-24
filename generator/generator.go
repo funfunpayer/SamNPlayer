@@ -757,14 +757,42 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 // normales Ergebnis (keine gespeicherte Szene nah genug, kein KI-Server
 // erreichbar), kein Fehler - der Aufrufer entscheidet, was er anzeigt.
 type ProfileSuggestion struct {
-	Found bool
-	Label string
-	Kind  string // "measured" (motion_signature, kein KI) oder "ai" (Colibri)
+	Found bool   `json:"found"`
+	Label string `json:"label"`
+	Kind  string `json:"kind"` // "measured", "local_model" oder "ai"
 	// Confidence: bei Kind=="ai" eine 0..1-Konfidenz (höher = sicherer).
 	// Bei Kind=="measured" stattdessen der Signaturabstand zur nächsten
 	// gespeicherten Szene (niedriger = ähnlicher) - andere Skala, gleiches
 	// Feld, weil beide Fälle nie gleichzeitig auftreten.
-	Confidence float64
+	Confidence float64 `json:"confidence"`
+}
+
+// ExtractMotionSignature asks the existing OpenCV feature extractor for its
+// compact, versioned scene signature. Video decoding remains in the proven
+// Python/OpenCV path; model training and inference can consume the result in
+// pure Go without importing Python ML frameworks.
+func ExtractMotionSignature(videoPath string) (map[string]float64, error) {
+	py, err := FindPython()
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return nil, err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return nil, err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	out, err := command(py, scriptPath, "--video", videoPath, "--dump-motion-signature").Output()
+	if err != nil {
+		return nil, fmt.Errorf("generator: motion signature failed: %w", err)
+	}
+	var signature map[string]float64
+	if err := json.Unmarshal(out, &signature); err != nil {
+		return nil, fmt.Errorf("generator: motion signature output invalid: %w", err)
+	}
+	return signature, nil
 }
 
 // SuggestProfile fragt --suggest-profile ab (generate_funscript.py, siehe
@@ -816,6 +844,14 @@ func SuggestProfile(videoPath, baseURL string) (ProfileSuggestion, error) {
 // --label-scene, motion_signature.py) - die Grundlage, gegen die
 // SuggestProfile spätere, ähnliche Szenen misst.
 func LabelScene(videoPath, label string) error {
+	return LabelSceneWithProfile(videoPath, label, "")
+}
+
+// LabelSceneWithProfile stores the measured scene signature together with the
+// generator profile explicitly selected by the user. Older callers can keep
+// using LabelScene; profile-aware records are the training data for the local
+// Go motion-profile model.
+func LabelSceneWithProfile(videoPath, label, profile string) error {
 	py, err := FindPython()
 	if err != nil {
 		return err
@@ -828,7 +864,11 @@ func LabelScene(videoPath, label string) error {
 		return err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	out, err := command(py, scriptPath, "--video", videoPath, "--label-scene", label).CombinedOutput()
+	args := []string{scriptPath, "--video", videoPath, "--label-scene", label}
+	if profile != "" {
+		args = append(args, "--scene-profile", profile)
+	}
+	out, err := command(py, args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("generator: scene could not be saved: %w\n%s", err, string(out))
 	}

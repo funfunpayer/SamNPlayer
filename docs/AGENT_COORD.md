@@ -109,12 +109,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
-<<<<<<< HEAD
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) | **SceneMap P1** — score/choose split, `ScanSceneMap`, Wails + Advanced Show scene map | **DONE** — CI green; merging |
-=======
 | AIScript | ChatGPT | `chatgpt/ai-script-model-foundation` | **Local script-model foundation** — Go data/model contract, AI-Training-tab workflow, optional Generate candidate through existing posttrack + fallback; no default flip or license enforcement | **THIS** — first measurable slice; `trackcv` and G1 defaults untouched |
->>>>>>> 270ea62 (docs(coord): claim local script-model foundation lane)
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |

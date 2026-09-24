@@ -31,7 +31,8 @@ independent, lightweight local engines — each for the job it is built for:
 
 | Engine | Job | Why this one |
 |---|---|---|
-| **ONNX Runtime** | Vision: propose a region (later: propose a profile from the motion signature) | Small (a few MB of model plus runtime), CPU/GPU, no Python requirement at inference time — fits the stated goal of eventually removing Python from the .exe (`HANDOFF.md`, "Project status and next steps") |
+| **ONNX Runtime** | Vision: propose a body-part region | Small (a few MB of model plus runtime), CPU/GPU; fits the existing detector/export path |
+| **Go motion-profile model** | Learn Normal/Soft/Autotune from confirmed motion signatures | Go training/classification with no ML runtime, GPU, server or network; signature measurement still uses local Python/OpenCV |
 | **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Large local language models for judgments with a reason attached (quality, profile choice in prose) | Pure C, no CUDA/PyTorch needed, runs on ordinary hardware, `coli serve` speaks the OpenAI `/v1/chat/completions` API — a plain HTTP client is enough to connect it, no SDK required |
 
 Both are swappable: the backend register (`backends.py`) and the
@@ -131,7 +132,7 @@ export format.
     aren't ours to reuse — only the freely available open-source
     Ultralytics tooling they also build on was used.
 
-### 2. Propose a profile (standard/tf/tj/…) — **implemented**
+### 2. Propose a profile (standard/weich/autotune) — **implemented, local learning added**
 
 Decided in favor of the Colibri direction, and only as a fallback behind
 the existing classical tool — not a replacement for it:
@@ -148,10 +149,17 @@ the existing classical tool — not a replacement for it:
   server (`ai_profile.suggest_profile`) to judge the same eight signature
   numbers plus the nearest saved examples, and return a profile guess with
   a one-sentence reason — or `"unsure"` rather than force a guess.
-- No trained classifier was added: there is currently no labelled corpus
-  at all (nobody has run `--label-scene` yet), and training one on too few
-  examples would repeat the mistake `quality_model.py` guards against. A
-  zero-shot LLM judgment needs no training data and can admit uncertainty.
+- `generator/profilemodel` now adds a deliberately small **pure-Go learned
+  classifier** on top of those same eight values. `Remember scene + style`
+  stores the user-confirmed Style as `parameters.profile`; the AI training tab
+  reports usable samples and writes `motion_profile_model.json` atomically.
+  The model uses per-profile centroids plus observed spread, rejects distant
+  scenes and near-ties, and therefore has an inspectable reason for every
+  accepted class instead of forcing a guess.
+- The local Go model is tried first. If it has no safe answer (or has not been
+  trained), the existing nearest-scene and optional Colibri paths remain as
+  fallbacks. This gives us useful learning before a large corpus exists without
+  making a large language model responsible for frame-level tracking.
 - Neither path touches `--profile` automatically — both print a suggestion
   only, matching `docs/NEXT.md`'s "do not switch profiles automatically
   without validation".
@@ -165,10 +173,18 @@ the existing classical tool — not a replacement for it:
   wiring end to end via a real subprocess call, proving the classical path
   wins when it has a confident match and that the AI path is skipped
   entirely in that case).
-- **GUI wiring done:** the generator tab has a "Profil vorschlagen" button
-  plus a status line, and a scene-name field with "Szene merken" next to
-  it. **Still open:** no field data yet on how useful the AI fallback
-  actually is — nobody has run it against a real Colibri server.
+- **GUI wiring done:** Create stores scene + selected Style, profile suggestions
+  still require **Apply**, and AI training has status/refresh/train controls plus
+  a direct navigation button back to Create. **Still open:** field data is needed
+  to tune rejection thresholds and compare the learned model to Colibri.
+
+Large local models such as Qwen can still be connected through an
+OpenAI-compatible local server for explanations, metadata normalization or an
+additional opinion. They are not the primary curve writer: an LLM token stream
+does not preserve per-frame spatial identity, while the measured tracker and
+signal pipeline already enforce timing, speed and quality constraints. A future
+LLM/vision adapter must therefore produce a bounded proposal that goes through
+the same confirmation and classical post-processing path.
 
 ### 3. Quality judgment — **implemented**
 

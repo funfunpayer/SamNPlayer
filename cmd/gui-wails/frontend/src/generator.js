@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -177,7 +177,7 @@ export function initGenerator(root, playback) {
         <div class="row" style="align-items:center;">
           <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
           <button id="gen-label-scene" disabled
-            data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
+            data-help="Saves the motion signature, this name and the Style currently selected above. The AI training tab can learn a local profile model from confirmed examples.">Remember scene + style</button>
         </div>
       </details>
     </section>
@@ -335,6 +335,7 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   let userCancelRequested = false;
   let activeCreateSeq = 0;
+  let profileSuggestionSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
   // FunGen-like 0–100 gauge over the preview (after Generate).
@@ -1216,6 +1217,7 @@ export function initGenerator(root, playback) {
     lastSceneMap = null;
     const smStatus = el('#gen-scene-map-status');
     if (smStatus) smStatus.textContent = '';
+    const loadSuggestionSeq = ++profileSuggestionSeq;
     seekSec = 0;
     el('#gen-seek').value = '0';
     el('#gen-seek').disabled = false;
@@ -1268,9 +1270,12 @@ export function initGenerator(root, playback) {
       syncWorkflowSteps();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
-        if (!result || !videoPath || videoPath !== path) return;
+        if (!result || !videoPath || videoPath !== path
+          || loadSuggestionSeq !== profileSuggestionSeq) return;
         const status = el('#gen-suggest-status');
-        const via = result.via || 'signature';
+        const via = result.kind === 'local_model' ? 'learned locally'
+          : result.kind === 'ai' ? 'local AI server'
+          : 'saved scene';
         const label = result.label === 'tj' ? 'tf' : result.label;
         if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
           status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
@@ -1942,18 +1947,23 @@ export function initGenerator(root, playback) {
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
+    const requestSeq = ++profileSuggestionSeq;
+    const requestPath = videoPath;
     const status = el('#gen-suggest-status');
     status.textContent = 'Comparing to saved scenes…';
     el('#gen-suggest-profile').disabled = true;
     try {
       const result = await SuggestProfile(videoPath);
+      if (requestSeq !== profileSuggestionSeq || requestPath !== videoPath) return;
       if (!result.found) {
         status.textContent = 'No suggestion (no similar saved scene, AI server unreachable).';
         return;
       }
-      const via = result.kind === 'ai'
-        ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
-        : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
+      const via = result.kind === 'local_model'
+        ? `lokales Go-Modell, Konfidenz ${Math.round(result.confidence * 100)}%`
+        : result.kind === 'ai'
+          ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
+          : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
       // Legacy "tf"/"tj" scene labels map to Stroke — Contact vib is the feel layer now.
       let label = result.label === 'tj' || result.label === 'tf' ? 'standard' : result.label;
       if (PROFILE_VALUES.includes(label)) {
@@ -1971,9 +1981,9 @@ export function initGenerator(root, playback) {
           + 'direct profile name; not applied automatically.';
       }
     } catch (err) {
-      status.textContent = 'Error: ' + err;
+      if (requestSeq === profileSuggestionSeq) status.textContent = 'Error: ' + err;
     } finally {
-      el('#gen-suggest-profile').disabled = false;
+      if (requestSeq === profileSuggestionSeq) el('#gen-suggest-profile').disabled = false;
     }
   });
 
@@ -1986,8 +1996,10 @@ export function initGenerator(root, playback) {
     }
     el('#gen-label-scene').disabled = true;
     try {
-      await LabelScene(videoPath, label);
-      el('#gen-suggest-status').textContent = `Scene saved as "${label}".`;
+      const profile = el('#gen-profile').value || 'standard';
+      await LabelSceneWithProfile(videoPath, label, profile);
+      el('#gen-suggest-status').textContent = `Scene "${label}" saved with Style “${profile}”. `
+        + 'Retrain the Go profile model in AI training to include it.';
     } catch (err) {
       uiError('Remember scene: ' + err, el('#gen-suggest-status'));
     } finally {

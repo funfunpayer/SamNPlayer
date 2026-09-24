@@ -273,11 +273,14 @@ func (a *App) CheckAudioCheckAvailable() bool {
 	return generator.AudioCheckAvailable()
 }
 
-// SuggestProfile vergleicht die Bewegungssignatur des Videos gegen zuvor mit
-// LabelScene benannte Szenen und, falls keine nah genug ist, gegen einen
-// optionalen Colibri-Server. Found=false ist ein normales Ergebnis (kein
-// Fehler) - keine passende Szene, kein KI-Server erreichbar.
+// SuggestProfile tries the trained local Go model first. If it has no safe
+// answer, the existing nearest-scene and optional Colibri fallbacks remain.
+// Every result is only a proposal; the frontend requires an explicit Apply.
+// Found=false is normal (unknown/ambiguous scene, no server reachable).
 func (a *App) SuggestProfile(videoPath string) (generator.ProfileSuggestion, error) {
+	if suggestion, ok := localMotionProfileSuggestion(videoPath); ok {
+		return suggestion, nil
+	}
 	return generator.SuggestProfile(videoPath, a.settings.GetString(prefAIBaseURL, ""))
 }
 

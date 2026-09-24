@@ -43,6 +43,7 @@ export function GetHardwareInfo() { return window['go']['main']['App']['GetHardw
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
 export function GetLicenseStatus() { return window['go']['main']['App']['GetLicenseStatus'](); }
 export function GetLogEntries() { return window['go']['main']['App']['GetLogEntries'](); }
+export function GetMotionProfileModelStatus() { return window['go']['main']['App']['GetMotionProfileModelStatus'](); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
 export function GetOMarkers(arg1) { return window['go']['main']['App']['GetOMarkers'](arg1); }
 export function GetRoiDatasetSummary(arg1) { return window['go']['main']['App']['GetRoiDatasetSummary'](arg1); }
@@ -70,6 +71,7 @@ export function InvertLoadedScript() { return window['go']['main']['App']['Inver
 export function ImproveGeneratedScript(arg1) { return window['go']['main']['App']['ImproveGeneratedScript'](arg1); }
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
+export function LabelSceneWithProfile(arg1, arg2, arg3) { return window['go']['main']['App']['LabelSceneWithProfile'](arg1, arg2, arg3); }
 export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
@@ -119,6 +121,7 @@ export function TestStop() { return window['go']['main']['App']['TestStop'](); }
 export function TestSuction(arg1) { return window['go']['main']['App']['TestSuction'](arg1); }
 export function TestVibration(arg1) { return window['go']['main']['App']['TestVibration'](arg1); }
 export function TrainQualityModel() { return window['go']['main']['App']['TrainQualityModel'](); }
+export function TrainMotionProfileModel() { return window['go']['main']['App']['TrainMotionProfileModel'](); }
 export function TrainingHistory() { return window['go']['main']['App']['TrainingHistory'](); }
 export function ExportTrainingHistoryCSV() { return window['go']['main']['App']['ExportTrainingHistoryCSV'](); }
 export function ListTrainingScripts() { return window['go']['main']['App']['ListTrainingScripts'](); }
