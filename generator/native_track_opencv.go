@@ -51,6 +51,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Confidence:   tr.Stats.Confidence,
 		Reason:       tr.Stats.Reason,
 		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
+		SceneMap:     sceneMapFromTrackcv(tr.SceneMap),
 	}, nil
 }
 

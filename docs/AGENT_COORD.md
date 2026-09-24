@@ -113,10 +113,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
 | SceneP3 | Cursor | [#251](https://github.com/funfunpayer/SamNPlayer/pull/251) merged | **SceneMap P3** — engine honours marks (candidate filter, Go masks+rhythm grid, camera multi-exclude) | **DONE** (`9d20e05`) |
+| SceneP4 | Cursor | [#253](https://github.com/funfunpayer/SamNPlayer/pull/253) | **SceneMap P4** — `.samn` `sceneMap` persist (writer+reader+round-trip; no funscript export) | **IN REVIEW** |
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
-| Engine | — | free | SceneMap P3 on main; next = P4 `.samn` scene_map / Claude M3 measure / G1.1 after Owner gates | **OPEN** |
+| Engine | — | free | SceneMap P4 [#253](https://github.com/funfunpayer/SamNPlayer/pull/253); next = P5 learning export / Claude M3 / G1.1 after Owner gates | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -139,9 +140,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (24 Sep evening):**
 - **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
-- **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251). Claude/Manus pause — Cursor on careful bugfix + P4.
+- **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); golden FunGen provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252).
+- **In flight:** SceneMap **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253). Claude/Manus pause.
 - **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** Claude M3 gate / SceneMap **P4** `.samn` persist — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **Cursor NEXT:** Claude M3 gate / P5 learning export — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
 - **ChatGPT:** steward / copy review welcome; no open feature claim.
 
 **Status board (24 Sep):**

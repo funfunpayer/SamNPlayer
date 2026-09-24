@@ -122,6 +122,24 @@ when the user edits a Neo-2 channel in the editor.
 AI ROI training still **never writes** scripts (see `docs/KI_TRAINING.md`).
 The generator (classic / native pipeline) writes `.samn` + `.funscript`.
 
+### `sceneMap` (optional, M4)
+
+When Generate runs with RhythmGrid and produces a map, the companion `.samn`
+may include `sceneMap`:
+
+| Field | Role |
+|-------|------|
+| `version` | schema version (1) |
+| `video` | `durationMs`, `width`, `height`, `sha256_head` (first MiB) |
+| `grid` | `cols` / `rows` (rhythm cells) |
+| `windows[]` | `startMs`/`endMs`, `tempoHz`, `score_b64` (std base64 of `[]uint8`), `chosen`, optional `signRule` / `trackerR` / `box` / `marks` ids |
+| `marks[]` | exclude / source / region (`id`, `kind`, `rect`, time scope, `author`, class/role/confidence/reviewed as applicable) |
+| `events[]` | optional engine incidents (may be empty) |
+
+Additive and optional — old readers ignore it. **Community `.funscript` export
+never carries `scene_map` / `sceneMap`** (size). `contactMarks` and
+`trajectory` are unchanged.
+
 ## Compatibility
 
 - Older SamNPlayer: opens `.funscript` as today.

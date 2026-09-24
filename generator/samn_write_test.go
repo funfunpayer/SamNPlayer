@@ -32,7 +32,7 @@ func TestWriteCompanionSamnStrokeContactFeel(t *testing.T) {
 		Tip:    []funscript.TrajectoryPoint{{AtMs: 0, X: 30, Y: 40}, {AtMs: 1000, X: 35, Y: 42}},
 	}
 	quality := funscript.ScriptQualityResult{Score: 0.8, Passed: true}
-	if err := writeCompanionSamn(fsPath, actions, opts, nil, quality, traj); err != nil {
+	if err := writeCompanionSamn(fsPath, "", actions, opts, nil, quality, traj, nil); err != nil {
 		t.Fatal(err)
 	}
 	doc, err := samn.Load(samn.CompanionSamnPath(fsPath))

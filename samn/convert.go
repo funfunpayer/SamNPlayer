@@ -154,6 +154,7 @@ func (d *Document) ExportFunscript(path string) error {
 	if d.Trajectory != nil && len(d.Trajectory.Tip) > 0 {
 		meta["trajectory"] = d.Trajectory
 	}
+	// scene_map stays .samn-only (size); do not put it on community export.
 	if d.QualityScore != nil {
 		meta["quality_score"] = *d.QualityScore
 	}

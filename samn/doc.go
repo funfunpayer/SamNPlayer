@@ -66,6 +66,10 @@ type Document struct {
 	ContactMarks *funscript.ContactMarks   `json:"contactMarks,omitempty"`
 	Trajectory   *funscript.TrajectoryData `json:"trajectory,omitempty"`
 
+	// SceneMap: optional rhythm heatmap + marks (docs/SCENE_MAP_PLAN.md M4).
+	// Written only when a map exists. Never exported to community .funscript.
+	SceneMap *funscript.SceneMapData `json:"sceneMap,omitempty"`
+
 	// Optional quality copy from generation (informational).
 	QualityScore    *float64 `json:"qualityScore,omitempty"`
 	QualityPassed   *bool    `json:"qualityPassed,omitempty"`
