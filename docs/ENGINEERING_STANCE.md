@@ -50,16 +50,35 @@ reviewed as **input**, not a shopping list.
 ## Open lanes (24 Sep) — merge order
 
 ```text
-  1. Merge Claude #243  — SCENE_MAP_PLAN.md (docs only)
-  2. Review Manus/ChatGPT #244 — generator/profilemodel + AI Training UI
-       (suggest-only; no default flip; trackcv / G1 defaults untouched)
-  3. Cursor builds SceneMap P1 → P5 per SCENE_MAP_PLAN.md
-       (Claude reviews engine + goldens; Owner answers § 6)
+  Parallel OK (different layers):
+    • Claude #243  — SCENE_MAP_PLAN.md (docs only)     → merge when green
+    • Manus #244   — profilemodel + GUI Suggest→Apply  → merge when green
+        (CI green; no trackcv overlap; only AGENT_COORD may conflict)
+
+  After both on main:
+    Cursor builds SceneMap P1 → P5 per SCENE_MAP_PLAN.md
+    (Claude reviews engine + goldens; Owner answers § 6)
 ```
 
-Do **not** start SceneMap code until #243 is on `main`. Do **not** expand
-#244 into a script writer or Everyday default. G1.1 tune stays blocked on
-Owner (speed-cap rule + rhythm clips).
+**#244 may land on main now.** It is already GUI-wired (Remember scene +
+style, Train Go profile model, Suggest→Apply). It does **not** write
+curves and does not touch Everyday defaults.
+
+**Do not “code-merge” Claude’s plan into Manus’s PR.** They stack later:
+
+| Layer | Who | What |
+|-------|-----|------|
+| Style / profile suggestion | #244 `profilemodel` | eight motion features → Normal/Soft/Autotune guess |
+| Where the stroke is | SceneMap P1–P3 | rhythm heatmap + exclude/source marks |
+| Who / labels for YOLO | SceneMap P4–P5 → L2 | `.samn` marks + export into `KI_TRAINING` dataset |
+| How / cell scorer | SceneMap L3 | engine-trace JSONL — after enough clips |
+
+So: merge Manus for the profile helper; keep Claude’s plan as the map /
+learning spine; Cursor implements SceneMap on top of both. No rewrite of
+#244 into a heatmap, and no SceneMap code inside #244.
+
+Do **not** start SceneMap **code** until #243 is on `main`. G1.1 tune
+stays blocked on Owner (speed-cap rule + rhythm clips).
 
 ### SceneMap (Cursor after #243)
 
@@ -105,3 +124,20 @@ quality). Field data still needed before threshold tuning.
 
 One theme per agent. Base on current `main`. No silent default changes
 (`AGENT_COORD` rule 4).
+
+---
+
+## GoCV / MOSSE / YOLO+ByteTrack essay (24 Sep)
+
+Mapped against what we already ship. **Do not adopt blindly.**
+
+| Essay idea | Our status |
+|------------|------------|
+| GoCV (`gocv.io`) as OpenCV wrapper | **Rejected as dependency** — `trackcv` is a thin CGO wrapper (`cv.cpp`) on purpose; see package comment (contrib/patent/compile issues with full gocv). |
+| TrackerMOSSE / KCF | **Measured and rejected** for hard tip ROIs (`NEXT.md`); product Stroke = **CSRT**. |
+| YOLO + ByteTrack IDs | **Already planned** as opt-in proposal/ID layer (MT-Seed done; MT-ID Owner gate) — **not** Stroke writer. |
+| V4L2 / go4vl webcam capture | N/A for Generate-from-file product path. |
+| WebRTC / Pion streaming | Out of Generate spine; parked with platforms. |
+
+Keep CSRT + rhythm grid + SceneMap path. Borrow MOT *ideas* only via the
+Multi-track Fahrplan — not a second tracker stack.
