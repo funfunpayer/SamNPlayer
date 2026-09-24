@@ -143,7 +143,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); golden FunGen provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252).
 - **In flight:** SceneMap **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253). Claude/Manus pause.
 - **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** finish P4; Claude M3 gate — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **Cursor NEXT:** Claude M3 gate / P5 learning export — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
 - **ChatGPT:** steward / copy review welcome; no open feature claim.
 
 **Status board (24 Sep):**
