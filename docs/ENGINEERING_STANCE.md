@@ -127,17 +127,48 @@ One theme per agent. Base on current `main`. No silent default changes
 
 ---
 
-## GoCV / MOSSE / YOLO+ByteTrack essay (24 Sep)
+## Go / video / CV link dump (24 Sep) — filter, don’t shop
 
-Mapped against what we already ship. **Do not adopt blindly.**
+Owner pasted pkg.go.dev / Medium / GitHub topic links. Same rule as the
+Unite.ai filter in the Multi-track Fahrplan: **ideas yes, dependencies no**
+unless a golden-clip gate says otherwise.
 
-| Essay idea | Our status |
-|------------|------------|
-| GoCV (`gocv.io`) as OpenCV wrapper | **Rejected as dependency** — `trackcv` is a thin CGO wrapper (`cv.cpp`) on purpose; see package comment (contrib/patent/compile issues with full gocv). |
-| TrackerMOSSE / KCF | **Measured and rejected** for hard tip ROIs (`NEXT.md`); product Stroke = **CSRT**. |
-| YOLO + ByteTrack IDs | **Already planned** as opt-in proposal/ID layer (MT-Seed done; MT-ID Owner gate) — **not** Stroke writer. |
-| V4L2 / go4vl webcam capture | N/A for Generate-from-file product path. |
-| WebRTC / Pion streaming | Out of Generate spine; parked with platforms. |
+### Keep (already ours)
 
-Keep CSRT + rhythm grid + SceneMap path. Borrow MOT *ideas* only via the
-Multi-track Fahrplan — not a second tracker stack.
+| Topic | Ours |
+|-------|------|
+| OpenCV in Go | Thin `trackcv` CGO (`cv.cpp`) — **CSRT** Stroke |
+| FFmpeg decode / proxy / tools | `videox` + os/exec |
+| YOLO as detector | ONNX ROI **proposal** (`ai_roi`) — never writes the curve |
+| MOT ID ideas | MT-Go coast + MT-Seed done; ByteTrack only if Owner MT-ID gate fails |
+| MovieGo notes | Already folded into MT-Infra (filtergraph / PTS) — **not** a dep |
+
+### Reject / out of Generate spine
+
+| Link theme | Why |
+|------------|-----|
+| **GoCV** (`gocv.io`, hybridgroup examples, face-detect tutorials) | Full contrib wrapper — compile/patent pain; we deliberately don’t use it |
+| **MOSSE / KCF** trackers | Measured collapse on hard tip ROIs (`NEXT.md`) |
+| **Frame-diff / motion-detect** mains | Rejected as Tip finder |
+| **go4vl / V4L2 webcam**, realtime-capture Medium posts | Product = file → script, not live camera |
+| **gostream / Pion / Surf streaming apps** | Streaming UX ≠ Generate quality |
+| **AlexEidt/Vidio** as decode replacement | Nice pure-Go demux ideas; swap only after measured parity vs `videox` |
+| **mowshon/moviego** as dependency | Architecture notes only (already logged) |
+| **go-rknnlite / RKNN / Rockchip** edge stacks | Wrong target (desktop portable, not NPU board) |
+| **Google Video Intelligence / cloud.google.com/go/video** | Cloud + telemetry — violates local-first / no auto network |
+| **Track-Anything** / SAM-equivalent segmentation | Heavy research; Perception v1 gate first |
+| **go-object-detection** hobby detectors | Not body-part taxonomy / not our ONNX contract |
+| **LibHunt / awesome-go video lists** | Catalogs, not product decisions |
+
+### Already “erweitert” relative to those blogs
+
+```text
+  CSRT tip track + coast/reacquire
+  + rhythm grid (opt-in)
+  + SceneMap plan (#243) for marks/learning
+  + profilemodel (#244) for Style suggest
+  + YOLO-ONNX propose / ByteTrack only if IDs die on goldens
+```
+
+No second tracker stack. No cloud video API. No webcam path for Generate.
+
