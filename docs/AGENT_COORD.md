@@ -147,8 +147,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (24 Sep evening):**
+<<<<<<< HEAD
 - **Shipped:** **v0.5.31** (#249); SceneMap **P3–P5b** (#251–#256); **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257); **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258).
 - **In flight:** **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) (Load project + Scale range).
+=======
+- **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
+- **Shipped:** SceneMap **P3–P5b** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251)–[#256](https://github.com/funfunpayer/SamNPlayer/pull/256); **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257).
+- **In flight:** **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258); **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260).
+>>>>>>> 118cbe0 (docs(coord): GuiLoad → #260)
 - **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI** (no backend-only leftovers for product paths).
 - **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
 - **Parked:** LosslessCut.
