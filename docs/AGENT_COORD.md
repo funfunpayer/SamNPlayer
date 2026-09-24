@@ -144,7 +144,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252); **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253).
 - **In flight:** SceneMap **P4b** GUI restore [#254](https://github.com/funfunpayer/SamNPlayer/pull/254). Claude/Manus pause.
 - **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** Claude M3 gate / P5 learning export — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **Cursor NEXT:** finish P4b [#254](https://github.com/funfunpayer/SamNPlayer/pull/254); then P5 learning export / Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **Parked (Owner 24 Sep):** [LosslessCut](https://losslesscut.net/) ideas — **hold**. Do **not** fork/embed (GPL-2.0). Candidate later: thin Advanced *Export clip (lossless)* via existing ffmpeg (`-c copy`, keyframe snap) for Create In/Out → file beside video; optional “open in LosslessCut”. No Smart Cut / full timeline editor. No lane claim.
 - **ChatGPT:** steward / copy review welcome; no open feature claim.
 
 **Status board (24 Sep):**
