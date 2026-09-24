@@ -95,7 +95,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.28** | Shipped | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
-| next | After Rel30 | Merge #243 + #244 (parallel OK) → Cursor SceneMap P1; Owner gates (speed-cap, ≥4–5 rhythm clips, SceneMap § 6); G1.1 tune only after speed-cap call |
+| next | After Rel30 | Merge #243 + #244 (parallel OK) → Cursor SceneMap P1 (use stance B1/B2 seek-sparse + cancel-safe scan); Owner gates (speed-cap, ≥4–5 rhythm clips, SceneMap § 6); G1.1 tune only after speed-cap call |
 | later | After G1 gate + SceneMap P3 | G2 raw-value Neo-2 layer → then G3 helpers deepen → G4 license/platforms |
 
 ### Owner after each tag
