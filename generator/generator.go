@@ -411,6 +411,190 @@ func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProg
 	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
+// TipDetection is a semantic AI proposal. It is deliberately separate from
+// the generic auto-ROI result: Match must be true and the frontend must still
+// ask the user to Apply before copying this box into the generator ROI.
+type TipDetection struct {
+	X              int     `json:"x"`
+	Y              int     `json:"y"`
+	W              int     `json:"w"`
+	H              int     `json:"h"`
+	ExpectedClass  string  `json:"expectedClass"`
+	MatchedClass   string  `json:"matchedClass"`
+	MatchedClassID int     `json:"matchedClassId"`
+	Confidence     float64 `json:"confidence"`
+	SampleIndex    int     `json:"sampleIndex"`
+	Match          bool    `json:"match"`
+	Status         string  `json:"status"`
+}
+
+// StrictTipDetectionError carries a stable reason code from ai_roi.py. A
+// strict failure is a normal "mark manually" outcome and never triggers the
+// generic motion finder or a different body class.
+type StrictTipDetectionError struct {
+	Code          string `json:"code"`
+	ExpectedClass string `json:"expectedClass"`
+	Message       string `json:"message"`
+	Match         bool   `json:"match"`
+}
+
+func (e *StrictTipDetectionError) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return "strict AI target detection failed: " + e.Code
+}
+
+func expectedTipAIArgs(modelPath, expectedClass string, timeSec float64) []string {
+	args := []string{
+		"--expected-class", expectedClass,
+		"--strict-class",
+		"--time-sec", strconv.FormatFloat(max(0, timeSec), 'f', 3, 64),
+	}
+	if modelPath != "" {
+		args = append(args, "--model", modelPath, "--classes-json", filepath.Dir(modelPath))
+	}
+	return args
+}
+
+func parseTipDetectionLine(line string) (TipDetection, *StrictTipDetectionError, bool) {
+	if raw, ok := strings.CutPrefix(line, "TIP_DETECTION "); ok {
+		var result TipDetection
+		if json.Unmarshal([]byte(raw), &result) == nil {
+			return result, nil, true
+		}
+	}
+	if raw, ok := strings.CutPrefix(line, "TIP_ERROR "); ok {
+		var result StrictTipDetectionError
+		if json.Unmarshal([]byte(raw), &result) == nil {
+			return TipDetection{}, &result, true
+		}
+	}
+	return TipDetection{}, nil, false
+}
+
+// FindExpectedTipROIAIWithProgress asks the local ONNX detector for exactly
+// expectedClass. The model-sibling classes.json is mandatory in Python strict
+// mode. No preferred-class or motion fallback is used here.
+func FindExpectedTipROIAIWithProgress(videoPath, modelPath, expectedClass string,
+	onProgress func(line string), onPercent func(pct int)) (TipDetection, error) {
+	return FindExpectedTipROIAIWithProgressContext(
+		context.Background(), videoPath, modelPath, expectedClass, 0, onProgress, onPercent)
+}
+
+// FindExpectedTipROIAIWithProgressContext is the cancellable variant used by
+// Wails so a class/video change terminates superseded local inference work.
+func FindExpectedTipROIAIWithProgressContext(ctx context.Context,
+	videoPath, modelPath, expectedClass string, timeSec float64,
+	onProgress func(line string), onPercent func(pct int)) (TipDetection, error) {
+	return findExpectedTipROIAIWithProgressContext(
+		ctx, []string{"--video", videoPath}, modelPath, expectedClass, timeSec,
+		onProgress, onPercent)
+}
+
+// FindExpectedTipImageAIWithProgressContext evaluates the exact image bytes
+// already extracted for the GUI preview, avoiding a second decoder/seek path.
+func FindExpectedTipImageAIWithProgressContext(ctx context.Context,
+	imagePath, modelPath, expectedClass string,
+	onProgress func(line string), onPercent func(pct int)) (TipDetection, error) {
+	return findExpectedTipROIAIWithProgressContext(
+		ctx, []string{"--image", imagePath}, modelPath, expectedClass, 0,
+		onProgress, onPercent)
+}
+
+func findExpectedTipROIAIWithProgressContext(ctx context.Context, sourceArgs []string,
+	modelPath, expectedClass string, timeSec float64,
+	onProgress func(line string), onPercent func(pct int)) (TipDetection, error) {
+	// Honor cancel before dependency/Python work so UI races and unit tests
+	// do not require cv2 just to prove the context short-circuit.
+	if err := ctx.Err(); err != nil {
+		return TipDetection{}, err
+	}
+	if strings.TrimSpace(expectedClass) == "" {
+		return TipDetection{}, &StrictTipDetectionError{
+			Code: "class_unresolved", Message: "expected body class is required",
+		}
+	}
+	py, err := FindPython()
+	if err != nil {
+		return TipDetection{}, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return TipDetection{}, err
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return TipDetection{}, err
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "ai_roi.py")
+	args := append([]string{scriptPath}, sourceArgs...)
+	args = append(args, expectedTipAIArgs(modelPath, expectedClass, timeSec)...)
+	cmd := commandContext(ctx, py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return TipDetection{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return TipDetection{}, fmt.Errorf("generator: stdout-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return TipDetection{}, fmt.Errorf("generator: strict AI target start failed: %w", err)
+	}
+	var stderrDone sync.WaitGroup
+	stderrDone.Add(1)
+	go func() {
+		defer stderrDone.Done()
+		sc := bufio.NewScanner(stderr)
+		for sc.Scan() {
+			line := sc.Text()
+			if done, total, ok := parseProgress(line); ok {
+				if onPercent != nil {
+					onPercent(percentOf(done, total))
+				}
+				continue
+			}
+			logging.Debug("ai_roi strict: " + line)
+			if onProgress != nil {
+				onProgress(line)
+			}
+		}
+	}()
+	var detection TipDetection
+	var strictErr *StrictTipDetectionError
+	sc := bufio.NewScanner(stdout)
+	for sc.Scan() {
+		result, typedErr, ok := parseTipDetectionLine(sc.Text())
+		if !ok {
+			continue
+		}
+		if typedErr != nil {
+			strictErr = typedErr
+		} else {
+			detection = result
+		}
+	}
+	stderrDone.Wait()
+	waitErr := cmd.Wait()
+	if strictErr != nil {
+		return TipDetection{}, strictErr
+	}
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return TipDetection{}, context.Canceled
+	}
+	if waitErr != nil {
+		return TipDetection{}, fmt.Errorf("generator: strict AI target failed: %w", waitErr)
+	}
+	if !detection.Match || detection.W <= 0 || detection.H <= 0 {
+		return TipDetection{}, &StrictTipDetectionError{
+			Code: "target_not_detected", ExpectedClass: expectedClass,
+			Message: "strict AI target returned no usable matched box",
+		}
+	}
+	return detection, nil
+}
+
 // FindTwoROIsAIWithProgress is the AI variant of FindTwoROIsWithProgress
 // (ai_roi.py --two). roi2 may be empty when no second object was found.
 func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
@@ -757,14 +941,42 @@ func DumpFirstFrame(videoPath, outputPNG string) (width, height int, err error) 
 // normales Ergebnis (keine gespeicherte Szene nah genug, kein KI-Server
 // erreichbar), kein Fehler - der Aufrufer entscheidet, was er anzeigt.
 type ProfileSuggestion struct {
-	Found bool
-	Label string
-	Kind  string // "measured" (motion_signature, kein KI) oder "ai" (Colibri)
+	Found bool   `json:"found"`
+	Label string `json:"label"`
+	Kind  string `json:"kind"` // "measured", "local_model" oder "ai"
 	// Confidence: bei Kind=="ai" eine 0..1-Konfidenz (höher = sicherer).
 	// Bei Kind=="measured" stattdessen der Signaturabstand zur nächsten
 	// gespeicherten Szene (niedriger = ähnlicher) - andere Skala, gleiches
 	// Feld, weil beide Fälle nie gleichzeitig auftreten.
-	Confidence float64
+	Confidence float64 `json:"confidence"`
+}
+
+// ExtractMotionSignature asks the existing OpenCV feature extractor for its
+// compact, versioned scene signature. Video decoding remains in the proven
+// Python/OpenCV path; model training and inference can consume the result in
+// pure Go without importing Python ML frameworks.
+func ExtractMotionSignature(videoPath string) (map[string]float64, error) {
+	py, err := FindPython()
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return nil, err
+	}
+	scriptPath, err := writeScriptToTemp()
+	if err != nil {
+		return nil, err
+	}
+	defer cleanupScriptTemp(scriptPath)
+	out, err := command(py, scriptPath, "--video", videoPath, "--dump-motion-signature").Output()
+	if err != nil {
+		return nil, fmt.Errorf("generator: motion signature failed: %w", err)
+	}
+	var signature map[string]float64
+	if err := json.Unmarshal(out, &signature); err != nil {
+		return nil, fmt.Errorf("generator: motion signature output invalid: %w", err)
+	}
+	return signature, nil
 }
 
 // SuggestProfile fragt --suggest-profile ab (generate_funscript.py, siehe
@@ -816,6 +1028,14 @@ func SuggestProfile(videoPath, baseURL string) (ProfileSuggestion, error) {
 // --label-scene, motion_signature.py) - die Grundlage, gegen die
 // SuggestProfile spätere, ähnliche Szenen misst.
 func LabelScene(videoPath, label string) error {
+	return LabelSceneWithProfile(videoPath, label, "")
+}
+
+// LabelSceneWithProfile stores the measured scene signature together with the
+// generator profile explicitly selected by the user. Older callers can keep
+// using LabelScene; profile-aware records are the training data for the local
+// Go motion-profile model.
+func LabelSceneWithProfile(videoPath, label, profile string) error {
 	py, err := FindPython()
 	if err != nil {
 		return err
@@ -828,7 +1048,11 @@ func LabelScene(videoPath, label string) error {
 		return err
 	}
 	defer cleanupScriptTemp(scriptPath)
-	out, err := command(py, scriptPath, "--video", videoPath, "--label-scene", label).CombinedOutput()
+	args := []string{scriptPath, "--video", videoPath, "--label-scene", label}
+	if profile != "" {
+		args = append(args, "--scene-profile", profile)
+	}
+	out, err := command(py, args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("generator: scene could not be saved: %w\n%s", err, string(out))
 	}

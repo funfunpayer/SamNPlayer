@@ -17,9 +17,11 @@ applies to the AI extension:
 - The proposal runs through **the same** classical pipeline (CSRT/flow
   tracking, Quality Doctor, mapper) as a manually marked one — there is no
   second, AI-only output path that produces a `.funscript` on its own.
-- If the AI fails (no model, no detection, server unreachable), the system
-  falls back to the non-AI method, the same way `track_by_scenes()` already
-  catches any `roi_finder` failure and reuses the previous region.
+- A generic AI suggestion may fall back to the non-AI method. An explicit
+  **expected body point** is different: strict target matching fails closed
+  when that class is missing, weak or ambiguous. It never substitutes another
+  class or silently invokes motion auto-ROI; the user may keep the existing
+  region or mark the intended point manually.
 - Both engines are **optional** and run **locally** — no model in the
   repository, no automatic download, no telemetry. Anyone who does not
   install or start them notices nothing of their existence.
@@ -31,7 +33,8 @@ independent, lightweight local engines — each for the job it is built for:
 
 | Engine | Job | Why this one |
 |---|---|---|
-| **ONNX Runtime** | Vision: propose a region (later: propose a profile from the motion signature) | Small (a few MB of model plus runtime), CPU/GPU, no Python requirement at inference time — fits the stated goal of eventually removing Python from the .exe (`HANDOFF.md`, "Project status and next steps") |
+| **ONNX Runtime** | Vision: propose a body-part region | Small (a few MB of model plus runtime), CPU/GPU; fits the existing detector/export path |
+| **Go motion-profile model** | Learn Normal/Soft/Autotune from confirmed motion signatures | Go training/classification with no ML runtime, GPU, server or network; signature measurement still uses local Python/OpenCV |
 | **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Large local language models for judgments with a reason attached (quality, profile choice in prose) | Pure C, no CUDA/PyTorch needed, runs on ordinary hardware, `coli serve` speaks the OpenAI `/v1/chat/completions` API — a plain HTTP client is enough to connect it, no SDK required |
 
 Both are swappable: the backend register (`backends.py`) and the
@@ -70,6 +73,28 @@ export format.
   `classes.json` is copied next to the `.onnx` automatically.
 - GUI: Settings → **Preferred classes**; Generate uses that preference for
   AI ROI proposals.
+- Generate also has a stricter, user-selected **expected body point** path.
+  `ai_roi.py --expected-class … --strict-class` resolves that canonical class
+  through the `classes.json` beside the ONNX model. It returns a typed result
+  with matched class and confidence, or a stable failure code such as
+  `manifest_missing`, `manifest_invalid`, `class_conflict`,
+  `target_not_detected`, `below_confidence` or `ambiguous_target`. The Wails
+  event remains only a proposal: Create draws a
+  dashed box and requires **Apply target** before replacing the active ROI.
+  This path has no preferred-class fallback and no coordinate-only success. It
+  evaluates a PNG produced by the same `DumpFrameAt` FFmpeg path and timestamp
+  as the preview currently shown in Create, instead of re-seeking through
+  OpenCV or pooling detections from different scenes or people. Changing the video,
+  preview time, expected class or AI mode cancels the superseded local process;
+  stale result and progress events are sequence-gated.
+- When the optional Rhythm Grid writes the signal, its first cell must lie in
+  the selected start box and remains the signal cell for that entire shot.
+  Rhythm similarity alone is deliberately not allowed to switch cells: a
+  stronger adjacent limb can be perfectly in-phase or anti-phase. FFT windows
+  are clipped to shot boundaries, sign continuity is reset there, and the next
+  shot re-seeds from its tracker position. Until enough frames exist in the new
+  shot, the signal falls back to the tracker rather than mixing two scenes or
+  inventing a different target.
 - `onnxruntime` lives in `generator/requirements-ai.txt`, NOT in
   `requirements.txt`.
 - **GUI wiring done:** `generator.go` gained `FindROIAIWithProgress`/
@@ -131,7 +156,7 @@ export format.
     aren't ours to reuse — only the freely available open-source
     Ultralytics tooling they also build on was used.
 
-### 2. Propose a profile (standard/tf/tj/…) — **implemented**
+### 2. Propose a profile (standard/weich/autotune) — **implemented, local learning added**
 
 Decided in favor of the Colibri direction, and only as a fallback behind
 the existing classical tool — not a replacement for it:
@@ -148,10 +173,17 @@ the existing classical tool — not a replacement for it:
   server (`ai_profile.suggest_profile`) to judge the same eight signature
   numbers plus the nearest saved examples, and return a profile guess with
   a one-sentence reason — or `"unsure"` rather than force a guess.
-- No trained classifier was added: there is currently no labelled corpus
-  at all (nobody has run `--label-scene` yet), and training one on too few
-  examples would repeat the mistake `quality_model.py` guards against. A
-  zero-shot LLM judgment needs no training data and can admit uncertainty.
+- `generator/profilemodel` now adds a deliberately small **pure-Go learned
+  classifier** on top of those same eight values. `Remember scene + style`
+  stores the user-confirmed Style as `parameters.profile`; the AI training tab
+  reports usable samples and writes `motion_profile_model.json` atomically.
+  The model uses per-profile centroids plus observed spread, rejects distant
+  scenes and near-ties, and therefore has an inspectable reason for every
+  accepted class instead of forcing a guess.
+- The local Go model is tried first. If it has no safe answer (or has not been
+  trained), the existing nearest-scene and optional Colibri paths remain as
+  fallbacks. This gives us useful learning before a large corpus exists without
+  making a large language model responsible for frame-level tracking.
 - Neither path touches `--profile` automatically — both print a suggestion
   only, matching `docs/NEXT.md`'s "do not switch profiles automatically
   without validation".
@@ -165,10 +197,18 @@ the existing classical tool — not a replacement for it:
   wiring end to end via a real subprocess call, proving the classical path
   wins when it has a confident match and that the AI path is skipped
   entirely in that case).
-- **GUI wiring done:** the generator tab has a "Profil vorschlagen" button
-  plus a status line, and a scene-name field with "Szene merken" next to
-  it. **Still open:** no field data yet on how useful the AI fallback
-  actually is — nobody has run it against a real Colibri server.
+- **GUI wiring done:** Create stores scene + selected Style, profile suggestions
+  still require **Apply**, and AI training has status/refresh/train controls plus
+  a direct navigation button back to Create. **Still open:** field data is needed
+  to tune rejection thresholds and compare the learned model to Colibri.
+
+Large local models such as Qwen can still be connected through an
+OpenAI-compatible local server for explanations, metadata normalization or an
+additional opinion. They are not the primary curve writer: an LLM token stream
+does not preserve per-frame spatial identity, while the measured tracker and
+signal pipeline already enforce timing, speed and quality constraints. A future
+LLM/vision adapter must therefore produce a bounded proposal that goes through
+the same confirmation and classical post-processing path.
 
 ### 3. Quality judgment — **implemented**
 

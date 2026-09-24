@@ -40,7 +40,12 @@ def main():
                        f"pngBase64: '{TINY_PNG_B64}' }})",
         "SuggestPipeline": "async () => ({ Backend: 'csrt', Profile: 'standard', "
                            "Reason: 'test', GoPath: true })",
-        "SuggestProfile": "async () => ({ found: false })",
+        "SuggestProfile": "async () => { window.__suggestCalls = (window.__suggestCalls || 0) + 1; "
+                          "if (window.__suggestCalls === 1) return new Promise(resolve => { "
+                          "window.__resolveAutoSuggestion = resolve; }); "
+                          "return ({ found:true, label:'standard', kind:'local_model', confidence:0.9 }); }",
+        "LabelSceneWithProfile": "async (path, label, profile) => { "
+                                 "window.__calls.push(['label-profile', label, profile]); }",
         "CheckAIRoiAvailable": "async () => false",
         "CheckAudioCheckAvailable": "async () => false",
         "ScriptExistsForVideo": "async () => false",
@@ -92,6 +97,28 @@ def main():
         check("Generate enabled after auto-find",
               page.locator("#gen-generate").is_enabled())
 
+        # Remembered scenes now carry the confirmed Style into Go-model training.
+        page.locator("#gen-power-user summary").click()
+        page.fill("#gen-scene-label", "test scene")
+        page.select_option("#gen-profile", "weich")
+        page.click("#gen-label-scene")
+        page.wait_for_function(
+            "window.__calls.some(c => Array.isArray(c) && c[0] === 'label-profile')",
+            timeout=5000)
+        check("Scene memory stores selected style for training",
+              page.evaluate("window.__calls.find(c => Array.isArray(c) && c[0] === 'label-profile')")
+              == ["label-profile", "test scene", "weich"])
+
+        # Manual result must not be overwritten by the older auto request.
+        page.click("#gen-suggest-profile")
+        page.wait_for_selector("#gen-suggest-status button:text('Apply')", timeout=5000)
+        page.evaluate("window.__resolveAutoSuggestion({found:true,label:'autotune',kind:'measured',confidence:0.01})")
+        page.wait_for_timeout(100)
+        check("Older automatic suggestion cannot erase manual Apply",
+              page.locator("#gen-suggest-status button:text('Apply')").count() == 1
+              and "lokal" in page.locator("#gen-suggest-status").inner_text().lower())
+        page.locator("#gen-power-user summary").click()
+
         # No Tf/Tj in product dropdown — Contact-first.
         profiles = page.eval_on_selector_all(
             "#gen-profile option", "els => els.map(e => e.value)")
@@ -99,6 +126,7 @@ def main():
               str(profiles))
 
         # Optional Zone 2 must NOT hide Generate.
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
         box = page.locator("#roi-canvas").bounding_box()
         page.keyboard.down("Shift")
         page.mouse.move(box["x"] + 200, box["y"] + 40)

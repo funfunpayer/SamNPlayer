@@ -343,8 +343,9 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		if useX {
 			cellV = flowX
 		}
+		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
 		positions, sceneMap = rhythmGridPositionsWithMap(cellV, rhythmGridCols, gridRows, width, height,
-			xPositions, yPositions, positions, fps)
+			xPositions, yPositions, positions, seed, sceneCuts, fps)
 	}
 
 	confidence := 0.0

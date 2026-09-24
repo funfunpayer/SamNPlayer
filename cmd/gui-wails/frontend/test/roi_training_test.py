@@ -72,6 +72,18 @@ def main():
         "CheckRoiTrainingStatus": "async () => ({ python: true, opencv: true, "
                                   "ultralytics: true, detail: 'Bereit' })",
         "InstallRoiTrainingDeps": "async () => {}",
+        "GetMotionProfileModelStatus": "async () => ({ labelsPath: '/cfg/scenes.jsonl', "
+            "modelPath: '/cfg/models/motion.json', labelledScenes: 3, usableSamples: 3, "
+            "readyToTrain: true, modelAvailable: !!window.__profileReady, "
+            "trainedSamples: window.__profileReady ? 3 : 0, "
+            "trainedAt: window.__profileReady ? '2026-09-24T00:00:00Z' : '', "
+            "profiles: [{profile:'standard',count:2},{profile:'weich',count:1}] })",
+        "TrainMotionProfileModel": "async () => { window.__calls.push('train-profile'); "
+            "window.__profileReady = true; return ({ "
+            "labelsPath:'/cfg/scenes.jsonl', modelPath:'/cfg/models/motion.json', "
+            "labelledScenes:3, usableSamples:3, readyToTrain:true, modelAvailable:true, "
+            "trainedSamples:3, trainedAt:'2026-09-24T00:00:00Z', "
+            "profiles:[{profile:'standard',count:2},{profile:'weich',count:1}] }); }",
         "UpdateRoiTrainingSample": "async () => {}",
         "ListRoiTrainingDevices": "async () => (["
             "{id:'auto',label:'Automatic (best available)',available:true},"
@@ -100,6 +112,17 @@ def main():
         check("Body map present", page.locator("#rt-body-figure .body-figure-svg").count() == 1)
         check("Nine legend body parts",
               page.locator(".body-figure-legend [data-class]").count() == 9)
+
+        page.wait_for_function("!document.querySelector('#rt-profile-train').disabled", timeout=5000)
+        check("Go profile model shows usable learned scenes",
+              "3 usable" in page.locator("#rt-profile-status").inner_text())
+        page.click("#rt-profile-train")
+        page.wait_for_function("window.__calls.includes('train-profile')", timeout=5000)
+        check("Go profile model training is wired", True)
+        page.wait_for_function(
+            "document.querySelector('#rt-profile-status').textContent.includes('Model ready')",
+            timeout=5000)
+        check("Go profile model reports ready after training", True)
 
         page.click("#rt-pick-video")
         page.wait_for_function(
@@ -226,6 +249,10 @@ def main():
         "CheckRoiTrainingStatus": "async () => ({ python: true, opencv: true, "
                                   "ultralytics: false, detail: 'Bootstrap möglich; "
                                   "Training: pip install ultralytics onnx' })",
+        "GetMotionProfileModelStatus": "async () => ({ labelsPath:'/cfg/scenes.jsonl', "
+            "modelPath:'/cfg/models/motion.json', labelledScenes:2, usableSamples:2, "
+            "readyToTrain:true, modelAvailable:false, trainedSamples:0, trainedAt:'', "
+            "modelWarning:'invalid motion-profile model', profiles:[{profile:'standard',count:2}] })",
         "InstallRoiTrainingDeps": "async () => {}",
         "ListRoiTrainingDevices": "async () => []",
     }))
@@ -242,6 +269,9 @@ def main():
         hint = page.locator("#rt-train-unavailable").inner_text()
         check("Hinweis nennt pip/ultralytics",
               "ultralytics" in hint.lower() or "pip install" in hint.lower(), hint)
+        page.wait_for_function("!document.querySelector('#rt-profile-train').disabled", timeout=5000)
+        check("Korruptes Profilmodell sperrt Neutraining nicht",
+              "replace" in page.locator("#rt-profile-path").inner_text().lower())
         browser.close()
     shutdown2()
 

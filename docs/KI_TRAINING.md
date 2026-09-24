@@ -2,19 +2,52 @@
 
 As of September 2026 · SamNPlayer **0.5.5+**
 
-This document explains the **regions model** (YOLO → ONNX), not device **Training** in the Training tab (stop-start/plateau).
+This document explains the **regions model** (YOLO → ONNX) and the small
+**generation-profile model** (motion signatures → Go), not device **Training**
+in the Training tab (stop-start/plateau).
 
 ## Quick: what AI may do — and what not
 
 | May | May not |
 |-----|---------|
 | Suggest region(s) | Write Funscripts |
-| Set box in the GUI | Replace tracking |
+| Suggest Normal / Soft / Autotune | Change a profile without Apply |
+| Offer a typed box; **Apply target** sets it | Replace tracking or auto-apply a semantic target |
 | Learn locally on your machine | Cloud / telemetry / bundled model |
 
 Classic tracking (CSRT / flow / …) writes `.samn` (native) plus a
 community `.funscript` export. AI still never writes either file by itself.
 See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.md`.
+
+## Two different local models
+
+| Model | Learns from | Runtime | Result |
+|-------|-------------|---------|--------|
+| Body-part region model | Corrected image boxes in this tab | ONNX Runtime | Tip/contact box proposal |
+| Generation-profile model | Create → remembered scene + selected Style | Go classification; local OpenCV signature extraction | Normal/Soft/Autotune proposal |
+
+The Go model is intentionally small and explainable: OpenCV measures eight
+motion features, Go training computes a centroid and observed spread per profile,
+and Go classification rejects unfamiliar or ambiguous scenes. Measuring a new
+video still uses the existing local Python/OpenCV adapter, but does not need
+PyTorch, a GPU, a server or Internet access. The resulting profile is shown in
+Create with an explicit **Apply** button; the existing CSRT/post-processing
+pipeline still writes the script.
+
+### Train the generation-profile model
+
+1. In **Create**, choose a video and the Style that produced the desired result.
+2. Open **Power-user: scene memory**, give the scene a name and select
+   **Remember scene + style**.
+3. Repeat for at least two scenes. More varied confirmed examples are better;
+   include each Style that should be learned.
+4. In **AI training**, select **Train Go profile model**.
+5. Return to Create and choose **Suggest profile**. Nothing is applied until
+   **Apply** is pressed, and generation remains the normal Create action.
+
+The JSONL examples are append-only and human-readable. Older examples whose
+name itself is `standard`, `weich`, `autotune`, `tf` or `tj` remain usable;
+new examples store the selected profile explicitly in `parameters.profile`.
 
 ## Requirements
 
@@ -73,7 +106,12 @@ From the binary: Settings / or later “Export requirements” —
 6. **Review:** discard bad samples, **correct** boxes (important — bootstrap box size is fixed; tracker may drift)
 7. **Start training** (epochs, device Auto/CUDA/DirectML/CPU)
 8. Result: `roi_detector.onnx` under model path (Settings)
-9. **Generate** tab → enable **AI detection (ONNX)** → find region → verify box → generate Funscript
+9. **Generate** tab → enable **Smarter tip find** → select the exact expected
+   body point → seek to a frame where that point is clearly visible → **Find
+   tip area**. Only that displayed frame is evaluated. Verify the displayed
+   class, confidence and dashed box, then choose **Apply target**. A missing,
+   weak or ambiguous class is not replaced by another detection; mark it
+   manually or improve the data.
 
 ## Folders
 
@@ -83,6 +121,8 @@ From the binary: Settings / or later “Export requirements” —
 | Model | `%LOCALAPPDATA%/SamNPlayer/models/roi_detector.onnx` |
 | Checkpoints | `<dataset>/runs/samnplayer_roi/weights/best.pt` |
 | Audio (optional) | `<dataset>/audio/*.wav` — not used in training yet |
+| Saved scene signatures | `%LOCALAPPDATA%/SamNPlayer/szenensignaturen.jsonl` or `~/.config/SamNPlayer/…` |
+| Go profile model | `%LOCALAPPDATA%/SamNPlayer/models/motion_profile_model.json` or `~/.config/SamNPlayer/…` |
 
 ## CLI (source tree)
 
@@ -114,7 +154,15 @@ python generator/train_yolo_model.py \
 - Optional **box scale** 1.1–1.2 for padding around the mark
 - At least one val example (still path switches automatically)
 - GPU strongly recommended; CPU only for smoke tests (few epochs)
-- After training: Generate tab → AI detection; in Settings set **Preferred classes** for multi-class models (e.g. `hand,breast`)
+- Keep `classes.json` beside the exported `.onnx`; strict target matching uses
+  it to bind the canonical GUI class to the model-specific numeric ID.
+- After training: use Generate → Smarter tip find → expected body point. The
+  Settings **Preferred classes** list remains for legacy generic proposals; it
+  is deliberately not a fallback for strict target matching.
+- Draw the initial target box tightly. The optional target-locked Rhythm Grid
+  starts inside that box and keeps the same grid cell for the whole shot;
+  rhythm similarity alone cannot hand control to a stronger moving thigh. A
+  scene cut starts a new, separately seeded shot without cross-cut FFT windows.
 - 3D / depth / pose: experimental scaffold only — see `docs/DEPTH_POSE.md`; golden-clip win required before default
 
 ## Already transfer learning — how to go faster (22 Sep)
@@ -149,10 +197,15 @@ to a third-party model just to “train faster.”
 | AI checkbox gray | no `.onnx` at model path |
 | Poor suggestions | more/corrected samples; preferred classes; not “bigger YOLO” |
 | Preferred class ignored | `classes.json` beside `.onnx` missing (retrain or copy) |
+| Strict target reports `manifest_missing` / `manifest_invalid` / `class_unresolved` | keep a valid exported `classes.json` beside the ONNX model and ensure the selected canonical class exists in it |
+| Strict target reports `target_not_detected` / `below_confidence` | keep the existing ROI, mark the target manually, or add corrected examples of that exact class |
+| Strict target reports `ambiguous_target` | two separate boxes were similarly plausible; choose the correct point manually instead of allowing an automatic guess |
 
 ## Related files
 
 - `cmd/gui-wails/frontend/src/roi_training.js` — GUI
 - `cmd/gui-wails/app_roi_training.go` — Wails API
+- `cmd/gui-wails/app_motion_profile.go` — Go profile-model Wails API
+- `generator/profilemodel` — local training, persistence and inference
 - `generator/roi_training.go`, `bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `ai_roi.py`, `support_signals.py`
 - `docs/AI_ADAPTER.md` — architecture principle

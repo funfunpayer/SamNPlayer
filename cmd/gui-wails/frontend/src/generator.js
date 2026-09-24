@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelScene, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -54,8 +54,12 @@ export function initGenerator(root, playback) {
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
+        <select id="gen-ai-target-class" disabled style="min-width:10em;">
+          <option value="">Expected body point…</option>
+        </select>
       </div>
       <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically.</p>
+      <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -177,7 +181,7 @@ export function initGenerator(root, playback) {
         <div class="row" style="align-items:center;">
           <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
           <button id="gen-label-scene" disabled
-            data-help="Saves the motion signature under this name. Similar videos later get this profile as a suggestion (classic measurement, no AI).">Remember scene</button>
+            data-help="Saves the motion signature, this name and the Style currently selected above. The AI training tab can learn a local profile model from confirmed examples.">Remember scene + style</button>
         </div>
       </details>
     </section>
@@ -204,11 +208,32 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
-            data-help="Takes the stroke signal from the most rhythmic motion cell near the tracked box instead of the box itself. More robust when CSRT slowly drifts off target on long clips — the box only has to stay near the action. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (anti-drift, long clips)</label></div>
+            data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
-              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner). Map drawing/marks = later Advanced step.">Show scene map</button>
+              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
             <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
+          </div>
+          <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
+              <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
+              <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
+              data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <label style="width:auto;" data-help="Paint on preview. Default time scope = current map window (scene-cut default lands with engine marks in P3).">Mark</label>
+              <select id="gen-scene-map-mark-kind">
+                <option value="exclude">Exclude (never take signal)</option>
+                <option value="source">Source (stroke is here)</option>
+                <option value="region">Region (body-part label)</option>
+              </select>
+              <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
+              <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
+              <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
+            </div>
+            <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
           </div>
 
           <div class="opt-group">Signal &amp; quality</div>
@@ -317,12 +342,19 @@ export function initGenerator(root, playback) {
 
   let videoPath = null;
   let lastSceneMap = null;
+  let sceneMapWinIdx = 0;
+  let sceneMapMarks = [];
+  let sceneMapMarkMode = null; // 'exclude' | 'source' | 'region' | null
+  let sceneMapMarkSeq = 0;
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in videopixeln
   let roi2 = null; // zweite Region für Tf/Tj (distance + suction)
   let candidates = []; // TFTJ 4b / MT-Seed: [{x,y,w,h,score,index}, ...] dashed until pick
   let pendingSeed = null; // MT-Seed: { tip, partner } suggest ≠ auto-commit
+  let pendingAITarget = null; // strict semantic proposal; Apply required
+  let activeAITargetRequest = null; // {requestId, videoPath, expectedClass, timeSec}
+  let aiTargetRequestSeq = 0;
   let extraTargets = []; // additional fixed Tf/Tj anchors (min-distance)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -335,6 +367,7 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   let userCancelRequested = false;
   let activeCreateSeq = 0;
+  let profileSuggestionSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
   // FunGen-like 0–100 gauge over the preview (after Generate).
@@ -420,6 +453,8 @@ export function initGenerator(root, playback) {
   const ROI2_FILL = 'rgba(242,176,61,0.18)';
   const TARGET_STROKE = '#e070a0';
   const TARGET_FILL = 'rgba(224,112,160,0.16)';
+  const AI_TARGET_STROKE = '#7ee787';
+  const AI_TARGET_FILL = 'rgba(126,231,135,0.14)';
   const MASK_STROKE = 'rgba(180,180,190,0.85)';
   const MASK_FILL = 'rgba(120,120,130,0.12)';
 
@@ -447,10 +482,12 @@ export function initGenerator(root, playback) {
   function refreshAIRoiAvailability() {
     CheckAIRoiAvailable().then(available => {
       const checkbox = el('#gen-ai-roi');
+      const target = el('#gen-ai-target-class');
       checkbox.disabled = !available;
+      if (target) target.disabled = !available || !checkbox.checked;
       el('#gen-autoroi-hint').textContent = available
-        ? 'Enabling “AI detection” uses a local ONNX detector instead of the '
-          + 'rhythm heuristic. You can still correct the region by hand afterward.'
+        ? 'AI mode checks the currently displayed frame for the expected body point and never '
+          + 'falls back to another class. A matching box remains a proposal until you press Apply.'
         : 'Analyzes motion in the video (classic, no AI model) — you can still '
           + 'correct the region by hand. AI detection: no local ONNX model '
           + 'found (Settings → AI model path, or default folder).';
@@ -614,13 +651,31 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     setNoMarkMotion(false);
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
+    if (useAI && !expectedClass) {
+      pendingGenerateAfterRoi = false;
+      el('#gen-status').textContent = (
+        'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
+      ) + videoBatchNote;
+      el('#gen-ai-target-class')?.focus();
+      return;
+    }
+    clearPendingAITarget();
+    redraw();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
     el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = (useAI
-      ? 'AI region search (everyday path)…'
+      ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
       : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+    if (useAI) {
+      const requestId = ++aiTargetRequestSeq;
+      activeAITargetRequest = { requestId, videoPath, expectedClass, timeSec: seekSec };
+      DetectExpectedTipROI(videoPath, expectedClass, seekSec, requestId);
+    } else {
+      activeAITargetRequest = null;
+      AutoDetectROI(videoPath, 'auto');
+    }
   }
 
   // Default Fix Zone 2 = off when an optional contact partner is marked + vib on.
@@ -708,6 +763,120 @@ export function initGenerator(root, playback) {
     btn.disabled = !videoPath || !sceneMapAvailable || generating;
   }
 
+  function activeSceneMapWindow() {
+    if (!lastSceneMap || !Array.isArray(lastSceneMap.windows) || !lastSceneMap.windows.length) {
+      return null;
+    }
+    const i = Math.max(0, Math.min(sceneMapWinIdx, lastSceneMap.windows.length - 1));
+    return lastSceneMap.windows[i];
+  }
+
+  function syncSceneMapTools() {
+    const tools = el('#gen-scene-map-tools');
+    if (!tools) return;
+    const has = !!(lastSceneMap && Array.isArray(lastSceneMap.windows) && lastSceneMap.windows.length);
+    tools.style.display = has ? 'block' : 'none';
+    if (!has) return;
+    const slider = el('#gen-scene-map-win');
+    const label = el('#gen-scene-map-win-label');
+    if (slider) {
+      slider.max = String(Math.max(0, lastSceneMap.windows.length - 1));
+      slider.value = String(sceneMapWinIdx);
+    }
+    const w = activeSceneMapWindow();
+    if (label && w) {
+      const a = ((w.startMs || 0) / 1000).toFixed(1);
+      const b = ((w.endMs || 0) / 1000).toFixed(1);
+      label.textContent = `${sceneMapWinIdx + 1}/${lastSceneMap.windows.length} · ${a}–${b}s`;
+    }
+    const cls = el('#gen-scene-map-mark-class');
+    const kind = el('#gen-scene-map-mark-kind')?.value || 'exclude';
+    if (cls) {
+      cls.style.display = kind === 'region' ? '' : 'none';
+      if (!cls.options.length) {
+        for (const id of CONTACT_CLASS_ORDER) {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = labelFor(id) || id;
+          cls.appendChild(opt);
+        }
+      }
+    }
+    updateSceneMapMarksLabel();
+  }
+
+  function updateSceneMapMarksLabel() {
+    const lab = el('#gen-scene-map-marks-label');
+    if (!lab) return;
+    if (!sceneMapMarks.length) {
+      lab.textContent = 'No marks yet — Paint mark, then drag on preview.';
+      return;
+    }
+    lab.textContent = sceneMapMarks.map((m) => {
+      const span = `${((m.fromMs || 0) / 1000).toFixed(0)}–${((m.toMs || 0) / 1000).toFixed(0)}s`;
+      const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
+      return `${m.kind}${who}@${span}`;
+    }).join(' · ');
+  }
+
+  function heatColor(t) {
+    const x = Math.max(0, Math.min(1, t));
+    const r = Math.round(255 * Math.min(1, Math.max(0, x * 2)));
+    const g = Math.round(255 * Math.min(1, Math.max(0, x < 0.5 ? x * 2 : 2 - x * 2)));
+    const b = Math.round(255 * Math.min(1, Math.max(0, 1 - x * 2)));
+    return `rgba(${r},${g},${b},0.35)`;
+  }
+
+  function drawSceneMapOverlay() {
+    if (!lastSceneMap || !el('#gen-scene-map-overlay')?.checked) return;
+    if (!nativeW || !nativeH || !canvas.width) return;
+    const win = activeSceneMapWindow();
+    if (!win || !Array.isArray(win.score) || !win.score.length) return;
+    const cols = lastSceneMap.cols || 16;
+    const rows = lastSceneMap.rows || Math.max(1, Math.floor(win.score.length / cols));
+    const scaleX = canvas.width / nativeW;
+    const scaleY = canvas.height / nativeH;
+    const cellW = (lastSceneMap.width || nativeW) / cols;
+    const cellH = (lastSceneMap.height || nativeH) / rows;
+    ctx.save();
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const v = win.score[r * cols + c] || 0;
+        if (v < 8) continue;
+        ctx.fillStyle = heatColor(v / 255);
+        ctx.fillRect(c * cellW * scaleX, r * cellH * scaleY, cellW * scaleX + 0.5, cellH * scaleY + 0.5);
+      }
+    }
+    if (win.chosenCell >= 0) {
+      const cc = win.chosenCell % cols;
+      const cr = Math.floor(win.chosenCell / cols);
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cc * cellW * scaleX, cr * cellH * scaleY, cellW * scaleX, cellH * scaleY);
+    }
+    ctx.restore();
+    for (const m of sceneMapMarks) {
+      const mid = ((win.startMs || 0) + (win.endMs || 0)) / 2;
+      if (mid < (m.fromMs || 0) || mid > (m.toMs == null ? Infinity : m.toMs)) continue;
+      const stroke = m.kind === 'exclude' ? '#e85d4c'
+        : m.kind === 'source' ? '#3dccc0' : '#f2b03d';
+      drawNativeRect(m.rect, stroke, stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)', m.kind === 'exclude');
+    }
+  }
+
+  function setSceneMapMarkMode(on) {
+    sceneMapMarkMode = on ? (el('#gen-scene-map-mark-kind')?.value || 'exclude') : null;
+    const btn = el('#gen-scene-map-mark');
+    if (btn) btn.classList.toggle('primary', !!sceneMapMarkMode);
+    if (on) {
+      // Clear other paint modes without requiring Contact-mark DOM nodes.
+      markMode = null;
+      roi2Mode = false;
+      el('#gen-status').textContent =
+        `Scene map mark (${sceneMapMarkMode}): drag on preview. Scope = current map window.`;
+    }
+  }
+
   async function runSceneMapScan() {
     if (!videoPath || !sceneMapAvailable) return;
     const btn = el('#gen-scene-map');
@@ -717,17 +886,21 @@ export function initGenerator(root, playback) {
     try {
       const map = await ScanSceneMap(videoPath, 0);
       lastSceneMap = map || null;
+      sceneMapWinIdx = 0;
       const n = Array.isArray(map?.windows) ? map.windows.length : 0;
       const grid = map?.cols && map?.rows ? `${map.cols}×${map.rows}` : '';
       if (status) {
         status.textContent = n
-          ? `Map ready: ${n} windows${grid ? ` · ${grid}` : ''} (marks/draw = later)`
+          ? `Map ready: ${n} windows${grid ? ` · ${grid}` : ''}`
           : 'Map scan returned no windows.';
       }
+      syncSceneMapTools();
+      redraw();
       uiInfo(status?.textContent || 'Scene map scan done.', el('#gen-status'));
     } catch (err) {
       lastSceneMap = null;
       if (status) status.textContent = '';
+      syncSceneMapTools();
       uiError('Scene map: ' + err, el('#gen-status'));
     } finally {
       updateSceneMapButton();
@@ -904,6 +1077,65 @@ export function initGenerator(root, playback) {
     pendingSeed = null;
     const status = el('#gen-seed-status');
     if (status) status.textContent = '';
+  }
+
+  function clearPendingAITarget() {
+    pendingAITarget = null;
+    const status = el('#gen-ai-target-status');
+    if (status) status.textContent = '';
+  }
+
+  function cancelActiveAITargetRequest() {
+    if (!activeAITargetRequest) return;
+    activeAITargetRequest = null;
+    pendingGenerateAfterRoi = false;
+    CancelROIDetection().catch(() => {});
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+      el('#gen-nomark').disabled = false;
+    }
+  }
+
+  function renderPendingAITarget() {
+    const status = el('#gen-ai-target-status');
+    if (!status) return;
+    status.textContent = '';
+    if (!pendingAITarget) return;
+    const cls = labelFor(pendingAITarget.matchedClass) || pendingAITarget.matchedClass;
+    const confidence = Math.round((pendingAITarget.confidence || 0) * 100);
+    status.appendChild(document.createTextNode(
+      `Detected ${cls} · ${confidence}% — `));
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.textContent = 'Apply target';
+    apply.addEventListener('click', () => {
+      if (!pendingAITarget) return;
+      roi = {
+        x: pendingAITarget.x, y: pendingAITarget.y,
+        w: pendingAITarget.w, h: pendingAITarget.h,
+      };
+      const selectedClass = normalizeClass(pendingAITarget.matchedClass || pendingAITarget.expectedClass);
+      const classSelect = el('#gen-region-class');
+      if (classSelect && selectedClass) classSelect.value = selectedClass;
+      pendingAITarget = null;
+      status.textContent = `${cls} target applied — CSRT starts here. Optional target-locked rhythm remains under Advanced.`;
+      updateRoiLabels();
+      updateGenerateEnabled();
+      redraw();
+      autoApplyPipeline();
+    });
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.textContent = 'Dismiss';
+    dismiss.style.marginLeft = '6px';
+    dismiss.addEventListener('click', () => {
+      clearPendingAITarget();
+      redraw();
+    });
+    status.appendChild(apply);
+    status.appendChild(dismiss);
   }
 
   function renderPendingSeedStatus() {
@@ -1086,15 +1318,20 @@ export function initGenerator(root, playback) {
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    drawSceneMapOverlay();
     for (const c of candidates) drawCandidate(c);
-    const dragRoi2 = dragging && draggingSecond && !markMode;
-    const dragRoi1 = dragging && !draggingSecond && !markMode;
+    if (pendingAITarget) drawNativeRect(pendingAITarget, AI_TARGET_STROKE, AI_TARGET_FILL, true);
+    const dragRoi2 = dragging && draggingSecond && !markMode && !sceneMapMarkMode;
+    const dragRoi1 = dragging && !draggingSecond && !markMode && !sceneMapMarkMode;
     if (roi && !dragRoi1) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
     if (roi2 && !dragRoi2) drawNativeRect(roi2, ROI2_STROKE, ROI2_FILL);
     for (const t of extraTargets) drawNativeRect(t, TARGET_STROKE, TARGET_FILL);
     for (const m of maskRois) drawNativeRect(m, MASK_STROKE, MASK_FILL, true);
     if (dragging) {
-      if (markMode === 'mask') drawDragRect(MASK_STROKE, MASK_FILL, true);
+      if (sceneMapMarkMode === 'exclude') drawDragRect('#e85d4c', 'rgba(232,93,76,0.2)', true);
+      else if (sceneMapMarkMode === 'source') drawDragRect('#3dccc0', 'rgba(61,204,192,0.2)');
+      else if (sceneMapMarkMode === 'region') drawDragRect('#f2b03d', 'rgba(242,176,61,0.2)');
+      else if (markMode === 'mask') drawDragRect(MASK_STROKE, MASK_FILL, true);
       else if (markMode === 'target') drawDragRect(TARGET_STROKE, TARGET_FILL);
       else if (draggingSecond) drawDragRect(ROI2_STROKE, ROI2_FILL);
       else drawDragRect(ROI1_STROKE, ROI1_FILL);
@@ -1102,6 +1339,8 @@ export function initGenerator(root, playback) {
   }
 
   canvas.addEventListener('mousedown', e => {
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
     const r = canvas.getBoundingClientRect();
     startX = curX = e.clientX - r.left;
     startY = curY = e.clientY - r.top;
@@ -1120,12 +1359,13 @@ export function initGenerator(root, playback) {
     dragging = false;
     const wasSecond = draggingSecond;
     const mode = markMode;
+    const smMode = sceneMapMarkMode;
     draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
     // Tiny press: pick a motion candidate if shown (TFTJ 4b / MT-Seed).
     // Click → Tip (Zone 1). Shift / Zone-2 mode → Partner (Zone 2). Never auto-fills the other.
     if (w < 8 && h < 8) {
-      if (!mode && candidates.length) {
+      if (!mode && !smMode && candidates.length) {
         const hit = hitCandidate(startX, startY);
         if (hit) {
           pickCandidate(hit, wasSecond ? 2 : 1);
@@ -1141,6 +1381,25 @@ export function initGenerator(root, playback) {
       x: Math.round(x0 * scaleX), y: Math.round(y0 * scaleY),
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
+    if (smMode) {
+      const win = activeSceneMapWindow();
+      sceneMapMarkSeq += 1;
+      sceneMapMarks.push({
+        id: `m${sceneMapMarkSeq}`,
+        kind: smMode,
+        rect: box,
+        fromMs: win?.startMs || 0,
+        toMs: win?.endMs || 0,
+        class: smMode === 'region' ? (el('#gen-scene-map-mark-class')?.value || '') : '',
+        author: 'user',
+      });
+      setSceneMapMarkMode(false);
+      updateSceneMapMarksLabel();
+      el('#gen-status').textContent =
+        `Scene map ${smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s).`;
+      redraw();
+      return;
+    }
     if (mode === 'target') {
       const cls = el('#gen-target-class')?.value || '';
       extraTargets.push({ ...box, fixed: true, class: cls });
@@ -1212,10 +1471,16 @@ export function initGenerator(root, playback) {
   }
 
   async function loadVideo(path, extraCount = 0) {
+    cancelActiveAITargetRequest();
     videoPath = path;
     lastSceneMap = null;
+    sceneMapWinIdx = 0;
+    sceneMapMarks = [];
+    sceneMapMarkMode = null;
     const smStatus = el('#gen-scene-map-status');
     if (smStatus) smStatus.textContent = '';
+    syncSceneMapTools();
+    const loadSuggestionSeq = ++profileSuggestionSeq;
     seekSec = 0;
     el('#gen-seek').value = '0';
     el('#gen-seek').disabled = false;
@@ -1226,6 +1491,7 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Loading preview frame…';
     roi = null;
     roi2 = null;
+    clearPendingAITarget();
     extraTargets = [];
     maskRois = [];
     setMarkMode(null);
@@ -1241,7 +1507,8 @@ export function initGenerator(root, playback) {
     const batchNote = extraCount > 0
       ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
-    videoBatchNote = batchNote;    try {
+    videoBatchNote = batchNote;
+    try {
       await showFrame(path, 0);
       candidates = [];
       clearPendingSeed();
@@ -1268,9 +1535,12 @@ export function initGenerator(root, playback) {
       syncWorkflowSteps();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
-        if (!result || !videoPath || videoPath !== path) return;
+        if (!result || !videoPath || videoPath !== path
+          || loadSuggestionSeq !== profileSuggestionSeq) return;
         const status = el('#gen-suggest-status');
-        const via = result.via || 'signature';
+        const via = result.kind === 'local_model' ? 'learned locally'
+          : result.kind === 'ai' ? 'local AI server'
+          : 'saved scene';
         const label = result.label === 'tj' ? 'tf' : result.label;
         if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
           status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
@@ -1279,7 +1549,8 @@ export function initGenerator(root, playback) {
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
       startAutoFindRegion();
     } catch (err) {
-      uiError('Load video: ' + err, el('#gen-status'));
+      // Keep batchNote so multi-drop "ignored" stays visible even if preview fails.
+      uiError('Load video: ' + err + batchNote, el('#gen-status'));
     }
   }
 
@@ -1288,12 +1559,17 @@ export function initGenerator(root, playback) {
     nativeW = preview.width; nativeH = preview.height;
     const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
     canvas.width = DISPLAY_W; canvas.height = displayH;
-    img.onload = redraw;
-    img.src = 'data:image/png;base64,' + preview.pngBase64;
+    await new Promise((resolve, reject) => {
+      img.onload = () => { redraw(); resolve(); };
+      img.onerror = () => reject(new Error('Preview image could not be decoded'));
+      img.src = 'data:image/png;base64,' + preview.pngBase64;
+    });
   }
 
   async function seekTo(sec) {
     if (!videoPath) return;
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
     seekSec = Math.max(0, sec);
     el('#gen-seek').value = String(seekSec);
     el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
@@ -1319,10 +1595,25 @@ export function initGenerator(root, playback) {
 
   async function generate() {
     if (!videoPath) return;
+    if (activeAITargetRequest) {
+      el('#gen-status').textContent = 'Wait for the body-point check, or change/dismiss it before creating.';
+      return;
+    }
+    if (pendingAITarget) {
+      el('#gen-status').textContent = 'Review the detected body point first: Apply target, or Dismiss to keep the current region.';
+      return;
+    }
     normalizeProductProfile();
 
     // Everyday: no tip yet + CSRT → auto-find then continue.
     if (backendNeedsRoi() && !roi) {
+      const strictAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+      if (strictAI) {
+        pendingGenerateAfterRoi = false;
+        el('#gen-status').textContent = 'Find the expected body point, review it, then press Apply target before Create.';
+        startAutoFindRegion();
+        return;
+      }
       pendingGenerateAfterRoi = true;
     generating = true;
     el('#gen-generate').disabled = true;
@@ -1435,7 +1726,7 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Cancel requested…';
   });
 
-  EventsOn('generate:progress', line => {
+  const handleProgressLine = line => {
     el('#gen-status').textContent = line;
     const log = el('#gen-log');
     if (log) {
@@ -1475,6 +1766,58 @@ export function initGenerator(root, playback) {
     } else if (/Fallback auf Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     }
+  };
+  EventsOn('generate:progress', handleProgressLine);
+  EventsOn('generate:tip-progress', event => {
+    const request = activeAITargetRequest;
+    if (!request || Number(event?.requestId) !== request.requestId
+      || event?.videoPath !== request.videoPath) return;
+    handleProgressLine(String(event?.line || ''));
+  });
+
+  EventsOn('generate:tip-detection', result => {
+    const request = activeAITargetRequest;
+    if (!request || request.videoPath !== videoPath) return;
+    const selected = normalizeClass(el('#gen-ai-target-class')?.value || '');
+    const expected = normalizeClass(result.expectedClass || '');
+    if (Number(result.requestId) !== request.requestId
+      || !el('#gen-ai-roi').checked || selected !== request.expectedClass
+      || expected !== request.expectedClass
+      || (result.videoPath && result.videoPath !== request.videoPath)) return;
+    activeAITargetRequest = null;
+    hideProgress();
+    el('#gen-autoroi').disabled = false;
+    el('#gen-candidates').disabled = false;
+    el('#gen-nomark').disabled = false;
+    pendingGenerateAfterRoi = false;
+    generating = false;
+    el('#gen-cancel').disabled = true;
+    if (result.error || !result.match) {
+      clearPendingAITarget();
+      redraw();
+      const wanted = labelFor(expected || selected) || expected || selected || 'target';
+      const reason = result.errorCode || result.status || 'target_not_detected';
+      const guidance = ['manifest_missing', 'manifest_invalid', 'class_unresolved', 'class_conflict'].includes(reason)
+        ? 'Check that classes.json beside the ONNX model contains this class.'
+        : 'Mark the intended point manually or train/correct more examples.';
+      uiWarn(`No confirmed ${wanted} (${reason}). ${guidance} Existing region kept.`, el('#gen-status'));
+      updateGenerateEnabled();
+      return;
+    }
+    const matched = normalizeClass(result.matchedClass || '');
+    if (!matched || matched !== expected || !(result.w > 0 && result.h > 0)) {
+      clearPendingAITarget();
+      redraw();
+      uiWarn('AI result did not match the requested body point. Existing region kept; mark manually.', el('#gen-status'));
+      updateGenerateEnabled();
+      return;
+    }
+    pendingAITarget = { ...result, matchedClass: matched, expectedClass: expected };
+    renderPendingAITarget();
+    el('#gen-status').textContent =
+      `${labelFor(matched) || matched} found with ${Math.round((result.confidence || 0) * 100)}% confidence — Apply target to use it.`;
+    redraw();
+    updateGenerateEnabled();
   });
 
   // Ergebnis der automatischen Regionssuche Apply - die ROI wird
@@ -1550,7 +1893,7 @@ export function initGenerator(root, playback) {
   // des videos unknown war. In dem Fall wird ein unbestimmter
   // Balken gezeigt statt eines erfundenen Prozentwerts.
   let progressStartedAt = 0;
-  EventsOn('generate:percent', pct => {
+  const handleProgressPercent = pct => {
     const wrap = el('#gen-progress-wrap');
     const bar = el('#gen-progress-bar');
     const text = el('#gen-progress-text');
@@ -1574,6 +1917,13 @@ export function initGenerator(root, playback) {
       rest = `  ·  ~${remaining < 60 ? remaining + ' s' : Math.round(remaining / 60) + ' min'} left`;
     }
     text.textContent = `${pct} %${rest}`;
+  };
+  EventsOn('generate:percent', handleProgressPercent);
+  EventsOn('generate:tip-percent', event => {
+    const request = activeAITargetRequest;
+    if (!request || Number(event?.requestId) !== request.requestId
+      || event?.videoPath !== request.videoPath) return;
+    handleProgressPercent(Number(event?.percent));
   });
 
   function hideProgress() {
@@ -1803,6 +2153,24 @@ export function initGenerator(root, playback) {
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
   el('#gen-scene-map')?.addEventListener('click', runSceneMapScan);
+  el('#gen-scene-map-win')?.addEventListener('input', () => {
+    sceneMapWinIdx = parseInt(el('#gen-scene-map-win').value, 10) || 0;
+    syncSceneMapTools();
+    redraw();
+  });
+  el('#gen-scene-map-overlay')?.addEventListener('change', () => redraw());
+  el('#gen-scene-map-mark-kind')?.addEventListener('change', () => {
+    syncSceneMapTools();
+    if (sceneMapMarkMode) setSceneMapMarkMode(true);
+  });
+  el('#gen-scene-map-mark')?.addEventListener('click', () => {
+    setSceneMapMarkMode(!sceneMapMarkMode);
+  });
+  el('#gen-scene-map-marks-clear')?.addEventListener('click', () => {
+    sceneMapMarks = [];
+    updateSceneMapMarksLabel();
+    redraw();
+  });
   SceneMapAvailable().then((ok) => {
     sceneMapAvailable = !!ok;
     updateSceneMapButton();
@@ -1942,18 +2310,23 @@ export function initGenerator(root, playback) {
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
+    const requestSeq = ++profileSuggestionSeq;
+    const requestPath = videoPath;
     const status = el('#gen-suggest-status');
     status.textContent = 'Comparing to saved scenes…';
     el('#gen-suggest-profile').disabled = true;
     try {
       const result = await SuggestProfile(videoPath);
+      if (requestSeq !== profileSuggestionSeq || requestPath !== videoPath) return;
       if (!result.found) {
         status.textContent = 'No suggestion (no similar saved scene, AI server unreachable).';
         return;
       }
-      const via = result.kind === 'ai'
-        ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
-        : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
+      const via = result.kind === 'local_model'
+        ? `lokales Go-Modell, Konfidenz ${Math.round(result.confidence * 100)}%`
+        : result.kind === 'ai'
+          ? `KI, Konfidenz ${Math.round(result.confidence * 100)}%`
+          : `gemessen, Abstand ${result.confidence.toFixed(3)}`;
       // Legacy "tf"/"tj" scene labels map to Stroke — Contact vib is the feel layer now.
       let label = result.label === 'tj' || result.label === 'tf' ? 'standard' : result.label;
       if (PROFILE_VALUES.includes(label)) {
@@ -1971,9 +2344,9 @@ export function initGenerator(root, playback) {
           + 'direct profile name; not applied automatically.';
       }
     } catch (err) {
-      status.textContent = 'Error: ' + err;
+      if (requestSeq === profileSuggestionSeq) status.textContent = 'Error: ' + err;
     } finally {
-      el('#gen-suggest-profile').disabled = false;
+      if (requestSeq === profileSuggestionSeq) el('#gen-suggest-profile').disabled = false;
     }
   });
 
@@ -1986,8 +2359,10 @@ export function initGenerator(root, playback) {
     }
     el('#gen-label-scene').disabled = true;
     try {
-      await LabelScene(videoPath, label);
-      el('#gen-suggest-status').textContent = `Scene saved as "${label}".`;
+      const profile = el('#gen-profile').value || 'standard';
+      await LabelSceneWithProfile(videoPath, label, profile);
+      el('#gen-suggest-status').textContent = `Scene "${label}" saved with Style “${profile}”. `
+        + 'Retrain the Go profile model in AI training to include it.';
     } catch (err) {
       uiError('Remember scene: ' + err, el('#gen-suggest-status'));
     } finally {
@@ -2009,6 +2384,37 @@ export function initGenerator(root, playback) {
   fillClassSelect('#gen-region-class', TIP_CLASS_ORDER);
   fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
   fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
+  fillClassSelect('#gen-ai-target-class', TIP_CLASS_ORDER);
+  el('#gen-ai-roi')?.addEventListener('change', () => {
+    const enabled = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const target = el('#gen-ai-target-class');
+    if (target) target.disabled = !enabled;
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
+    redraw();
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    el('#gen-autoroi-hint').textContent = enabled
+      ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class.'
+      : 'Generic motion search is active. Enable AI plus an expected body point for strict matching.';
+  });
+  el('#gen-ai-target-class')?.addEventListener('change', () => {
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
+    redraw();
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    const cls = normalizeClass(el('#gen-ai-target-class').value || '');
+    el('#gen-ai-target-status').textContent = cls
+      ? `Strict target: ${labelFor(cls) || cls}. Press Find tip area.`
+      : 'Choose an expected body point before strict AI detection.';
+  });
   el('#gen-region-class')?.addEventListener('change', () => {
     const sel = el('#gen-region-class');
     if (sel) sel.dataset.userTouched = '1';

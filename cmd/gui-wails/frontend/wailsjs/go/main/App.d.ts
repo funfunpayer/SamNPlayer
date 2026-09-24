@@ -4,6 +4,7 @@ import {main} from '../models';
 import {generator} from '../models';
 import {funscript} from '../models';
 import {motionx} from '../models';
+import {profilemodel} from '../models';
 
 export function AnalyzeScript():Promise<main.ScriptAnalysis>;
 
@@ -14,6 +15,8 @@ export function ApplySuggestedOZone():Promise<funscript.OZoneSuggestion>;
 export function ApplyUpdate():Promise<void>;
 
 export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
+
+export function DetectExpectedTipROI(arg1:string,arg2:string,arg3:number,arg4:number):Promise<void>;
 
 export function SuggestROICandidates(arg1:string):Promise<void>;
 
@@ -28,6 +31,8 @@ export function AddRoiStillTrainingSample(arg1:string,arg2:Array<generator.RoiTr
 export function PickImageFile():Promise<string>;
 
 export function CancelGenerate():Promise<void>;
+
+export function CancelROIDetection():Promise<void>;
 
 export function CheckAIRoiAvailable():Promise<boolean>;
 
@@ -85,6 +90,8 @@ export function GetLicenseStatus():Promise<any>;
 
 export function GetLogEntries():Promise<Array<Record<string, any>>>;
 
+export function GetMotionProfileModelStatus():Promise<profilemodel.Status>;
+
 export function GetMarker(arg1:string):Promise<main.Marker>;
 
 export function GetOMarkers(arg1:string):Promise<Array<funscript.OMarker>>;
@@ -117,6 +124,8 @@ export function ImproveGeneratedScript(arg1:any):Promise<any>;
 export function InvertScriptAtPath(arg1:string):Promise<void>;
 
 export function LabelScene(arg1:string,arg2:string):Promise<void>;
+
+export function LabelSceneWithProfile(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function LicenseAllowsFullFeatures():Promise<boolean>;
 
@@ -215,6 +224,8 @@ export function TestSuction(arg1:number):Promise<void>;
 export function TestVibration(arg1:number):Promise<void>;
 
 export function TrainQualityModel():Promise<string>;
+
+export function TrainMotionProfileModel():Promise<profilemodel.Status>;
 
 export function TrainingHistory():Promise<Array<main.TrainingSessionSummary>>;
 

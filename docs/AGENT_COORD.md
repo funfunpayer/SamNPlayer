@@ -110,7 +110,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
-| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) | **SceneMap P1** — score/choose split, `ScanSceneMap`, Wails + Advanced Show scene map | **DONE** — CI green; merging |
+| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** (`80f50bd`) |
+| SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) | **SceneMap P2** — Advanced map heatmap overlay + exclude/source/region marks | **in release branch** |
+| AIScript | ChatGPT | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) | **Local script-model foundation** — Go profilemodel + AI Training | **in release branch** |
+| TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) | **Semantic target lock** — strict body class + rhythm seed lock | **in release branch** (Cursor finished CI) |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -133,16 +136,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (24 Sep):**
-- **Claude #243 MERGED** — SceneMap plan + Owner § 6 on main.
-- **Cursor #246** — SceneMap P1 **CI green** (score/choose + ScanSceneMap + Show scene map button); merging.
-- **ChatGPT #244** — still READY (Manus may still iterate); do not expand; merge when Manus done.
-- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next after P1: **P2** map draw + marks.
+- **Rel31 THIS:** #244 + #248 + #247 (+ Stage B already on main) — merging; tag **v0.5.31**.
+- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next: SceneMap **P3** engine consume marks.
 
 **Status board (23 Sep night):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
 - **Cursor:** engine free. **Blocked on Owner before G1.1 tune:** (1) speed-cap product rule (Normal uncapped vs Neo-2 default), (2) ≥4–5 rhythm-grid clips for default gate. G1.3 peak bias = measure first.
 - F-003 tier 2 = don’t. Drift closed.
-- ChatGPT: Emotion Script copy / steward.
+- **ChatGPT REVIEW:** `AIScript` [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) — local Go profile model + AI Training workflow + opt-in Create suggestion. No direct LLM writer, no default or license change.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 
@@ -873,7 +874,6 @@ ring revision before committing.
 | 23 Sep | **Rel30 prep** (Cursor): cut **v0.5.30** — #233 rhythm grid + #236 Advanced GUI toggle. `VERSION`/`BaseVersion` 0.5.29→0.5.30; CHANGELOG Unreleased→0.5.30; Drift/Rel29 DONE; Rel30 THIS; G1next NEXT. Closed obsolete #234 (answers folded here). Tag `v0.5.30` after CI green | Cursor |
 | 23 Sep | **BF-3 Stage B** (Cursor): high cut rate (>4/min) enables `PerSceneROI` for the current Generate run; high pan share (>0.4) re-enables camera compensation when off — same pattern as audio gate. GUI syncs Advanced checkboxes + tip from progress lines. Peak-distance stays advisory. Metadata `stage=B` when steered | Cursor |
 | 23 Sep | **G1 inventory** (Cursor): refreshed `GENERATE_HEURISTICS.md` package table (detrend default #230, Stage B #239, speed-cap partial) + knob→code→default inventory; no behavior change. Gaps listed for G1.1 (speed-cap product rule, G1.3 peak bias measure-first) | Cursor |
-| 24 Sep | **Scene map plan (Owner order: plan only, Cursor builds).** Owner saw the rhythm heatmap (rhythm grid prototype) and asked for it on the first pass, with markable no-go areas, feeding training data "until an AI knows the whole engine — what/how/where/who". Plan in `docs/SCENE_MAP_PLAN.md`: M1 `SceneMap` (full-run by-product + quick scan ≈ 6×8s, ~12–20s), M2 Advanced map view + marks (exclude / source / region, time-scoped), M3 rhythm grid honours marks + **masks allowed on the Go path only when RhythmGrid is on** (announced, not silent; no change without it) + camera exclude list, M4 optional `metadata.scene_map` in `.samn`, M5 local export (YOLO labels incl. auto-labels where CSRT box and grid cell agree ≥3 windows at \|r\| ≥ 0.3, negatives, per-window engine trace JSONL), M6 staged learning L0 collect → L1 priors → L2 YOLO region detector → L3 learned cell scorer → L4 Perception fusion, each suggest-only until its gate. Found while planning: today any `MaskROIs` forces the Python path, so a masked Generate silently has no rhythm grid at all — P3 fixes that | Claude |
 
 ---
 
