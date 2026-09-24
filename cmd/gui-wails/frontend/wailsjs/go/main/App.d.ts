@@ -185,6 +185,10 @@ export function SceneMapAvailable():Promise<boolean>;
 
 export function LoadSceneMapForVideo(arg1:string):Promise<generator.SceneMapLoad>;
 
+export function ExportSceneMapLearning(arg1:string):Promise<generator.LearningExportResult>;
+
+export function DeleteSceneMapLearningData():Promise<void>;
+
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;

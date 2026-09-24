@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **SceneMap P5b — learning export in GUI** — Settings → Collect learning data
+  (default off) + Delete learning data; Create Advanced → Export for learning
+  (companion `.samn`). Same local `scene_map_learning/` as CLI; never YOLO train.
 - **SceneMap P5a — local learning export (CLI)** — `export-learning FILE.samn --opt-in`
   writes `scene_map_learning/` (engine_trace.jsonl, negatives, auto_candidates
   with `reviewed:false`, user region marks). Default off; never writes

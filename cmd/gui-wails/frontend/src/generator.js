@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -234,6 +234,11 @@ export function initGenerator(root, playback) {
               <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
             </div>
             <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;">
+              <button type="button" class="secondary" id="gen-scene-map-export"
+                data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+              <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+            </div>
           </div>
 
           <div class="opt-group">Signal &amp; quality</div>
@@ -2235,6 +2240,27 @@ export function initGenerator(root, playback) {
     sceneMapMarks = [];
     updateSceneMapMarksLabel();
     redraw();
+  });
+  el('#gen-scene-map-export')?.addEventListener('click', async () => {
+    const status = el('#gen-scene-map-export-status');
+    if (!videoPath) {
+      if (status) status.textContent = 'Load a video first.';
+      uiWarn('Export for learning needs a video.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Exporting…';
+    try {
+      const res = await ExportSceneMapLearning(videoPath);
+      const msg = `Exported → ${res.outDir || res.OutDir || 'scene_map_learning'} `
+        + `(${res.windows ?? res.Windows ?? 0} windows, `
+        + `${res.negatives ?? res.Negatives ?? 0} negatives, `
+        + `${res.autoCandidates ?? res.AutoCandidates ?? 0} auto).`;
+      if (status) status.textContent = msg;
+      uiInfo(msg, el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Export for learning: ' + err, el('#gen-status'));
+    }
   });
   SceneMapAvailable().then((ok) => {
     sceneMapAvailable = !!ok;

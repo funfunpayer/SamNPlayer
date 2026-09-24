@@ -103,6 +103,8 @@ export function ScriptExistsForVideo(arg1) { return window['go']['main']['App'][
 export function ScanSceneMap(arg1, arg2) { return window['go']['main']['App']['ScanSceneMap'](arg1, arg2); }
 export function SceneMapAvailable() { return window['go']['main']['App']['SceneMapAvailable'](); }
 export function LoadSceneMapForVideo(arg1) { return window['go']['main']['App']['LoadSceneMapForVideo'](arg1); }
+export function ExportSceneMapLearning(arg1) { return window['go']['main']['App']['ExportSceneMapLearning'](arg1); }
+export function DeleteSceneMapLearningData() { return window['go']['main']['App']['DeleteSceneMapLearningData'](); }
 export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
 export function SetPlaybackVideo(arg1) { return window['go']['main']['App']['SetPlaybackVideo'](arg1); }

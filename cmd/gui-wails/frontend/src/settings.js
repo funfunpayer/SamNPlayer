@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 
@@ -46,6 +46,7 @@ export function saveSetting(key, value) {
       'generator.aiPreferredClasses': 'aiPreferredClasses',
       'generator.aiBaseUrl': 'aiBaseUrl',
       'generator.roiTrainingDatasetDir': 'roiDatasetDir',
+      'generator.collectLearningData': 'collectLearningData',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;
@@ -130,6 +131,23 @@ export function initSettings(root) {
       <input type="text" id="st-ai-pref-classes" placeholder="face,mouth,breasts,nipples,hand_1,hand_2,penis,glans,vagina" style="flex:1;" />
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
+
+    <h3>Scene map learning (local, optional)</h3>
+    <p class="hint">Collects JSON/JSONL next to your ROI dataset (<code>scene_map_learning/</code>)
+      from Create’s companion <code>.samn</code> — engine trace, excludes, auto candidates
+      (<code>reviewed: false</code>). Default <b>off</b>. Never uploads; never writes YOLO
+      <code>images/train</code> / <code>labels/train</code>. Use Create → Advanced →
+      Export for learning after Generate (or after Show scene map + companion save).</p>
+    <div class="checkbox-row">
+      <input type="checkbox" id="st-collect-learning" />
+      <label for="st-collect-learning"
+        data-help="Required before Export for learning. Off by default (Owner).">Collect learning data</label>
+    </div>
+    <div class="row" style="align-items:center; margin-top:6px;">
+      <button id="st-delete-learning" type="button"
+        data-help="Deletes only scene_map_learning under the ROI dataset folder. Hand YOLO samples stay.">Delete learning data</button>
+      <span class="hint" id="st-learning-status" style="margin:0"></span>
+    </div>
 
     <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
     <p class="hint">Address of a local Colibri server (<code>coli serve</code>,
@@ -218,6 +236,7 @@ export function initSettings(root) {
     el('#st-ai-roi-path').value = s.aiRoiModelPath || '';
     el('#st-ai-pref-classes').value = s.aiPreferredClasses || '';
     el('#st-ai-base-url').value = s.aiBaseUrl || '';
+    el('#st-collect-learning').checked = !!s.collectLearningData;
     updateReportStatus();
     refreshLicenseStatus();
   });
@@ -391,6 +410,22 @@ export function initSettings(root) {
 
   el('#st-ai-base-url').addEventListener('change', e =>
     saveSetting('generator.aiBaseUrl', e.target.value.trim()));
+
+  el('#st-collect-learning')?.addEventListener('change', e =>
+    saveSetting('generator.collectLearningData', e.target.checked));
+
+  el('#st-delete-learning')?.addEventListener('click', async () => {
+    const status = el('#st-learning-status');
+    if (status) status.textContent = 'Deleting…';
+    try {
+      await DeleteSceneMapLearningData();
+      if (status) status.textContent = 'Deleted scene_map_learning (YOLO samples kept).';
+      uiInfo('Scene map learning data deleted.', status);
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Delete learning data: ' + err, status);
+    }
+  });
 
   el('#st-ai-roi-check').addEventListener('click', async () => {
     const status = el('#st-ai-roi-status');

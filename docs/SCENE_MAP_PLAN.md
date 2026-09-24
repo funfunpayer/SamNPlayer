@@ -1,8 +1,9 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
-Status: **P4 done** (branch `cursor/scenemap-p4-95d8`) — P3 done (`9d20e05` / #251); P2 done (v0.5.31 / #249); P1 done (#246); plan on main via #243 (24 Sep 2026).
+Status: **P5a done** (#255 / `c57b910`) — P4b #254; P4 #253; P3 #251; P2 v0.5.31; P1 #246; plan #243.
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
-the golden-clip measurements. **Next: P5** learning export (or Claude M3 gate).
+the golden-clip measurements. **Next: P5b** GUI Collect/Delete/Export (this PR),
+then Claude M3 gate / Owner rhythm clips before P6.
 
 Owner goal (paraphrased): *build it so it makes Generate better **and** yields
 training data, until an AI knows our whole engine — what moves, how, where,
