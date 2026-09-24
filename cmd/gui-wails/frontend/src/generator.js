@@ -313,7 +313,7 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-audio-fill" checked /> Align fill to audio tempo
           </label>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Compares script Hz to audio Hz and stamps warnings. Toggle off to skip. Needs ffmpeg.">
+            data-help="Compares script Hz to audio Hz (warn only). If Signal Quality failed and audio tempo is clear, adds: check ROI / axis — never rewrites the curve. Needs ffmpeg.">
             <input type="checkbox" id="gen-improve-audio" checked /> Audio check
           </label>
         </div>

@@ -44,10 +44,29 @@ func CheckAudioTempo(videoPath string, actions []funscript.Action) *funscript.Au
 	}
 	if cmp != nil && !cmp.matches {
 		out.Warnings = append(out.Warnings, fmt.Sprintf(
-			"Skript-Tempo (%.2fHz) passt zu keinem erwarteten Vielfachen des Audio-Tempos (%.2fHz, am nächsten: %gx -> %.2fHz) - kann echte, aber untypische Bewegung sein oder ein Tracking-Fehler, keine automatische Korrektur",
+			"Script tempo (%.2f Hz) does not match an expected multiple of audio tempo (%.2f Hz; nearest %gx → %.2f Hz) — may be real atypical motion or a tracking error; no automatic correction",
 			*scriptHz, *audioHz, cmp.harmonic, cmp.predictedHz))
 	}
 	return out
+}
+
+// AppendQualityAudioHint adds the G1.2 English hint when Signal Quality failed
+// and audio Hz is clear. Never changes actions, QD score, or pass/fail.
+// Idempotent if the hint string is already present.
+func AppendQualityAudioHint(quality funscript.ScriptQualityResult, audio *funscript.AudioCheck) {
+	if audio == nil || audio.AudioHz == nil || quality.Passed {
+		return
+	}
+	hz := *audio.AudioHz
+	msg := fmt.Sprintf(
+		"Audio suggests ~%.2f Hz — check ROI / axis (Signal Quality failed; audio did not rewrite the curve)",
+		hz)
+	for _, w := range audio.Warnings {
+		if w == msg {
+			return
+		}
+	}
+	audio.Warnings = append(audio.Warnings, msg)
 }
 
 func dominantFrequencyHz(values []float64, sampleRateHz, minHz, maxHz float64) *float64 {

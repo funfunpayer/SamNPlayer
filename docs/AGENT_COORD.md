@@ -109,6 +109,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
+| G1safe | Cursor | [#257](https://github.com/funfunpayer/SamNPlayer/pull/257) | **G1 without Owner** — G1.2 QD×audio English hint + Everyday blurb; **no** default changes (speed-cap / rhythm / G1.3 stay gated) | **IN REVIEW** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
@@ -116,11 +117,11 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | SceneP4 | Cursor | [#253](https://github.com/funfunpayer/SamNPlayer/pull/253) merged | **SceneMap P4** — `.samn` `sceneMap` persist (writer+reader+round-trip; no funscript export) | **DONE** |
 | SceneP4b | Cursor | [#254](https://github.com/funfunpayer/SamNPlayer/pull/254) merged | **SceneMap P4 GUI** — restore marks/map from companion `.samn` on Create load | **DONE** |
 | SceneP5a | Cursor | [#255](https://github.com/funfunpayer/SamNPlayer/pull/255) merged | **SceneMap P5a** — CLI `export-learning` L0 collect (opt-in; no YOLO train write) | **DONE** (`c57b910`) |
-| SceneP5b | Cursor | [#256](https://github.com/funfunpayer/SamNPlayer/pull/256) | **SceneMap P5b** — Settings Collect/Delete + Create Export for learning | **IN REVIEW** |
+| SceneP5b | Cursor | [#256](https://github.com/funfunpayer/SamNPlayer/pull/256) merged | **SceneMap P5b** — Settings Collect/Delete + Create Export for learning | **DONE** (`524d23b`) |
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
-| Engine | — | free | SceneMap P5a on main; P5b THIS; Claude M3 / G1.1 after Owner gates | **OPEN** |
+| Engine | — | free | P5 done on main; G1safe [#257](https://github.com/funfunpayer/SamNPlayer/pull/257); Owner gates: speed-cap / rhythm / G1.3 | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -144,14 +145,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 **Status board (24 Sep evening):**
 - **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
-- **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252); **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253); **P4b** [#254](https://github.com/funfunpayer/SamNPlayer/pull/254); **P5a** [#255](https://github.com/funfunpayer/SamNPlayer/pull/255).
-- **In flight:** **P5b** [#256](https://github.com/funfunpayer/SamNPlayer/pull/256). Claude/Manus pause.
-- **Owner HW (24 Sep):** Neo 2 hardware smoke **OK** — Connect/Play feel good. **G2.1 done enough**; G2.2+ raw-profile mapping **parked** until Owner opens (not blocking SceneMap / G1).
-- **Parked (Owner 24 Sep):** [LosslessCut](https://losslesscut.net/) — hold. Later: thin ffmpeg `-c copy` Export clip; optional open external. No GPL fork / Smart Cut.
-- **Parked (Owner 24 Sep) — Emotion GUI look v2:** thinner chrome; friendlier palette; subtle graphics; **rounded / organic** (no sharp corners). Keep Emotion brand (Sora/Figtree); evolve `style.css` tokens — not a second theme fork. No lane until Owner opens Look (after P5).
-- **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** land P5b [#256](https://github.com/funfunpayer/SamNPlayer/pull/256); Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
-- **ChatGPT:** steward / copy review welcome; no open feature claim.
+- **Shipped:** SceneMap **P3–P5b** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251)–[#256](https://github.com/funfunpayer/SamNPlayer/pull/256).
+- **In flight:** **G1safe** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257) — finish classical G1 *without* Owner gates; **preserve** shipped Generate behaviour.
+- **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.1 enough; G2.2+ parked.
+- **Parked:** LosslessCut; Emotion GUI **look v2** (after G1safe → careful lane; keep Emotion/Sora).
+- **Still Owner-gated (not silent):** speed-cap product rule; ≥4–5 rhythm clips → default-on; G1.3 peak bias measure.
+- **Cursor NEXT after G1safe:** **G3** helpers (suggest-only) + **Look v2** carefully — keep what works.
+- **ChatGPT:** steward welcome.
 
 **Status board (24 Sep):**
 - **Rel31 DONE** — see evening board above.

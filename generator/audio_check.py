@@ -159,10 +159,10 @@ def check(video_path, actions, sample_rate=8000, window_ms=50.0, tolerance=0.25)
     warnings = []
     if comparison is not None and not comparison["matches"]:
         warnings.append(
-            f"Skript-Tempo ({script_hz:.2f}Hz) passt zu keinem erwarteten Vielfachen "
-            f"des Audio-Tempos ({audio_hz:.2f}Hz, am nächsten: {comparison['harmonic']}x "
-            f"-> {comparison['predicted_hz']:.2f}Hz) - kann echte, aber untypische Bewegung "
-            "sein oder ein Tracking-Fehler, keine automatische Korrektur")
+            f"Script tempo ({script_hz:.2f} Hz) does not match an expected multiple "
+            f"of audio tempo ({audio_hz:.2f} Hz; nearest {comparison['harmonic']}x "
+            f"→ {comparison['predicted_hz']:.2f} Hz) — may be real atypical motion "
+            "or a tracking error; no automatic correction")
 
     return {
         "available": True,
@@ -171,6 +171,27 @@ def check(video_path, actions, sample_rate=8000, window_ms=50.0, tolerance=0.25)
         "comparison": comparison,
         "warnings": warnings,
     }
+
+
+def append_quality_audio_hint(quality_passed: bool, result: dict) -> dict:
+    """G1.2: when Signal Quality failed and audio Hz is clear, add English hint.
+    Never changes actions — warn only. Mutates and returns result."""
+    if not isinstance(result, dict):
+        return result
+    if quality_passed or not result.get("available"):
+        return result
+    audio_hz = result.get("audio_hz")
+    if audio_hz is None:
+        return result
+    msg = (
+        f"Audio suggests ~{audio_hz:.2f} Hz — check ROI / axis "
+        "(Signal Quality failed; audio did not rewrite the curve)"
+    )
+    warnings = list(result.get("warnings") or [])
+    if msg not in warnings:
+        warnings.append(msg)
+    result["warnings"] = warnings
+    return result
 
 
 def main():

@@ -68,6 +68,25 @@ AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve
 
 ---
 
+## Classical heuristics package (G1 — what Create already does)
+
+Order on the Go path (no AI writing positions):
+
+```text
+  ROI (manual / auto-find) → CSRT tip → posttrack (smooth / peaks / RDP / speed)
+    → Quality Doctor (Signal Quality) → audio tempo check (warn only) → write .samn
+```
+
+- **Audio** never invents the curve. If Signal Quality fails *and* audio Hz is
+  clear, you get: *“Audio suggests ~X Hz — check ROI / axis”*.
+- **Rhythm-robust signal** stays Advanced opt-in until Owner gates more clips.
+- **Speed cap** on Normal/Soft stays off unless you set it (Autotune may set 400).
+  Product rule for a Neo-2 default still needs an Owner decision — not silent.
+
+Full knob map: `docs/GENERATE_HEURISTICS.md`.
+
+---
+
 ## What stays automatic
 
 | Piece | Behavior |

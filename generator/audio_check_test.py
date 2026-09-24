@@ -109,6 +109,18 @@ def main():
     check("check() meldet available=False ohne echtes Video, statt zu crashen",
           result["available"] is False and result["warnings"] == [], str(result))
 
+    # --- G1.2 hint (warn only; no curve change)
+    hint_in = {"available": True, "audio_hz": 1.5, "warnings": []}
+    ac.append_quality_audio_hint(False, hint_in)
+    check("G1.2 hint when QD failed + audio Hz clear",
+          len(hint_in["warnings"]) == 1 and "check ROI / axis" in hint_in["warnings"][0],
+          str(hint_in))
+    ac.append_quality_audio_hint(False, hint_in)
+    check("G1.2 hint idempotent", len(hint_in["warnings"]) == 1, str(hint_in))
+    ok_in = {"available": True, "audio_hz": 1.5, "warnings": []}
+    ac.append_quality_audio_hint(True, ok_in)
+    check("G1.2 no hint when QD passed", ok_in["warnings"] == [], str(ok_in))
+
     print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
     return 1 if failures else 0
 

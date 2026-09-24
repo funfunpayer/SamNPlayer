@@ -362,6 +362,7 @@ func finishNativeGenerate(
 				progress(fmt.Sprintf("Audio tempo check: script %.2fHz (audio tempo not estimated)",
 					*audioMeta.ScriptHz))
 			}
+			AppendQualityAudioHint(quality, audioMeta)
 			for _, w := range audioMeta.Warnings {
 				progress("warning: " + w)
 			}
