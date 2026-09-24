@@ -125,6 +125,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
 | V | Owner | local | Smoke **v0.5.25** | **DONE** — Owner smoked |
+| HW | Owner | local Neo 2 | Device Connect / Play feel smoke | **DONE** 24 Sep — Owner: läuft super; G2.2+ parked |
 | B | Claude | [#188](https://github.com/funfunpayer/SamNPlayer/pull/188) + [#189](https://github.com/funfunpayer/SamNPlayer/pull/189) merged | **MT-Debug** trajectory capture (trackcv + simpletrack) + Review/Play overlay | **DONE** (`b7f5d2d`, `5762629`) |
 | A | Cursor | #202 + tag `v0.5.24` | bump **v0.5.24** + Release | **DONE** — portable live |
 | F | Cursor | #183 merged | **MT-Go** coast + reacquire + lost UI | **DONE** (`94b2bae`) |
@@ -144,11 +145,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 **Status board (24 Sep evening):**
 - **Shipped:** **v0.5.31** (#249) — profilemodel + semantic target lock + SceneMap P1/P2 + Stage B notes.
 - **Shipped:** SceneMap **P3** [#251](https://github.com/funfunpayer/SamNPlayer/pull/251); provenance [#252](https://github.com/funfunpayer/SamNPlayer/pull/252); **P4** [#253](https://github.com/funfunpayer/SamNPlayer/pull/253); **P4b** [#254](https://github.com/funfunpayer/SamNPlayer/pull/254); **P5a** [#255](https://github.com/funfunpayer/SamNPlayer/pull/255).
-- **In flight:** **P5b** — Settings Collect/Delete + Create Export for learning (this PR). Claude/Manus pause.
+- **In flight:** **P5b** [#256](https://github.com/funfunpayer/SamNPlayer/pull/256). Claude/Manus pause.
+- **Owner HW (24 Sep):** Neo 2 hardware smoke **OK** — Connect/Play feel good. **G2.1 done enough**; G2.2+ raw-profile mapping **parked** until Owner opens (not blocking SceneMap / G1).
 - **Parked (Owner 24 Sep):** [LosslessCut](https://losslesscut.net/) — hold. Later: thin ffmpeg `-c copy` Export clip; optional open external. No GPL fork / Smart Cut.
 - **Parked (Owner 24 Sep) — Emotion GUI look v2:** thinner chrome; friendlier palette; subtle graphics; **rounded / organic** (no sharp corners). Keep Emotion brand (Sora/Figtree); evolve `style.css` tokens — not a second theme fork. No lane until Owner opens Look (after P5).
 - **GitHub:** merged feature PRs closed; draft steering #245 closed; stale agent branches pruned.
-- **Cursor NEXT:** land P5b; Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
+- **Cursor NEXT:** land P5b [#256](https://github.com/funfunpayer/SamNPlayer/pull/256); Claude M3 — Owner gates still: speed-cap; ≥4–5 rhythm clips before default-on.
 - **ChatGPT:** steward / copy review welcome; no open feature claim.
 
 **Status board (24 Sep):**
@@ -890,6 +892,7 @@ ring revision before committing.
 | 23 Sep | **Rel30 prep** (Cursor): cut **v0.5.30** — #233 rhythm grid + #236 Advanced GUI toggle. `VERSION`/`BaseVersion` 0.5.29→0.5.30; CHANGELOG Unreleased→0.5.30; Drift/Rel29 DONE; Rel30 THIS; G1next NEXT. Closed obsolete #234 (answers folded here). Tag `v0.5.30` after CI green | Cursor |
 | 23 Sep | **BF-3 Stage B** (Cursor): high cut rate (>4/min) enables `PerSceneROI` for the current Generate run; high pan share (>0.4) re-enables camera compensation when off — same pattern as audio gate. GUI syncs Advanced checkboxes + tip from progress lines. Peak-distance stays advisory. Metadata `stage=B` when steered | Cursor |
 | 23 Sep | **G1 inventory** (Cursor): refreshed `GENERATE_HEURISTICS.md` package table (detrend default #230, Stage B #239, speed-cap partial) + knob→code→default inventory; no behavior change. Gaps listed for G1.1 (speed-cap product rule, G1.3 peak bias measure-first) | Cursor |
+| 24 Sep | **Owner HW smoke:** Neo 2 Connect/Play **läuft super** — G2.1 enough for now; G2.2+ raw-value profile **parked** (Owner: fertig erstmal). No G2 lane opened | Owner |
 
 ---
 
