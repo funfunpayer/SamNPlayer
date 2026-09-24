@@ -109,7 +109,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiRG | Cursor | [#236](https://github.com/funfunpayer/SamNPlayer/pull/236) merged | Advanced opt-in *Rhythm-robust signal* checkbox (landed #235 onto main) | **DONE** |
 | BF3 | Cursor | [#239](https://github.com/funfunpayer/SamNPlayer/pull/239) merged | **Stroke-preview Stage B finish** — cut-rate → PerSceneROI; pan → camera compensation (this run) + GUI tip sync | **DONE** |
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
-| SceneMap | Claude (plan) → Cursor (build) | `claude/scene-map-plan` | **Scene map plan** — rhythm heatmap preview + user marks (exclude / source / region, time-scoped) + masks on the Go path + `metadata.scene_map` + local learning-data export (who/what/where/how) → staged learning L0–L4. `docs/SCENE_MAP_PLAN.md` | **PLAN DONE** (docs only); Owner decided § 6 + **approved P1** (24 Sep) — Cursor NEXT: P1 → P2 → P3 in order; Claude reviews engine parts + runs goldens |
+| SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
+| SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) | **SceneMap P1** — score/choose split, `ScanSceneMap`, Wails + Advanced Show scene map | **DONE** — CI green; merging |
 | Engine | — | free | Drift lane closed; Cursor free for G1 / stroke-preview (no silent defaults) | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -132,7 +133,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (24 Sep):**
-- **Claude:** `docs/SCENE_MAP_PLAN.md` written (Owner order: plan, don't build). Cursor builds P1–P5; Claude reviews engine + measures. Owner **decided** § 6 (scan = explicit button; learning data off/opt-in; auto-labels need review; marks default to current scene) and **approved P1** → Cursor NEXT.
+- **Claude #243 MERGED** — SceneMap plan + Owner § 6 on main.
+- **Cursor #246** — SceneMap P1 **CI green** (score/choose + ScanSceneMap + Show scene map button); merging.
+- **ChatGPT #244** — still READY (Manus may still iterate); do not expand; merge when Manus done.
+- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next after P1: **P2** map draw + marks.
 
 **Status board (23 Sep night):**
 - **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.

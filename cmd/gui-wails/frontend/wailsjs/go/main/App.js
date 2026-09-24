@@ -96,6 +96,8 @@ export function SaveScriptActions(arg1) { return window['go']['main']['App']['Sa
 export function SaveContactSettings(arg1, arg2, arg3) { return window['go']['main']['App']['SaveContactSettings'](arg1, arg2, arg3); }
 export function ScriptChapters() { return window['go']['main']['App']['ScriptChapters'](); }
 export function ScriptExistsForVideo(arg1) { return window['go']['main']['App']['ScriptExistsForVideo'](arg1); }
+export function ScanSceneMap(arg1, arg2) { return window['go']['main']['App']['ScanSceneMap'](arg1, arg2); }
+export function SceneMapAvailable() { return window['go']['main']['App']['SceneMapAvailable'](); }
 export function ScriptQuality() { return window['go']['main']['App']['ScriptQuality'](); }
 export function SetScriptOffset(arg1) { return window['go']['main']['App']['SetScriptOffset'](arg1); }
 export function SetPlaybackVideo(arg1) { return window['go']['main']['App']['SetPlaybackVideo'](arg1); }
