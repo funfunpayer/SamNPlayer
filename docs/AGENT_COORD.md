@@ -103,7 +103,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) merged | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **DONE** |
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) merged | Emotion GUI look (Sora/Figtree) | **DONE** |
-| Look2 | Cursor | [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) | **Emotion Look v2** — thinner chrome, friendlier palette, organic radii; CSS tokens only | **IN REVIEW** |
+| Look2 | Cursor | this branch | **Emotion Look v2** — thinner chrome, friendlier palette, organic radii; CSS tokens only | **THIS** |
 | Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) + tag `v0.5.28` | bump **v0.5.28** + Release (look + feel + CSRT guards) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.28 |
 | Rel29 | Cursor | [#232](https://github.com/funfunpayer/SamNPlayer/pull/232) + tag `v0.5.29` | bump **v0.5.29** + Release (#230 stroke detrend on by default) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.29 |
 | Rel30 | Cursor | [#238](https://github.com/funfunpayer/SamNPlayer/pull/238) + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 |
@@ -148,7 +148,6 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (24 Sep evening):**
-<<<<<<< HEAD
 - **Shipped:** **v0.5.31** (#249); SceneMap **P3–P5b** (#251–#256); **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257); **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258).
 - **Shipped also:** **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) (Load project + Scale range).
 - **In flight:** **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) THIS; **AIWrite S0** [#261](https://github.com/funfunpayer/SamNPlayer/pull/261).
@@ -156,14 +155,6 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
 - **Parked:** LosslessCut.
 - **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B.
-=======
-- **Shipped:** **v0.5.31**; SceneMap **P3–P5b**; **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257).
-- **In flight:** **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258); **Look2** (this PR) — CSS tokens only; Generate untouched.
-- **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
-- **Parked:** LosslessCut.
-- **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 / Pose Stage B.
-- **Cursor NEXT:** land G3safe + Look2.
->>>>>>> 7b65501 (docs+gui: Look v2 changelog + brand radius tokens)
 - **ChatGPT:** steward welcome.
 
 **Status board (24 Sep):**
