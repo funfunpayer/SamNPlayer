@@ -1716,6 +1716,16 @@ export function initGenerator(root, playback) {
     if (maskRois.length) {
       payload.maskRois = maskRois.map(m => ({ x: m.x, y: m.y, w: m.w, h: m.h }));
     }
+    if (sceneMapMarks.length) {
+      payload.sceneMapMarks = sceneMapMarks.map(m => ({
+        id: m.id || '',
+        kind: m.kind || '',
+        rect: { x: m.rect.x, y: m.rect.y, w: m.rect.w, h: m.rect.h },
+        fromMs: m.fromMs || 0,
+        toMs: m.toMs || 0,
+        class: m.class || '',
+      }));
+    }
     GenerateScript(payload);
   }
 

@@ -61,10 +61,12 @@ func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if opts.AIQualityOpinion {
 		return false
 	}
-	// Soft masks still need Python (feature punch-outs on camera/grid paths).
-	// Extra Tf/Tj targets run on Go TrackMultiPoints (CSRT / simpletrack).
+	// Soft masks need Python for feature punch-outs unless RhythmGrid is on
+	// the Go single-ROI path (M3: masks become exclude marks on the grid).
 	if len(opts.MaskROIs) > 0 {
-		return false
+		if !opts.RhythmGrid || distancePartnersActive(opts) {
+			return false
+		}
 	}
 	return true
 }
@@ -85,7 +87,7 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		return errNativeUnavailable
 	}
 	if !nativeOptionsEligible(opts, roi) {
-		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2/+targets; no per-scene, AI opinion, soft masks)")
+		return fmt.Errorf("generator: native pipeline not eligible for these options (CSRT; single ROI or Tf/Tj ROI2/+targets; no per-scene, AI opinion; soft masks need RhythmGrid)")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -122,12 +124,16 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		FixedB:             opts.ROI2Fixed,
 		CaptureTrajectory:  opts.CaptureTrajectory,
 		RhythmGrid:         opts.RhythmGrid,
+		SceneMarks:         mergeSceneMarksWithMasks(opts.SceneMarks, opts.MaskROIs),
 	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
 	}
 	if opts.RhythmGrid && !twoPoint {
 		progress("TRACK: rhythm grid on - stroke signal from the most rhythmic flow cell near the box")
+		if len(opts.MaskROIs) > 0 {
+			progress("TRACK: masks honoured by rhythm grid (Go)")
+		}
 	}
 
 	var tr nativeTrackResult
@@ -209,6 +215,30 @@ type nativeTrackOptions struct {
 	CaptureTrajectory bool
 	// RhythmGrid: see Options.RhythmGrid (single-ROI trackcv only).
 	RhythmGrid bool
+	// SceneMarks: exclude/source/region annotations for the rhythm grid +
+	// camera punch-outs (includes soft MaskROIs converted to exclude).
+	SceneMarks []SceneMark
+}
+
+// mergeSceneMarksWithMasks appends soft MaskROIs as whole-clip exclude marks
+// so the rhythm grid and camera path punch them out (M3).
+func mergeSceneMarksWithMasks(marks []SceneMark, masks []ROI) []SceneMark {
+	if len(masks) == 0 {
+		return marks
+	}
+	out := make([]SceneMark, len(marks), len(marks)+len(masks))
+	copy(out, marks)
+	for i, m := range masks {
+		if m.W <= 0 || m.H <= 0 {
+			continue
+		}
+		out = append(out, SceneMark{
+			Kind: "exclude",
+			ID:   fmt.Sprintf("mask%d", i+1),
+			Rect: m,
+		})
+	}
+	return out
 }
 
 func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {

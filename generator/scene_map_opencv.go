@@ -37,6 +37,7 @@ func sceneMapFromTrackcv(m trackcv.SceneMap) SceneMapDTO {
 			BoxCY:      w.BoxCY,
 			SignRule:   w.SignRule,
 			TrackerR:   w.TrackerR,
+			Marks:      append([]string(nil), w.Marks...),
 		}
 	}
 	return out

@@ -1,8 +1,8 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
-Status: **P2 done** (v0.5.31 / #249) — P1 done (#246); plan on main via #243 (24 Sep 2026).
+Status: **P3 done** (this PR) — P2 done (v0.5.31 / #249); P1 done (#246); plan on main via #243 (24 Sep 2026).
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
-the golden-clip measurements. **Next: P3** engine consume marks / scene-cut default.
+the golden-clip measurements. **Next: P4** `.samn` scene_map persist (or Claude M3 gate).
 
 Owner goal (paraphrased): *build it so it makes Generate better **and** yields
 training data, until an AI knows our whole engine — what moves, how, where,
@@ -273,7 +273,7 @@ Each stage only suggests until its own measurement gate is passed.
 |---|---|---|---|---|
 | **P1** | M1 refactor (`scoreWindows` / `chooseAndStitch`), `SceneMap` from full runs, `ScanSceneMap` quick scan; Wails binding | Cursor (Claude reviews) | — | bit-identical curve on existing tests; scan ≤ ~20 s on `clip_voll`; unit tests for map shape / normalization |
 | **P2** | M2 map view + mark tools (exclude / source / region, time scope) in Advanced | Cursor | P1 | owner can paint the thigh out at 140 s and see it persisted |
-| **P3** | M3 candidate filter + source hints + Go eligibility with masks + camera exclude list; CHANGELOG + board note | Cursor (engine); Claude measures | P1, P2 | gate in M3 passed on both goldens |
+| **P3** | M3 candidate filter + source hints + Go eligibility with masks + camera exclude list; CHANGELOG + board note | Cursor (engine); Claude measures | P1, P2 | **code done** (this PR) — gate in M3 still Claude on both goldens |
 | **P4** | M4 `metadata.scene_map` in `.samn` (writer + reader + schema doc in `SAMN_FORMAT.md`) | Cursor | P1 | round-trip test; old files still load; `.funscript` export unchanged |
 | **P5** | M5 export (YOLO labels, auto-labels, negatives, JSONL trace) + privacy switch / delete | Cursor; Claude reviews the auto-label rule | P4 | export of `clip_voll` yields reviewed-able auto labels; delete removes all |
 | **P6+** | M6 L1 → L2 → L3 | later lanes | enough clips | per-stage gate in the table above |

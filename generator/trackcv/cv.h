@@ -66,6 +66,12 @@ double Gray_SignatureDiff(MatHandle a, MatHandle b);
 double EstimateCameraMotionY(MatHandle prevGray, MatHandle gray,
                               int exX, int exY, int exW, int exH);
 
+// Wie EstimateCameraMotionY, aber mit einer Liste von Exclude-Boxen
+// (tracked ROI + soft masks / SceneMap exclude marks). n==0 ⇒ keine Punch-outs.
+double EstimateCameraMotionYExcludes(MatHandle prevGray, MatHandle gray,
+                                      const int *exX, const int *exY,
+                                      const int *exW, const int *exH, int n);
+
 // --- Erscheinungsgedächtnis (siehe AppearanceMemory) ------------------------
 
 // Extrahiert und verkleinert (downscale) einen Bildausschnitt als neuen

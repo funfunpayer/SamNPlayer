@@ -42,6 +42,9 @@ const (
 	rhythmSignMinR = 0.1
 	// Seed margin for first-cell identity (Manus #248 target lock).
 	rhythmSeedMarginCells = 0.35
+	// rhythmSourceScoreFactor: prefer a source-hint cell unless its score
+	// is below this × the best eligible cell outside the hint (M3).
+	rhythmSourceScoreFactor = 0.5
 )
 
 // SceneMap is the per-window, per-cell rhythm heatmap (M1).
@@ -65,6 +68,8 @@ type MapWindow struct {
 	BoxCX, BoxCY float64 // CSRT box centre at window mid (full-run only)
 	SignRule     string  // "tracker" | "continuity" (full-run only)
 	TrackerR     float64 // |r| cell vs tracker (full-run only)
+	// Marks lists active exclude/source mark IDs obeyed in this window (M3).
+	Marks []string
 	// scoreRaw holds the unnormalized float scores used by chooseAndStitch
 	// so the curve path stays bit-identical to the pre-split code. Not
 	// exported / not persisted.
@@ -188,8 +193,13 @@ func normalizeScores(score []float64) []uint8 {
 // ROI; later windows keep that cell even if a neighbour scores higher.
 // Scene cuts re-seed from the re-anchored tracker and keep the first
 // half-window on CSRT. Sign reference is segmented at cuts.
+// marks (M3): exclude skips cells; source prefers hint cells when score
+// ≥ 0.5× best outside; region has no engine effect. Nil marks = bit-identical
+// to the pre-M3 path. Identity lock still wins over source hints unless the
+// locked cell is excluded (then re-seed).
 func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height int,
-	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64,
+	marks []SceneMark) []float64 {
 	n := len(cellV)
 	if n == 0 || len(cx) != n || len(cy) != n || len(anchor) != n || fps <= 0 {
 		return append([]float64(nil), anchor...)
@@ -242,12 +252,37 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 		if b-a < win/2 {
 			continue
 		}
+		midMs := (w.StartMs + w.EndMs) / 2
+		excludes, sources, obeyed := activeMarkFilter(marks, midMs)
+		w.Marks = obeyed
+
 		score := w.scoreRaw
+		cellExcluded := func(c int) bool {
+			if len(excludes) == 0 {
+				return false
+			}
+			px := (float64(c%gw) + 0.5) * cellW
+			py := (float64(c/gw) + 0.5) * cellH
+			for _, r := range excludes {
+				if pointInRect(px, py, r) {
+					return true
+				}
+			}
+			return false
+		}
+		// Locked identity punched out → re-seed this window.
+		if lastBest >= 0 && cellExcluded(lastBest) {
+			lastBest = -1
+		}
+
 		best, bestS := -1, 0.0
-		bestSeedDistance := math.Inf(1)
+		var cands []rhythmCand
 		for c := 0; c < len(score); c++ {
 			px := (float64(c%gw) + 0.5) * cellW
 			py := (float64(c/gw) + 0.5) * cellH
+			if cellExcluded(c) {
+				continue
+			}
 			if lastBest < 0 {
 				eligible := rhythmCellInSeed(px, py, activeSeed, cellW, cellH)
 				if activeSeed.W <= 0 || activeSeed.H <= 0 {
@@ -262,14 +297,26 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 					seedX, seedY = cx[mid], cy[mid]
 				}
 				distance := math.Hypot(px-seedX, py-seedY)
-				if distance < bestSeedDistance || (distance == bestSeedDistance && score[c] > bestS) {
-					best, bestS, bestSeedDistance = c, score[c], distance
+				inHint := false
+				for _, r := range sources {
+					if pointInRect(px, py, r) {
+						inHint = true
+						break
+					}
 				}
+				cands = append(cands, rhythmCand{c: c, s: score[c], dist: distance, inH: inHint})
 				continue
 			}
 			// Keep identity: do not hand off to a stronger neighbour.
+			// Source hints do not override a locked cell (see M3 caveat).
 			if c == lastBest && score[c] > bestS {
 				best, bestS = c, score[c]
+			}
+		}
+		if lastBest < 0 {
+			best = pickRhythmCandidate(cands, len(sources) > 0)
+			if best >= 0 {
+				bestS = score[best]
 			}
 		}
 		w.ChosenCell = best
@@ -328,21 +375,111 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 	return out
 }
 
+// activeMarkFilter returns exclude/source rects active at midMs and the IDs
+// of marks the engine obeys (exclude + source only; region is label-only).
+func activeMarkFilter(marks []SceneMark, midMs int64) (excludes, sources []Rect, ids []string) {
+	for _, mk := range marks {
+		if !sceneMarkActive(mk, midMs) {
+			continue
+		}
+		switch mk.Kind {
+		case "exclude":
+			excludes = append(excludes, mk.Rect)
+			if mk.ID != "" {
+				ids = append(ids, mk.ID)
+			}
+		case "source":
+			sources = append(sources, mk.Rect)
+			if mk.ID != "" {
+				ids = append(ids, mk.ID)
+			}
+		}
+	}
+	return excludes, sources, ids
+}
+
+// pickRhythmCandidate chooses among seed/radius-eligible cells. With source
+// hints overlapping any candidate, prefer the best-scoring cell inside a
+// hint unless its score is below rhythmSourceScoreFactor × best outside.
+// Without overlapping hints, keep the pre-M3 seed-distance rule.
+func pickRhythmCandidate(cands []rhythmCand, haveSources bool) int {
+	if len(cands) == 0 {
+		return -1
+	}
+	anyIn := false
+	if haveSources {
+		for _, c := range cands {
+			if c.inH {
+				anyIn = true
+				break
+			}
+		}
+	}
+	if anyIn {
+		bestIn, bestOut := -1, -1
+		var inS, outS float64
+		for _, c := range cands {
+			if c.inH {
+				if bestIn < 0 || c.s > inS {
+					bestIn, inS = c.c, c.s
+				}
+			} else if bestOut < 0 || c.s > outS {
+				bestOut, outS = c.c, c.s
+			}
+		}
+		if bestIn >= 0 && (bestOut < 0 || inS >= rhythmSourceScoreFactor*outS) {
+			return bestIn
+		}
+		if bestOut >= 0 {
+			return bestOut
+		}
+		return bestIn
+	}
+	best, bestS, bestDist := -1, 0.0, math.Inf(1)
+	for _, c := range cands {
+		if c.dist < bestDist || (c.dist == bestDist && c.s > bestS) {
+			best, bestS, bestDist = c.c, c.s, c.dist
+		}
+	}
+	return best
+}
+
+type rhythmCand struct {
+	c    int
+	s    float64
+	dist float64
+	inH  bool
+}
+
 // rhythmGridPositions builds a position curve from per-frame cell flow.
 // Implemented as scoreWindows + chooseAndStitch so the same numbers feed
 // both the curve and the SceneMap (bit-identical to the pre-split code).
 func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
+	return rhythmGridPositionsMarks(cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps, nil)
+}
+
+// rhythmGridPositionsMarks is rhythmGridPositions with optional SceneMarks (M3).
+func rhythmGridPositionsMarks(cellV [][]float32, gw, gh int, width, height int,
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64,
+	marks []SceneMark) []float64 {
 	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
-	return chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps)
+	return chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps, marks)
 }
 
 // rhythmGridPositionsWithMap is like rhythmGridPositions but also returns the
 // SceneMap filled with ChosenCell / SignRule / TrackerR from the stitch step.
 func rhythmGridPositionsWithMap(cellV [][]float32, gw, gh int, width, height int,
 	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) ([]float64, SceneMap) {
+	return rhythmGridPositionsWithMapMarks(cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps, nil)
+}
+
+// rhythmGridPositionsWithMapMarks is rhythmGridPositionsWithMap + SceneMarks.
+func rhythmGridPositionsWithMapMarks(cellV [][]float32, gw, gh int, width, height int,
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64,
+	marks []SceneMark) ([]float64, SceneMap) {
 	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
-	pos := chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps)
+	pos := chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps, marks)
 	for i := range m.Windows {
 		m.Windows[i].scoreRaw = nil
 		m.Windows[i].hasScore = false

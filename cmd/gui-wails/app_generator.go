@@ -109,6 +109,8 @@ type GenerateOptions struct {
 	ExtraTargets []generator.NamedROI `json:"extraTargets"`
 	// MaskROIs: soft-exclude boxes for feature masks.
 	MaskROIs []generator.ROI `json:"maskRois"`
+	// SceneMarks: Advanced scene-map exclude/source/region marks (M3).
+	SceneMarks []generator.SceneMark `json:"sceneMapMarks"`
 	// CaptureTrajectory: opt-in raw tip/partner (x,y) recording for the
 	// Review/Play MT-Debug trajectory overlay. Off by default; Go CSRT only.
 	CaptureTrajectory bool `json:"captureTrajectory"`
@@ -521,6 +523,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		genOpts.RegionClass2 = opts.RegionClass2
 		genOpts.ExtraTargets = opts.ExtraTargets
 		genOpts.MaskROIs = opts.MaskROIs
+		genOpts.SceneMarks = opts.SceneMarks
 		ctx, cancel := context.WithCancel(context.Background())
 		a.stateMu.Lock()
 		prev := a.genCancel

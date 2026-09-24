@@ -31,7 +31,17 @@ func TestNativePipelineEligible(t *testing.T) {
 		t.Fatal("extra Tf/Tj targets + ROI2 must stay on the Go path")
 	}
 	if NativePipelineEligible(Options{Backend: "csrt", MaskROIs: []ROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
-		t.Fatal("soft masks must force Python path")
+		t.Fatal("soft masks without RhythmGrid must force Python path")
+	}
+	// M3: soft masks + RhythmGrid on single-ROI stay on the Go path.
+	if !NativePipelineEligible(Options{Backend: "csrt", RhythmGrid: true,
+		MaskROIs: []ROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
+		t.Fatal("soft masks + RhythmGrid must stay eligible on the Go path")
+	}
+	// Two-point + masks still force Python even with RhythmGrid (grid is single-ROI).
+	if NativePipelineEligible(Options{Backend: "csrt", RhythmGrid: true, Profile: "tf",
+		ROI2: ROI{W: 10, H: 10}, MaskROIs: []ROI{{X: 1, Y: 1, W: 5, H: 5}}}, roi) {
+		t.Fatal("soft masks + Tf/Tj must still force Python")
 	}
 	// Audio check is post-hoc in Go — must not force the Python path.
 	if !NativePipelineEligible(Options{Backend: "csrt", AudioCheck: true}, roi) {

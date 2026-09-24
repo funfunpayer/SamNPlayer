@@ -81,8 +81,26 @@ func SignatureDiff(a, b *Gray) float64 {
 // Hintergrundmerkmalen außerhalb von exclude. 0.0 bedeutet "keine
 // verlässliche Schätzung", nicht "keine Bewegung" - siehe cv.h.
 func EstimateCameraMotionY(prev, gray *Gray, exclude Rect) float64 {
-	return float64(C.EstimateCameraMotionY(prev.h, gray.h,
-		C.int(exclude.X), C.int(exclude.Y), C.int(exclude.W), C.int(exclude.H)))
+	return EstimateCameraMotionYExcludes(prev, gray, []Rect{exclude})
+}
+
+// EstimateCameraMotionYExcludes punches out every rect in excludes (tracked
+// box + soft masks / SceneMap exclude marks) before sparse LK + RANSAC,
+// matching Python estimate_camera_motion(..., extra_excludes=...).
+func EstimateCameraMotionYExcludes(prev, gray *Gray, excludes []Rect) float64 {
+	n := len(excludes)
+	if n == 0 {
+		return float64(C.EstimateCameraMotionYExcludes(prev.h, gray.h, nil, nil, nil, nil, 0))
+	}
+	xs := make([]C.int, n)
+	ys := make([]C.int, n)
+	ws := make([]C.int, n)
+	hs := make([]C.int, n)
+	for i, r := range excludes {
+		xs[i], ys[i], ws[i], hs[i] = C.int(r.X), C.int(r.Y), C.int(r.W), C.int(r.H)
+	}
+	return float64(C.EstimateCameraMotionYExcludes(prev.h, gray.h,
+		&xs[0], &ys[0], &ws[0], &hs[0], C.int(n)))
 }
 
 // FlowCells liefert die vertikale/horizontale Bewegung pro Gitterzelle
@@ -126,8 +144,6 @@ func MatchTemplate(frame, tmpl *Gray) (x, y int, score float64, ok bool) {
 
 // Rect ist eine Pixel-Bounding-Box, x/y oben links - entspricht dem
 // (x, y, w, h)-Tupel, das die Python-Seite überall verwendet.
-type Rect struct{ X, Y, W, H int }
-
 // Tracker ist ein CSRT-Tracker (cv::TrackerCSRT) - dieselbe Implementierung
 // wie generate_funscript.py's create_tracker() letztlich aufruft, hier
 // direkt über die moderne cv::Tracker-Schnittstelle ohne die drei

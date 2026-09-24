@@ -27,6 +27,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		OnProgress:         percentFromProgress(onPercent),
 		CaptureTrajectory:  opts.CaptureTrajectory,
 		RhythmGrid:         opts.RhythmGrid,
+		SceneMarks:         toTrackcvSceneMarks(opts.SceneMarks),
 	})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -51,6 +52,24 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Reason:       tr.Stats.Reason,
 		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
 	}, nil
+}
+
+func toTrackcvSceneMarks(marks []SceneMark) []trackcv.SceneMark {
+	if len(marks) == 0 {
+		return nil
+	}
+	out := make([]trackcv.SceneMark, len(marks))
+	for i, m := range marks {
+		out[i] = trackcv.SceneMark{
+			Kind:   m.Kind,
+			ID:     m.ID,
+			Rect:   trackcv.Rect{X: m.Rect.X, Y: m.Rect.Y, W: m.Rect.W, H: m.Rect.H},
+			FromMs: m.FromMs,
+			ToMs:   m.ToMs,
+			Class:  m.Class,
+		}
+	}
+	return out
 }
 
 // convertTrackcvPoints maps trackcv.Point (only meaningful inside this
