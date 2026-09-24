@@ -59,7 +59,7 @@ type MapWindow struct {
 	Score []uint8
 	// ChosenCell is the cell used for the curve, or -1 if the window fell
 	// back to the tracker. Only set on full runs (CSRT available).
-	ChosenCell int
+	ChosenCell   int
 	BoxCX, BoxCY float64 // CSRT box centre at window mid (full-run only)
 	SignRule     string  // "tracker" | "continuity" (full-run only)
 	TrackerR     float64 // |r| cell vs tracker (full-run only)
@@ -131,15 +131,15 @@ func scoreWindows(cellV [][]float32, gw, gh int, width, height int,
 		}
 		mid := min(n-1, s+win/2)
 		w := MapWindow{
-			StartMs:  int64(float64(a) * 1000.0 / fps),
-			EndMs:    int64(float64(b) * 1000.0 / fps),
-			TempoHz:  tempo,
-			Score:    normalizeScores(score),
-			scoreRaw: score,
-			frameA:   a,
-			frameB:   b,
-			frameMid: mid,
-			hasScore: true,
+			StartMs:    int64(float64(a) * 1000.0 / fps),
+			EndMs:      int64(float64(b) * 1000.0 / fps),
+			TempoHz:    tempo,
+			Score:      normalizeScores(score),
+			scoreRaw:   score,
+			frameA:     a,
+			frameB:     b,
+			frameMid:   mid,
+			hasScore:   true,
 			ChosenCell: -1,
 		}
 		if haveBox {
