@@ -9,9 +9,11 @@ import "math"
 // box sits ~110px beside the shaft), and the stroke curve is the box's own
 // motion - so the curve degrades with it. The rhythm grid keeps CSRT only as
 // a rough anchor: per frame the dense optical flow is averaged onto a coarse
-// cell grid (FlowCells), and per 8s window the cell near the box whose
-// motion is most concentrated at the stroke tempo supplies the signal. The
-// box only has to stay within ~3 cells of the real action, not on it.
+// cell grid (FlowCells). The first 8s window is bound to the confirmed start
+// ROI and remains on that cell for the whole shot. CSRT still supplies
+// orientation and the fallback signal, but its drift can no longer hand
+// identity to a stronger unrelated limb cell. Scene cuts reset the identity
+// and never share one FFT window across both shots.
 //
 // Measured against both FunGen references through the production post
 // pipeline (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed
@@ -21,13 +23,17 @@ const (
 	rhythmWindowSec   = 8.0
 	rhythmStepSec     = 2.0
 	rhythmSearchCells = 3.0 // search radius around the box, in cell widths
-	rhythmTempoLoHz   = 0.6
-	rhythmTempoHiHz   = 2.5
-	rhythmBandHz      = 0.15
-	rhythmTotalLoHz   = 0.2
-	rhythmTotalHiHz   = 6.0
-	rhythmTopCells    = 10
-	rhythmAnchorSec   = 2.0 // detrend window for the CSRT sign reference
+	// The first grid cell must belong to the confirmed start ROI and remains
+	// the signal cell for that shot. A scene cut starts a new seeded identity.
+	// This prevents an in-phase or anti-phase limb from winning by raw energy.
+	rhythmSeedMarginCells = 0.35
+	rhythmTempoLoHz       = 0.6
+	rhythmTempoHiHz       = 2.5
+	rhythmBandHz          = 0.15
+	rhythmTotalLoHz       = 0.2
+	rhythmTotalHiHz       = 6.0
+	rhythmTopCells        = 10
+	rhythmAnchorSec       = 2.0 // detrend window for the CSRT sign reference
 	// rhythmSignMinR: below this |r| between the cell and the tracker the
 	// tracker's sign is a coin toss, so orientation comes from continuity
 	// with the curve already written instead. clip_voll: 4 of 140 chunks
@@ -36,6 +42,10 @@ const (
 	// overrides still-informative tracker signs and measured worse.
 	rhythmSignMinR = 0.1
 )
+
+type rhythmSeed struct {
+	X, Y, W, H float64
+}
 
 // rhythmGridRows keeps cells roughly square for the frame's aspect ratio.
 func rhythmGridRows(width, height int) int {
@@ -48,11 +58,11 @@ func rhythmGridRows(width, height int) int {
 // rhythmGridPositions builds a position curve from per-frame cell flow.
 // cellV[i] is the flow (px/frame, one axis) of every cell between frame i-1
 // and i (all zero for frame 0 and scene cuts). cx/cy are the CSRT box
-// centers per frame, anchor the CSRT position on the same axis. Windows
-// where no cell carries a rhythm fall back to the CSRT motion, so the result
-// is never worse-defined than the tracker alone.
+// centers per frame, anchor the CSRT position on the same axis, and seed is
+// the user/AI-confirmed start target. Windows where no identity-consistent
+// cell carries a rhythm fall back to CSRT, so no unrelated cell is invented.
 func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
-	cx, cy, anchor []float64, fps float64) []float64 {
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
 	n := len(cellV)
 	if n == 0 || len(cx) != n || len(cy) != n || len(anchor) != n || fps <= 0 {
 		return append([]float64(nil), anchor...)
@@ -61,12 +71,18 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	cellW, cellH := float64(width)/float64(gw), float64(height)/float64(gh)
 	radius := rhythmSearchCells * cellW
 
-	signRef := subtractRollingMean(anchor, int(math.Round(rhythmAnchorSec*fps)))
+	signRef := rhythmSegmentedSignReference(
+		anchor, sceneCuts, int(math.Round(rhythmAnchorSec*fps)))
 
 	// Default: the tracker's own motion.
 	v := make([]float64, n)
 	for i := 1; i < n; i++ {
 		v[i] = anchor[i] - anchor[i-1]
+	}
+	for _, cut := range sceneCuts {
+		if cut > 0 && cut < n {
+			v[cut] = 0 // motion across a shot boundary is not target motion
+		}
 	}
 
 	win := int(math.Round(rhythmWindowSec * fps))
@@ -76,11 +92,27 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	}
 	x := make([][]float64, cells) // per-cell window, reused
 	written := 0                  // v[:written] already comes from grid cells
+	lastBest := -1
+	activeSeed := seed
+	activeSceneStart := 0
 	for s := -win/2 + step/2; s < n; s += step {
-		a, b := max(0, s), min(n, s+win)
+		nominalA, nominalB := max(0, s), min(n, s+win)
+		mid := min(n-1, s+win/2)
+		sceneStart, sceneEnd := rhythmSceneBounds(sceneCuts, mid, n)
+		a, b := max(nominalA, sceneStart), min(nominalB, sceneEnd)
 		m := b - a
 		if m < win/2 {
 			continue
+		}
+		if sceneStart != activeSceneStart {
+			// Reacquisition after a cut is the only allowed identity reset.
+			// It uses the re-anchored tracker at the first frame of the shot.
+			idx := min(n-1, max(0, sceneStart))
+			activeSeed.X = cx[idx] - seed.W/2
+			activeSeed.Y = cy[idx] - seed.H/2
+			activeSceneStart = sceneStart
+			lastBest = -1
+			written = sceneStart
 		}
 		for c := 0; c < cells; c++ {
 			if cap(x[c]) < m {
@@ -101,18 +133,42 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 		if score == nil {
 			continue
 		}
-		mid := min(n-1, s+win/2)
 		best, bestS := -1, 0.0
+		bestSeedDistance := math.Inf(1)
 		for c := 0; c < cells; c++ {
 			px := (float64(c%gw) + 0.5) * cellW
 			py := (float64(c/gw) + 0.5) * cellH
-			if math.Hypot(px-cx[mid], py-cy[mid]) <= radius && score[c] > bestS {
+			if lastBest < 0 {
+				eligible := rhythmCellInSeed(px, py, activeSeed, cellW, cellH)
+				// Keep the helper defined for old/pure callers with no seed.
+				if activeSeed.W <= 0 || activeSeed.H <= 0 {
+					eligible = math.Hypot(px-cx[mid], py-cy[mid]) <= radius
+				}
+				if !eligible || score[c] <= 0 {
+					continue
+				}
+				seedX := activeSeed.X + activeSeed.W/2
+				seedY := activeSeed.Y + activeSeed.H/2
+				if activeSeed.W <= 0 || activeSeed.H <= 0 {
+					seedX, seedY = cx[mid], cy[mid]
+				}
+				distance := math.Hypot(px-seedX, py-seedY)
+				if distance < bestSeedDistance || (distance == bestSeedDistance && score[c] > bestS) {
+					best, bestS, bestSeedDistance = c, score[c], distance
+				}
+				continue
+			}
+			// Identity is deliberately stricter than rhythm similarity: an
+			// adjacent thigh can be perfectly in/anti-phase and much stronger.
+			// Without independent spatial identity evidence, do not switch.
+			if c == lastBest && score[c] > bestS {
 				best, bestS = c, score[c]
 			}
 		}
 		if best < 0 {
 			continue
 		}
+		lastBest = best
 		// Cell flow has no inherent orientation relative to the stroke
 		// (a cell may sit on a part moving opposite to the tip): take the
 		// sign from the tracker, which is locally right even when drifting.
@@ -124,19 +180,68 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 		if r < 0 {
 			sgn = -1
 		}
-		c0, c1 := max(1, mid-step/2), min(n, mid+step/2)
+		gridWriteStart := sceneStart
+		if sceneStart > 0 {
+			// Keep the first half-window on the tracker. The FFT may look ahead
+			// offline, but it must not rewrite the beginning of a new shot.
+			gridWriteStart += win / 2
+		}
+		c0 := max(1, max(gridWriteStart, mid-step/2))
+		c1 := min(n, min(sceneEnd, mid+step/2))
 		for i := c0; i < c1; i++ {
 			v[i] = sgn * float64(cellV[i][best])
 		}
 		written = c1
 	}
 
+	cutAt := make([]bool, n)
+	for _, cut := range sceneCuts {
+		if cut > 0 && cut < n {
+			cutAt[cut] = true
+		}
+	}
 	out := make([]float64, n)
 	out[0] = anchor[0]
 	for i := 1; i < n; i++ {
+		if cutAt[i] {
+			out[i] = anchor[i]
+			continue
+		}
 		out[i] = out[i-1] + v[i]
 	}
 	return out
+}
+
+func rhythmSegmentedSignReference(anchor []float64, sceneCuts []int, window int) []float64 {
+	out := make([]float64, len(anchor))
+	for start := 0; start < len(anchor); {
+		_, end := rhythmSceneBounds(sceneCuts, start, len(anchor))
+		if end <= start {
+			end = len(anchor)
+		}
+		copy(out[start:end], subtractRollingMean(anchor[start:end], window))
+		start = end
+	}
+	return out
+}
+
+func rhythmCellInSeed(px, py float64, seed rhythmSeed, cellW, cellH float64) bool {
+	marginX := rhythmSeedMarginCells * cellW
+	marginY := rhythmSeedMarginCells * cellH
+	return px >= seed.X-marginX && px <= seed.X+seed.W+marginX &&
+		py >= seed.Y-marginY && py <= seed.Y+seed.H+marginY
+}
+
+func rhythmSceneBounds(sceneCuts []int, frame, n int) (start, end int) {
+	end = n
+	for _, cut := range sceneCuts {
+		if cut <= frame && cut > start {
+			start = cut
+		} else if cut > frame && cut < end {
+			end = cut
+		}
+	}
+	return start, end
 }
 
 // continuityR correlates cell's integrated motion over [a, end) with the

@@ -45,10 +45,10 @@ type Options struct {
 	// points on Result.TrajectoryA/B (MT-Debug overlay data). Off by
 	// default: zero extra allocation/behavior when false.
 	CaptureTrajectory bool
-	// RhythmGrid takes the stroke signal from the most rhythmic optical-flow
-	// cell near the box instead of the box's own motion (see
-	// rhythm_grid.go). CSRT still tracks - it anchors the search and gives
-	// the sign - so trajectory/stats are unchanged; only Positions differ.
+	// RhythmGrid takes the stroke signal from an optical-flow cell bound to
+	// the confirmed start ROI and then follows only rhythm-coherent neighbours
+	// (see rhythm_grid.go). CSRT still tracks and gives sign/fallback, so
+	// trajectory/stats are unchanged; only Positions differ.
 	// Opt-in: costs a Farneback flow per frame (measured ~+18% runtime).
 	RhythmGrid bool
 }
@@ -337,8 +337,9 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		if useX {
 			cellV = flowX
 		}
+		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
 		positions = rhythmGridPositions(cellV, rhythmGridCols, gridRows, width, height,
-			xPositions, yPositions, positions, fps)
+			xPositions, yPositions, positions, seed, sceneCuts, fps)
 	}
 
 	confidence := 0.0
