@@ -300,20 +300,45 @@ without the Owner.
 
 ---
 
-## 6. Open questions for the Owner
+## 6. Owner decisions — DECIDED (24 Sep 2026)
 
-1. **Quick scan timing.** Run it automatically before every Generate
-   (+10–20 s), or only on a button ("Show scene map")? Suggestion: button
-   first, measure how often it's used.
-2. **Collect learning data.** Default off (privacy-first) or on? Suggestion:
-   off, with a one-time prompt in the AI tab.
-3. **Auto-labels.** Should they need review before training, or train
-   directly above a confidence threshold? Suggestion: review required until
-   L2 has been measured once.
-4. **Time scope default for marks.** Whole clip or current scene?
-   Suggestion: current scene (cut to cut), since bodies move.
+These four product decisions are now **closed**. Cursor does not need to choose defaults for them during implementation.
 
----
+1. **Quick scan timing — explicit button, not automatic.**
+   - `ScanSceneMap` is started explicitly from Advanced via **Show scene map**.
+   - Do **not** add the estimated 10–20 s scan before every Generate.
+   - A real run with `RhythmGrid` still returns the full map as a by-product.
+   - Measure scan time and usage before any later proposal to make it automatic.
+
+2. **Collect learning data — default OFF, explicit opt-in.**
+   - `Collect learning data` defaults to **off**.
+   - Offer a one-time, clear opt-in in the AI / training area; do not prompt before every Generate.
+   - Scene-map state needed for the feature itself may be persisted in `.samn`; dataset collection/export remains separately opt-in and local.
+   - Keep **Delete learning data** as specified in M5.
+
+3. **Auto-labels — review required before training.**
+   - Auto candidates may be generated using the M5 agreement/confidence rule, but start as `author: "auto", reviewed: false`.
+   - Training consumes user labels and `reviewed: true` auto-labels only.
+   - No confidence threshold may bypass review yet. Reconsider that only after L2 has been measured once and the Owner explicitly opens a new gate.
+   - This prevents tracker/grid errors from becoming self-reinforcing ground truth.
+
+4. **Time-scope default for marks — current scene (cut to cut).**
+   - New marks default to the current scene's `sceneStartMs–sceneEndMs`.
+   - **Whole clip** and an explicit custom range remain available choices.
+   - The engine applies only marks active at the map window midpoint.
+   - The GUI should make the current scope visible without forcing the user to configure it for every mark.
+
+### Implementation go-ahead
+
+**P1 is approved to start now.** Cursor should follow the documented order **P1 → P2 → P3** and must not pull P2/P3 behaviour into P1.
+
+For **P1**, split the existing rhythm-grid calculation into scoring and selection/stitching, expose `SceneMap` from full runs, implement the explicit `ScanSceneMap` quick scan and Wails binding, while keeping the generated curve **bit-identical to the current main baseline `e9e697e`**. The P1 measurement gates in section 4 remain unchanged.
+
+After P1 passes its gate:
+- **P2:** Advanced map UI and `exclude` / `source` / `region` marks, with **current scene** as the default time scope.
+- **P3:** only then let marks affect Generate, including source/exclude candidate handling, Go mask eligibility and camera-motion excludes.
+
+P4/P5 should carry these decisions forward: learning collection remains opt-in/off by default, and unreviewed auto-labels must not enter training.
 
 ## 7. Pointers
 
