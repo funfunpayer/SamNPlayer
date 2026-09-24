@@ -21,6 +21,9 @@ discussion stays German.
   only after owner amends/accepts that file.
 - `docs/AGENT_COORD.md` — **Cursor ↔ Claude ↔ ChatGPT shared board:** who
   owns which lane right now (claim before code; avoid colliding PRs).
+- `docs/ENGINEERING_STANCE.md` — **Bau stack + merge order (24 Sep):**
+  keep videox/stdlib; AI suggest-only; #243 → #244 → SceneMap P1.
+- `docs/SCENE_MAP_PLAN.md` — rhythm map / marks / learning (Claude #243).
 - `HANDOFF.md` — architecture and “tested and rejected”.
 - `CHANGELOG.md` — what shipped, release by release.
 

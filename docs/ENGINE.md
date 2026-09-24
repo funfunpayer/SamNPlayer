@@ -31,6 +31,9 @@ degrade of Generate quality.
 better** on clip tests — never ship a weaker self-build
 (`docs/SELF_BUILD.md`).
 
+**Stack lock (24 Sep):** keep `videox` + stdlib-first Go; AI proposes only
+(Py train / Go or ONNX infer). See `docs/ENGINEERING_STANCE.md`.
+
 ## What is already shipped (v0.5.x)
 
 - Signal Quality ≠ Motion Fidelity (`SIGNAL_VS_FIDELITY.md`, API `kind`)

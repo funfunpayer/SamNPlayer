@@ -7,7 +7,9 @@ where possible). We talk in German; the app does not.
 Related: `docs/ROADMAP.md` (engineering checklist), `docs/ENGINE.md`
 (chain + DoD), `docs/TFTJ_PROFILE_DIRECTION.md` (Tf/Tj = profile;
 no-mark 4-zone; contact vib → Normal/Auto), `docs/AGENT_COORD.md`
-(Cursor ↔ Claude task board), `docs/AUDIO_WORKFLOW.md`,
+(Cursor ↔ Claude task board), `docs/ENGINEERING_STANCE.md` (Bau stack
++ merge order lock, 24 Sep), `docs/SCENE_MAP_PLAN.md` (rhythm map /
+marks / learning — lands with #243), `docs/AUDIO_WORKFLOW.md`,
 `docs/FUNSCRIPT_ALGOS.md`, `docs/SELF_BUILD.md`, `docs/LICENSE_SYSTEM.md`,
 `docs/PLATFORMS.md`, `docs/COMPETITIVE.md`, `docs/LANGUAGE.md`.
 
@@ -93,8 +95,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.28** | Shipped | Emotion look (#225); Create→Play `.samn` feel (#227); CSRT jump/memory guards (#226) |
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
-| next | After Rel30 | Owner: ≥4–5 rhythm-grid clips; Cursor G1 inventory (this) → G1.1 tune after Owner speed-cap call; residual CSRT drift = detector path |
-| later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
+| next | After Rel30 | Merge #243 SceneMap plan → review #244 AIScript → Cursor SceneMap P1; Owner gates (speed-cap, ≥4–5 rhythm clips, SceneMap § 6); G1.1 tune only after speed-cap call |
+| later | After G1 gate + SceneMap P3 | G2 raw-value Neo-2 layer → then G3 helpers deepen → G4 license/platforms |
 
 ### Owner after each tag
 
@@ -182,6 +184,28 @@ mapping next.
 **Explicitly not in G1:** wiring AI two-ROI as default; new trackers in GUI
 dropdown; depth/pose defaults; website redesign.
 
+### SceneMap Fahrplan (24 Sep) — G1 polish → G3 data
+
+Owner order: plan first (#243), Cursor builds. Full mechanisms:
+`docs/SCENE_MAP_PLAN.md`. Stack/product locks: `docs/ENGINEERING_STANCE.md`.
+
+Shows the rhythm heatmap on a first pass, lets the user mark no-go /
+source / region (time-scoped), improves Generate immediately, and yields
+local who/what/where/how labels — still **suggest-only** until each
+learning gate.
+
+| Phase | What | Who | Done when |
+|-------|------|-----|-----------|
+| **P1** | `SceneMap` refactor + quick scan + Wails | Cursor (Claude reviews) | bit-identical curve; scan ~≤20 s |
+| **P2** | Advanced map view + marks | Cursor | Owner paints thigh out + persist |
+| **P3** | Engine honours marks; masks on Go when RhythmGrid on | Cursor + Claude measure | goldens; CHANGELOG announced |
+| **P4** | `metadata.scene_map` in `.samn` | Cursor | round-trip; `.funscript` export unchanged |
+| **P5** | Local export + privacy switch (default off) | Cursor | export + delete work |
+| **P6+** | L1 priors → L2 YOLO → L3 cell scorer → L4 fusion | later | per-stage gate in SCENE_MAP_PLAN |
+
+**Owner § 6 before defaults:** quick-scan auto vs button; learning-data
+default; auto-label review; mark time-scope default.
+
 ---
 
 ### G2 — Raw-value readout → good Neo 2 scripts
@@ -218,11 +242,13 @@ passes your usable bar — otherwise the model learns noise.
 | ID | Item | Prerequisites | Your test |
 |----|------|---------------|-----------|
 | G3.1 | AI Train only after G1 goldens + usable classical scripts | G1 exit | Collect samples from good runs |
+| G3.1a | **AIScript profile model** — pure-Go centroids from confirmed scene+Style; Suggest→Apply; nearest-scene/Colibri fallback (#244) | G3.1 / field samples | Reject unknown/ambiguous; never auto-profile |
 | G3.2 | ROI proposal + VerifyROI; two-ROI suggest stays opt-in until bake-off win | G3.1 + G1.5 | Suggest ≠ auto-commit (principle 6) |
 | G3.3 | Quality model train from usable/borderline/unusable | Feedback JSONL | Adopt only if CV beats fixed rules |
 | G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 |
 | G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | **PoseObserver** #191/#192 — Stage A after MT-Seed + E2 |
 | G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | Ordered; measure each gate |
+| G3.6 | **SceneMap learning L1–L4** | SceneMap P5 + enough clips | Suggest-only until gate (`SCENE_MAP_PLAN.md` M6) |
 
 ### Multi-track Fahrplan (22 Sep) — fold into G1 polish + G3
 
@@ -358,22 +384,26 @@ risks Generate regressions — otherwise small orthogonal PRs OK.
 
 ## What still needs **your** testing
 
-**Now (G0 / G1):**
+**Now (G0 / G1 / SceneMap prep):**
 
 1. **Private golden clips** — Bench / FunGen numbers (A1) — unblocks almost everything  
-2. **Windows portable** Generate without Python on **v0.5.13** (G0.1 gate)  
+2. **Windows portable** Generate without Python on **v0.5.13+** (G0.1 gate)  
 3. **Classical Generate** usable/borderline/unusable on 2–3 clips (no AI required)
+4. **Speed-cap product rule** — leave Normal uncapped, or Neo-2-safe default? (blocks G1.1)
+5. **Rhythm-grid default gate** — ≥4–5 clips with Advanced toggle (r + orientation)
+6. **SceneMap § 6** — quick-scan trigger, learning-data default, auto-label review, mark time scope
 
 **Then (G2):**
 
-4. **Real Neo 2** — Device Diagnose + contact / Extended-O feel (A4, G2)
+7. **Real Neo 2** — Device Diagnose + contact / Extended-O feel (A4, G2)
 
 **Anytime orthogonal:**
 
-5. **GUI improve notes** (C5) — screenshots of friction  
-6. **License import** in Settings (dev keys) — do not expect limits yet  
-7. **Any DE leftover** (C1)  
-8. **Public site** vs README when you schedule sync  
+8. **GUI improve notes** (C5) — screenshots of friction  
+9. **License import** in Settings (dev keys) — do not expect limits yet  
+10. **Any DE leftover** (C1)  
+11. **Public site** vs README when you schedule sync  
+12. **AIScript #244** — remember 2+ scenes + Train Go profile model; Suggest must stay Apply-only
 
 ---
 

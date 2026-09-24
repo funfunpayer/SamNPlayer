@@ -160,6 +160,9 @@ owes.
 3. **One Generate-help blurb** — Everyday already lists Advanced; fold this inventory’s workflow into help/`EVERYDAY_GENERATE.md` when Exit criterion 1 is chased.
 4. **Python `generate_funscript.py` parity** — Go native is the product path; keep Python emergency path knob-compatible, don’t invent a second package.
 
+Owner / merge order / stack locks: `docs/ENGINEERING_STANCE.md`.
+Scene map (after #243): `docs/SCENE_MAP_PLAN.md` — not G1.1 tune work.
+
 ### Explicitly not G1 inventory work
 
 - Rhythm-grid default-on (Owner clips)
