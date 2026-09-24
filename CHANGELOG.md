@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **SceneMap P4 follow-up — Create restores scene map from `.samn`** — opening a
+  video with a companion `.samn` that has `sceneMap` reloads Advanced
+  `sceneMapMarks` and map windows so marks survive Play↔Create. Generate
+  defaults unchanged.
 - **SceneMap P4 — `.samn` scene_map persist** — optional `sceneMap` on companion
   `.samn` when RhythmGrid produced a map (windows + `score_b64`, video
   `sha256_head`, marks from `Options.SceneMarks`). Old files still load;

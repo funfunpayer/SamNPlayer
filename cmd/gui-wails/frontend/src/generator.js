@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -819,6 +819,59 @@ export function initGenerator(root, playback) {
     }).join(' · ');
   }
 
+  // Normalize ROI from Go (may be X/Y/W/H or x/y/w/h).
+  function sceneMapRect(r) {
+    if (!r) return { x: 0, y: 0, w: 0, h: 0 };
+    return {
+      x: r.x ?? r.X ?? 0,
+      y: r.y ?? r.Y ?? 0,
+      w: r.w ?? r.W ?? 0,
+      h: r.h ?? r.H ?? 0,
+    };
+  }
+
+  // Restore Advanced scene-map marks (+ heatmap windows) from companion .samn
+  // so Play↔Create keeps exclude/source/region annotations. Does not touch
+  // Generate defaults / Everyday path.
+  async function restoreSceneMapFromCompanion(path) {
+    if (!path || typeof LoadSceneMapForVideo !== 'function') return;
+    try {
+      const loaded = await LoadSceneMapForVideo(path);
+      if (!loaded?.found || videoPath !== path) return;
+      if (loaded.map && Array.isArray(loaded.map.windows) && loaded.map.windows.length) {
+        lastSceneMap = loaded.map;
+        sceneMapWinIdx = 0;
+      }
+      const rawMarks = Array.isArray(loaded.marks) ? loaded.marks : [];
+      sceneMapMarks = rawMarks.map((m) => ({
+        id: m.id || m.ID || '',
+        kind: m.kind || m.Kind || '',
+        rect: sceneMapRect(m.rect || m.Rect),
+        fromMs: m.fromMs ?? m.FromMs ?? 0,
+        toMs: m.toMs ?? m.ToMs ?? 0,
+        class: m.class || m.Class || '',
+        author: m.author || m.Author || 'user',
+      })).filter((m) => m.kind || m.id);
+      let maxSeq = 0;
+      for (const m of sceneMapMarks) {
+        const n = parseInt(String(m.id || '').replace(/^m/i, ''), 10);
+        if (Number.isFinite(n) && n > maxSeq) maxSeq = n;
+      }
+      sceneMapMarkSeq = maxSeq;
+      syncSceneMapTools();
+      redraw();
+      const n = sceneMapMarks.length;
+      const smStatus = el('#gen-scene-map-status');
+      if (smStatus && (n || lastSceneMap)) {
+        smStatus.textContent = n
+          ? `Restored ${n} scene-map mark${n === 1 ? '' : 's'} from companion .samn.`
+          : 'Restored scene map from companion .samn.';
+      }
+    } catch (_) {
+      // Missing/corrupt companion is fine — Create starts blank for map marks.
+    }
+  }
+
   function heatColor(t) {
     const x = Math.max(0, Math.min(1, t));
     const r = Math.round(255 * Math.min(1, Math.max(0, x * 2)));
@@ -1546,6 +1599,8 @@ export function initGenerator(root, playback) {
           status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
         }
       }).catch(() => {});
+      // P4 follow-up: restore sceneMapMarks (+ map windows) from companion .samn.
+      await restoreSceneMapFromCompanion(path);
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
       startAutoFindRegion();
     } catch (err) {

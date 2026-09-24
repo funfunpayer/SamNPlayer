@@ -15,3 +15,10 @@ func (a *App) ScanSceneMap(videoPath string, n int) (generator.SceneMapDTO, erro
 func (a *App) SceneMapAvailable() bool {
 	return generator.NativeTrackingAvailable()
 }
+
+// LoadSceneMapForVideo restores Advanced scene-map state from a companion
+// .samn beside the video (P4 persist → Create). Missing/old files return
+// Found=false without error. Does not change Generate defaults.
+func (a *App) LoadSceneMapForVideo(videoPath string) (generator.SceneMapLoad, error) {
+	return generator.LoadSceneMapBesideVideo(videoPath)
+}
