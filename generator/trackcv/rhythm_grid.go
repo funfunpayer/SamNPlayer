@@ -40,6 +40,8 @@ const (
 	// and 10/10 windows consistently oriented. Raising it to >= 0.25 also
 	// overrides still-informative tracker signs and measured worse.
 	rhythmSignMinR = 0.1
+	// Seed margin for first-cell identity (Manus #248 target lock).
+	rhythmSeedMarginCells = 0.35
 )
 
 // SceneMap is the per-window, per-cell rhythm heatmap (M1).
@@ -70,6 +72,12 @@ type MapWindow struct {
 	// Frame indices of the window in the source cellV (for stitching).
 	frameA, frameB, frameMid int
 	hasScore                 bool
+}
+
+// rhythmSeed is the confirmed tip/ROI at shot start (user mark or Apply target).
+// First rhythm cell is chosen inside this box; later windows keep that cell.
+type rhythmSeed struct {
+	X, Y, W, H float64
 }
 
 // rhythmGridRows keeps cells roughly square for the frame's aspect ratio.
@@ -175,23 +183,32 @@ func normalizeScores(score []float64) []uint8 {
 	return out
 }
 
-// chooseAndStitch picks the best cell near the box per window and stitches
-// a position curve. Mutates map windows in place to fill ChosenCell / SignRule
-// / TrackerR. Returns a curve bit-identical to the pre-split rhythmGridPositions.
+// chooseAndStitch picks per-window cells under target-lock rules and writes
+// the stroke curve. Locked identity: first cell is seeded from the confirmed
+// ROI; later windows keep that cell even if a neighbour scores higher.
+// Scene cuts re-seed from the re-anchored tracker and keep the first
+// half-window on CSRT. Sign reference is segmented at cuts.
 func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height int,
-	cx, cy, anchor []float64, fps float64) []float64 {
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
 	n := len(cellV)
 	if n == 0 || len(cx) != n || len(cy) != n || len(anchor) != n || fps <= 0 {
 		return append([]float64(nil), anchor...)
 	}
 	cellW := float64(width) / float64(gw)
+	cellH := float64(height) / float64(gh)
 	radius := rhythmSearchCells * cellW
 
-	signRef := subtractRollingMean(anchor, int(math.Round(rhythmAnchorSec*fps)))
+	signRef := rhythmSegmentedSignReference(
+		anchor, sceneCuts, int(math.Round(rhythmAnchorSec*fps)))
 
 	v := make([]float64, n)
 	for i := 1; i < n; i++ {
 		v[i] = anchor[i] - anchor[i-1]
+	}
+	for _, cut := range sceneCuts {
+		if cut > 0 && cut < n {
+			v[cut] = 0
+		}
 	}
 
 	win := int(math.Round(rhythmWindowSec * fps))
@@ -201,18 +218,57 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 	}
 
 	written := 0
+	lastBest := -1
+	activeSeed := seed
+	activeSceneStart := 0
 	for wi := range m.Windows {
 		w := &m.Windows[wi]
 		if !w.hasScore || w.scoreRaw == nil {
 			continue
 		}
 		a, b, mid := w.frameA, w.frameB, w.frameMid
+		sceneStart, sceneEnd := rhythmSceneBounds(sceneCuts, mid, n)
+		if sceneStart != activeSceneStart {
+			idx := min(n-1, max(0, sceneStart))
+			activeSeed.X = cx[idx] - seed.W/2
+			activeSeed.Y = cy[idx] - seed.H/2
+			activeSceneStart = sceneStart
+			lastBest = -1
+			written = sceneStart
+		}
+		// Clip window to the active shot for sign / write bounds.
+		a = max(a, sceneStart)
+		b = min(b, sceneEnd)
+		if b-a < win/2 {
+			continue
+		}
 		score := w.scoreRaw
 		best, bestS := -1, 0.0
+		bestSeedDistance := math.Inf(1)
 		for c := 0; c < len(score); c++ {
 			px := (float64(c%gw) + 0.5) * cellW
-			py := (float64(c/gw) + 0.5) * (float64(height) / float64(gh))
-			if math.Hypot(px-cx[mid], py-cy[mid]) <= radius && score[c] > bestS {
+			py := (float64(c/gw) + 0.5) * cellH
+			if lastBest < 0 {
+				eligible := rhythmCellInSeed(px, py, activeSeed, cellW, cellH)
+				if activeSeed.W <= 0 || activeSeed.H <= 0 {
+					eligible = math.Hypot(px-cx[mid], py-cy[mid]) <= radius
+				}
+				if !eligible || score[c] <= 0 {
+					continue
+				}
+				seedX := activeSeed.X + activeSeed.W/2
+				seedY := activeSeed.Y + activeSeed.H/2
+				if activeSeed.W <= 0 || activeSeed.H <= 0 {
+					seedX, seedY = cx[mid], cy[mid]
+				}
+				distance := math.Hypot(px-seedX, py-seedY)
+				if distance < bestSeedDistance || (distance == bestSeedDistance && score[c] > bestS) {
+					best, bestS, bestSeedDistance = c, score[c], distance
+				}
+				continue
+			}
+			// Keep identity: do not hand off to a stronger neighbour.
+			if c == lastBest && score[c] > bestS {
 				best, bestS = c, score[c]
 			}
 		}
@@ -220,6 +276,7 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 		if best < 0 {
 			continue
 		}
+		lastBest = best
 		mlen := b - a
 		cellSeries := make([]float64, mlen)
 		acc := 0.0
@@ -241,16 +298,31 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 		if r < 0 {
 			sgn = -1
 		}
-		c0, c1 := max(1, mid-step/2), min(n, mid+step/2)
+		gridWriteStart := sceneStart
+		if sceneStart > 0 {
+			gridWriteStart += win / 2
+		}
+		c0 := max(1, max(gridWriteStart, mid-step/2))
+		c1 := min(n, min(sceneEnd, mid+step/2))
 		for i := c0; i < c1; i++ {
 			v[i] = sgn * float64(cellV[i][best])
 		}
 		written = c1
 	}
 
+	cutAt := make([]bool, n)
+	for _, cut := range sceneCuts {
+		if cut > 0 && cut < n {
+			cutAt[cut] = true
+		}
+	}
 	out := make([]float64, n)
 	out[0] = anchor[0]
 	for i := 1; i < n; i++ {
+		if cutAt[i] {
+			out[i] = anchor[i]
+			continue
+		}
 		out[i] = out[i-1] + v[i]
 	}
 	return out
@@ -260,23 +332,59 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 // Implemented as scoreWindows + chooseAndStitch so the same numbers feed
 // both the curve and the SceneMap (bit-identical to the pre-split code).
 func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
-	cx, cy, anchor []float64, fps float64) []float64 {
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
 	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
-	return chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, fps)
+	return chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps)
 }
 
 // rhythmGridPositionsWithMap is like rhythmGridPositions but also returns the
 // SceneMap filled with ChosenCell / SignRule / TrackerR from the stitch step.
 func rhythmGridPositionsWithMap(cellV [][]float32, gw, gh int, width, height int,
-	cx, cy, anchor []float64, fps float64) ([]float64, SceneMap) {
+	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) ([]float64, SceneMap) {
 	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
-	pos := chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, fps)
+	pos := chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps)
 	for i := range m.Windows {
 		m.Windows[i].scoreRaw = nil
 		m.Windows[i].hasScore = false
 	}
 	return pos, m
 }
+
+func rhythmSegmentedSignReference(anchor []float64, sceneCuts []int, window int) []float64 {
+	out := make([]float64, len(anchor))
+	for start := 0; start < len(anchor); {
+		_, end := rhythmSceneBounds(sceneCuts, start, len(anchor))
+		if end <= start {
+			end = len(anchor)
+		}
+		copy(out[start:end], subtractRollingMean(anchor[start:end], window))
+		start = end
+	}
+	return out
+}
+
+func rhythmCellInSeed(px, py float64, seed rhythmSeed, cellW, cellH float64) bool {
+	marginX := rhythmSeedMarginCells * cellW
+	marginY := rhythmSeedMarginCells * cellH
+	return px >= seed.X-marginX && px <= seed.X+seed.W+marginX &&
+		py >= seed.Y-marginY && py <= seed.Y+seed.H+marginY
+}
+
+func rhythmSceneBounds(sceneCuts []int, frame, n int) (start, end int) {
+	end = n
+	for _, cut := range sceneCuts {
+		if cut <= frame && cut > start {
+			start = cut
+		} else if cut > frame && cut < end {
+			end = cut
+		}
+	}
+	return start, end
+}
+
+// continuityR correlates cell's integrated motion over [a, end) with the
+// curve already written there (v), so a new chunk keeps the orientation of
+// the chunks before it.
 
 func continuityR(cellV [][]float32, cell int, v []float64, a, end int) float64 {
 	m := end - a

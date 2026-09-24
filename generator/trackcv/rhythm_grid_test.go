@@ -38,6 +38,23 @@ func cellCenter(c int) (float64, float64) {
 	return (float64(c%16) + 0.5) * 80, (float64(c/16) + 0.5) * 80
 }
 
+func seedAtCell(c int) rhythmSeed {
+	x, y := cellCenter(c)
+	return rhythmSeed{X: x - 15, Y: y - 15, W: 30, H: 30}
+}
+
+func testAmplitudeRatio(a, b []float64) float64 {
+	var pa, pb float64
+	for i := 0; i < min(len(a), len(b)); i++ {
+		pa += a[i] * a[i]
+		pb += b[i] * b[i]
+	}
+	if pb <= 1e-12 {
+		return math.Inf(1)
+	}
+	return math.Sqrt(pa / pb)
+}
+
 // A drifting box whose own motion only weakly follows the stroke: the grid
 // must recover the stroke from the rhythmic cell near the box.
 func TestRhythmGridRecoversStrokeDespiteDrift(t *testing.T) {
@@ -59,7 +76,8 @@ func TestRhythmGridRecoversStrokeDespiteDrift(t *testing.T) {
 		anchor[i] = ty + drift + 0.3*(1-frac)*stroke[i] + 4*rng.NormFloat64()
 	}
 
-	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		seedAtCell(target), nil, fps)
 	k := int(2 * fps)
 	rGrid := pearson(subtractRollingMean(got, k), stroke)
 	rCSRT := pearson(subtractRollingMean(anchor, k), stroke)
@@ -68,6 +86,131 @@ func TestRhythmGridRecoversStrokeDespiteDrift(t *testing.T) {
 	}
 	if rGrid <= rCSRT {
 		t.Errorf("grid r=%.3f not better than tracker r=%.3f", rGrid, rCSRT)
+	}
+}
+
+// Regression for the real heatmap failure: a nearby thigh carries much more
+// periodic energy and the CSRT center drifts onto it. The confirmed target
+// seed must keep identity instead of following the strongest nearby cell.
+func TestRhythmGridKeepsConfirmedTargetWhenTrackerDriftsOntoThigh(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.0, 24 * 50
+	target := 5*16 + 7
+	thigh := target + 1
+	cellV, stroke := synthClip(frames, fps, hz, target, thigh, 1)
+	tx, ty := cellCenter(target)
+	dx, dy := cellCenter(thigh)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		frac := math.Min(1, float64(i)/(12*fps))
+		cx[i] = tx + frac*(dx-tx)
+		cy[i] = ty + frac*(dy-ty)
+		if i < int(10*fps) {
+			anchor[i] = ty + 0.35*stroke[i]
+		} else {
+			// The drifted tracker follows the quarter-phase thigh motion.
+			t := float64(i) / fps
+			anchor[i] = dy + 25*math.Cos(2*math.Pi*hz*t)
+		}
+	}
+
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		seedAtCell(target), nil, fps)
+	r := pearson(subtractRollingMean(got, int(2*fps)), stroke)
+	if r < 0.9 {
+		t.Fatalf("confirmed target lost to adjacent thigh: r=%.3f, want >= 0.9", r)
+	}
+}
+
+func TestRhythmGridRejectsInPhaseAndAntiPhaseHighAmplitudeThigh(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		sign float64
+	}{{"in_phase", 1}, {"anti_phase", -1}} {
+		t.Run(tc.name, func(t *testing.T) {
+			const fps, hz, frames = 24.0, 1.0, 24 * 40
+			target := 5*16 + 7
+			thigh := target + 1
+			cellV, stroke := synthClip(frames, fps, hz, target, -1, 1)
+			for i := 1; i < frames; i++ {
+				dv := stroke[i] - stroke[i-1]
+				cellV[i][thigh] += float32(tc.sign * 4 * dv)
+			}
+			tx, ty := cellCenter(target)
+			dx, dy := cellCenter(thigh)
+			cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+			for i := range anchor {
+				frac := math.Min(1, float64(i)/(10*fps))
+				cx[i], cy[i] = tx+frac*(dx-tx), ty+frac*(dy-ty)
+				anchor[i] = ty + 0.3*stroke[i]
+			}
+			// Deliberately wide enough to include both cells. Identity must come
+			// from the box center, not the stronger rhythm score.
+			wideSeed := rhythmSeed{X: tx - 60, Y: ty - 40, W: 120, H: 80}
+
+			got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+				wideSeed, nil, fps)
+			k := int(2 * fps)
+			gotAC := subtractRollingMean(got, k)
+			strokeAC := subtractRollingMean(stroke, k)
+			if r := pearson(gotAC, strokeAC); r < 0.9 {
+				t.Fatalf("target rhythm lost: r=%.3f, want >= 0.9", r)
+			}
+			if ratio := testAmplitudeRatio(gotAC, strokeAC); ratio > 2.0 {
+				t.Fatalf("thigh amplitude took over: ratio=%.2f, want <= 2.0", ratio)
+			}
+		})
+	}
+}
+
+func TestRhythmGridReseedsConfirmedIdentityAfterSceneCut(t *testing.T) {
+	const fps, hz, secondHz, frames = 24.0, 1.1, 1.7, 24 * 40
+	firstTarget := 5*16 + 7
+	secondTarget := 2*16 + 12
+	firstFlow, stroke := synthClip(frames, fps, hz, firstTarget, -1, 1)
+	secondFlow, secondStroke := synthClip(frames, fps, secondHz, secondTarget, -1, -1)
+	cut := frames / 2
+	fx, fy := cellCenter(firstTarget)
+	sx, sy := cellCenter(secondTarget)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := 0; i < frames; i++ {
+		if i < cut {
+			cx[i], cy[i] = fx, fy
+			anchor[i] = fy + 0.3*stroke[i]
+			continue
+		}
+		firstFlow[i] = secondFlow[i]
+		cx[i], cy[i] = sx, sy
+		anchor[i] = sy + 0.3*secondStroke[i]
+	}
+
+	got := rhythmGridPositions(firstFlow, 16, 9, 1280, 720, cx, cy, anchor,
+		seedAtCell(firstTarget), []int{cut}, fps)
+	if math.Abs(got[cut]-anchor[cut]) > 1e-9 {
+		t.Fatalf("cut was not re-anchored: got %.3f want %.3f", got[cut], anchor[cut])
+	}
+	fallbackEnd := cut + int(rhythmWindowSec*fps/2)
+	for i := cut; i < fallbackEnd; i++ {
+		if math.Abs(got[i]-anchor[i]) > 1e-8 {
+			t.Fatalf("frame %d after cut rewrote tracker fallback: got %.6f want %.6f",
+				i, got[i], anchor[i])
+		}
+	}
+	for _, part := range []struct {
+		name      string
+		a, b      int
+		reference []float64
+	}{
+		{"immediately_before", cut - int(4*fps), cut, stroke},
+		{"immediately_after", cut, cut + int(4*fps), secondStroke},
+		{"late_after", cut + int(5*fps), frames, secondStroke},
+	} {
+		r := pearson(
+			subtractRollingMean(got[part.a:part.b], int(2*fps)),
+			part.reference[part.a:part.b],
+		)
+		if r < 0.9 {
+			t.Fatalf("%s cut: target correlation %.3f, want >= 0.9", part.name, r)
+		}
 	}
 }
 
@@ -81,7 +224,8 @@ func TestRhythmGridFallsBackToTracker(t *testing.T) {
 		cx[i], cy[i] = 640, 360
 		anchor[i] = 360 + 10*math.Sin(float64(i)/5)
 	}
-	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		rhythmSeed{X: 600, Y: 320, W: 80, H: 80}, nil, fps)
 	for i := range got {
 		if math.Abs(got[i]-anchor[i]) > 1e-9 {
 			t.Fatalf("frame %d: got %v, want tracker %v", i, got[i], anchor[i])
@@ -91,7 +235,8 @@ func TestRhythmGridFallsBackToTracker(t *testing.T) {
 
 func TestRhythmGridBadInputReturnsTracker(t *testing.T) {
 	anchor := []float64{1, 2, 3}
-	got := rhythmGridPositions(make([][]float32, 2), 16, 9, 1280, 720, anchor, anchor, anchor, 24)
+	got := rhythmGridPositions(make([][]float32, 2), 16, 9, 1280, 720,
+		anchor, anchor, anchor, rhythmSeed{}, nil, 24)
 	if len(got) != 3 || got[2] != 3 {
 		t.Fatalf("got %v, want copy of tracker positions", got)
 	}
@@ -127,7 +272,8 @@ func TestRhythmGridKeepsOrientationWhereTrackerIsUninformative(t *testing.T) {
 		}
 		anchor[i] = ty + follow*stroke[i] + 4*rng.NormFloat64()
 	}
-	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		seedAtCell(target), nil, fps)
 	k := int(2 * fps)
 	if r := pearson(subtractRollingMean(got, k), stroke); r < 0.95 {
 		t.Errorf("grid curve r=%.3f vs stroke, want >= 0.95 (orientation flips where the tracker is uninformative)", r)
@@ -147,8 +293,9 @@ func TestRhythmGridSplitBitIdentical(t *testing.T) {
 		cx[i], cy[i] = tx, ty
 		anchor[i] = ty + 0.4*stroke[i] + 3*rng.NormFloat64()
 	}
-	viaWrapper := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
-	viaMap, m := rhythmGridPositionsWithMap(cellV, 16, 9, 1280, 720, cx, cy, anchor, fps)
+	seed := seedAtCell(target)
+	viaWrapper := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor, seed, nil, fps)
+	viaMap, m := rhythmGridPositionsWithMap(cellV, 16, 9, 1280, 720, cx, cy, anchor, seed, nil, fps)
 	if len(viaWrapper) != len(viaMap) {
 		t.Fatalf("length mismatch: wrapper %d map %d", len(viaWrapper), len(viaMap))
 	}
