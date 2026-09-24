@@ -505,6 +505,11 @@ func FindExpectedTipImageAIWithProgressContext(ctx context.Context,
 func findExpectedTipROIAIWithProgressContext(ctx context.Context, sourceArgs []string,
 	modelPath, expectedClass string, timeSec float64,
 	onProgress func(line string), onPercent func(pct int)) (TipDetection, error) {
+	// Honor cancel before dependency/Python work so UI races and unit tests
+	// do not require cv2 just to prove the context short-circuit.
+	if err := ctx.Err(); err != nil {
+		return TipDetection{}, err
+	}
 	if strings.TrimSpace(expectedClass) == "" {
 		return TipDetection{}, &StrictTipDetectionError{
 			Code: "class_unresolved", Message: "expected body class is required",

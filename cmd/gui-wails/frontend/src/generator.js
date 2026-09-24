@@ -629,7 +629,9 @@ export function initGenerator(root, playback) {
     const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
     if (useAI && !expectedClass) {
       pendingGenerateAfterRoi = false;
-      el('#gen-status').textContent = 'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.';
+      el('#gen-status').textContent = (
+        'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
+      ) + videoBatchNote;
       el('#gen-ai-target-class')?.focus();
       return;
     }
@@ -1334,7 +1336,8 @@ export function initGenerator(root, playback) {
     const batchNote = extraCount > 0
       ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
       : '';
-    videoBatchNote = batchNote;    try {
+    videoBatchNote = batchNote;
+    try {
       await showFrame(path, 0);
       candidates = [];
       clearPendingSeed();
@@ -1375,7 +1378,8 @@ export function initGenerator(root, playback) {
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
       startAutoFindRegion();
     } catch (err) {
-      uiError('Load video: ' + err, el('#gen-status'));
+      // Keep batchNote so multi-drop "ignored" stays visible even if preview fails.
+      uiError('Load video: ' + err + batchNote, el('#gen-status'));
     }
   }
 
