@@ -116,7 +116,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | SceneP4 | Cursor | [#253](https://github.com/funfunpayer/SamNPlayer/pull/253) merged | **SceneMap P4** — `.samn` `sceneMap` persist (writer+reader+round-trip; no funscript export) | **DONE** |
 | SceneP4b | Cursor | [#254](https://github.com/funfunpayer/SamNPlayer/pull/254) merged | **SceneMap P4 GUI** — restore marks/map from companion `.samn` on Create load | **DONE** |
 | SceneP5a | Cursor | [#255](https://github.com/funfunpayer/SamNPlayer/pull/255) merged | **SceneMap P5a** — CLI `export-learning` L0 collect (opt-in; no YOLO train write) | **DONE** (`c57b910`) |
-| SceneP5b | Cursor | this branch | **SceneMap P5b** — Settings Collect/Delete + Create Export for learning | **THIS** |
+| SceneP5b | Cursor | [#256](https://github.com/funfunpayer/SamNPlayer/pull/256) | **SceneMap P5b** — Settings Collect/Delete + Create Export for learning | **IN REVIEW** |
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
