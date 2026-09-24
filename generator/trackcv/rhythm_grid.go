@@ -16,6 +16,11 @@ import "math"
 // Measured against both FunGen references through the production post
 // pipeline (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed
 // r 0.386/0.552 -> 0.411/0.767, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
+//
+// Scene map (P1 / docs/SCENE_MAP_PLAN.md): the same scoring is exposed as a
+// SceneMap so the GUI can show the heatmap and later honour user marks.
+// scoreWindows produces the map; chooseAndStitch turns it into the curve.
+// rhythmGridPositions is a thin bit-identical wrapper over both.
 const (
 	rhythmGridCols    = 16
 	rhythmWindowSec   = 8.0
@@ -37,6 +42,36 @@ const (
 	rhythmSignMinR = 0.1
 )
 
+// SceneMap is the per-window, per-cell rhythm heatmap (M1).
+// Full runs fill ChosenCell / box / sign fields; a quick scan leaves them zero.
+type SceneMap struct {
+	Version       int
+	Cols, Rows    int
+	Width, Height int
+	Windows       []MapWindow
+}
+
+// MapWindow is one 8s (nominal) scoring window on the grid.
+type MapWindow struct {
+	StartMs, EndMs int64
+	TempoHz        float64
+	// Score is Cols*Rows values normalized 0–255 (E²/total scaled to max).
+	Score []uint8
+	// ChosenCell is the cell used for the curve, or -1 if the window fell
+	// back to the tracker. Only set on full runs (CSRT available).
+	ChosenCell int
+	BoxCX, BoxCY float64 // CSRT box centre at window mid (full-run only)
+	SignRule     string  // "tracker" | "continuity" (full-run only)
+	TrackerR     float64 // |r| cell vs tracker (full-run only)
+	// scoreRaw holds the unnormalized float scores used by chooseAndStitch
+	// so the curve path stays bit-identical to the pre-split code. Not
+	// exported / not persisted.
+	scoreRaw []float64
+	// Frame indices of the window in the source cellV (for stitching).
+	frameA, frameB, frameMid int
+	hasScore                 bool
+}
+
 // rhythmGridRows keeps cells roughly square for the frame's aspect ratio.
 func rhythmGridRows(width, height int) int {
 	if width <= 0 || height <= 0 {
@@ -45,25 +80,115 @@ func rhythmGridRows(width, height int) int {
 	return max(1, int(math.Round(float64(rhythmGridCols)*float64(height)/float64(width))))
 }
 
-// rhythmGridPositions builds a position curve from per-frame cell flow.
+// scoreWindows builds the SceneMap from per-frame cell flow.
 // cellV[i] is the flow (px/frame, one axis) of every cell between frame i-1
-// and i (all zero for frame 0 and scene cuts). cx/cy are the CSRT box
-// centers per frame, anchor the CSRT position on the same axis. Windows
-// where no cell carries a rhythm fall back to the CSRT motion, so the result
-// is never worse-defined than the tracker alone.
-func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
+// and i (all zero for frame 0 and scene cuts).
+// When cx/cy are non-nil and length-matched, each window also records the
+// box centre at the window midpoint (full-run path). When nil, this is a
+// quick-scan map (no ChosenCell / box / sign).
+func scoreWindows(cellV [][]float32, gw, gh int, width, height int,
+	cx, cy []float64, fps float64) SceneMap {
+	n := len(cellV)
+	m := SceneMap{
+		Version: 1,
+		Cols:    gw,
+		Rows:    gh,
+		Width:   width,
+		Height:  height,
+	}
+	if n == 0 || fps <= 0 || gw < 1 || gh < 1 {
+		return m
+	}
+	cells := gw * gh
+	win := int(math.Round(rhythmWindowSec * fps))
+	step := int(math.Round(rhythmStepSec * fps))
+	if win < 8 || step < 1 {
+		return m
+	}
+	haveBox := len(cx) == n && len(cy) == n
+	x := make([][]float64, cells) // per-cell window, reused
+	for s := -win/2 + step/2; s < n; s += step {
+		a, b := max(0, s), min(n, s+win)
+		mlen := b - a
+		if mlen < win/2 {
+			continue
+		}
+		for c := 0; c < cells; c++ {
+			if cap(x[c]) < mlen {
+				x[c] = make([]float64, mlen)
+			}
+			x[c] = x[c][:mlen]
+			acc := 0.0
+			for i := 0; i < mlen; i++ {
+				acc += float64(cellV[a+i][c])
+				x[c][i] = acc
+			}
+			detrendLinear(x[c])
+		}
+		score, tempo := rhythmScoresWithTempo(x, fps)
+		if score == nil {
+			continue
+		}
+		mid := min(n-1, s+win/2)
+		w := MapWindow{
+			StartMs:  int64(float64(a) * 1000.0 / fps),
+			EndMs:    int64(float64(b) * 1000.0 / fps),
+			TempoHz:  tempo,
+			Score:    normalizeScores(score),
+			scoreRaw: score,
+			frameA:   a,
+			frameB:   b,
+			frameMid: mid,
+			hasScore: true,
+			ChosenCell: -1,
+		}
+		if haveBox {
+			w.BoxCX, w.BoxCY = cx[mid], cy[mid]
+		}
+		m.Windows = append(m.Windows, w)
+	}
+	return m
+}
+
+// normalizeScores maps float scores to 0–255 relative to the window max.
+func normalizeScores(score []float64) []uint8 {
+	out := make([]uint8, len(score))
+	maxS := 0.0
+	for _, v := range score {
+		if v > maxS {
+			maxS = v
+		}
+	}
+	if maxS <= 0 {
+		return out
+	}
+	for i, v := range score {
+		s := v / maxS * 255
+		if s > 255 {
+			s = 255
+		}
+		if s < 0 {
+			s = 0
+		}
+		out[i] = uint8(s + 0.5)
+	}
+	return out
+}
+
+// chooseAndStitch picks the best cell near the box per window and stitches
+// a position curve. Mutates map windows in place to fill ChosenCell / SignRule
+// / TrackerR. Returns a curve bit-identical to the pre-split rhythmGridPositions.
+func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height int,
 	cx, cy, anchor []float64, fps float64) []float64 {
 	n := len(cellV)
 	if n == 0 || len(cx) != n || len(cy) != n || len(anchor) != n || fps <= 0 {
 		return append([]float64(nil), anchor...)
 	}
-	cells := gw * gh
-	cellW, cellH := float64(width)/float64(gw), float64(height)/float64(gh)
+	cellW := float64(width) / float64(gw)
 	radius := rhythmSearchCells * cellW
 
 	signRef := subtractRollingMean(anchor, int(math.Round(rhythmAnchorSec*fps)))
 
-	// Default: the tracker's own motion.
 	v := make([]float64, n)
 	for i := 1; i < n; i++ {
 		v[i] = anchor[i] - anchor[i-1]
@@ -74,52 +199,44 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	if win < 8 || step < 1 {
 		return append([]float64(nil), anchor...)
 	}
-	x := make([][]float64, cells) // per-cell window, reused
-	written := 0                  // v[:written] already comes from grid cells
-	for s := -win/2 + step/2; s < n; s += step {
-		a, b := max(0, s), min(n, s+win)
-		m := b - a
-		if m < win/2 {
+
+	written := 0
+	for wi := range m.Windows {
+		w := &m.Windows[wi]
+		if !w.hasScore || w.scoreRaw == nil {
 			continue
 		}
-		for c := 0; c < cells; c++ {
-			if cap(x[c]) < m {
-				x[c] = make([]float64, m)
-			}
-			x[c] = x[c][:m]
-			// Integrated motion = the cell's "position" within the window
-			// (the offset from before the window drops out in detrending,
-			// so no whole-clip position matrix is needed).
-			acc := 0.0
-			for i := 0; i < m; i++ {
-				acc += float64(cellV[a+i][c])
-				x[c][i] = acc
-			}
-			detrendLinear(x[c])
-		}
-		score := rhythmScores(x, fps)
-		if score == nil {
-			continue
-		}
-		mid := min(n-1, s+win/2)
+		a, b, mid := w.frameA, w.frameB, w.frameMid
+		score := w.scoreRaw
 		best, bestS := -1, 0.0
-		for c := 0; c < cells; c++ {
+		for c := 0; c < len(score); c++ {
 			px := (float64(c%gw) + 0.5) * cellW
-			py := (float64(c/gw) + 0.5) * cellH
+			py := (float64(c/gw) + 0.5) * (float64(height) / float64(gh))
 			if math.Hypot(px-cx[mid], py-cy[mid]) <= radius && score[c] > bestS {
 				best, bestS = c, score[c]
 			}
 		}
+		w.ChosenCell = best
 		if best < 0 {
 			continue
 		}
-		// Cell flow has no inherent orientation relative to the stroke
-		// (a cell may sit on a part moving opposite to the tip): take the
-		// sign from the tracker, which is locally right even when drifting.
-		r := pearson(x[best], signRef[a:b])
+		mlen := b - a
+		cellSeries := make([]float64, mlen)
+		acc := 0.0
+		for i := 0; i < mlen; i++ {
+			acc += float64(cellV[a+i][best])
+			cellSeries[i] = acc
+		}
+		detrendLinear(cellSeries)
+
+		r := pearson(cellSeries, signRef[a:b])
+		signRule := "tracker"
 		if math.Abs(r) < rhythmSignMinR && written-a > step {
 			r = continuityR(cellV, best, v, a, written)
+			signRule = "continuity"
 		}
+		w.SignRule = signRule
+		w.TrackerR = r
 		sgn := 1.0
 		if r < 0 {
 			sgn = -1
@@ -139,9 +256,28 @@ func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	return out
 }
 
-// continuityR correlates cell's integrated motion over [a, end) with the
-// curve already written there (v), so a new chunk keeps the orientation of
-// the chunks before it.
+// rhythmGridPositions builds a position curve from per-frame cell flow.
+// Implemented as scoreWindows + chooseAndStitch so the same numbers feed
+// both the curve and the SceneMap (bit-identical to the pre-split code).
+func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
+	cx, cy, anchor []float64, fps float64) []float64 {
+	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
+	return chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, fps)
+}
+
+// rhythmGridPositionsWithMap is like rhythmGridPositions but also returns the
+// SceneMap filled with ChosenCell / SignRule / TrackerR from the stitch step.
+func rhythmGridPositionsWithMap(cellV [][]float32, gw, gh int, width, height int,
+	cx, cy, anchor []float64, fps float64) ([]float64, SceneMap) {
+	m := scoreWindows(cellV, gw, gh, width, height, cx, cy, fps)
+	pos := chooseAndStitch(&m, cellV, gw, gh, width, height, cx, cy, anchor, fps)
+	for i := range m.Windows {
+		m.Windows[i].scoreRaw = nil
+		m.Windows[i].hasScore = false
+	}
+	return pos, m
+}
+
 func continuityR(cellV [][]float32, cell int, v []float64, a, end int) float64 {
 	m := end - a
 	cellPos, curve := make([]float64, m), make([]float64, m)
@@ -154,13 +290,12 @@ func continuityR(cellV [][]float32, cell int, v []float64, a, end int) float64 {
 	return pearson(cellPos, curve)
 }
 
-// rhythmScores returns, per cell, how strongly its motion in this window
-// sits at the dominant stroke tempo: E^2/total, where E is the Hann-windowed
-// power at f0 and 2*f0 (+-0.15Hz) and total the power in 0.2-6Hz. Squaring E
-// favours cells that are both strong and clean. f0 is the peak of the summed
-// spectrum of the most active cells in the 0.6-2.5Hz stroke range. nil when
-// the window is too short to resolve the band.
 func rhythmScores(x [][]float64, fps float64) []float64 {
+	score, _ := rhythmScoresWithTempo(x, fps)
+	return score
+}
+
+func rhythmScoresWithTempo(x [][]float64, fps float64) (score []float64, tempoHz float64) {
 	m := len(x[0])
 	df := fps / float64(m)
 	kLo, kHi := int(math.Ceil(rhythmTotalLoHz/df)), int(math.Floor(rhythmTotalHiHz/df))
@@ -168,7 +303,7 @@ func rhythmScores(x [][]float64, fps float64) []float64 {
 		kHi = m / 2
 	}
 	if kHi <= kLo {
-		return nil
+		return nil, 0
 	}
 	hann := make([]float64, m)
 	for i := range hann {
@@ -200,7 +335,6 @@ func rhythmScores(x [][]float64, fps float64) []float64 {
 	freq := func(j int) float64 { return float64(kLo+j) * df }
 	inTempo := func(j int) bool { f := freq(j); return f >= rhythmTempoLoHz && f <= rhythmTempoHiHz }
 
-	// Most active cells in the stroke range decide the local tempo.
 	act := make([]float64, cells)
 	for c := range act {
 		for j := 0; j < nb; j++ {
@@ -224,10 +358,10 @@ func rhythmScores(x [][]float64, fps float64) []float64 {
 		}
 	}
 	if f0 == 0 {
-		return nil
+		return nil, 0
 	}
 
-	score := make([]float64, cells)
+	score = make([]float64, cells)
 	for c := 0; c < cells; c++ {
 		var e, tot float64
 		for j := 0; j < nb; j++ {
@@ -239,10 +373,9 @@ func rhythmScores(x [][]float64, fps float64) []float64 {
 		}
 		score[c] = e * e / (tot + 1e-9)
 	}
-	return score
+	return score, f0
 }
 
-// detrendLinear removes mean and least-squares slope in place.
 func detrendLinear(x []float64) {
 	m := len(x)
 	if m == 0 {
@@ -268,7 +401,6 @@ func detrendLinear(x []float64) {
 	}
 }
 
-// subtractRollingMean returns x minus its centered moving average (window k).
 func subtractRollingMean(x []float64, k int) []float64 {
 	out := make([]float64, len(x))
 	if k < 2 {
@@ -310,7 +442,6 @@ func pearson(a, b []float64) float64 {
 	return sab / math.Sqrt(saa*sbb)
 }
 
-// topIndices returns the indices of the k largest values (unordered).
 func topIndices(v []float64, k int) []int {
 	idx := make([]int, 0, k)
 	for i := range v {
