@@ -1,6 +1,6 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
-Status: **plan only, nothing built** (24 Sep 2026, Claude, Owner order).
+Status: **P1 in flight** (#246) — plan on main via #243 (24 Sep 2026).
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
 the golden-clip measurements.
 
