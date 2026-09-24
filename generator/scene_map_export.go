@@ -30,15 +30,15 @@ type LearningExportOptions struct {
 
 // LearningExportResult is a short summary of what was written.
 type LearningExportResult struct {
-	OutDir           string
-	Windows          int
-	Negatives        int
-	AutoCandidates   int
-	UserRegionMarks  int
-	TracePath        string
-	NegativesPath    string
-	AutoPath         string
-	UserRegionsPath  string
+	OutDir          string
+	Windows         int
+	Negatives       int
+	AutoCandidates  int
+	UserRegionMarks int
+	TracePath       string
+	NegativesPath   string
+	AutoPath        string
+	UserRegionsPath string
 }
 
 // DefaultSceneMapLearningDir is …/roi_training_dataset/scene_map_learning.
@@ -100,12 +100,12 @@ func ExportSceneMapLearning(samnPath string, opts LearningExportOptions) (Learni
 
 	metaPath := filepath.Join(clipDir, "source.json")
 	_ = writeJSON(metaPath, map[string]any{
-		"samn":         filepath.Base(samnPath),
-		"sha256_head":  doc.SceneMap.Video.Sha256Head,
-		"grid":         doc.SceneMap.Grid,
-		"video":        doc.SceneMap.Video,
-		"export":       "scene_map_learning_p5a",
-		"note":         "auto_candidates are author=auto reviewed=false — not for YOLO train until reviewed",
+		"samn":        filepath.Base(samnPath),
+		"sha256_head": doc.SceneMap.Video.Sha256Head,
+		"grid":        doc.SceneMap.Grid,
+		"video":       doc.SceneMap.Video,
+		"export":      "scene_map_learning_p5a",
+		"note":        "auto_candidates are author=auto reviewed=false — not for YOLO train until reviewed",
 	})
 
 	out = LearningExportResult{
@@ -166,14 +166,14 @@ func writeEngineTrace(path string, m *funscript.SceneMapData) error {
 	enc := json.NewEncoder(f)
 	for _, w := range m.Windows {
 		line := map[string]any{
-			"startMs":  w.StartMs,
-			"endMs":    w.EndMs,
-			"tempoHz":  w.TempoHz,
-			"chosen":   w.Chosen,
-			"signRule": w.SignRule,
-			"trackerR": w.TrackerR,
-			"box":      w.Box,
-			"marks":    w.Marks,
+			"startMs":   w.StartMs,
+			"endMs":     w.EndMs,
+			"tempoHz":   w.TempoHz,
+			"chosen":    w.Chosen,
+			"signRule":  w.SignRule,
+			"trackerR":  w.TrackerR,
+			"box":       w.Box,
+			"marks":     w.Marks,
 			"score_b64": w.ScoreB64,
 		}
 		if len(w.Box) >= 2 && w.Chosen >= 0 && cellW > 0 && cellH > 0 {
