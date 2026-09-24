@@ -6,14 +6,16 @@ import (
 )
 
 // writeCompanionSamn writes clip.samn beside a generated .funscript.
-// Play prefers this companion — so contact recipe, contact_marks, and
-// tip trajectory must live here too (not only on the .funscript).
-func writeCompanionSamn(funscriptPath string, actions []funscript.Action, opts Options, gaps []funscript.TrackingGap, quality funscript.ScriptQualityResult, traj *funscript.TrajectoryData) error {
+// Play prefers this companion — so contact recipe, contact_marks,
+// tip trajectory, and optional scene_map must live here too (not only
+// on the .funscript). sceneMap is .samn-only (never community export).
+func writeCompanionSamn(funscriptPath, videoPath string, actions []funscript.Action, opts Options, gaps []funscript.TrackingGap, quality funscript.ScriptQualityResult, traj *funscript.TrajectoryData, sceneMap *funscript.SceneMapData) error {
 	doc := &samn.Document{
 		Version:        samn.CurrentVersion,
 		Kind:           samn.Kind,
 		Creator:        "SamNPlayer",
 		DurationMs:     0,
+		VideoPath:      videoPath,
 		Profile:        funscript.NormalizeProfile(opts.Profile),
 		General:        append([]funscript.Action(nil), actions...),
 		PlaybackSource: samn.PlaybackRecipe,
@@ -58,6 +60,20 @@ func writeCompanionSamn(funscriptPath string, actions []funscript.Action, opts O
 		cp.Tip = append([]funscript.TrajectoryPoint(nil), traj.Tip...)
 		cp.Partner = append([]funscript.TrajectoryPoint(nil), traj.Partner...)
 		doc.Trajectory = &cp
+	}
+	if sceneMap != nil && sceneMap.HasWindows() {
+		cp := *sceneMap
+		cp.Windows = append([]funscript.SceneMapWindow(nil), sceneMap.Windows...)
+		for i := range cp.Windows {
+			cp.Windows[i].Marks = append([]string(nil), sceneMap.Windows[i].Marks...)
+			cp.Windows[i].Box = append([]float64(nil), sceneMap.Windows[i].Box...)
+		}
+		cp.Marks = append([]funscript.SceneMapMark(nil), sceneMap.Marks...)
+		for i := range cp.Marks {
+			cp.Marks[i].Rect = append([]int(nil), sceneMap.Marks[i].Rect...)
+		}
+		cp.Events = append([]funscript.SceneMapEvent(nil), sceneMap.Events...)
+		doc.SceneMap = &cp
 	}
 	if quality.Score > 0 || len(quality.Warnings) > 0 {
 		score := quality.Score

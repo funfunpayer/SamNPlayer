@@ -196,6 +196,8 @@ type nativeTrackResult struct {
 	// space), only set when nativeTrackOptions.CaptureTrajectory is true.
 	TrajectoryA []NativePoint
 	TrajectoryB []NativePoint
+	// SceneMap is filled when RhythmGrid produced a map (P4 / M4).
+	SceneMap SceneMapDTO
 }
 
 // NativePoint mirrors trackcv.Point/simpletrack.Point without importing
@@ -241,11 +243,11 @@ func mergeSceneMarksWithMasks(marks []SceneMark, masks []ROI) []SceneMark {
 	return out
 }
 
-func writeNativeFunscript(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
-	return writeNativeFunscriptNamed(path, actions, opts, tr, quality, nil, "trackcv", "csrt")
+func writeNativeFunscript(path, videoPath string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult) error {
+	return writeNativeFunscriptNamed(path, videoPath, actions, opts, tr, quality, nil, "trackcv", "csrt")
 }
 
-func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult, audio *funscript.AudioCheck, tracking, backend string) error {
+func writeNativeFunscriptNamed(path, videoPath string, actions []funscript.Action, opts Options, tr nativeTrackResult, quality funscript.ScriptQualityResult, audio *funscript.AudioCheck, tracking, backend string) error {
 	if len(actions) == 0 {
 		return fmt.Errorf("generator/native: keine Actions erzeugt")
 	}
@@ -325,6 +327,7 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 		meta["stroke_preview"] = opts.StrokePreviewHint
 	}
 	stampContactMarks(meta, opts)
+	// scene_map is .samn-only (size) — never stamp onto community .funscript.
 	doc := map[string]any{
 		"actions":  actions,
 		"metadata": meta,
@@ -336,7 +339,8 @@ func writeNativeFunscriptNamed(path string, actions []funscript.Action, opts Opt
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return err
 	}
-	return writeCompanionSamn(path, actions, opts, gaps, quality, traj)
+	sceneMap := buildSceneMapMeta(videoPath, duration, tr.SceneMap, opts.SceneMarks)
+	return writeCompanionSamn(path, videoPath, actions, opts, gaps, quality, traj, sceneMap)
 }
 
 // buildTrajectoryData zips tr.TrajectoryA/B with tr.TimestampsMs into the

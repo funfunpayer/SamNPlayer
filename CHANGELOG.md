@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **SceneMap P4 — `.samn` scene_map persist** — optional `sceneMap` on companion
+  `.samn` when RhythmGrid produced a map (windows + `score_b64`, video
+  `sha256_head`, marks from `Options.SceneMarks`). Old files still load;
+  community `.funscript` export never carries `scene_map` (size).
 - **SceneMap P3 — engine honours marks** — rhythm-grid `chooseAndStitch` skips
   cells inside active `exclude` marks and prefers `source` hints (unless score
   < 0.5× best outside); soft `MaskROIs` stay on the Go path when RhythmGrid

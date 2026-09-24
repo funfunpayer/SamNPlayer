@@ -368,7 +368,7 @@ func finishNativeGenerate(
 		}
 	}
 
-	if err := writeNativeFunscriptNamed(outputPath, actions, opts, tr, quality, audioMeta, tracking, backend); err != nil {
+	if err := writeNativeFunscriptNamed(outputPath, videoPath, actions, opts, tr, quality, audioMeta, tracking, backend); err != nil {
 		return err
 	}
 	progress(fmt.Sprintf("wrote %s (total %s)", outputPath, time.Since(start).Round(time.Millisecond)))
