@@ -225,7 +225,7 @@ body {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
-.brand img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 16px; }
+.brand img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--radius-sm); }
 /* Wordmark neben SN: Sora 700, Amber + Teal-N — ohne Doppel-Schatten */
 .brand-wordmark {
   position: absolute;
