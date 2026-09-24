@@ -70,8 +70,10 @@ type App struct {
 	genCancel context.CancelFunc
 	genSeq    uint64
 	// roiSeq stamps AutoDetectROI results so a late find for video A cannot
-	// paint the tip onto video B after a quick switch.
-	roiSeq uint64
+	// paint the tip onto video B after a quick switch. roiCancel stops the
+	// cancellable strict ONNX subprocess when a request is superseded.
+	roiSeq    uint64
+	roiCancel context.CancelFunc
 
 	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
 	// gespeichert, weil er am Videoschnitt hängt und nicht an einer

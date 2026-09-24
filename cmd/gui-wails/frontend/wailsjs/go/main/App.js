@@ -4,6 +4,7 @@ export function ApplyRingDown(arg1, arg2) { return window['go']['main']['App']['
 export function ApplySuggestedOZone() { return window['go']['main']['App']['ApplySuggestedOZone'](); }
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
+export function DetectExpectedTipROI(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['DetectExpectedTipROI'](arg1, arg2, arg3, arg4); }
 export function SuggestROICandidates(arg1) { return window['go']['main']['App']['SuggestROICandidates'](arg1); }
 export function BootstrapRoiTrainingSample(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['BootstrapRoiTrainingSample'](arg1, arg2, arg3, arg4, arg5); }
 export function BootstrapRoiTrainingSampleEx(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13) {
@@ -15,6 +16,7 @@ export function BootstrapRoiTrainingRegions(arg1, arg2, arg3, arg4, arg5, arg6) 
 export function AddRoiStillTrainingSample(arg1, arg2) { return window['go']['main']['App']['AddRoiStillTrainingSample'](arg1, arg2); }
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
+export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }

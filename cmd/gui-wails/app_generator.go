@@ -13,6 +13,7 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/sam"
 	"github.com/funfunpayer/SamNPlayer/samn"
@@ -125,17 +126,23 @@ type GenerateOptions struct {
 // Each call bumps roiSeq; only the latest seq may emit generate:autoroi
 // (stale finds are dropped). Payload always includes videoPath + seq.
 func (a *App) AutoDetectROI(videoPath string, engine string) {
-	a.stateMu.Lock()
-	a.roiSeq++
-	mySeq := a.roiSeq
-	a.stateMu.Unlock()
+	mySeq, _, finish := a.beginROIRequest(false)
 
 	go func() {
+		defer finish()
 		emitErr := func(msg string) {
 			a.emitAutoROI(videoPath, mySeq, map[string]any{"error": msg})
 		}
-		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
-		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
+		onLine := func(line string) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:progress", line)
+			}
+		}
+		onPct := func(pct int) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:percent", pct)
+			}
+		}
 		switch engine {
 		case "ai_two":
 			roi, roi2, err := generator.FindTwoROIsAIWithProgress(videoPath,
@@ -200,6 +207,151 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 			attachROIVerify(payload, videoPath, roi)
 			a.emitAutoROI(videoPath, mySeq, payload)
 		}
+	}()
+}
+
+func (a *App) beginROIRequest(cancellable bool) (uint64, context.Context, func()) {
+	a.stateMu.Lock()
+	if a.roiCancel != nil {
+		a.roiCancel()
+		a.roiCancel = nil
+	}
+	a.roiSeq++
+	seq := a.roiSeq
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	var cancel context.CancelFunc
+	if cancellable {
+		ctx, cancel = context.WithCancel(ctx)
+		a.roiCancel = cancel
+	}
+	a.stateMu.Unlock()
+	finish := func() {
+		if cancel != nil {
+			cancel()
+		}
+		a.stateMu.Lock()
+		if a.roiSeq == seq {
+			a.roiCancel = nil
+		}
+		a.stateMu.Unlock()
+	}
+	return seq, ctx, finish
+}
+
+func (a *App) roiRequestCurrent(seq uint64) bool {
+	a.stateMu.RLock()
+	defer a.stateMu.RUnlock()
+	return a.roiSeq == seq
+}
+
+// CancelROIDetection invalidates queued result/progress events and stops an
+// active strict ONNX subprocess. It is safe when no detector is running.
+func (a *App) CancelROIDetection() {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
+	if a.roiCancel != nil {
+		a.roiCancel()
+		a.roiCancel = nil
+	}
+	a.roiSeq++
+}
+
+// DetectExpectedTipROI asks the local ONNX model for exactly one canonical
+// body class. It emits a proposal on generate:tip-detection; the frontend must
+// require Apply before changing the active ROI. Strict failures never call the
+// generic motion finder and never substitute a different detected class.
+func (a *App) DetectExpectedTipROI(videoPath, expectedClass string, timeSec float64, requestID uint64) {
+	expectedClass = bodyparts.Normalize(expectedClass)
+	mySeq, detectorCtx, finish := a.beginROIRequest(true)
+
+	go func() {
+		defer finish()
+		payload := map[string]any{
+			"videoPath": videoPath, "seq": mySeq,
+			"requestId":     requestID,
+			"expectedClass": expectedClass, "match": false,
+		}
+		emit := func() {
+			a.stateMu.RLock()
+			current := a.roiSeq
+			a.stateMu.RUnlock()
+			if mySeq == current {
+				runtime.EventsEmit(a.ctx, "generate:tip-detection", payload)
+			}
+		}
+		if !bodyparts.IsCanonical(expectedClass) {
+			payload["status"] = "class_unresolved"
+			payload["errorCode"] = "class_unresolved"
+			payload["error"] = "Choose a known expected body class before strict AI detection"
+			emit()
+			return
+		}
+		onLine := func(line string) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:tip-progress", map[string]any{
+					"requestId": requestID, "videoPath": videoPath, "line": line,
+				})
+			}
+		}
+		onPct := func(pct int) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:tip-percent", map[string]any{
+					"requestId": requestID, "videoPath": videoPath, "percent": pct,
+				})
+			}
+		}
+		previewPNG, err := tempFile("strict-target-preview-*.png")
+		if err != nil {
+			payload["status"] = "preview_failed"
+			payload["errorCode"] = "preview_failed"
+			payload["error"] = err.Error()
+			emit()
+			return
+		}
+		defer removeFile(previewPNG)
+		if _, _, err = generator.DumpFrameAt(detectorCtx, videoPath, previewPNG, timeSec); err != nil {
+			payload["status"] = "preview_failed"
+			payload["errorCode"] = "preview_failed"
+			payload["error"] = err.Error()
+			emit()
+			return
+		}
+		result, err := generator.FindExpectedTipImageAIWithProgressContext(
+			detectorCtx,
+			previewPNG,
+			a.settings.GetString(prefAIRoiModelPath, ""),
+			expectedClass,
+			onLine,
+			onPct,
+		)
+		if err != nil {
+			payload["status"] = "detector_failed"
+			payload["errorCode"] = "detector_failed"
+			payload["error"] = err.Error()
+			var strictErr *generator.StrictTipDetectionError
+			if errors.As(err, &strictErr) {
+				payload["status"] = strictErr.Code
+				payload["errorCode"] = strictErr.Code
+				if strictErr.ExpectedClass != "" {
+					payload["expectedClass"] = strictErr.ExpectedClass
+				}
+			}
+			emit()
+			return
+		}
+		payload["x"], payload["y"], payload["w"], payload["h"] = result.X, result.Y, result.W, result.H
+		payload["expectedClass"] = result.ExpectedClass
+		payload["matchedClass"] = result.MatchedClass
+		payload["matchedClassId"] = result.MatchedClassID
+		payload["confidence"] = result.Confidence
+		payload["sampleIndex"] = result.SampleIndex
+		payload["match"] = result.Match
+		payload["status"] = result.Status
+		attachROIVerify(payload, videoPath, generator.ROI{X: result.X, Y: result.Y, W: result.W, H: result.H})
+		emit()
 	}()
 }
 

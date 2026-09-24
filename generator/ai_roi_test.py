@@ -9,6 +9,7 @@ ohne Modellgewichte ins Repository legen oder herunterladen zu müssen.
 Ausführen: python3 generator/ai_roi_test.py
 """
 
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -165,6 +166,71 @@ def main():
     check("resolve_preferred_class_ids akzeptiert numerische IDs",
           ai_roi.resolve_preferred_class_ids("0,2") == [0, 2], "")
 
+    # --- strict semantic target: never fall back to the high-motion/wrong class
+    strict_det, strict_box = ai_roi.select_strict_detection(
+        mixed, expected_class_id=1, frame_w=1000, frame_h=1000)
+    check("strict target wählt Glans-Klasse trotz stärkerem Oberschenkel-Distraktor",
+          strict_det["class_id"] == 1 and strict_box == (600, 300, 200, 200),
+          str((strict_det, strict_box)))
+
+    strict_code = ""
+    try:
+        ai_roi.select_strict_detection(mixed[:1], expected_class_id=1,
+                                       frame_w=1000, frame_h=1000)
+    except ai_roi.StrictClassBindingError as exc:
+        strict_code = exc.code
+    check("strict target fällt ohne Zielklasse niemals auf fremde Klasse zurück",
+          strict_code == "target_not_detected", strict_code)
+
+    weak_target = [{
+        "x0": 0.6, "y0": 0.3, "x1": 0.8, "y1": 0.5,
+        "confidence": 0.20, "class_id": 1,
+    }]
+    strict_code = ""
+    try:
+        ai_roi.select_strict_detection(weak_target, expected_class_id=1,
+                                       frame_w=1000, frame_h=1000,
+                                       confidence_threshold=0.35)
+    except ai_roi.StrictClassBindingError as exc:
+        strict_code = exc.code
+    check("strict target meldet Ziel unter Konfidenzschwelle ehrlich",
+          strict_code == "below_confidence", strict_code)
+
+    ambiguous = [
+        {"x0": 0.1, "y0": 0.1, "x1": 0.2, "y1": 0.2,
+         "confidence": 0.90, "class_id": 1},
+        {"x0": 0.7, "y0": 0.7, "x1": 0.8, "y1": 0.8,
+         "confidence": 0.86, "class_id": 1},
+    ]
+    strict_code = ""
+    try:
+        ai_roi.select_strict_detection(ambiguous, expected_class_id=1,
+                                       frame_w=1000, frame_h=1000,
+                                       ambiguity_margin=0.08)
+    except ai_roi.StrictClassBindingError as exc:
+        strict_code = exc.code
+    check("zwei gleich plausible Zielboxen werden nicht geraten",
+          strict_code == "ambiguous_target", strict_code)
+
+    check("kanonischer Manifestname löst strikt auf",
+          ai_roi.resolve_expected_class_id("glans", {"glans": 3}) == 3)
+    check("deutscher Manifestalias löst auf dieselbe kanonische Klasse auf",
+          ai_roi.resolve_expected_class_id("glans", {"eichel": 3}) == 3)
+    strict_code = ""
+    try:
+        ai_roi.resolve_expected_class_id("glans", {"glans": 3, "eichel": 4})
+    except ai_roi.StrictClassBindingError as exc:
+        strict_code = exc.code
+    check("widersprüchliche Manifestaliases werden abgelehnt",
+          strict_code == "class_conflict", strict_code)
+    strict_code = ""
+    try:
+        ai_roi.resolve_expected_class_id("glans", {"glans": 3, "penis": 3})
+    except ai_roi.StrictClassBindingError as exc:
+        strict_code = exc.code
+    check("dieselbe Modell-ID darf nicht zwei Körperklassen bedeuten",
+          strict_code == "class_conflict", strict_code)
+
     # --- available(): ehrliche Antwort ohne onnxruntime/Modell ---------------
     check("available() meldet False ohne Modell/Laufzeit unter erfundenem Pfad",
           ai_roi.available(model_path="/nicht/vorhanden.onnx") is False, "")
@@ -173,6 +239,19 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         video = Path(tmp) / "object.mp4"
         write_video(video)
+
+        invalid_manifest = Path(tmp) / "classes.json"
+        invalid_manifest.write_text("{not json", encoding="utf-8")
+        cli = subprocess.run(
+            [sys.executable, str(Path(ai_roi.__file__)), "--video", str(video),
+             "--model", str(Path(tmp) / "unused.onnx"),
+             "--classes-json", str(invalid_manifest),
+             "--expected-class", "glans", "--strict-class"],
+            capture_output=True, text=True, check=False,
+        )
+        check("strict CLI meldet beschädigtes Klassenmanifest maschinenlesbar",
+              cli.returncode == 2 and '"code": "manifest_invalid"' in cli.stdout,
+              f"rc={cli.returncode} stdout={cli.stdout!r} stderr={cli.stderr!r}")
 
         def fake_model(frame_bgr):
             x0, y0, x1, y1 = OBJECT_NORM
@@ -203,6 +282,61 @@ def main():
                                           report_progress=False, _run_model_fn=fake_model)
         check("find_roi nimmt start_frame/end_frame wie auto_roi.find_roi entgegen",
               (x2, y2, w2, h2) == expected, f"{(x2, y2, w2, h2)} != {expected}")
+
+        def strict_mixed_model(frame_bgr):
+            return np.array([
+                [0.05, 0.55, 0.45, 0.95, 0.99, 0.0],  # wrong class / thigh
+                [*OBJECT_NORM, 0.70, 1.0],              # expected semantic target
+            ])
+
+        strict_result = ai_roi.find_expected_roi(
+            str(video), expected_class="glans", expected_class_id=1,
+            report_progress=False, _run_model_fn=strict_mixed_model)
+        check("find_expected_roi keeps the expected class despite a stronger distractor",
+              strict_result["match"] is True
+              and strict_result["matchedClass"] == "glans"
+              and (strict_result["x"], strict_result["y"],
+                   strict_result["w"], strict_result["h"]) == expected,
+              str(strict_result))
+
+        exact_calls = []
+
+        def exact_frame_model(frame_bgr):
+            exact_calls.append(frame_bgr)
+            return strict_mixed_model(frame_bgr)
+
+        exact_result = ai_roi.find_expected_roi(
+            str(video), expected_class="glans", expected_class_id=1,
+            report_progress=False, sample_frames=5, time_sec=1.2,
+            _run_model_fn=exact_frame_model)
+        check("strict product path evaluates exactly the visible preview frame",
+              len(exact_calls) == 1 and exact_result["sampleIndex"] == 30,
+              f"calls={len(exact_calls)} sample={exact_result['sampleIndex']}")
+
+        preview_image = Path(tmp) / "strict-preview.png"
+        cv2.imwrite(str(preview_image), np.full((H, W, 3), 60, np.uint8))
+        image_calls = []
+
+        def exact_image_model(frame_bgr):
+            image_calls.append(frame_bgr.shape[:2])
+            return strict_mixed_model(frame_bgr)
+
+        image_result = ai_roi.find_expected_image(
+            str(preview_image), expected_class="glans", expected_class_id=1,
+            _run_model_fn=exact_image_model)
+        check("strict image path evaluates exactly one supplied preview image",
+              image_calls == [(H, W)] and image_result["sampleIndex"] == -1,
+              f"calls={image_calls} result={image_result}")
+
+        strict_code = ""
+        try:
+            ai_roi.find_expected_roi(
+                str(video), expected_class="glans", expected_class_id=1,
+                report_progress=False, _run_model_fn=fake_model)
+        except ai_roi.StrictClassBindingError as exc:
+            strict_code = exc.code
+        check("find_expected_roi never accepts only the wrong detected class",
+              strict_code == "target_not_detected", strict_code)
 
         # --- find_two_rois() Ende-zu-Ende: zwei getrennte Objekte -------------
         SECOND_OBJECT_NORM = (0.05, 0.05, 0.15, 0.15)

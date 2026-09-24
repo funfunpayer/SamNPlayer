@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -54,8 +54,12 @@ export function initGenerator(root, playback) {
         <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
           <label for="gen-ai-roi" style="width:auto"
             data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
+        <select id="gen-ai-target-class" disabled style="min-width:10em;">
+          <option value="">Expected body point…</option>
+        </select>
       </div>
       <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically.</p>
+      <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -204,7 +208,7 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
-            data-help="Takes the stroke signal from the most rhythmic motion cell near the tracked box instead of the box itself. More robust when CSRT slowly drifts off target on long clips — the box only has to stay near the action. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (anti-drift, long clips)</label></div>
+            data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
               data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner). Map drawing/marks = later Advanced step.">Show scene map</button>
@@ -323,6 +327,9 @@ export function initGenerator(root, playback) {
   let roi2 = null; // zweite Region für Tf/Tj (distance + suction)
   let candidates = []; // TFTJ 4b / MT-Seed: [{x,y,w,h,score,index}, ...] dashed until pick
   let pendingSeed = null; // MT-Seed: { tip, partner } suggest ≠ auto-commit
+  let pendingAITarget = null; // strict semantic proposal; Apply required
+  let activeAITargetRequest = null; // {requestId, videoPath, expectedClass, timeSec}
+  let aiTargetRequestSeq = 0;
   let extraTargets = []; // additional fixed Tf/Tj anchors (min-distance)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -421,6 +428,8 @@ export function initGenerator(root, playback) {
   const ROI2_FILL = 'rgba(242,176,61,0.18)';
   const TARGET_STROKE = '#e070a0';
   const TARGET_FILL = 'rgba(224,112,160,0.16)';
+  const AI_TARGET_STROKE = '#7ee787';
+  const AI_TARGET_FILL = 'rgba(126,231,135,0.14)';
   const MASK_STROKE = 'rgba(180,180,190,0.85)';
   const MASK_FILL = 'rgba(120,120,130,0.12)';
 
@@ -448,10 +457,12 @@ export function initGenerator(root, playback) {
   function refreshAIRoiAvailability() {
     CheckAIRoiAvailable().then(available => {
       const checkbox = el('#gen-ai-roi');
+      const target = el('#gen-ai-target-class');
       checkbox.disabled = !available;
+      if (target) target.disabled = !available || !checkbox.checked;
       el('#gen-autoroi-hint').textContent = available
-        ? 'Enabling “AI detection” uses a local ONNX detector instead of the '
-          + 'rhythm heuristic. You can still correct the region by hand afterward.'
+        ? 'AI mode checks the currently displayed frame for the expected body point and never '
+          + 'falls back to another class. A matching box remains a proposal until you press Apply.'
         : 'Analyzes motion in the video (classic, no AI model) — you can still '
           + 'correct the region by hand. AI detection: no local ONNX model '
           + 'found (Settings → AI model path, or default folder).';
@@ -615,13 +626,29 @@ export function initGenerator(root, playback) {
     if (!videoPath) return;
     setNoMarkMotion(false);
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
+    if (useAI && !expectedClass) {
+      pendingGenerateAfterRoi = false;
+      el('#gen-status').textContent = 'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.';
+      el('#gen-ai-target-class')?.focus();
+      return;
+    }
+    clearPendingAITarget();
+    redraw();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
     el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = (useAI
-      ? 'AI region search (everyday path)…'
+      ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
       : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
-    AutoDetectROI(videoPath, useAI ? 'ai' : 'auto');
+    if (useAI) {
+      const requestId = ++aiTargetRequestSeq;
+      activeAITargetRequest = { requestId, videoPath, expectedClass, timeSec: seekSec };
+      DetectExpectedTipROI(videoPath, expectedClass, seekSec, requestId);
+    } else {
+      activeAITargetRequest = null;
+      AutoDetectROI(videoPath, 'auto');
+    }
   }
 
   // Default Fix Zone 2 = off when an optional contact partner is marked + vib on.
@@ -907,6 +934,65 @@ export function initGenerator(root, playback) {
     if (status) status.textContent = '';
   }
 
+  function clearPendingAITarget() {
+    pendingAITarget = null;
+    const status = el('#gen-ai-target-status');
+    if (status) status.textContent = '';
+  }
+
+  function cancelActiveAITargetRequest() {
+    if (!activeAITargetRequest) return;
+    activeAITargetRequest = null;
+    pendingGenerateAfterRoi = false;
+    CancelROIDetection().catch(() => {});
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+      el('#gen-nomark').disabled = false;
+    }
+  }
+
+  function renderPendingAITarget() {
+    const status = el('#gen-ai-target-status');
+    if (!status) return;
+    status.textContent = '';
+    if (!pendingAITarget) return;
+    const cls = labelFor(pendingAITarget.matchedClass) || pendingAITarget.matchedClass;
+    const confidence = Math.round((pendingAITarget.confidence || 0) * 100);
+    status.appendChild(document.createTextNode(
+      `Detected ${cls} · ${confidence}% — `));
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.textContent = 'Apply target';
+    apply.addEventListener('click', () => {
+      if (!pendingAITarget) return;
+      roi = {
+        x: pendingAITarget.x, y: pendingAITarget.y,
+        w: pendingAITarget.w, h: pendingAITarget.h,
+      };
+      const selectedClass = normalizeClass(pendingAITarget.matchedClass || pendingAITarget.expectedClass);
+      const classSelect = el('#gen-region-class');
+      if (classSelect && selectedClass) classSelect.value = selectedClass;
+      pendingAITarget = null;
+      status.textContent = `${cls} target applied — CSRT starts here. Optional target-locked rhythm remains under Advanced.`;
+      updateRoiLabels();
+      updateGenerateEnabled();
+      redraw();
+      autoApplyPipeline();
+    });
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.textContent = 'Dismiss';
+    dismiss.style.marginLeft = '6px';
+    dismiss.addEventListener('click', () => {
+      clearPendingAITarget();
+      redraw();
+    });
+    status.appendChild(apply);
+    status.appendChild(dismiss);
+  }
+
   function renderPendingSeedStatus() {
     const status = el('#gen-seed-status');
     if (!status) return;
@@ -1088,6 +1174,7 @@ export function initGenerator(root, playback) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     for (const c of candidates) drawCandidate(c);
+    if (pendingAITarget) drawNativeRect(pendingAITarget, AI_TARGET_STROKE, AI_TARGET_FILL, true);
     const dragRoi2 = dragging && draggingSecond && !markMode;
     const dragRoi1 = dragging && !draggingSecond && !markMode;
     if (roi && !dragRoi1) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
@@ -1103,6 +1190,8 @@ export function initGenerator(root, playback) {
   }
 
   canvas.addEventListener('mousedown', e => {
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
     const r = canvas.getBoundingClientRect();
     startX = curX = e.clientX - r.left;
     startY = curY = e.clientY - r.top;
@@ -1213,6 +1302,7 @@ export function initGenerator(root, playback) {
   }
 
   async function loadVideo(path, extraCount = 0) {
+    cancelActiveAITargetRequest();
     videoPath = path;
     lastSceneMap = null;
     const smStatus = el('#gen-scene-map-status');
@@ -1228,6 +1318,7 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Loading preview frame…';
     roi = null;
     roi2 = null;
+    clearPendingAITarget();
     extraTargets = [];
     maskRois = [];
     setMarkMode(null);
@@ -1293,12 +1384,17 @@ export function initGenerator(root, playback) {
     nativeW = preview.width; nativeH = preview.height;
     const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
     canvas.width = DISPLAY_W; canvas.height = displayH;
-    img.onload = redraw;
-    img.src = 'data:image/png;base64,' + preview.pngBase64;
+    await new Promise((resolve, reject) => {
+      img.onload = () => { redraw(); resolve(); };
+      img.onerror = () => reject(new Error('Preview image could not be decoded'));
+      img.src = 'data:image/png;base64,' + preview.pngBase64;
+    });
   }
 
   async function seekTo(sec) {
     if (!videoPath) return;
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
     seekSec = Math.max(0, sec);
     el('#gen-seek').value = String(seekSec);
     el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
@@ -1324,10 +1420,25 @@ export function initGenerator(root, playback) {
 
   async function generate() {
     if (!videoPath) return;
+    if (activeAITargetRequest) {
+      el('#gen-status').textContent = 'Wait for the body-point check, or change/dismiss it before creating.';
+      return;
+    }
+    if (pendingAITarget) {
+      el('#gen-status').textContent = 'Review the detected body point first: Apply target, or Dismiss to keep the current region.';
+      return;
+    }
     normalizeProductProfile();
 
     // Everyday: no tip yet + CSRT → auto-find then continue.
     if (backendNeedsRoi() && !roi) {
+      const strictAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+      if (strictAI) {
+        pendingGenerateAfterRoi = false;
+        el('#gen-status').textContent = 'Find the expected body point, review it, then press Apply target before Create.';
+        startAutoFindRegion();
+        return;
+      }
       pendingGenerateAfterRoi = true;
     generating = true;
     el('#gen-generate').disabled = true;
@@ -1440,7 +1551,7 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = 'Cancel requested…';
   });
 
-  EventsOn('generate:progress', line => {
+  const handleProgressLine = line => {
     el('#gen-status').textContent = line;
     const log = el('#gen-log');
     if (log) {
@@ -1480,6 +1591,58 @@ export function initGenerator(root, playback) {
     } else if (/Fallback auf Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     }
+  };
+  EventsOn('generate:progress', handleProgressLine);
+  EventsOn('generate:tip-progress', event => {
+    const request = activeAITargetRequest;
+    if (!request || Number(event?.requestId) !== request.requestId
+      || event?.videoPath !== request.videoPath) return;
+    handleProgressLine(String(event?.line || ''));
+  });
+
+  EventsOn('generate:tip-detection', result => {
+    const request = activeAITargetRequest;
+    if (!request || request.videoPath !== videoPath) return;
+    const selected = normalizeClass(el('#gen-ai-target-class')?.value || '');
+    const expected = normalizeClass(result.expectedClass || '');
+    if (Number(result.requestId) !== request.requestId
+      || !el('#gen-ai-roi').checked || selected !== request.expectedClass
+      || expected !== request.expectedClass
+      || (result.videoPath && result.videoPath !== request.videoPath)) return;
+    activeAITargetRequest = null;
+    hideProgress();
+    el('#gen-autoroi').disabled = false;
+    el('#gen-candidates').disabled = false;
+    el('#gen-nomark').disabled = false;
+    pendingGenerateAfterRoi = false;
+    generating = false;
+    el('#gen-cancel').disabled = true;
+    if (result.error || !result.match) {
+      clearPendingAITarget();
+      redraw();
+      const wanted = labelFor(expected || selected) || expected || selected || 'target';
+      const reason = result.errorCode || result.status || 'target_not_detected';
+      const guidance = ['manifest_missing', 'manifest_invalid', 'class_unresolved', 'class_conflict'].includes(reason)
+        ? 'Check that classes.json beside the ONNX model contains this class.'
+        : 'Mark the intended point manually or train/correct more examples.';
+      uiWarn(`No confirmed ${wanted} (${reason}). ${guidance} Existing region kept.`, el('#gen-status'));
+      updateGenerateEnabled();
+      return;
+    }
+    const matched = normalizeClass(result.matchedClass || '');
+    if (!matched || matched !== expected || !(result.w > 0 && result.h > 0)) {
+      clearPendingAITarget();
+      redraw();
+      uiWarn('AI result did not match the requested body point. Existing region kept; mark manually.', el('#gen-status'));
+      updateGenerateEnabled();
+      return;
+    }
+    pendingAITarget = { ...result, matchedClass: matched, expectedClass: expected };
+    renderPendingAITarget();
+    el('#gen-status').textContent =
+      `${labelFor(matched) || matched} found with ${Math.round((result.confidence || 0) * 100)}% confidence — Apply target to use it.`;
+    redraw();
+    updateGenerateEnabled();
   });
 
   // Ergebnis der automatischen Regionssuche Apply - die ROI wird
@@ -1555,7 +1718,7 @@ export function initGenerator(root, playback) {
   // des videos unknown war. In dem Fall wird ein unbestimmter
   // Balken gezeigt statt eines erfundenen Prozentwerts.
   let progressStartedAt = 0;
-  EventsOn('generate:percent', pct => {
+  const handleProgressPercent = pct => {
     const wrap = el('#gen-progress-wrap');
     const bar = el('#gen-progress-bar');
     const text = el('#gen-progress-text');
@@ -1579,6 +1742,13 @@ export function initGenerator(root, playback) {
       rest = `  ·  ~${remaining < 60 ? remaining + ' s' : Math.round(remaining / 60) + ' min'} left`;
     }
     text.textContent = `${pct} %${rest}`;
+  };
+  EventsOn('generate:percent', handleProgressPercent);
+  EventsOn('generate:tip-percent', event => {
+    const request = activeAITargetRequest;
+    if (!request || Number(event?.requestId) !== request.requestId
+      || event?.videoPath !== request.videoPath) return;
+    handleProgressPercent(Number(event?.percent));
   });
 
   function hideProgress() {
@@ -2021,6 +2191,37 @@ export function initGenerator(root, playback) {
   fillClassSelect('#gen-region-class', TIP_CLASS_ORDER);
   fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
   fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
+  fillClassSelect('#gen-ai-target-class', TIP_CLASS_ORDER);
+  el('#gen-ai-roi')?.addEventListener('change', () => {
+    const enabled = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
+    const target = el('#gen-ai-target-class');
+    if (target) target.disabled = !enabled;
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
+    redraw();
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    el('#gen-autoroi-hint').textContent = enabled
+      ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class.'
+      : 'Generic motion search is active. Enable AI plus an expected body point for strict matching.';
+  });
+  el('#gen-ai-target-class')?.addEventListener('change', () => {
+    cancelActiveAITargetRequest();
+    clearPendingAITarget();
+    redraw();
+    hideProgress();
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    const cls = normalizeClass(el('#gen-ai-target-class').value || '');
+    el('#gen-ai-target-status').textContent = cls
+      ? `Strict target: ${labelFor(cls) || cls}. Press Find tip area.`
+      : 'Choose an expected body point before strict AI detection.';
+  });
   el('#gen-region-class')?.addEventListener('change', () => {
     const sel = el('#gen-region-class');
     if (sel) sel.dataset.userTouched = '1';
