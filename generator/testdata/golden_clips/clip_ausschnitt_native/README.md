@@ -9,12 +9,14 @@ range_px=105.0539100525142`) - but two of the three (`mit_yolo/`,
 not SamNPlayer's. Confirmed by a follow-up upload correctly labeled
 `creator: "FunGen 2.6.3 (fungen.app)"` whose actions matched the
 `ohne_yolo` reference 715/716 exactly (the one difference: one keyframe's
-timestamp, not its position, right at a chapter boundary). The likely
-cause: some SamNPlayer import/export step stamps its own `creator` +
-`native_pipeline` metadata onto *any* loaded/re-saved funscript, regardless
-of true origin - a real metadata-provenance bug, separate from the F-003
-timing finding below, worth fixing (nothing in this dataset's own tooling;
-it's in SamNPlayer's funscript load/save path).
+timestamp, not its position, right at a chapter boundary). 
+**On-disk fix (24 Sep 2026):** the two FunGen reference files above are
+relabeled to `creator: "FunGen 2.6.3 (fungen.app)"` and no longer carry
+`native_pipeline` (actions unchanged). Inspecting `SaveAxisActions` /
+`.samn` From/Export found no live stamp of SamNPlayer creator onto foreign
+scripts — ChatGPT Lane E + Cursor — so the bad labels look like a packaging
+mix-up when the dataset was first committed, not a current load/save bug.
+Regression tests lock foreign-creator preservation on save.
 
 This originally-published version described the three files as sharing
 "the exact same underlying CSRT tracking run" and treated the comparison as

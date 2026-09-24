@@ -110,3 +110,34 @@ func TestSaveActionsPreservesUnknownFields(t *testing.T) {
 		}
 	}
 }
+
+// Foreign FunGen (or other) scripts must keep their creator on curve edit —
+// SaveActions must never invent native_pipeline (Generate-only telemetry).
+func TestSaveActionsPreservesForeignCreatorNoNativePipeline(t *testing.T) {
+	original := `{
+		"actions": [{"at": 0, "pos": 10}, {"at": 800, "pos": 90}],
+		"metadata": {
+			"creator": "FunGen 2.6.3 (fungen.app)",
+			"duration": 50
+		}
+	}`
+	path := writeTestScript(t, original)
+	if err := SaveActions(path, []Action{{At: 0, Pos: 10}, {At: 900, Pos: 40}}); err != nil {
+		t.Fatalf("SaveActions: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	meta, _ := doc["metadata"].(map[string]any)
+	if meta["creator"] != "FunGen 2.6.3 (fungen.app)" {
+		t.Fatalf("creator overwritten: %v", meta["creator"])
+	}
+	if _, ok := meta["native_pipeline"]; ok {
+		t.Fatal("SaveActions must not invent native_pipeline on a foreign script")
+	}
+}
