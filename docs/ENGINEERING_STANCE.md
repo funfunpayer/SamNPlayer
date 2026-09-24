@@ -191,4 +191,17 @@ What we *can* take from the second link dump and use on our path:
 
 **Next code that may use B1/B2/B5:** Cursor SceneMap P1 after #243 merges — seek-sparse scan + cancel-safe ffmpeg, then P2 marks.
 
+---
+
+## Funscript ecosystem links (24 Sep) — already mostly ours
+
+| Link | What it is | Ours |
+|------|------------|------|
+| [funjack/launchcontrol](https://pkg.go.dev/github.com/funjack/launchcontrol/protocol/funscript) | Go Launch player + Kodi/VLC sync; 100 ms TX floor | **Metrics adopted** (`HANDOFF`: 100 ms min spacing). Playback = our `player` + BLE/Buttplug Neo 2 — **do not** add Launchcontrol as a dep. Basename script↔video pairing = already product. |
+| [defucilis/funscript-utils](https://github.com/defucilis/funscript-utils) | TS intensity `500×‖Δpos‖/‖Δt‖`, heatmap palette, half-speed, Handy CSV | **Intensity + compat already in** `funscript/device_compat.go` / Quality Doctor / heatmap. Heatmap PNG + curve editor shipped. FunHalver half-speed = optional editor idea later (not Generate). No npm dep. |
+| [honato/funscript-generator](https://gitlab.com/honato/funscript-generator) | POC OpenCV/OpenCL auto-generate + Gradio | **Superseded by us** (tip CSRT, detrend, rhythm grid, SceneMap plan). Their own README: camera motion + pre-roll break it — problems we already attack. No code reuse; no Gradio path. |
+
+**Cultivate only if needed later:** half-speed / group-aware rest matching as an **editor** repair (G4.C / Script Doctor), measured against goldens — not a second generator.
+
+
 
