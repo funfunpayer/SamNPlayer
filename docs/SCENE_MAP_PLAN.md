@@ -1,8 +1,8 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
-Status: **P1 done** (#246) — plan on main via #243 (24 Sep 2026).
+Status: **P2 in flight** — P1 done (#246); plan on main via #243 (24 Sep 2026).
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
-the golden-clip measurements. **Next: P2** map view + marks.
+the golden-clip measurements.
 
 Owner goal (paraphrased): *build it so it makes Generate better **and** yields
 training data, until an AI knows our whole engine — what moves, how, where,

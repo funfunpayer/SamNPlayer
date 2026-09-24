@@ -207,8 +207,29 @@ export function initGenerator(root, playback) {
             data-help="Takes the stroke signal from the most rhythmic motion cell near the tracked box instead of the box itself. More robust when CSRT slowly drifts off target on long clips — the box only has to stay near the action. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (anti-drift, long clips)</label></div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
-              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner). Map drawing/marks = later Advanced step.">Show scene map</button>
+              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
             <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
+          </div>
+          <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
+              <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
+              <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
+              data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <label style="width:auto;" data-help="Paint on preview. Default time scope = current map window (scene-cut default lands with engine marks in P3).">Mark</label>
+              <select id="gen-scene-map-mark-kind">
+                <option value="exclude">Exclude (never take signal)</option>
+                <option value="source">Source (stroke is here)</option>
+                <option value="region">Region (body-part label)</option>
+              </select>
+              <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
+              <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
+              <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
+            </div>
+            <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
           </div>
 
           <div class="opt-group">Signal &amp; quality</div>
@@ -317,6 +338,10 @@ export function initGenerator(root, playback) {
 
   let videoPath = null;
   let lastSceneMap = null;
+  let sceneMapWinIdx = 0;
+  let sceneMapMarks = [];
+  let sceneMapMarkMode = null; // 'exclude' | 'source' | 'region' | null
+  let sceneMapMarkSeq = 0;
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let roi = null; // {x,y,w,h} in videopixeln
@@ -708,6 +733,120 @@ export function initGenerator(root, playback) {
     btn.disabled = !videoPath || !sceneMapAvailable || generating;
   }
 
+  function activeSceneMapWindow() {
+    if (!lastSceneMap || !Array.isArray(lastSceneMap.windows) || !lastSceneMap.windows.length) {
+      return null;
+    }
+    const i = Math.max(0, Math.min(sceneMapWinIdx, lastSceneMap.windows.length - 1));
+    return lastSceneMap.windows[i];
+  }
+
+  function syncSceneMapTools() {
+    const tools = el('#gen-scene-map-tools');
+    if (!tools) return;
+    const has = !!(lastSceneMap && Array.isArray(lastSceneMap.windows) && lastSceneMap.windows.length);
+    tools.style.display = has ? 'block' : 'none';
+    if (!has) return;
+    const slider = el('#gen-scene-map-win');
+    const label = el('#gen-scene-map-win-label');
+    if (slider) {
+      slider.max = String(Math.max(0, lastSceneMap.windows.length - 1));
+      slider.value = String(sceneMapWinIdx);
+    }
+    const w = activeSceneMapWindow();
+    if (label && w) {
+      const a = ((w.startMs || 0) / 1000).toFixed(1);
+      const b = ((w.endMs || 0) / 1000).toFixed(1);
+      label.textContent = `${sceneMapWinIdx + 1}/${lastSceneMap.windows.length} · ${a}–${b}s`;
+    }
+    const cls = el('#gen-scene-map-mark-class');
+    const kind = el('#gen-scene-map-mark-kind')?.value || 'exclude';
+    if (cls) {
+      cls.style.display = kind === 'region' ? '' : 'none';
+      if (!cls.options.length) {
+        for (const id of CONTACT_CLASS_ORDER) {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = labelFor(id) || id;
+          cls.appendChild(opt);
+        }
+      }
+    }
+    updateSceneMapMarksLabel();
+  }
+
+  function updateSceneMapMarksLabel() {
+    const lab = el('#gen-scene-map-marks-label');
+    if (!lab) return;
+    if (!sceneMapMarks.length) {
+      lab.textContent = 'No marks yet — Paint mark, then drag on preview.';
+      return;
+    }
+    lab.textContent = sceneMapMarks.map((m) => {
+      const span = `${((m.fromMs || 0) / 1000).toFixed(0)}–${((m.toMs || 0) / 1000).toFixed(0)}s`;
+      const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
+      return `${m.kind}${who}@${span}`;
+    }).join(' · ');
+  }
+
+  function heatColor(t) {
+    const x = Math.max(0, Math.min(1, t));
+    const r = Math.round(255 * Math.min(1, Math.max(0, x * 2)));
+    const g = Math.round(255 * Math.min(1, Math.max(0, x < 0.5 ? x * 2 : 2 - x * 2)));
+    const b = Math.round(255 * Math.min(1, Math.max(0, 1 - x * 2)));
+    return `rgba(${r},${g},${b},0.35)`;
+  }
+
+  function drawSceneMapOverlay() {
+    if (!lastSceneMap || !el('#gen-scene-map-overlay')?.checked) return;
+    if (!nativeW || !nativeH || !canvas.width) return;
+    const win = activeSceneMapWindow();
+    if (!win || !Array.isArray(win.score) || !win.score.length) return;
+    const cols = lastSceneMap.cols || 16;
+    const rows = lastSceneMap.rows || Math.max(1, Math.floor(win.score.length / cols));
+    const scaleX = canvas.width / nativeW;
+    const scaleY = canvas.height / nativeH;
+    const cellW = (lastSceneMap.width || nativeW) / cols;
+    const cellH = (lastSceneMap.height || nativeH) / rows;
+    ctx.save();
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const v = win.score[r * cols + c] || 0;
+        if (v < 8) continue;
+        ctx.fillStyle = heatColor(v / 255);
+        ctx.fillRect(c * cellW * scaleX, r * cellH * scaleY, cellW * scaleX + 0.5, cellH * scaleY + 0.5);
+      }
+    }
+    if (win.chosenCell >= 0) {
+      const cc = win.chosenCell % cols;
+      const cr = Math.floor(win.chosenCell / cols);
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cc * cellW * scaleX, cr * cellH * scaleY, cellW * scaleX, cellH * scaleY);
+    }
+    ctx.restore();
+    for (const m of sceneMapMarks) {
+      const mid = ((win.startMs || 0) + (win.endMs || 0)) / 2;
+      if (mid < (m.fromMs || 0) || mid > (m.toMs == null ? Infinity : m.toMs)) continue;
+      const stroke = m.kind === 'exclude' ? '#e85d4c'
+        : m.kind === 'source' ? '#3dccc0' : '#f2b03d';
+      drawNativeRect(m.rect, stroke, stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)', m.kind === 'exclude');
+    }
+  }
+
+  function setSceneMapMarkMode(on) {
+    sceneMapMarkMode = on ? (el('#gen-scene-map-mark-kind')?.value || 'exclude') : null;
+    const btn = el('#gen-scene-map-mark');
+    if (btn) btn.classList.toggle('primary', !!sceneMapMarkMode);
+    if (on) {
+      // Clear other paint modes without requiring Contact-mark DOM nodes.
+      markMode = null;
+      roi2Mode = false;
+      el('#gen-status').textContent =
+        `Scene map mark (${sceneMapMarkMode}): drag on preview. Scope = current map window.`;
+    }
+  }
+
   async function runSceneMapScan() {
     if (!videoPath || !sceneMapAvailable) return;
     const btn = el('#gen-scene-map');
@@ -717,17 +856,21 @@ export function initGenerator(root, playback) {
     try {
       const map = await ScanSceneMap(videoPath, 0);
       lastSceneMap = map || null;
+      sceneMapWinIdx = 0;
       const n = Array.isArray(map?.windows) ? map.windows.length : 0;
       const grid = map?.cols && map?.rows ? `${map.cols}×${map.rows}` : '';
       if (status) {
         status.textContent = n
-          ? `Map ready: ${n} windows${grid ? ` · ${grid}` : ''} (marks/draw = later)`
+          ? `Map ready: ${n} windows${grid ? ` · ${grid}` : ''}`
           : 'Map scan returned no windows.';
       }
+      syncSceneMapTools();
+      redraw();
       uiInfo(status?.textContent || 'Scene map scan done.', el('#gen-status'));
     } catch (err) {
       lastSceneMap = null;
       if (status) status.textContent = '';
+      syncSceneMapTools();
       uiError('Scene map: ' + err, el('#gen-status'));
     } finally {
       updateSceneMapButton();
@@ -1086,15 +1229,19 @@ export function initGenerator(root, playback) {
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    drawSceneMapOverlay();
     for (const c of candidates) drawCandidate(c);
-    const dragRoi2 = dragging && draggingSecond && !markMode;
-    const dragRoi1 = dragging && !draggingSecond && !markMode;
+    const dragRoi2 = dragging && draggingSecond && !markMode && !sceneMapMarkMode;
+    const dragRoi1 = dragging && !draggingSecond && !markMode && !sceneMapMarkMode;
     if (roi && !dragRoi1) drawNativeRect(roi, ROI1_STROKE, ROI1_FILL);
     if (roi2 && !dragRoi2) drawNativeRect(roi2, ROI2_STROKE, ROI2_FILL);
     for (const t of extraTargets) drawNativeRect(t, TARGET_STROKE, TARGET_FILL);
     for (const m of maskRois) drawNativeRect(m, MASK_STROKE, MASK_FILL, true);
     if (dragging) {
-      if (markMode === 'mask') drawDragRect(MASK_STROKE, MASK_FILL, true);
+      if (sceneMapMarkMode === 'exclude') drawDragRect('#e85d4c', 'rgba(232,93,76,0.2)', true);
+      else if (sceneMapMarkMode === 'source') drawDragRect('#3dccc0', 'rgba(61,204,192,0.2)');
+      else if (sceneMapMarkMode === 'region') drawDragRect('#f2b03d', 'rgba(242,176,61,0.2)');
+      else if (markMode === 'mask') drawDragRect(MASK_STROKE, MASK_FILL, true);
       else if (markMode === 'target') drawDragRect(TARGET_STROKE, TARGET_FILL);
       else if (draggingSecond) drawDragRect(ROI2_STROKE, ROI2_FILL);
       else drawDragRect(ROI1_STROKE, ROI1_FILL);
@@ -1120,12 +1267,13 @@ export function initGenerator(root, playback) {
     dragging = false;
     const wasSecond = draggingSecond;
     const mode = markMode;
+    const smMode = sceneMapMarkMode;
     draggingSecond = false;
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
     // Tiny press: pick a motion candidate if shown (TFTJ 4b / MT-Seed).
     // Click → Tip (Zone 1). Shift / Zone-2 mode → Partner (Zone 2). Never auto-fills the other.
     if (w < 8 && h < 8) {
-      if (!mode && candidates.length) {
+      if (!mode && !smMode && candidates.length) {
         const hit = hitCandidate(startX, startY);
         if (hit) {
           pickCandidate(hit, wasSecond ? 2 : 1);
@@ -1141,6 +1289,25 @@ export function initGenerator(root, playback) {
       x: Math.round(x0 * scaleX), y: Math.round(y0 * scaleY),
       w: Math.round(w * scaleX), h: Math.round(h * scaleY),
     };
+    if (smMode) {
+      const win = activeSceneMapWindow();
+      sceneMapMarkSeq += 1;
+      sceneMapMarks.push({
+        id: `m${sceneMapMarkSeq}`,
+        kind: smMode,
+        rect: box,
+        fromMs: win?.startMs || 0,
+        toMs: win?.endMs || 0,
+        class: smMode === 'region' ? (el('#gen-scene-map-mark-class')?.value || '') : '',
+        author: 'user',
+      });
+      setSceneMapMarkMode(false);
+      updateSceneMapMarksLabel();
+      el('#gen-status').textContent =
+        `Scene map ${smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s).`;
+      redraw();
+      return;
+    }
     if (mode === 'target') {
       const cls = el('#gen-target-class')?.value || '';
       extraTargets.push({ ...box, fixed: true, class: cls });
@@ -1214,8 +1381,12 @@ export function initGenerator(root, playback) {
   async function loadVideo(path, extraCount = 0) {
     videoPath = path;
     lastSceneMap = null;
+    sceneMapWinIdx = 0;
+    sceneMapMarks = [];
+    sceneMapMarkMode = null;
     const smStatus = el('#gen-scene-map-status');
     if (smStatus) smStatus.textContent = '';
+    syncSceneMapTools();
     seekSec = 0;
     el('#gen-seek').value = '0';
     el('#gen-seek').disabled = false;
@@ -1803,6 +1974,24 @@ export function initGenerator(root, playback) {
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
   el('#gen-scene-map')?.addEventListener('click', runSceneMapScan);
+  el('#gen-scene-map-win')?.addEventListener('input', () => {
+    sceneMapWinIdx = parseInt(el('#gen-scene-map-win').value, 10) || 0;
+    syncSceneMapTools();
+    redraw();
+  });
+  el('#gen-scene-map-overlay')?.addEventListener('change', () => redraw());
+  el('#gen-scene-map-mark-kind')?.addEventListener('change', () => {
+    syncSceneMapTools();
+    if (sceneMapMarkMode) setSceneMapMarkMode(true);
+  });
+  el('#gen-scene-map-mark')?.addEventListener('click', () => {
+    setSceneMapMarkMode(!sceneMapMarkMode);
+  });
+  el('#gen-scene-map-marks-clear')?.addEventListener('click', () => {
+    sceneMapMarks = [];
+    updateSceneMapMarksLabel();
+    redraw();
+  });
   SceneMapAvailable().then((ok) => {
     sceneMapAvailable = !!ok;
     updateSceneMapButton();
