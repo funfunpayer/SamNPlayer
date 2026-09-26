@@ -115,7 +115,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiLoad | Cursor | [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) merged | **GUI load rule** — Load project + Scale range | **DONE** |
 | AIWrite | Cursor | [#261](https://github.com/funfunpayer/SamNPlayer/pull/261) merged | **AI script writer path S0** — opt-in local draft plan + package + GUI stub; Everyday CSRT unchanged | **DONE** |
 | GapHeal | Cursor | [#262](https://github.com/funfunpayer/SamNPlayer/pull/262) merged | **Heal tracking gaps** — strip+bridge `tracking_gaps`; clear metadata | **DONE** |
-| Refine | Cursor | [#263](https://github.com/funfunpayer/SamNPlayer/pull/263) | Look v3 lilac polish + motion; AIWrite S1 export; USER_HANDBOOK + **in-GUI handbook** | **THIS** |
+| Refine | Cursor | [#263](https://github.com/funfunpayer/SamNPlayer/pull/263) merged | Look v3 lilac polish + motion; AIWrite S1 export; USER_HANDBOOK + **in-GUI handbook** | **DONE** |
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
@@ -127,7 +127,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
-| Engine | — | free | Look2+GuiLoad+AIWrite+GapHeal on main; Refine THIS (Look v3 / S1 / handbook); Owner gates unchanged | **OPEN** |
+| Engine | — | free | Look2+GuiLoad+AIWrite+GapHeal+Refine (#263 Look v3 / S1 / handbook) on main; Owner gates unchanged | **OPEN** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -150,8 +150,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (26 Sep night):**
-- **Shipped:** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); AIWrite S0 [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); GapHeal [#262](https://github.com/funfunpayer/SamNPlayer/pull/262).
-- **In flight:** **Refine** [#263](https://github.com/funfunpayer/SamNPlayer/pull/263) — Look v3 lilac polish (chrome leftovers → lilac), more motion, AIWrite S1 classical export, `docs/USER_HANDBOOK.md` + in-GUI handbook modal.
+- **Shipped:** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); AIWrite S0 [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); GapHeal [#262](https://github.com/funfunpayer/SamNPlayer/pull/262); **Refine** [#263](https://github.com/funfunpayer/SamNPlayer/pull/263) (Look v3 lilac + S1 export + in-GUI handbook).
+- **In flight:** none (Engine free).
 - **Owner (26 Sep):** lilac > orange; more animation; FAQ/handbook; rethink AI/engine (Everyday CSRT stays).
 - **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
 - **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B; AIWrite S2+ default.
