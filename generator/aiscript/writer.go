@@ -22,7 +22,10 @@ type DraftRequest struct {
 	VideoPath string `json:"videoPath"`
 	ModelPath string `json:"modelPath,omitempty"`
 	// TipROI optional seed box in pixel coords (x,y,w,h). Zero = unused.
-	TipX, TipY, TipW, TipH float64 `json:"tipX,omitempty"`
+	TipX float64 `json:"tipX,omitempty"`
+	TipY float64 `json:"tipY,omitempty"`
+	TipW float64 `json:"tipW,omitempty"`
+	TipH float64 `json:"tipH,omitempty"`
 }
 
 // DraftResult is a proposed stroke only — caller must run Quality Doctor
