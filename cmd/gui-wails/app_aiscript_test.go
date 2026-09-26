@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,7 +23,7 @@ func TestExportAIScriptImitation(t *testing.T) {
 	// Use a dedicated settings-less App; export uses DefaultRoiDatasetDir.
 	_ = generator.DefaultRoiDatasetDir()
 	a := &App{}
-	res, err := a.ExportAIScriptImitation(scriptPath, filepath.Join(dir, "clip.mp4"))
+	res, err := a.ExportAIScriptImitation(scriptPath, filepath.Join(dir, "clip.mp4"), 10, 20, 80, 90)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,10 +33,16 @@ func TestExportAIScriptImitation(t *testing.T) {
 	if _, err := os.Stat(res.Path); err != nil {
 		t.Fatal(err)
 	}
-	// Sanity: loadable JSON actions count
-	raw, _ := os.ReadFile(res.Path)
+	// Sanity: loadable JSON actions count + tip ROI seed
+	raw, err := os.ReadFile(res.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(raw) < 20 {
 		t.Fatalf("short file: %s", raw)
+	}
+	if !bytes.Contains(raw, []byte(`"tipX": 10`)) && !bytes.Contains(raw, []byte(`"tipX":10`)) {
+		t.Fatalf("expected tipX in sample: %s", raw)
 	}
 	_ = funscript.Action{}
 }

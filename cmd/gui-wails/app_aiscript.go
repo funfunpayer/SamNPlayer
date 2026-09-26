@@ -42,7 +42,8 @@ type ExportAIScriptImitationResult struct {
 
 // ExportAIScriptImitation writes one classical good-run sample for offline
 // AI draft training (S1). Opt-in only — never called from Everyday Generate.
-func (a *App) ExportAIScriptImitation(scriptPath, videoPath string) (ExportAIScriptImitationResult, error) {
+// tipX/Y/W/H are optional Create tip ROI seed (zeros = omitted).
+func (a *App) ExportAIScriptImitation(scriptPath, videoPath string, tipX, tipY, tipW, tipH float64) (ExportAIScriptImitationResult, error) {
 	out := ExportAIScriptImitationResult{}
 	scriptPath = strings.TrimSpace(scriptPath)
 	if scriptPath == "" {
@@ -64,6 +65,9 @@ func (a *App) ExportAIScriptImitation(scriptPath, videoPath string) (ExportAIScr
 		QDPassed:   script.Metadata.QualityPassed,
 		QDScore:    script.Metadata.QualityScore,
 		Notes:      "S1 classical export — opt-in; Everyday CSRT unchanged",
+	}
+	if tipW > 0 && tipH > 0 {
+		sample.TipX, sample.TipY, sample.TipW, sample.TipH = tipX, tipY, tipW, tipH
 	}
 	if len(script.Actions) >= 2 {
 		sample.DurationMs = script.Actions[len(script.Actions)-1].At - script.Actions[0].At

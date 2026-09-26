@@ -47,6 +47,7 @@ Edit curve — drag dots; click empty = add; double-click = delete (≥2 remain)
 Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/suction → .samn
 Load / Save project — .snp.json
 Scale range ×0.8 — soften marked range intensity
+Playlist — queue multiple scripts
 Heatmap / markers — seek, loop, Extended-O, O-markers
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker.`,
@@ -56,6 +57,20 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
     body: `Device — connect Sam Neo 2 / Handy / etc.; connection test optional in Settings.
 Training — practice patterns without a video (technique, channel, cycles).
 AI Train — label scenes / tip ROIs for helpers (not the stroke writer).`,
+  },
+  {
+    title: 'Settings that matter',
+    body: `Open user handbook — this FAQ.
+AI ROI model path — enables Smarter tip find.
+Collect learning data — allows Scene map Export for learning.
+
+AI draft model path is not in Settings yet (S2+). Create Advanced draft stays disabled until a local model + inference ship.`,
+  },
+  {
+    title: 'Also in the GUI',
+    body: `Play Playlist — queue multiple scripts.
+Create Review — Align fill to audio tempo (optional when filling gaps).
+Create Advanced — Sliding dynamics, Auto-Retry, Suggest O-markers, Export classical run (needs a Create result), Scene map.`,
   },
   {
     title: 'Troubleshooting',

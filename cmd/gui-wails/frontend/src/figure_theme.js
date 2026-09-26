@@ -61,7 +61,7 @@ export function bodyMapZoneCSS() {
       .bf-outline { fill: none; stroke: #5a6478; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
       .bf-zone { fill: rgba(61,204,192,0.08); stroke: ${FIGURE_TEAL}; stroke-width: 1.2; cursor: pointer; transition: fill .12s ease; }
       .bf-zone:hover, .bf-zone.is-hot { fill: rgba(61,204,192,0.28); }
-      .bf-zone.is-active { fill: rgba(242,176,61,0.35); stroke: ${FIGURE_AMBER}; stroke-width: 1.8; }
+      .bf-zone.is-active { fill: rgba(184,150,232,0.35); stroke: ${FIGURE_AMBER}; stroke-width: 1.8; }
       .bf-label { fill: #9aa3b5; font-size: 7px; font-family: inherit; pointer-events: none; }
   `;
 }

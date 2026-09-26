@@ -117,7 +117,8 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | **Open user handbook** | In-app FAQ (same content as this doc’s Everyday sections) |
 | AI ROI model path | Enables *Smarter tip find* |
 | Collect learning data | Allows Scene map **Export for learning** |
-| AI draft model path | Reserved for S2+ (draft stays disabled until Available) |
+
+**Not in Settings yet (S2+):** AI draft model path — reserved Go key `generator.aiScriptModelPath`; Create Advanced draft stays disabled until S2 inference + a Settings picker.
 
 ---
 
@@ -146,7 +147,18 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 
 ---
 
-## 9. What we optimized for (honest)
+## 9. Also in the GUI (quick)
+
+| Control | Where |
+|---------|-------|
+| **Playlist** | Play — queue multiple scripts |
+| **Align fill to audio tempo** | Create → Review (optional when filling gaps) |
+| **Sliding dynamics / Auto-Retry / Suggest O-markers** | Create → Advanced |
+| **Export classical run** | Create → Advanced (S1 training sample; needs a Create result) |
+
+---
+
+## 10. What we optimized for (honest)
 
 - **Reliable Everyday CSRT** over flashy AI curve writers  
 - **Opt-in** AI helpers (ROI, profile suggest, scene map, future draft)  

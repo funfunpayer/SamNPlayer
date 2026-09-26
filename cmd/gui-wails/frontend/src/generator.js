@@ -292,9 +292,8 @@ export function initGenerator(root, playback) {
         <button id="gen-cancel" type="button" disabled>Cancel</button>
       </div>
       <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
-        <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
-          <div id="gen-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
-               transition:width .2s linear;"></div>
+        <div class="progress-bar" style="margin:0;">
+          <div id="gen-progress-bar" class="progress-bar-fill" style="width:0%;"></div>
         </div>
         <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
         <div id="gen-preview-steer-tip" class="hint" style="margin-top:4px;"></div>
@@ -1612,6 +1611,7 @@ export function initGenerator(root, playback) {
       el('#gen-improve-status').textContent = '';
       el('#gen-quality').style.display = 'none';
       syncWorkflowSteps();
+      refreshAIScriptWriterUI();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
         if (!result || !videoPath || videoPath !== path
@@ -2106,6 +2106,7 @@ export function initGenerator(root, playback) {
     el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
     updateSceneMapButton();
+    refreshAIScriptWriterUI();
     syncWorkflowSteps();
     if (result.error) {
       if (result.cancelled) {
@@ -2223,6 +2224,7 @@ export function initGenerator(root, playback) {
         }
       }
       lastOutputPath = path;
+      refreshAIScriptWriterUI();
       el('#gen-status').textContent += ' — loaded in Play (dots + Edit curve).';
       try {
         await playback.loadScriptPath(path, { review: true });
@@ -2295,15 +2297,19 @@ export function initGenerator(root, playback) {
   });
 
   function refreshAIScriptWriterUI() {
-    const btn = el('#gen-ai-script-draft');
+    const draft = el('#gen-ai-script-draft');
+    const exportBtn = el('#gen-ai-script-export');
     const status = el('#gen-ai-script-status');
     const hint = el('#gen-ai-script-hint');
-    if (!btn) return;
+    if (exportBtn) {
+      exportBtn.disabled = !lastOutputPath;
+    }
+    if (!draft) return;
     AIScriptWriterStatus().then((st) => {
       const available = !!(st && (st.available || st.Available));
       const reason = (st && (st.reason || st.Reason)) || '';
       const stage = (st && (st.stage || st.Stage)) || 'S0';
-      btn.disabled = !available || !videoPath;
+      draft.disabled = !available || !videoPath;
       if (status) {
         status.textContent = available
           ? `Ready (${stage})`
@@ -2313,7 +2319,7 @@ export function initGenerator(root, playback) {
         hint.textContent = reason;
       }
     }).catch(() => {
-      btn.disabled = true;
+      draft.disabled = true;
       if (status) status.textContent = 'AI draft status unavailable';
     });
   }
@@ -2327,7 +2333,9 @@ export function initGenerator(root, playback) {
     }
     if (status) status.textContent = 'Exporting training sample…';
     try {
-      const res = await ExportAIScriptImitation(path, videoPath || '');
+      const tip = roi && roi.w > 0 && roi.h > 0 ? roi : { x: 0, y: 0, w: 0, h: 0 };
+      const res = await ExportAIScriptImitation(
+        path, videoPath || '', tip.x || 0, tip.y || 0, tip.w || 0, tip.h || 0);
       if (status) status.textContent = (res && (res.message || res.Message)) || 'Exported';
       uiInfo((res && (res.message || res.Message)) || 'Training sample exported', el('#gen-status'));
     } catch (err) {
