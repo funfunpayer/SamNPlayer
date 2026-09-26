@@ -199,7 +199,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
 			"atMs": f.At, "vibration": f.Vibration, "suction": f.Suction, "totalMs": frames[len(frames)-1].At,
 		})
-		// Virtual Person plugin: no-op when disabled (docs/PLUGIN_SYSTEM.md).
+		// Plugin host clock + animation tick (no-op when Virtual Person disabled).
 		a.tickVirtualPerson(f.At, f.Vibration, f.Suction)
 	}
 	if opts.UseVideoSync {
@@ -507,82 +507,35 @@ func (a *App) GetHeatmap(buckets int) ([]HeatmapPoint, error) {
 	}
 	duration := script.Duration()
 	if duration <= 0 {
-		return nil, fmt.Errorf("script has no valid duration")
+		return nil, fmt.Errorf("script has no duration")
 	}
-	opts := funscript.DefaultMapOptions()
-	opts.TickMs = duration / int64(buckets)
-	if opts.TickMs < 10 {
-		opts.TickMs = 10
+	actions := script.Actions
+	if len(actions) == 0 {
+		return nil, fmt.Errorf("script contains no actions")
 	}
-	frames := script.ToIntensityCurve(opts)
-	points := make([]HeatmapPoint, len(frames))
-	for i, f := range frames {
-		intensity := f.Vibration
-		if f.Suction > intensity {
-			intensity = f.Suction
-		}
-		points[i] = HeatmapPoint{AtMs: f.At, Intensity: intensity}
+	bucketMs := duration / int64(buckets)
+	if bucketMs < 1 {
+		bucketMs = 1
 	}
-	return points, nil
-}
-
-// GetTrajectory returns the MT-Debug tip/partner trajectory for the loaded
-// script (nil when the script was not generated with "capture trajectory"
-// on, or has none loaded). Frontend maps Width/Height (video-pixel space at
-// generation time) onto the currently rendered <video> box.
-func (a *App) GetTrajectory() (*funscript.TrajectoryData, error) {
-	script := a.loadedScript()
-	if script == nil {
-		return nil, fmt.Errorf("no script loaded")
-	}
-	return script.Metadata.Trajectory, nil
-}
-
-// contactFrames: bevorzugt vorhandenes .sam-Sidecar mit Kontakt-Intensity,
-// sonst Enrich aus dem Funscript. Dünne Sidecars (nur Position) werden
-// übersprungen — sonst bliebe Vibration still auf 0.
-// Sidecar/Enrich werden vor dem Geräte-Mapping verdichtet (Densify), damit
-// Intensity der Classic-Per-Tick-Auswertung entspricht.
-func (a *App) contactFrames(script *funscript.Script, mapOpts funscript.MapOptions) []funscript.Frame {
-	if path := a.loadedScriptPath(); path != "" {
-		if s, err := sam.LoadSidecarIfPresent(path); err == nil && s != nil && sam.HasContactIntensity(s) {
-			dense := sam.Densify(s, mapOpts.TickMs, mapOpts)
-			if frames := sam.ToDeviceFrames(dense, mapOpts); len(frames) > 0 {
-				return frames
+	out := make([]HeatmapPoint, buckets)
+	for i := 0; i < buckets; i++ {
+		start := int64(i) * bucketMs
+		end := start + bucketMs
+		var sum float64
+		var n int
+		for _, act := range actions {
+			if act.At >= start && act.At < end {
+				sum += float64(act.Pos)
+				n++
 			}
 		}
+		avg := 0.0
+		if n > 0 {
+			avg = sum / float64(n) / 100.0
+		}
+		out[i] = HeatmapPoint{AtMs: start, Intensity: avg}
 	}
-	frames := sam.PlaybackFramesFromFunscript(script, mapOpts)
-	if len(frames) == 0 {
-		return script.ToIntensityCurve(mapOpts)
-	}
-	return frames
-}
-
-func (a *App) SetScriptOffset(ms int64) {
-	if ms < -10000 {
-		ms = -10000
-	}
-	if ms > 10000 {
-		ms = 10000
-	}
-	a.stateMu.Lock()
-	a.scriptOffsetMs = ms
-	path := a.currentScriptPath
-	a.stateMu.Unlock()
-	if path != "" && a.settings != nil {
-		_ = a.settings.Set(offsetKeyFor(path), float64(ms))
-	}
-}
-
-func (a *App) GetScriptOffset() int64 {
-	a.stateMu.RLock()
-	defer a.stateMu.RUnlock()
-	return a.scriptOffsetMs
-}
-
-func offsetKeyFor(scriptPath string) string {
-	return "playback.offset." + scriptPath
+	return out, nil
 }
 
 func clamp01Playback(v float64) float64 {
