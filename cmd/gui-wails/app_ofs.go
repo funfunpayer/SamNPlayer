@@ -7,6 +7,7 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/samn"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // GetScriptBookmarks liest metadata.bookmarks (OFS-/Community-Stil) bzw. .samn.
@@ -120,6 +121,17 @@ func (a *App) SavePlaybackProject(p funscript.Project) (string, error) {
 // LoadPlaybackProject lädt ein .snp.json.
 func (a *App) LoadPlaybackProject(path string) (funscript.Project, error) {
 	return funscript.LoadProject(path)
+}
+
+// PickPlaybackProject chooses a .snp.json session sidecar (OFS-style project).
+func (a *App) PickPlaybackProject() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose project (.snp.json)",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Emotion project (*.snp.json)", Pattern: "*.snp.json"},
+			{DisplayName: "JSON", Pattern: "*.json"},
+		},
+	})
 }
 
 // SnapTimeMs rastet auf Frame-Raster (fps).
