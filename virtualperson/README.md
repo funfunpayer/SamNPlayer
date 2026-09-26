@@ -15,3 +15,6 @@ p.Toys().SetSync(true)            // optional real-device output
 ```
 
 See Project Store plan: `docs/virtual-person-plugin-plan.md`.
+
+Host contract for SamNPlayer: [`docs/PLUGIN_SYSTEM.md`](../docs/PLUGIN_SYSTEM.md).
+Primary Animation Studio product code: `funfunpayer/tracken`.

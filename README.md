@@ -114,7 +114,7 @@ not needed, it stays out.
 <p align="center">
   <img src="docs/media/gui-player-rail.png" alt="Player layout with live vibration and suction meters" width="900" />
   <br />
-  Live device meters, soft, Extended-O — curve and device keep running even without a film
+  Live device meters, status, Extended-O — curve and device keep running even without a film
 </p>
 
 <p align="center">
@@ -234,6 +234,20 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 ---
 
+---
+
+## Plugins / Virtual Persons (planned)
+
+SamNPlayer will need a small **plugin / extension host** so Virtual Persons
+(animated characters, virtual props & activities, optional Sam Neo 2 sync) can
+attach to playback without forking the app. Product work for the Animation
+Studio lives primarily in [`funfunpayer/tracken`](https://github.com/funfunpayer/tracken);
+this repo keeps the player and the **host API contract**.
+
+See [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md). Experimental types live
+in [`virtualperson/`](virtualperson/) on the Virtual Person PR branch.
+
+
 ## Docs map
 
 | Doc | What it is |
@@ -244,6 +258,7 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 | [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md) | Production spine G0–G4 + release train |
 | [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics (knob → code → default) |
 | [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md) | AI suggest-only contract |
+| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | **Plugin host contract** — Virtual Persons / props / optional Neo 2 |
 | [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md) | Local training / profilemodel |
 | [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) | Who owns what (agents) |
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate |
