@@ -204,11 +204,13 @@ the existing classical tool — not a replacement for it:
 
 Large local models such as Qwen can still be connected through an
 OpenAI-compatible local server for explanations, metadata normalization or an
-additional opinion. They are not the primary curve writer: an LLM token stream
-does not preserve per-frame spatial identity, while the measured tracker and
-signal pipeline already enforce timing, speed and quality constraints. A future
-LLM/vision adapter must therefore produce a bounded proposal that goes through
-the same confirmation and classical post-processing path.
+additional opinion. They are **not** the Everyday stroke writer.
+
+**Owner 26 Sep — second path:** an **opt-in local AI draft** that *does* write
+candidate stroke actions is now allowed as an experimental lane
+(`docs/AI_SCRIPT_WRITER.md`). Rules: off by default; local model only; Quality
+Doctor + explicit Keep; no cloud LLM inventing per-frame positions from chat
+tokens. CSRT Create remains the product default until Owner gates a later stage.
 
 ### 3. Quality judgment — **implemented**
 

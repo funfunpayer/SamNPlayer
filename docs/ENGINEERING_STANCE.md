@@ -20,7 +20,7 @@ Related: `AGENT_COORD.md` (who owns what), `PRODUCTION_ROADMAP.md` (G0–G4),
 | **Speed Cap** | Autotune forces 400 if unset; Normal/Soft stay uncapped (`MaxSpeed=0`) until Owner decides a Neo-2-safe default. G1.1 gate. |
 | **Tf / Tj** | Profile / feel + CLI / Advanced legacy distance path — **not** Everyday Create. |
 | **Rhythm grid** | Opt-in Advanced (#233/#236, v0.5.30+). **Target lock** (#248, v0.5.31) seeds the first cell from the confirmed ROI. Default-on only after Owner ≥4–5 clips. |
-| **AI** | Proposes only. Classical CSRT + posttrack **write** the script. No LLM / vision model as a curve writer. |
+| **AI** | Everyday: proposes only (ROI / profile / quality). **Opt-in AI draft** (Owner 26 Sep): local model may draft stroke — `docs/AI_SCRIPT_WRITER.md`; no cloud LLM curve writer. |
 | **Scene map** | Advanced *Show scene map* + marks (#246/#247, v0.5.31). Marks = current window; engine consume = P3. Never auto before Create. |
 | **Profile model** | Local Go `profilemodel` (#244) — suggest-only; Apply required. |
 | **F-003 tier 2** | Do not implement lag tie-breaking; tier-1 `AliasingRisk` is enough for now. |
@@ -41,7 +41,7 @@ reviewed as **input**, not a shopping list.
 
 | Reject / defer | Why |
 |----------------|-----|
-| LLM / chat model writing positions | Breaks per-frame spatial identity; violates AI Adapter principle. |
+| LLM / chat model as Everyday stroke writer | Breaks per-frame spatial identity; cloud chat still rejected. Opt-in **local** draft = `AI_SCRIPT_WRITER.md` only. |
 | RAG-first Generate | Wrong layer — Generate needs measured tracks, not retrieval. |
 | PGO / micro-opt as a priority | Measure clip quality first; no speculative optimizer work. |
 | Blog dependency stacks (extra ORMs, LLM SDKs, Diffusers, DeepSpeed, …) | Unite.ai filter already in Multi-track Fahrplan; same filter here. |
