@@ -2,20 +2,16 @@ package main
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/funfunpayer/SamNPlayer/device"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/virtualperson"
 )
 
 // AppHost is the narrow virtualperson.Host implemented by the Wails App.
-// Clock comes from the last playback frame / video position; device is the
-// session device (may be nil when plugin runs animate-only).
+// Clock comes from the last playback frame; device is the session device
+// (may be nil when plugin runs animate-only).
 type AppHost struct {
 	app *App
 }
@@ -51,9 +47,12 @@ func poseToMap(p virtualperson.PoseSample) map[string]any {
 	ch := map[string]any{
 		"atMs":       p.Channels.AtMs,
 		"stroke":     p.Channels.Stroke,
-		"vibration":  p.Channels.Vibration,
-		"suction":    p.Channels.Suction,
-		"intensity":  p.Channels.Intensity,
+		"surge":      p.Channels.Surge,
+		"sway":       p.Channels.Sway,
+		"twist":      p.Channels.Twist,
+		"vibe":       p.Channels.Vibe,
+		"suck":       p.Channels.Suck,
+		"expression": p.Channels.Expression,
 	}
 	return map[string]any{
 		"characterId": string(p.CharacterID),
@@ -64,7 +63,6 @@ func poseToMap(p virtualperson.PoseSample) map[string]any {
 	}
 }
 
-// Virtual Person plugin state lives on App (see ensureVP).
 func (a *App) ensureVP() {
 	a.vpOnce.Do(func() {
 		host := &AppHost{app: a}
@@ -96,10 +94,13 @@ func (a *App) EnableVirtualPerson() error {
 
 // DisableVirtualPerson stops the plugin and clears activity ownership.
 func (a *App) DisableVirtualPerson() {
-	a.ensureVP()
 	a.vpMu.Lock()
-	defer a.vpMu.Unlock()
-	a.vpPlugin.Stop()
+	p := a.vpPlugin
+	a.vpMu.Unlock()
+	if p == nil {
+		return
+	}
+	p.Stop()
 	logging.Info("app: Virtual Person plugin stopped")
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "virtualperson:status", map[string]any{
@@ -143,27 +144,16 @@ func (a *App) VirtualPersonToySync() bool {
 // tickVirtualPerson is called from the player OnFrame path. No-op when the
 // plugin is disabled so playback is unaffected.
 func (a *App) tickVirtualPerson(atMs int64, vib, suck float64) {
-	a.ensureVP()
-	if !a.vpPlugin.Running() {
+	if a.vpPlugin == nil || !a.vpPlugin.Running() {
 		return
 	}
 	a.vpClockMs.Store(atMs)
-	// scriptPos: approximate 0–1 from suction/vib peak for control loop stubs.
-	scriptPos := vib
-	if suck > scriptPos {
-		scriptPos = suck
+	// scriptPos: approximate 0–100 scale from primary vibe for control stubs.
+	scriptPos := vib * 100
+	if suck > vib {
+		scriptPos = suck * 100
 	}
 	if err := a.vpPlugin.Tick(scriptPos, vib, suck); err != nil {
 		logging.Debug("app: virtualperson Tick", "error", err)
 	}
 }
-
-// --- fields embedded via methods that App gains (declared here for clarity) ---
-// Actual fields must live on App; we add them in a companion patch to app.go.
-
-var (
-	_ = sync.Mutex{}
-	_ = atomic.Int64{}
-	_ = time.Time{}
-	_ = device.Device(nil)
-)
