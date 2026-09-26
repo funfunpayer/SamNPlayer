@@ -150,6 +150,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Shipped:** **v0.5.31** (#249); SceneMap **P3–P5b** (#251–#256); **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257); **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258).
 - **In flight:** **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) THIS (Load project + Scale range).
 - **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI** (no backend-only leftovers for product paths).
+- **Blocked:** GitHub Actions billing / spending limit — Checks fail before start; Owner: Billing & plans, then re-run CI on #259/#260.
 - **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
 - **Parked:** LosslessCut.
 - **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B.
