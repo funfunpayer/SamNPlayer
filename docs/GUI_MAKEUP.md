@@ -19,6 +19,7 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 - `prefers-reduced-motion` honored
 - Figure heat ramp: teal → lilac → coral (Device / Training shared tokens)
 - **In-app handbook** — Settings + Create open the same FAQ modal (`handbook.js`)
+- Play tip trajectory overlay uses lilac (was honey)
 
 ## Ideas backlog (next slices)
 
@@ -28,7 +29,6 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 | Settings density | Pro tools look | English copy only |
 | Bookmarks UI (API exists) | OFS parity | Keep Play simple |
 | Screenshot pack for README | Public face | Match Look v3 |
-| Trajectory path color → lilac | Play overlay tip stroke | **Done this PR** |
 
 ## Explicit non-goals
 
