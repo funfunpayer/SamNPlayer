@@ -304,7 +304,7 @@ export function initGenerator(root, playback) {
       <div id="gen-improve" style="display:none; margin-top:4px; padding:10px;
            border:1px solid var(--border); border-radius:4px;">
         <div style="margin-bottom:6px;">
-          Soft polish on the CSRT result — trim ends, fill gaps, optional audio check.
+          Soft polish on the CSRT result — trim ends, fill gaps, heal tracker-loss windows, optional audio check.
           Gaps already get an auto pass right after Create; re-run here after trim or with audio spacing.
         </div>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px;">
@@ -317,6 +317,10 @@ export function initGenerator(root, playback) {
           <label class="checkbox-row" style="margin:0;"
             data-help="Inserts linear points across long holes (tracker loss / sparse keyframes). Does not invent motion from audio.">
             <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and linearly bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT.">
+            <input type="checkbox" id="gen-improve-heal" checked /> Heal tracking gaps
           </label>
           <label class="checkbox-row" style="margin:0;"
             data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
@@ -2048,6 +2052,7 @@ export function initGenerator(root, playback) {
         startSec: parseFloat(el('#gen-improve-start')?.value) || 0,
         endSec: parseFloat(el('#gen-improve-end')?.value) || 0,
         fillGaps: !!el('#gen-improve-fill')?.checked,
+        healTrackingGaps: !!el('#gen-improve-heal')?.checked,
         maxGapMs: 0,
         audioCheck: audioOn,
         useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
@@ -2177,14 +2182,16 @@ export function initGenerator(root, playback) {
         if (el('#gen-improve-status')) {
           el('#gen-improve-status').textContent = 'Auto fill-gaps after generate…';
         }
-        // Force fill on; honor Review audio toggles (defaults checked).
+        // Force fill + heal on; honor Review audio toggles (defaults checked).
         if (el('#gen-improve-fill')) el('#gen-improve-fill').checked = true;
+        if (el('#gen-improve-heal')) el('#gen-improve-heal').checked = true;
         const polished = await ImproveGeneratedScript({
           path,
           videoPath: videoPath || '',
           startSec: 0,
           endSec: 0,
           fillGaps: true,
+          healTrackingGaps: true,
           maxGapMs: 0, // auto + second pass @ 400ms
           audioCheck: !!(el('#gen-improve-audio')?.checked || el('#gen-audio-check')?.checked),
           useAudioForFill: el('#gen-improve-audio-fill')

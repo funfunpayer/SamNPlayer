@@ -13,7 +13,7 @@ import (
 )
 
 // ImproveScriptRequest is the FunGen-like post-generate polish step:
-// trim start/end, fill gaps, optional audio tempo check (warn-only).
+// trim start/end, fill gaps, heal tracking-loss windows, optional audio tempo check.
 type ImproveScriptRequest struct {
 	Path      string  `json:"path"`
 	VideoPath string  `json:"videoPath"`
@@ -21,6 +21,9 @@ type ImproveScriptRequest struct {
 	EndSec    float64 `json:"endSec"`
 	FillGaps  bool    `json:"fillGaps"`
 	MaxGapMs  int64   `json:"maxGapMs"`
+	// HealTrackingGaps rewrites metadata.tracking_gaps windows (strip junk +
+	// linear bridge). Empty/missing gaps = no-op. Does not re-run CSRT.
+	HealTrackingGaps bool `json:"healTrackingGaps"`
 	// AudioCheck re-runs tempo check and stamps metadata (does not rewrite curve).
 	AudioCheck bool `json:"audioCheck"`
 	// UseAudioForFill uses audio Hz (when available) for fill-gap step spacing.
@@ -37,6 +40,7 @@ type ImproveScriptResult struct {
 	PointsAdded   int      `json:"pointsAdded"`
 	FillGapMs     int64    `json:"fillGapMs"`
 	FillStepMs    int64    `json:"fillStepMs"`
+	WindowsHealed int      `json:"windowsHealed"`
 	AudioHz       *float64 `json:"audioHz,omitempty"`
 	ScriptHz      *float64 `json:"scriptHz,omitempty"`
 	AudioWarnings []string `json:"audioWarnings,omitempty"`
@@ -80,8 +84,10 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	}
 
 	opts := funscript.ImproveOpts{
-		FillGaps: req.FillGaps,
-		MaxGapMs: req.MaxGapMs,
+		FillGaps:         req.FillGaps,
+		MaxGapMs:         req.MaxGapMs,
+		HealTrackingGaps: req.HealTrackingGaps,
+		TrackingGaps:     append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...),
 	}
 	if req.StartSec > 0 {
 		opts.StartMs = int64(req.StartSec * 1000)
@@ -104,10 +110,11 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	out.PointsAdded = improved.PointsAdded
 	out.FillGapMs = improved.FillGapMs
 	out.FillStepMs = improved.FillStepMs
+	out.WindowsHealed = improved.WindowsHealed
 
-	changed := improved.Trimmed || improved.PointsAdded > 0
+	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0
 	if changed {
-		if err := saveImprovedActions(path, improved.Actions); err != nil {
+		if err := saveImprovedActions(path, improved.Actions, improved.ClearTrackingGaps); err != nil {
 			return out, err
 		}
 		funPath := path
@@ -143,8 +150,13 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	if improved.Trimmed {
 		parts = append(parts, "trimmed start/end")
 	}
+	if improved.WindowsHealed > 0 {
+		parts = append(parts, fmt.Sprintf("healed %d tracking gap(s)", improved.WindowsHealed))
+	}
 	if improved.GapsFilled > 0 {
 		parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d points)", improved.GapsFilled, improved.PointsAdded))
+	} else if improved.WindowsHealed > 0 && improved.PointsAdded > 0 {
+		parts = append(parts, fmt.Sprintf("+%d bridge points", improved.PointsAdded))
 	}
 	if req.AudioCheck && audioMeta != nil {
 		if len(audioMeta.Warnings) > 0 {
@@ -170,7 +182,9 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 // actions-only Script Doctor quality (EstimatedFromScriptOnly) rather than
 // reproducing the original dense-signal score - a genuine, if weaker,
 // estimate of the current curve beats a stale snapshot of a different one.
-func saveImprovedActions(path string, actions []funscript.Action) error {
+// clearGaps drops tracking_gaps / TrackingGaps in the same write so Contact
+// vib is not muted on healed windows and companion export stays consistent.
+func saveImprovedActions(path string, actions []funscript.Action, clearGaps bool) error {
 	quality := funscript.EvaluateScriptQuality(actions)
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)
@@ -181,6 +195,9 @@ func saveImprovedActions(path string, actions []funscript.Action) error {
 		doc.QualityScore = &quality.Score
 		doc.QualityPassed = &quality.Passed
 		doc.QualityWarnings = quality.Warnings
+		if clearGaps {
+			doc.TrackingGaps = nil
+		}
 		if err := samn.Save(path, doc); err != nil {
 			return err
 		}
@@ -189,7 +206,13 @@ func saveImprovedActions(path string, actions []funscript.Action) error {
 	if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
-	return funscript.StampQuality(path, quality)
+	if err := funscript.StampQuality(path, quality); err != nil {
+		return err
+	}
+	if clearGaps {
+		return funscript.StampTrackingGaps(path, nil)
+	}
+	return nil
 }
 
 func guessVideoBesideScript(scriptPath string) string {
