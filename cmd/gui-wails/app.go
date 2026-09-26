@@ -10,6 +10,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
 	"github.com/funfunpayer/SamNPlayer/samn"
+	"github.com/funfunpayer/SamNPlayer/virtualperson"
 )
 
 // App ist der zentrale Zustand hinter der Wails-Bindung. Alle exportierten
@@ -80,6 +82,14 @@ type App struct {
 	// allgemeinen Vorliebe.
 	scriptOffsetMs    int64
 	currentScriptPath string
+
+	// Virtual Person plugin host (docs/PLUGIN_SYSTEM.md). Idle until
+	// EnableVirtualPerson; Tick is no-op when not running so playback is safe.
+	vpOnce    sync.Once
+	vpMu      sync.Mutex
+	vpPlugin  *virtualperson.Plugin
+	vpHost    *AppHost
+	vpClockMs atomic.Int64
 }
 
 func NewApp() *App {
@@ -415,6 +425,7 @@ func (a *App) registerFileDrop() {
 }
 
 func (a *App) shutdown(ctx context.Context) {
+	a.DisableVirtualPerson()
 	a.stateMu.Lock()
 	dev := a.testDevice
 	a.testDevice = nil

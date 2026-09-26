@@ -15,6 +15,7 @@ import { initSidebar } from './sidebar.js';
 import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
+import { initVirtualPerson } from './virtualperson.js';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -90,6 +91,7 @@ initDevice(document.getElementById('tab-device'));
 initLog(document.getElementById('tab-log'));
 initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));
+initVirtualPerson(document.getElementById('sidebar'));
 enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 initPostGenerateReview();
