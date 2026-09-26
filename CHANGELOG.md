@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Look v3 — lilac accent** — Owner preference over honey orange: chrome,
+  help chips, washes, Device/Training heat mid-stop. Teal secondary kept;
+  warn stays warm. Extra motion: Create step enter, help popover, CTA press
+  (`prefers-reduced-motion` safe).
 - **G3 suggest-only copy** — Create profile-suggestion status strings English
   (`local Go model` / `AI server` / `measured`); CSRT writer and Apply gate
   unchanged. G3 roadmap status synced (helpers shipped; fuse/Stage B still gated).
@@ -19,6 +23,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **User handbook** — `docs/USER_HANDBOOK.md` Everyday FAQ + Create/Play map
+  (what is in the GUI vs CLI / future AI draft).
+- **AIWrite S1 export** — Create Advanced **Export classical run** writes local
+  `ai_script_imitation/` samples for offline draft training; Everyday CSRT
+  unchanged; draft button still disabled until S2 model.
 - **Heal tracking gaps** — Review Improve (+ auto after Generate, Neo 2 optimize)
   strips junk points inside `metadata.tracking_gaps`, linearly bridges those
   windows only, then clears the windows so Contact vib is not muted forever.

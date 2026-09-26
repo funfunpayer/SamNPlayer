@@ -10,9 +10,9 @@
 
 /** Device shell / Contact / body-map zone teal (Claude). */
 export const FIGURE_TEAL = '#3dccc0';
-/** Device vib / accent amber (Claude). */
-export const FIGURE_AMBER = '#f2b03d';
-/** Peak / warn coral — beyond amber when intensity is high. */
+/** Device vib / chrome accent — lilac (Owner Look v3, 26 Sep). */
+export const FIGURE_AMBER = '#b896e8';
+/** Peak / warn coral — beyond accent when intensity is high. */
 export const FIGURE_CORAL = '#ef5f5f';
 /** Dim body pixels / outline cool. */
 export const FIGURE_COOL = '#3a4558';
@@ -25,7 +25,7 @@ export const FIGURE_TEAL_DEEP = '#2a6b66';
 
 /**
  * Heat ramp for intensity 0..1 — same stops as Device vib/suc fills:
- * cool teal → Claude teal → amber → coral. Returns #rrggbb.
+ * cool teal → Claude teal → lilac → coral. Returns #rrggbb.
  */
 export function figureHeatColor(level01) {
   const t = Math.max(0, Math.min(1, level01));

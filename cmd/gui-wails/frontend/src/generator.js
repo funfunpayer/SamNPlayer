@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -211,10 +211,11 @@ export function initGenerator(root, playback) {
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. An opt-in local AI draft writer is being built
-            (docs/AI_SCRIPT_WRITER.md) — this control stays off until a model is available.
+            Everyday Create still uses CSRT. Export classical good runs for training (S1), then later install a local draft model (S2+).
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="secondary" id="gen-ai-script-export"
+              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Use after a good run.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
               data-help="Experimental: local AI drafts a stroke curve for review. Off until a draft model is installed. Does not replace CSRT Create. Require Keep after Quality Doctor (planned S3).">AI draft script</button>
             <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
@@ -2311,6 +2312,23 @@ export function initGenerator(root, playback) {
     });
   }
   refreshAIScriptWriterUI();
+  el('#gen-ai-script-export')?.addEventListener('click', async () => {
+    const status = el('#gen-ai-script-status');
+    const path = lastOutputPath;
+    if (!path) {
+      uiWarn('Create a script first, then export the classical run.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Exporting training sample…';
+    try {
+      const res = await ExportAIScriptImitation(path, videoPath || '');
+      if (status) status.textContent = (res && (res.message || res.Message)) || 'Exported';
+      uiInfo((res && (res.message || res.Message)) || 'Training sample exported', el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Export classical run: ' + err, el('#gen-status'));
+    }
+  });
   el('#gen-ai-script-draft')?.addEventListener('click', async () => {
     const status = el('#gen-ai-script-status');
     if (!videoPath) {

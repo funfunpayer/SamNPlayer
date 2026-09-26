@@ -55,11 +55,11 @@ The AI script path is therefore:
 
 | Stage | Deliverable | Exit gate |
 |-------|-------------|-----------|
-| **S0** | This plan + Go `aiscript` package + GUI stub (disabled until Available) | Docs + tests; Everyday bit-identical |
-| **S1** | Training export: classical good runs → paired features/actions for imitation | Owner can collect ≥N usable clips locally |
-| **S2** | First local draft model (train offline; infer in-app) | Blind QD on held-out clips ≥ classical floor *or* Owner accept “experimental” |
-| **S3** | Create Advanced: **AI draft script** button → preview curve → Keep | Apply required; English copy only |
-| **S4** | Optional: draft seeded from tip ROI + scene-map marks (better tip lock) | Goldens announced; no Everyday default |
+| **S0** | Plan + Go `aiscript` + GUI stub | **Done** (#261) — Everyday bit-identical |
+| **S1** | Training export: classical good runs → imitation samples | **Partial** — `ExportImitationSample` + Create **Export classical run** |
+| **S2** | First local draft model (train offline; infer in-app) | Blind QD ≥ classical floor *or* Owner “experimental” |
+| **S3** | Create Advanced: **AI draft script** → preview → Keep | Apply required; English copy only |
+| **S4** | Optional: draft seeded from tip ROI + scene-map marks | Goldens announced; no Everyday default |
 
 **Out until Owner re-opens:** cloud APIs, Diffusers, replacing CSRT default,
 audio inventing positions, auto-Keep without QD.

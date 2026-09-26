@@ -32,6 +32,8 @@ export function AIScriptWriterStatus():Promise<Record<string, any>>;
 
 export function DraftAIScript(arg1:string):Promise<Record<string, any>>;
 
+export function ExportAIScriptImitation(arg1:string,arg2:string):Promise<Record<string, any>>;
+
 export function PickImageFile():Promise<string>;
 
 export function CancelGenerate():Promise<void>;

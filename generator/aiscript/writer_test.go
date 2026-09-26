@@ -7,7 +7,7 @@ func TestStatusForEmpty(t *testing.T) {
 	if st.Available {
 		t.Fatal("empty model must not be available")
 	}
-	if st.Stage != "S0" {
+	if st.Stage != "S1" {
 		t.Fatalf("stage=%q", st.Stage)
 	}
 	if st.Reason == "" {
@@ -15,13 +15,16 @@ func TestStatusForEmpty(t *testing.T) {
 	}
 }
 
-func TestStatusForPathStillS0(t *testing.T) {
+func TestStatusForPathStillClosed(t *testing.T) {
 	st := StatusFor("/tmp/fake.onnx")
 	if st.Available {
-		t.Fatal("S0 must refuse even when a path is set")
+		t.Fatal("must refuse even when a path is set until S2")
 	}
 	if st.ModelPath != "/tmp/fake.onnx" {
 		t.Fatalf("modelPath=%q", st.ModelPath)
+	}
+	if st.Stage != "S1" {
+		t.Fatalf("stage=%q", st.Stage)
 	}
 }
 
