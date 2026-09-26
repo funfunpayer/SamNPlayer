@@ -33,11 +33,15 @@ Animation MVP: **2D sprite puppet** + prop sprites (`props/dildo.png`). Live2D /
 
 Host contract: [`docs/PLUGIN_SYSTEM.md`](PLUGIN_SYSTEM.md).
 
+Host wiring (Wails): `cmd/gui-wails/app_virtualperson.go` — `AppHost`, `EnableVirtualPerson`, `tickVirtualPerson` from player `OnFrame`, `EmitAnimation` → `virtualperson:pose`.
+
+GUI consumer: `cmd/gui-wails/frontend/src/virtualperson.js` — sidebar card, canvas puppet stub, MVP controls.
+
 ---
 
 ## Decisions (this PR)
 
-1. **Assets** — still blocked: copy `character-01/primary.jpg`, create `props/dildo.png` + titjob frames (Project store / Animation Studio). Code already references `SpriteRel` / `RefImage`.
+1. **Assets** — still blocked: copy `character-01/primary.jpg`, create `props/dildo.png` + titjob frames (Project store / Animation Studio). Code already references `SpriteRel` / `RefImage`. GUI draws placeholder geometry until pack lands.
 2. **Chat** — **local-first**: `LocalOpenAIBackend` targets OpenAI-compatible localhost (Ollama / LM Studio / Colibri). Falls back to `EchoBackend` offline. No cloud by default.
 3. **Real-device sync** — `ToyHub.SetSync(false)` at construction; must be user-enabled.
 
@@ -45,12 +49,12 @@ Host contract: [`docs/PLUGIN_SYSTEM.md`](PLUGIN_SYSTEM.md).
 
 ## Next open points
 
-| # | Item | Owner |
-|---|------|--------|
-| 1 | Asset pack (primary + dildo + frames) | Owner / tracken |
-| 2 | GUI overlay wiring (Wails panel + EmitAnimation consumer) | follow-up PR |
-| 3 | PluginHost registration inside player tick (ownership rule) | follow-up |
-| 4 | Measure: activity vs funscript bus under race | tests already cover priority |
+| # | Item | Owner | Status |
+|---|------|--------|--------|
+| 1 | Asset pack (primary + dildo + frames) | Owner / tracken | **open** |
+| 2 | GUI overlay wiring (Wails panel + EmitAnimation consumer) | follow-up | **done** (sidebar + canvas stub) |
+| 3 | PluginHost registration inside player tick (ownership rule) | follow-up | partial — Tick wired; ownership flip when sync on still to measure |
+| 4 | Measure: activity vs funscript bus under race | tests already cover priority | done |
 
 ---
 
@@ -61,3 +65,5 @@ go test ./virtualperson/
 ```
 
 Scene-graph, prop attach, activity priority, tag parse, device bridge from mock.
+
+Manual GUI: Enable → Give dildo → Start titjob → watch stroke bars + canvas phase; Toy sync stays off unless checked.
