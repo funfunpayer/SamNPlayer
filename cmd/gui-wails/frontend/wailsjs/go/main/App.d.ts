@@ -277,3 +277,12 @@ export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promis
 export function OptimizeLoadedForNeo2(arg1:boolean):Promise<any>;
 export function BakeNeoAxesOnLoaded():Promise<string>;
 export function SaveLoadedAsSamn():Promise<string>;
+
+// Virtual Person host (docs/PLUGIN_SYSTEM.md)
+export function EnableVirtualPerson():Promise<void>;
+export function DisableVirtualPerson():Promise<void>;
+export function VirtualPersonRunning():Promise<boolean>;
+export function VirtualPersonGiveDildo():Promise<void>;
+export function VirtualPersonStartTitjob(arg1:number,arg2:number):Promise<void>;
+export function VirtualPersonSetToySync(arg1:boolean):Promise<void>;
+export function VirtualPersonToySync():Promise<boolean>;

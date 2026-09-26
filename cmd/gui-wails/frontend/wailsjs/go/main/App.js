@@ -155,3 +155,12 @@ export function GetScriptBookmarks() { return window['go']['main']['App']['GetSc
 export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }
 export function GetScriptChapterMarks() { return window['go']['main']['App']['GetScriptChapterMarks'](); }
 export function SaveScriptChapterMarks(arg1) { return window['go']['main']['App']['SaveScriptChapterMarks'](arg1); }
+
+// Virtual Person host (docs/PLUGIN_SYSTEM.md) — hand-appended until next wails generate
+export function EnableVirtualPerson() { return window['go']['main']['App']['EnableVirtualPerson'](); }
+export function DisableVirtualPerson() { return window['go']['main']['App']['DisableVirtualPerson'](); }
+export function VirtualPersonRunning() { return window['go']['main']['App']['VirtualPersonRunning'](); }
+export function VirtualPersonGiveDildo() { return window['go']['main']['App']['VirtualPersonGiveDildo'](); }
+export function VirtualPersonStartTitjob(arg1, arg2) { return window['go']['main']['App']['VirtualPersonStartTitjob'](arg1, arg2); }
+export function VirtualPersonSetToySync(arg1) { return window['go']['main']['App']['VirtualPersonSetToySync'](arg1); }
+export function VirtualPersonToySync() { return window['go']['main']['App']['VirtualPersonToySync'](); }
