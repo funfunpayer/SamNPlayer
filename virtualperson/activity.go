@@ -36,6 +36,7 @@ const (
 	StateIdle          ActivityState = "idle"
 	StateReceivingProp ActivityState = "receiving_prop"
 	StateEquipped      ActivityState = "equipped"
+	StateActive        ActivityState = "active" // generic activity running
 	StateTitjobActive  ActivityState = "titjob_active"
 	StateStopping      ActivityState = "stopping"
 )
@@ -63,15 +64,15 @@ var TitjobDildo = ActivityDef{
 
 // ActivityCatalog holds defs + runtime scene state.
 type ActivityCatalog struct {
-	mu       sync.Mutex
-	defs     map[ActivityID]ActivityDef
-	inv      *PropInventory
-	bus      *MotionBus
-	state    ActivityState
-	active   ActivityID
+	mu        sync.Mutex
+	defs      map[ActivityID]ActivityDef
+	inv       *PropInventory
+	bus       *MotionBus
+	state     ActivityState
+	active    ActivityID
 	intensity float64
-	phase    float64 // 0–1 loop
-	deadline time.Time
+	phase     float64 // 0–1 loop
+	deadline  time.Time
 }
 
 // NewActivityCatalog wires inventory + bus.
@@ -80,12 +81,33 @@ func NewActivityCatalog(inv *PropInventory, bus *MotionBus) *ActivityCatalog {
 		ActivityIdle:        {ID: ActivityIdle, DisplayName: "Idle"},
 		ActivityStop:        {ID: ActivityStop, DisplayName: "Stop"},
 		ActivityTitjobDildo: TitjobDildo,
-		ActivityKiss:        {ID: ActivityKiss, DisplayName: "Kiss"},
-		ActivityStrokeSlow:  {ID: ActivityStrokeSlow, DisplayName: "Stroke slow"},
-		ActivityStrokeFast:  {ID: ActivityStrokeFast, DisplayName: "Stroke fast"},
-		ActivityOralSuction: {ID: ActivityOralSuction, DisplayName: "Oral / suction"},
-		ActivityTease:       {ID: ActivityTease, DisplayName: "Tease"},
-		ActivityClimaxWindow:{ID: ActivityClimaxWindow, DisplayName: "Climax window"},
+		ActivityKiss: {
+			ID: ActivityKiss, DisplayName: "Kiss",
+			StrokeMin: 10, StrokeMax: 40,
+		},
+		ActivityStrokeSlow: {
+			ID: ActivityStrokeSlow, DisplayName: "Stroke slow",
+			RequiredProp: PropDildo, AttachSocket: SocketHandR,
+			StrokeMin: 15, StrokeMax: 55,
+		},
+		ActivityStrokeFast: {
+			ID: ActivityStrokeFast, DisplayName: "Stroke fast",
+			RequiredProp: PropDildo, AttachSocket: SocketHandR,
+			StrokeMin: 25, StrokeMax: 95,
+		},
+		ActivityOralSuction: {
+			ID: ActivityOralSuction, DisplayName: "Oral / suction",
+			RequiredProp: PropDildo, AttachSocket: SocketMouth,
+			StrokeMin: 30, StrokeMax: 80,
+		},
+		ActivityTease: {
+			ID: ActivityTease, DisplayName: "Tease",
+			StrokeMin: 5, StrokeMax: 35,
+		},
+		ActivityClimaxWindow: {
+			ID: ActivityClimaxWindow, DisplayName: "Climax window",
+			StrokeMin: 60, StrokeMax: 100,
+		},
 	}
 	return &ActivityCatalog{
 		defs:  defs,
@@ -100,6 +122,23 @@ func (c *ActivityCatalog) State() ActivityState {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.state
+}
+
+// ActiveID returns the current activity or idle.
+func (c *ActivityCatalog) ActiveID() ActivityID {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.active == "" {
+		return ActivityIdle
+	}
+	return c.active
+}
+
+// IsActivityRunning reports whether any non-idle activity owns the scene.
+func (c *ActivityCatalog) IsActivityRunning() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.state == StateActive || c.state == StateTitjobActive
 }
 
 // GiveProp is the scene-graph step give_toy(id).
@@ -140,10 +179,10 @@ func (c *ActivityCatalog) Start(intent ActivityIntent) error {
 		c.intensity = 0.5
 	}
 	c.phase = 0
-	c.state = StateTitjobActive
-	if intent.ID != ActivityTitjobDildo {
-		// Generic active label for non-titjob stubs.
+	if intent.ID == ActivityTitjobDildo {
 		c.state = StateTitjobActive
+	} else {
+		c.state = StateActive
 	}
 	if intent.DurationS > 0 {
 		c.deadline = time.Now().Add(time.Duration(intent.DurationS) * time.Second)

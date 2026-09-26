@@ -103,3 +103,52 @@ func TestParsePropAndActivityTags(t *testing.T) {
 		t.Fatalf("activity=%v", act)
 	}
 }
+
+func TestActivityPriorityWinsOverFunscript(t *testing.T) {
+	host := &testHost{now: 2000, dev: virtualperson.NullDevice{}}
+	p := virtualperson.NewPlugin(host)
+	if err := p.GiveDildo(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.StartTitjob(0.7, 0); err != nil {
+		t.Fatal(err)
+	}
+	if !p.Catalog().IsActivityRunning() {
+		t.Fatal("expected activity running")
+	}
+	if err := p.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	// Funscript at 5 should lose to activity stroke range.
+	if err := p.Tick(5, 0.05, 0.05); err != nil {
+		t.Fatal(err)
+	}
+	if len(host.poses) == 0 {
+		t.Fatal("no pose")
+	}
+	if host.poses[0].Channels.Stroke < 15 {
+		t.Fatalf("activity should win bus, stroke=%v", host.poses[0].Channels.Stroke)
+	}
+	p.Stop()
+}
+
+func TestStrokeSlowRequiresProp(t *testing.T) {
+	p := virtualperson.NewPlugin(nil)
+	err := p.Catalog().Start(virtualperson.ActivityIntent{
+		ID:        virtualperson.ActivityStrokeSlow,
+		Intensity: 0.4,
+	})
+	if err == nil {
+		t.Fatal("stroke_slow without dildo should fail")
+	}
+	_ = p.GiveDildo()
+	if err := p.Catalog().Start(virtualperson.ActivityIntent{
+		ID:        virtualperson.ActivityStrokeSlow,
+		Intensity: 0.4,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if p.Catalog().State() != virtualperson.StateActive {
+		t.Fatalf("state=%s want active", p.Catalog().State())
+	}
+}

@@ -1,7 +1,10 @@
 package virtualperson
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -158,4 +161,78 @@ func (s *ChatSession) SendUser(ctx context.Context, text string) (ChatReply, err
 		}
 	}
 	return reply, nil
+}
+
+// LocalOpenAIBackend calls an OpenAI-compatible /v1/chat/completions endpoint
+// (Colibri, LM Studio, Ollama with OpenAI shim). Default baseURL is
+// http://127.0.0.1:11434/v1 for Ollama; override for other local servers.
+// No cloud calls — local-first as recommended in the Virtual Person plan.
+type LocalOpenAIBackend struct {
+	BaseURL string // e.g. "http://127.0.0.1:1234/v1"
+	Model   string // e.g. "local-model"
+	// HTTPClient optional; if nil, uses http.DefaultClient with a short timeout.
+}
+
+// Complete implements ChatBackend. On network error it falls back to EchoBackend
+// so offline demos still emit demo prop/activity tags.
+func (b LocalOpenAIBackend) Complete(ctx context.Context, persona PersonaCard, history []ChatMessage) (ChatReply, error) {
+	base := strings.TrimRight(b.BaseURL, "/")
+	if base == "" {
+		base = "http://127.0.0.1:11434/v1"
+	}
+	model := b.Model
+	if model == "" {
+		model = "local-model"
+	}
+
+	type oaMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	msgs := make([]oaMsg, 0, len(history))
+	for _, m := range history {
+		msgs = append(msgs, oaMsg{Role: m.Role, Content: m.Content})
+	}
+	body, err := json.Marshal(map[string]any{
+		"model":       model,
+		"messages":    msgs,
+		"temperature": 0.7,
+		"max_tokens":  400,
+	})
+	if err != nil {
+		return EchoBackend{}.Complete(ctx, persona, history)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return EchoBackend{}.Complete(ctx, persona, history)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.DefaultClient
+	resp, err := client.Do(req)
+	if err != nil {
+		return EchoBackend{}.Complete(ctx, persona, history)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return EchoBackend{}.Complete(ctx, persona, history)
+	}
+
+	var parsed struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil || len(parsed.Choices) == 0 {
+		return EchoBackend{}.Complete(ctx, persona, history)
+	}
+	text := parsed.Choices[0].Message.Content
+	return ChatReply{
+		Text:     text,
+		GiveProp: ParsePropGiveTag(text),
+		Activity: ParseActivityTag(text),
+	}, nil
 }

@@ -174,7 +174,7 @@ func (p *Plugin) Tick(scriptPos float64, vib, suck float64) error {
 	// Funscript contribution — inactive while a scene activity is running so
 	// virtual prop activities (e.g. titjob_dildo) own the bus; video sync
 	// can re-enable by stopping the activity or a future pin flag.
-	activityRunning := catalog.State() == StateTitjobActive
+	activityRunning := catalog.IsActivityRunning()
 	intent := ai.Propose(ControlInput{
 		AtMs:      clock,
 		ScriptPos: scriptPos,

@@ -15,7 +15,7 @@ const (
 // sourcePriority: higher wins while that source is active.
 var sourcePriority = map[SourceID]int{
 	SourceFunscript: 100,
-	SourceActivity:  50,
+	SourceActivity:  150,
 	SourceChatPulse: 20,
 	SourceIdle:      0,
 }
