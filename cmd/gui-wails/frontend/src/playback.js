@@ -10,6 +10,7 @@ import {
   ScriptChapters, ScriptQuality,
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
+  GetScriptBookmarks, SaveScriptBookmarks,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -223,6 +224,16 @@ export function initPlayback(root) {
         </div>
         <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
 
+        <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:10px;"
+          data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, or remove. Separate from O-markers and heatmap selection.">
+          Bookmarks: named times in the script — see “?”.</div>
+        <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+          <button type="button" id="pb-bookmark-add"
+            data-help="Saves a bookmark at the current playhead time into the loaded script.">Add at playhead</button>
+        </div>
+        <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
+
         <div class="pb-contact" id="pb-contact-block" hidden>
           <h3>Contact vibration</h3>
           <p class="hint" style="margin-top:0">Follows proximity like contact — adjust live, optionally save to script.</p>
@@ -349,6 +360,7 @@ export function initPlayback(root) {
   let markerDragStartMs = null;
   let markerDragMoved = false;
   let oMarkers = []; // [{startMs, endMs, kind, intensity}], im Skript gespeichert (siehe funscript.OMarker)
+  let bookmarks = []; // [{name, time}] ms — OFS metadata.bookmarks / .samn
   let autoEOTriggeredForMarker = false;
   // Kurven-Editor: bearbeitet die vollen, nicht resampleten Punkte
   // (rawActions), nicht curvePoints - curvePoints ist nur eine
@@ -593,6 +605,64 @@ export function initPlayback(root) {
     renderOMarkerList();
     redrawHeatmap();
     redrawCurve();
+  }
+
+  function normalizeBookmark(b) {
+    if (!b || typeof b !== 'object') return null;
+    const name = String(b.name ?? b.Name ?? '').trim() || 'Bookmark';
+    const time = Number(b.time ?? b.Time ?? 0);
+    if (!Number.isFinite(time) || time < 0) return null;
+    return { name, time: Math.round(time) };
+  }
+
+  function renderBookmarkList() {
+    const box = el('#pb-bookmark-list');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!scriptPath || bookmarks.length === 0) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    bookmarks.forEach((b, index) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.cssText = 'align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap;';
+      const label = document.createElement('span');
+      label.textContent = `${b.name} · ${(b.time / 1000).toFixed(1)}s`;
+      const seekBtn = document.createElement('button');
+      seekBtn.type = 'button';
+      seekBtn.textContent = 'Seek';
+      seekBtn.addEventListener('click', () => seekTo(b.time));
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => removeBookmark(index));
+      row.appendChild(label);
+      row.appendChild(seekBtn);
+      row.appendChild(removeBtn);
+      box.appendChild(row);
+    });
+  }
+
+  async function persistBookmarks(next, rollback) {
+    try {
+      await SaveScriptBookmarks(next);
+      bookmarks = next;
+      renderBookmarkList();
+      return true;
+    } catch (err) {
+      bookmarks = rollback;
+      renderBookmarkList();
+      logError('Bookmarks: ' + err);
+      return false;
+    }
+  }
+
+  async function removeBookmark(index) {
+    const previous = bookmarks.slice();
+    const next = bookmarks.filter((_, i) => i !== index);
+    await persistBookmarks(next, previous);
   }
 
   // --- MT-Debug: Tip/Partner-Trajektorie über dem Video -------------------
@@ -1564,6 +1634,22 @@ export function initPlayback(root) {
     redrawCurve();
   });
 
+  el('#pb-bookmark-add')?.addEventListener('click', async () => {
+    if (!scriptPath) {
+      uiWarn('Load a script first.', el('#pb-log'));
+      return;
+    }
+    const nameInput = el('#pb-bookmark-name');
+    const name = ((nameInput && nameInput.value) || '').trim() || 'Bookmark';
+    const time = Math.max(0, Math.round(currentPosMs || 0));
+    const previous = bookmarks.slice();
+    const next = [...bookmarks, { name, time }];
+    if (await persistBookmarks(next, previous)) {
+      if (nameInput) nameInput.value = '';
+      uiInfo(`Bookmark “${name}” at ${(time / 1000).toFixed(1)}s`, el('#pb-log'));
+    }
+  });
+
   // checkAutoExtendedO wird bei jedem Fortschritts-Update aufgerufen -
   // löst Extended-O einmal pro Playback aus, sobald die Position in den
   // markierten Bereich eintritt (falls aktiviert).
@@ -1791,8 +1877,17 @@ export function initPlayback(root) {
     } catch (err) {
       oMarkers = [];
     }
+    try {
+      const bm = await GetScriptBookmarks();
+      bookmarks = Array.isArray(bm)
+        ? bm.map(normalizeBookmark).filter(Boolean)
+        : [];
+    } catch (err) {
+      bookmarks = [];
+    }
     updateMarkerHint();
     renderOMarkerList();
+    renderBookmarkList();
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
@@ -1806,6 +1901,8 @@ export function initPlayback(root) {
     loadTrajectory();
     el('#pb-omarker-hint').style.display = 'block';
     el('#pb-omarker-add-row').style.display = 'flex';
+    el('#pb-bookmark-hint').style.display = 'block';
+    el('#pb-bookmark-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
     el('#pb-ofs-row').style.display = 'flex';
     el('#pb-script-doctor-result').style.display = 'none';

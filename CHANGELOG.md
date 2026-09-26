@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Play bookmarks** — Add / seek / remove named times (`metadata.bookmarks` /
+  `.samn`) under the O-marker block. Wires existing `GetScriptBookmarks` /
+  `SaveScriptBookmarks` (GUI load rule).
+
 ### Changed
 
 - **Look v3 — lilac accent** — Owner preference over honey orange: chrome,

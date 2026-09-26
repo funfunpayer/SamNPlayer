@@ -46,7 +46,7 @@ Still **CLI / advanced / not Everyday GUI:**
 - Whole-frame **4-zone** stroke mode (kept for experiments; weaker on measured clips)
 - Flow tracker as Generate default (CLI)
 - Full AI **draft script** inference (S2+ — button present but disabled until a local model exists)
-- Some OFS bookmark editors (API exists; prefer Play markers / chapters for now)
+- Chapter **editor** UI (API exists; Play still shows chapter summary — bookmarks now have add/seek/remove)
 
 ### Why is Create better than importing a random Funscript?
 Create tracks the tip in *your* video. Import + **Optimize for Neo 2** polishes foreign scripts (fill gaps → contact → bake) but cannot invent missing tracking.
@@ -94,6 +94,7 @@ See Settings / license UI for the current seat rules (trial length may change by
 | Load / Save project | `.snp.json` — script, video, offset, seek, loop |
 | Scale range ×0.8 | Soften marked range intensity |
 | Heatmap / markers | Seek, loop, Extended-O, O-markers |
+| **Bookmarks** | Named times in script — add at playhead, seek, remove |
 | Contact strength / curve | Live feel without rewriting file |
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker — see Play help chip.
