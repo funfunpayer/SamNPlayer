@@ -22,7 +22,7 @@ Still CLI / advanced / not Everyday GUI:
 • Whole-frame 4-zone stroke mode (experiments; weaker on measured clips)
 • Flow tracker as Generate default (CLI)
 • Full AI draft script inference (S2+ — button present but disabled until a local model exists)
-• Some OFS bookmark editors (API exists; prefer Play markers / chapters for now)`,
+• Chapter editor UI (API exists; bookmarks now have Play add/seek/remove)`,
   },
   {
     title: 'Fill gaps vs Heal tracking gaps',
@@ -48,6 +48,7 @@ Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/
 Load / Save project — .snp.json
 Scale range ×0.8 — soften marked range intensity
 Playlist — queue multiple scripts
+Bookmarks — named times: add at playhead, seek, remove
 Heatmap / markers — seek, loop, Extended-O, O-markers
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker.`,

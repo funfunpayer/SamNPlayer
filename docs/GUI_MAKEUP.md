@@ -20,6 +20,7 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 - Figure heat ramp: teal → lilac → coral (Device / Training shared tokens)
 - **In-app handbook** — Settings + Create open the same FAQ modal (`handbook.js`)
 - Play tip trajectory overlay uses lilac (was honey)
+- **Play bookmarks** — add at playhead / seek / remove (wires existing Go APIs)
 
 ## Ideas backlog (next slices)
 
@@ -27,9 +28,8 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 |------|-----|------|
 | Play first viewport brand moment | Competitors judge players first | Don’t add stats/chips |
 | Settings density | Pro tools look | English copy only |
-| Bookmarks UI (API exists) | OFS parity | Keep Play simple |
 | Screenshot pack for README | Public face | Match Look v3 |
-
+| Chapter marks editor | API exists (like bookmarks) | Keep Play simple |
 ## Explicit non-goals
 
 - Frameless glass everywhere  
