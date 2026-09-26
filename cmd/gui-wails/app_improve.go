@@ -13,7 +13,7 @@ import (
 )
 
 // ImproveScriptRequest is the FunGen-like post-generate polish step:
-// trim start/end, fill gaps, optional audio tempo check (warn-only).
+// trim start/end, fill gaps, heal tracking-loss windows, optional audio tempo check.
 type ImproveScriptRequest struct {
 	Path      string  `json:"path"`
 	VideoPath string  `json:"videoPath"`
@@ -21,6 +21,9 @@ type ImproveScriptRequest struct {
 	EndSec    float64 `json:"endSec"`
 	FillGaps  bool    `json:"fillGaps"`
 	MaxGapMs  int64   `json:"maxGapMs"`
+	// HealTrackingGaps rewrites metadata.tracking_gaps windows (strip junk +
+	// linear bridge). Empty/missing gaps = no-op. Does not re-run CSRT.
+	HealTrackingGaps bool `json:"healTrackingGaps"`
 	// AudioCheck re-runs tempo check and stamps metadata (does not rewrite curve).
 	AudioCheck bool `json:"audioCheck"`
 	// UseAudioForFill uses audio Hz (when available) for fill-gap step spacing.
@@ -37,6 +40,7 @@ type ImproveScriptResult struct {
 	PointsAdded   int      `json:"pointsAdded"`
 	FillGapMs     int64    `json:"fillGapMs"`
 	FillStepMs    int64    `json:"fillStepMs"`
+	WindowsHealed int      `json:"windowsHealed"`
 	AudioHz       *float64 `json:"audioHz,omitempty"`
 	ScriptHz      *float64 `json:"scriptHz,omitempty"`
 	AudioWarnings []string `json:"audioWarnings,omitempty"`
@@ -80,8 +84,10 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	}
 
 	opts := funscript.ImproveOpts{
-		FillGaps: req.FillGaps,
-		MaxGapMs: req.MaxGapMs,
+		FillGaps:         req.FillGaps,
+		MaxGapMs:         req.MaxGapMs,
+		HealTrackingGaps: req.HealTrackingGaps,
+		TrackingGaps:     append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...),
 	}
 	if req.StartSec > 0 {
 		opts.StartMs = int64(req.StartSec * 1000)
@@ -104,8 +110,9 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	out.PointsAdded = improved.PointsAdded
 	out.FillGapMs = improved.FillGapMs
 	out.FillStepMs = improved.FillStepMs
+	out.WindowsHealed = improved.WindowsHealed
 
-	changed := improved.Trimmed || improved.PointsAdded > 0
+	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0
 	if changed {
 		if err := saveImprovedActions(path, improved.Actions); err != nil {
 			return out, err
@@ -113,6 +120,14 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		funPath := path
 		if samn.IsSamnPath(path) {
 			funPath = samn.CompanionFunscriptPath(path)
+		}
+		if improved.ClearTrackingGaps {
+			if err := clearTrackingGaps(path); err != nil {
+				return out, err
+			}
+			if funPath != path {
+				_ = funscript.StampTrackingGaps(funPath, nil)
+			}
 		}
 		if req.AudioCheck && audioMeta != nil {
 			_ = funscript.StampAudioCheck(funPath, audioMeta)
@@ -143,8 +158,13 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	if improved.Trimmed {
 		parts = append(parts, "trimmed start/end")
 	}
+	if improved.WindowsHealed > 0 {
+		parts = append(parts, fmt.Sprintf("healed %d tracking gap(s)", improved.WindowsHealed))
+	}
 	if improved.GapsFilled > 0 {
 		parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d points)", improved.GapsFilled, improved.PointsAdded))
+	} else if improved.WindowsHealed > 0 && improved.PointsAdded > 0 {
+		parts = append(parts, fmt.Sprintf("+%d bridge points", improved.PointsAdded))
 	}
 	if req.AudioCheck && audioMeta != nil {
 		if len(audioMeta.Warnings) > 0 {
@@ -159,6 +179,22 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		out.Message = strings.Join(parts, " · ")
 	}
 	return out, nil
+}
+
+// clearTrackingGaps drops healed loss windows from .samn / .funscript metadata.
+func clearTrackingGaps(path string) error {
+	if samn.IsSamnPath(path) {
+		doc, err := samn.Load(path)
+		if err != nil {
+			return err
+		}
+		doc.TrackingGaps = nil
+		if err := samn.Save(path, doc); err != nil {
+			return err
+		}
+		return doc.ExportFunscript(samn.CompanionFunscriptPath(path))
+	}
+	return funscript.StampTrackingGaps(path, nil)
 }
 
 // saveImprovedActions writes the edited action list back and refreshes the

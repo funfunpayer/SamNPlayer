@@ -97,6 +97,7 @@ Full knob map: `docs/GENERATE_HEURISTICS.md`.
 | Stroke preview | Stage A pre-pass (timing/flags; audio if weak) |
 | Audio check | On when ffmpeg present (generate + Review toggle) |
 | Fill gaps | **Auto after Generate** (auto + median-aware second pass) + Review step — linear bridge; optional audio-tempo spacing |
+| Heal tracking gaps | **Auto after Generate** + Review — strip junk inside `metadata.tracking_gaps`, linear bridge those windows only, then clear the windows so Contact vib is not muted forever. Not a CSRT re-track |
 | Trim start/end | Review step (start also via seek before Generate) |
 | Flow downscale | Hidden unless Flow (CLI) |
 | Tf/Tj distance | CLI / Advanced only — not everyday GUI |

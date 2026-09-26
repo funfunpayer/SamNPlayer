@@ -11,6 +11,57 @@ import (
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
+func TestImproveGeneratedScriptHealTrackingGaps(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "clip.funscript")
+	body := map[string]any{
+		"actions": []map[string]any{
+			{"at": 0, "pos": 0},
+			{"at": 100, "pos": 10},
+			{"at": 900, "pos": 99},
+			{"at": 1100, "pos": 98},
+			{"at": 2000, "pos": 90},
+			{"at": 2100, "pos": 100},
+		},
+		"metadata": map[string]any{
+			"creator": "test",
+			"tracking_gaps": []map[string]any{
+				{"start_ms": 500, "end_ms": 1600},
+			},
+		},
+	}
+	raw, _ := json.Marshal(body)
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{}
+	res, err := a.ImproveGeneratedScript(ImproveScriptRequest{
+		Path:             path,
+		HealTrackingGaps: true,
+		FillGaps:         false,
+		AudioCheck:       false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.WindowsHealed < 1 {
+		t.Fatalf("expected heal, got %+v", res)
+	}
+	script, err := funscript.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(script.Metadata.TrackingGaps) != 0 {
+		t.Fatalf("tracking_gaps not cleared: %+v", script.Metadata.TrackingGaps)
+	}
+	for _, act := range script.Actions {
+		if act.At > 500 && act.At < 1600 && (act.Pos == 99 || act.Pos == 98) {
+			t.Fatalf("junk survived: %+v", act)
+		}
+	}
+}
+
 func TestImproveGeneratedScriptFillGaps(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "clip.funscript")

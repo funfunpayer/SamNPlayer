@@ -34,11 +34,12 @@ func (a *App) OptimizeLoadedForNeo2(fillGaps bool) (OptimizeNeo2Result, error) {
 	video := a.loadedVideoPath()
 	if fillGaps {
 		imp, err := a.ImproveGeneratedScript(ImproveScriptRequest{
-			Path:            path,
-			VideoPath:       video,
-			FillGaps:        true,
-			AudioCheck:      false,
-			UseAudioForFill: false,
+			Path:             path,
+			VideoPath:        video,
+			FillGaps:         true,
+			HealTrackingGaps: true,
+			AudioCheck:       false,
+			UseAudioForFill:  false,
 		})
 		if err != nil {
 			return out, fmt.Errorf("fill gaps: %w", err)

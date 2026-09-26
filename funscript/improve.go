@@ -32,18 +32,27 @@ type ImproveOpts struct {
 	StepMs int64
 	// AudioHz optional tempo hint for fill spacing (from CheckAudioTempo).
 	AudioHz float64
+	// HealTrackingGaps strips junk points inside known tracker-loss windows
+	// (metadata.tracking_gaps) and linearly re-bridges those ranges. Does not
+	// re-run CSRT — classical bridge only. Empty TrackingGaps = no-op.
+	HealTrackingGaps bool
+	TrackingGaps     []TrackingGap
 }
 
 // ImproveResult summarizes what changed.
 type ImproveResult struct {
-	Actions     []Action `json:"-"`
-	BeforeCount int      `json:"beforeCount"`
-	AfterCount  int      `json:"afterCount"`
-	Trimmed     bool     `json:"trimmed"`
-	GapsFilled  int      `json:"gapsFilled"`
-	PointsAdded int      `json:"pointsAdded"`
-	FillGapMs   int64    `json:"fillGapMs"`
-	FillStepMs  int64    `json:"fillStepMs"`
+	Actions       []Action `json:"-"`
+	BeforeCount   int      `json:"beforeCount"`
+	AfterCount    int      `json:"afterCount"`
+	Trimmed       bool     `json:"trimmed"`
+	GapsFilled    int      `json:"gapsFilled"`
+	PointsAdded   int      `json:"pointsAdded"`
+	FillGapMs     int64    `json:"fillGapMs"`
+	FillStepMs    int64    `json:"fillStepMs"`
+	WindowsHealed int      `json:"windowsHealed"`
+	// ClearTrackingGaps hints the caller to drop healed windows from metadata
+	// so Contact vib is not muted forever on rewritten ranges.
+	ClearTrackingGaps bool `json:"clearTrackingGaps"`
 }
 
 // TrimActions keeps actions in [startMs, endMs] (inclusive).
@@ -156,8 +165,159 @@ func FillGaps(actions []Action, maxGapMs, stepMs int64, audioHz float64) (out []
 	return out, gapsFilled, pointsAdded
 }
 
-// ImproveScript applies trim then fill-gaps. Order matches FunGen-like polish:
-// cut ends first, then bridge holes.
+// HealTrackingGaps strips actions inside known tracker-loss windows and
+// linearly re-bridges only those holes (same step rules as FillGaps).
+// Does not densify the rest of the script. Callers should clear the healed
+// windows from script metadata afterwards.
+func HealTrackingGaps(actions []Action, gaps []TrackingGap, stepMs int64, audioHz float64) (out []Action, windowsHealed, pointsAdded int) {
+	if len(actions) < 2 || len(gaps) == 0 {
+		return append([]Action(nil), actions...), 0, 0
+	}
+	merged := mergeTrackingGaps(gaps)
+	if len(merged) == 0 {
+		return append([]Action(nil), actions...), 0, 0
+	}
+	sorted := append([]Action(nil), actions...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].At < sorted[j].At })
+
+	kept := make([]Action, 0, len(sorted))
+	removed := 0
+	for _, a := range sorted {
+		if insideTrackingGap(a.At, merged) {
+			removed++
+			continue
+		}
+		kept = append(kept, a)
+	}
+	if len(kept) < 2 {
+		// Healing would destroy the script — refuse silently (caller keeps original).
+		return append([]Action(nil), actions...), 0, 0
+	}
+	if removed == 0 {
+		// No interior junk — still bridge if the window spans a long hole.
+		// Fall through with kept == sorted.
+	}
+
+	step := stepOrDefault(stepMs, audioHz)
+	if step < 20 {
+		step = 20
+	}
+
+	out = make([]Action, 0, len(kept)+len(merged)*8)
+	out = append(out, kept[0])
+	gapIdx := 0
+	for i := 1; i < len(kept); i++ {
+		prev := out[len(out)-1]
+		next := kept[i]
+		// Bridge only when this pair straddles at least one tracking gap.
+		for gapIdx < len(merged) && merged[gapIdx].EndMs < prev.At {
+			gapIdx++
+		}
+		bridged := false
+		for g := gapIdx; g < len(merged); g++ {
+			gap := merged[g]
+			if gap.StartMs > next.At {
+				break
+			}
+			// Pair straddles this loss window (or touches it).
+			if prev.At <= gap.EndMs && next.At >= gap.StartMs {
+				bridged = true
+				break
+			}
+		}
+		if bridged {
+			dt := next.At - prev.At
+			if dt > step {
+				windowsHealed++
+				n := int(dt / step)
+				for k := 1; k < n; k++ {
+					t := prev.At + int64(k)*step
+					if t >= next.At {
+						break
+					}
+					frac := float64(t-prev.At) / float64(dt)
+					pos := int(math.Round(float64(prev.Pos) + frac*float64(next.Pos-prev.Pos)))
+					out = append(out, Action{At: t, Pos: clampPos(pos)})
+					pointsAdded++
+				}
+			} else if removed > 0 {
+				windowsHealed++
+			}
+		}
+		if out[len(out)-1].At == next.At {
+			out[len(out)-1] = next
+		} else {
+			out = append(out, next)
+		}
+	}
+	if windowsHealed == 0 && removed == 0 && pointsAdded == 0 {
+		return append([]Action(nil), actions...), 0, 0
+	}
+	if windowsHealed == 0 && removed > 0 {
+		windowsHealed = len(merged)
+	}
+	return out, windowsHealed, pointsAdded
+}
+
+func mergeTrackingGaps(gaps []TrackingGap) []TrackingGap {
+	clean := make([]TrackingGap, 0, len(gaps))
+	for _, g := range gaps {
+		if g.EndMs < g.StartMs {
+			g.StartMs, g.EndMs = g.EndMs, g.StartMs
+		}
+		if g.EndMs <= g.StartMs {
+			continue
+		}
+		clean = append(clean, g)
+	}
+	if len(clean) == 0 {
+		return nil
+	}
+	sort.SliceStable(clean, func(i, j int) bool {
+		if clean[i].StartMs == clean[j].StartMs {
+			return clean[i].EndMs < clean[j].EndMs
+		}
+		return clean[i].StartMs < clean[j].StartMs
+	})
+	out := []TrackingGap{clean[0]}
+	for _, g := range clean[1:] {
+		prev := &out[len(out)-1]
+		if g.StartMs <= prev.EndMs {
+			if g.EndMs > prev.EndMs {
+				prev.EndMs = g.EndMs
+			}
+			continue
+		}
+		out = append(out, g)
+	}
+	return out
+}
+
+func insideTrackingGap(at int64, gaps []TrackingGap) bool {
+	for _, g := range gaps {
+		if at >= g.StartMs && at <= g.EndMs {
+			return true
+		}
+	}
+	return false
+}
+
+func stepOrDefault(stepMs int64, audioHz float64) int64 {
+	if stepMs > 0 {
+		return stepMs
+	}
+	step := DefaultFillStepMs
+	if audioHz > 0.2 && audioHz < 5 {
+		half := int64(math.Round(1000.0 / (2.0 * audioHz)))
+		if half >= 40 && half <= 800 {
+			step = half
+		}
+	}
+	return step
+}
+
+// ImproveScript applies trim, optional tracking-gap heal, then fill-gaps.
+// Order: cut ends → rewrite known loss windows → bridge remaining holes.
 func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 	res := ImproveResult{BeforeCount: len(actions)}
 	if len(actions) < 2 {
@@ -184,6 +344,16 @@ func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 			res.Trimmed = true
 		}
 		cur = trimmed
+	}
+
+	if opts.HealTrackingGaps && len(opts.TrackingGaps) > 0 {
+		healed, nWin, nPts := HealTrackingGaps(cur, opts.TrackingGaps, opts.StepMs, opts.AudioHz)
+		if nWin > 0 {
+			cur = healed
+			res.WindowsHealed = nWin
+			res.PointsAdded += nPts
+			res.ClearTrackingGaps = true
+		}
 	}
 
 	if opts.FillGaps {

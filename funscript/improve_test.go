@@ -121,3 +121,82 @@ func TestImproveScriptTrimAndFill(t *testing.T) {
 		t.Fatalf("counts before=%d after=%d", res.BeforeCount, res.AfterCount)
 	}
 }
+
+func TestHealTrackingGapsStripsInteriorAndBridges(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 10},
+		{At: 1000, Pos: 99}, // junk inside loss
+		{At: 1500, Pos: 98}, // junk
+		{At: 2000, Pos: 90},
+		{At: 2100, Pos: 100},
+	}
+	gaps := []TrackingGap{{StartMs: 500, EndMs: 1800}}
+	out, healed, added := HealTrackingGaps(in, gaps, 200, 0)
+	if healed != 1 {
+		t.Fatalf("healed=%d want 1", healed)
+	}
+	if added < 1 {
+		t.Fatalf("expected bridge points, added=%d out=%+v", added, out)
+	}
+	for _, a := range out {
+		if a.At > 500 && a.At < 1800 && (a.Pos == 99 || a.Pos == 98) {
+			t.Fatalf("junk survived: %+v", a)
+		}
+	}
+	if out[0].At != 0 || out[len(out)-1].At != 2100 {
+		t.Fatalf("endpoints: %+v", out)
+	}
+}
+
+func TestHealTrackingGapsDoesNotDensifyOutside(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 500, Pos: 80},
+		{At: 1000, Pos: 20},
+		{At: 1500, Pos: 90}, // outside gap — natural spacing
+		{At: 5000, Pos: 10}, // long natural? wait - put gap only mid
+		{At: 5100, Pos: 50},
+	}
+	// Gap only around 2500-4000 where there are no points — bridge 1500→5000
+	gaps := []TrackingGap{{StartMs: 2000, EndMs: 4500}}
+	out, healed, added := HealTrackingGaps(in, gaps, 200, 0)
+	if healed < 1 || added < 1 {
+		t.Fatalf("heal=%d added=%d", healed, added)
+	}
+	// Early stroke spacing must stay sparse (no points invented between 0-1500).
+	early := 0
+	for _, a := range out {
+		if a.At > 0 && a.At < 1500 {
+			early++
+		}
+	}
+	if early != 2 { // 500 and 1000 only
+		t.Fatalf("densified early script: early=%d out=%+v", early, out)
+	}
+}
+
+func TestImproveScriptHealTrackingGaps(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 10},
+		{At: 800, Pos: 95},
+		{At: 1200, Pos: 94},
+		{At: 2000, Pos: 90},
+		{At: 2100, Pos: 100},
+	}
+	res, err := ImproveScript(in, ImproveOpts{
+		HealTrackingGaps: true,
+		TrackingGaps:     []TrackingGap{{StartMs: 400, EndMs: 1600}},
+		StepMs:           200,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.WindowsHealed < 1 || !res.ClearTrackingGaps {
+		t.Fatalf("heal result: %+v", res)
+	}
+	if res.PointsAdded < 1 {
+		t.Fatalf("expected bridge points: %+v", res)
+	}
+}

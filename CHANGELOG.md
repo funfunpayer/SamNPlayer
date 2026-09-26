@@ -19,6 +19,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Heal tracking gaps** — Review Improve (+ auto after Generate, Neo 2 optimize)
+  strips junk points inside `metadata.tracking_gaps`, linearly bridges those
+  windows only, then clears the windows so Contact vib is not muted forever.
+  Classical bridge — not a CSRT re-track. Checkbox default on.
 - **Play — Load project + Scale range in GUI** — `.snp.json` Save already existed;
   Load project (picker + restore script/video/offset/seek/loop) and Scale range ×0.8
   now wire the existing Go APIs. Owner rule: shipped functions must load in the GUI.
