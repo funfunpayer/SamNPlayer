@@ -103,7 +103,6 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | BugE | ChatGPT | free | Owner: bugfix / copy review — docs + GUI Emotion Script strings; steward | **NEXT** — ChatGPT |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) merged | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **DONE** |
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) merged | Emotion GUI look (Sora/Figtree) | **DONE** |
-| Look2 | Cursor | this branch | **Emotion Look v2** — thinner chrome, friendlier palette, organic radii; CSS tokens only | **THIS** |
 | Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) + tag `v0.5.28` | bump **v0.5.28** + Release (look + feel + CSRT guards) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.28 |
 | Rel29 | Cursor | [#232](https://github.com/funfunpayer/SamNPlayer/pull/232) + tag `v0.5.29` | bump **v0.5.29** + Release (#230 stroke detrend on by default) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.29 |
 | Rel30 | Cursor | [#238](https://github.com/funfunpayer/SamNPlayer/pull/238) + tag `v0.5.30` | bump **v0.5.30** + Release (#233 rhythm grid + #236 Advanced toggle) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.30 |
