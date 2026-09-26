@@ -224,6 +224,7 @@ passes your usable bar — otherwise the model learns noise.
 | G3.4 | Perception fuse / multi-observer | Golden win required | See `SAM_ARCHITECTURE.md` Perception v1 — **do not start** |
 | G3.5 | Depth / pose / segmentation (non-track) | Own go/no-go each | PoseObserver Stage A #201; Stage B / depth default = Owner bake-off |
 | G3.5a–e | **Multi-track Fahrplan** (Tip+Partner IDs / proposals) | See section below | MT-Go/Seed/Debug/Infra **DONE**; MT-ID gated on Owner clips |
+| G3.6 | **AI script draft (opt-in)** — local model drafts stroke; QD + Keep | Owner opened 26 Sep; S0 plan | `docs/AI_SCRIPT_WRITER.md`; Everyday CSRT default |
 
 ### Multi-track Fahrplan (22 Sep) — fold into G1 polish + G3
 
@@ -420,6 +421,7 @@ Self-build only when equal or better (`docs/SELF_BUILD.md`).
 - WebGL video sharpen / soft upscale  
 - Full pure-Go H.264  
 - Go ports of flow/`grid_lk` without golden win  
-- AI as funscript writer / “audio invents positions”  
+- ~~AI as funscript writer~~ — **opened 26 Sep** as **opt-in local draft** (`docs/AI_SCRIPT_WRITER.md`); Everyday CSRT stays default; cloud LLM curve writer still parked  
+- “audio invents positions” (still parked)  
 - Wails-v3 / frameless / card redesign (rejected — see `ROADMAP.md`)  
 - Website as a Generate blocker  

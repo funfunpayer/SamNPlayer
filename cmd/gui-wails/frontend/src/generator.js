@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -209,6 +209,16 @@ export function initGenerator(root, playback) {
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
+          <div class="opt-group">AI draft (experimental)</div>
+          <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
+            Everyday Create still uses CSRT. An opt-in local AI draft writer is being built
+            (docs/AI_SCRIPT_WRITER.md) — this control stays off until a model is available.
+          </p>
+          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="secondary" id="gen-ai-script-draft" disabled
+              data-help="Experimental: local AI drafts a stroke curve for review. Off until a draft model is installed. Does not replace CSRT Create. Require Keep after Quality Doctor (planned S3).">AI draft script</button>
+            <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
+          </div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
               data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
@@ -2269,6 +2279,47 @@ export function initGenerator(root, playback) {
     sceneMapAvailable = false;
     updateSceneMapButton();
   });
+
+  function refreshAIScriptWriterUI() {
+    const btn = el('#gen-ai-script-draft');
+    const status = el('#gen-ai-script-status');
+    const hint = el('#gen-ai-script-hint');
+    if (!btn) return;
+    AIScriptWriterStatus().then((st) => {
+      const available = !!(st && (st.available || st.Available));
+      const reason = (st && (st.reason || st.Reason)) || '';
+      const stage = (st && (st.stage || st.Stage)) || 'S0';
+      btn.disabled = !available || !videoPath;
+      if (status) {
+        status.textContent = available
+          ? `Ready (${stage})`
+          : (reason || `Not available (${stage})`);
+      }
+      if (hint && reason && !available) {
+        hint.textContent = reason;
+      }
+    }).catch(() => {
+      btn.disabled = true;
+      if (status) status.textContent = 'AI draft status unavailable';
+    });
+  }
+  refreshAIScriptWriterUI();
+  el('#gen-ai-script-draft')?.addEventListener('click', async () => {
+    const status = el('#gen-ai-script-status');
+    if (!videoPath) {
+      uiWarn('Choose a video first.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Drafting…';
+    try {
+      await DraftAIScript(videoPath);
+      if (status) status.textContent = 'Draft ready (Keep not wired yet — S3)';
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('AI draft: ' + err, el('#gen-status'));
+    }
+  });
+
   el('#gen-seek-btn').addEventListener('click', () => seekTo(parseFloat(el('#gen-seek').value) || 0));
   el('#gen-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#gen-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));

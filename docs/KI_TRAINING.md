@@ -10,14 +10,16 @@ in the Training tab (stop-start/plateau).
 
 | May | May not |
 |-----|---------|
-| Suggest region(s) | Write Funscripts |
+| Suggest region(s) | Silently replace Everyday CSRT |
 | Suggest Normal / Soft / Autotune | Change a profile without Apply |
-| Offer a typed box; **Apply target** sets it | Replace tracking or auto-apply a semantic target |
-| Learn locally on your machine | Cloud / telemetry / bundled model |
+| Offer a typed box; **Apply target** sets it | Cloud / telemetry / bundled model |
+| **(S0+) Opt-in AI draft script** when a local draft model exists — Keep required (`docs/AI_SCRIPT_WRITER.md`) | Invent positions via chat-LLM tokens; auto-Keep without Quality Doctor |
 
-Classic tracking (CSRT / flow / …) writes `.samn` (native) plus a
-community `.funscript` export. AI still never writes either file by itself.
-See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md` and `docs/FUNSCRIPT_ALGOS.md`.
+Classic tracking (CSRT / flow / …) remains the **Everyday** writer of `.samn`
+(plus community `.funscript` export). The experimental AI draft path is
+**off by default** and fails closed until a local model ships (S2+).
+See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md`, `docs/AI_SCRIPT_WRITER.md`
+and `docs/FUNSCRIPT_ALGOS.md`.
 
 ## Two different local models
 

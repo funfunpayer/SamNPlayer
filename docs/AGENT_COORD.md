@@ -111,8 +111,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | G1next | Cursor | [#241](https://github.com/funfunpayer/SamNPlayer/pull/241) merged | **G1 heuristics inventory** — knob→code→default map in `GENERATE_HEURISTICS.md` (docs only; no behavior change) | **DONE** |
 | G1safe | Cursor | [#257](https://github.com/funfunpayer/SamNPlayer/pull/257) merged | **G1 without Owner** — G1.2 QD×audio English hint + Everyday blurb; **no** default changes | **DONE** (`1a4929e`) |
 | G3safe | Cursor | [#258](https://github.com/funfunpayer/SamNPlayer/pull/258) merged | **G3 suggest-only harden** — English profile-suggest copy + G3 status sync; **no** CSRT/ROI default changes | **DONE** |
+<<<<<<< HEAD
 | Look2 | Cursor | [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) | Emotion Look v2 — thinner rail, honey/teal, organic radii (CSS only) | **THIS** |
 | GuiLoad | Cursor | [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) merged | **GUI load rule** — Load project + Scale range | **DONE** |
+=======
+| Look2 | Cursor | [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) | Emotion Look v2 — thinner rail, honey/teal, organic radii (CSS only) | **IN REVIEW** |
+| GuiLoad | Cursor | [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) | **GUI load rule** — wire shipped Go OFS APIs that lacked UI (Load project + Scale range) | **IN REVIEW** |
+| GuiLoad | Cursor | [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) | **GUI load rule** — Load project + Scale range wiring | **IN REVIEW** |
+| AIWrite | Cursor | this PR | **AI script writer path S0** — opt-in local draft plan + package + GUI stub; Everyday CSRT unchanged | **IN FLIGHT** |
+>>>>>>> 9c87de8 (feat(ai): open opt-in AI script writer path (S0 plan + stub))
 | SceneMap | Claude (plan) → Cursor (build) | [#243](https://github.com/funfunpayer/SamNPlayer/pull/243) merged | **Scene map plan** — `docs/SCENE_MAP_PLAN.md`; Owner § 6 + P1 approved | **DONE** (plan on main) |
 | SceneP1 | Cursor | [#246](https://github.com/funfunpayer/SamNPlayer/pull/246) merged | **SceneMap P1** — score/choose, ScanSceneMap, Advanced Show scene map | **DONE** |
 | SceneP2 | Cursor | [#247](https://github.com/funfunpayer/SamNPlayer/pull/247) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **SceneMap P2** — heatmap overlay + exclude/source/region marks | **DONE** (`v0.5.31`) |
@@ -124,7 +131,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
+<<<<<<< HEAD
 | Engine | — | free | GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) on main; Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) THIS; AIWrite [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); Owner gates unchanged | **OPEN** |
+=======
+| Engine | — | free | G1.2 + P5 + G3safe on main; Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) + GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); Owner gates unchanged | **OPEN** |
+| Engine | — | free | G3safe on main; Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) + GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); **AIWrite S0** opened (Owner); Owner gates unchanged | **OPEN** |
+>>>>>>> 9c87de8 (feat(ai): open opt-in AI script writer path (S0 plan + stub))
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -146,14 +158,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (24 Sep evening):**
-- **Shipped:** **v0.5.31** (#249); SceneMap **P3–P5b** (#251–#256); **G1.2** [#257](https://github.com/funfunpayer/SamNPlayer/pull/257); **G3safe** [#258](https://github.com/funfunpayer/SamNPlayer/pull/258).
-- **Shipped also:** **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260) (Load project + Scale range).
-- **In flight:** **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259) THIS; **AIWrite S0** [#261](https://github.com/funfunpayer/SamNPlayer/pull/261).
+**Status board (26 Sep):**
+- **Shipped:** **v0.5.31**; SceneMap P3–P5b; G1.2; G3safe; **GuiLoad** [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); **Look2** [#259](https://github.com/funfunpayer/SamNPlayer/pull/259).
+- **In flight:** **AIWrite S0** [#261](https://github.com/funfunpayer/SamNPlayer/pull/261) (`docs/AI_SCRIPT_WRITER.md`).
+- **Owner (26 Sep):** opt-in local AI Funscript draft; Everyday CSRT stays; no cloud LLM curve writer.
 - **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
+- **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B; AIWrite S2+ default.
 - **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
 - **Parked:** LosslessCut.
-- **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B.
 - **ChatGPT:** steward welcome.
 
 **Status board (24 Sep):**

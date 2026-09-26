@@ -28,6 +28,10 @@ export function BootstrapRoiTrainingRegions(arg1:string,arg2:Array<generator.Roi
 
 export function AddRoiStillTrainingSample(arg1:string,arg2:Array<generator.RoiTrainingRegion>):Promise<string>;
 
+export function AIScriptWriterStatus():Promise<Record<string, any>>;
+
+export function DraftAIScript(arg1:string):Promise<Record<string, any>>;
+
 export function PickImageFile():Promise<string>;
 
 export function CancelGenerate():Promise<void>;

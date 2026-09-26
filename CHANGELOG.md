@@ -22,6 +22,11 @@ measurement history behind each entry; this file is the short version for
 - **Play — Load project + Scale range in GUI** — `.snp.json` Save already existed;
   Load project (picker + restore script/video/offset/seek/loop) and Scale range ×0.8
   now wire the existing Go APIs. Owner rule: shipped functions must load in the GUI.
+- **AI script writer path (S0)** — Owner opened an opt-in lane so a *local*
+  model may later draft Funscripts. Everyday Create stays CSRT. Plan:
+  `docs/AI_SCRIPT_WRITER.md`; Go `generator/aiscript` (fails closed);
+  Create Advanced **AI draft script** control (disabled until Available).
+  No cloud LLM curve writer; Keep/Apply required before S3 ships.
 - **G1.2 — QD fail + clear audio Hz hint** — when Signal Quality fails and audio
   tempo is readable, Generate appends English *“Audio suggests ~X Hz — check ROI /
   axis”* (Go + Python). Warn only; never rewrites the curve. Audio mismatch
