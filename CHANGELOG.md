@@ -13,6 +13,9 @@ measurement history behind each entry; this file is the short version for
 - **G3 suggest-only copy** — Create profile-suggestion status strings English
   (`local Go model` / `AI server` / `measured`); CSRT writer and Apply gate
   unchanged. G3 roadmap status synced (helpers shipped; fuse/Stage B still gated).
+- **Emotion Look v2** — thinner rail/borders, friendlier honey/teal palette,
+  larger organic radii, softer brand strokes + washes. Sora/Figtree kept;
+  Generate/CSRT behaviour unchanged (CSS tokens only).
 
 ### Added
 
