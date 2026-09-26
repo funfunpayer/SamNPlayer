@@ -1,6 +1,8 @@
 import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
+import { openHandbook } from './handbook.js';
+import { wireDataHelp } from './help.js';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -57,6 +59,11 @@ export function saveSetting(key, value) {
 export function initSettings(root) {
   root.innerHTML = `
     <h2>Settings</h2>
+    <div class="row" style="align-items:center; margin-bottom:14px;">
+      <button type="button" id="st-open-handbook" class="primary"
+        data-help="Opens the in-app user handbook: Create, Play, gaps, AI path, troubleshooting.">Open user handbook</button>
+      <span class="hint" style="margin:0">FAQ + how to use every Everyday control. Also on Create.</span>
+    </div>
     <div class="checkbox-row">
       <input type="checkbox" id="st-update-check" />
       <label for="st-update-check">Check for updates on startup</label>
@@ -204,6 +211,9 @@ export function initSettings(root) {
   `;
 
   const el = id => root.querySelector(id);
+
+  wireDataHelp(root);
+  el('#st-open-handbook')?.addEventListener('click', () => openHandbook());
 
   // Ohne das war unsichtbar, ob unter dem eingestellten Pfad schon Messwerte
   // stehen - "Show summary" beantwortete das zwar auch, aber erst

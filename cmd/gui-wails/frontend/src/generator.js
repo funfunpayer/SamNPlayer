@@ -6,6 +6,7 @@ import {
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
+import { openHandbook } from './handbook.js';
 
 export function initGenerator(root, playback) {
   root.classList.add('tab-create');
@@ -13,6 +14,10 @@ export function initGenerator(root, playback) {
     <header class="create-head">
       <h2>Create Emotion Script</h2>
       <p class="create-lede">From a quiet video — motion becomes feel you can play.</p>
+      <div class="create-head-actions">
+        <button type="button" id="gen-open-handbook" class="handbook-open-btn"
+          data-help="Opens the in-app handbook: Create steps, gaps, AI export, Play map.">User handbook</button>
+      </div>
     </header>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
@@ -357,6 +362,7 @@ export function initGenerator(root, playback) {
   wireDataHelp(root);
 
   const el = id => root.querySelector(id);
+  el('#gen-open-handbook')?.addEventListener('click', () => openHandbook());
   const canvas = el('#roi-canvas');
   const ctx = canvas.getContext('2d');
 

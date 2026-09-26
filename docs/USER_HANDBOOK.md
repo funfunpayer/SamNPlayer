@@ -2,8 +2,9 @@
 
 **Product:** SamNPlayer Emotion GUI · **Format:** `.samn` (Emotion Script) · Funscript = share/import only.  
 **Audience:** Owner + everyday users. English product copy.  
-**Last updated:** 26 Sep 2026 (after Look v3 lilac, GapHeal, AIWrite S0→S1 export).
+**Last updated:** 26 Sep 2026 (Look v3 lilac polish, in-GUI handbook, GapHeal, AIWrite S0→S1 export).
 
+**In the app:** Settings → **Open user handbook** · Create → **User handbook** (same FAQ modal).  
 Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.
 
 ---
@@ -17,7 +18,7 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 | **Device** | Connect Sam Neo 2 / Handy / etc. |
 | **Training** | Practice patterns (no video required) |
 | **AI Train** | Label scenes / tip ROIs for *helpers* (not the stroke writer) |
-| **Settings** | Models, Collect learning data, logs |
+| **Settings** | Models, Collect learning data, logs, **Open user handbook** |
 
 **Default stroke writer is classical CSRT.** AI never silently invents the curve.
 
@@ -39,7 +40,7 @@ Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge 
 ## 3. FAQ
 
 ### Is everything in the GUI?
-**Almost for everyday use.** Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2 — yes.
+**Almost for everyday use.** Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2, **in-app handbook** — yes.
 
 Still **CLI / advanced / not Everyday GUI:**
 - Whole-frame **4-zone** stroke mode (kept for experiments; weaker on measured clips)
@@ -99,17 +100,28 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 
 ---
 
-## 5. Settings that matter
+## 5. Device & Training
+
+| Tab | Use |
+|-----|-----|
+| **Device** | Connect Sam Neo 2 / Handy / etc. Optional short connect-test pulse in Settings. |
+| **Training** | Practice patterns without video (technique, channel, cycles, ramp/hold/rest). |
+| **AI Train** | Label tip ROIs / scenes for *helper* models — not the stroke writer. |
+
+---
+
+## 6. Settings that matter
 
 | Setting | Effect |
 |---------|--------|
+| **Open user handbook** | In-app FAQ (same content as this doc’s Everyday sections) |
 | AI ROI model path | Enables *Smarter tip find* |
 | Collect learning data | Allows Scene map **Export for learning** |
 | AI draft model path | Reserved for S2+ (draft stays disabled until Available) |
 
 ---
 
-## 6. Files on disk
+## 7. Files on disk
 
 | File | Role |
 |------|------|
@@ -121,7 +133,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Symptom | Try |
 |---------|-----|
@@ -134,11 +146,11 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 
 ---
 
-## 8. What we optimized for (honest)
+## 9. What we optimized for (honest)
 
 - **Reliable Everyday CSRT** over flashy AI curve writers  
 - **Opt-in** AI helpers (ROI, profile suggest, scene map, future draft)  
 - **GUI load rule:** shipped features must appear in Emotion UI  
-- Look: dark ink + **lilac accent** + teal secondary (Owner preference over honey orange)
+- Look: dark ink + **lilac accent** + teal secondary (Owner preference over honey orange); more motion on tabs / Create / handbook / CTAs (`prefers-reduced-motion` safe)
 
 Not yet the “best possible” recognition endgame — that needs measured gates (Owner: speed-cap, ≥4–5 rhythm clips, G1.3, AI S2 metrics). This handbook matches **what ships today**.

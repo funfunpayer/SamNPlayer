@@ -12,12 +12,13 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 ### Look v2 (#259)
 - Thinner chrome, organic radii, warmer honey accent (superseded by v3)
 
-### Look v3 (this branch)
-- **Lilac accent** (`#b896e8`) replacing honey chrome — help chips / CTAs / washes
+### Look v3 (this branch / #263)
+- **Lilac accent** (`#b896e8`) replacing honey chrome — help chips / CTAs / washes / scrollbars / checkboxes
 - Teal kept as secondary; warn stays warm amber for alerts
-- **Motion:** tab in, Create step panel enter, help popover fade, primary press
+- **Motion:** tab in, Create head + step panel, help popover, handbook modal, rail breath, primary press, progress shimmer
 - `prefers-reduced-motion` honored
 - Figure heat ramp: teal → lilac → coral (Device / Training shared tokens)
+- **In-app handbook** — Settings + Create open the same FAQ modal (`handbook.js`)
 
 ## Ideas backlog (next slices)
 
@@ -27,6 +28,7 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 | Settings density | Pro tools look | English copy only |
 | Bookmarks UI (API exists) | OFS parity | Keep Play simple |
 | Screenshot pack for README | Public face | Match Look v3 |
+| Trajectory path color → lilac | Play overlay tip stroke | **Done this PR** |
 
 ## Explicit non-goals
 
