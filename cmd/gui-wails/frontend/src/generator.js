@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -6,6 +6,7 @@ import {
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
+import { openHandbook } from './handbook.js';
 
 export function initGenerator(root, playback) {
   root.classList.add('tab-create');
@@ -13,6 +14,10 @@ export function initGenerator(root, playback) {
     <header class="create-head">
       <h2>Create Emotion Script</h2>
       <p class="create-lede">From a quiet video — motion becomes feel you can play.</p>
+      <div class="create-head-actions">
+        <button type="button" id="gen-open-handbook" class="handbook-open-btn"
+          data-help="Opens the in-app handbook: Create steps, gaps, AI export, Play map.">User handbook</button>
+      </div>
     </header>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
@@ -211,10 +216,11 @@ export function initGenerator(root, playback) {
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. An opt-in local AI draft writer is being built
-            (docs/AI_SCRIPT_WRITER.md) — this control stays off until a model is available.
+            Everyday Create still uses CSRT. Export classical good runs for training (S1), then later install a local draft model (S2+).
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="secondary" id="gen-ai-script-export"
+              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Use after a good run.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
               data-help="Experimental: local AI drafts a stroke curve for review. Off until a draft model is installed. Does not replace CSRT Create. Require Keep after Quality Doctor (planned S3).">AI draft script</button>
             <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
@@ -286,9 +292,8 @@ export function initGenerator(root, playback) {
         <button id="gen-cancel" type="button" disabled>Cancel</button>
       </div>
       <div id="gen-progress-wrap" style="display:none; margin-top:8px;">
-        <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
-          <div id="gen-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
-               transition:width .2s linear;"></div>
+        <div class="progress-bar" style="margin:0;">
+          <div id="gen-progress-bar" class="progress-bar-fill" style="width:0%;"></div>
         </div>
         <div id="gen-progress-text" class="hint" style="margin-top:4px;"></div>
         <div id="gen-preview-steer-tip" class="hint" style="margin-top:4px;"></div>
@@ -356,6 +361,7 @@ export function initGenerator(root, playback) {
   wireDataHelp(root);
 
   const el = id => root.querySelector(id);
+  el('#gen-open-handbook')?.addEventListener('click', () => openHandbook());
   const canvas = el('#roi-canvas');
   const ctx = canvas.getContext('2d');
 
@@ -1605,6 +1611,7 @@ export function initGenerator(root, playback) {
       el('#gen-improve-status').textContent = '';
       el('#gen-quality').style.display = 'none';
       syncWorkflowSteps();
+      refreshAIScriptWriterUI();
       // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
       SuggestProfile(path).then(result => {
         if (!result || !videoPath || videoPath !== path
@@ -2099,6 +2106,7 @@ export function initGenerator(root, playback) {
     el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
     updateSceneMapButton();
+    refreshAIScriptWriterUI();
     syncWorkflowSteps();
     if (result.error) {
       if (result.cancelled) {
@@ -2216,6 +2224,7 @@ export function initGenerator(root, playback) {
         }
       }
       lastOutputPath = path;
+      refreshAIScriptWriterUI();
       el('#gen-status').textContent += ' — loaded in Play (dots + Edit curve).';
       try {
         await playback.loadScriptPath(path, { review: true });
@@ -2288,15 +2297,19 @@ export function initGenerator(root, playback) {
   });
 
   function refreshAIScriptWriterUI() {
-    const btn = el('#gen-ai-script-draft');
+    const draft = el('#gen-ai-script-draft');
+    const exportBtn = el('#gen-ai-script-export');
     const status = el('#gen-ai-script-status');
     const hint = el('#gen-ai-script-hint');
-    if (!btn) return;
+    if (exportBtn) {
+      exportBtn.disabled = !lastOutputPath;
+    }
+    if (!draft) return;
     AIScriptWriterStatus().then((st) => {
       const available = !!(st && (st.available || st.Available));
       const reason = (st && (st.reason || st.Reason)) || '';
       const stage = (st && (st.stage || st.Stage)) || 'S0';
-      btn.disabled = !available || !videoPath;
+      draft.disabled = !available || !videoPath;
       if (status) {
         status.textContent = available
           ? `Ready (${stage})`
@@ -2306,11 +2319,30 @@ export function initGenerator(root, playback) {
         hint.textContent = reason;
       }
     }).catch(() => {
-      btn.disabled = true;
+      draft.disabled = true;
       if (status) status.textContent = 'AI draft status unavailable';
     });
   }
   refreshAIScriptWriterUI();
+  el('#gen-ai-script-export')?.addEventListener('click', async () => {
+    const status = el('#gen-ai-script-status');
+    const path = lastOutputPath;
+    if (!path) {
+      uiWarn('Create a script first, then export the classical run.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Exporting training sample…';
+    try {
+      const tip = roi && roi.w > 0 && roi.h > 0 ? roi : { x: 0, y: 0, w: 0, h: 0 };
+      const res = await ExportAIScriptImitation(
+        path, videoPath || '', tip.x || 0, tip.y || 0, tip.w || 0, tip.h || 0);
+      if (status) status.textContent = (res && (res.message || res.Message)) || 'Exported';
+      uiInfo((res && (res.message || res.Message)) || 'Training sample exported', el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Export classical run: ' + err, el('#gen-status'));
+    }
+  });
   el('#gen-ai-script-draft')?.addEventListener('click', async () => {
     const status = el('#gen-ai-script-status');
     if (!videoPath) {

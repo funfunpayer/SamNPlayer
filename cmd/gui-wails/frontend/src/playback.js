@@ -703,7 +703,7 @@ export function initPlayback(root) {
     ctx.clearRect(0, 0, w, h);
 
     if (trajectoryWanted()) {
-      drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(243, 178, 60, 0.85)');
+      drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(184, 150, 232, 0.88)');
       drawTrajectoryPath(ctx, trajectoryData.partner, w, h, 'rgba(95, 208, 200, 0.85)');
       const tipNow = nearestTrajectoryPoint(trajectoryData.tip, currentPosMs);
       if (tipNow) {
@@ -712,7 +712,7 @@ export function initPlayback(root) {
         const y = (tipNow.y / trajectoryData.height) * h;
         ctx.beginPath();
         ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
-        ctx.fillStyle = '#f3b23c';
+        ctx.fillStyle = '#b896e8';
         ctx.fill();
         ctx.lineWidth = 1.5 * dpr;
         ctx.strokeStyle = '#fff';

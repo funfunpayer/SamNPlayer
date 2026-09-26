@@ -16,6 +16,9 @@ export function BootstrapRoiTrainingRegions(arg1, arg2, arg3, arg4, arg5, arg6) 
 export function AddRoiStillTrainingSample(arg1, arg2) { return window['go']['main']['App']['AddRoiStillTrainingSample'](arg1, arg2); }
 export function AIScriptWriterStatus() { return window['go']['main']['App']['AIScriptWriterStatus'](); }
 export function DraftAIScript(arg1) { return window['go']['main']['App']['DraftAIScript'](arg1); }
+export function ExportAIScriptImitation(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['ExportAIScriptImitation'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
 export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }

@@ -49,17 +49,17 @@ func StatusFor(modelPath string) Status {
 	if modelPath == "" {
 		return Status{
 			Available: false,
-			Reason:    "No AI draft model configured yet (experimental path; Everyday Create still uses CSRT).",
-			Stage:     "S0",
+			Reason:    "No AI draft model yet. You can still export classical good runs for training (S1). Everyday Create stays CSRT.",
+			Stage:     "S1",
 		}
 	}
-	// S1/S2 will check file exists + format. S0 refuses any path so we
+	// S2 will check file exists + format. Until then refuse any path so we
 	// never pretend an unfinished writer works.
 	return Status{
 		Available: false,
-		Reason:    "AI draft model path set, but draft inference is not implemented yet (stage S0). Everyday CSRT unchanged.",
+		Reason:    "AI draft model path set, but draft inference is not implemented yet (stage S1→S2). Everyday CSRT unchanged.",
 		ModelPath: modelPath,
-		Stage:     "S0",
+		Stage:     "S1",
 	}
 }
 
