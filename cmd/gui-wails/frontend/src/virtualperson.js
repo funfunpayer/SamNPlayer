@@ -15,8 +15,38 @@ import {
   VirtualPersonToySync,
 } from '../wailsjs/go/main/App';
 
-export function initVirtualPerson() {
-  const sidebar = document.getElementById('sidebar');
+const VP_CSS = `
+.vp-card .vp-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.vp-card .vp-row button { flex: 1 1 auto; min-width: 0; font-size: 12px; padding: 7px 10px; }
+.vp-status { margin-top: 8px; font-size: 12px; color: var(--text-dim); font-weight: 500; }
+.vp-status.is-on { color: var(--ok); }
+.vp-sync-label { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; }
+.vp-sync-label input { accent-color: var(--teal); }
+.vp-pose { margin-top: 12px; border-top: 1px solid rgba(50, 54, 74, 0.55); padding-top: 10px; }
+.vp-pose-stage { position: relative; height: 88px; border-radius: var(--radius-sm); background: rgba(12, 14, 20, 0.85); border: 1px solid rgba(50, 54, 74, 0.6); display: grid; place-items: center; overflow: hidden; }
+.vp-idle { font-size: 11px; color: var(--text-dim); opacity: 0.75; }
+.vp-puppet { position: relative; width: 48px; height: 72px; transform: translateY(calc((50 - var(--stroke, 50)) * 0.18px)); transition: transform 0.08s linear; }
+.vp-body { position: absolute; inset: 0; border-radius: 18px 18px 10px 10px; background: linear-gradient(180deg, rgba(232, 176, 110, 0.35), rgba(90, 212, 196, 0.18)); border: 1px solid rgba(232, 176, 110, 0.35); }
+.vp-prop { position: absolute; left: 50%; top: 42%; width: 10px; height: 28px; margin-left: -5px; border-radius: 4px; background: rgba(90, 212, 196, 0.55); border: 1px solid rgba(90, 212, 196, 0.7); opacity: 0; transform: scaleY(0.6); transition: opacity 0.2s ease, transform 0.2s ease; }
+.vp-prop.is-visible { opacity: 1; transform: scaleY(1); }
+.vp-phase { position: absolute; left: 8px; bottom: 6px; font-size: 10px; color: var(--text-dim); letter-spacing: 0.02em; }
+.vp-channels { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+.vp-ch { display: flex; justify-content: space-between; gap: 6px; }
+.vp-ch b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+`;
+
+function ensureVpStyles() {
+  if (document.getElementById('vp-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'vp-styles';
+  s.textContent = VP_CSS;
+  document.head.appendChild(s);
+}
+
+/** @param {HTMLElement} [root] optional sidebar host (main.js may pass it) */
+export function initVirtualPerson(root) {
+  ensureVpStyles();
+  const sidebar = root || document.getElementById('sidebar');
   if (!sidebar) return;
 
   const card = document.createElement('div');
