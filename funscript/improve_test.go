@@ -1,6 +1,9 @@
 package funscript
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestTrimActionsMiddle(t *testing.T) {
 	in := []Action{{At: 0, Pos: 0}, {At: 1000, Pos: 100}, {At: 2000, Pos: 0}, {At: 3000, Pos: 50}}
@@ -149,30 +152,105 @@ func TestHealTrackingGapsStripsInteriorAndBridges(t *testing.T) {
 	}
 }
 
+func TestHealTrackingGapsKeepsBoundaryAnchors(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 500, Pos: 20},  // gap start — keep
+		{At: 1000, Pos: 99}, // interior junk
+		{At: 1500, Pos: 80}, // gap end — keep
+		{At: 2000, Pos: 100},
+	}
+	gaps := []TrackingGap{{StartMs: 500, EndMs: 1500}}
+	out, healed, _ := HealTrackingGaps(in, gaps, 100, 0)
+	if healed < 1 {
+		t.Fatalf("healed=%d", healed)
+	}
+	has500, has1500 := false, false
+	for _, a := range out {
+		if a.At == 500 && a.Pos == 20 {
+			has500 = true
+		}
+		if a.At == 1500 && a.Pos == 80 {
+			has1500 = true
+		}
+		if a.At == 1000 && a.Pos == 99 {
+			t.Fatalf("interior junk kept: %+v", a)
+		}
+	}
+	if !has500 || !has1500 {
+		t.Fatalf("boundary anchors lost: 500=%v 1500=%v out=%+v", has500, has1500, out)
+	}
+}
+
 func TestHealTrackingGapsDoesNotDensifyOutside(t *testing.T) {
 	in := []Action{
 		{At: 0, Pos: 0},
 		{At: 500, Pos: 80},
 		{At: 1000, Pos: 20},
-		{At: 1500, Pos: 90}, // outside gap — natural spacing
-		{At: 5000, Pos: 10}, // long natural? wait - put gap only mid
+		{At: 1500, Pos: 90},
+		{At: 5000, Pos: 10},
 		{At: 5100, Pos: 50},
 	}
-	// Gap only around 2500-4000 where there are no points — bridge 1500→5000
+	// Gap only mid — must not invent points in the healthy early stroke.
 	gaps := []TrackingGap{{StartMs: 2000, EndMs: 4500}}
 	out, healed, added := HealTrackingGaps(in, gaps, 200, 0)
 	if healed < 1 || added < 1 {
-		t.Fatalf("heal=%d added=%d", healed, added)
+		t.Fatalf("heal=%d added=%d out=%+v", healed, added, out)
 	}
-	// Early stroke spacing must stay sparse (no points invented between 0-1500).
 	early := 0
+	outsideGapExtra := 0
 	for _, a := range out {
 		if a.At > 0 && a.At < 1500 {
 			early++
 		}
+		// Healthy span 1500→5000 outside [2000,4500] must stay empty of new points.
+		if a.At > 1500 && a.At < 2000 {
+			outsideGapExtra++
+		}
+		if a.At > 4500 && a.At < 5000 {
+			outsideGapExtra++
+		}
 	}
 	if early != 2 { // 500 and 1000 only
 		t.Fatalf("densified early script: early=%d out=%+v", early, out)
+	}
+	if outsideGapExtra != 0 {
+		t.Fatalf("densified outside gap window: extra=%d out=%+v", outsideGapExtra, out)
+	}
+}
+
+func TestHealTrackingGapsMergesOverlappingAndInverts(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 10},
+		{At: 800, Pos: 95},
+		{At: 2000, Pos: 90},
+		{At: 2100, Pos: 100},
+	}
+	gaps := []TrackingGap{
+		{StartMs: 1500, EndMs: 400}, // inverted
+		{StartMs: 300, EndMs: 900},  // overlaps
+	}
+	out, healed, _ := HealTrackingGaps(in, gaps, 100, 0)
+	if healed < 1 {
+		t.Fatalf("healed=%d out=%+v", healed, out)
+	}
+	for _, a := range out {
+		if a.At == 800 && a.Pos == 95 {
+			t.Fatalf("junk in merged window survived: %+v", a)
+		}
+	}
+}
+
+func TestHealTrackingGapsRefusesWhenWouldDestroyScript(t *testing.T) {
+	in := []Action{{At: 100, Pos: 10}, {At: 200, Pos: 20}, {At: 300, Pos: 30}}
+	gaps := []TrackingGap{{StartMs: 0, EndMs: 400}} // everything is strict interior
+	out, healed, added := HealTrackingGaps(in, gaps, 50, 0)
+	if healed != 0 || added != 0 {
+		t.Fatalf("should refuse: healed=%d added=%d", healed, added)
+	}
+	if len(out) != len(in) {
+		t.Fatalf("mutated on refuse: %+v", out)
 	}
 }
 
@@ -198,5 +276,24 @@ func TestImproveScriptHealTrackingGaps(t *testing.T) {
 	}
 	if res.PointsAdded < 1 {
 		t.Fatalf("expected bridge points: %+v", res)
+	}
+}
+
+func TestStampTrackingGapsClears(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/clip.funscript"
+	body := `{"actions":[{"at":0,"pos":0},{"at":100,"pos":50}],"metadata":{"tracking_gaps":[{"start_ms":10,"end_ms":50}]}}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := StampTrackingGaps(path, nil); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Metadata.TrackingGaps) != 0 {
+		t.Fatalf("gaps remain: %+v", s.Metadata.TrackingGaps)
 	}
 }

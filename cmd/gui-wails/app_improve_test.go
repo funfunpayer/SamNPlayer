@@ -267,3 +267,51 @@ func TestImproveGeneratedScriptTrim(t *testing.T) {
 		t.Fatalf("ends %+v", script.Actions)
 	}
 }
+
+func TestImproveGeneratedScriptHealSamnClearsGaps(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "clip.samn")
+	doc := &samn.Document{
+		Version: samn.CurrentVersion,
+		Kind:    samn.Kind,
+		General: []funscript.Action{
+			{At: 0, Pos: 0},
+			{At: 100, Pos: 10},
+			{At: 900, Pos: 99},
+			{At: 1100, Pos: 98},
+			{At: 2000, Pos: 90},
+			{At: 2100, Pos: 100},
+		},
+		TrackingGaps: []funscript.TrackingGap{{StartMs: 500, EndMs: 1600}},
+	}
+	if err := samn.Save(path, doc); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{}
+	res, err := a.ImproveGeneratedScript(ImproveScriptRequest{
+		Path:             path,
+		HealTrackingGaps: true,
+		FillGaps:         false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.WindowsHealed < 1 {
+		t.Fatalf("expected heal: %+v", res)
+	}
+	got, err := samn.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TrackingGaps) != 0 {
+		t.Fatalf("samn gaps not cleared: %+v", got.TrackingGaps)
+	}
+	funPath := samn.CompanionFunscriptPath(path)
+	fs, err := funscript.Load(funPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fs.Metadata.TrackingGaps) != 0 {
+		t.Fatalf("companion gaps not cleared: %+v", fs.Metadata.TrackingGaps)
+	}
+}

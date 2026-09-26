@@ -114,20 +114,12 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 
 	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0
 	if changed {
-		if err := saveImprovedActions(path, improved.Actions); err != nil {
+		if err := saveImprovedActions(path, improved.Actions, improved.ClearTrackingGaps); err != nil {
 			return out, err
 		}
 		funPath := path
 		if samn.IsSamnPath(path) {
 			funPath = samn.CompanionFunscriptPath(path)
-		}
-		if improved.ClearTrackingGaps {
-			if err := clearTrackingGaps(path); err != nil {
-				return out, err
-			}
-			if funPath != path {
-				_ = funscript.StampTrackingGaps(funPath, nil)
-			}
 		}
 		if req.AudioCheck && audioMeta != nil {
 			_ = funscript.StampAudioCheck(funPath, audioMeta)
@@ -181,22 +173,6 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	return out, nil
 }
 
-// clearTrackingGaps drops healed loss windows from .samn / .funscript metadata.
-func clearTrackingGaps(path string) error {
-	if samn.IsSamnPath(path) {
-		doc, err := samn.Load(path)
-		if err != nil {
-			return err
-		}
-		doc.TrackingGaps = nil
-		if err := samn.Save(path, doc); err != nil {
-			return err
-		}
-		return doc.ExportFunscript(samn.CompanionFunscriptPath(path))
-	}
-	return funscript.StampTrackingGaps(path, nil)
-}
-
 // saveImprovedActions writes the edited action list back and refreshes the
 // quality score/warnings to match it - the score/warnings baked in at raw
 // Generate time otherwise silently describe the pre-edit curve forever
@@ -206,7 +182,9 @@ func clearTrackingGaps(path string) error {
 // actions-only Script Doctor quality (EstimatedFromScriptOnly) rather than
 // reproducing the original dense-signal score - a genuine, if weaker,
 // estimate of the current curve beats a stale snapshot of a different one.
-func saveImprovedActions(path string, actions []funscript.Action) error {
+// clearGaps drops tracking_gaps / TrackingGaps in the same write so Contact
+// vib is not muted on healed windows and companion export stays consistent.
+func saveImprovedActions(path string, actions []funscript.Action, clearGaps bool) error {
 	quality := funscript.EvaluateScriptQuality(actions)
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)
@@ -217,6 +195,9 @@ func saveImprovedActions(path string, actions []funscript.Action) error {
 		doc.QualityScore = &quality.Score
 		doc.QualityPassed = &quality.Passed
 		doc.QualityWarnings = quality.Warnings
+		if clearGaps {
+			doc.TrackingGaps = nil
+		}
 		if err := samn.Save(path, doc); err != nil {
 			return err
 		}
@@ -225,7 +206,13 @@ func saveImprovedActions(path string, actions []funscript.Action) error {
 	if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
-	return funscript.StampQuality(path, quality)
+	if err := funscript.StampQuality(path, quality); err != nil {
+		return err
+	}
+	if clearGaps {
+		return funscript.StampTrackingGaps(path, nil)
+	}
+	return nil
 }
 
 func guessVideoBesideScript(scriptPath string) string {

@@ -165,10 +165,9 @@ func FillGaps(actions []Action, maxGapMs, stepMs int64, audioHz float64) (out []
 	return out, gapsFilled, pointsAdded
 }
 
-// HealTrackingGaps strips actions inside known tracker-loss windows and
-// linearly re-bridges only those holes (same step rules as FillGaps).
-// Does not densify the rest of the script. Callers should clear the healed
-// windows from script metadata afterwards.
+// HealTrackingGaps strips actions strictly inside known tracker-loss windows
+// and linearly re-bridges only those windows (does not densify outside them).
+// Callers should clear the healed windows from script metadata afterwards.
 func HealTrackingGaps(actions []Action, gaps []TrackingGap, stepMs int64, audioHz float64) (out []Action, windowsHealed, pointsAdded int) {
 	if len(actions) < 2 || len(gaps) == 0 {
 		return append([]Action(nil), actions...), 0, 0
@@ -180,10 +179,12 @@ func HealTrackingGaps(actions []Action, gaps []TrackingGap, stepMs int64, audioH
 	sorted := append([]Action(nil), actions...)
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].At < sorted[j].At })
 
+	// Keep boundary points at StartMs/EndMs as anchors — only drop the
+	// strict interior (junk while the tracker was lost).
 	kept := make([]Action, 0, len(sorted))
 	removed := 0
 	for _, a := range sorted {
-		if insideTrackingGap(a.At, merged) {
+		if insideTrackingGapStrict(a.At, merged) {
 			removed++
 			continue
 		}
@@ -193,61 +194,56 @@ func HealTrackingGaps(actions []Action, gaps []TrackingGap, stepMs int64, audioH
 		// Healing would destroy the script — refuse silently (caller keeps original).
 		return append([]Action(nil), actions...), 0, 0
 	}
-	if removed == 0 {
-		// No interior junk — still bridge if the window spans a long hole.
-		// Fall through with kept == sorted.
-	}
 
 	step := stepOrDefault(stepMs, audioHz)
 	if step < 20 {
 		step = 20
 	}
 
+	touched := make([]bool, len(merged))
 	out = make([]Action, 0, len(kept)+len(merged)*8)
 	out = append(out, kept[0])
-	gapIdx := 0
 	for i := 1; i < len(kept); i++ {
 		prev := out[len(out)-1]
 		next := kept[i]
-		// Bridge only when this pair straddles at least one tracking gap.
-		for gapIdx < len(merged) && merged[gapIdx].EndMs < prev.At {
-			gapIdx++
-		}
-		bridged := false
-		for g := gapIdx; g < len(merged); g++ {
-			gap := merged[g]
-			if gap.StartMs > next.At {
-				break
-			}
-			// Pair straddles this loss window (or touches it).
-			if prev.At <= gap.EndMs && next.At >= gap.StartMs {
-				bridged = true
-				break
-			}
-		}
-		if bridged {
-			dt := next.At - prev.At
-			if dt > step {
-				windowsHealed++
-				n := int(dt / step)
-				for k := 1; k < n; k++ {
-					t := prev.At + int64(k)*step
-					if t >= next.At {
-						break
-					}
-					frac := float64(t-prev.At) / float64(dt)
-					pos := int(math.Round(float64(prev.Pos) + frac*float64(next.Pos-prev.Pos)))
-					out = append(out, Action{At: t, Pos: clampPos(pos)})
-					pointsAdded++
+		dt := next.At - prev.At
+		if dt > step {
+			for k := 1; ; k++ {
+				t := prev.At + int64(k)*step
+				if t >= next.At {
+					break
 				}
-			} else if removed > 0 {
-				windowsHealed++
+				g := gapIndexContaining(t, merged)
+				if g < 0 {
+					// Outside every loss window — leave the healthy curve alone.
+					continue
+				}
+				frac := float64(t-prev.At) / float64(dt)
+				pos := int(math.Round(float64(prev.Pos) + frac*float64(next.Pos-prev.Pos)))
+				out = append(out, Action{At: t, Pos: clampPos(pos)})
+				pointsAdded++
+				touched[g] = true
+			}
+		}
+		// Mark gaps whose interior we stripped even when no new points fit.
+		if removed > 0 {
+			for g, gap := range merged {
+				if prev.At <= gap.EndMs && next.At >= gap.StartMs {
+					if removedInGap(sorted, gap) {
+						touched[g] = true
+					}
+				}
 			}
 		}
 		if out[len(out)-1].At == next.At {
 			out[len(out)-1] = next
 		} else {
 			out = append(out, next)
+		}
+	}
+	for _, t := range touched {
+		if t {
+			windowsHealed++
 		}
 	}
 	if windowsHealed == 0 && removed == 0 && pointsAdded == 0 {
@@ -293,9 +289,29 @@ func mergeTrackingGaps(gaps []TrackingGap) []TrackingGap {
 	return out
 }
 
-func insideTrackingGap(at int64, gaps []TrackingGap) bool {
+// insideTrackingGapStrict is true for the open interval (start, end) — boundary
+// timestamps stay as anchors.
+func insideTrackingGapStrict(at int64, gaps []TrackingGap) bool {
 	for _, g := range gaps {
+		if at > g.StartMs && at < g.EndMs {
+			return true
+		}
+	}
+	return false
+}
+
+func gapIndexContaining(at int64, gaps []TrackingGap) int {
+	for i, g := range gaps {
 		if at >= g.StartMs && at <= g.EndMs {
+			return i
+		}
+	}
+	return -1
+}
+
+func removedInGap(original []Action, gap TrackingGap) bool {
+	for _, a := range original {
+		if a.At > gap.StartMs && a.At < gap.EndMs {
 			return true
 		}
 	}
