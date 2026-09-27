@@ -85,7 +85,7 @@ func GenerateNativeSimple(ctx context.Context, videoPath string, roi ROI, output
 			}
 			partners = append(partners, simpletrack.Partner{
 				ROI:   simpletrack.Rect{X: t.X, Y: t.Y, W: t.W, H: t.H},
-				Fixed: true,
+				Fixed: t.Fixed,
 			})
 		}
 		tr, err = simpletrack.TrackMultiPoints(ctx, videoPath,

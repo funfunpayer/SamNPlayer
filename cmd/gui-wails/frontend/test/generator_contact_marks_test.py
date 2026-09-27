@@ -85,6 +85,28 @@ def main():
         check("Tip class returns when vib on again",
               page.locator("#gen-region-class").is_visible())
 
+        # Marks S2: tip path soft-on with Contact vib → extras follow by default.
+        check("Tip path soft-on with Contact vib",
+              page.locator("#gen-capture-trajectory").is_checked())
+        check("Extra Stay fixed present and off by default",
+              page.locator("#gen-extra-contact-sticky").count() == 1
+              and not page.locator("#gen-extra-contact-sticky").is_checked())
+        follow = page.evaluate("""() => {
+          const sticky = document.querySelector('#gen-extra-contact-sticky');
+          const traj = document.querySelector('#gen-capture-trajectory');
+          return !sticky.checked && !!traj.checked;
+        }""")
+        check("Extra contact should follow when tip path on", follow)
+
+        page.check("#gen-extra-contact-sticky")
+        page.wait_for_timeout(20)
+        sticky_blocks = page.evaluate("""() => {
+          const sticky = document.querySelector('#gen-extra-contact-sticky');
+          const traj = document.querySelector('#gen-capture-trajectory');
+          return sticky.checked && !!traj.checked;
+        }""")
+        check("Stay fixed overrides follow even with tip path", sticky_blocks)
+
         browser.close()
 
     shutdown()

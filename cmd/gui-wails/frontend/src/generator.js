@@ -118,11 +118,15 @@ export function initGenerator(root, playback) {
           <button id="gen-roi2-toggle" type="button"
             data-help="Mark the main contact area (gold). Example: one nipple, mouth, or hand. On Stroke, Contact vibration still follows stroke depth — the mark is for location/feel later. Tip↔partner distance needs Tf/Tj.">Mark contact area</button>
           <button id="gen-target-add" type="button"
-            data-help="Add another contact area (magenta) — e.g. second nipple. Same idea as the first contact mark; you can mark several.">+ Another contact area</button>
+            data-help="Add another contact area (magenta) — e.g. second nipple. Same idea as the first contact mark; you can mark several. With tip path on, extras follow the partner track on Play unless Stay fixed is checked.">+ Another contact area</button>
           <label style="width:auto; margin:0;" data-help="Body-part type for the next extra contact mark.">Extra type</label>
           <select id="gen-target-class" style="min-width:7em;">
             <option value="">(any)</option>
           </select>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip path is recorded) = follow partner trajectory on Play / track partner in Tf/Tj distance mode. Use when the second contact barely moves.">
+            <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
+          </label>
           <button id="gen-extras-clear" type="button"
             data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
           <span class="hint" id="gen-roi2-hint" style="margin:0">All optional. Vib = stroke depth unless Tf/Tj distance.</span>
@@ -393,7 +397,7 @@ export function initGenerator(root, playback) {
   let pendingAITarget = null; // strict semantic proposal; Apply required
   let activeAITargetRequest = null; // {requestId, videoPath, expectedClass, timeSec}
   let aiTargetRequestSeq = 0;
-  let extraTargets = []; // additional fixed Tf/Tj anchors (min-distance)
+  let extraTargets = []; // extra contact anchors (follow by default when tip path on)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
   let markMode = null; // null | 'target' | 'mask'
@@ -723,6 +727,13 @@ export function initGenerator(root, playback) {
     if (roi2 && contactVibrationOn()) {
       fix.checked = false;
     }
+  }
+
+  // Marks S2: extras follow when tip path is recorded (Contact vib soft-ons path).
+  // Stay fixed checkbox / no path → static anchor (Tf/Tj careful static targets).
+  function contactExtraShouldFollow() {
+    if (el('#gen-extra-contact-sticky')?.checked) return false;
+    return !!el('#gen-capture-trajectory')?.checked;
   }
 
   // Progressive steps: next panel appears only when the previous action is done.
@@ -1554,10 +1565,12 @@ export function initGenerator(root, playback) {
     }
     if (mode === 'target') {
       const cls = el('#gen-target-class')?.value || '';
-      extraTargets.push({ ...box, fixed: true, class: cls });
+      const follow = contactExtraShouldFollow();
+      extraTargets.push({ ...box, fixed: !follow, class: cls });
       setMarkMode(null);
       const tag = cls ? ` (${cls})` : '';
-      el('#gen-status').textContent = `Extra contact #${extraTargets.length}${tag} added.`;
+      const modeHint = follow ? ', follows partner path' : ', stay fixed';
+      el('#gen-status').textContent = `Extra contact #${extraTargets.length}${tag} added${modeHint}.`;
     } else if (mode === 'mask') {
       // Soft mask → whole-clip black ignore that follows the subject.
       sceneMapMarkSeq += 1;
@@ -1877,7 +1890,8 @@ export function initGenerator(root, playback) {
     if (extraTargets.length) {
       payload.extraTargets = extraTargets.map(t => ({
         x: t.x, y: t.y, w: t.w, h: t.h,
-        fixed: t.fixed !== false,
+        // Explicit bool — omitempty Fixed:false must still mean follow on Play.
+        fixed: !!t.fixed,
         class: t.class || '',
       }));
     }

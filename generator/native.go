@@ -144,10 +144,12 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 			if t.W <= 0 || t.H <= 0 {
 				continue
 			}
-			// Zone 3+ extras are fixed contact anchors (GUI +Target).
+			// Marks S2: honor Fixed from GUI (follow when tip path / not sticky).
+			// Tf/Tj distance: tracked extras keep min-distance on moving contact;
+			// Stay fixed preserves static anchors.
 			partners = append(partners, nativePartner{
 				ROI:   ROI{X: t.X, Y: t.Y, W: t.W, H: t.H},
-				Fixed: true,
+				Fixed: t.Fixed,
 			})
 		}
 		tr, err = nativeTrackMultiPoints(videoPath, roi, partners, trackOpts, onPercent)

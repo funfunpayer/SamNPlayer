@@ -105,7 +105,7 @@ type GenerateOptions struct {
 	// RegionClass / RegionClass2 are optional body-part IDs (docs/BODY_REGIONS.md).
 	RegionClass  string `json:"regionClass"`
 	RegionClass2 string `json:"regionClass2"`
-	// ExtraTargets: additional fixed Tf/Tj anchors; distance = min(tip, all).
+	// ExtraTargets: extra contact anchors; Fixed=false follows when tip path on.
 	ExtraTargets []generator.NamedROI `json:"extraTargets"`
 	// MaskROIs: soft-exclude boxes for feature masks.
 	MaskROIs []generator.ROI `json:"maskRois"`
