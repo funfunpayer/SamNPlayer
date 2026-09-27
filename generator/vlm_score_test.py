@@ -15,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ORACLES = [
     os.path.join(HERE, "testdata", "golden_clips", "clip_voll_tftj", "vlm_oracle.json"),
     os.path.join(HERE, "testdata", "golden_clips", "clip_ausschnitt_native", "vlm_oracle.json"),
+    os.path.join(HERE, "testdata", "vlm_labels", "multi_person_642s.json"),
 ]
 
 ORACLE = {"keyframes": [

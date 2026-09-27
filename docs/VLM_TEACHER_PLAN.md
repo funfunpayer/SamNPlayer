@@ -190,6 +190,42 @@ therefore changes to:
    - This needs references for the new clips. A hand-corrected script is
      best, because FunGen output is only a ~0.45 proxy.
 
+**Multi-person clip: where "where" matters (measured 27 Sep).**
+- The clip is an Owner upload: 642 s, two women, POV, 256×144. The
+  reference is a FunGen-style script.
+- Claude labelled 27 keyframes (every 20 s), committed as
+  `testdata/vlm_labels/multi_person_642s.json`.
+- The #287 engine starts from a centre ROI and then sits on the heads (cells
+  17–21 / 33). Its chosen cell is on the real contact in only **3 of 237
+  windows**.
+- All numbers below come from the offline harness, which is bit-identical to
+  Go `TrackROI` on this clip (max diff 0.0).
+
+| Variant | contact hit | r (detrend 1500) |
+|---|---|---|
+| #287 baseline | 1 % | 0.304 |
+| labels as SceneMap `source`/`exclude` marks (today's M3 path) | 1 % | 0.305 |
+| + re-seed when the locked cell leaves the box | 0 % | 0.264 |
+| **search anchor = label contact centre** (instead of the CSRT box) | 62 % | **0.425** |
+| anchor + marks + re-seed | 85 % | 0.417 |
+
+The same anchor on the goldens:
+- `clip_voll`: 0.467 / 0.771, against 0.456 / 0.752.
+- `clip_ausschnitt`: unchanged at 0.482 / 0.888.
+
+Anchor + marks costs `clip_ausschnitt` 0.03.
+
+Conclusion:
+- A correct *where* lifts the multi-person clip by **+0.12 r (+40 %)** and
+  does not regress either golden.
+- Marks cannot deliver it. The grid only searches within 3 cells of the
+  CSRT box, and the lock ignores sources after the seed.
+- **What the teacher (and later our own detector) must feed is the grid's
+  search anchor, per frame.** The VLM contact box centre replaces the CSRT
+  box centre while a box is active.
+- That is the engine hook for V1 / V3. It needs its own opt-in PR and its
+  own gate on ≥ 4–5 clips.
+
 **Where V0 runs:** on the Owner's PC. The cloud session cannot download
 weights, because its network policy blocks huggingface.co. The Owner runs
 one command and sends back the `.vlm.json` (text only, no frames).
