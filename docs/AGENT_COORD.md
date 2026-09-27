@@ -131,7 +131,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** + Release bookkeeping (SceneMap P3–P5, Look2/3, AIWrite S0/S1+#272 discoverability, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe, #267) | **DONE** on main — tag after Owner portable smoke |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
-| Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) merged → H1 **this PR** | **Plugin H1** — OnFrame tick + cherry-pick `virtualperson/` core from #264; overlay/ToyHub ownership deferred; Enforcement off | **THIS** |
+| Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) done → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H1** — OnFrame tick + cherry-pick `virtualperson/` core from #264; overlay/ToyHub ownership deferred; Enforcement off | **THIS** |
 | Engine | — | free | Rel32 on main; Plugin H1 in flight; Owner gates unchanged | **OPEN** (Plugin) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -155,7 +155,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (27 Sep — Plugin H1):**
-- **In flight:** **Plugin H1** — OnFrame tick wiring + cherry-pick `virtualperson/` (props/activities/bus) from #264 onto `pluginhost` H0. Overlay UI + ToyHub device-ownership flip **deferred**. Enforcement stays **off**.
+- **In flight:** **Plugin H1** [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) — OnFrame tick wiring + cherry-pick `virtualperson/` (props/activities/bus) from #264 onto `pluginhost` H0. Overlay UI + ToyHub device-ownership flip **deferred**. Enforcement stays **off**.
 - **Shipped:** Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) @ `9673dfb` — `virtual_person` in €40 key + host Enable/Disable.
 - **Rel32:** on `main` (`9673dfb` tip includes H0); tag after Owner portable smoke.
 - **Owner decision (27 Sep):** Virtual Person / plugins **included** in standard license — not a separate addon. Feature id = `virtual_person`. Continue plugin E2E after H0: **yes**.
