@@ -1,7 +1,7 @@
-"""Create Advanced: AI draft script control loads and stays disabled in S0.
+"""Create Advanced: AIWrite S1 Export classical run discoverability.
 
-Owner path docs/AI_SCRIPT_WRITER.md — Everyday CSRT unchanged; button present
-so the lane is visible in the GUI (Owner: functions must load in the GUI).
+S0: draft stays disabled. After a mocked Create finish, export enables and
+status/status-line point at Advanced → Export classical run (GUI load).
 
 Run: python3 cmd/gui-wails/frontend/test/generator_ai_script_test.py
 """
@@ -49,6 +49,15 @@ def main():
         "DraftAIScript": (
             "async () => { throw new Error('aiscript: not available'); }"
         ),
+        "GenerateScript": (
+            "async (opts) => { window.__calls.push(['GenerateScript', opts]); "
+            "setTimeout(() => window.__triggerEvent && window.__triggerEvent("
+            "'generate:done', { path: '/tmp/clip.samn', qualityScore: 0.8, "
+            "qualityPassed: true, seq: 1 }), 0); }"
+        ),
+        "ExportAIScriptImitation": (
+            "async () => ({ message: 'Saved training sample under ai_script_imitation' })"
+        ),
     }))
     harness = FRONTEND / "test" / "_generator_ai_script_harness.html"
     harness.write_text(PAGE)
@@ -62,23 +71,43 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         check("AI draft button in DOM", page.locator("#gen-ai-script-draft").count() == 1)
+        check("Export classical in DOM", page.locator("#gen-ai-script-export").count() == 1)
 
         page.click("#gen-choose")
         page.wait_for_function(
             "!document.querySelector('#gen-step-run').hidden",
             timeout=5000)
 
-        page.wait_for_function(
-            "!document.querySelector('#gen-step-run').hidden",
-            timeout=5000)
         page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
         page.wait_for_selector("#gen-ai-script-draft", state="visible", timeout=5000)
-        check("disabled in S0", page.is_disabled("#gen-ai-script-draft"))
+        check("draft disabled in S0", page.is_disabled("#gen-ai-script-draft"))
+        check("export disabled before Create", page.is_disabled("#gen-ai-script-export"))
         status = page.locator("#gen-ai-script-status").inner_text()
-        check("status explains S0 / CSRT",
-              "S0" in status or "CSRT" in status or "draft" in status.lower()
-              or "model" in status.lower(),
+        check("status mentions export after Create",
+              "Export classical" in status or "after Create" in status,
               status)
+
+        page.wait_for_function(
+            "document.querySelector('#gen-autoroi').disabled === false && "
+            "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
+            timeout=5000)
+        page.wait_for_function(
+            "!document.querySelector('#gen-generate').disabled",
+            timeout=5000)
+        page.click("#gen-generate")
+        page.wait_for_function(
+            "() => { const s = document.querySelector('#gen-status')?.textContent || '';"
+            " return s.includes('Export classical run'); }",
+            timeout=8000)
+        status_line = page.locator("#gen-status").inner_text()
+        check("Create status points at Advanced Export",
+              "Export classical run" in status_line and "Advanced" in status_line,
+              status_line)
+        check("export enabled after Create", not page.is_disabled("#gen-ai-script-export"))
+        status2 = page.locator("#gen-ai-script-status").inner_text()
+        check("status says export ready",
+              "Export classical run ready" in status2,
+              status2)
 
         browser.close()
 

@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **AIWrite S1 discoverability** — after Create succeeds, status points at
+  Advanced → **Export classical run**; export button stays disabled until a
+  Create result exists; status line names export vs draft separately. No S2
+  defaults.
+
 ### Added
 
 - **Play chapters** — Add from heatmap selection / seek / remove named ranges

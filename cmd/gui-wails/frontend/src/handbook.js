@@ -34,7 +34,7 @@ Neither re-runs CSRT. Neither invents motion from audio (audio only spaces steps
     title: 'Can AI write the Funscript?',
     body: `Path is open, opt-in, local only:
 • S0 plan + stub — shipped
-• S1 Export classical run (Create → Advanced) — saves samples for offline training
+• S1 Export classical run (Create → Advanced) — after Create, status reminds you; button enables for offline training samples
 • S2+ local model draft → Quality Doctor → Keep (not default)
 
 Cloud “ChatGPT writes positions” is out of product. Everyday Create stays CSRT.`,
