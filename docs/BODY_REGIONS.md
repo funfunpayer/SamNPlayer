@@ -49,12 +49,15 @@ IDs in Go (`generator/bodyparts`), Python (`bodyparts.py`), and the GUI
   (taxonomy / future weighting); fusion is still unweighted `min()` over
   **usable** partners (lost tracked boxes excluded). Contact vibration
   uses the same proximity signal. Go CSRT runs N partners natively
-  (`TrackMultiPoints`); soft masks still use the Python path.
+  (`TrackMultiPoints`). Soft masks: with **RhythmGrid** on they stay
+  Go-eligible (converted to exclude marks; P3 #251); without RhythmGrid
+  they still force Python.
 - **Soft masks (`--mask`, repeatable):** GUI **+ Mask**. Punched out of
   camera-motion and grid_lk reseed feature masks only — they do **not**
   drive the stroke. Not pixel-perfect SAM segmentation; box soft-exclude.
 
-Native Go pipeline stays on the Python path when **MaskROIs** are set.
+Native Go pipeline: **MaskROIs** without RhythmGrid still force Python;
+with RhythmGrid on, masks are honoured on Go (`SCENE_MAP_PLAN` M3 / #251).
 ExtraTargets use Go `TrackMultiPoints` when OpenCV (or simpletrack) is available.
 
 ## Surfaces
