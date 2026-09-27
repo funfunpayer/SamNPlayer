@@ -1,10 +1,12 @@
 package generator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"path/filepath"
 	"strings"
 
@@ -36,11 +38,14 @@ type LearningExportResult struct {
 	ExcludeDecisions int    `json:"excludeDecisions"`
 	AutoCandidates   int    `json:"autoCandidates"`
 	UserRegionMarks  int    `json:"userRegionMarks"`
+	YoloFrames       int    `json:"yoloFrames"`
+	YoloLabels       int    `json:"yoloLabels"`
 	TracePath        string `json:"tracePath"`
 	NegativesPath    string `json:"negativesPath"`
 	DecisionsPath    string `json:"decisionsPath"`
 	AutoPath         string `json:"autoPath"`
 	UserRegionsPath  string `json:"userRegionsPath"`
+	YoloDir          string `json:"yoloDir"`
 }
 
 // DefaultSceneMapLearningDir is …/roi_training_dataset/scene_map_learning.
@@ -105,6 +110,11 @@ func ExportSceneMapLearning(samnPath string, opts LearningExportOptions) (Learni
 		return out, err
 	}
 
+	nYoloFrames, nYoloLabels, yoloDir, err := writeReviewedYOLO(samnPath, doc, clipDir)
+	if err != nil {
+		return out, err
+	}
+
 	metaPath := filepath.Join(clipDir, "source.json")
 	_ = writeJSON(metaPath, map[string]any{
 		"samn":        filepath.Base(samnPath),
@@ -122,6 +132,9 @@ func ExportSceneMapLearning(samnPath string, opts LearningExportOptions) (Learni
 		ExcludeDecisions: nDec,
 		AutoCandidates:   nAuto,
 		UserRegionMarks:  nUser,
+		YoloFrames:       nYoloFrames,
+		YoloLabels:       nYoloLabels,
+		YoloDir:          yoloDir,
 		TracePath:        tracePath,
 		NegativesPath:    negPath,
 		DecisionsPath:    decPath,
@@ -374,3 +387,109 @@ func writeJSON(path string, v any) error {
 	}
 	return os.WriteFile(path, append(data, '\n'), 0o644)
 }
+
+
+// writeReviewedYOLO writes a review-gated YOLO detection set beside the L0
+// artifacts. It deliberately does not write into the trainer's labels/train
+// tree: P5c produces reviewable data; a later explicit training/import step
+// decides when it enters a model.
+//
+// Eligible labels:
+//   - region marks authored by a person (author != "auto")
+//   - author:auto region marks only when Reviewed is explicitly true
+//
+// One representative frame is extracted per eligible mark. AtMs wins;
+// otherwise the midpoint of FromMs/ToMs is used, then FromMs, then 0.
+func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (frames, labels int, yoloDir string, err error) {
+	if doc == nil || doc.SceneMap == nil {
+		return 0, 0, "", nil
+	}
+	videoPath := strings.TrimSpace(doc.VideoPath)
+	if videoPath == "" {
+		return 0, 0, "", nil
+	}
+	if !filepath.IsAbs(videoPath) {
+		videoPath = filepath.Join(filepath.Dir(samnPath), videoPath)
+	}
+	if _, statErr := os.Stat(videoPath); statErr != nil {
+		return 0, 0, "", fmt.Errorf("generator: P5c video for reviewed YOLO export: %w", statErr)
+	}
+
+	type sample struct {
+		mark funscript.SceneMapMark
+		atMs int64
+	}
+	var samples []sample
+	classes := map[string]int{}
+	var classNames []string
+	for _, m := range doc.SceneMap.Marks {
+		if !strings.EqualFold(m.Kind, "region") || len(m.Rect) < 4 || strings.TrimSpace(m.Class) == "" {
+			continue
+		}
+		if strings.EqualFold(m.Author, "auto") && (m.Reviewed == nil || !*m.Reviewed) {
+			continue
+		}
+		at := int64(0)
+		if m.AtMs != nil {
+			at = *m.AtMs
+		} else if m.ToMs > m.FromMs {
+			at = m.FromMs + (m.ToMs-m.FromMs)/2
+		} else if m.FromMs > 0 {
+			at = m.FromMs
+		}
+		if at < 0 {
+			at = 0
+		}
+		name := strings.ToLower(strings.TrimSpace(m.Class))
+		if _, ok := classes[name]; !ok {
+			classes[name] = len(classNames)
+			classNames = append(classNames, name)
+		}
+		samples = append(samples, sample{mark: m, atMs: at})
+	}
+	if len(samples) == 0 {
+		return 0, 0, "", nil
+	}
+
+	yoloDir = filepath.Join(clipDir, "reviewed_yolo")
+	imgDir := filepath.Join(yoloDir, "images")
+	lblDir := filepath.Join(yoloDir, "labels")
+	if err := os.MkdirAll(imgDir, 0o755); err != nil { return 0, 0, "", err }
+	if err := os.MkdirAll(lblDir, 0o755); err != nil { return 0, 0, "", err }
+
+	for i, s := range samples {
+		name := fmt.Sprintf("mark_%04d_%d", i, s.atMs)
+		imgPath := filepath.Join(imgDir, name+".png")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*1000000000)
+		w, h, dumpErr := DumpFrameAt(ctx, videoPath, imgPath, float64(s.atMs)/1000.0)
+		cancel()
+		if dumpErr != nil {
+			return frames, labels, yoloDir, dumpErr
+		}
+		x, y, bw, bh := s.mark.Rect[0], s.mark.Rect[1], s.mark.Rect[2], s.mark.Rect[3]
+		x0, y0 := maxInt(0, x), maxInt(0, y)
+		x1, y1 := minInt(w, x+bw), minInt(h, y+bh)
+		if x1 <= x0 || y1 <= y0 {
+			_ = os.Remove(imgPath)
+			continue
+		}
+		classID := classes[strings.ToLower(strings.TrimSpace(s.mark.Class))]
+		xc := (float64(x0+x1) / 2) / float64(w)
+		yc := (float64(y0+y1) / 2) / float64(h)
+		wn := float64(x1-x0) / float64(w)
+		hn := float64(y1-y0) / float64(h)
+		line := strconv.Itoa(classID)+" "+fmt.Sprintf("%.6f %.6f %.6f %.6f\n", xc, yc, wn, hn)
+		if err := os.WriteFile(filepath.Join(lblDir, name+".txt"), []byte(line), 0o644); err != nil {
+			return frames, labels, yoloDir, err
+		}
+		frames++
+		labels++
+	}
+	if err := writeJSON(filepath.Join(yoloDir, "classes.json"), map[string]any{"version": 1, "names": classNames}); err != nil {
+		return frames, labels, yoloDir, err
+	}
+	return frames, labels, yoloDir, nil
+}
+
+func minInt(a, b int) int { if a < b { return a }; return b }
+func maxInt(a, b int) int { if a > b { return a }; return b }
