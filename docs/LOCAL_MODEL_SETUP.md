@@ -46,7 +46,7 @@ File: `…/SamNPlayer/models/motion_profile_model.json`.
 ## C) Colibri (optional LLM beside the app)
 
 See **`docs/COLIBRI_SETUP.md`**. Short path: `coli serve` → Settings AI server
-URL (empty = `http://127.0.0.1:8080`) → Test/Check AI server → Create Suggest /
+URL (empty = `http://127.0.0.1:8080`) → **Test AI server** → Create Suggest /
 quality opinion.
 
 ## D) AIWrite (imitation, no ONNX writer yet)

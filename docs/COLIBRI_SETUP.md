@@ -23,9 +23,8 @@ Owner overview of all local models: `docs/LOCAL_MODEL_SETUP.md`.
    quality second opinion**:
    - Leave the field **empty** to use `http://127.0.0.1:8080`, or paste another
      base URL (no trailing path; do not append `/v1/...`).
-   - Use **Test AI server** / **Check AI server** when the GUI offers it — it
-     probes `GET /v1/models`. Unreachable is normal when nothing is running;
-     Create still works.
+   - Use **Test AI server** — it probes `GET /v1/models`. Unreachable is
+     normal when nothing is running; Create still works.
 4. Create tab:
    - **Suggest profile** — classical / Go model first; Colibri only if those
      have no safe answer.

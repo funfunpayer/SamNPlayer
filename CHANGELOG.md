@@ -25,6 +25,10 @@ measurement history behind each entry; this file is the short version for
   = bit-identical. Builds the JSON still via CLI (`contact_points.py`); the
   GUI does not run teachers. Handbook FAQ documents the path.
 
+- **Settings Test AI server** — probes Colibri / OpenAI-compatible
+  `GET /v1/models` (≈1.5s); empty URL → `http://127.0.0.1:8080`. Unreachable
+  is the normal offline state — no raise, no Everyday/Suggest default change.
+
 - **VLM probe exemplar mode** — `vlm_probe.py --exemplar-json/--exemplar`
   shows the model reference frames of the same clip with the contact region
   (green) and no-go regions (red) drawn in, then asks for the same region in
