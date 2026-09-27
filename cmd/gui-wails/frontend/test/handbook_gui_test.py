@@ -77,6 +77,9 @@ def main():
                   page.locator(".handbook-overlay").count() == 1)
             check("Handbook title visible",
                   page.locator(".handbook-panel h2").inner_text() == "User handbook")
+            check("Handbook mentions Use contact points",
+                  page.locator(".handbook-panel").inner_text().find(
+                      "Use contact points") >= 0)
             page.click(".handbook-close")
             check("Handbook closes",
                   page.locator(".handbook-overlay").count() == 0)
