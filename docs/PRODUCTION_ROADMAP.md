@@ -94,7 +94,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.29** | Shipped | Stroke detrend on by default (2× stroke period) removes tracker-drift baseline shifts (#230) |
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
 | **v0.5.31** | Shipped | Profilemodel #244 + semantic target lock #248 + SceneMap P1/P2 #246/#247 + BF-3 Stage B #239 |
-| next | After Rel31 | SceneMap P5 done; G1.2 shipped (#257). Owner: ≥4–5 rhythm clips; speed-cap; G1.3. **Next Cursor:** G3 suggest-only harden + Look v2 (preserve CSRT) |
+| **v0.5.32** | **THIS** | Post-31 stack: SceneMap P3–P5, Look v2/v3, AIWrite S0/S1+#272 discoverability, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe; board note #267 |
+| next | After Rel32 | Owner portable smoke → tag `v0.5.32`. Still Owner: ≥4–5 rhythm clips (identity-lock alg); speed-cap; G1.3. GUI-load audit leftovers |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
