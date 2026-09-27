@@ -45,7 +45,7 @@ Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge 
 Still **CLI / advanced / not Everyday GUI:**
 - Whole-frame **4-zone** stroke mode (kept for experiments; weaker on measured clips)
 - Flow tracker as Generate default (CLI)
-- Full AI **draft script** inference (S2+ — button present but disabled until a local model exists)
+- ONNX vision AI **draft script** writer (S2+ model inference — not shipped; imitation draft is available after **Export classical run**)
 
 ### Why is Create better than importing a random Funscript?
 Create tracks the tip in *your* video. Import + **Optimize for Neo 2** polishes foreign scripts (fill gaps → contact → bake) but cannot invent missing tracking.
