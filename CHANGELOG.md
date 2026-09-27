@@ -10,6 +10,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Generator marks S2 (contact Fixed→follow)** — extra contact areas default to
+  **follow** when tip path is recorded (Contact vib soft-ons path); optional
+  **Stay fixed** keeps static anchors. Play overlay treats omitted/`false`
+  Fixed like primary (follow partner/tip path). Tf/Tj multi-partner tracking
+  honors `NamedROI.Fixed` instead of hardcoding extras fixed. Everyday CSRT /
+  identity-lock / Rhythm / Enforcement / Rel34 untouched.
 - **Contact vib prefer-spatial (S2)** — when contact marks + tip trajectory are
   present, Play weights spatial tip↔mark events over the depth envelope
   (`SpatialDepthWeight`) and shortens the contact envelope on spatial hits

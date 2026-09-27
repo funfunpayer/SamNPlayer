@@ -110,8 +110,9 @@ type Options struct {
 	// (docs/BODY_REGIONS.md) for ROI / ROI2 — used for AI preference + UI.
 	RegionClass  string
 	RegionClass2 string
-	// ExtraTargets are additional Tf/Tj contact anchors beyond ROI2.
-	// Distance signal = min(tip, ROI2, ExtraTargets…). Defaults to fixed.
+	// ExtraTargets are additional contact anchors beyond ROI2.
+	// Distance signal = min(tip, ROI2, ExtraTargets…). Fixed=false (follow)
+	// when tip path is recorded; Fixed=true for static Stay-fixed anchors.
 	ExtraTargets []NamedROI
 	// MaskROIs soft-exclude boxes (feature mask punch-outs); not distance drivers.
 	// With RhythmGrid on the Go single-ROI path they become exclude SceneMarks

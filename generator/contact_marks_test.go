@@ -52,6 +52,25 @@ func TestBuildContactMarksMetaDistanceDrives(t *testing.T) {
 	}
 }
 
+func TestBuildContactMarksMetaExtraFollow(t *testing.T) {
+	cm := buildContactMarksMeta(Options{
+		Profile: "standard",
+		TipROI:  ROI{X: 1, Y: 2, W: 50, H: 60},
+		ROI2:    ROI{X: 10, Y: 20, W: 30, H: 40},
+		// Marks S2: Fixed=false (follow) when tip path recorded.
+		ExtraTargets: []NamedROI{{X: 50, Y: 60, W: 20, H: 20, Class: "nipples", Fixed: false}},
+	})
+	if cm == nil || len(cm.Extras) != 1 {
+		t.Fatalf("extras=%+v", cm)
+	}
+	if cm.Extras[0].Fixed {
+		t.Fatal("follow extra must stamp Fixed=false")
+	}
+	if cm.Extras[0].Class != "nipples" || cm.Extras[0].W != 20 {
+		t.Fatalf("extra box=%+v", cm.Extras[0])
+	}
+}
+
 func TestStampContactMarks(t *testing.T) {
 	meta := map[string]any{}
 	stampContactMarks(meta, Options{RegionClass: "glans"})

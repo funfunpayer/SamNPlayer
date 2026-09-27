@@ -901,10 +901,11 @@ export function initPlayback(root) {
       for (let i = 0; i < extras.length; i++) {
         const e = extras[i];
         const label = e.class || `extra ${i + 1}`;
-        // Extras are usually fixed anchors; only follow when fixed===false.
-        const box = e.fixed === false
-          ? boxFollowTrajectory(e, trajectoryData?.partner, currentPosMs)
-          : e;
+        // Marks S2: same rule as primary — Fixed stays put; else follow path.
+        // (omitempty Fixed:false omitted from JSON must still follow.)
+        const box = e.fixed
+          ? e
+          : boxFollowTrajectory(e, trajectoryData?.partner || trajectoryData?.tip, currentPosMs);
         drawContactMarkBox(ctx, box, vw, vh, w, h, 'rgba(220,80,200,0.9)', label);
       }
     }
