@@ -44,6 +44,12 @@ measurement history behind each entry; this file is the short version for
   `generator/vlm_score.py` scores a probe result against hand-labelled
   golden keyframes (`testdata/golden_clips/*/vlm_oracle.json`).
 
+### Changed
+
+- **Device battery label English** — Device chip + `FormatBatteryPct` use
+  **Battery** (was Akku leftover). Copy only; no Connect/Play behaviour
+  change.
+
 ## [0.5.34] — September 27, 2026
 
 ### Added
