@@ -106,7 +106,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 
 | Tab | Use |
 |-----|-----|
-| **Device** | Connect Sam Neo 2 / Handy / etc. Optional short connect-test pulse in Settings. |
+| **Device** | Connect Sam Neo 2 / Handy / etc. Optional short connect-test pulse in Settings. **Intiface:** start Intiface Central → Via Intiface Central (empty = this machine). After one socket drop, SamNPlayer tries **one** auto-reconnect; then tap Connect again. |
 | **Training** | Practice patterns without video (technique, channel, cycles, ramp/hold/rest). |
 | **AI Train** | Label tip ROIs / scenes for *helper* models — not the stroke writer. |
 
