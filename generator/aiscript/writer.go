@@ -72,7 +72,7 @@ func StatusWithLibrary(modelPath, imitationDir string) Status {
 	if n > 0 {
 		return Status{
 			Available:   true,
-			Reason:      fmt.Sprintf("Imitation library ready (%d sample(s)). Experimental draft stretches the best match — Everyday Create stays CSRT. Keep required after Quality Doctor.", n),
+			Reason:      fmt.Sprintf("Imitation library ready (%d sample(s)). Experimental draft stretches the best duration + tip-aspect match — Everyday Create stays CSRT. Keep required after Quality Doctor.", n),
 			ModelPath:   modelPath,
 			Stage:       "S2-imitation",
 			SampleCount: n,
@@ -119,7 +119,7 @@ func draftFromImitation(req DraftRequest) (DraftResult, error) {
 	if len(samples) == 0 {
 		return DraftResult{}, fmt.Errorf("aiscript: no imitation samples under %s — export a classical run first", dir)
 	}
-	best, err := PickBestSample(samples, req.DurationMs)
+	best, err := PickBestSample(samples, req.DurationMs, req.TipW, req.TipH)
 	if err != nil {
 		return DraftResult{}, err
 	}
@@ -133,8 +133,12 @@ func draftFromImitation(req DraftRequest) (DraftResult, error) {
 		notes = fmt.Sprintf("Copied from %s (no target duration). Experimental imitation draft — not Everyday CSRT.",
 			filepath.Base(best.Path))
 	}
+	if TipAspect(req.TipW, req.TipH) > 0 && TipAspect(best.Sample.TipW, best.Sample.TipH) > 0 {
+		notes += fmt.Sprintf(" Tip aspect matched (request %.2f vs sample %.2f).",
+			TipAspect(req.TipW, req.TipH), TipAspect(best.Sample.TipW, best.Sample.TipH))
+	}
 	warn := []string{
-		"Experimental: draft is a duration-matched classical imitation, not a vision model.",
+		"Experimental: draft is a duration + tip-aspect classical imitation, not a vision model.",
 		"Review Quality Doctor, then Keep draft or Discard. Everyday Create path unchanged.",
 	}
 	return DraftResult{
