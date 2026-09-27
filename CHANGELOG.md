@@ -8,31 +8,38 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.33] — September 27, 2026
+
 ### Added
 
-- **Generator Follow marks + black Ignore** — SceneMap exclude/source marks
+- **Generator Follow marks + black Ignore (S0)** — SceneMap exclude/source marks
   with `follow: true` get a side CSRT during Create so ignore boxes move with
   the subject (knees etc.). Soft masks merge as whole-clip Follow excludes.
   GUI: black Ignore paint, Stay fixed checkbox, Everyday hint. Play: tip /
   non-fixed contact boxes follow recorded trajectory. Learning export writes
   `exclude_decisions.jsonl` (+ Follow/Path on negatives) for L1 priors —
   profilemodel Style unchanged. Everyday CSRT / Rhythm defaults / Enforcement
-  untouched.
-
+  untouched (#276).
+- **Create preview Follow Path (S1)** — with a restored companion `.samn`,
+  Ignore/Follow marks move along recorded Path at Time/Frame scrub; marks stay
+  visible when the scene-map heatmap is off (#277).
 - **Plugin host H1** — playback `OnFrame` → `tickVirtualPersonHost` when the
   host is enabled; cherry-picked `virtualperson/` core from #264 (props,
   activities, motion bus; ToyHub sync off). Settings: Give dildo / Start titjob.
   Pose events `virtualperson:pose` (no overlay UI yet). Everyday CSRT unchanged;
-  Enforcement stays off. Docs: `PLUGIN_SYSTEM.md`.
+  Enforcement stays off. Docs: `PLUGIN_SYSTEM.md` (#274).
 - **License feature `virtual_person`** — stamped on standard / invite / internal
   keys with `samn`, `contact`, `generate_full` (Owner: plugins in the €40
   license, not an addon). `HasFeature` / `EffectiveHasFeature`; Status exposes
-  `features`.
+  `features` (#273).
 - **Plugin host H0** — `pluginhost/` slot + Settings Enable/Disable; gated by
   `LicenseAllowsVirtualPerson` when Enforcement is on. Everyday CSRT unchanged.
-  Docs: `PLUGIN_SYSTEM.md`. Draft #264 stays parked (no force-merge).
+  Docs: `PLUGIN_SYSTEM.md`. Draft #264 stays parked (no force-merge) (#273).
 
 ## [0.5.32] — September 27, 2026
+
+> Rel32 bookkeeping only (#271). **Never tagged** — portable cut moved to
+> **v0.5.33** after Plugin H0/H1 + Generator marks S0/S1 landed on `main`.
 
 ### Added
 
