@@ -150,8 +150,15 @@ func (i *Intiface) markDeadLocked(reason string) {
 // Nachrichten (etwa DeviceAdded) werden dabei mitverarbeitet - der Server
 // sendet sie unaufgefordert, und sie einfach zu verwerfen hieße, das
 // angeschlossene Gerät zu übersehen.
+// readUntil requires the caller to hold i.mu (Connect handshake / BatteryLevel).
 func (i *Intiface) readUntil(want string, deadline time.Time) (map[string]any, error) {
+	if i.conn == nil {
+		return nil, fmt.Errorf("intiface: not connected")
+	}
 	for time.Now().Before(deadline) {
+		if i.conn == nil {
+			return nil, fmt.Errorf("intiface: not connected")
+		}
 		_ = i.conn.SetReadDeadline(deadline)
 		var batch []map[string]json.RawMessage
 		if err := i.conn.ReadJSON(&batch); err != nil {
@@ -494,26 +501,23 @@ func (i *Intiface) Info() ConnectionInfo {
 }
 
 // BatteryLevel fragt Buttplug BatteryLevelCmd ab, sofern das Gerät sie anbietet.
+// Holds i.mu for the whole request+read so Disconnect/pingLoop cannot nil
+// i.conn under a concurrent readUntil (same pattern as Connect handshake).
 func (i *Intiface) BatteryLevel() (int, bool) {
 	i.mu.Lock()
+	defer i.mu.Unlock()
 	if !i.connected || i.conn == nil || !i.hasBattery {
-		i.mu.Unlock()
 		return 0, false
 	}
 	if i.batteryOK && time.Since(i.batteryAt) < batteryCacheTTL {
-		pct := i.batteryPct
-		i.mu.Unlock()
-		return pct, true
+		return i.batteryPct, true
 	}
 	deviceIdx := i.deviceIdx
 	if _, err := i.send(map[string]any{"BatteryLevelCmd": map[string]any{
 		"DeviceIndex": deviceIdx,
 	}}); err != nil {
-		i.mu.Unlock()
 		return 0, false
 	}
-	i.mu.Unlock()
-
 	body, err := i.readUntil("BatteryLevelReading", time.Now().Add(3*time.Second))
 	if err != nil {
 		logging.Debug("intiface: battery not readable", "error", err)
@@ -530,12 +534,9 @@ func (i *Intiface) BatteryLevel() (int, bool) {
 	if pct > 100 {
 		pct = 100
 	}
-
-	i.mu.Lock()
 	i.batteryPct = pct
 	i.batteryOK = true
 	i.batteryAt = time.Now()
-	i.mu.Unlock()
 	logging.Info("intiface: battery read", "percent", pct)
 	return pct, true
 }

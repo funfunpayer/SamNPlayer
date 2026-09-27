@@ -119,6 +119,10 @@ func (f *fakeButtplug) handler() http.HandlerFunc {
 						_ = conn.WriteJSON([]any{map[string]any{"DeviceList": map[string]any{
 							"Id": id, "Devices": devices,
 						}}})
+					case "BatteryLevelCmd":
+						_ = conn.WriteJSON([]any{map[string]any{"BatteryLevelReading": map[string]any{
+							"Id": id, "DeviceIndex": body["DeviceIndex"], "BatteryLevel": 0.73,
+						}}})
 					case "StartScanning", "StopScanning", "Ping", "ScalarCmd", "StopDeviceCmd":
 						_ = conn.WriteJSON([]any{map[string]any{"Ok": map[string]any{"Id": id}}})
 					}
@@ -136,6 +140,12 @@ func standardDeviceMessages() map[string]any {
 		},
 		"StopDeviceCmd": map[string]any{},
 	}
+}
+
+func deviceMessagesWithBattery() map[string]any {
+	m := standardDeviceMessages()
+	m["BatteryLevelCmd"] = map[string]any{}
+	return m
 }
 
 func startFake(t *testing.T, fake *fakeButtplug) (string, *httptest.Server) {
@@ -517,6 +527,44 @@ func TestIntifaceOneShotReconnectSpent(t *testing.T) {
 		t.Fatal("must stay disconnected")
 	}
 	_ = dev.Disconnect()
+}
+
+func TestIntifaceBatteryLevelLocked(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: deviceMessagesWithBattery()}
+	url, server := startFake(t, fake)
+	defer server.Close()
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+	defer dev.Disconnect()
+
+	vib, suction, battery := dev.Capabilities()
+	if !vib || !suction || !battery {
+		t.Fatalf("capabilities: vib=%v suction=%v battery=%v", vib, suction, battery)
+	}
+
+	pct, ok := dev.BatteryLevel()
+	if !ok || pct != 73 {
+		t.Fatalf("BatteryLevel first read: pct=%d ok=%v want 73/true", pct, ok)
+	}
+	// Cached path must not re-hit the wire while TTL holds.
+	before := len(fake.names())
+	pct2, ok2 := dev.BatteryLevel()
+	if !ok2 || pct2 != 73 {
+		t.Fatalf("BatteryLevel cached: pct=%d ok=%v", pct2, ok2)
+	}
+	after := len(fake.names())
+	if after != before {
+		t.Fatalf("cached BatteryLevel sent extra messages: before=%d after=%d names=%v",
+			before, after, fake.names())
+	}
+	if !contains(fake.names(), "BatteryLevelCmd") {
+		t.Fatalf("BatteryLevelCmd not sent: %v", fake.names())
+	}
 }
 
 type errorString string
