@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/samn"
@@ -460,7 +461,7 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 	for i, s := range samples {
 		name := fmt.Sprintf("mark_%04d_%d", i, s.atMs)
 		imgPath := filepath.Join(imgDir, name+".png")
-		ctx, cancel := context.WithTimeout(context.Background(), 30*1000000000)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		w, h, dumpErr := DumpFrameAt(ctx, videoPath, imgPath, float64(s.atMs)/1000.0)
 		cancel()
 		if dumpErr != nil {
