@@ -61,8 +61,9 @@ type Options struct {
 	// teacher saw the stroke contact - but only while the CSRT box is
 	// further away than the grid's own search radius (3 cells), i.e. only
 	// when the grid could not reach the contact anyway. Multi-person clip:
-	// windowed r 0.304 -> 0.406 with NudeNet points; both goldens
-	// bit-unchanged (docs/VLM_TEACHER_PLAN.md, VLM1). Empty = today's
+	// windowed r 0.304 -> 0.406 with NudeNet points; goldens unchanged
+	// (clip_voll r same, clip_ausschnitt bit-identical; VLM1 in
+	// docs/VLM_TEACHER_PLAN.md). Empty = today's
 	// behaviour exactly. RhythmGrid only; ignored otherwise.
 	ContactPoints []ContactPoint
 	// ContactHoldMs: a point is used for frames within this distance in

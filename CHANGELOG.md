@@ -16,7 +16,8 @@ measurement history behind each entry; this file is the short version for
   cells), the grid searches there instead. `generator/contact_points.py`
   builds the file from NudeNet (optional user install) and/or `vlm_probe`
   results with multi-teacher agreement (`--contact-min-agree`). Multi-person
-  clip r 0.304 → 0.406; both goldens bit-identical. Off by default.
+  clip r 0.304 → 0.406; goldens unchanged (`clip_ausschnitt`
+  bit-identical, `clip_voll` same r). Off by default.
   Model/teacher list: `docs/VLM_MODELS.md`.
 
 - **VLM probe exemplar mode** — `vlm_probe.py --exemplar-json/--exemplar`

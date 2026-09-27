@@ -248,8 +248,10 @@ opt-in:
   list is in `docs/VLM_MODELS.md`.
 
 Measured with NudeNet alone, fully automatic, through real Go `TrackROI`:
+- multi-person clip: r 0.304 → **0.406**; the chosen cell is on the real
+  contact in 46 % of windows (was 1 %).
+- `clip_voll`: 0.455 / 0.752, unchanged.
 - `clip_ausschnitt`: bit-identical to the run without points.
-- The other results are in the PR.
 
 The ≥ 4–5 clip gate still applies before this is ever on by default.
 

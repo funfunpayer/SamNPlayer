@@ -6,8 +6,8 @@ contact is and writes `<clip>.contact.json` for the rhythm grid
 VLM1 of docs/VLM_TEACHER_PLAN.md. The engine uses a point only where the
 CSRT box is further from it than the grid's search radius (3 cells), so a
 wrong point can not pull a working track away; measured on the multi-person
-clip: windowed r 0.304 -> 0.406 with NudeNet alone, both goldens
-bit-unchanged.
+clip: windowed r 0.304 -> 0.406 with NudeNet alone (real Go TrackROI);
+goldens unchanged (clip_ausschnitt bit-identical, clip_voll same r).
 
 Teachers (use any combination - the Owner's "ask several per video"):
 - NudeNet (`--nudenet`): body-part detector, runs every --step-s seconds.

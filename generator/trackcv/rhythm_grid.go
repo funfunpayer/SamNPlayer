@@ -517,7 +517,8 @@ const rhythmContactHoldMs = 1000
 // holdMs of the frame) only where that point lies further than the search
 // radius (rhythmSearchCells cells) from the box. Inside the radius the grid
 // reaches the contact on its own, so nothing changes there - that gate is
-// what keeps both goldens bit-identical (VLM1 measurement). With no points
+// what keeps the goldens unchanged (VLM1: clip_ausschnitt bit-identical,
+// clip_voll same windowed r). With no points
 // the input slices are returned as-is.
 func applyContactPoints(cx, cy []float64, tsMs []int, pts []ContactPoint, holdMs int64,
 	width, height, gw int) ([]float64, []float64) {
