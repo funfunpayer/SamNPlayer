@@ -28,6 +28,7 @@ export function PickImageFile() { return window['go']['main']['App']['PickImageF
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
 export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
+export function CheckAIServerAvailable() { return window['go']['main']['App']['CheckAIServerAvailable'](); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
 export function CheckRoiTrainingStatus() { return window['go']['main']['App']['CheckRoiTrainingStatus'](); }
