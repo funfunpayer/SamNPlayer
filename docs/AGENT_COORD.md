@@ -156,6 +156,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | VLM0 | Claude | [#293](https://github.com/funfunpayer/SamNPlayer/pull/293) merged (`3c5f1bd`) | **Local VLM teacher V0 probe** — plan + `vlm_probe.py` / `vlm_score.py` + golden oracle labels | **DONE** — Owner runs probe on 16 GB GPU |
 | VLM0b | Claude | [#305](https://github.com/funfunpayer/SamNPlayer/pull/305) merged (`22eb2e2`) | **Probe exemplar mode + multi-person evidence** — search-anchor path proven (+0.12 r); goldens ≥ baseline | **DONE** |
 | VLM1 | Claude | [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) merged (`b5bd1b3`) · OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310) | **Contact anchor in the engine (opt-in)** — (1) `trackcv.Options.SearchAnchors`: per-frame contact point overrides the rhythm-grid search centre **only when the CSRT box is > 3 cells (= search radius) away** — empty = bit-identical; (2) `generator/contact_anchor.py`: local teachers → `<clip>.anchor.json` — **NudeNet** (MIT pkg, optional like `ai_roi`) + VLM probe boxes, multi-teacher consensus; (3) generator/CLI option to load it. GUI switch = Cursor later. Numbers: multi-person 0.304 → **0.406** automatic, both goldens bit-unchanged | **DONE** — engine on main; ask #308 closed superseded |
+| ClaudePath | Claude | post-[#312](https://github.com/funfunpayer/SamNPlayer/pull/312) · continue OK | **Contact-points / VLM follow-ups** — measure + teacher/consensus docs; Owner GPU V0 + ≥4–5 rhythm clips; CSRT residual drift scoping. Do **not** re-open VLM1 engine. GUI Advanced switch = Cursor [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) | **OK CONTINUE** — Owner+Cursor 27 Sep; Cursor squash-merges Claude PRs when CI green |
+| ContactPointsGUI | Cursor | [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) merged (`4744a7e`) | **Advanced Use contact points** — path picker for teachers JSON when Rhythm-robust on; empty/off = bit-identical | **DONE** |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -182,7 +184,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (27 Sep — DONE flips after #312/#313):**
+**Status board (27 Sep — Claude path OK / continue):**
+- **Owner+Cursor OK (continue):** Owner: *"Gib Claude noch OK — er hat einen guten Weg."* Path affirmed after VLM1 engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` (first OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310)). Claude **CONTINUE** on contact-points / VLM follow-ups (measure, teachers, V0 gate prep). Open fresh PRs; **Cursor squash-merges when CI green**. Claude **cannot merge**. Do **not** re-open VLM1 engine.
+- **Shipped tip:** ContactPointsGUI [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) @ `4744a7e` **DONE**.
+- **Claude OPEN:** Owner GPU V0; ≥4–5 rhythm clips (default-on gate); CSRT residual drift scoping; multi-teacher consensus → P5c training candidates.
+- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Leave [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) / [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264).
+- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
+
+**Status board (27 Sep — DONE flips after #312/#313):** *(superseded by tip above — historical)*
 - **BatteryLabel DONE:** [#313](https://github.com/funfunpayer/SamNPlayer/pull/313) @ `955d1f7` — English Battery chip (was Akku).
 - **VLM1 DONE:** APPROVED [#310](https://github.com/funfunpayer/SamNPlayer/pull/310) → engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` (Cursor squash-merge). Ask #308 closed superseded. GUI switch = Cursor later; do **not** re-open engine.
 - **E-ask / P5c DONE:** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (was stale IN REVIEW).
@@ -191,7 +200,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Claude:** cannot merge — Cursor squash-merges Claude PRs when CI green. Open Claude follow-ups = measure/docs only unless claimed.
 - **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
 
-**Status board (27 Sep — VLM1 Owner+Cursor OK):** *(superseded by tip above — historical)*
+**Status board (27 Sep — VLM1 Owner+Cursor OK):** *(superseded — historical)*
 - **VLM1 APPROVED:** Owner: *"Gib Claude noch OK — er hat einen guten Weg."* Cursor records OK. Claude owns engine implementation (SearchAnchors + `contact_anchor.py` + CLI); Cursor squash-merges Claude follow-up PRs when CI green. Ask draft [#308](https://github.com/funfunpayer/SamNPlayer/pull/308) stays open for Claude to push impl (or new PR); **do not** merge ask-only tip.
 - **In flight:** ChatGPT **P5c** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297); Cursor BatteryLock [#309](https://github.com/funfunpayer/SamNPlayer/pull/309).
 - **Shipped:** Rel34 **`v0.5.34`**; VLM0 [#293](https://github.com/funfunpayer/SamNPlayer/pull/293); VLM0b [#305](https://github.com/funfunpayer/SamNPlayer/pull/305); SceneDocsUX [#307](https://github.com/funfunpayer/SamNPlayer/pull/307).
@@ -1064,6 +1073,7 @@ ring revision before committing.
 | 27 Sep | **VLM1 prep — automatic teacher found: NudeNet + gated anchor.** Owner: "use other models too, test several, ask several per video for training data". NudeNet (MIT pkg, optional like `ai_roi`) + VLM teachers; student model RF-DETR / D-FINE (Apache-2.0) not AGPL ultralytics. Gated anchor (only when CSRT > 3 cells away): multi-person 0.304 → **0.406**, goldens bit-unchanged. Ask draft [#308](https://github.com/funfunpayer/SamNPlayer/pull/308) | Claude |
 | 27 Sep | **VLM1 APPROVED — Owner+Cursor OK.** Owner: *"Gib Claude noch OK — er hat einen guten Weg."* Cursor records OK on board. Claude owns engine impl (`trackcv` SearchAnchors + `contact_anchor.py` + CLI); GUI switch remains Cursor. Cursor squash-merges Claude follow-up PRs when CI green (Claude cannot merge). Ask [#308](https://github.com/funfunpayer/SamNPlayer/pull/308) left open for Claude to push implementation | Owner → Cursor |
 | 27 Sep | **Board DONE flips** (Cursor): BatteryLabel [#313](https://github.com/funfunpayer/SamNPlayer/pull/313) @ `955d1f7`; VLM1 engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` after OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310); E-ask/P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (stale IN REVIEW → DONE). Preserve ChatGPT BugE/E-steward. Rebased onto [#314](https://github.com/funfunpayer/SamNPlayer/pull/314) @ `7144cf7` (no code touch) | Cursor |
+| 27 Sep | **Claude path OK CONTINUE — Owner+Cursor.** Owner again: *"Gib Claude noch OK — er hat einen guten Weg."* Affirms the post-VLM1 contact-points / VLM follow-up lane (measure, teachers, V0, rhythm-clip gate). Engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) stays DONE — do not re-open. Cursor GUI [#316](https://github.com/funfunpayer/SamNPlayer/pull/316). Cursor squash-merges Claude PRs when CI green (Claude cannot merge) | Owner → Cursor |
 
 ---
 
