@@ -386,19 +386,21 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 
 // activeMarkFilter returns exclude/source rects active at midMs and the IDs
 // of marks the engine obeys (exclude + source only; region is label-only).
+// Rects come from Follow Path when present (sceneMarkRectAt).
 func activeMarkFilter(marks []SceneMark, midMs int64) (excludes, sources []Rect, ids []string) {
 	for _, mk := range marks {
 		if !sceneMarkActive(mk, midMs) {
 			continue
 		}
+		r := sceneMarkRectAt(mk, midMs)
 		switch mk.Kind {
 		case "exclude":
-			excludes = append(excludes, mk.Rect)
+			excludes = append(excludes, r)
 			if mk.ID != "" {
 				ids = append(ids, mk.ID)
 			}
 		case "source":
-			sources = append(sources, mk.Rect)
+			sources = append(sources, r)
 			if mk.ID != "" {
 				ids = append(ids, mk.ID)
 			}

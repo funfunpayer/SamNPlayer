@@ -34,6 +34,12 @@ func TestExportSceneMapLearningArtifacts(t *testing.T) {
 	if res.Negatives != 1 {
 		t.Fatalf("negatives %d", res.Negatives)
 	}
+	if res.ExcludeDecisions != 1 {
+		t.Fatalf("exclude decisions %d", res.ExcludeDecisions)
+	}
+	if _, err := os.Stat(res.DecisionsPath); err != nil {
+		t.Fatalf("decisions path: %v", err)
+	}
 	if res.AutoCandidates < 3 {
 		t.Fatalf("auto candidates %d, want ≥3", res.AutoCandidates)
 	}
@@ -142,7 +148,8 @@ func writeLearningFixture(t *testing.T, dir string, nWin int, agree bool) string
 			Grid:    funscript.SceneMapGrid{Cols: cols, Rows: rows},
 			Windows: wins,
 			Marks: []funscript.SceneMapMark{
-				{ID: "m1", Kind: "exclude", Rect: []int{10, 500, 100, 80}, FromMs: 0, ToMs: 20000, Author: "user"},
+				{ID: "m1", Kind: "exclude", Rect: []int{10, 500, 100, 80}, FromMs: 0, ToMs: 20000, Author: "user", Follow: true,
+					Path: []funscript.SceneMapMarkSample{{Ms: 0, Rect: []int{10, 500, 100, 80}}, {Ms: 10000, Rect: []int{40, 520, 100, 80}}}},
 				{ID: "m2", Kind: "region", Class: "glans", Rect: []int{600, 400, 80, 90}, Author: "user"},
 			},
 		},

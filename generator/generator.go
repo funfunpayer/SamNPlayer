@@ -170,14 +170,23 @@ type Options struct {
 
 // SceneMark is an Advanced scene-map annotation passed into Generate (M3).
 // Kind: exclude | source | region. Rect is pixel-space; FromMs/ToMs both 0
-// means the whole clip.
+// means the whole clip. Follow=true tracks the box with the subject during
+// Generate (exclude/source); Path is filled by the tracker for persist/learning.
 type SceneMark struct {
-	Kind   string `json:"kind"`
-	ID     string `json:"id"`
-	Rect   ROI    `json:"rect"`
-	FromMs int64  `json:"fromMs"`
-	ToMs   int64  `json:"toMs"`
-	Class  string `json:"class,omitempty"`
+	Kind   string       `json:"kind"`
+	ID     string       `json:"id"`
+	Rect   ROI          `json:"rect"`
+	FromMs int64        `json:"fromMs"`
+	ToMs   int64        `json:"toMs"`
+	Class  string       `json:"class,omitempty"`
+	Follow bool         `json:"follow,omitempty"`
+	Path   []MarkSample `json:"path,omitempty"`
+}
+
+// MarkSample is one Follow-path box at time Ms (learning + engine).
+type MarkSample struct {
+	Ms   int64 `json:"ms"`
+	Rect ROI   `json:"rect"`
 }
 
 func pythonCandidates() []string {

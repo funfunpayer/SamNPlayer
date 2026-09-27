@@ -10,6 +10,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Generator Follow marks + black Ignore** — SceneMap exclude/source marks
+  with `follow: true` get a side CSRT during Create so ignore boxes move with
+  the subject (knees etc.). Soft masks merge as whole-clip Follow excludes.
+  GUI: black Ignore paint, Stay fixed checkbox, Everyday hint. Play: tip /
+  non-fixed contact boxes follow recorded trajectory. Learning export writes
+  `exclude_decisions.jsonl` (+ Follow/Path on negatives) for L1 priors —
+  profilemodel Style unchanged. Everyday CSRT / Rhythm defaults / Enforcement
+  untouched.
+
 - **Plugin host H1** — playback `OnFrame` → `tickVirtualPersonHost` when the
   host is enabled; cherry-picked `virtualperson/` core from #264 (props,
   activities, motion bus; ToyHub sync off). Settings: Give dildo / Start titjob.

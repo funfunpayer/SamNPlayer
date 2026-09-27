@@ -72,6 +72,16 @@ func sceneMarksToPersist(marks []SceneMark) []funscript.SceneMapMark {
 			ToMs:   m.ToMs,
 			Class:  m.Class,
 			Author: "user",
+			Follow: m.Follow,
+		}
+		if len(m.Path) > 0 {
+			pm.Path = make([]funscript.SceneMapMarkSample, len(m.Path))
+			for i, p := range m.Path {
+				pm.Path[i] = funscript.SceneMapMarkSample{
+					Ms:   p.Ms,
+					Rect: []int{p.Rect.X, p.Rect.Y, p.Rect.W, p.Rect.H},
+				}
+			}
 		}
 		out = append(out, pm)
 	}

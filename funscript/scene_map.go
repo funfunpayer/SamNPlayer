@@ -45,19 +45,29 @@ type SceneMapWindow struct {
 
 // SceneMapMark is a user/auto annotation (exclude / source / region).
 // Author "auto" marks should carry Confidence and Reviewed (M5 training gate).
+// Follow=true means the engine tracked the box with the subject; Path holds
+// sparse samples for learning / replay overlays.
 type SceneMapMark struct {
-	ID         string  `json:"id"`
-	Kind       string  `json:"kind"`
-	Rect       []int   `json:"rect"` // [x, y, w, h]
-	FromMs     int64   `json:"fromMs,omitempty"`
-	ToMs       int64   `json:"toMs,omitempty"`
-	AtMs       *int64  `json:"atMs,omitempty"`
-	Author     string  `json:"author,omitempty"`
-	CreatedAt  string  `json:"createdAt,omitempty"`
-	Class      string  `json:"class,omitempty"`
-	Role       string  `json:"role,omitempty"`
-	Confidence float64 `json:"confidence,omitempty"`
-	Reviewed   *bool   `json:"reviewed,omitempty"`
+	ID         string               `json:"id"`
+	Kind       string               `json:"kind"`
+	Rect       []int                `json:"rect"` // [x, y, w, h]
+	FromMs     int64                `json:"fromMs,omitempty"`
+	ToMs       int64                `json:"toMs,omitempty"`
+	AtMs       *int64               `json:"atMs,omitempty"`
+	Author     string               `json:"author,omitempty"`
+	CreatedAt  string               `json:"createdAt,omitempty"`
+	Class      string               `json:"class,omitempty"`
+	Role       string               `json:"role,omitempty"`
+	Confidence float64              `json:"confidence,omitempty"`
+	Reviewed   *bool                `json:"reviewed,omitempty"`
+	Follow     bool                 `json:"follow,omitempty"`
+	Path       []SceneMapMarkSample `json:"path,omitempty"`
+}
+
+// SceneMapMarkSample is one Follow-path rect at Ms.
+type SceneMapMarkSample struct {
+	Ms   int64 `json:"ms"`
+	Rect []int `json:"rect"` // [x,y,w,h]
 }
 
 // SceneMapEvent records engine incidents (reacquire, …). Optional in P4.
