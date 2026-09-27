@@ -2,7 +2,7 @@
 
 **Product:** SamNPlayer Emotion GUI · **Format:** `.samn` (Emotion Script) · Funscript = share/import only.  
 **Audience:** Owner + everyday users. English product copy.  
-**Last updated:** 26 Sep 2026 (Look v3 lilac polish, in-GUI handbook, GapHeal, AIWrite S0→S1 export).
+**Last updated:** 27 Sep 2026 (Contact points Advanced GUI + handbook; local helpers; Test AI server).
 
 **In the app:** Settings → **Open user handbook** · Create → **User handbook** (same FAQ modal).  
 Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.
@@ -84,6 +84,9 @@ Advanced → **Show scene map**: rhythm heatmap + marks (exclude/source/region).
 ### Contact vibration vs tip path?
 Contact vib follows stroke depth by default. With **Record tip path** + contact marks, Play can also buzz when the tip grazes a mark (Feel Stage A).
 
+### Use contact points (Advanced)?
+Opt-in after the VLM1 engine. With **Rhythm-robust signal** on, Create → Advanced → **Use contact points** loads a teachers JSON from `generator/contact_points.py` (NudeNet / VLM probe consensus). The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create. Build the JSON via CLI; the GUI only picks a path — it does not run teachers.
+
 ### Mac / Linux / Windows?
 Windows portable is the primary smoke target. See release notes for your build.
 
@@ -153,7 +156,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Flat / stuck curve | Re-find tip · Invert motion · Heal tracking gaps · Check tracking_gaps muted Contact |
 | Feels inverted | Advanced → **Invert motion direction** |
 | Camera pans drift | Camera motion compensation · Fix contact area (static) off |
-| Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in) |
+| Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in); optional **Use contact points** (teachers JSON) |
 | Audio “wrong tempo” | Warn only — fix ROI/axis; does not rewrite curve |
 | AI draft greyed out | **Export classical run** once after Create (≥1 sample), then draft enables — ONNX model path not required for imitation |
 
@@ -167,6 +170,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | **Align fill to audio tempo** | Create → Review (optional when filling gaps) |
 | **Sliding dynamics / Auto-Retry / Suggest O-markers** | Create → Advanced |
 | **Export classical run** | Create → Advanced (S1 training sample; needs a Create result) |
+| **Use contact points** | Create → Advanced (needs Rhythm-robust; teachers JSON path) |
 
 ---
 
