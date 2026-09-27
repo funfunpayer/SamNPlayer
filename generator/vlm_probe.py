@@ -1,0 +1,439 @@
+#!/usr/bin/env python3
+"""vlm_probe.py - asks a LOCAL vision-language model (e.g. Qwen2.5-VL via
+Ollama or LM Studio) where the body regions and the stroke contact are on
+keyframes of a clip, and writes the answers as JSON.
+
+Phase V0 of docs/VLM_TEACHER_PLAN.md: "does it hold up?". The tool only
+records proposals. It changes nothing in Generate, writes no marks, and no
+training labels. Claude measures the JSON against the golden clips (cell hit,
+end-to-end r) before anything is built on top.
+
+Same rules as ai_roi.py / colibri_client.py (docs/AI_ADAPTER.md):
+- Local only. Frames go to base_url (default: Ollama on 127.0.0.1), never to
+  a cloud service. No model in the repo, no automatic download.
+- No extra dependency: the HTTP call is colibri_client.chat (stdlib), frames
+  come from OpenCV like everywhere else in the generator.
+
+Coordinates: model families disagree (Qwen2.5-VL answers in pixels of the
+image it was sent, Qwen3-VL in 0..1000, others in 0..1). The tool never
+guesses: `--coord auto` (default) first sends a synthetic calibration image
+with two known rectangles and fits the scale from the answer. Frames are
+sent pre-resized to multiples of 28 (long side <= 896) so a Qwen-style
+model does not resize them again.
+
+Usage (Owner PC, e.g. `ollama pull qwen2.5vl:7b` first):
+  python3 vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b \
+      --overlay-dir ./vlm_overlay
+  -> clip.vlm.json next to the video (send that file back; it holds no
+     images), overlay JPEGs for a quick visual check.
+  python3 vlm_probe.py --calibrate --model qwen2.5vl:7b
+  -> only checks the coordinate convention.
+LM Studio: --base-url http://127.0.0.1:1234 and its model id.
+"""
+
+import argparse
+import base64
+import json
+import os
+import re
+import sys
+import time
+
+import cv2
+import numpy as np
+
+import bodyparts
+import colibri_client
+
+PROMPT_VERSION = "v0-2026-09-27"
+DEFAULT_BASE_URL = "http://127.0.0.1:11434"  # Ollama; LM Studio: :1234
+DEFAULT_TIMEOUT_S = 180.0  # first call loads the model into VRAM
+MAX_SIDE = 896
+PATCH = 28
+
+# Probe vocabulary: the canonical regions a VLM can tell apart on one frame,
+# plus the two the engine needs most - where the stroke happens (contact)
+# and the classic false source (thigh). hand_1/hand_2 collapse to "hand": a
+# single frame cannot tell which hand is which.
+LABELS = ["contact", "penis", "glans", "vagina", "mouth", "hand",
+          "breasts", "face", "thigh"]
+
+PROMPT = (
+    "You label frames for a motion-tracking tool. Return ONLY a JSON array, "
+    "no prose. Each item: {\"label\": <one of " + ", ".join(LABELS) + ">, "
+    "\"bbox_2d\": [x1, y1, x2, y2]}. 'contact' is the region where the main "
+    "back-and-forth motion of the scene happens, where the bodies meet. "
+    "List every listed region that is visible, each hand and thigh "
+    "separately; omit what is not visible. Return [] if none is visible."
+)
+
+CALIB_PROMPT = (
+    "Return ONLY a JSON array, no prose. Give the bounding box of the red "
+    "rectangle and of the blue rectangle as {\"label\": \"red\" or \"blue\", "
+    "\"bbox_2d\": [x1, y1, x2, y2]}."
+)
+
+# Calibration boxes (normalised). Asymmetric on purpose: pixel, 0..1000 and
+# 0..1 answers land far apart for them, so a wrong convention cannot fit.
+CALIB_BOXES = {"red": (0.08, 0.12, 0.38, 0.52), "blue": (0.55, 0.40, 0.92, 0.86)}
+
+NAMED_COORDS = ("pixel", "norm1000", "norm1")
+
+_REFUSAL = re.compile(
+    r"\b(sorry|can(?:no|')t|unable|not able|won't|inappropriate|explicit|"
+    r"not (?:allowed|permitted)|against (?:my|the) (?:guidelines|policy))\b",
+    re.IGNORECASE)
+
+_ALIAS = {
+    "hands": "hand", "hand_1": "hand", "hand_2": "hand", "left hand": "hand",
+    "right hand": "hand", "finger": "hand", "fingers": "hand",
+    "breast": "breasts", "chest": "breasts", "nipples": "breasts",
+    "leg": "thigh", "legs": "thigh", "thighs": "thigh", "knee": "thigh",
+    "contact point": "contact", "contact_point": "contact",
+    "contact region": "contact", "contact_region": "contact",
+    "penetration": "contact", "motion": "contact",
+    "head": "face", "lips": "mouth",
+}
+
+
+def send_size(w, h, max_side=MAX_SIDE, patch=PATCH):
+    """Frame size to send: aspect kept, both sides multiples of `patch`,
+    long side <= max_side (never upscaled)."""
+    scale = min(1.0, float(max_side) / max(w, h))
+    sw = max(patch, int(w * scale / patch + 1e-6) * patch)
+    sh = max(patch, int(h * scale / patch + 1e-6) * patch)
+    return sw, sh
+
+
+def coord_scale(mode, sent_w, sent_h):
+    """(sx, sy) that turns an answer coordinate into 0..1."""
+    if mode == "pixel":
+        return 1.0 / sent_w, 1.0 / sent_h
+    if mode == "norm1000":
+        return 1.0 / 1000.0, 1.0 / 1000.0
+    if mode == "norm1":
+        return 1.0, 1.0
+    raise ValueError(f"unknown coordinate mode: {mode}")
+
+
+def normalize_label(raw):
+    s = str(raw or "").strip().lower().replace("-", "_")
+    s = _ALIAS.get(s, _ALIAS.get(s.replace("_", " "), s))
+    if s in LABELS:
+        return s
+    canon = bodyparts.normalize(s)
+    if canon in ("hand_1", "hand_2"):
+        return "hand"
+    if canon in LABELS:
+        return canon
+    return "other"
+
+
+def _extract_json(text):
+    """First JSON array/object in a model answer (fences and prose around it
+    tolerated). None if there is none."""
+    if not isinstance(text, str):
+        return None
+    t = re.sub(r"```(?:json)?", "", text)
+    for opener, closer in (("[", "]"), ("{", "}")):
+        start = t.find(opener)
+        end = t.rfind(closer)
+        if start < 0 or end <= start:
+            continue
+        try:
+            return json.loads(t[start:end + 1])
+        except ValueError:
+            continue
+    return None
+
+
+def _items(obj):
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        for key in ("objects", "boxes", "detections", "regions", "results"):
+            if isinstance(obj.get(key), list):
+                return obj[key]
+        return [obj]
+    return []
+
+
+def parse_answer(text, sx, sy):
+    """Model answer -> (status, boxes). status: ok | empty | refused |
+    unparsed. Boxes are normalised 0..1, sorted corners, clipped; items
+    without a usable 4-number box are dropped."""
+    obj = _extract_json(text)
+    if obj is None:
+        if _REFUSAL.search(text or ""):
+            return "refused", []
+        return "unparsed", []
+    boxes = []
+    for it in _items(obj):
+        if not isinstance(it, dict):
+            continue
+        raw_label = it.get("label", it.get("name", it.get("class", "")))
+        bb = it.get("bbox_2d", it.get("bbox", it.get("box")))
+        if not isinstance(bb, (list, tuple)) or len(bb) != 4:
+            continue
+        try:
+            x0, y0, x1, y1 = (float(v) for v in bb)
+        except (TypeError, ValueError):
+            continue
+        x0, x1 = sorted((x0 * sx, x1 * sx))
+        y0, y1 = sorted((y0 * sy, y1 * sy))
+        x0, x1 = max(0.0, x0), min(1.0, x1)
+        y0, y1 = max(0.0, y0), min(1.0, y1)
+        if x1 - x0 <= 1e-4 or y1 - y0 <= 1e-4:
+            continue
+        boxes.append({"label": normalize_label(raw_label), "raw_label": str(raw_label),
+                      "x0": round(x0, 4), "y0": round(y0, 4),
+                      "x1": round(x1, 4), "y1": round(y1, 4)})
+    return ("ok" if boxes else "empty"), boxes
+
+
+def _data_url(img_bgr):
+    ok, buf = cv2.imencode(".jpg", img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    if not ok:
+        raise RuntimeError("JPEG encode failed")
+    return "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode("ascii")
+
+
+def ask(img_bgr, prompt, model, base_url, timeout, post_fn=None):
+    """One image + prompt -> (answer text, latency ms)."""
+    messages = [{"role": "user", "content": [
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": _data_url(img_bgr)}},
+    ]}]
+    t0 = time.monotonic()
+    text = colibri_client.chat(messages, base_url=base_url, model=model,
+                               timeout=timeout, _post_fn=post_fn)
+    return text, int(round((time.monotonic() - t0) * 1000))
+
+
+def calibration_image(w=MAX_SIDE, h=504):
+    img = np.full((h, w, 3), 235, np.uint8)
+    colors = {"red": (40, 40, 220), "blue": (220, 60, 40)}  # BGR
+    for name, (x0, y0, x1, y1) in CALIB_BOXES.items():
+        cv2.rectangle(img, (int(x0 * w), int(y0 * h)), (int(x1 * w), int(y1 * h)),
+                      colors[name], thickness=-1)
+    return img
+
+
+def fit_calibration(text, sent_w, sent_h):
+    """Fits the answer->0..1 scale from a calibration answer. Returns a dict
+    with sx, sy, the nearest named mode, and the mean box error (0..1
+    units); ok is False when the answer cannot be fitted or the fit is
+    poor (the convention is then unknown - send the JSON to Claude)."""
+    obj = _extract_json(text)
+    got = {}
+    for it in _items(obj) if obj is not None else []:
+        if not isinstance(it, dict):
+            continue
+        name = str(it.get("label", it.get("name", ""))).strip().lower()
+        bb = it.get("bbox_2d", it.get("bbox", it.get("box")))
+        if name in CALIB_BOXES and isinstance(bb, (list, tuple)) and len(bb) == 4:
+            try:
+                got[name] = [float(v) for v in bb]
+            except (TypeError, ValueError):
+                pass
+    if len(got) < 2:
+        return {"ok": False, "reason": "calibration answer lacks red/blue boxes",
+                "raw": (text or "")[:2000]}
+    ax, tx, ay, ty = [], [], [], []
+    for name, bb in got.items():
+        x0, x1 = sorted((bb[0], bb[2]))
+        y0, y1 = sorted((bb[1], bb[3]))
+        t = CALIB_BOXES[name]
+        ax += [x0, x1]
+        tx += [t[0], t[2]]
+        ay += [y0, y1]
+        ty += [t[1], t[3]]
+    ax, tx, ay, ty = map(np.asarray, (ax, tx, ay, ty))
+    if not ax.any() or not ay.any():
+        return {"ok": False, "reason": "degenerate calibration answer",
+                "raw": (text or "")[:2000]}
+    # Least squares through the origin: truth = s * answer, per axis.
+    sx = float(ax @ tx / (ax @ ax))
+    sy = float(ay @ ty / (ay @ ay))
+    err = float(np.mean(np.abs(np.concatenate([ax * sx - tx, ay * sy - ty]))))
+    nearest = min(NAMED_COORDS, key=lambda m: sum(
+        abs(np.log(s / r)) for s, r in zip((sx, sy), coord_scale(m, sent_w, sent_h))))
+    return {"ok": err <= 0.05, "sx": sx, "sy": sy, "nearest_mode": nearest,
+            "mean_err": round(err, 4), "raw": (text or "")[:2000]}
+
+
+def calibrate(model, base_url, timeout, post_fn=None, w=MAX_SIDE, h=504):
+    """Calibrates at the size the frames will be sent at, so the fitted
+    scale applies to them directly whatever the model's convention."""
+    img = calibration_image(w, h)
+    text, latency = ask(img, CALIB_PROMPT, model, base_url, timeout, post_fn)
+    res = fit_calibration(text, w, h)
+    res["latency_ms"] = latency
+    return res
+
+
+def keyframe_times_ms(duration_ms, every_s, scenes_ms=()):
+    """Mid-point of each shot plus one frame every `every_s` seconds,
+    sorted, de-duplicated to 250 ms."""
+    times = set()
+    if every_s and every_s > 0:
+        step = int(every_s * 1000)
+        t = step // 2
+        while t < duration_ms:
+            times.add(t)
+            t += step
+    for start, end in scenes_ms:
+        times.add((start + end) // 2)
+    out = []
+    for t in sorted(times):
+        if 0 <= t < duration_ms and (not out or t - out[-1] >= 250):
+            out.append(int(t))
+    return out
+
+
+def _scenes_ms(video, fps):
+    import generate_funscript  # heavy import, only when scenes are wanted
+    return [(int(s * 1000 / fps), int(e * 1000 / fps))
+            for s, e in generate_funscript.detect_scene_boundaries(video)]
+
+
+def draw_overlay(img, boxes):
+    out = img.copy()
+    h, w = out.shape[:2]
+    for b in boxes:
+        color = (0, 220, 0) if b["label"] == "contact" else (
+            (0, 0, 230) if b["label"] in ("thigh", "hand") else (230, 180, 0))
+        p0 = (int(b["x0"] * w), int(b["y0"] * h))
+        p1 = (int(b["x1"] * w), int(b["y1"] * h))
+        cv2.rectangle(out, p0, p1, color, 2)
+        cv2.putText(out, b["label"], (p0[0] + 3, p0[1] + 16),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+    return out
+
+
+def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=True,
+                coord="auto", timeout=DEFAULT_TIMEOUT_S, overlay_dir=None,
+                max_keyframes=0, post_fn=None, log=print):
+    cap = cv2.VideoCapture(video)
+    if not cap.isOpened():
+        raise RuntimeError(f"Could not open video: {video}")
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    vw = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    vh = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration_ms = int(n * 1000 / fps)
+    sw, sh = send_size(vw, vh)
+
+    calib = None
+    if coord == "auto":
+        calib = calibrate(model, base_url, timeout, post_fn, sw, sh)
+        if not calib["ok"]:
+            cap.release()
+            raise RuntimeError("coordinate calibration failed: " + calib.get(
+                "reason", f"mean error {calib.get('mean_err')}") +
+                " - rerun with --calibrate and send the output to Claude")
+        sx, sy = calib["sx"], calib["sy"]
+        log(f"calibration: nearest={calib['nearest_mode']} err={calib['mean_err']}")
+    else:
+        sx, sy = coord_scale(coord, sw, sh)
+
+    scenes_ms = _scenes_ms(video, fps) if scenes else []
+    times = keyframe_times_ms(duration_ms, every_s, scenes_ms)
+    if max_keyframes and len(times) > max_keyframes:
+        times = times[:max_keyframes]
+    if overlay_dir:
+        os.makedirs(overlay_dir, exist_ok=True)
+
+    frames = []
+    for i, t in enumerate(times):
+        cap.set(cv2.CAP_PROP_POS_MSEC, t)
+        ok, frame = cap.read()
+        if not ok:
+            frames.append({"t_ms": t, "status": "no_frame", "boxes": []})
+            continue
+        img = cv2.resize(frame, (sw, sh), interpolation=cv2.INTER_AREA)
+        try:
+            text, latency = ask(img, PROMPT, model, base_url, timeout, post_fn)
+            status, boxes = parse_answer(text, sx, sy)
+        except Exception as e:  # noqa: BLE001 - record and keep going
+            text, latency, status, boxes = str(e), 0, "error", []
+        frames.append({"t_ms": t, "latency_ms": latency, "status": status,
+                       "boxes": boxes, "raw": (text or "")[:2000]})
+        if overlay_dir and boxes:
+            cv2.imwrite(os.path.join(overlay_dir, f"{t:08d}.jpg"), draw_overlay(img, boxes))
+        log(f"[{i + 1}/{len(times)}] {t / 1000:7.1f}s {status:8s} "
+            f"{len(boxes)} boxes {latency} ms")
+    cap.release()
+
+    return {
+        "tool": "vlm_probe", "prompt_version": PROMPT_VERSION,
+        "prompt": PROMPT, "labels": LABELS,
+        "model": model, "base_url": base_url,
+        "video": os.path.basename(video), "fps": fps, "frame_count": n,
+        "video_w": vw, "video_h": vh, "sent_w": sw, "sent_h": sh,
+        "coord": coord, "scale": [sx, sy], "calibration": calib,
+        "every_s": every_s, "scenes_ms": scenes_ms,
+        "frames": frames, "summary": summarize(frames),
+    }
+
+
+def summarize(frames):
+    status = {}
+    labels = {}
+    lat = []
+    for f in frames:
+        status[f["status"]] = status.get(f["status"], 0) + 1
+        for b in f.get("boxes", []):
+            labels[b["label"]] = labels.get(b["label"], 0) + 1
+        if f.get("latency_ms"):
+            lat.append(f["latency_ms"])
+    asked = sum(v for k, v in status.items() if k != "no_frame")
+    return {
+        "keyframes": len(frames), "status": status, "labels": labels,
+        "refusal_rate": round(status.get("refused", 0) / asked, 3) if asked else None,
+        "contact_rate": round(sum(1 for f in frames if any(
+            b["label"] == "contact" for b in f.get("boxes", []))) / asked, 3) if asked else None,
+        "latency_ms_median": int(np.median(lat)) if lat else None,
+    }
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--video")
+    ap.add_argument("--model", required=True, help="e.g. qwen2.5vl:7b (Ollama)")
+    ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    ap.add_argument("--every-s", type=float, default=5.0)
+    ap.add_argument("--no-scenes", action="store_true", help="skip shot mid-points")
+    ap.add_argument("--coord", default="auto", choices=("auto",) + NAMED_COORDS)
+    ap.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_S)
+    ap.add_argument("--max-keyframes", type=int, default=0)
+    ap.add_argument("--overlay-dir")
+    ap.add_argument("--out")
+    ap.add_argument("--calibrate", action="store_true",
+                    help="only check the model's coordinate convention")
+    args = ap.parse_args(argv)
+
+    if not colibri_client.available(args.base_url):
+        print(f"No OpenAI-compatible server at {args.base_url} "
+              "(start Ollama / LM Studio first).", file=sys.stderr)
+        return 2
+    if args.calibrate:
+        res = calibrate(args.model, args.base_url, args.timeout)
+        print(json.dumps(res, indent=2))
+        return 0 if res["ok"] else 1
+    if not args.video:
+        ap.error("--video is required unless --calibrate")
+
+    res = probe_video(args.video, args.model, args.base_url, args.every_s,
+                      not args.no_scenes, args.coord, args.timeout,
+                      args.overlay_dir, args.max_keyframes)
+    out = args.out or os.path.splitext(args.video)[0] + ".vlm.json"
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(res, f, indent=1)
+    print(json.dumps(res["summary"], indent=2))
+    print(f"wrote {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
