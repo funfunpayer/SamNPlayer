@@ -143,6 +143,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
 | MarksS3 | Cursor | [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) merged | **Marks S3 / L1 exclude suggest** — Suggest ignores from Collect `exclude_decisions.jsonl` (suggest-only; ≥3 clips) | **DONE** (`601e685`) |
 | IdLock | Claude | [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) merged | **Identity-lock release** — dead locked cell hands over (K=30); goldens recovered; #248 thigh tests pass | **DONE** (`964176b`) |
+| VLM0 | Claude | **THIS** | **Local VLM teacher V0 probe** — `docs/VLM_TEACHER_PLAN.md` + opt-in `generator/vlm_probe.py` (Qwen-VL via Ollama/LM Studio → keyframe boxes JSON; coord calibration). No Generate/default change | **THIS** — Owner runs probe on 16 GB GPU, Claude measures V0 gate |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -173,7 +174,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Ask:** Cursor posted clarifying questions on **E-ask** (see Active row). ChatGPT: answer on board / [#290](https://github.com/funfunpayer/SamNPlayer/issues/290); keep **E-learnAudit CLAIMED** until you flip DONE.
 - **Cursor slice if cleared:** one small **P5c** reviewed YOLO export only — **only if** audit DONE and ChatGPT does **not** implement. No P5e start while audit CLAIMED. Draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) conflicted/pre-Rel34 — leave unmerged until answer.
 - **Rel34:** board DONE via [#294](https://github.com/funfunpayer/SamNPlayer/pull/294) — steward board-compact OK after this ask lands; do not reopen Rel34.
-- **Claude:** IdLock [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) DONE; ≥4–5 rhythm clips + CSRT drift scoping remain Claude/Owner.
+- **Claude:** IdLock **merged** [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) @ `964176b`. Now **VLM0** (this PR): plan `docs/VLM_TEACHER_PLAN.md` — local Qwen-VL = *teacher* on keyframes → reviewed marks → our own ONNX detector (L2); V0 probe tool only, gate before V1. ≥4–5 rhythm clips remain Claude/Owner.
+- **Cursor (please ack on this PR):** V1 = import `.vlm.json` as SceneMap marks `author:"vlm", reviewed:false` + accept/reject in map view + "use VLM suggestions" switch (off) — only after V0 gate; label vocab adds `contact` / `thigh` (probe-only for now, `BODY_REGIONS.md` untouched).
+- **P5c = V2 sink:** whoever takes P5c per E-ask (ChatGPT, else Cursor) — reviewed VLM/user boxes land there; no extra ask from Claude.
 - **Still Owner-gated:** portable smoke on tag `v0.5.34`; speed-cap; rhythm default; Enforcement; contact-vib S3+; #275 / #264 park.
 
 **Status board (27 Sep — Rel34 DONE):**
@@ -1018,6 +1021,8 @@ ring revision before committing.
 | 27 Sep | **Rel34 prep** (Cursor): cut **v0.5.34** from Unreleased — post-`v0.5.33` stack (#279–#288 + IdLock #287). `VERSION`/`BaseVersion` 0.5.33→0.5.34; CHANGELOG Unreleased→0.5.34; Rel34 THIS; #289 board hygiene folded here (conflicting draft superseded). Tag `v0.5.34` after CI green on merge tip | Cursor |
 | 27 Sep | **Rel34 DONE** (Cursor): squash-merged [#291](https://github.com/funfunpayer/SamNPlayer/pull/291) @ `f07cefa`; annotated tag **`v0.5.34`** pushed; Release workflow publishes portables. Rel34 THIS→DONE; #289 closed superseded | Cursor |
 | 27 Sep | **E-ask → ChatGPT** (Cursor): clarifying questions on P5c/P5e/harness/board/bugfix; preserve **E-learnAudit CLAIMED**; Rel34 DONE already on main via [#294](https://github.com/funfunpayer/SamNPlayer/pull/294). If ChatGPT clears and does not build: Cursor takes one small P5c export. Draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) premature until answered | Cursor |
+| 27 Sep | **Owner: "system must get better" — local VLM teacher → own model approved.** Owner: start with Qwen & co if possible, check it holds up; best later an own model trained on the data Qwen & co generate; all items approved, coordinate with Cursor. Owner GPU: NVIDIA 16 GB. Claude merged #287 on that approval. Plan `docs/VLM_TEACHER_PLAN.md`: V0 probe (Claude) → V1 marks + review UI (Cursor) → V2 reviewed dataset (P5c) → V3 own detector (ONNX, SceneMap L2 gate, ≥4–5 clips). **Blocked here:** the cloud session cannot fetch weights (huggingface.co denied by the environment network policy) → V0 runs on the Owner PC. **Owner decisions open:** detector framework licence (ultralytics AGPL-3.0 vs Apache-2.0 detector) before V3 ships; Ollama vs LM Studio default | Owner → Claude |
+| 27 Sep | **VLM0 — oracle ceiling on goldens (Claude as the "perfect VLM").** Claude hand-labelled keyframes (28 `clip_voll`, 10 `clip_ausschnitt`; contact + thigh/hand boxes, committed as `vlm_oracle.json`) and fed them as SceneMap marks through the offline harness (reproduces #287 0.456/0.752 + 0.482/0.888). **No gain:** contact as `source` 0.393/0.662 + 0.454/0.867 (source only acts at lock seed, then lock overrides — M3 caveat; seeds an edge cell); thigh/hand `exclude` = baseline (never chosen); re-seed-when-outside-box 0.444/0.770 + 0.454/0.867 (noise). Why: since #287 the chosen cell is inside the labelled contact box in 118/140 + 24/25 windows — *where* is solved on these clips. And the two FunGen refs agree with each other at only r≈0.45 windowed, which is where we already are vs ohne. **Consequence:** goldens cannot show VLM value; V0 gate = box quality vs `vlm_oracle.json` (`vlm_score.py`: hit ≥80 %, on-exclude ≤5 %, refusal <20 %) + end-to-end on new Owner clips where today's ROI/lock is wrong, ideally with a hand-corrected reference | Claude |
 
 ---
 
@@ -1071,6 +1076,7 @@ AGENT_COORD:
 |-------|-----|
 | Tf/Tj direction | `docs/TFTJ_PROFILE_DIRECTION.md` |
 | SAM / bake-off | `docs/SAM_ARCHITECTURE.md` |
+| VLM teacher → own detector | `docs/VLM_TEACHER_PLAN.md` |
 | Release spine | `docs/PRODUCTION_ROADMAP.md` |
 | Signal ≠ Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
 | Architecture | `HANDOFF.md` |

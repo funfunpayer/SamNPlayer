@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **VLM teacher probe (V0, opt-in tool)** — `generator/vlm_probe.py` asks a
+  **local** vision-language model (e.g. Qwen2.5-VL via Ollama / LM Studio,
+  OpenAI-compatible) for body-region / stroke-contact boxes on keyframes and
+  writes `<clip>.vlm.json` (+ optional overlay JPEGs). Coordinate convention
+  is calibrated per model, never guessed. Measurement only — no Generate,
+  marks or default change. Plan: `docs/VLM_TEACHER_PLAN.md`.
+  `generator/vlm_score.py` scores a probe result against hand-labelled
+  golden keyframes (`testdata/golden_clips/*/vlm_oracle.json`).
+
 ## [0.5.34] — September 27, 2026
 
 ### Added
