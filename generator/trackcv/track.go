@@ -57,6 +57,18 @@ type Options struct {
 	// marks at the call site before TrackROI. Marks with Follow=true get
 	// a side CSRT so exclude/source boxes move with the subject.
 	SceneMarks []SceneMark
+	// ContactPoints move the rhythm grid's search centre to where a local
+	// teacher saw the stroke contact - but only while the CSRT box is
+	// further away than the grid's own search radius (3 cells), i.e. only
+	// when the grid could not reach the contact anyway. Multi-person clip:
+	// windowed r 0.304 -> 0.406 with NudeNet points; goldens unchanged
+	// (clip_voll r same, clip_ausschnitt bit-identical; VLM1 in
+	// docs/VLM_TEACHER_PLAN.md). Empty = today's
+	// behaviour exactly. RhythmGrid only; ignored otherwise.
+	ContactPoints []ContactPoint
+	// ContactHoldMs: a point is used for frames within this distance in
+	// time of it (0 = rhythmContactHoldMs, 1 s).
+	ContactHoldMs int
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -407,8 +419,10 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			cellV = flowX
 		}
 		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
+		searchX, searchY := applyContactPoints(xPositions, yPositions, timestampsMs,
+			opts.ContactPoints, int64(opts.ContactHoldMs), width, height, rhythmGridCols)
 		positions, sceneMap = rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
-			xPositions, yPositions, positions, seed, sceneCuts, fps, liveMarks)
+			searchX, searchY, positions, seed, sceneCuts, fps, liveMarks)
 	}
 
 	confidence := 0.0

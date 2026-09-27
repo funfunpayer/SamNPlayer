@@ -126,6 +126,18 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 		RhythmGrid:         opts.RhythmGrid,
 		SceneMarks:         mergeSceneMarksWithMasks(opts.SceneMarks, opts.MaskROIs),
 	}
+	if opts.ContactPointsFile != "" {
+		if !opts.RhythmGrid || twoPoint {
+			progress("TRACK: contact points ignored - they steer the rhythm grid (single ROI) only")
+		} else {
+			pts, err := LoadContactPoints(opts.ContactPointsFile, opts.ContactPointsMinAgree)
+			if err != nil {
+				return err
+			}
+			trackOpts.ContactPoints = pts
+			progress(fmt.Sprintf("TRACK: %d contact points steer the rhythm grid where the box is out of reach", len(pts)))
+		}
+	}
 	if trackOpts.Axis == "" {
 		trackOpts.Axis = "auto"
 	}
@@ -224,6 +236,8 @@ type nativeTrackOptions struct {
 	// SceneMarks: exclude/source/region annotations for the rhythm grid +
 	// camera punch-outs (includes soft MaskROIs converted to exclude).
 	SceneMarks []SceneMark
+	// ContactPoints: see Options.ContactPointsFile (rhythm grid only).
+	ContactPoints []ContactPoint
 }
 
 // mergeSceneMarksWithMasks appends soft MaskROIs as whole-clip exclude marks
