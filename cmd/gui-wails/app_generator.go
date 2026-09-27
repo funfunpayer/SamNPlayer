@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,9 @@ import (
 	"github.com/funfunpayer/SamNPlayer/sam"
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
+
+// defaultAIServerBaseURL matches generator/colibri_client.py DEFAULT_BASE_URL.
+const defaultAIServerBaseURL = "http://127.0.0.1:8080"
 
 func (a *App) CheckGeneratorDependencies() error {
 	return generator.CheckDependencies()
@@ -412,6 +416,30 @@ func attachROIVerify(payload map[string]any, videoPath string, roi generator.ROI
 // ihn anzubieten und dann bei jedem Versuch scheitern zu lassen.
 func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
+}
+
+// CheckAIServerAvailable reports whether a Colibri-compatible OpenAI server
+// answers GET /v1/models at generator.aiBaseUrl (empty → default localhost).
+// Unreachable is the expected idle state — never an error to the GUI.
+// See docs/COLIBRI_SETUP.md.
+func (a *App) CheckAIServerAvailable() bool {
+	return aiServerReachable(a.settings.GetString(prefAIBaseURL, ""))
+}
+
+// aiServerReachable probes baseURL (or the Colibri default) the same way
+// generator/colibri_client.available does — short timeout, no raise.
+func aiServerReachable(baseURL string) bool {
+	base := strings.TrimSpace(baseURL)
+	if base == "" {
+		base = defaultAIServerBaseURL
+	}
+	client := &http.Client{Timeout: 1500 * time.Millisecond}
+	resp, err := client.Get(strings.TrimRight(base, "/") + "/v1/models")
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
 
 // SupportSignalsAvailable reports experimental depth/pose helper flags (see

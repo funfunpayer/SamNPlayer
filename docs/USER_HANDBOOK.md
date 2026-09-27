@@ -118,6 +118,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 |---------|--------|
 | **Open user handbook** | In-app FAQ (same content as this doc’s Everyday sections) |
 | AI ROI model path | Enables *Smarter tip find* |
+| AI server (Colibri) | Optional local LLM for Suggest profile fallback + quality opinion — **Check AI server**; empty = `http://127.0.0.1:8080` (`docs/COLIBRI_SETUP.md`) |
 | Collect learning data | Allows Scene map **Export for learning** |
 
 **Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
@@ -146,6 +147,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in) |
 | Audio “wrong tempo” | Warn only — fix ROI/axis; does not rewrite curve |
 | AI draft greyed out | **Export classical run** once after Create (≥1 sample), then draft enables — ONNX model path not required for imitation |
+| Suggest profile / quality opinion ignores AI | Start `coli serve` (or set Settings AI server) → **Check AI server**; classical/Go match skips Colibri by design |
 
 ---
 

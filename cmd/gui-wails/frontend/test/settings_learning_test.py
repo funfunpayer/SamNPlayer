@@ -36,6 +36,7 @@ def main():
         "CheckForUpdate": "async () => ({available:false})",
         "GetHardwareInfo": "async () => 'ok'",
         "CheckAIRoiAvailable": "async () => false",
+        "CheckAIServerAvailable": "async () => { window.__aiServerChecked = true; return false; }",
         "OpenLogFolder": "async () => {}",
         "PickReportPath": "async () => ''",
         "ReportSummary": "async () => ''",
@@ -61,6 +62,10 @@ def main():
         check("Collect learning checkbox", page.locator("#st-collect-learning").count() == 1)
         check("Delete learning button", page.locator("#st-delete-learning").count() == 1)
         check("default Collect off", page.is_checked("#st-collect-learning") is False)
+        check("AI server check button", page.locator("#st-ai-server-check").count() == 1)
+        page.click("#st-ai-server-check")
+        page.wait_for_function("window.__aiServerChecked === true", timeout=3000)
+        check("CheckAIServerAvailable called", page.evaluate("() => window.__aiServerChecked === true"))
 
         page.check("#st-collect-learning")
         page.wait_for_function(

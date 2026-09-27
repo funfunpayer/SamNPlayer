@@ -64,6 +64,7 @@ AI Train — label scenes / tip ROIs for helpers (not the stroke writer).`,
     title: 'Settings that matter',
     body: `Open user handbook — this FAQ.
 AI ROI model path — enables Smarter tip find.
+AI server (Colibri) — optional local LLM for Suggest profile fallback + quality opinion; Check AI server; empty = http://127.0.0.1:8080 (docs/COLIBRI_SETUP.md).
 Collect learning data — allows Scene map Export for learning.
 
 AI draft model path is not in Settings yet (reserved for a future ONNX writer). Until then, use Export classical run → AI draft script from the imitation library.`,
@@ -77,6 +78,7 @@ Create Advanced — Sliding dynamics, Auto-Retry, Suggest O-markers, Export clas
   {
     title: 'Troubleshooting',
     body: `Flat / stuck curve — re-find tip · Invert motion · Heal tracking gaps · check tracking_gaps muted Contact.
+Suggest profile / quality opinion ignores AI — start coli serve → Settings Check AI server; classical/Go match skips Colibri by design.
 Feels inverted — Advanced → Invert motion direction.
 Camera pans drift — Camera motion compensation · Fix contact area (static) off.
 Long-clip drift — Advanced → Rhythm-robust signal (opt-in).
