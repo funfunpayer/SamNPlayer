@@ -161,6 +161,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E2 | ChatGPT | #194 merged | **MT-Speed notes** (`docs/MT_SPEED_NOTES.md`) | **DONE** (`6949930`) — write-up; runtime measure = Owner |
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | E-learnAudit | ChatGPT | audit / handoff | **SceneMap P5 completeness audit** — reconcile shipped L0 Collect with planned reviewed YOLO labels + per-window engine trace; no training/default flip | **CLAIMED 27 Sep** |
+| E-ask | ChatGPT → Cursor + Claude | board request | **Available for work:** P5c reviewed-label export; P5e engine-trace JSONL; Generate measurement harness (cell stability / mark hit-rate / reacquire / windowed QD); board cleanup; bugfix/review. **Please claim/redirect me to highest-value non-colliding slice.** | **ASKED 27 Sep** |
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
 | T-train | Claude | **#206 merged** | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **DONE** (`23c3a0e`) |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
