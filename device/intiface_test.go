@@ -439,6 +439,52 @@ func TestIntifaceOneShotReconnect(t *testing.T) {
 	_ = dev.Disconnect()
 }
 
+// After markDeadLocked closes the keepalive stop chan, Connect (via
+// one-shot) must start a fresh pingLoop — the old stop stays closed so
+// the old goroutine exits (no double keepalive).
+func TestIntifacePingStopReplacedOnReconnect(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
+	url, server := startFake(t, fake)
+	defer server.Close()
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+
+	dev.mu.Lock()
+	oldStop := dev.stopPing
+	dev.markDeadLocked("test-ping-drop")
+	dev.mu.Unlock()
+	if oldStop == nil {
+		_ = dev.Disconnect()
+		t.Fatal("expected stopPing before markDead")
+	}
+	select {
+	case <-oldStop:
+		// closed — old pingLoop must exit
+	default:
+		_ = dev.Disconnect()
+		t.Fatal("markDeadLocked must close old stopPing")
+	}
+
+	ok, err := dev.TryReconnectOnce(context.Background())
+	if !ok {
+		_ = dev.Disconnect()
+		t.Fatalf("one-shot reconnect: %v", err)
+	}
+	dev.mu.Lock()
+	newStop := dev.stopPing
+	dev.mu.Unlock()
+	if newStop == nil || newStop == oldStop {
+		_ = dev.Disconnect()
+		t.Fatal("Connect after one-shot must install a new stopPing")
+	}
+	_ = dev.Disconnect()
+}
+
 // Failed one-shot spends the budget — later dials must not keep trying.
 func TestIntifaceOneShotReconnectSpent(t *testing.T) {
 	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}

@@ -352,11 +352,11 @@ func (i *Intiface) pingLoop(stop chan struct{}) {
 			i.mu.Lock()
 			if i.conn != nil {
 				if _, err := i.send(map[string]any{"Ping": map[string]any{}}); err != nil {
-					// send already marked dead; try one-shot, else exit.
+					// send already marked dead (closes this stop chan). One-shot
+					// Connect starts a fresh pingLoop — this goroutine must exit
+					// either way so we never run two keepalive loops.
 					i.mu.Unlock()
-					if ok, _ := i.TryReconnectOnce(context.Background()); ok {
-						continue
-					}
+					_, _ = i.TryReconnectOnce(context.Background())
 					return
 				}
 			}
