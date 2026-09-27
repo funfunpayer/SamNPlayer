@@ -10,6 +10,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **VLM teacher probe (V0, opt-in tool)** — `generator/vlm_probe.py` asks a
+  **local** vision-language model (e.g. Qwen2.5-VL via Ollama / LM Studio,
+  OpenAI-compatible) for body-region / stroke-contact boxes on keyframes and
+  writes `<clip>.vlm.json` (+ optional overlay JPEGs). Coordinate convention
+  is calibrated per model, never guessed. Measurement only — no Generate,
+  marks or default change. Plan: `docs/VLM_TEACHER_PLAN.md`.
+
 - **AIWrite S3 draft curve preview** — after **AI draft script**, the Create
   **0–100 on video** gauge shows the pending draft (scrub Time/Frame) before
   Keep; Discard restores the prior CSRT Create curve. Gold gauge cue while a
