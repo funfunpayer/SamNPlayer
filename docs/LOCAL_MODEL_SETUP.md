@@ -62,6 +62,19 @@ ONNX vision draft path is not implemented (`docs/AI_SCRIPT_WRITER.md`).
 Settings → Host Enable / Give dildo — **no Chat UI** yet; Echo backend.
 Real local LLM chat is a later milestone.
 
+## F) Contact points / VLM teachers (opt-in)
+
+Local teachers (NudeNet and/or `vlm_probe`) → JSON → rhythm grid search
+hint. Everyday Create stays bit-identical when off/empty. Details:
+`docs/VLM_MODELS.md`, `docs/VLM_TEACHER_PLAN.md`, handbook FAQ.
+
+1. Build `<clip>.contact.json` via CLI, e.g.
+   `python generator/contact_points.py --nudenet video.mp4`
+   (optional extra `--vlm` probe JSON; see `VLM_MODELS.md`).
+2. Create → Advanced → turn on **Rhythm-robust signal**.
+3. Check **Use contact points** → **Choose…** the JSON (or paste path).
+4. Create as usual. The GUI only loads the file — it does not run teachers.
+
 ## Intentionally missing
 
 | Expectation | Reality |
