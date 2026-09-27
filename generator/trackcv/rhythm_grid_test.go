@@ -537,3 +537,35 @@ func chosenCells(m SceneMap) []int {
 	}
 	return out
 }
+
+// Real-clip failure (IdLock): the seed cell nearest the ROI centre carries the
+// stroke at first, then goes quiet while the stroke is two cells away (still
+// inside the search radius). The lock must be released instead of emitting
+// noise for the rest of the shot; the #248 thigh tests above keep a 3-4x
+// adjacent distractor from triggering the same release.
+func TestRhythmGridReleasesLockWhenLockedCellGoesQuiet(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.1, 24 * 80
+	seedCell := 5*16 + 7
+	moved := seedCell + 2
+	cellV, stroke := synthClip(frames, fps, hz, seedCell, -1, 1)
+	quiet := int(20 * fps)
+	for i := quiet; i < frames; i++ {
+		dv := float32(stroke[i] - stroke[i-1])
+		cellV[i][seedCell] -= dv // seed cell falls back to noise
+		cellV[i][moved] += dv
+	}
+	sx, sy := cellCenter(seedCell)
+	rng := rand.New(rand.NewSource(5))
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = sx, sy
+		anchor[i] = sy + 0.3*stroke[i] + 4*rng.NormFloat64()
+	}
+	got := rhythmGridPositions(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		seedAtCell(seedCell), nil, fps)
+	late := int(40 * fps)
+	if r := pearson(subtractRollingMean(got[late:], int(2*fps)), stroke[late:]); r < 0.9 {
+		t.Fatalf("locked cell went quiet but lock was kept: r=%.3f after %ds, want >= 0.9",
+			r, late/int(fps))
+	}
+}
