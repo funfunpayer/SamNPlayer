@@ -8,12 +8,7 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
-### Changed
-
-- **AIWrite S1 discoverability** — after Create succeeds, status points at
-  Advanced → **Export classical run**; export button stays disabled until a
-  Create result exists; status line names export vs draft separately. No S2
-  defaults.
+## [0.5.32] — September 27, 2026
 
 ### Added
 
@@ -24,23 +19,6 @@ measurement history behind each entry; this file is the short version for
 - **Play bookmarks** — Add / seek / remove named times (`metadata.bookmarks` /
   `.samn`) under the O-marker block. Wires existing `GetScriptBookmarks` /
   `SaveScriptBookmarks` (GUI load rule).
-
-### Changed
-
-- **Look v3 — lilac accent** — Owner preference over honey orange: chrome,
-  help chips, washes, CTAs, scrollbars, checkboxes, Device/Training heat
-  mid-stop. Teal secondary kept; warn stays warm. Extra motion: Create head /
-  step enter, help popover, handbook modal, rail breath, CTA press
-  (`prefers-reduced-motion` safe). In-app **User handbook** from Settings + Create.
-- **G3 suggest-only copy** — Create profile-suggestion status strings English
-  (`local Go model` / `AI server` / `measured`); CSRT writer and Apply gate
-  unchanged. G3 roadmap status synced (helpers shipped; fuse/Stage B still gated).
-- **Emotion Look v2** — thinner rail/borders, friendlier honey/teal palette,
-  larger organic radii, softer brand strokes + washes. Sora/Figtree kept;
-  Generate/CSRT behaviour unchanged (CSS tokens only).
-
-### Added
-
 - **User handbook** — `docs/USER_HANDBOOK.md` + in-GUI FAQ modal (Settings /
   Create). Everyday Create/Play/gaps/AI path; honest “not everything is GUI”.
 - **AIWrite S1 export** — Create Advanced **Export classical run** writes local
@@ -82,6 +60,24 @@ measurement history behind each entry; this file is the short version for
   < 0.5× best outside); soft `MaskROIs` stay on the Go path when RhythmGrid
   is on (single-ROI) with camera multi-exclude punch-outs; Generate accepts
   `sceneMapMarks` from Advanced.
+
+### Changed
+
+- **AIWrite S1 discoverability** (#272) — after Create succeeds, status points at
+  Advanced → **Export classical run**; export button stays disabled until a
+  Create result exists; status line names export vs draft separately. No S2
+  defaults.
+- **Look v3 — lilac accent** — Owner preference over honey orange: chrome,
+  help chips, washes, CTAs, scrollbars, checkboxes, Device/Training heat
+  mid-stop. Teal secondary kept; warn stays warm. Extra motion: Create head /
+  step enter, help popover, handbook modal, rail breath, CTA press
+  (`prefers-reduced-motion` safe). In-app **User handbook** from Settings + Create.
+- **G3 suggest-only copy** — Create profile-suggestion status strings English
+  (`local Go model` / `AI server` / `measured`); CSRT writer and Apply gate
+  unchanged. G3 roadmap status synced (helpers shipped; fuse/Stage B still gated).
+- **Emotion Look v2** — thinner rail/borders, friendlier honey/teal palette,
+  larger organic radii, softer brand strokes + washes. Sora/Figtree kept;
+  Generate/CSRT behaviour unchanged (CSS tokens only).
 
 ## [0.5.31] — September 24, 2026
 
