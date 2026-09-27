@@ -102,6 +102,7 @@ def main():
             "async () => ({ available: false, reason: 'No model', stage: 'S1' })"
         ),
         "DraftAIScript": "async () => { throw new Error('n/a'); }",
+        "KeepAIScriptDraft": "async () => { throw new Error('n/a'); }",
         "ExportAIScriptImitation": "async () => ({ path: '', message: '' })",
     })
     harness_c = TEST_DIR / "_handbook_create_harness.html"

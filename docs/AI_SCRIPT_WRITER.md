@@ -56,9 +56,9 @@ The AI script path is therefore:
 | Stage | Deliverable | Exit gate |
 |-------|-------------|-----------|
 | **S0** | Plan + Go `aiscript` + GUI stub | **Done** (#261) — Everyday bit-identical |
-| **S1** | Training export: classical good runs → imitation samples | **Partial** — `ExportImitationSample` + Create **Export classical run** |
-| **S2** | First local draft model (train offline; infer in-app) | Blind QD ≥ classical floor *or* Owner “experimental” |
-| **S3** | Create Advanced: **AI draft script** → preview → Keep | Apply required; English copy only |
+| **S1** | Training export: classical good runs → imitation samples | **Done** — `ExportImitationSample` + Create **Export classical run** + discoverability (#272) |
+| **S2** | First local draft model (train offline; infer in-app) | **Partial** — **S2-imitation**: draft stretches best exported classical sample (opt-in Advanced). ONNX vision writer still later. Blind QD ≥ classical floor *or* Owner “experimental” for default-on |
+| **S3** | Create Advanced: **AI draft script** → preview → Keep | **Partial** — Keep/Discard + QD stamp wired; curve preview in Play after Keep |
 | **S4** | Optional: draft seeded from tip ROI + scene-map marks | Goldens announced; no Everyday default |
 
 **Out until Owner re-opens:** cloud APIs, Diffusers, replacing CSRT default,
@@ -86,12 +86,13 @@ Draft(req) → { actions []Action, meta, warnings } | error
 
 Under **Advanced settings** (not Everyday step chrome):
 
-- Checkbox / button: **AI draft script (experimental)**  
-- Enabled only when `AIScriptWriterAvailable()` is true.  
-- Help: points here; states CSRT remains the normal Create path.  
-- After draft: show Quality Doctor box + **Keep draft** / **Discard**.
+- **Export classical run** — writes one imitation sample (S1); enables draft when library non-empty.
+- **AI draft script (experimental)** — enabled when `AIScriptWriterStatus().available` (imitation library ≥1 sample, or later a model).
+- Help: points here; states CSRT remains the normal Create path.
+- After draft: Quality Doctor score in status + **Keep draft** / **Discard**.
+- **Keep draft** writes `.samn` + companion `.funscript` beside the video (explicit only).
 
-Settings may later add model path (like AI ROI) — S3+.
+Settings may later add model path (like AI ROI) — ONNX S2+.
 
 ---
 
