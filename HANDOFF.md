@@ -621,7 +621,9 @@ validates in every case; the AI never writes a `.funscript` on its own
 path. Still open: no bundled/recommended ONNX region model, and no field
 data yet on how useful the profile/quality steps are without someone
 running a real local Colibri server against real material. See
-`docs/AI_ADAPTER.md` for the architecture.
+`docs/AI_ADAPTER.md` for the architecture, `docs/COLIBRI_SETUP.md` for
+server setup, and `docs/LOCAL_MODEL_SETUP.md` for the Owner path across
+ONNX / Go profile / Colibri / AIWrite.
 
 ## Environment setup
 
