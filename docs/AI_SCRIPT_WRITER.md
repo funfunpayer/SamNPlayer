@@ -57,7 +57,7 @@ The AI script path is therefore:
 |-------|-------------|-----------|
 | **S0** | Plan + Go `aiscript` + GUI stub | **Done** (#261) — Everyday bit-identical |
 | **S1** | Training export: classical good runs → imitation samples | **Done** — `ExportImitationSample` + Create **Export classical run** + discoverability (#272) |
-| **S2** | First local draft model (train offline; infer in-app) | **Partial** — **S2-imitation**: draft stretches best exported classical sample (opt-in Advanced). ONNX vision writer still later. Blind QD ≥ classical floor *or* Owner “experimental” for default-on |
+| **S2** | First local draft model (train offline; infer in-app) | **Partial** — **S2-imitation**: draft stretches best exported classical sample by **duration + tip aspect + QD** (opt-in Advanced). ONNX vision writer still later. Blind QD ≥ classical floor *or* Owner “experimental” for default-on |
 | **S3** | Create Advanced: **AI draft script** → preview → Keep | **Partial** — Keep/Discard + QD stamp wired; curve preview in Play after Keep |
 | **S4** | Optional: draft seeded from tip ROI + scene-map marks | Goldens announced; no Everyday default |
 

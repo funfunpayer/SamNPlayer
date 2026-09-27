@@ -62,26 +62,69 @@ func CountValidSamples(dir string) int {
 	return len(samples)
 }
 
+// TipAspect returns w/h when both are positive; otherwise 0 (unknown).
+func TipAspect(w, h float64) float64 {
+	if w <= 0 || h <= 0 {
+		return 0
+	}
+	return w / h
+}
+
+// tipAspectDist is |log(sample/target)| — scale-invariant; unknown sides → large.
+func tipAspectDist(sampleAspect, targetAspect float64) float64 {
+	if targetAspect <= 0 {
+		return 0
+	}
+	if sampleAspect <= 0 {
+		return 10 // no tip on sample — lose to any tip-matched candidate
+	}
+	return math.Abs(math.Log(sampleAspect / targetAspect))
+}
+
 // PickBestSample chooses the closest duration match. Prefer qdPassed=true when
-// durations are similar (within 25%). targetDurationMs ≤ 0 → first QD-passed
-// or first sample.
-func PickBestSample(samples []LoadedSample, targetDurationMs int64) (LoadedSample, error) {
+// durations are similar (within 25%). When tipW/tipH > 0, also prefer samples
+// whose exported tip box has a similar aspect ratio (S2b). targetDurationMs ≤ 0
+// → first QD-passed (aspect-aware when tip given) or first sample.
+func PickBestSample(samples []LoadedSample, targetDurationMs int64, tipW, tipH float64) (LoadedSample, error) {
 	if len(samples) == 0 {
 		return LoadedSample{}, fmt.Errorf("aiscript: no imitation samples")
 	}
+	targetAspect := TipAspect(tipW, tipH)
 	if targetDurationMs <= 0 {
+		var best LoadedSample
+		found := false
 		for _, s := range samples {
-			if s.Sample.QDPassed != nil && *s.Sample.QDPassed {
-				return s, nil
+			qd := s.Sample.QDPassed != nil && *s.Sample.QDPassed
+			if !qd {
+				continue
 			}
+			if !found || tipAspectDist(TipAspect(s.Sample.TipW, s.Sample.TipH), targetAspect) <
+				tipAspectDist(TipAspect(best.Sample.TipW, best.Sample.TipH), targetAspect) {
+				best = s
+				found = true
+			}
+		}
+		if found {
+			return best, nil
+		}
+		if targetAspect > 0 {
+			best = samples[0]
+			for _, s := range samples[1:] {
+				if tipAspectDist(TipAspect(s.Sample.TipW, s.Sample.TipH), targetAspect) <
+					tipAspectDist(TipAspect(best.Sample.TipW, best.Sample.TipH), targetAspect) {
+					best = s
+				}
+			}
+			return best, nil
 		}
 		return samples[0], nil
 	}
 	type scored struct {
-		s     LoadedSample
-		dist  int64
-		qdOk  bool
-		index int
+		s      LoadedSample
+		dist   int64
+		aspect float64
+		qdOk   bool
+		index  int
 	}
 	ranked := make([]scored, 0, len(samples))
 	for i, s := range samples {
@@ -94,12 +137,16 @@ func PickBestSample(samples []LoadedSample, targetDurationMs int64) (LoadedSampl
 			d = -d
 		}
 		qd := s.Sample.QDPassed != nil && *s.Sample.QDPassed
-		ranked = append(ranked, scored{s: s, dist: d, qdOk: qd, index: i})
+		ad := tipAspectDist(TipAspect(s.Sample.TipW, s.Sample.TipH), targetAspect)
+		ranked = append(ranked, scored{s: s, dist: d, aspect: ad, qdOk: qd, index: i})
 	}
 	sort.SliceStable(ranked, func(i, j int) bool {
-		// Prefer smaller duration distance; break ties with QD pass, then index.
+		// Prefer smaller duration distance; then tip aspect; then QD; then index.
 		if ranked[i].dist != ranked[j].dist {
 			return ranked[i].dist < ranked[j].dist
+		}
+		if targetAspect > 0 && ranked[i].aspect != ranked[j].aspect {
+			return ranked[i].aspect < ranked[j].aspect
 		}
 		if ranked[i].qdOk != ranked[j].qdOk {
 			return ranked[i].qdOk
@@ -107,7 +154,8 @@ func PickBestSample(samples []LoadedSample, targetDurationMs int64) (LoadedSampl
 		return ranked[i].index < ranked[j].index
 	})
 	best := ranked[0]
-	// If a QD-passed sample is within 25% of the best distance, prefer it.
+	// If a QD-passed sample is within 25% of the best distance, prefer it —
+	// unless tip aspect strongly favors another QD candidate in that band.
 	for _, c := range ranked[1:] {
 		if !c.qdOk {
 			continue
@@ -119,7 +167,13 @@ func PickBestSample(samples []LoadedSample, targetDurationMs int64) (LoadedSampl
 				limit = 500
 			}
 		}
-		if c.dist <= limit {
+		if c.dist > limit {
+			break
+		}
+		if targetAspect > 0 && c.aspect+1e-9 < best.aspect {
+			return c.s, nil
+		}
+		if !best.qdOk {
 			return c.s, nil
 		}
 		break

@@ -221,13 +221,13 @@ export function initGenerator(root, playback) {
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best match for review. Keep required — CSRT path unchanged.
+            Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best duration + tip-aspect match for review. Keep required — CSRT path unchanged.
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-ai-script-export" disabled
               data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: drafts a stroke from your exported classical samples (duration match + stretch). Off until ≥1 Export classical run. Does not replace CSRT Create. Require Keep after Quality Doctor.">AI draft script</button>
+              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Does not replace CSRT Create. Require Keep after Quality Doctor.">AI draft script</button>
             <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
               data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
             <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden

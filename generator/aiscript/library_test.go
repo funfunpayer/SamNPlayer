@@ -37,12 +37,43 @@ func TestPickBestSamplePrefersDurationAndQD(t *testing.T) {
 		{Sample: ImitationSample{DurationMs: 9800, QDPassed: &pass, Actions: []Action{{At: 0, Pos: 0}, {At: 9800, Pos: 100}}}},
 		{Sample: ImitationSample{DurationMs: 10000, QDPassed: &fail, Actions: []Action{{At: 0, Pos: 0}, {At: 10000, Pos: 50}}}},
 	}
-	got, err := PickBestSample(samples, 10000)
+	got, err := PickBestSample(samples, 10000, 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.Sample.DurationMs != 9800 {
 		t.Fatalf("want QD-passed near 10s, got %d", got.Sample.DurationMs)
+	}
+}
+
+func TestPickBestSamplePrefersTipAspect(t *testing.T) {
+	pass := true
+	// Same duration band; wide tip vs tall tip — request is tall (40×80 = 0.5).
+	samples := []LoadedSample{
+		{Path: "wide.json", Sample: ImitationSample{
+			DurationMs: 10000, QDPassed: &pass, TipW: 80, TipH: 40,
+			Actions: []Action{{At: 0, Pos: 0}, {At: 10000, Pos: 100}},
+		}},
+		{Path: "tall.json", Sample: ImitationSample{
+			DurationMs: 10100, QDPassed: &pass, TipW: 40, TipH: 80,
+			Actions: []Action{{At: 0, Pos: 0}, {At: 10100, Pos: 50}},
+		}},
+	}
+	got, err := PickBestSample(samples, 10000, 40, 80)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != "tall.json" {
+		t.Fatalf("want tall tip aspect match, got %s (aspect=%.2f)", got.Path, TipAspect(got.Sample.TipW, got.Sample.TipH))
+	}
+}
+
+func TestTipAspect(t *testing.T) {
+	if TipAspect(40, 80) != 0.5 {
+		t.Fatalf("got %v", TipAspect(40, 80))
+	}
+	if TipAspect(0, 80) != 0 {
+		t.Fatal("zero width must be unknown")
 	}
 }
 

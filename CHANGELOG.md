@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AIWrite S2b tip-aspect sample match** — imitation `PickBestSample` prefers
+  exported tip box aspect (w/h) alongside duration + QD when Create tip ROI
+  is present. Sample count already surfaced in Create Advanced status.
+  Everyday CSRT unchanged.
 - **Intiface connection liveness** — WebSocket write/ping failures clear
   `connected` so Device/Play status stops lying after Intiface Central quits
   or the link drops. Everyday CSRT / BLE path unchanged.
