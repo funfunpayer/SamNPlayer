@@ -95,8 +95,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.30** | Shipped | Rhythm grid opt-in (#233) + Advanced GUI toggle (#236); orientation coin-toss fix |
 | **v0.5.31** | Shipped | Profilemodel #244 + semantic target lock #248 + SceneMap P1/P2 #246/#247 + BF-3 Stage B #239 |
 | **v0.5.32** | Bookkeeping | Rel32 CHANGELOG/VERSION (#271); **never tagged** — portable deferred to 0.5.33 after post-Rel32 features |
-| **v0.5.33** | **THIS** | Rel32 stack + Plugin `virtual_person` H0/H1 (#273/#274) + Generator Follow/Ignore marks S0/S1 (#276/#277) |
-| next | After Rel33 | Owner portable smoke → tag `v0.5.33`. Still Owner: ≥4–5 rhythm clips (identity-lock alg); speed-cap; G1.3. GUI-load audit leftovers |
+| **v0.5.33** | Shipped | Rel32 stack + Plugin `virtual_person` H0/H1 (#273/#274) + Generator Follow/Ignore marks S0/S1 (#276/#277) — tag `v0.5.33` |
+| **v0.5.34** | **THIS** | Post-Rel33 stack: vib impulse/spatial (#279/#283), AIWrite S2/S2b/S3prev (#280/#282/#288), Intiface live+reconnect (#281/#286), Marks S2/S3 (#284/#285), IdLock release (#287) |
+| next | After Rel34 | Owner portable smoke → tag `v0.5.34`. Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3. GUI-load audit leftovers |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

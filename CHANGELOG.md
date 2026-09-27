@@ -8,28 +8,30 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.34] — September 27, 2026
+
 ### Added
 
 - **AIWrite S3 draft curve preview** — after **AI draft script**, the Create
   **0–100 on video** gauge shows the pending draft (scrub Time/Frame) before
   Keep; Discard restores the prior CSRT Create curve. Gold gauge cue while a
-  draft is pending. Everyday CSRT / Rel34 / default-on untouched.
+  draft is pending. Everyday CSRT / default-on untouched (#288).
 - **Intiface one-shot reconnect** — after liveness marks the WebSocket dead
   (#281), the next vibrate/suction/ping tries **one** automatic `Connect`
   for that connection life before staying disconnected. No reconnect loops;
-  budget resets on a successful Connect. BLE / Everyday CSRT / Rel34 untouched.
+  budget resets on a successful Connect. BLE / Everyday CSRT untouched (#286).
 - **Marks S3 / L1 exclude suggest** — Advanced Scene map → **Suggest ignores from
   learning** reads local `scene_map_learning/**/exclude_decisions.jsonl`, bins
   normalized Ignore boxes on a 4×3 grid, and pre-fills suggest-only whole-clip
   Ignore marks when ≥3 Collect clips share a hot cell (≥50%). User reviews /
-  Clear; never auto-Create. Everyday CSRT / Rhythm / Enforcement / Rel34
-  untouched (#SCENE_MAP M6-L1).
+  Clear; never auto-Create. Everyday CSRT / Rhythm / Enforcement untouched
+  (#285, #SCENE_MAP M6-L1).
 - **Generator marks S2 (contact Fixed→follow)** — extra contact areas default to
   **follow** when tip path is recorded (Contact vib soft-ons path); optional
   **Stay fixed** keeps static anchors. Play overlay treats omitted/`false`
   Fixed like primary (follow partner/tip path). Tf/Tj multi-partner tracking
   honors `NamedROI.Fixed` instead of hardcoding extras fixed. Everyday CSRT /
-  identity-lock / Rhythm / Enforcement / Rel34 untouched.
+  identity-lock / Rhythm / Enforcement untouched (#284).
 - **Contact vib prefer-spatial (S2)** — when contact marks + tip trajectory are
   present, Play weights spatial tip↔mark events over the depth envelope
   (`SpatialDepthWeight`) and shortens the contact envelope on spatial hits
@@ -39,10 +41,10 @@ measurement history behind each entry; this file is the short version for
 - **AIWrite S2b tip-aspect sample match** — imitation `PickBestSample` prefers
   exported tip box aspect (w/h) alongside duration + QD when Create tip ROI
   is present. Sample count already surfaced in Create Advanced status.
-  Everyday CSRT unchanged.
+  Everyday CSRT unchanged (#282).
 - **Intiface connection liveness** — WebSocket write/ping failures clear
   `connected` so Device/Play status stops lying after Intiface Central quits
-  or the link drops. Everyday CSRT / BLE path unchanged.
+  or the link drops. Everyday CSRT / BLE path unchanged (#281).
 - **AIWrite S2 imitation draft + Keep** — after ≥1 Advanced **Export classical
   run**, **AI draft script** becomes available: stretches the best duration-
   matched imitation sample, runs actions-only Quality Doctor, and requires
@@ -67,7 +69,7 @@ measurement history behind each entry; this file is the short version for
   against a stronger adjacent thigh (3–4× amplitude) is unchanged. Windowed r
   vs FunGen: `clip_voll` 0.427/0.626 → 0.455/0.752, `clip_ausschnitt`
   0.383/0.666 → 0.486/0.887; all windows oriented with the YOLO reference.
-  Everyday CSRT and the rhythm-grid default (off) unchanged.
+  Everyday CSRT and the rhythm-grid default (off) unchanged (#287).
 
 ## [0.5.33] — September 27, 2026
 
