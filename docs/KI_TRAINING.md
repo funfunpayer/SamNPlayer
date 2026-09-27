@@ -16,11 +16,13 @@ in the Training tab (stop-start/plateau).
 | **(S0+) Opt-in AI draft script** when a local draft model exists — Keep required (`docs/AI_SCRIPT_WRITER.md`) | Invent positions via chat-LLM tokens; auto-Keep without Quality Doctor |
 
 Classic tracking (CSRT / flow / …) remains the **Everyday** writer of `.samn`
-(plus community `.funscript` export). The experimental AI draft path is
-**off by default** and fails closed until a local model ships (S2+).
-See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md`, `docs/AI_SCRIPT_WRITER.md`
-and `docs/FUNSCRIPT_ALGOS.md`. Owner quick path for every local helper:
-`docs/LOCAL_MODEL_SETUP.md` (Colibri: `docs/COLIBRI_SETUP.md`).
+(plus community `.funscript` export). The opt-in **AI draft** path
+(S2-imitation + S3 Keep/Discard) is **off by default** and fails closed
+until a local imitation library (or later ONNX writer) is available —
+Keep is always required. See `docs/AI_SCRIPT_WRITER.md`, plus
+`docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md`, and `docs/FUNSCRIPT_ALGOS.md`.
+Owner quick path for every local helper: `docs/LOCAL_MODEL_SETUP.md`
+(Colibri: `docs/COLIBRI_SETUP.md`).
 
 ## Two different local models
 
