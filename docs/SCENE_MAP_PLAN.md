@@ -53,7 +53,7 @@ The marks do two jobs:
 | Piece | Where | State |
 |---|---|---|
 | Rhythm grid: Farneback flow → 16×9 cells, 8s/2s windows, tempo f0 0.6–2.5 Hz, score E²/total, best cell within 3 cells of the CSRT box, sign from CSRT with continuity below \|r\| 0.1 | `generator/trackcv/rhythm_grid.go`, `FlowCells` in `cv.cpp` | **Shipped opt-in** #233; Advanced checkbox #236; v0.5.30 |
-| Soft masks (`MaskROIs`, GUI **+ Mask**) | `generator.go` `MaskROIs`, `generator.js` `maskRois` | Shipped, but **Python-only**: any mask makes the Go path ineligible (`native.go`), so the rhythm grid is off whenever a mask is set |
+| Soft masks (`MaskROIs`, GUI **+ Mask**) | `generator.go` `MaskROIs`, `generator.js` `maskRois` | Shipped. With **RhythmGrid** on, masks stay Go-eligible (converted to exclude marks; P3 #251). Without RhythmGrid, masks still force Python (`native.go`) |
 | Body-region taxonomy (9 English IDs) + roles `tracked` / `fixed` / `mask` | `docs/BODY_REGIONS.md`, `generator/bodyparts` | Shipped |
 | `metadata.contact_marks` (tip / primary / extras boxes + class) | `funscript/contact_marks.go`, `generator/contact_marks.go` | Shipped; persisted in `.samn` companion |
 | `metadata.trajectory` (per-frame tip path, opt-in) | `generator/native.go`, `samn_write.go` | Shipped |
@@ -152,13 +152,11 @@ automatically right at 20 s.
    - `source` marks: if a hint overlaps the search radius, pick the best cell
      inside the hint unless its score is below `0.5 ×` the best outside.
      The factor is a starting value and must be measured.
-2. **Go eligibility.** Masks currently force Python. New rule: when
+2. **Go eligibility.** Masks used to force Python. P3 (#251) shipped: when
    `RhythmGrid` is on, masks are allowed on the Go single-ROI path.
-   - This changes which pipeline runs for mask users, so it is **not
-     silent**: CHANGELOG entry, board line, progress log
+   - Not silent for mask users: CHANGELOG entry, board line, progress log
      `"TRACK: masks honoured by rhythm grid (Go)"`.
-   - Without `RhythmGrid`, keep today's Python behaviour, i.e. no change for
-     existing users.
+   - Without `RhythmGrid`, keep Python behaviour (no change for those users).
 3. **Camera features.** `EstimateCameraMotionY` excludes only the tracked box
    today. To match Python's punch-out semantics it needs a list of exclude
    rects (C wrapper change in `cv.cpp` / `cv.h`). Masked moving body parts
@@ -273,7 +271,7 @@ Each stage only suggests until its own measurement gate is passed.
 |---|---|---|---|---|
 | **P1** | M1 refactor (`scoreWindows` / `chooseAndStitch`), `SceneMap` from full runs, `ScanSceneMap` quick scan; Wails binding | Cursor (Claude reviews) | — | bit-identical curve on existing tests; scan ≤ ~20 s on `clip_voll`; unit tests for map shape / normalization |
 | **P2** | M2 map view + mark tools (exclude / source / region, time scope) in Advanced | Cursor | P1 | owner can paint the thigh out at 140 s and see it persisted |
-| **P3** | M3 candidate filter + source hints + Go eligibility with masks + camera exclude list; CHANGELOG + board note | Cursor (engine); Claude measures | P1, P2 | **code done** (this PR) — gate in M3 still Claude on both goldens |
+| **P3** | M3 candidate filter + source hints + Go eligibility with masks + camera exclude list; CHANGELOG + board note | Cursor (engine); Claude measures | P1, P2 | **code done** (#251) — gate in M3 still Claude on both goldens |
 | **P4** | M4 `metadata.scene_map` in `.samn` (writer + reader + schema doc in `SAMN_FORMAT.md`) | Cursor | P1 | round-trip test; old files still load; `.funscript` export unchanged |
 | **P5** | M5 export (YOLO labels, auto-labels, negatives, JSONL trace) + privacy switch / delete | Cursor; Claude reviews the auto-label rule | P4 | export of `clip_voll` yields reviewed-able auto labels; delete removes all |
 | **P6+** | M6 L1 → L2 → L3 | later lanes | enough clips | per-stage gate in the table above |
