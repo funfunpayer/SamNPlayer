@@ -16,6 +16,8 @@ measurement history behind each entry; this file is the short version for
   writes `<clip>.vlm.json` (+ optional overlay JPEGs). Coordinate convention
   is calibrated per model, never guessed. Measurement only — no Generate,
   marks or default change. Plan: `docs/VLM_TEACHER_PLAN.md`.
+  `generator/vlm_score.py` scores a probe result against hand-labelled
+  golden keyframes (`testdata/golden_clips/*/vlm_oracle.json`).
 
 ## [0.5.34] — September 27, 2026
 

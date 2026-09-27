@@ -1,6 +1,6 @@
 # Local VLM teacher → our own detector (plan)
 
-Status: **V0 probe tool in this PR** (Claude). V1+ not started.
+Status: **V0 probe tool + scorer + golden reference labels in this PR** (Claude). V1+ not started.
 Owner go, 27 Sep 2026: *"The system has to get better. Start if you can,
 check whether it holds up. Best later: our own model that uses the data we
 generated with Qwen & co. Everything is approved — coordinate with Cursor."*
@@ -121,24 +121,54 @@ The tool does four things:
   answer, `refused`, and normalised boxes 0..1.
 - Optionally writes overlay JPEGs, so a person can check the boxes by eye.
 
-How V0 is measured (Claude, from the JSON; no images need to be sent):
-1. **Refusal / empty rate** per clip.
-2. **Latency** per keyframe on the Owner's GPU.
-3. **Cell hit:** in each 8 s window, does the `contact` box contain the grid
-   cell whose motion best matches the FunGen reference? Baseline: the ROI
-   centre cell (the IdLock failure).
-4. **End to end:** use the `contact` box as a `source` hint and `thigh` /
-   `hand` boxes as `exclude` hints (SceneMap M3 path, offline harness). Then
-   compute windowed r against both references.
-   Baseline is #287: 0.455 / 0.752 and 0.486 / 0.887.
+**Oracle ceiling on the two goldens (measured 27 Sep, before any Qwen run).**
+Claude labelled the keyframes itself: 28 on `clip_voll` (every 10 s) and
+10 on `clip_ausschnitt` (every 5 s). Each label is a `contact` box plus
+thigh / hand `exclude` boxes. The labels are committed as
+`testdata/golden_clips/*/vlm_oracle.json`. They were fed to the engine as
+SceneMap marks in the offline harness, which reproduces #287:
+0.456 / 0.752 and 0.482 / 0.888.
 
-**Gate to V1:**
-- r is not worse on either golden and better on at least one.
-- Orientation, judged against the YOLO reference, does not regress.
-- Refusal rate is below 20 %.
+| Variant (r ohne / mit) | clip_voll | clip_ausschnitt |
+|---|---|---|
+| #287 baseline (no marks) | 0.456 / 0.752 | 0.482 / 0.888 |
+| contact box as `source` mark | 0.393 / 0.662 | 0.454 / 0.867 |
+| thighs / hands as `exclude` | = baseline (never chosen anyway) | = baseline |
+| ROI seeded on the first contact box | 0.393 / 0.662 | 0.501 / 0.848 |
+| re-seed whenever the locked cell leaves the contact box | 0.444 / 0.770 | 0.454 / 0.867 |
 
-If the gate fails, the negative result goes into the decision log and we
-stop there.
+What this shows:
+- **"Where" is already solved on these two clips.** Since #287 the chosen
+  cell lies inside the hand-labelled contact box in 118 / 140 windows
+  (`clip_voll`) and 24 / 25 (`clip_ausschnitt`). The misses are
+  neighbouring cells around shot changes.
+- **A `source` mark only acts at a lock (re-)seed.** The identity lock
+  overrides it afterwards (the M3 caveat in `rhythm_grid.go`). Seeding on a
+  box edge cell (120 / 136) instead of 119 costs about 0.09.
+- **The references cap what we can measure.** The two FunGen references
+  agree with each other at only r ≈ 0.45, windowed:
+  - `clip_voll`: 0.45, with windows ranging from 0.85 down to 0.15.
+  - `clip_ausschnitt`: 0.45.
+
+  Our r against ohne (0.46 / 0.48) is already at that level.
+
+So a VLM cannot show a gain on these two goldens, even a perfect one. Its
+value is **robustness**: clips where today's ROI or lock lands on the wrong
+body part, shots without a user ROI, and multi-person scenes. The gate
+therefore changes to:
+
+1. **Box quality vs the reference labels:**
+   `vlm_score.py <clip>.vlm.json <golden>/vlm_oracle.json`.
+   - Contact hit rate ≥ 80 % (the probe's contact centre lies in the
+     labelled box; refusals and missing boxes count as misses).
+   - Contact-on-exclude ≤ 5 %.
+   - Refusal rate < 20 %.
+2. **End to end on clips where the baseline fails.**
+   - These are the Owner's new clips. At least one has to show the ROI or
+     lock on the wrong body part, which the labels identify.
+   - The requirement is a gain there, with no regression on the two goldens.
+   - This needs references for the new clips. A hand-corrected script is
+     best, because FunGen output is only a ~0.45 proxy.
 
 **Where V0 runs:** on the Owner's PC. The cloud session cannot download
 weights, because its network policy blocks huggingface.co. The Owner runs
