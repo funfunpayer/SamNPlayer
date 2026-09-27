@@ -7,6 +7,10 @@ talk to the owner in German.
 **Not** a second roadmap (`ROADMAP.md` / `PRODUCTION_ROADMAP.md`).
 This file = **who owns what now** + the shared target.
 
+**Standing merge rule (Owner, 27 Sep):** Claude **cannot merge**.
+Claude opens branches/PRs and pushes only. **Cursor always squash-merges**
+Claude PRs after CI is green (same pattern as IdLock #287).
+
 ---
 
 ## North star (do not lose this)
@@ -143,6 +147,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
 | MarksS3 | Cursor | [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) merged | **Marks S3 / L1 exclude suggest** — Suggest ignores from Collect `exclude_decisions.jsonl` (suggest-only; ≥3 clips) | **DONE** (`601e685`) |
 | IdLock | Claude | [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) merged | **Identity-lock release** — dead locked cell hands over (K=30); goldens recovered; #248 thigh tests pass | **DONE** (`964176b`) |
+| VLM0 | Claude | [#293](https://github.com/funfunpayer/SamNPlayer/pull/293) | **VLM teacher plan + V0 probe/scorer + golden oracle** — opt-in measurement only; no Generate/default flip. Claude opens/pushes; **Cursor squash-merges** after CI green | **IN REVIEW / CI 27 Sep** |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -168,6 +173,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (27 Sep — ChatGPT P5c + Claude merge rule):**
+- **In flight:** ChatGPT **P5c** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) (reviewed YOLO export) — Active **IN REVIEW / CI**. Claude **VLM0** [#293](https://github.com/funfunpayer/SamNPlayer/pull/293) — Claude pushes; **Cursor squash-merges** after CI green (Claude cannot merge).
+- **Shipped:** Rel34 **`v0.5.34`**; E-learnAudit **DONE** (gap list #290); E-ask answered → P5c build.
+- **Cursor:** do **not** duplicate P5c; squash-merge #293 when CI green; leave draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) unmerged.
+- **Claude OPEN:** ≥4–5 rhythm clips (default-on gate); CSRT residual drift scoping; Owner GPU V0 run.
+- **Still Owner-gated:** portable smoke `v0.5.34`; speed-cap; rhythm default; Enforcement; contact-vib S3+; #275 / #264 park.
 
 **Status board (27 Sep — E-ask → ChatGPT):**
 - **Ask:** Cursor posted clarifying questions on **E-ask** (see Active row). ChatGPT: answer on board / [#290](https://github.com/funfunpayer/SamNPlayer/issues/290); keep **E-learnAudit CLAIMED** until you flip DONE.
@@ -1018,6 +1030,7 @@ ring revision before committing.
 | 27 Sep | **Rel34 prep** (Cursor): cut **v0.5.34** from Unreleased — post-`v0.5.33` stack (#279–#288 + IdLock #287). `VERSION`/`BaseVersion` 0.5.33→0.5.34; CHANGELOG Unreleased→0.5.34; Rel34 THIS; #289 board hygiene folded here (conflicting draft superseded). Tag `v0.5.34` after CI green on merge tip | Cursor |
 | 27 Sep | **Rel34 DONE** (Cursor): squash-merged [#291](https://github.com/funfunpayer/SamNPlayer/pull/291) @ `f07cefa`; annotated tag **`v0.5.34`** pushed; Release workflow publishes portables. Rel34 THIS→DONE; #289 closed superseded | Cursor |
 | 27 Sep | **E-ask → ChatGPT** (Cursor): clarifying questions on P5c/P5e/harness/board/bugfix; preserve **E-learnAudit CLAIMED**; Rel34 DONE already on main via [#294](https://github.com/funfunpayer/SamNPlayer/pull/294). If ChatGPT clears and does not build: Cursor takes one small P5c export. Draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) premature until answered | Cursor |
+| 27 Sep | **Owner rule: Claude cannot merge** — Claude opens/pushes only; Cursor squash-merges Claude PRs after CI green. ChatGPT answered E-ask (#290) and owns P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297); E-learnAudit DONE; Active handoff @ `2365e13` | Owner → Cursor |
 
 ---
 
