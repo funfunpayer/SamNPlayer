@@ -19,7 +19,8 @@ Classic tracking (CSRT / flow / …) remains the **Everyday** writer of `.samn`
 (plus community `.funscript` export). The experimental AI draft path is
 **off by default** and fails closed until a local model ships (S2+).
 See also `docs/SAMN_FORMAT.md`, `docs/AI_ADAPTER.md`, `docs/AI_SCRIPT_WRITER.md`
-and `docs/FUNSCRIPT_ALGOS.md`.
+and `docs/FUNSCRIPT_ALGOS.md`. Owner quick path for every local helper:
+`docs/LOCAL_MODEL_SETUP.md` (Colibri: `docs/COLIBRI_SETUP.md`).
 
 ## Two different local models
 

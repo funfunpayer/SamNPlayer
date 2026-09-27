@@ -35,7 +35,7 @@ independent, lightweight local engines — each for the job it is built for:
 |---|---|---|
 | **ONNX Runtime** | Vision: propose a body-part region | Small (a few MB of model plus runtime), CPU/GPU; fits the existing detector/export path |
 | **Go motion-profile model** | Learn Normal/Soft/Autotune from confirmed motion signatures | Go training/classification with no ML runtime, GPU, server or network; signature measurement still uses local Python/OpenCV |
-| **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Large local language models for judgments with a reason attached (quality, profile choice in prose) | Pure C, no CUDA/PyTorch needed, runs on ordinary hardware, `coli serve` speaks the OpenAI `/v1/chat/completions` API — a plain HTTP client is enough to connect it, no SDK required |
+| **Colibri** ([JustVugg/colibri](https://github.com/JustVugg/colibri)) | Large local language models for judgments with a reason attached (quality, profile choice in prose) | Pure C, no CUDA/PyTorch needed, runs on ordinary hardware, `coli serve` speaks the OpenAI `/v1/chat/completions` API — a plain HTTP client is enough to connect it, no SDK required. Owner setup: [`COLIBRI_SETUP.md`](COLIBRI_SETUP.md); all local helpers: [`LOCAL_MODEL_SETUP.md`](LOCAL_MODEL_SETUP.md) |
 
 Both are swappable: the backend register (`backends.py`) and the
 `roi_finder` injection point in `track_by_scenes()` exist for exactly this
