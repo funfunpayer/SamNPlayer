@@ -85,11 +85,11 @@ def main():
         page.click("#gen-advanced > summary")
         page.wait_for_function(
             "() => (document.querySelector('#gen-scene-map-marks-label')"
-            "?.textContent || '').includes('exclude')",
+            "?.textContent || '').includes('ignore')",
             timeout=5000)
         label = page.evaluate(
             "() => document.querySelector('#gen-scene-map-marks-label')?.textContent || ''")
-        check("Restored exclude mark listed", "exclude@" in label)
+        check("Restored exclude mark listed", "ignore@" in label)
 
         status = page.evaluate(
             "() => document.querySelector('#gen-scene-map-status')?.textContent || ''")

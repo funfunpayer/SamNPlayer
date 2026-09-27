@@ -878,25 +878,48 @@ export function initPlayback(root) {
     }
 
     if (contactMarksWanted()) {
-      const vw = videoEl.videoWidth || 0;
-      const vh = videoEl.videoHeight || 0;
+      const vw = videoEl.videoWidth || trajectoryData?.width || 0;
+      const vh = videoEl.videoHeight || trajectoryData?.height || 0;
       const tip = contactMarksData.tip;
       if (tip) {
         const label = tip.class || contactMarksData.tip_class || 'tip';
-        drawContactMarkBox(ctx, tip, vw, vh, w, h, 'rgba(80,180,255,0.95)', label);
+        // Tip is always tracked — move the mark with trajectory when present.
+        const box = boxFollowTrajectory(tip, trajectoryData?.tip, currentPosMs);
+        drawContactMarkBox(ctx, box, vw, vh, w, h, 'rgba(80,180,255,0.95)', label);
       }
       const primary = contactMarksData.primary;
       if (primary) {
         const label = primary.class || 'contact';
-        drawContactMarkBox(ctx, primary, vw, vh, w, h, 'rgba(242,176,61,0.95)', label);
+        // Fixed contact stays put; tracked contact follows partner trajectory.
+        const box = primary.fixed
+          ? primary
+          : boxFollowTrajectory(primary, trajectoryData?.partner || trajectoryData?.tip, currentPosMs);
+        drawContactMarkBox(ctx, box, vw, vh, w, h, 'rgba(242,176,61,0.95)', label);
       }
       const extras = contactMarksData.extras || [];
       for (let i = 0; i < extras.length; i++) {
         const e = extras[i];
         const label = e.class || `extra ${i + 1}`;
-        drawContactMarkBox(ctx, e, vw, vh, w, h, 'rgba(220,80,200,0.9)', label);
+        // Extras are usually fixed anchors; only follow when fixed===false.
+        const box = e.fixed === false
+          ? boxFollowTrajectory(e, trajectoryData?.partner, currentPosMs)
+          : e;
+        drawContactMarkBox(ctx, box, vw, vh, w, h, 'rgba(220,80,200,0.9)', label);
       }
     }
+  }
+
+  // Center a contact mark box on the nearest trajectory sample (same w/h).
+  // Root cause of "mark stays fixed": Play drew metadata start rects only.
+  function boxFollowTrajectory(box, points, atMs) {
+    if (!box || !points || !points.length) return box;
+    const pt = nearestTrajectoryPoint(points, atMs);
+    if (!pt) return box;
+    return {
+      ...box,
+      x: Math.round(pt.x - (box.w || 0) / 2),
+      y: Math.round(pt.y - (box.h || 0) / 2),
+    };
   }
 
   function applyContactMarksInfo(info) {

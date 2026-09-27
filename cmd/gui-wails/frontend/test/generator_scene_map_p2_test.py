@@ -100,10 +100,10 @@ def main():
         page.mouse.up()
         page.wait_for_function(
             "() => (document.querySelector('#gen-scene-map-marks-label')"
-            "?.textContent || '').includes('exclude')",
+            "?.textContent || '').includes('ignore')",
             timeout=5000)
         check("Exclude mark listed",
-              "exclude@" in (page.locator("#gen-scene-map-marks-label").inner_text() or ""))
+              "ignore@" in (page.locator("#gen-scene-map-marks-label").inner_text() or ""))
         gen_calls = page.evaluate(
             "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')")
         check("Paint mark does not Generate", len(gen_calls) == 0)

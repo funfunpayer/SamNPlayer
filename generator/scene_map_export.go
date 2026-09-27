@@ -30,15 +30,17 @@ type LearningExportOptions struct {
 
 // LearningExportResult is a short summary of what was written.
 type LearningExportResult struct {
-	OutDir          string `json:"outDir"`
-	Windows         int    `json:"windows"`
-	Negatives       int    `json:"negatives"`
-	AutoCandidates  int    `json:"autoCandidates"`
-	UserRegionMarks int    `json:"userRegionMarks"`
-	TracePath       string `json:"tracePath"`
-	NegativesPath   string `json:"negativesPath"`
-	AutoPath        string `json:"autoPath"`
-	UserRegionsPath string `json:"userRegionsPath"`
+	OutDir           string `json:"outDir"`
+	Windows          int    `json:"windows"`
+	Negatives        int    `json:"negatives"`
+	ExcludeDecisions int    `json:"excludeDecisions"`
+	AutoCandidates   int    `json:"autoCandidates"`
+	UserRegionMarks  int    `json:"userRegionMarks"`
+	TracePath        string `json:"tracePath"`
+	NegativesPath    string `json:"negativesPath"`
+	DecisionsPath    string `json:"decisionsPath"`
+	AutoPath         string `json:"autoPath"`
+	UserRegionsPath  string `json:"userRegionsPath"`
 }
 
 // DefaultSceneMapLearningDir is …/roi_training_dataset/scene_map_learning.
@@ -87,6 +89,11 @@ func ExportSceneMapLearning(samnPath string, opts LearningExportOptions) (Learni
 	if err != nil {
 		return out, err
 	}
+	decPath := filepath.Join(clipDir, "exclude_decisions.jsonl")
+	nDec, err := writeExcludeDecisions(decPath, doc.SceneMap.Marks)
+	if err != nil {
+		return out, err
+	}
 	autoPath := filepath.Join(clipDir, "auto_candidates.jsonl")
 	nAuto, err := writeAutoCandidates(autoPath, doc.SceneMap)
 	if err != nil {
@@ -105,19 +112,21 @@ func ExportSceneMapLearning(samnPath string, opts LearningExportOptions) (Learni
 		"grid":        doc.SceneMap.Grid,
 		"video":       doc.SceneMap.Video,
 		"export":      "scene_map_learning_p5a",
-		"note":        "auto_candidates are author=auto reviewed=false — not for YOLO train until reviewed",
+		"note":        "auto_candidates are author=auto reviewed=false — not for YOLO train until reviewed; exclude_decisions feed L1 priors (not profilemodel Style)",
 	})
 
 	out = LearningExportResult{
-		OutDir:          clipDir,
-		Windows:         len(doc.SceneMap.Windows),
-		Negatives:       nNeg,
-		AutoCandidates:  nAuto,
-		UserRegionMarks: nUser,
-		TracePath:       tracePath,
-		NegativesPath:   negPath,
-		AutoPath:        autoPath,
-		UserRegionsPath: userPath,
+		OutDir:           clipDir,
+		Windows:          len(doc.SceneMap.Windows),
+		Negatives:        nNeg,
+		ExcludeDecisions: nDec,
+		AutoCandidates:   nAuto,
+		UserRegionMarks:  nUser,
+		TracePath:        tracePath,
+		NegativesPath:    negPath,
+		DecisionsPath:    decPath,
+		AutoPath:         autoPath,
+		UserRegionsPath:  userPath,
 	}
 	return out, nil
 }
@@ -194,14 +203,30 @@ func writeNegatives(path string, marks []funscript.SceneMapMark) (int, error) {
 		if strings.ToLower(m.Kind) != "exclude" {
 			continue
 		}
-		negs = append(negs, map[string]any{
+		entry := map[string]any{
 			"id":     m.ID,
 			"kind":   m.Kind,
 			"rect":   m.Rect,
 			"fromMs": m.FromMs,
 			"toMs":   m.ToMs,
 			"author": m.Author,
-		})
+			"follow": m.Follow,
+		}
+		if len(m.Path) > 0 {
+			entry["pathLen"] = len(m.Path)
+			// Sparse samples for L1/L2 — full path stays in decisions.jsonl.
+			step := (len(m.Path) + 7) / 8
+			if step < 1 {
+				step = 1
+			}
+			var samples []map[string]any
+			for i := 0; i < len(m.Path); i += step {
+				p := m.Path[i]
+				samples = append(samples, map[string]any{"ms": p.Ms, "rect": p.Rect})
+			}
+			entry["pathSamples"] = samples
+		}
+		negs = append(negs, entry)
 	}
 	if negs == nil {
 		negs = []map[string]any{}
@@ -211,6 +236,41 @@ func writeNegatives(path string, marks []funscript.SceneMapMark) (int, error) {
 		"role":    "not_stroke_source",
 		"marks":   negs,
 	})
+}
+
+// writeExcludeDecisions writes one JSONL line per user exclude mark so L1
+// priors / region detectors can learn "knees etc. are not recognition".
+// profilemodel Style stays separate (motion-signature → Normal/Soft/Autotune).
+func writeExcludeDecisions(path string, marks []funscript.SceneMapMark) (int, error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	n := 0
+	for _, m := range marks {
+		if strings.ToLower(m.Kind) != "exclude" {
+			continue
+		}
+		line := map[string]any{
+			"version": 1,
+			"role":    "exclude_decision",
+			"id":      m.ID,
+			"kind":    m.Kind,
+			"rect":    m.Rect,
+			"fromMs":  m.FromMs,
+			"toMs":    m.ToMs,
+			"author":  m.Author,
+			"follow":  m.Follow,
+			"path":    m.Path,
+		}
+		if err := enc.Encode(line); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }
 
 func writeUserRegionMarks(path string, marks []funscript.SceneMapMark) (int, error) {

@@ -421,6 +421,39 @@ func TestRhythmGridExcludeSkipsHighScoringThigh(t *testing.T) {
 	}
 }
 
+// Follow Path (not static Rect) must drive exclude — Owner: marks move with subject.
+func TestRhythmGridExcludeUsesFollowPath(t *testing.T) {
+	const fps, hz, frames = 24.0, 1.0, 24 * 40
+	target := 5*16 + 7
+	thigh := target + 1
+	cellV, _ := synthClip(frames, fps, hz, target, thigh, 1)
+	tx, ty := cellCenter(thigh)
+	cx, cy, anchor := make([]float64, frames), make([]float64, frames), make([]float64, frames)
+	for i := range anchor {
+		cx[i], cy[i] = tx, ty
+		anchor[i] = ty
+	}
+	emptySeed := rhythmSeed{}
+	thx, thy := cellCenter(thigh)
+	// Static Rect is inert (far corner); Path lands on the thigh at every sample.
+	exclude := []SceneMark{{
+		Kind: "exclude", ID: "thigh", Follow: true,
+		Rect: Rect{X: 0, Y: 0, W: 20, H: 20},
+		Path: []MarkSample{
+			{Ms: 0, Rect: Rect{X: int(thx) - 40, Y: int(thy) - 40, W: 80, H: 80}},
+			{Ms: 20000, Rect: Rect{X: int(thx) - 40, Y: int(thy) - 40, W: 80, H: 80}},
+		},
+	}}
+	_, withEx := rhythmGridPositionsWithMapMarks(cellV, 16, 9, 1280, 720, cx, cy, anchor,
+		emptySeed, nil, fps, exclude)
+	for _, w := range withEx.Windows {
+		if w.ChosenCell == thigh {
+			t.Fatalf("Follow Path exclude must skip thigh cell %d, marks=%v chosen=%d",
+				thigh, w.Marks, w.ChosenCell)
+		}
+	}
+}
+
 // P3: source hint prefers the hinted cell when its score is ≥ 0.5× best outside.
 func TestRhythmGridSourceHintPreference(t *testing.T) {
 	const fps, hz, frames = 24.0, 1.0, 24 * 40

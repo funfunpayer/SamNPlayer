@@ -131,8 +131,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** + Release bookkeeping (SceneMap P3–P5, Look2/3, AIWrite S0/S1+#272 discoverability, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe, #267) | **DONE** on main — tag after Owner portable smoke |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
-| Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) done → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H1** — OnFrame tick + cherry-pick `virtualperson/` core from #264; overlay/ToyHub ownership deferred; Enforcement off | **THIS** |
-| Engine | — | free | Rel32 on main; Plugin H1 in flight; Owner gates unchanged | **OPEN** (Plugin) |
+| Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) done → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H1** — OnFrame tick + cherry-pick `virtualperson/` core from #264; overlay/ToyHub ownership deferred; Enforcement off | **DONE** |
+| Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) | **Generator Follow marks + black Ignore + learning export** — marks track subject; exclude not used for recognition; exclude_decisions → scene_map_learning; Everyday CSRT untouched | **THIS** |
+| GUI | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) | Create Ignore (black) / Stay fixed; Play contact boxes follow trajectory | **THIS** (paired) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -153,6 +154,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (27 Sep — Generator marks):**
+- **In flight:** **Engine+GUI** [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) (`cursor/generator-marks-follow-69a3`) — Follow SceneMap exclude/source marks; black Ignore UX; Play boxes follow trajectory; `exclude_decisions.jsonl`. Everyday CSRT / Rhythm / Enforcement untouched. Plugins do not block.
+- **Shipped:** Plugin H1 [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) @ `d0b6b4e`; Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273).
+- **Rel32:** on `main`; tag after Owner portable smoke.
+- **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip.
+- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
+- **ChatGPT:** steward welcome.
 
 **Status board (27 Sep — Plugin H1):**
 - **In flight:** **Plugin H1** [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) — OnFrame tick wiring + cherry-pick `virtualperson/` (props/activities/bus) from #264 onto `pluginhost` H0. Overlay UI + ToyHub device-ownership flip **deferred**. Enforcement stays **off**.

@@ -131,7 +131,7 @@ export function initGenerator(root, playback) {
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
         <div class="row" style="align-items:center; margin-top:4px;">
           <button id="gen-mask-add" type="button"
-            data-help="Advanced: soft-exclude mask (dashed gray). Punched out of camera/grid features — does not drive the stroke.">+ Soft mask (advanced)</button>
+            data-help="Ignore region (black): paints a whole-clip exclude that Create tracks with the subject. Same job as Scene map → Ignore — use when heatmap/detections latch onto knees etc. Does not drive the stroke.">+ Ignore region (black)</button>
         </div>
       </div>
       <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
@@ -151,6 +151,8 @@ export function initGenerator(root, playback) {
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
         We follow the tip. Contact vibration (below) adds feel on deep strokes — on by default.
+        Keep Everyday simple: tip box → Create. Use Advanced → Scene map → <b>Ignore (black)</b>
+        only when detections latch onto the wrong part (knees etc.).
       </p>
       <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
@@ -239,13 +241,17 @@ export function initGenerator(root, playback) {
             <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
               data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
             <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Paint on preview. Default time scope = current map window (scene-cut default lands with engine marks in P3).">Mark</label>
+              <label style="width:auto;" data-help="Paint on the preview over the heatmap. Black Ignore = never use that region for recognition (knees, background). Follows the subject during Create unless you check Stay fixed. Default time = current map window.">Mark</label>
               <select id="gen-scene-map-mark-kind">
-                <option value="exclude">Exclude (never take signal)</option>
+                <option value="exclude" selected>Ignore / black (not for recognition)</option>
                 <option value="source">Source (stroke is here)</option>
                 <option value="region">Region (body-part label)</option>
               </select>
               <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="Stay fixed: keep the painted box where you drew it. Off (default for Ignore) = Create tracks the box so it moves with the subject (knees, thigh, etc.).">
+                <input type="checkbox" id="gen-scene-map-mark-sticky" /> Stay fixed
+              </label>
               <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
               <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
             </div>
@@ -480,8 +486,8 @@ export function initGenerator(root, playback) {
   const TARGET_FILL = 'rgba(224,112,160,0.16)';
   const AI_TARGET_STROKE = '#7ee787';
   const AI_TARGET_FILL = 'rgba(126,231,135,0.14)';
-  const MASK_STROKE = 'rgba(180,180,190,0.85)';
-  const MASK_FILL = 'rgba(120,120,130,0.12)';
+  const MASK_STROKE = 'rgba(20,20,24,0.9)';
+  const MASK_FILL = 'rgba(0,0,0,0.35)';
 
   function isTfTj() {
     // Legacy distance profile (CLI / old saves). Product GUI no longer offers it —
@@ -838,9 +844,13 @@ export function initGenerator(root, playback) {
       return;
     }
     lab.textContent = sceneMapMarks.map((m) => {
-      const span = `${((m.fromMs || 0) / 1000).toFixed(0)}–${((m.toMs || 0) / 1000).toFixed(0)}s`;
+      const span = (m.fromMs || 0) === 0 && (m.toMs || 0) === 0
+        ? 'whole clip'
+        : `${((m.fromMs || 0) / 1000).toFixed(0)}–${((m.toMs || 0) / 1000).toFixed(0)}s`;
       const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
-      return `${m.kind}${who}@${span}`;
+      const kind = m.kind === 'exclude' ? 'ignore' : m.kind;
+      const follow = m.follow ? '→follow' : (m.kind === 'exclude' || m.kind === 'source' ? '·fixed' : '');
+      return `${kind}${who}@${span}${follow}`;
     }).join(' · ');
   }
 
@@ -868,15 +878,22 @@ export function initGenerator(root, playback) {
         sceneMapWinIdx = 0;
       }
       const rawMarks = Array.isArray(loaded.marks) ? loaded.marks : [];
-      sceneMapMarks = rawMarks.map((m) => ({
-        id: m.id || m.ID || '',
-        kind: m.kind || m.Kind || '',
-        rect: sceneMapRect(m.rect || m.Rect),
-        fromMs: m.fromMs ?? m.FromMs ?? 0,
-        toMs: m.toMs ?? m.ToMs ?? 0,
-        class: m.class || m.Class || '',
-        author: m.author || m.Author || 'user',
-      })).filter((m) => m.kind || m.id);
+      sceneMapMarks = rawMarks.map((m) => {
+        const kind = m.kind || m.Kind || '';
+        const followRaw = m.follow ?? m.Follow;
+        // Legacy marks had no follow flag — exclude/source should track by default.
+        const follow = followRaw != null ? !!followRaw : (kind === 'exclude' || kind === 'source');
+        return {
+          id: m.id || m.ID || '',
+          kind,
+          rect: sceneMapRect(m.rect || m.Rect),
+          fromMs: m.fromMs ?? m.FromMs ?? 0,
+          toMs: m.toMs ?? m.ToMs ?? 0,
+          class: m.class || m.Class || '',
+          author: m.author || m.Author || 'user',
+          follow,
+        };
+      }).filter((m) => m.kind || m.id);
       let maxSeq = 0;
       for (const m of sceneMapMarks) {
         const n = parseInt(String(m.id || '').replace(/^m/i, ''), 10);
@@ -936,9 +953,11 @@ export function initGenerator(root, playback) {
     for (const m of sceneMapMarks) {
       const mid = ((win.startMs || 0) + (win.endMs || 0)) / 2;
       if (mid < (m.fromMs || 0) || mid > (m.toMs == null ? Infinity : m.toMs)) continue;
-      const stroke = m.kind === 'exclude' ? '#e85d4c'
+      const stroke = m.kind === 'exclude' ? '#111111'
         : m.kind === 'source' ? '#3dccc0' : '#f2b03d';
-      drawNativeRect(m.rect, stroke, stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)', m.kind === 'exclude');
+      const fill = m.kind === 'exclude' ? 'rgba(0,0,0,0.35)'
+        : (stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)');
+      drawNativeRect(m.rect, stroke, fill, m.kind === 'exclude');
     }
   }
 
@@ -1406,7 +1425,7 @@ export function initGenerator(root, playback) {
     for (const t of extraTargets) drawNativeRect(t, TARGET_STROKE, TARGET_FILL);
     for (const m of maskRois) drawNativeRect(m, MASK_STROKE, MASK_FILL, true);
     if (dragging) {
-      if (sceneMapMarkMode === 'exclude') drawDragRect('#e85d4c', 'rgba(232,93,76,0.2)', true);
+      if (sceneMapMarkMode === 'exclude') drawDragRect('#111111', 'rgba(0,0,0,0.35)', true);
       else if (sceneMapMarkMode === 'source') drawDragRect('#3dccc0', 'rgba(61,204,192,0.2)');
       else if (sceneMapMarkMode === 'region') drawDragRect('#f2b03d', 'rgba(242,176,61,0.2)');
       else if (markMode === 'mask') drawDragRect(MASK_STROKE, MASK_FILL, true);
@@ -1462,6 +1481,9 @@ export function initGenerator(root, playback) {
     if (smMode) {
       const win = activeSceneMapWindow();
       sceneMapMarkSeq += 1;
+      const sticky = !!el('#gen-scene-map-mark-sticky')?.checked;
+      // Ignore/source follow the subject by default (Owner: marks must move).
+      const follow = smMode === 'region' ? false : !sticky;
       sceneMapMarks.push({
         id: `m${sceneMapMarkSeq}`,
         kind: smMode,
@@ -1470,11 +1492,13 @@ export function initGenerator(root, playback) {
         toMs: win?.endMs || 0,
         class: smMode === 'region' ? (el('#gen-scene-map-mark-class')?.value || '') : '',
         author: 'user',
+        follow,
       });
       setSceneMapMarkMode(false);
       updateSceneMapMarksLabel();
+      const followHint = follow ? ', follows subject' : ', stay fixed';
       el('#gen-status').textContent =
-        `Scene map ${smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s).`;
+        `Scene map ${smMode === 'exclude' ? 'ignore (black)' : smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s${followHint}).`;
       redraw();
       return;
     }
@@ -1485,9 +1509,20 @@ export function initGenerator(root, playback) {
       const tag = cls ? ` (${cls})` : '';
       el('#gen-status').textContent = `Extra contact #${extraTargets.length}${tag} added.`;
     } else if (mode === 'mask') {
-      maskRois.push(box);
+      // Soft mask → whole-clip black ignore that follows the subject.
+      sceneMapMarkSeq += 1;
+      sceneMapMarks.push({
+        id: `mask${sceneMapMarkSeq}`,
+        kind: 'exclude',
+        rect: box,
+        fromMs: 0,
+        toMs: 0,
+        author: 'user',
+        follow: true,
+      });
       setMarkMode(null);
-      el('#gen-status').textContent = `Soft mask #${maskRois.length} added (feature exclude).`;
+      updateSceneMapMarksLabel();
+      el('#gen-status').textContent = `Ignore region (black) #${sceneMapMarks.filter(m => m.kind === 'exclude').length} added — follows subject; not used for recognition.`;
     } else if (wasSecond) {
       roi2 = box;
       setRoi2Mode(false);
@@ -1805,6 +1840,7 @@ export function initGenerator(root, playback) {
         fromMs: m.fromMs || 0,
         toMs: m.toMs || 0,
         class: m.class || '',
+        follow: !!m.follow,
       }));
     }
     GenerateScript(payload);
@@ -2398,15 +2434,17 @@ export function initGenerator(root, playback) {
       return;
     }
     setMarkMode('mask');
-    el('#gen-status').textContent = 'Soft mask: drag on preview (dashed — feature exclude only).';
+    el('#gen-status').textContent = 'Ignore region (black): drag on preview — Create tracks it; not used for recognition.';
   });
   el('#gen-extras-clear')?.addEventListener('click', () => {
     extraTargets = [];
     maskRois = [];
+    sceneMapMarks = sceneMapMarks.filter((m) => !(m.id || '').startsWith('mask'));
+    updateSceneMapMarksLabel();
     setMarkMode(null);
     updateRoiLabels();
     redraw();
-    el('#gen-status').textContent = 'Extra targets and soft masks cleared.';
+    el('#gen-status').textContent = 'Extra targets and ignore regions cleared.';
   });
   el('#gen-profile').addEventListener('change', () => {
     el('#gen-profile').dataset.userTouched = '1';

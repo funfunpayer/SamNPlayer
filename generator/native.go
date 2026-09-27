@@ -198,6 +198,8 @@ type nativeTrackResult struct {
 	TrajectoryB []NativePoint
 	// SceneMap is filled when RhythmGrid produced a map (P4 / M4).
 	SceneMap SceneMapDTO
+	// SceneMarks: followed marks with Path (when TrackROI ran Follow).
+	SceneMarks []SceneMark
 }
 
 // NativePoint mirrors trackcv.Point/simpletrack.Point without importing
@@ -223,7 +225,8 @@ type nativeTrackOptions struct {
 }
 
 // mergeSceneMarksWithMasks appends soft MaskROIs as whole-clip exclude marks
-// so the rhythm grid and camera path punch them out (M3).
+// so the rhythm grid and camera path punch them out (M3). Follow=true so the
+// mask moves with the subject (Owner: ignore regions must track).
 func mergeSceneMarksWithMasks(marks []SceneMark, masks []ROI) []SceneMark {
 	if len(masks) == 0 {
 		return marks
@@ -235,9 +238,10 @@ func mergeSceneMarksWithMasks(marks []SceneMark, masks []ROI) []SceneMark {
 			continue
 		}
 		out = append(out, SceneMark{
-			Kind: "exclude",
-			ID:   fmt.Sprintf("mask%d", i+1),
-			Rect: m,
+			Kind:   "exclude",
+			ID:     fmt.Sprintf("mask%d", i+1),
+			Rect:   m,
+			Follow: true,
 		})
 	}
 	return out
@@ -339,7 +343,11 @@ func writeNativeFunscriptNamed(path, videoPath string, actions []funscript.Actio
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return err
 	}
-	sceneMap := buildSceneMapMeta(videoPath, duration, tr.SceneMap, opts.SceneMarks)
+	sceneMarks := opts.SceneMarks
+	if len(tr.SceneMarks) > 0 {
+		sceneMarks = tr.SceneMarks
+	}
+	sceneMap := buildSceneMapMeta(videoPath, duration, tr.SceneMap, sceneMarks)
 	return writeCompanionSamn(path, videoPath, actions, opts, gaps, quality, traj, sceneMap)
 }
 

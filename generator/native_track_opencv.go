@@ -52,6 +52,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Reason:       tr.Stats.Reason,
 		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
 		SceneMap:     sceneMapFromTrackcv(tr.SceneMap),
+		SceneMarks:   fromTrackcvSceneMarks(tr.SceneMarks),
 	}, nil
 }
 
@@ -68,6 +69,56 @@ func toTrackcvSceneMarks(marks []SceneMark) []trackcv.SceneMark {
 			FromMs: m.FromMs,
 			ToMs:   m.ToMs,
 			Class:  m.Class,
+			Follow: m.Follow,
+			Path:   toTrackcvMarkPath(m.Path),
+		}
+	}
+	return out
+}
+
+func fromTrackcvSceneMarks(marks []trackcv.SceneMark) []SceneMark {
+	if len(marks) == 0 {
+		return nil
+	}
+	out := make([]SceneMark, len(marks))
+	for i, m := range marks {
+		out[i] = SceneMark{
+			Kind:   m.Kind,
+			ID:     m.ID,
+			Rect:   ROI{X: m.Rect.X, Y: m.Rect.Y, W: m.Rect.W, H: m.Rect.H},
+			FromMs: m.FromMs,
+			ToMs:   m.ToMs,
+			Class:  m.Class,
+			Follow: m.Follow,
+			Path:   fromTrackcvMarkPath(m.Path),
+		}
+	}
+	return out
+}
+
+func toTrackcvMarkPath(path []MarkSample) []trackcv.MarkSample {
+	if len(path) == 0 {
+		return nil
+	}
+	out := make([]trackcv.MarkSample, len(path))
+	for i, p := range path {
+		out[i] = trackcv.MarkSample{
+			Ms:   p.Ms,
+			Rect: trackcv.Rect{X: p.Rect.X, Y: p.Rect.Y, W: p.Rect.W, H: p.Rect.H},
+		}
+	}
+	return out
+}
+
+func fromTrackcvMarkPath(path []trackcv.MarkSample) []MarkSample {
+	if len(path) == 0 {
+		return nil
+	}
+	out := make([]MarkSample, len(path))
+	for i, p := range path {
+		out[i] = MarkSample{
+			Ms:   p.Ms,
+			Rect: ROI{X: p.Rect.X, Y: p.Rect.Y, W: p.Rect.W, H: p.Rect.H},
 		}
 	}
 	return out

@@ -54,7 +54,8 @@ type Options struct {
 	RhythmGrid bool
 	// SceneMarks filter rhythm-grid candidates and punch camera-motion
 	// features (M3). Soft MaskROIs should be converted to kind=exclude
-	// marks at the call site before TrackROI.
+	// marks at the call site before TrackROI. Marks with Follow=true get
+	// a side CSRT so exclude/source boxes move with the subject.
 	SceneMarks []SceneMark
 }
 
@@ -95,6 +96,9 @@ type Result struct {
 	// Set only when Options.RhythmGrid is true; empty otherwise. Full runs
 	// include ChosenCell / box / sign; quick scans use ScanSceneMap.
 	SceneMap SceneMap
+	// SceneMarks is a copy of Options.SceneMarks after Follow tracking
+	// (Path filled). Empty when no marks were supplied.
+	SceneMarks []SceneMark
 }
 
 // Point is a video-pixel-space (x,y) sample - MT-Debug trajectory capture.
@@ -153,7 +157,30 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	defer func() { tracker.Close() }()
 	tracker.Init(cap, roi)
 
-	needsGray := opts.CameraCompensation || opts.SceneCutDetection || opts.AppearanceMemory || opts.RhythmGrid
+	// Follow marks: side CSRTs so exclude/source boxes move with the subject.
+	liveMarks := append([]SceneMark(nil), opts.SceneMarks...)
+	type markFollower struct {
+		idx  int
+		tr   *Tracker
+		last Rect
+	}
+	var followers []markFollower
+	for i, m := range liveMarks {
+		if !markShouldFollow(m) {
+			continue
+		}
+		ft := NewTracker()
+		ft.Init(cap, m.Rect)
+		followers = append(followers, markFollower{idx: i, tr: ft, last: m.Rect})
+		liveMarks[i].Path = []MarkSample{{Ms: 0, Rect: m.Rect}}
+	}
+	defer func() {
+		for _, f := range followers {
+			f.tr.Close()
+		}
+	}()
+
+	needsGray := opts.CameraCompensation || opts.SceneCutDetection || opts.AppearanceMemory || opts.RhythmGrid || len(followers) > 0
 	var prevGray *Gray
 	if needsGray {
 		prevGray = cap.ToGray()
@@ -281,12 +308,37 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			}
 		}
 
+		atMs := int64(float64(frameIdx) * 1000.0 / fps)
+		for fi := range followers {
+			f := &followers[fi]
+			if !sceneMarkActive(liveMarks[f.idx], atMs) {
+				continue
+			}
+			var mb Rect
+			var mok bool
+			if isCut {
+				f.tr.Close()
+				f.tr = NewTracker()
+				f.tr.Init(cap, f.last)
+				mb, mok = f.last, true
+			} else {
+				mb, mok = f.tr.Update(cap)
+			}
+			if mok {
+				f.last = mb
+				liveMarks[f.idx].Rect = mb
+				// Keep Path sparse (~5 Hz) for .samn / learning size.
+				if frameIdx%int(math.Max(1, fps/5)) == 0 || isCut {
+					liveMarks[f.idx].Path = append(liveMarks[f.idx].Path, MarkSample{Ms: atMs, Rect: mb})
+				}
+			}
+		}
+
 		if opts.CameraCompensation {
 			if isCut {
 				cameraDyCumulative = append(cameraDyCumulative, 0.0)
 			} else {
-				excludes := cameraExcludeRects(lastBbox, opts.SceneMarks,
-					int64(float64(frameIdx)*1000.0/fps))
+				excludes := cameraExcludeRects(lastBbox, liveMarks, atMs)
 				dy := EstimateCameraMotionYExcludes(prevGray, gray, excludes)
 				if dy == 0.0 {
 					cameraFramesLost++
@@ -332,6 +384,11 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		for i := range timestampsMs {
 			timestampsMs[i] += off
 		}
+		for i := range liveMarks {
+			for j := range liveMarks[i].Path {
+				liveMarks[i].Path[j].Ms += int64(off)
+			}
+		}
 	}
 
 	verticalRange := ptp(yPositions)
@@ -351,7 +408,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		}
 		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
 		positions, sceneMap = rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
-			xPositions, yPositions, positions, seed, sceneCuts, fps, opts.SceneMarks)
+			xPositions, yPositions, positions, seed, sceneCuts, fps, liveMarks)
 	}
 
 	confidence := 0.0
@@ -387,6 +444,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		SceneCuts:    sceneCuts,
 		TrajectoryA:  trajA,
 		SceneMap:     sceneMap,
+		SceneMarks:   liveMarks,
 		Stats: Stats{
 			TrackerLostFrames: trackerLostFrames,
 			CameraFramesLost:  cameraFramesLost,
