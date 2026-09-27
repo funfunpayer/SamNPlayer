@@ -136,7 +136,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | AIWriteS2b | Cursor | [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) merged | **AIWrite tip-aspect match** — PickBestSample prefers tip w/h + duration + QD | **DONE** (`2c3d82e`) |
 | AIWriteS3prev | Cursor | **THIS** | **AIWrite S3 draft curve preview** — Create 0–100 gauge shows pending draft before Keep; Discard restores CSRT curve | **THIS** |
 | USBLive | Cursor | [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) merged | **Intiface liveness** — mark disconnected on write/ping failure | **DONE** on main @ `be5e09b` |
-| USBReconnect | Cursor | **THIS** | **Intiface one-shot reconnect** — one auto Connect after dead socket; no loops | **THIS** |
+| USBReconnect | Cursor | [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) merged | **Intiface one-shot reconnect** — one auto Connect after dead socket; no loops | **DONE** (`e369929`) |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | VibSpatial | Cursor | [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) merged | Contact-vib **S2** prefer spatial events (weight spatial over depth; snappy envelope on hits) | **DONE** (`0200815`) |
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
