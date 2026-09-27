@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Intiface one-shot reconnect** — after liveness marks the WebSocket dead
+  (#281), the next vibrate/suction/ping tries **one** automatic `Connect`
+  for that connection life before staying disconnected. No reconnect loops;
+  budget resets on a successful Connect. BLE / Everyday CSRT / Rel34 untouched.
 - **Marks S3 / L1 exclude suggest** — Advanced Scene map → **Suggest ignores from
   learning** reads local `scene_map_learning/**/exclude_decisions.jsonl`, bins
   normalized Ignore boxes on a 4×3 grid, and pre-fills suggest-only whole-clip

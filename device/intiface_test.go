@@ -358,22 +358,25 @@ func TestIntifaceHintDistinguishesLocalAndNetwork(t *testing.T) {
 
 // After the Buttplug server drops the WebSocket, Info must not stay
 // "connected" — otherwise Device/Play UI lies until the user clicks Disconnect.
+// Server is closed so one-shot reconnect cannot revive the link.
 func TestIntifaceMarksDeadOnWriteFailure(t *testing.T) {
 	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
 	url, server := startFake(t, fake)
-	defer server.Close()
 
 	dev := NewIntiface(url)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := dev.Connect(ctx); err != nil {
+		server.Close()
 		t.Fatalf("Connect: %v", err)
 	}
 	if !dev.Info().Connected {
+		server.Close()
 		t.Fatal("expected connected after Connect")
 	}
 
 	fake.dropConnection()
+	server.Close() // block one-shot reconnect — stay dead
 
 	var err error
 	for attempt := 0; attempt < 5; attempt++ {
@@ -392,7 +395,80 @@ func TestIntifaceMarksDeadOnWriteFailure(t *testing.T) {
 		t.Fatalf("Info still Connected after write failure: %v", err)
 	}
 	if err2 := dev.SetSuction(0.2); err2 == nil {
-		t.Fatal("expected SetSuction error while dead")
+		t.Fatal("expected SetSuction error while dead (one-shot spent / server gone)")
+	}
+	_ = dev.Disconnect()
+}
+
+// One-shot reconnect: after a dropped socket, the next command dials again
+// once while the Buttplug server is still reachable.
+func TestIntifaceOneShotReconnect(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
+	url, server := startFake(t, fake)
+	defer server.Close()
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+
+	fake.dropConnection()
+
+	var err error
+	for attempt := 0; attempt < 8; attempt++ {
+		err = dev.SetVibration(0.35)
+		if err == nil && dev.Info().Connected {
+			break
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	if err != nil {
+		_ = dev.Disconnect()
+		t.Fatalf("expected one-shot reconnect + SetVibration ok, got %v", err)
+	}
+	if !dev.Info().Connected {
+		_ = dev.Disconnect()
+		t.Fatal("expected Connected after one-shot reconnect")
+	}
+	if err := dev.SetSuction(0.2); err != nil {
+		_ = dev.Disconnect()
+		t.Fatalf("post-reconnect suction: %v", err)
+	}
+	_ = dev.Disconnect()
+}
+
+// Failed one-shot spends the budget — later dials must not keep trying.
+func TestIntifaceOneShotReconnectSpent(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
+	url, server := startFake(t, fake)
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		server.Close()
+		t.Fatalf("Connect: %v", err)
+	}
+
+	dev.mu.Lock()
+	dev.markDeadLocked("test-drop")
+	dev.mu.Unlock()
+	server.Close()
+
+	ok, _ := dev.TryReconnectOnce(context.Background())
+	if ok {
+		_ = dev.Disconnect()
+		t.Fatal("first one-shot against closed server must fail")
+	}
+	if ok2, _ := dev.TryReconnectOnce(context.Background()); ok2 {
+		_ = dev.Disconnect()
+		t.Fatal("second TryReconnectOnce must not succeed after budget spent")
+	}
+	if dev.Info().Connected {
+		_ = dev.Disconnect()
+		t.Fatal("must stay disconnected")
 	}
 	_ = dev.Disconnect()
 }
