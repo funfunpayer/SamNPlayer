@@ -112,6 +112,74 @@ func TestEnvLicenseOff(t *testing.T) {
 	}
 }
 
+func TestDefaultFeaturesIncludeVirtualPerson(t *testing.T) {
+	now := time.Now().UTC()
+	std := NewStandardClaims("a@example.com", 1, now)
+	inv := NewInviteClaims("owner", TierInternal, now)
+	for _, c := range []Claims{std, inv} {
+		if !c.HasFeature(FeatureVirtualPerson) {
+			t.Fatalf("expected %q in %+v", FeatureVirtualPerson, c.Features)
+		}
+		if !c.HasFeature(FeatureSamn) || !c.HasFeature(FeatureContact) || !c.HasFeature(FeatureGenerateFull) {
+			t.Fatalf("missing core features: %+v", c.Features)
+		}
+	}
+	want := DefaultFeatures()
+	if len(std.Features) != len(want) {
+		t.Fatalf("features len=%d want %d (%v)", len(std.Features), len(want), std.Features)
+	}
+}
+
+func TestEffectiveHasFeatureWhileOff(t *testing.T) {
+	old := Enforcement
+	Enforcement = false
+	defer func() { Enforcement = old }()
+	st := Evaluate("", EmbeddedPublicKey, time.Now())
+	if !EffectiveHasFeature(st, FeatureVirtualPerson) {
+		t.Fatal("enforcement off must allow virtual_person for host gate")
+	}
+}
+
+func TestEffectiveHasFeatureWhenSharp(t *testing.T) {
+	old := Enforcement
+	Enforcement = true
+	defer func() { Enforcement = old }()
+	t.Setenv("SAMN_LICENSE_OFF", "")
+
+	st := Evaluate("", EmbeddedPublicKey, time.Now())
+	if EffectiveHasFeature(st, FeatureVirtualPerson) {
+		t.Fatal("enforcement on without key must deny virtual_person")
+	}
+
+	pub, priv := testIssuer(t)
+	tok, err := Issue(priv, NewStandardClaims("a", 1, time.Now()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st = Evaluate(tok, pub, time.Now())
+	if !st.Licensed || !EffectiveHasFeature(st, FeatureVirtualPerson) {
+		t.Fatalf("standard key must allow virtual_person when sharp: %+v", st)
+	}
+
+	// Older / stripped key without the feature must deny when sharp.
+	c := NewStandardClaims("b", 1, time.Now())
+	c.Features = []string{FeatureSamn, FeatureContact, FeatureGenerateFull}
+	tok2, err := Issue(priv, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st2 := Evaluate(tok2, pub, time.Now())
+	if !st2.Licensed {
+		t.Fatal("stripped key should still be licensed")
+	}
+	if EffectiveHasFeature(st2, FeatureVirtualPerson) {
+		t.Fatal("licensed key without virtual_person must deny when sharp")
+	}
+	if !EffectiveLicensed(st2) {
+		t.Fatal("Generate/Play full access still follows Licensed, not virtual_person")
+	}
+}
+
 func TestSaveLoadFile(t *testing.T) {
 	pub, priv := testIssuer(t)
 	tok, err := Issue(priv, NewInviteClaims("t", TierInvite, time.Now()))

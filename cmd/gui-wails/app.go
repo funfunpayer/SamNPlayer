@@ -17,6 +17,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/logging"
 	"github.com/funfunpayer/SamNPlayer/player"
+	"github.com/funfunpayer/SamNPlayer/pluginhost"
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
@@ -80,6 +81,10 @@ type App struct {
 	// allgemeinen Vorliebe.
 	scriptOffsetMs    int64
 	currentScriptPath string
+
+	// vpHost is the H0 Virtual Person plugin-host slot (docs/PLUGIN_SYSTEM.md).
+	// Nil until first Status/Enable; Tick is a no-op when nil/not running.
+	vpHost *pluginhost.Slot
 }
 
 func NewApp() *App {

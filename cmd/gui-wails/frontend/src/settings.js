@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -85,7 +85,8 @@ export function initSettings(root) {
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
       Enforcement is <b>off</b> in this build — import works so we can test the path;
-      Create/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
+      Create/Play are not limited yet. Standard keys include Virtual Person
+      (<code>virtual_person</code>). See docs/LICENSE_SYSTEM.md.</p>
     <p class="hint" id="st-license-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:flex-start;">
       <textarea id="st-license-paste" rows="3" placeholder="Paste license token (SNP1.…)" style="flex:1; font-family:ui-monospace,monospace; font-size:12px;"></textarea>
@@ -95,6 +96,17 @@ export function initSettings(root) {
       <button id="st-license-import-file" type="button">Import from file…</button>
       <button id="st-license-clear" type="button">Clear license</button>
       <button id="st-license-refresh" type="button">Refresh status</button>
+    </div>
+
+    <h3>Virtual Person (plugin host)</h3>
+    <p class="hint">H0 host stub — enable for the in-process tick path. Included in the
+      standard license; gated only when enforcement is on. Everyday Create is unchanged.
+      See docs/PLUGIN_SYSTEM.md.</p>
+    <p class="hint" id="st-vp-host-status" style="margin-top:0">…</p>
+    <div class="row" style="align-items:center; margin-top:6px;">
+      <button id="st-vp-host-enable" type="button">Enable host</button>
+      <button id="st-vp-host-disable" type="button">Disable host</button>
+      <button id="st-vp-host-refresh" type="button">Refresh</button>
     </div>
 
     <h3>Runtime &amp; updates</h3>
@@ -249,6 +261,7 @@ export function initSettings(root) {
     el('#st-collect-learning').checked = !!s.collectLearningData;
     updateReportStatus();
     refreshLicenseStatus();
+    refreshVPHostStatus();
   });
 
   async function refreshLicenseStatus() {
@@ -256,11 +269,15 @@ export function initSettings(root) {
     if (!box) return;
     try {
       const st = await GetLicenseStatus();
+      const feats = Array.isArray(st.features) && st.features.length
+        ? `features: ${st.features.join(',')}`
+        : null;
       const bits = [
         `state: ${st.state || 'none'}`,
         st.sub ? `person: ${st.sub}` : null,
         st.tier ? `tier: ${st.tier}` : null,
         st.validUntil ? `until: ${st.validUntil}` : null,
+        feats,
         `enforcement: ${st.enforcement ? 'ON' : 'off'}`,
         `effective: ${st.effective ? 'full access' : 'trial'}`,
       ].filter(Boolean);
@@ -269,6 +286,47 @@ export function initSettings(root) {
       box.textContent = 'License status failed: ' + err;
     }
   }
+
+  async function refreshVPHostStatus() {
+    const box = el('#st-vp-host-status');
+    if (!box) return;
+    try {
+      const st = await VirtualPersonHostStatus();
+      const bits = [
+        `stage: ${st.stage || 'H0'}`,
+        `feature: ${st.featureId || 'virtual_person'}`,
+        `allowed: ${st.allowed ? 'yes' : 'no'}`,
+        `enabled: ${st.enabled ? 'yes' : 'no'}`,
+        `running: ${st.running ? 'yes' : 'no'}`,
+      ];
+      box.textContent = (st.message || '') + ' · ' + bits.join(' · ');
+    } catch (err) {
+      box.textContent = 'Virtual Person host status failed: ' + err;
+    }
+  }
+
+  el('#st-vp-host-refresh')?.addEventListener('click', () => refreshVPHostStatus());
+  el('#st-vp-host-enable')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      const st = await EnableVirtualPersonHost();
+      uiInfo(st.message || 'Virtual Person host enabled.', box);
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Enable Virtual Person host: ' + err, box);
+      await refreshVPHostStatus();
+    }
+  });
+  el('#st-vp-host-disable')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      const st = await DisableVirtualPersonHost();
+      uiInfo(st.message || 'Virtual Person host disabled.', box);
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Disable Virtual Person host: ' + err, box);
+    }
+  });
 
   el('#st-license-refresh')?.addEventListener('click', () => refreshLicenseStatus());
   el('#st-license-import-text')?.addEventListener('click', async () => {

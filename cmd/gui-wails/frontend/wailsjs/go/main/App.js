@@ -80,6 +80,10 @@ export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['I
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
 export function LabelSceneWithProfile(arg1, arg2, arg3) { return window['go']['main']['App']['LabelSceneWithProfile'](arg1, arg2, arg3); }
 export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }
+export function LicenseAllowsVirtualPerson() { return window['go']['main']['App']['LicenseAllowsVirtualPerson'](); }
+export function VirtualPersonHostStatus() { return window['go']['main']['App']['VirtualPersonHostStatus'](); }
+export function EnableVirtualPersonHost() { return window['go']['main']['App']['EnableVirtualPersonHost'](); }
+export function DisableVirtualPersonHost() { return window['go']['main']['App']['DisableVirtualPersonHost'](); }
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
