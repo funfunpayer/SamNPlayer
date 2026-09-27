@@ -145,7 +145,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | IntifaceHint | Cursor | [#302](https://github.com/funfunpayer/SamNPlayer/pull/302) merged | **Intiface leftover** — Device/handbook one-shot note; **pingLoop exits** after one-shot (no double keepalive) | **DONE** |
 | SoftSuggest | Cursor | [#306](https://github.com/funfunpayer/SamNPlayer/pull/306) merged | **Soft-suggest Apply** — load-time profile suggestion mounts Apply (same as click); display Soft/Normal; never auto-Apply | **DONE** |
 | SceneDocsUX | Cursor | [#307](https://github.com/funfunpayer/SamNPlayer/pull/307) merged | **SceneMap plan narrative** (P5c done) + Settings **Open AI training** deep-link | **DONE** |
-| BatteryLock | Cursor | `cursor/intiface-battery-lock-3371` | **Intiface BatteryLevel** holds mutex through readUntil (no unlocked conn race vs Disconnect/ping) | **THIS** |
+| BatteryLock | Cursor | [#309](https://github.com/funfunpayer/SamNPlayer/pull/309) merged (`3fb5d98`) | **Intiface BatteryLevel** holds mutex through readUntil (no unlocked conn race vs Disconnect/ping) | **DONE** |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | VibSpatial | Cursor | [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) merged | Contact-vib **S2** prefer spatial events (weight spatial over depth; snappy envelope on hits) | **DONE** (`0200815`) |
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
