@@ -11,6 +11,7 @@ import {
   SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
   GetScriptBookmarks, SaveScriptBookmarks,
+  GetScriptChapterMarks, SaveScriptChapterMarks,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -234,6 +235,16 @@ export function initPlayback(root) {
         </div>
         <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
 
+        <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:10px;"
+          data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
+          Chapters: named ranges in the script — see “?”.</div>
+        <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+          <button type="button" id="pb-chapter-add" disabled
+            data-help="Saves a chapter from the current heatmap selection into the loaded script.">Add from selection</button>
+        </div>
+        <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
+
         <div class="pb-contact" id="pb-contact-block" hidden>
           <h3>Contact vibration</h3>
           <p class="hint" style="margin-top:0">Follows proximity like contact — adjust live, optionally save to script.</p>
@@ -361,6 +372,7 @@ export function initPlayback(root) {
   let markerDragMoved = false;
   let oMarkers = []; // [{startMs, endMs, kind, intensity}], im Skript gespeichert (siehe funscript.OMarker)
   let bookmarks = []; // [{name, time}] ms — OFS metadata.bookmarks / .samn
+  let chapterMarks = []; // [{name, startTime, endTime}] ms — OFS metadata.chapters / .samn
   let autoEOTriggeredForMarker = false;
   // Kurven-Editor: bearbeitet die vollen, nicht resampleten Punkte
   // (rawActions), nicht curvePoints - curvePoints ist nur eine
@@ -550,6 +562,8 @@ export function initPlayback(root) {
       el('#pb-marker-label').textContent = '(no selection)';
     }
     el('#pb-omarker-add').disabled = !marker;
+    const chAdd = el('#pb-chapter-add');
+    if (chAdd) chAdd.disabled = !marker;
   }
 
   // drawOMarkerBands zeichnet die gespeicherten O-Marker als farbige Bänder
@@ -663,6 +677,79 @@ export function initPlayback(root) {
     const previous = bookmarks.slice();
     const next = bookmarks.filter((_, i) => i !== index);
     await persistBookmarks(next, previous);
+  }
+
+  function normalizeChapterMark(c) {
+    if (!c || typeof c !== 'object') return null;
+    const name = String(c.name ?? c.Name ?? '').trim() || 'Chapter';
+    const startTime = Number(c.startTime ?? c.StartTime ?? 0);
+    let endTime = Number(c.endTime ?? c.EndTime ?? 0);
+    if (!Number.isFinite(startTime) || startTime < 0) return null;
+    if (!Number.isFinite(endTime) || endTime < 0) endTime = 0;
+    const start = Math.round(startTime);
+    let end = Math.round(endTime);
+    if (end > 0 && end < start) {
+      const tmp = start;
+      return { name, startTime: end, endTime: tmp };
+    }
+    return { name, startTime: start, endTime: end };
+  }
+
+  function formatChapterRange(c) {
+    const a = `${(c.startTime / 1000).toFixed(1)}s`;
+    if (!c.endTime) return `${a} → end`;
+    return `${a} - ${(c.endTime / 1000).toFixed(1)}s`;
+  }
+
+  function renderChapterList() {
+    const box = el('#pb-chapter-list');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!scriptPath || chapterMarks.length === 0) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    chapterMarks.forEach((c, index) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.cssText = 'align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap;';
+      const label = document.createElement('span');
+      label.textContent = `${c.name} · ${formatChapterRange(c)}`;
+      const seekBtn = document.createElement('button');
+      seekBtn.type = 'button';
+      seekBtn.textContent = 'Seek';
+      seekBtn.addEventListener('click', () => seekTo(c.startTime));
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => removeChapterMark(index));
+      row.appendChild(label);
+      row.appendChild(seekBtn);
+      row.appendChild(removeBtn);
+      box.appendChild(row);
+    });
+  }
+
+  async function persistChapterMarks(next, rollback) {
+    try {
+      await SaveScriptChapterMarks(next);
+      chapterMarks = next;
+      renderChapterList();
+      describeScript();
+      return true;
+    } catch (err) {
+      chapterMarks = rollback;
+      renderChapterList();
+      logError('Chapters: ' + err);
+      return false;
+    }
+  }
+
+  async function removeChapterMark(index) {
+    const previous = chapterMarks.slice();
+    const next = chapterMarks.filter((_, i) => i !== index);
+    await persistChapterMarks(next, previous);
   }
 
   // --- MT-Debug: Tip/Partner-Trajektorie über dem Video -------------------
@@ -1650,6 +1737,27 @@ export function initPlayback(root) {
     }
   });
 
+  el('#pb-chapter-add')?.addEventListener('click', async () => {
+    if (!scriptPath) {
+      uiWarn('Load a script first.', el('#pb-log'));
+      return;
+    }
+    if (!marker) {
+      uiWarn('Mark a range on the heatmap first.', el('#pb-log'));
+      return;
+    }
+    const nameInput = el('#pb-chapter-name');
+    const name = ((nameInput && nameInput.value) || '').trim() || 'Chapter';
+    const startTime = Math.round(marker.startMs);
+    const endTime = Math.round(marker.endMs);
+    const previous = chapterMarks.slice();
+    const next = [...chapterMarks, { name, startTime, endTime }];
+    if (await persistChapterMarks(next, previous)) {
+      if (nameInput) nameInput.value = '';
+      uiInfo(`Chapter “${name}” ${formatChapterRange({ startTime, endTime })}`, el('#pb-log'));
+    }
+  });
+
   // checkAutoExtendedO wird bei jedem Fortschritts-Update aufgerufen -
   // löst Extended-O einmal pro Playback aus, sobald die Position in den
   // markierten Bereich eintritt (falls aktiviert).
@@ -1885,9 +1993,18 @@ export function initPlayback(root) {
     } catch (err) {
       bookmarks = [];
     }
+    try {
+      const ch = await GetScriptChapterMarks();
+      chapterMarks = Array.isArray(ch)
+        ? ch.map(normalizeChapterMark).filter(Boolean)
+        : [];
+    } catch (err) {
+      chapterMarks = [];
+    }
     updateMarkerHint();
     renderOMarkerList();
     renderBookmarkList();
+    renderChapterList();
     // Ein neu geladenes Skript hat andere Punkte - ein noch aktiver
     // Editiermodus vom vorherigen Skript würde sonst dessen (falsche)
     // rawActions weiterbenutzen.
@@ -1903,6 +2020,8 @@ export function initPlayback(root) {
     el('#pb-omarker-add-row').style.display = 'flex';
     el('#pb-bookmark-hint').style.display = 'block';
     el('#pb-bookmark-add-row').style.display = 'flex';
+    el('#pb-chapter-hint').style.display = 'block';
+    el('#pb-chapter-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
     el('#pb-ofs-row').style.display = 'flex';
     el('#pb-script-doctor-result').style.display = 'none';
