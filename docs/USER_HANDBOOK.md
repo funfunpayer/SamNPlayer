@@ -128,7 +128,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | AI ROI model path | Enables *Smarter tip find* |
 | **Open AI training** | Jumps to the AI Train tab (label → train → back here for Check availability) |
 | Collect learning data | Allows Scene map **Export for learning** |
-| AI server URL (Colibri) | Optional local prose for Suggest profile / quality opinion |
+| AI server URL (Colibri) | Optional local prose for Suggest profile / quality opinion — **Test AI server** probes `/v1/models` |
 
 **Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
 

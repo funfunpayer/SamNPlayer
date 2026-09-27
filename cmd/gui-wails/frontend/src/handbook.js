@@ -66,7 +66,7 @@ AI Train — label tip ROIs / train ONNX, and Train Go profile model (helpers on
     body: `Open user handbook — this FAQ.
 AI ROI model path — enables Smarter tip find. Use Open AI training to jump to the AI Train tab, then Check availability.
 Collect learning data — allows Scene map Export for learning.
-Colibri / AI server URL — optional local prose for Suggest profile (see docs/COLIBRI_SETUP.md).
+Colibri / AI server URL — optional local prose for Suggest profile (see docs/COLIBRI_SETUP.md). Use Test AI server after coli serve.
 
 AI draft model path is not in Settings yet (reserved for a future ONNX writer). Until then, use Export classical run → AI draft script from the imitation library.`,
   },

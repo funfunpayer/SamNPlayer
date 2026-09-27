@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -179,14 +179,19 @@ export function initSettings(root) {
     </div>
 
     <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
-    <p class="hint">Address of a local Colibri server (<code>coli serve</code>,
-      see docs/AI_ADAPTER.md) for the “Suggest profile” button and the AI quality
-      opinion in the Create tab. Both work without this server — measured scene
-      similarity (no AI) remains the only source for profile suggestions. Leave
-      empty to use the default address.</p>
+    <p class="hint">Address of a local Colibri / OpenAI-compatible server
+      (<code>coli serve</code>, or Ollama/LM Studio with an OpenAI bridge —
+      see docs/AI_ADAPTER.md / docs/COLIBRI_SETUP.md) for Create’s “Suggest profile”
+      fallback and the optional AI quality opinion. Both work without this server —
+      measured scene similarity remains the primary profile source. Leave empty for
+      default <code>http://127.0.0.1:8080</code>. Use <b>Test AI server</b> after
+      starting the server locally.</p>
     <div class="row">
-      <input type="text" id="st-ai-base-url" placeholder="(default address)" style="flex:1;" />
+      <input type="text" id="st-ai-base-url" placeholder="http://127.0.0.1:8080" style="flex:1;" />
+      <button id="st-ai-server-check" type="button"
+        data-help="GET /v1/models on the URL above (or the default). Does not change Everyday Create.">Test AI server</button>
     </div>
+    <p class="hint" id="st-ai-server-status" style="margin-top:0"></p>
 
     <h3>Hardware</h3>
     <p class="hint">Which acceleration the generator can actually use. Having an
@@ -509,6 +514,25 @@ export function initSettings(root) {
 
   el('#st-ai-base-url').addEventListener('change', e =>
     saveSetting('generator.aiBaseUrl', e.target.value.trim()));
+
+  el('#st-ai-server-check')?.addEventListener('click', async () => {
+    const status = el('#st-ai-server-status');
+    if (status) status.textContent = 'Checking…';
+    // Persist the field first so the Go probe reads the typed URL.
+    try {
+      await saveSetting('generator.aiBaseUrl', el('#st-ai-base-url').value.trim());
+    } catch (_) { /* probe still uses last saved / empty = default */ }
+    try {
+      const available = await CheckAIServerAvailable();
+      if (status) {
+        status.textContent = available
+          ? 'Reachable — Suggest profile can use the AI fallback; quality opinion available when enabled in Create.'
+          : 'Not reachable — start coli serve (or your OpenAI-compatible server), then test again. Create still works without it.';
+      }
+    } catch (err) {
+      if (status) status.textContent = 'Check failed: ' + err;
+    }
+  });
 
   el('#st-collect-learning')?.addEventListener('change', e =>
     saveSetting('generator.collectLearningData', e.target.checked));

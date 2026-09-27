@@ -414,6 +414,13 @@ func (a *App) CheckAIRoiAvailable() bool {
 	return generator.AIRoiAvailable(a.settings.GetString(prefAIRoiModelPath, ""))
 }
 
+// CheckAIServerAvailable probes the optional local Colibri / OpenAI-compatible
+// server (Settings → AI server URL). Empty URL uses the default
+// http://127.0.0.1:8080. Never raises; unreachable is the normal offline state.
+func (a *App) CheckAIServerAvailable() bool {
+	return generator.ColibriAvailable(a.settings.GetString(prefAIBaseURL, ""))
+}
+
 // SupportSignalsAvailable reports experimental depth/pose helper flags (see
 // docs/DEPTH_POSE.md). No GUI toggle in this release — CLI/env only.
 func (a *App) SupportSignalsAvailable() map[string]bool {
