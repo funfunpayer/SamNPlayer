@@ -15,7 +15,7 @@ measurement history behind each entry; this file is the short version for
   (`SpatialDepthWeight`) and shortens the contact envelope on spatial hits
   so grazes read as short buzzes, not a continuous depth shadow. No-mark /
   Everyday Soft depth path unchanged; Follow/Ignore / Enforcement untouched.
-  Design: project store `docs/vibration-contact-model.md`.
+  Design: project store `docs/vibration-contact-model.md` (#283).
 - **AIWrite S2b tip-aspect sample match** — imitation `PickBestSample` prefers
   exported tip box aspect (w/h) alongside duration + QD when Create tip ROI
   is present. Sample count already surfaced in Create Advanced status.
