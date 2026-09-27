@@ -121,6 +121,26 @@ The tool does four things:
   answer, `refused`, and normalised boxes 0..1.
 - Optionally writes overlay JPEGs, so a person can check the boxes by eye.
 
+**Exemplar mode (Owner idea, 27 Sep).** The Owner asked: *"tell Qwen what
+you marked; it should watch that and mark it."*
+- `--exemplar-json <labels> --exemplar-count K` (or
+  `--exemplar t_ms:x0,y0,x1,y1`) sends K reference frames of the same clip
+  first:
+  - the contact region is drawn in green;
+  - no-go regions (another person, hands, thighs) are drawn in red.
+- The model then finds the same region, meaning the same people and body
+  parts, in the last image.
+- `--follow` also shows the model's own previous answer as a yellow box, so
+  it can see where the region was a few seconds earlier.
+- In the product, the reference is simply the user's first mark, which is
+  the same step as drawing the ROI today. On multi-person clips this removes
+  the "which person?" guess.
+- Reference frames are never asked about again, and `vlm_score.py` skips
+  them.
+- Multi-image requests need a runtime that accepts several `image_url` parts
+  (Ollama / LM Studio with Qwen2.5-VL). If yours does not, the first answer
+  fails and is recorded as an error.
+
 **Oracle ceiling on the two goldens (measured 27 Sep, before any Qwen run).**
 Claude labelled the keyframes itself: 28 on `clip_voll` (every 10 s) and
 10 on `clip_ausschnitt` (every 5 s). Each label is a `contact` box plus
@@ -169,6 +189,42 @@ therefore changes to:
    - The requirement is a gain there, with no regression on the two goldens.
    - This needs references for the new clips. A hand-corrected script is
      best, because FunGen output is only a ~0.45 proxy.
+
+**Multi-person clip: where "where" matters (measured 27 Sep).**
+- The clip is an Owner upload: 642 s, two women, POV, 256×144. The
+  reference is a FunGen-style script.
+- Claude labelled 27 keyframes (every 20 s), committed as
+  `testdata/vlm_labels/multi_person_642s.json`.
+- The #287 engine starts from a centre ROI and then sits on the heads (cells
+  17–21 / 33). Its chosen cell is on the real contact in only **3 of 237
+  windows**.
+- All numbers below come from the offline harness, which is bit-identical to
+  Go `TrackROI` on this clip (max diff 0.0).
+
+| Variant | contact hit | r (detrend 1500) |
+|---|---|---|
+| #287 baseline | 1 % | 0.304 |
+| labels as SceneMap `source`/`exclude` marks (today's M3 path) | 1 % | 0.305 |
+| + re-seed when the locked cell leaves the box | 0 % | 0.264 |
+| **search anchor = label contact centre** (instead of the CSRT box) | 62 % | **0.425** |
+| anchor + marks + re-seed | 85 % | 0.417 |
+
+The same anchor on the goldens:
+- `clip_voll`: 0.467 / 0.771, against 0.456 / 0.752.
+- `clip_ausschnitt`: unchanged at 0.482 / 0.888.
+
+Anchor + marks costs `clip_ausschnitt` 0.03.
+
+Conclusion:
+- A correct *where* lifts the multi-person clip by **+0.12 r (+40 %)** and
+  does not regress either golden.
+- Marks cannot deliver it. The grid only searches within 3 cells of the
+  CSRT box, and the lock ignores sources after the seed.
+- **What the teacher (and later our own detector) must feed is the grid's
+  search anchor, per frame.** The VLM contact box centre replaces the CSRT
+  box centre while a box is active.
+- That is the engine hook for V1 / V3. It needs its own opt-in PR and its
+  own gate on ≥ 4–5 clips.
 
 **Where V0 runs:** on the Owner's PC. The cloud session cannot download
 weights, because its network policy blocks huggingface.co. The Owner runs

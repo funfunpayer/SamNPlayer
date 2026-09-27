@@ -10,6 +10,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **VLM probe exemplar mode** — `vlm_probe.py --exemplar-json/--exemplar`
+  shows the model reference frames of the same clip with the contact region
+  (green) and no-go regions (red) drawn in, then asks for the same region in
+  new frames; `--follow` adds its previous answer (yellow). `vlm_score.py`
+  skips the reference frames. Measurement only; no Generate change.
+
 - **VLM teacher probe (V0, opt-in tool)** — `generator/vlm_probe.py` asks a
   **local** vision-language model (e.g. Qwen2.5-VL via Ollama / LM Studio,
   OpenAI-compatible) for body-region / stroke-contact boxes on keyframes and

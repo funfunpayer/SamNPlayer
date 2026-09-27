@@ -45,7 +45,7 @@ import numpy as np
 import bodyparts
 import colibri_client
 
-PROMPT_VERSION = "v0-2026-09-27"
+PROMPT_VERSION = "v0.1-2026-09-27"  # v0.1: exemplar mode
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"  # Ollama; LM Studio: :1234
 DEFAULT_TIMEOUT_S = 180.0  # first call loads the model into VRAM
 MAX_SIDE = 896
@@ -66,6 +66,26 @@ PROMPT = (
     "List every listed region that is visible, each hand and thigh "
     "separately; omit what is not visible. Return [] if none is visible."
 )
+
+# Exemplar mode (Owner idea, 27 Sep: "tell Qwen what you marked, it should
+# watch that and mark it"): reference frames of the same clip with the
+# contact region drawn in GREEN and no-go regions in RED go first; the model
+# finds the SAME region - same people, same body parts - in the last image.
+# That removes the "which of the two people?" guess on multi-person clips.
+EXEMPLAR_PROMPT = (
+    "The first {n} image(s) are reference frames from the same video. In them "
+    "the GREEN box marks the 'contact' region: where the main back-and-forth "
+    "motion happens. RED boxes mark regions that must NOT be used (another "
+    "person, hands, thighs).{follow} The LAST image is a new frame from the "
+    "same video. Find the same contact region in the LAST image - the same "
+    "people and the same body parts as marked, even if they moved. Return ONLY "
+    "a JSON array, no prose: [{{\"label\": \"contact\", \"bbox_2d\": "
+    "[x1, y1, x2, y2]}}], coordinates for the LAST image; add "
+    "{{\"label\": \"exclude\", \"bbox_2d\": [...]}} for regions matching the "
+    "red boxes if visible. Return [] if the contact region is not visible."
+)
+FOLLOW_NOTE = (" The YELLOW box in the second-to-last image is where the "
+               "contact region was found a few seconds earlier.")
 
 CALIB_PROMPT = (
     "Return ONLY a JSON array, no prose. Give the bounding box of the red "
@@ -119,7 +139,7 @@ def coord_scale(mode, sent_w, sent_h):
 def normalize_label(raw):
     s = str(raw or "").strip().lower().replace("-", "_")
     s = _ALIAS.get(s, _ALIAS.get(s.replace("_", " "), s))
-    if s in LABELS:
+    if s in LABELS or s == "exclude":
         return s
     canon = bodyparts.normalize(s)
     if canon in ("hand_1", "hand_2"):
@@ -199,11 +219,12 @@ def _data_url(img_bgr):
 
 
 def ask(img_bgr, prompt, model, base_url, timeout, post_fn=None):
-    """One image + prompt -> (answer text, latency ms)."""
-    messages = [{"role": "user", "content": [
-        {"type": "text", "text": prompt},
-        {"type": "image_url", "image_url": {"url": _data_url(img_bgr)}},
-    ]}]
+    """Image(s) + prompt -> (answer text, latency ms). img_bgr is one image
+    or a list of images (exemplar mode: references first, query last)."""
+    imgs = img_bgr if isinstance(img_bgr, (list, tuple)) else [img_bgr]
+    content = [{"type": "text", "text": prompt}]
+    content += [{"type": "image_url", "image_url": {"url": _data_url(im)}} for im in imgs]
+    messages = [{"role": "user", "content": content}]
     t0 = time.monotonic()
     text = colibri_client.chat(messages, base_url=base_url, model=model,
                                timeout=timeout, _post_fn=post_fn)
@@ -311,9 +332,42 @@ def draw_overlay(img, boxes):
     return out
 
 
+def load_exemplars(path=None, specs=(), count=1):
+    """Reference marks for exemplar mode as [{t_ms, contact, exclude}]
+    (normalised 0..1 boxes). From a vlm_oracle.json-style file (the first
+    `count` keyframes that have a contact box) and/or CLI specs
+    "t_ms:x0,y0,x1,y1" (contact only)."""
+    out = []
+    if path:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        for kf in doc.get("keyframes", []):
+            if kf.get("contact") and len(out) < count:
+                out.append({"t_ms": int(kf["t_ms"]), "contact": list(kf["contact"]),
+                            "exclude": [list(e) for e in kf.get("exclude", [])]})
+    for spec in specs:
+        t, box = spec.split(":", 1)
+        b = [float(v) for v in box.split(",")]
+        if len(b) != 4 or not (0 <= b[0] < b[2] <= 1 and 0 <= b[1] < b[3] <= 1):
+            raise ValueError(f"bad exemplar box {spec!r}: want t_ms:x0,y0,x1,y1 in 0..1")
+        out.append({"t_ms": int(t), "contact": b, "exclude": []})
+    return sorted(out, key=lambda e: e["t_ms"])
+
+
+def draw_reference(img, contact=None, excludes=(), color=(0, 220, 0)):
+    """Reference image for exemplar mode: contact box (green, or yellow for
+    the follow frame) and no-go boxes (red), thick enough to survive JPEG."""
+    out = img.copy()
+    h, w = out.shape[:2]
+    t = max(2, int(round(min(w, h) / 120)))
+    for b, c in [(e, (0, 0, 230)) for e in excludes] + ([(contact, color)] if contact else []):
+        cv2.rectangle(out, (int(b[0] * w), int(b[1] * h)), (int(b[2] * w), int(b[3] * h)), c, t)
+    return out
+
+
 def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=True,
                 coord="auto", timeout=DEFAULT_TIMEOUT_S, overlay_dir=None,
-                max_keyframes=0, post_fn=None, log=print):
+                max_keyframes=0, post_fn=None, log=print, exemplars=(), follow=False):
     cap = cv2.VideoCapture(video)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video}")
@@ -339,12 +393,25 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
 
     scenes_ms = _scenes_ms(video, fps) if scenes else []
     times = keyframe_times_ms(duration_ms, every_s, scenes_ms)
+    refs = []
+    for ex in exemplars:
+        cap.set(cv2.CAP_PROP_POS_MSEC, ex["t_ms"])
+        ok, frame = cap.read()
+        if not ok:
+            cap.release()
+            raise RuntimeError(f"exemplar frame at {ex['t_ms']} ms could not be read")
+        refs.append(draw_reference(cv2.resize(frame, (sw, sh), interpolation=cv2.INTER_AREA),
+                                   ex["contact"], ex["exclude"]))
+    ex_times = [e["t_ms"] for e in exemplars]
+    # Asking about the reference frame itself would only test copying.
+    times = [t for t in times if all(abs(t - e) > 250 for e in ex_times)]
     if max_keyframes and len(times) > max_keyframes:
         times = times[:max_keyframes]
     if overlay_dir:
         os.makedirs(overlay_dir, exist_ok=True)
 
     frames = []
+    prev = None  # (image, contact box) of the last frame with a contact answer
     for i, t in enumerate(times):
         cap.set(cv2.CAP_PROP_POS_MSEC, t)
         ok, frame = cap.read()
@@ -352,13 +419,26 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
             frames.append({"t_ms": t, "status": "no_frame", "boxes": []})
             continue
         img = cv2.resize(frame, (sw, sh), interpolation=cv2.INTER_AREA)
+        if refs:
+            imgs = list(refs)
+            if follow and prev is not None:
+                imgs.append(draw_reference(prev[0], prev[1], color=(0, 220, 230)))
+            prompt = EXEMPLAR_PROMPT.format(
+                n=len(imgs), follow=FOLLOW_NOTE if len(imgs) > len(refs) else "")
+            imgs.append(img)
+        else:
+            imgs, prompt = img, PROMPT
         try:
-            text, latency = ask(img, PROMPT, model, base_url, timeout, post_fn)
+            text, latency = ask(imgs, prompt, model, base_url, timeout, post_fn)
             status, boxes = parse_answer(text, sx, sy)
         except Exception as e:  # noqa: BLE001 - record and keep going
             text, latency, status, boxes = str(e), 0, "error", []
         frames.append({"t_ms": t, "latency_ms": latency, "status": status,
                        "boxes": boxes, "raw": (text or "")[:2000]})
+        contact = [b for b in boxes if b["label"] == "contact"]
+        if contact:
+            c = max(contact, key=lambda b: (b["x1"] - b["x0"]) * (b["y1"] - b["y0"]))
+            prev = (img, [c["x0"], c["y0"], c["x1"], c["y1"]])
         if overlay_dir and boxes:
             cv2.imwrite(os.path.join(overlay_dir, f"{t:08d}.jpg"), draw_overlay(img, boxes))
         log(f"[{i + 1}/{len(times)}] {t / 1000:7.1f}s {status:8s} "
@@ -367,7 +447,8 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
 
     return {
         "tool": "vlm_probe", "prompt_version": PROMPT_VERSION,
-        "prompt": PROMPT, "labels": LABELS,
+        "prompt": EXEMPLAR_PROMPT if refs else PROMPT, "labels": LABELS,
+        "exemplars": list(exemplars), "exemplar_t_ms": ex_times, "follow": bool(follow and refs),
         "model": model, "base_url": base_url,
         "video": os.path.basename(video), "fps": fps, "frame_count": n,
         "video_w": vw, "video_h": vh, "sent_w": sw, "sent_h": sh,
@@ -409,6 +490,14 @@ def main(argv=None):
     ap.add_argument("--max-keyframes", type=int, default=0)
     ap.add_argument("--overlay-dir")
     ap.add_argument("--out")
+    ap.add_argument("--exemplar-json",
+                    help="reference marks (vlm_oracle.json format); exemplar mode")
+    ap.add_argument("--exemplar-count", type=int, default=1,
+                    help="how many keyframes of --exemplar-json to show (default 1)")
+    ap.add_argument("--exemplar", action="append", default=[],
+                    help="reference contact box t_ms:x0,y0,x1,y1 (0..1), repeatable")
+    ap.add_argument("--follow", action="store_true",
+                    help="exemplar mode: also show the last answer as a yellow box")
     ap.add_argument("--calibrate", action="store_true",
                     help="only check the model's coordinate convention")
     args = ap.parse_args(argv)
@@ -424,9 +513,13 @@ def main(argv=None):
     if not args.video:
         ap.error("--video is required unless --calibrate")
 
+    exemplars = load_exemplars(args.exemplar_json, args.exemplar, args.exemplar_count)
+    if args.follow and not exemplars:
+        ap.error("--follow needs --exemplar-json or --exemplar")
     res = probe_video(args.video, args.model, args.base_url, args.every_s,
                       not args.no_scenes, args.coord, args.timeout,
-                      args.overlay_dir, args.max_keyframes)
+                      args.overlay_dir, args.max_keyframes,
+                      exemplars=exemplars, follow=args.follow)
     out = args.out or os.path.splitext(args.video)[0] + ".vlm.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=1)

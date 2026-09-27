@@ -15,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ORACLES = [
     os.path.join(HERE, "testdata", "golden_clips", "clip_voll_tftj", "vlm_oracle.json"),
     os.path.join(HERE, "testdata", "golden_clips", "clip_ausschnitt_native", "vlm_oracle.json"),
+    os.path.join(HERE, "testdata", "vlm_labels", "multi_person_642s.json"),
 ]
 
 ORACLE = {"keyframes": [
@@ -61,6 +62,14 @@ class ScoreTest(unittest.TestCase):
         res = vs.score({"frames": []}, ORACLE)
         self.assertEqual(res["matched"], 0)
         self.assertIsNone(res["hit_rate"])
+
+    def test_exemplar_keyframes_are_not_scored(self):
+        probe = {"exemplar_t_ms": [5000], "frames": [
+            {"t_ms": 15000, "status": "ok", "boxes": [box("contact", 0.45, 0.65, 0.55, 0.95)]}]}
+        res = vs.score(probe, {"keyframes": ORACLE["keyframes"][:2]})
+        self.assertEqual(res["skipped_exemplars"], 1)
+        self.assertEqual(res["keyframes"], 1)
+        self.assertEqual(res["hit_rate"], 1.0)
 
     def test_iou(self):
         self.assertEqual(vs.iou([0, 0, 1, 1], [0, 0, 1, 1]), 1.0)
