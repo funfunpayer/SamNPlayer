@@ -146,10 +146,13 @@ export function initSettings(root) {
       rhythm heuristic in the Create tab (“Find tip area”). No model
       ships with the app and none is downloaded — without your own <code>.onnx</code>
       file, classical detection stays in use. Leave empty to use the default folder
-      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> on Windows).</p>
+      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> on Windows).
+      Train tip boxes in the <b>AI Train</b> tab, then Check availability here.</p>
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
       <button id="st-ai-roi-check">Check availability</button>
+      <button id="st-open-ai-train" type="button"
+        data-help="Switches to the AI Train tab (label tip ROIs / train ONNX; also Train Go profile model).">Open AI training</button>
     </div>
     <div class="field-row" style="margin-top:8px">
       <label for="st-ai-pref-classes"
@@ -534,6 +537,18 @@ export function initSettings(root) {
           + '(specified or default) path.';
     } catch (err) {
       status.textContent = 'Check failed: ' + err;
+    }
+  });
+
+  el('#st-open-ai-train')?.addEventListener('click', () => {
+    const tab = document.querySelector('.tab-btn[data-tab="roi-training"]');
+    if (tab) {
+      tab.click();
+      return;
+    }
+    const status = el('#st-ai-roi-status');
+    if (status) {
+      status.textContent = 'Open the AI Train tab from the left rail (label tip ROIs → train ONNX).';
     }
   });
 

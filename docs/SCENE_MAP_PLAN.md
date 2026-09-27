@@ -1,8 +1,8 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
-Status: **P5a+P5b done** — P5a #255 / `c57b910`; P5b #256 / `524d23b`; P4b #254; P4 #253; P3 #251; P2 v0.5.31; P1 #246; plan #243.
+Status: **P5a–P5c done** — P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) reviewed YOLO export; P5b #256 / `524d23b`; P5a #255 / `c57b910`; P4b #254; P4 #253; P3 #251; P2 v0.5.31; P1 #246; plan #243.
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
-the golden-clip measurements. **Next:** ChatGPT **P5c** reviewed-label YOLO export ([#297](https://github.com/funfunpayer/SamNPlayer/pull/297); audit DONE on [#290](https://github.com/funfunpayer/SamNPlayer/issues/290)). Cursor must not duplicate P5c. P5e parked. Claude M3 gate / Owner rhythm clips before P6.
+the golden-clip measurements. **Next:** P5e parked; Claude M3 gate / Owner rhythm clips before P6. Do not reopen P5c.
 
 Owner goal (paraphrased): *build it so it makes Generate better **and** yields
 training data, until an AI knows our whole engine — what moves, how, where,
@@ -60,12 +60,12 @@ The marks do two jobs:
 | Local YOLO training (bootstrap → train → ONNX) | `generator/bootstrap_yolo_dataset.py`, `train_yolo_model.py`, `docs/KI_TRAINING.md` | Shipped; box labels are hand-made today |
 | Stroke preview Stage A / B (quick probe, cut → PerSceneROI, pan → camera) | `strokepreview.RunQuick`, `applyStrokePreviewSteers` | Shipped #177 / #239 |
 
-**Gaps this plan closes:**
-- No map is ever shown to the user.
-- Masks don't reach the Go path.
-- Marks are not time-bounded.
-- Engine decisions are not recorded.
-- There is no dataset writer that turns sessions into labels automatically.
+**Gaps this plan closed (pre-P1 → historical; map/marks/collect shipped through P5c):**
+- ~~No map is ever shown to the user.~~ → P1/P2 Show scene map
+- ~~Masks don't reach the Go path.~~ → P3 Go mask eligibility
+- ~~Marks are not time-bounded.~~ → P2 scene-scoped marks
+- ~~Engine decisions are not recorded.~~ → P5a collect / export-learning
+- ~~There is no dataset writer that turns sessions into labels automatically.~~ → P5a–P5c (reviewed YOLO export on #297)
 
 ---
 
@@ -328,17 +328,16 @@ These four product decisions are now **closed**. Cursor does not need to choose 
    - The engine applies only marks active at the map window midpoint.
    - The GUI should make the current scope visible without forcing the user to configure it for every mark.
 
-### Implementation go-ahead
+### Implementation go-ahead (historical)
 
-**P1 is approved to start now.** Cursor should follow the documented order **P1 → P2 → P3** and must not pull P2/P3 behaviour into P1.
+**P1 was approved and shipped** (#246). Order **P1 → P2 → P3** held; P2/P3 were not pulled into P1.
 
-For **P1**, split the existing rhythm-grid calculation into scoring and selection/stitching, expose `SceneMap` from full runs, implement the explicit `ScanSceneMap` quick scan and Wails binding, while keeping the generated curve **bit-identical to the current main baseline `e9e697e`**. The P1 measurement gates in section 4 remain unchanged.
+P1 split rhythm-grid scoring vs selection/stitching, exposed `SceneMap`, and added `ScanSceneMap` + Wails binding with curve bit-identity vs baseline `e9e697e`.
 
-After P1 passes its gate:
-- **P2:** Advanced map UI and `exclude` / `source` / `region` marks, with **current scene** as the default time scope.
-- **P3:** only then let marks affect Generate, including source/exclude candidate handling, Go mask eligibility and camera-motion excludes.
-
-P4/P5 should carry these decisions forward: learning collection remains opt-in/off by default, and unreviewed auto-labels must not enter training.
+Shipped after P1's gate:
+- **P2:** Advanced map UI and `exclude` / `source` / `region` marks (current-scene default scope).
+- **P3:** marks affect Generate (source/exclude, Go masks, camera excludes).
+- **P4/P5:** learning collection stays opt-in/off by default; unreviewed auto-labels do not enter training (P5c reviewed-only YOLO on #297).
 
 ## 7. Pointers
 
