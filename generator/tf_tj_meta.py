@@ -11,7 +11,7 @@ TF_TJ_POS_MIN = 20
 TF_TJ_POS_MAX = 90
 
 DEFAULT_CONTACT_VIBRATION_SPAN = 0.75
-CONTACT_CURVES = ("linear", "soft", "peak")
+CONTACT_CURVES = ("linear", "soft", "peak", "impulse")
 
 # Profiles that get a device_recipe when contact vibration is on (stroke path).
 _STROKE_PROFILES = ("", "standard", "hub", "weich", "autotune")
@@ -31,6 +31,8 @@ def normalize_contact_curve(name):
         return "soft"
     if n in ("peak", "strong_peak", "peaky"):
         return "peak"
+    if n in ("impulse", "events", "contact_events", "peak_emphasis"):
+        return "impulse"
     return "linear"
 
 

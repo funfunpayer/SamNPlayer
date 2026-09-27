@@ -69,10 +69,15 @@ type TrackingGap struct {
 
 // Contact-curve names persisted in device_recipe.contact_vibration_curve.
 const (
-	ContactCurveLinear = "linear"
-	ContactCurveSoft   = "soft" // weicher Einstieg: t²
-	ContactCurvePeak   = "peak" // stärkerer Peak: √t
+	ContactCurveLinear  = "linear"
+	ContactCurveSoft    = "soft"    // weicher Einstieg: t²
+	ContactCurvePeak    = "peak"    // stärkerer Peak: √t
+	ContactCurveImpulse = "impulse" // experiment: quiet until deep, then sharp (contact/peaks)
 )
+
+// ImpulseContactThreshold: below this linear proximity t, impulse vib is 0.
+// Above it, vib rises as a cubic — sits on strong peaks, not continuous fill.
+const ImpulseContactThreshold = 0.55
 
 // DefaultContactEnvelopeSmooth: kurze Extra-Glättung nur für die
 // Kontakt-Vibrationshüllkurve (Tracker-Jitter), unabhängig vom Sog-
@@ -99,7 +104,7 @@ type MapOptions struct {
 	// Niedriger = früher an; höher = nur tief.
 	ContactVibrationSpan float64
 
-	// ContactVibrationCurve: "linear" (default), "soft", "peak".
+	// ContactVibrationCurve: "linear" (default), "soft", "peak", "impulse".
 	ContactVibrationCurve string
 
 	// ContactVibrationEnvelope: 0 → DefaultContactEnvelopeSmooth. Nur für
@@ -142,6 +147,8 @@ func NormalizeContactCurve(name string) string {
 		return ContactCurveSoft
 	case ContactCurvePeak, "strong_peak", "peaky":
 		return ContactCurvePeak
+	case ContactCurveImpulse, "events", "contact_events", "peak_emphasis":
+		return ContactCurveImpulse
 	default:
 		return ContactCurveLinear
 	}
@@ -170,6 +177,14 @@ func applyContactCurve(t float64, curve string) float64 {
 		return t * t
 	case ContactCurvePeak:
 		return math.Sqrt(t)
+	case ContactCurveImpulse:
+		// Quiet mid-window; sharp rise near contact/peak — Advanced experiment
+		// (docs/vibration-contact-model.md S1). Not Everyday default.
+		if t < ImpulseContactThreshold {
+			return 0
+		}
+		u := (t - ImpulseContactThreshold) / (1 - ImpulseContactThreshold)
+		return u * u * u
 	default:
 		return t
 	}

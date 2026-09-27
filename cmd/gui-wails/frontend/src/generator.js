@@ -168,11 +168,12 @@ export function initGenerator(root, playback) {
             <span class="hint" id="gen-contact-span-label" style="margin:0; min-width:7em;">deep only</span>
           </div>
           <div class="field-row" style="align-items:center;">
-            <label style="width:auto;" data-help="linear = 1:1. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t).">Curve</label>
+            <label style="width:auto;" data-help="linear = 1:1. soft = gentle onset (t²) — closer to contact feel. peak = stronger peak (√t). impulse = quiet mid-window, sharp near deep peaks (Advanced experiment).">Curve</label>
             <select id="gen-contact-curve">
               <option value="linear">Linear</option>
               <option value="soft" selected>Soft onset (contact-like)</option>
               <option value="peak">Stronger peak</option>
+              <option value="impulse">Impulse (peaks only, experiment)</option>
             </select>
           </div>
         </div>
@@ -214,6 +215,8 @@ export function initGenerator(root, playback) {
           <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs a tip mark (auto-find or draw). Contact vibration is the feel layer — optional marks when vib is on.</p>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A (vib when tip grazes a contact mark) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-contact-impulse" /><label for="gen-contact-impulse"
+            data-help="Experiment: contact vibration only on strong peaks (impulse curve) instead of a continuous depth fill. Opt-in Advanced only — Everyday Soft onset stays default. Does not change stroke CSRT, Follow/Ignore marks, or Enforcement.">Peak-emphasis contact vib (impulse, experiment)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
@@ -1845,7 +1848,9 @@ export function initGenerator(root, playback) {
         ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100
         : 0,
       contactVibrationCurve: el('#gen-contact-vibration').checked
-        ? (el('#gen-contact-curve').value || 'linear')
+        ? (el('#gen-contact-impulse')?.checked
+          ? 'impulse'
+          : (el('#gen-contact-curve').value || 'linear'))
         : '',
       autoOZoneMarker: el('#gen-auto-ozone').checked,
       audioCheck: el('#gen-audio-check').checked,
@@ -2513,8 +2518,21 @@ export function initGenerator(root, playback) {
   el('#gen-capture-trajectory')?.addEventListener('change', () => {
     el('#gen-capture-trajectory').dataset.userTouched = '1';
   });
+  el('#gen-contact-impulse')?.addEventListener('change', () => {
+    const on = !!el('#gen-contact-impulse').checked;
+    const curve = el('#gen-contact-curve');
+    if (!curve) return;
+    if (on) {
+      curve.value = 'impulse';
+      curve.dataset.userTouched = '1';
+    } else if (curve.value === 'impulse') {
+      curve.value = 'soft';
+    }
+  });
   el('#gen-contact-curve').addEventListener('change', () => {
     el('#gen-contact-curve').dataset.userTouched = '1';
+    const impulse = el('#gen-contact-impulse');
+    if (impulse) impulse.checked = el('#gen-contact-curve').value === 'impulse';
   });
   el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
   updateContactSpanLabel();

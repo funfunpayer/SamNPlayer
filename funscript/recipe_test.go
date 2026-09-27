@@ -335,6 +335,29 @@ func TestRecipeTJContactVibrationCurves(t *testing.T) {
 	if peak <= linear {
 		t.Errorf("peak (stärkerer Peak) sollte über linear liegen: peak=%.3f linear=%.3f", peak, linear)
 	}
+	impulse := vibAt("impulse")
+	// Mid-window (pos 80 of 20–90, span 0.75 → contactMin=72.5, t≈0.43) must
+	// stay quiet under impulse; soft still has fill there.
+	if impulse > 0.05 {
+		t.Errorf("impulse should suppress mid-window fill: impulse=%.3f (soft=%.3f)", impulse, soft)
+	}
+}
+
+func TestApplyContactCurveImpulsePeaks(t *testing.T) {
+	if applyContactCurve(0.5, ContactCurveImpulse) != 0 {
+		t.Fatalf("impulse below threshold must be 0, got %v", applyContactCurve(0.5, ContactCurveImpulse))
+	}
+	near := applyContactCurve(0.9, ContactCurveImpulse)
+	top := applyContactCurve(1.0, ContactCurveImpulse)
+	if near <= 0 || near >= top {
+		t.Fatalf("impulse should rise sharply near peak: near=%.3f top=%.3f", near, top)
+	}
+	if top < 0.999 {
+		t.Fatalf("impulse at t=1 want ~1, got %v", top)
+	}
+	if NormalizeContactCurve("events") != ContactCurveImpulse {
+		t.Fatalf("events alias → impulse")
+	}
 }
 
 // Tracker-Verlustfenster: Vibration muss aus, auch wenn die gehaltene
