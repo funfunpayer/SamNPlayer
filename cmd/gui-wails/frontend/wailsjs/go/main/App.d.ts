@@ -44,6 +44,8 @@ export function CancelROIDetection():Promise<void>;
 
 export function CheckAIRoiAvailable():Promise<boolean>;
 
+export function CheckAIServerAvailable():Promise<boolean>;
+
 export function CheckAudioCheckAvailable():Promise<boolean>;
 
 export function CheckRoiTrainingAvailable():Promise<boolean>;

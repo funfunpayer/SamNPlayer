@@ -63,10 +63,30 @@ AI Train — label scenes / tip ROIs for helpers (not the stroke writer).`,
   {
     title: 'Settings that matter',
     body: `Open user handbook — this FAQ.
-AI ROI model path — enables Smarter tip find.
+AI ROI model path — enables Smarter tip find (train in AI training first).
+AI server URL + Test AI server — optional Colibri / OpenAI-compatible fallback for Suggest profile + quality opinion.
 Collect learning data — allows Scene map Export for learning.
 
 AI draft model path is not in Settings yet (reserved for a future ONNX writer). Until then, use Export classical run → AI draft script from the imitation library.`,
+  },
+  {
+    title: 'Local models — Owner setup',
+    body: `Nothing is bundled or auto-downloaded. Everyday Create stays CSRT.
+
+ONNX tip/region helper:
+1. AI training → Install AI train deps → label boxes → Start training.
+2. Result lands in the default models folder (roi_detector.onnx + classes.json).
+3. Settings → AI region detection → Check availability → Create → Smarter tip find → Apply.
+
+Go profile model:
+Create → Remember scene + style → AI training → Train Go profile model → Suggest profile → Apply.
+
+Optional AI server (Colibri / Ollama bridge):
+1. Run coli serve (or any OpenAI-compatible /v1/models host) locally.
+2. Settings → AI server → leave empty for http://127.0.0.1:8080 → Test AI server.
+3. Create Suggest profile can fall back to that server when no similar scene is known.
+
+AIWrite draft today uses Export classical run → imitation library (no ONNX writer yet).`,
   },
   {
     title: 'Also in the GUI',

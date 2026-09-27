@@ -2,7 +2,7 @@
 
 **Product:** SamNPlayer Emotion GUI · **Format:** `.samn` (Emotion Script) · Funscript = share/import only.  
 **Audience:** Owner + everyday users. English product copy.  
-**Last updated:** 26 Sep 2026 (Look v3 lilac polish, in-GUI handbook, GapHeal, AIWrite S0→S1 export).
+**Last updated:** 27 Sep 2026 (local-model Owner setup + Settings Test AI server; AIWrite S2-imitation).
 
 **In the app:** Settings → **Open user handbook** · Create → **User handbook** (same FAQ modal).  
 Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.
@@ -117,10 +117,20 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Setting | Effect |
 |---------|--------|
 | **Open user handbook** | In-app FAQ (same content as this doc’s Everyday sections) |
-| AI ROI model path | Enables *Smarter tip find* |
+| AI ROI model path | Enables *Smarter tip find* (train in **AI training** first) |
+| AI server URL + **Test AI server** | Optional Colibri / OpenAI-compatible host for Suggest-profile fallback + quality opinion |
 | Collect learning data | Allows Scene map **Export for learning** |
 
 **Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
+
+### Local models — Owner setup (no bundle)
+
+Nothing ships as a downloadable weight. Everyday Create stays CSRT.
+
+1. **ONNX tip helper:** AI training → Install AI train deps → label → Start training → Settings → Check availability → Create → Smarter tip find → Apply.  
+2. **Go profile model:** Create → Remember scene + style → AI training → Train Go profile model → Suggest profile → Apply.  
+3. **Optional AI server:** start `coli serve` (or OpenAI-compatible `/v1/models`) → Settings → Test AI server (empty URL = `http://127.0.0.1:8080`).  
+4. **AIWrite draft today:** Export classical run → AI draft script (imitation; ONNX writer later).
 
 ---
 
