@@ -21,9 +21,15 @@ from _harness import Checker, app_stub, serve
 
 FRONTEND = pathlib.Path(__file__).resolve().parents[1]
 
-PAGE = """<!doctype html><html><body><div id="root"></div>
+PAGE = """<!doctype html><html><body>
+<button class="tab-btn" data-tab="settings" id="tabbtn-settings">Settings</button>
+<button class="tab-btn" data-tab="generator" id="tabbtn-generator">Create</button>
+<div id="root"></div>
 <script type="module">
   import { initRoiTraining } from '/src/roi_training.js';
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => { window.__lastTab = btn.dataset.tab; });
+  });
   initRoiTraining(document.querySelector('#root'));
   window.__ready = true;
 </script></body></html>"""
@@ -116,6 +122,12 @@ def main():
         page.wait_for_function("!document.querySelector('#rt-profile-train').disabled", timeout=5000)
         check("Go profile model shows usable learned scenes",
               "3 usable" in page.locator("#rt-profile-status").inner_text())
+        check("Open Settings (Check availability) button",
+              page.locator("#rt-open-settings").count() == 1)
+        page.click("#rt-open-settings")
+        page.wait_for_function("window.__lastTab === 'settings'", timeout=3000)
+        check("Open Settings jumps to settings tab",
+              page.evaluate("() => window.__lastTab") == "settings")
         page.click("#rt-profile-train")
         page.wait_for_function("window.__calls.includes('train-profile')", timeout=5000)
         check("Go profile model training is wired", True)

@@ -55,6 +55,8 @@ export function initRoiTraining(root) {
         <button id="rt-profile-refresh" type="button">Refresh learning data</button>
         <button id="rt-profile-train" class="primary" type="button" disabled>Train Go profile model</button>
         <button id="rt-open-create" type="button">Generate in Create…</button>
+        <button id="rt-open-settings" type="button"
+          data-help="Settings → Check availability after an ONNX model is in the default or custom path.">Open Settings (Check availability)…</button>
       </div>
       <div class="path-label" id="rt-profile-status">Checking saved scenes…</div>
       <p class="hint" id="rt-profile-path" style="margin:4px 0 0;"></p>
@@ -213,6 +215,11 @@ export function initRoiTraining(root) {
       await refreshMotionProfileModelStatus();
     }
   });
+  el('#rt-open-settings')?.addEventListener('click', () => {
+    const tab = document.querySelector('.tab-btn[data-tab="settings"]');
+    if (tab) tab.click();
+  });
+
   el('#rt-open-create').addEventListener('click', () => {
     document.querySelector('.tab-btn[data-tab="generator"]')?.click();
   });
