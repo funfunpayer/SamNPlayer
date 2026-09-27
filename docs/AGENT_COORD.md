@@ -130,7 +130,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** + Release bookkeeping (SceneMap P3–P5, Look2/3, AIWrite S0/S1, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe, #267) | **THIS** — tag after CI + Owner portable smoke |
-| GuiDiscover | Cursor | THIS | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **THIS** |
+| GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **THIS** |
 | Engine | — | Rel32 + GuiDiscover | Rel32 cut + S1 discoverability; Owner gates unchanged | **OPEN** (two Cursor tips) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
