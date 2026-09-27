@@ -59,13 +59,14 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
     body: `Device — connect Sam Neo 2 / Handy / etc.; connection test optional in Settings.
 Intiface Central — start the server, then Via Intiface Central (empty address = this machine). After a single socket drop, one automatic reconnect is tried; if it stays down, tap Connect again.
 Training — practice patterns without a video (technique, channel, cycles).
-AI Train — label scenes / tip ROIs for helpers (not the stroke writer).`,
+AI Train — label tip ROIs / train ONNX, and Train Go profile model (helpers only — not the stroke writer).`,
   },
   {
     title: 'Settings that matter',
     body: `Open user handbook — this FAQ.
-AI ROI model path — enables Smarter tip find.
+AI ROI model path — enables Smarter tip find. Use Open AI training to jump to the AI Train tab, then Check availability.
 Collect learning data — allows Scene map Export for learning.
+Colibri / AI server URL — optional local prose for Suggest profile (see docs/COLIBRI_SETUP.md).
 
 AI draft model path is not in Settings yet (reserved for a future ONNX writer). Until then, use Export classical run → AI draft script from the imitation library.`,
   },
