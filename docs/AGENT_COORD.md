@@ -143,7 +143,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | USBLive | Cursor | [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) merged | **Intiface liveness** — mark disconnected on write/ping failure | **DONE** on main @ `be5e09b` |
 | USBReconnect | Cursor | [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) merged | **Intiface one-shot reconnect** — one auto Connect after dead socket; no loops | **DONE** (`e369929`) |
 | IntifaceHint | Cursor | [#302](https://github.com/funfunpayer/SamNPlayer/pull/302) merged | **Intiface leftover** — Device/handbook one-shot note; **pingLoop exits** after one-shot (no double keepalive) | **DONE** |
-| SoftSuggest | Cursor | `cursor/soft-suggest-apply-3371` | **Soft-suggest Apply** — load-time profile suggestion mounts Apply (same as click); display Soft/Normal; never auto-Apply | **THIS** |
+| SoftSuggest | Cursor | [#306](https://github.com/funfunpayer/SamNPlayer/pull/306) merged | **Soft-suggest Apply** — load-time profile suggestion mounts Apply (same as click); display Soft/Normal; never auto-Apply | **DONE** |
+| SceneDocsUX | Cursor | `cursor/scenemap-ai-train-ux-3371` | **SceneMap plan narrative** (P5c done) + Settings **Open AI training** deep-link | **THIS** |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | VibSpatial | Cursor | [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) merged | Contact-vib **S2** prefer spatial events (weight spatial over depth; snappy envelope on hits) | **DONE** (`0200815`) |
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
