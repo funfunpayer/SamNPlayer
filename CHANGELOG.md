@@ -20,6 +20,11 @@ measurement history behind each entry; this file is the short version for
   bit-identical, `clip_voll` same r). Off by default.
   Model/teacher list: `docs/VLM_MODELS.md`.
 
+- **Advanced Use contact points (GUI)** — Create → Advanced checkbox + path
+  picker for a teachers JSON when **Rhythm-robust signal** is on; empty/off
+  = bit-identical. Builds the JSON still via CLI (`contact_points.py`); the
+  GUI does not run teachers. Handbook FAQ documents the path.
+
 - **VLM probe exemplar mode** — `vlm_probe.py --exemplar-json/--exemplar`
   shows the model reference frames of the same clip with the contact region
   (green) and no-go regions (red) drawn in, then asks for the same region in

@@ -1,6 +1,6 @@
 # Local VLM teacher → our own detector (plan)
 
-Status: V0 probe/scorer/labels merged (#293, #305). **VLM1 contact points in the engine: this PR.** V1 GUI review, V2, V3 not started.
+Status: V0 probe/scorer/labels merged (#293, #305). **VLM1 engine + GUI shipped** (#312 engine, #316 Advanced Use contact points, #318 handbook). V1 mark-review UI, V2, V3 not started.
 Owner go, 27 Sep 2026: *"The system has to get better. Start if you can,
 check whether it holds up. Best later: our own model that uses the data we
 generated with Qwen & co. Everything is approved — coordinate with Cursor."*
@@ -242,7 +242,8 @@ opt-in:
 - With no points, the input is returned untouched.
 - `generator.Options.ContactPointsFile` / `ContactPointsMinAgree`, and the
   CLI flags `generate --rhythm-grid --contact-points <file>
-  [--contact-min-agree N]`. The GUI switch is Cursor's.
+  [--contact-min-agree N]`. GUI: Create → Advanced → **Use contact points**
+  when Rhythm-robust is on (#316); empty/off = bit-identical.
 - `generator/contact_points.py` asks the teachers (NudeNet and any number
   of `vlm_probe` results), counts agreement, and writes the file. The model
   list is in `docs/VLM_MODELS.md`.

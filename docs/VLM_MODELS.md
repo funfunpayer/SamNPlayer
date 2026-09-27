@@ -13,11 +13,17 @@ licences again at download time.
 ```
 video ─► teacher(s) ─► contact_points.py ─► <clip>.contact.json
                                               │
-generate --rhythm-grid --contact-points <clip>.contact.json [--contact-min-agree 2]
+                    ┌─────────────────────────┴─────────────────────────┐
+                    │ CLI: generate --rhythm-grid --contact-points …    │
+                    │ GUI: Create → Advanced → Rhythm-robust →          │
+                    │      Use contact points → Choose JSON             │
+                    └─────────────────────────┬─────────────────────────┘
                                               │
         rhythm grid searches around the contact point only where the CSRT
         box is > 3 cells away (its own search radius) — elsewhere unchanged
 ```
+
+Build the JSON via CLI; the GUI only picks the path (handbook FAQ).
 
 - `contact_points.py --nudenet --vlm a.vlm.json --vlm b.vlm.json` asks
   several teachers per video (the Owner's idea).
