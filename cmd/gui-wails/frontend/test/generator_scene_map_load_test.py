@@ -50,9 +50,11 @@ def main():
             "map: { version: 1, cols: 4, rows: 4, width: 640, height: 360, "
             f"windows: [{{ startMs: 0, endMs: 8000, tempoHz: 1, score: [{SCORE}], "
             f"chosenCell: -1 }}] }}, "
-            "marks: [{ id: 'm3', kind: 'exclude', "
+            "marks: [{ id: 'm3', kind: 'exclude', follow: true, "
             "rect: { X: 10, Y: 20, W: 30, H: 40 }, "
-            "fromMs: 0, toMs: 8000 }] }; }"
+            "fromMs: 0, toMs: 8000, "
+            "path: [{ ms: 0, rect: { x: 10, y: 20, w: 30, h: 40 } }, "
+            "{ ms: 4000, rect: { x: 80, y: 40, w: 30, h: 40 } }] }] }; }"
         ),
         "ScriptExistsForVideo": "async () => false",
         "GenerateScript": (
@@ -90,6 +92,7 @@ def main():
         label = page.evaluate(
             "() => document.querySelector('#gen-scene-map-marks-label')?.textContent || ''")
         check("Restored exclude mark listed", "ignore@" in label)
+        check("Restored Follow flag shown", "→follow" in label)
 
         status = page.evaluate(
             "() => document.querySelector('#gen-scene-map-status')?.textContent || ''")
