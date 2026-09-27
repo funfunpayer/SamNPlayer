@@ -45,7 +45,7 @@ Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge 
 Still **CLI / advanced / not Everyday GUI:**
 - Whole-frame **4-zone** stroke mode (kept for experiments; weaker on measured clips)
 - Flow tracker as Generate default (CLI)
-- Full AI **draft script** inference (S2+ — button present but disabled until a local model exists)
+- ONNX vision AI **draft script** writer (S2+ model inference — not shipped; imitation draft is available after **Export classical run**)
 
 ### Why is Create better than importing a random Funscript?
 Create tracks the tip in *your* video. Import + **Optimize for Neo 2** polishes foreign scripts (fill gaps → contact → bake) but cannot invent missing tracking.
@@ -61,8 +61,9 @@ Neither re-runs CSRT. Neither invents motion from audio (audio only spaces steps
 ### Can AI write the Funscript?
 **Path is open, opt-in, local only** (`docs/AI_SCRIPT_WRITER.md`):
 - **S0** plan + stub — shipped  
-- **S1** **Export classical run** (Create → **Advanced**) — after a good Create, status reminds you; button enables for offline training samples  
-- **S2+** local model draft → Quality Doctor → Keep (not default)
+- **S1** **Export classical run** (Create → **Advanced**) — after a good Create, status reminds you; builds a local imitation library  
+- **S2-imitation** — with ≥1 export, **AI draft script** stretches the best duration + tip-aspect match → Quality Doctor → Keep/Discard (experimental; not Everyday default)  
+- ONNX vision draft writer — not shipped yet
 
 Cloud “ChatGPT writes positions” is **out of product**.
 
@@ -119,7 +120,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | AI ROI model path | Enables *Smarter tip find* |
 | Collect learning data | Allows Scene map **Export for learning** |
 
-**Not in Settings yet (S2+):** AI draft model path — reserved Go key `generator.aiScriptModelPath`; Create Advanced draft stays disabled until S2 inference + a Settings picker.
+**Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
 
 ---
 
@@ -144,7 +145,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Camera pans drift | Camera motion compensation · Fix contact area (static) off |
 | Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in) |
 | Audio “wrong tempo” | Warn only — fix ROI/axis; does not rewrite curve |
-| AI draft greyed out | Expected until S2 model — use **Export classical run** for S1 |
+| AI draft greyed out | **Export classical run** once after Create (≥1 sample), then draft enables — ONNX model path not required for imitation |
 
 ---
 
