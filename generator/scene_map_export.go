@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strconv"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -389,7 +389,6 @@ func writeJSON(path string, v any) error {
 	return os.WriteFile(path, append(data, '\n'), 0o644)
 }
 
-
 // writeReviewedYOLO writes a review-gated YOLO detection set beside the L0
 // artifacts. It deliberately does not write into the trainer's labels/train
 // tree: P5c produces reviewable data; a later explicit training/import step
@@ -452,8 +451,12 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 	yoloDir = filepath.Join(clipDir, "reviewed_yolo")
 	imgDir := filepath.Join(yoloDir, "images")
 	lblDir := filepath.Join(yoloDir, "labels")
-	if err := os.MkdirAll(imgDir, 0o755); err != nil { return 0, 0, "", err }
-	if err := os.MkdirAll(lblDir, 0o755); err != nil { return 0, 0, "", err }
+	if err := os.MkdirAll(imgDir, 0o755); err != nil {
+		return 0, 0, "", err
+	}
+	if err := os.MkdirAll(lblDir, 0o755); err != nil {
+		return 0, 0, "", err
+	}
 
 	for i, s := range samples {
 		name := fmt.Sprintf("mark_%04d_%d", i, s.atMs)
@@ -476,7 +479,7 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 		yc := (float64(y0+y1) / 2) / float64(h)
 		wn := float64(x1-x0) / float64(w)
 		hn := float64(y1-y0) / float64(h)
-		line := strconv.Itoa(classID)+" "+fmt.Sprintf("%.6f %.6f %.6f %.6f\n", xc, yc, wn, hn)
+		line := strconv.Itoa(classID) + " " + fmt.Sprintf("%.6f %.6f %.6f %.6f\n", xc, yc, wn, hn)
 		if err := os.WriteFile(filepath.Join(lblDir, name+".txt"), []byte(line), 0o644); err != nil {
 			return frames, labels, yoloDir, err
 		}
@@ -489,9 +492,18 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 	return frames, labels, yoloDir, nil
 }
 
-func minInt(a, b int) int { if a < b { return a }; return b }
-func maxInt(a, b int) int { if a > b { return a }; return b }
-
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
 
 func reviewedYOLOMarks(marks []funscript.SceneMapMark) []funscript.SceneMapMark {
 	out := make([]funscript.SceneMapMark, 0, len(marks))

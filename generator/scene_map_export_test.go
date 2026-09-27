@@ -83,7 +83,6 @@ func TestExportSceneMapLearningNoAgreementNoAuto(t *testing.T) {
 	}
 }
 
-
 func TestReviewedYOLOEligibilityGate(t *testing.T) {
 	reviewed := true
 	unreviewed := false
