@@ -83,6 +83,26 @@ func TestExportSceneMapLearningNoAgreementNoAuto(t *testing.T) {
 	}
 }
 
+
+func TestReviewedYOLOEligibilityGate(t *testing.T) {
+	reviewed := true
+	unreviewed := false
+	marks := []funscript.SceneMapMark{
+		{ID: "user", Kind: "region", Class: "glans", Rect: []int{10, 20, 30, 40}, Author: "user"},
+		{ID: "auto-no-flag", Kind: "region", Class: "penis", Rect: []int{10, 20, 30, 40}, Author: "auto"},
+		{ID: "auto-false", Kind: "region", Class: "penis", Rect: []int{10, 20, 30, 40}, Author: "auto", Reviewed: &unreviewed},
+		{ID: "auto-true", Kind: "region", Class: "penis", Rect: []int{10, 20, 30, 40}, Author: "auto", Reviewed: &reviewed},
+		{ID: "exclude", Kind: "exclude", Class: "face", Rect: []int{10, 20, 30, 40}, Author: "user"},
+	}
+	got := reviewedYOLOMarks(marks)
+	if len(got) != 2 {
+		t.Fatalf("eligible marks = %d, want 2", len(got))
+	}
+	if got[0].ID != "user" || got[1].ID != "auto-true" {
+		t.Fatalf("eligible IDs = %q, %q", got[0].ID, got[1].ID)
+	}
+}
+
 func TestDeleteSceneMapLearningDataPreservesSibling(t *testing.T) {
 	root := t.TempDir()
 	learn := filepath.Join(root, SceneMapLearningSubdir, "clip_x")
