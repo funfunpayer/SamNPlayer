@@ -17,14 +17,11 @@ import "math"
 // against both FunGen references through the production post pipeline
 // (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed r
 // 0.386/0.552 -> 0.411/0.767, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
-// The per-shot identity lock below (Manus/#248, 24 Sep) changed the
-// mechanism - re-measured on the same two clips (docs/AGENT_COORD.md,
-// 26 Sep, "identity-lock regression"): clip_voll 0.427/0.626, clip_ausschnitt
-// 0.383/0.666. The lock trades some of that gain (adaptive re-centering
-// within the search radius as the box drifts a little) for a guarantee the
-// original numbers didn't need on these two clips (never jumping onto a
-// stronger, distant, wrong body part) - see that entry before changing
-// rhythmSeedMarginCells or the re-lock rule.
+// The per-shot identity lock (Manus/#248, 24 Sep) then cost part of that
+// (clip_voll 0.427/0.626, clip_ausschnitt 0.383/0.666): it kept the cell
+// nearest the ROI centre even after its rhythm died. With the lock release
+// (rhythmLockReleaseFactor, 27 Sep): 0.455/0.752 and 0.486/0.887 - at or
+// above the pre-lock numbers, #248's adjacent-thigh protection intact.
 //
 // Scene map (P1 / docs/SCENE_MAP_PLAN.md): the same scoring is exposed as a
 // SceneMap so the GUI can show the heatmap and later honour user marks.
@@ -51,6 +48,19 @@ const (
 	rhythmSignMinR = 0.1
 	// Seed margin for first-cell identity (Manus #248 target lock).
 	rhythmSeedMarginCells = 0.35
+	// rhythmLockReleaseFactor: the identity lock is released when the locked
+	// cell's rhythm score falls below 1/this of the strongest cell in the
+	// search radius around the current box; that cell is then locked
+	// instead. Seeding takes the cell nearest the ROI centre, which on real
+	// clips is often on the breast/hand beside the stroke, and its rhythm
+	// dies ~50x below the cleavage cell as the scene moves on. Real
+	// clip_voll / clip_ausschnitt (real Go TrackROI): windowed r vs FunGen
+	// 0.427/0.626 -> 0.455/0.752 and 0.383/0.666 -> 0.486/0.887, 12/12 windows oriented
+	// with the YOLO reference (11/12 locked). An adjacent "thigh" at 3-4x
+	// the target amplitude is only ~9-16x its score, so 30 keeps the #248
+	// hijack protection (tests below); 10 already loses it. 20-50 measured
+	// similar on the goldens (docs/AGENT_COORD.md, 27 Sep, IdLock).
+	rhythmLockReleaseFactor = 30.0
 	// rhythmSourceScoreFactor: prefer a source-hint cell unless its score
 	// is below this × the best eligible cell outside the hint (M3).
 	rhythmSourceScoreFactor = 0.5
@@ -327,6 +337,12 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 			if best >= 0 {
 				bestS = score[best]
 			}
+		} else if top := strongestCellInRadius(score, gw, cellW, cellH, radius,
+			cx[mid], cy[mid], cellExcluded); top >= 0 &&
+			(best < 0 || score[top] > rhythmLockReleaseFactor*score[best]) {
+			// Locked cell went (nearly) silent: hand identity to the strongest
+			// cell near the box. best < 0 = locked cell scored 0 this window.
+			best, bestS = top, score[top]
 		}
 		w.ChosenCell = best
 		if best < 0 {
@@ -382,6 +398,24 @@ func chooseAndStitch(m *SceneMap, cellV [][]float32, gw, gh int, width, height i
 		out[i] = out[i-1] + v[i]
 	}
 	return out
+}
+
+// strongestCellInRadius returns the highest-scoring non-excluded cell whose
+// centre lies within radius of (bx, by), or -1.
+func strongestCellInRadius(score []float64, gw int, cellW, cellH, radius, bx, by float64,
+	excluded func(int) bool) int {
+	best, bestS := -1, 0.0
+	for c, s := range score {
+		if s <= bestS || excluded(c) {
+			continue
+		}
+		px := (float64(c%gw) + 0.5) * cellW
+		py := (float64(c/gw) + 0.5) * cellH
+		if math.Hypot(px-bx, py-by) <= radius {
+			best, bestS = c, s
+		}
+	}
+	return best
 }
 
 // activeMarkFilter returns exclude/source rects active at midMs and the IDs

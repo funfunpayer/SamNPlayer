@@ -57,6 +57,18 @@ measurement history behind each entry; this file is the short version for
   Ignore / Enforcement untouched. Design: project store
   `docs/vibration-contact-model.md` (#279).
 
+### Changed
+
+- **Rhythm grid: identity lock releases a dead cell** (opt-in rhythm-robust
+  signal only). The per-shot lock (#248) kept the cell nearest the ROI centre
+  for the whole shot, even when that cell (often breast/hand beside the
+  stroke) went quiet; it now hands over to the strongest cell in the search
+  radius once the locked cell scores below 1/30 of it. The #248 protection
+  against a stronger adjacent thigh (3–4× amplitude) is unchanged. Windowed r
+  vs FunGen: `clip_voll` 0.427/0.626 → 0.455/0.752, `clip_ausschnitt`
+  0.383/0.666 → 0.486/0.887; all windows oriented with the YOLO reference.
+  Everyday CSRT and the rhythm-grid default (off) unchanged.
+
 ## [0.5.33] — September 27, 2026
 
 ### Added
