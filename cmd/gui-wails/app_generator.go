@@ -116,6 +116,9 @@ type GenerateOptions struct {
 	CaptureTrajectory bool `json:"captureTrajectory"`
 	// RhythmGrid: opt-in drift-robust stroke signal (Go CSRT single ROI).
 	RhythmGrid bool `json:"rhythmGrid"`
+	// ContactPointsFile: contact_points.py JSON; only used with RhythmGrid.
+	// Empty = off (bit-identical). GUI opt-in; never a silent default.
+	ContactPointsFile string `json:"contactPointsFile"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -509,6 +512,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			FlowDownscale:             opts.FlowDownscale,
 			CaptureTrajectory:         opts.CaptureTrajectory,
 			RhythmGrid:                opts.RhythmGrid,
+			ContactPointsFile:         opts.ContactPointsFile,
 			DetrendWindowMs:           0,
 			BandpassLowHz:             0,
 			BandpassHighHz:            0,
