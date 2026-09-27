@@ -159,6 +159,8 @@ export function OpenLogFolder():Promise<void>;
 
 export function PickBenchmarkManifest():Promise<string>;
 
+export function PickContactPointsFile():Promise<string>;
+
 export function PickFunscriptFile():Promise<string>;
 
 export function PickPlaybackProject():Promise<string>;

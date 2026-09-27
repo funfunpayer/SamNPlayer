@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -223,6 +223,14 @@ export function initGenerator(root, playback) {
             data-help="Experiment: contact vibration only on strong peaks (impulse curve) instead of a continuous depth fill. Opt-in Advanced only — Everyday Soft onset stays default. Does not change stroke CSRT, Follow/Ignore marks, or Enforcement.">Peak-emphasis contact vib (impulse, experiment)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
+            data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build the JSON via CLI (generator/contact_points.py); NudeNet optional. Never a default.">Use contact points (teachers JSON)</label></div>
+          <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
+            <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
+              data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
+            <button type="button" class="secondary" id="gen-contact-points-pick" disabled
+              data-help="Choose an existing contact_points.py JSON. Does not run teachers from the GUI.">Choose…</button>
+          </div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
             Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best duration + tip-aspect match for review. Keep required — CSRT path unchanged.
@@ -1945,6 +1953,11 @@ export function initGenerator(root, playback) {
       audioCheck: el('#gen-audio-check').checked,
       captureTrajectory: !!el('#gen-capture-trajectory')?.checked,
       rhythmGrid: !!el('#gen-rhythm-grid')?.checked,
+      contactPointsFile: (
+        !!el('#gen-rhythm-grid')?.checked
+        && !!el('#gen-contact-points')?.checked
+        && (el('#gen-contact-points-path')?.value || '').trim()
+      ) || '',
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     // Contact marks: persist when Contact vib is on (or legacy Tf/Tj distance).
@@ -2998,6 +3011,36 @@ export function initGenerator(root, playback) {
   el('#gen-roi2-fixed')?.addEventListener('change', () => {
     el('#gen-roi2-fixed').dataset.userTouched = '1';
   });
+
+  function syncContactPointsUi() {
+    const rhythmOn = !!el('#gen-rhythm-grid')?.checked;
+    const usePts = el('#gen-contact-points');
+    const row = el('#gen-contact-points-row');
+    const path = el('#gen-contact-points-path');
+    const pick = el('#gen-contact-points-pick');
+    if (!usePts) return;
+    usePts.disabled = !rhythmOn;
+    if (!rhythmOn) {
+      usePts.checked = false;
+    }
+    const show = rhythmOn && usePts.checked;
+    if (row) row.style.display = show ? 'flex' : 'none';
+    if (path) path.disabled = !show;
+    if (pick) pick.disabled = !show;
+  }
+  el('#gen-rhythm-grid')?.addEventListener('change', syncContactPointsUi);
+  el('#gen-contact-points')?.addEventListener('change', syncContactPointsUi);
+  el('#gen-contact-points-pick')?.addEventListener('click', async () => {
+    try {
+      const p = await PickContactPointsFile();
+      if (p && el('#gen-contact-points-path')) {
+        el('#gen-contact-points-path').value = p;
+      }
+    } catch (err) {
+      uiError('Choose contact points: ' + err, el('#gen-status'));
+    }
+  });
+  syncContactPointsUi();
 
   updateContactVibrationOpts();
   syncWorkflowSteps();

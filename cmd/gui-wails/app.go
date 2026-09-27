@@ -148,6 +148,17 @@ func (a *App) PickBenchmarkManifest() (string, error) {
 	})
 }
 
+// PickContactPointsFile chooses a contact_points.py JSON for VLM1 rhythm-grid
+// steering (Options.ContactPointsFile). Opt-in only; empty = off.
+func (a *App) PickContactPointsFile() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose contact points JSON",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Contact points (*.json)", Pattern: "*.json;*.contact.json"},
+		},
+	})
+}
+
 // --- Video-Auto-Match (dieselbe Logik wie vorher in der Fyne-GUI) ---
 
 func findMatchingVideo(scriptPath string) (string, bool) {
