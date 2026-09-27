@@ -883,6 +883,13 @@ export function initGenerator(root, playback) {
         const followRaw = m.follow ?? m.Follow;
         // Legacy marks had no follow flag — exclude/source should track by default.
         const follow = followRaw != null ? !!followRaw : (kind === 'exclude' || kind === 'source');
+        const rawPath = m.path || m.Path || [];
+        const path = Array.isArray(rawPath)
+          ? rawPath.map((p) => ({
+              ms: p.ms ?? p.Ms ?? 0,
+              rect: sceneMapRect(p.rect || p.Rect),
+            })).filter((p) => (p.rect?.w || 0) > 0 && (p.rect?.h || 0) > 0)
+          : [];
         return {
           id: m.id || m.ID || '',
           kind,
@@ -892,6 +899,7 @@ export function initGenerator(root, playback) {
           class: m.class || m.Class || '',
           author: m.author || m.Author || 'user',
           follow,
+          path,
         };
       }).filter((m) => m.kind || m.id);
       let maxSeq = 0;
@@ -922,7 +930,29 @@ export function initGenerator(root, playback) {
     return `rgba(${r},${g},${b},0.35)`;
   }
 
-  function drawSceneMapOverlay() {
+  // Mirror trackcv.sceneMarkActive / sceneMarkRectAt for Create preview scrub.
+  function sceneMarkActiveAt(m, atMs) {
+    if ((m.fromMs || 0) === 0 && (m.toMs || 0) === 0) return true;
+    return atMs >= (m.fromMs || 0) && atMs <= (m.toMs == null ? Infinity : m.toMs);
+  }
+
+  // Nearest Follow Path sample at scrub time; static Rect when Path empty (Stay fixed / pre-Create).
+  function sceneMarkRectAt(m, atMs) {
+    const path = Array.isArray(m.path) ? m.path : [];
+    if (!path.length) return m.rect;
+    let best = path[0];
+    let bestDist = Math.abs(atMs - (best.ms || 0));
+    for (let i = 1; i < path.length; i++) {
+      const d = Math.abs(atMs - (path[i].ms || 0));
+      if (d < bestDist) {
+        best = path[i];
+        bestDist = d;
+      }
+    }
+    return best.rect || m.rect;
+  }
+
+  function drawSceneMapHeatmap() {
     if (!lastSceneMap || !el('#gen-scene-map-overlay')?.checked) return;
     if (!nativeW || !nativeH || !canvas.width) return;
     const win = activeSceneMapWindow();
@@ -950,15 +980,28 @@ export function initGenerator(root, playback) {
       ctx.strokeRect(cc * cellW * scaleX, cr * cellH * scaleY, cellW * scaleX, cellH * scaleY);
     }
     ctx.restore();
+  }
+
+  // S1: draw Ignore/source/region marks at Create scrub time using Follow Path
+  // from restored .samn (not the static paint Rect). Heatmap off still shows marks.
+  function drawSceneMapMarks() {
+    if (!sceneMapMarks.length || !nativeW || !nativeH || !canvas.width) return;
+    const atMs = Math.round((seekSec || 0) * 1000);
     for (const m of sceneMapMarks) {
-      const mid = ((win.startMs || 0) + (win.endMs || 0)) / 2;
-      if (mid < (m.fromMs || 0) || mid > (m.toMs == null ? Infinity : m.toMs)) continue;
+      if (!sceneMarkActiveAt(m, atMs)) continue;
+      const rect = sceneMarkRectAt(m, atMs);
+      if (!rect || !(rect.w > 0) || !(rect.h > 0)) continue;
       const stroke = m.kind === 'exclude' ? '#111111'
         : m.kind === 'source' ? '#3dccc0' : '#f2b03d';
       const fill = m.kind === 'exclude' ? 'rgba(0,0,0,0.35)'
         : (stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)');
-      drawNativeRect(m.rect, stroke, fill, m.kind === 'exclude');
+      drawNativeRect(rect, stroke, fill, m.kind === 'exclude');
     }
+  }
+
+  function drawSceneMapOverlay() {
+    drawSceneMapHeatmap();
+    drawSceneMapMarks();
   }
 
   function setSceneMapMarkMode(on) {
@@ -1833,15 +1876,27 @@ export function initGenerator(root, playback) {
       payload.maskRois = maskRois.map(m => ({ x: m.x, y: m.y, w: m.w, h: m.h }));
     }
     if (sceneMapMarks.length) {
-      payload.sceneMapMarks = sceneMapMarks.map(m => ({
-        id: m.id || '',
-        kind: m.kind || '',
-        rect: { x: m.rect.x, y: m.rect.y, w: m.rect.w, h: m.rect.h },
-        fromMs: m.fromMs || 0,
-        toMs: m.toMs || 0,
-        class: m.class || '',
-        follow: !!m.follow,
-      }));
+      payload.sceneMapMarks = sceneMapMarks.map(m => {
+        const out = {
+          id: m.id || '',
+          kind: m.kind || '',
+          rect: { x: m.rect.x, y: m.rect.y, w: m.rect.w, h: m.rect.h },
+          fromMs: m.fromMs || 0,
+          toMs: m.toMs || 0,
+          class: m.class || '',
+          follow: !!m.follow,
+        };
+        if (Array.isArray(m.path) && m.path.length) {
+          out.path = m.path.map((p) => ({
+            ms: p.ms || 0,
+            rect: {
+              x: p.rect?.x || 0, y: p.rect?.y || 0,
+              w: p.rect?.w || 0, h: p.rect?.h || 0,
+            },
+          }));
+        }
+        return out;
+      });
     }
     GenerateScript(payload);
   }
