@@ -2449,7 +2449,7 @@ export function initGenerator(root, playback) {
           || 'Create finished — Export classical run saves a local training sample (S1). Draft unlocks after ≥1 export.';
       } else if (hint && available) {
         hint.textContent = reason
-          || 'Imitation library ready. AI draft stretches the best match — review QD, then Keep or Discard. Everyday CSRT unchanged.';
+          || 'Imitation library ready. AI draft stretches the best duration + tip-aspect match — review QD, then Keep or Discard. Everyday CSRT unchanged.';
       }
     }).catch(() => {
       draft.disabled = true;
