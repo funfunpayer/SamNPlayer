@@ -129,7 +129,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | AIScript | ChatGPT → Cursor | [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Local script-model foundation** — Go profilemodel + AI Training | **DONE** (`v0.5.31`) |
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
-| Engine | — | free | Look2+GuiLoad+AIWrite+GapHeal+Refine+BookmarksUI+ChaptersUI on main; Owner gates unchanged | **OPEN** |
+| Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** + Release bookkeeping (SceneMap P3–P5, Look2/3, AIWrite S0/S1, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe, #267) | **THIS** — tag after CI + Owner portable smoke |
+| GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **THIS** |
+| Engine | — | Rel32 + GuiDiscover | Rel32 cut + S1 discoverability; Owner gates unchanged | **OPEN** (two Cursor tips) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -150,6 +152,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (27 Sep):**
+- **In flight:** **Rel32** [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) (version bump); **GuiDiscover** THIS — AIWrite S1 Export classical discoverability after Create.
+- **GUI-load audit (27 Sep):** Heal / SceneMap learning export / Bookmarks / Chapters / Load project / Scale range / AIWrite S0+S1 controls already wired. Remaining unimported Go APIs are superseded (`LabelScene`→`WithProfile`, `BootstrapRoiTrainingSample`→`Regions`, `SuggestOZone`→`ApplySuggestedOZone`, `GetVibrationCurve`→`Preview`) or Owner/G4 (`LicenseAllowsFullFeatures`, `SupportSignalsAvailable`).
+- **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
+- **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips (identity-lock); G1.3; G3.4 fuse / Pose B; AIWrite S2+ default.
+- **Roadmap stage:** G0/G1 classical package largely shipped; next Owner gates block G1 exit + G2.2+ / G4.
+- **Parked:** LosslessCut; #264 Virtual Person; Website ON HOLD.
+- **ChatGPT:** steward welcome.
 
 **Status board (26 Sep night):**
 - **Shipped:** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); AIWrite S0 [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); GapHeal [#262](https://github.com/funfunpayer/SamNPlayer/pull/262); **Refine** [#263](https://github.com/funfunpayer/SamNPlayer/pull/263); **BookmarksUI** [#266](https://github.com/funfunpayer/SamNPlayer/pull/266); **ChaptersUI** [#269](https://github.com/funfunpayer/SamNPlayer/pull/269).

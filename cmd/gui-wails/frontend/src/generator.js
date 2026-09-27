@@ -216,11 +216,11 @@ export function initGenerator(root, playback) {
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. Export classical good runs for training (S1), then later install a local draft model (S2+).
+            Everyday Create still uses CSRT. After a good Create, use <b>Export classical run</b> (S1) here; AI draft stays off until a local model (S2+).
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="secondary" id="gen-ai-script-export"
-              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Use after a good run.">Export classical run</button>
+            <button type="button" class="secondary" id="gen-ai-script-export" disabled
+              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
               data-help="Experimental: local AI drafts a stroke curve for review. Off until a draft model is installed. Does not replace CSRT Create. Require Keep after Quality Doctor (planned S3).">AI draft script</button>
             <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
@@ -2127,6 +2127,9 @@ export function initGenerator(root, playback) {
       const e = Math.round(result.oZoneMarkerEndMs / 1000);
       el('#gen-status').textContent += ` — O-marker set: ${s}s–${e}s`;
     }
+    // S1 discoverability (GUI load): Export classical run lives under Advanced.
+    el('#gen-status').textContent +=
+      ' — Advanced → Export classical run saves a local AI-training sample (S1).';
 
     const qualityBox = el('#gen-quality');
     if (typeof result.qualityScore === 'number') {
@@ -2301,8 +2304,9 @@ export function initGenerator(root, playback) {
     const exportBtn = el('#gen-ai-script-export');
     const status = el('#gen-ai-script-status');
     const hint = el('#gen-ai-script-hint');
+    const canExport = !!lastOutputPath;
     if (exportBtn) {
-      exportBtn.disabled = !lastOutputPath;
+      exportBtn.disabled = !canExport;
     }
     if (!draft) return;
     AIScriptWriterStatus().then((st) => {
@@ -2311,16 +2315,28 @@ export function initGenerator(root, playback) {
       const stage = (st && (st.stage || st.Stage)) || 'S0';
       draft.disabled = !available || !videoPath;
       if (status) {
-        status.textContent = available
-          ? `Ready (${stage})`
-          : (reason || `Not available (${stage})`);
+        const exportBit = canExport
+          ? 'Export classical run ready'
+          : 'Export classical run after Create';
+        const draftBit = available
+          ? `draft Ready (${stage})`
+          : (reason || `draft not available (${stage})`);
+        status.textContent = `${exportBit} · ${draftBit}`;
       }
-      if (hint && reason && !available) {
-        hint.textContent = reason;
+      if (hint && !canExport) {
+        hint.textContent =
+          'Everyday Create still uses CSRT. After a good Create, use Export classical run (S1) here; AI draft stays off until a local model (S2+).';
+      } else if (hint && canExport && !available) {
+        hint.textContent = reason
+          || 'Create finished — Export classical run saves a local training sample (S1). Draft stays off until S2.';
       }
     }).catch(() => {
       draft.disabled = true;
-      if (status) status.textContent = 'AI draft status unavailable';
+      if (status) {
+        status.textContent = canExport
+          ? 'Export classical run ready · AI draft status unavailable'
+          : 'Export classical run after Create · AI draft status unavailable';
+      }
     });
   }
   refreshAIScriptWriterUI();
