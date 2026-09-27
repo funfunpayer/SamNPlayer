@@ -134,14 +134,14 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
 | AIWriteS2 | Cursor | [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) merged | **AIWrite S2-imitation + Keep** — draft from exported classical library; QD + Keep/Discard | **DONE** on main @ `4719b04` |
 | AIWriteS2b | Cursor | [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) merged | **AIWrite tip-aspect match** — PickBestSample prefers tip w/h + duration + QD | **DONE** (`2c3d82e`) |
-| AIWriteS3prev | Cursor | **THIS** | **AIWrite S3 draft curve preview** — Create 0–100 gauge shows pending draft before Keep; Discard restores CSRT curve | **THIS** |
+| AIWriteS3prev | Cursor | [#288](https://github.com/funfunpayer/SamNPlayer/pull/288) merged | **AIWrite S3 draft curve preview** — Create 0–100 gauge shows pending draft before Keep; Discard restores CSRT curve | **DONE** (`0132662`) |
 | USBLive | Cursor | [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) merged | **Intiface liveness** — mark disconnected on write/ping failure | **DONE** on main @ `be5e09b` |
 | USBReconnect | Cursor | [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) merged | **Intiface one-shot reconnect** — one auto Connect after dead socket; no loops | **DONE** (`e369929`) |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | VibSpatial | Cursor | [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) merged | Contact-vib **S2** prefer spatial events (weight spatial over depth; snappy envelope on hits) | **DONE** (`0200815`) |
 | MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
 | MarksS3 | Cursor | [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) merged | **Marks S3 / L1 exclude suggest** — Suggest ignores from Collect `exclude_decisions.jsonl` (suggest-only; ≥3 clips) | **DONE** (`601e685`) |
-| IdLock | Claude | [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) flagged → `claude/idlock-release` | **Identity-lock golden regression** — measured relax-vs-accept: **release rule** (lock kept unless locked cell < 1/30 of strongest in radius) recovers both goldens, #248 thigh tests still pass | **PR open** — Owner merge = decision (opt-in rhythm grid only) |
+| IdLock | Claude | [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) → [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) merged | **Identity-lock release** — quiet locked cell (<1/30 strongest in radius) hands over; #248 thigh tests pass; opt-in rhythm grid only | **DONE** (`964176b`) |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -167,12 +167,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (27 Sep — AIWrite draft curve preview):**
-- **In flight:** **AIWriteS3prev** Create 0–100 gauge shows pending AI draft before Keep (this PR). Everyday CSRT / Rhythm / Enforcement / identity-lock untouched. No Rel34. #275 / Contact-vib S3 held.
-- **Shipped:** Intiface one-shot [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) @ `e369929`; Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) @ `601e685`; Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284); Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283); tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282); Intiface liveness [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); Rel33 tag **`v0.5.33`**.
-- **Claude:** IdLock measured — release rule PR `claude/idlock-release` (goldens 0.455/0.752 + 0.486/0.887, #248 tests pass); Owner merge decides. ≥4–5 rhythm clips gate still Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; #275.
-- **ChatGPT:** steward welcome.
+**Status board (27 Sep — AIWriteS3prev DONE + IdLock #287 on main):**
+- **In flight:** (none this Cursor PR — board hygiene only). Rel34 VERSION/tag owned by Rel34 worker — do not bump here. Everyday CSRT / Rhythm default / Enforcement untouched.
+- **Shipped:** AIWrite S3 preview [#288](https://github.com/funfunpayer/SamNPlayer/pull/288) @ `0132662`; IdLock [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) @ `964176b`; Intiface one-shot [#286](https://github.com/funfunpayer/SamNPlayer/pull/286); Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285); Rel33 tag **`v0.5.33`**.
+- **Claude:** IdLock **DONE** on main. ≥4–5 rhythm clips / default-on still Owner.
+- **Still Owner-gated:** Rel34 cut (other worker); speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; #275.
+- **ChatGPT:** steward welcome; E-learnAudit SceneMap P5 CLAIMED.
 
 **Status board (27 Sep — Intiface one-shot reconnect):**
 - **In flight:** (superseded — USBReconnect merged @ `e369929`)
