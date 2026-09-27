@@ -167,6 +167,14 @@ type Options struct {
 	// against gradual CSRT drift on long clips (trackcv/rhythm_grid.go).
 	// Opt-in; Go CSRT single-ROI stroke path only, ignored elsewhere.
 	RhythmGrid bool
+	// ContactPointsFile is a contact_points.py result (local teachers such
+	// as NudeNet / a VLM probe). With RhythmGrid on, the grid searches around
+	// those points wherever the CSRT box is out of reach (> 3 cells) - e.g.
+	// the box sits on a head in a multi-person shot. Empty = off; ignored
+	// without RhythmGrid. ContactPointsMinAgree keeps only points that many
+	// teachers agreed on (0/1 = all).
+	ContactPointsFile     string
+	ContactPointsMinAgree int
 }
 
 // SceneMark is an Advanced scene-map annotation passed into Generate (M3).

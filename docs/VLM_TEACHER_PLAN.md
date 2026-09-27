@@ -1,6 +1,6 @@
 # Local VLM teacher → our own detector (plan)
 
-Status: **V0 probe tool + scorer + golden reference labels in this PR** (Claude). V1+ not started.
+Status: V0 probe/scorer/labels merged (#293, #305). **VLM1 contact points in the engine: this PR.** V1 GUI review, V2, V3 not started.
 Owner go, 27 Sep 2026: *"The system has to get better. Start if you can,
 check whether it holds up. Best later: our own model that uses the data we
 generated with Qwen & co. Everything is approved — coordinate with Cursor."*
@@ -229,6 +229,29 @@ Conclusion:
 **Where V0 runs:** on the Owner's PC. The cloud session cannot download
 weights, because its network policy blocks huggingface.co. The Owner runs
 one command and sends back the `.vlm.json` (text only, no frames).
+
+### VLM1 — contact points in the engine (Claude, 27 Sep; Owner + Cursor OK)
+
+This is what the multi-person evidence asked for, and it is now built,
+opt-in:
+- `trackcv.Options.ContactPoints` (normalized, video time) plus
+  `ContactHoldMs` (default 1 s).
+- Per frame, the nearest point replaces the rhythm grid's search centre,
+  **only while the CSRT box is further than the search radius (3 cells)
+  from it**.
+- With no points, the input is returned untouched.
+- `generator.Options.ContactPointsFile` / `ContactPointsMinAgree`, and the
+  CLI flags `generate --rhythm-grid --contact-points <file>
+  [--contact-min-agree N]`. The GUI switch is Cursor's.
+- `generator/contact_points.py` asks the teachers (NudeNet and any number
+  of `vlm_probe` results), counts agreement, and writes the file. The model
+  list is in `docs/VLM_MODELS.md`.
+
+Measured with NudeNet alone, fully automatic, through real Go `TrackROI`:
+- `clip_ausschnitt`: bit-identical to the run without points.
+- The other results are in the PR.
+
+The ≥ 4–5 clip gate still applies before this is ever on by default.
 
 ### V1 — VLM proposals as marks (Cursor, after V0 passes)
 

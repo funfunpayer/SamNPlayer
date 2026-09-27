@@ -3,6 +3,14 @@ package trackcv
 // Rect is a pixel-space axis-aligned box (x, y, w, h).
 type Rect struct{ X, Y, W, H int }
 
+// ContactPoint is where a teacher (NudeNet, a VLM, later our own detector)
+// saw the stroke contact at time Ms (video time), in normalized frame
+// coordinates 0..1. See Options.ContactPoints / docs/VLM_TEACHER_PLAN.md.
+type ContactPoint struct {
+	Ms   int64
+	X, Y float64
+}
+
 // MarkSample is one Follow-path sample (pixel box at time Ms).
 type MarkSample struct {
 	Ms   int64
