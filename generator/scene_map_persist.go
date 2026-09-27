@@ -69,14 +69,19 @@ func sceneMarksToPersist(marks []SceneMark) []funscript.SceneMapMark {
 			author = "user"
 		}
 		pm := funscript.SceneMapMark{
-			ID:     m.ID,
-			Kind:   m.Kind,
-			Rect:   []int{m.Rect.X, m.Rect.Y, m.Rect.W, m.Rect.H},
-			FromMs: m.FromMs,
-			ToMs:   m.ToMs,
-			Class:  m.Class,
-			Author: author,
-			Follow: m.Follow,
+			ID:         m.ID,
+			Kind:       m.Kind,
+			Rect:       []int{m.Rect.X, m.Rect.Y, m.Rect.W, m.Rect.H},
+			FromMs:     m.FromMs,
+			ToMs:       m.ToMs,
+			Class:      m.Class,
+			Author:     author,
+			Confidence: m.Confidence,
+			Follow:     m.Follow,
+		}
+		if m.Reviewed != nil {
+			v := *m.Reviewed
+			pm.Reviewed = &v
 		}
 		if len(m.Path) > 0 {
 			pm.Path = make([]funscript.SceneMapMarkSample, len(m.Path))

@@ -973,7 +973,7 @@ export function initGenerator(root, playback) {
               rect: sceneMapRect(p.rect || p.Rect),
             })).filter((p) => (p.rect?.w || 0) > 0 && (p.rect?.h || 0) > 0)
           : [];
-        return {
+        const out = {
           id: m.id || m.ID || '',
           kind,
           rect: sceneMapRect(m.rect || m.Rect),
@@ -984,6 +984,13 @@ export function initGenerator(root, playback) {
           follow,
           path,
         };
+        // M5 / P5c: keep reviewed+confidence through companion restore so a
+        // later Generate→.samn write does not drop auto-reviewed flags.
+        const conf = m.confidence ?? m.Confidence;
+        if (typeof conf === 'number' && conf > 0) out.confidence = conf;
+        const rev = m.reviewed ?? m.Reviewed;
+        if (typeof rev === 'boolean') out.reviewed = rev;
+        return out;
       }).filter((m) => m.kind || m.id);
       let maxSeq = 0;
       for (const m of sceneMapMarks) {
@@ -1982,6 +1989,12 @@ export function initGenerator(root, playback) {
           author: m.author || 'user',
           follow: !!m.follow,
         };
+        if (typeof m.confidence === 'number' && m.confidence > 0) {
+          out.confidence = m.confidence;
+        }
+        if (typeof m.reviewed === 'boolean') {
+          out.reviewed = m.reviewed;
+        }
         if (Array.isArray(m.path) && m.path.length) {
           out.path = m.path.map((p) => ({
             ms: p.ms || 0,

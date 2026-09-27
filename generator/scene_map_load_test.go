@@ -96,6 +96,62 @@ func TestLoadSceneMapBesideVideo(t *testing.T) {
 	}
 }
 
+func TestSceneMarkReviewedConfidenceRoundTrip(t *testing.T) {
+	// P5c follow-up: funscript.SceneMapMark already has Reviewed/Confidence;
+	// generator persist/load must not drop them on GUI companion round-trip.
+	reviewed := true
+	marks := []SceneMark{{
+		ID: "auto1", Kind: "region",
+		Rect:   ROI{X: 10, Y: 20, W: 30, H: 40},
+		FromMs: 0, ToMs: 8000,
+		Class:      "tip",
+		Author:     "auto",
+		Confidence: 0.91,
+		Reviewed:   &reviewed,
+	}}
+	meta := buildSceneMapMeta("", 9000, SceneMapDTO{
+		Version: 1, Cols: 4, Rows: 2, Width: 100, Height: 50,
+		Windows: []MapWindowDTO{{
+			StartMs: 0, EndMs: 8000, Score: []uint8{1}, ChosenCell: 0,
+		}},
+	}, marks)
+	if meta == nil || len(meta.Marks) != 1 {
+		t.Fatalf("persist marks: %+v", meta)
+	}
+	pm := meta.Marks[0]
+	if pm.Confidence != 0.91 || pm.Reviewed == nil || !*pm.Reviewed || pm.Author != "auto" {
+		t.Fatalf("persisted mark lost review fields: %+v", pm)
+	}
+	_, got, err := SceneMapFromPersist(meta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("load marks: %+v", got)
+	}
+	g := got[0]
+	if g.Confidence != 0.91 || g.Reviewed == nil || !*g.Reviewed || g.Author != "auto" || g.Class != "tip" {
+		t.Fatalf("loaded mark lost review fields: %+v", g)
+	}
+	// Explicit false must also survive (unreviewed auto must stay false).
+	unrev := false
+	marks[0].Reviewed = &unrev
+	marks[0].Confidence = 0.4
+	meta2 := buildSceneMapMeta("", 9000, SceneMapDTO{
+		Version: 1, Cols: 4, Rows: 2, Width: 100, Height: 50,
+		Windows: []MapWindowDTO{{
+			StartMs: 0, EndMs: 8000, Score: []uint8{1}, ChosenCell: 0,
+		}},
+	}, marks)
+	_, got2, err := SceneMapFromPersist(meta2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got2[0].Reviewed == nil || *got2[0].Reviewed || got2[0].Confidence != 0.4 {
+		t.Fatalf("false reviewed must round-trip: %+v", got2[0])
+	}
+}
+
 func TestLoadSceneMapBesideVideoOldSamn(t *testing.T) {
 	dir := t.TempDir()
 	video := filepath.Join(dir, "old.mp4")
