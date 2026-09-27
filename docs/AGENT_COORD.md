@@ -132,7 +132,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** bookkeeping (SceneMap P3–P5, Look2/3, AIWrite, GapHeal, GuiLoad, Bookmarks/Chapters, …) | **DONE** — never tagged; portable → Rel33 |
 | Rel33 | Cursor | [#278](https://github.com/funfunpayer/SamNPlayer/pull/278) | bump **v0.5.33** + Release bookkeeping (Rel32 stack + Plugin H0/H1 + Follow/Ignore marks S0/S1) | **DONE** on main @ `f017dae` — tag after Owner portable smoke |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
-| AIWriteS2 | Cursor | [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) | **AIWrite S2-imitation + Keep** — draft from exported classical library; QD + Keep/Discard; Everyday CSRT untouched | **THIS** |
+| AIWriteS2 | Cursor | [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) merged | **AIWrite S2-imitation + Keep** — draft from exported classical library; QD + Keep/Discard | **DONE** on main @ `4719b04` |
+| USBLive | Cursor | [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) | **Intiface liveness** — mark disconnected on write/ping failure | **THIS** |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
@@ -158,10 +159,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (27 Sep — AIWrite S2 + USB):**
-- **In flight:** **AIWriteS2** [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) (`cursor/aiwrite-s2-imitation-224d`) — imitation-library draft + Keep/Discard (experimental Advanced). Everyday CSRT / Rhythm / Enforcement untouched. Ranked plan: project store `docs/ki-usb-next.md`. Next USB: Intiface liveness.
-- **Shipped:** Rel33 [#278](https://github.com/funfunpayer/SamNPlayer/pull/278) @ `f017dae`; VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) on main; Generator marks S0+S1; Plugin H0+H1.
-- **Still Owner-gated:** portable Rel33 smoke → tag `v0.5.33`; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite **Everyday default-on**; Enforcement flip; contact-vib S2+; marks S2+ / L1 suggest.
+**Status board (27 Sep — KI + USB):**
+- **In flight:** **USBLive** [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) — Intiface write/ping failure clears connected. Everyday CSRT / Rhythm / Enforcement untouched. Plan: project store `docs/ki-usb-next.md`.
+- **Shipped:** AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) @ `4719b04`; Rel33 [#278](https://github.com/funfunpayer/SamNPlayer/pull/278); VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
+- **Still Owner-gated:** portable Rel33 smoke → tag `v0.5.33`; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S2+; marks S2+ / L1 suggest.
 - **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
 - **ChatGPT:** steward welcome.
 
