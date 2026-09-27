@@ -50,8 +50,15 @@ def _probe_contact(frame):
 
 def score(probe, oracle, max_gap_ms=2500):
     frames = [f for f in probe.get("frames", []) if f.get("status") != "no_frame"]
+    # Exemplar mode showed these keyframes to the model with the answer drawn
+    # in; scoring them would only test copying.
+    shown = probe.get("exemplar_t_ms", [])
     rows = []
+    skipped = 0
     for kf in oracle.get("keyframes", []):
+        if any(abs(kf["t_ms"] - t) <= 250 for t in shown):
+            skipped += 1
+            continue
         near = min(frames, key=lambda f: abs(f["t_ms"] - kf["t_ms"]), default=None)
         if near is None or abs(near["t_ms"] - kf["t_ms"]) > max_gap_ms:
             rows.append({"t_ms": kf["t_ms"], "matched": False})
@@ -70,6 +77,7 @@ def score(probe, oracle, max_gap_ms=2500):
     n = len(matched)
     return {
         "keyframes": len(rows),
+        "skipped_exemplars": skipped,
         "matched": n,
         "contact_rate": round(len(with_c) / n, 3) if n else None,
         # Misses include frames without any contact box: a refusal or an

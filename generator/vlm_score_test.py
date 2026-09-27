@@ -62,6 +62,14 @@ class ScoreTest(unittest.TestCase):
         self.assertEqual(res["matched"], 0)
         self.assertIsNone(res["hit_rate"])
 
+    def test_exemplar_keyframes_are_not_scored(self):
+        probe = {"exemplar_t_ms": [5000], "frames": [
+            {"t_ms": 15000, "status": "ok", "boxes": [box("contact", 0.45, 0.65, 0.55, 0.95)]}]}
+        res = vs.score(probe, {"keyframes": ORACLE["keyframes"][:2]})
+        self.assertEqual(res["skipped_exemplars"], 1)
+        self.assertEqual(res["keyframes"], 1)
+        self.assertEqual(res["hit_rate"], 1.0)
+
     def test_iou(self):
         self.assertEqual(vs.iou([0, 0, 1, 1], [0, 0, 1, 1]), 1.0)
         self.assertEqual(vs.iou([0, 0, 0.5, 0.5], [0.5, 0.5, 1, 1]), 0.0)

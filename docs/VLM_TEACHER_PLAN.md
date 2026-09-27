@@ -121,6 +121,26 @@ The tool does four things:
   answer, `refused`, and normalised boxes 0..1.
 - Optionally writes overlay JPEGs, so a person can check the boxes by eye.
 
+**Exemplar mode (Owner idea, 27 Sep).** The Owner asked: *"tell Qwen what
+you marked; it should watch that and mark it."*
+- `--exemplar-json <labels> --exemplar-count K` (or
+  `--exemplar t_ms:x0,y0,x1,y1`) sends K reference frames of the same clip
+  first:
+  - the contact region is drawn in green;
+  - no-go regions (another person, hands, thighs) are drawn in red.
+- The model then finds the same region, meaning the same people and body
+  parts, in the last image.
+- `--follow` also shows the model's own previous answer as a yellow box, so
+  it can see where the region was a few seconds earlier.
+- In the product, the reference is simply the user's first mark, which is
+  the same step as drawing the ROI today. On multi-person clips this removes
+  the "which person?" guess.
+- Reference frames are never asked about again, and `vlm_score.py` skips
+  them.
+- Multi-image requests need a runtime that accepts several `image_url` parts
+  (Ollama / LM Studio with Qwen2.5-VL). If yours does not, the first answer
+  fails and is recorded as an error.
+
 **Oracle ceiling on the two goldens (measured 27 Sep, before any Qwen run).**
 Claude labelled the keyframes itself: 28 on `clip_voll` (every 10 s) and
 10 on `clip_ausschnitt` (every 5 s). Each label is a `contact` box plus

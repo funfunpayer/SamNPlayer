@@ -196,5 +196,84 @@ class ProbeVideoTest(unittest.TestCase):
         self.assertAlmostEqual(res["summary"]["refusal_rate"], 0.333, places=3)
 
 
+class ExemplarTest(unittest.TestCase):
+    def _video(self, d):
+        path = os.path.join(d, "clip.avi")
+        vw = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*"MJPG"), 10, (320, 180))
+        for i in range(60):
+            vw.write(np.full((180, 320, 3), 40 + i, np.uint8))
+        vw.release()
+        return path
+
+    def test_load_exemplars_from_file_and_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "o.json")
+            with open(p, "w") as f:
+                json.dump({"keyframes": [
+                    {"t_ms": 9000, "contact": None, "exclude": []},
+                    {"t_ms": 3000, "contact": [0.4, 0.5, 0.6, 0.9], "exclude": [[0, 0, 0.2, 0.2]]},
+                    {"t_ms": 5000, "contact": [0.3, 0.5, 0.5, 0.9], "exclude": []},
+                    {"t_ms": 7000, "contact": [0.3, 0.5, 0.5, 0.9], "exclude": []}]}, f)
+            ex = vp.load_exemplars(p, ["1000:0.1,0.2,0.3,0.4"], count=2)
+        self.assertEqual([e["t_ms"] for e in ex], [1000, 3000, 5000])
+        self.assertEqual(ex[1]["exclude"], [[0, 0, 0.2, 0.2]])
+        for bad in ("1000:0.5,0.2,0.3,0.4", "1000:0.1,0.2,0.3", "1000:0.1,0.2,0.3,1.5"):
+            with self.assertRaises(ValueError):
+                vp.load_exemplars(None, [bad])
+
+    def test_draw_reference_marks_boxes(self):
+        img = np.full((168, 308, 3), 128, np.uint8)
+        out = vp.draw_reference(img, [0.25, 0.25, 0.75, 0.75], [[0.0, 0.0, 0.2, 0.2]])
+        self.assertEqual(tuple(out[42, 154]), (0, 220, 0))   # top edge of contact box
+        self.assertEqual(tuple(out[0, 30]), (0, 0, 230))      # top edge of exclude box
+        self.assertEqual(tuple(out[84, 154]), (128, 128, 128))  # inside untouched
+        self.assertEqual(tuple(img[42, 154]), (128, 128, 128))  # input not modified
+
+    def test_references_first_query_last_follow_adds_previous_answer(self):
+        seen = []
+        base = fake_model("norm1", fence=False)
+
+        def post(payload):
+            content = payload["messages"][0]["content"]
+            if content[0]["text"] != vp.CALIB_PROMPT:
+                seen.append((content[0]["text"], len(content) - 1))
+            return base(payload)
+        with tempfile.TemporaryDirectory() as d:
+            ex = [{"t_ms": 3000, "contact": list(CONTACT), "exclude": []}]
+            res = vp.probe_video(self._video(d), "fake", every_s=2.0, scenes=False,
+                                 post_fn=post, log=lambda *_: None,
+                                 exemplars=ex, follow=True)
+        # 3000 ms is the reference itself and is not asked about.
+        self.assertEqual([f["t_ms"] for f in res["frames"]], [1000, 5000])
+        self.assertEqual(res["exemplar_t_ms"], [3000])
+        self.assertTrue(res["follow"])
+        # First query: 1 reference + query. Second: + yellow follow frame.
+        self.assertEqual([n for _, n in seen], [2, 3])
+        self.assertTrue(seen[0][0].startswith("The first 1 image(s)"))
+        self.assertNotIn("YELLOW", seen[0][0])
+        self.assertTrue(seen[1][0].startswith("The first 2 image(s)"))
+        self.assertIn("YELLOW", seen[1][0])
+        for f in res["frames"]:
+            c = [b for b in f["boxes"] if b["label"] == "contact"][0]
+            self.assertAlmostEqual(c["x0"], CONTACT[0], delta=0.01)
+
+    def test_no_exemplars_keeps_single_image_prompt(self):
+        counts = []
+        base = fake_model("norm1", fence=False)
+
+        def post(payload):
+            counts.append(len(payload["messages"][0]["content"]) - 1)
+            return base(payload)
+        with tempfile.TemporaryDirectory() as d:
+            res = vp.probe_video(self._video(d), "fake", every_s=2.0, scenes=False,
+                                 post_fn=post, log=lambda *_: None)
+        self.assertEqual(counts, [1, 1, 1, 1])  # calibration + 3 frames
+        self.assertEqual(res["prompt"], vp.PROMPT)
+        self.assertFalse(res["follow"])
+
+    def test_exclude_label_kept(self):
+        self.assertEqual(vp.normalize_label("exclude"), "exclude")
+
+
 if __name__ == "__main__":
     unittest.main()
