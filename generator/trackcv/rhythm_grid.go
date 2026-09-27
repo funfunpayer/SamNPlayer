@@ -13,9 +13,18 @@ import "math"
 // motion is most concentrated at the stroke tempo supplies the signal. The
 // box only has to stay within ~3 cells of the real action, not on it.
 //
-// Measured against both FunGen references through the production post
-// pipeline (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed
-// r 0.386/0.552 -> 0.411/0.767, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
+// Originally measured (per-window free cell choice, no identity lock)
+// against both FunGen references through the production post pipeline
+// (docs/AGENT_COORD.md, 23 Sep, "rhythm grid"): clip_voll windowed r
+// 0.386/0.552 -> 0.411/0.767, clip_ausschnitt 0.449/0.712 -> 0.466/0.877.
+// The per-shot identity lock below (Manus/#248, 24 Sep) changed the
+// mechanism - re-measured on the same two clips (docs/AGENT_COORD.md,
+// 26 Sep, "identity-lock regression"): clip_voll 0.427/0.626, clip_ausschnitt
+// 0.383/0.666. The lock trades some of that gain (adaptive re-centering
+// within the search radius as the box drifts a little) for a guarantee the
+// original numbers didn't need on these two clips (never jumping onto a
+// stronger, distant, wrong body part) - see that entry before changing
+// rhythmSeedMarginCells or the re-lock rule.
 //
 // Scene map (P1 / docs/SCENE_MAP_PLAN.md): the same scoring is exposed as a
 // SceneMap so the GUI can show the heatmap and later honour user marks.
