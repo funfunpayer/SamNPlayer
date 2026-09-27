@@ -47,7 +47,7 @@ func readStandardBatteryLevel(dev bluetooth.Device) (int, bool) {
 	return pct, true
 }
 
-// FormatBatteryPct formatiert einen Akkuwert für Statuszeilen.
+// FormatBatteryPct formats a battery percentage for status lines (English UI).
 func FormatBatteryPct(pct int) string {
-	return fmt.Sprintf("Akku %d%%", pct)
+	return fmt.Sprintf("Battery %d%%", pct)
 }

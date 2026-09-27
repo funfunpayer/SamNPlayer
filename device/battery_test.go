@@ -3,7 +3,7 @@ package device
 import "testing"
 
 func TestFormatBatteryPct(t *testing.T) {
-	if got := FormatBatteryPct(73); got != "Akku 73%" {
+	if got := FormatBatteryPct(73); got != "Battery 73%" {
 		t.Fatalf("got %q", got)
 	}
 }

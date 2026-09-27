@@ -134,7 +134,7 @@ export function initDevice(root) {
     if (st.capVibration) chips.push('Vibration');
     if (st.capSuction) chips.push('Suction');
     if (st.capBattery) {
-      chips.push(st.batteryOk ? `Battery ${st.batteryPct}%` : 'Akku');
+      chips.push(st.batteryOk ? `Battery ${st.batteryPct}%` : 'Battery');
     }
     if (st.capRaw) chips.push('Raw values');
     if (chips.length === 0) {

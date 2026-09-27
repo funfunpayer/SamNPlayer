@@ -25,8 +25,8 @@ Details by subsystem: `docs/AI_ADAPTER.md`, `docs/KI_TRAINING.md`,
    - Windows: `%LOCALAPPDATA%\SamNPlayer\models\roi_detector.onnx`
    - Linux/macOS: `~/.config/SamNPlayer/models/roi_detector.onnx`
    (+ `classes.json`).
-4. **Settings → AI region detection** — empty path = default; or set your `.onnx` → **Check availability**.
-5. **Create** → Smarter tip / KI detection → review → **Apply target**.
+4. **Settings → AI region detection** — use **Open AI training** to jump to the AI Train tab if needed; empty path = default; or set your `.onnx` → **Check availability**.
+5. **Create** → Smarter tip find → review → **Apply target**.
 
 CLI:
 
