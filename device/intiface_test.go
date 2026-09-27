@@ -23,6 +23,18 @@ type fakeButtplug struct {
 	// deviceMessages bestimmt, welche Kanäle das gemeldete Gerät kann.
 	deviceMessages map[string]any
 	noDevices      bool
+	// active holds the live server-side WebSocket so tests can drop it.
+	active *websocket.Conn
+}
+
+func (f *fakeButtplug) dropConnection() {
+	f.mu.Lock()
+	conn := f.active
+	f.active = nil
+	f.mu.Unlock()
+	if conn != nil {
+		_ = conn.Close()
+	}
 }
 
 func (f *fakeButtplug) record(message map[string]json.RawMessage) {
@@ -67,7 +79,17 @@ func (f *fakeButtplug) handler() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		f.mu.Lock()
+		f.active = conn
+		f.mu.Unlock()
+		defer func() {
+			f.mu.Lock()
+			if f.active == conn {
+				f.active = nil
+			}
+			f.mu.Unlock()
+			_ = conn.Close()
+		}()
 
 		for {
 			var batch []map[string]json.RawMessage
@@ -116,18 +138,18 @@ func standardDeviceMessages() map[string]any {
 	}
 }
 
-func startFake(t *testing.T, fake *fakeButtplug) (string, func()) {
+func startFake(t *testing.T, fake *fakeButtplug) (string, *httptest.Server) {
 	t.Helper()
 	server := httptest.NewServer(fake.handler())
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
-	return url, server.Close
+	return url, server
 }
 
 // Der Kern: Anmeldung, Geräteübernahme und Ansteuerung beider Kanäle.
 func TestIntifaceConnectAndControl(t *testing.T) {
 	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
-	url, stop := startFake(t, fake)
-	defer stop()
+	url, server := startFake(t, fake)
+	defer server.Close()
 
 	dev := NewIntiface(url)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -179,8 +201,8 @@ func TestIntifaceConnectAndControl(t *testing.T) {
 // mitten im Ablauf ab.
 func TestIntifaceClampsValues(t *testing.T) {
 	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
-	url, stop := startFake(t, fake)
-	defer stop()
+	url, server := startFake(t, fake)
+	defer server.Close()
 
 	dev := NewIntiface(url)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -209,8 +231,8 @@ func TestIntifaceClampsValues(t *testing.T) {
 // statt scheinbar zu gelingen und beim ersten Befehl still nichts zu tun.
 func TestIntifaceWithoutDeviceFails(t *testing.T) {
 	fake := &fakeButtplug{noDevices: true, deviceMessages: standardDeviceMessages()}
-	url, stop := startFake(t, fake)
-	defer stop()
+	url, server := startFake(t, fake)
+	defer server.Close()
 
 	dev := NewIntiface(url)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -233,8 +255,8 @@ func TestIntifaceVibrationOnlyDevice(t *testing.T) {
 			map[string]any{"StepCount": 20, "ActuatorType": "Vibrate"},
 		},
 	}}
-	url, stop := startFake(t, fake)
-	defer stop()
+	url, server := startFake(t, fake)
+	defer server.Close()
 
 	dev := NewIntiface(url)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -332,6 +354,47 @@ func TestIntifaceHintDistinguishesLocalAndNetwork(t *testing.T) {
 	if !strings.Contains(strings.ToLower(host), "ip address") {
 		t.Errorf("bei unauflösbarem Namen fehlt der Hinweis auf die IP: %q", host)
 	}
+}
+
+// After the Buttplug server drops the WebSocket, Info must not stay
+// "connected" — otherwise Device/Play UI lies until the user clicks Disconnect.
+func TestIntifaceMarksDeadOnWriteFailure(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: standardDeviceMessages()}
+	url, server := startFake(t, fake)
+	defer server.Close()
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+	if !dev.Info().Connected {
+		t.Fatal("expected connected after Connect")
+	}
+
+	fake.dropConnection()
+
+	var err error
+	for attempt := 0; attempt < 5; attempt++ {
+		err = dev.SetVibration(0.4)
+		if err != nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err == nil {
+		_ = dev.Disconnect()
+		t.Fatal("expected SetVibration error after server close")
+	}
+	if dev.Info().Connected {
+		_ = dev.Disconnect()
+		t.Fatalf("Info still Connected after write failure: %v", err)
+	}
+	if err2 := dev.SetSuction(0.2); err2 == nil {
+		t.Fatal("expected SetSuction error while dead")
+	}
+	_ = dev.Disconnect()
 }
 
 type errorString string

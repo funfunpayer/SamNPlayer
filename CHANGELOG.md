@@ -10,12 +10,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Intiface connection liveness** — WebSocket write/ping failures clear
+  `connected` so Device/Play status stops lying after Intiface Central quits
+  or the link drops. Everyday CSRT / BLE path unchanged.
 - **AIWrite S2 imitation draft + Keep** — after ≥1 Advanced **Export classical
   run**, **AI draft script** becomes available: stretches the best duration-
   matched imitation sample, runs actions-only Quality Doctor, and requires
   explicit **Keep draft** / **Discard**. Writes `.samn` + companion `.funscript`.
   Everyday CSRT unchanged; no ONNX weights; no Everyday default-on.
-  Docs: `AI_SCRIPT_WRITER.md`.
+  Docs: `AI_SCRIPT_WRITER.md` (#280).
 - **Contact vib impulse curve (Advanced experiment)** — new
   `contact_vibration_curve: impulse` (aliases `events` / `peak_emphasis`):
   quiet mid-window, sharp rise only near deep peaks — less “second stroke

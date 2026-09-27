@@ -105,6 +105,9 @@ func NewIntiface(url string) *Intiface {
 }
 
 func (i *Intiface) send(message map[string]any) (int, error) {
+	if i.conn == nil {
+		return 0, fmt.Errorf("intiface: not connected")
+	}
 	i.nextID++
 	id := i.nextID
 	for _, payload := range message {
@@ -112,7 +115,30 @@ func (i *Intiface) send(message map[string]any) (int, error) {
 			m["Id"] = id
 		}
 	}
-	return id, i.conn.WriteJSON([]any{message})
+	if err := i.conn.WriteJSON([]any{message}); err != nil {
+		// Drop dead sockets so Info()/GUI stop showing “connected” while
+		// every write fails (common after Intiface Central quit or Wi-Fi blip).
+		i.markDeadLocked(err.Error())
+		return id, err
+	}
+	return id, nil
+}
+
+// markDeadLocked clears connection state. Caller must hold i.mu.
+func (i *Intiface) markDeadLocked(reason string) {
+	was := i.connected || i.conn != nil
+	if i.conn != nil {
+		_ = i.conn.Close()
+		i.conn = nil
+	}
+	i.connected = false
+	if i.stopPing != nil {
+		close(i.stopPing)
+		i.stopPing = nil
+	}
+	if was && reason != "" {
+		logging.Warn("intiface: connection lost", "reason", reason)
+	}
 }
 
 // readUntil liest Nachrichten, bis eine vom gesuchten Typ kommt. Andere
@@ -271,7 +297,11 @@ func (i *Intiface) pingLoop(stop chan struct{}) {
 		case <-ticker.C:
 			i.mu.Lock()
 			if i.conn != nil {
-				_, _ = i.send(map[string]any{"Ping": map[string]any{}})
+				if _, err := i.send(map[string]any{"Ping": map[string]any{}}); err != nil {
+					// send already marked dead; unlock and exit.
+					i.mu.Unlock()
+					return
+				}
 			}
 			i.mu.Unlock()
 		}
@@ -328,24 +358,27 @@ func (i *Intiface) Stop() error {
 
 func (i *Intiface) Disconnect() error {
 	i.mu.Lock()
-	stop := i.stopPing
-	i.stopPing = nil
 	conn := i.conn
+	deviceIdx := i.deviceIdx
 	i.conn = nil
 	i.connected = false
+	if i.stopPing != nil {
+		close(i.stopPing)
+		i.stopPing = nil
+	}
 	i.mu.Unlock()
 
-	if stop != nil {
-		close(stop)
-	}
 	if conn == nil {
 		return nil
 	}
 	// Vor dem Trennen abschalten - sonst läuft das Gerät weiter, und der
 	// Server merkt den Abbruch erst über den ausbleibenden Ping.
+	i.mu.Lock()
 	i.nextID++
+	id := i.nextID
+	i.mu.Unlock()
 	_ = conn.WriteJSON([]any{map[string]any{"StopDeviceCmd": map[string]any{
-		"DeviceIndex": i.deviceIdx, "Id": i.nextID,
+		"DeviceIndex": deviceIdx, "Id": id,
 	}}})
 	return conn.Close()
 }
