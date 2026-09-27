@@ -126,6 +126,8 @@ def main():
         check("Verbunden: Akku sichtbar wenn gemeldet", "Battery 73%" in status(), status())
         caps = page.locator("#dev-caps").inner_text()
         check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Suction" in caps, caps)
+        check("Capability chip uses English Battery (not Akku)",
+              "Battery" in caps and "Akku" not in caps, caps)
         check("Verbunden: Testbereich frei", not disabled("#dev-test"))
         check("Verbunden: Verbinden gesperrt", disabled("#dev-connect"))
 
