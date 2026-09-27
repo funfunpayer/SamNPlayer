@@ -21,7 +21,7 @@ Default stroke writer is classical CSRT — AI never silently invents the curve.
 Still CLI / advanced / not Everyday GUI:
 • Whole-frame 4-zone stroke mode (experiments; weaker on measured clips)
 • Flow tracker as Generate default (CLI)
-• Full AI draft script inference (S2+ — button present but disabled until a local model exists)`,
+• ONNX vision AI draft writer (S2+ model inference — not shipped; imitation draft is available after Export classical run)`,
   },
   {
     title: 'Fill gaps vs Heal tracking gaps',
@@ -34,8 +34,9 @@ Neither re-runs CSRT. Neither invents motion from audio (audio only spaces steps
     title: 'Can AI write the Funscript?',
     body: `Path is open, opt-in, local only:
 • S0 plan + stub — shipped
-• S1 Export classical run (Create → Advanced) — after Create, status reminds you; button enables for offline training samples
-• S2+ local model draft → Quality Doctor → Keep (not default)
+• S1 Export classical run (Create → Advanced) — after Create, status reminds you; builds a local imitation library
+• S2-imitation — with ≥1 export, AI draft script stretches the best duration + tip-aspect match → Quality Doctor → Keep/Discard (experimental; not Everyday default)
+• ONNX vision draft writer — not shipped yet
 
 Cloud “ChatGPT writes positions” is out of product. Everyday Create stays CSRT.`,
   },
@@ -65,7 +66,7 @@ AI Train — label scenes / tip ROIs for helpers (not the stroke writer).`,
 AI ROI model path — enables Smarter tip find.
 Collect learning data — allows Scene map Export for learning.
 
-AI draft model path is not in Settings yet (S2+). Create Advanced draft stays disabled until a local model + inference ship.`,
+AI draft model path is not in Settings yet (reserved for a future ONNX writer). Until then, use Export classical run → AI draft script from the imitation library.`,
   },
   {
     title: 'Also in the GUI',
@@ -80,7 +81,7 @@ Feels inverted — Advanced → Invert motion direction.
 Camera pans drift — Camera motion compensation · Fix contact area (static) off.
 Long-clip drift — Advanced → Rhythm-robust signal (opt-in).
 Audio “wrong tempo” — warn only; fix ROI/axis; does not rewrite the curve.
-AI draft greyed out — expected until S2 model; use Export classical run for S1.`,
+AI draft greyed out — Export classical run once after Create (≥1 sample), then draft enables. ONNX model path is not required for imitation.`,
   },
 ];
 
