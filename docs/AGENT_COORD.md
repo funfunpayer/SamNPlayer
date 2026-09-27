@@ -134,10 +134,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
 | AIWriteS2 | Cursor | [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) merged | **AIWrite S2-imitation + Keep** — draft from exported classical library; QD + Keep/Discard | **DONE** on main @ `4719b04` |
 | AIWriteS2b | Cursor | [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) merged | **AIWrite tip-aspect match** — PickBestSample prefers tip w/h + duration + QD | **DONE** (`2c3d82e`) |
+| AIWriteS3prev | Cursor | **THIS** | **AIWrite S3 draft curve preview** — Create 0–100 gauge shows pending draft before Keep; Discard restores CSRT curve | **THIS** |
 | USBLive | Cursor | [#281](https://github.com/funfunpayer/SamNPlayer/pull/281) merged | **Intiface liveness** — mark disconnected on write/ping failure | **DONE** on main @ `be5e09b` |
+| USBReconnect | Cursor | [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) merged | **Intiface one-shot reconnect** — one auto Connect after dead socket; no loops | **DONE** (`e369929`) |
 | VibImpulse | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) merged | Impulse contact vib (Advanced experiment) | **DONE** on main |
 | VibSpatial | Cursor | [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) merged | Contact-vib **S2** prefer spatial events (weight spatial over depth; snappy envelope on hits) | **DONE** (`0200815`) |
-| MarksS2 | Cursor | **THIS** | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **THIS** |
+| MarksS2 | Cursor | [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) merged | **Generator marks S2** — contact extras Fixed→follow when tip path on; Stay fixed opt-out; Play/native honor Fixed | **DONE** (`f986aa0`) |
+| MarksS3 | Cursor | [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) merged | **Marks S3 / L1 exclude suggest** — Suggest ignores from Collect `exclude_decisions.jsonl` (suggest-only; ≥3 clips) | **DONE** (`601e685`) |
 | IdLock | Claude | [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) flagged → `claude/idlock-release` | **Identity-lock golden regression** — measured relax-vs-accept: **release rule** (lock kept unless locked cell < 1/30 of strongest in radius) recovers both goldens, #248 thigh tests still pass | **PR open** — Owner merge = decision (opt-in rhythm grid only) |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
@@ -163,12 +166,27 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (27 Sep — marks S2):**
-- **In flight:** **MarksS2** contact extras Fixed→follow when tip path on (this PR). Everyday CSRT / Rhythm / Enforcement / identity-lock untouched. No Rel34.
-- **Shipped:** Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) @ `0200815`; AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**; VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
+**Status board (27 Sep — AIWrite draft curve preview):**
+- **In flight:** **AIWriteS3prev** Create 0–100 gauge shows pending AI draft before Keep (this PR). Everyday CSRT / Rhythm / Enforcement / identity-lock untouched. No Rel34. #275 / Contact-vib S3 held.
+- **Shipped:** Intiface one-shot [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) @ `e369929`; Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) @ `601e685`; Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284); Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283); tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282); Intiface liveness [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); Rel33 tag **`v0.5.33`**.
 - **Claude:** IdLock measured — release rule PR `claude/idlock-release` (goldens 0.455/0.752 + 0.486/0.887, #248 tests pass); Owner merge decides. ≥4–5 rhythm clips gate still Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; marks S3 / L1 suggest.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
+- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; #275.
+- **ChatGPT:** steward welcome.
+
+**Status board (27 Sep — Intiface one-shot reconnect):**
+- **In flight:** (superseded — USBReconnect merged @ `e369929`)
+- **Shipped:** Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) @ `601e685`; Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) @ `f986aa0`; Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) @ `0200815`; AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface liveness [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**.
+- **Claude OPEN:** identity-lock regression [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) — measure before any lock flip; ≥4–5 rhythm clips with Owner.
+- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+.
+- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership; plugin drop #275 (Owner want?).
+- **ChatGPT:** steward welcome.
+
+**Status board (27 Sep — marks S3 / L1 suggest):**
+- **In flight:** (superseded — MarksS3 merged @ `601e685`)
+- **Shipped:** Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) @ `f986aa0`; Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) @ `0200815`; AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**; VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
+- **Claude OPEN:** identity-lock regression [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) — measure before any lock flip; ≥4–5 rhythm clips with Owner.
+- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+.
+- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership; plugin drop #275 (Owner want?).
 - **ChatGPT:** steward welcome.
 
 **Status board (27 Sep — coherence + tip-aspect):**

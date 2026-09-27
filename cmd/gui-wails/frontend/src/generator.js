@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -73,7 +73,7 @@ export function initGenerator(root, playback) {
         <button id="gen-seek-plus" type="button" disabled>+1s</button>
         <button id="gen-seek-plus5" type="button" disabled>+5s</button>
         <label class="checkbox-row" style="margin:0 0 0 8px;"
-          data-help="0–100 stroke gauge over the preview. Moves with Time/Frame after Create. Turn off anytime.">
+          data-help="0–100 stroke gauge over the preview. Moves with Time/Frame after Create (and after AI draft, before Keep). Turn off anytime.">
           <input type="checkbox" id="gen-pos-overlay-toggle" checked />
           0–100 on video
         </label>
@@ -231,7 +231,7 @@ export function initGenerator(root, playback) {
             <button type="button" class="secondary" id="gen-ai-script-export" disabled
               data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Does not replace CSRT Create. Require Keep after Quality Doctor.">AI draft script</button>
+              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
             <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
               data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
             <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
@@ -270,6 +270,8 @@ export function initGenerator(root, playback) {
             <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;">
               <button type="button" class="secondary" id="gen-scene-map-export"
                 data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+              <button type="button" class="secondary" id="gen-scene-map-suggest"
+                data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
               <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
             </div>
           </div>
@@ -414,6 +416,8 @@ export function initGenerator(root, playback) {
   let videoBatchNote = '';
   // FunGen-like 0–100 gauge over the preview (after Generate).
   let genCurvePoints = null; // [{atMs, pos}, ...]
+  let genCurveBeforeAIDraft = null; // CSRT Create curve restored on Discard
+  let aiDraftCurveActive = false; // true while pending AI draft drives the gauge
   const POS_OVERLAY_PREF = 'samn.genPosOverlay';
 
   function posOverlayWanted() {
@@ -433,6 +437,49 @@ export function initGenerator(root, playback) {
     const show = on && posOverlayWanted() && genCurvePoints && genCurvePoints.length >= 2;
     box.hidden = !show;
     box.setAttribute('aria-hidden', show ? 'false' : 'true');
+    box.classList.toggle('ai-draft-preview', show && aiDraftCurveActive);
+  }
+
+  function actionsToCurvePoints(actions) {
+    if (!Array.isArray(actions) || actions.length < 2) return null;
+    const pts = actions.map((a) => ({
+      atMs: a.at ?? a.At ?? 0,
+      pos: a.pos ?? a.Pos ?? 0,
+    })).filter((p) => Number.isFinite(p.atMs) && Number.isFinite(p.pos));
+    return pts.length >= 2 ? pts : null;
+  }
+
+  /** S3: show AI draft on the Create 0–100 gauge before Keep (not only in Play). */
+  function showAIDraftCurvePreview(actions) {
+    const pts = actionsToCurvePoints(actions);
+    if (!pts) return false;
+    if (!aiDraftCurveActive) {
+      genCurveBeforeAIDraft = genCurvePoints;
+    }
+    genCurvePoints = pts;
+    aiDraftCurveActive = true;
+    updatePosOverlay();
+    return true;
+  }
+
+  function clearAIDraftCurvePreview({ restore = true } = {}) {
+    if (!aiDraftCurveActive && !genCurveBeforeAIDraft) {
+      return;
+    }
+    aiDraftCurveActive = false;
+    if (restore && genCurveBeforeAIDraft && genCurveBeforeAIDraft.length >= 2) {
+      genCurvePoints = genCurveBeforeAIDraft;
+    } else if (!restore) {
+      // Keep: draft curve is the kept script — leave points; drop restore stash.
+    } else {
+      genCurvePoints = null;
+    }
+    genCurveBeforeAIDraft = null;
+    if (genCurvePoints && genCurvePoints.length >= 2) {
+      updatePosOverlay();
+    } else {
+      setPosOverlayVisible(false);
+    }
   }
 
   function interpGenPos(tMs) {
@@ -868,8 +915,26 @@ export function initGenerator(root, playback) {
       const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
       const kind = m.kind === 'exclude' ? 'ignore' : m.kind;
       const follow = m.follow ? '→follow' : (m.kind === 'exclude' || m.kind === 'source' ? '·fixed' : '');
-      return `${kind}${who}@${span}${follow}`;
+      const src = m.author === 'suggest' ? '·suggest' : '';
+      return `${kind}${who}@${span}${follow}${src}`;
     }).join(' · ');
+  }
+
+  // Rough IoU so L1 suggest does not stack duplicate Ignore boxes.
+  function sceneMarkOverlap(a, b) {
+    const ar = a?.rect || a;
+    const br = b?.rect || b;
+    if (!ar || !br) return 0;
+    const ax2 = (ar.x || 0) + (ar.w || 0);
+    const ay2 = (ar.y || 0) + (ar.h || 0);
+    const bx2 = (br.x || 0) + (br.w || 0);
+    const by2 = (br.y || 0) + (br.h || 0);
+    const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(ar.x || 0, br.x || 0));
+    const iy = Math.max(0, Math.min(ay2, by2) - Math.max(ar.y || 0, br.y || 0));
+    const inter = ix * iy;
+    if (inter <= 0) return 0;
+    const uni = (ar.w || 0) * (ar.h || 0) + (br.w || 0) * (br.h || 0) - inter;
+    return uni > 0 ? inter / uni : 0;
   }
 
   // Normalize ROI from Go (may be X/Y/W/H or x/y/w/h).
@@ -1668,6 +1733,11 @@ export function initGenerator(root, playback) {
     roi = null;
     roi2 = null;
     clearPendingAITarget();
+    setAIDraftPending(null);
+    aiDraftCurveActive = false;
+    genCurveBeforeAIDraft = null;
+    genCurvePoints = null;
+    setPosOverlayVisible(false);
     extraTargets = [];
     maskRois = [];
     setMarkMode(null);
@@ -1755,7 +1825,9 @@ export function initGenerator(root, playback) {
     try {
       await showFrame(videoPath, seekSec);
       el('#gen-status').textContent = genCurvePoints
-        ? `Frame at ${seekSec}s — 0–100 gauge follows the curve.`
+        ? (aiDraftCurveActive
+          ? `Frame at ${seekSec}s — 0–100 gauge shows AI draft (Keep or Discard).`
+          : `Frame at ${seekSec}s — 0–100 gauge follows the curve.`)
         : `Frame at ${seekSec}s — mark region.`;
       updatePosOverlay();
     } catch (err) {
@@ -1907,6 +1979,7 @@ export function initGenerator(root, playback) {
           fromMs: m.fromMs || 0,
           toMs: m.toMs || 0,
           class: m.class || '',
+          author: m.author || 'user',
           follow: !!m.follow,
         };
         if (Array.isArray(m.path) && m.path.length) {
@@ -2405,6 +2478,57 @@ export function initGenerator(root, playback) {
       uiError('Export for learning: ' + err, el('#gen-status'));
     }
   });
+  el('#gen-scene-map-suggest')?.addEventListener('click', async () => {
+    const status = el('#gen-scene-map-export-status');
+    if (!nativeW || !nativeH) {
+      if (status) status.textContent = 'Load a video first.';
+      uiWarn('Suggest ignores needs a loaded video frame.', el('#gen-status'));
+      return;
+    }
+    if (typeof SuggestExcludePriors !== 'function') {
+      uiWarn('Suggest ignores not available in this build.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Suggesting from learning…';
+    try {
+      const res = await SuggestExcludePriors(nativeW, nativeH);
+      const note = res.note || res.Note || '';
+      const raw = res.suggestions || res.Suggestions || [];
+      let added = 0;
+      for (const s of raw) {
+        const m = s.mark || s.Mark;
+        if (!m) continue;
+        const rect = sceneMapRect(m.rect || m.Rect);
+        if ((rect.w || 0) < 4 || (rect.h || 0) < 4) continue;
+        const dup = sceneMapMarks.some((ex) =>
+          ex.kind === 'exclude' && sceneMarkOverlap(ex, { rect }) >= 0.45);
+        if (dup) continue;
+        sceneMapMarkSeq += 1;
+        sceneMapMarks.push({
+          id: m.id || m.ID || `suggest${sceneMapMarkSeq}`,
+          kind: 'exclude',
+          rect,
+          fromMs: m.fromMs ?? m.FromMs ?? 0,
+          toMs: m.toMs ?? m.ToMs ?? 0,
+          author: 'suggest',
+          follow: m.follow ?? m.Follow ?? true,
+          path: [],
+        });
+        added += 1;
+      }
+      updateSceneMapMarksLabel();
+      redraw();
+      const msg = added
+        ? `Added ${added} suggested Ignore mark${added === 1 ? '' : 's'} — review on the map; Clear removes them.`
+        : (note || 'No suggestions yet.');
+      if (status) status.textContent = msg;
+      if (added) uiInfo(msg, el('#gen-status'));
+      else uiWarn(msg, el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Suggest ignores: ' + err, el('#gen-status'));
+    }
+  });
   SceneMapAvailable().then((ok) => {
     sceneMapAvailable = !!ok;
     updateSceneMapButton();
@@ -2503,6 +2627,7 @@ export function initGenerator(root, playback) {
     }
     if (status) status.textContent = 'Drafting from imitation library…';
     setAIDraftPending(null);
+    clearAIDraftCurvePreview({ restore: true });
     try {
       const tip = roi && roi.w > 0 && roi.h > 0 ? roi : { x: 0, y: 0, w: 0, h: 0 };
       const res = await DraftAIScript(
@@ -2515,11 +2640,16 @@ export function initGenerator(root, playback) {
         throw new Error('draft returned no actions');
       }
       setAIDraftPending({ actions, qdPassed, qdScore, notes });
+      const previewed = showAIDraftCurvePreview(actions);
       const scoreBit = qdScore != null ? `QD ${Number(qdScore).toFixed(2)} (${qdPassed ? 'pass' : 'fail'})` : 'QD n/a';
+      const previewBit = previewed
+        ? ' Scrub Time/Frame — 0–100 gauge shows the draft before Keep.'
+        : '';
       if (status) status.textContent = `Draft ready — ${scoreBit}. Keep or Discard.`;
-      uiInfo(`AI draft ready — ${scoreBit}. Review, then Keep draft or Discard.`, el('#gen-status'));
+      uiInfo(`AI draft ready — ${scoreBit}. Review${previewed ? ' on the gauge' : ''}, then Keep draft or Discard.${previewBit}`, el('#gen-status'));
     } catch (err) {
       setAIDraftPending(null);
+      clearAIDraftCurvePreview({ restore: true });
       if (status) status.textContent = '';
       uiError('AI draft: ' + err, el('#gen-status'));
     }
@@ -2536,10 +2666,19 @@ export function initGenerator(root, playback) {
       const path = (res && (res.path || res.Path)) || '';
       const msg = (res && (res.message || res.Message)) || 'Draft kept';
       setAIDraftPending(null);
+      clearAIDraftCurvePreview({ restore: false }); // keep draft points on gauge
       if (path) {
         lastOutputPath = path;
         el('#gen-feedback').style.display = 'block';
         el('#gen-improve').style.display = 'block';
+        if (playback && typeof playback.loadScriptPath === 'function') {
+          try {
+            await playback.loadScriptPath(path, { review: true });
+            await loadGenCurveFromPlay();
+          } catch (_) {
+            // Gauge already shows the kept draft actions.
+          }
+        }
       }
       if (status) status.textContent = msg;
       uiInfo(msg, el('#gen-status'));
@@ -2551,6 +2690,7 @@ export function initGenerator(root, playback) {
   });
   el('#gen-ai-script-discard')?.addEventListener('click', () => {
     setAIDraftPending(null);
+    clearAIDraftCurvePreview({ restore: true });
     const status = el('#gen-ai-script-status');
     if (status) status.textContent = 'Draft discarded';
     uiInfo('AI draft discarded — Everyday Create result unchanged.', el('#gen-status'));

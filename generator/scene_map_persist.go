@@ -64,6 +64,10 @@ func sceneMarksToPersist(marks []SceneMark) []funscript.SceneMapMark {
 		if m.Kind == "" && m.ID == "" {
 			continue
 		}
+		author := m.Author
+		if author == "" {
+			author = "user"
+		}
 		pm := funscript.SceneMapMark{
 			ID:     m.ID,
 			Kind:   m.Kind,
@@ -71,7 +75,7 @@ func sceneMarksToPersist(marks []SceneMark) []funscript.SceneMapMark {
 			FromMs: m.FromMs,
 			ToMs:   m.ToMs,
 			Class:  m.Class,
-			Author: "user",
+			Author: author,
 			Follow: m.Follow,
 		}
 		if len(m.Path) > 0 {

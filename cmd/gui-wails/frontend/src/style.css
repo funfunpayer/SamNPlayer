@@ -1387,6 +1387,13 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   color: #fff;
   text-shadow: 0 1px 3px rgba(0,0,0,0.85);
 }
+/* AIWrite S3: draft on gauge before Keep — gold cue vs teal Create curve. */
+.pos-gauge.ai-draft-preview .pos-gauge-fill {
+  background: linear-gradient(180deg, #f6d08a 0%, #f2b03d 55%, #c4841e 100%);
+}
+.pos-gauge.ai-draft-preview .pos-gauge-knob {
+  background: #f2b03d;
+}
 .pb-video-stage .pos-gauge {
   right: 14px;
   top: 14px;

@@ -58,7 +58,7 @@ The AI script path is therefore:
 | **S0** | Plan + Go `aiscript` + GUI stub | **Done** (#261) — Everyday bit-identical |
 | **S1** | Training export: classical good runs → imitation samples | **Done** — `ExportImitationSample` + Create **Export classical run** + discoverability (#272) |
 | **S2** | First local draft model (train offline; infer in-app) | **Partial** — **S2-imitation**: draft stretches best exported classical sample by **duration + tip aspect + QD** (opt-in Advanced). ONNX vision writer still later. Blind QD ≥ classical floor *or* Owner “experimental” for default-on |
-| **S3** | Create Advanced: **AI draft script** → preview → Keep | **Partial** — Keep/Discard + QD stamp wired; curve preview in Play after Keep |
+| **S3** | Create Advanced: **AI draft script** → preview → Keep | **Done** (#280 Keep/Discard + QD; this PR: 0–100 gauge shows draft before Keep; Discard restores CSRT curve) |
 | **S4** | Optional: draft seeded from tip ROI + scene-map marks | Goldens announced; no Everyday default |
 
 **Out until Owner re-opens:** cloud APIs, Diffusers, replacing CSRT default,
@@ -90,6 +90,7 @@ Under **Advanced settings** (not Everyday step chrome):
 - **AI draft script (experimental)** — enabled when `AIScriptWriterStatus().available` (imitation library ≥1 sample, or later a model).
 - Help: points here; states CSRT remains the normal Create path.
 - After draft: Quality Doctor score in status + **Keep draft** / **Discard**.
+- **Preview:** pending draft drives the Create **0–100 on video** gauge (scrub Time/Frame) before Keep; Discard restores the prior Create curve.
 - **Keep draft** writes `.samn` + companion `.funscript` beside the video (explicit only).
 
 Settings may later add model path (like AI ROI) — ONNX S2+.

@@ -54,6 +54,11 @@ type Intiface struct {
 	batteryAt    time.Time
 
 	stopPing chan struct{}
+	// reconnectUsed: one automatic Connect after a dead socket per
+	// healthy connection life (#281 liveness follow-up). Cleared on
+	// successful Connect so a later blip can recover once more; stays
+	// set after a failed one-shot so we do not hammer the server.
+	reconnectUsed bool
 }
 
 const (
@@ -278,10 +283,59 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	}
 
 	i.connected = true
+	i.reconnectUsed = false
 	i.stopPing = make(chan struct{})
 	go i.pingLoop(i.stopPing)
 	_ = i.conn.SetReadDeadline(time.Time{})
 	return nil
+}
+
+// TryReconnectOnce dials Intiface again after liveness marked the socket
+// dead. At most one attempt until the next successful Connect. No-op when
+// already connected. Does not loop.
+func (i *Intiface) TryReconnectOnce(ctx context.Context) (bool, error) {
+	i.mu.Lock()
+	if i.connected && i.conn != nil {
+		i.mu.Unlock()
+		return true, nil
+	}
+	if i.reconnectUsed {
+		i.mu.Unlock()
+		return false, fmt.Errorf("intiface: one-shot reconnect already used")
+	}
+	i.reconnectUsed = true
+	i.mu.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cctx, cancel := context.WithTimeout(ctx, intifaceTimeout)
+	defer cancel()
+	if err := i.Connect(cctx); err != nil {
+		logging.Warn("intiface: one-shot reconnect failed", "error", err)
+		return false, err
+	}
+	logging.Info("intiface: one-shot reconnect ok")
+	return true, nil
+}
+
+// ensureConnectedLocked returns nil when the WebSocket is live. If dead,
+// unlocks, runs TryReconnectOnce, and re-locks. Caller must hold i.mu and
+// must not use defer Unlock across this call.
+func (i *Intiface) ensureConnectedLocked() error {
+	if i.connected && i.conn != nil {
+		return nil
+	}
+	i.mu.Unlock()
+	ok, err := i.TryReconnectOnce(context.Background())
+	i.mu.Lock()
+	if ok && i.connected && i.conn != nil {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("intiface: not connected (%w)", err)
+	}
+	return fmt.Errorf("intiface: not connected")
 }
 
 // pingLoop hält die Verbindung am Leben. Bleibt der Ping aus, stoppt der
@@ -298,8 +352,11 @@ func (i *Intiface) pingLoop(stop chan struct{}) {
 			i.mu.Lock()
 			if i.conn != nil {
 				if _, err := i.send(map[string]any{"Ping": map[string]any{}}); err != nil {
-					// send already marked dead; unlock and exit.
+					// send already marked dead; try one-shot, else exit.
 					i.mu.Unlock()
+					if ok, _ := i.TryReconnectOnce(context.Background()); ok {
+						continue
+					}
 					return
 				}
 			}
@@ -310,11 +367,12 @@ func (i *Intiface) pingLoop(stop chan struct{}) {
 
 func (i *Intiface) scalar(index int, value float64) error {
 	i.mu.Lock()
-	defer i.mu.Unlock()
-	if !i.connected || i.conn == nil {
-		return fmt.Errorf("intiface: not connected")
+	if err := i.ensureConnectedLocked(); err != nil {
+		i.mu.Unlock()
+		return err
 	}
 	if index < 0 {
+		i.mu.Unlock()
 		return nil // Kanal auf diesem Gerät nicht vorhanden
 	}
 	if value < 0 {
@@ -333,7 +391,28 @@ func (i *Intiface) scalar(index int, value float64) error {
 			"Index": index, "Scalar": value, "ActuatorType": actuator,
 		}},
 	}})
-	return err
+	if err != nil {
+		// Dead socket — one-shot reconnect + single retry.
+		i.mu.Unlock()
+		if ok, _ := i.TryReconnectOnce(context.Background()); !ok {
+			return err
+		}
+		i.mu.Lock()
+		if !i.connected || i.conn == nil {
+			i.mu.Unlock()
+			return err
+		}
+		_, err = i.send(map[string]any{"ScalarCmd": map[string]any{
+			"DeviceIndex": i.deviceIdx,
+			"Scalars": []any{map[string]any{
+				"Index": index, "Scalar": value, "ActuatorType": actuator,
+			}},
+		}})
+		i.mu.Unlock()
+		return err
+	}
+	i.mu.Unlock()
+	return nil
 }
 
 func (i *Intiface) SetVibration(intensity float64) error {

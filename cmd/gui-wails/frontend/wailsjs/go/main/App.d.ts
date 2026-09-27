@@ -205,6 +205,8 @@ export function ExportSceneMapLearning(arg1:string):Promise<generator.LearningEx
 
 export function DeleteSceneMapLearningData():Promise<void>;
 
+export function SuggestExcludePriors(arg1:number,arg2:number):Promise<generator.ExcludePriorResult>;
+
 export function ScriptQuality():Promise<generator.ScriptQualityResult>;
 
 export function SetScriptOffset(arg1:number):Promise<void>;

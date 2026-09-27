@@ -10,6 +10,20 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AIWrite S3 draft curve preview** — after **AI draft script**, the Create
+  **0–100 on video** gauge shows the pending draft (scrub Time/Frame) before
+  Keep; Discard restores the prior CSRT Create curve. Gold gauge cue while a
+  draft is pending. Everyday CSRT / Rel34 / default-on untouched.
+- **Intiface one-shot reconnect** — after liveness marks the WebSocket dead
+  (#281), the next vibrate/suction/ping tries **one** automatic `Connect`
+  for that connection life before staying disconnected. No reconnect loops;
+  budget resets on a successful Connect. BLE / Everyday CSRT / Rel34 untouched.
+- **Marks S3 / L1 exclude suggest** — Advanced Scene map → **Suggest ignores from
+  learning** reads local `scene_map_learning/**/exclude_decisions.jsonl`, bins
+  normalized Ignore boxes on a 4×3 grid, and pre-fills suggest-only whole-clip
+  Ignore marks when ≥3 Collect clips share a hot cell (≥50%). User reviews /
+  Clear; never auto-Create. Everyday CSRT / Rhythm / Enforcement / Rel34
+  untouched (#SCENE_MAP M6-L1).
 - **Generator marks S2 (contact Fixed→follow)** — extra contact areas default to
   **follow** when tip path is recorded (Contact vib soft-ons path); optional
   **Stay fixed** keeps static anchors. Play overlay treats omitted/`false`
