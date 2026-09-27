@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Contact vib impulse curve (Advanced experiment)** — new
+  `contact_vibration_curve: impulse` (aliases `events` / `peak_emphasis`):
+  quiet mid-window, sharp rise only near deep peaks — less “second stroke
+  curve”. Generate: Advanced → Peak-emphasis contact vib. Play live curve
+  select includes impulse. Everyday Soft onset default unchanged; Follow /
+  Ignore / Enforcement untouched. Design: project store
+  `docs/vibration-contact-model.md`.
+
 ## [0.5.33] — September 27, 2026
 
 ### Added

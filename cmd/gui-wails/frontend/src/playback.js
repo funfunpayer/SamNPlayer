@@ -264,11 +264,12 @@ export function initPlayback(root) {
             <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
           </div>
           <div class="field-row" id="pb-contact-curve-row">
-            <label data-help="Live contact-vibration curve shape (linear / soft / peak), without rewriting the file.">Contact curve</label>
+            <label data-help="Live contact-vibration curve shape (linear / soft / peak / impulse), without rewriting the file.">Contact curve</label>
             <select id="pb-contact-curve">
               <option value="linear">linear</option>
               <option value="soft">soft (contact-like)</option>
               <option value="peak">peak</option>
+              <option value="impulse">impulse (peaks only)</option>
             </select>
           </div>
           <div class="row" style="margin-top:8px;">
@@ -1966,7 +1967,7 @@ export function initPlayback(root) {
       el('#pb-contact-span').value = String(span);
       el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
       const curve = info.contactVibrationCurve || 'soft';
-      el('#pb-contact-curve').value = ['linear', 'soft', 'peak'].includes(curve) ? curve : 'soft';
+      el('#pb-contact-curve').value = ['linear', 'soft', 'peak', 'impulse'].includes(curve) ? curve : 'soft';
     }
     const stage = el('#pb-video-stage');
     if (info.hasVideo) {

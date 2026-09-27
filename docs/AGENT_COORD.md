@@ -130,11 +130,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | TargetLock | ChatGPT → Cursor | [#248](https://github.com/funfunpayer/SamNPlayer/pull/248) → [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) | **Semantic target lock** — strict body class + rhythm seed lock | **DONE** (`v0.5.31`) |
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** bookkeeping (SceneMap P3–P5, Look2/3, AIWrite, GapHeal, GuiLoad, Bookmarks/Chapters, …) | **DONE** — never tagged; portable → Rel33 |
-| Rel33 | Cursor | this PR | bump **v0.5.33** + Release bookkeeping (Rel32 stack + Plugin H0/H1 + Follow/Ignore marks S0/S1) | **THIS** |
+| Rel33 | Cursor | [#278](https://github.com/funfunpayer/SamNPlayer/pull/278) | bump **v0.5.33** + Release bookkeeping (Rel32 stack + Plugin H0/H1 + Follow/Ignore marks S0/S1) | **DONE** on main — tag after Owner portable smoke |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; overlay/ToyHub deferred; Enforcement off | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
+| Engine | Cursor | [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) | **Contact vib rethink S1** — impulse curve (peaks, not continuous fill); Advanced opt-in only; Everyday Soft default; Follow/Ignore untouched | **THIS** |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
 | TrainS | Claude | [#216](https://github.com/funfunpayer/SamNPlayer/pull/216) merged | Training suction missing / end ramp | **DONE** (`501907e`) |
@@ -156,16 +157,16 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (27 Sep — Rel33 prep):**
-- **In flight:** **Rel33** — bump **v0.5.33**; fold post-Rel32 Unreleased (Plugin H0/H1 + Follow/Ignore marks S0/S1). Tag after CI green + Owner portable smoke. **Do not tag `v0.5.32`** (bookkeeping only; never cut).
-- **Shipped on main:** Generator marks S0+S1 [#276](https://github.com/funfunpayer/SamNPlayer/pull/276)/[#277](https://github.com/funfunpayer/SamNPlayer/pull/277) @ `c36272c`; Plugin H0+H1 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273)/[#274](https://github.com/funfunpayer/SamNPlayer/pull/274); Rel32 bookkeeping [#271](https://github.com/funfunpayer/SamNPlayer/pull/271).
-- **Still Owner-gated:** portable Rel33 smoke → tag `v0.5.33`; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip; marks S2+ / L1 suggest.
+**Status board (27 Sep — Contact vib rethink):**
+- **In flight:** **Engine** [#279](https://github.com/funfunpayer/SamNPlayer/pull/279) (`cursor/vibration-contact-model-1fa7`) — impulse contact curve (Advanced Peak-emphasis); Everyday Soft onset unchanged; Follow/Ignore/Enforcement untouched. Design: project store `docs/vibration-contact-model.md`. Rebased onto Rel33 `main` @ `f017dae`.
+- **Shipped:** Rel33 [#278](https://github.com/funfunpayer/SamNPlayer/pull/278) @ `f017dae` (VERSION 0.5.33); Generator marks S0+S1 [#276](https://github.com/funfunpayer/SamNPlayer/pull/276)/[#277](https://github.com/funfunpayer/SamNPlayer/pull/277); Plugin H0+H1 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273)/[#274](https://github.com/funfunpayer/SamNPlayer/pull/274).
+- **Still Owner-gated:** portable Rel33 smoke → tag `v0.5.33` (do not tag from this lane); speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip; contact-vib S2+; marks S2+ / L1 suggest.
 - **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
 - **ChatGPT:** steward welcome.
 
 **Status board (27 Sep — Generator marks S1):**
-- **In flight:** **Engine+GUI S1** (`cursor/generator-marks-s1-preview-978b`) — Create preview draws Follow Path at scrub time from restored `.samn`; marks stay when heatmap off. Everyday CSRT / Rhythm / Enforcement untouched.
-- **Shipped:** Generator marks **S0** [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) @ `8c32f9b`; Plugin H1 [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) @ `d0b6b4e`; Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273).
+- **In flight:** (superseded — S1 merged on main @ `c36272c`)
+- **Shipped:** Generator marks **S0** [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) @ `8c32f9b`; **S1** [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) @ `c36272c`; Plugin H1 [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) @ `d0b6b4e`; Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273).
 - **Rel32:** on `main`; tag after Owner portable smoke. **No Rel32 re-tag** unless Owner asks.
 - **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip; marks S2+ / L1 suggest.
 - **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.

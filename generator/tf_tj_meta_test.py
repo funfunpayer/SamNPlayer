@@ -102,6 +102,15 @@ def test_metadata_contact_curve():
     assert meta["device_recipe"]["contact_vibration_curve"] == "peak"
 
 
+def test_normalize_contact_curve_impulse():
+    assert m.normalize_contact_curve("impulse") == "impulse"
+    assert m.normalize_contact_curve("events") == "impulse"
+    assert m.normalize_contact_curve("peak_emphasis") == "impulse"
+    r = m.device_recipe_for("standard", contact_vibration=True,
+                           contact_vibration_curve="impulse")
+    assert r["contact_vibration_curve"] == "impulse"
+
+
 if __name__ == "__main__":
     test_is_distance_profile()
     test_device_recipe()
@@ -113,4 +122,5 @@ if __name__ == "__main__":
     test_metadata_contact_vibration()
     test_metadata_stroke_contact_vibration()
     test_metadata_contact_curve()
+    test_normalize_contact_curve_impulse()
     print("ok")
