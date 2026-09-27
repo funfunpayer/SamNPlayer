@@ -100,13 +100,15 @@ func sceneMarksFromPersist(marks []funscript.SceneMapMark) []SceneMark {
 			continue
 		}
 		sm := SceneMark{
-			ID:     m.ID,
-			Kind:   m.Kind,
-			FromMs: m.FromMs,
-			ToMs:   m.ToMs,
-			Class:  m.Class,
-			Author: m.Author,
-			Follow: m.Follow,
+			ID:         m.ID,
+			Kind:       m.Kind,
+			FromMs:     m.FromMs,
+			ToMs:       m.ToMs,
+			Class:      m.Class,
+			Author:     m.Author,
+			Follow:     m.Follow,
+			Confidence: m.Confidence,
+			Reviewed:   m.Reviewed,
 		}
 		if len(m.Rect) >= 4 {
 			sm.Rect = ROI{X: m.Rect[0], Y: m.Rect[1], W: m.Rect[2], H: m.Rect[3]}

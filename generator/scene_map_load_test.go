@@ -50,6 +50,38 @@ func TestSceneMapFromPersistRoundTrip(t *testing.T) {
 	}
 }
 
+// P5c YOLO export reads Reviewed from .samn; GUI SceneMark must round-trip it.
+func TestSceneMarkReviewedConfidencePersist(t *testing.T) {
+	reviewed := true
+	dto := SceneMapDTO{
+		Version: 1, Cols: 4, Rows: 2, Width: 100, Height: 50,
+		Windows: []MapWindowDTO{{
+			StartMs: 0, EndMs: 4000, Score: []uint8{1}, ChosenCell: 0,
+		}},
+	}
+	marks := []SceneMark{{
+		ID: "auto1", Kind: "region", Class: "glans",
+		Rect:   ROI{X: 10, Y: 20, W: 30, H: 40},
+		FromMs: 0, ToMs: 4000, Author: "auto",
+		Confidence: 0.91, Reviewed: &reviewed,
+	}}
+	meta := buildSceneMapMeta("", 5000, dto, marks)
+	if meta == nil || len(meta.Marks) != 1 {
+		t.Fatalf("persist marks: %+v", meta)
+	}
+	pm := meta.Marks[0]
+	if pm.Confidence != 0.91 || pm.Reviewed == nil || !*pm.Reviewed || pm.Author != "auto" {
+		t.Fatalf("persisted mark lost review fields: %+v", pm)
+	}
+	_, got, err := SceneMapFromPersist(meta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Confidence != 0.91 || got[0].Reviewed == nil || !*got[0].Reviewed {
+		t.Fatalf("load lost review fields: %+v", got)
+	}
+}
+
 func TestLoadSceneMapBesideVideo(t *testing.T) {
 	dir := t.TempDir()
 	video := filepath.Join(dir, "clip.mp4")
