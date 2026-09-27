@@ -10,6 +10,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Marks S3 / L1 exclude suggest** — Advanced Scene map → **Suggest ignores from
+  learning** reads local `scene_map_learning/**/exclude_decisions.jsonl`, bins
+  normalized Ignore boxes on a 4×3 grid, and pre-fills suggest-only whole-clip
+  Ignore marks when ≥3 Collect clips share a hot cell (≥50%). User reviews /
+  Clear; never auto-Create. Everyday CSRT / Rhythm / Enforcement / Rel34
+  untouched (#SCENE_MAP M6-L1).
 - **Generator marks S2 (contact Fixed→follow)** — extra contact areas default to
   **follow** when tip path is recorded (Contact vib soft-ons path); optional
   **Stay fixed** keeps static anchors. Play overlay treats omitted/`false`
