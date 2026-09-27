@@ -131,7 +131,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel31 | Cursor | [#249](https://github.com/funfunpayer/SamNPlayer/pull/249) + tag `v0.5.31` | bump **v0.5.31** + Release (profilemodel + target lock + SceneMap P2 + Stage B notes) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31 |
 | Rel32 | Cursor | [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) | bump **v0.5.32** + Release bookkeeping (SceneMap P3–P5, Look2/3, AIWrite S0/S1+#272 discoverability, GapHeal, GuiLoad, Bookmarks/Chapters, G1.2/G3safe, #267) | **DONE** on main — tag after Owner portable smoke |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
-| Plugin | Cursor | **THIS** | **Plugin host H0 + license `virtual_person`** — standard €40 includes feature (not addon); host stub + Settings gate; #264 stays parked | **THIS** |
+| Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) | **Plugin host H0 + license `virtual_person`** — standard €40 includes feature (not addon); host stub + Settings gate; #264 stays parked | **THIS** |
 | Engine | — | free | Rel32 on main; Plugin H0 in flight; Owner gates unchanged | **OPEN** (Plugin) |
 | Rel26 | Cursor | tag `v0.5.26` | Release portable for marks persist + Play overlay | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.26 |
 | T-clip | Claude | [#215](https://github.com/funfunpayer/SamNPlayer/pull/215) merged | **Training mosaic frames** from full clip **2:14–2:40**; 24 frames | **DONE** |
@@ -155,7 +155,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (27 Sep — Plugin):**
-- **In flight:** **Plugin** — license feature `virtual_person` in standard €40 key + `pluginhost/` H0 + Settings Enable/Disable. Enforcement stays **off**. #264 Virtual Person draft remains parked (`mergeable_state=dirty`; cherry-pick later, no force-merge).
+- **In flight:** **Plugin** [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) — license feature `virtual_person` in standard €40 key + `pluginhost/` H0 + Settings Enable/Disable. Enforcement stays **off**. #264 Virtual Person draft remains parked (`mergeable_state=dirty`; cherry-pick later, no force-merge).
 - **Rel32:** on `main` (`c97ddd9`); tag after Owner portable smoke.
 - **Owner decision (27 Sep):** Virtual Person / plugins **included** in standard license — not a separate addon. Feature id = `virtual_person`.
 - **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips (identity-lock); G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip.
