@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -221,13 +221,17 @@ export function initGenerator(root, playback) {
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. After a good Create, use <b>Export classical run</b> (S1) here; AI draft stays off until a local model (S2+).
+            Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best match for review. Keep required — CSRT path unchanged.
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-ai-script-export" disabled
               data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: local AI drafts a stroke curve for review. Off until a draft model is installed. Does not replace CSRT Create. Require Keep after Quality Doctor (planned S3).">AI draft script</button>
+              data-help="Experimental: drafts a stroke from your exported classical samples (duration match + stretch). Off until ≥1 Export classical run. Does not replace CSRT Create. Require Keep after Quality Doctor.">AI draft script</button>
+            <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
+              data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
+            <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
+              data-help="Drops the current AI draft without writing. Everyday Create result stays.">Discard</button>
             <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
           </div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
@@ -2395,6 +2399,23 @@ export function initGenerator(root, playback) {
     updateSceneMapButton();
   });
 
+  let pendingAIDraft = null; // { actions, qdPassed, qdScore, notes }
+
+  function setAIDraftPending(draft) {
+    pendingAIDraft = draft;
+    const keep = el('#gen-ai-script-keep');
+    const discard = el('#gen-ai-script-discard');
+    const has = !!(draft && Array.isArray(draft.actions) && draft.actions.length >= 2);
+    if (keep) {
+      keep.hidden = !has;
+      keep.disabled = !has;
+    }
+    if (discard) {
+      discard.hidden = !has;
+      discard.disabled = !has;
+    }
+  }
+
   function refreshAIScriptWriterUI() {
     const draft = el('#gen-ai-script-draft');
     const exportBtn = el('#gen-ai-script-export');
@@ -2409,22 +2430,26 @@ export function initGenerator(root, playback) {
       const available = !!(st && (st.available || st.Available));
       const reason = (st && (st.reason || st.Reason)) || '';
       const stage = (st && (st.stage || st.Stage)) || 'S0';
+      const samples = (st && (st.sampleCount || st.SampleCount)) || 0;
       draft.disabled = !available || !videoPath;
       if (status) {
         const exportBit = canExport
           ? 'Export classical run ready'
           : 'Export classical run after Create';
         const draftBit = available
-          ? `draft Ready (${stage})`
+          ? `draft Ready (${stage}${samples ? `, ${samples} sample(s)` : ''})`
           : (reason || `draft not available (${stage})`);
         status.textContent = `${exportBit} · ${draftBit}`;
       }
-      if (hint && !canExport) {
+      if (hint && !canExport && !available) {
         hint.textContent =
-          'Everyday Create still uses CSRT. After a good Create, use Export classical run (S1) here; AI draft stays off until a local model (S2+).';
+          'Everyday Create still uses CSRT. After a good Create, Export classical run builds a local imitation library; then AI draft becomes available. Keep required — CSRT path unchanged.';
       } else if (hint && canExport && !available) {
         hint.textContent = reason
-          || 'Create finished — Export classical run saves a local training sample (S1). Draft stays off until S2.';
+          || 'Create finished — Export classical run saves a local training sample (S1). Draft unlocks after ≥1 export.';
+      } else if (hint && available) {
+        hint.textContent = reason
+          || 'Imitation library ready. AI draft stretches the best match — review QD, then Keep or Discard. Everyday CSRT unchanged.';
       }
     }).catch(() => {
       draft.disabled = true;
@@ -2450,6 +2475,7 @@ export function initGenerator(root, playback) {
         path, videoPath || '', tip.x || 0, tip.y || 0, tip.w || 0, tip.h || 0);
       if (status) status.textContent = (res && (res.message || res.Message)) || 'Exported';
       uiInfo((res && (res.message || res.Message)) || 'Training sample exported', el('#gen-status'));
+      refreshAIScriptWriterUI();
     } catch (err) {
       if (status) status.textContent = '';
       uiError('Export classical run: ' + err, el('#gen-status'));
@@ -2461,14 +2487,60 @@ export function initGenerator(root, playback) {
       uiWarn('Choose a video first.', el('#gen-status'));
       return;
     }
-    if (status) status.textContent = 'Drafting…';
+    if (status) status.textContent = 'Drafting from imitation library…';
+    setAIDraftPending(null);
     try {
-      await DraftAIScript(videoPath);
-      if (status) status.textContent = 'Draft ready (Keep not wired yet — S3)';
+      const tip = roi && roi.w > 0 && roi.h > 0 ? roi : { x: 0, y: 0, w: 0, h: 0 };
+      const res = await DraftAIScript(
+        videoPath, tip.x || 0, tip.y || 0, tip.w || 0, tip.h || 0, 0);
+      const actions = (res && (res.actions || res.Actions)) || [];
+      const qdPassed = !!(res && (res.qdPassed ?? res.QDPassed));
+      const qdScore = (res && (res.qdScore ?? res.QDScore)) ?? null;
+      const notes = (res && (res.notes || res.Notes)) || '';
+      if (!actions || actions.length < 2) {
+        throw new Error('draft returned no actions');
+      }
+      setAIDraftPending({ actions, qdPassed, qdScore, notes });
+      const scoreBit = qdScore != null ? `QD ${Number(qdScore).toFixed(2)} (${qdPassed ? 'pass' : 'fail'})` : 'QD n/a';
+      if (status) status.textContent = `Draft ready — ${scoreBit}. Keep or Discard.`;
+      uiInfo(`AI draft ready — ${scoreBit}. Review, then Keep draft or Discard.`, el('#gen-status'));
     } catch (err) {
+      setAIDraftPending(null);
       if (status) status.textContent = '';
       uiError('AI draft: ' + err, el('#gen-status'));
     }
+  });
+  el('#gen-ai-script-keep')?.addEventListener('click', async () => {
+    const status = el('#gen-ai-script-status');
+    if (!pendingAIDraft || !videoPath) {
+      uiWarn('Run AI draft script first.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Keeping draft…';
+    try {
+      const res = await KeepAIScriptDraft(videoPath, pendingAIDraft.actions);
+      const path = (res && (res.path || res.Path)) || '';
+      const msg = (res && (res.message || res.Message)) || 'Draft kept';
+      setAIDraftPending(null);
+      if (path) {
+        lastOutputPath = path;
+        el('#gen-feedback').style.display = 'block';
+        el('#gen-improve').style.display = 'block';
+      }
+      if (status) status.textContent = msg;
+      uiInfo(msg, el('#gen-status'));
+      refreshAIScriptWriterUI();
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Keep AI draft: ' + err, el('#gen-status'));
+    }
+  });
+  el('#gen-ai-script-discard')?.addEventListener('click', () => {
+    setAIDraftPending(null);
+    const status = el('#gen-ai-script-status');
+    if (status) status.textContent = 'Draft discarded';
+    uiInfo('AI draft discarded — Everyday Create result unchanged.', el('#gen-status'));
+    refreshAIScriptWriterUI();
   });
 
   el('#gen-seek-btn').addEventListener('click', () => seekTo(parseFloat(el('#gen-seek').value) || 0));

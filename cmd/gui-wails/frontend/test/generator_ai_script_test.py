@@ -43,11 +43,14 @@ def main():
         "SceneMapAvailable": "async () => false",
         "AIScriptWriterStatus": (
             "async () => ({ available: false, reason: "
-            "'No AI draft model configured yet (experimental path; Everyday Create still uses CSRT).', "
-            "stage: 'S0' })"
+            "'No AI draft model yet. Export classical good runs (Advanced → Export classical run) to build a local imitation library, then draft becomes available. Everyday Create stays CSRT.', "
+            "stage: 'S1', sampleCount: 0 })"
         ),
         "DraftAIScript": (
             "async () => { throw new Error('aiscript: not available'); }"
+        ),
+        "KeepAIScriptDraft": (
+            "async () => { throw new Error('aiscript: no draft'); }"
         ),
         "GenerateScript": (
             "async (opts) => { window.__calls.push(['GenerateScript', opts]); "
@@ -72,6 +75,9 @@ def main():
 
         check("AI draft button in DOM", page.locator("#gen-ai-script-draft").count() == 1)
         check("Export classical in DOM", page.locator("#gen-ai-script-export").count() == 1)
+        check("Keep draft in DOM", page.locator("#gen-ai-script-keep").count() == 1)
+        check("Discard in DOM", page.locator("#gen-ai-script-discard").count() == 1)
+        check("Keep hidden before draft", page.locator("#gen-ai-script-keep").is_hidden())
 
         page.click("#gen-choose")
         page.wait_for_function(

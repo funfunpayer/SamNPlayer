@@ -10,13 +10,19 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AIWrite S2 imitation draft + Keep** — after ≥1 Advanced **Export classical
+  run**, **AI draft script** becomes available: stretches the best duration-
+  matched imitation sample, runs actions-only Quality Doctor, and requires
+  explicit **Keep draft** / **Discard**. Writes `.samn` + companion `.funscript`.
+  Everyday CSRT unchanged; no ONNX weights; no Everyday default-on.
+  Docs: `AI_SCRIPT_WRITER.md`.
 - **Contact vib impulse curve (Advanced experiment)** — new
   `contact_vibration_curve: impulse` (aliases `events` / `peak_emphasis`):
   quiet mid-window, sharp rise only near deep peaks — less “second stroke
   curve”. Generate: Advanced → Peak-emphasis contact vib. Play live curve
   select includes impulse. Everyday Soft onset default unchanged; Follow /
   Ignore / Enforcement untouched. Design: project store
-  `docs/vibration-contact-model.md`.
+  `docs/vibration-contact-model.md` (#279).
 
 ## [0.5.33] — September 27, 2026
 
