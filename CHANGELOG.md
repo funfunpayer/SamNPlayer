@@ -10,6 +10,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Contact points steer the rhythm grid (opt-in, VLM1)** — `generate
+  --rhythm-grid --contact-points <clip>.contact.json`: where a local teacher
+  saw the stroke contact and the CSRT box is out of the grid's reach (> 3
+  cells), the grid searches there instead. `generator/contact_points.py`
+  builds the file from NudeNet (optional user install) and/or `vlm_probe`
+  results with multi-teacher agreement (`--contact-min-agree`). Multi-person
+  clip r 0.304 → 0.406; both goldens bit-identical. Off by default.
+  Model/teacher list: `docs/VLM_MODELS.md`.
+
 - **VLM probe exemplar mode** — `vlm_probe.py --exemplar-json/--exemplar`
   shows the model reference frames of the same clip with the contact region
   (green) and no-go regions (red) drawn in, then asks for the same region in

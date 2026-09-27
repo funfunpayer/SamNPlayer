@@ -27,6 +27,8 @@ func runGenerate(args []string) int {
 	maxFrames := fs.Int("max-frames", 0, "limit frames (0 = all)")
 	autoRetry := fs.Bool("auto-retry", true, "signal-param auto-retry")
 	rhythmGrid := fs.Bool("rhythm-grid", false, "stroke signal from the most rhythmic flow cell near the box (drift-robust, Go CSRT only)")
+	contactPoints := fs.String("contact-points", "", "contact_points.py JSON: teachers' contact points steer the rhythm grid where the box is out of reach (needs --rhythm-grid)")
+	contactMinAgree := fs.Int("contact-min-agree", 0, "keep only contact points at least this many teachers agreed on")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s generate --video FILE --roi x,y,w,h [--output FILE] [options]\n", os.Args[0])
 		fs.PrintDefaults()
@@ -72,6 +74,9 @@ func runGenerate(args []string) int {
 		MaxFrames:    *maxFrames,
 		AutoRetry:    *autoRetry,
 		RhythmGrid:   *rhythmGrid,
+
+		ContactPointsFile:     *contactPoints,
+		ContactPointsMinAgree: *contactMinAgree,
 	}
 	err := generator.GenerateWithContext(context.Background(), *video, roi, out, opts,
 		func(line string) { fmt.Fprintln(os.Stderr, line) },

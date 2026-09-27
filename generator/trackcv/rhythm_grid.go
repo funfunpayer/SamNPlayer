@@ -1,6 +1,9 @@
 package trackcv
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 // Rhythm grid: an alternative source for the stroke signal that tolerates
 // CSRT drift.
@@ -502,6 +505,59 @@ type rhythmCand struct {
 func rhythmGridPositions(cellV [][]float32, gw, gh int, width, height int,
 	cx, cy, anchor []float64, seed rhythmSeed, sceneCuts []int, fps float64) []float64 {
 	return rhythmGridPositionsMarks(cellV, gw, gh, width, height, cx, cy, anchor, seed, sceneCuts, fps, nil)
+}
+
+// rhythmContactHoldMs: default time window around a ContactPoint in which it
+// counts for a frame (teachers sample every ~0.5 s; 1 s bridges a missed
+// detection without dragging a stale point across a cut).
+const rhythmContactHoldMs = 1000
+
+// applyContactPoints returns the rhythm grid's per-frame search centre: the
+// CSRT box centre (cx, cy), replaced by the nearest ContactPoint (within
+// holdMs of the frame) only where that point lies further than the search
+// radius (rhythmSearchCells cells) from the box. Inside the radius the grid
+// reaches the contact on its own, so nothing changes there - that gate is
+// what keeps both goldens bit-identical (VLM1 measurement). With no points
+// the input slices are returned as-is.
+func applyContactPoints(cx, cy []float64, tsMs []int, pts []ContactPoint, holdMs int64,
+	width, height, gw int) ([]float64, []float64) {
+	if len(pts) == 0 || len(cx) == 0 || width <= 0 || height <= 0 || gw <= 0 {
+		return cx, cy
+	}
+	if holdMs <= 0 {
+		holdMs = rhythmContactHoldMs
+	}
+	sorted := append([]ContactPoint(nil), pts...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Ms < sorted[j].Ms })
+	radius := rhythmSearchCells * float64(width) / float64(gw)
+	outX := append([]float64(nil), cx...)
+	outY := append([]float64(nil), cy...)
+	k := 0
+	for i := range outX {
+		if i >= len(tsMs) || i >= len(cy) {
+			break
+		}
+		t := int64(tsMs[i])
+		for k+1 < len(sorted) && absInt64(sorted[k+1].Ms-t) <= absInt64(sorted[k].Ms-t) {
+			k++
+		}
+		p := sorted[k]
+		if absInt64(p.Ms-t) > holdMs {
+			continue
+		}
+		px, py := p.X*float64(width), p.Y*float64(height)
+		if math.Hypot(px-cx[i], py-cy[i]) > radius {
+			outX[i], outY[i] = px, py
+		}
+	}
+	return outX, outY
+}
+
+func absInt64(v int64) int64 {
+	if v < 0 {
+		return -v
+	}
+	return v
 }
 
 // rhythmGridPositionsMarks is rhythmGridPositions with optional SceneMarks (M3).
