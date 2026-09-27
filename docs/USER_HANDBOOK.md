@@ -70,6 +70,14 @@ Cloud “ChatGPT writes positions” is **out of product**.
 ### Smarter tip find / Suggest profile — do they change the curve?
 No. They **propose** tip box or style. You Apply. Curve still comes from CSRT Create.
 
+### Local helpers — setup path (optional)
+All local, deletable, off until you wire them. Full guide: `docs/LOCAL_MODEL_SETUP.md` (Colibri: `docs/COLIBRI_SETUP.md`).
+
+1. **Tip ROI model** — AI Train → label tip boxes → train ONNX → Settings → **Open AI training** / set path → **Check availability** → Create offers *Smarter tip find* (Apply still required).  
+2. **Style suggestion** — Create → remember scenes with Style → AI Train → **Train Go profile model** → Create **Suggest profile** → **Apply** (soft suggestion on load also shows Apply; never auto-applies).  
+3. **AI draft script** — Create → **Export classical run** (≥1) → Advanced **AI draft script** → Keep/Discard. No Settings model path yet.  
+4. **Colibri (optional)** — Settings AI server URL for prose Suggest / quality opinion; measured scene similarity works without it.
+
 ### Scene map?
 Advanced → **Show scene map**: rhythm heatmap + marks (exclude/source/region). Explicit only — never auto before Create. Optional **Export for learning** needs Settings → Collect learning data.
 
@@ -108,7 +116,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 |-----|-----|
 | **Device** | Connect Sam Neo 2 / Handy / etc. Optional short connect-test pulse in Settings. **Intiface:** start Intiface Central → Via Intiface Central (empty = this machine). After one socket drop, SamNPlayer tries **one** auto-reconnect; then tap Connect again. |
 | **Training** | Practice patterns without video (technique, channel, cycles, ramp/hold/rest). |
-| **AI Train** | Label tip ROIs / scenes for *helper* models — not the stroke writer. |
+| **AI Train** | Label tip ROIs / train ONNX; **Train Go profile model** — helpers only, not the stroke writer. |
 
 ---
 
@@ -118,7 +126,9 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 |---------|--------|
 | **Open user handbook** | In-app FAQ (same content as this doc’s Everyday sections) |
 | AI ROI model path | Enables *Smarter tip find* |
+| **Open AI training** | Jumps to the AI Train tab (label → train → back here for Check availability) |
 | Collect learning data | Allows Scene map **Export for learning** |
+| AI server URL (Colibri) | Optional local prose for Suggest profile / quality opinion |
 
 **Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
 
