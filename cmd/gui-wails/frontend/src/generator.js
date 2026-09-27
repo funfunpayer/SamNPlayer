@@ -73,7 +73,7 @@ export function initGenerator(root, playback) {
         <button id="gen-seek-plus" type="button" disabled>+1s</button>
         <button id="gen-seek-plus5" type="button" disabled>+5s</button>
         <label class="checkbox-row" style="margin:0 0 0 8px;"
-          data-help="0–100 stroke gauge over the preview. Moves with Time/Frame after Create. Turn off anytime.">
+          data-help="0–100 stroke gauge over the preview. Moves with Time/Frame after Create (and after AI draft, before Keep). Turn off anytime.">
           <input type="checkbox" id="gen-pos-overlay-toggle" checked />
           0–100 on video
         </label>
@@ -231,7 +231,7 @@ export function initGenerator(root, playback) {
             <button type="button" class="secondary" id="gen-ai-script-export" disabled
               data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
             <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Does not replace CSRT Create. Require Keep after Quality Doctor.">AI draft script</button>
+              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
             <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
               data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
             <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
@@ -416,6 +416,8 @@ export function initGenerator(root, playback) {
   let videoBatchNote = '';
   // FunGen-like 0–100 gauge over the preview (after Generate).
   let genCurvePoints = null; // [{atMs, pos}, ...]
+  let genCurveBeforeAIDraft = null; // CSRT Create curve restored on Discard
+  let aiDraftCurveActive = false; // true while pending AI draft drives the gauge
   const POS_OVERLAY_PREF = 'samn.genPosOverlay';
 
   function posOverlayWanted() {
@@ -435,6 +437,49 @@ export function initGenerator(root, playback) {
     const show = on && posOverlayWanted() && genCurvePoints && genCurvePoints.length >= 2;
     box.hidden = !show;
     box.setAttribute('aria-hidden', show ? 'false' : 'true');
+    box.classList.toggle('ai-draft-preview', show && aiDraftCurveActive);
+  }
+
+  function actionsToCurvePoints(actions) {
+    if (!Array.isArray(actions) || actions.length < 2) return null;
+    const pts = actions.map((a) => ({
+      atMs: a.at ?? a.At ?? 0,
+      pos: a.pos ?? a.Pos ?? 0,
+    })).filter((p) => Number.isFinite(p.atMs) && Number.isFinite(p.pos));
+    return pts.length >= 2 ? pts : null;
+  }
+
+  /** S3: show AI draft on the Create 0–100 gauge before Keep (not only in Play). */
+  function showAIDraftCurvePreview(actions) {
+    const pts = actionsToCurvePoints(actions);
+    if (!pts) return false;
+    if (!aiDraftCurveActive) {
+      genCurveBeforeAIDraft = genCurvePoints;
+    }
+    genCurvePoints = pts;
+    aiDraftCurveActive = true;
+    updatePosOverlay();
+    return true;
+  }
+
+  function clearAIDraftCurvePreview({ restore = true } = {}) {
+    if (!aiDraftCurveActive && !genCurveBeforeAIDraft) {
+      return;
+    }
+    aiDraftCurveActive = false;
+    if (restore && genCurveBeforeAIDraft && genCurveBeforeAIDraft.length >= 2) {
+      genCurvePoints = genCurveBeforeAIDraft;
+    } else if (!restore) {
+      // Keep: draft curve is the kept script — leave points; drop restore stash.
+    } else {
+      genCurvePoints = null;
+    }
+    genCurveBeforeAIDraft = null;
+    if (genCurvePoints && genCurvePoints.length >= 2) {
+      updatePosOverlay();
+    } else {
+      setPosOverlayVisible(false);
+    }
   }
 
   function interpGenPos(tMs) {
@@ -1688,6 +1733,11 @@ export function initGenerator(root, playback) {
     roi = null;
     roi2 = null;
     clearPendingAITarget();
+    setAIDraftPending(null);
+    aiDraftCurveActive = false;
+    genCurveBeforeAIDraft = null;
+    genCurvePoints = null;
+    setPosOverlayVisible(false);
     extraTargets = [];
     maskRois = [];
     setMarkMode(null);
@@ -1775,7 +1825,9 @@ export function initGenerator(root, playback) {
     try {
       await showFrame(videoPath, seekSec);
       el('#gen-status').textContent = genCurvePoints
-        ? `Frame at ${seekSec}s — 0–100 gauge follows the curve.`
+        ? (aiDraftCurveActive
+          ? `Frame at ${seekSec}s — 0–100 gauge shows AI draft (Keep or Discard).`
+          : `Frame at ${seekSec}s — 0–100 gauge follows the curve.`)
         : `Frame at ${seekSec}s — mark region.`;
       updatePosOverlay();
     } catch (err) {
@@ -2575,6 +2627,7 @@ export function initGenerator(root, playback) {
     }
     if (status) status.textContent = 'Drafting from imitation library…';
     setAIDraftPending(null);
+    clearAIDraftCurvePreview({ restore: true });
     try {
       const tip = roi && roi.w > 0 && roi.h > 0 ? roi : { x: 0, y: 0, w: 0, h: 0 };
       const res = await DraftAIScript(
@@ -2587,11 +2640,16 @@ export function initGenerator(root, playback) {
         throw new Error('draft returned no actions');
       }
       setAIDraftPending({ actions, qdPassed, qdScore, notes });
+      const previewed = showAIDraftCurvePreview(actions);
       const scoreBit = qdScore != null ? `QD ${Number(qdScore).toFixed(2)} (${qdPassed ? 'pass' : 'fail'})` : 'QD n/a';
+      const previewBit = previewed
+        ? ' Scrub Time/Frame — 0–100 gauge shows the draft before Keep.'
+        : '';
       if (status) status.textContent = `Draft ready — ${scoreBit}. Keep or Discard.`;
-      uiInfo(`AI draft ready — ${scoreBit}. Review, then Keep draft or Discard.`, el('#gen-status'));
+      uiInfo(`AI draft ready — ${scoreBit}. Review${previewed ? ' on the gauge' : ''}, then Keep draft or Discard.${previewBit}`, el('#gen-status'));
     } catch (err) {
       setAIDraftPending(null);
+      clearAIDraftCurvePreview({ restore: true });
       if (status) status.textContent = '';
       uiError('AI draft: ' + err, el('#gen-status'));
     }
@@ -2608,10 +2666,19 @@ export function initGenerator(root, playback) {
       const path = (res && (res.path || res.Path)) || '';
       const msg = (res && (res.message || res.Message)) || 'Draft kept';
       setAIDraftPending(null);
+      clearAIDraftCurvePreview({ restore: false }); // keep draft points on gauge
       if (path) {
         lastOutputPath = path;
         el('#gen-feedback').style.display = 'block';
         el('#gen-improve').style.display = 'block';
+        if (playback && typeof playback.loadScriptPath === 'function') {
+          try {
+            await playback.loadScriptPath(path, { review: true });
+            await loadGenCurveFromPlay();
+          } catch (_) {
+            // Gauge already shows the kept draft actions.
+          }
+        }
       }
       if (status) status.textContent = msg;
       uiInfo(msg, el('#gen-status'));
@@ -2623,6 +2690,7 @@ export function initGenerator(root, playback) {
   });
   el('#gen-ai-script-discard')?.addEventListener('click', () => {
     setAIDraftPending(null);
+    clearAIDraftCurvePreview({ restore: true });
     const status = el('#gen-ai-script-status');
     if (status) status.textContent = 'Draft discarded';
     uiInfo('AI draft discarded — Everyday Create result unchanged.', el('#gen-status'));

@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AIWrite S3 draft curve preview** — after **AI draft script**, the Create
+  **0–100 on video** gauge shows the pending draft (scrub Time/Frame) before
+  Keep; Discard restores the prior CSRT Create curve. Gold gauge cue while a
+  draft is pending. Everyday CSRT / Rel34 / default-on untouched.
 - **Intiface one-shot reconnect** — after liveness marks the WebSocket dead
   (#281), the next vibrate/suction/ping tries **one** automatic `Connect`
   for that connection life before staying disconnected. No reconnect loops;
