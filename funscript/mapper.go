@@ -79,6 +79,16 @@ const (
 // Above it, vib rises as a cubic — sits on strong peaks, not continuous fill.
 const ImpulseContactThreshold = 0.55
 
+// SpatialDepthWeight: when tip↔mark geometry is available (S2 prefer-spatial),
+// depth envelope is attenuated so spatial contact events dominate the vib
+// track — less “second stroke curve”. Between grazes, depth still contributes
+// weakly (model B peak fill). 1.0 would restore pre-S2 max(depth, spatial).
+const SpatialDepthWeight = 0.30
+
+// SpatialContactEnvelopeSmooth: snappier attack/decay on spatial hits than
+// DefaultContactEnvelopeSmooth — short clear buzz on tip↔mark graze.
+const SpatialContactEnvelopeSmooth = 0.18
+
 // DefaultContactEnvelopeSmooth: kurze Extra-Glättung nur für die
 // Kontakt-Vibrationshüllkurve (Tracker-Jitter), unabhängig vom Sog-
 // Smoothing der Recipe. Höher = träger.
@@ -246,15 +256,17 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		}
 		return false
 	}
-	// contactVibAt: depth envelope from deep pos, OR spatial proximity of tip
-	// trajectory to marked contact areas (feel-decouple Stage A). max(depth,
-	// spatial) — stroke curve unchanged; vib can rise when tip grazes a mark
-	// even if stroke is not deep.
+	// contactVibAt: depth envelope from deep pos, and/or spatial proximity of
+	// tip trajectory to marked contact areas (feel-decouple Stage A).
+	// S2 (prefer spatial): when marks+trajectory present, weight spatial over
+	// depth and shorten envelope on spatial hits — stroke curve unchanged.
 	spatialOn := opts.ContactVibration &&
 		marksHasContactAreas(s.Metadata.ContactMarks) &&
 		s.Metadata.Trajectory != nil &&
 		len(s.Metadata.Trajectory.Tip) > 0
+	var lastSpatialHit bool
 	contactVibAt := func(pos float64, t int64) float64 {
+		lastSpatialHit = false
 		if (!contactEnabled && !spatialOn) || inGap(t) {
 			return 0
 		}
@@ -271,8 +283,14 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			)
 		}
 		vib := depth
-		if spatial > vib {
-			vib = spatial
+		if spatialOn {
+			// Prefer spatial events; attenuate continuous depth fill.
+			weightedDepth := depth * SpatialDepthWeight
+			vib = weightedDepth
+			if spatial > vib {
+				vib = spatial
+			}
+			lastSpatialHit = spatial > 0 && spatial >= weightedDepth
 		}
 		if vib > 0 && opts.MinVibration > 0 {
 			vib = liftFloor(vib, opts.MinVibration)
@@ -286,8 +304,12 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			}
 			return vib
 		}
+		env := envelope
+		if lastSpatialHit && SpatialContactEnvelopeSmooth < env {
+			env = SpatialContactEnvelopeSmooth
+		}
 		if len(frames) > 0 {
-			vib = envelope*prevContactVib + (1-envelope)*vib
+			vib = env*prevContactVib + (1-env)*vib
 		}
 		prevContactVib = vib
 		return vib
