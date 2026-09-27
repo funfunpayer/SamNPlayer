@@ -2,6 +2,7 @@
 
 When a video has a companion .samn with sceneMap.marks, opening it in Create
 restores sceneMapMarks (and map windows) so Play↔Create keeps annotations.
+Also keeps M5 reviewed/confidence on restore (P5c GUI round-trip follow-up).
 
 Run: python3 cmd/gui-wails/frontend/test/generator_scene_map_load_test.py
 """
@@ -50,11 +51,16 @@ def main():
             "map: { version: 1, cols: 4, rows: 4, width: 640, height: 360, "
             f"windows: [{{ startMs: 0, endMs: 8000, tempoHz: 1, score: [{SCORE}], "
             f"chosenCell: -1 }}] }}, "
-            "marks: [{ id: 'm3', kind: 'exclude', follow: true, "
+            "marks: ["
+            "{ id: 'm3', kind: 'exclude', follow: true, "
             "rect: { X: 10, Y: 20, W: 30, H: 40 }, "
             "fromMs: 0, toMs: 8000, "
             "path: [{ ms: 0, rect: { x: 10, y: 20, w: 30, h: 40 } }, "
-            "{ ms: 4000, rect: { x: 80, y: 40, w: 30, h: 40 } }] }] }; }"
+            "{ ms: 4000, rect: { x: 80, y: 40, w: 30, h: 40 } }] },"
+            "{ id: 'auto1', kind: 'region', author: 'auto', class: 'tip', "
+            "confidence: 0.91, reviewed: true, follow: false, "
+            "rect: { x: 50, y: 60, w: 40, h: 40 }, fromMs: 0, toMs: 8000 }"
+            "] }; }"
         ),
         "ScriptExistsForVideo": "async () => false",
         "GenerateScript": (
@@ -93,11 +99,13 @@ def main():
             "() => document.querySelector('#gen-scene-map-marks-label')?.textContent || ''")
         check("Restored exclude mark listed", "ignore@" in label)
         check("Restored Follow flag shown", "→follow" in label)
+        check("Restored reviewed region listed", "region:tip@" in label)
 
         status = page.evaluate(
             "() => document.querySelector('#gen-scene-map-status')?.textContent || ''")
         check("Status mentions restored marks",
               "Restored" in status and "mark" in status)
+        check("Status counts both restored marks", "2 scene-map mark" in status)
 
         page.wait_for_selector("#gen-scene-map-tools", state="visible", timeout=5000)
         check("Map tools visible after restore (no re-scan)",
