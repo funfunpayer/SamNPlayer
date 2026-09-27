@@ -138,6 +138,8 @@ export function LicenseAllowsVirtualPerson():Promise<boolean>;
 export function VirtualPersonHostStatus():Promise<Record<string, any>>;
 export function EnableVirtualPersonHost():Promise<Record<string, any>>;
 export function DisableVirtualPersonHost():Promise<Record<string, any>>;
+export function VirtualPersonGiveDildo():Promise<void>;
+export function VirtualPersonStartTitjob(arg1:number, arg2:number):Promise<void>;
 
 export function ListRoiTrainingDevices():Promise<Array<generator.RoiTrainingDevice>>;
 

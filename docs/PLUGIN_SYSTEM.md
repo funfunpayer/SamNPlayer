@@ -1,8 +1,8 @@
 # Plugin system — host contract for Virtual Persons
 
-**Status:** H0 landed — host contract + license gate (no full Animation Studio)  
+**Status:** H1 landed — OnFrame tick wiring + `virtualperson/` core (props/activities/bus)  
 **Audience:** SamNPlayer maintainers + Animation Studio  
-**Related:** package [`pluginhost/`](../pluginhost/) · license feature `virtual_person` · draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) (parked full `virtualperson/` scaffold; do not force-merge)
+**Related:** package [`pluginhost/`](../pluginhost/) · [`virtualperson/`](../virtualperson/) · license feature `virtual_person` · draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) (parked full dump; cherry-pick only)
 
 ---
 
@@ -14,8 +14,8 @@ replace Generate / Play / Train.
 | Capability | Scope |
 |------------|--------|
 | Virtual Persons | Animated characters synced to playback |
-| Virtual props & activities | In-scene toys (later MVP: give dildo → titjob) |
-| Optional real devices | Sam Neo 2 / Intiface as **parallel** output |
+| Virtual props & activities | In-scene toys (MVP: give dildo → titjob) |
+| Optional real devices | Sam Neo 2 / Intiface as **parallel** output (ToyHub; sync **off**) |
 | Chat / persona (later) | Structured tags; local LLM preferred |
 
 **What this is not**
@@ -50,60 +50,43 @@ overlays fork the player or invent a second sync clock.
 
 ---
 
-## H0 acceptance (this slice)
+## H1 acceptance (this slice)
 
 1. Documented host interface (this file).  
 2. `pluginhost.Slot` — Enable / Disable / Tick (no-op when disabled).  
 3. License feature stamped + `HasFeature` / `EffectiveHasFeature` evaluated.  
-4. Settings → Virtual Person host status + Enable/Disable (GUI load rule).  
-5. Everyday Create / Play / CSRT unchanged; Enforcement stays off.
+4. Settings → Virtual Person host status + Enable/Disable + Give dildo / Start titjob.  
+5. **OnFrame tick wiring** — `StartPlayback` → `player.OnFrame` → `tickVirtualPersonHost` when enabled.  
+6. **`virtualperson/` core** cherry-picked from #264: props, activities, motion bus, passthrough control, ToyHub (sync default **off**).  
+7. Pose events emitted as `virtualperson:pose` (no sprite overlay UI yet).  
+8. Everyday Create / Play / CSRT unchanged; Enforcement stays off.
 
-**Not in H0:** full `virtualperson/` package from #264, sprite overlay, ToyHub
-device ownership flip, OnFrame tick wiring into playback.
+**Deferred (follow-up):** sprite / puppet overlay UI; ToyHub device-ownership flip
+(player remains sole writer); full chat GUI; force-merge of dirty #264.
 
 ---
 
-## Proposed host APIs (later stages)
-
-### 1. Load / lifecycle
-
-Discover / enable → `Init` / `Start` / `Stop` / `Dispose`. One writer for
-`device.Device` — either `player.Player` **or** plugin ToyHub when armed.
-
-### 2. Playback clock sync
-
-`NowMs()`, play/pause/seek, optional tick aligned with player `OnFrame`.
-
-### 3. Funscript / timeline hooks
-
-Read-only curve sample + script load events. Plugins do **not** replace
-Generate’s classical writer (`docs/AI_ADAPTER.md`).
-
-### 4. UI surface
-
-Reserved panel / overlay slot; Emotion look + English UI conventions.
-
-### 5. Device bridge (optional)
-
-Live `device.Device` or narrow bridge; E-Stop on Stop. Virtual props remain
-the primary metaphor; real toys are opt-in.
-
-### Sketch
+## Host + plugin sketch
 
 ```text
 SamNPlayer (Wails host)
-  player.Player ──clock──► pluginhost.Slot
-  device.Device ──bridge─► (later)
-  frontend slot  ◄─events─ (later)
-                              │
-                              ▼
-                     Virtual Person plugin
+  player.Player ──OnFrame──► App.tickVirtualPersonHost
+                               ├─ pluginhost.Slot.Tick (clock / count)
+                               └─ virtualperson.Plugin.Tick (bus / activity)
+  device.Device ──bridge─► ToyHub (sync OFF — follow-up)
+  frontend        ◄─events─ virtualperson:pose (overlay later)
 ```
 
-Minimal surface today (`pluginhost`):
-
 ```go
+// pluginhost
 type Host interface {
+    NowMs() int64
+    EmitAnimation(pose PoseSample)
+}
+
+// virtualperson (richer; implemented by App)
+type Host interface {
+    Device() DeviceBridge
     NowMs() int64
     EmitAnimation(pose PoseSample)
 }

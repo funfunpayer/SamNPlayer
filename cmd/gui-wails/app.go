@@ -10,6 +10,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/funfunpayer/SamNPlayer/player"
 	"github.com/funfunpayer/SamNPlayer/pluginhost"
 	"github.com/funfunpayer/SamNPlayer/samn"
+	"github.com/funfunpayer/SamNPlayer/virtualperson"
 )
 
 // App ist der zentrale Zustand hinter der Wails-Bindung. Alle exportierten
@@ -82,9 +84,14 @@ type App struct {
 	scriptOffsetMs    int64
 	currentScriptPath string
 
-	// vpHost is the H0 Virtual Person plugin-host slot (docs/PLUGIN_SYSTEM.md).
+	// vpHost is the Virtual Person plugin-host slot (docs/PLUGIN_SYSTEM.md).
 	// Nil until first Status/Enable; Tick is a no-op when nil/not running.
-	vpHost *pluginhost.Slot
+	vpHost     *pluginhost.Slot
+	vpPlugin   *virtualperson.Plugin
+	vpHostImpl *vpAppHost
+	vpOnce     sync.Once
+	vpMu       sync.Mutex
+	vpClockMs  atomic.Int64
 }
 
 func NewApp() *App {

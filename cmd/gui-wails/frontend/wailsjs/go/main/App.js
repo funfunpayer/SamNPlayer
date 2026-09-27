@@ -84,6 +84,8 @@ export function LicenseAllowsVirtualPerson() { return window['go']['main']['App'
 export function VirtualPersonHostStatus() { return window['go']['main']['App']['VirtualPersonHostStatus'](); }
 export function EnableVirtualPersonHost() { return window['go']['main']['App']['EnableVirtualPersonHost'](); }
 export function DisableVirtualPersonHost() { return window['go']['main']['App']['DisableVirtualPersonHost'](); }
+export function VirtualPersonGiveDildo() { return window['go']['main']['App']['VirtualPersonGiveDildo'](); }
+export function VirtualPersonStartTitjob(arg1, arg2) { return window['go']['main']['App']['VirtualPersonStartTitjob'](arg1, arg2); }
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }
