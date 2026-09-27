@@ -1,8 +1,9 @@
 // Package pluginhost is the narrow SamNPlayer host surface for Virtual Person
 // plugins (docs/PLUGIN_SYSTEM.md).
 //
-// Stage H0: host contract + license gate only. No full Animation Studio dump,
-// no marketplace, no silent Everyday CSRT changes. The first loadable plugin
+// Stage H1: host contract + license gate + playback OnFrame Tick wiring.
+// Package virtualperson holds props/activities/bus (cherry-picked from #264).
+// No marketplace, no silent Everyday CSRT changes. The first loadable plugin
 // id is virtual_person; it requires license.FeatureVirtualPerson when
 // license.Enforcement is on (included in the standard €40 key).
 package pluginhost
@@ -16,8 +17,8 @@ import (
 // PluginIDVirtualPerson is the in-process Virtual Person slot.
 const PluginIDVirtualPerson = "virtual_person"
 
-// Stage is the host maturity marker (H0 = contract + gate).
-const Stage = "H0"
+// Stage is the host maturity marker (H1 = OnFrame tick + virtualperson core).
+const Stage = "H1"
 
 // Host is the narrow surface a Virtual Person plugin may use from SamNPlayer.
 // Names match docs/PLUGIN_SYSTEM.md — implement on the Wails App later.
@@ -42,6 +43,7 @@ type Status struct {
 	Enabled   bool   `json:"enabled"`
 	Running   bool   `json:"running"`
 	Stage     string `json:"stage"`
+	Ticks     uint64 `json:"ticks"` // OnFrame Tick count while running
 	Message   string `json:"message"`
 }
 
@@ -71,16 +73,17 @@ func (s *Slot) Status(allowed bool) Status {
 		Enabled:   s.enabled,
 		Running:   s.running,
 		Stage:     Stage,
+		Ticks:     s.ticks.Load(),
 	}
 	switch {
 	case !allowed:
 		st.Message = "License required for Virtual Person (feature virtual_person). Everyday Create stays free."
 	case s.running:
-		st.Message = "Virtual Person host running (H0 stub — tick counts only)."
+		st.Message = "Virtual Person host running (H1 — OnFrame tick + scene bus)."
 	case s.enabled:
 		st.Message = "Virtual Person host enabled but not running."
 	default:
-		st.Message = "Virtual Person host available (H0). Enable to start the stub tick path."
+		st.Message = "Virtual Person host available (H1). Enable to receive playback OnFrame ticks."
 	}
 	return st
 }

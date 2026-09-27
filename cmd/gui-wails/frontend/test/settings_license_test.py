@@ -54,25 +54,27 @@ def main():
         }""",
         "VirtualPersonHostStatus": """async () => (window.__vp || {
           featureId:'virtual_person', allowed:true, enabled:false, running:false,
-          stage:'H0',
-          message:'Virtual Person host available (H0). Enable to start the stub tick path.'
+          stage:'H1', ticks:0,
+          message:'Virtual Person host available (H1). Enable to receive playback OnFrame ticks.'
         })""",
         "EnableVirtualPersonHost": """async () => {
           window.__vp = {
             featureId:'virtual_person', allowed:true, enabled:true, running:true,
-            stage:'H0',
-            message:'Virtual Person host running (H0 stub — tick counts only).'
+            stage:'H1', ticks:0,
+            message:'Virtual Person host running (H1 — OnFrame tick + scene bus).'
           };
           return window.__vp;
         }""",
         "DisableVirtualPersonHost": """async () => {
           window.__vp = {
             featureId:'virtual_person', allowed:true, enabled:false, running:false,
-            stage:'H0',
-            message:'Virtual Person host available (H0). Enable to start the stub tick path.'
+            stage:'H1', ticks:0,
+            message:'Virtual Person host available (H1). Enable to receive playback OnFrame ticks.'
           };
           return window.__vp;
         }""",
+        "VirtualPersonGiveDildo": "async () => { window.__vpGave = true; }",
+        "VirtualPersonStartTitjob": "async () => { window.__vpTitjob = true; }",
         "SetSetting": "async () => {}",
         "GetRuntimeHealth": "async () => ({ok:true,deps:[],dirsCreated:[],resources:{}})",
         "EnsureVideoTools": "async () => {}",

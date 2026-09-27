@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Plugin host H1** — playback `OnFrame` → `tickVirtualPersonHost` when the
+  host is enabled; cherry-picked `virtualperson/` core from #264 (props,
+  activities, motion bus; ToyHub sync off). Settings: Give dildo / Start titjob.
+  Pose events `virtualperson:pose` (no overlay UI yet). Everyday CSRT unchanged;
+  Enforcement stays off. Docs: `PLUGIN_SYSTEM.md`.
 - **License feature `virtual_person`** — stamped on standard / invite / internal
   keys with `samn`, `contact`, `generate_full` (Owner: plugins in the €40
   license, not an addon). `HasFeature` / `EffectiveHasFeature`; Status exposes

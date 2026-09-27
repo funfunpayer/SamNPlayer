@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -99,14 +99,21 @@ export function initSettings(root) {
     </div>
 
     <h3>Virtual Person (plugin host)</h3>
-    <p class="hint">H0 host stub — enable for the in-process tick path. Included in the
-      standard license; gated only when enforcement is on. Everyday Create is unchanged.
+    <p class="hint">H1 — enable to receive playback OnFrame ticks and drive the scene bus
+      (props/activities). Included in the standard license; gated only when enforcement
+      is on. Overlay UI and ToyHub device sync are follow-ups. Everyday Create is unchanged.
       See docs/PLUGIN_SYSTEM.md.</p>
     <p class="hint" id="st-vp-host-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:center; margin-top:6px;">
       <button id="st-vp-host-enable" type="button">Enable host</button>
       <button id="st-vp-host-disable" type="button">Disable host</button>
       <button id="st-vp-host-refresh" type="button">Refresh</button>
+    </div>
+    <div class="row" style="align-items:center; margin-top:6px;">
+      <button id="st-vp-give-dildo" type="button"
+        data-help="MVP scene step: give virtual dildo prop (requires host enabled).">Give dildo</button>
+      <button id="st-vp-start-titjob" type="button"
+        data-help="MVP activity titjob_dildo — requires dildo first. ToyHub sync stays off.">Start titjob</button>
     </div>
 
     <h3>Runtime &amp; updates</h3>
@@ -293,12 +300,13 @@ export function initSettings(root) {
     try {
       const st = await VirtualPersonHostStatus();
       const bits = [
-        `stage: ${st.stage || 'H0'}`,
+        `stage: ${st.stage || 'H1'}`,
         `feature: ${st.featureId || 'virtual_person'}`,
         `allowed: ${st.allowed ? 'yes' : 'no'}`,
         `enabled: ${st.enabled ? 'yes' : 'no'}`,
         `running: ${st.running ? 'yes' : 'no'}`,
-      ];
+        typeof st.ticks === 'number' ? `ticks: ${st.ticks}` : null,
+      ].filter(Boolean);
       box.textContent = (st.message || '') + ' · ' + bits.join(' · ');
     } catch (err) {
       box.textContent = 'Virtual Person host status failed: ' + err;
@@ -325,6 +333,26 @@ export function initSettings(root) {
       await refreshVPHostStatus();
     } catch (err) {
       uiError('Disable Virtual Person host: ' + err, box);
+    }
+  });
+  el('#st-vp-give-dildo')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      await VirtualPersonGiveDildo();
+      uiInfo('Gave virtual dildo prop.', box);
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Give dildo: ' + err, box);
+    }
+  });
+  el('#st-vp-start-titjob')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      await VirtualPersonStartTitjob(0.5, 0);
+      uiInfo('Started titjob_dildo activity (bus owns motion while active).', box);
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Start titjob: ' + err, box);
     }
   });
 

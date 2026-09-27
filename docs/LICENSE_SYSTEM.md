@@ -23,7 +23,7 @@ production plan (`docs/PRODUCTION_ROADMAP.md` stream E).
 | Internal / invite | Same Settings import; `tier: internal` or `invite`; no expiry; same feature set |
 | Generator | **`cmd/license-tool`** (offline Ed25519 issuer) — built |
 | Library | **`license` package** — parse/verify/`Status`/`EffectiveLicensed`/`EffectiveHasFeature` — built |
-| Settings UI | Import paste/file + status + clear — built; Virtual Person host H0 — built |
+| Settings UI | Import paste/file + status + clear — built; Virtual Person host H1 — built |
 | Enforcement | **Off** until go-live flip |
 
 ---
@@ -55,7 +55,7 @@ effective) and `StartPlayback` (refuses `.samn` when not effective). Flipping
 | Embedded public key | `license/pubkey.go` | Matches `license/testdata/issuer.ed25519` (**DEV**) |
 | Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` (prints features) |
 | GUI API | `cmd/gui-wails/app_license.go` | `GetLicenseStatus`, `ImportLicense*`, `ClearLicense`, `LicenseAllowsFullFeatures` |
-| Plugin host H0 | `pluginhost/` + `app_pluginhost.go` | `LicenseAllowsVirtualPerson`, Enable/Disable host; Settings card |
+| Plugin host H1 | `pluginhost/` + `virtualperson/` + `app_pluginhost.go` | OnFrame tick + Enable/Disable + Give/Titjob; ToyHub sync off |
 | Settings section | `frontend/src/settings.js` | License card + Virtual Person host (English) |
 
 ### Issue a key (dev issuer)
