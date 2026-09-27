@@ -52,6 +52,27 @@ def main():
           };
           return window.__lic;
         }""",
+        "VirtualPersonHostStatus": """async () => (window.__vp || {
+          featureId:'virtual_person', allowed:true, enabled:false, running:false,
+          stage:'H0',
+          message:'Virtual Person host available (H0). Enable to start the stub tick path.'
+        })""",
+        "EnableVirtualPersonHost": """async () => {
+          window.__vp = {
+            featureId:'virtual_person', allowed:true, enabled:true, running:true,
+            stage:'H0',
+            message:'Virtual Person host running (H0 stub — tick counts only).'
+          };
+          return window.__vp;
+        }""",
+        "DisableVirtualPersonHost": """async () => {
+          window.__vp = {
+            featureId:'virtual_person', allowed:true, enabled:false, running:false,
+            stage:'H0',
+            message:'Virtual Person host available (H0). Enable to start the stub tick path.'
+          };
+          return window.__vp;
+        }""",
         "SetSetting": "async () => {}",
         "GetRuntimeHealth": "async () => ({ok:true,deps:[],dirsCreated:[],resources:{}})",
         "EnsureVideoTools": "async () => {}",
@@ -105,6 +126,20 @@ def main():
         text3 = page.locator("#st-license-status").inner_text()
         check("after clear shows none/off",
               "enforcement: off" in text3 or "No license" in text3)
+
+        check("Virtual Person heading visible",
+              page.locator("h3", has_text="Virtual Person").count() == 1)
+        page.wait_for_function(
+            "document.querySelector('#st-vp-host-status') && document.querySelector('#st-vp-host-status').textContent.includes('virtual_person')",
+            timeout=5000)
+        page.click("#st-vp-host-enable")
+        page.wait_for_function(
+            "document.querySelector('#st-vp-host-status').textContent.includes('running: yes')",
+            timeout=5000)
+        page.click("#st-vp-host-disable")
+        page.wait_for_function(
+            "document.querySelector('#st-vp-host-status').textContent.includes('running: no')",
+            timeout=5000)
 
         browser.close()
 

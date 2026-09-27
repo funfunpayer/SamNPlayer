@@ -53,7 +53,7 @@ number over a feature wall (`docs/COMPETITIVE.md`).
 
 Already decided in `docs/LICENSE_SYSTEM.md`:
 
-- **Retail:** **€40** / year — 1 person, full Generate + `.samn` play  
+- **Retail:** **€40** / year — 1 person, full Generate + `.samn` play + **Virtual Person** (`virtual_person` feature; not an addon)  
 - **Trial:** 1 minute Generate; Funscript play without Neo-2 `.samn`  
 - **Invite / internal:** no expiry for testers  
 

@@ -172,6 +172,9 @@ func cmdVerify(args []string) int {
 	st := license.Evaluate(tok, pub, time.Now().UTC())
 	fmt.Printf("state=%s licensed=%v effective=%v enforcement=%v\n", st.State, st.Licensed, st.Effective, st.Enforcement)
 	fmt.Printf("sub=%s tier=%s until=%s\n", st.Sub, st.Tier, st.ValidUntil)
+	if len(st.Features) > 0 {
+		fmt.Printf("features=%s\n", strings.Join(st.Features, ","))
+	}
 	fmt.Println(st.Message)
 	if st.Error != "" {
 		fmt.Println("error:", st.Error)

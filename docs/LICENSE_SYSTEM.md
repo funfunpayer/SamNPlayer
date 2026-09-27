@@ -19,10 +19,11 @@ production plan (`docs/PRODUCTION_ROADMAP.md` stream E).
 | Retail price | **€40** / year (EUR; one named seat) |
 | Retail key lifetime | **1 year** from issue (`exp = iat + 365 days`) |
 | Seat | **One person** — one key named to that person (email / id) |
-| Internal / invite | Same Settings import; `tier: internal` or `invite`; no expiry |
+| Standard features | `samn`, `contact`, `generate_full`, **`virtual_person`** (plugins **in** the €40 key — not an addon; Owner 2026-09-27) |
+| Internal / invite | Same Settings import; `tier: internal` or `invite`; no expiry; same feature set |
 | Generator | **`cmd/license-tool`** (offline Ed25519 issuer) — built |
-| Library | **`license` package** — parse/verify/`Status`/`EffectiveLicensed` — built |
-| Settings UI | Import paste/file + status + clear — built |
+| Library | **`license` package** — parse/verify/`Status`/`EffectiveLicensed`/`EffectiveHasFeature` — built |
+| Settings UI | Import paste/file + status + clear — built; Virtual Person host H0 — built |
 | Enforcement | **Off** until go-live flip |
 
 ---
@@ -49,10 +50,13 @@ effective) and `StartPlayback` (refuses `.samn` when not effective). Flipping
 | Piece | Path | Notes |
 |-------|------|-------|
 | Claims + SNP1 token | `license/` | Ed25519, `SNP1.payload.sig` |
+| Feature ids | `license/features.go` | `DefaultFeatures()` includes `virtual_person` |
+| Feature gate | `EffectiveHasFeature` | Same off-by-default pattern as `EffectiveLicensed` |
 | Embedded public key | `license/pubkey.go` | Matches `license/testdata/issuer.ed25519` (**DEV**) |
-| Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` |
+| Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` (prints features) |
 | GUI API | `cmd/gui-wails/app_license.go` | `GetLicenseStatus`, `ImportLicense*`, `ClearLicense`, `LicenseAllowsFullFeatures` |
-| Settings section | `frontend/src/settings.js` | License card (English) |
+| Plugin host H0 | `pluginhost/` + `app_pluginhost.go` | `LicenseAllowsVirtualPerson`, Enable/Disable host; Settings card |
+| Settings section | `frontend/src/settings.js` | License card + Virtual Person host (English) |
 
 ### Issue a key (dev issuer)
 
@@ -98,9 +102,16 @@ Then: Settings → License → Import from file / paste.
 | Generate | Truncate output to ≤ 60 000 ms; banner “Trial: 1 minute” |
 | Playback `.samn` | Refuse + “Export .funscript…” |
 | Playback `.funscript` | Allowed |
+| Virtual Person host | Disable enable path + “License required” (`virtual_person`) |
 
-Call site already prepared: `App.LicenseAllowsFullFeatures()` →
-`license.EffectiveLicensed(...)`.
+Call sites:
+
+- `App.LicenseAllowsFullFeatures()` → `license.EffectiveLicensed(...)`  
+- `App.LicenseAllowsVirtualPerson()` → `license.EffectiveHasFeature(..., FeatureVirtualPerson)`  
+
+While Enforcement is off, both return true (Everyday + host stub open for
+dev). Host enable still fails closed when sharp and the claim lacks
+`virtual_person` (re-issue older keys with `license-tool`).
 
 ---
 
@@ -110,7 +121,8 @@ Call site already prepared: `App.LicenseAllowsFullFeatures()` →
 2. Replace `EmbeddedPublicKeyHex` with the new public key
 3. Stop using `license/testdata/issuer.ed25519` for real customers
 4. Flip `Enforcement=true` in a dedicated release build
-5. Wire Generate/Play to `LicenseAllowsFullFeatures`
+5. Wire Generate/Play to `LicenseAllowsFullFeatures` (already wired)
+6. Confirm Virtual Person host stays behind `LicenseAllowsVirtualPerson`
 
 ---
 

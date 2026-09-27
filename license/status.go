@@ -22,8 +22,11 @@ type Status struct {
 	Sub         string `json:"sub,omitempty"`
 	Tier        string `json:"tier,omitempty"`
 	ValidUntil  string `json:"validUntil,omitempty"`
-	Message     string `json:"message"`
-	Error       string `json:"error,omitempty"`
+	// Features are the claim feature ids when the key verifies (may be empty
+	// on older hand-crafted tokens). New keys stamp DefaultFeatures().
+	Features []string `json:"features,omitempty"`
+	Message  string   `json:"message"`
+	Error    string   `json:"error,omitempty"`
 }
 
 // Evaluate builds Status from an optional token and verify key.
@@ -53,6 +56,7 @@ func Evaluate(token string, pub ed25519.PublicKey, now time.Time) Status {
 	st.Sub = c.Sub
 	st.Tier = c.Tier
 	st.ValidUntil = c.ValidUntil()
+	st.Features = append([]string(nil), c.Features...)
 	if c.Expired(now) {
 		st.State = "expired"
 		st.Message = fmt.Sprintf("License for %s expired on %s.", c.Sub, c.ValidUntil())

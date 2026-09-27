@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **License feature `virtual_person`** — stamped on standard / invite / internal
+  keys with `samn`, `contact`, `generate_full` (Owner: plugins in the €40
+  license, not an addon). `HasFeature` / `EffectiveHasFeature`; Status exposes
+  `features`.
+- **Plugin host H0** — `pluginhost/` slot + Settings Enable/Disable; gated by
+  `LicenseAllowsVirtualPerson` when Enforcement is on. Everyday CSRT unchanged.
+  Docs: `PLUGIN_SYSTEM.md`. Draft #264 stays parked (no force-merge).
+
 ## [0.5.32] — September 27, 2026
 
 ### Added

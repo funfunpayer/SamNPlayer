@@ -103,7 +103,7 @@ func NewStandardClaims(sub string, years int, now time.Time) Claims {
 		Exp:      &exp,
 		Tier:     TierStandard,
 		Seat:     SeatPerson,
-		Features: []string{"samn", "contact", "generate_full"},
+		Features: DefaultFeatures(),
 	}
 }
 
@@ -120,6 +120,6 @@ func NewInviteClaims(sub, tier string, now time.Time) Claims {
 		Exp:      nil,
 		Tier:     tier,
 		Seat:     SeatPerson,
-		Features: []string{"samn", "contact", "generate_full"},
+		Features: DefaultFeatures(),
 	}
 }
