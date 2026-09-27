@@ -423,11 +423,8 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 	var samples []sample
 	classes := map[string]int{}
 	var classNames []string
-	for _, m := range doc.SceneMap.Marks {
-		if !strings.EqualFold(m.Kind, "region") || len(m.Rect) < 4 || strings.TrimSpace(m.Class) == "" {
-			continue
-		}
-		if strings.EqualFold(m.Author, "auto") && (m.Reviewed == nil || !*m.Reviewed) {
+	for _, m := range reviewedYOLOMarks(doc.SceneMap.Marks) {
+		if len(m.Rect) < 4 || strings.TrimSpace(m.Class) == "" {
 			continue
 		}
 		at := int64(0)
@@ -494,3 +491,18 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 
 func minInt(a, b int) int { if a < b { return a }; return b }
 func maxInt(a, b int) int { if a > b { return a }; return b }
+
+
+func reviewedYOLOMarks(marks []funscript.SceneMapMark) []funscript.SceneMapMark {
+	out := make([]funscript.SceneMapMark, 0, len(marks))
+	for _, m := range marks {
+		if !strings.EqualFold(m.Kind, "region") {
+			continue
+		}
+		if strings.EqualFold(m.Author, "auto") && (m.Reviewed == nil || !*m.Reviewed) {
+			continue
+		}
+		out = append(out, m)
+	}
+	return out
+}
