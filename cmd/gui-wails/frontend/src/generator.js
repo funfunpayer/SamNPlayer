@@ -1787,18 +1787,11 @@ export function initGenerator(root, playback) {
       el('#gen-quality').style.display = 'none';
       syncWorkflowSteps();
       refreshAIScriptWriterUI();
-      // Soft-Vorschlag: Profil nur anzeigen, nie automatisch Apply.
+      // Soft suggestion: show Apply like the click path — never auto-Apply.
       SuggestProfile(path).then(result => {
-        if (!result || !videoPath || videoPath !== path
+        if (!result || !result.found || !videoPath || videoPath !== path
           || loadSuggestionSeq !== profileSuggestionSeq) return;
-        const status = el('#gen-suggest-status');
-        const via = result.kind === 'local_model' ? 'learned locally'
-          : result.kind === 'ai' ? 'local AI server'
-          : 'saved scene';
-        const label = result.label === 'tj' ? 'tf' : result.label;
-        if (label && ['standard', 'weich', 'autotune', 'tf'].includes(label)) {
-          status.textContent = `Suggestion: “${label}” (${via}) — use “Suggest profile” to apply.`;
-        }
+        renderProfileSuggestion(el('#gen-suggest-status'), result);
       }).catch(() => {});
       // P4 follow-up: restore sceneMapMarks (+ map windows) from companion .samn.
       await restoreSceneMapFromCompanion(path);
@@ -2854,6 +2847,51 @@ export function initGenerator(root, playback) {
   });
 
   const PROFILE_VALUES = ['standard', 'weich', 'autotune'];
+  const PROFILE_DISPLAY = { standard: 'Normal', weich: 'Soft', autotune: 'Autotune' };
+
+  function normalizeSuggestedProfile(label) {
+    // Legacy "tf"/"tj" scene labels map to Normal — Contact vib is the feel layer now.
+    if (label === 'tj' || label === 'tf') return 'standard';
+    return label;
+  }
+
+  function profileSuggestionVia(result) {
+    if (result.kind === 'local_model') {
+      return `local Go model, confidence ${Math.round((result.confidence || 0) * 100)}%`;
+    }
+    if (result.kind === 'ai') {
+      return `AI server, confidence ${Math.round((result.confidence || 0) * 100)}%`;
+    }
+    if (result.kind === 'measured' && typeof result.confidence === 'number') {
+      return `measured, distance ${result.confidence.toFixed(3)}`;
+    }
+    return 'saved scene';
+  }
+
+  /** Mount Suggest → Apply (never auto-apply). Shared by load soft-suggest + click. */
+  function renderProfileSuggestion(status, result) {
+    if (!result || !result.found) {
+      status.textContent = 'No suggestion (no similar saved scene, AI server unreachable).';
+      return;
+    }
+    const via = profileSuggestionVia(result);
+    const label = normalizeSuggestedProfile(result.label);
+    const display = PROFILE_DISPLAY[label] || label;
+    if (PROFILE_VALUES.includes(label)) {
+      status.textContent = `Suggestion: “${display}” (${via}) — `;
+      const applyBtn = document.createElement('button');
+      applyBtn.textContent = 'Apply';
+      applyBtn.addEventListener('click', () => {
+        el('#gen-profile').value = label;
+        updateProfileUi();
+        status.textContent = `Profile “${display}” applied (${via}).`;
+      });
+      status.appendChild(applyBtn);
+    } else {
+      status.textContent = `Similar to saved scene “${result.label}” (${via}) — no `
+        + 'direct profile name; not applied automatically.';
+    }
+  }
 
   el('#gen-suggest-profile').addEventListener('click', async () => {
     if (!videoPath) return;
@@ -2865,31 +2903,7 @@ export function initGenerator(root, playback) {
     try {
       const result = await SuggestProfile(videoPath);
       if (requestSeq !== profileSuggestionSeq || requestPath !== videoPath) return;
-      if (!result.found) {
-        status.textContent = 'No suggestion (no similar saved scene, AI server unreachable).';
-        return;
-      }
-      const via = result.kind === 'local_model'
-        ? `local Go model, confidence ${Math.round(result.confidence * 100)}%`
-        : result.kind === 'ai'
-          ? `AI server, confidence ${Math.round(result.confidence * 100)}%`
-          : `measured, distance ${result.confidence.toFixed(3)}`;
-      // Legacy "tf"/"tj" scene labels map to Stroke — Contact vib is the feel layer now.
-      let label = result.label === 'tj' || result.label === 'tf' ? 'standard' : result.label;
-      if (PROFILE_VALUES.includes(label)) {
-        status.textContent = `Suggestion: "${label}" (${via}) — `;
-        const applyBtn = document.createElement('button');
-        applyBtn.textContent = 'Apply';
-        applyBtn.addEventListener('click', () => {
-          el('#gen-profile').value = label;
-          updateProfileUi();
-          status.textContent = `Profile “${label}” applied (${via}).`;
-        });
-        status.appendChild(applyBtn);
-      } else {
-        status.textContent = `Similar to saved scene “${result.label}” (${via}) — no `
-          + 'direct profile name; not applied automatically.';
-      }
+      renderProfileSuggestion(status, result);
     } catch (err) {
       if (requestSeq === profileSuggestionSeq) status.textContent = 'Error: ' + err;
     } finally {
