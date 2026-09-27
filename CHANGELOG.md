@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play chapters** — Add from heatmap selection / seek / remove named ranges
+  (`metadata.chapters` / `.samn`). Wires existing `GetScriptChapterMarks` /
+  `SaveScriptChapterMarks` (GUI load rule). Stored chapters replace auto
+  chapter summary in analysis.
 - **Play bookmarks** — Add / seek / remove named times (`metadata.bookmarks` /
   `.samn`) under the O-marker block. Wires existing `GetScriptBookmarks` /
   `SaveScriptBookmarks` (GUI load rule).
