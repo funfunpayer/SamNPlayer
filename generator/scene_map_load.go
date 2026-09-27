@@ -105,6 +105,7 @@ func sceneMarksFromPersist(marks []funscript.SceneMapMark) []SceneMark {
 			FromMs: m.FromMs,
 			ToMs:   m.ToMs,
 			Class:  m.Class,
+			Author: m.Author,
 			Follow: m.Follow,
 		}
 		if len(m.Rect) >= 4 {

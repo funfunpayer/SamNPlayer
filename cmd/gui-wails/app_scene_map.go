@@ -62,6 +62,19 @@ func (a *App) DeleteSceneMapLearningData() error {
 	return generator.DeleteSceneMapLearningData(root)
 }
 
+// SuggestExcludePriors returns L1 suggest-only Ignore marks from local
+// Collect exports (exclude_decisions.jsonl). Never auto-applies; GUI merges
+// after the user clicks. Everyday CSRT / Rhythm / Enforcement untouched.
+func (a *App) SuggestExcludePriors(width, height int) (generator.ExcludePriorResult, error) {
+	learnDir := ""
+	if a.settings != nil {
+		if root := strings.TrimSpace(a.settings.GetString(prefRoiDatasetDir, "")); root != "" {
+			learnDir = filepath.Join(root, generator.SceneMapLearningSubdir)
+		}
+	}
+	return generator.SuggestExcludePriors(width, height, learnDir)
+}
+
 func resolveSamnForLearning(path string) (string, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {

@@ -173,6 +173,7 @@ type Options struct {
 // Kind: exclude | source | region. Rect is pixel-space; FromMs/ToMs both 0
 // means the whole clip. Follow=true tracks the box with the subject during
 // Generate (exclude/source); Path is filled by the tracker for persist/learning.
+// Author: "user" (painted), "suggest" (L1 priors — user must keep before Create).
 type SceneMark struct {
 	Kind   string       `json:"kind"`
 	ID     string       `json:"id"`
@@ -180,6 +181,7 @@ type SceneMark struct {
 	FromMs int64        `json:"fromMs"`
 	ToMs   int64        `json:"toMs"`
 	Class  string       `json:"class,omitempty"`
+	Author string       `json:"author,omitempty"`
 	Follow bool         `json:"follow,omitempty"`
 	Path   []MarkSample `json:"path,omitempty"`
 }

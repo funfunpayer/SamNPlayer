@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
@@ -270,6 +270,8 @@ export function initGenerator(root, playback) {
             <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;">
               <button type="button" class="secondary" id="gen-scene-map-export"
                 data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+              <button type="button" class="secondary" id="gen-scene-map-suggest"
+                data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
               <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
             </div>
           </div>
@@ -868,8 +870,26 @@ export function initGenerator(root, playback) {
       const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
       const kind = m.kind === 'exclude' ? 'ignore' : m.kind;
       const follow = m.follow ? '→follow' : (m.kind === 'exclude' || m.kind === 'source' ? '·fixed' : '');
-      return `${kind}${who}@${span}${follow}`;
+      const src = m.author === 'suggest' ? '·suggest' : '';
+      return `${kind}${who}@${span}${follow}${src}`;
     }).join(' · ');
+  }
+
+  // Rough IoU so L1 suggest does not stack duplicate Ignore boxes.
+  function sceneMarkOverlap(a, b) {
+    const ar = a?.rect || a;
+    const br = b?.rect || b;
+    if (!ar || !br) return 0;
+    const ax2 = (ar.x || 0) + (ar.w || 0);
+    const ay2 = (ar.y || 0) + (ar.h || 0);
+    const bx2 = (br.x || 0) + (br.w || 0);
+    const by2 = (br.y || 0) + (br.h || 0);
+    const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(ar.x || 0, br.x || 0));
+    const iy = Math.max(0, Math.min(ay2, by2) - Math.max(ar.y || 0, br.y || 0));
+    const inter = ix * iy;
+    if (inter <= 0) return 0;
+    const uni = (ar.w || 0) * (ar.h || 0) + (br.w || 0) * (br.h || 0) - inter;
+    return uni > 0 ? inter / uni : 0;
   }
 
   // Normalize ROI from Go (may be X/Y/W/H or x/y/w/h).
@@ -1907,6 +1927,7 @@ export function initGenerator(root, playback) {
           fromMs: m.fromMs || 0,
           toMs: m.toMs || 0,
           class: m.class || '',
+          author: m.author || 'user',
           follow: !!m.follow,
         };
         if (Array.isArray(m.path) && m.path.length) {
@@ -2403,6 +2424,57 @@ export function initGenerator(root, playback) {
     } catch (err) {
       if (status) status.textContent = '';
       uiError('Export for learning: ' + err, el('#gen-status'));
+    }
+  });
+  el('#gen-scene-map-suggest')?.addEventListener('click', async () => {
+    const status = el('#gen-scene-map-export-status');
+    if (!nativeW || !nativeH) {
+      if (status) status.textContent = 'Load a video first.';
+      uiWarn('Suggest ignores needs a loaded video frame.', el('#gen-status'));
+      return;
+    }
+    if (typeof SuggestExcludePriors !== 'function') {
+      uiWarn('Suggest ignores not available in this build.', el('#gen-status'));
+      return;
+    }
+    if (status) status.textContent = 'Suggesting from learning…';
+    try {
+      const res = await SuggestExcludePriors(nativeW, nativeH);
+      const note = res.note || res.Note || '';
+      const raw = res.suggestions || res.Suggestions || [];
+      let added = 0;
+      for (const s of raw) {
+        const m = s.mark || s.Mark;
+        if (!m) continue;
+        const rect = sceneMapRect(m.rect || m.Rect);
+        if ((rect.w || 0) < 4 || (rect.h || 0) < 4) continue;
+        const dup = sceneMapMarks.some((ex) =>
+          ex.kind === 'exclude' && sceneMarkOverlap(ex, { rect }) >= 0.45);
+        if (dup) continue;
+        sceneMapMarkSeq += 1;
+        sceneMapMarks.push({
+          id: m.id || m.ID || `suggest${sceneMapMarkSeq}`,
+          kind: 'exclude',
+          rect,
+          fromMs: m.fromMs ?? m.FromMs ?? 0,
+          toMs: m.toMs ?? m.ToMs ?? 0,
+          author: 'suggest',
+          follow: m.follow ?? m.Follow ?? true,
+          path: [],
+        });
+        added += 1;
+      }
+      updateSceneMapMarksLabel();
+      redraw();
+      const msg = added
+        ? `Added ${added} suggested Ignore mark${added === 1 ? '' : 's'} — review on the map; Clear removes them.`
+        : (note || 'No suggestions yet.');
+      if (status) status.textContent = msg;
+      if (added) uiInfo(msg, el('#gen-status'));
+      else uiWarn(msg, el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Suggest ignores: ' + err, el('#gen-status'));
     }
   });
   SceneMapAvailable().then((ok) => {
