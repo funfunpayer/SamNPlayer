@@ -99,8 +99,9 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.34** | Shipped | Post-Rel33 stack: vib impulse/spatial (#279/#283), AIWrite S2/S2b/S3prev (#280/#282/#288), Intiface live+reconnect (#281/#286), Marks S2/S3 (#284/#285), IdLock release (#287) — tag `v0.5.34` |
 | **v0.5.35** | Shipped | Rel35 test cut: Scene2+GUI (#329/#334), Apply AI (#336), AutoReview (#328), impulse (#337), Go CSRT force (#339), VP product scrub (#341). Park #264. Known: #290 P5 audit — tag `v0.5.35` |
 | **v0.5.36** | Shipped | Patch: AI Train review YOLO box overlays on absolute dataset paths (#342) — tag `v0.5.36` |
-| **v0.5.37** | THIS | Patch: large AI Train review editor (#345); Windows 11 AI setup scripts (#344) |
-| next | After v0.5.37 | Owner portable smoke on `v0.5.37` (large review editor). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3; GUI Apply-AI toggle |
+| **v0.5.37** | Shipped | Patch: large AI Train review editor (#345); Windows 11 AI setup scripts (#344) — tag `v0.5.37` |
+| **v0.5.38** | THIS | Sammel: Repair Heal+Fill (#348); Update `//` popup (#351); Advanced cleanup (#347); Benchmark MVP (#350); Patch channel (#349) |
+| next | After v0.5.38 | Owner portable smoke on `v0.5.38` (Repair / Update / Advanced / Bench / Patch). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3; GUI Apply-AI toggle |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
