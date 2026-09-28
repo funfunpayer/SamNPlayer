@@ -145,7 +145,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel41 | Cursor | [#373](https://github.com/funfunpayer/SamNPlayer/pull/373) + tag `v0.5.41` | Sammel **v0.5.41** + Release (Tip-Find #364; Clip-Prep #365; Reacquire #366; Bugfix #372; E2E #371; Cleanup #369; docs/tests #362/#363/#367; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.41 |
 | ExpertProbeSVG | Cursor | [#379](https://github.com/funfunpayer/SamNPlayer/pull/379) merged (`486109a`) | **Expert postprocess live SVG probe** — DeepFunGen-style viewer polyline for knob feedback (synthetic; Everyday unchanged) | **DONE** |
 | SpeechHoldUI | Cursor | [#378](https://github.com/funfunpayer/SamNPlayer/pull/378) merged (`ef77233`) | **Review Speech-Hold / Feel strip** — filters, seek, optional chapters from `audio_check.segments` (no stroke rewrite) | **DONE** |
-| PlaySpeechHold | Cursor | this PR | **Play Speech-Hold / Feel strip** — LoadFunscript exposes segments; Play filters · seek · optional chapters (no stroke rewrite) | **THIS** |
+| PlaySpeechHold | Cursor | [#380](https://github.com/funfunpayer/SamNPlayer/pull/380) merged (`15868d2`) | **Play Speech-Hold / Feel strip** — LoadFunscript exposes segments; Play filters · seek · optional chapters (no stroke rewrite) | **DONE** |
+| FeelVibProbe | Cursor | this PR | **Create Feel contact-vib live probe** — span/curve SVG + active/peak feedback (synthetic; Everyday unchanged) | **THIS** |
 | ContactVerifyGUI | Cursor | [#359](https://github.com/funfunpayer/SamNPlayer/pull/359) merged (`51f038c`) | **Create Advanced: Verify with the engine** — hybrid `ContactVerifyK=1.5` GUI switch | **DONE** |
 | BenchSuggest | Cursor | [#360](https://github.com/funfunpayer/SamNPlayer/pull/360) merged (`c854871`) | **Bench Suggest beside video** — FunGen ref + Everyday `__hub` pair from short-clip folder (Clip-Prep → Compare) | **DONE** |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
@@ -210,9 +211,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (28 Sep — PlaySpeechHold THIS; SpeechHoldUI + ExpertProbeSVG + Rel41 DONE):**
-- **In flight:** **PlaySpeechHold** — Play strip for Speech-Hold / Feel segments from loaded `audio_check` (filters · seek · optional chapters); Everyday CSRT unchanged.
-- **Shipped tip @ `ef77233`+:** Review Speech-Hold [#378](https://github.com/funfunpayer/SamNPlayer/pull/378); Expert probe SVG [#379](https://github.com/funfunpayer/SamNPlayer/pull/379); SceneMark timebase [#377](https://github.com/funfunpayer/SamNPlayer/pull/377); Rel41 [#373](https://github.com/funfunpayer/SamNPlayer/pull/373) / tag `v0.5.41`; Speech-Hold engine [#375](https://github.com/funfunpayer/SamNPlayer/pull/375); DeepFunGen queue/postprocess [#376](https://github.com/funfunpayer/SamNPlayer/pull/376).
+**Status board (28 Sep — FeelVibProbe THIS; PlaySpeechHold + SpeechHoldUI + ExpertProbeSVG DONE):**
+- **In flight:** **FeelVibProbe** — Create Feel live contact-vib probe (Sensitivity/Curve SVG); Everyday CSRT unchanged.
+- **Shipped tip @ `15868d2`+:** Play Speech-Hold [#380](https://github.com/funfunpayer/SamNPlayer/pull/380); Review Speech-Hold [#378](https://github.com/funfunpayer/SamNPlayer/pull/378); Expert probe SVG [#379](https://github.com/funfunpayer/SamNPlayer/pull/379); SceneMark timebase [#377](https://github.com/funfunpayer/SamNPlayer/pull/377); Rel41 [#373](https://github.com/funfunpayer/SamNPlayer/pull/373) / tag `v0.5.41`.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. No Everyday / Rhythm / AI default change.
 - **#290 closed:** SceneMap P5 audit complete on tip — P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (+ multi-box [#326](https://github.com/funfunpayer/SamNPlayer/pull/326)); P5e parked by design; P5d already covered by `auto_candidates.jsonl` / reviewed-only gate. No Everyday default change.
