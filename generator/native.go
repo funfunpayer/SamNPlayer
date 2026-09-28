@@ -135,7 +135,11 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 				return err
 			}
 			trackOpts.ContactPoints = pts
+			trackOpts.ContactVerifyK = opts.ContactVerifyK
 			progress(fmt.Sprintf("TRACK: %d contact points steer the rhythm grid where the box is out of reach", len(pts)))
+			if opts.ContactVerifyK > 0 {
+				progress(fmt.Sprintf("TRACK: contact points verified by the engine (kept where its rhythm is >= %.2gx stronger than at its own cell)", opts.ContactVerifyK))
+			}
 		}
 	}
 	if trackOpts.Axis == "" {
@@ -179,6 +183,9 @@ func GenerateNativeCSRT(ctx context.Context, videoPath string, roi ROI, outputPa
 	}
 	progress(fmt.Sprintf("%d frames tracked (%dx%d) in %s",
 		len(tr.TimestampsMs), tr.Width, tr.Height, time.Since(start).Round(time.Millisecond)))
+	if len(trackOpts.ContactPoints) > 0 && trackOpts.ContactVerifyK > 0 {
+		progress(fmt.Sprintf("TRACK: %d of %d contact points confirmed by the engine", tr.ContactPointsUsed, len(trackOpts.ContactPoints)))
+	}
 	backend := "csrt"
 	if multi {
 		backend = "multi_point"
@@ -210,6 +217,8 @@ type nativeTrackResult struct {
 	// space), only set when nativeTrackOptions.CaptureTrajectory is true.
 	TrajectoryA []NativePoint
 	TrajectoryB []NativePoint
+	// ContactPointsUsed: contact points that steered the rhythm grid.
+	ContactPointsUsed int
 	// SceneMap is filled when RhythmGrid produced a map (P4 / M4).
 	SceneMap SceneMapDTO
 	// SceneMarks: followed marks with Path (when TrackROI ran Follow).
@@ -238,6 +247,8 @@ type nativeTrackOptions struct {
 	SceneMarks []SceneMark
 	// ContactPoints: see Options.ContactPointsFile (rhythm grid only).
 	ContactPoints []ContactPoint
+	// ContactVerifyK: see Options.ContactVerifyK.
+	ContactVerifyK float64
 }
 
 // mergeSceneMarksWithMasks appends soft MaskROIs as whole-clip exclude marks

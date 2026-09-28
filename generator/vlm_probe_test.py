@@ -275,5 +275,68 @@ class ExemplarTest(unittest.TestCase):
         self.assertEqual(vp.normalize_label("exclude"), "exclude")
 
 
+class ClipModeTest(unittest.TestCase):
+    """Stage 2b: N frames over a few seconds in one request (video input)."""
+
+    def _video(self, d):
+        return ExemplarTest._video(self, d)
+
+    def test_clip_times_end_at_keyframe_oldest_first(self):
+        self.assertEqual(vp.clip_times_ms(10000, 4, 3000), [7000, 8000, 9000, 10000])
+        self.assertEqual(vp.clip_times_ms(1000, 6, 3000), [0, 400, 1000])  # clamped, de-duplicated
+        self.assertEqual(vp.clip_times_ms(5000, 1, 3000), [5000])
+
+    def test_parse_clip_answer(self):
+        text = ('```json\n{"scene_type": "Titjob", "moving": "Penis", "partner": "breast", '
+                '"axis": "vertical", "people": "2", "boxes": [{"label": "contact", '
+                '"bbox_2d": [0.4, 0.3, 0.6, 0.7]}]}\n```')
+        status, boxes, clip = vp.parse_clip_answer(text, 1.0, 1.0)
+        self.assertEqual(status, "ok")
+        self.assertEqual(clip, {"scene_type": "titjob", "moving": "penis", "partner": "breasts",
+                                "axis": "vertical", "people": 2})
+        self.assertEqual(boxes[0]["label"], "contact")
+        # Roles without boxes still count; unknown values become None.
+        status, boxes, clip = vp.parse_clip_answer(
+            '{"scene_type": "dancing", "moving": "elbow", "axis": "diagonal", "boxes": []}', 1, 1)
+        self.assertEqual((status, boxes), ("empty", []))
+        self.assertEqual((clip["scene_type"], clip["moving"], clip["axis"], clip["people"]),
+                         (None, None, None, None))
+        status, _, clip = vp.parse_clip_answer('{"scene_type": "blowjob", "moving": "mouth"}', 1, 1)
+        self.assertEqual((status, clip["scene_type"]), ("ok", "blowjob"))
+        self.assertEqual(vp.parse_clip_answer("Sorry, I can't help with that.", 1, 1)[0], "refused")
+        self.assertIsNone(vp.parse_clip_answer("Sorry, I can't help with that.", 1, 1)[2])
+
+    def test_probe_sends_sequence_and_records_roles(self):
+        seen = []
+        base = fake_model("norm1", fence=False)
+
+        def post(payload):
+            content = payload["messages"][0]["content"]
+            if content[0]["text"] == vp.CALIB_PROMPT:
+                return base(payload)
+            seen.append((content[0]["text"], len(content) - 1))
+            text = json.dumps({"scene_type": "blowjob", "moving": "mouth", "partner": "penis",
+                               "axis": "vertical", "people": 1,
+                               "boxes": [{"label": "contact", "bbox_2d": list(CONTACT)}]})
+            return {"choices": [{"message": {"content": text}}]}
+        with tempfile.TemporaryDirectory() as d:
+            res = vp.probe_video(self._video(d), "fake", every_s=2.0, scenes=False,
+                                 post_fn=post, log=lambda *_: None, clip=4, clip_span_s=1.5)
+        self.assertEqual(res["clip"], 4)
+        self.assertEqual(res["prompt"], vp.CLIP_PROMPT)
+        # 1000 ms: frames 0..1000 (clamped, 3 distinct) ; later keyframes: all 4.
+        self.assertEqual([n for _, n in seen], [3, 4, 4])
+        self.assertTrue(seen[1][0].startswith("These 4 images are consecutive frames"))
+        f = res["frames"][1]
+        self.assertEqual(f["clip_ms"], [1500, 2000, 2500, 3000])
+        self.assertEqual(f["clip"]["moving"], "mouth")
+        self.assertAlmostEqual(f["boxes"][0]["x0"], CONTACT[0], delta=0.01)
+        self.assertEqual(res["summary"]["scene_types"], {"blowjob": 3})
+
+    def test_clip_and_exemplars_rejected(self):
+        with self.assertRaises(ValueError):
+            vp.probe_video("x.mp4", "fake", clip=4, exemplars=[{"t_ms": 0}], post_fn=lambda p: {})
+
+
 if __name__ == "__main__":
     unittest.main()

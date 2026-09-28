@@ -29,6 +29,7 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		RhythmGrid:         opts.RhythmGrid,
 		SceneMarks:         toTrackcvSceneMarks(opts.SceneMarks),
 		ContactPoints:      toTrackcvContactPoints(opts.ContactPoints),
+		ContactVerifyK:     opts.ContactVerifyK,
 	})
 	if err != nil {
 		if errors.Is(err, trackcv.ErrCanceled) || tr.Canceled {
@@ -53,7 +54,9 @@ func nativeTrackROI(videoPath string, roi ROI, opts nativeTrackOptions, onPercen
 		Reason:       tr.Stats.Reason,
 		TrajectoryA:  convertTrackcvPoints(tr.TrajectoryA),
 		SceneMap:     sceneMapFromTrackcv(tr.SceneMap),
-		SceneMarks:   fromTrackcvSceneMarks(tr.SceneMarks),
+
+		ContactPointsUsed: tr.Stats.ContactPointsUsed,
+		SceneMarks:        fromTrackcvSceneMarks(tr.SceneMarks),
 	}, nil
 }
 

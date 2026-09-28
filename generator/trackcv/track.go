@@ -69,6 +69,14 @@ type Options struct {
 	// ContactHoldMs: a point is used for frames within this distance in
 	// time of it (0 = rhythmContactHoldMs, 1 s).
 	ContactHoldMs int
+	// ContactVerifyK > 0 makes the engine check each ContactPoint first
+	// (hybrid: the teacher proposes, the engine verifies). A first grid
+	// pass without points gives every window's score map; a point is kept
+	// only where the strongest cell around it scores at least K times the
+	// cell the engine chose. 1.5: multi-person r 0.401 -> 0.414 (NudeNet
+	// points) and 0.449 with scene-roles moving-part points, goldens
+	// unchanged (docs/SCENE_UNDERSTANDING_PLAN.md §3b). 0 = off (today).
+	ContactVerifyK float64
 }
 
 // Stats entspricht dem stats-Teil, den backends.py's Vertrag verlangt
@@ -85,6 +93,9 @@ type Stats struct {
 	ValidFrames int     // frames with a successful tracker update
 	Confidence  float64 // 0..1 ≈ valid/total after frame 0
 	Reason      string  // empty if ok; else e.g. "tracker_lost_heavy"
+	// ContactPointsUsed: contact points that steered the rhythm grid
+	// (after ContactVerifyK, when set).
+	ContactPointsUsed int
 }
 
 // Result ist die Go-Entsprechung von track_roi()'s Rückgabe.
@@ -413,14 +424,21 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		positions = xPositions
 	}
 	var sceneMap SceneMap
+	var contactPts []ContactPoint
 	if opts.RhythmGrid {
 		cellV := flowY
 		if useX {
 			cellV = flowX
 		}
 		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
+		contactPts = opts.ContactPoints
+		if len(contactPts) > 0 && opts.ContactVerifyK > 0 {
+			_, own := rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
+				xPositions, yPositions, positions, seed, sceneCuts, fps, liveMarks)
+			contactPts = verifyContactPoints(contactPts, own, opts.ContactVerifyK)
+		}
 		searchX, searchY := applyContactPoints(xPositions, yPositions, timestampsMs,
-			opts.ContactPoints, int64(opts.ContactHoldMs), width, height, rhythmGridCols)
+			contactPts, int64(opts.ContactHoldMs), width, height, rhythmGridCols)
 		positions, sceneMap = rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
 			searchX, searchY, positions, seed, sceneCuts, fps, liveMarks)
 	}
@@ -462,6 +480,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		Stats: Stats{
 			TrackerLostFrames: trackerLostFrames,
 			CameraFramesLost:  cameraFramesLost,
+			ContactPointsUsed: len(contactPts),
 			TotalFrames:       frameIdx,
 			VerticalRange:     verticalRange,
 			HorizontalRange:   horizontalRange,
