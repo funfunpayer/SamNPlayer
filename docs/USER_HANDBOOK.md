@@ -118,7 +118,7 @@ See Settings / license UI for the current seat rules (trial length may change by
 | Edit curve | Drag dots; click empty = add; double-click = delete (≥2 remain). |
 | Optimize for Neo 2 | Import path: fill/heal gaps → contact on → bake vibe/suction → `.samn` |
 | Load / Save project | `.snp.json` — script, video, offset, seek, loop |
-| Scale range ×0.8 | Soften marked range intensity |
+| Scale selection | Soften/boost marked range on the active Curve axis (factor slider; optional Soft edges) |
 | Heatmap / markers | Seek, loop, Extended-O, O-markers |
 | **Bookmarks** | Named times in script — add at playhead, seek, remove |
 | **Chapters** | Named ranges — mark heatmap range, add, seek, remove (stored replaces auto summary) |

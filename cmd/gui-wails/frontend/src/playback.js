@@ -189,9 +189,19 @@ export function initPlayback(root) {
           <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
           <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
           <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
-          <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection">Speed-cap selection</button>
-          <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (×0.8)">Scale range ×0.8</button>
-          <button type="button" id="pb-del-range" title="Delete points in the heatmap selection">Delete range</button>
+          <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
+            Scale
+            <input type="range" id="pb-scale-factor" min="0.5" max="1.5" step="0.05" value="0.8" style="width:7em;" />
+            <span id="pb-scale-factor-val">×0.80</span>
+          </label>
+          <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (active Curve axis)">Scale selection</button>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Ramp scale from ×1 at the selection edges to the chosen factor at the midpoint — gentler on Vibration / Suction.">
+            <input type="checkbox" id="pb-scale-soft-edges" /> Soft edges
+          </label>
+          <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
           <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
             data-help="If >0: seeks and new curve points snap to frame grid (ms). 0 = off.">
             FPS-Snap<input type="number" id="pb-fps-snap" value="0" min="0" step="1" style="width:4em;" />
@@ -2641,14 +2651,29 @@ export function initPlayback(root) {
       uiError('Load project: ' + err, el('#pb-ofs-status'));
     }
   });
+  function activeEditAxis() {
+    return (editAxis && String(editAxis).trim()) || el('#pb-axis')?.value || 'general';
+  }
+  function scaleFactorValue() {
+    const v = parseFloat(el('#pb-scale-factor')?.value);
+    return Number.isFinite(v) ? v : 0.8;
+  }
+  function updateScaleFactorLabel() {
+    const lab = el('#pb-scale-factor-val');
+    if (lab) lab.textContent = `×${scaleFactorValue().toFixed(2)}`;
+  }
+  el('#pb-scale-factor')?.addEventListener('input', updateScaleFactorLabel);
+  updateScaleFactorLabel();
+
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
+    const axis = activeEditAxis();
     try {
-      await EditCapSpeedRange(marker.startMs, marker.endMs, 400);
-      ofsStatus('Speed cap applied');
+      await EditCapSpeedRange(axis, marker.startMs, marker.endMs, 400);
+      ofsStatus(`Speed cap applied (${axis})`);
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
       await reloadAfterRangeEdit();
     } catch (err) {
@@ -2660,9 +2685,12 @@ export function initPlayback(root) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
+    const axis = activeEditAxis();
+    const factor = scaleFactorValue();
+    const soft = !!el('#pb-scale-soft-edges')?.checked;
     try {
-      await EditScaleRange(marker.startMs, marker.endMs, 0.8);
-      ofsStatus('Scale ×0.8 applied');
+      await EditScaleRange(axis, marker.startMs, marker.endMs, factor, soft);
+      ofsStatus(`Scale ×${factor.toFixed(2)}${soft ? ' soft' : ''} (${axis})`);
       await reloadAfterRangeEdit();
     } catch (err) {
       uiError('Scale: ' + err, el('#pb-ofs-status'));
@@ -2673,9 +2701,10 @@ export function initPlayback(root) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
+    const axis = activeEditAxis();
     try {
-      await EditDeleteRange(marker.startMs, marker.endMs);
-      ofsStatus('Range deleted');
+      await EditDeleteRange(axis, marker.startMs, marker.endMs);
+      ofsStatus(`Range deleted (${axis})`);
       marker = null;
       await reloadAfterRangeEdit();
     } catch (err) {

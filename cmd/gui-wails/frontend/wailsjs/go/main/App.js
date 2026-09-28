@@ -182,9 +182,9 @@ export function EnsureVideoTools() { return window['go']['main']['App']['EnsureV
 export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
 export function SavePlaybackProject(arg1) { return window['go']['main']['App']['SavePlaybackProject'](arg1); }
 export function LoadPlaybackProject(arg1) { return window['go']['main']['App']['LoadPlaybackProject'](arg1); }
-export function EditCapSpeedRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3); }
-export function EditDeleteRange(arg1, arg2) { return window['go']['main']['App']['EditDeleteRange'](arg1, arg2); }
-export function EditScaleRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3); }
+export function EditCapSpeedRange(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['EditCapSpeedRange'](arg1, arg2, arg3, arg4); }
+export function EditDeleteRange(arg1, arg2, arg3) { return window['go']['main']['App']['EditDeleteRange'](arg1, arg2, arg3); }
+export function EditScaleRange(arg1, arg2, arg3, arg4, arg5) { return window['go']['main']['App']['EditScaleRange'](arg1, arg2, arg3, arg4, arg5); }
 export function SnapTimeMs(arg1, arg2) { return window['go']['main']['App']['SnapTimeMs'](arg1, arg2); }
 export function GetScriptBookmarks() { return window['go']['main']['App']['GetScriptBookmarks'](); }
 export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }

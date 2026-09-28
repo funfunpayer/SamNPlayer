@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
@@ -139,41 +140,67 @@ func (a *App) SnapTimeMs(tMs int64, fps float64) int64 {
 	return funscript.SnapMs(tMs, fps)
 }
 
-// EditDeleteRange löscht Punkte im Bereich und speichert.
-func (a *App) EditDeleteRange(startMs, endMs int64) error {
-	script := a.loadedScript()
-	path := a.loadedScriptPath()
-	if script == nil || path == "" {
-		return fmt.Errorf("no script loaded")
+func normalizeEditAxis(axis string) string {
+	switch funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))) {
+	case funscript.AxisVibration:
+		return string(funscript.AxisVibration)
+	case funscript.AxisSuction:
+		return string(funscript.AxisSuction)
+	default:
+		return string(funscript.AxisGeneral)
 	}
-	out, err := funscript.DeleteRange(script.Actions, startMs, endMs)
+}
+
+// EditDeleteRange deletes points in [startMs,endMs] on the active curve axis
+// (general | vibration | suction) and saves.
+func (a *App) EditDeleteRange(axis string, startMs, endMs int64) error {
+	axis = normalizeEditAxis(axis)
+	acts, err := a.GetScriptAxisActions(axis)
 	if err != nil {
 		return err
 	}
-	return a.SaveScriptActions(out)
-}
-
-// EditCapSpeedRange begrenzt Intensität im Bereich und speichert.
-func (a *App) EditCapSpeedRange(startMs, endMs int64, maxIntensity float64) error {
-	script := a.loadedScript()
-	path := a.loadedScriptPath()
-	if script == nil || path == "" {
-		return fmt.Errorf("no script loaded")
+	if len(acts) == 0 {
+		return fmt.Errorf("no %s curve points to edit", axis)
 	}
-	out, err := funscript.CapSpeedRange(script.Actions, startMs, endMs, maxIntensity)
+	out, err := funscript.DeleteRange(acts, startMs, endMs)
 	if err != nil {
 		return err
 	}
-	return a.SaveScriptActions(out)
+	return a.SaveScriptAxisActions(axis, out)
 }
 
-// EditScaleRange skaliert Positionen im Bereich um 50 und speichert.
-func (a *App) EditScaleRange(startMs, endMs int64, factor float64) error {
-	script := a.loadedScript()
-	path := a.loadedScriptPath()
-	if script == nil || path == "" {
-		return fmt.Errorf("no script loaded")
+// EditCapSpeedRange time-stretches too-fast segments in range on the active axis.
+func (a *App) EditCapSpeedRange(axis string, startMs, endMs int64, maxIntensity float64) error {
+	axis = normalizeEditAxis(axis)
+	acts, err := a.GetScriptAxisActions(axis)
+	if err != nil {
+		return err
 	}
-	out := funscript.ScaleRangePos(script.Actions, startMs, endMs, factor)
-	return a.SaveScriptActions(out)
+	if len(acts) == 0 {
+		return fmt.Errorf("no %s curve points to edit", axis)
+	}
+	out, err := funscript.CapSpeedRange(acts, startMs, endMs, maxIntensity)
+	if err != nil {
+		return err
+	}
+	return a.SaveScriptAxisActions(axis, out)
+}
+
+// EditScaleRange scales positions in range around 50 on the active axis.
+// softEdges ramps the factor (vib/suction-friendly); ignored effect on general
+// is still valid — UI enables soft edges mainly for feel channels.
+func (a *App) EditScaleRange(axis string, startMs, endMs int64, factor float64, softEdges bool) error {
+	axis = normalizeEditAxis(axis)
+	acts, err := a.GetScriptAxisActions(axis)
+	if err != nil {
+		return err
+	}
+	if len(acts) == 0 {
+		return fmt.Errorf("no %s curve points to edit", axis)
+	}
+	if factor <= 0 {
+		factor = 0.8
+	}
+	out := funscript.ScaleRangePosFade(acts, startMs, endMs, factor, softEdges)
+	return a.SaveScriptAxisActions(axis, out)
 }

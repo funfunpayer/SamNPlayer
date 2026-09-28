@@ -17,7 +17,7 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | Heatmap PNG export (+ chapter ticks) | `funscript.ExportHeatmapPNG` / `ExportScriptHeatmapPNG` |
 | Project sidecar `.snp.json` | `funscript/project.go` / Save + **Load** in Play (`SavePlaybackProject` / `LoadPlaybackProject` / `PickPlaybackProject`) |
 | Frame snap (`SnapMs`) | `SnapTimeMs` + FPS-Snap in Wiedergabe |
-| Range delete / speed-cap / scale | Play OFS row: Delete / Speed-cap / **Scale ×0.8** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
+| Range delete / speed-cap / scale | Play OFS row: Delete / Speed-cap / **Scale** (adjustable ×0.5–×1.5, optional soft edges) on the **active Curve axis** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
 
 ## Still optional later
 

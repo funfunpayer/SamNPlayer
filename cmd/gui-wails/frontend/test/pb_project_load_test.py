@@ -46,7 +46,8 @@ def main():
         "EditCapSpeedRange": "async () => {}",
         "EditDeleteRange": "async () => {}",
         "EditScaleRange": (
-            "async (a, b, f) => { window.__calls.push(['EditScaleRange', a, b, f]); }"
+            "async (axis, a, b, f, soft) => { "
+            "window.__calls.push(['EditScaleRange', axis, a, b, f, soft]); }"
         ),
         "SnapTimeMs": "async (t, fps) => t",
         "GetOMarkers": "async () => []",
@@ -75,6 +76,7 @@ def main():
 
         check("Load project button present", page.locator("#pb-project-load").count() == 1)
         check("Scale range button present", page.locator("#pb-scale-range").count() == 1)
+        check("Scale factor slider present", page.locator("#pb-scale-factor").count() == 1)
 
         page.click("#pb-project-load")
         page.wait_for_function(
@@ -98,10 +100,11 @@ def main():
         page.wait_for_function(
             "() => (window.__calls || []).some(c => c[0] === 'EditScaleRange')",
             timeout=5000)
-        check("EditScaleRange ×0.8",
+        check("EditScaleRange ×0.8 on general",
               page.evaluate(
                   "() => (window.__calls || []).some(c => c[0]==='EditScaleRange'"
-                  " && c[1]===1000 && c[2]===4000 && c[3]===0.8)"))
+                  " && c[1]==='general' && c[2]===1000 && c[3]===4000"
+                  " && c[4]===0.8 && c[5]===false)"))
 
         browser.close()
 
