@@ -78,7 +78,7 @@ Gate (SceneMap L2):
    `contact_points.py --video V --nudenet [--vlm a.vlm.json …] [--onnx contact_detector.onnx]`
    writes `V.contact.json`.
 2. **Points → candidates:**
-   `samnplayer-cli import-contact-candidates V.samn --contact V.contact.json [--min-agree 2]`
+   `SamNPlayer-cli import-contact-candidates V.samn --contact V.contact.json [--min-agree 2]`
    - Consensus points become `contact` region marks with `author:"auto"`,
      `reviewed:false`, at most one per 2 s.
    - A re-import replaces unconfirmed candidates and keeps confirmed ones.

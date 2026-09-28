@@ -39,7 +39,9 @@ measurement history behind each entry; this file is the short version for
   (teacher proposes, engine verifies — §3b gap-filler). K=1.5 measured:
   NudeNet points 0.401 → 0.414; scene-roles moving-part (all windows) 0.449
   without the `clip_voll` drop. Goldens unchanged. `0` = off. No default
-  change.
+  change. Confirmed with the real engine (OpenCV build): multi-person 0.414
+  (NudeNet) / 0.450 (scene roles, `--min-confidence 0`); `clip_voll` 0.752
+  where the unchecked run dropped to 0.703.
 
 - **Map Accept/Reject for teacher contact candidates** — Create → Advanced scene
   map lists pending `author:auto` region marks; **Accept** sets `reviewed:true`

@@ -7,7 +7,7 @@ Two inputs, one rule set, no big model needed at run time:
   (`--nudenet`), a vlm_probe result (`--vlm`), or later our own RF-DETR
   model (multi-class, `frame_parts_fn(onnx=...)`);
 - motion ("what moves"): the engine's own rhythm-grid scan
-  (`samnplayer-cli scan-scene-map VIDEO --windows N --out scan.json`),
+  (`SamNPlayer-cli scan-scene-map VIDEO --windows N --out scan.json`),
   cell scores at the stroke tempo per window.
 
 Per window the rules give roles - the primary stroke target (the part that
