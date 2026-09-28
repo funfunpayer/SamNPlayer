@@ -127,7 +127,8 @@ go run ./cmd/cli benchmark \
   --json --labels-out ~/clips/labels.jsonl
 ```
 
-GUI: Tab **Bench** → Compare scripts (Video optional für Labels) → **Save label for KI**.
+GUI: Tab **Bench** → Video (Kurzclip) → **Suggest beside video** (füllt Ref+Kandidat aus Namenskonvention) → **Score vs reference** → **Save label for KI**.
+Oder manuell: Compare scripts (Video optional für Labels).
 
 **Golden-Manifest:** Clip-Pfad + ROI + `reference_funscript` + `backend: csrt` in Manifest (Vorlage: `generator/testdata/benchmark/example_manifest.json`) → Bench „Golden-clip manifest“ oder `golden_clip_benchmark.py`.
 

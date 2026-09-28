@@ -55,7 +55,9 @@ Full owner guide (DE): project store
 
 1. Point FunGen at the **same cut** (or trim its `.funscript` to match).
 2. Everyday Create on the short clip (CSRT) → candidate `.funscript`.
-3. Bench tab **Compare scripts** or:
+3. Bench tab: pick the short clip → **Suggest beside video** (fills
+   `clip.funscript` + `clip__hub.funscript` when present) → **Score vs
+   reference**, or CLI:
 
 ```bash
 go run ./cmd/cli benchmark \

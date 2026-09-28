@@ -26,6 +26,7 @@ def main():
         "PickBenchmarkManifest": "async () => ''",
         "PickFunscriptFile": "async () => ''",
         "PickVideoFile": "async () => ''",
+        "SuggestBenchmarkPairBesideVideo": "async () => ({})",
         "ScoreScriptPair": "async () => ({})",
         "AppendBenchmarkPairLabel": "async () => ''",
         "RunGoldenClipBenchmark": "async () => {}",
@@ -48,6 +49,8 @@ def main():
               "cut_clip" in (page.locator("#bm-clip-prep-cmd").inner_text() or ""))
         check("Compare scripts heading still present",
               page.locator("text=Compare scripts").count() >= 1)
+        check("Suggest beside video button present",
+              page.locator("#bm-suggest-pair").count() == 1)
         check("Score vs reference button present",
               page.locator("#bm-score").count() == 1)
 

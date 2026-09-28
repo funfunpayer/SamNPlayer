@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Bench: Suggest beside video** — after Clip-Prep, pick the short clip and
+  one-click fill FunGen/reference (`stem.funscript`) + Everyday candidate
+  (`stem__hub.funscript`, also under one-level subdirs like `mit_yolo/`). Then
+  Score vs reference → Save label for KI. No Everyday Create change.
+
 - **Create Advanced: Verify with the engine** — opt-in hybrid switch next to Use
   contact points (Rhythm-robust on). Sends `ContactVerifyK=1.5` so the Go CSRT
   rhythm grid keeps teacher points only where its own cell is ≥1.5× stronger

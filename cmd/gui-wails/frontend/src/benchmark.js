@@ -1,4 +1,4 @@
-import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile, ScoreScriptPair, AppendBenchmarkPairLabel } from '../wailsjs/go/main/App';
+import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile, ScoreScriptPair, AppendBenchmarkPairLabel, SuggestBenchmarkPairBesideVideo } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
@@ -124,12 +124,17 @@ export function initBenchmark(root) {
 
     <h3>Compare scripts</h3>
     <p class="hint" style="margin-top:0;">
-      Pick video (optional, for labels), FunGen/reference script, and your
-      candidate (Everyday Create output or loaded file) → gut / prüfen / nicht gut.
+      Short clip + FunGen/reference + Everyday candidate → gut / prüfen / nicht gut.
+      After Clip-Prep, pick the clip then <b>Suggest beside video</b> (names like
+      <code>clip.funscript</code> + <code>clip__hub.funscript</code>).
     </p>
     <div class="field-row"><label>Video</label>
-      <input type="text" id="bm-video" placeholder="Optional — source clip path" style="flex:1" />
+      <input type="text" id="bm-video" placeholder="Short clip path (for labels + suggest)" style="flex:1" />
       <button id="bm-pick-video" type="button">Browse…</button>
+    </div>
+    <div class="row" style="margin:4px 0 8px 0;flex-wrap:wrap;gap:8px;">
+      <button id="bm-suggest-pair" type="button" class="secondary" disabled>Suggest beside video</button>
+      <span class="hint" id="bm-suggest-status" style="margin:0;"></span>
     </div>
     <div class="field-row"><label>Reference</label>
       <input type="text" id="bm-ref" placeholder="FunGen / reference .funscript" style="flex:1" />
@@ -190,6 +195,26 @@ export function initBenchmark(root) {
   function updateScoreEnabled() {
     el('#bm-score').disabled = !(refPath && candPath);
     el('#bm-save-label').disabled = !lastPairScore;
+    if (el('#bm-suggest-pair')) el('#bm-suggest-pair').disabled = !videoPath;
+  }
+
+  function applyPairSuggestion(sug) {
+    const s = sug || {};
+    const ref = s.reference || s.Reference || '';
+    const cand = s.candidate || s.Candidate || '';
+    const note = s.note || s.Note || '';
+    if (ref) {
+      refPath = ref;
+      el('#bm-ref').value = ref;
+    }
+    if (cand) {
+      candPath = cand;
+      el('#bm-cand').value = cand;
+    }
+    if (el('#bm-suggest-status')) el('#bm-suggest-status').textContent = note;
+    lastPairScore = null;
+    el('#bm-pair-result').innerHTML = '';
+    updateScoreEnabled();
   }
 
   function showProgress(show) {
@@ -220,9 +245,28 @@ export function initBenchmark(root) {
       if (!path) return;
       videoPath = path;
       el('#bm-video').value = path;
+      updateScoreEnabled();
     } catch (err) {
       uiError('Choose video: ' + err, el('#bm-pair-status'));
     }
+  });
+  el('#bm-suggest-pair')?.addEventListener('click', async () => {
+    if (!videoPath) return;
+    el('#bm-suggest-pair').disabled = true;
+    if (el('#bm-suggest-status')) el('#bm-suggest-status').textContent = 'Looking beside clip…';
+    try {
+      const sug = await SuggestBenchmarkPairBesideVideo(videoPath);
+      applyPairSuggestion(sug);
+      if (!sug?.reference && !sug?.Reference && !sug?.candidate && !sug?.Candidate) {
+        el('#bm-pair-status').textContent = sug?.note || sug?.Note || 'No pair found.';
+      } else {
+        el('#bm-pair-status').textContent = 'Suggested — review paths, then Score vs reference.';
+      }
+    } catch (err) {
+      uiError('Suggest pair: ' + err, el('#bm-pair-status'));
+      if (el('#bm-suggest-status')) el('#bm-suggest-status').textContent = '';
+    }
+    updateScoreEnabled();
   });
   el('#bm-pick-ref').addEventListener('click', async () => {
     try {
@@ -246,7 +290,10 @@ export function initBenchmark(root) {
       uiError('Choose candidate: ' + err, el('#bm-pair-status'));
     }
   });
-  el('#bm-video').addEventListener('change', e => { videoPath = e.target.value.trim(); });
+  el('#bm-video').addEventListener('change', e => {
+    videoPath = e.target.value.trim();
+    updateScoreEnabled();
+  });
   el('#bm-ref').addEventListener('change', e => {
     refPath = e.target.value.trim();
     updateScoreEnabled();

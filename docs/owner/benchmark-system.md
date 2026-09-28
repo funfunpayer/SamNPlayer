@@ -40,7 +40,8 @@ Video wählen (optional, für Labels)
 **GUI (Tab Bench):**
 
 1. **Compare scripts** — Video (optional) + Referenz + Kandidat → **Score vs reference** → Anzeige GUT/PRÜFEN/NICHT GUT; **Save label for KI**
-2. **Golden-clip manifest** — wie bisher: Manifest mit lokalen Clips → echte Everyday-Pipeline → Verlauf
+2. **Suggest beside video** — nach Clip-Prep: Video wählen → Button füllt `stem.funscript` (FunGen/Ref) + `stem__hub.funscript` (Everyday-Kandidat) aus dem Clip-Ordner (inkl. Unterordner wie `mit_yolo/`)
+3. **Golden-clip manifest** — wie bisher: Manifest mit lokalen Clips → echte Everyday-Pipeline → Verlauf
 
 **CLI:**
 
@@ -115,6 +116,7 @@ Implementierung: `funscript.ScorePair` — baut auf `EvaluateMotionFidelity` + `
 ## 7. Später (nicht MVP)
 
 - Nach Score: „Mit Everyday Create neu erzeugen“ und sofort gegen dieselbe Referenz scoren
-- Mehrere Achsen (hub/tf/tj) in einem GUI-Lauf
+- Mehrere Achsen (hub/tf/tj) in einem GUI-Lauf / Dropdown wenn mehrere Refs neben dem Clip
 - Manifest-Lauf schreibt automatisch Pair-Labels pro Clip
 - Fenster-Korrelation (`phase --window-ms`) in der GUI-Ansicht
+- Owner-Override gut/prüfen/nicht gut vor JSONL-Save
