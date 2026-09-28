@@ -74,7 +74,7 @@ AI draft model path is not in Settings yet (reserved for a future ONNX writer). 
     title: 'Also in the GUI',
     body: `Play Playlist — queue multiple scripts.
 Create Review — Align fill to audio tempo (optional when filling gaps).
-Create Advanced — Sliding dynamics, Auto-Retry, Suggest O-markers, Export classical run (needs a Create result), Scene map, Rhythm-robust signal, Use contact points (teachers JSON), Generate contact points (teacher checkboxes), Import candidates / Accept / Reject for author:auto marks.`,
+Create Advanced — groups: Tracking & polarity, Long-clip anti-drift (Rhythm + contact points), Scene map, AI draft, Signal & quality. Expert tuning (closed): axis / adaptive / Re-find / smooth / peak / RDP / max speed / CSRT-only note. Impulse vib: Feel → Curve (Advanced mirror under Expert).`,
   },
   {
     title: 'Use contact points (Advanced)',
@@ -90,6 +90,7 @@ Settings → Local AI setup → Check AI setup probes GPU/packages/train venv/lo
     title: 'Troubleshooting',
     body: `Flat / stuck curve — re-find tip · Invert motion · Heal tracking gaps · check tracking_gaps muted Contact.
 Feels inverted — Advanced → Invert motion direction.
+Impulse peaks-only vib — Feel → Curve → Impulse (Advanced → Expert has a synced mirror).
 Camera pans drift — Camera motion compensation · Fix contact area (static) off.
 Long-clip drift — Advanced → Rhythm-robust signal (opt-in). Optional: Use contact points (teachers JSON) when Rhythm-robust is on — Generate contact points or Choose… a file.
 Audio “wrong tempo” — warn only; fix ROI/axis; does not rewrite the curve.
