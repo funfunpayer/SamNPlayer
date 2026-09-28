@@ -68,6 +68,7 @@ Speed highlights — red “too fast” bands on the curve (HL threshold slider 
 Scale selection — soften/boost marked range on the active Curve axis (factor slider; optional Soft edges)
 BPM grid — optional beat lines on the curve (BPM field or audio tempo); display only
 Curve zoom — Zoom in/out / selection / reset (+ wheel) synced with heatmap; display/nav only
+Contact vibration — Strength / Sensitivity / Curve + live SVG probe (synthetic; optional Save to script)
 Playlist — queue multiple scripts
 Bookmarks — named times: add at playhead, seek, remove
 Chapters — named ranges: mark heatmap, add from selection, seek, remove
