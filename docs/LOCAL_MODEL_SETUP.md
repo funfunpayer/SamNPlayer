@@ -68,28 +68,25 @@ Local teachers (NudeNet and/or `vlm_probe`) → JSON → rhythm grid search
 hint. Everyday Create stays bit-identical when off/empty. Details:
 `docs/VLM_MODELS.md`, `docs/VLM_TEACHER_PLAN.md`, handbook FAQ.
 
-1. Build `<clip>.contact.json` via CLI, e.g.
-   `python generator/contact_points.py --nudenet video.mp4`
-   (optional extra `--vlm` probe JSON; see `VLM_MODELS.md`).
-2. Create → Advanced → turn on **Rhythm-robust signal**.
-3. Check **Use contact points** → **Choose…** the JSON (or paste path).
-4. Create as usual. The GUI only loads the file — it does not run teachers.
+1. Create → Advanced → turn on **Rhythm-robust signal**.
+2. Check teacher boxes (NudeNet / Ollama / LM Studio) → **Generate contact
+   points** (writes `<clip>.contact.json` and fills the path), **or** build
+   via CLI `python generator/contact_points.py …` then **Choose…**.
+3. Check **Use contact points**. Create as usual.
+4. Optional review: **Import candidates…** into the scene map, then **Accept**
+   (`reviewed:true` for P5c) / **Reject** pending `author:auto` marks.
 
 ## G) AI setup check / install (one command)
 
-`python3 generator/ai_setup.py check` shows:
-- GPU, packages, the training venv, and the Ollama / LM Studio / Colibri
-  servers;
-- the exact next steps.
+Settings → **Local AI setup**:
+- **Check AI setup** — GPU, packages, training venv, Ollama / LM Studio /
+  Colibri; shows next steps (changes nothing).
+- **Install teachers / train / models** — matching `ai_setup.py` profiles.
+  NudeNet installs without touching CSRT OpenCV; training uses a separate
+  venv.
 
-`install teachers|train|models --yes` does them:
-- NudeNet is installed without touching CSRT OpenCV.
-- Training goes into its own venv.
-
-GUI functions exist for Settings buttons (Cursor):
-- `CheckAISetup`
-- `InstallAISetup`
-- `GenerateContactPoints`
+CLI still works: `python3 generator/ai_setup.py check` and
+`install teachers|train|models --yes`.
 
 Details and the hardware notes are in `docs/VLM_MODELS.md`.
 

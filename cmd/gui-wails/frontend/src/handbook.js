@@ -74,18 +74,24 @@ AI draft model path is not in Settings yet (reserved for a future ONNX writer). 
     title: 'Also in the GUI',
     body: `Play Playlist — queue multiple scripts.
 Create Review — Align fill to audio tempo (optional when filling gaps).
-Create Advanced — Sliding dynamics, Auto-Retry, Suggest O-markers, Export classical run (needs a Create result), Scene map, Rhythm-robust signal, Use contact points (teachers JSON).`,
+Create Advanced — Sliding dynamics, Auto-Retry, Suggest O-markers, Export classical run (needs a Create result), Scene map, Rhythm-robust signal, Use contact points (teachers JSON), Generate contact points (teacher checkboxes), Import candidates / Accept / Reject for author:auto marks.`,
   },
   {
     title: 'Use contact points (Advanced)',
-    body: `Opt-in after VLM1 engine: when Rhythm-robust signal is on, Advanced → Use contact points loads a teachers JSON from generator/contact_points.py (NudeNet / VLM probe consensus). The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create. Build the JSON via CLI; the GUI only picks a path — it does not run teachers.`,
+    body: `Opt-in after VLM1 engine: when Rhythm-robust signal is on, Advanced → Use contact points loads a teachers JSON. The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create.
+
+Build the JSON in the GUI: Advanced → teacher checkboxes (NudeNet / Ollama / LM Studio) → Generate contact points (writes .contact.json and fills the path). CLI contact_points.py still works.
+
+Review teacher candidates: after Import candidates (or a map with author:auto marks), Advanced scene map lists pending autos — Accept sets reviewed:true (eligible for P5c YOLO), Reject deletes. Unreviewed autos stay out of export.
+
+Settings → Local AI setup → Check AI setup probes GPU/packages/train venv/local servers; Install teachers / train / models run ai_setup.py profiles without touching Everyday CSRT OpenCV.`,
   },
   {
     title: 'Troubleshooting',
     body: `Flat / stuck curve — re-find tip · Invert motion · Heal tracking gaps · check tracking_gaps muted Contact.
 Feels inverted — Advanced → Invert motion direction.
 Camera pans drift — Camera motion compensation · Fix contact area (static) off.
-Long-clip drift — Advanced → Rhythm-robust signal (opt-in). Optional: Use contact points (teachers JSON) when Rhythm-robust is on.
+Long-clip drift — Advanced → Rhythm-robust signal (opt-in). Optional: Use contact points (teachers JSON) when Rhythm-robust is on — Generate contact points or Choose… a file.
 Audio “wrong tempo” — warn only; fix ROI/axis; does not rewrite the curve.
 AI draft greyed out — Export classical run once after Create (≥1 sample), then draft enables. ONNX model path is not required for imitation.`,
   },

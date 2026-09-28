@@ -84,6 +84,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Handbook + LOCAL_MODEL for #328 GUI paths** — in-app FAQ / USER_HANDBOOK /
+  LOCAL_MODEL_SETUP document Generate contact points, Accept/Reject
+  `author:auto`, Import candidates, and Settings Check AI setup / Install
+  (was still “CLI only / GUI buttons pending”). Copy only; Everyday CSRT
+  unchanged.
+
 - **Device battery label English** — Device chip + `FormatBatteryPct` use
   **Battery** (was Akku leftover). Copy only; no Connect/Play behaviour
   change.

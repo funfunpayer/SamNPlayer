@@ -85,7 +85,14 @@ Advanced → **Show scene map**: rhythm heatmap + marks (exclude/source/region).
 Contact vib follows stroke depth by default. With **Record tip path** + contact marks, Play can also buzz when the tip grazes a mark (Feel Stage A).
 
 ### Use contact points (Advanced)?
-Opt-in after the VLM1 engine. With **Rhythm-robust signal** on, Create → Advanced → **Use contact points** loads a teachers JSON from `generator/contact_points.py` (NudeNet / VLM probe consensus). The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create. Build the JSON via CLI; the GUI only picks a path — it does not run teachers.
+Opt-in after the VLM1 engine. With **Rhythm-robust signal** on, Create → Advanced → **Use contact points** loads a teachers JSON. The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create.
+
+**Build the JSON in the GUI:** Advanced → teacher checkboxes (NudeNet / Ollama / LM Studio) → **Generate contact points** (writes `.contact.json` and fills the path). CLI `contact_points.py` still works.
+
+**Review teacher candidates:** after Import candidates (or a map with `author:auto` marks), Advanced scene map lists pending autos — **Accept** sets `reviewed:true` (eligible for P5c YOLO), **Reject** deletes. Unreviewed autos stay out of export.
+
+### Settings Check AI setup?
+Settings → **Local AI setup** → **Check AI setup** probes GPU/packages/train venv/local servers. **Install teachers / train / models** run the matching `ai_setup.py` profiles (training stays in a separate venv; Everyday CSRT OpenCV untouched).
 
 ### Mac / Linux / Windows?
 Windows portable is the primary smoke target. See release notes for your build.
@@ -132,6 +139,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | **Open AI training** | Jumps to the AI Train tab (label → train → back here for Check availability) |
 | Collect learning data | Allows Scene map **Export for learning** |
 | AI server URL (Colibri) | Optional local prose for Suggest profile / quality opinion — **Test AI server** probes `/v1/models` |
+| **Check AI setup** / Install teachers·train·models | Settings → Local AI setup — probe GPU/packages/servers; install profiles never touch Everyday CSRT OpenCV |
 
 **Not in Settings yet:** AI draft model path — reserved Go key `generator.aiScriptModelPath` for a future ONNX writer. Until then, use **Export classical run** → **AI draft script** from the imitation library (no Settings path needed).
 
@@ -170,7 +178,11 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | **Align fill to audio tempo** | Create → Review (optional when filling gaps) |
 | **Sliding dynamics / Auto-Retry / Suggest O-markers** | Create → Advanced |
 | **Export classical run** | Create → Advanced (S1 training sample; needs a Create result) |
-| **Use contact points** | Create → Advanced (needs Rhythm-robust; teachers JSON path) |
+| **Use contact points** | Create → Advanced (needs Rhythm-robust; teachers JSON — Generate or Choose…) |
+| **Generate contact points** | Create → Advanced (teacher checkboxes → `.contact.json`) |
+| **Accept / Reject** auto candidates | Create → Advanced scene map (`author:auto`; P5c gate) |
+| **Import candidates…** | Create → Advanced scene map (from `.contact.json`) |
+| **Check AI setup** | Settings → Local AI setup |
 
 ---
 
