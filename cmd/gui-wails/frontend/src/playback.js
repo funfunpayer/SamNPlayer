@@ -2712,6 +2712,25 @@ export function initPlayback(root) {
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
   window.addEventListener('polarity:inverted', () => { refreshScriptVisuals(); });
   window.addEventListener('ringdown:applied', () => { refreshScriptVisuals(); });
+  // Create Review Speech-Hold strip → seek Play without switching APIs.
+  window.addEventListener('playback:seek-ms', (ev) => {
+    const ms = Number(ev.detail && ev.detail.ms);
+    if (!Number.isFinite(ms) || ms < 0) return;
+    seekTo(Math.round(ms));
+  });
+  window.addEventListener('playback:chapters-changed', async () => {
+    if (!scriptPath) return;
+    try {
+      const ch = await GetScriptChapterMarks();
+      chapterMarks = Array.isArray(ch)
+        ? ch.map(normalizeChapterMark).filter(Boolean)
+        : [];
+      renderChapterList();
+      describeScript();
+    } catch (err) {
+      logError('Chapters refresh: ' + err);
+    }
+  });
 
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {
@@ -2814,6 +2833,7 @@ export function initPlayback(root) {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
+    seekMs: (atMs) => seekTo(atMs),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,
     setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),

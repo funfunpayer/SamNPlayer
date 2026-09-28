@@ -2667,3 +2667,68 @@ fieldset,
   .gen-postprocess-svg polyline { filter: none; }
 }
 
+/* Create Review — Speech-Hold / Feel segment strip (#375 follow-up) */
+.gen-audio-segments {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(184, 150, 232, 0.14);
+}
+.gen-audio-segments-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.gen-audio-seg-strip {
+  position: relative;
+  height: 36px;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(20, 24, 34, 0.55), rgba(14, 17, 26, 0.8)),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 11px,
+      rgba(184, 150, 232, 0.05) 11px,
+      rgba(184, 150, 232, 0.05) 12px
+    );
+  border: 1px solid rgba(90, 212, 196, 0.18);
+  overflow: hidden;
+}
+.gen-audio-seg {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  font-family: var(--font-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #0e111a;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: filter .15s ease, transform .15s ease;
+}
+.gen-audio-seg:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.gen-audio-seg-holding { background: color-mix(in srgb, var(--warn) 78%, #fff); }
+.gen-audio-seg-gentle { background: color-mix(in srgb, var(--teal) 72%, #fff); }
+.gen-audio-seg-intense { background: color-mix(in srgb, var(--accent) 78%, #fff); }
+.gen-audio-seg-climax { background: color-mix(in srgb, var(--danger) 70%, #fff); }
+.gen-audio-seg.is-speech-hold {
+  box-shadow: inset 0 0 0 1px rgba(14, 17, 26, 0.35);
+  outline: 1px dashed rgba(14, 17, 26, 0.35);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gen-audio-seg { transition: none; }
+  .gen-audio-seg:hover { transform: none; }
+}
+

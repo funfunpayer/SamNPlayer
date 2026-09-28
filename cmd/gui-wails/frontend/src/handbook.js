@@ -8,11 +8,22 @@ const SECTIONS = [
 2. Find tip area (or paint the box). Optional: Smarter tip find if an AI ROI model is set in Settings.
 3. Leave Contact vibration on. Optionally mark nipples/mouth for feel later.
 4. Click Create / Generate.
-5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check.
+5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check
+   (Speech-Hold / Feel segment strip + optional chapters).
 6. Open Play — soft curve + dots. Edit if needed. Connect device when ready.
 
 Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge only).
 Default stroke writer is classical CSRT — AI never silently invents the curve.`,
+  },
+  {
+    title: 'Speech-Hold & Feel segments',
+    body: `After Audio check (ffmpeg), Review can show holding / gentle / intense / climax blocks from classical audio energy — same path as the tempo check.
+
+• Click a block to seek Play
+• Filters hide labels; “Speech-hold only” keeps dialogue/quiet Hold cues
+• “Add visible as chapters” merges chapter marks (does not rewrite the stroke)
+
+Audio never invents 0–100 actions. Everyday Create stays Go CSRT.`,
   },
   {
     title: 'Is everything in the GUI?',

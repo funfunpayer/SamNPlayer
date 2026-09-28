@@ -52,9 +52,20 @@ def main():
             "const heal = !!(req.healTrackingGaps || req.HealTrackingGaps); "
             "return { path: req.path, beforeCount: 10, afterCount: 14, trimmed: true, "
             "gapsFilled: 1, pointsAdded: 4, windowsHealed: heal ? 2 : 0, "
+            "speechHoldMs: 1500, "
+            "audioSegments: ["
+            "  { label: 'holding', start_ms: 0, end_ms: 1500, speech_hold: true },"
+            "  { label: 'gentle', start_ms: 1500, end_ms: 4000 },"
+            "  { label: 'intense', start_ms: 4000, end_ms: 7000 },"
+            "  { label: 'climax', start_ms: 7000, end_ms: 9000 }"
+            "], "
             "message: heal "
             "? 'trimmed start/end · healed 2 tracking gap(s) · filled 1 gap(s) (+4 points total)' "
             ": 'trimmed start/end · filled 1 gap(s)' }; }"
+        ),
+        "GetScriptChapterMarks": "async () => []",
+        "SaveScriptChapterMarks": (
+            "async (chs) => { window.__calls.push(['SaveScriptChapterMarks', chs]); }"
         ),
     }))
     harness = FRONTEND / "test" / "_generator_improve_harness.html"
@@ -145,6 +156,37 @@ def main():
         check("Manual Improve status mentions healed", "healed 2" in status, status)
         check("Manual Improve status does not say fill for heal points",
               "+4 pts" in status and "fill)" not in status and " fill" not in status, status)
+
+        # Speech-Hold / Feel strip after Improve with audioSegments.
+        page.wait_for_function(
+            "() => { const p = document.querySelector('#gen-audio-segments'); "
+            "return p && !p.hidden; }",
+            timeout=5000)
+        check("Audio segments panel visible after Improve",
+              page.locator("#gen-audio-segments").evaluate("e => !e.hidden"))
+        segs = page.locator(".gen-audio-seg")
+        check("Four segment blocks rendered", segs.count() == 4, str(segs.count()))
+        check("Hold filter default on", page.locator("#gen-seg-f-holding").is_checked())
+        page.uncheck("#gen-seg-f-gentle")
+        page.uncheck("#gen-seg-f-intense")
+        page.uncheck("#gen-seg-f-climax")
+        check("Filter leaves Hold only", page.locator(".gen-audio-seg").count() == 1,
+              str(page.locator(".gen-audio-seg").count()))
+        page.check("#gen-seg-f-gentle")
+        page.check("#gen-seg-f-intense")
+        page.check("#gen-seg-f-climax")
+        page.evaluate("window.__calls = (window.__calls || []).filter(c => c[0] !== 'SaveScriptChapterMarks')")
+        page.click("#gen-audio-seg-chapters")
+        page.wait_for_function(
+            "() => (window.__calls || []).some(c => c[0] === 'SaveScriptChapterMarks')",
+            timeout=5000)
+        chCalls = page.evaluate(
+            "() => (window.__calls || []).filter(c => c[0] === 'SaveScriptChapterMarks')")
+        check("Add visible as chapters called SaveScriptChapterMarks",
+              len(chCalls) == 1, str(chCalls))
+        chapters = chCalls[0][1] if chCalls else []
+        check("Chapters mapped from visible segments",
+              isinstance(chapters, list) and len(chapters) == 4, str(chapters))
 
         page.wait_for_function("window.__playLoads && window.__playLoads.length > 0", timeout=3000)
         loads = page.evaluate("window.__playLoads")

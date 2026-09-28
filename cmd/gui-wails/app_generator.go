@@ -618,6 +618,12 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			}
 			if script.Metadata.AudioCheck != nil {
 				payload["audioCheckWarnings"] = script.Metadata.AudioCheck.Warnings
+				if script.Metadata.AudioCheck.SpeechHoldMs > 0 {
+					payload["speechHoldMs"] = script.Metadata.AudioCheck.SpeechHoldMs
+				}
+				if len(script.Metadata.AudioCheck.Segments) > 0 {
+					payload["audioSegments"] = script.Metadata.AudioCheck.Segments
+				}
 			}
 			if len(script.Metadata.TrackingGaps) > 0 {
 				payload["trackingGapCount"] = len(script.Metadata.TrackingGaps)

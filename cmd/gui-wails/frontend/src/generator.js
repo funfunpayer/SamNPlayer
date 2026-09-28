@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -476,13 +476,37 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-audio-fill" checked /> Align fill to audio tempo
           </label>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Compares script Hz to audio Hz (warn only). If Signal Quality failed and audio tempo is clear, adds: check ROI / axis — never rewrites the curve. Needs ffmpeg.">
+            data-help="Compares script Hz to audio Hz (warn only). Also stamps Speech-Hold + holding/gentle/intense/climax segment hints for Review (never rewrites the stroke curve). Needs ffmpeg.">
             <input type="checkbox" id="gen-improve-audio" checked /> Audio check
           </label>
         </div>
         <div class="row" style="margin-top:8px;">
           <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
           <span class="hint" id="gen-improve-status" style="margin:0 0 0 8px;"></span>
+        </div>
+        <div id="gen-audio-segments" class="gen-audio-segments" hidden>
+          <div class="gen-audio-segments-head">
+            <b>Speech-Hold / Feel segments</b>
+            <span class="hint" id="gen-audio-hold-summary"></span>
+          </div>
+          <p class="hint" style="margin:4px 0 6px;">
+            Review taxonomy only — click a block to seek Play. Optional: add as chapter marks (does not change the stroke).
+          </p>
+          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-holding" checked /> Hold</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-gentle" checked /> Gentle</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-intense" checked /> Intense</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-climax" checked /> Climax</label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="When on, only dialogue/quiet Hold blocks stay visible in the strip.">
+              <input type="checkbox" id="gen-seg-f-speech-only" /> Speech-hold only
+            </label>
+          </div>
+          <div id="gen-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
+          <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
+            <button type="button" id="gen-audio-seg-chapters">Add visible as chapters</button>
+            <span class="hint" id="gen-audio-seg-status"></span>
+          </div>
         </div>
       </div>
       <div id="gen-feedback" style="display:none; margin-top:4px; padding:10px;
@@ -540,6 +564,162 @@ export function initGenerator(root, playback) {
   let seekSec = 0;
   let generating = false;
   let lastOutputPath = null;
+  /** @type {Array<{label?:string,Label?:string,start_ms?:number,StartMs?:number,end_ms?:number,EndMs?:number,speech_hold?:boolean,SpeechHold?:boolean}>} */
+  let lastAudioSegments = [];
+  let lastSpeechHoldMs = 0;
+
+  const AUDIO_SEG_LABELS = ['holding', 'gentle', 'intense', 'climax'];
+
+  function normalizeAudioSegment(s) {
+    if (!s || typeof s !== 'object') return null;
+    const label = String(s.label ?? s.Label ?? '').toLowerCase().trim() || 'gentle';
+    let start = Number(s.start_ms ?? s.StartMs ?? s.startMs ?? 0);
+    let end = Number(s.end_ms ?? s.EndMs ?? s.endMs ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    start = Math.round(start);
+    end = Math.round(end);
+    if (end < start) {
+      const tmp = start;
+      start = end;
+      end = tmp;
+    }
+    if (end <= start) return null;
+    const speechHold = !!(s.speech_hold ?? s.SpeechHold ?? s.speechHold);
+    return { label, startMs: start, endMs: end, speechHold };
+  }
+
+  function chapterNameForSegment(s) {
+    if (s.label === 'holding') return s.speechHold ? 'Hold (speech)' : 'Hold';
+    if (s.label === 'gentle') return 'Gentle';
+    if (s.label === 'intense') return 'Intense';
+    if (s.label === 'climax') return 'Climax';
+    return s.label ? s.label.charAt(0).toUpperCase() + s.label.slice(1) : 'Segment';
+  }
+
+  function audioSegFilterOn(label) {
+    const id = `#gen-seg-f-${label}`;
+    const box = el(id);
+    return !box || !!box.checked;
+  }
+
+  function visibleAudioSegments() {
+    const speechOnly = !!el('#gen-seg-f-speech-only')?.checked;
+    return lastAudioSegments.filter((s) => {
+      if (!AUDIO_SEG_LABELS.includes(s.label)) return false;
+      if (!audioSegFilterOn(s.label)) return false;
+      if (speechOnly && !s.speechHold) return false;
+      return true;
+    });
+  }
+
+  function renderAudioSegmentsPanel() {
+    const panel = el('#gen-audio-segments');
+    const strip = el('#gen-audio-seg-strip');
+    const summary = el('#gen-audio-hold-summary');
+    if (!panel || !strip) return;
+    if (!lastAudioSegments.length) {
+      panel.hidden = true;
+      strip.innerHTML = '';
+      if (summary) summary.textContent = '';
+      return;
+    }
+    panel.hidden = false;
+    if (summary) {
+      const holdSec = (lastSpeechHoldMs / 1000).toFixed(1);
+      summary.textContent = lastSpeechHoldMs > 0
+        ? `· Speech-Hold ≈ ${holdSec}s · ${lastAudioSegments.length} segment(s)`
+        : `· ${lastAudioSegments.length} segment(s)`;
+    }
+    const visible = visibleAudioSegments();
+    const tMin = Math.min(...lastAudioSegments.map((s) => s.startMs));
+    const tMax = Math.max(...lastAudioSegments.map((s) => s.endMs));
+    const span = Math.max(1, tMax - tMin);
+    strip.innerHTML = '';
+    if (!visible.length) {
+      const empty = document.createElement('span');
+      empty.className = 'hint';
+      empty.textContent = 'No segments match the filters.';
+      strip.appendChild(empty);
+      return;
+    }
+    visible.forEach((s) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `gen-audio-seg gen-audio-seg-${s.label}` + (s.speechHold ? ' is-speech-hold' : '');
+      btn.setAttribute('role', 'listitem');
+      const left = ((s.startMs - tMin) / span) * 100;
+      const width = Math.max(1.5, ((s.endMs - s.startMs) / span) * 100);
+      btn.style.left = `${left}%`;
+      btn.style.width = `${width}%`;
+      const title = `${chapterNameForSegment(s)} · ${(s.startMs / 1000).toFixed(1)}s–${(s.endMs / 1000).toFixed(1)}s`
+        + (s.speechHold ? ' · speech-hold' : '');
+      btn.title = title;
+      btn.textContent = chapterNameForSegment(s);
+      btn.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('playback:seek-ms', { detail: { ms: s.startMs } }));
+        if (playback && typeof playback.seekMs === 'function') {
+          playback.seekMs(s.startMs);
+        }
+        const st = el('#gen-audio-seg-status');
+        if (st) st.textContent = `Seek ${(s.startMs / 1000).toFixed(1)}s — ${chapterNameForSegment(s)}`;
+      });
+      strip.appendChild(btn);
+    });
+  }
+
+  function rememberAudioSegmentsFromResult(result) {
+    if (!result || typeof result !== 'object') return;
+    const segs = result.audioSegments || result.AudioSegments || result.segments;
+    const hold = Number(result.speechHoldMs ?? result.SpeechHoldMs ?? result.speech_hold_ms ?? 0);
+    if (!Array.isArray(segs)) return;
+    lastAudioSegments = segs.map(normalizeAudioSegment).filter(Boolean);
+    lastSpeechHoldMs = Number.isFinite(hold) ? hold : 0;
+    renderAudioSegmentsPanel();
+  }
+
+  async function addVisibleSegmentsAsChapters() {
+    const status = el('#gen-audio-seg-status');
+    const visible = visibleAudioSegments();
+    if (!visible.length) {
+      if (status) status.textContent = 'Nothing visible to add — adjust filters.';
+      return;
+    }
+    if (!lastOutputPath) {
+      if (status) status.textContent = 'No script path yet.';
+      return;
+    }
+    try {
+      if (playback && typeof playback.loadScriptPath === 'function') {
+        await playback.loadScriptPath(lastOutputPath, { review: true });
+      }
+      const existing = await GetScriptChapterMarks().catch(() => []) || [];
+      const mapped = visible.map((s) => ({
+        name: chapterNameForSegment(s),
+        startTime: s.startMs,
+        endTime: s.endMs,
+      }));
+      // Merge: keep existing, append mapped that don't collide within 250ms start.
+      const next = existing.slice();
+      let added = 0;
+      for (const ch of mapped) {
+        const clash = next.some((e) => Math.abs((e.startTime ?? e.StartTime ?? 0) - ch.startTime) < 250);
+        if (clash) continue;
+        next.push(ch);
+        added += 1;
+      }
+      await SaveScriptChapterMarks(next);
+      window.dispatchEvent(new CustomEvent('playback:chapters-changed'));
+      if (status) {
+        status.textContent = added > 0
+          ? `Added ${added} chapter mark(s) · Play list refreshed`
+          : 'Chapters already present near those times';
+      }
+      uiInfo(added > 0 ? `Added ${added} audio segment chapter(s)` : 'No new chapters (near-duplicates skipped)', el('#gen-status'));
+    } catch (err) {
+      if (status) status.textContent = 'Chapters failed: ' + err;
+      uiError('Add chapters: ' + err, el('#gen-status'));
+    }
+  }
   // Everyday FunGen-like: Generate with no ROI → auto-find tip then generate.
   let pendingGenerateAfterRoi = false;
   let userCancelRequested = false;
@@ -3259,6 +3439,7 @@ export function initGenerator(root, playback) {
       if (result.audioWarnings && result.audioWarnings.length) {
         status.textContent += ' — ' + result.audioWarnings[0];
       }
+      rememberAudioSegmentsFromResult(result);
       // Do not label all PointsAdded as "fill" — Heal bridges count too (#348).
       const improveBits = [];
       const healedN = result.windowsHealed || result.WindowsHealed || 0;
@@ -3283,6 +3464,14 @@ export function initGenerator(root, playback) {
     }
   });
 
+  ['holding', 'gentle', 'intense', 'climax'].forEach((lab) => {
+    el(`#gen-seg-f-${lab}`)?.addEventListener('change', () => renderAudioSegmentsPanel());
+  });
+  el('#gen-seg-f-speech-only')?.addEventListener('change', () => renderAudioSegmentsPanel());
+  el('#gen-audio-seg-chapters')?.addEventListener('click', () => {
+    addVisibleSegmentsAsChapters();
+  });
+
   EventsOn('generate:done', result => {
     // Ignore stale cancel from a superseded run (new Create already active).
     if (result && result.cancelled && !userCancelRequested) {
@@ -3300,6 +3489,12 @@ export function initGenerator(root, playback) {
     lastOutputPath = result.path || null;
     el('#gen-fb-status').textContent = '';
     el('#gen-improve-status').textContent = '';
+    if (!result.audioSegments && !result.AudioSegments) {
+      // Clear stale strip until improve / generate payload brings new segments.
+      lastAudioSegments = [];
+      lastSpeechHoldMs = 0;
+      renderAudioSegmentsPanel();
+    }
     el('#gen-feedback').style.display = lastOutputPath ? 'block' : 'none';
     el('#gen-improve').style.display = lastOutputPath ? 'block' : 'none';
     updateGenerateEnabled();
@@ -3383,6 +3578,15 @@ export function initGenerator(root, playback) {
           + result.audioCheckWarnings.map(w => `<li>${w}</li>`).join('') + '</ul>'
           + `</div>`;
       }
+      rememberAudioSegmentsFromResult(result);
+      if (lastAudioSegments.length) {
+        const holdSec = (lastSpeechHoldMs / 1000).toFixed(1);
+        html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">`
+          + `<b>Speech-Hold / Feel:</b> ${lastAudioSegments.length} segment(s)`
+          + (lastSpeechHoldMs > 0 ? ` · hold ≈ ${holdSec}s` : '')
+          + ` — see Review strip below (filter · seek · chapters).`
+          + `</div>`;
+      }
       qualityBox.innerHTML = html;
     } else {
       qualityBox.style.display = 'none';
@@ -3415,6 +3619,7 @@ export function initGenerator(root, playback) {
         });
         if (polished && polished.path) path = polished.path;
         const msg = (polished && polished.message) || 'Gaps checked';
+        rememberAudioSegmentsFromResult(polished || {});
         const healed = polished && polished.windowsHealed > 0;
         const filled = polished && (polished.pointsAdded > 0 || polished.gapsFilled > 0);
         if (filled || healed) {
