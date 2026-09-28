@@ -236,7 +236,8 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 ## Plugins (drop-folder)
 
-Virtual Person **product** is parked. Tip keeps generic drop-folder infra only:
+Virtual Person **product** is cancelled / out of scope (#264 closed). Tip keeps
+generic drop-folder infra only:
 
 1. Copy a pack folder into `%APPDATA%\SamNPlayer\plugins\` (must contain `samn-plugin.json`), **or** Settings → Plugins → **Install pack…**
 2. Open Plugins folder from Settings to verify
@@ -257,7 +258,7 @@ Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
 | [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics (knob → code → default) |
 | [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md) | AI suggest-only contract |
 | [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md) | Local training / profilemodel |
-| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | Plugin drop-folder contract (VP product parked) |
+| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | Plugin drop-folder contract (VP product cancelled) |
 | [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) | Plugins — Endnutzer (Deutsch) |
 | [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) | Who owns what (agents) |
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate |

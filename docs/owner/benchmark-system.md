@@ -108,7 +108,7 @@ Implementierung: `funscript.ScorePair` — baut auf `EvaluateMotionFidelity` + `
 
 ## 6. Abgrenzung
 
-- Kein Eingriff in Everyday-CSRT-Default oder Rel37-Tagging.
+- Kein Eingriff in Everyday-CSRT-Default, #264/VP (cancelled / out of scope), oder Rel37-Tagging.
 - Nur Bench/CLI/Funscript-Score + Testdata-Layout unter `generator/testdata/benchmark/`.
 
 ---

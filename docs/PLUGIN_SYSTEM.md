@@ -1,8 +1,8 @@
 # Plugin system — drop-folder host contract
 
 **Status:** H1 infra kept — drop-folder discover / Install / Open Plugins.  
-**Virtual Person product:** **PARKED** (draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264); no product UI/host Enable/scene steps on tip).  
-**Related:** package [`pluginhost/`](../pluginhost/) · reserved pack id `virtual_person` · license feature `virtual_person` (stamped, unused while parked) · Animation Studio [`funfunpayer/tracken`](https://github.com/funfunpayer/tracken)
+**Virtual Person product:** **CANCELLED / OUT OF SCOPE** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264) closed) — not deferred / not “parked for later”.  
+**Related:** package [`pluginhost/`](../pluginhost/) · reserved pack id `virtual_person` · license feature `virtual_person` (stamped for key compatibility only) · Animation Studio [`funfunpayer/tracken`](https://github.com/funfunpayer/tracken)
 
 ---
 
@@ -11,16 +11,17 @@
 1. Drop a pack folder into the SamNPlayer **Plugins** folder  
    (`%APPDATA%\SamNPlayer\plugins` on Windows), **or** Settings → Plugins → **Install pack…**
 2. Packs must contain `samn-plugin.json` at the root
-3. Product Enable / OnFrame host / overlay UI is **not** shipped while Virtual Person is parked
+3. No product Enable / OnFrame host / overlay UI for Virtual Person on tip
 
 Everyday Create / Play / Train are unchanged.
 
 ---
 
-## Goal (when unparked)
+## Scope
 
-Virtual Persons **attach to SamNPlayer** as a plugin / extension — they do not
-replace Generate / Play / Train. Full product surface lives in #264 / Animation Studio.
+Generic drop-folder plugin **infrastructure** stays. Virtual Person as a SamNPlayer
+product surface does **not** — it is cancelled for this codebase. Animation Studio
+and other external work stay outside this repo.
 
 **What this is not**
 
@@ -28,6 +29,7 @@ replace Generate / Play / Train. Full product surface lives in #264 / Animation 
 - Not a marketplace  
 - Not dynamic Go `.so` loading for end users  
 - Not Everyday CSRT changes  
+- Not a deferred Virtual Person roadmap inside SamNPlayer  
 
 ---
 
@@ -35,8 +37,8 @@ replace Generate / Play / Train. Full product surface lives in #264 / Animation 
 
 | Decision | Choice |
 |----------|--------|
-| Feature id | **`virtual_person`** (reserved; stamped on standard keys) |
-| Monetization | Included in the standard €40 / year key when product returns |
+| Feature id | **`virtual_person`** (reserved; stamped on standard keys for compatibility) |
+| Monetization | N/A while product cancelled — id remains on keys |
 | Enforcement | Remains **off** — do not flip without Owner OK |
 
 ---
@@ -65,7 +67,7 @@ replace Generate / Play / Train. Full product surface lives in #264 / Animation 
 | Field | Rule |
 |-------|------|
 | `apiVersion` | Host accepts `1` only (`pluginhost.CurrentAPIVersion`) |
-| `id` | Any safe id; `virtual_person` reserved for parked product |
+| `id` | Any safe id; `virtual_person` reserved (cancelled product id) |
 | `entry.kind` | `asset_pack` (H1) |
 
 ---
@@ -75,7 +77,7 @@ replace Generate / Play / Train. Full product surface lives in #264 / Animation 
 | Side | Owns |
 |------|------|
 | **SamNPlayer host** | Plugins folder discovery, `samn-plugin.json` handshake, Settings Install / Open folder |
-| **Parked product** | In-process scene bus, Enable host, Give/Titjob, pose overlay (#264) |
+| **Cancelled product (#264)** | In-process scene bus, Enable host, Give/Titjob, pose overlay — **not shipping** |
 
 ---
 
@@ -83,11 +85,11 @@ replace Generate / Play / Train. Full product surface lives in #264 / Animation 
 
 | Stage | Scope |
 |-------|--------|
-| **H1 infra** (this tip) | Drop-folder discover / Install pack / Open Plugins ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275)); product Enable/tick scrubbed for Rel35 |
-| **Parked** | `virtualperson/` core, Settings Enable, OnFrame tick, overlay |
+| **H1 infra** (this tip) | Drop-folder discover / Install pack / Open Plugins ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275)); product Enable/tick scrubbed |
+| **Cancelled** | Virtual Person product UI / host Enable / overlay — closed with #264 |
 
 Wails App methods (shipped): `PluginsDir`, `ListInstalledPlugins`, `InstallPluginPack`,
 `OpenPluginsFolder`.
 
 Packages: `pluginhost/` (manifest + paths + Slot stub). License keeps
-`FeatureVirtualPerson` in `DefaultFeatures` for key compatibility while product is parked.
+`FeatureVirtualPerson` in `DefaultFeatures` for key compatibility only.

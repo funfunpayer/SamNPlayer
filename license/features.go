@@ -4,8 +4,8 @@ package license
 //
 // Owner decision (2026-09-27): Virtual Person / plugin host is included in
 // the standard €40 license — not a separate addon. Feature id: virtual_person.
-// Rel35: Virtual Person product is PARKED; feature id stays stamped for key
-// compatibility. No product UI/host Enable on tip.
+// Virtual Person product is cancelled / out of scope (#264 closed); feature id
+// stays stamped for key compatibility. No product UI/host Enable on tip.
 const (
 	FeatureSamn          = "samn"
 	FeatureContact       = "contact"

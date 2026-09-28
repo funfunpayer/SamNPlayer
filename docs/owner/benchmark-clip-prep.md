@@ -146,7 +146,8 @@ Architecture: Everyday CSRT = Basis; FunGen = Referenz; KI assistiert/lernt aus 
 ## 7. Was bewusst nicht gemacht wird
 
 - Everyday-Create-Pfad unangetastet.
-- Virtual Person / #264 / Rel38-Release-Track nicht blockieren.
+- Kein schweres Mark-UI (Skript + Marks-JSON reichen für Owner-Prep).
+- Virtual Person / #264 (cancelled / out of scope) / Rel38-Release-Track nicht blockieren.
 - Keine Clips ins Git.
 - Batch-Marks-JSON bleibt Skript-Pfad (GUI = Einzelclip In/Out).
 

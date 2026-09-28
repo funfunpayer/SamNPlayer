@@ -1,14 +1,10 @@
 /** Training motion — CANONICAL Vorlage = pixelated clip stroke.
  *
- * Soft mosaic assets are derived FROM the clip frames (for pixelFigureSVG
- * callers only). The stage shows the clip strip + Claude’s intensity ring
- * in ONE card (curve → frame; ring lives in #tr-ring-slot).
+ * Stage shows the clip strip + intensity ring in ONE card
+ * (curve → frame; ring lives in #tr-ring-slot).
  */
 
 import { figureHeatColor } from './figure_theme.js';
-
-const YOU_SRC = new URL('./assets/images/training-mosaic-you.png', import.meta.url).href;
-const PARTNER_SRC = new URL('./assets/images/training-mosaic-partner.png', import.meta.url).href;
 
 // Each frame as its own static `new URL` so Vite emits all of them into
 // dist. (A directory-based `new URL(.../clip/, …)` does not — 0/N in
@@ -50,26 +46,6 @@ const CLIP_FRAMES = [
 function frameForLevel(level) {
   const t = Math.max(0, Math.min(1, Number(level) || 0));
   return Math.min(CLIP_COUNT - 1, Math.max(0, Math.round(t * (CLIP_COUNT - 1))));
-}
-
-/** @deprecated use clip strip; kept for callers */
-export function pixelPairSVG(opts = {}) {
-  const level = Math.max(0, Math.min(1, opts.level ?? 0));
-  const fi = frameForLevel(level);
-  const aria = opts.title || `Pair motion ${Math.round(level * 100)}%`;
-  return `<svg class="pixel-figure-svg pixel-pair-svg mosaic-pair-svg" viewBox="0 0 140 140"
-    width="140" height="140" role="img" aria-label="${aria}">
-    <image href="${CLIP_FRAMES[fi]}" x="0" y="0" width="140" height="140" preserveAspectRatio="xMidYMid meet"/>
-  </svg>`;
-}
-
-/** Clip-derived soft mosaics (static callers only — stage uses clip strip). */
-export function pixelFigureSVG(opts = {}) {
-  const src = opts.partner ? PARTNER_SRC : YOU_SRC;
-  return `<svg class="pixel-figure-svg mosaic-figure-svg" viewBox="0 0 100 100" width="72" height="72"
-    role="img" aria-label="${opts.title || 'figure'}">
-    <image href="${src}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
-  </svg>`;
 }
 
 /**

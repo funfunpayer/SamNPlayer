@@ -11,6 +11,7 @@ Owner-Guides liegen unter **[`docs/owner/`](owner/)**. Stand Produkt: **v0.5.40*
 | Markieren | [`owner/generator-markieren.md`](owner/generator-markieren.md) |
 | Win11 AI-Setup | [`owner/setup-windows11/README.md`](owner/setup-windows11/README.md) · Skripte [`scripts/setup-windows11/`](../scripts/setup-windows11/) |
 | Benchmark | [`owner/benchmark-system.md`](owner/benchmark-system.md) · Clip-Prep [`owner/benchmark-clip-prep.md`](owner/benchmark-clip-prep.md) |
+| Plugins | [`PLUGIN_INSTALL_DE.md`](PLUGIN_INSTALL_DE.md) · Contract [`PLUGIN_SYSTEM.md`](PLUGIN_SYSTEM.md) |
 
 ### Neu ab v0.5.40 (kurz)
 
@@ -23,5 +24,7 @@ Owner-Guides liegen unter **[`docs/owner/`](owner/)**. Stand Produkt: **v0.5.40*
 |---------|------|
 | **v0.5.40** | Contact Verify + Bench Suggest — Tag [`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40) |
 | v0.5.38 | [`owner/v0.5.38-sammel.md`](owner/v0.5.38-sammel.md) |
+
+**Abgrenzung:** Virtual Person (#264) ist **cancelled / out of scope** — nicht geparkt. Everyday = Go CSRT.
 
 In-App handbook (English product copy): [`USER_HANDBOOK.md`](USER_HANDBOOK.md).

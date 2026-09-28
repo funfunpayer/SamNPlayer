@@ -4,7 +4,7 @@
 **Stand:** nach v0.5.37 · Quelle: `cmd/gui-wails/frontend/src/generator.js` (`#gen-advanced`)  
 **Regel:** Everyday-Basis ist **immer** Tip → **Go CSRT** → Create. Advanced darf das nicht brechen und **nicht** Richtung KI-first Everyday schieben. Hybrid = Assist/Verify auf dieser Spine (opt-in, Review).  
 **Owner-Bestätigung (28 Sep 2026):** Everyday Go CSRT = base; Hybrid nur assist/verify — kein KI-first Everyday.  
-**Parked / out of scope:** [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) Virtual Person — unberührt.
+**Cancelled:** [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) Virtual Person — closed, not deferred.
 
 GUI-Texte in der App bleiben Englisch. Owner-Abschnitte hier auf Deutsch.
 
@@ -131,7 +131,7 @@ Datei: `cmd/gui-wails/frontend/src/generator.js` (+ kleine CSS für nested Exper
 
 - Everyday Create-Button / Progress / Review Improve  
 - Go-CSRT-Eligibilität / Soft-clear PerSceneROI  
-- Virtual Person / Plugin-Produkt (#264)  
+- Virtual Person / Plugin-Produkt (#264 cancelled / closed)  
 - Scene2 Apply / Tip-Find Steps 1–3 außer Verweistexten  
 
 ---
