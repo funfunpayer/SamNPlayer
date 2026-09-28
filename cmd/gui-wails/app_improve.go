@@ -45,9 +45,9 @@ type ImproveScriptResult struct {
 	ScriptHz      *float64 `json:"scriptHz,omitempty"`
 	AudioWarnings []string `json:"audioWarnings,omitempty"`
 	// Speech-Hold / segment taxonomy (review hints only — never stroke rewrite).
-	SpeechHoldMs  int64                       `json:"speechHoldMs,omitempty"`
+	SpeechHoldMs  int64                        `json:"speechHoldMs,omitempty"`
 	AudioSegments []funscript.AudioSegmentHint `json:"audioSegments,omitempty"`
-	Message       string                      `json:"message"`
+	Message       string                       `json:"message"`
 }
 
 // ImproveGeneratedScript polishes a just-generated script in place
