@@ -1570,6 +1570,7 @@ export namespace update {
 	export class Release {
 	    tag_name: string;
 	    html_url: string;
+	    body?: string;
 	    assets: Asset[];
 	
 	    static createFrom(source: any = {}) {
@@ -1580,6 +1581,7 @@ export namespace update {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.tag_name = source["tag_name"];
 	        this.html_url = source["html_url"];
+	        this.body = source["body"];
 	        this.assets = this.convertValues(source["assets"], Asset);
 	    }
 	

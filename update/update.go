@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -62,6 +61,7 @@ func Describe() string {
 type Release struct {
 	TagName string  `json:"tag_name"`
 	HTMLURL string  `json:"html_url"`
+	Body    string  `json:"body,omitempty"` // release notes / changelog markdown
 	Assets  []Asset `json:"assets"`
 }
 
@@ -340,33 +340,45 @@ func ApplyAndRestart(newPath string) error {
 		return fmt.Errorf("update: execute permission could not be set: %w", err)
 	}
 
-	pid := os.Getpid()
-
-	switch runtime.GOOS {
-	case "windows":
-		// cmd /C wartet über einen Ping-Trick auf den eigenen Prozess (kein
-		// eingebautes "sleep" in cmd), ersetzt dann die Datei und startet neu.
-		script := fmt.Sprintf(
-			`ping 127.0.0.1 -n 2 > nul & taskkill /PID %d /F > nul 2>&1 & move /Y "%s" "%s" & start "" "%s"`,
-			pid, newPath, self, self,
-		)
-		cmd := exec.Command("cmd", "/C", script)
-		cmd.SysProcAttr = detachedSysProcAttr()
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("update: helper process could not be started: %w", err)
-		}
-	default: // linux, darwin
-		script := fmt.Sprintf(
-			`while kill -0 %d 2>/dev/null; do sleep 0.2; done; mv -f "%s" "%s"; chmod +x "%s"; exec "%s"`,
-			pid, newPath, self, self, self,
-		)
-		cmd := exec.Command("sh", "-c", script)
-		cmd.SysProcAttr = detachedSysProcAttr()
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("update: helper process could not be started: %w", err)
-		}
+	if err := startApplyHelper(os.Getpid(), newPath, self); err != nil {
+		return err
 	}
 
 	os.Exit(0)
 	return nil // unreachable
+}
+
+// ChangelogSummary returns a short plain-text preview of release notes for the
+// update UI. Empty when Body is missing. Keeps Patch/hooks free to use Body.
+func ChangelogSummary(body string, maxRunes int) string {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return ""
+	}
+	if maxRunes <= 0 {
+		maxRunes = 280
+	}
+	// Strip common markdown noise for a one-line / short status preview.
+	lines := strings.Split(body, "\n")
+	var kept []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "<!--") {
+			continue
+		}
+		line = strings.TrimLeft(line, "#*_>` ")
+		if line == "" {
+			continue
+		}
+		kept = append(kept, line)
+		if len(kept) >= 4 {
+			break
+		}
+	}
+	out := strings.Join(kept, " · ")
+	runes := []rune(out)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes-1]) + "…"
+	}
+	return out
 }

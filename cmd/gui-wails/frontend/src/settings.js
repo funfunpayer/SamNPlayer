@@ -3,6 +3,7 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
 import { wireDataHelp } from './help.js';
+import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 
 let cachedSettings = null;
 let cachedPromise = null;
@@ -458,27 +459,33 @@ export function initSettings(root) {
       const version = await CurrentVersion();
       const res = await CheckForUpdate();
       if (res.error) {
-        uiError('Update check: ' + res.error, status);
+        uiError('Update check: ' + formatUpdateError(res.error), status);
       } else if (!res.available) {
         status.textContent = `No update available (current: ${version}).`;
       } else {
-        const tag = res.release ? res.release.tag_name : '?';
-        status.textContent = `Version ${tag} available (current: ${version}).`;
+        const tag = releaseTag(res.release);
+        const notes = releaseNotesPreview(res.release);
+        status.textContent = notes
+          ? `Version ${tag} available (current: ${version}). ${notes}`
+          : `Version ${tag} available (current: ${version}).`;
         if (apply) {
           apply.style.display = '';
           apply.onclick = async () => {
             apply.disabled = true;
+            apply.textContent = 'Downloading…';
             try {
+              // Success path calls os.Exit — window closes. Reject = real failure.
               await ApplyUpdate();
             } catch (err) {
-              uiError('Update failed: ' + err, status);
+              uiError('Update failed: ' + formatUpdateError(err), status);
               apply.disabled = false;
+              apply.textContent = 'Download & restart';
             }
           };
         }
       }
     } catch (err) {
-      uiError('Update check: ' + err, status);
+      uiError('Update check: ' + formatUpdateError(err), status);
     } finally {
       btn.disabled = false;
     }
