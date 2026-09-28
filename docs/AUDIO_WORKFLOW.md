@@ -64,8 +64,10 @@ Quality box. Metadata remains the source of truth for CLI / files.
 
 **GUI (Play):** `LoadFunscript` exposes `speechHoldMs` + `audioSegments` from
 `metadata.audio_check` (and the companion `.funscript` when loading `.samn`).
-Play shows the same strip — filters, click-to-seek, optional chapters — so a
-saved script can be reviewed without re-running Create Audio check.
+Play shows the same strip — filters, click-to-seek, optional chapters — plus
+filtered translucent bands on the heatmap (thin curve underlay; “Show on
+heatmap” toggle). Display only — so a saved script can be reviewed without
+re-running Create Audio check.
 
 ### Optional later enhancements (not built)
 

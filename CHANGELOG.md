@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: Feel / Speech-Hold heatmap bands** — filtered `audio_check` segments
+  paint as translucent bands on the Play heatmap (thin curve underlay) with a
+  “Show on heatmap” toggle synced to strip filters. Display only — no stroke
+  rewrite. Everyday CSRT defaults unchanged.
+
 - **Expert: rich postprocess probe** — dual SVG (muted raw underlay + teal
   postprocess), peak dots, and live kf/peaks/valleys/Hz badges when Expert
   knobs change (DeepFunGen-style). Synthetic probe only; Everyday CSRT

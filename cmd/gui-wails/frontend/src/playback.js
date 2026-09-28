@@ -273,6 +273,10 @@ export function initPlayback(root) {
               data-help="When on, only dialogue/quiet Hold blocks stay visible.">
               <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
             </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
+              <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
+            </label>
           </div>
           <div id="pb-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -622,6 +626,38 @@ export function initPlayback(root) {
     }
   }
 
+  // Feel / Speech-Hold taxonomy bands (display only — synced with strip filters).
+  const FEEL_BAND_COLORS = {
+    holding: 'rgba(232, 188, 96, 0.38)',
+    gentle: 'rgba(90, 212, 196, 0.34)',
+    intense: 'rgba(184, 150, 232, 0.36)',
+    climax: 'rgba(232, 110, 110, 0.40)',
+  };
+  function feelHeatbandsEnabled() {
+    const box = el('#pb-seg-heatbands');
+    return !box || !!box.checked;
+  }
+  function drawFeelSegmentBands(ctx, w, h, { fullHeight = true } = {}) {
+    if (!feelHeatbandsEnabled() || totalMs <= 0 || !audioSegments.length) return;
+    const visible = visibleAudioSegments();
+    if (!visible.length) return;
+    const bandH = fullHeight ? h : Math.max(3, Math.round(h * 0.14));
+    const y = fullHeight ? 0 : h - bandH;
+    for (const s of visible) {
+      const x0 = (s.startMs / totalMs) * w;
+      const x1 = (s.endMs / totalMs) * w;
+      ctx.fillStyle = FEEL_BAND_COLORS[s.label] || 'rgba(200,210,230,0.28)';
+      ctx.fillRect(x0, y, Math.max(1, x1 - x0), bandH);
+      if (s.speechHold && fullHeight) {
+        ctx.strokeStyle = 'rgba(14, 17, 26, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 2]);
+        ctx.strokeRect(x0 + 0.5, 0.5, Math.max(1, x1 - x0) - 1, h - 1);
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
   function renderOMarkerList() {
     const box = el('#pb-omarker-list');
     box.innerHTML = '';
@@ -851,6 +887,8 @@ export function initPlayback(root) {
       panel.hidden = true;
       strip.innerHTML = '';
       if (summary) summary.textContent = '';
+      redrawHeatmap();
+      redrawCurve();
       return;
     }
     panel.hidden = false;
@@ -869,6 +907,8 @@ export function initPlayback(root) {
       empty.className = 'hint';
       empty.textContent = 'No segments match the filters.';
       strip.appendChild(empty);
+      redrawHeatmap();
+      redrawCurve();
       return;
     }
     visible.forEach((s) => {
@@ -890,6 +930,8 @@ export function initPlayback(root) {
       });
       strip.appendChild(btn);
     });
+    redrawHeatmap();
+    redrawCurve();
   }
 
   async function addVisibleAudioSegmentsAsChapters() {
@@ -1165,6 +1207,7 @@ export function initPlayback(root) {
       ctx.fillStyle = `hsl(${hue}, 75%, ${35 + intensity * 20}%)`;
       ctx.fillRect(i * barWidth, 0, barWidth + 1, h);
     }
+    drawFeelSegmentBands(ctx, w, h, { fullHeight: true });
     drawOMarkerBands(ctx, w, h);
     if (marker && totalMs > 0) {
       const x0 = (marker.startMs / totalMs) * w;
@@ -1295,6 +1338,7 @@ export function initPlayback(root) {
       ctx.stroke();
     }
 
+    drawFeelSegmentBands(ctx, w, h, { fullHeight: false });
     drawOMarkerBands(ctx, w, h);
     // Markierter Bereich (dieselbe Markierung wie in der Heatmap).
     if (marker) {
@@ -2934,6 +2978,10 @@ export function initPlayback(root) {
     el(`#pb-seg-f-${lab}`)?.addEventListener('change', () => renderAudioSegmentsPanel());
   });
   el('#pb-seg-f-speech-only')?.addEventListener('change', () => renderAudioSegmentsPanel());
+  el('#pb-seg-heatbands')?.addEventListener('change', () => {
+    redrawHeatmap();
+    redrawCurve();
+  });
   el('#pb-audio-seg-chapters')?.addEventListener('click', () => {
     addVisibleAudioSegmentsAsChapters();
   });

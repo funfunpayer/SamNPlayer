@@ -13,7 +13,8 @@ const SECTIONS = [
 5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check
    (Speech-Hold / Feel segment strip + optional chapters).
 6. Open Play — soft curve + dots; if the script has audio_check segments,
-   the same Speech-Hold / Feel strip appears (seek · filters · optional chapters).
+   the same Speech-Hold / Feel strip appears (seek · filters · optional chapters)
+   and filtered bands can paint on the heatmap (Show on heatmap).
    Edit if needed. Connect device when ready.
 
 Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge only).
@@ -25,6 +26,7 @@ Default stroke writer is classical CSRT — AI never silently invents the curve.
 
 • Click a block to seek Play
 • Filters hide labels; “Speech-hold only” keeps dialogue/quiet Hold cues
+• “Show on heatmap” paints filtered bands on the Play heatmap (thin curve underlay)
 • “Add visible as chapters” merges chapter marks (does not rewrite the stroke)
 
 Audio never invents 0–100 actions. Everyday Create stays Go CSRT.`,
