@@ -31,7 +31,8 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 2. **Find tip area** (or paint the box). Optional: *Smarter tip find* if an AI ROI model is set in Settings.  
 3. Leave **Contact vibration** on (default). Optionally mark nipples/mouth (gold / magenta) for feel later.  
 4. Click **Create** / Generate.  
-5. **Review & improve:** trim · **Fill gaps** · **Heal tracking gaps** · audio check.  
+5. **Review & improve:** trim · **Fill gaps** · **Heal tracking gaps** · audio check
+   (Speech-Hold / Feel segment strip · optional chapters — never rewrites stroke).
 6. Open **Play** — soft curve + dots. Edit if needed. Connect device when ready.
 
 Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge only).

@@ -44,7 +44,10 @@ type ImproveScriptResult struct {
 	AudioHz       *float64 `json:"audioHz,omitempty"`
 	ScriptHz      *float64 `json:"scriptHz,omitempty"`
 	AudioWarnings []string `json:"audioWarnings,omitempty"`
-	Message       string   `json:"message"`
+	// Speech-Hold / segment taxonomy (review hints only — never stroke rewrite).
+	SpeechHoldMs  int64                        `json:"speechHoldMs,omitempty"`
+	AudioSegments []funscript.AudioSegmentHint `json:"audioSegments,omitempty"`
+	Message       string                       `json:"message"`
 }
 
 // ImproveGeneratedScript polishes a just-generated script in place
@@ -80,6 +83,10 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		}
 		if audioMeta != nil {
 			out.AudioWarnings = append([]string(nil), audioMeta.Warnings...)
+			out.SpeechHoldMs = audioMeta.SpeechHoldMs
+			if len(audioMeta.Segments) > 0 {
+				out.AudioSegments = append([]funscript.AudioSegmentHint(nil), audioMeta.Segments...)
+			}
 		}
 	}
 

@@ -10,10 +10,16 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Create Review: Speech-Hold / Feel segment strip** — after Audio check,
+  Review shows holding / gentle / intense / climax blocks with filters,
+  click-to-seek Play, and optional “Add visible as chapters” (merge, no stroke
+  rewrite). Improve/Generate payloads expose `speechHoldMs` + `audioSegments`.
+  Everyday Go CSRT defaults unchanged.
+
 - **Expert: live postprocess probe SVG** — Create → Advanced → Expert shows a
   synthetic keyframe polyline that updates with Smooth / Prominence / Peak
   spacing / RDP / Max speed (DeepFunGen-style viewer feedback). Probe only —
-  not the user’s clip. Everyday CSRT defaults unchanged.
+  not the user’s clip. Everyday CSRT defaults unchanged (#379).
 
 ## [0.5.41] — September 28, 2026
 
