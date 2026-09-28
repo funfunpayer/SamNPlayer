@@ -49,8 +49,12 @@ def main():
         ),
         "ImproveGeneratedScript": (
             "async (req) => { window.__calls.push(['ImproveGeneratedScript', req]); "
+            "const heal = !!(req.healTrackingGaps || req.HealTrackingGaps); "
             "return { path: req.path, beforeCount: 10, afterCount: 14, trimmed: true, "
-            "gapsFilled: 1, pointsAdded: 4, message: 'trimmed start/end · filled 1 gap(s)' }; }"
+            "gapsFilled: 1, pointsAdded: 4, windowsHealed: heal ? 2 : 0, "
+            "message: heal "
+            "? 'trimmed start/end · healed 2 tracking gap(s) · filled 1 gap(s) (+4 points total)' "
+            ": 'trimmed start/end · filled 1 gap(s)' }; }"
         ),
     }))
     harness = FRONTEND / "test" / "_generator_improve_harness.html"
@@ -109,8 +113,12 @@ def main():
               page.locator("#gen-improve").evaluate("e => e.style.display !== 'none'"))
         check("Fill gaps on by default",
               page.locator("#gen-improve-fill").is_checked())
+        check("Heal tracking gaps on by default",
+              page.locator("#gen-improve-heal").is_checked())
         check("Audio check on by default when ffmpeg ok",
               page.locator("#gen-improve-audio").is_checked())
+        check("Auto Improve passes healTrackingGaps",
+              auto and auto[0][1].get("healTrackingGaps") is True, str(auto))
 
         page.fill("#gen-improve-start", "1")
         page.fill("#gen-improve-end", "40")
@@ -126,7 +134,17 @@ def main():
         check("Trim start passed", req.get("startSec") == 1, str(req))
         check("Trim end passed", req.get("endSec") == 40, str(req))
         check("Fill gaps passed", req.get("fillGaps") is True, str(req))
+        check("Heal tracking gaps passed", req.get("healTrackingGaps") is True, str(req))
         check("Audio check passed", req.get("audioCheck") is True, str(req))
+
+        page.wait_for_function(
+            "() => (document.querySelector('#gen-status') || {}).textContent "
+            "&& document.querySelector('#gen-status').textContent.includes('Improved:')",
+            timeout=5000)
+        status = page.locator("#gen-status").inner_text()
+        check("Manual Improve status mentions healed", "healed 2" in status, status)
+        check("Manual Improve status does not say fill for heal points",
+              "+4 pts" in status and "fill)" not in status and " fill" not in status, status)
 
         page.wait_for_function("window.__playLoads && window.__playLoads.length > 0", timeout=3000)
         loads = page.evaluate("window.__playLoads")

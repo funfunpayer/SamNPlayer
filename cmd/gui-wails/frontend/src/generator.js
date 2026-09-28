@@ -2594,10 +2594,16 @@ export function initGenerator(root, playback) {
       if (result.audioWarnings && result.audioWarnings.length) {
         status.textContent += ' — ' + result.audioWarnings[0];
       }
+      // Do not label all PointsAdded as "fill" — Heal bridges count too (#348).
+      const improveBits = [];
+      const healedN = result.windowsHealed || result.WindowsHealed || 0;
+      const addedN = result.pointsAdded || result.PointsAdded || 0;
+      if (healedN > 0) improveBits.push(`healed ${healedN}`);
+      if (addedN > 0) improveBits.push(`+${addedN} pts`);
+      if (result.trimmed || result.Trimmed) improveBits.push('trimmed');
       el('#gen-status').textContent =
-        `Improved: ${result.afterCount} points` +
-        (result.pointsAdded ? ` (+${result.pointsAdded} fill)` : '') +
-        (result.trimmed ? ', trimmed' : '') +
+        `Improved: ${result.afterCount ?? result.AfterCount ?? '?'} points` +
+        (improveBits.length ? ` (${improveBits.join(' · ')})` : '') +
         ' — open Play to edit dots/curve.';
       const reloadPath = result.path || lastOutputPath;
       if (reloadPath && playback && typeof playback.loadScriptPath === 'function') {
