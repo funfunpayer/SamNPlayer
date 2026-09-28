@@ -46,6 +46,16 @@ export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckAIServerAvailable():Promise<boolean>;
 
+export function CheckAISetup():Promise<any>;
+
+export function InstallAISetup(arg1:string):Promise<void>;
+
+export function GenerateContactPointsForVideo(arg1:string,arg2:any):Promise<void>;
+
+export function ReviewAutoContactCandidate(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
+export function ImportContactCandidatesForVideo(arg1:string,arg2:string):Promise<number>;
+
 export function CheckAudioCheckAvailable():Promise<boolean>;
 
 export function CheckRoiTrainingAvailable():Promise<boolean>;
