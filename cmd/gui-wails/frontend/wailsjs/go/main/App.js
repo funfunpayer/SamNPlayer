@@ -92,6 +92,11 @@ export function EnableVirtualPersonHost() { return window['go']['main']['App']['
 export function DisableVirtualPersonHost() { return window['go']['main']['App']['DisableVirtualPersonHost'](); }
 export function VirtualPersonGiveDildo() { return window['go']['main']['App']['VirtualPersonGiveDildo'](); }
 export function VirtualPersonStartTitjob(arg1, arg2) { return window['go']['main']['App']['VirtualPersonStartTitjob'](arg1, arg2); }
+export function InstallVirtualPersonPack() { return window['go']['main']['App']['InstallVirtualPersonPack'](); }
+export function OpenPluginsFolder() { return window['go']['main']['App']['OpenPluginsFolder'](); }
+export function PluginsDir() { return window['go']['main']['App']['PluginsDir'](); }
+export function ListInstalledPlugins() { return window['go']['main']['App']['ListInstalledPlugins'](); }
+export function RefreshVirtualPersonPack() { return window['go']['main']['App']['RefreshVirtualPersonPack'](); }
 export function ListRoiTrainingDevices() { return window['go']['main']['App']['ListRoiTrainingDevices'](); }
 export function ListRoiTrainingSamples(arg1, arg2) { return window['go']['main']['App']['ListRoiTrainingSamples'](arg1, arg2); }
 export function LoadFirstFrame(arg1) { return window['go']['main']['App']['LoadFirstFrame'](arg1); }

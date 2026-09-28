@@ -129,6 +129,7 @@ func runtimeDirs() []string {
 			filepath.Join(root, "logs", "sessions"),
 			filepath.Join(root, "models"),
 			filepath.Join(root, "tools"),
+			filepath.Join(root, "plugins"),
 			filepath.Join(root, "roi_training_dataset"),
 			filepath.Join(root, "roi_training_dataset", "images", "train"),
 			filepath.Join(root, "roi_training_dataset", "labels", "train"),

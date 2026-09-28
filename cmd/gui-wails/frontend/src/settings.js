@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob, InstallVirtualPersonPack, OpenPluginsFolder, PluginsDir } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -98,15 +98,19 @@ export function initSettings(root) {
       <button id="st-license-refresh" type="button">Refresh status</button>
     </div>
 
-    <h3>Virtual Person (plugin host)</h3>
-    <p class="hint">H1 — enable to receive playback OnFrame ticks and drive the scene bus
-      (props/activities). Included in the standard license; gated only when enforcement
-      is on. Overlay UI and ToyHub device sync are follow-ups. Everyday Create is unchanged.
-      See docs/PLUGIN_SYSTEM.md.</p>
+    <h3>Virtual Person (Plugins)</h3>
+    <p class="hint">Simplest install: drop the Virtual Person pack folder into Plugins
+      (must contain <code>samn-plugin.json</code>), then click <b>Enable</b>.
+      Or use <b>Install pack…</b>. Enable also starts the in-process scene bus
+      (OnFrame ticks, Give dildo / Start titjob). Included in the standard license.
+      See <code>docs/PLUGIN_INSTALL_DE.md</code> / <code>docs/PLUGIN_SYSTEM.md</code>.</p>
+    <p class="hint" id="st-vp-plugins-path" style="margin-top:0">Plugins folder: …</p>
     <p class="hint" id="st-vp-host-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="st-vp-host-enable" type="button">Enable host</button>
-      <button id="st-vp-host-disable" type="button">Disable host</button>
+      <button id="st-vp-host-install" type="button" class="primary">Install pack…</button>
+      <button id="st-vp-host-open-folder" type="button">Open Plugins folder</button>
+      <button id="st-vp-host-enable" type="button">Enable</button>
+      <button id="st-vp-host-disable" type="button">Disable</button>
       <button id="st-vp-host-refresh" type="button">Refresh</button>
     </div>
     <div class="row" style="align-items:center; margin-top:6px;">
@@ -304,12 +308,22 @@ export function initSettings(root) {
 
   async function refreshVPHostStatus() {
     const box = el('#st-vp-host-status');
+    const pathBox = el('#st-vp-plugins-path');
     if (!box) return;
     try {
+      if (pathBox) {
+        try {
+          const dir = await PluginsDir();
+          pathBox.textContent = 'Plugins folder: ' + (dir || '(unavailable)');
+        } catch (_) {
+          pathBox.textContent = 'Plugins folder: (unavailable)';
+        }
+      }
       const st = await VirtualPersonHostStatus();
       const bits = [
         `stage: ${st.stage || 'H1'}`,
         `feature: ${st.featureId || 'virtual_person'}`,
+        `pack: ${st.packFound ? ((st.packName || st.packId) + ' v' + (st.packVersion || '?')) : 'none'}`,
         `allowed: ${st.allowed ? 'yes' : 'no'}`,
         `enabled: ${st.enabled ? 'yes' : 'no'}`,
         `running: ${st.running ? 'yes' : 'no'}`,
@@ -322,14 +336,34 @@ export function initSettings(root) {
   }
 
   el('#st-vp-host-refresh')?.addEventListener('click', () => refreshVPHostStatus());
+  el('#st-vp-host-open-folder')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      await OpenPluginsFolder();
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Open Plugins folder: ' + err, box);
+    }
+  });
+  el('#st-vp-host-install')?.addEventListener('click', async () => {
+    const box = el('#st-vp-host-status');
+    try {
+      const st = await InstallVirtualPersonPack();
+      uiInfo(st.message || 'Pack installed.', box);
+      await refreshVPHostStatus();
+    } catch (err) {
+      uiError('Install pack: ' + err, box);
+      await refreshVPHostStatus();
+    }
+  });
   el('#st-vp-host-enable')?.addEventListener('click', async () => {
     const box = el('#st-vp-host-status');
     try {
       const st = await EnableVirtualPersonHost();
-      uiInfo(st.message || 'Virtual Person host enabled.', box);
+      uiInfo(st.message || 'Virtual Person enabled.', box);
       await refreshVPHostStatus();
     } catch (err) {
-      uiError('Enable Virtual Person host: ' + err, box);
+      uiError('Enable Virtual Person: ' + err, box);
       await refreshVPHostStatus();
     }
   });
@@ -337,10 +371,10 @@ export function initSettings(root) {
     const box = el('#st-vp-host-status');
     try {
       const st = await DisableVirtualPersonHost();
-      uiInfo(st.message || 'Virtual Person host disabled.', box);
+      uiInfo(st.message || 'Virtual Person disabled.', box);
       await refreshVPHostStatus();
     } catch (err) {
-      uiError('Disable Virtual Person host: ' + err, box);
+      uiError('Disable Virtual Person: ' + err, box);
     }
   });
   el('#st-vp-give-dildo')?.addEventListener('click', async () => {

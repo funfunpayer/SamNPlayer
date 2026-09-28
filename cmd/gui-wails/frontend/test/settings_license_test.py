@@ -54,27 +54,47 @@ def main():
         }""",
         "VirtualPersonHostStatus": """async () => (window.__vp || {
           featureId:'virtual_person', allowed:true, enabled:false, running:false,
-          stage:'H1', ticks:0,
-          message:'Virtual Person host available (H1). Enable to receive playback OnFrame ticks.'
+          stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
+          packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
+          message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
         })""",
         "EnableVirtualPersonHost": """async () => {
           window.__vp = {
             featureId:'virtual_person', allowed:true, enabled:true, running:true,
-            stage:'H1', ticks:0,
-            message:'Virtual Person host running (H1 — OnFrame tick + scene bus).'
+            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
+            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
+            message:'Virtual Person running — pack Virtual Person v0.1.0.'
           };
           return window.__vp;
         }""",
         "DisableVirtualPersonHost": """async () => {
           window.__vp = {
             featureId:'virtual_person', allowed:true, enabled:false, running:false,
-            stage:'H1', ticks:0,
-            message:'Virtual Person host available (H1). Enable to receive playback OnFrame ticks.'
+            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
+            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
+            message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
           };
           return window.__vp;
         }""",
         "VirtualPersonGiveDildo": "async () => { window.__vpGave = true; }",
         "VirtualPersonStartTitjob": "async () => { window.__vpTitjob = true; }",
+        "InstallVirtualPersonPack": """async () => {
+          window.__vp = {
+            featureId:'virtual_person', allowed:true, enabled:false, running:false,
+            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
+            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
+            message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
+          };
+          return window.__vp;
+        }""",
+        "OpenPluginsFolder": "async () => {}",
+        "PluginsDir": "async () => '/tmp/plugins'",
+        "ListInstalledPlugins": "async () => ([])",
+        "RefreshVirtualPersonPack": """async () => (window.__vp || {
+          featureId:'virtual_person', allowed:true, enabled:false, running:false,
+          stage:'H1', ticks:0, packFound:true, packName:'Virtual Person', packVersion:'0.1.0',
+          message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
+        })""",
         "SetSetting": "async () => {}",
         "GetRuntimeHealth": "async () => ({ok:true,deps:[],dirsCreated:[],resources:{}})",
         "EnsureVideoTools": "async () => {}",
@@ -86,6 +106,7 @@ def main():
         "ReportSummary": "async () => ''",
         "QualityModelInfo": "async () => ({trained:false})",
         "CheckAIRoiAvailable": "async () => false",
+        "CheckAIServerAvailable": "async () => ({ok:false,baseUrl:'',message:''})",
         "OpenLogFolder": "async () => {}",
         "PickReportPath": "async () => ''",
         "TrainQualityModel": "async () => {}",
