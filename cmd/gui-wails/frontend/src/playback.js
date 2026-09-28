@@ -245,6 +245,32 @@ export function initPlayback(root) {
         </div>
         <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
 
+        <div id="pb-audio-segments" class="gen-audio-segments" hidden>
+          <div class="gen-audio-segments-head">
+            <b>Speech-Hold / Feel segments</b>
+            <span class="hint" id="pb-audio-hold-summary"></span>
+          </div>
+          <p class="hint" style="margin:4px 0 6px;">
+            From script <code>audio_check</code> (Create Review / Audio check). Click to seek.
+            Optional: add visible blocks as chapter marks — never rewrites the stroke.
+          </p>
+          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-holding" checked /> Hold</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-gentle" checked /> Gentle</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-intense" checked /> Intense</label>
+            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-climax" checked /> Climax</label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="When on, only dialogue/quiet Hold blocks stay visible.">
+              <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
+            </label>
+          </div>
+          <div id="pb-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
+          <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
+            <button type="button" id="pb-audio-seg-chapters">Add visible as chapters</button>
+            <span class="hint" id="pb-audio-seg-status"></span>
+          </div>
+        </div>
+
         <div class="pb-contact" id="pb-contact-block" hidden>
           <h3>Contact vibration</h3>
           <p class="hint" style="margin-top:0">Follows proximity like contact — adjust live, optionally save to script.</p>
@@ -347,6 +373,10 @@ export function initPlayback(root) {
   let scriptHasContactVibration = false;
   let trajectoryData = null; // MT-Debug: {width,height,tip:[{atMs,x,y}],partner:[...]} or null
   let contactMarksData = null; // { tip_class, primary:{x,y,w,h,class,fixed}, extras:[...], drive_stroke }
+  /** @type {Array<{label:string,startMs:number,endMs:number,speechHold:boolean}>} */
+  let audioSegments = [];
+  let speechHoldMs = 0;
+  const AUDIO_SEG_LABELS = ['holding', 'gentle', 'intense', 'climax'];
   const curveCanvas = el('#pb-curve');
   const chartTooltip = el('#pb-chart-tooltip');
 
@@ -751,6 +781,145 @@ export function initPlayback(root) {
     const previous = chapterMarks.slice();
     const next = chapterMarks.filter((_, i) => i !== index);
     await persistChapterMarks(next, previous);
+  }
+
+  function normalizeAudioSegment(s) {
+    if (!s || typeof s !== 'object') return null;
+    const label = String(s.label ?? s.Label ?? '').toLowerCase().trim() || 'gentle';
+    let start = Number(s.start_ms ?? s.StartMs ?? s.startMs ?? 0);
+    let end = Number(s.end_ms ?? s.EndMs ?? s.endMs ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    start = Math.round(start);
+    end = Math.round(end);
+    if (end < start) {
+      const tmp = start;
+      start = end;
+      end = tmp;
+    }
+    if (end <= start) return null;
+    const speechHold = !!(s.speech_hold ?? s.SpeechHold ?? s.speechHold);
+    return { label, startMs: start, endMs: end, speechHold };
+  }
+
+  function chapterNameForAudioSegment(s) {
+    if (s.label === 'holding') return s.speechHold ? 'Hold (speech)' : 'Hold';
+    if (s.label === 'gentle') return 'Gentle';
+    if (s.label === 'intense') return 'Intense';
+    if (s.label === 'climax') return 'Climax';
+    return s.label ? s.label.charAt(0).toUpperCase() + s.label.slice(1) : 'Segment';
+  }
+
+  function audioSegFilterOn(label) {
+    const box = el(`#pb-seg-f-${label}`);
+    return !box || !!box.checked;
+  }
+
+  function visibleAudioSegments() {
+    const speechOnly = !!el('#pb-seg-f-speech-only')?.checked;
+    return audioSegments.filter((s) => {
+      if (!AUDIO_SEG_LABELS.includes(s.label)) return false;
+      if (!audioSegFilterOn(s.label)) return false;
+      if (speechOnly && !s.speechHold) return false;
+      return true;
+    });
+  }
+
+  function rememberAudioSegmentsFromInfo(info) {
+    const segs = (info && (info.audioSegments || info.AudioSegments)) || [];
+    const hold = Number(info?.speechHoldMs ?? info?.SpeechHoldMs ?? 0);
+    audioSegments = Array.isArray(segs) ? segs.map(normalizeAudioSegment).filter(Boolean) : [];
+    speechHoldMs = Number.isFinite(hold) ? hold : 0;
+    renderAudioSegmentsPanel();
+  }
+
+  function renderAudioSegmentsPanel() {
+    const panel = el('#pb-audio-segments');
+    const strip = el('#pb-audio-seg-strip');
+    const summary = el('#pb-audio-hold-summary');
+    if (!panel || !strip) return;
+    if (!scriptPath || !audioSegments.length) {
+      panel.hidden = true;
+      strip.innerHTML = '';
+      if (summary) summary.textContent = '';
+      return;
+    }
+    panel.hidden = false;
+    if (summary) {
+      summary.textContent = speechHoldMs > 0
+        ? `· Speech-Hold ≈ ${(speechHoldMs / 1000).toFixed(1)}s · ${audioSegments.length} segment(s)`
+        : `· ${audioSegments.length} segment(s)`;
+    }
+    const visible = visibleAudioSegments();
+    const tMin = Math.min(...audioSegments.map((s) => s.startMs));
+    const tMax = Math.max(...audioSegments.map((s) => s.endMs));
+    const span = Math.max(1, tMax - tMin);
+    strip.innerHTML = '';
+    if (!visible.length) {
+      const empty = document.createElement('span');
+      empty.className = 'hint';
+      empty.textContent = 'No segments match the filters.';
+      strip.appendChild(empty);
+      return;
+    }
+    visible.forEach((s) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `gen-audio-seg gen-audio-seg-${s.label}` + (s.speechHold ? ' is-speech-hold' : '');
+      btn.setAttribute('role', 'listitem');
+      const left = ((s.startMs - tMin) / span) * 100;
+      const width = Math.max(1.5, ((s.endMs - s.startMs) / span) * 100);
+      btn.style.left = `${left}%`;
+      btn.style.width = `${width}%`;
+      btn.title = `${chapterNameForAudioSegment(s)} · ${(s.startMs / 1000).toFixed(1)}s–${(s.endMs / 1000).toFixed(1)}s`
+        + (s.speechHold ? ' · speech-hold' : '');
+      btn.textContent = chapterNameForAudioSegment(s);
+      btn.addEventListener('click', () => {
+        seekTo(s.startMs);
+        const st = el('#pb-audio-seg-status');
+        if (st) st.textContent = `Seek ${(s.startMs / 1000).toFixed(1)}s — ${chapterNameForAudioSegment(s)}`;
+      });
+      strip.appendChild(btn);
+    });
+  }
+
+  async function addVisibleAudioSegmentsAsChapters() {
+    const status = el('#pb-audio-seg-status');
+    const visible = visibleAudioSegments();
+    if (!visible.length) {
+      if (status) status.textContent = 'Nothing visible to add — adjust filters.';
+      return;
+    }
+    if (!scriptPath) {
+      if (status) status.textContent = 'Load a script first.';
+      return;
+    }
+    try {
+      const existing = await GetScriptChapterMarks().catch(() => []) || [];
+      const mapped = visible.map((s) => ({
+        name: chapterNameForAudioSegment(s),
+        startTime: s.startMs,
+        endTime: s.endMs,
+      }));
+      const next = existing.slice();
+      let added = 0;
+      for (const ch of mapped) {
+        const clash = next.some((e) => Math.abs((e.startTime ?? e.StartTime ?? 0) - ch.startTime) < 250);
+        if (clash) continue;
+        next.push(ch);
+        added += 1;
+      }
+      if (await persistChapterMarks(next, existing)) {
+        if (status) {
+          status.textContent = added > 0
+            ? `Added ${added} chapter mark(s)`
+            : 'Chapters already present near those times';
+        }
+        if (added > 0) uiInfo(`Added ${added} audio segment chapter(s)`, el('#pb-log'));
+      }
+    } catch (err) {
+      if (status) status.textContent = 'Chapters failed: ' + err;
+      uiError('Add chapters: ' + err, el('#pb-log'));
+    }
   }
 
   // --- MT-Debug: Tip/Partner-Trajektorie über dem Video -------------------
@@ -2017,6 +2186,7 @@ export function initPlayback(root) {
       try { ClearPlaybackVideo().catch(() => {}); } catch (_) {}
     }
     applyContactMarksInfo(info);
+    rememberAudioSegmentsFromInfo(info);
     try {
       marker = await GetMarker(scriptPath);
     } catch (err) {
@@ -2730,6 +2900,13 @@ export function initPlayback(root) {
     } catch (err) {
       logError('Chapters refresh: ' + err);
     }
+  });
+  ['holding', 'gentle', 'intense', 'climax'].forEach((lab) => {
+    el(`#pb-seg-f-${lab}`)?.addEventListener('change', () => renderAudioSegmentsPanel());
+  });
+  el('#pb-seg-f-speech-only')?.addEventListener('change', () => renderAudioSegmentsPanel());
+  el('#pb-audio-seg-chapters')?.addEventListener('click', () => {
+    addVisibleAudioSegmentsAsChapters();
   });
 
   if (el('#pb-axis')) {

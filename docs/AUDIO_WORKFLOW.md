@@ -62,11 +62,16 @@ Speech-Hold / Feel segment strip (filter labels, speech-hold-only, click to
 seek Play, optional add-visible-as-chapters). Warnings still appear in the
 Quality box. Metadata remains the source of truth for CLI / files.
 
+**GUI (Play):** `LoadFunscript` exposes `speechHoldMs` + `audioSegments` from
+`metadata.audio_check` (and the companion `.funscript` when loading `.samn`).
+Play shows the same strip — filters, click-to-seek, optional chapters — so a
+saved script can be reviewed without re-running Create Audio check.
+
 ### Optional later enhancements (not built)
 
 | Idea | Fit | Notes |
 |------|-----|--------|
-| **GUI chapter list from `segments`** | **Shipped (Review)** | Create Review strip + filters + seek + optional chapter marks from visible segments |
+| **GUI chapter list from `segments`** | **Shipped (Review + Play)** | Create Review + Play strips: filters · seek · optional chapter marks from visible segments |
 | **Default-on post-check** | Yes | Already GUI default when ffmpeg present |
 | **Pre-pass tempo hint** | Later | Estimate audio Hz first → bias `min_peak_distance` / smooth; still track video for shape. Stroke preview (Stage A) may supply a *video* tempo hint without audio. |
 | **“No motion → fall back to audio”** | Weak | Can flag “retry ROI / wrong axis”; must not invent a full position script from loudness. Prefer `strokepreview.Report.SuggestAudio` after weak/unstable preview. |

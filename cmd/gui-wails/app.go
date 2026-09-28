@@ -188,6 +188,9 @@ type ScriptInfo struct {
 	HasNeoAxes            bool                    `json:"hasNeoAxes"`
 	HasContactMarks       bool                    `json:"hasContactMarks"`
 	ContactMarks          *funscript.ContactMarks `json:"contactMarks,omitempty"`
+	// Speech-Hold / Feel taxonomy from metadata.audio_check (review hints only).
+	SpeechHoldMs  int64                        `json:"speechHoldMs,omitempty"`
+	AudioSegments []funscript.AudioSegmentHint `json:"audioSegments,omitempty"`
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
@@ -219,6 +222,7 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 		info.ContactMarks = cm
 		info.HasContactMarks = cm.HasAreas() || cm.TipClass != ""
 	}
+	fillScriptInfoAudioCheck(&info, script, path)
 	a.stateMu.Lock()
 	if video, ok := findMatchingVideo(path); ok {
 		a.videoPath = video
@@ -229,6 +233,36 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 	}
 	a.stateMu.Unlock()
 	return info, nil
+}
+
+// fillScriptInfoAudioCheck copies Speech-Hold / segment taxonomy into ScriptInfo.
+// .samn ToFunscript does not carry audio_check; Improve stamps the companion
+// .funscript — so when loading .samn we also peek that sidecar.
+func fillScriptInfoAudioCheck(info *ScriptInfo, script *funscript.Script, path string) {
+	if info == nil {
+		return
+	}
+	if script != nil && script.Metadata.AudioCheck != nil {
+		ac := script.Metadata.AudioCheck
+		info.SpeechHoldMs = ac.SpeechHoldMs
+		if len(ac.Segments) > 0 {
+			info.AudioSegments = append([]funscript.AudioSegmentHint(nil), ac.Segments...)
+		}
+		return
+	}
+	if !samn.IsSamnPath(path) {
+		return
+	}
+	funPath := samn.CompanionFunscriptPath(path)
+	fs, err := funscript.Load(funPath)
+	if err != nil || fs == nil || fs.Metadata.AudioCheck == nil {
+		return
+	}
+	ac := fs.Metadata.AudioCheck
+	info.SpeechHoldMs = ac.SpeechHoldMs
+	if len(ac.Segments) > 0 {
+		info.AudioSegments = append([]funscript.AudioSegmentHint(nil), ac.Segments...)
+	}
 }
 
 // fileURL wandelt einen lokalen Pfad in eine file://-URL um - für Dinge wie
