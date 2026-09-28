@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
@@ -87,6 +89,72 @@ func (a *App) ReviewAutoContactCandidate(videoPath, markID string, accept bool) 
 // marks. Requires an existing scene map (Create with rhythm grid first).
 func (a *App) ImportContactCandidatesForVideo(videoPath, contactPath string) (int, error) {
 	return generator.ImportContactCandidatesForVideo(videoPath, contactPath)
+}
+
+// SceneProposalLoad is the Create GUI view of one window from
+// LoadSceneProposals + .At(ms). Found=false when the companion file is
+// missing (no error) or the file has no usable proposals.
+type SceneProposalLoad struct {
+	Found       bool                    `json:"found"`
+	Path        string                  `json:"path"`
+	Width       int                     `json:"width"`
+	Height      int                     `json:"height"`
+	Count       int                     `json:"count"`
+	Proposal    generator.SceneProposal `json:"proposal"`
+	RegionClass string                  `json:"regionClass"` // canonical primary class, else ""
+}
+
+// SceneProposalsPathBesideVideo returns <clip>.scene.json next to the video.
+func SceneProposalsPathBesideVideo(videoPath string) string {
+	videoPath = strings.TrimSpace(videoPath)
+	if videoPath == "" {
+		return ""
+	}
+	ext := filepath.Ext(videoPath)
+	return strings.TrimSuffix(videoPath, ext) + ".scene.json"
+}
+
+// LoadSceneProposalsBesideVideo restores Scene2 proposals from the companion
+// <clip>.scene.json. Missing file → Found=false, no error. Does not apply ROI
+// (TFTJ: user applies; no silent ROI2).
+func (a *App) LoadSceneProposalsBesideVideo(videoPath string, atMs int64) (SceneProposalLoad, error) {
+	path := SceneProposalsPathBesideVideo(videoPath)
+	if path == "" {
+		return SceneProposalLoad{}, nil
+	}
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return SceneProposalLoad{Path: path}, nil
+		}
+		return SceneProposalLoad{}, err
+	}
+	return a.LoadSceneProposalAt(path, atMs)
+}
+
+// LoadSceneProposalAt reads a scene_roles.py JSON and returns the proposal
+// for atMs (.At). Empty proposals → Found=false. Primary class is exposed as
+// RegionClass only when canonical (same rule as CLI --scene-proposals).
+func (a *App) LoadSceneProposalAt(path string, atMs int64) (SceneProposalLoad, error) {
+	path = strings.TrimSpace(path)
+	out := SceneProposalLoad{Path: path}
+	if path == "" {
+		return out, fmt.Errorf("no scene proposals path")
+	}
+	s, err := generator.LoadSceneProposals(path)
+	if err != nil {
+		return out, err
+	}
+	out.Width, out.Height, out.Count = s.Width, s.Height, len(s.Proposals)
+	p, ok := s.At(atMs)
+	if !ok {
+		return out, nil
+	}
+	out.Found = true
+	out.Proposal = p
+	if bodyparts.IsCanonical(p.Primary.Class) {
+		out.RegionClass = bodyparts.Normalize(p.Primary.Class)
+	}
+	return out, nil
 }
 
 func resolveSamnForLearning(path string) (string, error) {

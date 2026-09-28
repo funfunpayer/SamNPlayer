@@ -159,6 +159,17 @@ func (a *App) PickContactPointsFile() (string, error) {
 	})
 }
 
+// PickSceneProposalsFile chooses a scene_roles.py <clip>.scene.json for the
+// Create pick-primary flow (Scene2). Opt-in only; user applies proposals.
+func (a *App) PickSceneProposalsFile() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose scene proposals JSON",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Scene proposals (*.scene.json)", Pattern: "*.scene.json;*.json"},
+		},
+	})
+}
+
 // --- Video-Auto-Match (dieselbe Logik wie vorher in der Fyne-GUI) ---
 
 func findMatchingVideo(scriptPath string) (string, bool) {

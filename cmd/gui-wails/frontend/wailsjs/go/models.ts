@@ -727,6 +727,31 @@ export namespace generator {
 
 export namespace main {
 
+	export class SceneProposalLoad {
+	    found: boolean;
+	    path: string;
+	    width: number;
+	    height: number;
+	    count: number;
+	    proposal: any;
+	    regionClass: string;
+
+	    static createFrom(source: any = {}) {
+	        return new SceneProposalLoad(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.found = source["found"];
+	        this.path = source["path"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	        this.count = source["count"];
+	        this.proposal = source["proposal"];
+	        this.regionClass = source["regionClass"];
+	    }
+	}
+
 	export class CacheInfo {
 	    path: string;
 	    files: number;

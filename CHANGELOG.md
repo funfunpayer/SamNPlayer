@@ -10,6 +10,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Scene2 proposals in Create (GUI)** — Step 2 loads `<clip>.scene.json`
+  (`LoadSceneProposals` + `.At(ms)`): scene-type chip, **Apply as Tip** for the
+  primary ROI (+ canonical region class), optional **Apply as contact** for the
+  partner (never automatic — no silent ROI2). Soft-loads beside-video companion
+  on video open; Load… / Use beside video / Dismiss. Everyday CSRT unchanged.
+
 - **Scene understanding stage 2 (opt-in tools)** — `scan-scene-map VIDEO`
   writes the rhythm-grid motion scan as JSON; `generator/scene_roles.py`
   combines teacher body parts with that motion into roles (primary stroke
