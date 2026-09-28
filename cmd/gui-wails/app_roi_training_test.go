@@ -41,9 +41,64 @@ func TestRoiLabelPathForImage(t *testing.T) {
 	}
 }
 
+func TestRoiLabelPathForImageAbsoluteKeepsRoot(t *testing.T) {
+	dir := t.TempDir()
+	imagePath := filepath.Join(dir, "images", "train", "Zelda__000.jpg")
+	got, err := roiLabelPathForImage(imagePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(dir, "labels", "train", "Zelda__000.txt")
+	if got != want {
+		t.Fatalf("absolute label path broke root: want %q got %q", want, got)
+	}
+	if !filepath.IsAbs(got) {
+		t.Fatalf("label path must stay absolute, got %q", got)
+	}
+}
+
+func TestRoiLabelPathForImageDriveLetterStyle(t *testing.T) {
+	// Slash form used after filepath.ToSlash on Windows absolute paths.
+	got, err := roiLabelPathForImage("C:/work/dataset/images/val/Zelda__001.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.FromSlash("C:/work/dataset/labels/val/Zelda__001.txt")
+	if got != want {
+		t.Fatalf("drive-letter path: want %q got %q", want, got)
+	}
+}
+
 func TestRoiLabelPathForImageWithoutImagesDirIsAnError(t *testing.T) {
 	if _, err := roiLabelPathForImage(filepath.Join("dataset", "clip.jpg")); err == nil {
 		t.Fatal("erwartete einen Fehler ohne 'images'-Ordner im Pfad")
+	}
+}
+
+func TestListRoiTrainingSamplesLoadsBoxesFromAbsoluteDataset(t *testing.T) {
+	dir := t.TempDir()
+	writeRoiSample(t, dir, "train", "Zelda__000", "0 0.42 0.55 0.18 0.22\n")
+	if err := os.WriteFile(filepath.Join(dir, "classes.json"), []byte(`{"glans":0}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	a := NewApp()
+	samples, err := a.ListRoiTrainingSamples(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(samples) != 1 {
+		t.Fatalf("expected 1 sample, got %+v", samples)
+	}
+	if len(samples[0].Boxes) != 1 {
+		t.Fatalf("expected boxes on absolute dataset path, got %+v", samples[0])
+	}
+	b := samples[0].Boxes[0]
+	if b.XC != 0.42 || b.YC != 0.55 || b.W != 0.18 || b.H != 0.22 {
+		t.Fatalf("box coords: %+v", b)
+	}
+	if b.ClassName != "glans" {
+		t.Fatalf("className: %+v", b)
 	}
 }
 
