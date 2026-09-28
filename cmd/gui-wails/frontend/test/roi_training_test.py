@@ -216,6 +216,29 @@ def main():
         check("Klassenname steht auf dem Overlay",
               "brust" in page.locator(".rt-box-label").first.inner_text())
 
+        # --- Großer Review-Editor: Thumb / Correct box öffnet Modal ------------
+        page.locator(".rt-card .rt-thumb-wrap").first.click()
+        page.wait_for_selector(".rt-review-overlay", timeout=5000)
+        check("Thumb-Klick öffnet großen Editor",
+              page.locator(".rt-review-overlay").count() == 1)
+        check("Editor zeigt Confirm correct",
+              page.locator(".rt-review-overlay button:text('Confirm correct')").count() == 1)
+        check("Editor zeigt Box auf großem Bild",
+              page.locator(".rt-review-scene .rt-box").count() >= 1)
+        page.locator(".rt-review-overlay button:text('Confirm correct')").click()
+        page.wait_for_function(
+            "document.querySelectorAll('.rt-review-overlay').length === 0", timeout=5000)
+        check("Confirm correct schließt den Editor", True)
+
+        page.locator(".rt-card button:text('Correct box')").first.click()
+        page.wait_for_selector(".rt-review-overlay.is-adjusting, .rt-review-viewport.is-adjusting",
+                               timeout=5000)
+        check("Correct box öffnet Editor im Adjust-Modus",
+              page.locator(".rt-review-viewport.is-adjusting").count() == 1)
+        page.locator(".rt-review-overlay button:text('Close')").click()
+        page.wait_for_function(
+            "document.querySelectorAll('.rt-review-overlay').length === 0", timeout=5000)
+
         # --- Verwerfen entfernt genau eine Karte --------------------------------
         page.locator(".rt-card button:text('Discard')").first.click()
         page.wait_for_function("window.__calls.some(c => Array.isArray(c) && c[0] === 'discard')", timeout=5000)

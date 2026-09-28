@@ -1479,7 +1479,14 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   .body-figure-row { grid-template-columns: 1fr; }
   .body-figure-svg { max-width: 120px; margin: 0 auto; }
 }
-.rt-thumb-wrap { position: relative; width: 100%; line-height: 0; overflow: visible; }
+.rt-thumb-wrap {
+  position: relative; width: 100%; line-height: 0; overflow: visible;
+  cursor: zoom-in;
+}
+.rt-thumb-wrap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .rt-thumb { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); background: var(--bg-alt); }
 .rt-box {
   position: absolute; z-index: 2; box-sizing: border-box;
@@ -1487,11 +1494,124 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
+.rt-box-draft { border-style: dashed; background: rgba(184, 150, 232, 0.18); }
 .rt-box-label {
   position: absolute; top: 0; left: 0; transform: translateY(-100%);
   background: var(--accent); color: #12100a; font-size: 10px; font-weight: 600; padding: 1px 5px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0; white-space: nowrap;
   max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* AI Train — large sample review editor (grid stays; click thumb / Correct box) */
+.rt-review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background:
+    radial-gradient(900px 480px at 18% 0%, rgba(184, 150, 232, 0.14), transparent 58%),
+    rgba(6, 7, 12, 0.78);
+  backdrop-filter: blur(8px);
+  animation: helpIn .2s ease both;
+}
+.rt-review-panel {
+  width: min(1100px, 100%);
+  height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+  border: 1px solid rgba(184, 150, 232, 0.22);
+  background:
+    linear-gradient(165deg, rgba(184, 150, 232, 0.08), transparent 40%),
+    linear-gradient(180deg, #171922 0%, #101218 100%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.rt-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.rt-review-kicker {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.rt-review-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  word-break: break-all;
+}
+.rt-review-sub { margin: 4px 0 0; }
+.rt-review-close {
+  flex-shrink: 0;
+}
+.rt-review-stage {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px;
+}
+.rt-review-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #0a0c12;
+  cursor: grab;
+  touch-action: none;
+}
+.rt-review-viewport.is-panning { cursor: grabbing; }
+.rt-review-viewport.is-adjusting { cursor: crosshair; }
+.rt-review-scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  line-height: 0;
+  will-change: transform;
+}
+.rt-review-img {
+  display: block;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  background: var(--bg-alt);
+}
+.rt-review-scene .rt-box-label {
+  font-size: 12px;
+  padding: 2px 7px;
+  max-width: 220px;
+}
+.rt-review-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.rt-review-status { margin: 0; flex: 1; min-width: 160px; }
+.rt-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rt-review-overlay { animation: none !important; }
 }
 
 .list { border: 1px solid var(--border); border-radius: var(--radius); max-height: 340px; overflow-y: auto; overflow-x: hidden; min-width: 0; }
