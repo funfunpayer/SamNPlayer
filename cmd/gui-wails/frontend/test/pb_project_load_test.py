@@ -14,8 +14,8 @@ from playwright.sync_api import sync_playwright
 
 from _harness import Checker, app_stub, serve
 
-PAGE = """<!doctype html><html><body><div id=\"root\"></div>
-<script type=\"module\">
+PAGE = """<!doctype html><html><body><div id="root"></div>
+<script type="module">
   import { initPlayback } from '/src/playback.js';
   window.__pb = initPlayback(document.querySelector('#root'));
   window.__ready = true;
