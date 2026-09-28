@@ -10,6 +10,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Plugin host H1 drop-folder install** — drop a Virtual Person pack into the
+  Plugins folder (or Settings → **Install pack…** / **Open Plugins folder**),
+  then Enable. Handshake via `samn-plugin.json`; `pluginhost` discover / bind;
+  German install notes. Completes H1 with OnFrame tick + `virtualperson/` core
+  (#274). Everyday CSRT unchanged; Enforcement stays off; overlay / ToyHub /
+  full dump #264 still deferred (#275).
+
 - **Contact points steer the rhythm grid (opt-in, VLM1)** — `generate
   --rhythm-grid --contact-points <clip>.contact.json`: where a local teacher
   saw the stroke contact and the CSRT box is out of the grid's reach (> 3
