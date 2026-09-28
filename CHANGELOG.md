@@ -8,6 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.37] — September 28, 2026
+
+### Added
+
+- **Large AI Train review editor** — click a review thumbnail or Correct box opens
+  a full-size modal with YOLO boxes, pan/zoom, Confirm correct / Adjust box /
+  Discard. Review grid stays; card overlays update when a box is saved (#345).
+
+- **Windows 11 AI setup scripts** — `scripts/setup-windows11/` installs
+  Python/ffmpeg/Ollama (winget), unpacks Colibri, runs `generator/ai_setup.py`
+  for teachers + RF-DETR train venv. Everyday Create stays Go CSRT (#344).
+
 ## [0.5.36] — September 28, 2026
 
 ### Fixed
