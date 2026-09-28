@@ -18,6 +18,9 @@ Teachers (use any combination - the Owner's "ask several per video"):
   generator's OpenCV with `pip install nudenet --no-deps onnxruntime`.
 - VLM probe results (`--vlm clip.vlm.json`, repeatable): the contact box
   centre of each keyframe, e.g. Qwen2.5-VL and Qwen3-VL runs of vlm_probe.py.
+- Our own detector (`--onnx contact_detector.onnx`, repeatable): the RF-DETR
+  model contact_detector.py trains from confirmed marks; runs every
+  --step-s seconds like NudeNet (needs onnxruntime).
 
 Every point records how many distinct teachers put a point within
 --agree-cells grid cells and --agree-ms of it (`agree`). `--contact-min-agree
@@ -81,7 +84,9 @@ def contact_from_parts(dets, w, h, min_score=MIN_SCORE):
     return None
 
 
-def nudenet_points(video, detect, step_s=0.5, log=print):
+def sampled_points(video, contact_fn, source, step_s=0.5, log=print):
+    """Runs a per-frame teacher every step_s seconds. contact_fn(frame, w, h)
+    returns (x, y, rule, score, box) - normalized - or None."""
     cap = cv2.VideoCapture(video)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video}")
@@ -95,17 +100,93 @@ def nudenet_points(video, detect, step_s=0.5, log=print):
         ok, frame = cap.read()
         if not ok:
             break
-        c = contact_from_parts(detect(frame), w, h)
+        c = contact_fn(frame, w, h)
         if c:
             x, y, rule, score, box = c
             p = {"t_ms": int(round(i * 1000 / fps)), "x": round(x, 4), "y": round(y, 4),
-                 "source": "nudenet", "rule": rule, "score": round(float(score), 3)}
+                 "source": source, "rule": rule, "score": round(float(score), 3)}
             if box:
                 p["box"] = [round(v, 4) for v in box]
             out.append(p)
     cap.release()
-    log(f"nudenet: {len(out)} points from {len(range(0, n, step))} frames")
+    log(f"{source}: {len(out)} points from {len(range(0, n, step))} frames")
     return out
+
+
+def nudenet_points(video, detect, step_s=0.5, log=print):
+    return sampled_points(video, lambda fr, w, h: contact_from_parts(detect(fr), w, h),
+                          "nudenet", step_s, log)
+
+
+# RF-DETR ONNX export (our own detector, contact_detector.py): input
+# [1, 3, H, W] RGB, 0..1, ImageNet-normalized; outputs "dets" [1, Q, 4]
+# normalized cxcywh and "labels" [1, Q, C(+1 background, last)] logits with
+# per-class sigmoid - the same decode RF-DETR's own ONNX helper uses.
+_MEAN = (0.485, 0.456, 0.406)
+_STD = (0.229, 0.224, 0.225)
+
+
+def decode_rfdetr(boxes_cwh, logits, n_classes, class_index, threshold=0.3):
+    """Best box of one class: (score, [x0, y0, x1, y1] normalized) or None."""
+    import numpy as np
+    logits = np.asarray(logits, dtype=np.float64)
+    if logits.ndim == 3:
+        logits, boxes_cwh = logits[0], np.asarray(boxes_cwh)[0]
+    if logits.shape[1] == n_classes + 1:
+        logits = logits[:, :n_classes]  # drop the background slot
+    scores = 1.0 / (1.0 + np.exp(-np.clip(logits[:, class_index], -88, 88)))
+    q = int(np.argmax(scores))
+    if scores[q] <= threshold:
+        return None
+    cx, cy, bw, bh = (float(v) for v in np.asarray(boxes_cwh)[q])
+    box = [max(0.0, cx - bw / 2), max(0.0, cy - bh / 2), min(1.0, cx + bw / 2), min(1.0, cy + bh / 2)]
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return None
+    return float(scores[q]), box
+
+
+class OnnxContactModel:
+    """Our own RF-DETR contact detector as a teacher. The class list comes
+    from the model card contact_detector.py writes next to the .onnx."""
+
+    def __init__(self, onnx_path, class_name="contact", threshold=0.3, session=None):
+        card = os.path.splitext(onnx_path)[0] + ".json"
+        with open(card, encoding="utf-8") as f:
+            self.classes = json.load(f)["classes"]
+        if class_name not in self.classes:
+            raise ValueError(f"class {class_name!r} not in model classes {self.classes}")
+        self.class_index = self.classes.index(class_name)
+        self.class_name = class_name
+        self.threshold = threshold
+        if session is None:
+            try:
+                import onnxruntime as ort
+            except ImportError as e:  # pragma: no cover - depends on the machine
+                raise RuntimeError("onnxruntime is not installed - `pip install onnxruntime`") from e
+            session = ort.InferenceSession(onnx_path, providers=[
+                p for p in ("CUDAExecutionProvider", "CPUExecutionProvider")
+                if p in ort.get_available_providers()])
+        self.session = session
+        inp = session.get_inputs()[0]
+        self.input_name = inp.name
+        self.in_h, self.in_w = int(inp.shape[2]), int(inp.shape[3])
+        outs = [o.name for o in session.get_outputs()]
+        self.out_boxes = "dets" if "dets" in outs else outs[0]
+        self.out_logits = "labels" if "labels" in outs else outs[1]
+
+    def contact(self, frame, w, h):
+        import numpy as np
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Bilinear, no antialias - RF-DETR's own preprocessing convention.
+        x = cv2.resize(rgb, (self.in_w, self.in_h), interpolation=cv2.INTER_LINEAR)
+        x = (x.astype(np.float32) / 255.0 - np.array(_MEAN, np.float32)) / np.array(_STD, np.float32)
+        x = x.transpose(2, 0, 1)[None]
+        boxes, logits = self.session.run([self.out_boxes, self.out_logits], {self.input_name: x})
+        r = decode_rfdetr(boxes, logits, len(self.classes), self.class_index, self.threshold)
+        if r is None:
+            return None
+        score, b = r
+        return (b[0] + b[2]) / 2, (b[1] + b[3]) / 2, "detector:" + self.class_name, score, b
 
 
 def vlm_points(probe):
@@ -138,11 +219,15 @@ def count_agreement(points, agree_cells=1.5, agree_ms=1500):
 
 
 def build(video, use_nudenet=False, vlm_files=(), step_s=0.5, agree_cells=1.5,
-          agree_ms=1500, detect=None, log=print):
+          agree_ms=1500, detect=None, log=print, onnx_models=()):
     points, teachers = [], []
     if use_nudenet:
         points += nudenet_points(video, detect or nudenet_detector(), step_s, log)
         teachers.append("nudenet")
+    for model in onnx_models:
+        src = "detector:" + os.path.basename(getattr(model, "path", "") or model.class_name)
+        points += sampled_points(video, model.contact, src, step_s, log)
+        teachers.append(src)
     for path in vlm_files:
         with open(path, encoding="utf-8") as f:
             vp = vlm_points(json.load(f))
@@ -150,7 +235,7 @@ def build(video, use_nudenet=False, vlm_files=(), step_s=0.5, agree_cells=1.5,
         points += vp
         teachers += sorted({p["source"] for p in vp}) or [f"vlm:{os.path.basename(path)}"]
     if not teachers:
-        raise ValueError("no teacher selected - use --nudenet and/or --vlm")
+        raise ValueError("no teacher selected - use --nudenet, --vlm and/or --onnx")
     points.sort(key=lambda p: (p["t_ms"], p["source"]))
     count_agreement(points, agree_cells, agree_ms)
     agreed = sum(1 for p in points if p["agree"] >= 2)
@@ -171,14 +256,22 @@ def main(argv=None):
     ap.add_argument("--nudenet", action="store_true", help="use the NudeNet teacher")
     ap.add_argument("--vlm", action="append", default=[],
                     help="vlm_probe.py result (.vlm.json), repeatable")
+    ap.add_argument("--onnx", action="append", default=[],
+                    help="our own detector (contact_detector.py train), repeatable")
+    ap.add_argument("--onnx-class", default="contact")
     ap.add_argument("--step-s", type=float, default=0.5)
     ap.add_argument("--agree-cells", type=float, default=1.5)
     ap.add_argument("--agree-ms", type=int, default=1500)
     ap.add_argument("--out")
     args = ap.parse_args(argv)
     try:
+        models = []
+        for path in args.onnx:
+            m = OnnxContactModel(path, args.onnx_class)
+            m.path = path
+            models.append(m)
         res = build(args.video, args.nudenet, args.vlm, args.step_s,
-                    args.agree_cells, args.agree_ms)
+                    args.agree_cells, args.agree_ms, onnx_models=models)
     except (RuntimeError, ValueError) as e:
         print(str(e), file=sys.stderr)
         return 2

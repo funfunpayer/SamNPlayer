@@ -70,6 +70,37 @@ Gate (SceneMap L2):
 - Box quality on held-out reviewed frames.
 - End-to-end r on ≥ 4–5 clips.
 
+## The training loop, as built (V3)
+
+1. **Teachers → points:**
+   `contact_points.py --video V --nudenet [--vlm a.vlm.json …] [--onnx contact_detector.onnx]`
+   writes `V.contact.json`.
+2. **Points → candidates:**
+   `samnplayer-cli import-contact-candidates V.samn --contact V.contact.json [--min-agree 2]`
+   - Consensus points become `contact` region marks with `author:"auto"`,
+     `reviewed:false`, at most one per 2 s.
+   - A re-import replaces unconfirmed candidates and keeps confirmed ones.
+   - Region marks have no effect on Generate.
+3. **Candidates → confirmed:** the user confirms (`reviewed:true`) or deletes
+   them in the scene map, and may draw their own `contact` region marks,
+   which count as confirmed.
+4. **Confirmed → export:** SceneMap learning export (P5c, opt-in) writes only
+   confirmed marks to `<learning>/<clip>/reviewed_yolo/`.
+5. **Export → dataset:**
+   `contact_detector.py dataset --learning-dir <learning> --out ds [--classes contact]`
+   - Merges clips and remaps the per-clip class ids.
+   - Splits by clip once there are 3 or more clips, so validation never sees
+     training clips.
+6. **Dataset → model:**
+   `contact_detector.py train --dataset ds --out contact_detector.onnx --size nano --device cuda`
+   - Needs `pip install "rfdetr[train]"`.
+   - Writes `contact_detector.onnx` plus the model card `contact_detector.json`.
+7. **Model → teacher:** `contact_points.py --onnx contact_detector.onnx`.
+   - Runs through onnxruntime on CPU or GPU with no PyTorch.
+   - Uses the same decode as RF-DETR's own ONNX helper.
+   - Once it wins on the gate below, it can be the only teacher: fast, local,
+     no big models needed.
+
 ## Adding a model to the probe
 
 1. It has to speak OpenAI `/v1/chat/completions` with `image_url` parts.
