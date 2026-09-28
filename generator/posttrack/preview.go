@@ -3,6 +3,8 @@ package posttrack
 import (
 	"fmt"
 	"math"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
 )
 
 // PreviewRequest holds Expert-tuning knobs for a live postprocess estimate.
@@ -27,6 +29,15 @@ type PreviewResult struct {
 	ValleyCount   int     `json:"valleyCount"`
 	MeanHz        float64 `json:"meanHz"`
 	Hint          string  `json:"hint"`
+	// Sample is a downsampled keyframe polyline (atMs, pos 0–100) for Expert
+	// live SVG — synthetic probe only, never the user's clip.
+	Sample []PreviewPoint `json:"sample,omitempty"`
+}
+
+// PreviewPoint is one keyframe on the Expert postprocess probe curve.
+type PreviewPoint struct {
+	AtMs int64 `json:"atMs"`
+	Pos  int   `json:"pos"`
 }
 
 // PreviewStats runs PositionsToActions on a fixed multi-stroke probe signal
@@ -95,7 +106,34 @@ func PreviewStats(req PreviewRequest) (PreviewResult, error) {
 		ValleyCount:   len(valleys),
 		MeanHz:        meanHz,
 		Hint:          hint,
+		Sample:        downsamplePreviewActions(actions, 96),
 	}, nil
+}
+
+// downsamplePreviewActions keeps endpoints and evenly spaced mid points so the
+// Expert SVG stays light while still reflecting knob changes.
+func downsamplePreviewActions(actions []funscript.Action, maxN int) []PreviewPoint {
+	if len(actions) == 0 {
+		return nil
+	}
+	if maxN < 2 {
+		maxN = 2
+	}
+	if len(actions) <= maxN {
+		out := make([]PreviewPoint, len(actions))
+		for i, a := range actions {
+			out[i] = PreviewPoint{AtMs: a.At, Pos: a.Pos}
+		}
+		return out
+	}
+	out := make([]PreviewPoint, 0, maxN)
+	last := len(actions) - 1
+	for i := 0; i < maxN; i++ {
+		idx := i * last / (maxN - 1)
+		a := actions[idx]
+		out = append(out, PreviewPoint{AtMs: a.At, Pos: a.Pos})
+	}
+	return out
 }
 
 func previewHint(req PreviewRequest, keyframes, peaks int) string {

@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Expert: live postprocess probe SVG** — Create → Advanced → Expert shows a
+  synthetic keyframe polyline that updates with Smooth / Prominence / Peak
+  spacing / RDP / Max speed (DeepFunGen-style viewer feedback). Probe only —
+  not the user’s clip. Everyday CSRT defaults unchanged.
+
 ## [0.5.41] — September 28, 2026
 
 ### Added

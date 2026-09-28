@@ -51,7 +51,12 @@ def main():
         "PreviewPostprocess": (
             "async (req) => { window.__calls.push(['PreviewPostprocess', req]); "
             "return { keyframeCount: 12, peakCount: 5, valleyCount: 5, "
-            "meanHz: 1.1, hint: 'Probe: 12 keyframes, 5 peaks' }; }"
+            "meanHz: 1.1, hint: 'Probe: 12 keyframes, 5 peaks', "
+            "sample: ["
+            "  { atMs: 0, pos: 20 }, { atMs: 500, pos: 80 },"
+            "  { atMs: 1000, pos: 25 }, { atMs: 1500, pos: 75 },"
+            "  { atMs: 2000, pos: 30 }"
+            "] }; }"
         ),
         "GenerateScript": (
             "async (opts) => { window.__calls.push(['GenerateScript', opts]); "
@@ -122,6 +127,9 @@ def main():
         preview = page.locator("#gen-postprocess-preview").inner_text()
         check("Live preview shows probe hint",
               "12 keyframes" in preview or "Probe" in preview, preview)
+        pts = page.locator("#gen-postprocess-poly").get_attribute("points") or ""
+        check("Probe SVG polyline has sample points",
+              pts.count(",") >= 4, pts)
 
         browser.close()
 

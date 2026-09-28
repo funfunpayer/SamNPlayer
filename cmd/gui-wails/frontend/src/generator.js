@@ -419,9 +419,14 @@ export function initGenerator(root, playback) {
             <div class="field-row"><label data-help="Peak prominence as a fraction of the position span (0–1). Filters soft wiggles. 0 = profile default on Create (Autotune≈0.35, Soft≈0.2). Everyday leaves this at 0.">Peak prominence (0 = profile default)</label><input type="number" id="gen-prominence" value="0" min="0" max="1" step="0.05" /></div>
             <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
             <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
-            <p class="hint" id="gen-postprocess-preview" style="margin:8px 0 0 0;" aria-live="polite">
-              Postprocess probe: change knobs above for live keyframe/peak feedback (synthetic probe — not your clip).
-            </p>
+            <div class="gen-postprocess-probe" id="gen-postprocess-probe">
+              <svg id="gen-postprocess-svg" class="gen-postprocess-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="gen-postprocess-poly" fill="none" stroke="currentColor" stroke-width="1.6" points="" />
+              </svg>
+              <p class="hint" id="gen-postprocess-preview" style="margin:6px 0 0 0;" aria-live="polite">
+                Postprocess probe: change knobs above for live keyframe/peak feedback (synthetic probe — not your clip).
+              </p>
+            </div>
           </details>
         </div>
       </details>
@@ -2455,6 +2460,7 @@ export function initGenerator(root, playback) {
   let postPreviewTimer = 0;
   async function refreshPostprocessPreview() {
     const out = el('#gen-postprocess-preview');
+    const poly = el('#gen-postprocess-poly');
     if (!out) return;
     const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     try {
@@ -2469,8 +2475,28 @@ export function initGenerator(root, playback) {
       const hz = (res.meanHz || res.MeanHz || 0);
       const hzBit = hz > 0 ? ` · ~${hz.toFixed(2)} Hz` : '';
       out.textContent = (res.hint || res.Hint || 'Postprocess probe') + hzBit;
+      const sample = res.sample || res.Sample || [];
+      if (poly && Array.isArray(sample) && sample.length >= 2) {
+        const w = 320;
+        const h = 72;
+        const pad = 4;
+        const t0 = Number(sample[0].atMs ?? sample[0].AtMs ?? 0);
+        const t1 = Number(sample[sample.length - 1].atMs ?? sample[sample.length - 1].AtMs ?? 1);
+        const span = Math.max(1, t1 - t0);
+        const pts = sample.map((p) => {
+          const t = Number(p.atMs ?? p.AtMs ?? 0);
+          const pos = Math.max(0, Math.min(100, Number(p.pos ?? p.Pos ?? 0)));
+          const x = pad + ((t - t0) / span) * (w - 2 * pad);
+          const y = pad + (1 - pos / 100) * (h - 2 * pad);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        poly.setAttribute('points', pts);
+      } else if (poly) {
+        poly.setAttribute('points', '');
+      }
     } catch (err) {
       out.textContent = 'Postprocess probe unavailable: ' + err;
+      if (poly) poly.setAttribute('points', '');
     }
   }
   function schedulePostprocessPreview() {
