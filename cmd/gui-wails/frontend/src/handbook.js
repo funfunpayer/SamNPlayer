@@ -74,7 +74,7 @@ AI draft model path is not in Settings yet (reserved for a future ONNX writer). 
     title: 'Also in the GUI',
     body: `Play Playlist — queue multiple scripts.
 Create Review — Align fill to audio tempo (optional when filling gaps).
-Create Advanced — groups: Tracking & polarity, Long-clip anti-drift (Rhythm + contact points), Scene map, AI draft, Signal & quality. Expert tuning (closed): axis / adaptive / Re-find / smooth / peak / RDP / max speed / CSRT-only note. Impulse vib: Feel → Curve (Advanced mirror under Expert).`,
+Create Advanced — groups: Tracking & polarity, Long-clip anti-drift (hybrid assist on CSRT), Scene map, AI assist (nested AI draft — never Everyday), Signal & quality. Expert tuning (closed): axis / adaptive / Re-find / smooth / peak / RDP / max speed / CSRT-only note. Impulse vib: Feel → Curve (Advanced mirror under Expert). Everyday base = tip → Go CSRT; Hybrid = assist/verify only.`,
   },
   {
     title: 'Use contact points (Advanced)',

@@ -85,6 +85,7 @@ def main():
             timeout=5000)
 
         page.locator("#gen-advanced").evaluate("e => { e.open = true; }")
+        page.locator("#gen-advanced-ai-draft").evaluate("e => { e.open = true; }")
         page.wait_for_selector("#gen-ai-script-draft", state="visible", timeout=5000)
         check("draft disabled in S0", page.is_disabled("#gen-ai-script-draft"))
         check("export disabled before Create", page.is_disabled("#gen-ai-script-export"))

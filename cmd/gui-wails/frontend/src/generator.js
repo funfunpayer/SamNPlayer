@@ -230,8 +230,9 @@ export function initGenerator(root, playback) {
         <summary style="cursor:pointer;">Advanced settings — optional (Everyday Create works with this closed)</summary>
         <div style="margin-top:8px;">
           <p class="hint" id="gen-advanced-intro" style="margin:0 0 8px 0;">
-            Tip → Create still uses <b>CSRT (Go path)</b>. Open this only for polarity, long-clip drift,
-            scene map, AI draft, or rare tuning. Defaults below match Everyday.
+            <b>Everyday base is always tip → Go CSRT → Create.</b> Advanced never switches that to KI-first.
+            Hybrid (teachers / rhythm / scene map / AI draft) only <b>assists or verifies</b> on that spine — opt-in, review required.
+            Open this for polarity, long-clip drift, Ignore marks, or rare tuning. Defaults below match Everyday.
           </p>
 
           <div class="opt-group">Tracking &amp; polarity</div>
@@ -244,8 +245,10 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A/S2 (vib when tip grazes a contact mark; spatial preferred over depth fill) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
 
-          <div class="opt-group">Long-clip anti-drift</div>
-          <p class="hint" style="margin:0 0 6px 0;">Only when CSRT drifts on long clips. Off = bit-identical Everyday Create.</p>
+          <div class="opt-group">Long-clip anti-drift (hybrid assist)</div>
+          <p class="hint" style="margin:0 0 6px 0;">
+            Still Go CSRT stroke. Rhythm / teachers only steer the signal when you opt in — off = bit-identical Everyday.
+          </p>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
@@ -323,21 +326,24 @@ export function initGenerator(root, playback) {
             </div>
           </div>
 
-          <div class="opt-group">AI draft (experimental)</div>
-          <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best duration + tip-aspect match for review. Keep required — CSRT path unchanged.
-          </p>
-          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="secondary" id="gen-ai-script-export" disabled
-              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
-            <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
-            <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
-              data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
-            <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
-              data-help="Drops the current AI draft without writing. Everyday Create result stays.">Discard</button>
-            <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
-          </div>
+          <div class="opt-group">AI assist (never Everyday default)</div>
+          <details id="gen-advanced-ai-draft" class="gen-adv-nested">
+            <summary>AI draft (experimental) — CSRT Create first; draft is review-only</summary>
+            <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
+              Does <b>not</b> replace Everyday Create. After a good CSRT run, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches a match for review. Keep required — Go CSRT path unchanged.
+            </p>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="secondary" id="gen-ai-script-export" disabled
+                data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
+              <button type="button" class="secondary" id="gen-ai-script-draft" disabled
+                data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
+              <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
+                data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
+              <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
+                data-help="Drops the current AI draft without writing. Everyday Create result stays.">Discard</button>
+              <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
+            </div>
+          </details>
 
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"

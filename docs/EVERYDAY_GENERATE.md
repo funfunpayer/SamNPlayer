@@ -57,7 +57,8 @@ scene-cut, dynamics, retry, **Rhythm-robust signal**). Rare posttrack numbers
 **Expert tuning** (nested, closed). Tracking method UI is CSRT-only (select
 kept in DOM for payload; research backends = CLI).
 Impulse contact vib: primary control is Feel → Curve → Impulse; Advanced
-Expert keeps a synced mirror checkbox.
+Expert keeps a synced mirror checkbox. **AI draft** is nested closed under
+Advanced — never Everyday; Hybrid = assist/verify on the Go CSRT spine only.
 - **Invert motion direction** — flips the curve (100−pos). FunGen polarity mismatch, not a tracker bug.
 - **Rhythm-robust signal** — opt-in; stroke from the most rhythmic flow cell near the tip box (anti-drift on long clips). Off by default; Everyday unchanged.
 - **Fix contact area (static)** (Step 2, when Contact vib on) — keep the gold contact box fixed; off = track it (better with camera motion).
