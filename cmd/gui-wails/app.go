@@ -84,7 +84,7 @@ type App struct {
 	scriptOffsetMs    int64
 	currentScriptPath string
 
-	// vpHost is the Virtual Person plugin-host slot (docs/PLUGIN_SYSTEM.md).
+	// vpHost is the H1 Virtual Person plugin-host slot (docs/PLUGIN_SYSTEM.md).
 	// Nil until first Status/Enable; Tick is a no-op when nil/not running.
 	vpHost     *pluginhost.Slot
 	vpPlugin   *virtualperson.Plugin

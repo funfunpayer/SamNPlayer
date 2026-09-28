@@ -234,6 +234,18 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 ---
 
+## Virtual Person plugin (end users)
+
+No CLI. Drop a pack → Enable:
+
+1. Copy the Virtual Person pack folder into `%APPDATA%\SamNPlayer\plugins\` (must contain `samn-plugin.json`), **or** Settings → Virtual Person → **Install pack…**
+2. Settings → Virtual Person → **Enable**
+3. Play as usual — Create/Play unchanged
+
+German steps: [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) · Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
+
+---
+
 ## Docs map
 
 | Doc | What it is |
@@ -245,6 +257,8 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 | [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics (knob → code → default) |
 | [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md) | AI suggest-only contract |
 | [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md) | Local training / profilemodel |
+| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | Virtual Person host contract + drop-folder load |
+| [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) | Virtual Person — Endnutzer (Deutsch) |
 | [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) | Who owns what (agents) |
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate |
 | [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly personal license — **€40 / year** |

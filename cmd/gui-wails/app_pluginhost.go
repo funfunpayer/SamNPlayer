@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"runtime"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/license"
 	"github.com/funfunpayer/SamNPlayer/logging"
@@ -36,7 +38,7 @@ func (h *vpAppHost) EmitAnimation(pose virtualperson.PoseSample) {
 	if h.app.ctx == nil {
 		return
 	}
-	runtime.EventsEmit(h.app.ctx, "virtualperson:pose", poseToMap(pose))
+	wailsruntime.EventsEmit(h.app.ctx, "virtualperson:pose", poseToMap(pose))
 }
 
 func poseToMap(p virtualperson.PoseSample) map[string]any {
@@ -79,12 +81,33 @@ func (a *App) ensureVPHost() *pluginhost.Slot {
 			a.vpPlugin.Toys().SetSync(false)
 		}
 	})
+	dir, _ := pluginhost.EnsurePluginsDir()
+	if dir != "" {
+		a.vpHost.SetPluginsDir(dir)
+	}
 	return a.vpHost
 }
 
 func (a *App) ensureVPPlugin() *virtualperson.Plugin {
 	a.ensureVPHost()
 	return a.vpPlugin
+}
+
+// refreshVPPack scans the Plugins folder and binds virtual_person when found.
+func (a *App) refreshVPPack() {
+	slot := a.ensureVPHost()
+	dir := pluginhost.DefaultPluginsDir()
+	if dir == "" {
+		slot.BindPack(nil)
+		return
+	}
+	pack, ok, err := pluginhost.FindPackByID(dir, pluginhost.PluginIDVirtualPerson)
+	if err != nil || !ok {
+		slot.BindPack(nil)
+		return
+	}
+	cp := pack
+	slot.BindPack(&cp)
 }
 
 // LicenseAllowsVirtualPerson reports whether the Virtual Person host may be
@@ -94,8 +117,30 @@ func (a *App) LicenseAllowsVirtualPerson() bool {
 	return license.EffectiveHasFeature(a.GetLicenseStatus(), license.FeatureVirtualPerson)
 }
 
-// VirtualPersonHostStatus is the Settings / API view of the host slot.
+// PluginsDir returns the drop-in Plugins folder path (created if needed).
+func (a *App) PluginsDir() string {
+	dir, err := pluginhost.EnsurePluginsDir()
+	if err != nil {
+		return pluginhost.PluginsDirHint()
+	}
+	return dir
+}
+
+// ListInstalledPlugins returns discovered packs under the Plugins folder.
+func (a *App) ListInstalledPlugins() ([]pluginhost.Pack, error) {
+	dir := a.PluginsDir()
+	return pluginhost.DiscoverPacks(dir)
+}
+
+// RefreshVirtualPersonPack re-scans Plugins and updates host status.
+func (a *App) RefreshVirtualPersonPack() pluginhost.Status {
+	a.refreshVPPack()
+	return a.VirtualPersonHostStatus()
+}
+
+// VirtualPersonHostStatus is the Settings / API view of the H1 host slot.
 func (a *App) VirtualPersonHostStatus() pluginhost.Status {
+	a.refreshVPPack()
 	return a.ensureVPHost().Status(a.LicenseAllowsVirtualPerson())
 }
 
@@ -104,6 +149,7 @@ func (a *App) VirtualPersonHostStatus() pluginhost.Status {
 // Does not change Everyday CSRT or seize the device (ToyHub sync off).
 func (a *App) EnableVirtualPersonHost() (pluginhost.Status, error) {
 	allowed := a.LicenseAllowsVirtualPerson()
+	a.refreshVPPack()
 	slot := a.ensureVPHost()
 	plugin := a.ensureVPPlugin()
 	a.vpMu.Lock()
@@ -154,6 +200,52 @@ func (a *App) VirtualPersonStartTitjob(intensity float64, durationS int) error {
 		return errVPHostNotRunning
 	}
 	return plugin.StartTitjob(intensity, durationS)
+}
+
+// InstallVirtualPersonPack copies a folder that contains samn-plugin.json
+// into the Plugins directory (file dialog). End-user install path.
+func (a *App) InstallVirtualPersonPack() (pluginhost.Status, error) {
+	if a.ctx == nil {
+		return a.VirtualPersonHostStatus(), fmt.Errorf("app not ready")
+	}
+	src, err := wailsruntime.OpenDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
+		Title: "Select Virtual Person pack folder (must contain samn-plugin.json)",
+	})
+	if err != nil {
+		return a.VirtualPersonHostStatus(), err
+	}
+	if src == "" {
+		return a.VirtualPersonHostStatus(), nil
+	}
+	dir, err := pluginhost.EnsurePluginsDir()
+	if err != nil {
+		return a.VirtualPersonHostStatus(), err
+	}
+	pack, err := pluginhost.InstallPackDir(dir, src)
+	if err != nil {
+		return a.VirtualPersonHostStatus(), err
+	}
+	logging.Info("app: Virtual Person pack installed", "root", pack.Root, "version", pack.Manifest.Version)
+	a.refreshVPPack()
+	return a.ensureVPHost().Status(a.LicenseAllowsVirtualPerson()), nil
+}
+
+// OpenPluginsFolder opens the Plugins directory in the OS file manager.
+func (a *App) OpenPluginsFolder() error {
+	dir, err := pluginhost.EnsurePluginsDir()
+	if err != nil {
+		return err
+	}
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", dir)
+	case "darwin":
+		cmd = exec.Command("open", dir)
+	default:
+		cmd = exec.Command("xdg-open", dir)
+	}
+	return cmd.Start()
 }
 
 // tickVirtualPersonHost is called from the player OnFrame path.
