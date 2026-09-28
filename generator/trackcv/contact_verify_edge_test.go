@@ -33,7 +33,10 @@ func TestVerifyContactPointsClampsThreeByThreeAtImageEdges(t *testing.T) {
 	score[0] = 180  // top-left contact evidence
 	score[15] = 180 // bottom-right contact evidence
 	m := SceneMap{Cols: 4, Rows: 4, Windows: []MapWindow{{
-		StartMs: 0, EndMs: 8000, ChosenCell: 5, Score: score,
+		StartMs:    0,
+		EndMs:      8000,
+		ChosenCell: 5,
+		Score:      score,
 	}}}
 	pts := []ContactPoint{
 		{Ms: 1000, X: 0, Y: 0},
