@@ -4,6 +4,9 @@ Personal tool for cutting **short, downscaled** clips from longer sources
 so Benchmark / golden-clip / KI labels stay fast and repeatable. **Not**
 part of Everyday Create UI — may stay owner-only.
 
+**GUI:** Bench tab → Clip-Prep In/Out cutter (ffmpeg via Go,
+`ExportBenchmarkClip`) — same encode defaults as these scripts.
+
 Everyday recognition basis remains **Go CSRT**. These clips feed the
 same sizes used in golden measurements (`clip_ausschnitt` /
 `clip_voll` ≈ **1280×720**).
