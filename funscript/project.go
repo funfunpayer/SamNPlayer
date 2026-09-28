@@ -146,15 +146,34 @@ func CapSpeedRange(actions []Action, start, end int64, maxIntensity float64) ([]
 
 // ScaleRangePos scales positions in [start,end] around 50 by factor.
 func ScaleRangePos(actions []Action, start, end int64, factor float64) []Action {
+	return ScaleRangePosFade(actions, start, end, factor, false)
+}
+
+// ScaleRangePosFade scales positions in [start,end] around 50 by factor.
+// When softEdges is true, the effective factor ramps from 1 at the range
+// ends to `factor` at the midpoint (gentle vib/suction edits).
+func ScaleRangePosFade(actions []Action, start, end int64, factor float64, softEdges bool) []Action {
 	if end < start {
 		start, end = end, start
 	}
+	span := end - start
 	out := append([]Action(nil), actions...)
 	for i := range out {
 		if out[i].At < start || out[i].At > end {
 			continue
 		}
-		p := 50 + (float64(out[i].Pos)-50)*factor
+		f := factor
+		if softEdges && span > 0 {
+			// 0 at edges → 1 at midpoint.
+			mid := float64(start+end) / 2
+			half := float64(span) / 2
+			w := 1 - math.Abs(float64(out[i].At)-mid)/half
+			if w < 0 {
+				w = 0
+			}
+			f = 1 + (factor-1)*w
+		}
+		p := 50 + (float64(out[i].Pos)-50)*f
 		if p < 0 {
 			p = 0
 		}

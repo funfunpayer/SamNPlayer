@@ -1,37 +1,27 @@
-# Learning from OpenFunscripter (OFS) — in Go
+# OFS / Funscript — was wir für SamNPlayer nutzen
 
-OpenFunscripter is a desktop **script editor**. SamNPlayer stays
-**generate → inspect → play**, but we **port the best OFS ideas into Go**.
+Kurzer Stand der OFS- und Funscript-Recherche (kein Release-Versprechen).
+Details und Quellen: [FUNSCRIPT_RESEARCH.md](./FUNSCRIPT_RESEARCH.md), [HEATMAP.md](./HEATMAP.md).
 
-Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscripter/OFS).
+## Bereits im Player
 
-## Shipped
+| Thema | Status |
+|-------|--------|
+| Multi-Achsen (`.vibration` / `.suction` / `.samn`) | Produkt — Play + Create |
+| Bookmarks / Chapters (metadata) | Play — laden/speichern |
+| Heatmap (PNG + Canvas) | Play — Export + Live-Leiste |
+| Projekt-Sidecar `.snp.json` | Play — speichern/laden |
+| Range-Edit (Cap / Scale / Delete) | Play — **axis-aware** (aktive Curve: general/vibration/suction); Scale mit Faktor-Slider ×0.5–×1.5 + optional Soft edges |
+| Frame-Snap | Play — optional am Scrubber |
 
-| Idea | Where |
-|---|---|
-| Intensity `500 × \|Δpos\| / \|Δt\|` | `funscript/device_compat.go` |
-| Curve edit | Wiedergabe + `app_editor.go` |
-| Heatmap / auto chapters / bookmarks UI | Player + `motionx` |
-| Max-speed highlights on curve | `funscript.SpeedHighlights` |
-| Chapters/bookmarks in `.funscript` metadata | `funscript/bookmarks.go` |
-| Heatmap PNG export (+ chapter ticks) | `funscript.ExportHeatmapPNG` / `ExportScriptHeatmapPNG` |
-| Project sidecar `.snp.json` | `funscript/project.go` / Save + **Load** in Play (`SavePlaybackProject` / `LoadPlaybackProject` / `PickPlaybackProject`) |
-| Frame snap (`SnapMs`) | `SnapTimeMs` + FPS-Snap in Wiedergabe |
-| Range delete / speed-cap / scale | Play OFS row: Delete / Speed-cap / **Scale ×0.8** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
+## Noch nicht (bewusst später)
 
-## Still optional later
+- Volles OFS-`project.json` (Legacy) — unser Sidecar reicht für Emotion
+- T-Code / Handy-Device-Protokoll — getrennt von Funscript-Format
+- Community-"ScriptPlayer"-Features 1:1 — nur übernehmen, was UX hilft
 
-- BPM / tempo grid overlay in the UI
-- WebSocket bridge to external players
-- Richer bookmark editor UI (CRUD list)
+## Nächste sinnvolle Scheiben (Board)
 
-## Not copying
-
-- Full ImGui OFS shell / multi-axis 3D studio  
-- Lua extension host as a core dependency  
-- OFS source tree or binaries  
-
-## Workflow reminder
-
-AI/ONNX proposes ROIs only. Classical tracking writes the funscript.
-OFS-inspired tools improve **inspect / repair** after generation.
+1. ~~Cap-Speed / Scale auf Vib+Suction-Achsen (nicht nur stroke)~~ → **DONE** (Play axis Cap/Scale/Delete)
+2. Chapter-Leiste klickbar → Seek (teilweise vorhanden)
+3. Heatmap-Farben an OFS-Referenz angleichen (Doku in HEATMAP.md)
