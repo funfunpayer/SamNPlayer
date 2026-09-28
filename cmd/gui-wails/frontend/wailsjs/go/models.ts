@@ -1491,7 +1491,10 @@ export namespace main {
 	}
 	export class UpdateCheckResult {
 	    available: boolean;
+	    kind?: string;
 	    release?: update.Release;
+	    patch?: update.Patch;
+	    patchId?: string;
 	    assetName?: string;
 	    error?: string;
 	
@@ -1502,7 +1505,10 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.available = source["available"];
+	        this.kind = source["kind"];
 	        this.release = this.convertValues(source["release"], update.Release);
+	        this.patch = this.convertValues(source["patch"], update.Patch);
+	        this.patchId = source["patchId"];
 	        this.assetName = source["assetName"];
 	        this.error = source["error"];
 	    }
@@ -1566,6 +1572,48 @@ export namespace update {
 	        this.browser_download_url = source["browser_download_url"];
 	        this.size = source["size"];
 	    }
+	}
+	export class Patch {
+	    id: string;
+	    tag_name: string;
+	    base_version: string;
+	    patch_number: number;
+	    html_url: string;
+	    body?: string;
+	    assets: Asset[];
+
+	    static createFrom(source: any = {}) {
+	        return new Patch(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.tag_name = source["tag_name"];
+	        this.base_version = source["base_version"];
+	        this.patch_number = source["patch_number"];
+	        this.html_url = source["html_url"];
+	        this.body = source["body"];
+	        this.assets = this.convertValues(source["assets"], Asset);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Release {
 	    tag_name: string;

@@ -145,8 +145,41 @@ func CheckLatest() (*Release, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
 		return nil, fmt.Errorf("update: response could not be read: %w", err)
 	}
+	// Defense: /releases/latest is "most recent non-prerelease by date".
+	// Patch tags (patch-vX.Y.Z-pN) must stay prereleases; if one is
+	// mistakenly published as a full release, refuse it here so the
+	// normal Update path is not fed a non-version tag.
+	if !isPlainVersionTag(rel.TagName) {
+		logging.Warn("update: latest release tag is not a plain vX.Y.Z — ignored", "tag", rel.TagName)
+		return nil, ErrNoRelease
+	}
 	logging.Info("update: latest release found", "tag", rel.TagName)
 	return &rel, nil
+}
+
+// isPlainVersionTag reports whether tag looks like a normal release
+// (v0.5.36 / 0.5.36), not a patch (patch-v0.5.36-p1) or other channel.
+func isPlainVersionTag(tag string) bool {
+	t := strings.TrimSpace(tag)
+	t = strings.TrimPrefix(t, "v")
+	if t == "" || strings.ContainsAny(t, "-+/") {
+		return false
+	}
+	parts := strings.Split(t, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" {
+			return false
+		}
+		for _, c := range p {
+			if c < '0' || c > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // IsNewer vergleicht zwei "vX.Y.Z"-Versionsstrings numerisch (kein echtes

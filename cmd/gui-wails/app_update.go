@@ -6,9 +6,14 @@ import (
 	"github.com/funfunpayer/SamNPlayer/update"
 )
 
+// UpdateCheckResult is shared by full Releases and the additive Patch channel.
+// Kind is ""/"release" for full updates and "patch" for hotfixes.
 type UpdateCheckResult struct {
 	Available bool            `json:"available"`
+	Kind      string          `json:"kind,omitempty"` // "release" | "patch"
 	Release   *update.Release `json:"release,omitempty"`
+	Patch     *update.Patch   `json:"patch,omitempty"`
+	PatchID   string          `json:"patchId,omitempty"`
 	AssetName string          `json:"assetName,omitempty"`
 	Error     string          `json:"error,omitempty"`
 }
@@ -27,9 +32,41 @@ func (a *App) CheckForUpdate() UpdateCheckResult {
 	}
 	asset, ok := rel.AssetForThisPlatform("gui")
 	if !ok {
-		return UpdateCheckResult{Available: true, Release: rel, Error: "no matching binary for this platform in the release"}
+		return UpdateCheckResult{Available: true, Kind: "release", Release: rel, Error: "no matching binary for this platform in the release"}
 	}
-	return UpdateCheckResult{Available: true, Release: rel, AssetName: asset.Name}
+	return UpdateCheckResult{Available: true, Kind: "release", Release: rel, AssetName: asset.Name}
+}
+
+// CheckForPatch looks for an unapplied hotfix for the current base version.
+// Prefer CheckForUpdate first: a full release always wins over a patch.
+func (a *App) CheckForPatch() UpdateCheckResult {
+	p, err := update.CheckLatestPatch(update.CurrentBaseVersion())
+	if err != nil {
+		if err == update.ErrNoRelease {
+			return UpdateCheckResult{Available: false}
+		}
+		return UpdateCheckResult{Error: err.Error()}
+	}
+	if p == nil {
+		return UpdateCheckResult{Available: false}
+	}
+	asset, ok := p.AssetForThisPlatform("gui")
+	if !ok {
+		return UpdateCheckResult{
+			Available: true,
+			Kind:      "patch",
+			Patch:     p,
+			PatchID:   p.ID,
+			Error:     "no matching binary for this platform in the patch",
+		}
+	}
+	return UpdateCheckResult{
+		Available: true,
+		Kind:      "patch",
+		Patch:     p,
+		PatchID:   p.ID,
+		AssetName: asset.Name,
+	}
 }
 
 // ApplyUpdate lädt das zur aktuellen Plattform passende Asset herunter
@@ -51,6 +88,36 @@ func (a *App) ApplyUpdate() error {
 	path, err := update.Download(asset, checksum)
 	if err != nil {
 		return err
+	}
+	return update.ApplyAndRestart(path)
+}
+
+// ApplyPatch downloads the latest applicable patch (same safety as ApplyUpdate)
+// and restarts. Marks the patch applied before replacing the binary.
+func (a *App) ApplyPatch() error {
+	p, err := update.CheckLatestPatch(update.CurrentBaseVersion())
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return fmt.Errorf("no applicable patch for this version")
+	}
+	asset, ok := p.AssetForThisPlatform("gui")
+	if !ok {
+		return fmt.Errorf("no matching binary for this platform in the patch")
+	}
+	checksum, checksumErr := p.ChecksumFor(asset.Name)
+	if checksumErr != nil {
+		checksum = ""
+	}
+	path, err := update.Download(asset, checksum)
+	if err != nil {
+		return err
+	}
+	// Persist before exit so a successful download+restart is not re-offered.
+	if err := update.MarkPatchApplied(p.ID); err != nil {
+		// Non-fatal: still apply; worst case the banner reappears once.
+		_ = err
 	}
 	return update.ApplyAndRestart(path)
 }

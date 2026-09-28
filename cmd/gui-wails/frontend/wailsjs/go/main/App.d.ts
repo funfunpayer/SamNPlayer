@@ -12,6 +12,8 @@ export function ApplyRingDown(arg1:number,arg2:number):Promise<void>;
 
 export function ApplySuggestedOZone():Promise<funscript.OZoneSuggestion>;
 
+export function ApplyPatch():Promise<void>;
+
 export function ApplyUpdate():Promise<void>;
 
 export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
@@ -69,6 +71,8 @@ export function ImportLicenseFile():Promise<any>;
 export function ImportLicenseText(arg1:string):Promise<any>;
 
 export function WriteAIRequirementFiles(arg1:string):Promise<void>;
+
+export function CheckForPatch():Promise<main.UpdateCheckResult>;
 
 export function CheckForUpdate():Promise<main.UpdateCheckResult>;
 

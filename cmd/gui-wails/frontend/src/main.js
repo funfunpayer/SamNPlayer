@@ -1,7 +1,7 @@
 import './style.css';
 import './help.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
-import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
+import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
@@ -197,16 +197,18 @@ CurrentVersion().then(v => {
 // Silent startup update check: never alert()/confirm(), never toast.
 // Errors stay in the Log tab only; offer an in-app banner when a newer
 // release is actually available. Manual check lives in Settings.
-function showUpdateBanner(tag, notes) {
+// Full release wins; only if none, offer an additive patch for this base.
+function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
   if (document.getElementById('update-banner')) return;
   const bar = document.createElement('div');
   bar.id = 'update-banner';
   bar.className = 'update-banner';
   bar.setAttribute('role', 'status');
+  const kind = isPatch ? 'Patch' : 'Update';
   const noteHtml = notes
     ? `<span class="update-banner-notes">${escapeHtml(notes)}</span>`
     : '';
-  bar.innerHTML = `<span>Update ${escapeHtml(tag)} available (you have ${escapeHtml(currentVersion)}).</span>
+  bar.innerHTML = `<span>${kind} ${escapeHtml(label)} available (you have ${escapeHtml(currentVersion)}).</span>
     ${noteHtml}
     <button type="button" id="update-banner-apply" class="primary">Download &amp; restart</button>
     <button type="button" id="update-banner-dismiss">Later</button>`;
@@ -216,9 +218,10 @@ function showUpdateBanner(tag, notes) {
     const btn = bar.querySelector('#update-banner-apply');
     btn.disabled = true;
     btn.textContent = 'Downloading…';
-    ApplyUpdate().catch(err => {
+    const apply = isPatch ? ApplyPatch() : ApplyUpdate();
+    apply.catch(err => {
       // Successful apply calls os.Exit — window closes. A reject here is real.
-      uiError('Update failed: ' + formatUpdateError(err));
+      uiError((isPatch ? 'Patch' : 'Update') + ' failed: ' + formatUpdateError(err));
       btn.disabled = false;
       btn.textContent = 'Download & restart';
     });
@@ -239,12 +242,27 @@ GetSettings().then(s => {
   CheckForUpdate().then(res => {
     if (res.error) {
       // Log only — no popup. Manual Settings check still surfaces the error.
-      uiLog('WARN', 'Update check on startup: ' + res.error);
+      uiLog('WARN', 'Update check on startup: ' + formatUpdateError(res.error));
       return;
     }
-    if (!res.available) return;
-    const tag = releaseTag(res.release);
-    showUpdateBanner(tag, releaseNotesPreview(res.release));
+    if (res.available) {
+      showUpdateBanner(releaseTag(res.release), {
+        isPatch: false,
+        notes: releaseNotesPreview(res.release),
+      });
+      return;
+    }
+    // No full release → check additive patch channel.
+    return CheckForPatch().then(pres => {
+      if (pres.error) {
+        uiLog('WARN', 'Patch check on startup: ' + formatUpdateError(pres.error));
+        return;
+      }
+      if (!pres.available) return;
+      const id = pres.patchId || (pres.patch && (pres.patch.id || pres.patch.ID)) || '?';
+      const notes = releaseNotesPreview(pres.patch);
+      showUpdateBanner(id, { isPatch: true, notes });
+    });
   }).catch(err => uiLog('WARN', 'Update check on startup: ' + formatUpdateError(err)));
 });
 

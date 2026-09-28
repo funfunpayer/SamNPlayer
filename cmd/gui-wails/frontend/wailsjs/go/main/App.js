@@ -2,6 +2,7 @@
 export function AnalyzeScript() { return window['go']['main']['App']['AnalyzeScript'](); }
 export function ApplyRingDown(arg1, arg2) { return window['go']['main']['App']['ApplyRingDown'](arg1, arg2); }
 export function ApplySuggestedOZone() { return window['go']['main']['App']['ApplySuggestedOZone'](); }
+export function ApplyPatch() { return window['go']['main']['App']['ApplyPatch'](); }
 export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'](); }
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function DetectExpectedTipROI(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['DetectExpectedTipROI'](arg1, arg2, arg3, arg4); }
@@ -41,6 +42,7 @@ export function ImportLicenseFile() { return window['go']['main']['App']['Import
 export function ImportLicenseText(arg1) { return window['go']['main']['App']['ImportLicenseText'](arg1); }
 export function InstallRoiTrainingDeps() { return window['go']['main']['App']['InstallRoiTrainingDeps'](); }
 export function WriteAIRequirementFiles(arg1) { return window['go']['main']['App']['WriteAIRequirementFiles'](arg1); }
+export function CheckForPatch() { return window['go']['main']['App']['CheckForPatch'](); }
 export function CheckForUpdate() { return window['go']['main']['App']['CheckForUpdate'](); }
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
