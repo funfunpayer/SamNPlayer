@@ -11,7 +11,6 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
-	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/sam"
 )
 
@@ -31,7 +30,8 @@ func runGenerate(args []string) int {
 	contactPoints := fs.String("contact-points", "", "contact_points.py JSON: teachers' contact points steer the rhythm grid where the box is out of reach (needs --rhythm-grid)")
 	contactMinAgree := fs.Int("contact-min-agree", 0, "keep only contact points at least this many teachers agreed on")
 	contactVerify := fs.Float64("contact-verify", 0, "hybrid check: keep a contact point only where the engine's own rhythm is at least this many times stronger than at its chosen cell (1.5 measured; 0 = off)")
-	sceneProposals := fs.String("scene-proposals", "", "scene_roles.py <clip>.scene.json: opt-in, use the proposed primary target as --roi (and its body part as region class) when --roi is not given; the partner is only logged, never applied as ROI2")
+	sceneProposals := fs.String("scene-proposals", "", "scene_roles.py <clip>.scene.json: opt-in, use the proposed primary target as --roi (and its body part as region class) when --roi is not given; the partner is only logged unless --scene-apply")
+	sceneApply := fs.Bool("scene-apply", false, "with --scene-proposals: apply the AI setup automatically - also the contact partner as ROI2 (tracked) when none is set and the profile is not a Tf/Tj distance profile; everything applied is logged")
 	sceneAtMs := fs.Int64("scene-at-ms", 0, "video time (ms) whose scene proposal --scene-proposals uses")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s generate --video FILE (--roi x,y,w,h | --scene-proposals FILE) [--output FILE] [options]\n", os.Args[0])
@@ -45,17 +45,10 @@ func runGenerate(args []string) int {
 		return 2
 	}
 	var roi generator.ROI
-	regionClass := ""
 	if *roiStr != "" {
 		var err error
 		if roi, err = parseROI(*roiStr); err != nil {
 			fmt.Fprintln(os.Stderr, "roi:", err)
-			return 2
-		}
-	} else {
-		var err error
-		if roi, regionClass, err = roiFromSceneProposals(*sceneProposals, *sceneAtMs, func(line string) { fmt.Fprintln(os.Stderr, line) }); err != nil {
-			fmt.Fprintln(os.Stderr, "scene proposals:", err)
 			return 2
 		}
 	}
@@ -70,11 +63,17 @@ func runGenerate(args []string) int {
 		MaxFrames:    *maxFrames,
 		AutoRetry:    *autoRetry,
 		RhythmGrid:   *rhythmGrid,
-		RegionClass:  regionClass,
 
 		ContactPointsFile:     *contactPoints,
 		ContactPointsMinAgree: *contactMinAgree,
 		ContactVerifyK:        *contactVerify,
+	}
+	if *sceneProposals != "" {
+		if err := applySceneProposals(*sceneProposals, *sceneAtMs, *sceneApply, &roi, &opts,
+			func(line string) { fmt.Fprintln(os.Stderr, line) }); err != nil {
+			fmt.Fprintln(os.Stderr, "scene proposals:", err)
+			return 2
+		}
 	}
 	err := generator.GenerateWithContext(context.Background(), *video, roi, out, opts,
 		func(line string) { fmt.Fprintln(os.Stderr, line) },
@@ -111,29 +110,21 @@ func parseROI(s string) (generator.ROI, error) {
 	return generator.ROI{X: v[0], Y: v[1], W: v[2], H: v[3]}, nil
 }
 
-// roiFromSceneProposals is the explicit opt-in: the user passed the file,
-// so the proposed primary target becomes the ROI. Everything applied is
-// logged; the contact partner is only reported (no silent ROI2).
-func roiFromSceneProposals(path string, atMs int64, log func(string)) (generator.ROI, string, error) {
+// applySceneProposals is the explicit opt-in: the user passed the file, so
+// the proposed primary target fills an empty ROI; with withPartner
+// ("Apply AI setup automatically", Owner 28 Sep) the contact partner also
+// fills an empty ROI2. Every value set or skipped is logged.
+func applySceneProposals(path string, atMs int64, withPartner bool, roi *generator.ROI, opts *generator.Options, log func(string)) error {
 	s, err := generator.LoadSceneProposals(path)
 	if err != nil {
-		return generator.ROI{}, "", err
+		return err
 	}
 	p, ok := s.At(atMs)
 	if !ok {
-		return generator.ROI{}, "", fmt.Errorf("%s has no proposal", path)
+		return fmt.Errorf("%s has no proposal", path)
 	}
-	c := p.Primary
-	roi := generator.ROI{X: c.X, Y: c.Y, W: c.W, H: c.H}
-	class := ""
-	if bodyparts.IsCanonical(c.Class) {
-		class = c.Class
+	for _, line := range generator.ApplySceneProposal(roi, opts, p, withPartner) {
+		log("scene proposals: " + line)
 	}
-	log(fmt.Sprintf("scene proposals: ROI %d,%d,%d,%d = %s (scene %q, confidence %.2f, window %d-%d ms) region class %q",
-		roi.X, roi.Y, roi.W, roi.H, c.Class, p.SceneType, p.Confidence, p.StartMs, p.EndMs, class))
-	if p.Partner != nil {
-		log(fmt.Sprintf("scene proposals: contact partner %s at %d,%d,%d,%d - proposal only, not applied as ROI2",
-			p.Partner.Class, p.Partner.X, p.Partner.Y, p.Partner.W, p.Partner.H))
-	}
-	return roi, class, nil
+	return nil
 }

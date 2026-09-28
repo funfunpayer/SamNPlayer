@@ -100,14 +100,17 @@ Today a person sets all of this by hand.
    - The CLI `generate --scene-proposals FILE [--scene-at-ms MS]` uses the
      primary as ROI (and its class as region class when canonical) only
      when `--roi` is not given. It is explicit opt-in and logged. The
-     partner is only logged — it is never applied as ROI2 (the CLI has no
-     ROI2, and the rule stays until the Owner changes it).
+     partner is only logged, unless `--scene-apply` ("Apply AI setup
+     automatically", Owner decision 28 Sep, below).
+   - Go `ApplySceneProposal(&roi, &opts, p, withPartner)` is the one rule
+     the CLI and the GUI share; it returns one line per value set or
+     skipped.
    - The GUI shows them in the existing pick-primary flow and the user
      applies. That GUI part is Cursor's.
 
 ### Stage 2 — results (28 Sep, NudeNet as the only teacher)
 
-Pipeline: `samnplayer scan-scene-map clip.mp4 --windows N --out scan.json`
+Pipeline: `SamNPlayer-cli scan-scene-map clip.mp4 --windows N --out scan.json`
 → `python3 generator/scene_roles.py --video clip.mp4 --scan scan.json
 --nudenet --out clip.scene.json --contact-out clip.contact.json`.
 
@@ -128,7 +131,8 @@ Pipeline: `samnplayer scan-scene-map clip.mp4 --windows N --out scan.json`
   stroke. Stage 3 (axis, tempo) and the VLM clip mode should separate
   these.
 - The confidence floor 0.5 is what keeps the goldens unchanged: low-
-  confidence windows would move a box that is already right.
+  confidence windows would move a box that is already right. The hybrid
+  check below does that job better and replaces the floor when it is on.
 
 ## 3b. Modes — how much the AI does (Owner, 28 Sep)
 
@@ -137,16 +141,68 @@ The Owner wants several modes. All three use the same parts:
 | Mode | What the AI does | What the engine does | Status |
 |---|---|---|---|
 | **Classic** | proposes ROI, partner, profile; the user applies | tracks and writes the curve | stage 2 (now) |
-| **Hybrid gap-filler** | steps in only where the engine is weak: tracking lost, low confidence, QD flag, or nothing found; there it moves the search (contact points / moving part) or fills a draft segment | everything else | next after 2b: gap detection from QD + confidence, fill with stage-2 anchors first, stage-4 draft later |
+| **Hybrid gap-filler** | steps in only where the engine is weak: tracking lost, low confidence, QD flag, or nothing found; there it moves the search (contact points / moving part) or fills a draft segment | verifies every AI point against its own rhythm measurement (`--contact-verify`) | **step 1 done** (#329, measured below); next: fill tracker-loss gaps / QD-flagged segments, stage-4 draft later |
 | **AI script** | writes a draft script (structure: strokes, pauses, depth) from our own model | supplies the precise timing; QD checks; the user keeps or rejects per segment (Keep) | stage 4 |
 
-**ROI2 — why it is never set automatically.** The locked rule in
-`TFTJ_PROFILE_DIRECTION.md` is "no silent ROI2": a wrong contact partner
-makes the contact vibration wrong, and the user may not notice. The
-proposals already contain the partner. **Open Owner decision:** turn the
-rule into a setting "Apply AI setup automatically" (default off, every
-applied value logged and shown). Until the Owner decides, the partner stays
-a proposal.
+### Hybrid step 1 — the engine verifies the teacher (28 Sep)
+
+Which weakness signal to use was measured first, against Claude's hand
+labels (is the engine's chosen cell on the labelled contact?):
+
+- The chosen cell's score relative to the window's strongest cell flags
+  almost every wrong window, but also 65 of 118 right windows on
+  `clip_voll` (the engine is right to stay off the thighs). Too blunt on
+  its own.
+- `|r|` against the tracker flags too few wrong windows.
+
+What works is to let the AI say where and the engine confirm it:
+`ContactVerifyK` keeps a contact point only where the strongest cell
+around it scores at least K times the cell the engine chose on its own
+(first grid pass without points). K 1.2–2 is a plateau; 1.5 is used.
+
+Real engine (`TrackROI`, OpenCV build), windowed r against the FunGen refs:
+
+| Clip | Points | without check | `--contact-verify 1.5` |
+|---|---|---|---|
+| multi-person | none | 0.304 | – |
+| multi-person | NudeNet (stage 1) | 0.406 | **0.414** (423 of 596 kept) |
+| multi-person | scene-roles moving part, every window | 0.449 | **0.450** (547 of 705 kept) |
+| clip_voll | scene-roles moving part, every window | 0.418 / **0.703** (regression) | **0.455 / 0.752** (= baseline) |
+| clip_voll | NudeNet | – | 0.455 / 0.752 (= baseline) |
+| clip_ausschnitt | NudeNet / scene-roles | – | 0.486 / 0.887 (= baseline) |
+
+The offline harness gave the same numbers and kept the same points.
+
+**Recommended opt-in chain** (Owner PC, until more clips are measured):
+
+```
+SamNPlayer-cli scan-scene-map clip.mp4 --windows 64 --out clip.scan.json
+python3 generator/scene_roles.py --video clip.mp4 --scan clip.scan.json --nudenet \
+    --min-confidence 0 --contact-out clip.scene.contact.json
+SamNPlayer-cli generate --video clip.mp4 --roi x,y,w,h --rhythm-grid \
+    --contact-points clip.scene.contact.json --contact-verify 1.5
+```
+
+No default changes. Defaults are discussed only after ≥ 4–5 more clips
+(Owner). GUI: a "verify with the engine" switch next to "Use contact points"
+is Cursor's, on request.
+
+**ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
+automatically".** The old locked rule "no silent ROI2" is now: no ROI2
+unless the user switched this setting on. The reason for the old rule still
+holds — a wrong contact partner makes the contact vibration wrong — so:
+
+- **Default off.** Off = today: the partner is a proposal the user applies.
+- **Everything applied is shown** (log line per value; the GUI shows what
+  was set and lets the user undo it).
+- **User values always win:** only an empty ROI / ROI2 / class is filled.
+- **Everyday profiles only.** There ROI2 is stored as the contact mark
+  (contact vibration target, tracked) and the tip CSRT still writes the
+  stroke. With a Tf/Tj distance profile ROI2 would switch the curve source
+  to two-point tracking, so there the partner stays a proposal ("the AI
+  never writes the curve").
+- Implemented as Go `ApplySceneProposal` + CLI `--scene-apply`; the GUI
+  setting is Cursor's.
 
 ### Video, not just images
 

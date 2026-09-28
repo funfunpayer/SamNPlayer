@@ -35,7 +35,7 @@ implement only after this shape is agreed. Related: `docs/ENGINE.md`,
 | 2 | Contact vib on Normal / Auto | **Yes — on by default; user can disable.** |
 | 3 | GUI names / profiles | **Rename** for clarity. Profiles stay **profiles**. Later: **auto-detect / suggest** profile from scene pattern (mix of current set + blow + more). That suggestion layer is **AI/pattern** work — not classical G1. |
 | 4 | Where Tf/Tj “sits” | **Feel recipe on top of the best classical stroke path** — Normal/Auto recognition stays the curve writer; Tf/Tj (+ contact vib) is how Neo 2 *feels*, not a second tracker product. Owner (21 Sep pm): Normal recognition already works better; Tf/Tj should ride that, with Contact. |
-| 5 | Milestone UX | **Show every usable motion candidate** the system can find; user mainly marks the **primary stroke**. Quality must not equal “how well you painted boxes.” Silent auto-commit of ROI2 remains forbidden. |
+| 5 | Milestone UX | **Show every usable motion candidate** the system can find; user mainly marks the **primary stroke**. Quality must not equal “how well you painted boxes.” Silent auto-commit of ROI2 remains forbidden. **Changed by the Owner 28 Sep:** ROI2 may be filled from the AI's contact-partner proposal only when the user switched on the setting **“Apply AI setup automatically”** (default off); every applied value is shown and undoable; user values always win; never with a Tf/Tj distance profile (ROI2 would change the curve source). See `docs/SCENE_UNDERSTANDING_PLAN.md` §3b. |
 | 6 | YOLO while available | Optional class helpers (**penis / glans / nipple** and similar) as *proposals* for main + contact targets — never write the 0–100 curve. |
 | 7 | Tf/Tj vs Contact (21 Sep eve) | **Tf/Tj profile not required in the product GUI.** Everyday = stroke track (CSRT tip or 4-zone) + **Contact vibration**. Zone 2 optional. Distance Tf/Tj remains CLI/legacy only. |
 
@@ -78,7 +78,7 @@ classical until YOLO is “perfect.”
 | Whole-clip FunGen r≈0.06 on Tf/Tj goldens is mostly **lag drift**, not “Tf/Tj is noise” | windowed phase / #143, `clip_voll` | Do not redesign tracking from whole-clip r alone |
 | Hub (single-ROI) on same clip also drifts; Signal Quality ≠ Motion Fidelity | goldens + NEXT | Timing drift is not Tf/Tj-specific |
 | Two-point distance alone does not close FunGen gap on titjob POV | NEXT Sep 16 | Multi-mark is not the FunGen parity path |
-| `find_two_rois` was measured insufficient for default | NEXT §3, issue #8 | Never silent-auto-commit ROI2 |
+| `find_two_rois` was measured insufficient for default | NEXT §3, issue #8 | Never silent-auto-commit ROI2 (28 Sep: only via the opt-in setting “Apply AI setup automatically”, default off, shown + undoable) |
 | `region_fusion` / `region_fusion_auto` exist; auto is synthetic-only | NEXT Sep 16 | No-mark classical candidate; measure before default |
 | Contact vib works when distance signal is good | NEXT §5 | Decouple vib recipe from “must be two-ROI”; when partner is marked, **track** it |
 | OpenCL checkbox forced Python → MIL on old builds | #141 / #145 | v0.5.16 removes trap; re-smoke before blaming “auto” |

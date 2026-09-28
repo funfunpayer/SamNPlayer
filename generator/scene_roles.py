@@ -7,7 +7,7 @@ Two inputs, one rule set, no big model needed at run time:
   (`--nudenet`), a vlm_probe result (`--vlm`), or later our own RF-DETR
   model (multi-class, `frame_parts_fn(onnx=...)`);
 - motion ("what moves"): the engine's own rhythm-grid scan
-  (`samnplayer-cli scan-scene-map VIDEO --windows N --out scan.json`),
+  (`SamNPlayer-cli scan-scene-map VIDEO --windows N --out scan.json`),
   cell scores at the stroke tempo per window.
 
 Per window the rules give roles - the primary stroke target (the part that
@@ -15,7 +15,8 @@ moves most within the moving pair), the contact partner, parts to ignore -
 and the scene type from the pair (mouth + penis = blowjob, hand = handjob,
 breasts = titjob, vagina = penetration). Output `<clip>.scene.json` with
 per-window roles and ROICandidate-shaped proposals for the app, which
-remain proposals: the user applies them (TFTJ rules; no silent ROI2).
+remain proposals: the user applies them, or the opt-in setting "Apply AI
+setup automatically" does (Owner 28 Sep; default off, everything shown).
 
 A vlm_probe result from clip mode (`--clip N`, video input) also carries the
 model's own reading of the scene (scene type, moving part, partner). It is
