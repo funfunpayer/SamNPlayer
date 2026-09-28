@@ -8,17 +8,26 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.39] — September 28, 2026
+
+### Fixed
+
+- **Improve heal status label** — manual Improve no longer labels Heal bridge points as
+  fill; status distinguishes healed vs filled. Bench score smoke coverage (#356).
+
 ### Added
 
 - **Create: clickable marks + body map** — Step 2 Contact marks: click a painted Tip /
   contact / Ignore / Scene-map box to select it; body-map silhouette sets Tip class /
   Contact type / Region class (same classes as AI Train). Delete selected. Matches
-  owner Anleitung Mark/Anker + Modelle flow.
+  owner Anleitung Mark/Anker + Modelle flow (#357).
 - **Settings: Apply AI setup automatically** — opt-in (default off). Soft-load
   companion `.scene.json` fills empty Tip / contact; Undo chip in Create. Engine/CLI
-  already shipped (#336); GUI toggle was the remaining Cursor slice.
+  already shipped (#336); GUI toggle closes the remaining Cursor slice (#357).
 - **Bench: Clip-Prep panel** — discoverable copy-paste commands for
-  `scripts/benchmark-prep/` (single + batch marks.json). Scripts stay scripts.
+  `scripts/benchmark-prep/` (single + batch marks.json). Scripts stay scripts (#357).
+
+Everyday Go CSRT Create defaults unchanged.
 
 ## [0.5.38] — September 28, 2026
 
