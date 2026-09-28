@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: adjustable Speed-cap intensity** — Cap selection uses a live Cap
+  slider (150–800, default 400 community intensity) instead of a hard-coded
+  400. Play edit only — Create Expert max-speed unchanged.
+
 - **Play: Feel / Speech-Hold heatmap bands** — filtered `audio_check` segments
   paint as translucent bands on the Play heatmap (thin curve underlay) with a
   “Show on heatmap” toggle synced to strip filters. Display only — no stroke

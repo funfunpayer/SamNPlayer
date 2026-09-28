@@ -43,7 +43,10 @@ def main():
         ),
         "SetScriptOffset": "async (ms) => { window.__calls.push(['SetScriptOffset', ms]); }",
         "GetScriptOffset": "async () => 0",
-        "EditCapSpeedRange": "async () => {}",
+        "EditCapSpeedRange": (
+            "async (axis, a, b, maxI) => { "
+            "window.__calls.push(['EditCapSpeedRange', axis, a, b, maxI]); }"
+        ),
         "EditDeleteRange": "async () => {}",
         "EditScaleRange": (
             "async (axis, a, b, f, soft) => { "
@@ -77,6 +80,9 @@ def main():
         check("Load project button present", page.locator("#pb-project-load").count() == 1)
         check("Scale range button present", page.locator("#pb-scale-range").count() == 1)
         check("Scale factor slider present", page.locator("#pb-scale-factor").count() == 1)
+        check("Cap intensity slider present", page.locator("#pb-cap-intensity").count() == 1)
+        check("Cap intensity default 400",
+              page.locator("#pb-cap-intensity").input_value() == "400")
 
         page.click("#pb-project-load")
         page.wait_for_function(
@@ -105,6 +111,17 @@ def main():
                   "() => (window.__calls || []).some(c => c[0]==='EditScaleRange'"
                   " && c[1]==='general' && c[2]===1000 && c[3]===4000"
                   " && c[4]===0.8 && c[5]===false)"))
+
+        page.fill("#pb-cap-intensity", "275")
+        page.click("#pb-cap-speed")
+        page.wait_for_function(
+            "() => (window.__calls || []).some(c => c[0] === 'EditCapSpeedRange')",
+            timeout=5000)
+        check("EditCapSpeedRange uses Cap slider (275)",
+              page.evaluate(
+                  "() => (window.__calls || []).some(c => c[0]==='EditCapSpeedRange'"
+                  " && c[1]==='general' && c[2]===1000 && c[3]===4000"
+                  " && c[4]===275)"))
 
         browser.close()
 
