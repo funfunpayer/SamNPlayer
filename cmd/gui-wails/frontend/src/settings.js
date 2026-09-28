@@ -136,13 +136,14 @@ export function initSettings(root) {
       <button id="st-open-log">Open log folder</button>
     </div>
 
-    <h3>AI region detection (local, optional)</h3>
-    <p class="hint">Local ONNX object detector as an alternative to the classical
-      rhythm heuristic in the Create tab (“Find tip area”). No model
-      ships with the app and none is downloaded — without your own <code>.onnx</code>
-      file, classical detection stays in use. Leave empty to use the default folder
-      (<code>%LOCALAPPDATA%\\SamNPlayer\\models\\roi_detector.onnx</code> on Windows).
-      Train tip boxes in the <b>AI Train</b> tab, then Check availability here.</p>
+    <details id="st-optional-ai" class="st-opt-panel">
+      <summary>Optional AI &amp; learning — Everyday Create/Play need none of this</summary>
+      <p class="hint" style="margin:8px 0 10px;">
+        Local models, teachers, and learning exports. Defaults stay off. Go CSRT Create is unchanged.
+      </p>
+
+    <h3>AI region detection</h3>
+    <p class="hint">Local ONNX as an alternative to classical tip find. No model ships — leave empty for the default folder.</p>
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
       <button id="st-ai-roi-check">Check availability</button>
@@ -156,12 +157,8 @@ export function initSettings(root) {
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
-    <h3>Scene map learning (local, optional)</h3>
-    <p class="hint">Collects JSON/JSONL next to your ROI dataset (<code>scene_map_learning/</code>)
-      from Create’s companion <code>.samn</code> — engine trace, excludes, auto candidates
-      (<code>reviewed: false</code>). Default <b>off</b>. Never uploads; never writes YOLO
-      <code>images/train</code> / <code>labels/train</code>. Use Create → Advanced →
-      Export for learning after Generate (or after Show scene map + companion save).</p>
+    <h3>Scene map learning</h3>
+    <p class="hint">Local JSON/JSONL under the ROI dataset. Default <b>off</b>. Never uploads; never writes YOLO train folders.</p>
     <div class="checkbox-row">
       <input type="checkbox" id="st-collect-learning" />
       <label for="st-collect-learning"
@@ -174,23 +171,15 @@ export function initSettings(root) {
     </div>
 
     <h3>Scene proposals — Apply AI setup</h3>
-    <p class="hint">When a companion <code>.scene.json</code> is beside the video (or you load one),
-      Create can fill <b>empty</b> Tip / contact from the proposal. Default <b>off</b> —
-      Everyday stays manual Apply. User-drawn boxes always win. Undo chip appears in Create.</p>
+    <p class="hint">Soft-fill empty Tip / contact from <code>.scene.json</code>. Default <b>off</b> — Everyday stays manual Apply.</p>
     <div class="checkbox-row">
       <input type="checkbox" id="st-apply-ai-setup" />
       <label for="st-apply-ai-setup"
         data-help="Opt-in (Owner 28 Sep). Soft-load .scene.json → fill empty Tip and contact partner. Never with Tf/Tj distance as curve source. Everyday CSRT tip path unchanged.">Apply AI setup automatically</label>
     </div>
 
-    <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
-    <p class="hint">Address of a local Colibri / OpenAI-compatible server
-      (<code>coli serve</code>, or Ollama/LM Studio with an OpenAI bridge —
-      see docs/AI_ADAPTER.md / docs/COLIBRI_SETUP.md) for Create’s “Suggest profile”
-      fallback and the optional AI quality opinion. Both work without this server —
-      measured scene similarity remains the primary profile source. Leave empty for
-      default <code>http://127.0.0.1:8080</code>. Use <b>Test AI server</b> after
-      starting the server locally.</p>
+    <h3>AI server (profile / quality)</h3>
+    <p class="hint">Local Colibri / OpenAI-compatible server for Suggest profile fallback. Empty = <code>http://127.0.0.1:8080</code>.</p>
     <div class="row">
       <input type="text" id="st-ai-base-url" placeholder="http://127.0.0.1:8080" style="flex:1;" />
       <button id="st-ai-server-check" type="button"
@@ -198,11 +187,8 @@ export function initSettings(root) {
     </div>
     <p class="hint" id="st-ai-server-status" style="margin-top:0"></p>
 
-    <h3>Local AI setup (teachers / train / models)</h3>
-    <p class="hint">Checks GPU, packages, the training venv, and local model servers
-      (Ollama / LM Studio / Colibri), then shows next steps. Install profiles never
-      touch Everyday CSRT OpenCV — training uses a separate venv; NudeNet installs
-      with <code>--no-deps</code>. See <code>docs/LOCAL_MODEL_SETUP.md</code>.</p>
+    <h3>Local AI setup</h3>
+    <p class="hint">GPU / packages / train venv / Ollama. Never touches Everyday CSRT OpenCV.</p>
     <div class="row" style="flex-wrap:wrap;gap:8px;">
       <button id="st-ai-setup-check" type="button"
         data-help="Runs ai_setup.py check — changes nothing.">Check AI setup</button>
@@ -214,6 +200,7 @@ export function initSettings(root) {
         data-help="Pull vision models that fit this GPU (Ollama).">Install models</button>
     </div>
     <pre id="st-ai-setup-out" class="hint" style="white-space:pre-wrap; margin-top:6px; max-height:14em; overflow:auto;"></pre>
+    </details>
 
     <h3>Hardware</h3>
     <p class="hint">Which acceleration the generator can actually use. Having an

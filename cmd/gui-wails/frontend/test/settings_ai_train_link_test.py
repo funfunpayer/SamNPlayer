@@ -66,6 +66,7 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_settings_ai_train_link_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.locator("#st-optional-ai").evaluate("el => { el.open = true; }")
 
         check("Open AI training button present",
               page.locator("#st-open-ai-train").count() == 1)

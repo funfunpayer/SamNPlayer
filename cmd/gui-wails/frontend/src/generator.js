@@ -249,9 +249,7 @@ export function initGenerator(root, playback) {
         <summary style="cursor:pointer;">Advanced settings — optional (Everyday Create works with this closed)</summary>
         <div style="margin-top:8px;">
           <p class="hint" id="gen-advanced-intro" style="margin:0 0 8px 0;">
-            <b>Everyday base is always tip → Go CSRT → Create.</b> Advanced never switches that to KI-first.
-            Hybrid (teachers / rhythm / scene map / AI draft) only <b>assists or verifies</b> on that spine — opt-in, review required.
-            Open this for polarity, long-clip drift, Ignore marks, or rare tuning. Defaults below match Everyday.
+            Everyday stays <b>tip → Go CSRT → Create</b>. Open only for polarity, long-clip assist, Ignore marks, or rare tuning — hybrid options never replace CSRT.
           </p>
 
           <div class="opt-group">Tracking &amp; polarity</div>
@@ -264,9 +262,9 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A/S2 (vib when tip grazes a contact mark; spatial preferred over depth fill) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
 
-          <div class="opt-group">Long-clip anti-drift (hybrid assist)</div>
+          <div class="opt-group">Long-clip anti-drift</div>
           <p class="hint" style="margin:0 0 6px 0;">
-            Still Go CSRT stroke. Rhythm / teachers only steer the signal when you opt in — off = bit-identical Everyday.
+            Still Go CSRT. Rhythm / teachers steer only when opted in — off = bit-identical Everyday.
           </p>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
@@ -281,8 +279,9 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
             data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
           <p class="hint" id="gen-contact-verify-hint" style="display:none; margin:0 0 6px 0;">Optional hybrid: engine drops weak teacher points (K=1.5). Default off — Everyday Create unchanged when off.</p>
-          <div id="gen-contact-points-gen" style="display:none; margin:6px 0 8px 0; padding:8px; border:1px solid rgba(255,255,255,0.08);">
-            <p class="hint" style="margin:0 0 6px 0;">Generate teachers JSON for this video (writes <code>.contact.json</code>). Opt-in — does not change Everyday Create.</p>
+          <details id="gen-contact-points-gen" class="gen-adv-nested" style="display:none; margin:6px 0 8px 0;">
+            <summary>Generate teachers JSON (opt-in)</summary>
+            <p class="hint" style="margin:8px 0 6px 0;">Writes <code>.contact.json</code> beside the video. Does not change Everyday Create.</p>
             <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
               data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
             <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
@@ -294,12 +293,11 @@ export function initGenerator(root, playback) {
                 data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
               <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
             </div>
-          </div>
+          </details>
 
           <div class="opt-group">Scene map</div>
           <p class="hint" style="margin:0 0 6px 0;">
-            Heatmap + Ignore/Source marks without running Create. Same Ignore job as Step 2 → <b>+ Ignore region (black)</b>.
-            Explicit only — never auto before Create.
+            Heatmap + Ignore marks without Create. Same Ignore job as Step 2 → <b>+ Ignore region</b>.
           </p>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
@@ -330,29 +328,32 @@ export function initGenerator(root, playback) {
               <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
             </div>
             <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;">
-              <button type="button" class="secondary" id="gen-scene-map-export"
-                data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
-              <button type="button" class="secondary" id="gen-scene-map-suggest"
-                data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
-              <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
-            </div>
-            <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
-              <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept sets <code>reviewed:true</code> for P5c; Reject deletes. Import from a <code>.contact.json</code> after Create with rhythm grid.</p>
-              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-                <button type="button" class="secondary" id="gen-import-contact-candidates"
-                  data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
-                <span class="hint" id="gen-auto-candidates-status" style="margin:0;"></span>
+            <details id="gen-scene-map-learning" class="gen-adv-nested" style="margin-top:8px;">
+              <summary>Learning export &amp; teacher candidates</summary>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="secondary" id="gen-scene-map-export"
+                  data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+                <button type="button" class="secondary" id="gen-scene-map-suggest"
+                  data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
+                <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
               </div>
-              <div id="gen-auto-candidates-list" style="margin-top:6px;"></div>
-            </div>
+              <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+                <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept → <code>reviewed:true</code> for P5c; Reject deletes.</p>
+                <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="secondary" id="gen-import-contact-candidates"
+                    data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
+                  <span class="hint" id="gen-auto-candidates-status" style="margin:0;"></span>
+                </div>
+                <div id="gen-auto-candidates-list" style="margin-top:6px;"></div>
+              </div>
+            </details>
           </div>
 
-          <div class="opt-group">AI assist (never Everyday default)</div>
+          <div class="opt-group">AI assist</div>
           <details id="gen-advanced-ai-draft" class="gen-adv-nested">
-            <summary>AI draft (experimental) — CSRT Create first; draft is review-only</summary>
+            <summary>AI draft (experimental) — review-only after CSRT</summary>
             <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
-              Does <b>not</b> replace Everyday Create. After a good CSRT run, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches a match for review. Keep required — Go CSRT path unchanged.
+              Does <b>not</b> replace Everyday Create. Export classical → draft stretch → Keep required.
             </p>
             <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
               <button type="button" class="secondary" id="gen-ai-script-export" disabled
@@ -381,8 +382,7 @@ export function initGenerator(root, playback) {
           <details id="gen-advanced-expert" class="gen-adv-nested">
             <summary>Expert tuning — defaults are fine for Everyday</summary>
             <p class="hint" id="gen-backend-hint" style="margin:8px 0 6px 0;">
-              Product tracking is <b>CSRT tip (Go path)</b>. Flow / 4-zone / research backends stay <b>CLI-only</b>
-              (not shown here — see docs/EVERYDAY_GENERATE.md).
+              Tracking is <b>CSRT tip (Go path)</b>. Flow / 4-zone stay CLI-only.
             </p>
             <!-- Keep #gen-backend in DOM for payload + Playwright; product GUI is CSRT-only. -->
             <div class="gen-adv-sr-only" aria-hidden="true">

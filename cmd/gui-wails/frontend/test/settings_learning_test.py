@@ -57,6 +57,7 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_settings_learning_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.locator("#st-optional-ai").evaluate("el => { el.open = true; }")
 
         check("Collect learning checkbox", page.locator("#st-collect-learning").count() == 1)
         check("Delete learning button", page.locator("#st-delete-learning").count() == 1)
