@@ -299,33 +299,90 @@ def find_two_rois(video_path, **kwargs):
     if best is None:
         raise RuntimeError("Kein geeignetes Regionenpaar gefunden")
 
-    def to_box(cells):
-        rs = [r for r, c in cells]
-        cs = [c for r, c in cells]
-        r0, r1 = min(rs), max(rs) + 1
-        c0, c1 = min(cs), max(cs) + 1
-        x = int(c0 * cell_w / scale)
-        y = int(r0 * cell_h / scale)
-        w = max(24, int((c1 - c0) * cell_w / scale))
-        h = max(24, int((r1 - r0) * cell_h / scale))
-        x = max(0, min(x, width - w))
-        y = max(0, min(y, height - h))
-        return (x, y, w, h)
+    return (
+        _cells_to_box(best[1], cell_w, cell_h, scale, width, height),
+        _cells_to_box(best[2], cell_w, cell_h, scale, width, height),
+    )
 
-    return to_box(best[1]), to_box(best[2])
+
+def _cells_to_box(cells, cell_w, cell_h, scale, width, height, min_side=24):
+    """Bounding box of peak-region cells in original video pixels."""
+    rs = [r for r, c in cells]
+    cs = [c for r, c in cells]
+    r0, r1 = min(rs), max(rs) + 1
+    c0, c1 = min(cs), max(cs) + 1
+    x = int(c0 * cell_w / scale)
+    y = int(r0 * cell_h / scale)
+    w = max(min_side, int((c1 - c0) * cell_w / scale))
+    h = max(min_side, int((r1 - r0) * cell_h / scale))
+    x = max(0, min(x, width - w))
+    y = max(0, min(y, height - h))
+    return (x, y, w, h)
+
+
+def _tip_region_score(scores, cells, grid_rows, grid_cols):
+    """Peak periodicity with a soft compactness prior for Everyday Tip-Find.
+
+    Huge threshold-bboxes (diffuse near-peak residual across the frame) were
+    measured as bad tip seeds (TFTJ bake-off: auto_roi huge box). Prefer the
+    strongest *compact* peak region; still allow multi-cell hubs via a soft
+    knee around ~12% of the grid rather than a hard size cut.
+    """
+    if not cells:
+        return 0.0
+    peak = float(max(scores[r, c] for r, c in cells))
+    rs = [r for r, c in cells]
+    cs = [c for r, c in cells]
+    row_span = max(rs) - min(rs) + 1
+    col_span = max(cs) - min(cs) + 1
+    coverage = (row_span * col_span) / max(1, grid_rows * grid_cols)
+    # Full weight until ~12% coverage; then gentle decay (not a cliff).
+    size_factor = 1.0 / (1.0 + max(0.0, coverage - 0.12) * 4.0)
+    return peak * size_factor
+
+
+def _shrink_box(x, y, w, h, width, height, pad_frac=0.1, min_side=16):
+    """Slight inset: coarse grid cells track stabler with less empty rim."""
+    pad_x = int(w * pad_frac)
+    pad_y = int(h * pad_frac)
+    x0, x1 = x + pad_x, x + w - pad_x
+    y0, y1 = y + pad_y, y + h - pad_y
+    w2 = max(min_side, x1 - x0)
+    h2 = max(min_side, y1 - y0)
+    x0 = max(0, min(x0, width - w2))
+    y0 = max(0, min(y0, height - h2))
+    return x0, y0, w2, h2
+
+
+def _legacy_threshold_box(scores, cell_w, cell_h, scale, width, height):
+    """Pre-peak Everyday find_roi: bbox of all cells ≥ 0.5×max.
+
+    Kept for comparison tests only — diffuse residual motion often made this
+    span most of the frame (bad tip seed). Production find_roi uses peak
+    regions instead.
+    """
+    threshold = scores.max() * 0.5
+    rows, cols = np.where(scores >= threshold)
+    x0 = int(cols.min() * cell_w / scale)
+    x1 = int((cols.max() + 1) * cell_w / scale)
+    y0 = int(rows.min() * cell_h / scale)
+    y1 = int((rows.max() + 1) * cell_h / scale)
+    return _shrink_box(x0, y0, x1 - x0, y1 - y0, width, height)
 
 
 def find_roi_candidates(video_path, max_regions=6, **kwargs):
     """Ranked motion regions as read-only proposals (TFTJ step 4b).
 
-    Returns a list of dicts ``{x, y, w, h, score}`` sorted by score
-    descending. Does **not** auto-pick a pair or commit a ROI — the GUI
-    shows every candidate and the user chooses the primary stroke mark.
-    Silent ROI2 commit stays forbidden (issue #8).
+    Returns a list of dicts ``{x, y, w, h, score}`` sorted by tip score
+    descending (peak periodicity × compactness). Does **not** auto-pick a
+    pair or commit a ROI — the GUI shows every candidate and the user
+    chooses the primary stroke mark. Silent ROI2 commit stays forbidden
+    (issue #8).
     """
     result = find_roi(video_path, _return_series=True, **kwargs)
     scores, series, geometry = result
     cell_w, cell_h, scale, width, height, fps = geometry
+    grid_rows, grid_cols = scores.shape
     if float(scores.max()) <= 0:
         raise RuntimeError("Keine rhythmische Bewegung gefunden - bitte Region von Hand markieren")
 
@@ -333,31 +390,23 @@ def find_roi_candidates(video_path, max_regions=6, **kwargs):
     if not regions:
         raise RuntimeError("Keine bewegten Regionen gefunden - bitte Region von Hand markieren")
 
-    def to_box(cells):
-        rs = [r for r, c in cells]
-        cs = [c for r, c in cells]
-        r0, r1 = min(rs), max(rs) + 1
-        c0, c1 = min(cs), max(cs) + 1
-        x = int(c0 * cell_w / scale)
-        y = int(r0 * cell_h / scale)
-        w = max(24, int((c1 - c0) * cell_w / scale))
-        h = max(24, int((r1 - r0) * cell_h / scale))
-        x = max(0, min(x, width - w))
-        y = max(0, min(y, height - h))
-        return (x, y, w, h)
-
     out = []
     for cells in regions:
-        score = float(max(scores[r, c] for r, c in cells))
-        x, y, w, h = to_box(cells)
-        out.append({"x": x, "y": y, "w": w, "h": h, "score": score})
+        score = _tip_region_score(scores, cells, grid_rows, grid_cols)
+        x, y, w, h = _cells_to_box(cells, cell_w, cell_h, scale, width, height)
+        out.append({"x": x, "y": y, "w": w, "h": h, "score": float(score)})
     out.sort(key=lambda c: c["score"], reverse=True)
     return out
 
 
 def find_roi(video_path, grid_cols=12, grid_rows=8, max_seconds=45, sample_every=2,
              start_frame=0, end_frame=None, report_progress=True, _return_series=False):
-    """Analysiert das Video und liefert (x, y, w, h) der besten Region.
+    """Analysiert das Video und liefert (x, y, w, h) der besten Tip-Region.
+
+    Everyday Tip-Find picks a compact ``_peak_regions`` winner scored with
+    ``_tip_region_score`` (periodicity × soft compactness), not the legacy
+    ≥0.5×max bounding box of all strong cells — that often produced a huge
+    seed far from a hand-painted tip box.
 
     max_seconds begrenzt die Analysedauer. sample_every überspringt Frames
     für Tempo.
@@ -460,29 +509,19 @@ def find_roi(video_path, grid_cols=12, grid_rows=8, max_seconds=45, sample_every
     if scores.max() <= 0:
         raise RuntimeError("Keine rhythmische Bewegung gefunden - bitte Region von Hand markieren")
 
-    # Zellen oberhalb eines Anteils des Maximums als zusammenhängende
-    # Region zusammenfassen (statt nur die eine beste Zelle zu nehmen -
-    # die eigentliche Bewegungsregion ist meist mehrere Zellen groß).
-    threshold = scores.max() * 0.5
-    rows, cols = np.where(scores >= threshold)
+    # Everyday Tip-Find: grow compact peak regions (same as candidates /
+    # find_two_rois), then pick by tip score — not the old ≥0.5×max bbox,
+    # which spanned most of the frame on diffuse residual motion.
+    regions = _peak_regions(scores, max_regions=6)
+    if not regions:
+        raise RuntimeError("Keine bewegten Regionen gefunden - bitte Region von Hand markieren")
 
-    x0 = int(cols.min() * cell_w / scale)
-    x1 = int((cols.max() + 1) * cell_w / scale)
-    y0 = int(rows.min() * cell_h / scale)
-    y1 = int((rows.max() + 1) * cell_h / scale)
-
-    # Etwas einschrumpfen: die Rasterzellen sind grob, ein leicht engerer
-    # Kasten trackt in der Praxis stabiler als einer mit viel Rand.
-    pad_x = int((x1 - x0) * 0.1)
-    pad_y = int((y1 - y0) * 0.1)
-    x0, x1 = x0 + pad_x, x1 - pad_x
-    y0, y1 = y0 + pad_y, y1 - pad_y
-
-    w = max(16, x1 - x0)
-    h = max(16, y1 - y0)
-    x0 = max(0, min(x0, width - w))
-    y0 = max(0, min(y0, height - h))
-    return x0, y0, w, h
+    best_cells = max(
+        regions,
+        key=lambda cells: _tip_region_score(scores, cells, grid_rows, grid_cols),
+    )
+    x, y, w, h = _cells_to_box(best_cells, cell_w, cell_h, scale, width, height)
+    return _shrink_box(x, y, w, h, width, height)
 
 
 def main():

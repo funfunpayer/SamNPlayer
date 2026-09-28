@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -44,5 +45,19 @@ func TestVerifyROITooSmall(t *testing.T) {
 	res := VerifyROI(context.Background(), "x.mp4", ROI{X: 1, Y: 1, W: 2, H: 2})
 	if res.Warning == "" {
 		t.Fatal("expected warning for tiny ROI")
+	}
+}
+
+func TestVerifyROIHugeBoxWarnsEditable(t *testing.T) {
+	path := makeVerifyTestVideo(t, true)
+	defer os.Remove(path)
+	// Near-full-frame tip seed — Tip-Find should warn that the box is editable.
+	res := VerifyROI(context.Background(), path, ROI{X: 0, Y: 0, W: 300, H: 220})
+	if res.Warning == "" {
+		t.Fatalf("expected coverage warning for huge ROI, got %+v", res)
+	}
+	low := strings.ToLower(res.Warning)
+	if !strings.Contains(low, "editable") && !strings.Contains(low, "drag") {
+		t.Fatalf("warning should mention editable/drag refine, got %q", res.Warning)
 	}
 }

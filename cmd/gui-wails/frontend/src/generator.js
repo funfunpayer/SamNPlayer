@@ -48,7 +48,7 @@ export function initGenerator(root, playback) {
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
       <h3 class="gen-step-title">2 · Where it moves</h3>
       <p class="hint" style="margin-top:0">
-        We pick the tip area automatically (you can adjust). Contact areas only appear when Contact vibration is on.
+        Tip-Find paints a start box — drag it to refine. Contact areas only when Contact vibration is on.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
@@ -96,7 +96,7 @@ export function initGenerator(root, playback) {
           </div>
         </div>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Auto tip after load — drag the box anytime to refine.</p>
       <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
@@ -690,9 +690,10 @@ export function initGenerator(root, playback) {
       if (target) target.disabled = !available || !checkbox.checked;
       el('#gen-autoroi-hint').textContent = available
         ? 'AI mode checks the currently displayed frame for the expected body point and never '
-          + 'falls back to another class. A matching box remains a proposal until you press Apply.'
-        : 'Analyzes motion in the video (classic, no AI model) — you can still '
-          + 'correct the region by hand. AI detection: no local ONNX model '
+          + 'falls back to another class. A matching box remains a proposal until you press Apply — '
+          + 'then drag anytime to refine.'
+        : 'Classic Tip-Find analyzes motion (no AI model) and paints an editable start box — '
+          + 'drag on the preview to tighten toward the tip. AI detection: no local ONNX model '
           + 'found (Settings → AI model path, or default folder).';
     }).catch(() => {});
   }
@@ -2192,11 +2193,13 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = 'Mark deselected.';
     }
   });
-  canvas.addEventListener('mousemove', e => {
+  // Track drag on window so painting still works when the pointer leaves the
+  // canvas (scrolled preview / tip-find copy pushing the frame down).
+  window.addEventListener('mousemove', e => {
     if (!dragging) return;
     const r = canvas.getBoundingClientRect();
-    curX = e.clientX - r.left;
-    curY = e.clientY - r.top;
+    curX = Math.max(0, Math.min(canvas.width, e.clientX - r.left));
+    curY = Math.max(0, Math.min(canvas.height, e.clientY - r.top));
     redraw();
   });
   window.addEventListener('mouseup', () => {
@@ -2810,17 +2813,17 @@ export function initGenerator(root, playback) {
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
     if (roi) {
       el('#gen-roi-label').textContent =
-        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, ${via} found)`;
+        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, ${via} — drag to refine)`;
     }
     if (hasRoi2 && roi2) {
       el('#gen-roi2-label').textContent =
-        `Contact area: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via})`;
+        `Contact area: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — editable)`;
     }
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Tip + contact area found (${via}) — CSRT ready. Vib still follows stroke depth until feel-decouple.`
-      : `Tip region found (${via}) — CSRT + Contact is the everyday path. Correct by hand if needed.`;
+      ? `Tip + contact found (${via}) — drag either box to refine (editable).`
+      : `Tip region found (${via}) — start box only; drag on the preview to refine.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));
@@ -3694,8 +3697,8 @@ export function initGenerator(root, playback) {
       el('#gen-candidates').disabled = false;
     }
     el('#gen-autoroi-hint').textContent = enabled
-      ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class.'
-      : 'Generic motion search is active. Enable AI plus an expected body point for strict matching.';
+      ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class. Result stays editable — drag to refine.'
+      : 'Classic Tip-Find is active (editable start box). Enable AI plus an expected body point for strict matching.';
   });
   el('#gen-ai-target-class')?.addEventListener('change', () => {
     cancelActiveAITargetRequest();

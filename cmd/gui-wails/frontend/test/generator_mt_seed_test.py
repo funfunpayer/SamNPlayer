@@ -103,11 +103,13 @@ def main():
               (not seed["hidden"]) and (not seed["disabled"]),
               str(seed))
 
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
         box = page.locator("#roi-canvas").bounding_box()
         nw, nh = 640.0, 360.0
-        tip_x = box["x"] + 80 * (box["width"] / nw)
-        tip_y = box["y"] + 80 * (box["height"] / nh)
-        page.mouse.click(tip_x, tip_y)
+        # Locator position clicks stay on-canvas even when Tip-Find copy
+        # pushes the preview down in the default Playwright viewport.
+        tip_pos = {"x": 80 * (box["width"] / nw), "y": 80 * (box["height"] / nh)}
+        page.locator("#roi-canvas").click(position=tip_pos)
         page.wait_for_function(
             "() => document.querySelector('#gen-roi-label').textContent"
             ".includes('candidate #1')",
@@ -118,10 +120,11 @@ def main():
               "No contact" in page.locator("#gen-roi2-label").inner_text())
 
         # Shift-click Partner via locator modifiers (reliable vs mouse+keyboard).
-        p2_x = 445 * (box["width"] / nw)
-        p2_y = 235 * (box["height"] / nh)
-        page.locator("#roi-canvas").click(
-            position={"x": p2_x, "y": p2_y}, modifiers=["Shift"])
+        p2_pos = {
+            "x": 445 * (box["width"] / nw),
+            "y": 235 * (box["height"] / nh),
+        }
+        page.locator("#roi-canvas").click(position=p2_pos, modifiers=["Shift"])
         page.wait_for_function(
             "() => document.querySelector('#gen-roi2-label').textContent"
             ".includes('candidate #2')",
