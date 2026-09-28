@@ -119,6 +119,11 @@ type GenerateOptions struct {
 	// ContactPointsFile: contact_points.py JSON; only used with RhythmGrid.
 	// Empty = off (bit-identical). GUI opt-in; never a silent default.
 	ContactPointsFile string `json:"contactPointsFile"`
+	// ContactVerifyK: hybrid check — keep a teacher contact point only where
+	// the engine's own rhythm is ≥ K× stronger than at its chosen cell
+	// (measured default 1.5). 0 = off. Only meaningful with RhythmGrid +
+	// ContactPointsFile; GUI switch default off.
+	ContactVerifyK float64 `json:"contactVerifyK"`
 }
 
 // AutoDetectROI sucht die Region automatisch. engine "ai" nutzt den lokalen
@@ -513,9 +518,14 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			CaptureTrajectory:         opts.CaptureTrajectory,
 			RhythmGrid:                opts.RhythmGrid,
 			ContactPointsFile:         opts.ContactPointsFile,
+			ContactVerifyK:            0,
 			DetrendWindowMs:           0,
 			BandpassLowHz:             0,
 			BandpassHighHz:            0,
+		}
+		// Hybrid verify only with Rhythm + teacher points path (GUI switch).
+		if opts.RhythmGrid && strings.TrimSpace(opts.ContactPointsFile) != "" && opts.ContactVerifyK > 0 {
+			genOpts.ContactVerifyK = opts.ContactVerifyK
 		}
 		// License gate (docs/LICENSE_SYSTEM.md): while Enforcement is off,
 		// EffectiveLicensed is always true. When sharp, unlicensed Generate

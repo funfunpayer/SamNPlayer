@@ -88,6 +88,8 @@ Contact vib follows stroke depth by default. With **Record tip path** + contact 
 ### Use contact points (Advanced)?
 Opt-in after the VLM1 engine. With **Rhythm-robust signal** on, Create → Advanced → **Use contact points** loads a teachers JSON. The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create.
 
+Optional hybrid: Advanced → **Verify with the engine (hybrid, K=1.5)** (next to Use contact points). Keeps a teacher point only where the engine's own rhythm is ≥1.5× stronger than at its chosen cell (same as CLI `--contact-verify 1.5`). Default **off**.
+
 **Build the JSON in the GUI:** Advanced → teacher checkboxes (NudeNet / Ollama / LM Studio) → **Generate contact points** (writes `.contact.json` and fills the path). CLI `contact_points.py` still works.
 
 **Review teacher candidates:** after Import candidates (or a map with `author:auto` marks), Advanced scene map lists pending autos — **Accept** sets `reviewed:true` (eligible for P5c YOLO), **Reject** deletes. Unreviewed autos stay out of export.
@@ -165,7 +167,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Flat / stuck curve | Re-find tip · Invert motion · Heal tracking gaps · Check tracking_gaps muted Contact |
 | Feels inverted | Advanced → **Invert motion direction** |
 | Camera pans drift | Camera motion compensation · Fix contact area (static) off |
-| Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in); optional **Use contact points** (teachers JSON) |
+| Long-clip drift | Advanced → **Rhythm-robust signal** (opt-in); optional **Use contact points** + **Verify with the engine** (hybrid K=1.5) |
 | Audio “wrong tempo” | Warn only — fix ROI/axis; does not rewrite curve |
 | AI draft greyed out | **Export classical run** once after Create (≥1 sample), then draft enables — ONNX model path not required for imitation |
 
@@ -180,6 +182,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | **Sliding dynamics / Auto-Retry / Suggest O-markers** | Create → Advanced |
 | **Export classical run** | Create → Advanced (S1 training sample; needs a Create result) |
 | **Use contact points** | Create → Advanced (needs Rhythm-robust; teachers JSON — Generate or Choose…) |
+| **Verify with the engine** | Create → Advanced (with Use contact points; hybrid K=1.5; default off) |
 | **Generate contact points** | Create → Advanced (teacher checkboxes → `.contact.json`) |
 | **Accept / Reject** auto candidates | Create → Advanced scene map (`author:auto`; P5c gate) |
 | **Import candidates…** | Create → Advanced scene map (from `.contact.json`) |

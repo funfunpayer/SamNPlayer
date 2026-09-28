@@ -4,6 +4,8 @@ Guards:
 1. Checkbox present, OFF/disabled until Rhythm-robust signal is on.
 2. With rhythm + contact points + path → contactPointsFile in payload.
 3. Rhythm off → contactPointsFile empty (no silent send).
+4. Verify-with-engine OFF by default; ON → contactVerifyK 1.5 only with path.
+5. Verify cleared when rhythm / Use contact points off → contactVerifyK 0.
 
 Run: python3 cmd/gui-wails/frontend/test/generator_contact_points_test.py
 """
@@ -63,10 +65,14 @@ def main():
 
         check("Contact-points checkbox present",
               page.locator("#gen-contact-points").count() == 1)
+        check("Contact-verify checkbox present",
+              page.locator("#gen-contact-verify").count() == 1)
         check("Contact-points disabled while rhythm off",
               page.locator("#gen-contact-points").is_disabled())
         check("Contact-points OFF by default",
               page.locator("#gen-contact-points").is_checked() is False)
+        check("Contact-verify hidden while Use off",
+              page.locator("#gen-contact-verify-row").is_hidden())
 
         page.click("#gen-choose")
         page.wait_for_function(
@@ -81,6 +87,9 @@ def main():
               page.locator("#gen-contact-points").is_disabled() is False)
         page.check("#gen-contact-points")
         page.wait_for_selector("#gen-contact-points-row", state="visible", timeout=3000)
+        page.wait_for_selector("#gen-contact-verify-row", state="visible", timeout=3000)
+        check("Contact-verify OFF by default",
+              page.locator("#gen-contact-verify").is_checked() is False)
         page.click("#gen-contact-points-pick")
         page.wait_for_function(
             "document.querySelector('#gen-contact-points-path').value.includes('contact')",
@@ -98,22 +107,46 @@ def main():
               str(opts.get("contactPointsFile")))
         check("Payload keeps rhythmGrid true",
               opts.get("rhythmGrid") is True)
+        check("Verify off -> contactVerifyK 0",
+              not opts.get("contactVerifyK"),
+              str(opts.get("contactVerifyK")))
+
+        page.wait_for_function(
+            "document.querySelector('#gen-generate').disabled === false", timeout=5000)
+        page.check("#gen-contact-verify")
+        page.click("#gen-generate")
+        page.wait_for_function(
+            "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')"
+            ".length === 2",
+            timeout=5000)
+        opts_v = page.evaluate(
+            "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')[1][1]")
+        check("Verify on -> contactVerifyK 1.5",
+              opts_v.get("contactVerifyK") == 1.5,
+              str(opts_v.get("contactVerifyK")))
+        check("Verify on still sends contactPointsFile",
+              opts_v.get("contactPointsFile") == "/tmp/clip.contact.json")
 
         page.wait_for_function(
             "document.querySelector('#gen-generate').disabled === false", timeout=5000)
         page.uncheck("#gen-rhythm-grid")
         check("Contact-points cleared when rhythm off",
               page.locator("#gen-contact-points").is_checked() is False)
+        check("Contact-verify cleared when rhythm off",
+              page.locator("#gen-contact-verify").is_checked() is False)
         page.click("#gen-generate")
         page.wait_for_function(
             "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')"
-            ".length === 2",
+            ".length === 3",
             timeout=5000)
         opts2 = page.evaluate(
-            "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')[1][1]")
+            "() => (window.__calls || []).filter(c => c[0] === 'GenerateScript')[2][1]")
         check("Rhythm off -> contactPointsFile empty",
               not opts2.get("contactPointsFile"),
               str(opts2.get("contactPointsFile")))
+        check("Rhythm off -> contactVerifyK 0",
+              not opts2.get("contactVerifyK"),
+              str(opts2.get("contactVerifyK")))
 
         browser.close()
 

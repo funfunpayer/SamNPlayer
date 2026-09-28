@@ -80,6 +80,8 @@ Create Advanced — groups: Tracking & polarity, Long-clip anti-drift (hybrid as
     title: 'Use contact points (Advanced)',
     body: `Opt-in after VLM1 engine: when Rhythm-robust signal is on, Advanced → Use contact points loads a teachers JSON. The rhythm grid may search near those points only when the tip box is far away (>3 cells). Empty/off = bit-identical Everyday Create.
 
+Optional hybrid: Advanced → Verify with the engine (hybrid, K=1.5) next to Use contact points. Keeps a teacher point only where the engine's own rhythm is ≥1.5× stronger than at its chosen cell (same as CLI --contact-verify 1.5). Default off.
+
 Build the JSON in the GUI: Advanced → teacher checkboxes (NudeNet / Ollama / LM Studio) → Generate contact points (writes .contact.json and fills the path). CLI contact_points.py still works.
 
 Review teacher candidates: after Import candidates (or a map with author:auto marks), Advanced scene map lists pending autos — Accept sets reviewed:true (eligible for P5c YOLO), Reject deletes. Unreviewed autos stay out of export.
@@ -92,7 +94,7 @@ Settings → Local AI setup → Check AI setup probes GPU/packages/train venv/lo
 Feels inverted — Advanced → Invert motion direction.
 Impulse peaks-only vib — Feel → Curve → Impulse (Advanced → Expert has a synced mirror).
 Camera pans drift — Camera motion compensation · Fix contact area (static) off.
-Long-clip drift — Advanced → Rhythm-robust signal (opt-in). Optional: Use contact points (teachers JSON) when Rhythm-robust is on — Generate contact points or Choose… a file.
+Long-clip drift — Advanced → Rhythm-robust signal (opt-in). Optional: Use contact points (teachers JSON) when Rhythm-robust is on — Generate contact points or Choose… a file. Optional: Verify with the engine (hybrid K=1.5) so weak teacher points are dropped.
 Audio “wrong tempo” — warn only; fix ROI/axis; does not rewrite the curve.
 AI draft greyed out — Export classical run once after Create (≥1 sample), then draft enables. ONNX model path is not required for imitation.`,
   },

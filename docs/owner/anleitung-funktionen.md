@@ -166,14 +166,15 @@ Create → Advanced (sichtbar wenn **Rhythm-robust** an)
 |-----------|-----------|
 | **Use contact points** | Pfad zur Teachers-JSON aktiv |
 | Pfad / **Choose…** | z. B. `clip.contact.json` |
+| **Verify with the engine (hybrid, K=1.5)** | Opt-in: Engine behält Teacher-Punkte nur, wenn die eigene Rhythm-Zelle ≥ 1.5× stärker ist als die gewählte Zelle (wie CLI `--contact-verify 1.5`). Default **aus** |
 | Teacher-Checkboxen | NudeNet · Ollama Qwen2.5-VL · LM Studio |
 | **Generate contact points** | Schreibt `.contact.json`, füllt Pfad, aktiviert Use |
 
-Leer/aus = Everyday Create **bit-identisch**.
+Leer/aus = Everyday Create **bit-identisch**. Verify ohne Use/Pfad = wirkungslos (K=0).
 
 ### Tipps
 - Teachers zuerst: Settings → **Check AI setup** / **Install teachers**.  
-- Hybrid-Verify (`--contact-verify`) ist CLI-opt-in — nicht Everyday-GUI.
+- Hybrid-Verify ist jetzt auch GUI-opt-in (neben Use contact points) — nie Everyday-Default.
 
 ---
 
@@ -469,7 +470,7 @@ Settings → **Plugins**
 - ONNX-Vision-AI als Stroke-Writer (noch nicht shipped)  
 - Cloud-LLM schreibt Positionen  
 - Virtual-Person-Produkt-UI  
-- Stilles Auto-Apply von Scene2-ROI2 in der GUI (Toggle pending)
+- In-App Clip-Prep-Cutter (Skripte + Bench-Panel reichen; Mark In/Out bleibt Owner-Prep)
 
 ---
 

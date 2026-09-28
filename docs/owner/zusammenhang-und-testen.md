@@ -114,7 +114,7 @@ GenerateWithContext
 | `.scene.json` | Proposals (ROICandidate-förmig) |
 | `LoadSceneProposals` | Go-API für GUI/CLI |
 | `vlm_probe --clip` | Video-Clip-Modus (N Frames / Span) — liest Scene-Type, Moving Part, Partner; ändert Rollen **noch nicht** bis Owner-Messung |
-| `--contact-verify K` | Hybrid: Engine behält Teacher-Punkte nur, wenn lokale Rhythm-Zelle stark genug ist (empfohlen **1.5**) |
+| `--contact-verify K` | Hybrid: Engine behält Teacher-Punkte nur, wenn lokale Rhythm-Zelle stark genug ist (empfohlen **1.5**). GUI: **Verify with the engine** neben Use contact points (Default aus) |
 
 **#336 — Apply AI setup (opt-in):**
 
@@ -124,7 +124,7 @@ GenerateWithContext
 | `--scene-apply` | Partner (ROI2) darf gesetzt werden — **default off** |
 | Guard | User-Werte gewinnen; nie mit Tf/Tj-Distance-Profil (sonst schriebe AI indirekt die Kurve) |
 
-**GUI [#334](https://github.com/funfunpayer/SamNPlayer/pull/334):** Load `.scene.json` → Scene-Type-Chip → **Apply Tip** / optional **Apply contact** (kein stilles ROI2 ohne Aktion). Settings-Toggle „Apply AI setup automatically“ = noch Cursor-Rest (CLI schon da).
+**GUI [#334](https://github.com/funfunpayer/SamNPlayer/pull/334):** Load `.scene.json` → Scene-Type-Chip → **Apply Tip** / optional **Apply contact** (kein stilles ROI2 ohne Aktion). Settings-Toggle „Apply AI setup automatically“ = [#357](https://github.com/funfunpayer/SamNPlayer/pull/357) (Default aus + Undo).
 
 ### 3.4 Teachers / AI Setup
 
@@ -142,7 +142,7 @@ GenerateWithContext
 1. Advanced → **Rhythm-robust** an  
 2. Lehrer anhaken → **Generate contact points** → `.contact.json`  
 3. **Use contact points** → Rhythm-Grid sucht nur nahe Anchors, wenn Tip-Box >3 Zellen weg  
-4. Optional CLI: `--contact-points F --contact-verify 1.5`
+4. Optional: Rhythm + Use contact points + **Verify with the engine** (GUI) oder CLI `--contact-points F --contact-verify 1.5`
 
 Leer/aus = Everyday bit-identisch.
 
