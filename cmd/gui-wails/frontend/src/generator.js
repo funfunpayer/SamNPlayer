@@ -48,8 +48,7 @@ export function initGenerator(root, playback) {
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
       <h3 class="gen-step-title">2 · Where it moves</h3>
       <p class="hint" style="margin-top:0">
-        Tip-Find suggests a start box — always editable: drag on the preview to tighten toward the tip.
-        Contact areas only appear when Contact vibration is on.
+        Tip-Find paints a start box — drag it to refine. Contact areas only when Contact vibration is on.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
@@ -97,7 +96,7 @@ export function initGenerator(root, playback) {
           </div>
         </div>
       </div>
-      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically — drag the box anytime to refine.</p>
+      <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Auto tip after load — drag the box anytime to refine.</p>
       <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
@@ -2822,8 +2821,8 @@ export function initGenerator(root, playback) {
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
-      ? `Tip + contact found (${via}) — CSRT ready. Drag either box on the preview to refine (Tip-Find is editable).`
-      : `Tip region found (${via}) — start box only. Drag on the preview to tighten toward the tip, then Create.`;
+      ? `Tip + contact found (${via}) — drag either box to refine (editable).`
+      : `Tip region found (${via}) — start box only; drag on the preview to refine.`;
     if (result.verifyWarning) {
       status += ' ⚠ ' + result.verifyWarning;
       uiWarn(result.verifyWarning, el('#gen-status'));

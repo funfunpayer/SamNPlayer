@@ -50,6 +50,7 @@ def main():
         page.wait_for_function(
             "document.querySelector('#gen-autoroi').disabled === false", timeout=5000)
 
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
         box = page.locator("#roi-canvas").bounding_box()
         page.mouse.move(box["x"] + 40, box["y"] + 40)
         page.mouse.down()
@@ -62,6 +63,8 @@ def main():
         check("CSRT selected after first ROI",
               page.locator("#gen-backend").input_value() == "csrt")
 
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
+        box = page.locator("#roi-canvas").bounding_box()
         page.mouse.move(box["x"] + 50, box["y"] + 50)
         page.mouse.down()
         page.mouse.move(box["x"] + 140, box["y"] + 130, steps=5)

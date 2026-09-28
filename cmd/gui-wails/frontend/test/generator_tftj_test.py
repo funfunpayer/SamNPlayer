@@ -57,6 +57,7 @@ def main():
             "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
             timeout=5000)
 
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
         box = page.locator("#roi-canvas").bounding_box()
 
         # Manual tip correction still allowed after auto-find.

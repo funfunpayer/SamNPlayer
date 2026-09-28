@@ -74,6 +74,7 @@ def main():
 
         # Paint a tip box on the preview (drag).
         canvas = page.locator("#roi-canvas")
+        canvas.scroll_into_view_if_needed()
         box = canvas.bounding_box()
         assert box
         page.mouse.move(box["x"] + 40, box["y"] + 40)
