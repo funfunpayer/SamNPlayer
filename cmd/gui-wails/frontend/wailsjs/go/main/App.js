@@ -110,6 +110,9 @@ export function LoadFunscript(arg1) { return window['go']['main']['App']['LoadFu
 export function OpenLogFolder() { return window['go']['main']['App']['OpenLogFolder'](); }
 export function PickBenchmarkManifest() { return window['go']['main']['App']['PickBenchmarkManifest'](); }
 export function PickContactPointsFile() { return window['go']['main']['App']['PickContactPointsFile'](); }
+export function PickSceneProposalsFile() { return window['go']['main']['App']['PickSceneProposalsFile'](); }
+export function LoadSceneProposalAt(arg1, arg2) { return window['go']['main']['App']['LoadSceneProposalAt'](arg1, arg2); }
+export function LoadSceneProposalsBesideVideo(arg1, arg2) { return window['go']['main']['App']['LoadSceneProposalsBesideVideo'](arg1, arg2); }
 export function PickFunscriptFile() { return window['go']['main']['App']['PickFunscriptFile'](); }
 export function PickPlaybackProject() { return window['go']['main']['App']['PickPlaybackProject'](); }
 export function PickReportPath() { return window['go']['main']['App']['PickReportPath'](); }

@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -62,6 +62,32 @@ export function initGenerator(root, playback) {
         <select id="gen-ai-target-class" disabled style="min-width:10em;">
           <option value="">Expected body point…</option>
         </select>
+      </div>
+      <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
+        <p class="hint" style="margin:0 0 6px 0;">
+          Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
+          <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact (no silent ROI2).
+        </p>
+        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
+            data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
+          <button type="button" class="secondary" id="gen-scene-proposals-beside" disabled
+            data-help="Load &lt;clip&gt;.scene.json beside this video if present.">Use beside video</button>
+          <span class="hint" id="gen-scene-type-chip" style="margin:0;display:none;" aria-live="polite"></span>
+          <span class="hint" id="gen-scene-proposals-status" style="margin:0;"></span>
+        </div>
+        <div id="gen-scene-proposals-actions" style="display:none;margin-top:6px;">
+          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="hint" id="gen-scene-primary-label" style="margin:0;"></span>
+            <button type="button" class="primary" id="gen-scene-apply-primary"
+              data-help="Apply the proposed primary stroke target as Tip ROI (+ region class when canonical).">Apply as Tip</button>
+            <span class="hint" id="gen-scene-partner-label" style="margin:0;"></span>
+            <button type="button" class="secondary" id="gen-scene-apply-partner" hidden
+              data-help="Optional: apply the contact partner as ROI2. Never automatic (TFTJ no silent ROI2).">Apply as contact</button>
+            <button type="button" class="secondary" id="gen-scene-proposals-dismiss"
+              data-help="Clear the loaded scene proposal overlay without changing Tip/ROI2.">Dismiss</button>
+          </div>
+        </div>
       </div>
       <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">After the video loads we look for a tip area automatically.</p>
       <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
@@ -430,6 +456,8 @@ export function initGenerator(root, playback) {
   let pendingAITarget = null; // strict semantic proposal; Apply required
   let activeAITargetRequest = null; // {requestId, videoPath, expectedClass, timeSec}
   let aiTargetRequestSeq = 0;
+  let sceneProposalPath = ''; // loaded .scene.json path (empty = none)
+  let sceneProposal = null; // SceneProposalLoad | null (Found view for current seek)
   let extraTargets = []; // extra contact anchors (follow by default when tip path on)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -1385,6 +1413,190 @@ export function initGenerator(root, playback) {
     if (status) status.textContent = '';
   }
 
+  const SCENE_TYPE_LABELS = {
+    blowjob: 'Blowjob',
+    handjob: 'Handjob',
+    titjob: 'Titjob',
+    penetration: 'Penetration',
+  };
+
+  function clearSceneProposal() {
+    sceneProposalPath = '';
+    sceneProposal = null;
+    const chip = el('#gen-scene-type-chip');
+    if (chip) { chip.style.display = 'none'; chip.textContent = ''; }
+    const actions = el('#gen-scene-proposals-actions');
+    if (actions) actions.style.display = 'none';
+    const status = el('#gen-scene-proposals-status');
+    if (status) status.textContent = '';
+    const partnerBtn = el('#gen-scene-apply-partner');
+    if (partnerBtn) partnerBtn.hidden = true;
+  }
+
+  function sceneProposalBox(c) {
+    if (!c) return null;
+    return {
+      x: c.x ?? c.X ?? 0,
+      y: c.y ?? c.Y ?? 0,
+      w: c.w ?? c.W ?? 0,
+      h: c.h ?? c.H ?? 0,
+      score: c.score ?? c.Score ?? 0,
+      index: c.index ?? c.Index ?? 0,
+      class: normalizeClass(c.class || c.Class || ''),
+    };
+  }
+
+  function renderSceneProposalUI() {
+    const chip = el('#gen-scene-type-chip');
+    const actions = el('#gen-scene-proposals-actions');
+    const status = el('#gen-scene-proposals-status');
+    const primaryLab = el('#gen-scene-primary-label');
+    const partnerLab = el('#gen-scene-partner-label');
+    const partnerBtn = el('#gen-scene-apply-partner');
+    if (!sceneProposal || !sceneProposal.found) {
+      if (chip) { chip.style.display = 'none'; chip.textContent = ''; }
+      if (actions) actions.style.display = 'none';
+      if (partnerBtn) partnerBtn.hidden = true;
+      return;
+    }
+    const p = sceneProposal.proposal || {};
+    const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
+    const conf = typeof p.confidence === 'number' ? p.confidence : 0;
+    const startMs = p.start_ms ?? p.startMs ?? 0;
+    const endMs = p.end_ms ?? p.endMs ?? 0;
+    const typeLabel = SCENE_TYPE_LABELS[sceneType] || (sceneType || 'Unknown');
+    if (chip) {
+      chip.style.display = '';
+      chip.textContent = `${typeLabel} · ${Math.round(conf * 100)}%`
+        + (endMs > startMs ? ` · ${(startMs / 1000).toFixed(0)}–${(endMs / 1000).toFixed(0)}s` : '');
+    }
+    if (actions) actions.style.display = 'block';
+    const primary = sceneProposalBox(p.primary || p.Primary);
+    const partner = sceneProposalBox(p.partner || p.Partner);
+    if (primaryLab) {
+      const cls = primary?.class ? (labelFor(primary.class) || primary.class) : 'primary';
+      primaryLab.textContent = `Primary: ${cls}`;
+    }
+    if (partner && partner.w > 0 && partner.h > 0) {
+      if (partnerLab) {
+        const cls = partner.class ? (labelFor(partner.class) || partner.class) : 'partner';
+        partnerLab.textContent = `Partner: ${cls} (proposal only)`;
+      }
+      if (partnerBtn) partnerBtn.hidden = false;
+    } else {
+      if (partnerLab) partnerLab.textContent = '';
+      if (partnerBtn) partnerBtn.hidden = true;
+    }
+    if (status && sceneProposalPath) {
+      status.textContent = sceneProposalPath.split(/[\\/]/).pop()
+        + (sceneProposal.count ? ` · ${sceneProposal.count} window(s)` : '');
+    }
+  }
+
+  function drawSceneProposalOverlay() {
+    if (!sceneProposal || !sceneProposal.found || !nativeW || !nativeH) return;
+    const p = sceneProposal.proposal || {};
+    const primary = sceneProposalBox(p.primary || p.Primary);
+    const partner = sceneProposalBox(p.partner || p.Partner);
+    const prev = pendingSeed;
+    pendingSeed = {
+      tip: primary ? { index: primary.index || 1 } : null,
+      partner: partner && partner.w > 0 ? { index: partner.index || 2 } : null,
+    };
+    if (primary && primary.w > 0 && primary.h > 0) {
+      drawCandidate({ ...primary, index: primary.index || 1 });
+    }
+    if (partner && partner.w > 0 && partner.h > 0) {
+      drawCandidate({ ...partner, index: partner.index || 2 });
+    }
+    pendingSeed = prev;
+  }
+
+  async function refreshSceneProposalAtSeek() {
+    if (!sceneProposalPath) return;
+    const atMs = Math.round((seekSec || 0) * 1000);
+    try {
+      const loaded = await LoadSceneProposalAt(sceneProposalPath, atMs);
+      sceneProposal = loaded && loaded.found ? loaded : null;
+      if (loaded && !loaded.found) {
+        const status = el('#gen-scene-proposals-status');
+        if (status) status.textContent = 'No proposal at this time.';
+      }
+      renderSceneProposalUI();
+      redraw();
+    } catch (err) {
+      uiError('Scene proposals: ' + err, el('#gen-scene-proposals-status'));
+    }
+  }
+
+  async function adoptSceneProposalLoad(loaded, sourceLabel) {
+    if (!loaded || !loaded.found) {
+      sceneProposal = null;
+      renderSceneProposalUI();
+      const status = el('#gen-scene-proposals-status');
+      if (status) {
+        status.textContent = sourceLabel
+          ? `${sourceLabel}: none found`
+          : 'No scene proposals found.';
+      }
+      redraw();
+      return false;
+    }
+    sceneProposalPath = loaded.path || sceneProposalPath;
+    sceneProposal = loaded;
+    renderSceneProposalUI();
+    el('#gen-status').textContent =
+      'Scene proposal loaded — Apply as Tip to use primary (partner stays proposal-only).';
+    redraw();
+    return true;
+  }
+
+  function applyScenePrimary() {
+    if (!sceneProposal || !sceneProposal.found) return;
+    const p = sceneProposal.proposal || {};
+    const primary = sceneProposalBox(p.primary || p.Primary);
+    if (!primary || primary.w <= 0 || primary.h <= 0) return;
+    setNoMarkMotion(false);
+    roi = { x: primary.x, y: primary.y, w: primary.w, h: primary.h };
+    const tipCls = normalizeClass(
+      sceneProposal.regionClass || sceneProposal.region_class || primary.class || '');
+    if (tipCls && el('#gen-region-class')) {
+      const sel = el('#gen-region-class');
+      if (![...sel.options].some(o => o.value === tipCls)) {
+        const opt = document.createElement('option');
+        opt.value = tipCls;
+        opt.textContent = labelFor(tipCls) || tipCls;
+        sel.appendChild(opt);
+      }
+      sel.value = tipCls;
+    }
+    updateRoiLabels();
+    updateGenerateEnabled();
+    const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
+    const typeLabel = SCENE_TYPE_LABELS[sceneType] || sceneType || 'scene';
+    const tipTag = tipCls ? `, ${labelFor(tipCls) || tipCls}` : '';
+    el('#gen-roi-label').textContent =
+      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
+      + ` (video pixels, scene primary${tipTag})`;
+    const msg = `Tip applied from scene proposal (${typeLabel}) — partner not applied (no silent ROI2).`;
+    el('#gen-status').textContent = msg;
+    redraw();
+    autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
+  }
+
+  function applyScenePartner() {
+    if (!sceneProposal || !sceneProposal.found) return;
+    const p = sceneProposal.proposal || {};
+    const partner = sceneProposalBox(p.partner || p.Partner);
+    if (!partner || partner.w <= 0 || partner.h <= 0) return;
+    pickCandidate({
+      x: partner.x, y: partner.y, w: partner.w, h: partner.h,
+      score: partner.score, index: partner.index || 2, class: partner.class,
+    }, 2);
+    el('#gen-status').textContent =
+      'Contact mark applied from scene partner — correct by hand if needed.';
+  }
+
   function clearPendingAITarget() {
     pendingAITarget = null;
     const status = el('#gen-ai-target-status');
@@ -1625,6 +1837,7 @@ export function initGenerator(root, playback) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     drawSceneMapOverlay();
+    drawSceneProposalOverlay();
     for (const c of candidates) drawCandidate(c);
     if (pendingAITarget) drawNativeRect(pendingAITarget, AI_TARGET_STROKE, AI_TARGET_FILL, true);
     const dragRoi2 = dragging && draggingSecond && !markMode && !sceneMapMarkMode;
@@ -1801,6 +2014,7 @@ export function initGenerator(root, playback) {
     sceneMapWinIdx = 0;
     sceneMapMarks = [];
     sceneMapMarkMode = null;
+    clearSceneProposal();
     const smStatus = el('#gen-scene-map-status');
     if (smStatus) smStatus.textContent = '';
     syncSceneMapTools();
@@ -1850,6 +2064,10 @@ export function initGenerator(root, playback) {
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       updateSceneMapButton();
+      const spLoad = el('#gen-scene-proposals-load');
+      const spBeside = el('#gen-scene-proposals-beside');
+      if (spLoad) spLoad.disabled = false;
+      if (spBeside) spBeside.disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
         'Everyday path: finding tip region for CSRT. Contact marks appear when Contact vib is on.'
@@ -1871,6 +2089,13 @@ export function initGenerator(root, playback) {
       }).catch(() => {});
       // P4 follow-up: restore sceneMapMarks (+ map windows) from companion .samn.
       await restoreSceneMapFromCompanion(path);
+      // Scene2: soft-load companion .scene.json if present (Apply still required).
+      try {
+        const beside = await LoadSceneProposalsBesideVideo(path, 0);
+        if (beside && beside.found) {
+          await adoptSceneProposalLoad(beside, 'Beside video');
+        }
+      } catch (_) { /* optional companion */ }
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
       startAutoFindRegion();
     } catch (err) {
@@ -1900,6 +2125,7 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = `Loading frame at ${seekSec}s…`;
     try {
       await showFrame(videoPath, seekSec);
+      if (sceneProposalPath) await refreshSceneProposalAtSeek();
       el('#gen-status').textContent = genCurvePoints
         ? (aiDraftCurveActive
           ? `Frame at ${seekSec}s — 0–100 gauge shows AI draft (Keep or Discard).`
@@ -2872,6 +3098,40 @@ export function initGenerator(root, playback) {
     clearPendingSeed();
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
+  });
+
+  el('#gen-scene-proposals-load')?.addEventListener('click', async () => {
+    if (!videoPath) return;
+    try {
+      const path = await PickSceneProposalsFile();
+      if (!path) return;
+      sceneProposalPath = path;
+      const atMs = Math.round((seekSec || 0) * 1000);
+      const loaded = await LoadSceneProposalAt(path, atMs);
+      await adoptSceneProposalLoad(loaded, path.split(/[\\/]/).pop());
+    } catch (err) {
+      uiError('Scene proposals: ' + err, el('#gen-scene-proposals-status'));
+    }
+  });
+
+  el('#gen-scene-proposals-beside')?.addEventListener('click', async () => {
+    if (!videoPath) return;
+    try {
+      const atMs = Math.round((seekSec || 0) * 1000);
+      const loaded = await LoadSceneProposalsBesideVideo(videoPath, atMs);
+      if (loaded?.path) sceneProposalPath = loaded.path;
+      await adoptSceneProposalLoad(loaded, 'Beside video');
+    } catch (err) {
+      uiError('Scene proposals: ' + err, el('#gen-scene-proposals-status'));
+    }
+  });
+
+  el('#gen-scene-apply-primary')?.addEventListener('click', () => applyScenePrimary());
+  el('#gen-scene-apply-partner')?.addEventListener('click', () => applyScenePartner());
+  el('#gen-scene-proposals-dismiss')?.addEventListener('click', () => {
+    clearSceneProposal();
+    redraw();
+    el('#gen-status').textContent = 'Scene proposal dismissed — Tip/ROI2 unchanged.';
   });
 
   el('#gen-seed-suggest')?.addEventListener('click', () => {
