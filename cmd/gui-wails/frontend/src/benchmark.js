@@ -49,19 +49,38 @@ function labelDe(label) {
   return 'NICHT GUT';
 }
 
+/** Wails may surface json tags or Go field names — normalize for UI. */
+function pairFields(score) {
+  const s = score || {};
+  const fidelity = s.fidelity || s.Fidelity || {};
+  const diagnosis = fidelity.diagnosis || fidelity.Diagnosis || {};
+  const quality = s.quality || s.Quality || {};
+  const r = fidelity.r ?? fidelity.R;
+  return {
+    label: s.label || s.Label || '',
+    passed: !!(s.passed ?? s.Passed),
+    detail: s.detail || s.Detail || '',
+    r: r != null ? Number(r) : null,
+    verdict: diagnosis.verdict || diagnosis.Verdict || '?',
+    lowConfidence: !!(fidelity.low_confidence ?? fidelity.LowConfidence),
+    qScore: quality.score ?? quality.Score,
+    qPassed: !!(quality.passed ?? quality.Passed),
+  };
+}
+
 function renderPairScore(score) {
-  const r = score.fidelity && score.fidelity.r != null ? Number(score.fidelity.r).toFixed(3) : 'n/a';
-  const verdict = (score.fidelity && score.fidelity.diagnosis && score.fidelity.diagnosis.verdict) || '?';
-  const qScore = score.quality ? Math.round((score.quality.score || 0) * 100) + '%' : 'n/a';
-  const qPass = score.quality && score.quality.passed ? 'OK' : 'FAIL';
-  const color = score.passed ? 'var(--teal)' : (score.label === 'review' ? 'var(--accent)' : 'var(--danger)');
+  const p = pairFields(score);
+  const r = p.r != null ? p.r.toFixed(3) : 'n/a';
+  const qScore = p.qScore != null ? Math.round(Number(p.qScore) * 100) + '%' : 'n/a';
+  const qPass = p.qPassed ? 'OK' : 'FAIL';
+  const color = p.passed ? 'var(--teal)' : (p.label === 'review' ? 'var(--accent)' : 'var(--danger)');
   return `
-    <p style="margin:8px 0 4px 0;"><b style="color:${color}">${labelDe(score.label)}</b>
-      <span class="hint"> · label=${score.label} · passed=${score.passed}</span></p>
-    <p class="hint" style="margin:0 0 8px 0;">${score.detail || ''}</p>
+    <p style="margin:8px 0 4px 0;"><b style="color:${color}">${labelDe(p.label)}</b>
+      <span class="hint"> · label=${p.label} · passed=${p.passed}</span></p>
+    <p class="hint" style="margin:0 0 8px 0;">${p.detail || ''}</p>
     <table class="bench-table"><thead><tr><th>Motion Fidelity (vs Ref)</th><th>Quality Doctor</th></tr></thead>
       <tbody><tr>
-        <td>r=${r} · verdict=${verdict}${score.fidelity && score.fidelity.low_confidence ? ' · low confidence' : ''}</td>
+        <td>r=${r} · verdict=${p.verdict}${p.lowConfidence ? ' · low confidence' : ''}</td>
         <td>${qScore} (${qPass})</td>
       </tr></tbody></table>
   `;
@@ -230,7 +249,7 @@ export function initBenchmark(root) {
     try {
       const score = await ScoreScriptPair(refPath, candPath, videoPath || '');
       lastPairScore = score;
-      el('#bm-pair-status').textContent = 'Done · ' + labelDe(score.label);
+      el('#bm-pair-status').textContent = 'Done · ' + labelDe(pairFields(score).label);
       el('#bm-pair-result').innerHTML = renderPairScore(score);
     } catch (err) {
       uiError('Score failed: ' + err, el('#bm-pair-status'));
