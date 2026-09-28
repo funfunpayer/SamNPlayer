@@ -8,6 +8,17 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.36] — September 28, 2026
+
+### Fixed
+
+- **AI Train review YOLO boxes missing on absolute paths** — `roiLabelPathForImage`
+  rebuilt label paths by splitting on `/` and `filepath.Join`, which dropped the
+  leading `/` on Unix and broke Windows drive letters. Review cards still listed
+  samples, but `Boxes` stayed empty so thumbnails had no overlays. Map
+  `…/images/…` → `…/labels/…` with slash replace; paint class-labeled lilac boxes
+  on review thumbnails. Correct box / Discard unchanged (#342).
+
 ## [0.5.35] — September 28, 2026
 
 ### Added
