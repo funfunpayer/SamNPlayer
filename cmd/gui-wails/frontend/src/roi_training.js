@@ -666,12 +666,16 @@ export function initRoiTraining(root) {
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.textContent = 'Correct box';
-        editBtn.title = 'Redraw the box on the preview, then save';
+        editBtn.title = 'Open large editor to view or redraw the box';
         const btnRow = document.createElement('div');
         btnRow.className = 'row';
         btnRow.style.gap = '6px';
         btnRow.appendChild(editBtn);
         btnRow.appendChild(discardBtn);
+        thumbWrap.title = 'Click to open large review editor';
+        thumbWrap.tabIndex = 0;
+        thumbWrap.setAttribute('role', 'button');
+        thumbWrap.setAttribute('aria-label', `Open review editor for ${s.split}/${s.name}`);
         card.appendChild(thumbWrap);
         card.appendChild(caption);
         card.appendChild(btnRow);
@@ -687,13 +691,23 @@ export function initRoiTraining(root) {
           imgEl.src = `data:${mime};base64,` + b64;
         }).catch(() => { caption.textContent += ' (could not load image)'; });
 
-        editBtn.addEventListener('click', async () => {
-          try {
-            await editSampleBoxes(s, imgEl, thumbWrap);
-          } catch (err) {
-            uiError('Correct box: ' + err);
+        const openEditor = (startAdjust) => {
+          openReviewEditor({
+            sample: s,
+            card,
+            thumbWrap,
+            imgEl,
+            startAdjust: !!startAdjust,
+          }).catch(err => uiError('Review editor: ' + err));
+        };
+        thumbWrap.addEventListener('click', () => openEditor(false));
+        thumbWrap.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openEditor(false);
           }
         });
+        editBtn.addEventListener('click', () => openEditor(true));
 
         discardBtn.addEventListener('click', async () => {
           discardBtn.disabled = true;
@@ -712,55 +726,234 @@ export function initRoiTraining(root) {
     }
   }
 
-  // Simple box re-draw: user drags on the thumbnail; first box is replaced.
-  async function editSampleBoxes(sample, imgEl, thumbWrap) {
-    const boxes = Array.isArray(sample.boxes) ? sample.boxes.slice() : [];
+  let reviewEditorOpen = null;
+
+  function closeReviewEditor() {
+    if (!reviewEditorOpen) return;
+    const { overlay, cleanup } = reviewEditorOpen;
+    cleanup();
+    overlay.remove();
+    reviewEditorOpen = null;
+  }
+
+  function escapeReviewText(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /** Large review pane: full image + boxes, pan/zoom, confirm / discard / adjust. */
+  async function openReviewEditor({ sample, card, thumbWrap, imgEl, startAdjust }) {
+    closeReviewEditor();
+    if (!imgEl.src) {
+      throw new Error('image not loaded yet');
+    }
     if (!imgEl.naturalWidth) {
       await new Promise((resolve, reject) => {
-        imgEl.onload = resolve;
-        imgEl.onerror = reject;
-        if (imgEl.complete && imgEl.naturalWidth) resolve();
+        const onOk = () => { cleanupWait(); resolve(); };
+        const onErr = () => { cleanupWait(); reject(new Error('image failed to load')); };
+        const cleanupWait = () => {
+          imgEl.removeEventListener('load', onOk);
+          imgEl.removeEventListener('error', onErr);
+        };
+        imgEl.addEventListener('load', onOk);
+        imgEl.addEventListener('error', onErr);
+        if (imgEl.complete && imgEl.naturalWidth) onOk();
       });
     }
-    uiInfo('Drag on preview: new box for the first class. Escape cancels.');
-    const rect = () => thumbWrap.getBoundingClientRect();
-    let dragging = false, x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+
+    let boxes = (Array.isArray(sample.boxes) ? sample.boxes : [])
+      .map(normBox).filter(Boolean);
+    let adjustMode = !!startAdjust;
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let panning = false;
+    let panOriginX = 0;
+    let panOriginY = 0;
+    let panStartX = 0;
+    let panStartY = 0;
+    let drawing = false;
+    let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    let drawOverlay = null;
+
     const overlay = document.createElement('div');
-    overlay.className = 'rt-box';
-    overlay.style.borderColor = 'var(--accent)';
-    const onMove = (e) => {
-      if (!dragging) return;
-      const r = rect();
-      x1 = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-      y1 = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-      const L = Math.min(x0, x1), T = Math.min(y0, y1);
-      const W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
-      overlay.style.left = (L * 100) + '%';
-      overlay.style.top = (T * 100) + '%';
-      overlay.style.width = (W * 100) + '%';
-      overlay.style.height = (H * 100) + '%';
-    };
-    const cleanup = () => {
-      thumbWrap.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('keydown', onKey);
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        cleanup();
-        overlay.remove();
-        uiInfo('Korrektur abgebrochen.');
+    overlay.className = 'rt-review-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Review training sample');
+
+    const panel = document.createElement('div');
+    panel.className = 'rt-review-panel';
+
+    const head = document.createElement('header');
+    head.className = 'rt-review-head';
+    head.innerHTML = `
+      <div>
+        <p class="rt-review-kicker">AI Train · Review</p>
+        <h2>${escapeReviewText(sample.split)} / ${escapeReviewText(sample.name)}</h2>
+        <p class="rt-review-sub hint">Scroll to zoom · drag to pan · Adjust box to redraw the first class</p>
+      </div>
+      <button type="button" class="rt-review-close" aria-label="Close review editor">Close</button>
+    `;
+
+    const stage = document.createElement('div');
+    stage.className = 'rt-review-stage';
+    const viewport = document.createElement('div');
+    viewport.className = 'rt-review-viewport';
+    const scene = document.createElement('div');
+    scene.className = 'rt-review-scene';
+    const bigImg = document.createElement('img');
+    bigImg.className = 'rt-review-img';
+    bigImg.alt = `${sample.split}/${sample.name}`;
+    bigImg.draggable = false;
+    bigImg.src = imgEl.src;
+    scene.appendChild(bigImg);
+    viewport.appendChild(scene);
+    stage.appendChild(viewport);
+
+    const foot = document.createElement('div');
+    foot.className = 'rt-review-foot';
+    const status = document.createElement('p');
+    status.className = 'hint rt-review-status';
+    status.textContent = adjustMode
+      ? 'Drag on the image to redraw the first-class box. Escape cancels adjust.'
+      : 'Looks good? Confirm correct — or Adjust box / Discard.';
+    const actions = document.createElement('div');
+    actions.className = 'rt-review-actions';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'primary';
+    confirmBtn.textContent = 'Confirm correct';
+    const adjustBtn = document.createElement('button');
+    adjustBtn.type = 'button';
+    adjustBtn.textContent = 'Adjust box';
+    const discardModalBtn = document.createElement('button');
+    discardModalBtn.type = 'button';
+    discardModalBtn.className = 'danger';
+    discardModalBtn.textContent = 'Discard';
+    actions.appendChild(confirmBtn);
+    actions.appendChild(adjustBtn);
+    actions.appendChild(discardModalBtn);
+    foot.appendChild(status);
+    foot.appendChild(actions);
+
+    panel.appendChild(head);
+    panel.appendChild(stage);
+    panel.appendChild(foot);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    function applyTransform() {
+      scene.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    function fitToView() {
+      const vw = viewport.clientWidth || 1;
+      const vh = viewport.clientHeight || 1;
+      const iw = bigImg.naturalWidth || imgEl.naturalWidth || 1;
+      const ih = bigImg.naturalHeight || imgEl.naturalHeight || 1;
+      // Size the scene to native pixels so YOLO % boxes map 1:1 before transform.
+      scene.style.width = iw + 'px';
+      scene.style.height = ih + 'px';
+      bigImg.style.width = iw + 'px';
+      bigImg.style.height = ih + 'px';
+      scale = Math.min(vw / iw, vh / ih, 1) * 0.96;
+      panX = (vw - iw * scale) / 2;
+      panY = (vh - ih * scale) / 2;
+      applyTransform();
+      paintBoxes(scene, boxes);
+    }
+
+    function setAdjustMode(on) {
+      adjustMode = on;
+      viewport.classList.toggle('is-adjusting', on);
+      adjustBtn.textContent = on ? 'Cancel adjust' : 'Adjust box';
+      adjustBtn.classList.toggle('primary', on);
+      confirmBtn.classList.toggle('primary', !on);
+      status.textContent = on
+        ? 'Drag on the image to redraw the first-class box. Escape cancels adjust.'
+        : 'Looks good? Confirm correct — or Adjust box / Discard.';
+    }
+
+    function clientToNorm(clientX, clientY) {
+      const r = scene.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return { x: 0, y: 0 };
+      return {
+        x: Math.min(1, Math.max(0, (clientX - r.left) / r.width)),
+        y: Math.min(1, Math.max(0, (clientY - r.top) / r.height)),
+      };
+    }
+
+    function onWheel(e) {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const next = Math.min(8, Math.max(0.2, scale * factor));
+      const rect = viewport.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      panX = mx - (mx - panX) * (next / scale);
+      panY = my - (my - panY) * (next / scale);
+      scale = next;
+      applyTransform();
+    }
+
+    function onPointerDown(e) {
+      if (e.button !== 0) return;
+      if (adjustMode) {
+        e.preventDefault();
+        drawing = true;
+        const p = clientToNorm(e.clientX, e.clientY);
+        x0 = x1 = p.x;
+        y0 = y1 = p.y;
+        drawOverlay = document.createElement('div');
+        drawOverlay.className = 'rt-box rt-box-draft';
+        scene.appendChild(drawOverlay);
+        viewport.setPointerCapture?.(e.pointerId);
+        return;
       }
-    };
-    const onUp = async () => {
-      if (!dragging) return;
-      dragging = false;
-      cleanup();
+      e.preventDefault();
+      panning = true;
+      panOriginX = panX;
+      panOriginY = panY;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      viewport.classList.add('is-panning');
+      viewport.setPointerCapture?.(e.pointerId);
+    }
+
+    function onPointerMove(e) {
+      if (drawing && drawOverlay) {
+        const p = clientToNorm(e.clientX, e.clientY);
+        x1 = p.x;
+        y1 = p.y;
+        const L = Math.min(x0, x1), T = Math.min(y0, y1);
+        const W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+        drawOverlay.style.left = (L * 100) + '%';
+        drawOverlay.style.top = (T * 100) + '%';
+        drawOverlay.style.width = (W * 100) + '%';
+        drawOverlay.style.height = (H * 100) + '%';
+        return;
+      }
+      if (!panning) return;
+      panX = panOriginX + (e.clientX - panStartX);
+      panY = panOriginY + (e.clientY - panStartY);
+      applyTransform();
+    }
+
+    async function finishDraw() {
+      if (!drawing) return;
+      drawing = false;
       const L = Math.min(x0, x1), T = Math.min(y0, y1);
       const W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+      if (drawOverlay) {
+        drawOverlay.remove();
+        drawOverlay = null;
+      }
       if (W < 0.02 || H < 0.02) {
-        overlay.remove();
-        uiInfo('Box zu klein — erneut versuchen.');
+        status.textContent = 'Box too small — drag a larger region.';
         return;
       }
       const first = boxes[0] || { classId: 0, className: 'object' };
@@ -772,22 +965,93 @@ export function initRoiTraining(root) {
         w: W,
         h: H,
       }, ...boxes.slice(1)];
-      await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, updated);
-      sample.boxes = updated;
-      overlay.remove();
-      paintBoxes(thumbWrap, updated);
-      uiInfo('Box saved.');
+      try {
+        await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, updated);
+        boxes = updated;
+        sample.boxes = updated;
+        paintBoxes(scene, boxes);
+        paintBoxes(thumbWrap, boxes);
+        setAdjustMode(false);
+        status.textContent = 'Box saved.';
+        uiInfo('Box saved.');
+      } catch (err) {
+        uiError('Save box: ' + err);
+        status.textContent = 'Save failed: ' + err;
+      }
+    }
+
+    function onPointerUp() {
+      if (drawing) {
+        finishDraw();
+        return;
+      }
+      if (!panning) return;
+      panning = false;
+      viewport.classList.remove('is-panning');
+    }
+
+    function onKey(e) {
+      if (e.key !== 'Escape') return;
+      if (adjustMode) {
+        if (drawing && drawOverlay) {
+          drawing = false;
+          drawOverlay.remove();
+          drawOverlay = null;
+        }
+        setAdjustMode(false);
+        return;
+      }
+      closeReviewEditor();
+    }
+
+    function cleanup() {
+      viewport.removeEventListener('wheel', onWheel);
+      viewport.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('keydown', onKey);
+    }
+
+    head.querySelector('.rt-review-close').addEventListener('click', closeReviewEditor);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeReviewEditor();
+    });
+    confirmBtn.addEventListener('click', () => {
+      uiInfo('Sample confirmed.');
+      closeReviewEditor();
+    });
+    adjustBtn.addEventListener('click', () => setAdjustMode(!adjustMode));
+    discardModalBtn.addEventListener('click', async () => {
+      discardModalBtn.disabled = true;
+      confirmBtn.disabled = true;
+      adjustBtn.disabled = true;
+      try {
+        await DiscardRoiTrainingSample(datasetDir, sample.split, sample.name);
+        card.remove();
+        refreshDatasetReadyHint();
+        closeReviewEditor();
+      } catch (err) {
+        uiError('Discard sample: ' + err);
+        discardModalBtn.disabled = false;
+        confirmBtn.disabled = false;
+        adjustBtn.disabled = false;
+      }
+    });
+
+    viewport.addEventListener('wheel', onWheel, { passive: false });
+    viewport.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('keydown', onKey);
+
+    reviewEditorOpen = { overlay, cleanup };
+
+    const afterImg = () => {
+      fitToView();
+      setAdjustMode(adjustMode);
     };
-    thumbWrap.addEventListener('mousedown', (e) => {
-      const r = rect();
-      dragging = true;
-      x0 = x1 = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-      y0 = y1 = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-      thumbWrap.appendChild(overlay);
-      thumbWrap.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-      window.addEventListener('keydown', onKey);
-    }, { once: true });
+    if (bigImg.complete && bigImg.naturalWidth) afterImg();
+    else bigImg.addEventListener('load', afterImg, { once: true });
   }
 
   el('#rt-refresh-review').addEventListener('click', refreshReview);
