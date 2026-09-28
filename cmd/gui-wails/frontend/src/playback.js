@@ -8,7 +8,7 @@ import {
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
   EditCapSpeedRange, EditDeleteRange, EditScaleRange, SnapTimeMs,
   ScriptChapters, ScriptQuality,
-  SaveContactSettings, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
+  SaveContactSettings, PreviewContactVibration, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
   GetScriptBookmarks, SaveScriptBookmarks,
   GetScriptChapterMarks, SaveScriptChapterMarks,
@@ -343,6 +343,15 @@ export function initPlayback(root) {
               <option value="peak">peak</option>
               <option value="impulse">impulse (peaks only)</option>
             </select>
+          </div>
+          <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
+            <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+              <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+              <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+            </svg>
+            <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
+              Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+            </p>
           </div>
           <div class="row" style="margin-top:8px;">
             <button type="button" id="pb-contact-save">Save to script</button>
@@ -1636,21 +1645,81 @@ export function initPlayback(root) {
   el('#pb-offset-plus').addEventListener('click',
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
+  let pbContactVibPreviewTimer = 0;
+  async function refreshPlayContactVibPreview() {
+    const out = el('#pb-contact-vib-preview');
+    const vibPoly = el('#pb-contact-vib-poly');
+    const strokePoly = el('#pb-contact-vib-stroke');
+    const probe = el('#pb-contact-vib-probe');
+    const block = el('#pb-contact-block');
+    if (!out || !probe || !block || block.hidden) return;
+    if (el('#pb-contact-off')?.checked) {
+      probe.hidden = true;
+      return;
+    }
+    probe.hidden = false;
+    const span = parseFloat(el('#pb-contact-span')?.value) || 0.75;
+    const curve = el('#pb-contact-curve')?.value || 'soft';
+    const intensity = Math.max(0, parseFloat(el('#pb-contact-intensity')?.value) || 1);
+    try {
+      const res = await PreviewContactVibration({ span, curve });
+      let hint = res.hint || res.Hint || 'Contact probe';
+      if (intensity !== 1) hint += ` · strength ×${intensity.toFixed(2)}`;
+      out.textContent = hint;
+      const sample = res.sample || res.Sample || [];
+      const w = 320;
+      const h = 72;
+      const pad = 4;
+      if (Array.isArray(sample) && sample.length >= 2) {
+        const t0 = Number(sample[0].atMs ?? sample[0].AtMs ?? 0);
+        const t1 = Number(sample[sample.length - 1].atMs ?? sample[sample.length - 1].AtMs ?? 1);
+        const tSpan = Math.max(1, t1 - t0);
+        const toPts = (key, Key, scale = 1) => sample.map((p) => {
+          const t = Number(p.atMs ?? p.AtMs ?? 0);
+          let pos = Math.max(0, Math.min(100, Number(p[key] ?? p[Key] ?? 0)));
+          if (key === 'vib' || key === 'Vib') {
+            pos = Math.max(0, Math.min(100, pos * scale));
+          }
+          const x = pad + ((t - t0) / tSpan) * (w - 2 * pad);
+          const y = pad + (1 - pos / 100) * (h - 2 * pad);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        if (strokePoly) strokePoly.setAttribute('points', toPts('stroke', 'Stroke', 1));
+        if (vibPoly) vibPoly.setAttribute('points', toPts('vib', 'Vib', intensity));
+      } else {
+        if (strokePoly) strokePoly.setAttribute('points', '');
+        if (vibPoly) vibPoly.setAttribute('points', '');
+      }
+    } catch (err) {
+      out.textContent = 'Contact probe unavailable: ' + err;
+      if (strokePoly) strokePoly.setAttribute('points', '');
+      if (vibPoly) vibPoly.setAttribute('points', '');
+    }
+  }
+  function schedulePlayContactVibPreview() {
+    clearTimeout(pbContactVibPreviewTimer);
+    pbContactVibPreviewTimer = setTimeout(refreshPlayContactVibPreview, 160);
+  }
+
   el('#pb-contact-intensity').addEventListener('input', e => {
     const v = Number(e.target.value) || 0;
     el('#pb-contact-intensity-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    schedulePlayContactVibPreview();
   });
   el('#pb-contact-span').addEventListener('input', e => {
     const v = Number(e.target.value) || 0;
     el('#pb-contact-span-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    schedulePlayContactVibPreview();
   });
   el('#pb-contact-curve').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
+    schedulePlayContactVibPreview();
   });
   el('#pb-contact-off').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
+    schedulePlayContactVibPreview();
   });
   el('#pb-contact-save').addEventListener('click', async () => {
     if (!scriptPath || !scriptHasContactVibration) return;
@@ -2401,6 +2470,8 @@ export function initPlayback(root) {
       el('#pb-contact-off').checked = false;
       el('#pb-contact-intensity').value = '1';
       el('#pb-contact-intensity-val').textContent = '1.00';
+      const probe = el('#pb-contact-vib-probe');
+      if (probe) probe.hidden = true;
     } else {
       // Rezept-Defaults in die Live-Controls übernehmen (Datei bleibt Quelle).
       const span = (info.contactVibrationSpan > 0) ? info.contactVibrationSpan : 0.75;
@@ -2408,6 +2479,7 @@ export function initPlayback(root) {
       el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
       const curve = info.contactVibrationCurve || 'soft';
       el('#pb-contact-curve').value = ['linear', 'soft', 'peak', 'impulse'].includes(curve) ? curve : 'soft';
+      schedulePlayContactVibPreview();
     }
     const stage = el('#pb-video-stage');
     if (info.hasVideo) {

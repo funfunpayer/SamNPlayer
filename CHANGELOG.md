@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: contact vib live probe** — Strength / Sensitivity / Curve show a
+  synthetic stroke+vib SVG probe (same `PreviewContactVibration` as Create Feel).
+  Display feedback only — no stroke rewrite; Everyday CSRT unchanged.
+
 - **Expert: MakeVib-style knob sliders** — Smooth / Peak spacing / Prominence /
   RDP / Max speed use range + live readout beside the rich probe (same IDs and
   defaults: prominence=0, max-speed=0). Everyday CSRT unchanged.

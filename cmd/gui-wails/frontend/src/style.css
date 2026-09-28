@@ -2725,6 +2725,38 @@ fieldset,
   .gen-contact-vib-poly { filter: none; }
 }
 
+/* Play — contact vib live probe (parity with Create Feel) */
+.pb-contact-vib-probe {
+  margin-top: 8px;
+  padding: 8px 8px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(184, 150, 232, 0.22);
+  background:
+    linear-gradient(180deg, rgba(22, 20, 32, 0.5), rgba(14, 17, 26, 0.72));
+}
+.pb-contact-vib-svg {
+  display: block;
+  width: 100%;
+  height: 72px;
+  overflow: visible;
+}
+.pb-contact-vib-stroke {
+  stroke: rgba(200, 210, 230, 0.45);
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pb-contact-vib-poly {
+  stroke: var(--lilac, #b896e8);
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(184, 150, 232, 0.28));
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-contact-vib-poly { filter: none; }
+}
+
 /* Create Review — Speech-Hold / Feel segment strip (#375 follow-up) */
 .gen-audio-segments {
   margin-top: 12px;
