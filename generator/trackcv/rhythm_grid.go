@@ -554,6 +554,43 @@ func applyContactPoints(cx, cy []float64, tsMs []int, pts []ContactPoint, holdMs
 	return outX, outY
 }
 
+// verifyContactPoints keeps the points the engine's own measurement backs
+// (ContactVerifyK): per point, the window of m whose centre is nearest in
+// time; the point stays only if the strongest cell in the 3x3 around it
+// scores at least k times the window's chosen cell. Windows without a
+// chosen cell or score map drop their points (nothing to verify against).
+func verifyContactPoints(pts []ContactPoint, m SceneMap, k float64) []ContactPoint {
+	if len(pts) == 0 || len(m.Windows) == 0 || m.Cols <= 0 || m.Rows <= 0 {
+		return nil
+	}
+	var out []ContactPoint
+	for _, p := range pts {
+		var w *MapWindow
+		best := int64(-1)
+		for i := range m.Windows {
+			d := absInt64((m.Windows[i].StartMs+m.Windows[i].EndMs)/2 - p.Ms)
+			if best < 0 || d < best {
+				best, w = d, &m.Windows[i]
+			}
+		}
+		if w.ChosenCell < 0 || w.ChosenCell >= len(w.Score) || len(w.Score) != m.Cols*m.Rows {
+			continue
+		}
+		c := min(m.Cols-1, max(0, int(p.X*float64(m.Cols))))
+		r := min(m.Rows-1, max(0, int(p.Y*float64(m.Rows))))
+		at := 0
+		for rr := max(0, r-1); rr <= min(m.Rows-1, r+1); rr++ {
+			for cc := max(0, c-1); cc <= min(m.Cols-1, c+1); cc++ {
+				at = max(at, int(w.Score[rr*m.Cols+cc]))
+			}
+		}
+		if float64(at) >= k*float64(max(int(w.Score[w.ChosenCell]), 1)) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func absInt64(v int64) int64 {
 	if v < 0 {
 		return -v

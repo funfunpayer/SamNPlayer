@@ -175,6 +175,11 @@ type Options struct {
 	// teachers agreed on (0/1 = all).
 	ContactPointsFile     string
 	ContactPointsMinAgree int
+	// ContactVerifyK > 0: hybrid check - the engine keeps only the contact
+	// points where its own rhythm measurement is at least K times stronger
+	// than at the cell it chose itself (trackcv.Options.ContactVerifyK; 1.5
+	// measured). 0 = off: every point steers as before.
+	ContactVerifyK float64
 }
 
 // SceneMark is an Advanced scene-map annotation passed into Generate (M3).

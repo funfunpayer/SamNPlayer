@@ -30,6 +30,7 @@ func runGenerate(args []string) int {
 	rhythmGrid := fs.Bool("rhythm-grid", false, "stroke signal from the most rhythmic flow cell near the box (drift-robust, Go CSRT only)")
 	contactPoints := fs.String("contact-points", "", "contact_points.py JSON: teachers' contact points steer the rhythm grid where the box is out of reach (needs --rhythm-grid)")
 	contactMinAgree := fs.Int("contact-min-agree", 0, "keep only contact points at least this many teachers agreed on")
+	contactVerify := fs.Float64("contact-verify", 0, "hybrid check: keep a contact point only where the engine's own rhythm is at least this many times stronger than at its chosen cell (1.5 measured; 0 = off)")
 	sceneProposals := fs.String("scene-proposals", "", "scene_roles.py <clip>.scene.json: opt-in, use the proposed primary target as --roi (and its body part as region class) when --roi is not given; the partner is only logged, never applied as ROI2")
 	sceneAtMs := fs.Int64("scene-at-ms", 0, "video time (ms) whose scene proposal --scene-proposals uses")
 	fs.Usage = func() {
@@ -73,6 +74,7 @@ func runGenerate(args []string) int {
 
 		ContactPointsFile:     *contactPoints,
 		ContactPointsMinAgree: *contactMinAgree,
+		ContactVerifyK:        *contactVerify,
 	}
 	err := generator.GenerateWithContext(context.Background(), *video, roi, out, opts,
 		func(line string) { fmt.Fprintln(os.Stderr, line) },

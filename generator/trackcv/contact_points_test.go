@@ -117,3 +117,31 @@ func TestRhythmGridContactPointsNearBoxBitIdentical(t *testing.T) {
 		}
 	}
 }
+
+func TestVerifyContactPointsKeepsOnlyWhereEngineMeasuresMore(t *testing.T) {
+	// 4x3 grid, one window 0-8 s; the engine chose cell 0 (score 100).
+	score := make([]uint8, 12)
+	score[0] = 100
+	score[6] = 200 // col 2, row 1: twice the chosen cell
+	score[11] = 120
+	m := SceneMap{Cols: 4, Rows: 3, Windows: []MapWindow{
+		{StartMs: 0, EndMs: 8000, ChosenCell: 0, Score: score},
+		{StartMs: 20000, EndMs: 28000, ChosenCell: -1, Score: score}, // no own cell: nothing to verify
+	}}
+	pts := []ContactPoint{
+		{Ms: 1000, X: 0.6, Y: 0.5},   // cell 2,1 -> 200 >= 1.5*100: keep
+		{Ms: 2000, X: 0.95, Y: 0.95}, // cell 3,2 -> 3x3 max 200 (neighbour 2,1): keep
+		{Ms: 3000, X: 0.05, Y: 0.9},  // cell 0,2 -> 3x3 max 100: drop
+		{Ms: 24000, X: 0.6, Y: 0.5},  // window without chosen cell: drop
+	}
+	got := verifyContactPoints(pts, m, 1.5)
+	if len(got) != 2 || got[0].Ms != 1000 || got[1].Ms != 2000 {
+		t.Fatalf("k=1.5 kept %+v", got)
+	}
+	if got := verifyContactPoints(pts, m, 2.5); len(got) != 0 {
+		t.Fatalf("k=2.5 kept %+v", got)
+	}
+	if got := verifyContactPoints(pts, SceneMap{}, 1.5); got != nil {
+		t.Fatalf("empty map kept %+v", got)
+	}
+}
