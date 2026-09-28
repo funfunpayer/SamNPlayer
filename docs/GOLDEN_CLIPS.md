@@ -10,6 +10,13 @@ agreement per clip, and tracks results over time. This file stays the
 checklist for *building* the clip set by hand; the tool is what runs it
 repeatably. See `docs/ROADMAP.md` for how this fits the wider task list.
 
+**Compare-only (no generate):** CLI `benchmark` / GUI Bench →
+"Compare scripts" scores a candidate `.funscript` against a FunGen
+reference (`funscript.ScorePair`, labels `good|review|bad`). Fixture
+layout + KI label schema:
+`generator/testdata/benchmark/`. Everyday Go CSRT remains the basis;
+KI assists in hybrid, it does not replace Everyday.
+
 ## What one clip must include
 
 1. Source video (same cut FunGen used), note codec and resolution.

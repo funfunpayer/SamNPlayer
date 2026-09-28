@@ -118,6 +118,8 @@ export function ReportVideoPosition(arg1) { return window['go']['main']['App']['
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
 export function RunDeviceDiagnostics() { return window['go']['main']['App']['RunDeviceDiagnostics'](); }
 export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }
+export function ScoreScriptPair(arg1, arg2, arg3) { return window['go']['main']['App']['ScoreScriptPair'](arg1, arg2, arg3); }
+export function AppendBenchmarkPairLabel(arg1) { return window['go']['main']['App']['AppendBenchmarkPairLabel'](arg1); }
 export function RunRoiModelTraining(arg1, arg2) { return window['go']['main']['App']['RunRoiModelTraining'](arg1, arg2); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }

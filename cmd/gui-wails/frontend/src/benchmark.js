@@ -1,4 +1,4 @@
-import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest } from '../wailsjs/go/main/App';
+import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile, ScoreScriptPair, AppendBenchmarkPairLabel } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
@@ -43,23 +43,73 @@ function renderHistoryRow(r) {
     + `${s.ok}/${s.total} ok, avg score ${score}${corr}</div>`;
 }
 
-// Golden-Clip-Benchmark: läuft ein festes, vom Nutzer gepflegtes Manifest
-// aus echten Vergleichs-Clips (siehe generator/golden_clip_benchmark.py)
-// durch die echte Pipeline und misst Quality-Doctor-Score sowie (wo eine
-// FunGen-Referenz hinterlegt ist) die Übereinstimmung - eine feste,
-// wiederholbare Vergleichsbasis statt Einzelmessungen (docs/NEXT.md
-// Priorität 2, "Perception & Motion System 2.0"-Konzept Phase 1). Die
-// Clips selbst (persönliches Videomaterial) liegen nicht im Repository,
-// nur das Manifest verweist auf lokale Pfade.
+function labelDe(label) {
+  if (label === 'good') return 'GUT';
+  if (label === 'review') return 'PRÜFEN';
+  return 'NICHT GUT';
+}
+
+function renderPairScore(score) {
+  const r = score.fidelity && score.fidelity.r != null ? Number(score.fidelity.r).toFixed(3) : 'n/a';
+  const verdict = (score.fidelity && score.fidelity.diagnosis && score.fidelity.diagnosis.verdict) || '?';
+  const qScore = score.quality ? Math.round((score.quality.score || 0) * 100) + '%' : 'n/a';
+  const qPass = score.quality && score.quality.passed ? 'OK' : 'FAIL';
+  const color = score.passed ? 'var(--teal)' : (score.label === 'review' ? 'var(--accent)' : 'var(--danger)');
+  return `
+    <p style="margin:8px 0 4px 0;"><b style="color:${color}">${labelDe(score.label)}</b>
+      <span class="hint"> · label=${score.label} · passed=${score.passed}</span></p>
+    <p class="hint" style="margin:0 0 8px 0;">${score.detail || ''}</p>
+    <table class="bench-table"><thead><tr><th>Motion Fidelity (vs Ref)</th><th>Quality Doctor</th></tr></thead>
+      <tbody><tr>
+        <td>r=${r} · verdict=${verdict}${score.fidelity && score.fidelity.low_confidence ? ' · low confidence' : ''}</td>
+        <td>${qScore} (${qPass})</td>
+      </tr></tbody></table>
+  `;
+}
+
+// Golden-Clip-Benchmark + Pair-Compare. Everyday Go CSRT remains the
+// production basis; KI never replaces Everyday. Pair-compare scores any
+// candidate (typically Everyday output, or hybrid-assisted) against a
+// FunGen/reference funscript. Manifest path still drives the full
+// generate+measure loop (docs/GOLDEN_CLIPS.md).
 export function initBenchmark(root) {
   root.innerHTML = `
-    <h2>Golden-Clip Benchmark</h2>
+    <h2>Benchmark</h2>
     <p class="hint">
-      Runs a fixed set of your comparison clips through the real pipeline
-      and measures Quality Doctor score plus reference agreement when a
-      reference is present — so improvements (or regressions) can be
-      tracked over time instead of one-off chat measurements. The manifest
-      points at local video files; nothing is uploaded.
+      Everyday recognition (Go CSRT) is always the basis — also when KI assists
+      in hybrid mode. Score a candidate script against a FunGen reference, or
+      run the golden-clip manifest through the real Everyday pipeline.
+    </p>
+
+    <h3>Compare scripts</h3>
+    <p class="hint" style="margin-top:0;">
+      Pick video (optional, for labels), FunGen/reference script, and your
+      candidate (Everyday Create output or loaded file) → gut / prüfen / nicht gut.
+    </p>
+    <div class="field-row"><label>Video</label>
+      <input type="text" id="bm-video" placeholder="Optional — source clip path" style="flex:1" />
+      <button id="bm-pick-video" type="button">Browse…</button>
+    </div>
+    <div class="field-row"><label>Reference</label>
+      <input type="text" id="bm-ref" placeholder="FunGen / reference .funscript" style="flex:1" />
+      <button id="bm-pick-ref" type="button">Browse…</button>
+    </div>
+    <div class="field-row"><label>Candidate</label>
+      <input type="text" id="bm-cand" placeholder="Everyday / candidate .funscript" style="flex:1" />
+      <button id="bm-pick-cand" type="button">Browse…</button>
+    </div>
+    <div class="row">
+      <button id="bm-score" class="primary" disabled>Score vs reference</button>
+      <button id="bm-save-label" type="button" disabled>Save label for KI</button>
+    </div>
+    <div class="path-label" id="bm-pair-status"></div>
+    <div id="bm-pair-result" style="margin-top:8px;"></div>
+
+    <h3 style="margin-top:20px;">Golden-clip manifest</h3>
+    <p class="hint" style="margin-top:0;">
+      Runs a fixed set of your comparison clips through the real Everyday
+      pipeline and measures Quality Doctor + FunGen agreement. Manifest points
+      at local videos; nothing is uploaded.
     </p>
 
     <div class="field-row"><label>Manifest</label>
@@ -80,16 +130,25 @@ export function initBenchmark(root) {
     <div id="bm-result" style="margin-top:12px;"></div>
 
     <h3 style="margin-top:16px;">History</h3>
-    <p class="hint" style="margin-top:0;">Each run is appended to the history file
+    <p class="hint" style="margin-top:0;">Each manifest run is appended to the history file
       (Settings tab) — one line per past run, newest first.</p>
     <div id="bm-history" class="hint">Loading…</div>
   `;
 
   const el = id => root.querySelector(id);
   let manifestPath = '';
+  let videoPath = '';
+  let refPath = '';
+  let candPath = '';
+  let lastPairScore = null;
 
   function updateRunEnabled() {
     el('#bm-run').disabled = !manifestPath;
+  }
+
+  function updateScoreEnabled() {
+    el('#bm-score').disabled = !(refPath && candPath);
+    el('#bm-save-label').disabled = !lastPairScore;
   }
 
   function showProgress(show) {
@@ -113,6 +172,76 @@ export function initBenchmark(root) {
       box.textContent = 'Could not load history: ' + err;
     }
   }
+
+  el('#bm-pick-video').addEventListener('click', async () => {
+    try {
+      const path = await PickVideoFile();
+      if (!path) return;
+      videoPath = path;
+      el('#bm-video').value = path;
+    } catch (err) {
+      uiError('Choose video: ' + err, el('#bm-pair-status'));
+    }
+  });
+  el('#bm-pick-ref').addEventListener('click', async () => {
+    try {
+      const path = await PickFunscriptFile();
+      if (!path) return;
+      refPath = path;
+      el('#bm-ref').value = path;
+      updateScoreEnabled();
+    } catch (err) {
+      uiError('Choose reference: ' + err, el('#bm-pair-status'));
+    }
+  });
+  el('#bm-pick-cand').addEventListener('click', async () => {
+    try {
+      const path = await PickFunscriptFile();
+      if (!path) return;
+      candPath = path;
+      el('#bm-cand').value = path;
+      updateScoreEnabled();
+    } catch (err) {
+      uiError('Choose candidate: ' + err, el('#bm-pair-status'));
+    }
+  });
+  el('#bm-video').addEventListener('change', e => { videoPath = e.target.value.trim(); });
+  el('#bm-ref').addEventListener('change', e => {
+    refPath = e.target.value.trim();
+    updateScoreEnabled();
+  });
+  el('#bm-cand').addEventListener('change', e => {
+    candPath = e.target.value.trim();
+    updateScoreEnabled();
+  });
+
+  el('#bm-score').addEventListener('click', async () => {
+    if (!refPath || !candPath) return;
+    el('#bm-score').disabled = true;
+    el('#bm-pair-status').textContent = 'Scoring…';
+    el('#bm-pair-result').innerHTML = '';
+    lastPairScore = null;
+    updateScoreEnabled();
+    try {
+      const score = await ScoreScriptPair(refPath, candPath, videoPath || '');
+      lastPairScore = score;
+      el('#bm-pair-status').textContent = 'Done · ' + labelDe(score.label);
+      el('#bm-pair-result').innerHTML = renderPairScore(score);
+    } catch (err) {
+      uiError('Score failed: ' + err, el('#bm-pair-status'));
+    }
+    updateScoreEnabled();
+  });
+
+  el('#bm-save-label').addEventListener('click', async () => {
+    if (!lastPairScore) return;
+    try {
+      const path = await AppendBenchmarkPairLabel(lastPairScore);
+      el('#bm-pair-status').textContent = 'Label saved: ' + path;
+    } catch (err) {
+      uiError('Save label: ' + err, el('#bm-pair-status'));
+    }
+  });
 
   el('#bm-pick').addEventListener('click', async () => {
     try {

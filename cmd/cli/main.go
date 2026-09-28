@@ -28,6 +28,9 @@ func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "phase" {
 		os.Exit(runPhase(os.Args[2:]))
 	}
+	if len(os.Args) >= 2 && (os.Args[1] == "benchmark" || os.Args[1] == "score") {
+		os.Exit(runBenchmark(os.Args[2:]))
+	}
 	if len(os.Args) >= 2 && (os.Args[1] == "compare" || os.Args[1] == "fungen-compare") {
 		os.Exit(runCompare(os.Args[2:]))
 	}
@@ -78,7 +81,7 @@ func main() {
 		"Live-Kurve linear|soft|peak (leer=aus DeviceRecipe)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N] [--window-ms N]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE (--roi x,y,w,h | --scene-proposals FILE.scene.json) [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n  %s stroke-preview VIDEO [--json] [--max-seconds N]\n  %s export-learning FILE.samn --opt-in [--output-dir DIR]\n  %s import-contact-candidates FILE.samn --contact FILE.contact.json [--min-agree N]\n  %s scan-scene-map VIDEO [--windows N] [--out FILE]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s --script FILE [playback options]\n  %s phase A.funscript B.funscript [--max-lag-ms N] [--window-ms N]\n  %s benchmark --reference REF.funscript --candidate CAND.funscript [--video VIDEO] [--json] [--labels-out FILE]\n  %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n  %s generate --video FILE (--roi x,y,w,h | --scene-proposals FILE.scene.json) [--output FILE]\n  %s sam FILE.funscript [--output FILE.sam]\n  %s stroke-preview VIDEO [--json] [--max-seconds N]\n  %s export-learning FILE.samn --opt-in [--output-dir DIR]\n  %s import-contact-candidates FILE.samn --contact FILE.contact.json [--min-agree N]\n  %s scan-scene-map VIDEO [--windows N] [--out FILE]\n\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		fmt.Fprintf(os.Stderr, "Playback options:\n")
 		flag.PrintDefaults()
 	}

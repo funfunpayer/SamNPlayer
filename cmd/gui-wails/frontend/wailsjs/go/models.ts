@@ -106,6 +106,38 @@ export namespace funscript {
 	    }
 	}
 
+	/** PairScore: Everyday/candidate vs FunGen reference (benchmark gut/nicht gut). */
+	export class PairScore {
+	    kind: string;
+	    label: string;
+	    passed: boolean;
+	    detail: string;
+	    video?: string;
+	    reference?: string;
+	    candidate?: string;
+	    fidelity: any;
+	    quality: any;
+	    min_aligned_r: number;
+
+	    static createFrom(source: any = {}) {
+	        return new PairScore(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.label = source["label"];
+	        this.passed = source["passed"];
+	        this.detail = source["detail"];
+	        this.video = source["video"];
+	        this.reference = source["reference"];
+	        this.candidate = source["candidate"];
+	        this.fidelity = source["fidelity"];
+	        this.quality = source["quality"];
+	        this.min_aligned_r = source["min_aligned_r"];
+	    }
+	}
+
 	export class SpeedSegment {
 	    fromMs: number;
 	    toMs: number;
