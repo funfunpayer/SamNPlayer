@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Review Improve Heal+Fill point count** — with both **Heal tracking gaps** and
+  **Fill gaps** on (Review default + auto after Generate), Fill used to overwrite
+  `PointsAdded` to 0 when no time holes remained after Heal. Status then showed
+  “(gaps ok)” even though Heal rewrote `tracking_gaps` windows. Heal bridges are
+  kept in the total; Create status also surfaces `windowsHealed`.
+
 ## [0.5.37] — September 28, 2026
 
 ### Added

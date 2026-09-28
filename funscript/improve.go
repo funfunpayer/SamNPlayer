@@ -402,7 +402,11 @@ func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 			}
 		}
 		res.GapsFilled = nGaps
-		res.PointsAdded = nPts
+		// Keep heal bridge points in the total — assigning nPts alone made the
+		// default Heal+Fill path report PointsAdded=0 whenever Fill found no
+		// time holes (typical after Generate), so the GUI said "gaps ok" even
+		// though Heal rewrote tracking_gaps windows.
+		res.PointsAdded += nPts
 		res.FillGapMs = maxGap
 		if step <= 0 {
 			step = DefaultFillStepMs
