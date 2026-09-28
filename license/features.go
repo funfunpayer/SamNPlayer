@@ -4,6 +4,8 @@ package license
 //
 // Owner decision (2026-09-27): Virtual Person / plugin host is included in
 // the standard €40 license — not a separate addon. Feature id: virtual_person.
+// Rel35: Virtual Person product is PARKED; feature id stays stamped for key
+// compatibility. No product UI/host Enable on tip.
 const (
 	FeatureSamn          = "samn"
 	FeatureContact       = "contact"
@@ -31,7 +33,7 @@ func (c Claims) HasFeature(id string) bool {
 	return false
 }
 
-// EffectiveHasFeature is what plugin-host / Virtual Person gates must call.
+// EffectiveHasFeature is what future plugin-host gates must call.
 //
 // While Enforcement is false (or SAMN_LICENSE_OFF=1 / SkipInTests), always
 // true — same pattern as EffectiveLicensed, so Everyday CSRT and current

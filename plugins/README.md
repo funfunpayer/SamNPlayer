@@ -1,7 +1,8 @@
 # Plugins folder
 
-Drop SamNPlayer plugin packs here (or use Settings → Virtual Person → **Install pack…**).
+Drop SamNPlayer plugin packs here (or use Settings → Plugins → **Install pack…**).
 
-Each pack is a folder with `samn-plugin.json` at its root. First supported id: `virtual_person`.
+Each pack is a folder with `samn-plugin.json` at its root. Discovery and install
+are generic; product hosts (Virtual Person) are **parked**.
 
-See `docs/PLUGIN_INSTALL_DE.md` (German end-user) and `docs/PLUGIN_SYSTEM.md` (contract).
+See `docs/PLUGIN_SYSTEM.md`.

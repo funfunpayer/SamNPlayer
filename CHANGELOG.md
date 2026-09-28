@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Virtual Person product scrubbed (parked for Rel35)** — removed in-process
+  `virtualperson/` core, Settings Enable/Disable/Give/Titjob, playback OnFrame
+  host tick, and VP-named Wails APIs. Kept generic `pluginhost/` drop-folder
+  discover/install (`PluginsDir`, `ListInstalledPlugins`, `InstallPluginPack`,
+  `OpenPluginsFolder`) and a Settings → Plugins section without product host
+  controls. License feature `virtual_person` remains stamped for key
+  compatibility. Everyday CSRT / Scene2 / Accept-Reject / Check AI unchanged.
+
 ### Added
 
 - **Apply AI setup automatically (opt-in, Owner decision)** — Go
@@ -82,12 +92,11 @@ measurement history behind each entry; this file is the short version for
   (RF-DETR: Apache-2.0); `contact_points.py --onnx` uses the trained model as a
   teacher via onnxruntime. No Generate/default change.
 
-- **Plugin host H1 drop-folder install** — drop a Virtual Person pack into the
-  Plugins folder (or Settings → **Install pack…** / **Open Plugins folder**),
-  then Enable. Handshake via `samn-plugin.json`; `pluginhost` discover / bind;
-  German install notes. Completes H1 with OnFrame tick + `virtualperson/` core
-  (#274). Everyday CSRT unchanged; Enforcement stays off; overlay / ToyHub /
-  full dump #264 still deferred (#275).
+- **Plugin host H1 drop-folder install** — drop a pack into the Plugins folder
+  (or Settings → Plugins → **Install pack…** / **Open Plugins folder**).
+  Handshake via `samn-plugin.json`; `pluginhost` discover / install.
+  Virtual Person product Enable / OnFrame / `virtualperson/` core scrubbed
+  (parked; #264). Everyday CSRT unchanged; Enforcement stays off (#275 infra kept).
 
 - **Contact points steer the rhythm grid (opt-in, VLM1)** — `generate
   --rhythm-grid --contact-points <clip>.contact.json`: where a local teacher

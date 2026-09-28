@@ -234,15 +234,14 @@ itself. Details: [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md),
 
 ---
 
-## Virtual Person plugin (end users)
+## Plugins (drop-folder)
 
-No CLI. Drop a pack → Enable:
+Virtual Person **product** is parked. Tip keeps generic drop-folder infra only:
 
-1. Copy the Virtual Person pack folder into `%APPDATA%\SamNPlayer\plugins\` (must contain `samn-plugin.json`), **or** Settings → Virtual Person → **Install pack…**
-2. Settings → Virtual Person → **Enable**
-3. Play as usual — Create/Play unchanged
+1. Copy a pack folder into `%APPDATA%\SamNPlayer\plugins\` (must contain `samn-plugin.json`), **or** Settings → Plugins → **Install pack…**
+2. Open Plugins folder from Settings to verify
 
-German steps: [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) · Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
+Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
 
 ---
 
@@ -257,8 +256,8 @@ German steps: [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) · Host c
 | [`docs/GENERATE_HEURISTICS.md`](docs/GENERATE_HEURISTICS.md) | Classical Generate heuristics (knob → code → default) |
 | [`docs/AI_ADAPTER.md`](docs/AI_ADAPTER.md) | AI suggest-only contract |
 | [`docs/KI_TRAINING.md`](docs/KI_TRAINING.md) | Local training / profilemodel |
-| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | Virtual Person host contract + drop-folder load |
-| [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) | Virtual Person — Endnutzer (Deutsch) |
+| [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md) | Plugin drop-folder contract (VP product parked) |
+| [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) | Plugins — Endnutzer (Deutsch) |
 | [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) | Who owns what (agents) |
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate |
 | [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly personal license — **€40 / year** |

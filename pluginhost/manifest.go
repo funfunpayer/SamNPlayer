@@ -19,7 +19,7 @@ const (
 const ManifestFile = "samn-plugin.json"
 
 // Manifest is the on-disk contract for a SamNPlayer plugin pack
-// (Animation Studio / Virtual Person first).
+// (drop-folder asset packs; Virtual Person product is parked).
 type Manifest struct {
 	APIVersion      int           `json:"apiVersion"`
 	ID              string        `json:"id"`

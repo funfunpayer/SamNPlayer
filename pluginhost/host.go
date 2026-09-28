@@ -1,13 +1,11 @@
-// Package pluginhost is the narrow SamNPlayer host surface for Virtual Person
-// plugins (docs/PLUGIN_SYSTEM.md).
+// Package pluginhost is the narrow SamNPlayer host surface for drop-folder
+// plugin packs (docs/PLUGIN_SYSTEM.md).
 //
-// Stage H1: license gate + drop-folder discovery (samn-plugin.json) + playback
-// OnFrame Tick wiring. Package virtualperson holds props/activities/bus
-// (cherry-picked from #264). End users install by copying a pack into the
-// Plugins folder and clicking Enable. No marketplace, no dynamic Go .so, no
-// Everyday CSRT changes. The first plugin id is virtual_person; it requires
-// license.FeatureVirtualPerson when license.Enforcement is on (included in
-// the standard €40 key).
+// Stage H1 (infra): license-aware Slot + drop-folder discovery
+// (samn-plugin.json) + optional OnFrame Tick wiring. Product plugins
+// (Virtual Person / #264) are parked — this package keeps the generic
+// handshake only. No marketplace, no dynamic Go .so, no Everyday CSRT
+// changes.
 package pluginhost
 
 import (
@@ -16,21 +14,22 @@ import (
 	"sync/atomic"
 )
 
-// PluginIDVirtualPerson is the in-process Virtual Person slot.
+// PluginIDVirtualPerson is the reserved pack id for the parked Virtual Person
+// product. Drop-folder discovery accepts any valid manifest id; this constant
+// stays for pack compatibility and tests.
 const PluginIDVirtualPerson = "virtual_person"
 
-// Stage is the host maturity marker (H1 = drop-folder + OnFrame tick + VP core).
+// Stage is the host maturity marker (H1 = drop-folder + optional OnFrame tick).
 const Stage = "H1"
 
-// Host is the narrow surface a Virtual Person plugin may use from SamNPlayer.
-// Names match docs/PLUGIN_SYSTEM.md — implement on the Wails App later.
+// Host is the narrow surface a future in-process plugin may use from SamNPlayer.
+// Names match docs/PLUGIN_SYSTEM.md.
 type Host interface {
 	NowMs() int64
 	EmitAnimation(pose PoseSample)
 }
 
-// PoseSample is a minimal animation snapshot for the frontend event bridge.
-// Expanded fields land with a later virtualperson package; H0 keeps the shape.
+// PoseSample is a minimal animation snapshot for a future frontend event bridge.
 type PoseSample struct {
 	AtMs   int64   `json:"atMs"`
 	Stroke float64 `json:"stroke"`
@@ -38,14 +37,14 @@ type PoseSample struct {
 	Suck   float64 `json:"suck"`
 }
 
-// Status reports the Virtual Person host slot for Settings / API.
+// Status reports a plugin-host slot for Settings / API.
 type Status struct {
-	FeatureID   string `json:"featureId"` // license.FeatureVirtualPerson
-	Allowed     bool   `json:"allowed"`   // EffectiveHasFeature result
+	FeatureID   string `json:"featureId,omitempty"`
+	Allowed     bool   `json:"allowed"`
 	Enabled     bool   `json:"enabled"`
 	Running     bool   `json:"running"`
 	Stage       string `json:"stage"`
-	Ticks       uint64 `json:"ticks"` // OnFrame Tick count while running
+	Ticks       uint64 `json:"ticks"`
 	Message     string `json:"message"`
 	PackID      string `json:"packId,omitempty"`
 	PackName    string `json:"packName,omitempty"`
@@ -55,8 +54,9 @@ type Status struct {
 	PackFound   bool   `json:"packFound"`
 }
 
-// Slot is the single in-process Virtual Person host slot (H1).
+// Slot is a single in-process plugin-host slot (infra).
 // Tick is a no-op when not running so playback stays unaffected.
+// Rel35 ships discovery/install only — product Enable UI is parked.
 type Slot struct {
 	mu         sync.Mutex
 	enabled    bool
@@ -66,9 +66,10 @@ type Slot struct {
 	lastEmit   PoseSample
 	pack       *Pack
 	pluginsDir string
+	featureID  string
 }
 
-// NewSlot returns an idle Virtual Person host slot.
+// NewSlot returns an idle plugin-host slot.
 func NewSlot() *Slot {
 	return &Slot{}
 }
@@ -78,6 +79,13 @@ func (s *Slot) SetPluginsDir(dir string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.pluginsDir = dir
+}
+
+// SetFeatureID overrides the license feature id shown in Status (optional).
+func (s *Slot) SetFeatureID(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.featureID = id
 }
 
 // BindPack attaches a discovered pack (may be nil to clear).
@@ -101,8 +109,12 @@ func (s *Slot) BoundPack() (Pack, bool) {
 func (s *Slot) Status(allowed bool) Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	featureID := s.featureID
+	if featureID == "" && s.pack != nil && s.pack.Manifest.RequiresFeature != "" {
+		featureID = s.pack.Manifest.RequiresFeature
+	}
 	st := Status{
-		FeatureID:  PluginIDVirtualPerson,
+		FeatureID:  featureID,
 		Allowed:    allowed,
 		Enabled:    s.enabled,
 		Running:    s.running,
@@ -119,26 +131,30 @@ func (s *Slot) Status(allowed bool) Status {
 	}
 	switch {
 	case !allowed:
-		st.Message = "License required for Virtual Person (feature virtual_person). Everyday Create stays free."
+		st.Message = "License required for this plugin pack. Everyday Create stays free."
 	case s.running && s.pack != nil:
-		st.Message = fmt.Sprintf("Virtual Person running — pack %s v%s.", s.pack.Manifest.Name, s.pack.Manifest.Version)
+		st.Message = fmt.Sprintf("Plugin host running — pack %s v%s.", s.pack.Manifest.Name, s.pack.Manifest.Version)
 	case s.running:
-		st.Message = "Virtual Person host running (H1 — OnFrame tick + scene bus; no pack bound)."
+		st.Message = "Plugin host running (H1 — OnFrame tick; no pack bound)."
 	case s.enabled:
-		st.Message = "Virtual Person host enabled but not running."
+		st.Message = "Plugin host enabled but not running."
 	case !st.PackFound:
-		st.Message = "No Virtual Person pack found. Drop the pack folder into Plugins, or use Install pack…"
+		st.Message = "No plugin pack found. Drop a pack folder into Plugins, or use Install pack…"
 	default:
-		st.Message = fmt.Sprintf("Pack ready: %s v%s. Click Enable.", s.pack.Manifest.Name, s.pack.Manifest.Version)
+		st.Message = fmt.Sprintf("Pack ready: %s v%s.", s.pack.Manifest.Name, s.pack.Manifest.Version)
 	}
 	return st
 }
 
-// Enable arms the host slot. Fails closed when allowed is false (Enforcement on
-// without virtual_person). Idempotent when already running.
+// Enable arms the host slot. Fails closed when allowed is false.
+// Idempotent when already running. Product Enable UI is parked for Rel35.
 func (s *Slot) Enable(allowed bool) error {
 	if !allowed {
-		return fmt.Errorf("pluginhost: license feature %q required", PluginIDVirtualPerson)
+		id := s.featureID
+		if id == "" {
+			id = "plugin"
+		}
+		return fmt.Errorf("pluginhost: license feature %q required", id)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -167,7 +183,7 @@ func (s *Slot) NowMs() int64 {
 	return s.clockMs.Load()
 }
 
-// EmitAnimation records the last pose (Host surface; no frontend yet in H0).
+// EmitAnimation records the last pose (Host surface).
 func (s *Slot) EmitAnimation(pose PoseSample) {
 	s.mu.Lock()
 	s.lastEmit = pose

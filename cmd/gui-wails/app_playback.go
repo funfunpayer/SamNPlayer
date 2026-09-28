@@ -199,8 +199,6 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
 			"atMs": f.At, "vibration": f.Vibration, "suction": f.Suction, "totalMs": frames[len(frames)-1].At,
 		})
-		// Virtual Person host: no-op when disabled (docs/PLUGIN_SYSTEM.md).
-		a.tickVirtualPersonHost(f.At, f.Vibration, f.Suction)
 	}
 	if opts.UseVideoSync {
 		p.PauseVideo = func() { runtime.EventsEmit(a.ctx, "video:pause") }

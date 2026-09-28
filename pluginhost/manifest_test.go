@@ -8,21 +8,20 @@ import (
 
 func TestLoadManifestAndDiscover(t *testing.T) {
 	root := t.TempDir()
-	packDir := filepath.Join(root, "virtual_person")
+	packDir := filepath.Join(root, "sample_pack")
 	if err := os.MkdirAll(packDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	raw := `{
   "apiVersion": 1,
-  "id": "virtual_person",
-  "name": "Virtual Person",
+  "id": "sample_pack",
+  "name": "Sample Pack",
   "version": "0.1.0",
-  "requiresFeature": "virtual_person",
+  "requiresFeature": "sample_feature",
   "entry": {
     "kind": "asset_pack",
-    "webRoot": "web/vrm-viewer",
-    "assetsRoot": "assets/character-01",
-    "vrmRelative": "assets/character-01/vrm/character-01.vrm"
+    "webRoot": "web",
+    "assetsRoot": "assets"
   }
 }`
 	if err := os.WriteFile(filepath.Join(packDir, ManifestFile), []byte(raw), 0o644); err != nil {
@@ -32,14 +31,14 @@ func TestLoadManifestAndDiscover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.ID != PluginIDVirtualPerson || m.APIVersion != 1 {
+	if m.ID != "sample_pack" || m.APIVersion != 1 {
 		t.Fatalf("manifest %+v", m)
 	}
 	packs, err := DiscoverPacks(root)
 	if err != nil || len(packs) != 1 {
 		t.Fatalf("discover: %v packs=%d", err, len(packs))
 	}
-	got, ok, err := FindPackByID(root, PluginIDVirtualPerson)
+	got, ok, err := FindPackByID(root, "sample_pack")
 	if err != nil || !ok || got.Manifest.Version != "0.1.0" {
 		t.Fatalf("find: ok=%v err=%v got=%+v", ok, err, got)
 	}
@@ -60,8 +59,8 @@ func TestInstallPackDir(t *testing.T) {
 	src := t.TempDir()
 	raw := `{
   "apiVersion": 1,
-  "id": "virtual_person",
-  "name": "Virtual Person",
+  "id": "sample_pack",
+  "name": "Sample Pack",
   "version": "0.2.0",
   "entry": {"kind": "asset_pack", "webRoot": "web"}
 }`
@@ -92,11 +91,11 @@ func TestStatusReflectsPack(t *testing.T) {
 		t.Fatalf("%+v", st)
 	}
 	p := &Pack{
-		Root: "/tmp/plugins/virtual_person",
+		Root: "/tmp/plugins/sample_pack",
 		Manifest: Manifest{
 			APIVersion: 1,
-			ID:         PluginIDVirtualPerson,
-			Name:       "Virtual Person",
+			ID:         "sample_pack",
+			Name:       "Sample Pack",
 			Version:    "0.1.0",
 			Entry:      ManifestEntry{Kind: "asset_pack"},
 		},
