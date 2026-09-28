@@ -99,6 +99,8 @@ export function DisconnectDevice():Promise<main.DeviceStatus>;
 export function GenerateScript(arg1:main.GenerateOptions):Promise<void>;
 export function PreviewPostprocess(arg1:main.PostprocessPreviewRequest):Promise<main.PostprocessPreviewResult>;
 
+export function PreviewContactVibration(arg1:main.ContactVibPreviewRequest):Promise<main.ContactVibPreviewResult>;
+
 export function GetBenchmarkHistory():Promise<Array<generator.BenchmarkResult>>;
 
 export function GetCacheInfo():Promise<main.CacheInfo>;

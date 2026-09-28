@@ -56,6 +56,8 @@ export function DiscardRoiTrainingSample(arg1, arg2, arg3) { return window['go']
 export function DisconnectDevice() { return window['go']['main']['App']['DisconnectDevice'](); }
 export function GenerateScript(arg1) { return window['go']['main']['App']['GenerateScript'](arg1); }
 export function PreviewPostprocess(arg1) { return window['go']['main']['App']['PreviewPostprocess'](arg1); }
+
+export function PreviewContactVibration(arg1) { return window['go']['main']['App']['PreviewContactVibration'](arg1); }
 export function GetBenchmarkHistory() { return window['go']['main']['App']['GetBenchmarkHistory'](); }
 export function GetCacheInfo() { return window['go']['main']['App']['GetCacheInfo'](); }
 export function GetDeviceStatus() { return window['go']['main']['App']['GetDeviceStatus'](); }

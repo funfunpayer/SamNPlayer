@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -234,6 +234,15 @@ export function initGenerator(root, playback) {
               <option value="peak">Stronger peak</option>
               <option value="impulse">Impulse (peaks only, experiment)</option>
             </select>
+          </div>
+          <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
+            <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+              <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+              <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+            </svg>
+            <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
+              Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+            </p>
           </div>
         </div>
       </div>
@@ -1630,6 +1639,58 @@ export function initGenerator(root, playback) {
     if (v <= 50) label.textContent = 'earlier';
     else if (v >= 85) label.textContent = 'deep only';
     else label.textContent = (v / 100).toFixed(2);
+  }
+
+  let contactVibPreviewTimer = 0;
+  async function refreshContactVibPreview() {
+    const out = el('#gen-contact-vib-preview');
+    const vibPoly = el('#gen-contact-vib-poly');
+    const strokePoly = el('#gen-contact-vib-stroke');
+    const probe = el('#gen-contact-vib-probe');
+    if (!out || !probe) return;
+    if (!el('#gen-contact-vibration')?.checked) {
+      probe.hidden = true;
+      return;
+    }
+    probe.hidden = false;
+    const spanPct = parseInt(el('#gen-contact-span')?.value, 10) || 75;
+    const curve = el('#gen-contact-curve')?.value || 'soft';
+    try {
+      const res = await PreviewContactVibration({
+        span: spanPct / 100,
+        curve,
+      });
+      out.textContent = res.hint || res.Hint || 'Feel probe';
+      const sample = res.sample || res.Sample || [];
+      const w = 320;
+      const h = 72;
+      const pad = 4;
+      if (Array.isArray(sample) && sample.length >= 2) {
+        const t0 = Number(sample[0].atMs ?? sample[0].AtMs ?? 0);
+        const t1 = Number(sample[sample.length - 1].atMs ?? sample[sample.length - 1].AtMs ?? 1);
+        const span = Math.max(1, t1 - t0);
+        const toPts = (key, Key) => sample.map((p) => {
+          const t = Number(p.atMs ?? p.AtMs ?? 0);
+          const pos = Math.max(0, Math.min(100, Number(p[key] ?? p[Key] ?? 0)));
+          const x = pad + ((t - t0) / span) * (w - 2 * pad);
+          const y = pad + (1 - pos / 100) * (h - 2 * pad);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        if (strokePoly) strokePoly.setAttribute('points', toPts('stroke', 'Stroke'));
+        if (vibPoly) vibPoly.setAttribute('points', toPts('vib', 'Vib'));
+      } else {
+        if (strokePoly) strokePoly.setAttribute('points', '');
+        if (vibPoly) vibPoly.setAttribute('points', '');
+      }
+    } catch (err) {
+      out.textContent = 'Feel probe unavailable: ' + err;
+      if (strokePoly) strokePoly.setAttribute('points', '');
+      if (vibPoly) vibPoly.setAttribute('points', '');
+    }
+  }
+  function scheduleContactVibPreview() {
+    clearTimeout(contactVibPreviewTimer);
+    contactVibPreviewTimer = setTimeout(refreshContactVibPreview, 160);
   }
 
   function updateProfileUi() {
@@ -3985,13 +4046,21 @@ export function initGenerator(root, playback) {
     } else if (curve.value === 'impulse') {
       curve.value = 'soft';
     }
+    scheduleContactVibPreview();
   });
   el('#gen-contact-curve').addEventListener('change', () => {
     el('#gen-contact-curve').dataset.userTouched = '1';
     const impulse = el('#gen-contact-impulse');
     if (impulse) impulse.checked = el('#gen-contact-curve').value === 'impulse';
+    scheduleContactVibPreview();
   });
-  el('#gen-contact-span').addEventListener('input', updateContactSpanLabel);
+  el('#gen-contact-span').addEventListener('input', () => {
+    updateContactSpanLabel();
+    scheduleContactVibPreview();
+  });
+  el('#gen-contact-vibration')?.addEventListener('change', scheduleContactVibPreview);
+  // Initial probe when Feel panel is shown with Contact vib on.
+  scheduleContactVibPreview();
   updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', () => {
     el('#gen-backend').dataset.userTouched = '1';

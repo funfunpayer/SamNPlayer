@@ -1167,6 +1167,38 @@ export namespace main {
 	        this.maxSpeed = source["maxSpeed"];
 	    }
 	}
+	export class ContactVibPreviewRequest {
+	    span: number;
+	    curve: string;
+
+	    static createFrom(source: any = {}) {
+	        return new ContactVibPreviewRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.span = source["span"];
+	        this.curve = source["curve"];
+	    }
+	}
+	export class ContactVibPreviewResult {
+	    sample: any[];
+	    hint: string;
+	    peakVib: number;
+	    activePct: number;
+
+	    static createFrom(source: any = {}) {
+	        return new ContactVibPreviewResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sample = source["sample"];
+	        this.hint = source["hint"];
+	        this.peakVib = source["peakVib"];
+	        this.activePct = source["activePct"];
+	    }
+	}
 	export class PostprocessPreviewResult {
 	    keyframeCount: number;
 	    peakCount: number;

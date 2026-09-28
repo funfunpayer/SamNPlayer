@@ -6,7 +6,8 @@ const SECTIONS = [
     title: 'Everyday Create (recommended)',
     body: `1. Open Create → choose a video.
 2. Find tip area (or paint the box). Optional: Smarter tip find if an AI ROI model is set in Settings.
-3. Leave Contact vibration on. Optionally mark nipples/mouth for feel later.
+3. Leave Contact vibration on (Feel: Sensitivity / Curve show a live vib probe).
+   Optionally mark nipples/mouth for feel later.
 4. Click Create / Generate.
 5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check
    (Speech-Hold / Feel segment strip + optional chapters).
