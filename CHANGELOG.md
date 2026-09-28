@@ -8,15 +8,7 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
-### Changed
-
-- **Virtual Person product scrubbed (parked for Rel35)** — removed in-process
-  `virtualperson/` core, Settings Enable/Disable/Give/Titjob, playback OnFrame
-  host tick, and VP-named Wails APIs. Kept generic `pluginhost/` drop-folder
-  discover/install (`PluginsDir`, `ListInstalledPlugins`, `InstallPluginPack`,
-  `OpenPluginsFolder`) and a Settings → Plugins section without product host
-  controls. License feature `virtual_person` remains stamped for key
-  compatibility. Everyday CSRT / Scene2 / Accept-Reject / Check AI unchanged.
+## [0.5.35] — September 28, 2026
 
 ### Added
 
@@ -135,6 +127,14 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Virtual Person product scrubbed (parked for Rel35)** — removed in-process
+  `virtualperson/` core, Settings Enable/Disable/Give/Titjob, playback OnFrame
+  host tick, and VP-named Wails APIs. Kept generic `pluginhost/` drop-folder
+  discover/install and a Settings → Plugins section without product host
+  controls. License feature `virtual_person` remains stamped for key
+  compatibility. Everyday CSRT / Scene2 / Accept-Reject / Check AI unchanged
+  (#341).
+
 - **Handbook + LOCAL_MODEL for #328 GUI paths** — in-app FAQ / USER_HANDBOOK /
   LOCAL_MODEL_SETUP document Generate contact points, Accept/Reject
   `author:auto`, Import candidates, and Settings Check AI setup / Install
@@ -146,6 +146,12 @@ measurement history behind each entry; this file is the short version for
   change.
 
 ### Fixed
+
+- **Everyday Go CSRT when PerScene would force Python** — on OpenCV-linked
+  builds, soft-ignore sticky **Re-find region after each cut** (`PerSceneROI`)
+  instead of falling through to system OpenCV 5 / MIL. Stroke preview no longer
+  steers PerScene on Go CSRT builds; clearer path-skip / Python-CSRT probe
+  messages (#338 / #339).
 
 - **`--contact-vibration-curve impulse` argparse** — GUI/Go already passed
   `impulse` (Advanced peak-emphasis / #279), and `tf_tj_meta` / Play mapper
