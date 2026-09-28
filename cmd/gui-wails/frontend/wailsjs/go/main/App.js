@@ -123,6 +123,10 @@ export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App'
 export function ScoreScriptPair(arg1, arg2, arg3) { return window['go']['main']['App']['ScoreScriptPair'](arg1, arg2, arg3); }
 export function AppendBenchmarkPairLabel(arg1) { return window['go']['main']['App']['AppendBenchmarkPairLabel'](arg1); }
 export function SuggestBenchmarkPairBesideVideo(arg1) { return window['go']['main']['App']['SuggestBenchmarkPairBesideVideo'](arg1); }
+export function ExportBenchmarkClip(arg1) { return window['go']['main']['App']['ExportBenchmarkClip'](arg1); }
+export function ParseBenchmarkClipTime(arg1) { return window['go']['main']['App']['ParseBenchmarkClipTime'](arg1); }
+export function PickBenchmarkClipOutput(arg1) { return window['go']['main']['App']['PickBenchmarkClipOutput'](arg1); }
+export function SuggestBenchmarkClipOutput(arg1, arg2, arg3) { return window['go']['main']['App']['SuggestBenchmarkClipOutput'](arg1, arg2, arg3); }
 export function RunRoiModelTraining(arg1, arg2) { return window['go']['main']['App']['RunRoiModelTraining'](arg1, arg2); }
 export function SaveMarker(arg1, arg2, arg3) { return window['go']['main']['App']['SaveMarker'](arg1, arg2, arg3); }
 export function SaveOMarkers(arg1, arg2) { return window['go']['main']['App']['SaveOMarkers'](arg1, arg2); }

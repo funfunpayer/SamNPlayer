@@ -209,6 +209,14 @@ export function AppendBenchmarkPairLabel(arg1:funscript.PairScore):Promise<strin
 
 export function SuggestBenchmarkPairBesideVideo(arg1:string):Promise<main.BenchmarkPairSuggestion>;
 
+export function ExportBenchmarkClip(arg1:main.BenchmarkClipExportRequest):Promise<main.BenchmarkClipExportResult>;
+
+export function ParseBenchmarkClipTime(arg1:string):Promise<number>;
+
+export function PickBenchmarkClipOutput(arg1:string):Promise<string>;
+
+export function SuggestBenchmarkClipOutput(arg1:string,arg2:string,arg3:string):Promise<string>;
+
 export function RunRoiModelTraining(arg1:number,arg2:string):Promise<void>;
 
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;

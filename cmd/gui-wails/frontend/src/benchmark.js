@@ -1,4 +1,8 @@
-import { RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile, ScoreScriptPair, AppendBenchmarkPairLabel, SuggestBenchmarkPairBesideVideo } from '../wailsjs/go/main/App';
+import {
+  RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile,
+  ScoreScriptPair, AppendBenchmarkPairLabel, SuggestBenchmarkPairBesideVideo,
+  ExportBenchmarkClip, PickBenchmarkClipOutput, SuggestBenchmarkClipOutput, ParseBenchmarkClipTime,
+} from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
@@ -105,21 +109,51 @@ export function initBenchmark(root) {
     </p>
 
     <details id="bm-clip-prep" class="bm-clip-prep" open>
-      <summary style="cursor:pointer;">Clip-Prep (scripts — light UI)</summary>
+      <summary style="cursor:pointer;">Clip-Prep — In/Out cutter</summary>
       <p class="hint" style="margin:8px 0 6px 0;">
-        Not Everyday Create. Cut 20–60&nbsp;s clips at ~720p (1280-wide) with ffmpeg.
-        Full guide: repo <code>docs/owner/benchmark-clip-prep.md</code> ·
-        <code>scripts/benchmark-prep/README.md</code>.
+        Not Everyday Create. Set In/Out, export a short ~720p (1280-wide) clip via ffmpeg
+        (same defaults as <code>scripts/benchmark-prep/</code>). Guide:
+        <code>docs/owner/benchmark-clip-prep.md</code>.
       </p>
-      <pre id="bm-clip-prep-cmd" class="hint" style="white-space:pre-wrap;margin:0 0 8px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">./scripts/benchmark-prep/cut_clip.sh \
+      <div class="field-row"><label>Source</label>
+        <input type="text" id="bm-clip-src" placeholder="Long source video" style="flex:1" />
+        <button id="bm-clip-pick-src" type="button">Browse…</button>
+      </div>
+      <div class="field-row"><label>In</label>
+        <input type="text" id="bm-clip-in" placeholder="01:20 or seconds" style="width:9em" />
+        <label style="margin-left:8px;">Out</label>
+        <input type="text" id="bm-clip-out-t" placeholder="02:05 or seconds" style="width:9em" />
+        <label style="margin-left:8px;">Width</label>
+        <select id="bm-clip-preset" style="min-width:7em;">
+          <option value="720p" selected>720p (1280)</option>
+          <option value="960w">960w</option>
+          <option value="1080p">1080p (1920)</option>
+        </select>
+      </div>
+      <div class="field-row"><label>Save as</label>
+        <input type="text" id="bm-clip-dst" placeholder="Output .mp4 path" style="flex:1" />
+        <button id="bm-clip-pick-dst" type="button">Browse…</button>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;">
+        <label class="hint" style="margin:0;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="bm-clip-no-audio" /> No audio
+        </label>
+        <button type="button" id="bm-clip-export" class="primary" disabled>Export clip</button>
+        <button type="button" id="bm-clip-use-compare" class="secondary" disabled>Use in Compare</button>
+        <span class="hint" id="bm-clip-export-status" style="margin:0;"></span>
+      </div>
+      <details id="bm-clip-prep-scripts" style="margin-top:10px;">
+        <summary class="hint" style="cursor:pointer;">Script / copy-paste fallback</summary>
+        <pre id="bm-clip-prep-cmd" class="hint" style="white-space:pre-wrap;margin:8px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">./scripts/benchmark-prep/cut_clip.sh \
   -i /path/long.mp4 \
   --start 01:20 --end 02:05 \
   -o ~/clips/hub_easy.mp4</pre>
-      <div class="row" style="flex-wrap:wrap;gap:8px;">
-        <button type="button" id="bm-clip-prep-copy" class="secondary">Copy command</button>
-        <button type="button" id="bm-clip-prep-batch" class="secondary">Show batch (marks.json)</button>
-        <span class="hint" id="bm-clip-prep-status" style="margin:0;"></span>
-      </div>
+        <div class="row" style="flex-wrap:wrap;gap:8px;">
+          <button type="button" id="bm-clip-prep-copy" class="secondary">Copy command</button>
+          <button type="button" id="bm-clip-prep-batch" class="secondary">Show batch (marks.json)</button>
+          <span class="hint" id="bm-clip-prep-status" style="margin:0;"></span>
+        </div>
+      </details>
     </details>
 
     <h3>Compare scripts</h3>
@@ -393,6 +427,136 @@ export function initBenchmark(root) {
   --marks ~/clips/marks.json \\
   --out-dir ~/clips/out`;
 
+  let clipSrc = '';
+  let clipDst = '';
+  let clipDstAuto = true;
+  let lastExported = '';
+
+  function updateClipExportEnabled() {
+    const ready = !!(clipSrc && clipDst
+      && (el('#bm-clip-in')?.value || '').trim()
+      && (el('#bm-clip-out-t')?.value || '').trim());
+    if (el('#bm-clip-export')) el('#bm-clip-export').disabled = !ready;
+    if (el('#bm-clip-use-compare')) el('#bm-clip-use-compare').disabled = !lastExported;
+  }
+
+  async function refreshSuggestedClipDst() {
+    if (!clipSrc || !clipDstAuto) {
+      updateClipExportEnabled();
+      return;
+    }
+    const start = (el('#bm-clip-in')?.value || '').trim() || '0';
+    const end = (el('#bm-clip-out-t')?.value || '').trim() || 'end';
+    try {
+      const sug = await SuggestBenchmarkClipOutput(clipSrc, start, end);
+      if (sug) {
+        clipDst = sug;
+        if (el('#bm-clip-dst')) el('#bm-clip-dst').value = sug;
+      }
+    } catch (_) { /* optional */ }
+    updateClipExportEnabled();
+  }
+
+  el('#bm-clip-pick-src')?.addEventListener('click', async () => {
+    try {
+      const path = await PickVideoFile();
+      if (!path) return;
+      clipSrc = path;
+      clipDst = '';
+      clipDstAuto = true;
+      lastExported = '';
+      if (el('#bm-clip-src')) el('#bm-clip-src').value = path;
+      if (el('#bm-clip-dst')) el('#bm-clip-dst').value = '';
+      if (el('#bm-clip-export-status')) el('#bm-clip-export-status').textContent = '';
+      await refreshSuggestedClipDst();
+    } catch (err) {
+      uiError('Choose source: ' + err, el('#bm-clip-export-status'));
+    }
+  });
+  el('#bm-clip-pick-dst')?.addEventListener('click', async () => {
+    try {
+      const start = (el('#bm-clip-in')?.value || '').trim() || '0';
+      const end = (el('#bm-clip-out-t')?.value || '').trim() || 'end';
+      let suggested = (el('#bm-clip-dst')?.value || '').trim();
+      if (!suggested && clipSrc) {
+        suggested = await SuggestBenchmarkClipOutput(clipSrc, start, end);
+      }
+      const path = await PickBenchmarkClipOutput(suggested || 'bench_clip.mp4');
+      if (!path) return;
+      clipDst = path;
+      clipDstAuto = false;
+      if (el('#bm-clip-dst')) el('#bm-clip-dst').value = path;
+      updateClipExportEnabled();
+    } catch (err) {
+      uiError('Choose output: ' + err, el('#bm-clip-export-status'));
+    }
+  });
+  el('#bm-clip-src')?.addEventListener('change', async e => {
+    clipSrc = e.target.value.trim();
+    clipDst = '';
+    clipDstAuto = true;
+    lastExported = '';
+    if (el('#bm-clip-dst')) el('#bm-clip-dst').value = '';
+    await refreshSuggestedClipDst();
+  });
+  el('#bm-clip-dst')?.addEventListener('change', e => {
+    clipDst = e.target.value.trim();
+    clipDstAuto = !clipDst;
+    updateClipExportEnabled();
+  });
+  el('#bm-clip-in')?.addEventListener('change', () => { refreshSuggestedClipDst(); });
+  el('#bm-clip-out-t')?.addEventListener('change', () => { refreshSuggestedClipDst(); });
+  el('#bm-clip-in')?.addEventListener('input', updateClipExportEnabled);
+  el('#bm-clip-out-t')?.addEventListener('input', updateClipExportEnabled);
+
+  el('#bm-clip-export')?.addEventListener('click', async () => {
+    const start = (el('#bm-clip-in')?.value || '').trim();
+    const end = (el('#bm-clip-out-t')?.value || '').trim();
+    clipSrc = (el('#bm-clip-src')?.value || '').trim();
+    clipDst = (el('#bm-clip-dst')?.value || '').trim();
+    if (!clipSrc || !clipDst || !start || !end) return;
+    try {
+      await ParseBenchmarkClipTime(start);
+      await ParseBenchmarkClipTime(end);
+    } catch (err) {
+      uiError('In/Out time: ' + err, el('#bm-clip-export-status'));
+      return;
+    }
+    el('#bm-clip-export').disabled = true;
+    if (el('#bm-clip-export-status')) el('#bm-clip-export-status').textContent = 'Exporting…';
+    try {
+      const res = await ExportBenchmarkClip({
+        source: clipSrc,
+        output: clipDst,
+        start,
+        end,
+        presetRes: el('#bm-clip-preset')?.value || '720p',
+        noAudio: !!(el('#bm-clip-no-audio')?.checked),
+      });
+      lastExported = res?.output || res?.Output || clipDst;
+      const dur = res?.durationSec ?? res?.DurationSec;
+      const maxW = res?.maxWidth ?? res?.MaxWidth;
+      if (el('#bm-clip-export-status')) {
+        el('#bm-clip-export-status').textContent =
+          `Done · ${typeof dur === 'number' ? dur.toFixed(1) + 's' : ''} @ max ${maxW || '?'}w → ${lastExported}`;
+      }
+    } catch (err) {
+      lastExported = '';
+      uiError('Export failed: ' + err, el('#bm-clip-export-status'));
+    }
+    updateClipExportEnabled();
+  });
+
+  el('#bm-clip-use-compare')?.addEventListener('click', () => {
+    if (!lastExported) return;
+    videoPath = lastExported;
+    if (el('#bm-video')) el('#bm-video').value = lastExported;
+    updateScoreEnabled();
+    if (el('#bm-clip-export-status')) {
+      el('#bm-clip-export-status').textContent = 'Filled Compare video — Suggest beside video next.';
+    }
+  });
+
   el('#bm-clip-prep-copy')?.addEventListener('click', async () => {
     const text = el('#bm-clip-prep-cmd')?.textContent || SINGLE_CMD;
     try {
@@ -417,4 +581,5 @@ export function initBenchmark(root) {
       el('#bm-clip-prep-status').textContent = 'Batch mode — fill example_marks.json fields first.';
     }
   });
+  updateClipExportEnabled();
 }
