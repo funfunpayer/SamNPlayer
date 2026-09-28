@@ -330,6 +330,12 @@ body {
   background: color-mix(in srgb, var(--teal) 18%, var(--panel, #141a24));
   border-bottom: 1px solid var(--border);
 }
+.update-banner-notes {
+  flex: 1 1 12rem;
+  min-width: 0;
+  opacity: 0.85;
+  font-size: 12px;
+}
 .update-banner button {
   font-size: 12px;
 }

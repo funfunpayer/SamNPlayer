@@ -1,6 +1,7 @@
 package update
 
 import (
+	"encoding/json"
 	"runtime"
 	"strings"
 	"testing"
@@ -73,5 +74,56 @@ func TestValidateGitHubAssetURL(t *testing.T) {
 	}
 	if err := validateGitHubAssetURL("https://evil.example/x"); err == nil {
 		t.Fatal("expected reject non-github host")
+	}
+}
+
+func TestChangelogSummary(t *testing.T) {
+	if ChangelogSummary("", 100) != "" {
+		t.Fatal("empty body")
+	}
+	body := "## What's Changed\n* fix(gui): boxes by @x in https://example.com/1\n\n**Full Changelog**: https://example.com/c"
+	got := ChangelogSummary(body, 200)
+	if !strings.Contains(got, "fix(gui): boxes") {
+		t.Fatalf("summary missing content: %q", got)
+	}
+	if strings.Contains(got, "##") {
+		t.Fatalf("summary kept heading marks: %q", got)
+	}
+	long := strings.Repeat("word ", 200)
+	short := ChangelogSummary(long, 40)
+	if len([]rune(short)) > 40 {
+		t.Fatalf("not truncated: %q", short)
+	}
+}
+
+func TestWindowsApplyBatch(t *testing.T) {
+	bat := windowsApplyBatch(4242, `C:\Temp\new.exe`, `C:\App\SamNPlayer.exe`)
+	for _, want := range []string{
+		"4242",
+		`move /Y "C:\Temp\new.exe" "C:\App\SamNPlayer.exe"`,
+		`start "" "C:\App\SamNPlayer.exe"`,
+		`del "%~f0"`,
+	} {
+		if !strings.Contains(bat, want) {
+			t.Fatalf("batch missing %q in:\n%s", want, bat)
+		}
+	}
+	// Must not be a one-liner passed through cmd /C (quote-mangling bug).
+	if strings.Count(bat, "\r\n") < 5 {
+		t.Fatalf("expected multi-line .cmd, got:\n%s", bat)
+	}
+}
+
+func TestReleaseBodyJSON(t *testing.T) {
+	const raw = `{"tag_name":"v0.5.37","html_url":"https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.37","body":"## Notes\n* hello","assets":[]}`
+	var rel Release
+	if err := json.Unmarshal([]byte(raw), &rel); err != nil {
+		t.Fatal(err)
+	}
+	if rel.TagName != "v0.5.37" || rel.Body == "" || !strings.Contains(rel.Body, "hello") {
+		t.Fatalf("unexpected release: %+v", rel)
+	}
+	if sum := ChangelogSummary(rel.Body, 80); !strings.Contains(sum, "hello") {
+		t.Fatalf("summary=%q", sum)
 	}
 }

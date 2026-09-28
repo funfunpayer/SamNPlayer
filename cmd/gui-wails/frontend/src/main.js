@@ -2,6 +2,7 @@ import './style.css';
 import './help.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, ApplyUpdate, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
+import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 import { initPlayback } from './playback.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
@@ -196,25 +197,41 @@ CurrentVersion().then(v => {
 // Silent startup update check: never alert()/confirm(), never toast.
 // Errors stay in the Log tab only; offer an in-app banner when a newer
 // release is actually available. Manual check lives in Settings.
-function showUpdateBanner(tag) {
+function showUpdateBanner(tag, notes) {
   if (document.getElementById('update-banner')) return;
   const bar = document.createElement('div');
   bar.id = 'update-banner';
   bar.className = 'update-banner';
   bar.setAttribute('role', 'status');
-  bar.innerHTML = `<span>Update ${tag} available (you have ${currentVersion}).</span>
+  const noteHtml = notes
+    ? `<span class="update-banner-notes">${escapeHtml(notes)}</span>`
+    : '';
+  bar.innerHTML = `<span>Update ${escapeHtml(tag)} available (you have ${escapeHtml(currentVersion)}).</span>
+    ${noteHtml}
     <button type="button" id="update-banner-apply" class="primary">Download &amp; restart</button>
     <button type="button" id="update-banner-dismiss">Later</button>`;
   const host = document.getElementById('topbar') || document.getElementById('app');
   host?.prepend(bar);
   bar.querySelector('#update-banner-apply')?.addEventListener('click', () => {
-    bar.querySelector('#update-banner-apply').disabled = true;
+    const btn = bar.querySelector('#update-banner-apply');
+    btn.disabled = true;
+    btn.textContent = 'Downloading…';
     ApplyUpdate().catch(err => {
-      uiError('Update failed: ' + err);
-      bar.querySelector('#update-banner-apply').disabled = false;
+      // Successful apply calls os.Exit — window closes. A reject here is real.
+      uiError('Update failed: ' + formatUpdateError(err));
+      btn.disabled = false;
+      btn.textContent = 'Download & restart';
     });
   });
   bar.querySelector('#update-banner-dismiss')?.addEventListener('click', () => bar.remove());
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 GetSettings().then(s => {
@@ -226,9 +243,9 @@ GetSettings().then(s => {
       return;
     }
     if (!res.available) return;
-    const tag = res.release ? res.release.tag_name : '?';
-    showUpdateBanner(tag);
-  }).catch(err => uiLog('WARN', 'Update check on startup: ' + err));
+    const tag = releaseTag(res.release);
+    showUpdateBanner(tag, releaseNotesPreview(res.release));
+  }).catch(err => uiLog('WARN', 'Update check on startup: ' + formatUpdateError(err)));
 });
 
 

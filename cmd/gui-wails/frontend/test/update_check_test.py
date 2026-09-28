@@ -59,15 +59,19 @@ def main():
 
         # Update verfügbar (Dialog wird oben dismissed statt akzeptiert).
         page.evaluate(
-            "window.__updateResult = { available: true, release: { tag_name: 'v0.4.0' } }")
+            "window.__updateResult = { available: true, release: { tag_name: 'v0.4.0', body: '## Notes\\n* fixed boxes' } }")
         page.click("#st-update-now")
         page.wait_for_function(
             "document.querySelector('#st-update-status').textContent.includes('v0.4.0')",
             timeout=5000)
-        check("Update verfügbar: neue Version im Hinweis",
-              "v0.4.0" in page.locator("#st-update-status").inner_text())
+        status = page.locator("#st-update-status").inner_text()
+        check("Update verfügbar: neue Version im Hinweis", "v0.4.0" in status)
+        check("Update verfügbar: Changelog-Preview im Hinweis", "fixed boxes" in status)
+        check("Update verfügbar: Apply-Knopf sichtbar",
+              page.locator("#st-update-apply").is_visible())
 
         # Fehler bei der Prüfung darf NICHT stillschweigend verschwinden.
+        # Auch Slash-only-Müll darf nicht unverändert in der UI landen.
         page.evaluate("window.__updateResult = { error: 'kein Netz' }")
         page.click("#st-update-now")
         page.wait_for_function(
@@ -75,6 +79,15 @@ def main():
             timeout=5000)
         check("Fehler bei der Prüfung wird angezeigt, nicht verschluckt",
               "kein Netz" in page.locator("#st-update-status").inner_text())
+
+        page.evaluate("window.__updateResult = { error: '//' }")
+        page.click("#st-update-now")
+        page.wait_for_function(
+            "document.querySelector('#st-update-status').textContent.length > 0",
+            timeout=5000)
+        slash_txt = page.locator("#st-update-status").inner_text()
+        check("Slash-only Fehler wird nicht roh als '//' gezeigt",
+              "//" not in slash_txt or "unknown" in slash_txt.lower(), slash_txt)
 
         browser.close()
 
