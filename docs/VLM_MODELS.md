@@ -16,14 +16,16 @@ video ─► teacher(s) ─► contact_points.py ─► <clip>.contact.json
                     ┌─────────────────────────┴─────────────────────────┐
                     │ CLI: generate --rhythm-grid --contact-points …    │
                     │ GUI: Create → Advanced → Rhythm-robust →          │
-                    │      Use contact points → Choose JSON             │
+                    │      Generate contact points (or Choose JSON) →  │
+                    │      Use contact points                          │
                     └─────────────────────────┬─────────────────────────┘
                                               │
         rhythm grid searches around the contact point only where the CSRT
         box is > 3 cells away (its own search radius) — elsewhere unchanged
 ```
 
-Build the JSON via CLI; the GUI only picks the path (handbook FAQ).
+Build the JSON via **Generate contact points** in Create → Advanced (teacher
+checkboxes) or CLI; then enable **Use contact points** (handbook FAQ).
 
 - `contact_points.py --nudenet --vlm a.vlm.json --vlm b.vlm.json` asks
   several teachers per video (the Owner's idea).
