@@ -26,6 +26,7 @@ def main():
         "GetSettings": "async () => ({})",
         "GetBenchmarkHistory": "async () => []",
         "PickVideoFile": "async () => '/tmp/clip.mp4'",
+        "SuggestBenchmarkPairBesideVideo": "async () => ({})",
         "PickFunscriptFile": (
             "async () => { "
             "window.__pickN = (window.__pickN || 0) + 1; "

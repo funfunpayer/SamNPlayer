@@ -759,6 +759,29 @@ export namespace generator {
 
 export namespace main {
 
+	export class BenchmarkPairSuggestion {
+	    video: string;
+	    reference?: string;
+	    candidate?: string;
+	    references?: string[];
+	    candidates?: string[];
+	    note?: string;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkPairSuggestion(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.video = source["video"];
+	        this.reference = source["reference"];
+	        this.candidate = source["candidate"];
+	        this.references = source["references"];
+	        this.candidates = source["candidates"];
+	        this.note = source["note"];
+	    }
+	}
+
 	export class SceneProposalLoad {
 	    found: boolean;
 	    path: string;

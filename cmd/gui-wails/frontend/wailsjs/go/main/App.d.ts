@@ -207,6 +207,8 @@ export function ScoreScriptPair(arg1:string,arg2:string,arg3:string):Promise<fun
 
 export function AppendBenchmarkPairLabel(arg1:funscript.PairScore):Promise<string>;
 
+export function SuggestBenchmarkPairBesideVideo(arg1:string):Promise<main.BenchmarkPairSuggestion>;
+
 export function RunRoiModelTraining(arg1:number,arg2:string):Promise<void>;
 
 export function SaveMarker(arg1:string,arg2:number,arg3:number):Promise<void>;
