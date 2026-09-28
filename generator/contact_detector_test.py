@@ -21,7 +21,8 @@ import contact_points as cp  # noqa: E402
 
 def make_clip(root, name, classes, labels):
     """P5c layout: <root>/<name>/reviewed_yolo/{images,labels,classes.json}.
-    labels: list of (class_id, cx, cy, w, h) per frame."""
+    labels: one (class_id, cx, cy, w, h) or a list of them per frame (#326
+    writes every reviewed box of one timestamp into one label file)."""
     d = os.path.join(root, name, "reviewed_yolo")
     os.makedirs(os.path.join(d, "images"))
     os.makedirs(os.path.join(d, "labels"))
@@ -31,7 +32,8 @@ def make_clip(root, name, classes, labels):
         stem = "mark_%04d_%d" % (i, i * 1000)
         cv2.imwrite(os.path.join(d, "images", stem + ".png"), np.zeros((36, 64, 3), np.uint8))
         with open(os.path.join(d, "labels", stem + ".txt"), "w") as f:
-            f.write("%d %.3f %.3f %.3f %.3f\n" % row)
+            for r in (row if isinstance(row, list) else [row]):
+                f.write("%d %.3f %.3f %.3f %.3f\n" % r)
     return d
 
 
@@ -65,6 +67,19 @@ class DatasetTest(unittest.TestCase):
             self.assertIn("nc: 2", y)
             self.assertIn("  - contact\n  - glans\n", y)
             self.assertIn("val: valid/images", y)
+
+    def test_multi_box_frame_keeps_every_box(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = os.path.join(t, "scene_map_learning")
+            make_clip(root, "a", ["glans", "contact"],
+                      [[(1, .5, .5, .2, .2), (0, .3, .4, .1, .1)]] * 4)
+            out = os.path.join(t, "ds")
+            info = cd.build_dataset([root], out, log=lambda *_: None)
+            self.assertEqual(sum(info["images"].values()), 4)
+            for s in ("train", "valid"):
+                for fn in os.listdir(os.path.join(out, s, "labels")):
+                    with open(os.path.join(out, s, "labels", fn)) as f:
+                        self.assertEqual(sorted(ln.split()[0] for ln in f), ["0", "1"])
 
     def test_class_filter_and_frame_split_for_few_clips(self):
         with tempfile.TemporaryDirectory() as t:
