@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: adjustable Speed-highlight threshold** — OFS “too fast” curve bands
+  use a live HL slider (150–800, default 400) plus a show/hide toggle.
+  Display only — separate from Speed-cap edit; Create defaults unchanged.
+
 - **Play: BPM / tempo grid overlay** — optional beat lines on the Play curve
   from a BPM field or `audio_check` tempo (Hz×60). Display only — no snap /
   stroke rewrite. Everyday CSRT defaults unchanged.

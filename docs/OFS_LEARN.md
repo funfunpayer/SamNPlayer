@@ -12,7 +12,7 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | Intensity `500 × \|Δpos\| / \|Δt\|` | `funscript/device_compat.go` |
 | Curve edit | Wiedergabe + `app_editor.go` |
 | Heatmap / auto chapters / bookmarks UI | Player + `motionx` |
-| Max-speed highlights on curve | `funscript.SpeedHighlights` |
+| Max-speed highlights on curve | `funscript.SpeedHighlights` + Play **HL** slider / show toggle (`GetSpeedHighlights`) |
 | Chapters/bookmarks in `.funscript` metadata | `funscript/bookmarks.go` |
 | Heatmap PNG export (+ chapter ticks) | `funscript.ExportHeatmapPNG` / `ExportScriptHeatmapPNG` |
 | Project sidecar `.snp.json` | `funscript/project.go` / Save + **Load** in Play (`SavePlaybackProject` / `LoadPlaybackProject` / `PickPlaybackProject`) |
