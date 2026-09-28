@@ -10,6 +10,14 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Apply AI setup automatically (opt-in, Owner decision)** — Go
+  `ApplySceneProposal` and `generate --scene-proposals FILE --scene-apply`
+  fill an empty ROI / ROI2 / region classes from the scene-roles proposal:
+  the moving part as the primary stroke target, its contact partner as ROI2
+  (tracked). Default off; every applied or skipped value is logged; user
+  values always win; never with a Tf/Tj distance profile (ROI2 would switch
+  the curve to two-point tracking). GUI setting pending (Cursor).
+
 - **Scene2 proposals in Create (GUI)** — Step 2 loads `<clip>.scene.json`
   (`LoadSceneProposals` + `.At(ms)`): scene-type chip, **Apply as Tip** for the
   primary ROI (+ canonical region class), optional **Apply as contact** for the
@@ -23,7 +31,7 @@ measurement history behind each entry; this file is the short version for
   (`<clip>.scene.json`), plus contact points from the moving part
   (confidence ≥ 0.5). Go `LoadSceneProposals`; `generate --scene-proposals`
   uses the proposed primary as ROI only when `--roi` is not given (logged;
-  the partner is never applied as ROI2). Multi-person clip r 0.304 → 0.440,
+  the partner only with `--scene-apply`, see above). Multi-person clip r 0.304 → 0.440,
   goldens unchanged. No default change.
 
 - **VLM clip mode (video input)** — `vlm_probe.py --clip N --clip-span-s S`

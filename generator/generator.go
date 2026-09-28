@@ -433,7 +433,8 @@ func FindROIWithProgress(videoPath string, onProgress func(line string), onPerce
 }
 
 // FindROICandidatesWithProgress lists ranked motion regions (auto_roi --list).
-// Read-only proposals — caller must not silently commit ROI2 (TFTJ step 4b).
+// Read-only proposals — caller must not silently commit ROI2 (TFTJ step 4b;
+// only ApplySceneProposal under the opt-in "Apply AI setup automatically").
 func FindROICandidatesWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
 	return findROICandidatesViaScript(videoPath, onProgress, onPercent)
 }

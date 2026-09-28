@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -68,5 +69,41 @@ func TestLoadSceneProposalsErrors(t *testing.T) {
 	}
 	if _, err := LoadSceneProposals(filepath.Join(t.TempDir(), "missing.json")); err == nil {
 		t.Error("missing file: want error")
+	}
+}
+
+func TestApplySceneProposal(t *testing.T) {
+	p := SceneProposal{TMs: 4000, StartMs: 0, EndMs: 8000, SceneType: "titjob", Confidence: 0.7,
+		Primary: ROICandidate{X: 10, Y: 20, W: 30, H: 40, Class: "breasts"},
+		Partner: &ROICandidate{X: 50, Y: 60, W: 70, H: 80, Class: "penis"}}
+	lines := func(l []string) string { return strings.Join(l, "\n") }
+
+	// Setting off: ROI + class filled, partner only reported.
+	var roi ROI
+	o := Options{}
+	got := ApplySceneProposal(&roi, &o, p, false)
+	if roi != (ROI{10, 20, 30, 40}) || o.RegionClass != "breasts" || o.ROI2.W != 0 ||
+		!strings.Contains(lines(got), "proposal only (Apply AI setup automatically is off)") {
+		t.Fatalf("off: roi=%+v o=%+v\n%s", roi, o, lines(got))
+	}
+	// Setting on: ROI2 tracked + class 2.
+	roi, o = ROI{}, Options{ROI2Fixed: true}
+	got = ApplySceneProposal(&roi, &o, p, true)
+	if o.ROI2 != (ROI{50, 60, 70, 80}) || o.ROI2Fixed || o.RegionClass2 != "penis" ||
+		!strings.Contains(lines(got), "applied ROI2 50,60,70,80 = penis, tracked") {
+		t.Fatalf("on: o=%+v\n%s", o, lines(got))
+	}
+	// User values always win.
+	roi, o = ROI{1, 2, 3, 4}, Options{RegionClass: "mouth", ROI2: ROI{5, 6, 7, 8}}
+	got = ApplySceneProposal(&roi, &o, p, true)
+	if roi != (ROI{1, 2, 3, 4}) || o.RegionClass != "mouth" || o.ROI2 != (ROI{5, 6, 7, 8}) ||
+		!strings.Contains(lines(got), "ROI2 already set by the user") {
+		t.Fatalf("user wins: roi=%+v o=%+v\n%s", roi, o, lines(got))
+	}
+	// Distance profile: ROI2 would change the curve source - never applied.
+	roi, o = ROI{}, Options{Profile: "tj"}
+	got = ApplySceneProposal(&roi, &o, p, true)
+	if o.ROI2.W != 0 || !strings.Contains(lines(got), "two-point tracking") {
+		t.Fatalf("distance: o=%+v\n%s", o, lines(got))
 	}
 }

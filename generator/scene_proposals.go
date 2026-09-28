@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"os"
 	"sort"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 )
 
 // SceneProposal is one window of `scene_roles.py` output (scene
 // understanding stage 2): the part that moves most is the primary stroke
 // target, the part it moves against is the contact partner, and the pair
-// gives the scene type. These are proposals only - the user applies them
-// (TFTJ rules: no silent ROI2).
+// gives the scene type. These are proposals: the user applies them, or
+// ApplySceneProposal does when the user switched on "Apply AI setup
+// automatically" (Owner 28 Sep; default off, everything shown).
 type SceneProposal struct {
 	TMs        int64         `json:"t_ms"`
 	StartMs    int64         `json:"start_ms"`
@@ -93,4 +97,53 @@ func (s SceneProposals) At(atMs int64) (SceneProposal, bool) {
 		return SceneProposal{}, false
 	}
 	return s.Proposals[best], true
+}
+
+// ApplySceneProposal fills what the user left empty from one proposal and
+// returns one line per value it set or skipped, for the log and the GUI
+// (Owner decision 28 Sep: "Apply AI setup automatically" is an opt-in
+// setting, default off, and everything applied is shown).
+//
+//   - ROI (the primary stroke target) and RegionClass: only when empty.
+//   - With withPartner: ROI2 (the contact partner, tracked, not fixed) and
+//     RegionClass2, only when ROI2 is empty and the profile is not a
+//     Tf/Tj distance profile - there ROI2 would switch the curve source to
+//     two-point tracking, so the partner stays a proposal.
+//
+// Classes are set only when they are canonical body-part ids.
+func ApplySceneProposal(roi *ROI, opts *Options, p SceneProposal, withPartner bool) []string {
+	var out []string
+	where := fmt.Sprintf("scene %q, confidence %.2f, %d-%d ms", p.SceneType, p.Confidence, p.StartMs, p.EndMs)
+	box := func(c ROICandidate) string { return fmt.Sprintf("%d,%d,%d,%d", c.X, c.Y, c.W, c.H) }
+	if roi != nil && (roi.W <= 0 || roi.H <= 0) {
+		*roi = ROI{X: p.Primary.X, Y: p.Primary.Y, W: p.Primary.W, H: p.Primary.H}
+		out = append(out, fmt.Sprintf("applied ROI %s = %s (%s)", box(p.Primary), p.Primary.Class, where))
+		if opts != nil && opts.RegionClass == "" && bodyparts.IsCanonical(p.Primary.Class) {
+			opts.RegionClass = p.Primary.Class
+			out = append(out, "applied region class "+p.Primary.Class)
+		}
+	}
+	if p.Partner == nil {
+		return out
+	}
+	partner := fmt.Sprintf("contact partner %s at %s", p.Partner.Class, box(*p.Partner))
+	switch {
+	case !withPartner:
+		out = append(out, partner+" - proposal only (Apply AI setup automatically is off)")
+	case opts == nil:
+		out = append(out, partner+" - proposal only")
+	case opts.ROI2.W > 0 && opts.ROI2.H > 0:
+		out = append(out, partner+" - not applied, ROI2 already set by the user")
+	case funscript.IsDistanceProfile(opts.Profile):
+		out = append(out, partner+" - not applied: with a Tf/Tj distance profile ROI2 would switch the curve to two-point tracking")
+	default:
+		opts.ROI2 = ROI{X: p.Partner.X, Y: p.Partner.Y, W: p.Partner.W, H: p.Partner.H}
+		opts.ROI2Fixed = false
+		out = append(out, fmt.Sprintf("applied ROI2 %s = %s, tracked (%s)", box(*p.Partner), p.Partner.Class, where))
+		if opts.RegionClass2 == "" && bodyparts.IsCanonical(p.Partner.Class) {
+			opts.RegionClass2 = p.Partner.Class
+			out = append(out, "applied region class 2 "+p.Partner.Class)
+		}
+	}
+	return out
 }

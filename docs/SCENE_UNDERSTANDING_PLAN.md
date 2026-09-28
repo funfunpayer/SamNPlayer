@@ -100,8 +100,11 @@ Today a person sets all of this by hand.
    - The CLI `generate --scene-proposals FILE [--scene-at-ms MS]` uses the
      primary as ROI (and its class as region class when canonical) only
      when `--roi` is not given. It is explicit opt-in and logged. The
-     partner is only logged — it is never applied as ROI2 (the CLI has no
-     ROI2, and the rule stays until the Owner changes it).
+     partner is only logged, unless `--scene-apply` ("Apply AI setup
+     automatically", Owner decision 28 Sep, below).
+   - Go `ApplySceneProposal(&roi, &opts, p, withPartner)` is the one rule
+     the CLI and the GUI share; it returns one line per value set or
+     skipped.
    - The GUI shows them in the existing pick-primary flow and the user
      applies. That GUI part is Cursor's.
 
@@ -184,13 +187,22 @@ No default changes. Defaults are discussed only after ≥ 4–5 more clips
 (Owner). GUI: a "verify with the engine" switch next to "Use contact points"
 is Cursor's, on request.
 
-**ROI2 — why it is never set automatically.** The locked rule in
-`TFTJ_PROFILE_DIRECTION.md` is "no silent ROI2": a wrong contact partner
-makes the contact vibration wrong, and the user may not notice. The
-proposals already contain the partner. **Open Owner decision:** turn the
-rule into a setting "Apply AI setup automatically" (default off, every
-applied value logged and shown). Until the Owner decides, the partner stays
-a proposal.
+**ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
+automatically".** The old locked rule "no silent ROI2" is now: no ROI2
+unless the user switched this setting on. The reason for the old rule still
+holds — a wrong contact partner makes the contact vibration wrong — so:
+
+- **Default off.** Off = today: the partner is a proposal the user applies.
+- **Everything applied is shown** (log line per value; the GUI shows what
+  was set and lets the user undo it).
+- **User values always win:** only an empty ROI / ROI2 / class is filled.
+- **Everyday profiles only.** There ROI2 is stored as the contact mark
+  (contact vibration target, tracked) and the tip CSRT still writes the
+  stroke. With a Tf/Tj distance profile ROI2 would switch the curve source
+  to two-point tracking, so there the partner stays a proposal ("the AI
+  never writes the curve").
+- Implemented as Go `ApplySceneProposal` + CLI `--scene-apply`; the GUI
+  setting is Cursor's.
 
 ### Video, not just images
 
