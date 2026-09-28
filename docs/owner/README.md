@@ -13,6 +13,7 @@ Kurz-Einstieg: [`../ANLEITUNG.md`](../ANLEITUNG.md) · In-App FAQ (EN): [`../USE
 |-----|--------|
 | [`anleitung-funktionen.md`](anleitung-funktionen.md) | GUI-Funktionen Create / Play / Bench / Mark / Repair / AI Train / Settings |
 | [`zusammenhang-und-testen.md`](zusammenhang-und-testen.md) | Architektur-Zusammenhang + Owner-Testpfade |
+| [`roadmap.md`](roadmap.md) | Roadmap + Meilensteine (kurz; Baseline v0.5.40) |
 | [`generator-markieren.md`](generator-markieren.md) | Scene-map Markieren (Ignore / include) |
 | [`setup-windows11/README.md`](setup-windows11/README.md) | Win11 lokales AI-Setup — Skripte: [`scripts/setup-windows11/`](../../scripts/setup-windows11/) |
 
@@ -58,4 +59,5 @@ Screenshots unter [`media/`](media/) und [`media/anleitung/`](media/anleitung/).
 ## Abgrenzung
 
 - Keine neuen Produktfeatures in diesen Docs — Beschreibung des **Ist-Stands**.
+- [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / Virtual Person: **cancelled / out of scope** für SamNPlayer (kein zukünftiger Meilenstein).
 - Englische Engineering-Pläne weiter in `docs/` Root (`EVERYDAY_GENERATE.md`, `SCENE_MAP_PLAN.md`, …).

@@ -7,6 +7,7 @@ Owner-Guides liegen unter **[`docs/owner/`](owner/)**. Stand Produkt: **v0.5.40*
 | Index | [`owner/README.md`](owner/README.md) |
 | Funktionen | [`owner/anleitung-funktionen.md`](owner/anleitung-funktionen.md) |
 | Zusammenhang & Testen | [`owner/zusammenhang-und-testen.md`](owner/zusammenhang-und-testen.md) |
+| Roadmap + Meilensteine | [`owner/roadmap.md`](owner/roadmap.md) |
 | Markieren | [`owner/generator-markieren.md`](owner/generator-markieren.md) |
 | Win11 AI-Setup | [`owner/setup-windows11/README.md`](owner/setup-windows11/README.md) · Skripte [`scripts/setup-windows11/`](../scripts/setup-windows11/) |
 | Benchmark | [`owner/benchmark-system.md`](owner/benchmark-system.md) · Clip-Prep [`owner/benchmark-clip-prep.md`](owner/benchmark-clip-prep.md) |
