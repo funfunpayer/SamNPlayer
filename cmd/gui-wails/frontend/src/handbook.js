@@ -60,7 +60,7 @@ Cloud “ChatGPT writes positions” is out of product. Everyday Create stays CS
 Edit curve — drag dots; click empty = add; double-click = delete (≥2 remain).
 Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/suction → .samn
 Load / Save project — .snp.json
-Scale range ×0.8 — soften marked range intensity
+Scale selection — soften/boost marked range on the active Curve axis (factor slider; optional Soft edges)
 Playlist — queue multiple scripts
 Bookmarks — named times: add at playhead, seek, remove
 Chapters — named ranges: mark heatmap, add from selection, seek, remove

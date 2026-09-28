@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: axis-aware Cap / Scale / Delete** — OFS range tools honor the active
+  Curve axis (General / Vibration / Suction). Scale uses an adjustable factor
+  (×0.5–×1.5) plus optional Soft edges fade for gentler vib/suction edits.
+  Everyday CSRT defaults unchanged.
+
 - **Create Feel: contact vib live probe** — Sensitivity / Curve show a
   synthetic bounce SVG (stroke + vib envelope) with active-% / peak feedback
   (MakeVibrationsExt-style). Probe only — not the user’s clip; Everyday CSRT
