@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: curve / heatmap zoom** — Zoom in/out, zoom to selection, reset, and
+  wheel zoom share one time window across curve + heatmap (markers, Feel bands,
+  BPM grid stay synced). Display/nav only — no stroke rewrite.
+
 - **Play: adjustable Speed-highlight threshold** — OFS “too fast” curve bands
   use a live HL slider (150–800, default 400) plus a show/hide toggle.
   Display only — separate from Speed-cap edit; Create defaults unchanged.
