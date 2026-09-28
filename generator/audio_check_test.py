@@ -121,6 +121,24 @@ def main():
     ac.append_quality_audio_hint(True, ok_in)
     check("G1.2 no hint when QD passed", ok_in["warnings"] == [], str(ok_in))
 
+    # --- Speech-Hold / segment taxonomy (review hints; no stroke writer) ---
+    sr8 = 8000
+    t = np.arange(0, 2.0, 1.0 / sr8)
+    speech = 0.35 * np.sin(2 * np.pi * 800 * t)
+    t2 = np.arange(0, 2.0, 1.0 / sr8)
+    env = 0.15 + 0.85 * np.maximum(0.0, np.sin(2 * np.pi * 2.0 * t2))
+    impact = env * (0.6 * np.sin(2 * np.pi * 120 * t2) + 0.5 * np.sin(2 * np.pi * 2800 * t2))
+    segs, hold_ms = ac.analyze_speech_hold_segments(np.concatenate([speech, impact]), sr8)
+    check("Speech-Hold Segmente nicht leer", len(segs) > 0, str(segs))
+    check("Speech-Hold ms > 0 bei Mid-Band-Ton", hold_ms > 0, str(hold_ms))
+    labels = {s["label"] for s in segs}
+    check("Taxonomie enthält holding oder speech_hold",
+          any(s.get("speech_hold") or s["label"] == "holding" for s in segs), str(segs))
+    check("Taxonomie enthält motion-Label nach Impact",
+          bool(labels & {"gentle", "intense", "climax"}), str(labels))
+    short_segs, short_hold = ac.analyze_speech_hold_segments(speech[: int(0.15 * sr8)], sr8)
+    check("zu kurzes Signal: keine Segmente", short_segs == [] and short_hold == 0, str(short_segs))
+
     print(("FEHLGESCHLAGEN: " + ", ".join(failures)) if failures else "Alle Prüfungen bestanden.")
     return 1 if failures else 0
 

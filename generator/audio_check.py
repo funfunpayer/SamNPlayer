@@ -16,6 +16,11 @@ untypische Szene vorliegt. Genau wie ai_quality.py's Zweitmeinung: die
 Prüfung liefert eine WARNUNG, sie überschreibt nie quality["passed"]/
 quality["score"] und korrigiert nichts automatisch.
 
+Zusätzlich (Go-Parity): Speech-Hold + Segment-Labels holding/gentle/intense/
+climax als Review-/Kapitel-Hinweise — multi-Band-Energie, keine Stroke-Kurve.
+Die vollständige Segment-Taxonomie lebt im Go-Pfad (generator/audio_segments.go);
+Python liefert dieselben Metadata-Felder, wenn die Analyse greift.
+
 Ausführen der Tests: python3 generator/audio_check_test.py
 """
 
@@ -146,7 +151,10 @@ def check(video_path, actions, sample_rate=8000, window_ms=50.0, tolerance=0.25)
     Stil von quality_doctor.evaluate(). PLAUSIBILITÄTSPRÜFUNG, keine
     Korrektur - eine Abweichung kann echte, aber untypische Bewegung sein
     (ruhige Szene, Stille) oder ein Tracking-Fehler; beides braucht einen
-    Menschen zur Einordnung, keine automatische Reaktion."""
+    Menschen zur Einordnung, keine automatische Reaktion.
+
+    Zusätzlich: Speech-Hold + Segment-Labels (Review-Hinweise, keine Kurve).
+    """
     script_hz = estimate_script_tempo_hz(actions)
     try:
         samples, sr = extract_audio_samples(video_path, sample_rate=sample_rate)
@@ -164,13 +172,248 @@ def check(video_path, actions, sample_rate=8000, window_ms=50.0, tolerance=0.25)
             f"→ {comparison['predicted_hz']:.2f} Hz) — may be real atypical motion "
             "or a tracking error; no automatic correction")
 
+    segments, speech_hold_ms = analyze_speech_hold_segments(samples, sr)
+    _append_speech_hold_hints(warnings, segments, speech_hold_ms, actions)
+
     return {
         "available": True,
         "script_hz": script_hz,
         "audio_hz": audio_hz,
         "comparison": comparison,
         "warnings": warnings,
+        "segments": segments,
+        "speech_hold_ms": speech_hold_ms,
     }
+
+
+# --- Speech-Hold + segment taxonomy (Go parity: audio_segments.go) ------------
+# Classical multi-band short-time energy. Review/chapter hints only.
+
+_SEG_FRAME_MS = 100.0
+_SEG_HOP_MS = 50.0
+_MIN_SEG_MS = 300.0
+_LABEL_HOLDING = "holding"
+_LABEL_GENTLE = "gentle"
+_LABEL_INTENSE = "intense"
+_LABEL_CLIMAX = "climax"
+
+
+def analyze_speech_hold_segments(samples, sample_rate):
+    """Return (segments, speech_hold_ms). Empty when signal too short."""
+    frames = _band_energy_frames(samples, sample_rate, _SEG_FRAME_MS, _SEG_HOP_MS)
+    if len(frames) < 4:
+        return [], 0
+    rms_vals = np.array([f["rms"] for f in frames], dtype=float)
+    rms_med = float(np.median(rms_vals)) if len(rms_vals) else 0.0
+    if rms_med <= 0:
+        rms_med = 1e-9
+    quiet = rms_med * 0.35
+    labels, speech_hold, reasons = [], [], []
+    for f in frames:
+        total = f["impact"] + f["speech"] + f["high"]
+        if total <= 0:
+            labels.append(_LABEL_HOLDING)
+            speech_hold.append(False)
+            reasons.append("silence")
+            continue
+        impact_r = f["impact"] / total
+        speech_r = f["speech"] / total
+        high_r = f["high"] / total
+        rel = f["rms"] / rms_med
+        if speech_r >= 0.55 and impact_r <= 0.28 and high_r <= 0.35 and rel < 1.8:
+            labels.append(_LABEL_HOLDING)
+            speech_hold.append(True)
+            reasons.append("speech_like")
+        elif (impact_r + high_r) >= 0.50:
+            if rel >= 1.4:
+                labels.append(_LABEL_INTENSE)
+                speech_hold.append(False)
+                reasons.append("impact_rhythm")
+            else:
+                labels.append(_LABEL_GENTLE)
+                speech_hold.append(False)
+                reasons.append("soft_impact")
+        elif f["rms"] < quiet:
+            hold = speech_r > 0.45 and impact_r < 0.35
+            labels.append(_LABEL_HOLDING)
+            speech_hold.append(hold)
+            reasons.append("quiet_speech" if hold else "quiet")
+        elif rel < 0.7:
+            labels.append(_LABEL_HOLDING)
+            speech_hold.append(speech_r > impact_r)
+            reasons.append("low_energy")
+        else:
+            labels.append(_LABEL_GENTLE)
+            speech_hold.append(False)
+            reasons.append("moderate_energy")
+    _promote_climax(labels, frames, rms_med)
+    _smooth_labels(labels, speech_hold, reasons)
+    segments = _merge_segment_hints(frames, labels, speech_hold, reasons, _MIN_SEG_MS)
+    hold_ms = sum(s["end_ms"] - s["start_ms"] for s in segments if s.get("speech_hold"))
+    return segments, int(hold_ms)
+
+
+def _label_rank(label):
+    return {
+        _LABEL_CLIMAX: 4,
+        _LABEL_INTENSE: 3,
+        _LABEL_GENTLE: 2,
+    }.get(label, 1)
+
+
+def _smooth_labels(labels, speech_hold, reasons):
+    if len(labels) < 3:
+        return
+    orig_l = list(labels)
+    orig_h = list(speech_hold)
+    orig_r = list(reasons)
+    for i in range(1, len(labels) - 1):
+        a, b, c = orig_l[i - 1], orig_l[i], orig_l[i + 1]
+        if a == c and a != b:
+            labels[i] = a
+            speech_hold[i] = orig_h[i - 1]
+            reasons[i] = orig_r[i - 1]
+
+
+def _merge_segment_hints(frames, labels, speech_hold, reasons, min_ms):
+    if not frames:
+        return []
+    runs = []
+    cur = {
+        "label": labels[0], "hold": speech_hold[0], "reason": reasons[0],
+        "start": frames[0]["start_ms"], "end": frames[0]["end_ms"],
+    }
+    for i in range(1, len(frames)):
+        same = labels[i] == cur["label"] and speech_hold[i] == cur["hold"]
+        if same:
+            cur["end"] = frames[i]["end_ms"]
+            continue
+        runs.append(cur)
+        cur = {
+            "label": labels[i], "hold": speech_hold[i], "reason": reasons[i],
+            "start": frames[i]["start_ms"], "end": frames[i]["end_ms"],
+        }
+    runs.append(cur)
+    out_runs = []
+    for r in runs:
+        if not out_runs:
+            out_runs.append(r)
+            continue
+        prev = out_runs[-1]
+        prev_dur = prev["end"] - prev["start"]
+        r_dur = r["end"] - r["start"]
+        if r_dur < min_ms:
+            prev["end"] = r["end"]
+            if prev_dur < min_ms and _label_rank(r["label"]) > _label_rank(prev["label"]):
+                prev["label"] = r["label"]
+                prev["hold"] = r["hold"]
+                prev["reason"] = r["reason"]
+            continue
+        if prev_dur < min_ms:
+            if _label_rank(prev["label"]) > _label_rank(r["label"]):
+                prev["end"] = r["end"]
+                continue
+            prev.update(label=r["label"], hold=r["hold"], reason=r["reason"], end=r["end"])
+            continue
+        if prev["label"] == r["label"] and prev["hold"] == r["hold"]:
+            prev["end"] = r["end"]
+            continue
+        out_runs.append(r)
+    return [{
+        "label": r["label"],
+        "start_ms": int(round(r["start"])),
+        "end_ms": int(round(r["end"])),
+        "speech_hold": bool(r["hold"]),
+        "reason": r["reason"],
+    } for r in out_runs]
+
+
+def _band_energy_frames(samples, sample_rate, frame_ms, hop_ms):
+    samples = np.asarray(samples, dtype=float)
+    if sample_rate <= 0 or len(samples) == 0:
+        return []
+    frame_n = max(16, int(round(sample_rate * frame_ms / 1000.0)))
+    hop_n = max(1, int(round(sample_rate * hop_ms / 1000.0)))
+    out = []
+    for start in range(0, len(samples) - frame_n + 1, hop_n):
+        frame = samples[start:start + frame_n]
+        window = 0.5 * (1.0 - np.cos(2.0 * np.pi * np.arange(frame_n) / max(frame_n - 1, 1)))
+        spectrum = np.abs(np.fft.rfft(frame * window)) ** 2
+        freqs = np.fft.rfftfreq(frame_n, d=1.0 / sample_rate)
+
+        def band(lo, hi):
+            mask = (freqs >= lo) & (freqs <= hi)
+            return float(np.sum(spectrum[mask])) if np.any(mask) else 0.0
+
+        out.append({
+            "start_ms": 1000.0 * start / sample_rate,
+            "end_ms": 1000.0 * (start + frame_n) / sample_rate,
+            "rms": float(np.sqrt(np.mean(frame ** 2))),
+            "impact": band(50.0, 250.0),
+            "speech": band(250.0, 2000.0),
+            "high": band(2000.0, min(3990.0, sample_rate / 2.0 - 10.0)),
+        })
+    return out
+
+
+def _promote_climax(labels, frames, rms_med):
+    if not labels or rms_med <= 0:
+        return
+    start = len(labels) * 3 // 4
+    best_i, best_len, best_score = -1, 0, 0.0
+    i = start
+    while i < len(labels):
+        if labels[i] != _LABEL_INTENSE:
+            i += 1
+            continue
+        j = i
+        score = 0.0
+        while j < len(labels) and labels[j] == _LABEL_INTENSE:
+            score += frames[j]["rms"] / rms_med
+            j += 1
+        run = j - i
+        if run >= 2 and (score > best_score or (score == best_score and run > best_len)):
+            best_i, best_len, best_score = i, run, score
+        i = j
+    if best_i >= 0 and best_score >= 4.0:
+        for k in range(best_i, best_i + best_len):
+            labels[k] = _LABEL_CLIMAX
+
+
+def _append_speech_hold_hints(warnings, segments, speech_hold_ms, actions):
+    hold_sec = speech_hold_ms / 1000.0
+    if hold_sec >= 0.8:
+        msg = (f"Speech-hold ~{hold_sec:.1f}s — during dialogue/quiet prefer "
+               "hold/pause review (audio did not rewrite the curve)")
+        if msg not in warnings:
+            warnings.append(msg)
+    if _motion_during_speech_hold(actions, segments):
+        msg = ("Script moves during speech-hold windows — review hold/pause "
+               "(audio did not rewrite the curve)")
+        if msg not in warnings:
+            warnings.append(msg)
+    if any(s.get("label") == _LABEL_CLIMAX for s in segments):
+        msg = ("Audio segment taxonomy marks a climax window — review "
+               "chapter/finish (audio did not rewrite the curve)")
+        if msg not in warnings:
+            warnings.append(msg)
+
+
+def _motion_during_speech_hold(actions, segments):
+    holds = [(s["start_ms"], s["end_ms"]) for s in segments
+             if s.get("speech_hold") and s["end_ms"] > s["start_ms"]]
+    if len(actions) < 2 or not holds:
+        return False
+    travel, samples = 0, 0
+    for i in range(1, len(actions)):
+        at = actions[i]["at"]
+        if not any(lo <= at <= hi for lo, hi in holds):
+            continue
+        travel += abs(actions[i]["pos"] - actions[i - 1]["pos"])
+        samples += 1
+    if samples < 4:
+        return False
+    return travel / samples > 8.0
 
 
 def append_quality_audio_hint(quality_passed: bool, result: dict) -> dict:
