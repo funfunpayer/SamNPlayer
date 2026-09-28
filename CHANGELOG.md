@@ -10,6 +10,22 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **More teachers, one command, setup check** — `vlm_probe.py --backend
+  ollama|lmstudio|colibri|vllm` presets (Colibri: large MoE vision models
+  streamed from disk); `contact_points.py --teacher backend:model` asks several
+  VLMs per video (cached, a missing server is skipped); `generator/ai_setup.py
+  check|install teachers|train|models` for the Owner PC (training in a separate
+  venv so CSRT OpenCV stays intact; NudeNet `--no-deps`); Go `CheckAISetup`,
+  `InstallAISetup`, `GenerateContactPoints` for GUI buttons.
+
+- **Own contact detector pipeline (V3, opt-in tools)** —
+  `import-contact-candidates` writes teacher-consensus contact boxes into a
+  `.samn` scene map as `author:auto, reviewed:false` region marks for review;
+  `generator/contact_detector.py dataset|train` merges the confirmed P5c
+  exports into an RF-DETR dataset (split by clip) and fine-tunes/exports ONNX
+  (RF-DETR: Apache-2.0); `contact_points.py --onnx` uses the trained model as a
+  teacher via onnxruntime. No Generate/default change.
+
 - **Plugin host H1 drop-folder install** — drop a Virtual Person pack into the
   Plugins folder (or Settings → **Install pack…** / **Open Plugins folder**),
   then Enable. Handshake via `samn-plugin.json`; `pluginhost` discover / bind;

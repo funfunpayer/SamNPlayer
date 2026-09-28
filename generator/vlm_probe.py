@@ -28,7 +28,8 @@ Usage (Owner PC, e.g. `ollama pull qwen2.5vl:7b` first):
      images), overlay JPEGs for a quick visual check.
   python3 vlm_probe.py --calibrate --model qwen2.5vl:7b
   -> only checks the coordinate convention.
-LM Studio: --base-url http://127.0.0.1:1234 and its model id.
+LM Studio / Colibri / vLLM: --backend lmstudio|colibri|vllm (URL + timeout
+presets, --base-url overrides) and that runtime's model id.
 """
 
 import argparse
@@ -48,6 +49,27 @@ import colibri_client
 PROMPT_VERSION = "v0.1-2026-09-27"  # v0.1: exemplar mode
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"  # Ollama; LM Studio: :1234
 DEFAULT_TIMEOUT_S = 180.0  # first call loads the model into VRAM
+
+# Local runtimes that speak OpenAI /v1/chat/completions with image_url parts
+# (docs/VLM_MODELS.md). Colibri streams very large MoE models (GLM-5.3-Flash,
+# DeepSeek V4.1 Flash - both with vision) from disk: slow per image, fine
+# for a few dozen keyframes, hence the long timeout. Its upstream README
+# documents port 8000; SamNPlayer's Settings assume 8080 for the prose
+# helpers - start it with the port you configure there.
+BACKENDS = {
+    "ollama": {"base_url": "http://127.0.0.1:11434", "timeout": 180.0},
+    "lmstudio": {"base_url": "http://127.0.0.1:1234", "timeout": 180.0},
+    "colibri": {"base_url": "http://127.0.0.1:8000", "timeout": 1800.0},
+    "vllm": {"base_url": "http://127.0.0.1:8000", "timeout": 180.0},
+}
+
+
+def backend_settings(backend=None, base_url=None, timeout=None):
+    """(base_url, timeout) for a named backend, explicit values winning."""
+    preset = BACKENDS.get(backend or "ollama")
+    if preset is None:
+        raise ValueError(f"unknown backend {backend!r} - one of {', '.join(sorted(BACKENDS))}")
+    return base_url or preset["base_url"], timeout or preset["timeout"]
 MAX_SIDE = 896
 PATCH = 28
 
@@ -482,11 +504,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--video")
     ap.add_argument("--model", required=True, help="e.g. qwen2.5vl:7b (Ollama)")
-    ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    ap.add_argument("--backend", default="ollama", choices=sorted(BACKENDS),
+                    help="runtime preset for URL/timeout (ollama, lmstudio, colibri, vllm)")
+    ap.add_argument("--base-url", help="overrides the backend's URL")
     ap.add_argument("--every-s", type=float, default=5.0)
     ap.add_argument("--no-scenes", action="store_true", help="skip shot mid-points")
     ap.add_argument("--coord", default="auto", choices=("auto",) + NAMED_COORDS)
-    ap.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_S)
+    ap.add_argument("--timeout", type=float, help="seconds per request (backend default)")
     ap.add_argument("--max-keyframes", type=int, default=0)
     ap.add_argument("--overlay-dir")
     ap.add_argument("--out")
@@ -502,6 +526,7 @@ def main(argv=None):
                     help="only check the model's coordinate convention")
     args = ap.parse_args(argv)
 
+    args.base_url, args.timeout = backend_settings(args.backend, args.base_url, args.timeout)
     if not colibri_client.available(args.base_url):
         print(f"No OpenAI-compatible server at {args.base_url} "
               "(start Ollama / LM Studio first).", file=sys.stderr)

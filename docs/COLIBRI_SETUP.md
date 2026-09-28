@@ -10,6 +10,23 @@ Any server that answers `GET /v1/models` and `POST /v1/chat/completions` works
 (LM Studio, Ollama with OpenAI bridge, etc.). Architecture: `docs/AI_ADAPTER.md`.
 Owner overview of all local models: `docs/LOCAL_MODEL_SETUP.md`.
 
+## Colibri as a vision teacher (contact points)
+
+Colibri can serve very large MoE models, streaming the experts from NVMe.
+Two of its families see images: GLM-5.3-Flash and DeepSeek V4.1 Flash. That
+makes them usable as slow but strong **keyframe teachers**:
+
+```bash
+python3 generator/contact_points.py --video clip.mp4 --teacher colibri:<model id>
+```
+
+- The preset URL is `http://127.0.0.1:8000`, which the upstream README
+  documents as the default, with a 30-minute timeout per request.
+- The prose helpers below use the Settings URL (default 8080). Run the port
+  you configure there.
+
+See `docs/VLM_MODELS.md`.
+
 ## Quick start (Colibri)
 
 1. Build/install Colibri from upstream and load a small chat model (Qwen or

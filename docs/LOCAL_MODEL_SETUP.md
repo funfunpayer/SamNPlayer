@@ -75,6 +75,24 @@ hint. Everyday Create stays bit-identical when off/empty. Details:
 3. Check **Use contact points** → **Choose…** the JSON (or paste path).
 4. Create as usual. The GUI only loads the file — it does not run teachers.
 
+## G) AI setup check / install (one command)
+
+`python3 generator/ai_setup.py check` shows:
+- GPU, packages, the training venv, and the Ollama / LM Studio / Colibri
+  servers;
+- the exact next steps.
+
+`install teachers|train|models --yes` does them:
+- NudeNet is installed without touching CSRT OpenCV.
+- Training goes into its own venv.
+
+GUI functions exist for Settings buttons (Cursor):
+- `CheckAISetup`
+- `InstallAISetup`
+- `GenerateContactPoints`
+
+Details and the hardware notes are in `docs/VLM_MODELS.md`.
+
 ## Intentionally missing
 
 | Expectation | Reality |

@@ -1,6 +1,6 @@
 # Local VLM teacher → our own detector (plan)
 
-Status: V0 probe/scorer/labels merged (#293, #305). **VLM1 engine + GUI shipped** (#312 engine, #316 Advanced Use contact points, #318 handbook). V1 mark-review UI, V2, V3 not started.
+Status: V0 probe/scorer/labels merged (#293, #305). **VLM1 engine + GUI shipped** (#312 engine, #316 Advanced Use contact points, #318 handbook). **V2/V3 tooling (candidates import, dataset, RF-DETR train, ONNX teacher): this PR.** Open: V1 mark-review UI (Cursor), first training run (Owner GPU).
 Owner go, 27 Sep 2026: *"The system has to get better. Start if you can,
 check whether it holds up. Best later: our own model that uses the data we
 generated with Qwen & co. Everything is approved — coordinate with Cursor."*
@@ -280,6 +280,21 @@ The ≥ 4–5 clip gate still applies before this is ever on by default.
   the box stays within one grid cell of the chosen rhythm cell. This is the
   M5 agreement rule.
 - Negatives: exclude boxes go to hard-negative mining.
+
+### V3 pipeline — built (Claude, 28 Sep)
+
+The tooling for V2 and V3 exists. The steps and commands are in
+`docs/VLM_MODELS.md` § "The training loop, as built":
+- `import-contact-candidates` (Go CLI) turns teacher consensus into
+  reviewable marks.
+- `contact_detector.py dataset|train` builds the dataset and trains
+  RF-DETR, then exports ONNX.
+- `contact_points.py --onnx` uses the trained model as a teacher.
+
+Still open:
+- **Cursor:** accept/reject UI for `author:auto` contact candidates in the
+  map view.
+- **Owner:** clips, confirmations, and a GPU run.
 
 ### V3 — our own detector (Owner GPU)
 
