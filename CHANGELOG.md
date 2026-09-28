@@ -17,6 +17,22 @@ measurement history behind each entry; this file is the short version for
   candidate still resembles the tip seed (so a poisoned bank cannot hard-tip
   onto a distractor — coast bridges instead). Everyday Go CSRT unchanged;
   no VERSION bump. Synthetic hard-tip goldens in `multi_recover_test.go`.
+- **Create seek / frame dump** — empty or unreadable preview PNGs after fast
+  ffmpeg seek retry with accurate `-ss` after `-i`; clearer empty-frame errors
+  (Owner smoke #335 B `unknown frame size … / EOF`).
+- **Play seek / script sync** — curve + trajectory redraw immediately on seek;
+  `seeked` pushes `ReportVideoPosition` while playing so device sync does not
+  wait for the next `timeupdate`.
+- **Play load errors** — failed `LoadFunscript` (choose / drop) shows
+  “Could not load script…” instead of a silent rejection; video decode errors
+  name the media error class and clear once `canplay` succeeds.
+
+### Changed
+
+- **Advanced Create / Settings declutter** — shorter Advanced intro; teachers JSON
+  generate + scene-map learning nested under collapsed details; Settings AI /
+  learning blocks under one “Optional AI & learning” panel (IDs unchanged;
+  Everyday CSRT defaults unchanged). Look tokens preserved (lilac/teal).
 
 ## [0.5.40] — September 28, 2026
 
