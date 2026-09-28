@@ -17,16 +17,16 @@ const (
 // (Quality Doctor on the candidate). Video is optional metadata for KI
 // datasets — scoring itself is script-vs-script.
 type PairScore struct {
-	Kind        string              `json:"kind"` // always "pair_score"
-	Label       PairLabel           `json:"label"`
-	Passed      bool                `json:"passed"` // true only when label == good
-	Detail      string              `json:"detail"`
-	Video       string              `json:"video,omitempty"`
-	Reference   string              `json:"reference,omitempty"`
-	Candidate   string              `json:"candidate,omitempty"`
+	Kind        string               `json:"kind"` // always "pair_score"
+	Label       PairLabel            `json:"label"`
+	Passed      bool                 `json:"passed"` // true only when label == good
+	Detail      string               `json:"detail"`
+	Video       string               `json:"video,omitempty"`
+	Reference   string               `json:"reference,omitempty"`
+	Candidate   string               `json:"candidate,omitempty"`
 	Fidelity    MotionFidelityResult `json:"fidelity"`
-	Quality     ScriptQualityResult `json:"quality"`
-	MinAlignedR float64             `json:"min_aligned_r"`
+	Quality     ScriptQualityResult  `json:"quality"`
+	MinAlignedR float64              `json:"min_aligned_r"`
 }
 
 // ScorePair judges a candidate against a FunGen (or other) reference.

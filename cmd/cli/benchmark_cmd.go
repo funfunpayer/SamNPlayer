@@ -12,8 +12,9 @@ import (
 )
 
 // runBenchmark is the Owner/KI compare entry:
-//   samnplayer benchmark --reference REF.funscript --candidate CAND.funscript
-//     [--video VIDEO] [--json] [--labels-out labels.jsonl] [--max-lag-ms N]
+//
+//	samnplayer benchmark --reference REF.funscript --candidate CAND.funscript
+//	  [--video VIDEO] [--json] [--labels-out labels.jsonl] [--max-lag-ms N]
 //
 // Scores candidate vs FunGen/ref using funscript.ScorePair (Motion Fidelity +
 // Quality Doctor) and optionally appends a KI-ready label line.
@@ -144,13 +145,13 @@ func printBenchmarkHuman(score funscript.PairScore) {
 
 // benchmarkLabelRecord is one JSONL line for KI training/eval datasets.
 type benchmarkLabelRecord struct {
-	Timestamp string             `json:"timestamp"`
-	Kind      string             `json:"kind"`
+	Timestamp string              `json:"timestamp"`
+	Kind      string              `json:"kind"`
 	Label     funscript.PairLabel `json:"label"`
-	Passed    bool               `json:"passed"`
-	Video     string             `json:"video,omitempty"`
-	Reference string             `json:"reference,omitempty"`
-	Candidate string             `json:"candidate,omitempty"`
+	Passed    bool                `json:"passed"`
+	Video     string              `json:"video,omitempty"`
+	Reference string              `json:"reference,omitempty"`
+	Candidate string              `json:"candidate,omitempty"`
 	Score     funscript.PairScore `json:"score"`
 }
 
