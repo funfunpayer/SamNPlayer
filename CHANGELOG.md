@@ -60,8 +60,9 @@ measurement history behind each entry; this file is the short version for
 
 - **Advanced Use contact points (GUI)** — Create → Advanced checkbox + path
   picker for a teachers JSON when **Rhythm-robust signal** is on; empty/off
-  = bit-identical. Builds the JSON still via CLI (`contact_points.py`); the
-  GUI does not run teachers. Handbook FAQ documents the path.
+  = bit-identical. Prefer **Generate contact points** (teacher checkboxes) to
+  build `.contact.json` in-GUI (#328); CLI `contact_points.py` still works.
+  Handbook FAQ documents both paths.
 
 - **Settings Test AI server** — probes Colibri / OpenAI-compatible
   `GET /v1/models` (≈1.5s); empty URL → `http://127.0.0.1:8080`. Unreachable
