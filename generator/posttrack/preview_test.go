@@ -19,6 +19,12 @@ func TestPreviewStatsDefaultKnobs(t *testing.T) {
 	if res.Hint == "" {
 		t.Fatal("expected non-empty hint")
 	}
+	if len(res.Sample) < 2 {
+		t.Fatalf("expected sample polyline, got %d", len(res.Sample))
+	}
+	if res.Sample[0].AtMs > res.Sample[len(res.Sample)-1].AtMs {
+		t.Fatalf("sample not time-ordered: %+v", res.Sample)
+	}
 }
 
 func TestPreviewStatsProminenceReducesPeaks(t *testing.T) {
