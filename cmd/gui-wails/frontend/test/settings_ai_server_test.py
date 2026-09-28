@@ -62,6 +62,7 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_settings_ai_server_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.locator("#st-optional-ai").evaluate("el => { el.open = true; }")
 
         check("Test AI server button", page.locator("#st-ai-server-check").count() == 1)
         check("AI server status line", page.locator("#st-ai-server-status").count() == 1)

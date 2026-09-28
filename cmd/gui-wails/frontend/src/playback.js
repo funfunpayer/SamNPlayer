@@ -1697,6 +1697,9 @@ export function initPlayback(root) {
   // zusätzliches Zutun nötig. Ohne Video gibt es nichts zu spulen; dann
   // bleibt der Klick wirkungslos (die eigene Uhr in Play() lässt sich
   // nicht nachträglich verschieben).
+  //
+  // Curve + heatmap redraw immediately (do not wait for timeupdate — that
+  // event can lag or miss while paused). Device sync is pushed on 'seeked'.
   async function seekTo(atMs) {
     let t = atMs;
     const fps = parseFloat(el('#pb-fps-snap')?.value) || 0;
@@ -1707,6 +1710,7 @@ export function initPlayback(root) {
     if (!videoPath || !videoEl.duration) {
       redrawHeatmap();
       redrawCurve();
+      redrawTrajectory();
       return;
     }
     videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, t / 1000));
@@ -1714,6 +1718,8 @@ export function initPlayback(root) {
     // markierte Bereich danach nochmal erreicht wird.
     if (marker && t < marker.startMs) autoEOTriggeredForMarker = false;
     redrawHeatmap();
+    redrawCurve();
+    redrawTrajectory();
   }
 
   el('#pb-marker-clear').addEventListener('click', () => {
@@ -1802,7 +1808,9 @@ export function initPlayback(root) {
       ? e.detail.paths
       : [e.detail.path];
     replacePlaylist(paths, 0);
-    loadScript(paths[0], { keepPlaylist: true });
+    loadScript(paths[0], { keepPlaylist: true }).catch(err => {
+      uiError('Could not load script: ' + err, el('#pb-log'));
+    });
   });
 
   async function chooseScript() {
@@ -1810,7 +1818,11 @@ export function initPlayback(root) {
     restoreKeyboardFocus();
     if (!path) return;
     replacePlaylist([path], 0);
-    await loadScript(path, { keepPlaylist: true });
+    try {
+      await loadScript(path, { keepPlaylist: true });
+    } catch (err) {
+      uiError('Could not load script: ' + err, el('#pb-log'));
+    }
   }
 
   async function queueAddScript() {
@@ -1940,7 +1952,13 @@ export function initPlayback(root) {
     if (extraCountOrOpts && typeof extraCountOrOpts === 'object') {
       opts = extraCountOrOpts;
     }
-    const info = await LoadFunscript(path);
+    let info;
+    try {
+      info = await LoadFunscript(path);
+    } catch (err) {
+      uiError('Could not load script: ' + err, el('#pb-log'));
+      throw err;
+    }
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
     if (!opts.keepPlaylist) {
@@ -2245,6 +2263,13 @@ export function initPlayback(root) {
   // Video-Position ans Backend melden, solange Sync aktiv ist - das treibt
   // player.Sync() to (siehe player/sync.go). timeupdate feuert im Browser
   // ca. alle 250ms, das reicht für flüssiges Gerätefeedback.
+  function pushVideoSyncPosition() {
+    currentPosMs = Math.round(videoEl.currentTime * 1000);
+    if (playing && el('#pb-use-video-sync').checked) {
+      ReportVideoPosition(currentPosMs);
+    }
+  }
+
   videoEl.addEventListener('timeupdate', () => {
     currentPosMs = Math.round(videoEl.currentTime * 1000);
 
@@ -2262,9 +2287,28 @@ export function initPlayback(root) {
     }
     redrawTrajectory();
   });
+  // After seekTo(), 'seeked' fires once the decoder lands — push device sync
+  // immediately so script/device do not lag ~250ms on the next timeupdate.
+  videoEl.addEventListener('seeked', () => {
+    currentPosMs = Math.round(videoEl.currentTime * 1000);
+    redrawHeatmap();
+    redrawCurve();
+    redrawTrajectory();
+    pushVideoSyncPosition();
+  });
   // Video-Maße (videoWidth/Height) stehen erst nach 'loadedmetadata' fest -
   // vorher liefert videoContentRect() null und das Overlay bleibt versteckt.
   videoEl.addEventListener('loadedmetadata', () => redrawTrajectory());
+  // Clear a prior decode warning once the element can actually play.
+  videoEl.addEventListener('canplay', () => {
+    const warn = el('#pb-video-warn');
+    const conv = el('#pb-video-convert');
+    if (!warn || warn.hidden) return;
+    if (warn.textContent && /decode failed|not playable|MEDIA_ERR/i.test(warn.textContent)) {
+      warn.hidden = true;
+      if (conv) conv.hidden = true;
+    }
+  });
 
   // Historische video:pause/resume-Events. Extended-O skaliert nur noch die
   // Amplitude und pausiert das Video nicht mehr - Listener bleiben harmlos.
@@ -2281,15 +2325,21 @@ export function initPlayback(root) {
   videoEl.addEventListener('error', async () => {
     const warn = el('#pb-video-warn');
     const conv = el('#pb-video-convert');
+    const code = videoEl.error && videoEl.error.code;
+    const detail = code === 1 ? 'aborted'
+      : code === 2 ? 'network error'
+      : code === 3 ? 'decode failed (codec)'
+      : code === 4 ? 'format/source not supported'
+      : 'unknown';
     if (warn) {
       warn.hidden = false;
-      warn.textContent = 'Video not playable (codec/container). “Make playable” creates an H.264 copy.';
+      warn.textContent = `Video not playable (${detail}). “Make playable” creates an H.264 copy.`;
     }
     if (conv) conv.hidden = false;
     if (playing) {
       try { await stop({ user: true }); } catch (_) { /* ignore */ }
     }
-    uiWarn('Video decode failed — offer conversion.');
+    uiWarn('Video load error — ' + detail + '. Conversion offered.');
   });
 
   // Das native Play im <video>-Element (Browser-eigene Steuerung, per

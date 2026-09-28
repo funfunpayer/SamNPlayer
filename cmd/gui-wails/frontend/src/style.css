@@ -1807,6 +1807,32 @@ label .help-chip { margin-top: -1px; }
 .gen-adv-nested > summary::-webkit-details-marker { display: none; }
 .gen-adv-nested > summary::before { content: "▸ "; }
 .gen-adv-nested[open] > summary::before { content: "▾ "; }
+
+/* Settings: optional AI / learning collapsed by default */
+.st-opt-panel {
+  margin: 14px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+.st-opt-panel > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-dim);
+  list-style: none;
+}
+.st-opt-panel > summary::-webkit-details-marker { display: none; }
+.st-opt-panel > summary::before { content: "▸ "; color: var(--teal); }
+.st-opt-panel[open] > summary::before { content: "▾ "; }
+.st-opt-panel h3 {
+  margin-top: 14px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
 .gen-adv-sr-only {
   position: absolute;
   width: 1px;

@@ -68,6 +68,7 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_settings_ai_setup_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.locator("#st-optional-ai").evaluate("el => { el.open = true; }")
 
         check("Check AI setup button", page.locator("#st-ai-setup-check").count() == 1)
         check("Install teachers button", page.locator("#st-ai-setup-teachers").count() == 1)

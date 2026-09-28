@@ -59,6 +59,7 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_settings_apply_ai_setup_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.locator("#st-optional-ai").evaluate("el => { el.open = true; }")
 
         check("Apply AI setup checkbox present",
               page.locator("#st-apply-ai-setup").count() == 1)
