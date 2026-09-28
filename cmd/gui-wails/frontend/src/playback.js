@@ -82,6 +82,13 @@ export function initPlayback(root) {
         </div>
         <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
         <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <div class="row pb-curve-zoom" id="pb-curve-zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
+          <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
+          <button type="button" id="pb-zoom-out" title="Zoom out">Zoom out</button>
+          <button type="button" id="pb-zoom-sel" title="Zoom to the current heatmap selection" disabled>Zoom selection</button>
+          <button type="button" id="pb-zoom-reset" title="Show the full script">Reset zoom</button>
+          <span class="hint" id="pb-zoom-label" style="margin:0">Full</span>
+        </div>
         <div id="pb-chart-tooltip" class="pb-chart-tooltip" hidden></div>
         <div class="pb-transport">
           <div class="row pb-transport-btns">
@@ -400,6 +407,9 @@ export function initPlayback(root) {
   let scriptPath = null;
   let videoPath = null;
   let totalMs = 1;
+  // Shared curve/heatmap time window (display/nav only — never rewrites stroke).
+  let viewStartMs = 0;
+  let viewEndMs = 1;
   let playing = false;
   let playlist = []; // [{ path, name }]
   let playlistIndex = 0;
@@ -635,6 +645,83 @@ export function initPlayback(root) {
     el('#pb-omarker-add').disabled = !marker;
     const chAdd = el('#pb-chapter-add');
     if (chAdd) chAdd.disabled = !marker;
+    updateZoomChrome();
+  }
+
+  function viewSpanMs() {
+    return Math.max(1, viewEndMs - viewStartMs);
+  }
+  function isZoomed() {
+    return totalMs > 0 && (viewStartMs > 0 || viewEndMs < totalMs - 1);
+  }
+  function clampViewWindow() {
+    const dur = Math.max(1, totalMs);
+    if (viewEndMs <= viewStartMs) {
+      viewStartMs = 0;
+      viewEndMs = dur;
+    }
+    viewStartMs = Math.max(0, Math.min(viewStartMs, dur - 1));
+    viewEndMs = Math.max(viewStartMs + 1, Math.min(viewEndMs, dur));
+  }
+  function resetViewWindow() {
+    viewStartMs = 0;
+    viewEndMs = Math.max(1, totalMs);
+    updateZoomChrome();
+  }
+  function timeToX(ms, w) {
+    return ((ms - viewStartMs) / viewSpanMs()) * w;
+  }
+  function fracToMs(frac) {
+    return Math.round(viewStartMs + Math.max(0, Math.min(1, frac)) * viewSpanMs());
+  }
+  function updateZoomChrome() {
+    const row = el('#pb-curve-zoom');
+    const lab = el('#pb-zoom-label');
+    const zoomSel = el('#pb-zoom-sel');
+    if (row) row.style.display = scriptPath ? 'flex' : 'none';
+    if (zoomSel) zoomSel.disabled = !marker;
+    if (!lab) return;
+    if (!isZoomed()) {
+      lab.textContent = 'Full';
+      return;
+    }
+    lab.textContent = `${(viewStartMs / 1000).toFixed(1)}s–${(viewEndMs / 1000).toFixed(1)}s`;
+  }
+  function setViewWindow(startMs, endMs) {
+    viewStartMs = startMs;
+    viewEndMs = endMs;
+    clampViewWindow();
+    updateZoomChrome();
+    redrawHeatmap();
+    redrawCurve();
+  }
+  function zoomByFactor(factor, anchorMs) {
+    const span = viewSpanMs();
+    const next = Math.max(250, Math.min(totalMs, span / factor));
+    if (next >= totalMs - 1) {
+      resetViewWindow();
+      redrawHeatmap();
+      redrawCurve();
+      return;
+    }
+    const anchor = Number.isFinite(anchorMs) ? anchorMs : (viewStartMs + viewEndMs) / 2;
+    const rel = span > 0 ? (anchor - viewStartMs) / span : 0.5;
+    let start = Math.round(anchor - rel * next);
+    let end = Math.round(start + next);
+    if (start < 0) {
+      end -= start;
+      start = 0;
+    }
+    if (end > totalMs) {
+      start -= (end - totalMs);
+      end = totalMs;
+    }
+    setViewWindow(Math.max(0, start), Math.min(totalMs, end));
+  }
+  function zoomToSelection() {
+    if (!marker) return;
+    const pad = Math.max(200, Math.round((marker.endMs - marker.startMs) * 0.08));
+    setViewWindow(Math.max(0, marker.startMs - pad), Math.min(totalMs, marker.endMs + pad));
   }
 
   // drawOMarkerBands zeichnet die gespeicherten O-Marker als farbige Bänder
@@ -643,8 +730,9 @@ export function initPlayback(root) {
   function drawOMarkerBands(ctx, w, h) {
     if (!oMarkers.length || totalMs <= 0) return;
     for (const m of oMarkers) {
-      const x0 = (m.startMs / totalMs) * w;
-      const x1 = (m.endMs / totalMs) * w;
+      if (m.endMs < viewStartMs || m.startMs > viewEndMs) continue;
+      const x0 = timeToX(m.startMs, w);
+      const x1 = timeToX(m.endMs, w);
       const isPrimary = m.kind === 'primary';
       const alpha = isPrimary ? 0.35 : 0.18 + m.intensity * 0.15;
       ctx.fillStyle = isPrimary ? `rgba(255,60,60,${alpha})` : `rgba(255,160,40,${alpha})`;
@@ -670,8 +758,9 @@ export function initPlayback(root) {
     const bandH = fullHeight ? h : Math.max(3, Math.round(h * 0.14));
     const y = fullHeight ? 0 : h - bandH;
     for (const s of visible) {
-      const x0 = (s.startMs / totalMs) * w;
-      const x1 = (s.endMs / totalMs) * w;
+      if (s.endMs < viewStartMs || s.startMs > viewEndMs) continue;
+      const x0 = timeToX(s.startMs, w);
+      const x1 = timeToX(s.endMs, w);
       ctx.fillStyle = FEEL_BAND_COLORS[s.label] || 'rgba(200,210,230,0.28)';
       ctx.fillRect(x0, y, Math.max(1, x1 - x0), bandH);
       if (s.speechHold && fullHeight) {
@@ -928,19 +1017,23 @@ export function initPlayback(root) {
     const period = bpmPeriodMs();
     if (!(period > 0)) return;
     const maxLines = 240;
-    let t = 0;
-    let n = 0;
-    while (t <= totalMs && n < maxLines) {
-      const x = Math.round((t / totalMs) * w) + 0.5;
-      const bar = n % 4 === 0;
-      ctx.strokeStyle = bar ? 'rgba(184, 150, 232, 0.38)' : 'rgba(184, 150, 232, 0.16)';
-      ctx.lineWidth = bar ? 1.25 : 1;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-      t += period;
+    let n = Math.floor(viewStartMs / period);
+    let t = n * period;
+    let drawn = 0;
+    while (t <= viewEndMs && drawn < maxLines) {
+      if (t >= viewStartMs) {
+        const x = Math.round(timeToX(t, w)) + 0.5;
+        const bar = n % 4 === 0;
+        ctx.strokeStyle = bar ? 'rgba(184, 150, 232, 0.38)' : 'rgba(184, 150, 232, 0.16)';
+        ctx.lineWidth = bar ? 1.25 : 1;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+        drawn += 1;
+      }
       n += 1;
+      t = n * period;
     }
   }
 
@@ -1266,26 +1359,36 @@ export function initPlayback(root) {
     if (!heatmapPoints || heatmapPoints.length === 0) return;
     const ctx = heatmapCanvas.getContext('2d');
     const w = heatmapCanvas.width, h = heatmapCanvas.height;
-    const barWidth = w / heatmapPoints.length;
+    ctx.clearRect(0, 0, w, h);
+    const span = viewSpanMs();
     for (let i = 0; i < heatmapPoints.length; i++) {
-      const intensity = Math.max(0, Math.min(1, heatmapPoints[i].intensity));
+      const p = heatmapPoints[i];
+      const at = Number(p.atMs ?? p.AtMs ?? 0);
+      const nextAt = i + 1 < heatmapPoints.length
+        ? Number(heatmapPoints[i + 1].atMs ?? heatmapPoints[i + 1].AtMs ?? at)
+        : at + (totalMs / Math.max(1, heatmapPoints.length));
+      if (nextAt < viewStartMs || at > viewEndMs) continue;
+      const x0 = timeToX(at, w);
+      const x1 = timeToX(Math.max(at + 1, nextAt), w);
+      const intensity = Math.max(0, Math.min(1, p.intensity));
       const hue = 220 - intensity * 220;
       ctx.fillStyle = `hsl(${hue}, 75%, ${35 + intensity * 20}%)`;
-      ctx.fillRect(i * barWidth, 0, barWidth + 1, h);
+      ctx.fillRect(x0, 0, Math.max(1, x1 - x0) + 1, h);
     }
     drawFeelSegmentBands(ctx, w, h, { fullHeight: true });
     drawOMarkerBands(ctx, w, h);
     if (marker && totalMs > 0) {
-      const x0 = (marker.startMs / totalMs) * w;
-      const x1 = (marker.endMs / totalMs) * w;
+      const x0 = timeToX(marker.startMs, w);
+      const x1 = timeToX(marker.endMs, w);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.strokeRect(x0, 1, Math.max(1, x1 - x0), h - 2);
     }
     // Aktuelle Position als senkrechter Strich - macht die Leiste zur
     // vollwertigen Zeitleiste, nicht nur zur Übersicht.
-    if (currentPosMs > 0 && totalMs > 0) {
-      const x = (currentPosMs / totalMs) * w;
+    if (currentPosMs >= 0 && totalMs > 0
+        && currentPosMs >= viewStartMs && currentPosMs <= viewEndMs) {
+      const x = timeToX(currentPosMs, w);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1300,7 +1403,7 @@ export function initPlayback(root) {
   // redrawCurve, weil der Editor (Punkt treffen, Ziehen) exakt dieselbe
   // Umrechnung braucht; eine zweite, leicht abweichende Kopie würde Klicks
   // neben die gezeichneten Punkte treffen lassen.
-  function curveXOf(ms) { return (ms / Math.max(1, totalMs)) * curveCanvas.width; }
+  function curveXOf(ms) { return timeToX(ms, curveCanvas.width); }
   function curveYOf(pos) {
     const usableH = curveCanvas.height - CURVE_PAD * 2;
     return CURVE_PAD + (1 - pos / 100) * usableH;
@@ -1308,7 +1411,7 @@ export function initPlayback(root) {
   function curveMsOfX(clientX) {
     const rect = curveCanvas.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    return Math.round(frac * totalMs);
+    return fracToMs(frac);
   }
   function curvePosOfY(clientY) {
     const rect = curveCanvas.getBoundingClientRect();
@@ -1961,7 +2064,7 @@ export function initPlayback(root) {
   function canvasXToMs(clientX) {
     const rect = heatmapCanvas.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    return Math.round(frac * totalMs);
+    return fracToMs(frac);
   }
 
   heatmapCanvas.addEventListener('mousedown', (e) => {
@@ -2278,6 +2381,7 @@ export function initPlayback(root) {
     }
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
+    resetViewWindow();
     if (!opts.keepPlaylist) {
       replacePlaylist([scriptPath], 0);
     } else {
@@ -2827,6 +2931,21 @@ export function initPlayback(root) {
     if (el('#pb-bpm-grid')?.checked) redrawCurve();
   });
 
+  el('#pb-zoom-in')?.addEventListener('click', () => zoomByFactor(1.6, currentPosMs));
+  el('#pb-zoom-out')?.addEventListener('click', () => zoomByFactor(1 / 1.6, currentPosMs));
+  el('#pb-zoom-sel')?.addEventListener('click', () => zoomToSelection());
+  el('#pb-zoom-reset')?.addEventListener('click', () => {
+    resetViewWindow();
+    redrawHeatmap();
+    redrawCurve();
+  });
+  curveCanvas.addEventListener('wheel', (e) => {
+    if (!scriptPath || !totalMs) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.25 : 1 / 1.25;
+    zoomByFactor(factor, curveMsOfX(e.clientX));
+  }, { passive: false });
+
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {
       uiWarn('Mark a range on the heatmap first.');
@@ -3051,6 +3170,8 @@ export function initPlayback(root) {
     try {
       const info = await LoadFunscript(scriptPath);
       totalMs = Math.max(info.durationMs, 1);
+      clampViewWindow();
+      updateZoomChrome();
       scriptHasContactVibration = !!info.contactVibration;
     } catch (err) {
       logError('Skript nach Bearbeitung neu laden: ' + err);

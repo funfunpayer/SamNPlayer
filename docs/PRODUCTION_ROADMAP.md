@@ -339,7 +339,7 @@ risks Generate regressions — otherwise small orthogonal PRs OK.
 | C3 | README vs public portal | G4.S | Brand + portable CTA |
 | C5 | GUI improve pass | G4.C slices | Before/after screenshots |
 | C6 | Settings License block polish | with C5; enforcement still off | Import → status obvious |
-| C4 | Curve zoom / BPM grid | after C5 | Optional |
+| C4 | Curve zoom / BPM grid | after C5 | **Done** (BPM grid + curve/heatmap zoom) |
 | C7 | Empty states / errors | with C5 | Each banner + CTA |
 
 ### D — Mobile player (no generator)
