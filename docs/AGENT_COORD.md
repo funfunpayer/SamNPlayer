@@ -205,6 +205,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
 - **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
 
+**Status board (28 Sep — post-#328 tip):** *(superseded by tip above — historical)*
+- **In flight:** **Post328Docs** — board DONE flips + handbook/LOCAL_MODEL sync. Scene2 GUI deferred (`LoadSceneProposals` only on open Claude [#329](https://github.com/funfunpayer/SamNPlayer/pull/329)).
+- **Shipped tip:** AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5`; P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf`; V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`.
+- **Claude OPEN:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) — Cursor squash-merges when CI green + rebase clean.
+- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
+- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
+
 **Status board (28 Sep — Plugin/#275 DONE @ tip):** *(superseded by tip above — historical)*
 - **Plugin DONE:** drop-folder H1 [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) squash-merged @ `fb25da6` (Install pack / Open Plugins / discover+bind). Completes Active Plugin row with #273/#274. Overlay / ToyHub / full dump still deferred.
 - **Parked:** Rel35; draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) full Virtual Person dump — leave unmerged.
