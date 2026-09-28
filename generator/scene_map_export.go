@@ -7,7 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strconv"
+	"sort"
 	"strings"
 	"time"
 
@@ -398,8 +398,12 @@ func writeJSON(path string, v any) error {
 //   - region marks authored by a person (author != "auto")
 //   - author:auto region marks only when Reviewed is explicitly true
 //
-// One representative frame is extracted per eligible mark. AtMs wins;
-// otherwise the midpoint of FromMs/ToMs is used, then FromMs, then 0.
+// Marks that resolve to the same representative timestamp share one extracted
+// frame and one multi-line YOLO label file. This is important for detector
+// training: writing duplicate copies of a frame with one box each would make
+// the other known objects look like unlabeled background.
+//
+// AtMs wins; otherwise the midpoint of FromMs/ToMs is used, then FromMs, then 0.
 func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (frames, labels int, yoloDir string, err error) {
 	if doc == nil || doc.SceneMap == nil {
 		return 0, 0, "", nil
@@ -448,6 +452,16 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 		return 0, 0, "", nil
 	}
 
+	byTime := make(map[int64][]funscript.SceneMapMark)
+	var times []int64
+	for _, s := range samples {
+		if _, ok := byTime[s.atMs]; !ok {
+			times = append(times, s.atMs)
+		}
+		byTime[s.atMs] = append(byTime[s.atMs], s.mark)
+	}
+	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
+
 	yoloDir = filepath.Join(clipDir, "reviewed_yolo")
 	imgDir := filepath.Join(yoloDir, "images")
 	lblDir := filepath.Join(yoloDir, "labels")
@@ -458,33 +472,42 @@ func writeReviewedYOLO(samnPath string, doc *samn.Document, clipDir string) (fra
 		return 0, 0, "", err
 	}
 
-	for i, s := range samples {
-		name := fmt.Sprintf("mark_%04d_%d", i, s.atMs)
+	for i, atMs := range times {
+		name := fmt.Sprintf("frame_%04d_%d", i, atMs)
 		imgPath := filepath.Join(imgDir, name+".png")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		w, h, dumpErr := DumpFrameAt(ctx, videoPath, imgPath, float64(s.atMs)/1000.0)
+		w, h, dumpErr := DumpFrameAt(ctx, videoPath, imgPath, float64(atMs)/1000.0)
 		cancel()
 		if dumpErr != nil {
 			return frames, labels, yoloDir, dumpErr
 		}
-		x, y, bw, bh := s.mark.Rect[0], s.mark.Rect[1], s.mark.Rect[2], s.mark.Rect[3]
-		x0, y0 := maxInt(0, x), maxInt(0, y)
-		x1, y1 := minInt(w, x+bw), minInt(h, y+bh)
-		if x1 <= x0 || y1 <= y0 {
+
+		var lines strings.Builder
+		frameLabels := 0
+		for _, mark := range byTime[atMs] {
+			x, y, bw, bh := mark.Rect[0], mark.Rect[1], mark.Rect[2], mark.Rect[3]
+			x0, y0 := maxInt(0, x), maxInt(0, y)
+			x1, y1 := minInt(w, x+bw), minInt(h, y+bh)
+			if x1 <= x0 || y1 <= y0 {
+				continue
+			}
+			classID := classes[strings.ToLower(strings.TrimSpace(mark.Class))]
+			xc := (float64(x0+x1) / 2) / float64(w)
+			yc := (float64(y0+y1) / 2) / float64(h)
+			wn := float64(x1-x0) / float64(w)
+			hn := float64(y1-y0) / float64(h)
+			fmt.Fprintf(&lines, "%d %.6f %.6f %.6f %.6f\n", classID, xc, yc, wn, hn)
+			frameLabels++
+		}
+		if frameLabels == 0 {
 			_ = os.Remove(imgPath)
 			continue
 		}
-		classID := classes[strings.ToLower(strings.TrimSpace(s.mark.Class))]
-		xc := (float64(x0+x1) / 2) / float64(w)
-		yc := (float64(y0+y1) / 2) / float64(h)
-		wn := float64(x1-x0) / float64(w)
-		hn := float64(y1-y0) / float64(h)
-		line := strconv.Itoa(classID) + " " + fmt.Sprintf("%.6f %.6f %.6f %.6f\n", xc, yc, wn, hn)
-		if err := os.WriteFile(filepath.Join(lblDir, name+".txt"), []byte(line), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(lblDir, name+".txt"), []byte(lines.String()), 0o644); err != nil {
 			return frames, labels, yoloDir, err
 		}
 		frames++
-		labels++
+		labels += frameLabels
 	}
 	if err := writeJSON(filepath.Join(yoloDir, "classes.json"), map[string]any{"version": 1, "names": classNames}); err != nil {
 		return frames, labels, yoloDir, err
