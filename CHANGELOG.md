@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Create Advanced: Verify with the engine** — opt-in hybrid switch next to Use
+  contact points (Rhythm-robust on). Sends `ContactVerifyK=1.5` so the Go CSRT
+  rhythm grid keeps teacher points only where its own cell is ≥1.5× stronger
+  (CLI `--contact-verify 1.5`). Default off; Everyday Create bit-identical when
+  off. Docs: Anleitung §6 + in-GUI handbook.
+
 ## [0.5.39] — September 28, 2026
 
 ### Fixed

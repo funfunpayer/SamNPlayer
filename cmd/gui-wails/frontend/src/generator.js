@@ -278,6 +278,8 @@ export function initGenerator(root, playback) {
             <button type="button" class="secondary" id="gen-contact-points-pick" disabled
               data-help="Choose an existing contact_points.py JSON.">Choose…</button>
           </div>
+          <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
+            data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
           <div id="gen-contact-points-gen" style="display:none; margin:6px 0 8px 0; padding:8px; border:1px solid rgba(255,255,255,0.08);">
             <p class="hint" style="margin:0 0 6px 0;">Generate teachers JSON for this video (writes <code>.contact.json</code>). Opt-in — does not change Everyday Create.</p>
             <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
@@ -2596,6 +2598,13 @@ export function initGenerator(root, playback) {
         && !!el('#gen-contact-points')?.checked
         && (el('#gen-contact-points-path')?.value || '').trim()
       ) || '',
+      // Hybrid verify: fixed measured K=1.5 when switch on + points path present.
+      contactVerifyK: (
+        !!el('#gen-rhythm-grid')?.checked
+        && !!el('#gen-contact-points')?.checked
+        && !!(el('#gen-contact-points-path')?.value || '').trim()
+        && !!el('#gen-contact-verify')?.checked
+      ) ? 1.5 : 0,
       startTimeSec: seekSec > 0 ? seekSec : 0,
     };
     // Contact marks: persist when Contact vib is on (or legacy Tf/Tj distance).
@@ -3735,6 +3744,8 @@ export function initGenerator(root, playback) {
     const path = el('#gen-contact-points-path');
     const pick = el('#gen-contact-points-pick');
     const genBox = el('#gen-contact-points-gen');
+    const verify = el('#gen-contact-verify');
+    const verifyRow = el('#gen-contact-verify-row');
     if (!usePts) return;
     usePts.disabled = !rhythmOn;
     if (!rhythmOn) {
@@ -3744,6 +3755,12 @@ export function initGenerator(root, playback) {
     if (row) row.style.display = show ? 'flex' : 'none';
     if (path) path.disabled = !show;
     if (pick) pick.disabled = !show;
+    // Hybrid verify only when Use contact points is on (path may still be empty).
+    if (verify) {
+      verify.disabled = !show;
+      if (!show) verify.checked = false;
+    }
+    if (verifyRow) verifyRow.style.display = show ? 'flex' : 'none';
     // Teacher generate is available whenever Rhythm-robust is on (path optional until Use is checked).
     if (genBox) genBox.style.display = rhythmOn ? 'block' : 'none';
   }

@@ -184,8 +184,8 @@ SamNPlayer-cli generate --video clip.mp4 --roi x,y,w,h --rhythm-grid \
 ```
 
 No default changes. Defaults are discussed only after ≥ 4–5 more clips
-(Owner). GUI: a "verify with the engine" switch next to "Use contact points"
-is Cursor's, on request.
+(Owner). GUI: **"Verify with the engine (hybrid, K=1.5)"** next to Use contact
+points — shipped (opt-in, default off; same as CLI `--contact-verify 1.5`).
 
 **ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
 automatically".** The old locked rule "no silent ROI2" is now: no ROI2

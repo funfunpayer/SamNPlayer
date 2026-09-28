@@ -57,6 +57,7 @@ Everyday Create / CSRT-Go-Pfad: unverändert (Defaults, Payload-IDs, Soft-ons).
 |----|-------|----------|-----------|--------------|
 | `gen-rhythm-grid` | Rhythm-robust signal | Rhythm-Zellen nah am Tip; Go-CSRT; ~+18 % Zeit | Opt-in | **Behalten**; eigene Gruppe |
 | `gen-contact-points` + path/pick | Use contact points | Teachers-JSON nur bei Rhythm an; sonst bit-identisch | Opt-in | **Behalten** (progressive Show wie bisher) |
+| `gen-contact-verify` | Verify with the engine (hybrid, K=1.5) | `ContactVerifyK=1.5` — Engine filtert schwache Teacher-Punkte | Opt-in | **Behalten**; nur sichtbar wenn Use an |
 | `gen-cp-*` / `gen-contact-points-run` | Generate contact points | NudeNet / Ollama / LM Studio → `.contact.json` | Opt-in | **Behalten** |
 
 ### C · Scene map (eigene Gruppe — war unter „AI draft“ vermischt)
