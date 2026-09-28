@@ -48,6 +48,11 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		if trackerB != nil {
 			memB = newAppearanceMemory()
 		}
+		// Seed templates[0] from the true frame-0 ROIs (parity with TrackROI).
+		gray0 := cap.ToGray()
+		seedAppearanceMemory(memA, gray0, roiA)
+		seedAppearanceMemory(memB, gray0, roiB)
+		gray0.Close()
 	}
 	defer func() {
 		trackerA.Close()
@@ -69,6 +74,7 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 	lost, valid := 0, 1
 	idx := 1
 	var coastA, coastB trackutil.Coast
+	var guardA, guardB dispGuard
 	coastA.ObserveOK(boxA.X, boxA.Y, boxA.W, boxA.H)
 	coastB.ObserveOK(boxB.X, boxB.Y, boxB.W, boxB.H)
 	var trajA, trajB []Point
@@ -99,7 +105,7 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 			gray = cap.ToGray()
 		}
 		newA, okA := trackerA.Update(cap)
-		okA, boxA, trackerA = recoverOrCoast(cap, gray, trackerA, memA, &coastA, newA, okA, boxA, idx)
+		okA, boxA, trackerA = recoverOrCoast(cap, gray, trackerA, memA, &coastA, &guardA, newA, okA, boxA, idx)
 		tipOK := okA
 		if !okA {
 			if x, y, w, h, on := coastA.OnLost(); on {
@@ -111,7 +117,7 @@ func TrackTwoPoints(videoPath string, roiA, roiB Rect, opts Options) (Result, er
 		includeB := true
 		if trackerB != nil {
 			newB, okB := trackerB.Update(cap)
-			okB, boxB, trackerB = recoverOrCoast(cap, gray, trackerB, memB, &coastB, newB, okB, boxB, idx)
+			okB, boxB, trackerB = recoverOrCoast(cap, gray, trackerB, memB, &coastB, &guardB, newB, okB, boxB, idx)
 			if okB {
 				includeB = true
 			} else if x, y, w, h, on := coastB.OnLost(); on {
