@@ -2208,9 +2208,10 @@ def main():
                     help="With --contact-vibration: share of pos spectrum as contact "
                          "(Default 0.75). Lower = earlier; higher = deep only.")
     ap.add_argument("--contact-vibration-curve", default=None,
-                    choices=["linear", "soft", "peak"],
+                    choices=["linear", "soft", "peak", "impulse"],
                     help="With --contact-vibration: envelope linear (Default), "
-                         "soft (gentle onset, t²) or peak (stronger peak, √t).")
+                         "soft (gentle onset, t²), peak (stronger peak, √t), "
+                         "or impulse (quiet mid-window, sharp near deep peaks).")
     ap.add_argument("--report-summary", action="store_true",
                     help="Bericht auswerten und nach Urteil gruppiert ausgeben. "
                          "Braucht --report.")
