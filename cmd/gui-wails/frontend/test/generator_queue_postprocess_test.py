@@ -88,8 +88,16 @@ def main():
 
         check("Peak prominence control present (Expert)",
               page.locator("#gen-prominence").count() == 1)
+        check("Expert knobs are range sliders",
+              page.locator("#gen-prominence").evaluate("e => e.type") == "range"
+              and page.locator("#gen-smooth").evaluate("e => e.type") == "range"
+              and page.locator("#gen-maxspeed").evaluate("e => e.type") == "range")
         check("Everyday prominence default is 0 (profile default)",
               page.locator("#gen-prominence").input_value() == "0")
+        check("Max speed default is 0 (off)",
+              page.locator("#gen-maxspeed").input_value() == "0")
+        check("Smooth default is 11",
+              page.locator("#gen-smooth").input_value() == "11")
         check("Postprocess preview line present",
               page.locator("#gen-postprocess-preview").count() == 1)
         check("Queue panel hidden before multi-drop",
@@ -123,8 +131,10 @@ def main():
             timeout=3000)
         check("Opening Expert calls PreviewPostprocess",
               page.evaluate("window.__calls.filter(c => c[0]==='PreviewPostprocess').length") >= 1)
-        page.fill("#gen-prominence", "0.35")
+        page.locator("#gen-prominence").fill("0.35")
         page.wait_for_timeout(250)
+        check("Prominence readout shows 0.35",
+              page.locator("#gen-prominence-val").inner_text() == "0.35")
         page.wait_for_function(
             "window.__calls.filter(c => c[0]==='PreviewPostprocess').length >= 2",
             timeout=3000)

@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Expert: MakeVib-style knob sliders** — Smooth / Peak spacing / Prominence /
+  RDP / Max speed use range + live readout beside the rich probe (same IDs and
+  defaults: prominence=0, max-speed=0). Everyday CSRT unchanged.
+
 - **Play: curve / heatmap zoom** — Zoom in/out, zoom to selection, reset, and
   wheel zoom share one time window across curve + heatmap (markers, Feel bands,
   BPM grid stay synced). Display/nav only — no stroke rewrite.
