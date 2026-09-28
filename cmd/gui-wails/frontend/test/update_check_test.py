@@ -7,8 +7,9 @@ einem Fehler (Netzwerk, GitHub-Ratenlimit, ...) komplett verschluckt wurde
 keins gibt" nicht von "die Prüfung ist stillschweigend gescheitert" zu
 unterscheiden, und es gab keine Möglichkeit, auf Wunsch erneut zu prüfen.
 Geprüft wird hier: kein Update -> Hinweis nennt die aktuelle Version;
-Update verfügbar -> Hinweis nennt die neue Version; Fehler -> Hinweis zeigt
-die Fehlermeldung, nicht Stille.
+Update verfügbar -> Hinweis nennt die neue Version (+ Changelog-Preview);
+Fehler -> Hinweis zeigt die Fehlermeldung, nicht Stille / nicht roh '//'.
+Zusätzlich: ohne Release, aber mit Patch → Patch-Hinweis + Apply-Knopf.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/update_check_test.py
 """
@@ -34,6 +35,8 @@ def main():
         "GetSettings": "async () => ({ reportPath: '', defaultReportPath: '' })",
         "CurrentVersion": "async () => '0.3.0'",
         "CheckForUpdate": "async () => window.__updateResult",
+        "CheckForPatch": "async () => window.__patchResult",
+        "ApplyPatch": "async () => { window.__patchApplied = true; }",
     }))
 
     harness = pathlib.Path(__file__).resolve().parent / "_update_check_harness.html"
@@ -48,7 +51,9 @@ def main():
         page.wait_for_function("window.__ready === true")
 
         # Kein Update verfügbar.
-        page.evaluate("window.__updateResult = { available: false }")
+        page.evaluate(
+            "window.__updateResult = { available: false };"
+            "window.__patchResult = { available: false };")
         page.click("#st-update-now")
         page.wait_for_function(
             "document.querySelector('#st-update-status').textContent.includes('No update')",
@@ -59,7 +64,8 @@ def main():
 
         # Update verfügbar (Dialog wird oben dismissed statt akzeptiert).
         page.evaluate(
-            "window.__updateResult = { available: true, release: { tag_name: 'v0.4.0', body: '## Notes\\n* fixed boxes' } }")
+            "window.__updateResult = { available: true, release: { tag_name: 'v0.4.0', body: '## Notes\\n* fixed boxes' } };"
+            "window.__patchResult = { available: false };")
         page.click("#st-update-now")
         page.wait_for_function(
             "document.querySelector('#st-update-status').textContent.includes('v0.4.0')",
@@ -72,7 +78,9 @@ def main():
 
         # Fehler bei der Prüfung darf NICHT stillschweigend verschwinden.
         # Auch Slash-only-Müll darf nicht unverändert in der UI landen.
-        page.evaluate("window.__updateResult = { error: 'kein Netz' }")
+        page.evaluate(
+            "window.__updateResult = { error: 'kein Netz' };"
+            "window.__patchResult = { available: false };")
         page.click("#st-update-now")
         page.wait_for_function(
             "document.querySelector('#st-update-status').textContent.includes('kein Netz')",
@@ -80,7 +88,9 @@ def main():
         check("Fehler bei der Prüfung wird angezeigt, nicht verschluckt",
               "kein Netz" in page.locator("#st-update-status").inner_text())
 
-        page.evaluate("window.__updateResult = { error: '//' }")
+        page.evaluate(
+            "window.__updateResult = { error: '//' };"
+            "window.__patchResult = { available: false };")
         page.click("#st-update-now")
         page.wait_for_function(
             "document.querySelector('#st-update-status').textContent.length > 0",
@@ -88,6 +98,24 @@ def main():
         slash_txt = page.locator("#st-update-status").inner_text()
         check("Slash-only Fehler wird nicht roh als '//' gezeigt",
               "//" not in slash_txt or "unknown" in slash_txt.lower(), slash_txt)
+
+        # Kein Release, aber Patch → gleicher UX-Pfad (Hinweis + Apply).
+        page.evaluate(
+            "window.__updateResult = { available: false };"
+            "window.__patchResult = { available: true, kind: 'patch', patchId: 'v0.3.0-p1' };"
+            "window.__patchApplied = false;")
+        page.click("#st-update-now")
+        page.wait_for_function(
+            "document.querySelector('#st-update-status').textContent.includes('v0.3.0-p1')",
+            timeout=5000)
+        check("Patch verfügbar: ID im Hinweis",
+              "v0.3.0-p1" in page.locator("#st-update-status").inner_text())
+        apply_visible = page.locator("#st-update-apply").is_visible()
+        check("Patch verfügbar: Apply-Knopf sichtbar", apply_visible)
+        if apply_visible:
+            page.click("#st-update-apply")
+            page.wait_for_function("window.__patchApplied === true", timeout=3000)
+            check("Patch Apply ruft ApplyPatch", page.evaluate("window.__patchApplied"))
 
         browser.close()
 

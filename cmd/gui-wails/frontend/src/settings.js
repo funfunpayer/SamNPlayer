@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -460,9 +460,7 @@ export function initSettings(root) {
       const res = await CheckForUpdate();
       if (res.error) {
         uiError('Update check: ' + formatUpdateError(res.error), status);
-      } else if (!res.available) {
-        status.textContent = `No update available (current: ${version}).`;
-      } else {
+      } else if (res.available) {
         const tag = releaseTag(res.release);
         const notes = releaseNotesPreview(res.release);
         status.textContent = notes
@@ -482,6 +480,34 @@ export function initSettings(root) {
               apply.textContent = 'Download & restart';
             }
           };
+        }
+      } else {
+        // No full release → check additive patch channel (same UX).
+        const pres = await CheckForPatch();
+        if (pres.error) {
+          uiError('Patch check: ' + formatUpdateError(pres.error), status);
+        } else if (!pres.available) {
+          status.textContent = `No update available (current: ${version}).`;
+        } else {
+          const id = pres.patchId || (pres.patch && (pres.patch.id || pres.patch.ID)) || '?';
+          const notes = releaseNotesPreview(pres.patch);
+          status.textContent = notes
+            ? `Patch ${id} available (current: ${version}). ${notes}`
+            : `Patch ${id} available (current: ${version}).`;
+          if (apply) {
+            apply.style.display = '';
+            apply.onclick = async () => {
+              apply.disabled = true;
+              apply.textContent = 'Downloading…';
+              try {
+                await ApplyPatch();
+              } catch (err) {
+                uiError('Patch failed: ' + formatUpdateError(err), status);
+                apply.disabled = false;
+                apply.textContent = 'Download & restart';
+              }
+            };
+          }
         }
       }
     } catch (err) {
