@@ -458,7 +458,7 @@ Tab **Settings** · auch **Open user handbook**
 
 ---
 
-## 18. Plugins · Virtual Person (geparkt)
+## 18. Plugins
 
 ### Zweck
 Drop-Folder-Infra (H1): Packs mit `samn-plugin.json` installieren.
@@ -472,10 +472,8 @@ Settings → **Plugins**
 | Open Plugins folder | `%APPDATA%\SamNPlayer\plugins\` (Windows) öffnen |
 | Refresh | Liste aktualisieren |
 
-**Virtual Person** (Chat/Enable/Give/Overlay) ist **geparkt** (#264) — in v0.5.35 aus der Produkt-UI geschrubbt (#341). Create/Play unverändert.
-
 ### Tipps
-- Ohne freigegebenes VP-Produkt bringt Install nur Asset-Pack-Infra.  
+- Install bringt Pack-Infra — Create/Play bleiben Everyday.  
 - Details: `docs/PLUGIN_INSTALL_DE.md`, `docs/PLUGIN_SYSTEM.md`.
 
 ---
@@ -518,7 +516,6 @@ Settings → **Plugins**
 - Whole-frame 4-Zone / Flow als Generate-Default (CLI/Experiment)  
 - ONNX-Vision-AI als Stroke-Writer (noch nicht shipped)  
 - Cloud-LLM schreibt Positionen  
-- Virtual-Person-Produkt-UI  
 - In-App Clip-Prep-Cutter (Skripte + Bench-Panel reichen; Mark In/Out bleibt Owner-Prep)
 - Contact-Verify / Rhythm als Everyday-Default (Owner-Gate ≥4–5 Clips)
 

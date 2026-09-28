@@ -66,8 +66,8 @@ flowchart TB
     CHK --> NUD[NudeNet venv]
   end
 
-  subgraph Plugins["Plugins (kein VP-Produkt)"]
-    PH[pluginhost<br/>Install / Open folder] -.-> VP[Virtual Person<br/>PARKED #264]
+  subgraph Plugins["Plugins"]
+    PH[pluginhost<br/>Install / Open folder]
   end
 ```
 
@@ -165,11 +165,10 @@ Nach [#342](https://github.com/funfunpayer/SamNPlayer/pull/342): Review-Karten z
 3. **Score vs reference** → gut / prüfen / nicht gut → optional **Save label for KI**  
 4. Details: [`benchmark-system.md`](benchmark-system.md)
 
-### 3.8 Plugins — **kein VP-Produkt**
+### 3.8 Plugins
 
-- Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) + scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
-- **Virtual Person** Enable/Give/Titjob-UI: **entfernt / geparkt** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264))
-- Erwartete Meldung bei altem Code-Pfad: Host not running — ignorieren, außer du testest absichtlich #264
+- Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) · scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
+- Nur Pack-Infra — kein separates Chat-/Enable-Produkt in der GUI
 
 ---
 
@@ -183,7 +182,7 @@ Zielbuild: **portable [`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/rele
 |---|------|-----------|
 | A1 | Version in About/Log | `0.5.40` |
 | A2 | ffmpeg neben exe | Startup ohne Tool-Fehler |
-| A3 | Settings / UI | **kein** Virtual-Person Enable/Give/Titjob-Produkt |
+| A3 | Settings / UI | Plugins Install/Open sichtbar; keine Enable/Give/Overlay-Produktfläche |
 | A4 | Plugins | Install pack / Open folder sichtbar |
 
 ### B. Everyday CSRT (#339)
@@ -279,7 +278,6 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 
 | Thema | Status |
 |-------|--------|
-| Virtual Person Produkt-UI | Geparkt (#264 / #341 scrub) |
 | Rhythm-Grid Everyday-Default | Owner + Claude-Messung ≥4–5 Clips zuerst |
 | SceneMap P5-Audit [#290](https://github.com/funfunpayer/SamNPlayer/issues/290) | Backlog, kein Rel35-Blocker |
 | AIWrite ONNX-Writer | Scaffold — Imitation-Keep reicht |
@@ -298,7 +296,7 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 | [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) / [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) | P5c YOLO (Multi-Box) | Export nur reviewed |
 | [#339](https://github.com/funfunpayer/SamNPlayer/pull/339) | Go CSRT force | Everyday ohne MIL |
 | [#337](https://github.com/funfunpayer/SamNPlayer/pull/337) | Impulse argparse | Peak-emphasis Create |
-| [#341](https://github.com/funfunpayer/SamNPlayer/pull/341) | VP scrub | Kein VP-Produkt |
+| [#341](https://github.com/funfunpayer/SamNPlayer/pull/341) | Produkt-UI scrub | Plugins nur Pack-Host |
 | [#342](https://github.com/funfunpayer/SamNPlayer/pull/342) | Review-Box-Overlays | Boxen im AI-Train-Review |
 | [#340](https://github.com/funfunpayer/SamNPlayer/pull/340) | Rel35 tag | `v0.5.35` Release |
 
@@ -306,4 +304,4 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 
 ## 7. One-liner zum Merken
 
-**Go-CSRT schreibt. Teachers zeigen. Scene2 schlägt Tip/Partner vor. Contact-verify prüft. Accept öffnet YOLO. Plugins hosten ohne VP. Du testest Portable → Everyday → Scene2 Apply → Teachers → Review-Boxen.**
+**Go-CSRT schreibt. Teachers zeigen. Scene2 schlägt Tip/Partner vor. Contact-verify prüft. Accept öffnet YOLO. Plugins = Pack-Host. Du testest Portable → Everyday → Scene2 Apply → Teachers → Review-Boxen · Bench Suggest.**

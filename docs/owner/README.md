@@ -58,5 +58,4 @@ Screenshots unter [`media/`](media/) und [`media/anleitung/`](media/anleitung/).
 ## Abgrenzung
 
 - Keine neuen Produktfeatures in diesen Docs — Beschreibung des **Ist-Stands**.
-- [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / Virtual Person: **geparkt**, hier nicht behandelt.
 - Englische Engineering-Pläne weiter in `docs/` Root (`EVERYDAY_GENERATE.md`, `SCENE_MAP_PLAN.md`, …).
