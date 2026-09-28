@@ -331,7 +331,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			}
 		}
 
+		// SceneMark times are absolute video times. When tracking starts from a
+		// non-zero offset, use that same absolute timebase during the loop;
+		// timestamps are shifted below for the returned result as before.
 		atMs := int64(float64(frameIdx) * 1000.0 / fps)
+		if opts.StartTimeSec > 0 {
+			atMs += int64(opts.StartTimeSec*1000 + 0.5)
+		}
 		for fi := range followers {
 			f := &followers[fi]
 			if !sceneMarkActive(liveMarks[f.idx], atMs) {
