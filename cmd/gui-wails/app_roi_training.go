@@ -359,21 +359,27 @@ func writeRoiLabelFile(path string, boxes []RoiTrainingBox) error {
 	return os.WriteFile(path, []byte(sb.String()), 0o644)
 }
 
+// roiLabelPathForImage maps …/images/<split>/<name>.jpg → …/labels/<split>/<name>.txt.
+// Uses slash-string replace (not filepath.Join on split segments) so absolute
+// paths stay absolute: Join("","tmp",…) drops the root, and on Windows
+// Join("C:","work",…) yields the relative "C:work\…" form — both made the
+// review grid load images with empty Boxes (no overlays) while Discard still
+// removed the image via the correctly-joined imagePath.
 func roiLabelPathForImage(imagePath string) (string, error) {
-	parts := strings.Split(filepath.ToSlash(imagePath), "/")
-	idx := -1
-	for i, p := range parts {
-		if p == "images" {
-			idx = i
-		}
-	}
-	if idx == -1 {
+	slash := filepath.ToSlash(imagePath)
+	const marker = "/images/"
+	idx := strings.LastIndex(slash, marker)
+	var replaced string
+	switch {
+	case idx >= 0:
+		replaced = slash[:idx] + "/labels/" + slash[idx+len(marker):]
+	case strings.HasPrefix(slash, "images/"):
+		replaced = "labels/" + strings.TrimPrefix(slash, "images/")
+	default:
 		return "", fmt.Errorf("no 'images' folder in path: %s", imagePath)
 	}
-	parts[idx] = "labels"
-	joined := filepath.Join(parts...)
-	ext := filepath.Ext(joined)
-	return strings.TrimSuffix(joined, ext) + ".txt", nil
+	ext := filepath.Ext(replaced)
+	return filepath.FromSlash(strings.TrimSuffix(replaced, ext) + ".txt"), nil
 }
 
 // ListRoiTrainingSamples listet Trainingsbeispiele aus datasetDir/images/*

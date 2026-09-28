@@ -588,18 +588,42 @@ export function initRoiTraining(root) {
     refreshDatasetReadyHint();
   });
 
+  function normBox(box) {
+    if (!box || typeof box !== 'object') return null;
+    const xc = Number(box.xc ?? box.XC);
+    const yc = Number(box.yc ?? box.YC);
+    const w = Number(box.w ?? box.W);
+    const h = Number(box.h ?? box.H);
+    if (![xc, yc, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return null;
+    return {
+      classId: box.classId ?? box.ClassID ?? 0,
+      className: box.className || box.ClassName || '',
+      xc, yc, w, h,
+    };
+  }
+
   function boxOverlay(box) {
+    const b = normBox(box);
+    if (!b) return null;
     const wrap = document.createElement('div');
     wrap.className = 'rt-box';
-    wrap.style.left = ((box.xc - box.w / 2) * 100) + '%';
-    wrap.style.top = ((box.yc - box.h / 2) * 100) + '%';
-    wrap.style.width = (box.w * 100) + '%';
-    wrap.style.height = (box.h * 100) + '%';
+    wrap.style.left = ((b.xc - b.w / 2) * 100) + '%';
+    wrap.style.top = ((b.yc - b.h / 2) * 100) + '%';
+    wrap.style.width = (b.w * 100) + '%';
+    wrap.style.height = (b.h * 100) + '%';
     const label = document.createElement('span');
     label.className = 'rt-box-label';
-    label.textContent = box.className || ('#' + box.classId);
+    label.textContent = b.className || ('#' + b.classId);
     wrap.appendChild(label);
     return wrap;
+  }
+
+  function paintBoxes(thumbWrap, boxes) {
+    thumbWrap.querySelectorAll('.rt-box').forEach(n => n.remove());
+    (boxes || []).forEach(box => {
+      const node = boxOverlay(box);
+      if (node) thumbWrap.appendChild(node);
+    });
   }
 
   async function refreshReview() {
@@ -628,6 +652,9 @@ export function initRoiTraining(root) {
         const imgEl = document.createElement('img');
         imgEl.className = 'rt-thumb';
         thumbWrap.appendChild(imgEl);
+        // Paint labels as soon as we have geometry — do not wait on the image
+        // RPC so overlays never disappear behind a slow/failed thumbnail load.
+        paintBoxes(thumbWrap, s.boxes);
         const caption = document.createElement('div');
         caption.className = 'hint';
         caption.style.margin = '4px 0';
@@ -656,8 +683,8 @@ export function initRoiTraining(root) {
             : p.endsWith('.webp') ? 'image/webp'
             : p.endsWith('.gif') ? 'image/gif'
             : 'image/jpeg';
+          imgEl.onload = () => paintBoxes(thumbWrap, s.boxes);
           imgEl.src = `data:${mime};base64,` + b64;
-          (s.boxes || []).forEach(box => thumbWrap.appendChild(boxOverlay(box)));
         }).catch(() => { caption.textContent += ' (could not load image)'; });
 
         editBtn.addEventListener('click', async () => {
@@ -746,9 +773,9 @@ export function initRoiTraining(root) {
         h: H,
       }, ...boxes.slice(1)];
       await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, updated);
+      sample.boxes = updated;
       overlay.remove();
-      thumbWrap.querySelectorAll('.rt-box').forEach(n => n.remove());
-      updated.forEach(box => thumbWrap.appendChild(boxOverlay(box)));
+      paintBoxes(thumbWrap, updated);
       uiInfo('Box saved.');
     };
     thumbWrap.addEventListener('mousedown', (e) => {
