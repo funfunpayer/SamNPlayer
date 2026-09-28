@@ -97,7 +97,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.32** | Bookkeeping | Rel32 CHANGELOG/VERSION (#271); **never tagged** — portable deferred to 0.5.33 after post-Rel32 features |
 | **v0.5.33** | Shipped | Rel32 stack + Plugin `virtual_person` H0/H1 (#273/#274) + Generator Follow/Ignore marks S0/S1 (#276/#277) — tag `v0.5.33` |
 | **v0.5.34** | Shipped | Post-Rel33 stack: vib impulse/spatial (#279/#283), AIWrite S2/S2b/S3prev (#280/#282/#288), Intiface live+reconnect (#281/#286), Marks S2/S3 (#284/#285), IdLock release (#287) — tag `v0.5.34` |
-| next | After Rel34 | Owner portable smoke on `v0.5.34`. Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3. GUI-load audit leftovers |
+| **v0.5.35** | THIS | Rel35 test cut: Scene2+GUI (#329/#334), Apply AI (#336), AutoReview (#328), impulse (#337), Go CSRT force (#339), VP product scrub (#341). Park #264. Known: #290 P5 audit |
+| next | After Rel35 | Owner portable smoke on `v0.5.35` + test data. Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3; GUI Apply-AI toggle |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
