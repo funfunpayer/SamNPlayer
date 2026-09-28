@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Tests
+
+- **Contact-verify synthetic OpenCV E2E** — CSRT-survivable clip → rhythm grid
+  + teacher JSON + `ContactVerifyK=1.5` asserts quiet decoys are dropped and
+  GenerateNativeCSRT still writes a loadable funscript (pairs with #363 unit
+  coverage). No production/default change.
+
 ## [0.5.40] — September 28, 2026
 
 ### Added
