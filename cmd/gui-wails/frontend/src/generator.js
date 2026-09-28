@@ -226,27 +226,29 @@ export function initGenerator(root, playback) {
 
     <section class="gen-step-panel" id="gen-step-run" data-step="4" hidden>
       <h3 class="gen-step-title">4 · Create</h3>
-      <details id="gen-advanced" style="margin:6px 0 10px 0;">
-        <summary style="cursor:pointer;">Advanced settings</summary>
+      <details id="gen-advanced" class="gen-adv" style="margin:6px 0 10px 0;">
+        <summary style="cursor:pointer;">Advanced settings — optional (Everyday Create works with this closed)</summary>
         <div style="margin-top:8px;">
-          <div class="opt-group">Tracking</div>
+          <p class="hint" id="gen-advanced-intro" style="margin:0 0 8px 0;">
+            <b>Everyday base is always tip → Go CSRT → Create.</b> Advanced never switches that to KI-first.
+            Hybrid (teachers / rhythm / scene map / AI draft) only <b>assists or verifies</b> on that spine — opt-in, review required.
+            Open this for polarity, long-clip drift, Ignore marks, or rare tuning. Defaults below match Everyday.
+          </p>
+
+          <div class="opt-group">Tracking &amp; polarity</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
             data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
-            data-help="Compensates camera pans using background features. Recommended for moving camera.">Camera motion compensation</label></div>
+            data-help="Compensates camera pans using background features. Recommended for moving camera. Default on.">Camera motion compensation</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
-            data-help="Detects hard cuts and re-anchors the tracker afterward.">Scene-cut detection</label></div>
-          <div class="row" style="align-items:center;">
-            <label style="width:auto;" data-help="CSRT tip tracking (Go path) — Everyday stroke writer. Whole-frame 4-zone stays CLI-only (weaker on measured clips; not a product stroke mode).">Tracking method</label>
-            <select id="gen-backend">
-              <option value="csrt" selected>CSRT (mark tip, Go path)</option>
-            </select>
-          </div>
-          <p class="hint" id="gen-backend-hint" style="margin:0 0 6px 0;">CSRT needs a tip mark (auto-find or draw). Contact vibration is the feel layer — optional marks when vib is on.</p>
+            data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
             data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A/S2 (vib when tip grazes a contact mark; spatial preferred over depth fill) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-contact-impulse" /><label for="gen-contact-impulse"
-            data-help="Experiment: contact vibration only on strong peaks (impulse curve) instead of a continuous depth fill. Opt-in Advanced only — Everyday Soft onset stays default. Does not change stroke CSRT, Follow/Ignore marks, or Enforcement.">Peak-emphasis contact vib (impulse, experiment)</label></div>
+
+          <div class="opt-group">Long-clip anti-drift (hybrid assist)</div>
+          <p class="hint" style="margin:0 0 6px 0;">
+            Still Go CSRT stroke. Rhythm / teachers only steer the signal when you opt in — off = bit-identical Everyday.
+          </p>
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
@@ -271,21 +273,12 @@ export function initGenerator(root, playback) {
               <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
             </div>
           </div>
-          <div class="opt-group">AI draft (experimental)</div>
-          <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
-            Everyday Create still uses CSRT. After a good Create, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches the best duration + tip-aspect match for review. Keep required — CSRT path unchanged.
+
+          <div class="opt-group">Scene map</div>
+          <p class="hint" style="margin:0 0 6px 0;">
+            Heatmap + Ignore/Source marks without running Create. Same Ignore job as Step 2 → <b>+ Ignore region (black)</b>.
+            Explicit only — never auto before Create.
           </p>
-          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="secondary" id="gen-ai-script-export" disabled
-              data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
-            <button type="button" class="secondary" id="gen-ai-script-draft" disabled
-              data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
-            <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
-              data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
-            <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
-              data-help="Drops the current AI draft without writing. Everyday Create result stays.">Discard</button>
-            <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
-          </div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
             <button type="button" class="secondary" id="gen-scene-map" disabled
               data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
@@ -333,33 +326,67 @@ export function initGenerator(root, playback) {
             </div>
           </div>
 
+          <div class="opt-group">AI assist (never Everyday default)</div>
+          <details id="gen-advanced-ai-draft" class="gen-adv-nested">
+            <summary>AI draft (experimental) — CSRT Create first; draft is review-only</summary>
+            <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
+              Does <b>not</b> replace Everyday Create. After a good CSRT run, <b>Export classical run</b> builds a local imitation library; with ≥1 sample, <b>AI draft script</b> stretches a match for review. Keep required — Go CSRT path unchanged.
+            </p>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="secondary" id="gen-ai-script-export" disabled
+                data-help="Saves this Create result as a local training sample (actions + quality) under ai_script_imitation. Does not train a model and does not change Everyday CSRT. Enabled after Create finishes.">Export classical run</button>
+              <button type="button" class="secondary" id="gen-ai-script-draft" disabled
+                data-help="Experimental: drafts a stroke from your exported classical samples (duration + tip box aspect match, then stretch). Off until ≥1 Export classical run. Shows the draft on the 0–100 gauge for review before Keep. Does not replace CSRT Create.">AI draft script</button>
+              <button type="button" class="primary" id="gen-ai-script-keep" disabled hidden
+                data-help="Writes the reviewed AI draft beside the video as .samn (+ .funscript). Explicit only — never auto.">Keep draft</button>
+              <button type="button" class="secondary" id="gen-ai-script-discard" disabled hidden
+                data-help="Drops the current AI draft without writing. Everyday Create result stays.">Discard</button>
+              <span class="hint" id="gen-ai-script-status" style="margin:0;"></span>
+            </div>
+          </details>
+
           <div class="opt-group">Signal &amp; quality</div>
           <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
-            data-help="Smoothly lifts weak sections to usable strength.">Sliding dynamics</label></div>
+            data-help="Smoothly lifts weak sections to usable strength. Default on.">Sliding dynamics</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
-            data-help="Automatically retries with other signal parameters when quality is poor.">Auto-Retry</label></div>
+            data-help="Automatically retries with other signal parameters when quality is poor. Default on.">Auto-Retry</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
             data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
           <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
           <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
           <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
 
-          <div class="opt-group">Keyframes</div>
-          <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
-            <select id="gen-axis">
-              <option value="" selected>Automatic (recommended)</option>
-              <option value="x">Force horizontal</option>
-              <option value="y">Force vertical</option>
-            </select>
-          </div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
-            data-help="Adds extra keyframes for asymmetric motion.">Adaptive Keyframes</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
-            data-help="Re-searches region after each cut. Better for heavily edited material, slower.">Re-find region after each cut</label></div>
-          <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
-          <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
-          <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
-          <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+          <details id="gen-advanced-expert" class="gen-adv-nested">
+            <summary>Expert tuning — defaults are fine for Everyday</summary>
+            <p class="hint" id="gen-backend-hint" style="margin:8px 0 6px 0;">
+              Product tracking is <b>CSRT tip (Go path)</b>. Flow / 4-zone / research backends stay <b>CLI-only</b>
+              (not shown here — see docs/EVERYDAY_GENERATE.md).
+            </p>
+            <!-- Keep #gen-backend in DOM for payload + Playwright; product GUI is CSRT-only. -->
+            <div class="gen-adv-sr-only" aria-hidden="true">
+              <label for="gen-backend">Tracking method</label>
+              <select id="gen-backend" tabindex="-1">
+                <option value="csrt" selected>CSRT (mark tip, Go path)</option>
+              </select>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-contact-impulse" /><label for="gen-contact-impulse"
+              data-help="Same as Feel → Curve → Impulse (peaks only). Prefer the Curve control in step 3; this Advanced mirror stays in sync. Opt-in experiment — Everyday Soft onset stays default. Does not change stroke CSRT, Follow/Ignore marks, or Enforcement.">Peak-emphasis contact vib (same as Feel → Curve → Impulse)</label></div>
+            <div class="field-row"><label data-help="Both axes are tracked; Auto picks the larger span. Force only when clearly wrong.">Motion axis</label>
+              <select id="gen-axis">
+                <option value="" selected>Automatic (recommended)</option>
+                <option value="x">Force horizontal</option>
+                <option value="y">Force vertical</option>
+              </select>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-adaptive" checked /><label for="gen-adaptive"
+              data-help="Adds extra keyframes for asymmetric motion. Default on.">Adaptive Keyframes</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
+              data-help="Re-searches the tip region after each hard cut (Python PerSceneROI). On Go-CSRT portable builds this is soft-ignored — cuts still re-anchor, Everyday stays on Go CSRT (#338/#339). Prefer leaving off unless you intentionally use the Python path.">Re-find region after each cut (Python-only; soft-ignored on Go CSRT)</label></div>
+            <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower. Default 11.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
+            <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds. Default 150.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+            <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
+            <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+          </details>
         </div>
       </details>
 
@@ -892,7 +919,7 @@ export function initGenerator(root, playback) {
     } else if (!hasResult) {
       prompt.textContent = noMark
         ? 'Step 4: Create your Emotion Script.'
-        : 'Step 4: Create Emotion Script — optional Advanced settings below.';
+        : 'Step 4: Create Emotion Script — Advanced stays closed for Everyday; open only if needed.';
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve.';
     }
