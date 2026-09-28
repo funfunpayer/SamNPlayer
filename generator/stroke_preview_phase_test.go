@@ -58,10 +58,20 @@ func TestApplyStrokePreviewSteersCutRateEnablesPerSceneROI(t *testing.T) {
 	opts := applyStrokePreviewSteers(Options{
 		StrokePreviewHint: map[string]any{"stage": "A"},
 	}, h, func(s string) { lines = append(lines, s) })
-	if !opts.PerSceneROI {
-		t.Fatal("expected PerSceneROI enabled for high cut rate")
-	}
 	joined := strings.Join(lines, "\n")
+	if NativeTrackingAvailable() {
+		// Go CSRT builds must not steer into Python (#338).
+		if opts.PerSceneROI {
+			t.Fatal("Go CSRT build must not enable PerSceneROI from stroke preview")
+		}
+		if !strings.Contains(joined, "staying on Go CSRT") {
+			t.Fatalf("missing Go CSRT stay progress: %s", joined)
+		}
+		return
+	}
+	if !opts.PerSceneROI {
+		t.Fatal("expected PerSceneROI enabled for high cut rate (no Go CSRT)")
+	}
 	if !strings.Contains(joined, "enabling “Re-find region after each cut”") {
 		t.Fatalf("missing enable progress: %s", joined)
 	}
@@ -101,5 +111,25 @@ func TestApplyStrokePreviewSteersNoopWhenAlreadyOn(t *testing.T) {
 	}, h, nil)
 	if opts.StrokePreviewHint["stage"] != "A" {
 		t.Fatalf("no new steers → stage should stay A, got %v", opts.StrokePreviewHint["stage"])
+	}
+}
+
+func TestSoftenPythonOnlyOptsClearsPerSceneWhenGoCSRT(t *testing.T) {
+	roi := ROI{X: 10, Y: 10, W: 40, H: 40}
+	var lines []string
+	out := softenPythonOnlyOptsForGoCSRT(Options{Backend: "csrt", PerSceneROI: true}, roi, func(s string) {
+		lines = append(lines, s)
+	})
+	if NativeTrackingAvailable() {
+		if out.PerSceneROI {
+			t.Fatal("Go CSRT builds must soft-clear PerSceneROI (#338)")
+		}
+		if !strings.Contains(strings.Join(lines, "\n"), "keeping Go CSRT") {
+			t.Fatalf("expected keep-Go progress, got %v", lines)
+		}
+		return
+	}
+	if !out.PerSceneROI {
+		t.Fatal("without linked Go CSRT, PerSceneROI must stay for Python path")
 	}
 }

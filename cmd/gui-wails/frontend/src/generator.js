@@ -2330,20 +2330,18 @@ export function initGenerator(root, playback) {
       wrap.style.display = 'block';
       progressStartedAt = Date.now();
     }
-    // Stage B steers (stroke preview): keep Advanced checkboxes in sync with
-    // what Generate enabled for this run (same lines as applyStrokePreviewSteers).
+    // Stage B steers (stroke preview): tip only — do NOT flip Advanced
+    // checkboxes. Go already applied opts for this run; checking the box
+    // here sticky-enables PerSceneROI for every later Create and forces the
+    // Python path (#338 CSRT-not-available on Windows portable).
     const s = String(line);
     if (/STROKE_PREVIEW:.*enabling .Re-find region after each cut/i.test(s)) {
-      const box = el('#gen-perscene');
-      if (box && !box.checked) box.checked = true;
       const tip = el('#gen-preview-steer-tip');
-      if (tip) tip.textContent = 'Stroke preview: enabled Re-find region after each cut (high cut rate).';
+      if (tip) tip.textContent = 'Stroke preview: enabled Re-find region after each cut for this run (high cut rate). Uncheck Advanced → Re-find… next time to stay on Go CSRT.';
     }
     if (/STROKE_PREVIEW:.*enabling camera motion compensation/i.test(s)) {
-      const box = el('#gen-camcomp');
-      if (box && !box.checked) box.checked = true;
       const tip = el('#gen-preview-steer-tip');
-      if (tip) tip.textContent = 'Stroke preview: enabled camera motion compensation (pan-like energy).';
+      if (tip) tip.textContent = 'Stroke preview: enabled camera motion compensation for this run (pan-like energy).';
     }
     const pipe = el('#gen-pipeline');
     if (!pipe) return;

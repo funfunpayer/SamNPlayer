@@ -57,18 +57,36 @@ func applyStrokePreviewSteers(opts Options, h strokepreview.Hint, onProgress fun
 			h.SuggestedMinPeakDistanceMs, h.StrokeHz))
 	}
 	// BF-3: cut-rate → enable Re-find region (PerSceneROI) for this run.
+	// On Go-CSRT builds (#338 / Rel35): do NOT steer into Python — Go TrackROI
+	// already re-anchors on cuts; per-scene ROI re-search stays Python-only
+	// until Go auto_roi parity. Soft-clear happens in softenPythonOnlyOptsForGoCSRT
+	// if the user already checked the Advanced box.
 	if h.CutRatePerMin > 4 && !opts.PerSceneROI {
-		opts.PerSceneROI = true
-		steered = true
-		if onProgress != nil {
-			onProgress(fmt.Sprintf(
-				"STROKE_PREVIEW: high cut rate (%.1f/min) — enabling “Re-find region after each cut”",
-				h.CutRatePerMin))
+		if NativeTrackingAvailable() {
+			if onProgress != nil {
+				onProgress(fmt.Sprintf(
+					"STROKE_PREVIEW: high cut rate (%.1f/min) — staying on Go CSRT (Re-find region is Python-only; cuts still re-anchor)",
+					h.CutRatePerMin))
+			}
+		} else {
+			opts.PerSceneROI = true
+			steered = true
+			if onProgress != nil {
+				onProgress(fmt.Sprintf(
+					"STROKE_PREVIEW: high cut rate (%.1f/min) — enabling “Re-find region after each cut”",
+					h.CutRatePerMin))
+			}
 		}
 	} else if h.CutRatePerMin > 4 && onProgress != nil {
-		onProgress(fmt.Sprintf(
-			"STROKE_PREVIEW: high cut rate (%.1f/min) — Re-find region already on",
-			h.CutRatePerMin))
+		if NativeTrackingAvailable() {
+			onProgress(fmt.Sprintf(
+				"STROKE_PREVIEW: high cut rate (%.1f/min) — Re-find region ignored on Go CSRT build (Python-only)",
+				h.CutRatePerMin))
+		} else {
+			onProgress(fmt.Sprintf(
+				"STROKE_PREVIEW: high cut rate (%.1f/min) — Re-find region already on",
+				h.CutRatePerMin))
+		}
 	}
 	// BF-3: pan → camera compensation for this run (tip when already on).
 	if h.PanShare > 0.4 && opts.DisableCameraCompensation {

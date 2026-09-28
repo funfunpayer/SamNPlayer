@@ -1,6 +1,9 @@
 package generator
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNativePipelineEligible(t *testing.T) {
 	roi := ROI{X: 10, Y: 10, W: 40, H: 40}
@@ -52,5 +55,24 @@ func TestNativePipelineEligible(t *testing.T) {
 	}
 	if !SimpleTrackingAvailable() {
 		t.Fatal("simpletrack must always be available")
+	}
+}
+
+func TestNativePipelineSkipReason(t *testing.T) {
+	roi := ROI{X: 10, Y: 10, W: 40, H: 40}
+	if got := NativePipelineSkipReason(Options{Backend: "csrt"}, roi); got != "" {
+		t.Fatalf("eligible options must have empty skip reason, got %q", got)
+	}
+	got := NativePipelineSkipReason(Options{Backend: "csrt", PerSceneROI: true}, roi)
+	if !strings.Contains(got, "Re-find region") {
+		t.Fatalf("PerSceneROI skip reason should name Re-find region, got %q", got)
+	}
+	got = NativePipelineSkipReason(Options{Backend: "flow"}, roi)
+	if !strings.Contains(got, "flow") {
+		t.Fatalf("flow skip reason should name backend, got %q", got)
+	}
+	got = NativePipelineSkipReason(Options{Backend: "csrt"}, ROI{})
+	if !strings.Contains(got, "empty") {
+		t.Fatalf("empty ROI skip reason, got %q", got)
 	}
 }

@@ -55,9 +55,18 @@ Default clone (no `-tags opencv`) still builds everywhere.
 
 After a tagged build with OpenCV DLLs:
 
-1. Fresh folder, unzip portable — **no** Python installed.
-2. Generate → Log: `Path: Go CSRT` / `trackcv`.
+1. Fresh folder, unzip portable — **no** Python required for Everyday Create.
+2. Generate (default; Advanced → **Re-find region after each cut** unchecked)
+   → Log: `Go-native CSRT pipeline` / `trackcv`.
 3. Same clip ROI as Linux; Quality Doctor not worse than Python CSRT.
+
+**If the log says `CSRT not available in OpenCV 5.0.0`:** that is the
+**Python** path (not the bundled Go CSRT). Usual cause (pre-#338 fix):
+Advanced “Re-find region after each cut” forced Python while system
+`opencv-python` had no CSRT → MIL. From #339 onward, Go-CSRT builds
+**soft-ignore** Re-find and stay on Go (cuts still re-anchor). Manual
+override: PreferPython / AI opinion / soft masks without RhythmGrid still
+need `opencv-contrib-python` if you deliberately take the Python path.
 
 ---
 
