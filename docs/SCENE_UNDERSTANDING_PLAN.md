@@ -1,6 +1,8 @@
 # Scene understanding — what is what, what moves against what (plan)
 
-Status: **plan, Stufe 2 starting** (Claude, 28 Sep 2026). The Owner approved:
+Status: **stage 2 tools done, measured** (Claude, 28 Sep 2026; results in
+§3 "Stage 2 — results"). Stages 2b (VLM clip mode) and the stable runtime
+(§4) are next. The Owner approved:
 *"Yes, definitely — plan it, put it on the board with Cursor, start Stufe 2.
 Video recognition would be good too. The stable system without big AI comes
 next."*
@@ -48,7 +50,7 @@ Today a person sets all of this by hand.
 | Stage | Teachers deliver | The system does with it | Status |
 |---|---|---|---|
 | **1** | contact point | the rhythm grid searches there | done (#312) |
-| **2** | body-part boxes plus **roles**: moving part, partner, ignore | proposals for the primary stroke ROI, the contact partner ROI2 and excludes | **starting** |
+| **2** | body-part boxes plus **roles**: moving part, partner, ignore | proposals for the primary stroke ROI, the contact partner ROI2 and excludes | **tools done** (opt-in; GUI = Cursor) |
 | **3** | scene type plus axis, depth and tempo per shot | profile proposal per shot; depth range for the mapper | next |
 | **4** | the course over time | draft script from our own model (hybrid: engine curve plus model structure), through QD and Keep | later |
 
@@ -65,8 +67,9 @@ Today a person sets all of this by hand.
    cell-score heatmap at the stroke tempo).
    - New CLI `scan-scene-map VIDEO --windows N` writes it as JSON.
 3. **Roles by rule** (`scene_roles.py`):
-   - Per window, a part's motion is the mean score of the cells under its
-     box.
+   - Per window, a part's motion is the mean of the strongest third of
+     the cells under its box (a plain mean dilutes large boxes such as
+     breasts).
    - Pairs: `penis`/`glans` against `mouth`, `hand_*`, `breasts`,
      `vagina`.
    - Within the most-moving pair, the part that moves more is the
@@ -90,13 +93,59 @@ Today a person sets all of this by hand.
    partner boxes for the first shot and per shot, and a profile
    suggestion.
 6. **Into the app:**
-   - Go `LoadSceneProposals(path, atMs)` returns `[]ROICandidate` plus
-     classes and profile.
-   - The CLI `generate --scene-proposals FILE` fills ROI / ROI2 / classes
-     only when the user gave none. That is explicit opt-in, and it is
-     logged.
+   - Go `LoadSceneProposals(path)` returns the proposals (primary and
+     partner as `ROICandidate` with `Class`, scene type, confidence,
+     window); `.At(ms)` picks the one for a video time.
+   - The CLI `generate --scene-proposals FILE [--scene-at-ms MS]` uses the
+     primary as ROI (and its class as region class when canonical) only
+     when `--roi` is not given. It is explicit opt-in and logged. The
+     partner is only logged — it is never applied as ROI2 (the CLI has no
+     ROI2, and the rule stays until the Owner changes it).
    - The GUI shows them in the existing pick-primary flow and the user
      applies. That GUI part is Cursor's.
+
+### Stage 2 — results (28 Sep, NudeNet as the only teacher)
+
+Pipeline: `samnplayer scan-scene-map clip.mp4 --windows N --out scan.json`
+→ `python3 generator/scene_roles.py --video clip.mp4 --scan scan.json
+--nudenet --out clip.scene.json --contact-out clip.contact.json`.
+
+| Clip | Anchor | r (FunGen ref) |
+|---|---|---|
+| multi-person 642 s | none (today) | 0.304 |
+| multi-person | NudeNet contact points (stage 1) | 0.401 |
+| multi-person | hand-labelled contact points | 0.425 |
+| multi-person | **stage-2 moving part, confidence ≥ 0.5** | **0.440** |
+| multi-person | stage-2 moving part, every typed window | 0.449 (but voll drops 0.752 → 0.702) |
+| multi-person | stage-2 pairs only | 0.341 |
+| clip_voll / clip_aus | stage-2, confidence ≥ 0.5 | unchanged (0.456/0.752, 0.482/0.888) |
+
+- The moving part beats the teachers' contact point: it tracks **what
+  moves**, not just what is visible.
+- Scene type is right in 15 of 21 typed windows (21 of 27 windows typed).
+  The typical miss is titjob read as blowjob when the face bobs with the
+  stroke. Stage 3 (axis, tempo) and the VLM clip mode should separate
+  these.
+- The confidence floor 0.5 is what keeps the goldens unchanged: low-
+  confidence windows would move a box that is already right.
+
+## 3b. Modes — how much the AI does (Owner, 28 Sep)
+
+The Owner wants several modes. All three use the same parts:
+
+| Mode | What the AI does | What the engine does | Status |
+|---|---|---|---|
+| **Classic** | proposes ROI, partner, profile; the user applies | tracks and writes the curve | stage 2 (now) |
+| **Hybrid gap-filler** | steps in only where the engine is weak: tracking lost, low confidence, QD flag, or nothing found; there it moves the search (contact points / moving part) or fills a draft segment | everything else | next after 2b: gap detection from QD + confidence, fill with stage-2 anchors first, stage-4 draft later |
+| **AI script** | writes a draft script (structure: strokes, pauses, depth) from our own model | supplies the precise timing; QD checks; the user keeps or rejects per segment (Keep) | stage 4 |
+
+**ROI2 — why it is never set automatically.** The locked rule in
+`TFTJ_PROFILE_DIRECTION.md` is "no silent ROI2": a wrong contact partner
+makes the contact vibration wrong, and the user may not notice. The
+proposals already contain the partner. **Open Owner decision:** turn the
+rule into a setting "Apply AI setup automatically" (default off, every
+applied value logged and shown). Until the Owner decides, the partner stays
+a proposal.
 
 ### Video, not just images
 

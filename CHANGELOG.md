@@ -10,6 +10,16 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Scene understanding stage 2 (opt-in tools)** — `scan-scene-map VIDEO`
+  writes the rhythm-grid motion scan as JSON; `generator/scene_roles.py`
+  combines teacher body parts with that motion into roles (primary stroke
+  target, contact partner, parts to ignore) and a scene type per window
+  (`<clip>.scene.json`), plus contact points from the moving part
+  (confidence ≥ 0.5). Go `LoadSceneProposals`; `generate --scene-proposals`
+  uses the proposed primary as ROI only when `--roi` is not given (logged;
+  the partner is never applied as ROI2). Multi-person clip r 0.304 → 0.440,
+  goldens unchanged. No default change.
+
 - **Map Accept/Reject for teacher contact candidates** — Create → Advanced scene
   map lists pending `author:auto` region marks; **Accept** sets `reviewed:true`
   on the companion `.samn`, **Reject** deletes the mark. **Import candidates…**
