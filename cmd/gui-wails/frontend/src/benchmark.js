@@ -100,10 +100,27 @@ export function initBenchmark(root) {
       run the golden-clip manifest through the real Everyday pipeline.
     </p>
     <p class="hint" style="margin-top:0;">
-      Optional prep (owner): cut short downscaled clips with
-      <code>scripts/benchmark-prep/</code> (default ~720p / 1280-wide, keep aspect)
-      before Compare or a golden manifest — see that folder’s README.
+      Optional prep (owner): cut short downscaled clips before Compare or a golden
+      manifest — Everyday Go CSRT stays the recognition basis.
     </p>
+
+    <details id="bm-clip-prep" class="bm-clip-prep" open>
+      <summary style="cursor:pointer;">Clip-Prep (scripts — light UI)</summary>
+      <p class="hint" style="margin:8px 0 6px 0;">
+        Not Everyday Create. Cut 20–60&nbsp;s clips at ~720p (1280-wide) with ffmpeg.
+        Full guide: repo <code>docs/owner/benchmark-clip-prep.md</code> ·
+        <code>scripts/benchmark-prep/README.md</code>.
+      </p>
+      <pre id="bm-clip-prep-cmd" class="hint" style="white-space:pre-wrap;margin:0 0 8px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">./scripts/benchmark-prep/cut_clip.sh \
+  -i /path/long.mp4 \
+  --start 01:20 --end 02:05 \
+  -o ~/clips/hub_easy.mp4</pre>
+      <div class="row" style="flex-wrap:wrap;gap:8px;">
+        <button type="button" id="bm-clip-prep-copy" class="secondary">Copy command</button>
+        <button type="button" id="bm-clip-prep-batch" class="secondary">Show batch (marks.json)</button>
+        <span class="hint" id="bm-clip-prep-status" style="margin:0;"></span>
+      </div>
+    </details>
 
     <h3>Compare scripts</h3>
     <p class="hint" style="margin-top:0;">
@@ -320,4 +337,37 @@ export function initBenchmark(root) {
     updateRunEnabled();
   });
   refreshHistory();
+
+  const SINGLE_CMD = `./scripts/benchmark-prep/cut_clip.sh \\
+  -i /path/long.mp4 \\
+  --start 01:20 --end 02:05 \\
+  -o ~/clips/hub_easy.mp4`;
+  const BATCH_CMD = `./scripts/benchmark-prep/cut_clip.sh \\
+  --marks ~/clips/marks.json \\
+  --out-dir ~/clips/out`;
+
+  el('#bm-clip-prep-copy')?.addEventListener('click', async () => {
+    const text = el('#bm-clip-prep-cmd')?.textContent || SINGLE_CMD;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      if (el('#bm-clip-prep-status')) el('#bm-clip-prep-status').textContent = 'Copied.';
+    } catch (err) {
+      if (el('#bm-clip-prep-status')) el('#bm-clip-prep-status').textContent = 'Copy failed — select the command manually.';
+    }
+  });
+  el('#bm-clip-prep-batch')?.addEventListener('click', () => {
+    if (el('#bm-clip-prep-cmd')) el('#bm-clip-prep-cmd').textContent = BATCH_CMD;
+    if (el('#bm-clip-prep-status')) {
+      el('#bm-clip-prep-status').textContent = 'Batch mode — fill example_marks.json fields first.';
+    }
+  });
 }
