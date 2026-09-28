@@ -58,3 +58,21 @@ func TestMarkShouldFollow(t *testing.T) {
 		t.Fatal("sticky exclude must not track")
 	}
 }
+
+func TestSceneMarkTimebaseIncludesStartOffset(t *testing.T) {
+	startTimeSec := 10.0
+	mark := SceneMark{Kind: "exclude", FromMs: 10500, ToMs: 11500}
+
+	atMs := int64(750)
+	if startTimeSec > 0 {
+		atMs += int64(startTimeSec*1000 + 0.5)
+	}
+	if !sceneMarkActive(mark, atMs) {
+		t.Fatalf("mark should be active at absolute video time %dms", atMs)
+	}
+
+	relativeOnly := int64(750)
+	if sceneMarkActive(mark, relativeOnly) {
+		t.Fatalf("regression guard invalid: mark unexpectedly active at relative time %dms", relativeOnly)
+	}
+}
