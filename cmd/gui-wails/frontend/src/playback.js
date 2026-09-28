@@ -196,6 +196,16 @@ export function initPlayback(root) {
             <span id="pb-cap-intensity-val">400</span>
           </label>
           <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Paint red “too fast” bands on the Play curve (OFS community intensity). Display only — separate from Speed-cap edit.">
+            <input type="checkbox" id="pb-speed-hl" checked /> Speed highlights
+          </label>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Intensity threshold for Speed highlights on the curve (500×|Δpos|/|Δt|). Lower = more red bands. Does not change Cap edit or Create defaults.">
+            HL
+            <input type="range" id="pb-speed-hl-thresh" min="150" max="800" step="25" value="400" style="width:7em;" />
+            <span id="pb-speed-hl-thresh-val">400</span>
+          </label>
           <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
             data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
             Scale
@@ -1404,7 +1414,7 @@ export function initPlayback(root) {
     }
 
     // OFS-Stil: Abschnitte über Community-Intensitysschwelle (Max-Speed).
-    if (Array.isArray(speedHighlights) && speedHighlights.length > 0) {
+    if (speedHighlightsEnabled() && Array.isArray(speedHighlights) && speedHighlights.length > 0) {
       ctx.fillStyle = 'rgba(239, 95, 95, 0.22)';
       for (const seg of speedHighlights) {
         const x0 = xOf(seg.fromMs ?? seg.FromMs ?? 0);
@@ -1736,15 +1746,42 @@ export function initPlayback(root) {
     } catch (err) {
       vibrationCurvePoints = null;
     }
-    try {
-      speedHighlights = await GetSpeedHighlights(0);
-      if (!Array.isArray(speedHighlights)) speedHighlights = [];
-    } catch (err) {
-      speedHighlights = [];
-    }
+    await refreshSpeedHighlights();
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
     sizeCanvasForDPR(curveCanvas, 800, 120);
+    redrawCurve();
+  }
+
+  function speedHighlightsEnabled() {
+    const box = el('#pb-speed-hl');
+    return !box || !!box.checked;
+  }
+  function speedHighlightThresh() {
+    const v = parseFloat(el('#pb-speed-hl-thresh')?.value);
+    if (!Number.isFinite(v) || v <= 0) return 400;
+    return Math.max(50, Math.min(2000, v));
+  }
+  function updateSpeedHighlightLabel() {
+    const lab = el('#pb-speed-hl-thresh-val');
+    if (lab) lab.textContent = `${Math.round(speedHighlightThresh())}`;
+  }
+  async function refreshSpeedHighlights() {
+    if (!scriptPath) {
+      speedHighlights = [];
+      return;
+    }
+    if (!speedHighlightsEnabled()) {
+      speedHighlights = [];
+      redrawCurve();
+      return;
+    }
+    try {
+      const hl = await GetSpeedHighlights(speedHighlightThresh());
+      speedHighlights = Array.isArray(hl) ? hl : [];
+    } catch (err) {
+      speedHighlights = [];
+    }
     redrawCurve();
   }
 
@@ -2777,6 +2814,13 @@ export function initPlayback(root) {
   }
   el('#pb-cap-intensity')?.addEventListener('input', updateCapIntensityLabel);
   updateCapIntensityLabel();
+
+  updateSpeedHighlightLabel();
+  el('#pb-speed-hl-thresh')?.addEventListener('input', () => {
+    updateSpeedHighlightLabel();
+    if (speedHighlightsEnabled()) refreshSpeedHighlights();
+  });
+  el('#pb-speed-hl')?.addEventListener('change', () => refreshSpeedHighlights());
 
   el('#pb-bpm-grid')?.addEventListener('change', () => redrawCurve());
   el('#pb-bpm')?.addEventListener('input', () => {
