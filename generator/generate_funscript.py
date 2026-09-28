@@ -2135,9 +2135,6 @@ def main():
                          "unabhängig. Standard 1.")
     ap.add_argument("--threads", type=int, default=0, metavar="N",
                     help="OpenCV-Threads je Prozess (0 = automatisch).")
-    ap.add_argument("--opencl", action="store_true",
-                    help="Deprecated no-op: OpenCL is tried automatically on the Python "
-                         "path when available (log only). Kept for old scripts.")
     ap.add_argument("--no-opencl", action="store_true",
                     help="Skip automatic OpenCL enable on the Python path (CPU only).")
     ap.add_argument("--hardware-info", action="store_true",

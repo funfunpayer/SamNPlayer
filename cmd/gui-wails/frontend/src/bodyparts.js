@@ -42,10 +42,6 @@ export function normalizeClass(name) {
   return ALIAS[s] || s;
 }
 
-export function preferredClassesCSV() {
-  return CLASS_PRESETS.join(',');
-}
-
 export function labelFor(id) {
   const n = normalizeClass(id);
   const hit = CANONICAL.find(p => p.id === n);
@@ -68,17 +64,4 @@ export function orderedCanonical(preferIds) {
     if (!seen.has(p.id)) out.push(p);
   }
   return out;
-}
-
-export function defaultRole(classId) {
-  switch (normalizeClass(classId)) {
-    case 'penis': case 'glans': case 'hand_1': case 'hand_2':
-      return 'tracked';
-    case 'nipples': case 'mouth': case 'vagina': case 'breasts':
-      return 'fixed';
-    case 'face':
-      return 'mask';
-    default:
-      return 'tracked';
-  }
 }
