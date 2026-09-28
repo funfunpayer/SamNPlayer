@@ -65,6 +65,7 @@ Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/
 Load / Save project — .snp.json
 Speed-cap selection — stretch too-fast segments in the marked range (Cap intensity slider; default 400)
 Scale selection — soften/boost marked range on the active Curve axis (factor slider; optional Soft edges)
+BPM grid — optional beat lines on the curve (BPM field or audio tempo); display only
 Playlist — queue multiple scripts
 Bookmarks — named times: add at playhead, seek, remove
 Chapters — named ranges: mark heatmap, add from selection, seek, remove
