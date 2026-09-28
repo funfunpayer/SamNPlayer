@@ -35,6 +35,38 @@ func NativePipelineEligible(opts Options, roi ROI) bool {
 	return nativeOptionsEligible(opts, roi)
 }
 
+// NativePipelineSkipReason explains why opts+roi cannot use the Go path
+// (empty when eligible). Used so the GUI log does not look like a mysterious
+// “CSRT not available” OpenCV build failure when PerSceneROI forced Python
+// (issue #338).
+func NativePipelineSkipReason(opts Options, roi ROI) string {
+	if NativePipelineEligible(opts, roi) {
+		return ""
+	}
+	if roi.W <= 0 || roi.H <= 0 {
+		return "empty tip ROI"
+	}
+	backend := opts.Backend
+	if backend == "" {
+		backend = "csrt"
+	}
+	if backend != "csrt" {
+		return fmt.Sprintf("backend %q (Go path is CSRT only)", backend)
+	}
+	if opts.PerSceneROI {
+		return "Advanced “Re-find region after each cut” (PerSceneROI) — still Python-only"
+	}
+	if opts.AIQualityOpinion {
+		return "AI quality opinion — still Python-only"
+	}
+	if len(opts.MaskROIs) > 0 {
+		if !opts.RhythmGrid || distancePartnersActive(opts) {
+			return "soft masks without RhythmGrid (or with Tf/Tj) — still Python-only"
+		}
+	}
+	return "options not eligible for Go CSRT"
+}
+
 func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if roi.W <= 0 || roi.H <= 0 {
 		return false

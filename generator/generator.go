@@ -131,8 +131,7 @@ type Options struct {
 	// black intro). 0 = start at the beginning.
 	StartTimeSec float64
 	// PreferPython skips the automatic Go CSRT path (CLI/tests/advanced).
-	// Default false: use Go CSRT when OpenCV is linked; otherwise Python CSRT
-	// is the Generate product path (Windows today until in-binary CSRT).
+	// Default false: use Go CSRT when OpenCV is linked; otherwise Python CSRT.
 	PreferPython bool
 	// PreferSimpletrack opts into experimental NCC (simpletrack) instead of
 	// Python CSRT on builds without linked OpenCV. Lab/CLI only — not GUI.
@@ -288,6 +287,31 @@ func hasPackages(py string) (bool, string) {
 		"assert ok, 'OpenCV ohne Tracker (CSRT/KCF) — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
 	out, err := command(py, "-c", script).CombinedOutput()
 	return err == nil, string(out)
+}
+
+// pythonHasCSRT reports whether the given interpreter's cv2 exposes any CSRT
+// factory (legacy or main). Used for a pre-track warning when Generate must
+// take the Python path (#338) — hasPackages also accepts KCF/MIL.
+func pythonHasCSRT(py string) (bool, string) {
+	script := "import cv2\n" +
+		"leg=getattr(cv2,'legacy',None)\n" +
+		"ok=False\n" +
+		"if callable(getattr(cv2,'TrackerCSRT_create',None)): ok=True\n" +
+		"cls=getattr(cv2,'TrackerCSRT',None)\n" +
+		"if cls is not None and callable(getattr(cls,'create',None)): ok=True\n" +
+		"if leg is not None:\n" +
+		"  if callable(getattr(leg,'TrackerCSRT_create',None)): ok=True\n" +
+		"  lcls=getattr(leg,'TrackerCSRT',None)\n" +
+		"  if lcls is not None and callable(getattr(lcls,'create',None)): ok=True\n" +
+		"ver=getattr(cv2,'__version__','?')\n" +
+		"print(('CSRT ok' if ok else 'no CSRT')+' in OpenCV '+ver)\n" +
+		"raise SystemExit(0 if ok else 1)\n"
+	out, err := command(py, "-c", script).CombinedOutput()
+	detail := strings.TrimSpace(firstLine(string(out)))
+	if detail == "" {
+		detail = "unknown OpenCV"
+	}
+	return err == nil, detail
 }
 
 func FindPython() (string, error) {
@@ -1138,10 +1162,10 @@ func GenerateWithProgress(videoPath string, roi ROI, outputPath string, opts Opt
 // tracking mid-loop. Returns context.Canceled when aborted.
 //
 // Product path (one strong tracker — no “weak fallback” story, #120):
-//  1. Go CSRT (trackcv) when OpenCV is linked in this binary
-//  2. Else Python CSRT (opencv-contrib) — the Generate path on builds
-//     without linked OpenCV (today: Windows release) until Windows CSRT
-//     ships in-binary. This is the product path, not a soft fallback.
+//  1. Go CSRT (trackcv) when OpenCV is linked in this binary (Windows
+//     portable ships MinGW OpenCV DLLs — docs/WINDOWS_OPENCV.md)
+//  2. Else Python CSRT (opencv-contrib) on builds without linked OpenCV,
+//     or when options force Python (PerSceneROI / AI opinion / soft masks)
 //
 // PreferPython forces the Python path. PreferSimpletrack opts into the
 // experimental NCC tracker (lab/CLI); the GUI never sets it.
@@ -1177,20 +1201,34 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 			}
 			return err
 		}
-		// No linked OpenCV: Generate uses Python CSRT as the product path
-		// (Windows today). Missing opencv-contrib is a hard error — install
-		// it rather than silently degrading to weak NCC.
+		// No linked OpenCV in this binary: Python CSRT is the product path.
+		// Missing opencv-contrib is a hard error — install it rather than
+		// silently degrading to weak NCC.
 		if onProgress != nil {
-			onProgress("Generate: Python CSRT (product path — Windows OpenCV CSRT in binary is next)")
+			onProgress("Generate: Python CSRT (this binary has no linked OpenCV)")
+		}
+	} else if onProgress != nil {
+		// Make path choice visible (#338): Owner saw “CSRT not available in
+		// OpenCV 5.0.0” and thought the portable lacked CSRT — often the
+		// Go CSRT binary was fine and PerSceneROI forced Python instead.
+		if opts.PreferPython {
+			onProgress("Generate: PreferPython — using Python path (needs opencv-contrib-python with CSRT)")
+		} else if NativeTrackingAvailable() {
+			if reason := NativePipelineSkipReason(opts, roi); reason != "" {
+				onProgress("Generate: Go CSRT skipped — " + reason + " — using Python (needs opencv-contrib-python with CSRT; or uncheck Re-find region for built-in Go CSRT)")
+			}
 		}
 	}
 
 	py, err := FindPython()
 	if err != nil {
-		return fmt.Errorf("generator: Generate needs Python with opencv-contrib-python until this build links OpenCV CSRT: %w", err)
+		return fmt.Errorf("generator: Generate needs Python with opencv-contrib-python (or a build with linked OpenCV CSRT): %w", err)
 	}
 	if err := CheckDependencies(); err != nil {
 		return fmt.Errorf("generator: Generate needs opencv-contrib-python (CSRT). Install with the pip line below — NCC is not the product path.\n%w", err)
+	}
+	if ok, detail := pythonHasCSRT(py); !ok && onProgress != nil {
+		onProgress("Warning: Python OpenCV has no CSRT (" + detail + ") — tracker will fall back to KCF/MIL. Fix: pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python. Windows portable: uncheck Advanced → Re-find region after each cut to use built-in Go CSRT instead.")
 	}
 	scriptPath, err := writeScriptToTemp()
 	if err != nil {

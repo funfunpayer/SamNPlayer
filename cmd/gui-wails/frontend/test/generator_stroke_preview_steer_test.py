@@ -1,7 +1,9 @@
-"""Stroke-preview Stage B GUI sync (BF-3).
+"""Stroke-preview Stage B GUI tip (BF-3).
 
-When Generate emits STROKE_PREVIEW "enabling …" progress lines, Advanced
-checkboxes stay in sync and #gen-preview-steer-tip shows a short tip.
+When Generate emits STROKE_PREVIEW "enabling …" progress lines,
+#gen-preview-steer-tip shows a short tip. Advanced checkboxes are NOT
+flipped (sticky PerSceneROI forced Python + MIL on Windows portable — #338).
+Go already applied opts for the current run.
 
 Run: python3 cmd/gui-wails/frontend/test/generator_stroke_preview_steer_test.py
 """
@@ -64,8 +66,8 @@ def main():
             }"""
         )
         page.wait_for_timeout(50)
-        check("Re-find checkbox checked after cut-rate steer",
-              page.locator("#gen-perscene").is_checked())
+        check("Re-find checkbox stays OFF (no sticky) after cut-rate steer tip",
+              page.locator("#gen-perscene").is_checked() is False)
         check("Tip mentions Re-find",
               "Re-find" in (tip.text_content() or ""), tip.text_content())
 
@@ -78,8 +80,8 @@ def main():
             }"""
         )
         page.wait_for_timeout(50)
-        check("Camera compensation checked after pan steer",
-              page.locator("#gen-camcomp").is_checked())
+        check("Camera compensation stays OFF (no sticky) after pan steer tip",
+              page.locator("#gen-camcomp").is_checked() is False)
         check("Tip mentions camera",
               "camera" in (tip.text_content() or "").lower(), tip.text_content())
 

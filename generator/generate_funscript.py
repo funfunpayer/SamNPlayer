@@ -1350,7 +1350,9 @@ def create_tracker():
             f"Warning: CSRT not available in OpenCV {getattr(cv2, '__version__', '?')} "
             f"— using {kind} as fallback. For best quality: "
             f"pip uninstall opencv-python opencv-python-headless && "
-            f"pip install opencv-contrib-python",
+            f"pip install opencv-contrib-python. "
+            f"Windows portable tip: uncheck Advanced → Re-find region after each cut "
+            f"to use built-in Go CSRT (no Python OpenCV needed).",
             file=sys.stderr,
         )
         return factory()
