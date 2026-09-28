@@ -72,10 +72,26 @@ type AIOpinion struct {
 // (--audio-check; Go: generator.CheckAudioTempo, Python: audio_check.py) -
 // wie AIOpinion rein informativ, verändert QualityScore/QualityPassed nicht.
 // Nur vorhanden, wenn die Prüfung tatsächlich lief (ffmpeg + lesbare Audiospur).
+//
+// Segments / SpeechHoldMs are optional review/chapter taxonomy hints
+// (Speech-Hold + holding|gentle|intense|climax). They never invent stroke
+// actions — same AUDIO_WORKFLOW rule as the tempo check.
 type AudioCheck struct {
-	ScriptHz *float64 `json:"script_hz"`
-	AudioHz  *float64 `json:"audio_hz"`
-	Warnings []string `json:"warnings"`
+	ScriptHz     *float64            `json:"script_hz"`
+	AudioHz      *float64            `json:"audio_hz"`
+	Warnings     []string            `json:"warnings"`
+	Segments     []AudioSegmentHint  `json:"segments,omitempty"`
+	SpeechHoldMs int64               `json:"speech_hold_ms,omitempty"`
+}
+
+// AudioSegmentHint is a review/chapter label from classical speech-vs-impact
+// energy (funscript-ai-inspired taxonomy). Informational only.
+type AudioSegmentHint struct {
+	Label      string `json:"label"`                 // holding | gentle | intense | climax
+	StartMs    int64  `json:"start_ms"`
+	EndMs      int64  `json:"end_ms"`
+	SpeechHold bool   `json:"speech_hold,omitempty"` // dialogue/quiet hold cue
+	Reason     string `json:"reason,omitempty"`
 }
 
 func Load(path string) (*Script, error) {

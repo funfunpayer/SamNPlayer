@@ -47,6 +47,11 @@ func CheckAudioTempo(videoPath string, actions []funscript.Action) *funscript.Au
 			"Script tempo (%.2f Hz) does not match an expected multiple of audio tempo (%.2f Hz; nearest %gx → %.2f Hz) — may be real atypical motion or a tracking error; no automatic correction",
 			*scriptHz, *audioHz, cmp.harmonic, cmp.predictedHz))
 	}
+	// Speech-Hold + segment taxonomy: same post-hoc path, review hints only.
+	segs, holdMs := analyzeSpeechHoldSegments(samples, sr)
+	out.Segments = segs
+	out.SpeechHoldMs = holdMs
+	appendSpeechHoldHints(out, actions)
 	return out
 }
 
