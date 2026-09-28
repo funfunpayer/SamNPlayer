@@ -19,10 +19,10 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | Frame snap (`SnapMs`) | `SnapTimeMs` + FPS-Snap in Wiedergabe |
 | Range delete / speed-cap / scale | Play OFS row: Delete / **Speed-cap** (adjustable Cap intensity 150–800, default 400) / **Scale** (×0.5–×1.5, optional soft edges) on the **active Curve axis** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
 | Feel / Speech-Hold display bands | Play heatmap (+ thin curve underlay): filtered `audio_check` segments as translucent bands; “Show on heatmap” toggle (display only) |
+| BPM / tempo grid overlay | Play OFS row: optional beat lines on the curve from BPM or `audio_check` Hz×60 (display only — no snap/rewrite) |
 
 ## Still optional later
 
-- BPM / tempo grid overlay in the UI
 - WebSocket bridge to external players
 - Richer bookmark editor UI (CRUD list)
 

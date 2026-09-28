@@ -15,8 +15,10 @@ func TestLoadFunscriptExposesAudioCheckSegments(t *testing.T) {
 	if err := os.WriteFile(path, body, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	hz := 1.25
 	if err := funscript.StampAudioCheck(path, &funscript.AudioCheck{
 		SpeechHoldMs: 1500,
+		AudioHz:      &hz,
 		Segments: []funscript.AudioSegmentHint{
 			{Label: "holding", StartMs: 0, EndMs: 1500, SpeechHold: true},
 			{Label: "gentle", StartMs: 1500, EndMs: 2000},
@@ -32,6 +34,9 @@ func TestLoadFunscriptExposesAudioCheckSegments(t *testing.T) {
 	}
 	if info.SpeechHoldMs != 1500 {
 		t.Fatalf("speechHoldMs=%d", info.SpeechHoldMs)
+	}
+	if info.AudioHz < 1.24 || info.AudioHz > 1.26 {
+		t.Fatalf("audioHz=%v want ~1.25", info.AudioHz)
 	}
 	if len(info.AudioSegments) != 2 {
 		t.Fatalf("segments=%d", len(info.AudioSegments))

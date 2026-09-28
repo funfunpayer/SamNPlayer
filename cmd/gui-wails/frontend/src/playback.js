@@ -212,6 +212,15 @@ export function initPlayback(root) {
             data-help="If >0: seeks and new curve points snap to frame grid (ms). 0 = off.">
             FPS-Snap<input type="number" id="pb-fps-snap" value="0" min="0" step="1" style="width:4em;" />
           </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
+            <input type="checkbox" id="pb-bpm-grid" /> BPM grid
+          </label>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Beats per minute for the curve grid. Leave blank to use audio_check tempo (Hz×60) when available.">
+            BPM
+            <input type="number" id="pb-bpm" value="" min="20" max="240" step="1" placeholder="auto" style="width:4.5em;" />
+          </label>
           <span class="hint" id="pb-ofs-status" style="margin:0"></span>
         </div>
 
@@ -396,6 +405,7 @@ export function initPlayback(root) {
   /** @type {Array<{label:string,startMs:number,endMs:number,speechHold:boolean}>} */
   let audioSegments = [];
   let speechHoldMs = 0;
+  let audioHzHint = 0;
   const AUDIO_SEG_LABELS = ['holding', 'gentle', 'intense', 'climax'];
   const curveCanvas = el('#pb-curve');
   const chartTooltip = el('#pb-chart-tooltip');
@@ -879,9 +889,49 @@ export function initPlayback(root) {
   function rememberAudioSegmentsFromInfo(info) {
     const segs = (info && (info.audioSegments || info.AudioSegments)) || [];
     const hold = Number(info?.speechHoldMs ?? info?.SpeechHoldMs ?? 0);
+    const hz = Number(info?.audioHz ?? info?.AudioHz ?? 0);
     audioSegments = Array.isArray(segs) ? segs.map(normalizeAudioSegment).filter(Boolean) : [];
     speechHoldMs = Number.isFinite(hold) ? hold : 0;
+    audioHzHint = Number.isFinite(hz) && hz > 0.2 && hz < 8 ? hz : 0;
+    const bpmInput = el('#pb-bpm');
+    if (bpmInput && !bpmInput.value && audioHzHint > 0) {
+      bpmInput.placeholder = `auto ${Math.round(audioHzHint * 60)}`;
+    }
     renderAudioSegmentsPanel();
+    redrawCurve();
+  }
+
+  function bpmPeriodMs() {
+    const raw = el('#pb-bpm')?.value;
+    const bpm = parseFloat(raw);
+    if (Number.isFinite(bpm) && bpm >= 20 && bpm <= 240) {
+      return 60000 / bpm;
+    }
+    if (audioHzHint > 0) {
+      return 1000 / audioHzHint;
+    }
+    return 0;
+  }
+
+  function drawBpmGrid(ctx, w, h) {
+    if (!el('#pb-bpm-grid')?.checked || totalMs <= 0) return;
+    const period = bpmPeriodMs();
+    if (!(period > 0)) return;
+    const maxLines = 240;
+    let t = 0;
+    let n = 0;
+    while (t <= totalMs && n < maxLines) {
+      const x = Math.round((t / totalMs) * w) + 0.5;
+      const bar = n % 4 === 0;
+      ctx.strokeStyle = bar ? 'rgba(184, 150, 232, 0.38)' : 'rgba(184, 150, 232, 0.16)';
+      ctx.lineWidth = bar ? 1.25 : 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+      t += period;
+      n += 1;
+    }
   }
 
   function renderAudioSegmentsPanel() {
@@ -1345,6 +1395,7 @@ export function initPlayback(root) {
     }
 
     drawFeelSegmentBands(ctx, w, h, { fullHeight: false });
+    drawBpmGrid(ctx, w, h);
     drawOMarkerBands(ctx, w, h);
     // Markierter Bereich (dieselbe Markierung wie in der Heatmap).
     if (marker) {
@@ -2726,6 +2777,11 @@ export function initPlayback(root) {
   }
   el('#pb-cap-intensity')?.addEventListener('input', updateCapIntensityLabel);
   updateCapIntensityLabel();
+
+  el('#pb-bpm-grid')?.addEventListener('change', () => redrawCurve());
+  el('#pb-bpm')?.addEventListener('input', () => {
+    if (el('#pb-bpm-grid')?.checked) redrawCurve();
+  });
 
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {

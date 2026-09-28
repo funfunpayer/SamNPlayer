@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: BPM / tempo grid overlay** — optional beat lines on the Play curve
+  from a BPM field or `audio_check` tempo (Hz×60). Display only — no snap /
+  stroke rewrite. Everyday CSRT defaults unchanged.
+
 - **Play: adjustable Speed-cap intensity** — Cap selection uses a live Cap
   slider (150–800, default 400 community intensity) instead of a hard-coded
   400. Play edit only — Create Expert max-speed unchanged.

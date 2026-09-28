@@ -191,6 +191,8 @@ type ScriptInfo struct {
 	// Speech-Hold / Feel taxonomy from metadata.audio_check (review hints only).
 	SpeechHoldMs  int64                        `json:"speechHoldMs,omitempty"`
 	AudioSegments []funscript.AudioSegmentHint `json:"audioSegments,omitempty"`
+	// AudioHz from metadata.audio_check (tempo hint for Play BPM grid; display only).
+	AudioHz float64 `json:"audioHz,omitempty"`
 }
 
 func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
@@ -242,12 +244,20 @@ func fillScriptInfoAudioCheck(info *ScriptInfo, script *funscript.Script, path s
 	if info == nil {
 		return
 	}
-	if script != nil && script.Metadata.AudioCheck != nil {
-		ac := script.Metadata.AudioCheck
+	apply := func(ac *funscript.AudioCheck) {
+		if ac == nil {
+			return
+		}
 		info.SpeechHoldMs = ac.SpeechHoldMs
+		if ac.AudioHz != nil && *ac.AudioHz > 0 {
+			info.AudioHz = *ac.AudioHz
+		}
 		if len(ac.Segments) > 0 {
 			info.AudioSegments = append([]funscript.AudioSegmentHint(nil), ac.Segments...)
 		}
+	}
+	if script != nil && script.Metadata.AudioCheck != nil {
+		apply(script.Metadata.AudioCheck)
 		return
 	}
 	if !samn.IsSamnPath(path) {
@@ -258,11 +268,7 @@ func fillScriptInfoAudioCheck(info *ScriptInfo, script *funscript.Script, path s
 	if err != nil || fs == nil || fs.Metadata.AudioCheck == nil {
 		return
 	}
-	ac := fs.Metadata.AudioCheck
-	info.SpeechHoldMs = ac.SpeechHoldMs
-	if len(ac.Segments) > 0 {
-		info.AudioSegments = append([]funscript.AudioSegmentHint(nil), ac.Segments...)
-	}
+	apply(fs.Metadata.AudioCheck)
 }
 
 // fileURL wandelt einen lokalen Pfad in eine file://-URL um - für Dinge wie
