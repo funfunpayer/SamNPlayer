@@ -56,6 +56,14 @@ def main():
             "  { atMs: 0, pos: 20 }, { atMs: 500, pos: 80 },"
             "  { atMs: 1000, pos: 25 }, { atMs: 1500, pos: 75 },"
             "  { atMs: 2000, pos: 30 }"
+            "], "
+            "rawSample: ["
+            "  { atMs: 0, pos: 30 }, { atMs: 500, pos: 70 },"
+            "  { atMs: 1000, pos: 35 }, { atMs: 1500, pos: 65 },"
+            "  { atMs: 2000, pos: 40 }"
+            "], "
+            "peaks: ["
+            "  { atMs: 500, pos: 80 }, { atMs: 1500, pos: 75 }"
             "] }; }"
         ),
         "GenerateScript": (
@@ -130,6 +138,17 @@ def main():
         pts = page.locator("#gen-postprocess-poly").get_attribute("points") or ""
         check("Probe SVG polyline has sample points",
               pts.count(",") >= 4, pts)
+        raw_pts = page.locator("#gen-postprocess-raw").get_attribute("points") or ""
+        check("Probe SVG raw underlay has points",
+              raw_pts.count(",") >= 4, raw_pts)
+        check("Probe SVG peak markers rendered",
+              page.locator("#gen-postprocess-peaks circle").count() >= 2)
+        badge_kf = page.locator("#gen-pp-badge-kf").inner_text()
+        check("Probe badge shows keyframe count",
+              "12 kf" in badge_kf, badge_kf)
+        badge_peaks = page.locator("#gen-pp-badge-peaks").inner_text()
+        check("Probe badge shows peak count",
+              "5 peaks" in badge_peaks, badge_peaks)
 
         browser.close()
 

@@ -32,6 +32,10 @@ type PreviewResult struct {
 	// Sample is a downsampled keyframe polyline (atMs, pos 0–100) for Expert
 	// live SVG — synthetic probe only, never the user's clip.
 	Sample []PreviewPoint `json:"sample,omitempty"`
+	// RawSample is the dense probe before postprocess (muted underlay).
+	RawSample []PreviewPoint `json:"rawSample,omitempty"`
+	// Peaks are peak markers on the dense postprocessed curve (for SVG dots).
+	Peaks []PreviewPoint `json:"peaks,omitempty"`
 }
 
 // PreviewPoint is one keyframe on the Expert postprocess probe curve.
@@ -59,6 +63,7 @@ func PreviewStats(req PreviewRequest) (PreviewResult, error) {
 		dur = 10000
 	}
 	ts, pos := syntheticProbe(dur, 30.0)
+	rawSample := downsampleProbeSeries(ts, pos, 96)
 	res, err := PositionsToActions(ts, pos, opts)
 	if err != nil {
 		return PreviewResult{}, err
@@ -83,12 +88,13 @@ func PreviewStats(req PreviewRequest) (PreviewResult, error) {
 			prom = span * opts.PeakProminence
 		}
 	}
-	peaks := findPeaks(res.DensePos, minDist, prom)
+	peakIdx := findPeaks(res.DensePos, minDist, prom)
 	neg := make([]float64, len(res.DensePos))
 	for i, v := range res.DensePos {
 		neg[i] = -v
 	}
 	valleys := findPeaks(neg, minDist, prom)
+	peakPts := peakMarkers(res.DenseAt, res.DensePos, peakIdx, 48)
 
 	meanHz := 0.0
 	if len(actions) >= 2 {
@@ -99,15 +105,87 @@ func PreviewStats(req PreviewRequest) (PreviewResult, error) {
 		}
 	}
 
-	hint := previewHint(req, len(actions), len(peaks))
+	hint := previewHint(req, len(actions), len(peakIdx))
 	return PreviewResult{
 		KeyframeCount: len(actions),
-		PeakCount:     len(peaks),
+		PeakCount:     len(peakIdx),
 		ValleyCount:   len(valleys),
 		MeanHz:        meanHz,
 		Hint:          hint,
 		Sample:        downsamplePreviewActions(actions, 96),
+		RawSample:     rawSample,
+		Peaks:         peakPts,
 	}, nil
+}
+
+// downsampleProbeSeries maps the raw synthetic probe (px-ish) into 0–100 SVG
+// points before postprocess — muted underlay for Expert dual-curve view.
+func downsampleProbeSeries(ts, pos []float64, maxN int) []PreviewPoint {
+	if len(ts) == 0 || len(pos) == 0 || len(ts) != len(pos) {
+		return nil
+	}
+	minP, maxP := pos[0], pos[0]
+	for _, v := range pos[1:] {
+		if v < minP {
+			minP = v
+		}
+		if v > maxP {
+			maxP = v
+		}
+	}
+	span := maxP - minP
+	if span < 1e-9 {
+		span = 1
+	}
+	norm := make([]funscript.Action, len(pos))
+	for i := range pos {
+		n := (pos[i] - minP) / span * 100
+		norm[i] = funscript.Action{At: int64(math.Round(ts[i])), Pos: int(math.Round(n))}
+	}
+	return downsamplePreviewActions(norm, maxN)
+}
+
+// peakMarkers converts dense peak indices into SVG points (pos 0–100).
+func peakMarkers(denseAt, densePos []float64, idxs []int, maxN int) []PreviewPoint {
+	if len(idxs) == 0 || len(denseAt) == 0 || len(densePos) != len(denseAt) {
+		return nil
+	}
+	minP, maxP := densePos[0], densePos[0]
+	for _, v := range densePos[1:] {
+		if v < minP {
+			minP = v
+		}
+		if v > maxP {
+			maxP = v
+		}
+	}
+	span := maxP - minP
+	if span < 1e-9 {
+		span = 1
+	}
+	if maxN < 1 {
+		maxN = 1
+	}
+	step := 1
+	if len(idxs) > maxN {
+		step = (len(idxs) + maxN - 1) / maxN
+	}
+	out := make([]PreviewPoint, 0, maxN)
+	for i := 0; i < len(idxs); i += step {
+		idx := idxs[i]
+		if idx < 0 || idx >= len(densePos) {
+			continue
+		}
+		n := (densePos[idx] - minP) / span * 100
+		out = append(out, PreviewPoint{
+			AtMs: int64(math.Round(denseAt[idx])),
+			Pos:  int(math.Round(n)),
+		})
+		if len(out) >= maxN {
+			break
+		}
+	}
+	return out
 }
 
 // downsamplePreviewActions keeps endpoints and evenly spaced mid points so the

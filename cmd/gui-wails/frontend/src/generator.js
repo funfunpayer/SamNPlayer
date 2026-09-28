@@ -429,11 +429,19 @@ export function initGenerator(root, playback) {
             <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
             <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
             <div class="gen-postprocess-probe" id="gen-postprocess-probe">
+              <div class="gen-postprocess-badges" id="gen-postprocess-badges" aria-live="polite">
+                <span class="gen-pp-badge" id="gen-pp-badge-kf">— kf</span>
+                <span class="gen-pp-badge" id="gen-pp-badge-peaks">— peaks</span>
+                <span class="gen-pp-badge" id="gen-pp-badge-valleys">— valleys</span>
+                <span class="gen-pp-badge" id="gen-pp-badge-hz">— Hz</span>
+              </div>
               <svg id="gen-postprocess-svg" class="gen-postprocess-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-                <polyline id="gen-postprocess-poly" fill="none" stroke="currentColor" stroke-width="1.6" points="" />
+                <polyline id="gen-postprocess-raw" class="gen-postprocess-raw" fill="none" stroke-width="1.2" points="" />
+                <polyline id="gen-postprocess-poly" class="gen-postprocess-poly" fill="none" stroke="currentColor" stroke-width="1.6" points="" />
+                <g id="gen-postprocess-peaks" class="gen-postprocess-peaks"></g>
               </svg>
               <p class="hint" id="gen-postprocess-preview" style="margin:6px 0 0 0;" aria-live="polite">
-                Postprocess probe: change knobs above for live keyframe/peak feedback (synthetic probe — not your clip).
+                Postprocess probe: muted = raw · teal = after knobs · dots = peaks (synthetic — not your clip).
               </p>
             </div>
           </details>
@@ -2699,9 +2707,20 @@ export function initGenerator(root, playback) {
   el('#gen-queue-run')?.addEventListener('click', () => startQueueRun());
 
   let postPreviewTimer = 0;
+  function probePointsToAttr(sample, t0, span, w, h, pad) {
+    return sample.map((p) => {
+      const t = Number(p.atMs ?? p.AtMs ?? 0);
+      const pos = Math.max(0, Math.min(100, Number(p.pos ?? p.Pos ?? 0)));
+      const x = pad + ((t - t0) / span) * (w - 2 * pad);
+      const y = pad + (1 - pos / 100) * (h - 2 * pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
   async function refreshPostprocessPreview() {
     const out = el('#gen-postprocess-preview');
     const poly = el('#gen-postprocess-poly');
+    const rawPoly = el('#gen-postprocess-raw');
+    const peaksG = el('#gen-postprocess-peaks');
     if (!out) return;
     const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     try {
@@ -2714,30 +2733,61 @@ export function initGenerator(root, playback) {
         maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
       });
       const hz = (res.meanHz || res.MeanHz || 0);
+      const kf = res.keyframeCount ?? res.KeyframeCount ?? 0;
+      const peaksN = res.peakCount ?? res.PeakCount ?? 0;
+      const valleysN = res.valleyCount ?? res.ValleyCount ?? 0;
+      const badge = (id, text) => { const b = el(id); if (b) b.textContent = text; };
+      badge('#gen-pp-badge-kf', `${kf} kf`);
+      badge('#gen-pp-badge-peaks', `${peaksN} peaks`);
+      badge('#gen-pp-badge-valleys', `${valleysN} valleys`);
+      badge('#gen-pp-badge-hz', hz > 0 ? `~${hz.toFixed(2)} Hz` : '— Hz');
       const hzBit = hz > 0 ? ` · ~${hz.toFixed(2)} Hz` : '';
       out.textContent = (res.hint || res.Hint || 'Postprocess probe') + hzBit;
       const sample = res.sample || res.Sample || [];
-      if (poly && Array.isArray(sample) && sample.length >= 2) {
-        const w = 320;
-        const h = 72;
-        const pad = 4;
-        const t0 = Number(sample[0].atMs ?? sample[0].AtMs ?? 0);
-        const t1 = Number(sample[sample.length - 1].atMs ?? sample[sample.length - 1].AtMs ?? 1);
+      const raw = res.rawSample || res.RawSample || [];
+      const peaks = res.peaks || res.Peaks || [];
+      const w = 320;
+      const h = 72;
+      const pad = 4;
+      const timeBase = sample.length >= 2 ? sample : raw;
+      if (Array.isArray(timeBase) && timeBase.length >= 2) {
+        const t0 = Number(timeBase[0].atMs ?? timeBase[0].AtMs ?? 0);
+        const t1 = Number(timeBase[timeBase.length - 1].atMs ?? timeBase[timeBase.length - 1].AtMs ?? 1);
         const span = Math.max(1, t1 - t0);
-        const pts = sample.map((p) => {
-          const t = Number(p.atMs ?? p.AtMs ?? 0);
-          const pos = Math.max(0, Math.min(100, Number(p.pos ?? p.Pos ?? 0)));
-          const x = pad + ((t - t0) / span) * (w - 2 * pad);
-          const y = pad + (1 - pos / 100) * (h - 2 * pad);
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        }).join(' ');
-        poly.setAttribute('points', pts);
-      } else if (poly) {
-        poly.setAttribute('points', '');
+        if (rawPoly) {
+          rawPoly.setAttribute('points', Array.isArray(raw) && raw.length >= 2
+            ? probePointsToAttr(raw, t0, span, w, h, pad) : '');
+        }
+        if (poly) {
+          poly.setAttribute('points', Array.isArray(sample) && sample.length >= 2
+            ? probePointsToAttr(sample, t0, span, w, h, pad) : '');
+        }
+        if (peaksG) {
+          peaksG.innerHTML = '';
+          if (Array.isArray(peaks)) {
+            peaks.forEach((p) => {
+              const t = Number(p.atMs ?? p.AtMs ?? 0);
+              const pos = Math.max(0, Math.min(100, Number(p.pos ?? p.Pos ?? 0)));
+              const x = pad + ((t - t0) / span) * (w - 2 * pad);
+              const y = pad + (1 - pos / 100) * (h - 2 * pad);
+              const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              c.setAttribute('cx', x.toFixed(1));
+              c.setAttribute('cy', y.toFixed(1));
+              c.setAttribute('r', '2.4');
+              peaksG.appendChild(c);
+            });
+          }
+        }
+      } else {
+        if (poly) poly.setAttribute('points', '');
+        if (rawPoly) rawPoly.setAttribute('points', '');
+        if (peaksG) peaksG.innerHTML = '';
       }
     } catch (err) {
       out.textContent = 'Postprocess probe unavailable: ' + err;
       if (poly) poly.setAttribute('points', '');
+      if (rawPoly) rawPoly.setAttribute('points', '');
+      if (peaksG) peaksG.innerHTML = '';
     }
   }
   function schedulePostprocessPreview() {
