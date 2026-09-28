@@ -2650,6 +2650,21 @@ fieldset,
   background:
     linear-gradient(180deg, rgba(20, 24, 34, 0.45), rgba(14, 17, 26, 0.72));
 }
+.gen-postprocess-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.gen-pp-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(90, 212, 196, 0.28);
+  color: color-mix(in srgb, var(--teal) 85%, #fff);
+  background: rgba(90, 212, 196, 0.08);
+}
 .gen-postprocess-svg {
   display: block;
   width: 100%;
@@ -2657,14 +2672,25 @@ fieldset,
   color: var(--teal);
   overflow: visible;
 }
-.gen-postprocess-svg polyline {
+.gen-postprocess-raw {
+  stroke: rgba(200, 210, 230, 0.38);
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gen-postprocess-poly {
   vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 6px rgba(90, 212, 196, 0.25));
 }
+.gen-postprocess-peaks circle {
+  fill: color-mix(in srgb, var(--lilac, #b896e8) 80%, #fff);
+  stroke: rgba(14, 17, 26, 0.55);
+  stroke-width: 0.6;
+}
 @media (prefers-reduced-motion: reduce) {
-  .gen-postprocess-svg polyline { filter: none; }
+  .gen-postprocess-poly { filter: none; }
 }
 
 /* Create Feel — contact vib live probe (MakeVibrationsExt-style feedback) */

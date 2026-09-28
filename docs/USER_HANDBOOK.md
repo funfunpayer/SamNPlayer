@@ -32,7 +32,8 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 3. Leave **Contact vibration** on (default). Feel shows a live vib probe for
    Sensitivity / Curve (synthetic bounce — not your clip). Optionally mark
    nipples/mouth (gold / magenta) for feel later.  
-4. Click **Create** / Generate.  
+4. Click **Create** / Generate. Optional Expert knobs show a rich live probe
+   (raw vs postprocess curves + peak badges — synthetic only).
 5. **Review & improve:** trim · **Fill gaps** · **Heal tracking gaps** · audio check
    (Speech-Hold / Feel segment strip · optional chapters — never rewrites stroke).
 6. Open **Play** — soft curve + dots; if the script has `audio_check` segments,

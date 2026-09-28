@@ -25,6 +25,18 @@ func TestPreviewStatsDefaultKnobs(t *testing.T) {
 	if res.Sample[0].AtMs > res.Sample[len(res.Sample)-1].AtMs {
 		t.Fatalf("sample not time-ordered: %+v", res.Sample)
 	}
+	if len(res.RawSample) < 2 {
+		t.Fatalf("expected raw underlay sample, got %d", len(res.RawSample))
+	}
+	if res.RawSample[0].AtMs > res.RawSample[len(res.RawSample)-1].AtMs {
+		t.Fatalf("raw sample not time-ordered: %+v", res.RawSample)
+	}
+	if len(res.Peaks) < 1 {
+		t.Fatalf("expected peak markers, got %d", len(res.Peaks))
+	}
+	if len(res.Peaks) > res.PeakCount {
+		t.Fatalf("peak markers (%d) exceed PeakCount (%d)", len(res.Peaks), res.PeakCount)
+	}
 }
 
 func TestPreviewStatsProminenceReducesPeaks(t *testing.T) {

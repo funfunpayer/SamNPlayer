@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Expert: rich postprocess probe** — dual SVG (muted raw underlay + teal
+  postprocess), peak dots, and live kf/peaks/valleys/Hz badges when Expert
+  knobs change (DeepFunGen-style). Synthetic probe only; Everyday CSRT
+  defaults unchanged.
+
 - **Play: axis-aware Cap / Scale / Delete** — OFS range tools honor the active
   Curve axis (General / Vibration / Suction). Scale uses an adjustable factor
   (×0.5–×1.5) plus optional Soft edges fade for gentler vib/suction edits.
