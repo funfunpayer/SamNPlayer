@@ -8,13 +8,37 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.38] — September 28, 2026
+
 ### Fixed
 
 - **Review Improve Heal+Fill point count** — with both **Heal tracking gaps** and
   **Fill gaps** on (Review default + auto after Generate), Fill used to overwrite
   `PointsAdded` to 0 when no time holes remained after Heal. Status then showed
   “(gaps ok)” even though Heal rewrote `tracking_gaps` windows. Heal bridges are
-  kept in the total; Create status also surfaces `windowsHealed`.
+  kept in the total; Create status also surfaces `windowsHealed` (#348).
+
+- **Windows update `//` popup** — reject slash-only error text; Windows apply+restart
+  uses a temp `.cmd` helper so nested `cmd /C` quoting no longer fails after accept.
+  In-app update banner / Settings path unchanged; optional release-body changelog
+  preview (#351).
+
+### Added
+
+- **Benchmark MVP** — Bench tab + CLI `benchmark` / `score`: Everyday/candidate vs
+  FunGen reference → gut / prüfen / nicht gut (Motion Fidelity + Quality Doctor);
+  optional video metadata and JSONL labels for KI (#350).
+
+- **Patch channel** — additive hotfix channel beside full Releases/Updates
+  (`patch-vX.Y.Z-pN`). Same ask/apply UX; full release wins when both exist.
+  Full versioned releases remain primary (#349).
+
+### Changed
+
+- **Advanced Generator cleanup** — Create → Advanced progressive disclosure:
+  clearer groups, nested Expert tuning + AI assist (closed), tracking-method
+  dropdown demoted; Impulse primary under Feel → Curve. Everyday Go CSRT
+  defaults unchanged (#347).
 
 ## [0.5.37] — September 28, 2026
 
