@@ -8,6 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Create: clickable marks + body map** — Step 2 Contact marks: click a painted Tip /
+  contact / Ignore / Scene-map box to select it; body-map silhouette sets Tip class /
+  Contact type / Region class (same classes as AI Train). Delete selected. Matches
+  owner Anleitung Mark/Anker + Modelle flow.
+- **Settings: Apply AI setup automatically** — opt-in (default off). Soft-load
+  companion `.scene.json` fills empty Tip / contact; Undo chip in Create. Engine/CLI
+  already shipped (#336); GUI toggle was the remaining Cursor slice.
+- **Bench: Clip-Prep panel** — discoverable copy-paste commands for
+  `scripts/benchmark-prep/` (single + batch marks.json). Scripts stay scripts.
+
 ## [0.5.38] — September 28, 2026
 
 ### Fixed

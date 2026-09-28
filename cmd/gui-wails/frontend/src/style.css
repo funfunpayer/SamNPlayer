@@ -1440,6 +1440,29 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   background: var(--surface);
   padding: 10px 12px;
 }
+/* Create Step 2 — same body map, slightly tighter */
+.gen-body-figure-compact .body-figure-card {
+  padding: 8px 10px;
+}
+.gen-body-figure-compact .body-figure-svg {
+  max-width: 110px;
+}
+.gen-selected-mark,
+.gen-ai-applied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+.gen-selected-mark[hidden],
+.gen-ai-applied[hidden] {
+  display: none !important;
+}
 .body-figure-head {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
   margin-bottom: 8px;

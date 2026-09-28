@@ -128,7 +128,7 @@ Create → **2 · Where** → Block **Scene proposals**
 Companion entsteht typisch per CLI: `scene_roles.py` / `scan-scene-map` (siehe Engine-Docs). Soft-Load „beside video“ beim Öffnen, wenn Datei da ist.
 
 ### Tipps
-- CLI `--scene-apply` füllt leere ROI/ROI2 opt-in; **GUI-Settings-Toggle „Apply AI setup automatically“** ist noch pending.  
+- CLI `--scene-apply` füllt leere ROI/ROI2 opt-in; **GUI-Settings-Toggle „Apply AI setup automatically“** (Default aus) füllt leere Tip/Contact beim Soft-Load von `.scene.json` — Undo-Chip in Create.  
 - Nie mit Tf/Tj-Distanzprofil still ROI2 setzen (würde Two-Point-Tracking auslösen).
 
 ---

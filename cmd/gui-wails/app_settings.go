@@ -29,6 +29,9 @@ const (
 	prefRoiDatasetDir        = "generator.roiTrainingDatasetDir"
 	// prefCollectLearningData: SceneMap P5 — local L0 collect (default OFF).
 	prefCollectLearningData = "generator.collectLearningData"
+	// prefApplyAISetupAutomatically: Scene2 — fill empty Tip/ROI2 from
+	// companion .scene.json when soft-loaded (default OFF; Owner 28 Sep).
+	prefApplyAISetupAutomatically = "generator.applyAISetupAutomatically"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -158,6 +161,11 @@ type Settings struct {
 	// CollectLearningData: SceneMap P5 — write scene_map_learning JSON locally.
 	// Default false (Owner: opt-in only). Never uploads; never YOLO train write.
 	CollectLearningData bool `json:"collectLearningData"`
+
+	// ApplyAISetupAutomatically: when a companion .scene.json soft-loads in
+	// Create, fill empty Tip (and contact partner) from the proposal. Default
+	// off — user Apply buttons remain the Everyday path. Undo in Create.
+	ApplyAISetupAutomatically bool `json:"applyAISetupAutomatically"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -212,6 +220,8 @@ func (a *App) GetSettings() Settings {
 		DefaultRoiDatasetDir: generator.DefaultRoiDatasetDir(),
 
 		CollectLearningData: s.GetBool(prefCollectLearningData, false),
+
+		ApplyAISetupAutomatically: s.GetBool(prefApplyAISetupAutomatically, false),
 	}
 }
 

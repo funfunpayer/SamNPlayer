@@ -50,6 +50,7 @@ export function saveSetting(key, value) {
       'generator.aiBaseUrl': 'aiBaseUrl',
       'generator.roiTrainingDatasetDir': 'roiDatasetDir',
       'generator.collectLearningData': 'collectLearningData',
+      'generator.applyAISetupAutomatically': 'applyAISetupAutomatically',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;
@@ -172,6 +173,16 @@ export function initSettings(root) {
       <span class="hint" id="st-learning-status" style="margin:0"></span>
     </div>
 
+    <h3>Scene proposals — Apply AI setup</h3>
+    <p class="hint">When a companion <code>.scene.json</code> is beside the video (or you load one),
+      Create can fill <b>empty</b> Tip / contact from the proposal. Default <b>off</b> —
+      Everyday stays manual Apply. User-drawn boxes always win. Undo chip appears in Create.</p>
+    <div class="checkbox-row">
+      <input type="checkbox" id="st-apply-ai-setup" />
+      <label for="st-apply-ai-setup"
+        data-help="Opt-in (Owner 28 Sep). Soft-load .scene.json → fill empty Tip and contact partner. Never with Tf/Tj distance as curve source. Everyday CSRT tip path unchanged.">Apply AI setup automatically</label>
+    </div>
+
     <h3>AI server for profile suggestion &amp; quality second opinion (local, optional)</h3>
     <p class="hint">Address of a local Colibri / OpenAI-compatible server
       (<code>coli serve</code>, or Ollama/LM Studio with an OpenAI bridge —
@@ -285,6 +296,9 @@ export function initSettings(root) {
     el('#st-ai-pref-classes').value = s.aiPreferredClasses || '';
     el('#st-ai-base-url').value = s.aiBaseUrl || '';
     el('#st-collect-learning').checked = !!s.collectLearningData;
+    if (el('#st-apply-ai-setup')) {
+      el('#st-apply-ai-setup').checked = !!s.applyAISetupAutomatically;
+    }
     updateReportStatus();
     refreshLicenseStatus();
     refreshPluginsStatus();
@@ -639,6 +653,8 @@ export function initSettings(root) {
 
   el('#st-collect-learning')?.addEventListener('change', e =>
     saveSetting('generator.collectLearningData', e.target.checked));
+  el('#st-apply-ai-setup')?.addEventListener('change', e =>
+    saveSetting('generator.applyAISetupAutomatically', e.target.checked));
 
   el('#st-delete-learning')?.addEventListener('click', async () => {
     const status = el('#st-learning-status');

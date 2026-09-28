@@ -4,6 +4,8 @@ import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
 } from './bodyparts.js';
+import { mountBodyFigure } from './body_figure.js';
+import { getSettingsCache } from './settings.js';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 import { openHandbook } from './handbook.js';
@@ -66,8 +68,13 @@ export function initGenerator(root, playback) {
       <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
           Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
-          <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact (no silent ROI2).
+          <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact
+          (unless Settings → <b>Apply AI setup automatically</b> is on — still undoable).
         </p>
+        <div id="gen-ai-applied" class="gen-ai-applied" hidden>
+          <span id="gen-ai-applied-label" class="hint" style="margin:0;"></span>
+          <button type="button" id="gen-ai-applied-undo" class="secondary">Undo AI apply</button>
+        </div>
         <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
           <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
             data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
@@ -163,6 +170,18 @@ export function initGenerator(root, playback) {
           <button id="gen-mask-add" type="button"
             data-help="Ignore region (black): paints a whole-clip exclude that Create tracks with the subject. Same job as Scene map → Ignore — use when heatmap/detections latch onto knees etc. Does not drive the stroke.">+ Ignore region (black)</button>
         </div>
+        <div id="gen-selected-mark" class="gen-selected-mark" hidden>
+          <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
+          <button type="button" id="gen-selected-mark-delete" class="secondary"
+            data-help="Removes the mark selected on the preview (Tip / contact / Ignore / Scene map).">Delete selected</button>
+          <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
+        </div>
+        <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
+          aria-label="Body map — click a part to label Tip / contact / region mark"></div>
+        <p class="hint" style="margin:4px 0 0 0;">
+          <b>Click a painted mark</b> on the preview to select it, then click the body map to set Tip / Contact / Region class.
+          Paint: drag a box (or use Mark contact / Ignore / Scene map → Paint mark).
+        </p>
       </div>
       <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
       <button id="gen-nomark" type="button" disabled hidden
@@ -489,6 +508,12 @@ export function initGenerator(root, playback) {
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
   let markMode = null; // null | 'target' | 'mask'
+  // Click-select on preview: tip / contact / extra / scene-map mark.
+  // { kind:'tip'|'contact'|'extra'|'scene', index?:number, id?:string }
+  let selectedMark = null;
+  // Snapshot for Settings → Apply AI setup automatically Undo.
+  let aiAppliedUndo = null;
+  let createBodyFigure = null;
   let dragging = false, draggingSecond = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let seekSec = 0;
   let generating = false;
@@ -1363,6 +1388,268 @@ export function initGenerator(root, playback) {
     ctx.restore();
   }
 
+  function drawSelectedOutline(r) {
+    if (!r || !nativeW || !nativeH || !canvas.width) return;
+    const scaleX = canvas.width / nativeW, scaleY = canvas.height / nativeH;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(r.x * scaleX - 2, r.y * scaleY - 2, r.w * scaleX + 4, r.h * scaleY + 4);
+    ctx.restore();
+  }
+
+  function pointInNativeRect(nx, ny, r) {
+    return !!(r && r.w > 0 && r.h > 0
+      && nx >= r.x && ny >= r.y && nx <= r.x + r.w && ny <= r.y + r.h);
+  }
+
+  function selectedMarkNativeRect() {
+    if (!selectedMark) return null;
+    if (selectedMark.kind === 'tip') return roi;
+    if (selectedMark.kind === 'contact') return roi2;
+    if (selectedMark.kind === 'extra') return extraTargets[selectedMark.index] || null;
+    if (selectedMark.kind === 'scene') {
+      const m = sceneMapMarks.find((x) => x.id === selectedMark.id);
+      if (!m) return null;
+      const atMs = Math.round((seekSec || 0) * 1000);
+      return sceneMarkRectAt(m, atMs);
+    }
+    return null;
+  }
+
+  function updateSelectedMarkUI() {
+    const wrap = el('#gen-selected-mark');
+    const lab = el('#gen-selected-mark-label');
+    if (!wrap || !lab) return;
+    if (!selectedMark) {
+      wrap.hidden = true;
+      lab.textContent = '';
+      createBodyFigure?.setActive?.(
+        el('#gen-region-class')?.value || el('#gen-region-class2')?.value || '');
+      return;
+    }
+    wrap.hidden = false;
+    let text = 'Selected: ';
+    if (selectedMark.kind === 'tip') {
+      const cls = regionClass1Value();
+      text += `Tip${cls ? ` (${labelFor(cls) || cls})` : ''} — click body map to set Tip class`;
+      createBodyFigure?.setActive?.(cls);
+    } else if (selectedMark.kind === 'contact') {
+      const cls = regionClass2Value();
+      text += `Contact${cls ? ` (${labelFor(cls) || cls})` : ''} — click body map for Contact type`;
+      createBodyFigure?.setActive?.(cls);
+    } else if (selectedMark.kind === 'extra') {
+      const t = extraTargets[selectedMark.index];
+      const cls = normalizeClass(t?.class || '');
+      text += `Extra contact #${(selectedMark.index || 0) + 1}${cls ? ` (${labelFor(cls) || cls})` : ''}`;
+      createBodyFigure?.setActive?.(cls);
+    } else if (selectedMark.kind === 'scene') {
+      const m = sceneMapMarks.find((x) => x.id === selectedMark.id);
+      const kind = m?.kind || 'mark';
+      const cls = normalizeClass(m?.class || '');
+      text += `Scene ${kind}${cls ? ` (${labelFor(cls) || cls})` : ''}`
+        + (kind === 'region' ? ' — body map sets Region class' : '');
+      createBodyFigure?.setActive?.(cls);
+    }
+    lab.textContent = text;
+  }
+
+  function setSelectedMark(sel) {
+    selectedMark = sel;
+    updateSelectedMarkUI();
+    redraw();
+  }
+
+  function hitPaintedMark(canvasX, canvasY) {
+    if (!nativeW || !nativeH || !canvas.width) return null;
+    const nx = canvasX * nativeW / canvas.width;
+    const ny = canvasY * nativeH / canvas.height;
+    const atMs = Math.round((seekSec || 0) * 1000);
+    for (let i = sceneMapMarks.length - 1; i >= 0; i--) {
+      const m = sceneMapMarks[i];
+      if (m.atMs != null && Number.isFinite(m.atMs)) {
+        if (Math.abs(atMs - m.atMs) > 1500) continue;
+      } else if (!sceneMarkActiveAt(m, atMs)) {
+        continue;
+      }
+      const rect = sceneMarkRectAt(m, atMs);
+      if (pointInNativeRect(nx, ny, rect)) {
+        return { kind: 'scene', id: m.id };
+      }
+    }
+    for (let i = extraTargets.length - 1; i >= 0; i--) {
+      if (pointInNativeRect(nx, ny, extraTargets[i])) {
+        return { kind: 'extra', index: i };
+      }
+    }
+    if (pointInNativeRect(nx, ny, roi2)) return { kind: 'contact' };
+    if (pointInNativeRect(nx, ny, roi)) return { kind: 'tip' };
+    return null;
+  }
+
+  function ensureSelectOption(sel, classId) {
+    if (!sel || !classId) return;
+    if (![...sel.options].some((o) => o.value === classId)) {
+      const opt = document.createElement('option');
+      opt.value = classId;
+      opt.textContent = labelFor(classId) || classId;
+      sel.appendChild(opt);
+    }
+    sel.value = classId;
+  }
+
+  function applyBodyClassToMark(classId) {
+    const n = normalizeClass(classId);
+    if (!n) return;
+    if (selectedMark?.kind === 'tip') {
+      ensureSelectOption(el('#gen-region-class'), n);
+      if (el('#gen-region-class')) el('#gen-region-class').dataset.userTouched = '1';
+      updateRoiLabels();
+      updateSelectedMarkUI();
+      el('#gen-status').textContent = `Tip class → ${labelFor(n) || n}`;
+      return;
+    }
+    if (selectedMark?.kind === 'contact') {
+      ensureSelectOption(el('#gen-region-class2'), n);
+      if (el('#gen-region-class2')) el('#gen-region-class2').dataset.userTouched = '1';
+      updateRoiLabels();
+      updateSelectedMarkUI();
+      el('#gen-status').textContent = `Contact type → ${labelFor(n) || n}`;
+      return;
+    }
+    if (selectedMark?.kind === 'extra') {
+      const t = extraTargets[selectedMark.index];
+      if (t) t.class = n;
+      ensureSelectOption(el('#gen-target-class'), n);
+      if (el('#gen-target-class')) el('#gen-target-class').dataset.userTouched = '1';
+      updateRoiLabels();
+      updateSelectedMarkUI();
+      el('#gen-status').textContent = `Extra contact class → ${labelFor(n) || n}`;
+      redraw();
+      return;
+    }
+    if (selectedMark?.kind === 'scene') {
+      const m = sceneMapMarks.find((x) => x.id === selectedMark.id);
+      if (m && (m.kind === 'region' || m.kind === 'source')) {
+        m.class = n;
+        m.kind = 'region';
+        ensureSelectOption(el('#gen-scene-map-mark-class'), n);
+        updateSceneMapMarksLabel();
+        updateSelectedMarkUI();
+        el('#gen-status').textContent = `Scene region class → ${labelFor(n) || n}`;
+        redraw();
+        return;
+      }
+      el('#gen-status').textContent = 'Ignore marks have no body-part class — use Region kind to label.';
+      return;
+    }
+    if (sceneMapMarkMode === 'region') {
+      ensureSelectOption(el('#gen-scene-map-mark-class'), n);
+      el('#gen-status').textContent = `Next Scene Region paint → ${labelFor(n) || n}`;
+      return;
+    }
+    if (markMode === 'target' || roi2Mode) {
+      ensureSelectOption(el('#gen-target-class'), n);
+      ensureSelectOption(el('#gen-region-class2'), n);
+      if (el('#gen-region-class2')) el('#gen-region-class2').dataset.userTouched = '1';
+      if (el('#gen-target-class')) el('#gen-target-class').dataset.userTouched = '1';
+      el('#gen-status').textContent = `Next contact paint → ${labelFor(n) || n}`;
+      return;
+    }
+    // Default: tip class (anchor model for Everyday tip).
+    ensureSelectOption(el('#gen-region-class'), n);
+    if (el('#gen-region-class')) el('#gen-region-class').dataset.userTouched = '1';
+    createBodyFigure?.setActive?.(n);
+    el('#gen-status').textContent = `Tip class → ${labelFor(n) || n} (or click a mark first)`;
+  }
+
+  function deleteSelectedMark() {
+    if (!selectedMark) return;
+    if (selectedMark.kind === 'tip') {
+      roi = null;
+      el('#gen-status').textContent = 'Tip mark cleared — Find tip area or paint again.';
+    } else if (selectedMark.kind === 'contact') {
+      roi2 = null;
+      el('#gen-status').textContent = 'Contact mark cleared.';
+    } else if (selectedMark.kind === 'extra') {
+      extraTargets.splice(selectedMark.index, 1);
+      el('#gen-status').textContent = 'Extra contact removed.';
+    } else if (selectedMark.kind === 'scene') {
+      sceneMapMarks = sceneMapMarks.filter((m) => m.id !== selectedMark.id);
+      updateSceneMapMarksLabel();
+      el('#gen-status').textContent = 'Scene map mark removed.';
+    }
+    setSelectedMark(null);
+    updateRoiLabels();
+    updateGenerateEnabled();
+  }
+
+  function showAiAppliedChip(lines) {
+    const wrap = el('#gen-ai-applied');
+    const lab = el('#gen-ai-applied-label');
+    if (!wrap || !lab) return;
+    if (!lines || !lines.length) {
+      wrap.hidden = true;
+      lab.textContent = '';
+      return;
+    }
+    wrap.hidden = false;
+    lab.textContent = 'AI applied: ' + lines.join(' · ') + ' — Undo restores your previous empty slots.';
+  }
+
+  function clearAiAppliedChip() {
+    aiAppliedUndo = null;
+    showAiAppliedChip([]);
+  }
+
+  async function maybeAutoApplySceneProposal() {
+    try {
+      const s = await getSettingsCache();
+      if (!s?.applyAISetupAutomatically) return;
+      if (!sceneProposal?.found) return;
+      const p = sceneProposal.proposal || {};
+      const primary = sceneProposalBox(p.primary || p.Primary);
+      const partner = sceneProposalBox(p.partner || p.Partner);
+      const snap = {
+        roi: roi ? { ...roi } : null,
+        roi2: roi2 ? { ...roi2 } : null,
+        tipClass: el('#gen-region-class')?.value || '',
+        contactClass: el('#gen-region-class2')?.value || '',
+      };
+      const applied = [];
+      // User values win — only fill empty Tip / contact (Owner 28 Sep).
+      if (!roi && primary && primary.w > 0 && primary.h > 0) {
+        applyScenePrimary();
+        applied.push('Tip');
+      }
+      if (!roi2 && partner && partner.w > 0 && partner.h > 0) {
+        applyScenePartner();
+        applied.push('contact');
+      }
+      if (applied.length) {
+        aiAppliedUndo = snap;
+        showAiAppliedChip(applied);
+        el('#gen-status').textContent =
+          `AI setup applied (${applied.join(', ')}) — Settings opt-in. Undo available.`;
+      }
+    } catch (_) { /* settings optional in tests */ }
+  }
+
+  function undoAiApplied() {
+    if (!aiAppliedUndo) return;
+    const snap = aiAppliedUndo;
+    roi = snap.roi ? { ...snap.roi } : null;
+    roi2 = snap.roi2 ? { ...snap.roi2 } : null;
+    if (el('#gen-region-class')) el('#gen-region-class').value = snap.tipClass || '';
+    if (el('#gen-region-class2')) el('#gen-region-class2').value = snap.contactClass || '';
+    clearAiAppliedChip();
+    updateRoiLabels();
+    updateGenerateEnabled();
+    el('#gen-status').textContent = 'AI apply undone — Tip/contact restored.';
+    redraw();
+  }
+
   // MT-Seed: IoU gate so Tip+2nd suggestions stay spatially distinct.
   function boxesOverlap(a, b, iouThresh = 0.25) {
     if (!a || !b) return false;
@@ -1573,8 +1860,9 @@ export function initGenerator(root, playback) {
     sceneProposal = loaded;
     renderSceneProposalUI();
     el('#gen-status').textContent =
-      'Scene proposal loaded — Apply as Tip to use primary (partner stays proposal-only).';
+      'Scene proposal loaded — Apply as Tip to use primary (partner stays proposal-only unless Apply AI setup automatically).';
     redraw();
+    await maybeAutoApplySceneProposal();
     return true;
   }
 
@@ -1873,6 +2161,8 @@ export function initGenerator(root, playback) {
     if (roi2 && !dragRoi2) drawNativeRect(roi2, ROI2_STROKE, ROI2_FILL);
     for (const t of extraTargets) drawNativeRect(t, TARGET_STROKE, TARGET_FILL);
     for (const m of maskRois) drawNativeRect(m, MASK_STROKE, MASK_FILL, true);
+    const selRect = selectedMarkNativeRect();
+    if (selRect) drawSelectedOutline(selRect);
     if (dragging) {
       if (sceneMapMarkMode === 'exclude') drawDragRect('#111111', 'rgba(0,0,0,0.35)', true);
       else if (sceneMapMarkMode === 'source') drawDragRect('#3dccc0', 'rgba(61,204,192,0.2)');
@@ -1893,6 +2183,12 @@ export function initGenerator(root, playback) {
     dragging = true;
     draggingSecond = !markMode && (roi2Mode || e.shiftKey);
   });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && selectedMark) {
+      setSelectedMark(null);
+      el('#gen-status').textContent = 'Mark deselected.';
+    }
+  });
   canvas.addEventListener('mousemove', e => {
     if (!dragging) return;
     const r = canvas.getBoundingClientRect();
@@ -1910,6 +2206,7 @@ export function initGenerator(root, playback) {
     const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
     // Tiny press: pick a motion candidate if shown (TFTJ 4b / MT-Seed).
     // Click → Tip (Zone 1). Shift / Zone-2 mode → Partner (Zone 2). Never auto-fills the other.
+    // Else: click an existing painted mark to select (body map sets class).
     if (w < 8 && h < 8) {
       if (!mode && !smMode && candidates.length) {
         const hit = hitCandidate(startX, startY);
@@ -1918,9 +2215,19 @@ export function initGenerator(root, playback) {
           return;
         }
       }
+      if (!mode && !smMode) {
+        const painted = hitPaintedMark(startX, startY);
+        setSelectedMark(painted);
+        if (painted) {
+          el('#gen-status').textContent =
+            'Mark selected — click body map to set class, or Delete selected.';
+        }
+        return;
+      }
       redraw();
       return;
     }
+    setSelectedMark(null);
     const scaleX = nativeW / canvas.width, scaleY = nativeH / canvas.height;
     const x0 = Math.min(startX, curX), y0 = Math.min(startY, curY);
     const box = {
@@ -1947,8 +2254,8 @@ export function initGenerator(root, playback) {
       updateSceneMapMarksLabel();
       const followHint = follow ? ', follows subject' : ', stay fixed';
       el('#gen-status').textContent =
-        `Scene map ${smMode === 'exclude' ? 'ignore (black)' : smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s${followHint}).`;
-      redraw();
+        `Scene map ${smMode === 'exclude' ? 'ignore (black)' : smMode} mark added (${((win?.startMs || 0) / 1000).toFixed(0)}–${((win?.endMs || 0) / 1000).toFixed(0)}s${followHint}). Click body map if Region.`;
+      setSelectedMark({ kind: 'scene', id: `m${sceneMapMarkSeq}` });
       return;
     }
     if (mode === 'target') {
@@ -1959,6 +2266,10 @@ export function initGenerator(root, playback) {
       const tag = cls ? ` (${cls})` : '';
       const modeHint = follow ? ', follows partner path' : ', stay fixed';
       el('#gen-status').textContent = `Extra contact #${extraTargets.length}${tag} added${modeHint}.`;
+      setSelectedMark({ kind: 'extra', index: extraTargets.length - 1 });
+      updateRoiLabels();
+      updateGenerateEnabled();
+      return;
     } else if (mode === 'mask') {
       // Soft mask → whole-clip black ignore that follows the subject.
       sceneMapMarkSeq += 1;
@@ -1974,15 +2285,21 @@ export function initGenerator(root, playback) {
       setMarkMode(null);
       updateSceneMapMarksLabel();
       el('#gen-status').textContent = `Ignore region (black) #${sceneMapMarks.filter(m => m.kind === 'exclude').length} added — follows subject; not used for recognition.`;
+      setSelectedMark({ kind: 'scene', id: `mask${sceneMapMarkSeq}` });
+      updateRoiLabels();
+      updateGenerateEnabled();
+      return;
     } else if (wasSecond) {
       roi2 = box;
       setRoi2Mode(false);
       // Zone 2 is optional for Contact vib — do not switch to legacy Tf/Tj.
       el('#gen-status').textContent = contactVibrationOn()
-        ? 'Optional contact zone set — Contact vib on (stroke depth / approach).'
+        ? 'Optional contact zone set — Contact vib on (stroke depth / approach). Click body map to set Contact type.'
         : 'Optional contact zone set.';
+      setSelectedMark({ kind: 'contact' });
     } else {
       roi = box;
+      setSelectedMark({ kind: 'tip' });
     }
     updateRoiLabels();
     updateGenerateEnabled();
@@ -3319,6 +3636,35 @@ export function initGenerator(root, playback) {
   fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
   fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
   fillClassSelect('#gen-ai-target-class', TIP_CLASS_ORDER);
+  fillClassSelect('#gen-scene-map-mark-class', CONTACT_CLASS_ORDER);
+
+  createBodyFigure = mountBodyFigure(el('#gen-body-figure'), {
+    onSelect: applyBodyClassToMark,
+    getActive: () => {
+      if (selectedMark?.kind === 'tip') return regionClass1Value();
+      if (selectedMark?.kind === 'contact') return regionClass2Value();
+      if (selectedMark?.kind === 'extra') {
+        return normalizeClass(extraTargets[selectedMark.index]?.class || '');
+      }
+      if (selectedMark?.kind === 'scene') {
+        const m = sceneMapMarks.find((x) => x.id === selectedMark.id);
+        return normalizeClass(m?.class || '');
+      }
+      if (roi2Mode || markMode === 'target') {
+        return normalizeClass(el('#gen-region-class2')?.value || el('#gen-target-class')?.value || '');
+      }
+      return regionClass1Value() || regionClass2Value();
+    },
+  });
+  // Compact Create copy: shorter head text.
+  const bfHead = el('#gen-body-figure')?.querySelector('.body-figure-head .hint');
+  if (bfHead) {
+    bfHead.textContent = 'Click a region to label Tip / Contact / Region mark (same classes as AI Train).';
+  }
+
+  el('#gen-selected-mark-delete')?.addEventListener('click', () => deleteSelectedMark());
+  el('#gen-ai-applied-undo')?.addEventListener('click', () => undoAiApplied());
+
   el('#gen-ai-roi')?.addEventListener('change', () => {
     const enabled = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const target = el('#gen-ai-target-class');
@@ -3352,6 +3698,8 @@ export function initGenerator(root, playback) {
   el('#gen-region-class')?.addEventListener('change', () => {
     const sel = el('#gen-region-class');
     if (sel) sel.dataset.userTouched = '1';
+    createBodyFigure?.setActive?.(sel?.value || '');
+    updateSelectedMarkUI();
   });
   el('#gen-region-class2')?.addEventListener('change', () => {
     const sel = el('#gen-region-class2');
@@ -3363,6 +3711,8 @@ export function initGenerator(root, playback) {
       el('#gen-roi2-label').textContent = secondRegionLabel(roi2);
       redraw();
     }
+    createBodyFigure?.setActive?.(sel?.value || '');
+    updateSelectedMarkUI();
   });
   el('#gen-target-class')?.addEventListener('change', () => {
     const sel = el('#gen-target-class');
