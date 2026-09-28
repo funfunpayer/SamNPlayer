@@ -249,6 +249,7 @@ Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
 
 | Doc | What it is |
 |---|---|
+| [`docs/ANLEITUNG.md`](docs/ANLEITUNG.md) / [`docs/owner/`](docs/owner/) | **Owner guides (Deutsch)** — Funktionen, Testen, Markieren, Bench, Setup |
 | [`docs/ENGINEERING_STANCE.md`](docs/ENGINEERING_STANCE.md) | Shared Bau/Planung locks — stack, AI, scene map, rhythm |
 | [`docs/SCENE_MAP_PLAN.md`](docs/SCENE_MAP_PLAN.md) | Scene map plan (P1–P5) — heatmap, marks, learning data |
 | [`docs/EVERYDAY_GENERATE.md`](docs/EVERYDAY_GENERATE.md) | Everyday Create path (tip-CSRT + Contact) |

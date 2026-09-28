@@ -5,7 +5,8 @@
 **Last updated:** 27 Sep 2026 (Contact points Advanced GUI + handbook; local helpers; Test AI server).
 
 **In the app:** Settings → **Open user handbook** · Create → **User handbook** (same FAQ modal).  
-Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.
+Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.  
+**Owner guides (Deutsch):** [`ANLEITUNG.md`](ANLEITUNG.md) · [`owner/`](owner/).
 
 ---
 
