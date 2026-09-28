@@ -423,11 +423,31 @@ export function initGenerator(root, playback) {
               data-help="Adds extra keyframes for asymmetric motion. Default on.">Adaptive Keyframes</label></div>
             <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
               data-help="Re-searches the tip region after each hard cut (Python PerSceneROI). On Go-CSRT portable builds this is soft-ignored — cuts still re-anchor, Everyday stays on Go CSRT (#338/#339). Prefer leaving off unless you intentionally use the Python path.">Re-find region after each cut (Python-only; soft-ignored on Go CSRT)</label></div>
-            <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower. Default 11.">Smoothing window</label><input type="number" id="gen-smooth" value="11" min="0" step="1" /></div>
-            <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds. Default 150.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" min="0" step="10" /></div>
-            <div class="field-row"><label data-help="Peak prominence as a fraction of the position span (0–1). Filters soft wiggles. 0 = profile default on Create (Autotune≈0.35, Soft≈0.2). Everyday leaves this at 0.">Peak prominence (0 = profile default)</label><input type="number" id="gen-prominence" value="0" min="0" max="1" step="0.05" /></div>
-            <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
-            <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Signal smoothing window width in frames. Larger = calmer but slower. Default 11.">Smoothing window</label>
+              <input type="range" id="gen-smooth" min="0" max="51" step="1" value="11" style="flex:1;" />
+              <span class="hint" id="gen-smooth-val" style="margin:0; min-width:2.5em;">11</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Minimum spacing between keyframes in milliseconds. Default 150.">Min keyframe spacing (ms)</label>
+              <input type="range" id="gen-peakdist" min="0" max="500" step="10" value="150" style="flex:1;" />
+              <span class="hint" id="gen-peakdist-val" style="margin:0; min-width:3em;">150</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Peak prominence as a fraction of the position span (0–1). Filters soft wiggles. 0 = profile default on Create (Autotune≈0.35, Soft≈0.2). Everyday leaves this at 0.">Peak prominence (0 = profile default)</label>
+              <input type="range" id="gen-prominence" min="0" max="1" step="0.05" value="0" style="flex:1;" />
+              <span class="hint" id="gen-prominence-val" style="margin:0; min-width:2.5em;">0</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label>
+              <input type="range" id="gen-rdp" min="0" max="20" step="0.5" value="0" style="flex:1;" />
+              <span class="hint" id="gen-rdp-val" style="margin:0; min-width:2.5em;">0</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label>
+              <input type="range" id="gen-maxspeed" min="0" max="800" step="50" value="0" style="flex:1;" />
+              <span class="hint" id="gen-maxspeed-val" style="margin:0; min-width:2.5em;">0</span>
+            </div>
             <div class="gen-postprocess-probe" id="gen-postprocess-probe">
               <div class="gen-postprocess-badges" id="gen-postprocess-badges" aria-live="polite">
                 <span class="gen-pp-badge" id="gen-pp-badge-kf">— kf</span>
@@ -2794,9 +2814,38 @@ export function initGenerator(root, playback) {
     clearTimeout(postPreviewTimer);
     postPreviewTimer = setTimeout(refreshPostprocessPreview, 180);
   }
+  function syncExpertKnobLabels() {
+    const map = [
+      ['#gen-smooth', '#gen-smooth-val', (v) => String(Math.round(Number(v) || 0))],
+      ['#gen-peakdist', '#gen-peakdist-val', (v) => String(Math.round(Number(v) || 0))],
+      ['#gen-prominence', '#gen-prominence-val', (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n === 0) return '0';
+        return String(Math.round(n * 100) / 100);
+      }],
+      ['#gen-rdp', '#gen-rdp-val', (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n === 0) return '0';
+        return String(Math.round(n * 10) / 10);
+      }],
+      ['#gen-maxspeed', '#gen-maxspeed-val', (v) => String(Math.round(Number(v) || 0))],
+    ];
+    for (const [inpSel, labSel, fmt] of map) {
+      const inp = el(inpSel);
+      const lab = el(labSel);
+      if (inp && lab) lab.textContent = fmt(inp.value);
+    }
+  }
+  syncExpertKnobLabels();
   ['#gen-smooth', '#gen-peakdist', '#gen-prominence', '#gen-rdp', '#gen-maxspeed'].forEach(sel => {
-    el(sel)?.addEventListener('input', schedulePostprocessPreview);
-    el(sel)?.addEventListener('change', schedulePostprocessPreview);
+    el(sel)?.addEventListener('input', () => {
+      syncExpertKnobLabels();
+      schedulePostprocessPreview();
+    });
+    el(sel)?.addEventListener('change', () => {
+      syncExpertKnobLabels();
+      schedulePostprocessPreview();
+    });
   });
   el('#gen-adaptive')?.addEventListener('change', schedulePostprocessPreview);
   el('#gen-advanced-expert')?.addEventListener('toggle', () => {
