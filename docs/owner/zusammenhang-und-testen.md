@@ -1,13 +1,14 @@
 # Zusammenhang & Testen — SamNPlayer
 
 **Für Owner** · Stand: **2026-09-28**  
-Baseline: Rel35 **[`v0.5.35`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.35)** · nächster Portable-Cut **v0.5.36** (wenn Patch [#343](https://github.com/funfunpayer/SamNPlayer/pull/343) / Review-Boxen [#342](https://github.com/funfunpayer/SamNPlayer/pull/342) drin sind)
+Baseline: **[`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40)** — Contact Verify GUI + Bench Suggest beside
 
 Verwandt:
 
-- Funktions-Anleitung: [`anleitung-funktionen.md`](anleitung-funktionen.md)
+- Funktions-Anleitung: [`anleitung-funktionen.md`](anleitung-funktionen.md) (§6 Verify · §13 Bench)
 - Generator Markieren (Ignore / Scene map): [`generator-markieren.md`](generator-markieren.md)
-- Release-Notizen (aktuell): [`v0.5.38-sammel.md`](v0.5.38-sammel.md) · Rel35 Tag: [v0.5.35](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.35)
+- Benchmark: [`benchmark-system.md`](benchmark-system.md) · Clip-Prep [`benchmark-clip-prep.md`](benchmark-clip-prep.md)
+- Release-Notizen: Tag [v0.5.40](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40) · älter [`v0.5.38-sammel.md`](v0.5.38-sammel.md)
 - Lokale Modelle: [`../LOCAL_MODEL_SETUP.md`](../LOCAL_MODEL_SETUP.md), [`../COLIBRI_SETUP.md`](../COLIBRI_SETUP.md)
 - Scene2-Plan: Repo `docs/SCENE_UNDERSTANDING_PLAN.md`
 - Plugins: Repo `docs/PLUGIN_SYSTEM.md`
@@ -17,7 +18,7 @@ Verwandt:
 ## 1. Ein Satz
 
 **Everyday-Erkennung = Go-CSRT (nicht-KI): Tip-Box → Create → `.samn` → Play.**  
-Hybrid-KI (Scene2, Teachers, YOLO-Review, Contact Points, AIWrite, Plugins) ist **opt-in Assist** — schlägt vor, misst mit, oder fühlt — schreibt die 0–100-Kurve nur nach bewusstem Keep/Apply. Markieren filtert Regionen am CSRT-Pfad; Repair/Improve ist klassisches Nachpolieren (Fill/Heal), kein KI-Re-Track. Siehe [`generator-markieren.md`](generator-markieren.md).
+Hybrid-KI (Scene2, Teachers, YOLO-Review, Contact Points, **Contact Verify**, AIWrite, Plugins) ist **opt-in Assist** — schlägt vor, filtert, misst mit, oder fühlt — schreibt die 0–100-Kurve nur nach bewusstem Keep/Apply. Bench bewertet Everyday vs FunGen (Suggest beside). Markieren filtert Regionen am CSRT-Pfad; Repair/Improve ist klassisches Nachpolieren (Fill/Heal), kein KI-Re-Track. Siehe [`generator-markieren.md`](generator-markieren.md).
 
 ---
 
@@ -65,8 +66,8 @@ flowchart TB
     CHK --> NUD[NudeNet venv]
   end
 
-  subgraph Plugins["Plugins (kein VP-Produkt)"]
-    PH[pluginhost<br/>Install / Open folder] -.-> VP[Virtual Person<br/>PARKED #264]
+  subgraph Plugins["Plugins"]
+    PH[pluginhost<br/>Install / Open folder]
   end
 ```
 
@@ -137,14 +138,13 @@ GenerateWithContext
 
 **Check AI setup** ändert nichts — nur Diagnose. Install-Profile rühren Everyday-OpenCV nicht an.
 
-### 3.5 Contact Points
+### 3.5 Contact Points + Verify
 
 1. Advanced → **Rhythm-robust** an  
 2. Lehrer anhaken → **Generate contact points** → `.contact.json`  
 3. **Use contact points** → Rhythm-Grid sucht nur nahe Anchors, wenn Tip-Box >3 Zellen weg  
-4. Optional: Rhythm + Use contact points + **Verify with the engine** (GUI) oder CLI `--contact-points F --contact-verify 1.5`
-
-Leer/aus = Everyday bit-identisch.
+4. Optional: **Verify with the engine (hybrid, K=1.5)** neben Use — GUI setzt `ContactVerifyK=1.5` (wie CLI `--contact-verify 1.5`); schwache Teacher-Punkte fallen weg  
+5. Ohne Use/Pfad oder Verify aus = Everyday Create bit-identisch
 
 ### 3.6 Accept / Reject → P5c / YOLO
 
@@ -158,25 +158,31 @@ Teacher / Import → author:auto, reviewed:false
 Unreviewed Autos gehen **nicht** ins Training.  
 Nach [#342](https://github.com/funfunpayer/SamNPlayer/pull/342): Review-Karten zeigen **Box-Overlays** auf den Thumbnails (vorher fehlten Labels auf absoluten Pfaden).
 
-### 3.7 Plugins — **kein VP-Produkt**
+### 3.7 Bench — Suggest beside (#360)
 
-- Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) + scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
-- **Virtual Person** Enable/Give/Titjob-UI: **entfernt / geparkt** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264))
-- Erwartete Meldung bei altem Code-Pfad: Host not running — ignorieren, außer du testest absichtlich #264
+1. Clip-Prep: Kurzclip 20–60 s (~1280 breit) · FunGen als `stem.funscript` · Everyday als `stem__hub.funscript` neben dem Clip (auch Unterordner)  
+2. Tab **Bench** → Video = Kurzclip → **Suggest beside video** → Ref + Kandidat gefüllt  
+3. **Score vs reference** → gut / prüfen / nicht gut → optional **Save label for KI**  
+4. Details: [`benchmark-system.md`](benchmark-system.md)
+
+### 3.8 Plugins
+
+- Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) · scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
+- Nur Pack-Infra — kein separates Chat-/Enable-Produkt in der GUI
 
 ---
 
 ## 4. Owner-Test-Checkliste
 
-Zielbuild: **portable v0.5.35** jetzt; **v0.5.36**, sobald Patch/Review-Boxen im Release sind. Frischer Ordner, kein alter Sticky-State.
+Zielbuild: **portable [`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40)**. Frischer Ordner, kein alter Sticky-State.
 
 ### A. Startup / Packaging
 
 | # | Test | Erwartung |
 |---|------|-----------|
-| A1 | Version in About/Log | `0.5.35` (bzw. `0.5.36`) |
+| A1 | Version in About/Log | `0.5.40` |
 | A2 | ffmpeg neben exe | Startup ohne Tool-Fehler |
-| A3 | Settings / UI | **kein** Virtual-Person Enable/Give/Titjob-Produkt |
+| A3 | Settings / UI | Plugins Install/Open sichtbar; keine Enable/Give/Overlay-Produktfläche |
 | A4 | Plugins | Install pack / Open folder sichtbar |
 
 ### B. Everyday CSRT (#339)
@@ -239,8 +245,15 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 | # | Test | Erwartung |
 |---|------|-----------|
 | G1 | Rhythm-robust + Use contact points | Create läuft; Anchors greifen nur bei Distanz |
-| G2 | `--contact-verify 1.5` | Punkte werden gefiltert; Kurve nicht schlechter als Baseline auf bekannten Clips |
+| G2 | GUI **Verify with the engine** an (oder CLI `--contact-verify 1.5`) | Punkte werden gefiltert; Kurve nicht schlechter als Baseline auf bekannten Clips |
 | G3 | Ohne Points / aus | Bit-identisch Everyday |
+
+### G2b. Bench Suggest beside (#360)
+
+| # | Test | Erwartung |
+|---|------|-----------|
+| Bch1 | Kurzclip als Video → **Suggest beside video** | Ref `stem.funscript` + Kandidat `stem__hub.funscript` (Unterordner ok) |
+| Bch2 | Score vs reference → Save label | GUT/PRÜFEN/NICHT GUT · JSONL geschrieben |
 
 ### H. Accept / Reject + Review-Boxen (#328 / #342)
 
@@ -265,7 +278,6 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 
 | Thema | Status |
 |-------|--------|
-| Virtual Person Produkt-UI | Geparkt (#264 / #341 scrub) |
 | Rhythm-Grid Everyday-Default | Owner + Claude-Messung ≥4–5 Clips zuerst |
 | SceneMap P5-Audit [#290](https://github.com/funfunpayer/SamNPlayer/issues/290) | Backlog, kein Rel35-Blocker |
 | AIWrite ONNX-Writer | Scaffold — Imitation-Keep reicht |
@@ -284,7 +296,7 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 | [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) / [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) | P5c YOLO (Multi-Box) | Export nur reviewed |
 | [#339](https://github.com/funfunpayer/SamNPlayer/pull/339) | Go CSRT force | Everyday ohne MIL |
 | [#337](https://github.com/funfunpayer/SamNPlayer/pull/337) | Impulse argparse | Peak-emphasis Create |
-| [#341](https://github.com/funfunpayer/SamNPlayer/pull/341) | VP scrub | Kein VP-Produkt |
+| [#341](https://github.com/funfunpayer/SamNPlayer/pull/341) | Produkt-UI scrub | Plugins nur Pack-Host |
 | [#342](https://github.com/funfunpayer/SamNPlayer/pull/342) | Review-Box-Overlays | Boxen im AI-Train-Review |
 | [#340](https://github.com/funfunpayer/SamNPlayer/pull/340) | Rel35 tag | `v0.5.35` Release |
 
@@ -292,4 +304,4 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 
 ## 7. One-liner zum Merken
 
-**Go-CSRT schreibt. Teachers zeigen. Scene2 schlägt Tip/Partner vor. Contact-verify prüft. Accept öffnet YOLO. Plugins hosten ohne VP. Du testest Portable → Everyday → Scene2 Apply → Teachers → Review-Boxen.**
+**Go-CSRT schreibt. Teachers zeigen. Scene2 schlägt Tip/Partner vor. Contact-verify prüft. Accept öffnet YOLO. Plugins = Pack-Host. Du testest Portable → Everyday → Scene2 Apply → Teachers → Review-Boxen · Bench Suggest.**
