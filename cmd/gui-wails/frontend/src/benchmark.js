@@ -80,6 +80,11 @@ export function initBenchmark(root) {
       in hybrid mode. Score a candidate script against a FunGen reference, or
       run the golden-clip manifest through the real Everyday pipeline.
     </p>
+    <p class="hint" style="margin-top:0;">
+      Optional prep (owner): cut short downscaled clips with
+      <code>scripts/benchmark-prep/</code> (default ~720p / 1280-wide, keep aspect)
+      before Compare or a golden manifest — see that folder’s README.
+    </p>
 
     <h3>Compare scripts</h3>
     <p class="hint" style="margin-top:0;">

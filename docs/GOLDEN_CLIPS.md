@@ -17,6 +17,11 @@ layout + KI label schema:
 `generator/testdata/benchmark/`. Everyday Go CSRT remains the basis;
 KI assists in hybrid, it does not replace Everyday.
 
+**Clip prep (owner):** cut + Lanczos-downscale short segments with
+`scripts/benchmark-prep/` (default max width **1280** ≈ 720p; alt **960**).
+Marks JSON + ffmpeg examples in that folder’s README — not wired into
+Everyday Create.
+
 ## What one clip must include
 
 1. Source video (same cut FunGen used), note codec and resolution.

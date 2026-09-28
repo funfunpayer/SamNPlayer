@@ -7,6 +7,10 @@ emit labels AI training can consume later.
 Videos stay local (see `docs/GOLDEN_CLIPS.md`). Committed funscripts under
 `golden_clips/` are enough for the **compare-only** path.
 
+**Prep short clips:** `scripts/benchmark-prep/` cuts + downscales from
+in/out marks (default 1280-wide ≈ 720p for Everyday CSRT; optional 960-wide).
+Not part of Everyday Create — owner/benchmark path only.
+
 ## Layout
 
 | Path | Role |
