@@ -1,27 +1,37 @@
-# OFS / Funscript — was wir für SamNPlayer nutzen
+# Learning from OpenFunscripter (OFS) — in Go
 
-Kurzer Stand der OFS- und Funscript-Recherche (kein Release-Versprechen).
-Details und Quellen: [FUNSCRIPT_RESEARCH.md](./FUNSCRIPT_RESEARCH.md), [HEATMAP.md](./HEATMAP.md).
+OpenFunscripter is a desktop **script editor**. SamNPlayer stays
+**generate → inspect → play**, but we **port the best OFS ideas into Go**.
 
-## Bereits im Player
+Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscripter/OFS).
 
-| Thema | Status |
-|-------|--------|
-| Multi-Achsen (`.vibration` / `.suction` / `.samn`) | Produkt — Play + Create |
-| Bookmarks / Chapters (metadata) | Play — laden/speichern |
-| Heatmap (PNG + Canvas) | Play — Export + Live-Leiste |
-| Projekt-Sidecar `.snp.json` | Play — speichern/laden |
-| Range-Edit (Cap / Scale / Delete) | Play — **axis-aware** (aktive Curve: general/vibration/suction); Scale mit Faktor-Slider ×0.5–×1.5 + optional Soft edges |
-| Frame-Snap | Play — optional am Scrubber |
+## Shipped
 
-## Noch nicht (bewusst später)
+| Idea | Where |
+|---|---|
+| Intensity `500 × \|Δpos\| / \|Δt\|` | `funscript/device_compat.go` |
+| Curve edit | Wiedergabe + `app_editor.go` |
+| Heatmap / auto chapters / bookmarks UI | Player + `motionx` |
+| Max-speed highlights on curve | `funscript.SpeedHighlights` |
+| Chapters/bookmarks in `.funscript` metadata | `funscript/bookmarks.go` |
+| Heatmap PNG export (+ chapter ticks) | `funscript.ExportHeatmapPNG` / `ExportScriptHeatmapPNG` |
+| Project sidecar `.snp.json` | `funscript/project.go` / Save + **Load** in Play (`SavePlaybackProject` / `LoadPlaybackProject` / `PickPlaybackProject`) |
+| Frame snap (`SnapMs`) | `SnapTimeMs` + FPS-Snap in Wiedergabe |
+| Range delete / speed-cap / scale | Play OFS row: Delete / Speed-cap / **Scale** (adjustable ×0.5–×1.5, optional soft edges) on the **active Curve axis** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
 
-- Volles OFS-`project.json` (Legacy) — unser Sidecar reicht für Emotion
-- T-Code / Handy-Device-Protokoll — getrennt von Funscript-Format
-- Community-"ScriptPlayer"-Features 1:1 — nur übernehmen, was UX hilft
+## Still optional later
 
-## Nächste sinnvolle Scheiben (Board)
+- BPM / tempo grid overlay in the UI
+- WebSocket bridge to external players
+- Richer bookmark editor UI (CRUD list)
 
-1. ~~Cap-Speed / Scale auf Vib+Suction-Achsen (nicht nur stroke)~~ → **DONE** (Play axis Cap/Scale/Delete)
-2. Chapter-Leiste klickbar → Seek (teilweise vorhanden)
-3. Heatmap-Farben an OFS-Referenz angleichen (Doku in HEATMAP.md)
+## Not copying
+
+- Full ImGui OFS shell / multi-axis 3D studio  
+- Lua extension host as a core dependency  
+- OFS source tree or binaries  
+
+## Workflow reminder
+
+AI/ONNX proposes ROIs only. Classical tracking writes the funscript.
+OFS-inspired tools improve **inspect / repair** after generation.

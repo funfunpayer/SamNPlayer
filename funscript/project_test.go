@@ -120,6 +120,27 @@ func TestCapSpeedRange(t *testing.T) {
 	}
 }
 
+func TestScaleRangePosFadeSoftEdges(t *testing.T) {
+	actions := []Action{
+		{At: 0, Pos: 90},
+		{At: 50, Pos: 90},
+		{At: 100, Pos: 90},
+		{At: 200, Pos: 10},
+	}
+	hard := ScaleRangePos(actions, 0, 100, 0.5)
+	soft := ScaleRangePosFade(actions, 0, 100, 0.5, true)
+	// Midpoint (50) matches hard scale; edges stay at original (factor ramps to 1).
+	if soft[1].Pos != hard[1].Pos {
+		t.Fatalf("mid soft=%d hard=%d", soft[1].Pos, hard[1].Pos)
+	}
+	if soft[0].Pos != 90 {
+		t.Fatalf("edge soft=%d want 90 (no scale at edge)", soft[0].Pos)
+	}
+	if soft[0].Pos <= hard[0].Pos {
+		t.Fatalf("edge soft=%d should be closer to original than hard=%d", soft[0].Pos, hard[0].Pos)
+	}
+}
+
 func TestCapSpeedRangeCapsAllInRangeSegments(t *testing.T) {
 	// Three 10ms / 100pos jumps → intensity 5000 each. Cap whole [0,30].
 	actions := []Action{
