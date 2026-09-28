@@ -126,6 +126,13 @@ measurement history behind each entry; this file is the short version for
   **Battery** (was Akku leftover). Copy only; no Connect/Play behaviour
   change.
 
+### Fixed
+
+- **`--contact-vibration-curve impulse` argparse** — GUI/Go already passed
+  `impulse` (Advanced peak-emphasis / #279), and `tf_tj_meta` / Play mapper
+  already understood it, but `generate_funscript.py` still listed only
+  `linear|soft|peak` and rejected generation with exit 2 (#335).
+
 ## [0.5.34] — September 27, 2026
 
 ### Added
