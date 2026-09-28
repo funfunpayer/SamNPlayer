@@ -139,7 +139,8 @@ jobs:
                    bootstrap_yolo_dataset_test.py audio_check_test.py \
                    golden_clip_benchmark_test.py pose_observer_test.py \
                    vlm_probe_test.py vlm_score_test.py \
-                   contact_points_test.py contact_detector_test.py; do
+                   contact_points_test.py contact_detector_test.py \
+                   ai_setup_test.py; do
             echo "== $t"
             python3 "$t"
           done

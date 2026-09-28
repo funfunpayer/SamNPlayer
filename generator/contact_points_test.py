@@ -121,5 +121,43 @@ class BuildTest(unittest.TestCase):
             self.assertEqual(cp.main(["--video", self._video(d)]), 2)
 
 
+class TeacherRunTest(unittest.TestCase):
+    def test_parse_teacher(self):
+        self.assertEqual(cp.parse_teacher("ollama:qwen2.5vl:7b"), ("ollama", "qwen2.5vl:7b"))
+        with self.assertRaises(ValueError):
+            cp.parse_teacher("qwen")
+
+    def test_runs_each_backend_caches_and_skips_failures(self):
+        import vlm_probe_test as vpt
+        good = vpt.fake_model("norm1000")
+        calls = []
+
+        def post(payload):
+            calls.append(payload["model"])
+            if payload["model"] == "broken":
+                raise RuntimeError("server gone")
+            return good(payload)
+        with tempfile.TemporaryDirectory() as d:
+            video = os.path.join(d, "clip.avi")
+            vw = cv2.VideoWriter(video, cv2.VideoWriter_fourcc(*"MJPG"), 10, (320, 180))
+            for _ in range(60):
+                vw.write(np.full((180, 320, 3), 80, np.uint8))
+            vw.release()
+            specs = ["ollama:qwen2.5vl:7b", "colibri:glm-5.3-flash", "lmstudio:broken"]
+            paths = cp.run_vlm_teachers(video, specs, every_s=2.0, post_fn=post, log=lambda *_: None)
+            self.assertEqual([os.path.basename(p) for p in paths],
+                             ["clip.ollama_qwen2.5vl_7b.vlm.json", "clip.colibri_glm-5.3-flash.vlm.json"])
+            with open(paths[1]) as f:
+                self.assertEqual(json.load(f)["backend"], "colibri")
+            n = len(calls)
+            again = cp.run_vlm_teachers(video, specs[:2], post_fn=post, log=lambda *_: None)
+            self.assertEqual(again, paths)
+            self.assertEqual(len(calls), n)  # cached: no new requests
+            res = cp.build(video, vlm_files=paths, log=lambda *_: None)
+        self.assertEqual(res["teachers"], ["vlm:qwen2.5vl:7b", "vlm:glm-5.3-flash"])
+        # Both fake teachers see the same contact box: every point has a partner.
+        self.assertTrue(all(p["agree"] == 2 for p in res["points"]))
+
+
 if __name__ == "__main__":
     unittest.main()

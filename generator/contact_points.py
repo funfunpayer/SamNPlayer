@@ -18,6 +18,9 @@ Teachers (use any combination - the Owner's "ask several per video"):
   generator's OpenCV with `pip install nudenet --no-deps onnxruntime`.
 - VLM probe results (`--vlm clip.vlm.json`, repeatable): the contact box
   centre of each keyframe, e.g. Qwen2.5-VL and Qwen3-VL runs of vlm_probe.py.
+- Or let this script ask the VLMs directly (`--teacher backend:model`,
+  repeatable): ollama, lmstudio, colibri (very large MoE models incl.
+  vision, streamed from disk) or vllm; results are cached per video.
 - Our own detector (`--onnx contact_detector.onnx`, repeatable): the RF-DETR
   model contact_detector.py trains from confirmed marks; runs every
   --step-s seconds like NudeNet (needs onnxruntime).
@@ -218,6 +221,54 @@ def count_agreement(points, agree_cells=1.5, agree_ms=1500):
     return points
 
 
+def parse_teacher(spec):
+    """"backend:model" -> (backend, model); the model id may contain ':'."""
+    backend, sep, model = spec.partition(":")
+    if not sep or not model:
+        raise ValueError(f"teacher {spec!r}: want backend:model, e.g. ollama:qwen2.5vl:7b")
+    return backend, model
+
+
+def teacher_cache_path(video, backend, model):
+    safe = "".join(c if c.isalnum() or c in "-._" else "_" for c in model)
+    return f"{os.path.splitext(video)[0]}.{backend}_{safe}.vlm.json"
+
+
+def run_vlm_teachers(video, specs, every_s=5.0, exemplar_json=None, follow=False,
+                     refresh=False, post_fn=None, log=print):
+    """Runs vlm_probe for each "backend:model" teacher (Ollama, LM Studio,
+    Colibri, vLLM) and returns the result paths. Results are cached next to
+    the video; a teacher that fails is logged and skipped, so one missing
+    server does not cost the others' work."""
+    import vlm_probe
+    exemplars = vlm_probe.load_exemplars(exemplar_json, (), 1) if exemplar_json else []
+    paths = []
+    for spec in specs:
+        backend, model = parse_teacher(spec)
+        base_url, timeout = vlm_probe.backend_settings(backend)
+        out = teacher_cache_path(video, backend, model)
+        if os.path.exists(out) and not refresh:
+            log(f"{spec}: cached {out}")
+            paths.append(out)
+            continue
+        if post_fn is None and not vlm_probe.colibri_client.available(base_url):
+            log(f"{spec}: no server at {base_url} - skipped")
+            continue
+        try:
+            res = vlm_probe.probe_video(video, model, base_url, every_s, True, "auto", timeout,
+                                        None, 0, post_fn=post_fn, log=log,
+                                        exemplars=exemplars, follow=follow)
+        except Exception as e:  # noqa: BLE001 - one teacher failing is not fatal
+            log(f"{spec}: failed - {e}")
+            continue
+        res["backend"] = backend
+        with open(out, "w", encoding="utf-8") as f:
+            json.dump(res, f, indent=1)
+        log(f"{spec}: {res['summary']}")
+        paths.append(out)
+    return paths
+
+
 def build(video, use_nudenet=False, vlm_files=(), step_s=0.5, agree_cells=1.5,
           agree_ms=1500, detect=None, log=print, onnx_models=()):
     points, teachers = [], []
@@ -256,6 +307,14 @@ def main(argv=None):
     ap.add_argument("--nudenet", action="store_true", help="use the NudeNet teacher")
     ap.add_argument("--vlm", action="append", default=[],
                     help="vlm_probe.py result (.vlm.json), repeatable")
+    ap.add_argument("--teacher", action="append", default=[],
+                    help="ask a local VLM directly: backend:model, e.g. ollama:qwen2.5vl:7b, "
+                         "colibri:glm-5.3-flash, lmstudio:<id> (repeatable; results cached)")
+    ap.add_argument("--teacher-every-s", type=float, default=5.0)
+    ap.add_argument("--teacher-exemplar", help="labels JSON: show the model the marked "
+                                               "first keyframe (vlm_probe exemplar mode)")
+    ap.add_argument("--teacher-follow", action="store_true")
+    ap.add_argument("--refresh", action="store_true", help="re-run cached --teacher results")
     ap.add_argument("--onnx", action="append", default=[],
                     help="our own detector (contact_detector.py train), repeatable")
     ap.add_argument("--onnx-class", default="contact")
@@ -270,7 +329,10 @@ def main(argv=None):
             m = OnnxContactModel(path, args.onnx_class)
             m.path = path
             models.append(m)
-        res = build(args.video, args.nudenet, args.vlm, args.step_s,
+        vlm_files = list(args.vlm) + run_vlm_teachers(
+            args.video, args.teacher, args.teacher_every_s, args.teacher_exemplar,
+            args.teacher_follow, args.refresh)
+        res = build(args.video, args.nudenet, vlm_files, args.step_s,
                     args.agree_cells, args.agree_ms, onnx_models=models)
     except (RuntimeError, ValueError) as e:
         print(str(e), file=sys.stderr)
