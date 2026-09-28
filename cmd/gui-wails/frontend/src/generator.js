@@ -2710,8 +2710,14 @@ export function initGenerator(root, playback) {
         });
         if (polished && polished.path) path = polished.path;
         const msg = (polished && polished.message) || 'Gaps checked';
-        if (polished && polished.pointsAdded > 0) {
-          el('#gen-status').textContent += ` (+${polished.pointsAdded} fill)`;
+        const healed = polished && polished.windowsHealed > 0;
+        const filled = polished && (polished.pointsAdded > 0 || polished.gapsFilled > 0);
+        if (filled || healed) {
+          const bits = [];
+          if (healed) bits.push(`healed ${polished.windowsHealed}`);
+          if (polished.pointsAdded > 0) bits.push(`+${polished.pointsAdded} pts`);
+          else if (polished.gapsFilled > 0) bits.push(`filled ${polished.gapsFilled}`);
+          el('#gen-status').textContent += ` (${bits.join(' · ')})`;
         } else {
           el('#gen-status').textContent += ' (gaps ok)';
         }

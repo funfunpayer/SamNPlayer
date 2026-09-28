@@ -279,6 +279,51 @@ func TestImproveScriptHealTrackingGaps(t *testing.T) {
 	}
 }
 
+// TestImproveScriptHealPlusFillKeepsHealPointsCount is the Owner-visible
+// "Repair / Fill does nothing" regression: Review defaults both checkboxes on.
+// When Fill finds no time holes after Heal bridges a tracking_gaps window,
+// PointsAdded must still count the heal bridges (was overwritten to 0).
+func TestImproveScriptHealPlusFillKeepsHealPointsCount(t *testing.T) {
+	in := []Action{
+		{At: 0, Pos: 0},
+		{At: 100, Pos: 10},
+		{At: 800, Pos: 95},
+		{At: 1200, Pos: 94},
+		{At: 2000, Pos: 90},
+		{At: 2100, Pos: 100},
+	}
+	healOnly, err := ImproveScript(in, ImproveOpts{
+		HealTrackingGaps: true,
+		TrackingGaps:     []TrackingGap{{StartMs: 400, EndMs: 1600}},
+		StepMs:           200,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	both, err := ImproveScript(in, ImproveOpts{
+		HealTrackingGaps: true,
+		TrackingGaps:     []TrackingGap{{StartMs: 400, EndMs: 1600}},
+		FillGaps:         true, // auto — no long holes remain after heal
+		StepMs:           200,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if both.WindowsHealed < 1 {
+		t.Fatalf("expected heal: %+v", both)
+	}
+	if both.GapsFilled != 0 {
+		t.Fatalf("expected no fill holes, got gaps=%d: %+v", both.GapsFilled, both)
+	}
+	if both.PointsAdded < 1 || both.PointsAdded < healOnly.PointsAdded {
+		t.Fatalf("Fill overwrote heal PointsAdded: healOnly=%d both=%d res=%+v",
+			healOnly.PointsAdded, both.PointsAdded, both)
+	}
+	if both.AfterCount != healOnly.AfterCount {
+		t.Fatalf("actions diverged: heal=%d both=%d", healOnly.AfterCount, both.AfterCount)
+	}
+}
+
 func TestStampTrackingGapsClears(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/clip.funscript"

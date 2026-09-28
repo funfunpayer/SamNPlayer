@@ -112,7 +112,8 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	out.FillStepMs = improved.FillStepMs
 	out.WindowsHealed = improved.WindowsHealed
 
-	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0
+	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0 ||
+		improved.GapsFilled > 0 || improved.AfterCount != improved.BeforeCount
 	if changed {
 		if err := saveImprovedActions(path, improved.Actions, improved.ClearTrackingGaps); err != nil {
 			return out, err
@@ -154,7 +155,13 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		parts = append(parts, fmt.Sprintf("healed %d tracking gap(s)", improved.WindowsHealed))
 	}
 	if improved.GapsFilled > 0 {
-		parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d points)", improved.GapsFilled, improved.PointsAdded))
+		fillPts := improved.PointsAdded
+		if improved.WindowsHealed > 0 && fillPts > 0 {
+			// PointsAdded includes heal bridges; say "points" not "fill-only".
+			parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d points total)", improved.GapsFilled, fillPts))
+		} else {
+			parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d points)", improved.GapsFilled, fillPts))
+		}
 	} else if improved.WindowsHealed > 0 && improved.PointsAdded > 0 {
 		parts = append(parts, fmt.Sprintf("+%d bridge points", improved.PointsAdded))
 	}
