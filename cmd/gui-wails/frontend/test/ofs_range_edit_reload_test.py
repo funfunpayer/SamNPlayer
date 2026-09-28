@@ -31,6 +31,12 @@ def main():
               "reloadAfterRangeEdit()" in block)
         check("Cap-Handler nicht nur drawCurve",
               "await drawCurve()" not in block)
+        check("Cap-Handler uses adjustable intensity (not hard-coded 400)",
+              "capIntensityValue()" in block and "EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI)" in block)
+        check("Cap intensity slider present in markup",
+              "id=\"pb-cap-intensity\"" in src)
+        check("Cap default 400 in slider",
+              re.search(r'id="pb-cap-intensity"[^>]*value="400"', src) is not None)
 
     del_m = re.search(
         r"el\('#pb-del-range'\)[\s\S]*?addEventListener\('click'[\s\S]*?\}\);",

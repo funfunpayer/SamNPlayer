@@ -189,6 +189,12 @@ export function initPlayback(root) {
           <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
           <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
           <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
+          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+            data-help="Max community intensity (500×|Δpos|/|Δt|) for Speed-cap on the heatmap selection. Lower = more stretch / calmer. Play edit only — does not change Create Expert max-speed.">
+            Cap
+            <input type="range" id="pb-cap-intensity" min="150" max="800" step="25" value="400" style="width:7em;" />
+            <span id="pb-cap-intensity-val">400</span>
+          </label>
           <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
           <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
             data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
@@ -2709,15 +2715,28 @@ export function initPlayback(root) {
   el('#pb-scale-factor')?.addEventListener('input', updateScaleFactorLabel);
   updateScaleFactorLabel();
 
+  function capIntensityValue() {
+    const v = parseFloat(el('#pb-cap-intensity')?.value);
+    if (!Number.isFinite(v) || v <= 0) return 400;
+    return Math.max(50, Math.min(2000, v));
+  }
+  function updateCapIntensityLabel() {
+    const lab = el('#pb-cap-intensity-val');
+    if (lab) lab.textContent = `${Math.round(capIntensityValue())}`;
+  }
+  el('#pb-cap-intensity')?.addEventListener('input', updateCapIntensityLabel);
+  updateCapIntensityLabel();
+
   el('#pb-cap-speed')?.addEventListener('click', async () => {
     if (!marker) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
     const axis = activeEditAxis();
+    const maxI = capIntensityValue();
     try {
-      await EditCapSpeedRange(axis, marker.startMs, marker.endMs, 400);
-      ofsStatus(`Speed cap applied (${axis})`);
+      await EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI);
+      ofsStatus(`Speed cap @ ${Math.round(maxI)} (${axis})`);
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
       await reloadAfterRangeEdit();
     } catch (err) {
