@@ -10,6 +10,21 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Map Accept/Reject for teacher contact candidates** — Create → Advanced scene
+  map lists pending `author:auto` region marks; **Accept** sets `reviewed:true`
+  on the companion `.samn`, **Reject** deletes the mark. **Import candidates…**
+  loads a `.contact.json` via `import-contact-candidates`. AtMs round-trips
+  through persist/load. Everyday CSRT unchanged; unreviewed autos stay out of
+  P5c YOLO.
+
+- **Settings Check AI setup + Install** — probes GPU/packages/train venv/local
+  servers (`CheckAISetup`) and runs Install teachers / train / models
+  (`InstallAISetup`, streamed). Training venv keeps CSRT OpenCV intact.
+
+- **Create → Advanced Generate contact points** — with Rhythm-robust on, teacher
+  checkboxes (NudeNet / Ollama / LM Studio) run `GenerateContactPoints` and fill
+  the Use contact points path. Opt-in; no Everyday default change.
+
 - **More teachers, one command, setup check** — `vlm_probe.py --backend
   ollama|lmstudio|colibri|vllm` presets (Colibri: large MoE vision models
   streamed from disk); `contact_points.py --teacher backend:model` asks several

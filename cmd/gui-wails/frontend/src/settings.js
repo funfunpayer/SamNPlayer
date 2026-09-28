@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob, InstallVirtualPersonPack, OpenPluginsFolder, PluginsDir } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob, InstallVirtualPersonPack, OpenPluginsFolder, PluginsDir } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -196,6 +196,23 @@ export function initSettings(root) {
         data-help="GET /v1/models on the URL above (or the default). Does not change Everyday Create.">Test AI server</button>
     </div>
     <p class="hint" id="st-ai-server-status" style="margin-top:0"></p>
+
+    <h3>Local AI setup (teachers / train / models)</h3>
+    <p class="hint">Checks GPU, packages, the training venv, and local model servers
+      (Ollama / LM Studio / Colibri), then shows next steps. Install profiles never
+      touch Everyday CSRT OpenCV — training uses a separate venv; NudeNet installs
+      with <code>--no-deps</code>. See <code>docs/LOCAL_MODEL_SETUP.md</code>.</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px;">
+      <button id="st-ai-setup-check" type="button"
+        data-help="Runs ai_setup.py check — changes nothing.">Check AI setup</button>
+      <button id="st-ai-setup-teachers" type="button" class="secondary"
+        data-help="Install onnxruntime(+gpu) and NudeNet for teachers.">Install teachers</button>
+      <button id="st-ai-setup-train" type="button" class="secondary"
+        data-help="Create/update the separate train venv (PyTorch + rfdetr).">Install train</button>
+      <button id="st-ai-setup-models" type="button" class="secondary"
+        data-help="Pull vision models that fit this GPU (Ollama).">Install models</button>
+    </div>
+    <pre id="st-ai-setup-out" class="hint" style="white-space:pre-wrap; margin-top:6px; max-height:14em; overflow:auto;"></pre>
 
     <h3>Hardware</h3>
     <p class="hint">Which acceleration the generator can actually use. Having an
@@ -566,6 +583,73 @@ export function initSettings(root) {
     } catch (err) {
       if (status) status.textContent = 'Check failed: ' + err;
     }
+  });
+
+  function formatAISetupReport(r) {
+    if (!r) return '(empty report)';
+    const lines = [];
+    const gpus = r.gpus || r.GPUs || [];
+    if (gpus.length) {
+      for (const g of gpus) {
+        lines.push(`GPU: ${g.name || g.Name || '?'} (${g.vram_gb ?? g.VRAMGB ?? '?'} GB)`);
+      }
+    } else {
+      lines.push('GPU: none reported');
+    }
+    const pkgs = r.packages || r.Packages || {};
+    const pkgBits = Object.keys(pkgs).map((k) => `${k}=${pkgs[k] ? 'yes' : 'no'}`);
+    if (pkgBits.length) lines.push('Packages: ' + pkgBits.join(', '));
+    const servers = r.servers || r.Servers || {};
+    for (const [name, s] of Object.entries(servers)) {
+      const up = s.up ?? s.Up;
+      const url = s.url || s.URL || '';
+      const models = s.models || s.Models || [];
+      lines.push(`Server ${name}: ${up ? 'up' : 'down'} ${url}${models.length ? ' [' + models.slice(0, 4).join(', ') + ']' : ''}`);
+    }
+    const steps = r.next_steps || r.NextSteps || [];
+    if (steps.length) {
+      lines.push('Next:');
+      for (const s of steps) lines.push('  • ' + s);
+    }
+    return lines.join('\n');
+  }
+
+  el('#st-ai-setup-check')?.addEventListener('click', async () => {
+    const out = el('#st-ai-setup-out');
+    if (out) out.textContent = 'Checking…';
+    try {
+      const report = await CheckAISetup();
+      if (out) out.textContent = formatAISetupReport(report);
+    } catch (err) {
+      if (out) out.textContent = 'Check failed: ' + err;
+      uiError('Check AI setup: ' + err);
+    }
+  });
+
+  function runAISetupInstall(profile) {
+    const out = el('#st-ai-setup-out');
+    if (out) out.textContent = `Installing ${profile}…\n`;
+    InstallAISetup(profile).catch((err) => {
+      if (out) out.textContent += 'Start failed: ' + err + '\n';
+      uiError('Install AI setup: ' + err, out);
+    });
+  }
+  el('#st-ai-setup-teachers')?.addEventListener('click', () => runAISetupInstall('teachers'));
+  el('#st-ai-setup-train')?.addEventListener('click', () => runAISetupInstall('train'));
+  el('#st-ai-setup-models')?.addEventListener('click', () => runAISetupInstall('models'));
+  EventsOn('aisetup:progress', (line) => {
+    const out = el('#st-ai-setup-out');
+    if (out && line) out.textContent += String(line) + '\n';
+  });
+  EventsOn('aisetup:done', (payload) => {
+    const out = el('#st-ai-setup-out');
+    if (payload?.error) {
+      if (out) out.textContent += 'Failed: ' + payload.error + '\n';
+      uiError('AI setup install: ' + payload.error, out);
+      return;
+    }
+    if (out) out.textContent += `Done (${payload?.profile || 'ok'}).\n`;
+    uiInfo('AI setup install finished.', out);
   });
 
   el('#st-collect-learning')?.addEventListener('change', e =>

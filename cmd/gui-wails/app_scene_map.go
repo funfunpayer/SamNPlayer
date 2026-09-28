@@ -75,6 +75,20 @@ func (a *App) SuggestExcludePriors(width, height int) (generator.ExcludePriorRes
 	return generator.SuggestExcludePriors(width, height, learnDir)
 }
 
+// ReviewAutoContactCandidate confirms (reviewed:true) or rejects (deletes)
+// one author:auto contact candidate in the companion .samn beside videoPath.
+// Map-view Accept / Reject for teacher-contact marks (V3). No Generate change.
+func (a *App) ReviewAutoContactCandidate(videoPath, markID string, accept bool) error {
+	return generator.ReviewAutoContactCandidate(videoPath, markID, accept)
+}
+
+// ImportContactCandidatesForVideo writes teacher-consensus contact boxes from
+// a contact_points JSON into the companion .samn as author:auto reviewed:false
+// marks. Requires an existing scene map (Create with rhythm grid first).
+func (a *App) ImportContactCandidatesForVideo(videoPath, contactPath string) (int, error) {
+	return generator.ImportContactCandidatesForVideo(videoPath, contactPath)
+}
+
 func resolveSamnForLearning(path string) (string, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {

@@ -1,9 +1,9 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
   labelFor, normalizeClass, orderedCanonical,
 } from './bodyparts.js';
-import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 import { openHandbook } from './handbook.js';
@@ -224,12 +224,26 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
             data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
-            data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build the JSON via CLI (generator/contact_points.py); NudeNet optional. Never a default.">Use contact points (teachers JSON)</label></div>
+            data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build via Generate below or CLI. Never a default.">Use contact points (teachers JSON)</label></div>
           <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
             <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
               data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
             <button type="button" class="secondary" id="gen-contact-points-pick" disabled
-              data-help="Choose an existing contact_points.py JSON. Does not run teachers from the GUI.">Choose…</button>
+              data-help="Choose an existing contact_points.py JSON.">Choose…</button>
+          </div>
+          <div id="gen-contact-points-gen" style="display:none; margin:6px 0 8px 0; padding:8px; border:1px solid rgba(255,255,255,0.08);">
+            <p class="hint" style="margin:0 0 6px 0;">Generate teachers JSON for this video (writes <code>.contact.json</code>). Opt-in — does not change Everyday Create.</p>
+            <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
+              data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
+              data-help="Ask Ollama Qwen2.5-VL if the server is up. Skipped when unreachable.">Ollama Qwen2.5-VL</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-cp-lmstudio" /><label for="gen-cp-lmstudio"
+              data-help="Ask LM Studio vision model if the local server is up.">LM Studio vision</label></div>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+              <button type="button" class="secondary" id="gen-contact-points-run"
+                data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
+              <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
+            </div>
           </div>
           <div class="opt-group">AI draft (experimental)</div>
           <p class="hint" id="gen-ai-script-hint" style="margin:0 0 6px 0;">
@@ -281,6 +295,15 @@ export function initGenerator(root, playback) {
               <button type="button" class="secondary" id="gen-scene-map-suggest"
                 data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
               <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+            </div>
+            <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
+              <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept sets <code>reviewed:true</code> for P5c; Reject deletes. Import from a <code>.contact.json</code> after Create with rhythm grid.</p>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="secondary" id="gen-import-contact-candidates"
+                  data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
+                <span class="hint" id="gen-auto-candidates-status" style="margin:0;"></span>
+              </div>
+              <div id="gen-auto-candidates-list" style="margin-top:6px;"></div>
             </div>
           </div>
 
@@ -917,15 +940,48 @@ export function initGenerator(root, playback) {
       return;
     }
     lab.textContent = sceneMapMarks.map((m) => {
-      const span = (m.fromMs || 0) === 0 && (m.toMs || 0) === 0
+      let span = (m.fromMs || 0) === 0 && (m.toMs || 0) === 0
         ? 'whole clip'
         : `${((m.fromMs || 0) / 1000).toFixed(0)}–${((m.toMs || 0) / 1000).toFixed(0)}s`;
+      if (m.atMs != null && Number.isFinite(m.atMs)) {
+        span = `@${(m.atMs / 1000).toFixed(1)}s`;
+      }
       const who = m.kind === 'region' && m.class ? `:${m.class}` : '';
       const kind = m.kind === 'exclude' ? 'ignore' : m.kind;
       const follow = m.follow ? '→follow' : (m.kind === 'exclude' || m.kind === 'source' ? '·fixed' : '');
-      const src = m.author === 'suggest' ? '·suggest' : '';
+      let src = '';
+      if (m.author === 'suggest') src = '·suggest';
+      else if (m.author === 'auto') src = m.reviewed === true ? '·auto✓' : '·auto?';
       return `${kind}${who}@${span}${follow}${src}`;
     }).join(' · ');
+    renderAutoCandidatesList();
+  }
+
+  function pendingAutoCandidates() {
+    return sceneMapMarks.filter((m) =>
+      m.author === 'auto' && m.kind === 'region' && m.reviewed !== true);
+  }
+
+  function renderAutoCandidatesList() {
+    const list = el('#gen-auto-candidates-list');
+    if (!list) return;
+    const pending = pendingAutoCandidates();
+    if (!pending.length) {
+      list.innerHTML = '<p class="hint" style="margin:0;">No pending auto candidates.</p>';
+      return;
+    }
+    list.innerHTML = pending.map((m) => {
+      const t = m.atMs != null ? `${(m.atMs / 1000).toFixed(1)}s` : '—';
+      const id = String(m.id || '').replace(/"/g, '');
+      return `<div class="row" data-auto-id="${id}" style="align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0;">
+        <span class="hint" style="margin:0;min-width:8em;">${m.class || 'contact'} @ ${t}</span>
+        <button type="button" class="secondary gen-auto-seek" data-id="${id}">Seek</button>
+        <button type="button" class="primary gen-auto-accept" data-id="${id}"
+          data-help="Confirm for P5c YOLO export (reviewed:true).">Accept</button>
+        <button type="button" class="secondary gen-auto-reject" data-id="${id}"
+          data-help="Delete this teacher candidate from the companion .samn.">Reject</button>
+      </div>`;
+    }).join('');
   }
 
   // Rough IoU so L1 suggest does not stack duplicate Ignore boxes.
@@ -992,6 +1048,8 @@ export function initGenerator(root, playback) {
           follow,
           path,
         };
+        const atRaw = m.atMs ?? m.AtMs;
+        if (atRaw != null && Number.isFinite(Number(atRaw))) out.atMs = Number(atRaw);
         // M5 / P5c: keep reviewed+confidence through companion restore so a
         // later Generate→.samn write does not drop auto-reviewed flags.
         const conf = m.confidence ?? m.Confidence;
@@ -1086,14 +1144,24 @@ export function initGenerator(root, playback) {
     if (!sceneMapMarks.length || !nativeW || !nativeH || !canvas.width) return;
     const atMs = Math.round((seekSec || 0) * 1000);
     for (const m of sceneMapMarks) {
-      if (!sceneMarkActiveAt(m, atMs)) continue;
+      // Point-in-time auto candidates: show when scrub is within ±1.5 s.
+      if (m.atMs != null && Number.isFinite(m.atMs)) {
+        if (Math.abs(atMs - m.atMs) > 1500) continue;
+      } else if (!sceneMarkActiveAt(m, atMs)) {
+        continue;
+      }
       const rect = sceneMarkRectAt(m, atMs);
       if (!rect || !(rect.w > 0) || !(rect.h > 0)) continue;
+      const pendingAuto = m.author === 'auto' && m.reviewed !== true;
+      const confirmedAuto = m.author === 'auto' && m.reviewed === true;
       const stroke = m.kind === 'exclude' ? '#111111'
-        : m.kind === 'source' ? '#3dccc0' : '#f2b03d';
+        : m.kind === 'source' ? '#3dccc0'
+          : pendingAuto ? '#c084fc'
+            : confirmedAuto ? '#86efac'
+              : '#f2b03d';
       const fill = m.kind === 'exclude' ? 'rgba(0,0,0,0.35)'
         : (stroke.length === 7 ? stroke + '33' : 'rgba(0,0,0,0.2)');
-      drawNativeRect(rect, stroke, fill, m.kind === 'exclude');
+      drawNativeRect(rect, stroke, fill, m.kind === 'exclude' || pendingAuto);
     }
   }
 
@@ -1995,6 +2063,7 @@ export function initGenerator(root, playback) {
           author: m.author || 'user',
           follow: !!m.follow,
         };
+        if (m.atMs != null && Number.isFinite(m.atMs)) out.atMs = m.atMs;
         if (typeof m.confidence === 'number' && m.confidence > 0) {
           out.confidence = m.confidence;
         }
@@ -3018,6 +3087,7 @@ export function initGenerator(root, playback) {
     const row = el('#gen-contact-points-row');
     const path = el('#gen-contact-points-path');
     const pick = el('#gen-contact-points-pick');
+    const genBox = el('#gen-contact-points-gen');
     if (!usePts) return;
     usePts.disabled = !rhythmOn;
     if (!rhythmOn) {
@@ -3027,6 +3097,8 @@ export function initGenerator(root, playback) {
     if (row) row.style.display = show ? 'flex' : 'none';
     if (path) path.disabled = !show;
     if (pick) pick.disabled = !show;
+    // Teacher generate is available whenever Rhythm-robust is on (path optional until Use is checked).
+    if (genBox) genBox.style.display = rhythmOn ? 'block' : 'none';
   }
   el('#gen-rhythm-grid')?.addEventListener('change', syncContactPointsUi);
   el('#gen-contact-points')?.addEventListener('change', syncContactPointsUi);
@@ -3040,7 +3112,111 @@ export function initGenerator(root, playback) {
       uiError('Choose contact points: ' + err, el('#gen-status'));
     }
   });
+  el('#gen-contact-points-run')?.addEventListener('click', async () => {
+    const status = el('#gen-contact-points-gen-status');
+    if (!videoPath) {
+      if (status) status.textContent = 'Load a video first.';
+      return;
+    }
+    const nudenet = !!el('#gen-cp-nudenet')?.checked;
+    const teachers = [];
+    if (el('#gen-cp-ollama')?.checked) teachers.push('ollama:qwen2.5vl:7b');
+    if (el('#gen-cp-lmstudio')?.checked) teachers.push('lmstudio:local-vision');
+    if (!nudenet && !teachers.length) {
+      if (status) status.textContent = 'Check at least one teacher.';
+      return;
+    }
+    if (status) status.textContent = 'Generating…';
+    try {
+      await GenerateContactPointsForVideo(videoPath, { nudenet, teachers, onnx: [], stepS: 0, out: '' });
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Generate contact points: ' + err, el('#gen-status'));
+    }
+  });
+  EventsOn('contactpoints:progress', (line) => {
+    const status = el('#gen-contact-points-gen-status');
+    if (status && line) status.textContent = String(line).slice(0, 120);
+  });
+  EventsOn('contactpoints:done', async (payload) => {
+    const status = el('#gen-contact-points-gen-status');
+    if (payload?.error) {
+      if (status) status.textContent = 'Failed: ' + payload.error;
+      uiError('Generate contact points: ' + payload.error, el('#gen-status'));
+      return;
+    }
+    const path = payload?.path || '';
+    if (path && el('#gen-contact-points-path')) {
+      el('#gen-contact-points-path').value = path;
+      const use = el('#gen-contact-points');
+      if (use && !use.disabled) use.checked = true;
+      syncContactPointsUi();
+    }
+    if (status) status.textContent = path ? `Wrote ${path}` : 'Done.';
+    uiInfo(path ? `Contact points → ${path}` : 'Contact points done.', el('#gen-status'));
+  });
+
+  el('#gen-import-contact-candidates')?.addEventListener('click', async () => {
+    const status = el('#gen-auto-candidates-status');
+    if (!videoPath) {
+      if (status) status.textContent = 'Load a video first.';
+      return;
+    }
+    try {
+      const contactPath = await PickContactPointsFile();
+      if (!contactPath) return;
+      if (status) status.textContent = 'Importing…';
+      const n = await ImportContactCandidatesForVideo(videoPath, contactPath);
+      await restoreSceneMapFromCompanion(videoPath);
+      if (status) status.textContent = `Imported ${n} candidate${n === 1 ? '' : 's'}.`;
+      uiInfo(`Imported ${n} teacher contact candidate${n === 1 ? '' : 's'}.`, el('#gen-status'));
+      redraw();
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError('Import candidates: ' + err, el('#gen-status'));
+    }
+  });
+
+  el('#gen-auto-candidates-list')?.addEventListener('click', async (ev) => {
+    const btn = ev.target?.closest?.('button[data-id]');
+    if (!btn || !videoPath) return;
+    const id = btn.getAttribute('data-id') || '';
+    if (!id) return;
+    const status = el('#gen-auto-candidates-status');
+    if (btn.classList.contains('gen-auto-seek')) {
+      const m = sceneMapMarks.find((x) => x.id === id);
+      if (m?.atMs != null && Number.isFinite(m.atMs)) {
+        seekTo(m.atMs / 1000);
+      }
+      return;
+    }
+    const accept = btn.classList.contains('gen-auto-accept');
+    const reject = btn.classList.contains('gen-auto-reject');
+    if (!accept && !reject) return;
+    if (status) status.textContent = accept ? 'Accepting…' : 'Rejecting…';
+    try {
+      await ReviewAutoContactCandidate(videoPath, id, accept);
+      if (accept) {
+        const m = sceneMapMarks.find((x) => x.id === id);
+        if (m) m.reviewed = true;
+      } else {
+        sceneMapMarks = sceneMapMarks.filter((x) => x.id !== id);
+      }
+      updateSceneMapMarksLabel();
+      redraw();
+      if (status) {
+        status.textContent = accept
+          ? `Accepted ${id} (reviewed:true).`
+          : `Rejected ${id}.`;
+      }
+    } catch (err) {
+      if (status) status.textContent = '';
+      uiError((accept ? 'Accept' : 'Reject') + ': ' + err, el('#gen-status'));
+    }
+  });
+
   syncContactPointsUi();
+  renderAutoCandidatesList();
 
   updateContactVibrationOpts();
   syncWorkflowSteps();

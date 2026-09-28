@@ -29,6 +29,11 @@ export function CancelGenerate() { return window['go']['main']['App']['CancelGen
 export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
 export function CheckAIServerAvailable() { return window['go']['main']['App']['CheckAIServerAvailable'](); }
+export function CheckAISetup() { return window['go']['main']['App']['CheckAISetup'](); }
+export function InstallAISetup(arg1) { return window['go']['main']['App']['InstallAISetup'](arg1); }
+export function GenerateContactPointsForVideo(arg1, arg2) { return window['go']['main']['App']['GenerateContactPointsForVideo'](arg1, arg2); }
+export function ReviewAutoContactCandidate(arg1, arg2, arg3) { return window['go']['main']['App']['ReviewAutoContactCandidate'](arg1, arg2, arg3); }
+export function ImportContactCandidatesForVideo(arg1, arg2) { return window['go']['main']['App']['ImportContactCandidatesForVideo'](arg1, arg2); }
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
 export function CheckRoiTrainingStatus() { return window['go']['main']['App']['CheckRoiTrainingStatus'](); }

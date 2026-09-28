@@ -79,6 +79,10 @@ func sceneMarksToPersist(marks []SceneMark) []funscript.SceneMapMark {
 			Confidence: m.Confidence,
 			Follow:     m.Follow,
 		}
+		if m.AtMs != nil {
+			at := *m.AtMs
+			pm.AtMs = &at
+		}
 		if m.Reviewed != nil {
 			v := *m.Reviewed
 			pm.Reviewed = &v
