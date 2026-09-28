@@ -102,6 +102,33 @@ func TestReviewedYOLOEligibilityGate(t *testing.T) {
 	}
 }
 
+func TestReviewedYOLOGroupsMarksByTimestamp(t *testing.T) {
+	at := int64(1234)
+	reviewed := true
+	marks := []funscript.SceneMapMark{
+		{ID: "user-a", Kind: "region", Class: "glans", Rect: []int{10, 20, 30, 40}, Author: "user", AtMs: &at},
+		{ID: "auto-b", Kind: "region", Class: "contact", Rect: []int{50, 60, 20, 20}, Author: "auto", Reviewed: &reviewed, AtMs: &at},
+	}
+	got := reviewedYOLOMarks(marks)
+	if len(got) != 2 {
+		t.Fatalf("eligible marks = %d, want 2", len(got))
+	}
+
+	// The exporter groups by the representative timestamp before extracting
+	// frames. Keep this regression assertion independent of ffmpeg.
+	counts := map[int64]int{}
+	for _, m := range got {
+		var ts int64
+		if m.AtMs != nil {
+			ts = *m.AtMs
+		}
+		counts[ts]++
+	}
+	if len(counts) != 1 || counts[at] != 2 {
+		t.Fatalf("timestamp groups = %#v, want one frame with two labels", counts)
+	}
+}
+
 func TestDeleteSceneMapLearningDataPreservesSibling(t *testing.T) {
 	root := t.TempDir()
 	learn := filepath.Join(root, SceneMapLearningSubdir, "clip_x")
