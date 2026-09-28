@@ -10,14 +10,16 @@ const SECTIONS = [
 4. Click Create / Generate.
 5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check
    (Speech-Hold / Feel segment strip + optional chapters).
-6. Open Play — soft curve + dots. Edit if needed. Connect device when ready.
+6. Open Play — soft curve + dots; if the script has audio_check segments,
+   the same Speech-Hold / Feel strip appears (seek · filters · optional chapters).
+   Edit if needed. Connect device when ready.
 
 Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge only).
 Default stroke writer is classical CSRT — AI never silently invents the curve.`,
   },
   {
     title: 'Speech-Hold & Feel segments',
-    body: `After Audio check (ffmpeg), Review can show holding / gentle / intense / climax blocks from classical audio energy — same path as the tempo check.
+    body: `After Audio check (ffmpeg), Review can show holding / gentle / intense / climax blocks from classical audio energy — same path as the tempo check. Play shows the same strip when the loaded script already has metadata.audio_check (including companion .funscript for .samn).
 
 • Click a block to seek Play
 • Filters hide labels; “Speech-hold only” keeps dialogue/quiet Hold cues

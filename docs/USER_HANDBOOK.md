@@ -33,7 +33,9 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 4. Click **Create** / Generate.  
 5. **Review & improve:** trim · **Fill gaps** · **Heal tracking gaps** · audio check
    (Speech-Hold / Feel segment strip · optional chapters — never rewrites stroke).
-6. Open **Play** — soft curve + dots. Edit if needed. Connect device when ready.
+6. Open **Play** — soft curve + dots; if the script has `audio_check` segments,
+   the same Speech-Hold / Feel strip appears (seek · filters · optional chapters).
+   Edit if needed. Connect device when ready.
 
 Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge only).
 

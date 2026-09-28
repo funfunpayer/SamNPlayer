@@ -10,6 +10,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: Speech-Hold / Feel segment strip** — when a loaded script has
+  `metadata.audio_check` segments (or a companion `.funscript` for `.samn`),
+  Play shows the same holding / gentle / intense / climax strip as Create
+  Review: filters, click-to-seek, optional “Add visible as chapters” (merge,
+  no stroke rewrite). Everyday Go CSRT defaults unchanged.
+
 - **Create Review: Speech-Hold / Feel segment strip** — after Audio check,
   Review shows holding / gentle / intense / climax blocks with filters,
   click-to-seek Play, and optional “Add visible as chapters” (merge, no stroke
