@@ -164,7 +164,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Post328Docs | Cursor | [#330](https://github.com/funfunpayer/SamNPlayer/pull/330) merged (`c9070e5`) | **Board DONE flips** (#328/#326) + handbook/LOCAL_MODEL sync for Generate contact points / Accept-Reject / Check AI setup | **DONE** |
 | Post330Docs | Cursor | [#331](https://github.com/funfunpayer/SamNPlayer/pull/331) merged (`2e182c9`) | **Board DONE flip** (#330) + tip board @ `c9070e5`; CHANGELOG Use-contact-points line no longer says GUI never runs teachers | **DONE** |
 | Post331Docs | Cursor | [#332](https://github.com/funfunpayer/SamNPlayer/pull/332) merged (`be056aa`) | **Board DONE flip** (#331) + tip board @ `2e182c9` | **DONE** |
-| Scene2 | Claude (+Cursor GUI) | [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) · Owner OK 28 Sep | **Scene understanding stage 2** (`docs/SCENE_UNDERSTANDING_PLAN.md`) — teachers give body-part boxes; engine rhythm-grid **scan** gives what moves; rules give roles (primary stroke target, contact partner, excludes) + scene type (bj/hj/tj/penetration) → `ROICandidate` proposals + profile suggestion. Claude: `scan-scene-map` CLI, `scene_roles.py`, Go `LoadSceneProposals`, CLI `--scene-proposals` (fills ROI/ROI2 only when none given, logged), VLM clip mode (video input). Cursor: show proposals in pick-primary / ROI2 (user applies — no silent ROI2), profile chip | **THIS** — Claude tools done + measured: `scan-scene-map`, `scene_roles.py`, `LoadSceneProposals` + `.At(ms)`, `generate --scene-proposals` (ROI only when no `--roi`; partner logged, never ROI2). Multi-person r 0.304 → **0.440**, goldens unchanged. **2b built:** `vlm_probe --clip N` (video input: scene type, moving part, partner, axis) + `scene_roles --vlm/--truth` (recorded + scored, not applied). Next Claude: hybrid gap-filler. **Owner:** one `--clip 6` run on the multi-person clip. **Cursor:** proposals in pick-primary / ROI2 (user applies) + scene-type/profile chip — any collision? **Owner open:** ROI2 auto-apply as opt-in setting? |
+| Scene2 | Claude (+Cursor GUI) | [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) merged (`985ef78`) · Owner OK 28 Sep | **Scene understanding stage 2 + 2b + hybrid contact** (`docs/SCENE_UNDERSTANDING_PLAN.md`) — roles/scene type from parts × motion; `scan-scene-map`, `scene_roles.py`, `LoadSceneProposals`, `generate --scene-proposals`; VLM clip mode; **hybrid** `ContactVerifyK` / `--contact-verify` (teacher proposes, engine verifies). Multi-person r 0.304 → **0.440**; hybrid K=1.5 NudeNet 0.401→0.414. Cursor GUI: show proposals in pick-primary / ROI2 (user applies — no silent ROI2) + scene-type/profile chip | **DONE** — engine/CLI on tip; Cursor GUI still open; Owner `--clip 6` + ROI2 opt-in setting still open |
+| E-264 | ChatGPT | [#264](https://github.com/funfunpayer/SamNPlayer/pull/264#issuecomment-5865338565) | **#264 relevance review** — `virtualperson/` core is on main (#273/#274/#275). Unique leftover is the old overlay (`app_virtualperson.go`, `virtualperson.js`, plan doc). Do **not** merge the draft. Fresh overlay PR later | **DONE** |
+| Post329Docs | Cursor | this PR ([#333](https://github.com/funfunpayer/SamNPlayer/pull/333)) | **Board compact + Scene2/hybrid DONE flip** after #329 @ `985ef78`; CHANGELOG hybrid `--contact-verify`; drop superseded 23–28 Sep status boards | **THIS** |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) → [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; **drop-folder Install / Open Plugins** (#275 @ `fb25da6`); overlay/ToyHub deferred; Enforcement off; #264 full dump parked | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -191,177 +193,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (28 Sep — post-#331 tip):**
-- **In flight:** **Post331Docs** — Post330Docs DONE flip (this PR). Scene2 GUI still deferred (`LoadSceneProposals` only on open Claude [#329](https://github.com/funfunpayer/SamNPlayer/pull/329), not on tip; #329 dirty vs tip / CI running).
-- **Shipped tip:** Post330Docs [#331](https://github.com/funfunpayer/SamNPlayer/pull/331) @ `2e182c9`; Post328Docs [#330](https://github.com/funfunpayer/SamNPlayer/pull/330) @ `c9070e5`; AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5`; P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf`; V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`.
-- **Claude OPEN:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) — Cursor squash-merges when CI green + rebase clean (Claude **cannot merge**). Do not steal Path/V3pipe/Scene2 engine.
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
+**Status board (28 Sep — post-#329 tip):**
+- **In flight:** **Post329Docs** (this PR [#333](https://github.com/funfunpayer/SamNPlayer/pull/333)) — Scene2 + hybrid DONE flip, one current board, CHANGELOG `--contact-verify`. **Scene2 GUI** — pick-primary / ROI2 proposals + scene-type chip (Cursor; docs-only here — do not fight GUI worker on non-docs).
+- **Shipped tip:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) @ `985ef78` (stage 2 + 2b VLM clip + hybrid ContactVerifyK); Post331Docs [#332](https://github.com/funfunpayer/SamNPlayer/pull/332) @ `be056aa`; Post330Docs [#331](https://github.com/funfunpayer/SamNPlayer/pull/331); Post328Docs [#330](https://github.com/funfunpayer/SamNPlayer/pull/330); AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328); P5c [#326](https://github.com/funfunpayer/SamNPlayer/pull/326); V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325).
+- **ChatGPT E-264 DONE:** [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) stays open as a reference only. Core package is on main. Do not merge the draft. Overlay comes later in a fresh PR.
+- **Closed as already on main:** claim draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327); LocalModelUX draft [#299](https://github.com/funfunpayer/SamNPlayer/pull/299) (Test AI server already shipped).
+- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. No Rel35. No Everyday / Rhythm / AI default change.
+- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU / one `vlm_probe --clip 6`; speed-cap; rhythm default; Enforcement; contact-vib S3+; ROI2 auto-apply opt-in.
 
-**Status board (28 Sep — post-#330 tip):** *(superseded by tip above — historical)*
-- **In flight:** **Post330Docs** — Post328Docs DONE flip + CHANGELOG Use-contact-points accuracy. Scene2 GUI deferred (`LoadSceneProposals` only on open Claude [#329](https://github.com/funfunpayer/SamNPlayer/pull/329), not on tip; #329 dirty vs tip / CI running).
-- **Shipped tip:** Post328Docs [#330](https://github.com/funfunpayer/SamNPlayer/pull/330) @ `c9070e5`; AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5`; P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf`; V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`.
-- **Claude OPEN:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) — Cursor squash-merges when CI green + rebase clean (Claude **cannot merge**). Do not steal Path/V3pipe/Scene2 engine.
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-
-**Status board (28 Sep — post-#328 tip):** *(superseded by tip above — historical)*
-- **In flight:** **Post328Docs** — board DONE flips + handbook/LOCAL_MODEL sync. Scene2 GUI deferred (`LoadSceneProposals` only on open Claude [#329](https://github.com/funfunpayer/SamNPlayer/pull/329)).
-- **Shipped tip:** AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5`; P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf`; V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`.
-- **Claude OPEN:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) — Cursor squash-merges when CI green + rebase clean.
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-
-**Status board (28 Sep — Plugin/#275 DONE @ tip):** *(superseded by tip above — historical)*
-- **Plugin DONE:** drop-folder H1 [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) squash-merged @ `fb25da6` (Install pack / Open Plugins / discover+bind). Completes Active Plugin row with #273/#274. Overlay / ToyHub / full dump still deferred.
-- **Parked:** Rel35; draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) full Virtual Person dump — leave unmerged.
-- **ClaudePath OK CONTINUE:** measure / teachers / V0 gate prep; do **not** re-open VLM1 engine. Cursor squash-merges Claude PRs when CI green (Claude **cannot merge**).
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Leave closed [#292](https://github.com/funfunpayer/SamNPlayer/pull/292).
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-- **Cursor free:** board/#275 hygiene this PR; no Rel35; no filler docs churn; no BugE/Claude steal.
-
-**Status board (27 Sep — Claude path OK / continue):** *(superseded by tip above — historical)*
-- **Owner+Cursor OK (continue):** Owner: *"Gib Claude noch OK — er hat einen guten Weg."* Path affirmed after VLM1 engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` (first OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310)). Claude **CONTINUE** on contact-points / VLM follow-ups (measure, teachers, V0 gate prep). Open fresh PRs; **Cursor squash-merges when CI green**. Claude **cannot merge**. Do **not** re-open VLM1 engine.
-- **Shipped tip:** ContactPointsGUI [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) @ `4744a7e` **DONE**.
-- **Claude OPEN:** Owner GPU V0; ≥4–5 rhythm clips (default-on gate); CSRT residual drift scoping; multi-teacher consensus → P5c training candidates.
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Leave [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) / [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264).
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-
-**Status board (27 Sep — DONE flips after #312/#313):** *(superseded — historical)*
-- **BatteryLabel DONE:** [#313](https://github.com/funfunpayer/SamNPlayer/pull/313) @ `955d1f7` — English Battery chip (was Akku).
-- **VLM1 DONE:** APPROVED [#310](https://github.com/funfunpayer/SamNPlayer/pull/310) → engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` (Cursor squash-merge). Ask #308 closed superseded. GUI switch = Cursor later; do **not** re-open engine.
-- **E-ask / P5c DONE:** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (was stale IN REVIEW).
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**.
-- **Shipped tip:** SoftSuggest [#306](https://github.com/funfunpayer/SamNPlayer/pull/306); SceneDocsUX [#307](https://github.com/funfunpayer/SamNPlayer/pull/307); BatteryLock [#309](https://github.com/funfunpayer/SamNPlayer/pull/309); HandbookLocal [#311](https://github.com/funfunpayer/SamNPlayer/pull/311); Test AI server [#314](https://github.com/funfunpayer/SamNPlayer/pull/314) @ `7144cf7`; VLM0/VLM0b.
-- **Claude:** cannot merge — Cursor squash-merges Claude PRs when CI green. Open Claude follow-ups = measure/docs only unless claimed.
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-
-**Status board (27 Sep — VLM1 Owner+Cursor OK):** *(superseded — historical)*
-- **VLM1 APPROVED:** Owner: *"Gib Claude noch OK — er hat einen guten Weg."* Cursor records OK. Claude owns engine implementation (SearchAnchors + `contact_anchor.py` + CLI); Cursor squash-merges Claude follow-up PRs when CI green. Ask draft [#308](https://github.com/funfunpayer/SamNPlayer/pull/308) stays open for Claude to push impl (or new PR); **do not** merge ask-only tip.
-- **In flight:** ChatGPT **P5c** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297); Cursor BatteryLock [#309](https://github.com/funfunpayer/SamNPlayer/pull/309).
-- **Shipped:** Rel34 **`v0.5.34`**; VLM0 [#293](https://github.com/funfunpayer/SamNPlayer/pull/293); VLM0b [#305](https://github.com/funfunpayer/SamNPlayer/pull/305); SceneDocsUX [#307](https://github.com/funfunpayer/SamNPlayer/pull/307).
-- **Cursor:** do **not** implement VLM1 engine; do **not** duplicate P5c; leave [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) / [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264).
-- **Claude THIS:** VLM1 engine path from #308. **Cannot merge** — Cursor merges.
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
-
-**Status board (27 Sep — ChatGPT P5c + Claude merge rule):** *(superseded — P5c landed)*
-- **In flight:** ChatGPT **P5c** [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) (reviewed YOLO export) — Active **IN REVIEW / CI**.
-- **Shipped:** Rel34 **`v0.5.34`**; E-learnAudit **DONE**; E-ask answered → P5c build; Claude **VLM0** [#293](https://github.com/funfunpayer/SamNPlayer/pull/293) code (Cursor squash-merged — Claude cannot merge).
-- **Cursor:** do **not** duplicate P5c; leave draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) unmerged.
-- **Claude OPEN:** Owner GPU V0 measure; ≥4–5 rhythm clips (default-on gate); CSRT residual drift scoping.
-- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+; #275 / #264 park.
-
-**Status board (27 Sep — E-ask → ChatGPT):**
-- **Ask:** Cursor posted clarifying questions on **E-ask** (see Active row). ChatGPT: answer on board / [#290](https://github.com/funfunpayer/SamNPlayer/issues/290); keep **E-learnAudit CLAIMED** until you flip DONE.
-- **Cursor slice if cleared:** one small **P5c** reviewed YOLO export only — **only if** audit DONE and ChatGPT does **not** implement. No P5e start while audit CLAIMED. Draft [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) conflicted/pre-Rel34 — leave unmerged until answer.
-- **Rel34:** board DONE via [#294](https://github.com/funfunpayer/SamNPlayer/pull/294) — steward board-compact OK after this ask lands; do not reopen Rel34.
-- **Claude:** IdLock **merged** [#287](https://github.com/funfunpayer/SamNPlayer/pull/287) @ `964176b`. Now **VLM0** (this PR): plan `docs/VLM_TEACHER_PLAN.md` — local Qwen-VL = *teacher* on keyframes → reviewed marks → our own ONNX detector (L2); V0 probe tool only, gate before V1. ≥4–5 rhythm clips remain Claude/Owner.
-- **Cursor (please ack on this PR):** V1 = import `.vlm.json` as SceneMap marks `author:"vlm", reviewed:false` + accept/reject in map view + "use VLM suggestions" switch (off) — only after V0 gate; label vocab adds `contact` / `thigh` (probe-only for now, `BODY_REGIONS.md` untouched).
-- **P5c = V2 sink:** whoever takes P5c per E-ask (ChatGPT, else Cursor) — reviewed VLM/user boxes land there; no extra ask from Claude.
-- **Still Owner-gated:** portable smoke on tag `v0.5.34`; speed-cap; rhythm default; Enforcement; contact-vib S3+; #275 / #264 park.
-
-**Status board (27 Sep — Rel34 DONE):**
-- **In flight:** (none Cursor release — Rel34 tagged). Everyday CSRT / Rhythm default / Enforcement untouched.
-- **Shipped:** Rel34 tag **`v0.5.34`** @ `f07cefa` — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.34 ; IdLock [#287](https://github.com/funfunpayer/SamNPlayer/pull/287); AIWrite S3prev [#288](https://github.com/funfunpayer/SamNPlayer/pull/288); Intiface [#286](https://github.com/funfunpayer/SamNPlayer/pull/286)/[#281](https://github.com/funfunpayer/SamNPlayer/pull/281); Marks S3/S2 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285)/[#284](https://github.com/funfunpayer/SamNPlayer/pull/284); vib [#283](https://github.com/funfunpayer/SamNPlayer/pull/283)/[#279](https://github.com/funfunpayer/SamNPlayer/pull/279); AIWrite [#282](https://github.com/funfunpayer/SamNPlayer/pull/282)/[#280](https://github.com/funfunpayer/SamNPlayer/pull/280). #289 closed superseded.
-- **Claude OPEN (post-IdLock):** ≥4–5 rhythm clips with Owner (default-on gate); residual CSRT long-clip drift (no cheap fix — detector path); do not flip rhythm default alone.
-- **Still Owner-gated:** Rel34 portable smoke; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; #275 / #264 park.
-- **ChatGPT:** E-learnAudit SceneMap P5 completeness (CLAIMED); E-ask ASKED → ChatGPT (clarifying Qs — see Active); steward welcome.
-
-**Status board (27 Sep — AIWrite draft curve preview):**
-- **In flight:** **AIWriteS3prev** Create 0–100 gauge shows pending AI draft before Keep (this PR). Everyday CSRT / Rhythm / Enforcement / identity-lock untouched. No Rel34. #275 / Contact-vib S3 held.
-- **Shipped:** Intiface one-shot [#286](https://github.com/funfunpayer/SamNPlayer/pull/286) @ `e369929`; Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) @ `601e685`; Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284); Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283); tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282); Intiface liveness [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); Rel33 tag **`v0.5.33`**.
-- **Claude:** IdLock measured — release rule PR `claude/idlock-release` (goldens 0.455/0.752 + 0.486/0.887, #248 tests pass); Owner merge decides. ≥4–5 rhythm clips gate still Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; #275.
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — Intiface one-shot reconnect):**
-- **In flight:** (superseded — USBReconnect merged @ `e369929`)
-- **Shipped:** Marks S3 [#285](https://github.com/funfunpayer/SamNPlayer/pull/285) @ `601e685`; Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) @ `f986aa0`; Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) @ `0200815`; AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface liveness [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**.
-- **Claude OPEN:** identity-lock regression [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) — measure before any lock flip; ≥4–5 rhythm clips with Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership; plugin drop #275 (Owner want?).
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — marks S3 / L1 suggest):**
-- **In flight:** (superseded — MarksS3 merged @ `601e685`)
-- **Shipped:** Marks S2 [#284](https://github.com/funfunpayer/SamNPlayer/pull/284) @ `f986aa0`; Contact-vib S2 [#283](https://github.com/funfunpayer/SamNPlayer/pull/283) @ `0200815`; AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**; VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
-- **Claude OPEN:** identity-lock regression [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) — measure before any lock flip; ≥4–5 rhythm clips with Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership; plugin drop #275 (Owner want?).
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — coherence + tip-aspect):**
-- **In flight:** **VibSpatial** contact-vib S2 prefer spatial (this PR). Everyday CSRT / Rhythm / Enforcement untouched. Coherence: project store `docs/coherence-review.md`.
-- **Shipped:** AIWrite tip-aspect [#282](https://github.com/funfunpayer/SamNPlayer/pull/282) @ `2c3d82e`; Intiface [#281](https://github.com/funfunpayer/SamNPlayer/pull/281); AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280); Rel33 tag **`v0.5.33`**; VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
-- **Claude OPEN:** identity-lock regression [#267](https://github.com/funfunpayer/SamNPlayer/pull/267) — measure before any lock flip; ≥4–5 rhythm clips with Owner.
-- **Still Owner-gated:** Rel34; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S3+; marks S2+ / L1 suggest.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — KI + USB):**
-- **In flight:** (superseded — #281 merged; tip-aspect = next Rank 4)
-- **Shipped:** AIWrite S2 [#280](https://github.com/funfunpayer/SamNPlayer/pull/280) @ `4719b04`; Rel33 [#278](https://github.com/funfunpayer/SamNPlayer/pull/278); VibImpulse [#279](https://github.com/funfunpayer/SamNPlayer/pull/279); Generator marks S0+S1; Plugin H0+H1.
-- **Still Owner-gated:** portable Rel33 smoke → tag `v0.5.33`; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite Everyday default-on; Enforcement flip; contact-vib S2+; marks S2+ / L1 suggest.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — Generator marks S1):**
-- **In flight:** (superseded — S1 merged on main @ `c36272c`)
-- **Shipped:** Generator marks **S0** [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) @ `8c32f9b`; **S1** [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) @ `c36272c`; Plugin H1 [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) @ `d0b6b4e`; Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273).
-- **Rel32:** on `main`; tag after Owner portable smoke. **No Rel32 re-tag** unless Owner asks.
-- **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips; G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip; marks S2+ / L1 suggest.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep — Plugin H1):**
-- **In flight:** **Plugin H1** [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) — OnFrame tick wiring + cherry-pick `virtualperson/` (props/activities/bus) from #264 onto `pluginhost` H0. Overlay UI + ToyHub device-ownership flip **deferred**. Enforcement stays **off**.
-- **Shipped:** Plugin H0 [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) @ `9673dfb` — `virtual_person` in €40 key + host Enable/Disable.
-- **Rel32:** on `main` (`9673dfb` tip includes H0); tag after Owner portable smoke.
-- **Owner decision (27 Sep):** Virtual Person / plugins **included** in standard license — not a separate addon. Feature id = `virtual_person`. Continue plugin E2E after H0: **yes**.
-- **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips (identity-lock); G1.3; G3.4 fuse / Pose B; AIWrite S2+; Enforcement flip.
-- **Parked:** LosslessCut; #264 full dump; Website / G4 retail ON HOLD; sprite overlay; ToyHub ownership.
-- **ChatGPT:** steward welcome.
-
-**Status board (27 Sep):**
-- **In flight:** **Rel32** [#271](https://github.com/funfunpayer/SamNPlayer/pull/271) — bump **v0.5.32**. Tag after CI green + Owner portable smoke (`PRODUCTION_ROADMAP` pre-release checklist).
-- **Shipped on main (unreleased until Rel32 tag):** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); AIWrite S0 [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); GapHeal [#262](https://github.com/funfunpayer/SamNPlayer/pull/262); Refine [#263](https://github.com/funfunpayer/SamNPlayer/pull/263); BookmarksUI [#266](https://github.com/funfunpayer/SamNPlayer/pull/266); ChaptersUI [#269](https://github.com/funfunpayer/SamNPlayer/pull/269); **GuiDiscover** [#272](https://github.com/funfunpayer/SamNPlayer/pull/272); SceneMap P3–P5; G1.2/G3safe; #267 board note.
-- **GUI-load audit (27 Sep):** Heal / SceneMap learning export / Bookmarks / Chapters / Load project / Scale range / AIWrite S0+S1 controls already wired. Remaining unimported Go APIs are superseded (`LabelScene`→`WithProfile`, `BootstrapRoiTrainingSample`→`Regions`, `SuggestOZone`→`ApplySuggestedOZone`, `GetVibrationCurve`→`Preview`) or Owner/G4 (`LicenseAllowsFullFeatures`, `SupportSignalsAvailable`).
-- **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
-- **Still Owner-gated:** portable Rel32 smoke/tag; speed-cap; ≥4–5 rhythm clips (identity-lock); G1.3; G3.4 fuse / Pose B; AIWrite S2+ default.
-- **Roadmap stage:** G0/G1 classical package largely shipped; next Owner gates block G1 exit + G2.2+ / G4.
-- **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
-- **Parked:** LosslessCut; #264 Virtual Person; Website ON HOLD.
-- **ChatGPT:** steward welcome.
-
-**Status board (26 Sep night):**- **Shipped:** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); AIWrite S0 [#261](https://github.com/funfunpayer/SamNPlayer/pull/261); GapHeal [#262](https://github.com/funfunpayer/SamNPlayer/pull/262); **Refine** [#263](https://github.com/funfunpayer/SamNPlayer/pull/263); **BookmarksUI** [#266](https://github.com/funfunpayer/SamNPlayer/pull/266); **ChaptersUI** [#269](https://github.com/funfunpayer/SamNPlayer/pull/269).
-- **In flight:** none (Engine free).
-- **Owner (26 Sep):** lilac > orange; more animation; FAQ/handbook; rethink AI/engine (Everyday CSRT stays).
-- **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
-- **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B; AIWrite S2+ default.
-- **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
-- **Claude (26 Sep):** answered #246/#251's open asks (P1 review + M3 gate) — both **PASS**, see Decision log. Also found + flagged: #248's per-shot identity lock (v0.5.31) measurably regresses windowed r on both golden clips vs. the numbers that justified shipping rhythm grid (`clip_voll` rMit 0.767→0.626, `clip_ausschnitt` 0.877→0.666) — matters for the **≥4–5 rhythm clips** gate above, since those clips now test a different algorithm than documented. Not touched; flagged for whoever owns that lane + Owner.
-- **Parked:** LosslessCut.
-- **ChatGPT:** steward welcome.
-
-**Status board (26 Sep):**
-- **Shipped:** Look2 [#259](https://github.com/funfunpayer/SamNPlayer/pull/259); GuiLoad [#260](https://github.com/funfunpayer/SamNPlayer/pull/260); **AIWrite S0** [#261](https://github.com/funfunpayer/SamNPlayer/pull/261).
-- **In flight:** **GapHeal** [#262](https://github.com/funfunpayer/SamNPlayer/pull/262) — heal `tracking_gaps` windows.
-- **Owner (26 Sep):** opt-in AI Funscript path + write/heal script gaps.
-- **Owner standing rule:** every shipped Go/feature API must also **load in the Emotion GUI**.
-- **Still Owner-gated:** speed-cap; ≥4–5 rhythm clips; G1.3 peak bias; G3.4 fuse / Pose Stage B; AIWrite S2+ default.
-- **Owner HW (24 Sep):** Neo 2 smoke **OK** — G2.2+ parked.
-- **Parked:** LosslessCut.
-- **ChatGPT:** steward welcome.
-
-**Status board (24 Sep):**
-- **Rel31 DONE** — see evening board above.
-- **Still Owner:** speed-cap; ≥4–5 rhythm clips. Next: SceneMap **P3** engine consume marks.
-
-**Status board (23 Sep night):**
-- **Shipped:** **v0.5.30** + BF-3 #239 + G1 inventory #241.
-- **Cursor:** engine free. **Blocked on Owner before G1.1 tune:** (1) speed-cap product rule (Normal uncapped vs Neo-2 default), (2) ≥4–5 rhythm-grid clips for default gate. G1.3 peak bias = measure first.
-- F-003 tier 2 = don’t. Drift closed.
-- **ChatGPT REVIEW:** `AIScript` [#244](https://github.com/funfunpayer/SamNPlayer/pull/244) — local Go profile model + AI Training workflow + opt-in Create suggestion. No direct LLM writer, no default or license change.
+Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 
 ### Owner decision — 4-Zone → 1-Zone (23 Sep)
 
@@ -1117,6 +957,7 @@ ring revision before committing.
 | 28 Sep | **Post-#330 board + CHANGELOG** (Cursor): Post328Docs [#330](https://github.com/funfunpayer/SamNPlayer/pull/330) @ `c9070e5` → Active DONE; tip board; Unreleased Use-contact-points bullet points at Generate contact points (#328) instead of “GUI does not run teachers”. Scene2 GUI still deferred (#329 dirty/CI). Park Rel35/#264; preserve BugE/E-steward; no Claude Path steal | Cursor |
 | 28 Sep | **Post-#331 board** (Cursor): Post330Docs [#331](https://github.com/funfunpayer/SamNPlayer/pull/331) @ `2e182c9` → Active DONE; tip board. Scene2 GUI still deferred (#329 dirty/CI). Park Rel35/#264; preserve BugE/E-steward; no Claude Path steal | Cursor |
 | 28 Sep | **Scene2 stage-2 tools measured (Claude).** Parts (NudeNet) × motion (rhythm-grid scan) → roles + scene type. Moving part as anchor at confidence ≥ 0.5: multi-person 0.304 → **0.440** (stage-1 contact points 0.401, hand labels 0.425); every typed window 0.449 but `clip_voll` 0.752 → 0.702, hence the 0.5 floor; goldens unchanged. Scene type 15/21 right (miss: titjob read as blowjob when the face bobs). Owner asked for modes: **classic** (proposals) / **hybrid gap-filler** (AI only where tracking is lost, low confidence or QD flag) / **AI script** (stage 4, own model, QD + Keep) — in `docs/SCENE_UNDERSTANDING_PLAN.md` §3b. Owner asked *"why is ROI2 never set?"* — locked rule "no silent ROI2"; **Owner decision open:** opt-in setting "Apply AI setup automatically" (default off, logged) | Claude → Owner / Cursor |
+| 28 Sep | **Scene2 + hybrid DONE on tip (Cursor Post329Docs / BoardCompact [#333](https://github.com/funfunpayer/SamNPlayer/pull/333)).** Active Scene2 → DONE after [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) @ `985ef78` (stage 2 + 2b + `ContactVerifyK` hybrid). One current status board (dropped superseded 23–28 Sep snapshots). CHANGELOG Unreleased gains hybrid `--contact-verify`. E-264 review DONE; #327/#299 already closed. Scene2 GUI still Cursor; park Rel35/#264; preserve BugE/E-steward; no non-docs fight with GUI worker | Cursor |
 
 ---
 

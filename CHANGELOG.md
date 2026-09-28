@@ -27,6 +27,14 @@ measurement history behind each entry; this file is the short version for
   scores both against hand-labelled scene types (multi-person clip labels in
   `generator/testdata/vlm_labels/`). Recorded only; roles unchanged.
 
+- **Hybrid contact check (opt-in)** — `generate --contact-verify K` /
+  `ContactVerifyK`: the engine keeps a teacher contact point only where its
+  own rhythm-grid score around that point is at least K× the cell it chose
+  (teacher proposes, engine verifies — §3b gap-filler). K=1.5 measured:
+  NudeNet points 0.401 → 0.414; scene-roles moving-part (all windows) 0.449
+  without the `clip_voll` drop. Goldens unchanged. `0` = off. No default
+  change.
+
 - **Map Accept/Reject for teacher contact candidates** — Create → Advanced scene
   map lists pending `author:auto` region marks; **Accept** sets `reviewed:true`
   on the companion `.samn`, **Reject** deletes the mark. **Import candidates…**
