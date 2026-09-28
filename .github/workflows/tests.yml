@@ -157,6 +157,9 @@ jobs:
             python3 "$t"
           done
 
+      - name: Benchmark clip prep
+        run: python3 scripts/benchmark-prep/cut_clip_test.py
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
