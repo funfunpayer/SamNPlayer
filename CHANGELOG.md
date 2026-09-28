@@ -8,6 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.41] — September 28, 2026
+
+### Added
+
+- **Bench: Clip-Prep In/Out cutter** — in-app short-clip export (In/Out + preset)
+  via ffmpeg from Go, same encode defaults as `scripts/benchmark-prep/`; script
+  fallback remains. Everyday Create / CSRT untouched (#365).
+
+- **Tip-Find compact peak** — Everyday `find_roi` picks a compact peak region
+  (periodicity × compactness) instead of a huge ≥0.5×peak bbox; GUI/VerifyROI
+  treat Tip-Find as an editable start box (#364).
+
 ### Fixed
 
 - **Tip/partner appearance-reacquire vs coast** — `TrackTwoPoints` /
@@ -15,24 +27,35 @@ measurement history behind each entry; this file is the short version for
   tip/partner seed as `templates[0]`, `matchesOriginal`-gated `remember()`,
   `dispGuard` on ok=true jumps, and reacquire that fails closed unless the
   candidate still resembles the tip seed (so a poisoned bank cannot hard-tip
-  onto a distractor — coast bridges instead). Everyday Go CSRT unchanged;
-  no VERSION bump. Synthetic hard-tip goldens in `multi_recover_test.go`.
+  onto a distractor — coast bridges instead). Synthetic hard-tip goldens in
+  `multi_recover_test.go` (#366).
+
 - **Create seek / frame dump** — empty or unreadable preview PNGs after fast
   ffmpeg seek retry with accurate `-ss` after `-i`; clearer empty-frame errors
-  (Owner smoke #335 B `unknown frame size … / EOF`).
+  (Owner smoke #335 B `unknown frame size … / EOF`) (#372).
+
 - **Play seek / script sync** — curve + trajectory redraw immediately on seek;
   `seeked` pushes `ReportVideoPosition` while playing so device sync does not
-  wait for the next `timeupdate`.
+  wait for the next `timeupdate` (#372).
+
 - **Play load errors** — failed `LoadFunscript` (choose / drop) shows
   “Could not load script…” instead of a silent rejection; video decode errors
-  name the media error class and clear once `canplay` succeeds.
+  name the media error class and clear once `canplay` succeeds (#372).
 
 ### Changed
 
 - **Advanced Create / Settings declutter** — shorter Advanced intro; teachers JSON
   generate + scene-map learning nested under collapsed details; Settings AI /
   learning blocks under one “Optional AI & learning” panel (IDs unchanged;
-  Everyday CSRT defaults unchanged). Look tokens preserved (lilac/teal).
+  Everyday CSRT defaults unchanged). Look tokens preserved (lilac/teal) (#372).
+
+- **Docs / tests / cleanup** — Anleitung Contact Verify + Bench Suggest polish
+  (#362); contact-verify window/edge unit tests (#363); synthetic OpenCV E2E
+  successor to #368 (#371); owner Roadmap + Meilensteine (#367); dead mosaic
+  helpers + VP cancelled language (#369). **#264 Virtual Person** cancelled /
+  out-of-scope (not in product).
+
+Everyday Go CSRT Create defaults unchanged.
 
 ## [0.5.40] — September 28, 2026
 

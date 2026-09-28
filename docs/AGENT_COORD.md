@@ -141,7 +141,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel37 | Cursor | [#346](https://github.com/funfunpayer/SamNPlayer/pull/346) + tag `v0.5.37` | patch **v0.5.37** + Release (large AI Train review editor #345; Win11 AI setup #344) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.37 |
 | Rel38 | Cursor | [#352](https://github.com/funfunpayer/SamNPlayer/pull/352) + tag `v0.5.38` | Sammel **v0.5.38** + Release (Repair #348, Update popup #351, Advanced #347, Bench #350, Patch #349) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.38 |
 | Rel39 | Cursor | [#358](https://github.com/funfunpayer/SamNPlayer/pull/358) + tag `v0.5.39` | patch **v0.5.39** + Release (GUI Anleitung #357; Improve heal label #356) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.39 |
-| Rel40 | Cursor | this PR + tag `v0.5.40` | patch **v0.5.40** + Release (Contact Verify GUI #359; Bench Suggest #360) | **THIS** |
+| Rel40 | Cursor | [#361](https://github.com/funfunpayer/SamNPlayer/pull/361) + tag `v0.5.40` | patch **v0.5.40** + Release (Contact Verify GUI #359; Bench Suggest #360) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40 |
+| Rel41 | Cursor | this PR + tag `v0.5.41` | Sammel **v0.5.41** + Release (Tip-Find #364; Clip-Prep #365; Reacquire #366; Bugfix #372; E2E #371; Cleanup #369; docs/tests #362/#363/#367; #264 cancelled) | **THIS** |
 | ContactVerifyGUI | Cursor | [#359](https://github.com/funfunpayer/SamNPlayer/pull/359) merged (`51f038c`) | **Create Advanced: Verify with the engine** — hybrid `ContactVerifyK=1.5` GUI switch | **DONE** |
 | BenchSuggest | Cursor | [#360](https://github.com/funfunpayer/SamNPlayer/pull/360) merged (`c854871`) | **Bench Suggest beside video** — FunGen ref + Everyday `__hub` pair from short-clip folder (Clip-Prep → Compare) | **DONE** |
 | GuiDiscover | Cursor | [#272](https://github.com/funfunpayer/SamNPlayer/pull/272) merged | **AIWrite S1 discoverability** — post-Create status + Export classical enable/status (no S2 defaults) | **DONE** |
@@ -206,13 +207,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (28 Sep — Rel40 THIS):**
-- **In flight:** **Rel40** — VERSION `0.5.40` patch + tag after CI green (tip includes ContactVerifyGUI [#359](https://github.com/funfunpayer/SamNPlayer/pull/359) @ `51f038c` + BenchSuggest [#360](https://github.com/funfunpayer/SamNPlayer/pull/360) @ `c854871`).
-- **Shipped tip @ `c854871`:** BenchSuggest [#360](https://github.com/funfunpayer/SamNPlayer/pull/360); ContactVerifyGUI [#359](https://github.com/funfunpayer/SamNPlayer/pull/359); Rel39 [#358](https://github.com/funfunpayer/SamNPlayer/pull/358) / tag `v0.5.39`.
-- **ChatGPT E-264 DONE:** [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) stays open as reference only. VP **product** scrubbed from tip (#341). Do not merge the draft.
+**Status board (28 Sep — Rel41 THIS):**
+- **In flight:** **Rel41** — VERSION `0.5.41` Sammel + tag after CI green (tip @ `a155a8c` includes #362–#367, #369, #371, #372; Contact Verify already in `v0.5.40`).
+- **Shipped tip @ `a155a8c`:** Cleanup [#369](https://github.com/funfunpayer/SamNPlayer/pull/369); Bugfix [#372](https://github.com/funfunpayer/SamNPlayer/pull/372); E2E [#371](https://github.com/funfunpayer/SamNPlayer/pull/371); Tip-Find [#364](https://github.com/funfunpayer/SamNPlayer/pull/364); Clip-Prep [#365](https://github.com/funfunpayer/SamNPlayer/pull/365); Reacquire [#366](https://github.com/funfunpayer/SamNPlayer/pull/366); Rel40 [#361](https://github.com/funfunpayer/SamNPlayer/pull/361) / tag `v0.5.40`.
+- **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. No Everyday / Rhythm / AI default change.
 - **#290 closed:** SceneMap P5 audit complete on tip — P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (+ multi-box [#326](https://github.com/funfunpayer/SamNPlayer/pull/326)); P5e parked by design; P5d already covered by `auto_candidates.jsonl` / reviewed-only gate. No Everyday default change.
-- **Still Owner-gated:** portable smoke `v0.5.40` (Verify hybrid K=1.5 + Bench Suggest); V0 GPU / one `vlm_probe --clip 6`; speed-cap; rhythm default; Enforcement; contact-vib S3+.
+- **Still Owner-gated:** portable smoke `v0.5.41` (Tip-Find, Clip-Prep cutter, reacquire, Play/Create seek); V0 GPU / one `vlm_probe --clip 6`; speed-cap; rhythm default; Enforcement; contact-vib S3+.
 
 Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 
