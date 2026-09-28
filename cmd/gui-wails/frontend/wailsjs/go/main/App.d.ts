@@ -97,6 +97,7 @@ export function DiscardRoiTrainingSample(arg1:string,arg2:string,arg3:string):Pr
 export function DisconnectDevice():Promise<main.DeviceStatus>;
 
 export function GenerateScript(arg1:main.GenerateOptions):Promise<void>;
+export function PreviewPostprocess(arg1:main.PostprocessPreviewRequest):Promise<main.PostprocessPreviewResult>;
 
 export function GetBenchmarkHistory():Promise<Array<generator.BenchmarkResult>>;
 

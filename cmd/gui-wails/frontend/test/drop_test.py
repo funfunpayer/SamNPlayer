@@ -86,7 +86,11 @@ def main():
         check("Video wechselt in den Generator-Tab", active() == "generator", str(active()))
         dropped = page.evaluate("window.__dropped[0]")
         check("Videopfad kommt unverändert an",
-              dropped == ["video", {"path": "/videos/clip.mp4", "extraCount": 0}], str(dropped))
+              dropped[0] == "video"
+              and dropped[1]["path"] == "/videos/clip.mp4"
+              and dropped[1].get("extraCount") == 0
+              and dropped[1].get("paths") == ["/videos/clip.mp4"],
+              str(dropped))
 
         # --- Skript: muss in die Wiedergabe führen ------------------------
         page.evaluate("""window.__triggerEvent('files:dropped',
@@ -109,22 +113,28 @@ def main():
               and page.evaluate("window.__dropped.length") == 3,
               str(page.evaluate("window.__dropped")))
 
-        # --- Mehrere Videos: nur das erste wird geladen, aber sichtbar ----
-        # (vorher gab es dafür ein 'drop:videos'-Event, auf das nichts
-        # gehört hat - die übrigen Dateien verschwanden spurlos).
+        # --- Mehrere Videos: Queue (DeepFunGen UX), nicht still ignorieren ----
         page.evaluate("""window.__triggerEvent('files:dropped',
             { videos: ['/v/first.mp4', '/v/second.mp4', '/v/third.mp4'], scripts: [], ignored: 0 })""")
         page.wait_for_function("window.__dropped.length > 3")
         dropped = page.evaluate("window.__dropped[3]")
         check("mehrere Videos: nur der erste Pfad wird geladen",
               dropped[1]["path"] == "/v/first.mp4", str(dropped))
+        check("mehrere Videos: komplette Liste wird mitgeschickt",
+              dropped[1].get("paths") == ["/v/first.mp4", "/v/second.mp4", "/v/third.mp4"],
+              str(dropped))
         check("mehrere Videos: Anzahl der übrigen wird mitgeschickt",
               dropped[1]["extraCount"] == 2, str(dropped))
         page.wait_for_function(
-            "document.querySelector('#gen-status').textContent.includes('ignored')",
+            "document.querySelector('#gen-queue') && !document.querySelector('#gen-queue').hidden",
             timeout=5000)
-        check("mehrere Videos: Hinweis auf die ignorierten Dateien in der Oberfläche sichtbar",
-              "2" in page.locator("#gen-status").inner_text())
+        check("mehrere Videos: Queue-UI sichtbar",
+              page.locator("#gen-queue-list li").count() == 3,
+              str(page.locator("#gen-queue-list li").count()))
+        check("mehrere Videos: Queue-Hinweis in der Oberfläche",
+              "queue" in page.locator("#gen-status").inner_text().lower()
+              or "2" in page.locator("#gen-queue-summary").inner_text(),
+              page.locator("#gen-status").inner_text() + " | " + page.locator("#gen-queue-summary").inner_text())
 
         # --- Mehrere Skripte: Film-Liste statt „ignoriert“ -----------------
         page.evaluate("window.__dropped.length = 0")

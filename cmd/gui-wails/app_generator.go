@@ -64,18 +64,21 @@ func (a *App) LoadFrameAt(videoPath string, timeSec float64) (FramePreview, erro
 }
 
 type GenerateOptions struct {
-	VideoPath                 string  `json:"videoPath"`
-	X                         int     `json:"x"`
-	Y                         int     `json:"y"`
-	W                         int     `json:"w"`
-	H                         int     `json:"h"`
-	X2                        int     `json:"x2"`
-	Y2                        int     `json:"y2"`
-	W2                        int     `json:"w2"`
-	H2                        int     `json:"h2"`
-	Invert                    bool    `json:"invert"`
-	SmoothWindow              int     `json:"smoothWindow"`
-	MinPeakDistanceMs         int     `json:"minPeakDistanceMs"`
+	VideoPath         string `json:"videoPath"`
+	X                 int    `json:"x"`
+	Y                 int    `json:"y"`
+	W                 int    `json:"w"`
+	H                 int    `json:"h"`
+	X2                int    `json:"x2"`
+	Y2                int    `json:"y2"`
+	W2                int    `json:"w2"`
+	H2                int    `json:"h2"`
+	Invert            bool   `json:"invert"`
+	SmoothWindow      int    `json:"smoothWindow"`
+	MinPeakDistanceMs int    `json:"minPeakDistanceMs"`
+	// PeakProminence: fraction of position span for peak gate (Expert).
+	// 0 = leave to profile defaults on the native path (Everyday unchanged).
+	PeakProminence            float64 `json:"peakProminence"`
 	DisableCameraCompensation bool    `json:"disableCameraCompensation"`
 	DisableSceneCutDetection  bool    `json:"disableSceneCutDetection"`
 	RDPTolerance              float64 `json:"rdpTolerance"`
@@ -503,6 +506,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			Invert:                    opts.Invert,
 			SmoothWindow:              opts.SmoothWindow,
 			MinPeakDistanceMs:         opts.MinPeakDistanceMs,
+			PeakProminence:            opts.PeakProminence,
 			DisableCameraCompensation: opts.DisableCameraCompensation,
 			DisableSceneCutDetection:  opts.DisableSceneCutDetection,
 			RDPTolerance:              opts.RDPTolerance,
