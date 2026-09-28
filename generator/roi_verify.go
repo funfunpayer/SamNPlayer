@@ -98,9 +98,18 @@ func VerifyROI(ctx context.Context, videoPath string, roi ROI) ROIVerifyResult {
 	expected := roiArea / frameArea
 	score := actualShare / expected
 	out := ROIVerifyResult{Score: score}
+	coverage := roiArea / frameArea
+	// Soft fallback when Tip-Find still proposes a near-full-frame box:
+	// ask the user to drag smaller — never auto-rewrite the box.
+	if coverage > 0.40 {
+		out.Warning = fmt.Sprintf(
+			"Tip box covers %.0f%% of the frame — drag to tighten toward the tip (Tip-Find is editable)",
+			coverage*100)
+		return out
+	}
 	if score < 0.55 {
 		out.Warning = fmt.Sprintf(
-			"Second pass: region looks weak (motion concentration %.2f) — please review the box",
+			"Second pass: region looks weak (motion concentration %.2f) — drag to refine the box",
 			score)
 	}
 	return out
