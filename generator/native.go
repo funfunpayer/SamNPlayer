@@ -67,6 +67,27 @@ func NativePipelineSkipReason(opts Options, roi ROI) string {
 	return "options not eligible for Go CSRT"
 }
 
+// softenPythonOnlyOptsForGoCSRT drops Python-only toggles that would otherwise
+// send Generate to pip OpenCV on builds that already link Go CSRT (#338).
+// Rel35 policy: Everyday tracking stays on Go; do not require
+// opencv-contrib-python. Per-scene ROI re-search is skipped (Go TrackROI still
+// re-anchors on cuts via appearance memory). PreferPython is left alone.
+func softenPythonOnlyOptsForGoCSRT(opts Options, roi ROI, onProgress func(string)) Options {
+	if !NativeTrackingAvailable() || opts.PreferPython {
+		return opts
+	}
+	if NativePipelineEligible(opts, roi) {
+		return opts
+	}
+	if opts.PerSceneROI {
+		opts.PerSceneROI = false
+		if onProgress != nil {
+			onProgress("Generate: Re-find region after each cut needs Python — keeping Go CSRT (cuts still re-anchor; per-scene ROI re-search skipped). No pip opencv-contrib needed.")
+		}
+	}
+	return opts
+}
+
 func nativeOptionsEligible(opts Options, roi ROI) bool {
 	if roi.W <= 0 || roi.H <= 0 {
 		return false

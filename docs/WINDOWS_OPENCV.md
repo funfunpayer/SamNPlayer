@@ -61,12 +61,12 @@ After a tagged build with OpenCV DLLs:
 3. Same clip ROI as Linux; Quality Doctor not worse than Python CSRT.
 
 **If the log says `CSRT not available in OpenCV 5.0.0`:** that is the
-**Python** path (not the bundled Go CSRT). Usual cause: Advanced
-“Re-find region after each cut” (or soft masks / AI opinion) forced Python,
-and the system `opencv-python` (no contrib) / OpenCV 5.0.0 install has no
-CSRT → MIL/KCF fallback. Fix: uncheck Re-find for Go CSRT, **or**
-`pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python`.
-See issue #338.
+**Python** path (not the bundled Go CSRT). Usual cause (pre-#338 fix):
+Advanced “Re-find region after each cut” forced Python while system
+`opencv-python` had no CSRT → MIL. From #339 onward, Go-CSRT builds
+**soft-ignore** Re-find and stay on Go (cuts still re-anchor). Manual
+override: PreferPython / AI opinion / soft masks without RhythmGrid still
+need `opencv-contrib-python` if you deliberately take the Python path.
 
 ---
 

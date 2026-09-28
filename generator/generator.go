@@ -1180,6 +1180,9 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	opts = applyStrokePreview(ctx, videoPath, opts, onProgress)
 	logging.Info("generator: phase", "name", "stroke_preview", "ms", time.Since(phaseT0).Milliseconds())
 	opts = applyDefaultDetrend(opts, onProgress)
+	// Rel35 / #338: when this binary links Go CSRT, soft-drop PerSceneROI so
+	// Everyday never falls through to pip OpenCV (MIL) for a Python-only toggle.
+	opts = softenPythonOnlyOptsForGoCSRT(opts, roi, onProgress)
 
 	if !opts.PreferPython && NativePipelineEligible(opts, roi) {
 		if NativeTrackingAvailable() {
