@@ -59,7 +59,6 @@ func TestMarkShouldFollow(t *testing.T) {
 	}
 }
 
-
 func TestSceneMarkTimebaseIncludesStartOffset(t *testing.T) {
 	startTimeSec := 10.0
 	mark := SceneMark{Kind: "exclude", FromMs: 10500, ToMs: 11500}
