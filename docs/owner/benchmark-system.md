@@ -39,9 +39,9 @@ Video wählen (optional, für Labels)
 
 **GUI (Tab Bench):**
 
-1. **Compare scripts** — Video (optional) + Referenz + Kandidat → **Score vs reference** → Anzeige GUT/PRÜFEN/NICHT GUT; **Save label for KI**
-2. **Suggest beside video** — nach Clip-Prep: Video wählen → Button füllt `stem.funscript` (FunGen/Ref) + `stem__hub.funscript` (Everyday-Kandidat) aus dem Clip-Ordner (inkl. Unterordner wie `mit_yolo/`)
-3. **Golden-clip manifest** — wie bisher: Manifest mit lokalen Clips → echte Everyday-Pipeline → Verlauf
+1. **Suggest beside video** — nach Clip-Prep: Video wählen → Button füllt `stem.funscript` (FunGen/Ref) + `stem__hub.funscript` (Everyday-Kandidat) aus dem Clip-Ordner (inkl. Unterordner wie `mit_yolo/`). Nur `stem.funscript`? → als Kandidat; Ref per Browse.
+2. **Compare scripts** — Video (für Labels) + Referenz + Kandidat → **Score vs reference** → Anzeige GUT/PRÜFEN/NICHT GUT; **Save label for KI**
+3. **Golden-clip manifest** — Manifest mit lokalen Clips → echte Everyday-Pipeline → Verlauf
 
 **CLI:**
 

@@ -1,8 +1,8 @@
 # SamNPlayer — Anleitung aller Funktionen
 
 **Produkt:** SamNPlayer Emotion GUI · **Format:** `.samn` (Emotion Script) · Funscript nur Teilen/Import  
-**Stand:** nach **v0.5.35** · Tipp Review-Boxen: [#342](https://github.com/funfunpayer/SamNPlayer/pull/342)  
-**Quellen:** `USER_HANDBOOK`, `LOCAL_MODEL_SETUP`, `AGENT_COORD`, GUI-Labels (Create/Play/Settings/AI Train)
+**Stand:** **v0.5.40** — Contact Verify ([#359](https://github.com/funfunpayer/SamNPlayer/pull/359)) · Bench Suggest ([#360](https://github.com/funfunpayer/SamNPlayer/pull/360))  
+**Quellen:** `USER_HANDBOOK`, `LOCAL_MODEL_SETUP`, `AGENT_COORD`, GUI-Labels (Create / Play / Bench / Settings / AI Train)
 
 GUI-Texte in der App sind Englisch. Diese Anleitung erklärt sie auf Deutsch.
 
@@ -15,16 +15,17 @@ GUI-Texte in der App sind Englisch. Diese Anleitung erklärt sie auf Deutsch.
 1. **Create** → Video wählen → Tip-Bereich finden → **Create Emotion Script**  
 2. **Review** → ggf. Fill gaps / Heal tracking gaps  
 3. **Play** → Kurve prüfen, Gerät verbinden  
-4. Optional: Advanced (Rhythm, Contact points, Scene2) nur bei Drift / komplexen Clips
+4. Optional: Advanced (Rhythm, Contact points + **Verify**, Scene2) nur bei Drift / komplexen Clips  
+5. Optional Qualität: Tab **Bench** → Kurzclip → **Suggest beside video** → Score / Label
 
-**Regel (Owner):** Everyday-Erkennung = **Go-CSRT (nicht-KI)**. Hybrid-KI assistiert nur (Boxen/Style/Scene2 vorschlagen) — nie still die 0–100-Kurve. Markieren filtert Regionen; Repair/Improve poliert die Kurve klassisch (kein Re-Track).
+**Regel (Owner):** Everyday-Erkennung = **Go-CSRT (nicht-KI)**. Hybrid-KI assistiert nur (Boxen/Style/Scene2/Verify vorschlagen oder filtern) — nie still die 0–100-Kurve. Markieren filtert Regionen; Repair/Improve poliert die Kurve klassisch (kein Re-Track).
 
 <img alt="Haupt-Tabs und Create-Schritte" src="media/anleitung/uebersicht-tabs.png" />
 
 ```text
-┌────────┬──────┬────────┬──────────┬──────────┬──────────┐
-│ Create │ Play │ Device │ Training │ AI Train │ Settings │
-└────────┴──────┴────────┴──────────┴──────────┴──────────┘
+┌────────┬──────┬───────┬────────┬──────────┬──────────┬──────────┐
+│ Create │ Play │ Bench │ Device │ Training │ AI Train │ Settings │
+└────────┴──────┴───────┴────────┴──────────┴──────────┴──────────┘
  Create:  1 Video → 2 Where → 3 Feel → 4 Create → 5 Review
 ```
 
@@ -152,10 +153,10 @@ Create → **4 · Create** → **Advanced settings** → Checkbox **Rhythm-robus
 
 ---
 
-## 6. Contact points · Generate · Use
+## 6. Contact points · Generate · Use · Verify
 
 ### Zweck
-Teachers (NudeNet / Ollama / LM Studio) liefern Kontakt-Anker-JSON. Rhythm-Grid darf nur suchen, wenn Tip-Box **> 3 Zellen** weg ist.
+Teachers (NudeNet / Ollama / LM Studio) liefern Kontakt-Anker-JSON. Rhythm-Grid darf nur suchen, wenn Tip-Box **> 3 Zellen** weg ist. Optional prüft die **Engine** (Hybrid-Verify) jeden Teacher-Punkt gegen das eigene Rhythm-Maß — schwache Anker fallen weg.
 
 ### Wo
 Create → Advanced (sichtbar wenn **Rhythm-robust** an)
@@ -166,15 +167,23 @@ Create → Advanced (sichtbar wenn **Rhythm-robust** an)
 |-----------|-----------|
 | **Use contact points** | Pfad zur Teachers-JSON aktiv |
 | Pfad / **Choose…** | z. B. `clip.contact.json` |
-| **Verify with the engine (hybrid, K=1.5)** | Opt-in: Engine behält Teacher-Punkte nur, wenn die eigene Rhythm-Zelle ≥ 1.5× stärker ist als die gewählte Zelle (wie CLI `--contact-verify 1.5`). Default **aus** |
+| **Verify with the engine (hybrid, K=1.5)** | Opt-in **neben** Use: Engine behält einen Teacher-Punkt nur, wenn die eigene Rhythm-Zelle ≥ 1.5× stärker ist als die gewählte Zelle (wie CLI `--contact-verify 1.5`). Default **aus**; Zeile nur sichtbar wenn Use an |
 | Teacher-Checkboxen | NudeNet · Ollama Qwen2.5-VL · LM Studio |
 | **Generate contact points** | Schreibt `.contact.json`, füllt Pfad, aktiviert Use |
 
-Leer/aus = Everyday Create **bit-identisch**. Verify ohne Use/Pfad = wirkungslos (K=0).
+Leer/aus = Everyday Create **bit-identisch**. Verify ohne Use/Pfad = wirkungslos (K=0). Everyday-Create-Defaults unverändert.
+
+### Owner-Kette (Contact Verify)
+
+1. Advanced → **Rhythm-robust signal** an  
+2. **Use contact points** + JSON (**Generate** oder **Choose…**)  
+3. **Verify with the engine (hybrid, K=1.5)** an (optional)  
+4. **Create Emotion Script** — schwache Teacher-Punkte steuern nicht mehr
 
 ### Tipps
 - Teachers zuerst: Settings → **Check AI setup** / **Install teachers**.  
-- Hybrid-Verify ist jetzt auch GUI-opt-in (neben Use contact points) — nie Everyday-Default.
+- Hybrid-Verify ist GUI-opt-in neben Use contact points — nie Everyday-Default (Owner erst nach mehreren Clips).  
+- K ist fest **1.5** (gemessen); kein Schieberegler in der GUI.
 
 ---
 
@@ -317,7 +326,45 @@ Tab **Play**
 
 ---
 
-## 13. Device
+## 13. Bench — Suggest beside · Score · Labels
+
+### Zweck
+Everyday-Kandidat gegen FunGen-Referenz bewerten (**gut** / **prüfen** / **nicht gut**) und optional Labels für KI speichern. **Kein** Everyday-Create — nur Messen.
+
+Ausführlich: [`benchmark-system.md`](benchmark-system.md) · Clip-Prep: [`benchmark-clip-prep.md`](benchmark-clip-prep.md)
+
+### Wo
+Tab **Bench**
+
+### So funktioniert’s — Suggest beside video (v0.5.40)
+
+Nach Clip-Prep (kurze Clips; FunGen-Ref + Everyday `__hub` neben dem Video):
+
+| Schritt | Was du tust |
+|--------|-------------|
+| 1 | **Video** = Kurzclip wählen (Browse…) |
+| 2 | **Suggest beside video** — füllt automatisch Referenz `stem.funscript` (FunGen) + Kandidat `stem__hub.funscript` (Everyday; auch Unterordner wie `mit_yolo/`) |
+| 3 | **Score vs reference** → Anzeige **GUT** / **PRÜFEN** / **NICHT GUT** |
+| 4 | Optional **Save label for KI** → JSONL neben der Benchmark-History |
+
+Nur `stem.funscript` vorhanden (Everyday-Default-Pfad)? Dann wird das als **Kandidat** gefüllt — FunGen-Referenz weiter per Browse.
+
+| Kontrolle | Bedeutung |
+|-----------|-----------|
+| Clip-Prep (scripts) | Hinweis + Copy-Command für `scripts/benchmark-prep/` — kein In-App-Cutter |
+| **Suggest beside video** | Paar aus Ordner neben dem Clip vorschlagen (grau ohne Video) |
+| Reference / Candidate | Manuell oder per Suggest |
+| **Score vs reference** | Motion Fidelity + Quality Doctor |
+| **Save label for KI** | Nach Score: Label-Zeile schreiben |
+| Golden-clip manifest | Manifest → echte Everyday-Pipeline → History |
+
+### Tipps
+- Everyday bleibt Go CSRT; FunGen = Referenz; KI lernt aus Labels — ersetzt Everyday nicht.  
+- Video ist für Suggest + Labels nötig; Score allein braucht nur Ref + Kandidat.
+
+---
+
+## 14. Device
 
 ### Zweck
 Gerät verbinden und isoliert testen — ohne Playback.
@@ -340,7 +387,7 @@ Tab **Device** (+ Topbar-Schnellstatus)
 
 ---
 
-## 14. Training
+## 15. Training
 
 ### Zweck
 Üben ohne Video: Stop-Start, Plateau, Waves, Massage-Presets, eigene Scripts.
@@ -355,7 +402,7 @@ Typische Bedienelemente: Preset wählen · Channel (Vibration/Suction/Both) · C
 
 ---
 
-## 15. AI Train (ROI + Go-Profile)
+## 16. AI Train (ROI + Go-Profile)
 
 ### Zweck
 Hilfsmodelle trainieren — **nicht** den Stroke-Writer.
@@ -384,7 +431,7 @@ Vor dem Fix waren YOLO-Boxen auf den Review-Thumbnails unsichtbar. Ab [#342](htt
 
 ---
 
-## 16. Settings — Modelle, Check AI, Plugins
+## 17. Settings — Modelle, Check AI, Plugins
 
 ### Zweck
 Lizenz, Updates, lokale AI-Helfer, Plugins, Cache, Metriken.
@@ -411,7 +458,7 @@ Tab **Settings** · auch **Open user handbook**
 
 ---
 
-## 17. Plugins · Virtual Person (geparkt)
+## 18. Plugins · Virtual Person (geparkt)
 
 ### Zweck
 Drop-Folder-Infra (H1): Packs mit `samn-plugin.json` installieren.
@@ -433,7 +480,7 @@ Settings → **Plugins**
 
 ---
 
-## 18. Dateien auf der Platte
+## 19. Dateien auf der Platte
 
 | Datei | Rolle |
 |-------|--------|
@@ -450,13 +497,15 @@ Settings → **Plugins**
 
 ---
 
-## 19. Troubleshooting (kurz)
+## 20. Troubleshooting (kurz)
 
 | Symptom | Versuch |
 |---------|---------|
 | Flache/hängende Kurve | Tip neu · Invert · Heal tracking gaps · tracking_gaps prüfen |
 | Kamerapan-Drift | Camera compensation · Fix contact static aus |
-| Long-Clip-Drift | Rhythm-robust · optional Contact points |
+| Long-Clip-Drift | Rhythm-robust · optional Contact points + **Verify with the engine** |
+| Teacher-Punkte zu laut | Verify (K=1.5) an — oder Use aus für bit-identisch |
+| Bench-Paar fehlt | Clip-Prep: `stem.funscript` + `stem__hub.funscript` neben Kurzclip · dann Suggest |
 | AI draft grau | Einmal Export classical run |
 | Smarter tip find fehlt | ONNX trainieren + Check availability |
 | Review ohne Boxen | Build ≥ Fix #342 / v0.5.35+ |
@@ -464,13 +513,14 @@ Settings → **Plugins**
 
 ---
 
-## 20. Was absichtlich nicht Everyday ist
+## 21. Was absichtlich nicht Everyday ist
 
 - Whole-frame 4-Zone / Flow als Generate-Default (CLI/Experiment)  
 - ONNX-Vision-AI als Stroke-Writer (noch nicht shipped)  
 - Cloud-LLM schreibt Positionen  
 - Virtual-Person-Produkt-UI  
 - In-App Clip-Prep-Cutter (Skripte + Bench-Panel reichen; Mark In/Out bleibt Owner-Prep)
+- Contact-Verify / Rhythm als Everyday-Default (Owner-Gate ≥4–5 Clips)
 
 ---
 
@@ -481,7 +531,8 @@ Settings → **Plugins**
 - `docs/EVERYDAY_GENERATE.md` — Everyday-Pfad  
 - `docs/AI_SCRIPT_WRITER.md` — AI draft Stufen  
 - `docs/SCENE_UNDERSTANDING_PLAN.md` — Scene2  
+- `docs/owner/benchmark-system.md` — Bench / Suggest beside  
 - `docs/PLUGIN_INSTALL_DE.md` — Plugins DE  
-- `docs/AGENT_COORD.md` — Board / Rel35 Kontext  
+- `docs/AGENT_COORD.md` — Board / Rel40 Kontext  
 
 **Medienordner:** [`media/anleitung/`](media/anleitung/)

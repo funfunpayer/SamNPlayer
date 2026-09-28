@@ -1,13 +1,14 @@
 # Zusammenhang & Testen — SamNPlayer
 
 **Für Owner** · Stand: **2026-09-28**  
-Baseline: Rel35 **[`v0.5.35`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.35)** · nächster Portable-Cut **v0.5.36** (wenn Patch [#343](https://github.com/funfunpayer/SamNPlayer/pull/343) / Review-Boxen [#342](https://github.com/funfunpayer/SamNPlayer/pull/342) drin sind)
+Baseline: **[`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40)** — Contact Verify GUI + Bench Suggest beside
 
 Verwandt:
 
-- Funktions-Anleitung: [`anleitung-funktionen.md`](anleitung-funktionen.md)
+- Funktions-Anleitung: [`anleitung-funktionen.md`](anleitung-funktionen.md) (§6 Verify · §13 Bench)
 - Generator Markieren (Ignore / Scene map): [`generator-markieren.md`](generator-markieren.md)
-- Release-Notizen (aktuell): [`v0.5.38-sammel.md`](v0.5.38-sammel.md) · Rel35 Tag: [v0.5.35](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.35)
+- Benchmark: [`benchmark-system.md`](benchmark-system.md) · Clip-Prep [`benchmark-clip-prep.md`](benchmark-clip-prep.md)
+- Release-Notizen: Tag [v0.5.40](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40) · älter [`v0.5.38-sammel.md`](v0.5.38-sammel.md)
 - Lokale Modelle: [`../LOCAL_MODEL_SETUP.md`](../LOCAL_MODEL_SETUP.md), [`../COLIBRI_SETUP.md`](../COLIBRI_SETUP.md)
 - Scene2-Plan: Repo `docs/SCENE_UNDERSTANDING_PLAN.md`
 - Plugins: Repo `docs/PLUGIN_SYSTEM.md`
@@ -17,7 +18,7 @@ Verwandt:
 ## 1. Ein Satz
 
 **Everyday-Erkennung = Go-CSRT (nicht-KI): Tip-Box → Create → `.samn` → Play.**  
-Hybrid-KI (Scene2, Teachers, YOLO-Review, Contact Points, AIWrite, Plugins) ist **opt-in Assist** — schlägt vor, misst mit, oder fühlt — schreibt die 0–100-Kurve nur nach bewusstem Keep/Apply. Markieren filtert Regionen am CSRT-Pfad; Repair/Improve ist klassisches Nachpolieren (Fill/Heal), kein KI-Re-Track. Siehe [`generator-markieren.md`](generator-markieren.md).
+Hybrid-KI (Scene2, Teachers, YOLO-Review, Contact Points, **Contact Verify**, AIWrite, Plugins) ist **opt-in Assist** — schlägt vor, filtert, misst mit, oder fühlt — schreibt die 0–100-Kurve nur nach bewusstem Keep/Apply. Bench bewertet Everyday vs FunGen (Suggest beside). Markieren filtert Regionen am CSRT-Pfad; Repair/Improve ist klassisches Nachpolieren (Fill/Heal), kein KI-Re-Track. Siehe [`generator-markieren.md`](generator-markieren.md).
 
 ---
 
@@ -137,14 +138,13 @@ GenerateWithContext
 
 **Check AI setup** ändert nichts — nur Diagnose. Install-Profile rühren Everyday-OpenCV nicht an.
 
-### 3.5 Contact Points
+### 3.5 Contact Points + Verify
 
 1. Advanced → **Rhythm-robust** an  
 2. Lehrer anhaken → **Generate contact points** → `.contact.json`  
 3. **Use contact points** → Rhythm-Grid sucht nur nahe Anchors, wenn Tip-Box >3 Zellen weg  
-4. Optional: Rhythm + Use contact points + **Verify with the engine** (GUI) oder CLI `--contact-points F --contact-verify 1.5`
-
-Leer/aus = Everyday bit-identisch.
+4. Optional: **Verify with the engine (hybrid, K=1.5)** neben Use — GUI setzt `ContactVerifyK=1.5` (wie CLI `--contact-verify 1.5`); schwache Teacher-Punkte fallen weg  
+5. Ohne Use/Pfad oder Verify aus = Everyday Create bit-identisch
 
 ### 3.6 Accept / Reject → P5c / YOLO
 
@@ -158,7 +158,14 @@ Teacher / Import → author:auto, reviewed:false
 Unreviewed Autos gehen **nicht** ins Training.  
 Nach [#342](https://github.com/funfunpayer/SamNPlayer/pull/342): Review-Karten zeigen **Box-Overlays** auf den Thumbnails (vorher fehlten Labels auf absoluten Pfaden).
 
-### 3.7 Plugins — **kein VP-Produkt**
+### 3.7 Bench — Suggest beside (#360)
+
+1. Clip-Prep: Kurzclip 20–60 s (~1280 breit) · FunGen als `stem.funscript` · Everyday als `stem__hub.funscript` neben dem Clip (auch Unterordner)  
+2. Tab **Bench** → Video = Kurzclip → **Suggest beside video** → Ref + Kandidat gefüllt  
+3. **Score vs reference** → gut / prüfen / nicht gut → optional **Save label for KI**  
+4. Details: [`benchmark-system.md`](benchmark-system.md)
+
+### 3.8 Plugins — **kein VP-Produkt**
 
 - Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) + scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
 - **Virtual Person** Enable/Give/Titjob-UI: **entfernt / geparkt** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264))
@@ -168,13 +175,13 @@ Nach [#342](https://github.com/funfunpayer/SamNPlayer/pull/342): Review-Karten z
 
 ## 4. Owner-Test-Checkliste
 
-Zielbuild: **portable v0.5.35** jetzt; **v0.5.36**, sobald Patch/Review-Boxen im Release sind. Frischer Ordner, kein alter Sticky-State.
+Zielbuild: **portable [`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40)**. Frischer Ordner, kein alter Sticky-State.
 
 ### A. Startup / Packaging
 
 | # | Test | Erwartung |
 |---|------|-----------|
-| A1 | Version in About/Log | `0.5.35` (bzw. `0.5.36`) |
+| A1 | Version in About/Log | `0.5.40` |
 | A2 | ffmpeg neben exe | Startup ohne Tool-Fehler |
 | A3 | Settings / UI | **kein** Virtual-Person Enable/Give/Titjob-Produkt |
 | A4 | Plugins | Install pack / Open folder sichtbar |
@@ -239,8 +246,15 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 | # | Test | Erwartung |
 |---|------|-----------|
 | G1 | Rhythm-robust + Use contact points | Create läuft; Anchors greifen nur bei Distanz |
-| G2 | `--contact-verify 1.5` | Punkte werden gefiltert; Kurve nicht schlechter als Baseline auf bekannten Clips |
+| G2 | GUI **Verify with the engine** an (oder CLI `--contact-verify 1.5`) | Punkte werden gefiltert; Kurve nicht schlechter als Baseline auf bekannten Clips |
 | G3 | Ohne Points / aus | Bit-identisch Everyday |
+
+### G2b. Bench Suggest beside (#360)
+
+| # | Test | Erwartung |
+|---|------|-----------|
+| Bch1 | Kurzclip als Video → **Suggest beside video** | Ref `stem.funscript` + Kandidat `stem__hub.funscript` (Unterordner ok) |
+| Bch2 | Score vs reference → Save label | GUT/PRÜFEN/NICHT GUT · JSONL geschrieben |
 
 ### H. Accept / Reject + Review-Boxen (#328 / #342)
 

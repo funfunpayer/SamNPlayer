@@ -133,7 +133,8 @@ export function initBenchmark(root) {
       <button id="bm-pick-video" type="button">Browse…</button>
     </div>
     <div class="row" style="margin:4px 0 8px 0;flex-wrap:wrap;gap:8px;">
-      <button id="bm-suggest-pair" type="button" class="secondary" disabled>Suggest beside video</button>
+      <button id="bm-suggest-pair" type="button" class="secondary" disabled
+        data-help="After Clip-Prep: fills Reference from stem.funscript (FunGen) and Candidate from stem__hub.funscript (Everyday), searching the clip folder and one level of subfolders (e.g. mit_yolo/). Only stem.funscript found → used as Candidate; pick FunGen Ref with Browse. Needs Video set. Does not run Create.">Suggest beside video</button>
       <span class="hint" id="bm-suggest-status" style="margin:0;"></span>
     </div>
     <div class="field-row"><label>Reference</label>
