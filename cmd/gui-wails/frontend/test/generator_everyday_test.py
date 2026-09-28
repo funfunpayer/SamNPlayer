@@ -88,11 +88,12 @@ def main():
               page.locator("#gen-backend").input_value() != "region_fusion_auto")
 
         # Optional: where it vibrates (Zone 2) — Generate stays ready.
+        page.locator("#roi-canvas").scroll_into_view_if_needed()
         box = page.locator("#roi-canvas").bounding_box()
         page.keyboard.down("Shift")
-        page.mouse.move(box["x"] + 300, box["y"] + 50)
+        page.mouse.move(box["x"] + 40, box["y"] + 40)
         page.mouse.down()
-        page.mouse.move(box["x"] + 380, box["y"] + 130, steps=4)
+        page.mouse.move(box["x"] + 140, box["y"] + 140, steps=4)
         page.mouse.up()
         page.keyboard.up("Shift")
         page.wait_for_function(

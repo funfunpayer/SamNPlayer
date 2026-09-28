@@ -2193,11 +2193,13 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent = 'Mark deselected.';
     }
   });
-  canvas.addEventListener('mousemove', e => {
+  // Track drag on window so painting still works when the pointer leaves the
+  // canvas (scrolled preview / tip-find copy pushing the frame down).
+  window.addEventListener('mousemove', e => {
     if (!dragging) return;
     const r = canvas.getBoundingClientRect();
-    curX = e.clientX - r.left;
-    curY = e.clientY - r.top;
+    curX = Math.max(0, Math.min(canvas.width, e.clientX - r.left));
+    curY = Math.max(0, Math.min(canvas.height, e.clientY - r.top));
     redraw();
   });
   window.addEventListener('mouseup', () => {
