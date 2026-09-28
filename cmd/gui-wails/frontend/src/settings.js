@@ -101,8 +101,8 @@ export function initSettings(root) {
 
     <h3>Plugins</h3>
     <p class="hint">Drop-folder packs with <code>samn-plugin.json</code>. Open the folder or
-      <b>Install pack…</b> to copy one in. Product plugin hosts (Virtual Person) are parked —
-      Everyday Create/Play unchanged. See <code>docs/PLUGIN_SYSTEM.md</code>.</p>
+      <b>Install pack…</b> to copy one in. Virtual Person product is <b>cancelled / out of scope</b>
+      (not deferred) — Everyday Create/Play unchanged. See <code>docs/PLUGIN_SYSTEM.md</code>.</p>
     <p class="hint" id="st-plugins-path" style="margin-top:0">Plugins folder: …</p>
     <p class="hint" id="st-plugins-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:center; margin-top:6px;">

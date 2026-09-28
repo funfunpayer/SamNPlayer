@@ -458,7 +458,7 @@ Tab **Settings** · auch **Open user handbook**
 
 ---
 
-## 18. Plugins
+## 18. Plugins (Virtual Person cancelled)
 
 ### Zweck
 Drop-Folder-Infra (H1): Packs mit `samn-plugin.json` installieren.
@@ -471,6 +471,8 @@ Settings → **Plugins**
 | Install pack… | Pack kopieren |
 | Open Plugins folder | `%APPDATA%\SamNPlayer\plugins\` (Windows) öffnen |
 | Refresh | Liste aktualisieren |
+
+**Virtual Person** (Chat/Enable/Give/Overlay) ist **cancelled / out of scope** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264) geschlossen) — nicht geparkt. Produkt-UI in v0.5.35 geschrubbt (#341). Create/Play unverändert.
 
 ### Tipps
 - Install bringt Pack-Infra — Create/Play bleiben Everyday.  

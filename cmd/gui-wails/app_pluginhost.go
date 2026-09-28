@@ -28,7 +28,7 @@ func (a *App) ListInstalledPlugins() ([]pluginhost.Pack, error) {
 
 // InstallPluginPack copies a folder that contains samn-plugin.json into the
 // Plugins directory (file dialog). Generic drop-folder install — no product
-// host Enable (Virtual Person product is parked).
+// host Enable (Virtual Person product is cancelled / out of scope).
 func (a *App) InstallPluginPack() (pluginhost.Pack, error) {
 	if a.ctx == nil {
 		return pluginhost.Pack{}, fmt.Errorf("app not ready")

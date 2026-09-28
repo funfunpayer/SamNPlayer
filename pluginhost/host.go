@@ -2,8 +2,8 @@
 // plugin packs (docs/PLUGIN_SYSTEM.md).
 //
 // Stage H1 (infra): license-aware Slot + drop-folder discovery
-// (samn-plugin.json) + optional OnFrame Tick wiring. Product plugins
-// (Virtual Person / #264) are parked — this package keeps the generic
+// (samn-plugin.json) + optional OnFrame Tick wiring. Virtual Person product
+// (#264) is cancelled / out of scope — this package keeps the generic
 // handshake only. No marketplace, no dynamic Go .so, no Everyday CSRT
 // changes.
 package pluginhost
@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 )
 
-// PluginIDVirtualPerson is the reserved pack id for the parked Virtual Person
-// product. Drop-folder discovery accepts any valid manifest id; this constant
-// stays for pack compatibility and tests.
+// PluginIDVirtualPerson is the reserved pack id for the cancelled Virtual
+// Person product. Drop-folder discovery accepts any valid manifest id; this
+// constant stays for pack compatibility and tests.
 const PluginIDVirtualPerson = "virtual_person"
 
 // Stage is the host maturity marker (H1 = drop-folder + optional OnFrame tick).
@@ -56,7 +56,8 @@ type Status struct {
 
 // Slot is a single in-process plugin-host slot (infra).
 // Tick is a no-op when not running so playback stays unaffected.
-// Rel35 ships discovery/install only — product Enable UI is parked.
+// Tip ships discovery/install only — Virtual Person product Enable UI is
+// cancelled / out of scope (#264 closed).
 type Slot struct {
 	mu         sync.Mutex
 	enabled    bool
@@ -147,7 +148,8 @@ func (s *Slot) Status(allowed bool) Status {
 }
 
 // Enable arms the host slot. Fails closed when allowed is false.
-// Idempotent when already running. Product Enable UI is parked for Rel35.
+// Idempotent when already running. Product Enable UI is cancelled / out of
+// scope (Virtual Person #264 closed) — API kept for infra/tests only.
 func (s *Slot) Enable(allowed bool) error {
 	if !allowed {
 		id := s.featureID

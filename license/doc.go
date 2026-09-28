@@ -8,8 +8,8 @@
 //
 // Standard retail keys (€40 / year) stamp DefaultFeatures(), which includes
 // virtual_person (Owner 2026-09-27: plugins in the standard license, not an
-// addon). Virtual Person product is parked on tip; the feature id stays for
-// key compatibility.
+// addon). Virtual Person product is cancelled / out of scope (#264 closed);
+// the feature id stays stamped for key compatibility.
 //
 // See docs/LICENSE_SYSTEM.md, docs/PLUGIN_SYSTEM.md.
 package license

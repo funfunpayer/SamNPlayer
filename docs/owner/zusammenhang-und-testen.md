@@ -66,8 +66,8 @@ flowchart TB
     CHK --> NUD[NudeNet venv]
   end
 
-  subgraph Plugins["Plugins"]
-    PH[pluginhost<br/>Install / Open folder]
+  subgraph Plugins["Plugins (kein VP-Produkt)"]
+    PH[pluginhost<br/>Install / Open folder] -.-> VP[Virtual Person<br/>CANCELLED #264]
   end
 ```
 
@@ -169,6 +169,8 @@ Nach [#342](https://github.com/funfunpayer/SamNPlayer/pull/342): Review-Karten z
 
 - Settings → Plugins → **Install pack…** / Open folder = generischer Host ([#275](https://github.com/funfunpayer/SamNPlayer/pull/275) · scrub [#341](https://github.com/funfunpayer/SamNPlayer/pull/341))
 - Nur Pack-Infra — kein separates Chat-/Enable-Produkt in der GUI
+- **Virtual Person** Enable/Give/Titjob-UI: **cancelled / out of scope** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264) geschlossen)
+- Alte Host-not-running-Meldungen ignorieren; kein VP-Produktpfad mehr
 
 ---
 
@@ -278,6 +280,7 @@ python generator/vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6 --e
 
 | Thema | Status |
 |-------|--------|
+| Virtual Person Produkt-UI | Cancelled / out of scope (#264 closed / #341 scrub) |
 | Rhythm-Grid Everyday-Default | Owner + Claude-Messung ≥4–5 Clips zuerst |
 | SceneMap P5-Audit [#290](https://github.com/funfunpayer/SamNPlayer/issues/290) | Backlog, kein Rel35-Blocker |
 | AIWrite ONNX-Writer | Scaffold — Imitation-Keep reicht |

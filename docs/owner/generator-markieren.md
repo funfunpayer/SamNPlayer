@@ -75,7 +75,7 @@ Nur wenn Settings → **Collect learning data** an:
 - Keine Stroke-Kurve 0–100 schreiben — Everyday-Erkennung bleibt **Go-CSRT**; KI nur Assist.  
 - Contact gold/magenta ≠ Ignore schwarz.  
 - **Repair / Improve** (Fill gaps · Heal tracking gaps) ist ein **anderer** Schritt (klassisches Nachpolieren der Kurve, kein Re-Track, keine KI) — Anleitung §11 · [`media/generator-repair-improve.png`](media/generator-repair-improve.png).  
-- Parked Virtual Person / #264 unberührt.
+- **Cancelled** Virtual Person / #264 (geschlossen, out of scope).
 
 ---
 

@@ -57,7 +57,7 @@ Evidence table for the close is in the [#354](https://github.com/funfunpayer/Sam
 ## Constraints respected
 
 - Everyday Go CSRT base untouched
-- No #264 / Virtual Person work
+- No #264 / Virtual Person work (cancelled / out of scope)
 - No force-close without evidence (evidence above + ancestors of tip)
 
 ---

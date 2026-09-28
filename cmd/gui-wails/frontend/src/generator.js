@@ -2581,9 +2581,7 @@ export function initGenerator(root, playback) {
       axis: el('#gen-axis').value,
       rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
       maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
-      flowDownscale: 0,
       overwrite,
-      aiQualityOpinion: false,
       contactVibration: el('#gen-contact-vibration').checked,
       contactVibrationSpan: el('#gen-contact-vibration').checked
         ? (parseInt(el('#gen-contact-span').value, 10) || 75) / 100

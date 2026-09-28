@@ -1,7 +1,8 @@
 # Plugins in SamNPlayer — für Endnutzer
 
-**Stand:** Drop-Folder-Infra (H1). Das Virtual-Person-Produkt ist **geparkt** —
-kein Enable / kein Overlay in dieser Version.
+**Stand:** Drop-Folder-Infra (H1). Das Virtual-Person-Produkt ist **cancelled /
+out of scope** (#264 geschlossen) — kein Enable / kein Overlay; nicht „geparkt
+für später“.
 
 ## Install
 
@@ -9,7 +10,7 @@ kein Enable / kein Overlay in dieser Version.
    **oder** Settings → Plugins → **Install pack…**
 2. Settings → Plugins → **Open Plugins folder** zum Prüfen
 
-Create / Play bleiben unverändert. Produkt-UI (Enable, Give, Titjob) kommt erst
-wieder, wenn Virtual Person aktiv freigegeben wird.
+Create / Play bleiben unverändert. Es gibt keinen Produkt-Enable-Pfad für
+Virtual Person in diesem Repo.
 
 Siehe auch [`PLUGIN_SYSTEM.md`](PLUGIN_SYSTEM.md).

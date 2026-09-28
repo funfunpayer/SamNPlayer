@@ -2,7 +2,7 @@
 
 **Status:** Design + MVP (query → ask → apply).  
 **Scope:** Additive hotfix channel beside full Releases/Updates.  
-**Out of scope:** Advanced Generator cleanup; Virtual Person (#264 parked).
+**Out of scope:** Advanced Generator cleanup; Virtual Person (#264 cancelled / closed).
 
 ---
 

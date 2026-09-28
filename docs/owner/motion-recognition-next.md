@@ -2,7 +2,7 @@
 
 **Stand:** 2026-09-28 · Nur **Motion / Tracking**-Verbesserungen  
 **Basis:** Everyday **Go CSRT** (`generator/trackcv`) — hybrid KI assistiert nur.  
-**Nicht:** Full-GoCV-Rewrite, KCF-Default, Whisper, #264/VP, Rel38-Blocker.
+**Nicht:** Full-GoCV-Rewrite, KCF-Default, Whisper, #264/VP (cancelled), Rel38-Blocker.
 
 Repo-Kontext: [`EVERYDAY_GENERATE.md`](https://github.com/funfunpayer/SamNPlayer/blob/main/docs/EVERYDAY_GENERATE.md) · Drift-Historie in `AGENT_COORD` / `trackcv` (dispguard, appearance_memory).  
 Lern-Refs (nicht Deps): [gocv.io](https://gocv.io/) · [Capture-Artikel](https://dev.to/oleg_sydorov/gocv-opencv-an-approach-to-capture-video-329o) — siehe [`learning-repos-motion-video.md`](./learning-repos-motion-video.md).

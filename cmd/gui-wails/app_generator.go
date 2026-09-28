@@ -535,7 +535,6 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			runtime.EventsEmit(a.ctx, "generate:progress",
 				"License: trial mode — output capped to 60s (Settings → License for full Generate)")
 		}
-		_ = opts.FlowDownscale
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
 			genOpts.ROI2Fixed = opts.Roi2Fixed

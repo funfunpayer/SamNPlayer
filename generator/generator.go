@@ -1318,7 +1318,8 @@ func buildArgs(scriptPath, videoPath, outputPath string, roi ROI, opts Options) 
 		args = append(args, "--no-scene-cut-detection")
 	}
 	// OpenCL: Python enables automatically when available (log only).
-	// Do not pass --opencl / force a separate path — Go CSRT ignores it.
+	// Do not force a separate path — Go CSRT ignores OpenCL; use --no-opencl
+	// on the Python CLI to skip auto-enable.
 	if opts.Threads > 0 {
 		args = append(args, "--threads", strconv.Itoa(opts.Threads))
 	}

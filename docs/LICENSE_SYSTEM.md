@@ -55,7 +55,7 @@ effective) and `StartPlayback` (refuses `.samn` when not effective). Flipping
 | Embedded public key | `license/pubkey.go` | Matches `license/testdata/issuer.ed25519` (**DEV**) |
 | Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` (prints features) |
 | GUI API | `cmd/gui-wails/app_license.go` | `GetLicenseStatus`, `ImportLicense*`, `ClearLicense`, `LicenseAllowsFullFeatures` |
-| Plugin host H1 | `pluginhost/` + `app_pluginhost.go` | Drop-folder discover/install only; VP product parked |
+| Plugin host H1 | `pluginhost/` + `app_pluginhost.go` | Drop-folder discover/install only; VP product cancelled |
 | Settings section | `frontend/src/settings.js` | License card + Plugins (Install / Open folder; no VP Enable) |
 
 ### Issue a key (dev issuer)
@@ -102,7 +102,7 @@ Then: Settings → License → Import from file / paste.
 | Generate | Truncate output to ≤ 60 000 ms; banner “Trial: 1 minute” |
 | Playback `.samn` | Refuse + “Export .funscript…” |
 | Playback `.funscript` | Allowed |
-| Plugin pack feature (parked) | N/A while product parked — feature id reserved |
+| Plugin pack feature (cancelled) | N/A — feature id reserved for key compatibility only |
 
 Call sites:
 
@@ -110,7 +110,8 @@ Call sites:
 - Future plugin host: `license.EffectiveHasFeature(..., FeatureVirtualPerson)`  
 
 While Enforcement is off, feature gates return true. Virtual Person product
-Enable UI is scrubbed from tip (Rel35); re-wire when unparked.
+Enable UI is scrubbed from tip (#341); product is cancelled / out of scope
+(#264 closed) — do not re-wire as a deferred roadmap.
 
 ---
 
