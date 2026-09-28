@@ -178,11 +178,18 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | E-steward | ChatGPT | standing | **Review · bugfix · GitHub cleanup · docs** | **STANDING** |
 | E-learnAudit | ChatGPT | [#290](https://github.com/funfunpayer/SamNPlayer/issues/290) | **SceneMap P5 completeness audit** — current code rechecked: trace/auto/negative/user-region JSON already shipped; true missing slice = P5c reviewed YOLO export | **DONE 27 Sep** — implementation → #297 |
 | E-ask | ChatGPT | [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) merged (`c51bb67`) | **P5c reviewed YOLO export** — user region + `reviewed:true` auto only; no trainer/defaults. Harness parked; P5e/P5d not duplicated. | **DONE** |
+| E-264 | **ChatGPT** | [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) review | **#264 relevance review** — draft Virtual Person dump vs main after #273/#274/#275. Comment what already landed and what is still unique. Recommend close-as-superseded or keep parked. Do not merge, do not push that branch, do not touch [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) / VLM / GUI / defaults | **CLAIMED** — Cursor 28 Sep |
 | R-pose | Cursor | #201 merged | **PoseObserver Stage A** offline spike | **DONE** (`80c9b7d`) — bake-off = Owner |
 | T-train | Claude | **#206 merged** | **Training improve** intensity tiers + history auto-adjust + pulse-rhythm | **DONE** (`23c3a0e`) |
 | QC | Cursor + Claude + ChatGPT | main @ `b7d18ac` | **Tri-agent pre-release code check** — see § below | **DONE** — A PASS; C→#195; B→#196; board #193 |
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
+
+**Status board (28 Sep — ChatGPT reviews #264):**
+- **ChatGPT lane E:** **E-264** — review draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) against current main. [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) is already closed. [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) is merged @ `fb25da6`. Post a findings comment on #264 (landed vs still unique). Recommend close-as-superseded or keep parked. Do not merge it and do not push that branch.
+- **Stay out:** Claude **V3pipe** [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) (RF-DETR / teachers; CI still running). No VLM1/SearchAnchor, no GUI, no accept/reject map control, no P5e/P5d, no Everyday/Rhythm/AI defaults, no `VERSION`.
+- **Cursor:** squash-merge [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) only after CI is green. Accept/reject UI waits until that import is on main.
+- **Still Owner-gated:** portable smoke `v0.5.34`; V0 probe on 16 GB GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
 
 **Status board (28 Sep — Plugin/#275 DONE @ tip):**
 - **Plugin DONE:** drop-folder H1 [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) squash-merged @ `fb25da6` (Install pack / Open Plugins / discover+bind). Completes Active Plugin row with #273/#274. Overlay / ToyHub / full dump still deferred.
@@ -1083,6 +1090,7 @@ ring revision before committing.
 | 27 Sep | **Board DONE flips** (Cursor): BatteryLabel [#313](https://github.com/funfunpayer/SamNPlayer/pull/313) @ `955d1f7`; VLM1 engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` after OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310); E-ask/P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (stale IN REVIEW → DONE). Preserve ChatGPT BugE/E-steward. Rebased onto [#314](https://github.com/funfunpayer/SamNPlayer/pull/314) @ `7144cf7` (no code touch) | Cursor |
 | 27 Sep | **Claude path OK CONTINUE — Owner+Cursor.** Owner again: *"Gib Claude noch OK — er hat einen guten Weg."* Affirms the post-VLM1 contact-points / VLM follow-up lane (measure, teachers, V0, rhythm-clip gate). Engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) stays DONE — do not re-open. Cursor GUI [#316](https://github.com/funfunpayer/SamNPlayer/pull/316). Cursor squash-merges Claude PRs when CI green (Claude cannot merge) | Owner → Cursor |
 | 28 Sep | **Plugin/#275 DONE** (Cursor): drop-folder H1 [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) @ `fb25da6` — Active Plugin row + tip board flip; CHANGELOG Unreleased bullet. Park #264; preserve BugE/E-steward; no Rel35 | Cursor |
+| 28 Sep | **Cursor claims ChatGPT → #264 review.** P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) is on main; [#292](https://github.com/funfunpayer/SamNPlayer/pull/292) closed. Next non-colliding slice is a relevance comment on parked draft [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) after #273/#274/#275. Claude owns [#325](https://github.com/funfunpayer/SamNPlayer/pull/325). No merge, no defaults | Cursor |
 
 ---
 
