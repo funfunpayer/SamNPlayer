@@ -29,8 +29,8 @@ func TestVerifyContactPointsUsesNearestOverlappingWindow(t *testing.T) {
 
 func TestVerifyContactPointsClampsThreeByThreeAtImageEdges(t *testing.T) {
 	score := make([]uint8, 16)
-	score[5] = 100 // engine's own cell
-	score[0] = 180 // top-left contact evidence
+	score[5] = 100  // engine's own cell
+	score[0] = 180  // top-left contact evidence
 	score[15] = 180 // bottom-right contact evidence
 	m := SceneMap{Cols: 4, Rows: 4, Windows: []MapWindow{{
 		StartMs: 0, EndMs: 8000, ChosenCell: 5, Score: score,
