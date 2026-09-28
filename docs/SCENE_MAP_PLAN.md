@@ -1,6 +1,7 @@
 # Scene map — rhythm preview, user marks, learning data (plan)
 
 Status: **P5a–P5c done** — P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) reviewed YOLO export; P5b #256 / `524d23b`; P5a #255 / `c57b910`; P4b #254; P4 #253; P3 #251; P2 v0.5.31; P1 #246; plan #243.
+Audit issue [#290](https://github.com/funfunpayer/SamNPlayer/issues/290) is **closable / closed** on tip (P5c shipped; P5e parked; P5d not duplicated).
 Implementation: Cursor (per Owner). Claude reviews the engine parts and runs
 the golden-clip measurements. **Next:** P5e parked; Claude M3 gate / Owner rhythm clips before P6. Do not reopen P5c.
 
