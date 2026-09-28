@@ -1133,7 +1133,7 @@ export namespace main {
 	    width: number;
 	    height: number;
 	    pngBase64: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new FramePreview(source);
 	    }
@@ -1143,6 +1143,48 @@ export namespace main {
 	        this.width = source["width"];
 	        this.height = source["height"];
 	        this.pngBase64 = source["pngBase64"];
+	    }
+	}
+	export class PostprocessPreviewRequest {
+	    smoothWindow: number;
+	    minPeakDistanceMs: number;
+	    peakProminence: number;
+	    rdpTolerance: number;
+	    adaptiveKeyframeError: number;
+	    maxSpeed: number;
+
+	    static createFrom(source: any = {}) {
+	        return new PostprocessPreviewRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.smoothWindow = source["smoothWindow"];
+	        this.minPeakDistanceMs = source["minPeakDistanceMs"];
+	        this.peakProminence = source["peakProminence"];
+	        this.rdpTolerance = source["rdpTolerance"];
+	        this.adaptiveKeyframeError = source["adaptiveKeyframeError"];
+	        this.maxSpeed = source["maxSpeed"];
+	    }
+	}
+	export class PostprocessPreviewResult {
+	    keyframeCount: number;
+	    peakCount: number;
+	    valleyCount: number;
+	    meanHz: number;
+	    hint: string;
+
+	    static createFrom(source: any = {}) {
+	        return new PostprocessPreviewResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.keyframeCount = source["keyframeCount"];
+	        this.peakCount = source["peakCount"];
+	        this.valleyCount = source["valleyCount"];
+	        this.meanHz = source["meanHz"];
+	        this.hint = source["hint"];
 	    }
 	}
 	export class GenerateOptions {
@@ -1158,6 +1200,7 @@ export namespace main {
 	    invert: boolean;
 	    smoothWindow: number;
 	    minPeakDistanceMs: number;
+	    peakProminence: number;
 	    disableCameraCompensation: boolean;
 	    disableSceneCutDetection: boolean;
 	    rdpTolerance: number;
@@ -1198,6 +1241,7 @@ export namespace main {
 	        this.invert = source["invert"];
 	        this.smoothWindow = source["smoothWindow"];
 	        this.minPeakDistanceMs = source["minPeakDistanceMs"];
+	        this.peakProminence = source["peakProminence"];
 	        this.disableCameraCompensation = source["disableCameraCompensation"];
 	        this.disableSceneCutDetection = source["disableSceneCutDetection"];
 	        this.rdpTolerance = source["rdpTolerance"];

@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -42,6 +42,16 @@ export function initGenerator(root, playback) {
         <button id="gen-choose" class="primary">Choose video…</button>
         <span class="path-label" id="gen-video-path">No video selected</span>
         <button id="gen-check-deps">Check dependencies</button>
+      </div>
+      <div id="gen-queue" class="gen-queue" hidden>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
+          <span class="hint" id="gen-queue-summary" style="margin:0;"></span>
+          <button type="button" id="gen-queue-run" class="primary"
+            data-help="Runs Everyday Create on each queued video in order (auto tip-find per clip). Progress/ETA covers the whole batch. Cancel stops the remaining queue.">Create queue</button>
+          <button type="button" id="gen-queue-clear" class="secondary"
+            data-help="Drop remaining queued videos; keep the current clip.">Clear queue</button>
+        </div>
+        <ol id="gen-queue-list" class="gen-queue-list" aria-label="Generate queue"></ol>
       </div>
     </section>
 
@@ -404,10 +414,14 @@ export function initGenerator(root, playback) {
               data-help="Adds extra keyframes for asymmetric motion. Default on.">Adaptive Keyframes</label></div>
             <div class="checkbox-row"><input type="checkbox" id="gen-perscene" /><label for="gen-perscene"
               data-help="Re-searches the tip region after each hard cut (Python PerSceneROI). On Go-CSRT portable builds this is soft-ignored — cuts still re-anchor, Everyday stays on Go CSRT (#338/#339). Prefer leaving off unless you intentionally use the Python path.">Re-find region after each cut (Python-only; soft-ignored on Go CSRT)</label></div>
-            <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower. Default 11.">Smoothing window</label><input type="number" id="gen-smooth" value="11" /></div>
-            <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds. Default 150.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" /></div>
+            <div class="field-row"><label data-help="Signal smoothing window width in frames. Larger = calmer but slower. Default 11.">Smoothing window</label><input type="number" id="gen-smooth" value="11" min="0" step="1" /></div>
+            <div class="field-row"><label data-help="Minimum spacing between keyframes in milliseconds. Default 150.">Min keyframe spacing (ms)</label><input type="number" id="gen-peakdist" value="150" min="0" step="10" /></div>
+            <div class="field-row"><label data-help="Peak prominence as a fraction of the position span (0–1). Filters soft wiggles. 0 = profile default on Create (Autotune≈0.35, Soft≈0.2). Everyday leaves this at 0.">Peak prominence (0 = profile default)</label><input type="number" id="gen-prominence" value="0" min="0" max="1" step="0.05" /></div>
             <div class="field-row"><label data-help="Ramer–Douglas–Peucker tolerance for thinning. 0 = off.">RDP tolerance (0 = off)</label><input type="number" id="gen-rdp" value="0" step="0.5" min="0" /></div>
             <div class="field-row"><label data-help="Max position change per second (0–100 scale). 0 = off. Protects the device. Autotune sets 400.">Max speed (0 = off)</label><input type="number" id="gen-maxspeed" value="0" step="50" min="0" /></div>
+            <p class="hint" id="gen-postprocess-preview" style="margin:8px 0 0 0;" aria-live="polite">
+              Postprocess probe: change knobs above for live keyframe/peak feedback (synthetic probe — not your clip).
+            </p>
           </details>
         </div>
       </details>
@@ -528,11 +542,90 @@ export function initGenerator(root, playback) {
   let profileSuggestionSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
+  // Generate queue (DeepFunGen-style batch): remaining paths after the current clip.
+  // Entries: { path, status: 'queued'|'running'|'done'|'failed'|'skipped' }
+  let generateQueue = [];
+  let queueRunning = false;
+  let queueOverwrite = false;
+  let queueBatchStartedAt = 0;
+  let queueDoneCount = 0;
   // FunGen-like 0–100 gauge over the preview (after Generate).
   let genCurvePoints = null; // [{atMs, pos}, ...]
   let genCurveBeforeAIDraft = null; // CSRT Create curve restored on Discard
   let aiDraftCurveActive = false; // true while pending AI draft drives the gauge
   const POS_OVERLAY_PREF = 'samn.genPosOverlay';
+
+  function basename(p) {
+    return String(p || '').split(/[\\/]/).pop() || p;
+  }
+
+  function renderQueue() {
+    const wrap = el('#gen-queue');
+    const list = el('#gen-queue-list');
+    const summary = el('#gen-queue-summary');
+    const runBtn = el('#gen-queue-run');
+    const clearBtn = el('#gen-queue-clear');
+    if (!wrap || !list || !summary) return;
+    if (!generateQueue.length) {
+      wrap.hidden = true;
+      list.innerHTML = '';
+      summary.textContent = '';
+      return;
+    }
+    wrap.hidden = false;
+    const pending = generateQueue.filter(q => q.status === 'queued').length;
+    const done = generateQueue.filter(q => q.status === 'done').length;
+    const failed = generateQueue.filter(q => q.status === 'failed' || q.status === 'skipped').length;
+    const total = generateQueue.length;
+    summary.textContent = queueRunning
+      ? `Queue ${done + 1}/${total} running… (${failed} skipped/failed)`
+      : `Queue: ${total} video${total === 1 ? '' : 's'} (${pending} waiting` +
+        (done ? `, ${done} done` : '') +
+        (failed ? `, ${failed} skipped/failed` : '') + ')';
+    if (runBtn) runBtn.disabled = queueRunning || pending === 0;
+    if (clearBtn) clearBtn.disabled = queueRunning;
+    list.innerHTML = generateQueue.map((q, i) => {
+      const mark = q.status === 'done' ? '✓'
+        : q.status === 'running' ? '…'
+        : q.status === 'failed' ? '✗'
+        : q.status === 'skipped' ? '–'
+        : String(i + 1);
+      return `<li data-status="${q.status}"><span class="gen-queue-mark">${mark}</span> ${basename(q.path)} <span class="hint">(${q.status})</span></li>`;
+    }).join('');
+  }
+
+  function setQueueFromPaths(paths) {
+    const uniq = [];
+    const seen = new Set();
+    for (const p of (paths || [])) {
+      if (!p || seen.has(p)) continue;
+      seen.add(p);
+      uniq.push(p);
+    }
+    generateQueue = uniq.map(path => ({ path, status: 'queued' }));
+    queueRunning = false;
+    queueOverwrite = false;
+    queueDoneCount = 0;
+    queueBatchStartedAt = 0;
+    renderQueue();
+  }
+
+  function clearQueueKeepCurrent() {
+    generateQueue = [];
+    queueRunning = false;
+    queueOverwrite = false;
+    queueDoneCount = 0;
+    queueBatchStartedAt = 0;
+    videoBatchNote = '';
+    renderQueue();
+  }
+
+  function queueProgressPrefix() {
+    if (!queueRunning || !generateQueue.length) return '';
+    const total = generateQueue.length;
+    const idx = Math.min(total, queueDoneCount + 1);
+    return `Queue ${idx}/${total} · `;
+  }
 
   function posOverlayWanted() {
     const cb = el('#gen-pos-overlay-toggle');
@@ -2342,7 +2435,177 @@ export function initGenerator(root, playback) {
 
   // Fallengelassenes video Apply. Teilt sich den Ladeweg mit der
   // Dateiauswahl, damit beide Wege garantiert dasselbe tun.
-  window.addEventListener('drop:video', e => loadVideo(e.detail.path, e.detail.extraCount || 0));
+  // paths[] = full multi-drop list (current first); queue holds all clips.
+  window.addEventListener('drop:video', e => {
+    const path = e.detail.path;
+    const paths = (e.detail.paths && e.detail.paths.length)
+      ? e.detail.paths
+      : [path];
+    const rest = paths[0] === path ? paths.slice(1) : paths.filter(p => p !== path);
+    loadVideo(path, Math.max(0, paths.length - 1), rest);
+  });
+  el('#gen-queue-clear')?.addEventListener('click', () => {
+    clearQueueKeepCurrent();
+    if (videoPath) {
+      el('#gen-status').textContent = 'Queue cleared — current clip kept.';
+    }
+  });
+  el('#gen-queue-run')?.addEventListener('click', () => startQueueRun());
+
+  let postPreviewTimer = 0;
+  async function refreshPostprocessPreview() {
+    const out = el('#gen-postprocess-preview');
+    if (!out) return;
+    const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
+    try {
+      const res = await PreviewPostprocess({
+        smoothWindow: parseInt(el('#gen-smooth')?.value, 10) || 11,
+        minPeakDistanceMs: parseInt(el('#gen-peakdist')?.value, 10) || 150,
+        peakProminence: Number.isFinite(prominenceRaw) && prominenceRaw > 0 ? prominenceRaw : 0,
+        rdpTolerance: parseFloat(el('#gen-rdp')?.value) || 0,
+        adaptiveKeyframeError: el('#gen-adaptive')?.checked ? 6 : 0,
+        maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
+      });
+      const hz = (res.meanHz || res.MeanHz || 0);
+      const hzBit = hz > 0 ? ` · ~${hz.toFixed(2)} Hz` : '';
+      out.textContent = (res.hint || res.Hint || 'Postprocess probe') + hzBit;
+    } catch (err) {
+      out.textContent = 'Postprocess probe unavailable: ' + err;
+    }
+  }
+  function schedulePostprocessPreview() {
+    clearTimeout(postPreviewTimer);
+    postPreviewTimer = setTimeout(refreshPostprocessPreview, 180);
+  }
+  ['#gen-smooth', '#gen-peakdist', '#gen-prominence', '#gen-rdp', '#gen-maxspeed'].forEach(sel => {
+    el(sel)?.addEventListener('input', schedulePostprocessPreview);
+    el(sel)?.addEventListener('change', schedulePostprocessPreview);
+  });
+  el('#gen-adaptive')?.addEventListener('change', schedulePostprocessPreview);
+  el('#gen-advanced-expert')?.addEventListener('toggle', () => {
+    if (el('#gen-advanced-expert')?.open) refreshPostprocessPreview();
+  });
+
+  async function startQueueRun() {
+    if (queueRunning || !generateQueue.some(q => q.status === 'queued')) return;
+    // Ask once for overwrite policy for the whole batch.
+    let needOverwriteAsk = false;
+    try {
+      for (const q of generateQueue) {
+        if (q.status !== 'queued') continue;
+        if (await ScriptExistsForVideo(q.path)) {
+          needOverwriteAsk = true;
+          break;
+        }
+      }
+      if (videoPath && await ScriptExistsForVideo(videoPath)) {
+        needOverwriteAsk = true;
+      }
+    } catch (_) { /* prefer not to overwrite */ }
+    queueOverwrite = false;
+    if (needOverwriteAsk) {
+      if (!confirm('One or more scripts already exist beside queued videos. Replace existing Emotion Scripts / funscripts for this queue?')) {
+        // Still run, but skip existing (overwrite=false → backend refuses; we mark skipped).
+        queueOverwrite = false;
+      } else {
+        queueOverwrite = true;
+      }
+    }
+    queueRunning = true;
+    queueDoneCount = generateQueue.filter(q => q.status === 'done').length;
+    queueBatchStartedAt = Date.now();
+    renderQueue();
+    // If current video is set and matches first queued, or no current — advance.
+    const next = generateQueue.find(q => q.status === 'queued');
+    if (!next) {
+      queueRunning = false;
+      renderQueue();
+      return;
+    }
+    // Start with current video if it is the next queued item; else load next.
+    if (videoPath === next.path) {
+      next.status = 'running';
+      renderQueue();
+      pendingGenerateAfterRoi = true;
+      generating = true;
+      el('#gen-generate').disabled = true;
+      el('#gen-cancel').disabled = false;
+      el('#gen-status').textContent = queueProgressPrefix() + 'Finding tip, then creating…';
+      syncWorkflowSteps();
+      if (roi) {
+        generate({ fromQueue: true });
+      } else {
+        startAutoFindRegion();
+      }
+      return;
+    }
+    await loadVideo(next.path, 0, null, { fromQueueAdvance: true });
+    const entry = generateQueue.find(q => q.path === next.path);
+    if (entry) entry.status = 'running';
+    renderQueue();
+    pendingGenerateAfterRoi = true;
+    generating = true;
+    el('#gen-generate').disabled = true;
+    el('#gen-cancel').disabled = false;
+    el('#gen-status').textContent = queueProgressPrefix() + 'Finding tip, then creating…';
+    syncWorkflowSteps();
+    startAutoFindRegion();
+  }
+
+  async function advanceQueueAfterDone(ok, errMsg) {
+    if (!queueRunning) return;
+    const cur = generateQueue.find(q => q.status === 'running')
+      || generateQueue.find(q => q.path === videoPath);
+    if (cur) {
+      if (ok) {
+        cur.status = 'done';
+        queueDoneCount++;
+      } else if (errMsg && /already exists/i.test(errMsg) && !queueOverwrite) {
+        cur.status = 'skipped';
+        queueDoneCount++;
+      } else {
+        cur.status = 'failed';
+        queueDoneCount++;
+      }
+    }
+    renderQueue();
+    if (userCancelRequested) {
+      for (const q of generateQueue) {
+        if (q.status === 'queued' || q.status === 'running') q.status = 'skipped';
+      }
+      queueRunning = false;
+      renderQueue();
+      el('#gen-status').textContent = 'Queue canceled.';
+      return;
+    }
+    const next = generateQueue.find(q => q.status === 'queued');
+    if (!next) {
+      queueRunning = false;
+      renderQueue();
+      const failed = generateQueue.filter(q => q.status === 'failed' || q.status === 'skipped').length;
+      const done = generateQueue.filter(q => q.status === 'done').length;
+      const elapsed = queueBatchStartedAt
+        ? Math.round((Date.now() - queueBatchStartedAt) / 1000)
+        : 0;
+      el('#gen-status').textContent =
+        `Queue done — ${done} created` +
+        (failed ? `, ${failed} skipped/failed` : '') +
+        (elapsed ? ` · ${elapsed < 60 ? elapsed + ' s' : Math.round(elapsed / 60) + ' min'} total` : '') +
+        '. Review the last clip below.';
+      return;
+    }
+    // Continue batch: load next + auto-find + generate.
+    await loadVideo(next.path, 0, null, { fromQueueAdvance: true });
+    next.status = 'running';
+    renderQueue();
+    pendingGenerateAfterRoi = true;
+    generating = true;
+    el('#gen-generate').disabled = true;
+    el('#gen-cancel').disabled = false;
+    el('#gen-status').textContent = queueProgressPrefix() + 'Finding tip, then creating…';
+    syncWorkflowSteps();
+    startAutoFindRegion();
+  }
 
   async function chooseVideo() {
     const path = await PickVideoFile();
@@ -2357,7 +2620,7 @@ export function initGenerator(root, playback) {
     await loadVideo(path);
   }
 
-  async function loadVideo(path, extraCount = 0) {
+  async function loadVideo(path, extraCount = 0, remainingPaths = null, opts = {}) {
     cancelActiveAITargetRequest();
     videoPath = path;
     lastSceneMap = null;
@@ -2394,13 +2657,30 @@ export function initGenerator(root, playback) {
     setRoi2Mode(false);
     el('#gen-generate').disabled = true;
     updateRoiLabels();
-    // Stapelverarbeitung mehrerer videos gibt es noch nicht - vorher wurden
-    // more dropped videos einfach stillschweigend verworfen, ohne dass
-    // sichtbar war, dass überhaupt mehr als eins ankam.
-    const batchNote = extraCount > 0
-      ? ` (${extraCount} more video${extraCount === 1 ? '' : 's'} ignored — batch processing not available yet)`
-      : '';
-    videoBatchNote = batchNote;
+    // Multi-drop → queue (DeepFunGen UX). remainingPaths = videos after current.
+    // fromQueueAdvance: keep existing queue entries; only refresh status UI.
+    if (!opts.fromQueueAdvance) {
+      if (Array.isArray(remainingPaths) && remainingPaths.length) {
+        // Full batch including the clip just loaded (DeepFunGen-style queue).
+        setQueueFromPaths([path, ...remainingPaths]);
+        videoBatchNote = ` (${remainingPaths.length} more in queue)`;
+      } else if (extraCount > 0 && !remainingPaths) {
+        // Legacy: count only — cannot rebuild paths.
+        videoBatchNote = ` (${extraCount} more video${extraCount === 1 ? '' : 's'} — re-drop to queue)`;
+        generateQueue = [];
+        renderQueue();
+      } else {
+        videoBatchNote = '';
+        if (!queueRunning) {
+          generateQueue = [];
+          renderQueue();
+        }
+      }
+    } else {
+      videoBatchNote = '';
+      renderQueue();
+    }
+    const batchNote = videoBatchNote;
     try {
       await showFrame(path, 0);
       candidates = [];
@@ -2420,7 +2700,9 @@ export function initGenerator(root, playback) {
       if (spBeside) spBeside.disabled = false;
       el('#gen-suggest-status').textContent = '';
       el('#gen-status').textContent = (
-        'Everyday path: finding tip region for CSRT. Contact marks appear when Contact vib is on.'
+        generateQueue.length
+          ? 'Everyday path: tip region for CSRT. Use Create queue for the batch, or Create for this clip only.'
+          : 'Everyday path: finding tip region for CSRT. Contact marks appear when Contact vib is on.'
       ) + batchNote;
       lastOutputPath = null;
       genCurvePoints = null;
@@ -2447,9 +2729,12 @@ export function initGenerator(root, playback) {
         }
       } catch (_) { /* optional companion */ }
       // FunGen-like: auto-find tip after preview loads (CSRT first choice).
-      startAutoFindRegion();
+      // Queue advance starts auto-find from advanceQueueAfterDone / startQueueRun.
+      if (!opts.fromQueueAdvance) {
+        startAutoFindRegion();
+      }
     } catch (err) {
-      // Keep batchNote so multi-drop "ignored" stays visible even if preview fails.
+      // Keep batchNote so multi-drop queue hint stays visible even if preview fails.
       uiError('Load video: ' + err + batchNote, el('#gen-status'));
     }
   }
@@ -2496,8 +2781,9 @@ export function initGenerator(root, playback) {
     }
   }
 
-  async function generate() {
+  async function generate(genOpts = {}) {
     if (!videoPath) return;
+    const fromQueue = !!genOpts.fromQueue || queueRunning;
     if (activeAITargetRequest) {
       el('#gen-status').textContent = 'Wait for the body-point check, or change/dismiss it before creating.';
       return;
@@ -2522,7 +2808,7 @@ export function initGenerator(root, playback) {
     el('#gen-generate').disabled = true;
     el('#gen-cancel').disabled = false;
     updateSceneMapButton();
-      el('#gen-status').textContent = 'No tip yet — finding region, then creating…';
+      el('#gen-status').textContent = queueProgressPrefix() + 'No tip yet — finding region, then creating…';
       syncWorkflowSteps();
       startAutoFindRegion();
       return;
@@ -2530,16 +2816,26 @@ export function initGenerator(root, playback) {
 
     // Do not silently overwrite an existing script beside the video.
     let overwrite = false;
-    try {
-      if (await ScriptExistsForVideo(videoPath)) {
-        const target = videoPath.replace(/\.[^.\\/]+$/, '');
-        if (!confirm(`A script already exists for this video. Creating again can replace these files:\n${target}.samn (Emotion Script)\n${target}.funscript (copy for other apps)\n\nReplace existing files?`)) {
-          return;
+    if (fromQueue) {
+      overwrite = queueOverwrite;
+    } else {
+      try {
+        if (await ScriptExistsForVideo(videoPath)) {
+          const target = videoPath.replace(/\.[^.\\/]+$/, '');
+          if (!confirm(`A script already exists for this video. Creating again can replace these files:\n${target}.samn (Emotion Script)\n${target}.funscript (copy for other apps)\n\nReplace existing files?`)) {
+            return;
+          }
+          overwrite = true;
         }
-        overwrite = true;
+      } catch (err) {
+        // Existence check failed — prefer not to overwrite; backend will refuse cleanly.
       }
-    } catch (err) {
-      // Existence check failed — prefer not to overwrite; backend will refuse cleanly.
+    }
+
+    if (fromQueue) {
+      const entry = generateQueue.find(q => q.path === videoPath);
+      if (entry) entry.status = 'running';
+      renderQueue();
     }
 
     el('#gen-generate').disabled = true;
@@ -2548,14 +2844,14 @@ export function initGenerator(root, playback) {
     userCancelRequested = false;
     syncWorkflowSteps();
     updateSceneMapButton();
-    el('#gen-status').textContent = 'Creating…';
+    el('#gen-status').textContent = queueProgressPrefix() + 'Creating…';
     el('#gen-log').textContent = '';
     {
       const wrap = el('#gen-progress-wrap');
       wrap.style.display = 'block';
       el('#gen-progress-bar').style.width = '0%';
       el('#gen-progress-bar').style.opacity = '1';
-      el('#gen-progress-text').textContent = 'Starting…';
+      el('#gen-progress-text').textContent = queueProgressPrefix() + 'Starting…';
       const tip = el('#gen-preview-steer-tip');
       if (tip) tip.textContent = '';
       progressStartedAt = Date.now();
@@ -2564,12 +2860,14 @@ export function initGenerator(root, playback) {
     // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
     // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
     const effectiveRoi = roi || { x: 0, y: 0, w: 0, h: 0 };
+    const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     const payload = {
       videoPath,
       x: effectiveRoi.x, y: effectiveRoi.y, w: effectiveRoi.w, h: effectiveRoi.h,
       invert: el('#gen-invert').checked,
       smoothWindow: parseInt(el('#gen-smooth').value, 10) || 11,
       minPeakDistanceMs: parseInt(el('#gen-peakdist').value, 10) || 150,
+      peakProminence: Number.isFinite(prominenceRaw) && prominenceRaw > 0 ? prominenceRaw : 0,
       disableCameraCompensation: !el('#gen-camcomp').checked,
       disableSceneCutDetection: !el('#gen-scenecut').checked,
       perSceneRoi: el('#gen-perscene').checked,
@@ -2670,7 +2968,9 @@ export function initGenerator(root, playback) {
     userCancelRequested = true;
     pendingGenerateAfterRoi = false;
     CancelGenerate();
-    el('#gen-status').textContent = 'Cancel requested…';
+    el('#gen-status').textContent = queueRunning
+      ? 'Cancel requested — stopping queue…'
+      : 'Cancel requested…';
   });
 
   const handleProgressLine = line => {
@@ -2831,7 +3131,7 @@ export function initGenerator(root, playback) {
     const shouldGenerate = pendingGenerateAfterRoi;
     pendingGenerateAfterRoi = false;
     if (shouldGenerate && roi) {
-      generate();
+      generate({ fromQueue: queueRunning });
     }
   });
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
@@ -2860,8 +3160,19 @@ export function initGenerator(root, playback) {
       const total = elapsed / (pct / 100);
       const remaining = Math.max(0, Math.round(total - elapsed));
       rest = `  ·  ~${remaining < 60 ? remaining + ' s' : Math.round(remaining / 60) + ' min'} left`;
+      // Batch ETA: extrapolate from finished clips + current clip remainder.
+      if (queueRunning && generateQueue.length > 1 && queueBatchStartedAt) {
+        const finished = queueDoneCount;
+        const totalQ = generateQueue.length;
+        if (finished > 0 && pct >= 5) {
+          const batchElapsed = (Date.now() - queueBatchStartedAt) / 1000;
+          const perClip = batchElapsed / (finished + pct / 100);
+          const batchLeft = Math.max(0, Math.round(perClip * (totalQ - finished - pct / 100)));
+          rest += `  ·  batch ~${batchLeft < 60 ? batchLeft + ' s' : Math.round(batchLeft / 60) + ' min'}`;
+        }
+      }
     }
-    text.textContent = `${pct} %${rest}`;
+    text.textContent = `${queueProgressPrefix()}${pct} %${rest}`;
   };
   EventsOn('generate:percent', handleProgressPercent);
   EventsOn('generate:tip-percent', event => {
@@ -2955,6 +3266,7 @@ export function initGenerator(root, playback) {
       if (result.seq < activeCreateSeq) return;
       activeCreateSeq = result.seq;
     }
+    const cancelByUser = userCancelRequested;
     userCancelRequested = false;
     hideProgress();
     el('#gen-cancel').disabled = true;
@@ -2971,13 +3283,19 @@ export function initGenerator(root, playback) {
     if (result.error) {
       if (result.cancelled) {
         el('#gen-status').textContent = 'Canceled.';
+        if (queueRunning) {
+          userCancelRequested = cancelByUser || true;
+          advanceQueueAfterDone(false, 'canceled');
+          userCancelRequested = false;
+        }
         return;
       }
       el('#gen-status').textContent = 'Failed: ' + result.error;
       el('#gen-improve').style.display = 'none';
+      if (queueRunning) advanceQueueAfterDone(false, result.error);
       return;
     }
-    el('#gen-status').textContent = 'Done — Emotion Script ready in Play.';
+    el('#gen-status').textContent = queueProgressPrefix() + 'Done — Emotion Script ready in Play.';
     const pipe = el('#gen-pipeline');
     if (pipe) {
       pipe.textContent = '';
@@ -3101,6 +3419,9 @@ export function initGenerator(root, playback) {
       } catch (err) {
         console.warn('post-generate Play/overlay:', err);
         playback.loadScriptPath(path, { review: true });
+      }
+      if (queueRunning) {
+        await advanceQueueAfterDone(true);
       }
     })();
   });

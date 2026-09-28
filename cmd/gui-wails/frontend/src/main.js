@@ -282,11 +282,14 @@ EventsOn('files:dropped', data => {
 
   if (data.videos && data.videos.length) {
     switchTab('generator');
-    // Nur das erste Video wird geladen - Stapelverarbeitung mehrerer Videos
-    // gibt es noch nicht. Der Generator zeigt das explizit to (extraCount),
-    // statt die übrigen Dateien einfach stillschweigend zu verwerfen.
+    // Multi-drop → Create queue (DeepFunGen UX). First video loads; paths[]
+    // carries the full batch so the generator can run Everyday Create in order.
     window.dispatchEvent(new CustomEvent('drop:video', {
-      detail: { path: data.videos[0], extraCount: data.videos.length - 1 },
+      detail: {
+        path: data.videos[0],
+        paths: data.videos,
+        extraCount: data.videos.length - 1,
+      },
     }));
     return;
   }

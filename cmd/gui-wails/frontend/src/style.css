@@ -1808,6 +1808,39 @@ label .help-chip { margin-top: -1px; }
 .gen-adv-nested > summary::before { content: "▸ "; }
 .gen-adv-nested[open] > summary::before { content: "▾ "; }
 
+/* Create multi-drop queue (DeepFunGen-style batch) */
+.gen-queue {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.1);
+}
+.gen-queue-list {
+  margin: 8px 0 0;
+  padding: 0 0 0 1.2em;
+  max-height: 9em;
+  overflow: auto;
+  font-size: 12.5px;
+}
+.gen-queue-list li {
+  margin: 2px 0;
+  color: var(--text-dim);
+}
+.gen-queue-list li[data-status="running"] { color: var(--text); font-weight: 600; }
+.gen-queue-list li[data-status="done"] { color: var(--ok, #3dd875); }
+.gen-queue-list li[data-status="failed"] { color: var(--danger, #d84d4d); }
+.gen-queue-mark {
+  display: inline-block;
+  min-width: 1.2em;
+  font-variant-numeric: tabular-nums;
+}
+#gen-postprocess-preview {
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  color: var(--text-dim);
+}
+
 /* Settings: optional AI / learning collapsed by default */
 .st-opt-panel {
   margin: 14px 0 16px;
