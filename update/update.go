@@ -48,7 +48,7 @@ var Version = "dev"
 //
 // Bewusst eine Konstante und keine Datei, die zur Laufzeit gelesen wird:
 // die fertige .exe soll eine einzelne Datei bleiben.
-const BaseVersion = "0.5.35"
+const BaseVersion = "0.5.36"
 
 // Describe liefert die Fassung für Anzeige und Fehlerberichte.
 func Describe() string {
