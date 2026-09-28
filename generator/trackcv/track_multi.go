@@ -55,8 +55,10 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 	trackers := make([]*Tracker, len(partners))
 	mems := make([]*appearanceMemory, len(partners))
 	coasts := make([]trackutil.Coast, len(partners))
+	guards := make([]dispGuard, len(partners))
 	include0 := make([]bool, len(partners))
 	var tipMem *appearanceMemory
+	var tipGuard dispGuard
 	if opts.appearanceMemoryEnabled() {
 		tipMem = newAppearanceMemory()
 	}
@@ -72,6 +74,15 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 				mems[i] = newAppearanceMemory()
 			}
 		}
+	}
+	if tipMem != nil {
+		// Seed tip + partner templates[0] from frame-0 ROIs (TrackROI parity).
+		gray0 := cap.ToGray()
+		seedAppearanceMemory(tipMem, gray0, tip)
+		for i, p := range partners {
+			seedAppearanceMemory(mems[i], gray0, p.ROI)
+		}
+		gray0.Close()
 	}
 	var tipCoast trackutil.Coast
 	tipCoast.ObserveOK(tip.X, tip.Y, tip.W, tip.H)
@@ -122,7 +133,7 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 			gray = cap.ToGray()
 		}
 		newTip, okTip := tipTracker.Update(cap)
-		okTip, tipBox, tipTracker = recoverOrCoast(cap, gray, tipTracker, tipMem, &tipCoast, newTip, okTip, tipBox, idx)
+		okTip, tipBox, tipTracker = recoverOrCoast(cap, gray, tipTracker, tipMem, &tipCoast, &tipGuard, newTip, okTip, tipBox, idx)
 		tipOK := okTip
 		if !okTip {
 			if x, y, w, h, on := tipCoast.OnLost(); on {
@@ -136,7 +147,7 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 				continue
 			}
 			newB, okB := trackers[i].Update(cap)
-			okB, boxes[i], trackers[i] = recoverOrCoast(cap, gray, trackers[i], mems[i], &coasts[i], newB, okB, boxes[i], idx)
+			okB, boxes[i], trackers[i] = recoverOrCoast(cap, gray, trackers[i], mems[i], &coasts[i], &guards[i], newB, okB, boxes[i], idx)
 			if okB {
 				include[i] = true
 			} else if x, y, w, h, on := coasts[i].OnLost(); on {

@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Tip/partner appearance-reacquire vs coast** — `TrackTwoPoints` /
+  `TrackMultiPoints` now share TrackROI's long-clip drift defenses: frame-0
+  tip/partner seed as `templates[0]`, `matchesOriginal`-gated `remember()`,
+  `dispGuard` on ok=true jumps, and reacquire that fails closed unless the
+  candidate still resembles the tip seed (so a poisoned bank cannot hard-tip
+  onto a distractor — coast bridges instead). Everyday Go CSRT unchanged;
+  no VERSION bump. Synthetic hard-tip goldens in `multi_recover_test.go`.
+
 ## [0.5.40] — September 28, 2026
 
 ### Added

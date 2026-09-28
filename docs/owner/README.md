@@ -11,7 +11,7 @@ Kurz-Einstieg: [`../ANLEITUNG.md`](../ANLEITUNG.md) · In-App FAQ (EN): [`../USE
 
 | Doc | Inhalt |
 |-----|--------|
-| [`anleitung-funktionen.md`](anleitung-funktionen.md) | GUI-Funktionen Create / Play / Mark / Repair / AI Train / Settings |
+| [`anleitung-funktionen.md`](anleitung-funktionen.md) | GUI-Funktionen Create / Play / Bench / Mark / Repair / AI Train / Settings |
 | [`zusammenhang-und-testen.md`](zusammenhang-und-testen.md) | Architektur-Zusammenhang + Owner-Testpfade |
 | [`roadmap.md`](roadmap.md) | Roadmap + Meilensteine (kurz; Baseline v0.5.40) |
 | [`generator-markieren.md`](generator-markieren.md) | Scene-map Markieren (Ignore / include) |
@@ -45,6 +45,7 @@ Kurz-Einstieg: [`../ANLEITUNG.md`](../ANLEITUNG.md) · In-App FAQ (EN): [`../USE
 
 | Doc | Tag |
 |-----|-----|
+| **v0.5.40** | Contact Verify GUI + Bench Suggest beside — Tag [`v0.5.40`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40) · PRs [#359](https://github.com/funfunpayer/SamNPlayer/pull/359)/[#360](https://github.com/funfunpayer/SamNPlayer/pull/360)/[#361](https://github.com/funfunpayer/SamNPlayer/pull/361) |
 | [`v0.5.38-sammel.md`](v0.5.38-sammel.md) | **v0.5.38** Sammel Repair/Update/Advanced/Bench/Patch |
 | [`v0.5.37-enlarge-editor.md`](v0.5.37-enlarge-editor.md) | v0.5.37 großer AI-Train-Editor |
 | [`v0.5.36-review-boxes.md`](v0.5.36-review-boxes.md) | v0.5.36 YOLO Review-Boxen |

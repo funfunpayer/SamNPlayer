@@ -759,6 +759,56 @@ export namespace generator {
 
 export namespace main {
 
+	export class BenchmarkClipExportRequest {
+	    source: string;
+	    output: string;
+	    start: string;
+	    end: string;
+	    startSec?: number;
+	    endSec?: number;
+	    maxWidth?: number;
+	    presetRes?: string;
+	    noAudio?: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkClipExportRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.source = source["source"];
+	        this.output = source["output"];
+	        this.start = source["start"];
+	        this.end = source["end"];
+	        this.startSec = source["startSec"];
+	        this.endSec = source["endSec"];
+	        this.maxWidth = source["maxWidth"];
+	        this.presetRes = source["presetRes"];
+	        this.noAudio = source["noAudio"];
+	    }
+	}
+
+	export class BenchmarkClipExportResult {
+	    output: string;
+	    startSec: number;
+	    endSec: number;
+	    durationSec: number;
+	    maxWidth: number;
+
+	    static createFrom(source: any = {}) {
+	        return new BenchmarkClipExportResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.output = source["output"];
+	        this.startSec = source["startSec"];
+	        this.endSec = source["endSec"];
+	        this.durationSec = source["durationSec"];
+	        this.maxWidth = source["maxWidth"];
+	    }
+	}
+
 	export class BenchmarkPairSuggestion {
 	    video: string;
 	    reference?: string;

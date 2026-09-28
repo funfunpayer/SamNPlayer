@@ -19,7 +19,13 @@ Lange Quellen → **kurze, verkleinerte** Clips, die:
 
 ## 2. Bereiche markieren (In/Out)
 
-Kein schweres GUI nötig. Praktischer Owner-Flow:
+**In der GUI (Bench-Tab):** Clip-Prep → Source wählen → **In** / **Out**
+(Uhrzeit `MM:SS` / `HH:MM:SS` oder Sekunden) → Breite (Default **720p /
+1280**) → **Export clip**. Optional **Use in Compare**, damit der Kurzclip
+direkt im Pair-Score landet. Skript-/ffmpeg-Fallback bleibt unter
+„Script / copy-paste fallback“.
+
+Alternativ ohne GUI:
 
 1. Langes Video in einem Player (oder SamNPlayer) scrubben.
 2. **Start** und **Ende** notieren (Uhrzeit `MM:SS` / `HH:MM:SS` oder Sekunden).
@@ -140,14 +146,17 @@ Architecture: Everyday CSRT = Basis; FunGen = Referenz; KI assistiert/lernt aus 
 ## 7. Was bewusst nicht gemacht wird
 
 - Everyday-Create-Pfad unangetastet.
-- Kein schweres Mark-UI (Skript + Marks-JSON reichen für Owner-Prep).
 - Virtual Person / #264 / Rel38-Release-Track nicht blockieren.
 - Keine Clips ins Git.
+- Batch-Marks-JSON bleibt Skript-Pfad (GUI = Einzelclip In/Out).
 
 ---
 
 ## 8. Kurzer Smoke
 
-1. `python3 scripts/benchmark-prep/cut_clip_test.py`
-2. Einen 30-s-Clip bei 1280 exportieren → in Create CSRT → Funscript.
-3. Bench Compare gegen FunGen-Ref → Label speichern.
+1. `go test ./videox/ -run ClipPrep`
+2. `go test ./cmd/gui-wails/ -run BenchmarkClip`
+3. `python3 cmd/gui-wails/frontend/test/benchmark_clip_prep_test.py`
+4. Oder: `python3 scripts/benchmark-prep/cut_clip_test.py`
+5. Einen 30-s-Clip bei 1280 exportieren → in Create CSRT → Funscript.
+6. Bench Compare gegen FunGen-Ref → Label speichern.

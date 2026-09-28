@@ -103,47 +103,76 @@ func (m *appearanceMemory) matchesOriginal(gray *Gray, box Rect) (score float64,
 	return matchScore, matched
 }
 
+// reacquireCand is one full-resolution match above minScore.
+type reacquireCand struct {
+	score float64
+	box   Rect
+}
+
 // reacquire sucht die Region im ganzen Bild. ok=false, wenn nichts
 // Verlässliches gefunden wurde (unterhalb minScore wird NICHT neu
 // verankert - eine geratene Position ist schlechter als die alte).
+//
+// When templates[0] exists (user-confirmed start / frame-0 seed), a
+// candidate must positively resemble that seed (matchesOriginal known and
+// ≥ minScore). Unlike remember()'s "unknown → allow" gate, reacquire fails
+// closed: an ambiguous / non-matching candidate is skipped so the tip/partner
+// caller can coast instead of hard-tipping onto a poisoned bank match
+// (TrackROI already gated remember(); tip paths now share that gate plus
+// this reject path).
 func (m *appearanceMemory) reacquire(gray *Gray) (box Rect, ok bool) {
-	if len(m.templates) == 0 {
-		return Rect{}, false
+	cands := m.reacquireCandidates(gray)
+	for _, c := range cands {
+		score, known := m.matchesOriginal(gray, c.box)
+		if !known || score < m.minScore {
+			continue
+		}
+		return c.box, true
+	}
+	return Rect{}, false
+}
+
+// reacquireCandidates returns full-res matches sorted by score descending.
+func (m *appearanceMemory) reacquireCandidates(gray *Gray) []reacquireCand {
+	if len(m.templates) == 0 || gray == nil {
+		return nil
 	}
 	frame := gray.Downscale(m.downscale)
 	defer frame.Close()
-
-	bestScore := -1.0
-	var bestX, bestY, bestW, bestH int
-	found := false
-	for _, tmpl := range m.templates {
-		if tmpl.Height() >= frame.Height() || tmpl.Width() >= frame.Width() {
-			continue
-		}
-		x, y, score, matched := MatchTemplate(frame, tmpl)
-		if !matched {
-			continue
-		}
-		if score > bestScore {
-			bestScore, bestX, bestY = score, x, y
-			bestW, bestH = tmpl.Width(), tmpl.Height()
-			found = true
-		}
-	}
-
-	if !found || bestScore < m.minScore {
-		return Rect{}, false
-	}
 
 	scale := 1.0
 	if m.downscale != 0 {
 		scale = 1.0 / m.downscale
 	}
-	x := int(float64(bestX) * scale)
-	y := int(float64(bestY) * scale)
-	w := maxInt(8, int(float64(bestW)*scale))
-	h := maxInt(8, int(float64(bestH)*scale))
-	return Rect{X: x, Y: y, W: w, H: h}, true
+
+	var out []reacquireCand
+	for _, tmpl := range m.templates {
+		if tmpl.Height() >= frame.Height() || tmpl.Width() >= frame.Width() {
+			continue
+		}
+		x, y, score, matched := MatchTemplate(frame, tmpl)
+		if !matched || score < m.minScore {
+			continue
+		}
+		out = append(out, reacquireCand{
+			score: score,
+			box: Rect{
+				X: int(float64(x) * scale),
+				Y: int(float64(y) * scale),
+				W: maxInt(8, int(float64(tmpl.Width())*scale)),
+				H: maxInt(8, int(float64(tmpl.Height())*scale)),
+			},
+		})
+	}
+	// Insertion sort by score desc — template count is tiny (≤ maxTemplates).
+	for i := 1; i < len(out); i++ {
+		j := i
+		for j > 0 && out[j].score > out[j-1].score {
+			out[j], out[j-1] = out[j-1], out[j]
+			j--
+		}
+	}
+	return out
 }
 
 func maxInt(a, b int) int {
