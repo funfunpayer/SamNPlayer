@@ -159,9 +159,10 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | ClaudePath | Claude | post-[#312](https://github.com/funfunpayer/SamNPlayer/pull/312) · continue OK | **Contact-points / VLM follow-ups** — measure + teacher/consensus docs; Owner GPU V0 + ≥4–5 rhythm clips; CSRT residual drift scoping. Do **not** re-open VLM1 engine. GUI Advanced switch = Cursor [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) | **OK CONTINUE** — Owner+Cursor 27 Sep; Cursor squash-merges Claude PRs when CI green |
 | ContactPointsGUI | Cursor | [#316](https://github.com/funfunpayer/SamNPlayer/pull/316) merged (`4744a7e`) | **Advanced Use contact points** — path picker for teachers JSON when Rhythm-robust on; empty/off = bit-identical | **DONE** |
 | V3pipe | Claude | [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) merged (`a2a632d`) | **Own contact detector + multi-teacher + AI setup APIs** — import-contact-candidates; RF-DETR dataset/train; `CheckAISetup` / `GenerateContactPoints` | **DONE** |
-| AutoReviewGUI | Cursor | this PR | **Map Accept/Reject `author:auto`** + Settings Check/Install AI + Create Generate contact points teachers | **THIS** |
-| P5cMultiBox | ChatGPT | [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) | **P5c same-frame multi-box YOLO export** — Cursor does not implement | **CLAIMED** — ChatGPT |
-| Scene2 | Claude (+Cursor GUI) | **ASK → Cursor** · Owner OK 28 Sep | **Scene understanding stage 2** (`docs/SCENE_UNDERSTANDING_PLAN.md`) — Claude engine/CLI first; Cursor GUI proposals in pick-primary / ROI2 after `LoadSceneProposals` lands | **ASKED** — Cursor GUI deferred until Claude tip has LoadSceneProposals; no pick-primary PR open |
+| AutoReviewGUI | Cursor | [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) merged (`2862be5`) | **Map Accept/Reject `author:auto`** + Settings Check/Install AI + Create Generate contact points teachers | **DONE** |
+| P5cMultiBox | ChatGPT | [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) merged (`56a0ebf`) | **P5c same-frame multi-box YOLO export** — Cursor did not implement | **DONE** |
+| Post328Docs | Cursor | this PR | **Board DONE flips** (#328/#326) + handbook/LOCAL_MODEL sync for Generate contact points / Accept-Reject / Check AI setup | **THIS** |
+| Scene2 | Claude (+Cursor GUI) | **ASK → Cursor** · Owner OK 28 Sep · open [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) | **Scene understanding stage 2** (`docs/SCENE_UNDERSTANDING_PLAN.md`) — Claude engine/CLI first; Cursor GUI proposals in pick-primary / ROI2 after `LoadSceneProposals` lands | **ASKED** — Cursor GUI deferred until `LoadSceneProposals` on tip (#329 not merged); no pick-primary PR open |
 | Plugin | Cursor | [#273](https://github.com/funfunpayer/SamNPlayer/pull/273) → [#274](https://github.com/funfunpayer/SamNPlayer/pull/274) → [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) | **Plugin H0+H1** — `virtual_person` in €40 key; OnFrame tick + `virtualperson/` core; **drop-folder Install / Open Plugins** (#275 @ `fb25da6`); overlay/ToyHub deferred; Enforcement off; #264 full dump parked | **DONE** |
 | Engine | Cursor | [#276](https://github.com/funfunpayer/SamNPlayer/pull/276) → [#277](https://github.com/funfunpayer/SamNPlayer/pull/277) | **Generator Follow marks S0+S1** — side CSRT Follow + black Ignore + learning decisions; Create preview Path at scrub | **DONE** |
 | GUI | Cursor | paired with Engine S1 | Create preview: Ignore/Follow marks move with Path at Time/Frame scrub; heatmap-off still shows marks | **DONE** |
@@ -188,10 +189,17 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (28 Sep — Cursor GUI after #325):**
-- **In flight:** **AutoReviewGUI** — Accept/Reject `author:auto` + Settings Check/Install AI + Create Generate contact points (this PR). Scene2 proposals UI deferred (no `LoadSceneProposals` on tip; no pick-primary conflict).
+**Status board (28 Sep — post-#328 tip):**
+- **In flight:** **Post328Docs** — board DONE flips + handbook/LOCAL_MODEL sync (this PR). Scene2 GUI still deferred (`LoadSceneProposals` only on open Claude [#329](https://github.com/funfunpayer/SamNPlayer/pull/329), not on tip).
+- **Shipped tip:** AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5`; P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf`; V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`.
+- **Claude OPEN:** Scene2 [#329](https://github.com/funfunpayer/SamNPlayer/pull/329) — Cursor squash-merges when CI green + rebase clean (Claude **cannot merge**). Do not steal Path/V3pipe/Scene2 engine.
+- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264) / draft [#327](https://github.com/funfunpayer/SamNPlayer/pull/327).
+- **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
+
+**Status board (28 Sep — Cursor GUI after #325):** *(superseded by tip above — historical)*
+- **In flight:** **AutoReviewGUI** — Accept/Reject `author:auto` + Settings Check/Install AI + Create Generate contact points. Scene2 proposals UI deferred.
 - **Shipped tip:** V3pipe [#325](https://github.com/funfunpayer/SamNPlayer/pull/325) @ `a2a632d`; Plugin/#275 board [#324](https://github.com/funfunpayer/SamNPlayer/pull/324) @ `5291f6f`.
-- **ChatGPT CLAIM:** P5c multi-box [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) — **Cursor does not implement**.
+- **ChatGPT CLAIM:** P5c multi-box [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) — **Cursor does not implement** (now DONE on tip @ `56a0ebf`).
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. Park Rel35 / [#264](https://github.com/funfunpayer/SamNPlayer/pull/264).
 - **Still Owner-gated:** portable smoke `v0.5.34`; V0 GPU; speed-cap; rhythm default; Enforcement; contact-vib S3+.
 
@@ -1096,6 +1104,7 @@ ring revision before committing.
 | 27 Sep | **Board DONE flips** (Cursor): BatteryLabel [#313](https://github.com/funfunpayer/SamNPlayer/pull/313) @ `955d1f7`; VLM1 engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) @ `b5bd1b3` after OK [#310](https://github.com/funfunpayer/SamNPlayer/pull/310); E-ask/P5c [#297](https://github.com/funfunpayer/SamNPlayer/pull/297) @ `c51bb67` (stale IN REVIEW → DONE). Preserve ChatGPT BugE/E-steward. Rebased onto [#314](https://github.com/funfunpayer/SamNPlayer/pull/314) @ `7144cf7` (no code touch) | Cursor |
 | 27 Sep | **Claude path OK CONTINUE — Owner+Cursor.** Owner again: *"Gib Claude noch OK — er hat einen guten Weg."* Affirms the post-VLM1 contact-points / VLM follow-up lane (measure, teachers, V0, rhythm-clip gate). Engine [#312](https://github.com/funfunpayer/SamNPlayer/pull/312) stays DONE — do not re-open. Cursor GUI [#316](https://github.com/funfunpayer/SamNPlayer/pull/316). Cursor squash-merges Claude PRs when CI green (Claude cannot merge) | Owner → Cursor |
 | 28 Sep | **Plugin/#275 DONE** (Cursor): drop-folder H1 [#275](https://github.com/funfunpayer/SamNPlayer/pull/275) @ `fb25da6` — Active Plugin row + tip board flip; CHANGELOG Unreleased bullet. Park #264; preserve BugE/E-steward; no Rel35 | Cursor |
+| 28 Sep | **Post-#328 board + handbook** (Cursor): AutoReviewGUI [#328](https://github.com/funfunpayer/SamNPlayer/pull/328) @ `2862be5` + P5cMultiBox [#326](https://github.com/funfunpayer/SamNPlayer/pull/326) @ `56a0ebf` → Active DONE; tip board; USER_HANDBOOK / in-GUI handbook / LOCAL_MODEL_SETUP sync for Generate contact points + Accept/Reject + Check AI setup. Scene2 GUI still deferred (#329 open). Park Rel35/#264; preserve BugE/E-steward; no Claude Path steal | Cursor |
 
 ---
 
