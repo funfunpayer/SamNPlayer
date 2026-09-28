@@ -53,7 +53,10 @@ def main():
         "ImportLicenseText": "async () => ({})",
         "ImportLicenseFile": "async () => ({})",
         "ClearLicense": "async () => ({})",
-        "VirtualPersonHostStatus": "async () => ({stage:'H1',allowed:false,enabled:false,running:false,message:'off'})",
+        "PluginsDir": "async () => '/tmp/plugins'",
+        "ListInstalledPlugins": "async () => ([])",
+        "OpenPluginsFolder": "async () => {}",
+        "InstallPluginPack": "async () => ({})",
     }))
 
     harness = pathlib.Path(__file__).resolve().parent / "_settings_ai_setup_harness.html"

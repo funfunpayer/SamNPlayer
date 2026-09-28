@@ -55,8 +55,8 @@ effective) and `StartPlayback` (refuses `.samn` when not effective). Flipping
 | Embedded public key | `license/pubkey.go` | Matches `license/testdata/issuer.ed25519` (**DEV**) |
 | Issuer CLI | `cmd/license-tool` | `genkey`, `issue`, `verify` (prints features) |
 | GUI API | `cmd/gui-wails/app_license.go` | `GetLicenseStatus`, `ImportLicense*`, `ClearLicense`, `LicenseAllowsFullFeatures` |
-| Plugin host H1 | `pluginhost/` + `virtualperson/` + `app_pluginhost.go` | OnFrame tick + Enable/Disable + Give/Titjob; ToyHub sync off |
-| Settings section | `frontend/src/settings.js` | License card + Virtual Person host (English) |
+| Plugin host H1 | `pluginhost/` + `app_pluginhost.go` | Drop-folder discover/install only; VP product parked |
+| Settings section | `frontend/src/settings.js` | License card + Plugins (Install / Open folder; no VP Enable) |
 
 ### Issue a key (dev issuer)
 
@@ -102,16 +102,15 @@ Then: Settings → License → Import from file / paste.
 | Generate | Truncate output to ≤ 60 000 ms; banner “Trial: 1 minute” |
 | Playback `.samn` | Refuse + “Export .funscript…” |
 | Playback `.funscript` | Allowed |
-| Virtual Person host | Disable enable path + “License required” (`virtual_person`) |
+| Plugin pack feature (parked) | N/A while product parked — feature id reserved |
 
 Call sites:
 
 - `App.LicenseAllowsFullFeatures()` → `license.EffectiveLicensed(...)`  
-- `App.LicenseAllowsVirtualPerson()` → `license.EffectiveHasFeature(..., FeatureVirtualPerson)`  
+- Future plugin host: `license.EffectiveHasFeature(..., FeatureVirtualPerson)`  
 
-While Enforcement is off, both return true (Everyday + host stub open for
-dev). Host enable still fails closed when sharp and the claim lacks
-`virtual_person` (re-issue older keys with `license-tool`).
+While Enforcement is off, feature gates return true. Virtual Person product
+Enable UI is scrubbed from tip (Rel35); re-wire when unparked.
 
 ---
 
@@ -122,7 +121,7 @@ dev). Host enable still fails closed when sharp and the claim lacks
 3. Stop using `license/testdata/issuer.ed25519` for real customers
 4. Flip `Enforcement=true` in a dedicated release build
 5. Wire Generate/Play to `LicenseAllowsFullFeatures` (already wired)
-6. Confirm Virtual Person host stays behind `LicenseAllowsVirtualPerson`
+6. When Virtual Person returns: gate Enable behind `EffectiveHasFeature(..., FeatureVirtualPerson)`
 
 ---
 

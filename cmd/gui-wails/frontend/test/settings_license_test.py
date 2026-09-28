@@ -52,49 +52,19 @@ def main():
           };
           return window.__lic;
         }""",
-        "VirtualPersonHostStatus": """async () => (window.__vp || {
-          featureId:'virtual_person', allowed:true, enabled:false, running:false,
-          stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
-          packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
-          message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
-        })""",
-        "EnableVirtualPersonHost": """async () => {
-          window.__vp = {
-            featureId:'virtual_person', allowed:true, enabled:true, running:true,
-            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
-            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
-            message:'Virtual Person running — pack Virtual Person v0.1.0.'
-          };
-          return window.__vp;
-        }""",
-        "DisableVirtualPersonHost": """async () => {
-          window.__vp = {
-            featureId:'virtual_person', allowed:true, enabled:false, running:false,
-            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
-            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
-            message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
-          };
-          return window.__vp;
-        }""",
-        "VirtualPersonGiveDildo": "async () => { window.__vpGave = true; }",
-        "VirtualPersonStartTitjob": "async () => { window.__vpTitjob = true; }",
-        "InstallVirtualPersonPack": """async () => {
-          window.__vp = {
-            featureId:'virtual_person', allowed:true, enabled:false, running:false,
-            stage:'H1', ticks:0, packFound:true, packId:'virtual_person', packName:'Virtual Person',
-            packVersion:'0.1.0', pluginsDir:'/tmp/plugins',
-            message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
-          };
-          return window.__vp;
+        "InstallPluginPack": """async () => {
+          window.__packs = [{
+            root:'/tmp/plugins/sample_pack',
+            manifest:{id:'sample_pack', name:'Sample Pack', version:'0.1.0'}
+          }];
+          return window.__packs[0];
         }""",
         "OpenPluginsFolder": "async () => {}",
         "PluginsDir": "async () => '/tmp/plugins'",
-        "ListInstalledPlugins": "async () => ([])",
-        "RefreshVirtualPersonPack": """async () => (window.__vp || {
-          featureId:'virtual_person', allowed:true, enabled:false, running:false,
-          stage:'H1', ticks:0, packFound:true, packName:'Virtual Person', packVersion:'0.1.0',
-          message:'Pack ready: Virtual Person v0.1.0. Click Enable.'
-        })""",
+        "ListInstalledPlugins": """async () => (window.__packs || [{
+          root:'/tmp/plugins/sample_pack',
+          manifest:{id:'sample_pack', name:'Sample Pack', version:'0.1.0'}
+        }])""",
         "SetSetting": "async () => {}",
         "GetRuntimeHealth": "async () => ({ok:true,deps:[],dirsCreated:[],resources:{}})",
         "EnsureVideoTools": "async () => {}",
@@ -150,18 +120,14 @@ def main():
         check("after clear shows none/off",
               "enforcement: off" in text3 or "No license" in text3)
 
-        check("Virtual Person heading visible",
-              page.locator("h3", has_text="Virtual Person").count() == 1)
+        check("Plugins heading visible",
+              page.locator("h3", has_text="Plugins").count() == 1)
         page.wait_for_function(
-            "document.querySelector('#st-vp-host-status') && document.querySelector('#st-vp-host-status').textContent.includes('virtual_person')",
+            "document.querySelector('#st-plugins-status') && document.querySelector('#st-plugins-status').textContent.includes('Sample Pack')",
             timeout=5000)
-        page.click("#st-vp-host-enable")
+        page.click("#st-plugins-install")
         page.wait_for_function(
-            "document.querySelector('#st-vp-host-status').textContent.includes('running: yes')",
-            timeout=5000)
-        page.click("#st-vp-host-disable")
-        page.wait_for_function(
-            "document.querySelector('#st-vp-host-status').textContent.includes('running: no')",
+            "document.querySelector('#st-plugins-status').textContent.includes('Sample Pack')",
             timeout=5000)
 
         browser.close()

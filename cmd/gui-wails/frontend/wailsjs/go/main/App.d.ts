@@ -148,17 +148,10 @@ export function LabelScene(arg1:string,arg2:string):Promise<void>;
 export function LabelSceneWithProfile(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function LicenseAllowsFullFeatures():Promise<boolean>;
-export function LicenseAllowsVirtualPerson():Promise<boolean>;
-export function VirtualPersonHostStatus():Promise<Record<string, any>>;
-export function EnableVirtualPersonHost():Promise<Record<string, any>>;
-export function DisableVirtualPersonHost():Promise<Record<string, any>>;
-export function VirtualPersonGiveDildo():Promise<void>;
-export function VirtualPersonStartTitjob(arg1:number, arg2:number):Promise<void>;
-export function InstallVirtualPersonPack():Promise<Record<string, any>>;
 export function OpenPluginsFolder():Promise<void>;
 export function PluginsDir():Promise<string>;
 export function ListInstalledPlugins():Promise<Array<Record<string, any>>>;
-export function RefreshVirtualPersonPack():Promise<Record<string, any>>;
+export function InstallPluginPack():Promise<Record<string, any>>;
 
 export function ListRoiTrainingDevices():Promise<Array<generator.RoiTrainingDevice>>;
 

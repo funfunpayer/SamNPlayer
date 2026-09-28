@@ -1,4 +1,4 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, VirtualPersonHostStatus, EnableVirtualPersonHost, DisableVirtualPersonHost, VirtualPersonGiveDildo, VirtualPersonStartTitjob, InstallVirtualPersonPack, OpenPluginsFolder, PluginsDir } from '../wailsjs/go/main/App';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, ApplyUpdate, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -85,8 +85,7 @@ export function initSettings(root) {
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
       Enforcement is <b>off</b> in this build — import works so we can test the path;
-      Create/Play are not limited yet. Standard keys include Virtual Person
-      (<code>virtual_person</code>). See docs/LICENSE_SYSTEM.md.</p>
+      Create/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
     <p class="hint" id="st-license-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:flex-start;">
       <textarea id="st-license-paste" rows="3" placeholder="Paste license token (SNP1.…)" style="flex:1; font-family:ui-monospace,monospace; font-size:12px;"></textarea>
@@ -98,26 +97,16 @@ export function initSettings(root) {
       <button id="st-license-refresh" type="button">Refresh status</button>
     </div>
 
-    <h3>Virtual Person (Plugins)</h3>
-    <p class="hint">Simplest install: drop the Virtual Person pack folder into Plugins
-      (must contain <code>samn-plugin.json</code>), then click <b>Enable</b>.
-      Or use <b>Install pack…</b>. Enable also starts the in-process scene bus
-      (OnFrame ticks, Give dildo / Start titjob). Included in the standard license.
-      See <code>docs/PLUGIN_INSTALL_DE.md</code> / <code>docs/PLUGIN_SYSTEM.md</code>.</p>
-    <p class="hint" id="st-vp-plugins-path" style="margin-top:0">Plugins folder: …</p>
-    <p class="hint" id="st-vp-host-status" style="margin-top:0">…</p>
+    <h3>Plugins</h3>
+    <p class="hint">Drop-folder packs with <code>samn-plugin.json</code>. Open the folder or
+      <b>Install pack…</b> to copy one in. Product plugin hosts (Virtual Person) are parked —
+      Everyday Create/Play unchanged. See <code>docs/PLUGIN_SYSTEM.md</code>.</p>
+    <p class="hint" id="st-plugins-path" style="margin-top:0">Plugins folder: …</p>
+    <p class="hint" id="st-plugins-status" style="margin-top:0">…</p>
     <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="st-vp-host-install" type="button" class="primary">Install pack…</button>
-      <button id="st-vp-host-open-folder" type="button">Open Plugins folder</button>
-      <button id="st-vp-host-enable" type="button">Enable</button>
-      <button id="st-vp-host-disable" type="button">Disable</button>
-      <button id="st-vp-host-refresh" type="button">Refresh</button>
-    </div>
-    <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="st-vp-give-dildo" type="button"
-        data-help="MVP scene step: give virtual dildo prop (requires host enabled).">Give dildo</button>
-      <button id="st-vp-start-titjob" type="button"
-        data-help="MVP activity titjob_dildo — requires dildo first. ToyHub sync stays off.">Start titjob</button>
+      <button id="st-plugins-install" type="button" class="primary">Install pack…</button>
+      <button id="st-plugins-open-folder" type="button">Open Plugins folder</button>
+      <button id="st-plugins-refresh" type="button">Refresh</button>
     </div>
 
     <h3>Runtime &amp; updates</h3>
@@ -297,7 +286,7 @@ export function initSettings(root) {
     el('#st-collect-learning').checked = !!s.collectLearningData;
     updateReportStatus();
     refreshLicenseStatus();
-    refreshVPHostStatus();
+    refreshPluginsStatus();
   });
 
   async function refreshLicenseStatus() {
@@ -323,9 +312,9 @@ export function initSettings(root) {
     }
   }
 
-  async function refreshVPHostStatus() {
-    const box = el('#st-vp-host-status');
-    const pathBox = el('#st-vp-plugins-path');
+  async function refreshPluginsStatus() {
+    const box = el('#st-plugins-status');
+    const pathBox = el('#st-plugins-path');
     if (!box) return;
     try {
       if (pathBox) {
@@ -336,82 +325,45 @@ export function initSettings(root) {
           pathBox.textContent = 'Plugins folder: (unavailable)';
         }
       }
-      const st = await VirtualPersonHostStatus();
-      const bits = [
-        `stage: ${st.stage || 'H1'}`,
-        `feature: ${st.featureId || 'virtual_person'}`,
-        `pack: ${st.packFound ? ((st.packName || st.packId) + ' v' + (st.packVersion || '?')) : 'none'}`,
-        `allowed: ${st.allowed ? 'yes' : 'no'}`,
-        `enabled: ${st.enabled ? 'yes' : 'no'}`,
-        `running: ${st.running ? 'yes' : 'no'}`,
-        typeof st.ticks === 'number' ? `ticks: ${st.ticks}` : null,
-      ].filter(Boolean);
-      box.textContent = (st.message || '') + ' · ' + bits.join(' · ');
+      const packs = await ListInstalledPlugins();
+      const list = Array.isArray(packs) ? packs : [];
+      if (list.length === 0) {
+        box.textContent = 'No packs installed.';
+      } else {
+        box.textContent = list.map((p) => {
+          const m = p.manifest || p.Manifest || {};
+          return `${m.name || m.id || '?'} v${m.version || '?'}`;
+        }).join(' · ');
+      }
     } catch (err) {
-      box.textContent = 'Virtual Person host status failed: ' + err;
+      box.textContent = 'Plugins status failed: ' + err;
     }
   }
 
-  el('#st-vp-host-refresh')?.addEventListener('click', () => refreshVPHostStatus());
-  el('#st-vp-host-open-folder')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
+  el('#st-plugins-refresh')?.addEventListener('click', () => refreshPluginsStatus());
+  el('#st-plugins-open-folder')?.addEventListener('click', async () => {
+    const box = el('#st-plugins-status');
     try {
       await OpenPluginsFolder();
-      await refreshVPHostStatus();
+      await refreshPluginsStatus();
     } catch (err) {
       uiError('Open Plugins folder: ' + err, box);
     }
   });
-  el('#st-vp-host-install')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
+  el('#st-plugins-install')?.addEventListener('click', async () => {
+    const box = el('#st-plugins-status');
     try {
-      const st = await InstallVirtualPersonPack();
-      uiInfo(st.message || 'Pack installed.', box);
-      await refreshVPHostStatus();
+      const pack = await InstallPluginPack();
+      const m = pack && (pack.manifest || pack.Manifest);
+      if (m && (m.id || m.name)) {
+        uiInfo(`Installed ${m.name || m.id} v${m.version || '?'}.`, box);
+      } else {
+        uiInfo('Install cancelled or no pack selected.', box);
+      }
+      await refreshPluginsStatus();
     } catch (err) {
       uiError('Install pack: ' + err, box);
-      await refreshVPHostStatus();
-    }
-  });
-  el('#st-vp-host-enable')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
-    try {
-      const st = await EnableVirtualPersonHost();
-      uiInfo(st.message || 'Virtual Person enabled.', box);
-      await refreshVPHostStatus();
-    } catch (err) {
-      uiError('Enable Virtual Person: ' + err, box);
-      await refreshVPHostStatus();
-    }
-  });
-  el('#st-vp-host-disable')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
-    try {
-      const st = await DisableVirtualPersonHost();
-      uiInfo(st.message || 'Virtual Person disabled.', box);
-      await refreshVPHostStatus();
-    } catch (err) {
-      uiError('Disable Virtual Person: ' + err, box);
-    }
-  });
-  el('#st-vp-give-dildo')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
-    try {
-      await VirtualPersonGiveDildo();
-      uiInfo('Gave virtual dildo prop.', box);
-      await refreshVPHostStatus();
-    } catch (err) {
-      uiError('Give dildo: ' + err, box);
-    }
-  });
-  el('#st-vp-start-titjob')?.addEventListener('click', async () => {
-    const box = el('#st-vp-host-status');
-    try {
-      await VirtualPersonStartTitjob(0.5, 0);
-      uiInfo('Started titjob_dildo activity (bus owns motion while active).', box);
-      await refreshVPHostStatus();
-    } catch (err) {
-      uiError('Start titjob: ' + err, box);
+      await refreshPluginsStatus();
     }
   });
 

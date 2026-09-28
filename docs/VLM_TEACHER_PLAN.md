@@ -89,8 +89,7 @@ These rules hold throughout:
 
 - **Runtime:** Ollama (`ollama pull qwen2.5vl:7b`, port 11434) or LM Studio
   (port 1234). Both speak `/v1/chat/completions` with `image_url`
-  base64 parts. `virtualperson/chat.go` already uses both, and the probe
-  reuses `generator/colibri_client.py` for the HTTP call.
+  base64 parts. The probe reuses `generator/colibri_client.py` for the HTTP call.
 - **Coordinates differ per model family.** Qwen2.5-VL returns absolute
   pixels of the image it was sent. Qwen3-VL is documented as 0–1000
   relative. Others return 0–1. The probe therefore sends frames already at

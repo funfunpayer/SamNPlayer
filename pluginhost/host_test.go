@@ -4,6 +4,7 @@ import "testing"
 
 func TestEnableRequiresAllow(t *testing.T) {
 	s := NewSlot()
+	s.SetFeatureID(PluginIDVirtualPerson)
 	if err := s.Enable(false); err == nil {
 		t.Fatal("expected license error")
 	}
