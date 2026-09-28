@@ -4,8 +4,8 @@ docs/SCENE_UNDERSTANDING_PLAN.md).
 
 Two inputs, one rule set, no big model needed at run time:
 - parts ("what is what"): body-part boxes from a teacher - NudeNet
-  (`--nudenet`), a vlm_probe result (`--vlm`), or our own RF-DETR model
-  (`--onnx`, multi-class);
+  (`--nudenet`), a vlm_probe result (`--vlm`), or later our own RF-DETR
+  model (multi-class, `frame_parts_fn(onnx=...)`);
 - motion ("what moves"): the engine's own rhythm-grid scan
   (`samnplayer-cli scan-scene-map VIDEO --windows N --out scan.json`),
   cell scores at the stroke tempo per window.
@@ -16,6 +16,12 @@ and the scene type from the pair (mouth + penis = blowjob, hand = handjob,
 breasts = titjob, vagina = penetration). Output `<clip>.scene.json` with
 per-window roles and ROICandidate-shaped proposals for the app, which
 remain proposals: the user applies them (TFTJ rules; no silent ROI2).
+
+A vlm_probe result from clip mode (`--clip N`, video input) also carries the
+model's own reading of the scene (scene type, moving part, partner). It is
+recorded per window as `vlm` and compared with the rules (`summary.vlm`);
+it does not change the roles until that comparison has been measured.
+`--truth` scores both against hand-labelled scene types.
 """
 
 import argparse
@@ -195,8 +201,9 @@ def _roi(part, w, h, score):
             "h": int(round((y1 - y0) * h)), "score": round(score, 3), "class": part["class"]}
 
 
-def build(video, scan, parts_at, log=print):
-    """parts_at(t_ms) -> list of parts for the frame nearest t_ms."""
+def build(video, scan, parts_at, log=print, clip_at=None):
+    """parts_at(t_ms) -> list of parts for the frame nearest t_ms;
+    clip_at(t_ms) -> the VLM clip-mode answer near t_ms or None."""
     cols, rows, w, h, wins = decode_scan(scan)
     windows = []
     for win in wins:
@@ -207,6 +214,7 @@ def build(video, scan, parts_at, log=print):
             "tempo_hz": win["tempo_hz"], "scene_type": r["scene_type"], "confidence": r["confidence"],
             "primary": r["primary"], "partner": r["partner"], "ignore": r["ignore"],
             "parts": parts,
+            "vlm": clip_at(win["mid_ms"]) if clip_at else None,
         })
     typed = [x for x in windows if x["scene_type"]]
     counts = {}
@@ -222,10 +230,16 @@ def build(video, scan, parts_at, log=print):
         if x["partner"]:
             item["partner"] = _roi(x["partner"], w, h, x["confidence"])
         proposals.append(item)
+    summary = {"windows": len(windows), "typed": len(typed), "scene_types": counts}
+    both = [x for x in windows if x["scene_type"] and (x["vlm"] or {}).get("scene_type")]
+    if clip_at:
+        summary["vlm"] = {"windows": sum(1 for x in windows if (x["vlm"] or {}).get("scene_type")),
+                          "both": len(both),
+                          "agree": sum(1 for x in both if x["vlm"]["scene_type"] == x["scene_type"])}
     log(f"scene roles: {len(typed)}/{len(windows)} windows typed {counts}")
     return {"version": 1, "tool": "scene_roles", "video": os.path.basename(video),
             "width": w, "height": h, "windows": windows, "proposals": proposals,
-            "summary": {"windows": len(windows), "typed": len(typed), "scene_types": counts}}
+            "summary": summary}
 
 
 # Only windows at least this sure become contact points: a visible pair,
@@ -265,6 +279,40 @@ def contact_points_from_scene(res, step_ms=500, min_confidence=CONTACT_MIN_CONFI
             "summary": {"points": len(dedup)}}
 
 
+def clip_at_fn(vlm, max_gap_ms=5000):
+    """clip_at(t_ms) for build(): the clip-mode answer of the nearest
+    vlm_probe keyframe within max_gap_ms, else None."""
+    frames = sorted((f for f in (vlm or {}).get("frames", []) if f.get("clip")),
+                    key=lambda f: f["t_ms"])
+
+    def clip_at(t_ms):
+        if not frames:
+            return None
+        f = min(frames, key=lambda f: abs(f["t_ms"] - t_ms))
+        return dict(f["clip"], t_ms=f["t_ms"]) if abs(f["t_ms"] - t_ms) <= max_gap_ms else None
+    return clip_at
+
+
+def score_scene_types(res, truth, max_gap_ms=6000):
+    """Scene-type accuracy of the rules and of the VLM clip answers against
+    hand labels ({"scene_types": [{"t_ms", "scene_type"}]}): per labelled
+    time the nearest window. Only windows that give a type count as typed."""
+    out = {"labelled": 0, "rules": {"typed": 0, "right": 0}, "vlm": {"typed": 0, "right": 0}}
+    wins = res["windows"]
+    for lab in truth.get("scene_types", []):
+        if not wins:
+            break
+        w = min(wins, key=lambda x: abs(x["t_ms"] - lab["t_ms"]))
+        if abs(w["t_ms"] - lab["t_ms"]) > max_gap_ms:
+            continue
+        out["labelled"] += 1
+        for key, got in (("rules", w["scene_type"]), ("vlm", (w.get("vlm") or {}).get("scene_type"))):
+            if got:
+                out[key]["typed"] += 1
+                out[key]["right"] += got == lab["scene_type"]
+    return out
+
+
 def frame_parts_fn(video, detect=None, onnx=None, vlm=None):
     """parts_at(t_ms) from the chosen teachers (merged)."""
     cap = cv2.VideoCapture(video)
@@ -293,7 +341,10 @@ def main(argv=None):
     ap.add_argument("--video", required=True)
     ap.add_argument("--scan", required=True, help="scan-scene-map JSON")
     ap.add_argument("--nudenet", action="store_true")
-    ap.add_argument("--vlm", help="vlm_probe.py result")
+    ap.add_argument("--vlm", help="vlm_probe.py result (boxes as parts; clip mode also "
+                                  "records the model's scene reading per window)")
+    ap.add_argument("--truth", help="hand-labelled scene types to score against "
+                                    "(e.g. testdata/vlm_labels/multi_person_642s.scene_types.json)")
     ap.add_argument("--out")
     ap.add_argument("--contact-out", help="also write the moving parts as contact points "
                                          "(default <clip>.scene.contact.json)")
@@ -317,7 +368,11 @@ def main(argv=None):
     if args.vlm:
         with open(args.vlm, encoding="utf-8") as f:
             vlm = json.load(f)
-    res = build(args.video, scan, frame_parts_fn(args.video, detect=detect, vlm=vlm))
+    res = build(args.video, scan, frame_parts_fn(args.video, detect=detect, vlm=vlm),
+                clip_at=clip_at_fn(vlm) if vlm and vlm.get("clip") else None)
+    if args.truth:
+        with open(args.truth, encoding="utf-8") as f:
+            res["summary"]["truth"] = score_scene_types(res, json.load(f))
     out = args.out or os.path.splitext(args.video)[0] + ".scene.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=1)

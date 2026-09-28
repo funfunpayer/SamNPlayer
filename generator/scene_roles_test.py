@@ -4,6 +4,7 @@ NudeNet part mapping, role rules, and the contact-points output the Go
 loader reads. No model, no video: parts and scans are built inline."""
 
 import base64
+import json
 import os
 import sys
 import unittest
@@ -138,6 +139,49 @@ class BuildTest(unittest.TestCase):
         self.assertAlmostEqual(cp["points"][0]["x"], 0.5)
         # Below the confidence floor a window gives no points.
         self.assertEqual(sr.contact_points_from_scene(res, min_confidence=1.01)["points"], [])
+
+
+class VlmClipTest(unittest.TestCase):
+    """Stage 2b: the VLM's own scene reading is recorded and scored, not applied."""
+
+    def _res(self):
+        b64 = base64.b64encode(bytes(int(v * 255) for v in heat([(7, 5), (8, 5)]))).decode()
+        scan = {"cols": COLS, "rows": ROWS, "width": 1280, "height": 720, "windows": [
+            {"startMs": 0, "endMs": 8000, "tempoHz": 1.1, "score": b64},
+            {"startMs": 10000, "endMs": 18000, "tempoHz": 1.1, "score": b64},
+            {"startMs": 40000, "endMs": 48000, "tempoHz": 1.1, "score": b64}]}
+        vlm = {"clip": 6, "frames": [
+            {"t_ms": 4500, "clip": {"scene_type": "blowjob", "moving": "mouth"}},
+            {"t_ms": 13000, "clip": {"scene_type": "titjob", "moving": "penis"}},
+            {"t_ms": 30000, "clip": None}]}
+        parts = lambda t: [part("penis", (7, 7, 6, 8)), part("mouth", (7, 8, 5, 5))]
+        return sr.build("clip.mp4", scan, parts, log=lambda *_: None, clip_at=sr.clip_at_fn(vlm))
+
+    def test_recorded_per_window_and_agreement_counted(self):
+        res = self._res()
+        self.assertEqual([(w["vlm"] or {}).get("scene_type") for w in res["windows"]],
+                         ["blowjob", "titjob", None])  # 44 s: nearest answer 13 s is too far
+        self.assertEqual(res["windows"][0]["vlm"]["t_ms"], 4500)
+        self.assertEqual(res["summary"]["vlm"], {"windows": 2, "both": 2, "agree": 1})
+        # Roles stay the rules' (the VLM reading is not applied yet).
+        self.assertEqual([w["scene_type"] for w in res["windows"]], ["blowjob"] * 3)
+
+    def test_score_against_truth(self):
+        truth = {"scene_types": [{"t_ms": 4000, "scene_type": "blowjob"},
+                                 {"t_ms": 14000, "scene_type": "titjob"},
+                                 {"t_ms": 44000, "scene_type": "blowjob"},
+                                 {"t_ms": 90000, "scene_type": "handjob"}]}  # no window near
+        self.assertEqual(sr.score_scene_types(self._res(), truth),
+                         {"labelled": 3, "rules": {"typed": 3, "right": 2},
+                          "vlm": {"typed": 2, "right": 2}})
+
+    def test_truth_file_in_repo_is_valid(self):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "testdata", "vlm_labels", "multi_person_642s.scene_types.json")
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        self.assertEqual(len(doc["scene_types"]), 27)
+        self.assertTrue({x["scene_type"] for x in doc["scene_types"]} <= set(sr.PARTNERS.values()))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 # Scene understanding — what is what, what moves against what (plan)
 
-Status: **stage 2 tools done, measured** (Claude, 28 Sep 2026; results in
-§3 "Stage 2 — results"). Stages 2b (VLM clip mode) and the stable runtime
-(§4) are next. The Owner approved:
+Status: **stage 2 tools done, measured; stage 2b (VLM clip mode) built,
+waiting for an Owner PC run** (Claude, 28 Sep 2026; results in §3
+"Stage 2 — results"). The hybrid gap-filler and the stable runtime (§4) are
+next. The Owner approved:
 *"Yes, definitely — plan it, put it on the board with Cursor, start Stufe 2.
 Video recognition would be good too. The stable system without big AI comes
 next."*
@@ -152,12 +153,22 @@ a proposal.
 - **The engine is already video.** Optical flow and the rhythm grid see
   motion over time. Stage 2 uses exactly that for "what moves", so no big
   model is needed for it.
-- **VLM clip mode:** `vlm_probe.py --clip N --clip-span-s S` sends N
-  frames spanning S seconds as one sequence. Qwen2.5-VL and Qwen3-VL are
-  trained on video input.
-  - It asks what moves against what and what kind of scene it is — better
-    than one still frame.
-  - The results become a teacher for roles and scene type (stage 2b).
+- **VLM clip mode (stage 2b, built):** `vlm_probe.py --clip N
+  --clip-span-s S` sends N frames spanning S seconds (ending at the
+  keyframe, oldest first) as one multi-image request. Qwen2.5-VL and
+  Qwen3-VL are trained on video input.
+  - It asks for the scene type, the moving part, its partner, the motion
+    axis and the number of people, plus boxes for the last frame.
+  - `scene_roles.py --vlm clip.vlm.json --truth
+    generator/testdata/vlm_labels/multi_person_642s.scene_types.json`
+    records the model's reading per window (`vlm`), counts agreement with
+    the rules (`summary.vlm`) and scores both against Claude's hand
+    labels (`summary.truth`; the rules alone score 15/21).
+  - It does **not** change roles yet. Once a run on the Owner PC shows
+    the VLM beats the rules on scene type, it becomes the tie-breaker
+    (for example titjob vs blowjob when the face bobs).
+  - Owner PC run: `python3 vlm_probe.py --video db.mp4 --model
+    qwen2.5vl:7b --clip 6 --every-s 20`, then send `db.vlm.json` back.
 - **Real action-recognition models** (a VideoMAE-style video classifier)
   come later. They need our own labelled shots first, which stages 2–3
   collect (confirmed scene types per shot).

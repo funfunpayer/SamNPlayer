@@ -28,6 +28,10 @@ Usage (Owner PC, e.g. `ollama pull qwen2.5vl:7b` first):
      images), overlay JPEGs for a quick visual check.
   python3 vlm_probe.py --calibrate --model qwen2.5vl:7b
   -> only checks the coordinate convention.
+  python3 vlm_probe.py --video clip.mp4 --model qwen2.5vl:7b --clip 6
+  -> clip mode (video): 6 frames over 3 s per keyframe; the answer adds
+     scene type, moving part, partner and motion axis (scene_roles.py
+     --vlm reads it).
 LM Studio / Colibri / vLLM: --backend lmstudio|colibri|vllm (URL + timeout
 presets, --base-url overrides) and that runtime's model id.
 """
@@ -46,7 +50,7 @@ import numpy as np
 import bodyparts
 import colibri_client
 
-PROMPT_VERSION = "v0.1-2026-09-27"  # v0.1: exemplar mode
+PROMPT_VERSION = "v0.2-2026-09-28"  # v0.1: exemplar mode, v0.2: clip mode
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"  # Ollama; LM Studio: :1234
 DEFAULT_TIMEOUT_S = 180.0  # first call loads the model into VRAM
 
@@ -106,6 +110,24 @@ EXEMPLAR_PROMPT = (
     "{{\"label\": \"exclude\", \"bbox_2d\": [...]}} for regions matching the "
     "red boxes if visible. Return [] if the contact region is not visible."
 )
+# Clip mode (stage 2b, docs/SCENE_UNDERSTANDING_PLAN.md): N frames spanning
+# a few seconds, oldest first, in one request. The model sees the motion,
+# so it can say what moves against what - one still frame cannot.
+SCENE_TYPES = ["blowjob", "handjob", "titjob", "penetration", "other", "none"]
+AXES = ["vertical", "horizontal", "depth"]
+CLIP_PROMPT = (
+    "These {n} images are consecutive frames of one video, oldest first, "
+    "spanning {span:.1f} seconds. Look at what MOVES between them. Return ONLY "
+    "a JSON object, no prose: {{\"scene_type\": <one of " + ", ".join(SCENE_TYPES) + ">, "
+    "\"moving\": <the body part that makes the main back-and-forth motion, one "
+    "of " + ", ".join(LABELS[1:]) + ">, \"partner\": <the body part it moves "
+    "against, same list, or null>, \"axis\": <main motion direction in the "
+    "image: " + ", ".join(AXES) + ">, \"people\": <number of people visible>, "
+    "\"boxes\": [{{\"label\": <one of " + ", ".join(LABELS) + ">, \"bbox_2d\": "
+    "[x1, y1, x2, y2]}}]}}. The boxes are for the LAST image: 'contact' is where "
+    "the main motion happens; add the moving part and its partner."
+)
+
 FOLLOW_NOTE = (" The YELLOW box in the second-to-last image is where the "
                "contact region was found a few seconds earlier.")
 
@@ -171,13 +193,15 @@ def normalize_label(raw):
     return "other"
 
 
-def _extract_json(text):
+def _extract_json(text, object_first=False):
     """First JSON array/object in a model answer (fences and prose around it
-    tolerated). None if there is none."""
+    tolerated). None if there is none. object_first: try {...} before [...]
+    (clip mode answers an object that contains a boxes array)."""
     if not isinstance(text, str):
         return None
     t = re.sub(r"```(?:json)?", "", text)
-    for opener, closer in (("[", "]"), ("{", "}")):
+    pairs = (("[", "]"), ("{", "}"))
+    for opener, closer in (pairs[::-1] if object_first else pairs):
         start = t.find(opener)
         end = t.rfind(closer)
         if start < 0 or end <= start:
@@ -231,6 +255,46 @@ def parse_answer(text, sx, sy):
                       "x0": round(x0, 4), "y0": round(y0, 4),
                       "x1": round(x1, 4), "y1": round(y1, 4)})
     return ("ok" if boxes else "empty"), boxes
+
+
+def clip_times_ms(t_ms, n, span_ms):
+    """n frame times ending at t_ms, evenly over span_ms, oldest first
+    (clamped at 0 and de-duplicated)."""
+    if n < 2:
+        return [t_ms]
+    out = []
+    for k in range(n):
+        t = max(0, int(round(t_ms - span_ms + k * span_ms / (n - 1))))
+        if not out or t > out[-1]:
+            out.append(t)
+    return out
+
+
+def parse_clip_answer(text, sx, sy):
+    """Clip-mode answer -> (status, boxes, clip). clip holds scene_type,
+    moving, partner, axis, people - unknown values become None."""
+    status, boxes = parse_answer(text, sx, sy)
+    obj = _extract_json(text, object_first=True)
+    if isinstance(obj, list):  # boxes only, no roles
+        obj = {}
+    if not isinstance(obj, dict):
+        return status, boxes, None
+
+    def pick(v, allowed):
+        v = str(v).strip().lower().replace(" ", "") if v is not None else ""
+        return v if v in allowed else None
+
+    part = lambda v: (lambda n: n if n in LABELS[1:] else None)(normalize_label(v)) if v else None
+    clip = {"scene_type": pick(obj.get("scene_type"), SCENE_TYPES),
+            "moving": part(obj.get("moving")), "partner": part(obj.get("partner")),
+            "axis": pick(obj.get("axis"), AXES)}
+    try:
+        clip["people"] = int(obj.get("people"))
+    except (TypeError, ValueError):
+        clip["people"] = None
+    if status in ("empty", "unparsed") and clip["scene_type"]:
+        status = "ok"
+    return status, boxes, clip
 
 
 def _data_url(img_bgr):
@@ -389,7 +453,10 @@ def draw_reference(img, contact=None, excludes=(), color=(0, 220, 0)):
 
 def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=True,
                 coord="auto", timeout=DEFAULT_TIMEOUT_S, overlay_dir=None,
-                max_keyframes=0, post_fn=None, log=print, exemplars=(), follow=False):
+                max_keyframes=0, post_fn=None, log=print, exemplars=(), follow=False,
+                clip=0, clip_span_s=3.0):
+    if clip >= 2 and exemplars:
+        raise ValueError("clip mode and exemplar mode cannot be combined yet")
     cap = cv2.VideoCapture(video)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video}")
@@ -441,7 +508,18 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
             frames.append({"t_ms": t, "status": "no_frame", "boxes": []})
             continue
         img = cv2.resize(frame, (sw, sh), interpolation=cv2.INTER_AREA)
-        if refs:
+        clip_ms = []
+        if clip >= 2:
+            clip_ms = clip_times_ms(t, clip, int(clip_span_s * 1000))
+            imgs = []
+            for ct in clip_ms[:-1]:
+                cap.set(cv2.CAP_PROP_POS_MSEC, ct)
+                ok, f = cap.read()
+                if ok:
+                    imgs.append(cv2.resize(f, (sw, sh), interpolation=cv2.INTER_AREA))
+            imgs.append(img)
+            prompt = CLIP_PROMPT.format(n=len(imgs), span=(clip_ms[-1] - clip_ms[0]) / 1000)
+        elif refs:
             imgs = list(refs)
             if follow and prev is not None:
                 imgs.append(draw_reference(prev[0], prev[1], color=(0, 220, 230)))
@@ -450,13 +528,21 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
             imgs.append(img)
         else:
             imgs, prompt = img, PROMPT
+        clip_ans = None
         try:
             text, latency = ask(imgs, prompt, model, base_url, timeout, post_fn)
-            status, boxes = parse_answer(text, sx, sy)
+            if clip >= 2:
+                status, boxes, clip_ans = parse_clip_answer(text, sx, sy)
+            else:
+                status, boxes = parse_answer(text, sx, sy)
         except Exception as e:  # noqa: BLE001 - record and keep going
             text, latency, status, boxes = str(e), 0, "error", []
-        frames.append({"t_ms": t, "latency_ms": latency, "status": status,
-                       "boxes": boxes, "raw": (text or "")[:2000]})
+        rec = {"t_ms": t, "latency_ms": latency, "status": status,
+               "boxes": boxes, "raw": (text or "")[:2000]}
+        if clip >= 2:
+            rec["clip_ms"] = clip_ms
+            rec["clip"] = clip_ans
+        frames.append(rec)
         contact = [b for b in boxes if b["label"] == "contact"]
         if contact:
             c = max(contact, key=lambda b: (b["x1"] - b["x0"]) * (b["y1"] - b["y0"]))
@@ -469,7 +555,9 @@ def probe_video(video, model, base_url=DEFAULT_BASE_URL, every_s=5.0, scenes=Tru
 
     return {
         "tool": "vlm_probe", "prompt_version": PROMPT_VERSION,
-        "prompt": EXEMPLAR_PROMPT if refs else PROMPT, "labels": LABELS,
+        "prompt": CLIP_PROMPT if clip >= 2 else (EXEMPLAR_PROMPT if refs else PROMPT),
+        "labels": LABELS, "clip": clip if clip >= 2 else 0,
+        "clip_span_s": clip_span_s if clip >= 2 else None,
         "exemplars": list(exemplars), "exemplar_t_ms": ex_times, "follow": bool(follow and refs),
         "model": model, "base_url": base_url,
         "video": os.path.basename(video), "fps": fps, "frame_count": n,
@@ -491,12 +579,18 @@ def summarize(frames):
         if f.get("latency_ms"):
             lat.append(f["latency_ms"])
     asked = sum(v for k, v in status.items() if k != "no_frame")
+    scene = {}
+    for f in frames:
+        st = (f.get("clip") or {}).get("scene_type")
+        if st:
+            scene[st] = scene.get(st, 0) + 1
     return {
         "keyframes": len(frames), "status": status, "labels": labels,
         "refusal_rate": round(status.get("refused", 0) / asked, 3) if asked else None,
         "contact_rate": round(sum(1 for f in frames if any(
             b["label"] == "contact" for b in f.get("boxes", []))) / asked, 3) if asked else None,
         "latency_ms_median": int(np.median(lat)) if lat else None,
+        **({"scene_types": scene} if scene else {}),
     }
 
 
@@ -522,6 +616,11 @@ def main(argv=None):
                     help="reference contact box t_ms:x0,y0,x1,y1 (0..1), repeatable")
     ap.add_argument("--follow", action="store_true",
                     help="exemplar mode: also show the last answer as a yellow box")
+    ap.add_argument("--clip", type=int, default=0,
+                    help="clip mode: send N frames (>= 2) ending at each keyframe as one "
+                         "sequence and ask what moves against what + scene type")
+    ap.add_argument("--clip-span-s", type=float, default=3.0,
+                    help="clip mode: seconds the N frames span (default 3)")
     ap.add_argument("--calibrate", action="store_true",
                     help="only check the model's coordinate convention")
     args = ap.parse_args(argv)
@@ -541,10 +640,13 @@ def main(argv=None):
     exemplars = load_exemplars(args.exemplar_json, args.exemplar, args.exemplar_count)
     if args.follow and not exemplars:
         ap.error("--follow needs --exemplar-json or --exemplar")
+    if args.clip >= 2 and exemplars:
+        ap.error("--clip cannot be combined with exemplar mode yet")
     res = probe_video(args.video, args.model, args.base_url, args.every_s,
                       not args.no_scenes, args.coord, args.timeout,
                       args.overlay_dir, args.max_keyframes,
-                      exemplars=exemplars, follow=args.follow)
+                      exemplars=exemplars, follow=args.follow,
+                      clip=args.clip, clip_span_s=args.clip_span_s)
     out = args.out or os.path.splitext(args.video)[0] + ".vlm.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=1)
