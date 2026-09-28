@@ -77,6 +77,8 @@ def main():
             timeout=5000)
         page.click("#gen-advanced > summary")
         # Tools show after map restore when windows exist
+        page.wait_for_selector("#gen-scene-map-tools", state="visible", timeout=5000)
+        page.locator("#gen-scene-map-learning").evaluate("el => { el.open = true; }")
         page.wait_for_selector("#gen-auto-candidates", state="visible", timeout=5000)
 
         check("Import candidates button",
