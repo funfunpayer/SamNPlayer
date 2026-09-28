@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/funfunpayer/SamNPlayer/funscript"
 	"github.com/funfunpayer/SamNPlayer/generator"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
@@ -77,4 +79,71 @@ func (a *App) GetBenchmarkHistory() ([]generator.BenchmarkResult, error) {
 		results = results[:maxBenchmarkHistoryEntries]
 	}
 	return results, nil
+}
+
+// BenchmarkPairScore is the GUI-facing PairScore (scripts vs FunGen/ref).
+// Video is optional metadata for KI labels; scoring is Everyday-candidate
+// (or any loaded script) against the reference — Everyday Go CSRT remains
+// the production basis; KI never becomes the Everyday writer here.
+type BenchmarkPairScore = funscript.PairScore
+
+// ScoreScriptPair compares a candidate .funscript against a FunGen/reference
+// .funscript (Owner Bench: pick video optional + pick scripts → gut/nicht gut).
+// Synchronous — no generate subprocess; uses pure Go ScorePair.
+func (a *App) ScoreScriptPair(referencePath, candidatePath, videoPath string) (BenchmarkPairScore, error) {
+	var empty BenchmarkPairScore
+	ref, err := funscript.Load(referencePath)
+	if err != nil {
+		return empty, err
+	}
+	cand, err := funscript.Load(candidatePath)
+	if err != nil {
+		return empty, err
+	}
+	score := funscript.ScorePair(ref.Actions, cand.Actions, 0, 0, 0)
+	score.Reference = filepath.Clean(referencePath)
+	score.Candidate = filepath.Clean(candidatePath)
+	if videoPath != "" {
+		score.Video = filepath.Clean(videoPath)
+	}
+	logging.Info("benchmark: pair score",
+		"label", score.Label, "passed", score.Passed,
+		"reference", score.Reference, "candidate", score.Candidate)
+	return score, nil
+}
+
+// AppendBenchmarkPairLabel writes one KI-ready JSONL label for a scored pair
+// into the configured benchmark history directory (labels.jsonl beside history).
+func (a *App) AppendBenchmarkPairLabel(score BenchmarkPairScore) (string, error) {
+	historyPath := a.settings.GetString(prefBenchmarkHistoryPath, defaultBenchmarkHistoryPath())
+	dir := filepath.Dir(historyPath)
+	if dir == "" || dir == "." {
+		dir = filepath.Dir(defaultBenchmarkHistoryPath())
+	}
+	out := filepath.Join(dir, "benchmark_pair_labels.jsonl")
+	rec := map[string]any{
+		"kind":      "benchmark_pair_label",
+		"label":     score.Label,
+		"passed":    score.Passed,
+		"video":     score.Video,
+		"reference": score.Reference,
+		"candidate": score.Candidate,
+		"score":     score,
+	}
+	data, err := json.Marshal(rec)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return "", err
+	}
+	f, err := os.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	if _, err := f.Write(append(data, '\n')); err != nil {
+		return "", err
+	}
+	return out, nil
 }
