@@ -331,10 +331,12 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			}
 		}
 
-		// SceneMark times are absolute video times. When tracking starts from a
-		// non-zero offset, use that same absolute timebase during the loop;
-		// timestamps are shifted below for the returned result as before.
-		atMs := int64(float64(frameIdx) * 1000.0 / fps)
+		// Relative clock (same as timestampsMs before the final shift).
+		// SceneMark FromMs/ToMs are absolute video times — when StartTimeSec > 0
+		// evaluate activity/excludes on absolute time. Path samples stay relative
+		// so the post-loop +off shift does not double-offset them.
+		relMs := int64(float64(frameIdx) * 1000.0 / fps)
+		atMs := relMs
 		if opts.StartTimeSec > 0 {
 			atMs += int64(opts.StartTimeSec*1000 + 0.5)
 		}
@@ -358,7 +360,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 				liveMarks[f.idx].Rect = mb
 				// Keep Path sparse (~5 Hz) for .samn / learning size.
 				if frameIdx%int(math.Max(1, fps/5)) == 0 || isCut {
-					liveMarks[f.idx].Path = append(liveMarks[f.idx].Path, MarkSample{Ms: atMs, Rect: mb})
+					liveMarks[f.idx].Path = append(liveMarks[f.idx].Path, MarkSample{Ms: relMs, Rect: mb})
 				}
 			}
 		}
