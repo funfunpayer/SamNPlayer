@@ -111,7 +111,6 @@ func TestCheckAudioTempoNoAudio(t *testing.T) {
 	}
 }
 
-
 func TestExtractAudioSamplesContextAlreadyCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
