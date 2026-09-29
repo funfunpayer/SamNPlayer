@@ -2828,7 +2828,8 @@ export function initPlayback(root) {
       softStartMs: parseInt(el('#pb-softstart').value, 10) || 0,
       useVideoSync: !!useVideoSync,
       extendedOEnabled: el('#pb-eo-enabled').checked,
-      extendedOMin: parseFloat(el('#pb-eo-min').value) || 0.1,
+      // finiteOr (not ||): Amplitude / Restore allow 0 (#418 slider min).
+      extendedOMin: finiteOr(el('#pb-eo-min').value, 0.1),
       extendedOHoldS: finiteOr(el('#pb-eo-hold').value, 10),
       extendedORestoreMs: finiteOr(el('#pb-eo-restore').value, 500),
       disableContactVibration: scriptHasContactVibration && el('#pb-contact-off').checked,
@@ -2880,9 +2881,9 @@ export function initPlayback(root) {
 
   async function triggerEO() {
     await TriggerExtendedO(
-      parseFloat(el('#pb-eo-min').value) || 0.1,
-      parseFloat(el('#pb-eo-hold').value) || 10,
-      parseFloat(el('#pb-eo-restore').value) || 500,
+      finiteOr(el('#pb-eo-min').value, 0.1),
+      finiteOr(el('#pb-eo-hold').value, 10),
+      finiteOr(el('#pb-eo-restore').value, 500),
     );
   }
 

@@ -152,6 +152,10 @@ measurement history behind each entry; this file is the short version for
   hold ran the device at full power instead of silent. The player now
   stores the reduction (zero value = full height), so 0 stays 0.
 
+- **Play Extended-O Amplitude/Restore 0 in GUI** — slider `min="0"` was still
+  coerced to the fallback (`|| 0.1` / `|| 500`) on Start/Trigger. Now uses
+  `finiteOr` so 0 is preserved. Playback feel only.
+
 - **Rhythm-robust + marks after a seek** — with a start time (GUI seek past
   the intro) the rhythm grid evaluated time-limited exclude/source marks
   and followed-mark positions on its own clock (counting from the first
