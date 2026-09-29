@@ -25,8 +25,18 @@ var audioDefaultHarmonics = []float64{0.5, 1.0, 2.0}
 // envelope. Returns nil when ffmpeg is missing or the file has no readable
 // audio (same contract as Python: do not write metadata in that case).
 func CheckAudioTempo(videoPath string, actions []funscript.Action) *funscript.AudioCheck {
+	return CheckAudioTempoContext(context.Background(), videoPath, actions)
+}
+
+// CheckAudioTempoContext is CheckAudioTempo with cancellation propagated to
+// the ffmpeg audio extraction subprocess. A nil context preserves the legacy
+// background behavior.
+func CheckAudioTempoContext(ctx context.Context, videoPath string, actions []funscript.Action) *funscript.AudioCheck {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	scriptHz := estimateScriptTempoHz(actions)
-	samples, sr, err := extractAudioSamples(videoPath, 8000)
+	samples, sr, err := extractAudioSamplesContext(ctx, videoPath, 8000)
 	if err != nil {
 		return nil
 	}
@@ -235,8 +245,14 @@ func compareTempo(scriptHz, audioHz *float64, tolerance float64, harmonics []flo
 	}
 }
 
-func extractAudioSamples(videoPath string, sampleRate int) ([]float64, float64, error) {
-	cmd, err := videox.CommandContext(context.Background(),
+func extractAudioSamplesContext(ctx context.Context, videoPath string, sampleRate int) ([]float64, float64, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
+	cmd, err := videox.CommandContext(ctx,
 		"-i", videoPath,
 		"-vn", "-ac", "1", "-ar", fmt.Sprintf("%d", sampleRate),
 		"-f", "f32le", "-loglevel", "error", "-")
@@ -244,7 +260,13 @@ func extractAudioSamples(videoPath string, sampleRate int) ([]float64, float64, 
 		return nil, 0, fmt.Errorf("ffmpeg ist nicht installiert")
 	}
 	out, err := cmd.Output()
-	if err != nil || len(out) == 0 {
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, 0, ctxErr
+		}
+		return nil, 0, fmt.Errorf("Keine Audiospur lesbar")
+	}
+	if len(out) == 0 {
 		return nil, 0, fmt.Errorf("Keine Audiospur lesbar")
 	}
 	n := len(out) / 4
