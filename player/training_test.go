@@ -1166,3 +1166,69 @@ func TestRunTrainingScriptRampsDownAtEndAfterEarlierStop(t *testing.T) {
 		t.Errorf("kein Rundown am Skriptende nach früherem Stopp, Vibration zuletzt %v", got)
 	}
 }
+
+// noDropBetween: nachdem der Kanal einmal `floor` erreicht hat (nach dem
+// ersten Höhepunkt `peak`), darf er bis zum nächsten Höhepunkt nicht unter
+// den Boden fallen. Liefert false, wenn der zweite Höhepunkt fehlt.
+func noDropBetween(t *testing.T, writes []float64, floor, peak float64) bool {
+	t.Helper()
+	const eps = 0.011
+	i := 0
+	for i < len(writes) && writes[i] < peak-eps {
+		i++
+	}
+	for i < len(writes) && absF(writes[i]-floor) > eps {
+		i++
+	}
+	if i == len(writes) {
+		t.Fatalf("Plateau %v nach Höhepunkt %v nie erreicht: %v", floor, peak, writes)
+	}
+	for j := i + 1; j < len(writes); j++ {
+		if writes[j] >= peak-eps {
+			return true
+		}
+		if writes[j] < floor-eps {
+			t.Errorf("fällt nach dem Plateau auf %v statt vom Plateau %v aus hochzufahren", writes[j], floor)
+			return true
+		}
+	}
+	return false
+}
+
+// Plateau/Edging: der nächste Zyklus fährt vom Plateau aus hoch. Vorher
+// sprang er auf 0 und startete die Rampe von unten - ein kurzer Abbruch
+// mitten in einer Methode, deren Sinn das Obenbleiben ist (Owner 29 Sep).
+func TestPlateauNextCycleStartsFromPlateau(t *testing.T) {
+	dev := &recordingDevice{}
+	opts := TrainingOptions{Technique: TechniquePlateau, Channel: ChannelVibration, Cycles: 2,
+		RampUpMs: 200, HoldMs: 50, RestMs: 200, PeakIntensity: 1.0, PlateauFraction: 0.7}
+	if err := RunTraining(context.Background(), dev, opts, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !noDropBetween(t, dev.vibrations, 0.7, 1.0) {
+		t.Fatalf("zweiter Höhepunkt fehlt: %v", dev.vibrations)
+	}
+}
+
+// Script-Gegenstück: das eingebaute Plateau-Script setzt StartFromCurrent
+// auf der Vibrationskurve.
+func TestRunTrainingScriptStartFromCurrentKeepsPlateau(t *testing.T) {
+	plateau, ok := BuiltinTrainingScript("plateau")
+	if !ok || plateau.Phases[0].Vibration == nil || !plateau.Phases[0].Vibration.StartFromCurrent {
+		t.Fatal("eingebautes Plateau-Script: Vibration muss StartFromCurrent setzen")
+	}
+	dev := &recordingDevice{}
+	c := curve(ChannelVibration, 0, 0.8, 0.56, 150, 50, 150)
+	c.StartFromCurrent = true
+	script := TrainingScript{Phases: []TrainingPhase{{Name: "Plateau", Vibration: c, RepeatCycles: 2, RestMs: 50}}}
+	if err := RunTrainingScript(context.Background(), dev, script, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !noDropBetween(t, dev.vibrations, 0.56, 0.8) {
+		t.Fatalf("zweiter Höhepunkt fehlt: %v", dev.vibrations)
+	}
+	// Skalieren (Schwierigkeit/Anpassung) darf das Flag nicht verlieren.
+	if s := ScaleTrainingScript(script, 0.5); !s.Phases[0].Vibration.StartFromCurrent {
+		t.Error("ScaleTrainingScript hat StartFromCurrent verloren")
+	}
+}

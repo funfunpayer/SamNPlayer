@@ -321,6 +321,11 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 	}
 	defer dev.Stop() //nolint:errcheck // best effort beim Beenden
 
+	// level: wo der Kanal gerade steht. Jeder Zyklus fährt von hier aus
+	// hoch - bei Stop-Start ist das immer 0, bei Plateau der Plateau-Wert
+	// des vorigen Zyklus (vorher sprang er dort auf 0 und begann von
+	// unten; Owner 29 Sep), nach einem Stopp wieder 0.
+	level := 0.0
 	for i := 0; i < opts.Cycles; i++ {
 		frac := 0.0
 		if opts.Cycles > 1 {
@@ -342,7 +347,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 			RestMs: restMs, ArousalBefore: arousal, StartedAt: time.Now()}
 
 		// Hochfahren
-		stopped, err := rampChannel(ctx, dev, opts.Channel, 0, peak, opts.RampUpMs, control)
+		stopped, err := rampChannel(ctx, dev, opts.Channel, level, peak, opts.RampUpMs, control)
 		if err != nil {
 			return err
 		}
@@ -366,6 +371,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 			if err := setChannel(dev, opts.Channel, 0); err != nil {
 				return err
 			}
+			level = 0
 			if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
 				return err
 			}
@@ -378,6 +384,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 			if err != nil {
 				return err
 			}
+			level = target
 			// Ein Stopp während der Abwärtsrampe wirkt wie jeder andere:
 			// sofort auf 0 und volle Pause. Vorher wurde er verworfen und
 			// der Kanal blieb die ganze Pause auf dem Zwischenwert stehen.
@@ -386,6 +393,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 				if err := setChannel(dev, opts.Channel, 0); err != nil {
 					return err
 				}
+				level = 0
 			}
 			if stoppedDown || opts.Technique != TechniquePlateau {
 				if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
@@ -549,6 +557,13 @@ type ChannelCurve struct {
 	// to reduce sensory adaptation. 0 (the default) reproduces a fully
 	// predictable ramp.
 	RandomJitterFraction float64 `json:"randomJitterFraction"`
+
+	// StartFromCurrent: the ramp up starts where the channel actually is
+	// (the previous repeat's EndLevel, 0 on the first repeat or after an
+	// interrupt) instead of at StartLevel. Plateau/edging sets it so the
+	// next repeat climbs from the plateau floor instead of dropping to 0
+	// first (Owner 29 Sep). Off keeps the curve exactly as written.
+	StartFromCurrent bool `json:"startFromCurrent,omitempty"`
 }
 
 // TrainingPhase is one named segment of a script: an optional curve per
@@ -656,6 +671,8 @@ func scaledCurve(base *ChannelCurve, progress, peakFactor, holdFactor float64) *
 		RampUpMs:   base.RampUpMs,
 		HoldMs:     int(float64(base.HoldMs) * holdFactor),
 		RampDownMs: base.RampDownMs,
+
+		StartFromCurrent: base.StartFromCurrent,
 	}
 }
 
@@ -884,6 +901,12 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 
 			vib := scaledCurve(phase.Vibration, progress, peakFactor, holdFactor)
 			suc := scaledCurve(phase.Suction, progress, peakFactor, holdFactor)
+			if vib != nil && vib.StartFromCurrent {
+				vib.StartLevel = lastVib
+			}
+			if suc != nil && suc.StartFromCurrent {
+				suc.StartLevel = lastSuc
+			}
 			restMs := int(float64(phase.RestMs) * restFactor)
 
 			control.drain()
@@ -979,6 +1002,12 @@ func curve(channel TrainingChannel, start, peak, end float64, rampUpMs, holdMs, 
 		RampUpMs: rampUpMs, HoldMs: holdMs, RampDownMs: rampDownMs}
 }
 
+// fromCurrent sets StartFromCurrent on a builtin curve.
+func fromCurrent(c *ChannelCurve) *ChannelCurve {
+	c.StartFromCurrent = true
+	return c
+}
+
 // closingRampMs is how long RunTrainingScript takes to wind an elevated
 // channel back down to 0 after a script finishes naturally - short enough
 // not to drag out the ending, long enough to still read as a ramp instead
@@ -1044,8 +1073,10 @@ func BuiltinTrainingScripts() []TrainingScript {
 				"suction layer that (unlike vibration) fully releases each cycle. Same method as Custom → Technique Plateau; Vibration. Fine-tune under Custom.",
 			Phases: []TrainingPhase{
 				{
-					Name:      "Plateau cycle",
-					Vibration: curve(ChannelVibration, 0, classicPeak, classicPeak*plateauFrac, classicRampUp, classicHold, classicRampUp),
+					Name: "Plateau cycle",
+					// StartFromCurrent: each next repeat climbs from the
+					// plateau floor instead of dropping to 0 first.
+					Vibration: fromCurrent(curve(ChannelVibration, 0, classicPeak, classicPeak*plateauFrac, classicRampUp, classicHold, classicRampUp)),
 					// Suction ends at 0 even though Vibration deliberately
 					// holds its high floor - the edging feel belongs to
 					// vibration; suction is just an accent, not a second

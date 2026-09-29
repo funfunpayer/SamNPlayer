@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/funfunpayer/SamNPlayer/player"
+)
 
 // resolveTrainingScript is what both StartTraining and TrainingScriptPreview
 // go through - a script's curve levels must come back scaled by
@@ -75,5 +79,20 @@ func TestTrainingScriptPreviewReflectsIntensityFactor(t *testing.T) {
 	scaledPeak := scaled.Vibration[1].Level
 	if scaledPeak != neutralPeak*0.5 {
 		t.Errorf("preview peak not scaled: neutral=%v scaled=%v (want %v)", neutralPeak, scaledPeak, neutralPeak*0.5)
+	}
+}
+
+// Die Vorschau zeigt beim Plateau-Script, was der Player fährt: die zweite
+// Wiederholung beginnt auf dem Plateau, nicht bei 0.
+func TestScriptPreviewPlateauStartsFromFloor(t *testing.T) {
+	script, ok := player.BuiltinTrainingScript("plateau")
+	if !ok {
+		t.Fatal("plateau fehlt")
+	}
+	pts := buildScriptPreview(script).Vibration
+	floor := script.Phases[0].Vibration.EndLevel
+	// 4 Punkte pro Wiederholung: Start, Höhepunkt, Halteende, Ende.
+	if len(pts) < 8 || pts[0].Level != 0 || pts[4].Level != floor {
+		t.Fatalf("Start 1. Wdh. %v (soll 0), Start 2. Wdh. %v (soll %v)", pts[0].Level, pts[4].Level, floor)
 	}
 }

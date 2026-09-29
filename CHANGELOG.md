@@ -123,17 +123,14 @@ measurement history behind each entry; this file is the short version for
   spacing / RDP / Max speed (DeepFunGen-style viewer feedback). Probe only —
   not the user’s clip. Everyday CSRT defaults unchanged (#379).
 
-## [0.5.41] — September 28, 2026
+### Changed
 
-### Added
-
-- **Bench: Clip-Prep In/Out cutter** — in-app short-clip export (In/Out + preset)
-  via ffmpeg from Go, same encode defaults as `scripts/benchmark-prep/`; script
-  fallback remains. Everyday Create / CSRT untouched (#365).
-
-- **Tip-Find compact peak** — Everyday `find_roi` picks a compact peak region
-  (periodicity × compactness) instead of a huge ≥0.5×peak bbox; GUI/VerifyROI
-  treat Tip-Find as an editable start box (#364).
+- **Training Plateau: next cycle climbs from the plateau** — Plateau/edging
+  used to drop from the plateau floor to 0 at the start of every next cycle
+  and ramp up from there. It now ramps up from where the level is: the
+  plateau, 0 on the first cycle or after "Interrupt now". Custom mode and
+  the built-in "plateau" script (new per-curve `startFromCurrent`, off for
+  every other script); the script preview shows the same (Owner 29 Sep).
 
 ### Fixed
 
@@ -202,6 +199,20 @@ measurement history behind each entry; this file is the short version for
   moment, because the engine's windows count from the first tracked frame.
   It now shifts the window times by the start offset (same clock issue as
   #377 for SceneMarks). Runs from 0 s are unchanged.
+
+## [0.5.41] — September 28, 2026
+
+### Added
+
+- **Bench: Clip-Prep In/Out cutter** — in-app short-clip export (In/Out + preset)
+  via ffmpeg from Go, same encode defaults as `scripts/benchmark-prep/`; script
+  fallback remains. Everyday Create / CSRT untouched (#365).
+
+- **Tip-Find compact peak** — Everyday `find_roi` picks a compact peak region
+  (periodicity × compactness) instead of a huge ≥0.5×peak bbox; GUI/VerifyROI
+  treat Tip-Find as an editable start box (#364).
+
+### Fixed
 
 - **Tip/partner appearance-reacquire vs coast** — `TrackTwoPoints` /
   `TrackMultiPoints` now share TrackROI's long-clip drift defenses: frame-0
