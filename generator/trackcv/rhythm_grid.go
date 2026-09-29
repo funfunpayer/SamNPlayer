@@ -560,6 +560,13 @@ func applyContactPoints(cx, cy []float64, tsMs []int, pts []ContactPoint, holdMs
 // scores at least k times the window's chosen cell. Windows without a
 // chosen cell or score map drop their points (nothing to verify against).
 func verifyContactPoints(pts []ContactPoint, m SceneMap, k float64) []ContactPoint {
+	return verifyContactPointsAt(pts, m, k, 0)
+}
+
+// verifyContactPointsAt is verifyContactPoints for a run that started
+// offMs into the video (Options.StartTimeSec): the map's window times count
+// from the first tracked frame, contact points are absolute video times.
+func verifyContactPointsAt(pts []ContactPoint, m SceneMap, k float64, offMs int64) []ContactPoint {
 	if len(pts) == 0 || len(m.Windows) == 0 || m.Cols <= 0 || m.Rows <= 0 {
 		return nil
 	}
@@ -568,7 +575,7 @@ func verifyContactPoints(pts []ContactPoint, m SceneMap, k float64) []ContactPoi
 		var w *MapWindow
 		best := int64(-1)
 		for i := range m.Windows {
-			d := absInt64((m.Windows[i].StartMs+m.Windows[i].EndMs)/2 - p.Ms)
+			d := absInt64((m.Windows[i].StartMs+m.Windows[i].EndMs)/2 + offMs - p.Ms)
 			if best < 0 || d < best {
 				best, w = d, &m.Windows[i]
 			}

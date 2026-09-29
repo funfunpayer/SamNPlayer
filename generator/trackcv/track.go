@@ -443,7 +443,13 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		if len(contactPts) > 0 && opts.ContactVerifyK > 0 {
 			_, own := rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
 				xPositions, yPositions, positions, seed, sceneCuts, fps, liveMarks)
-			contactPts = verifyContactPoints(contactPts, own, opts.ContactVerifyK)
+			// Window times are relative to the first tracked frame; the
+			// points are absolute (same clock issue as #377 for SceneMarks).
+			offMs := int64(0)
+			if opts.StartTimeSec > 0 {
+				offMs = int64(opts.StartTimeSec*1000 + 0.5)
+			}
+			contactPts = verifyContactPointsAt(contactPts, own, opts.ContactVerifyK, offMs)
 		}
 		searchX, searchY := applyContactPoints(xPositions, yPositions, timestampsMs,
 			contactPts, int64(opts.ContactHoldMs), width, height, rhythmGridCols)

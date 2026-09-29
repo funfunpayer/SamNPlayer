@@ -145,3 +145,25 @@ func TestVerifyContactPointsKeepsOnlyWhereEngineMeasuresMore(t *testing.T) {
 		t.Fatalf("empty map kept %+v", got)
 	}
 }
+
+func TestVerifyContactPointsAtHonoursStartOffset(t *testing.T) {
+	// Run started 60 s into the video: the map's windows count from 0, the
+	// contact points are absolute. Window 0-8 s (relative) = 60-68 s video:
+	// chosen cell 0 is weak, cell 6 strong. Window 20-28 s: cell 6 weak.
+	strong := make([]uint8, 12)
+	strong[0], strong[6] = 100, 200
+	weak := make([]uint8, 12)
+	weak[0], weak[6] = 200, 100
+	m := SceneMap{Cols: 4, Rows: 3, Windows: []MapWindow{
+		{StartMs: 0, EndMs: 8000, ChosenCell: 0, Score: strong},
+		{StartMs: 20000, EndMs: 28000, ChosenCell: 0, Score: weak},
+	}}
+	pts := []ContactPoint{{Ms: 64000, X: 0.6, Y: 0.5}} // video 64 s = relative 4 s
+	if got := verifyContactPointsAt(pts, m, 1.5, 60000); len(got) != 1 {
+		t.Fatalf("with offset: kept %+v, want the point (strong window)", got)
+	}
+	// Without the offset the point lands on the weak window and is dropped.
+	if got := verifyContactPoints(pts, m, 1.5); len(got) != 0 {
+		t.Fatalf("without offset: kept %+v", got)
+	}
+}
