@@ -13,7 +13,8 @@ Scope: `player/training.go`, `cmd/gui-wails/app_training.go`,
 
 - **Two techniques:** Stop-Start (ramp to peak, hold, ramp to **0**, rest)
   and Plateau/"edging" (ramp to peak, hold, ramp down to a **fraction** of
-  peak instead of 0). Selectable per session.
+  peak instead of 0; the next cycle climbs from that plateau, not from 0 —
+  Owner 29 Sep). Selectable per session.
 - **Channel choice:** vibration only, suction only, or both. In "both"
   mode the two channels always receive the **same** curve — there is no
   per-channel shaping (`rampChannel`'s own comment already names this as
@@ -438,7 +439,8 @@ Today's two techniques become the two built-in single-phase scripts:
 - **Stop-Start** → one phase, one curve per selected channel,
   `EndLevel: 0`, `RestMs` as configured.
 - **Plateau** → one phase, one curve per selected channel, `EndLevel:
-  PeakLevel * PlateauFraction`.
+  PeakLevel * PlateauFraction`, `StartFromCurrent: true` (each next repeat
+  climbs from the plateau floor instead of starting at `StartLevel` 0).
 
 Existing `TrainingRequest`/session-log JSON keeps working unchanged for
 these two cases; the phase/script fields are additive. Old JSONL session

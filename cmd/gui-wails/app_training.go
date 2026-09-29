@@ -197,7 +197,11 @@ func buildScriptPreview(script player.TrainingScript) TrainingScriptPreviewResul
 			return startAt
 		}
 		at := startAt
-		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.StartLevel})
+		start := curve.StartLevel
+		if curve.StartFromCurrent {
+			start = *last // wie im Player: vom aktuellen Pegel aus hoch
+		}
+		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: start})
 		at += curve.RampUpMs
 		*points = append(*points, TrainingScriptCurvePoint{AtMs: at, Level: curve.PeakLevel})
 		at += curve.HoldMs
