@@ -73,6 +73,7 @@ Playlist — queue multiple scripts
 Bookmarks — named times: add at playhead, seek, rename, remove
 Chapters — named ranges: mark heatmap, add from selection, seek, rename, remove
 Heatmap / markers — seek, loop, Extended-O, O-markers
+Playback Advanced — Tick / Max-Speed / Smoothing / Soft-Start (range + readout; device feel only)
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker.`,
   },

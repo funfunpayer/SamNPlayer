@@ -390,10 +390,26 @@ export function initPlayback(root) {
             </select>
           </div>
           <div class="pb-adv-grid">
-            <div class="field-row"><label>Tick (ms)</label><input type="number" id="pb-tick" value="50" /></div>
-            <div class="field-row"><label>Max-Speed</label><input type="number" step="0.1" id="pb-maxspeed" value="0.6" /></div>
-            <div class="field-row"><label>Smoothing</label><input type="number" step="0.05" min="0" max="1" id="pb-smoothing" value="0.3" /></div>
-            <div class="field-row"><label>Soft-Start</label><input type="number" step="100" min="0" id="pb-softstart" value="500" /></div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Device command interval in milliseconds. Lower = denser stream. Default 50. Playback feel only — not Create CSRT.">Tick (ms)</label>
+              <input type="range" id="pb-tick" min="10" max="200" step="10" value="50" style="flex:1;" />
+              <span class="hint" id="pb-tick-val" style="margin:0; min-width:2.5em;">50</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Max position change rate for device mapping (0–100 scale per second fraction). Default 0.6. Playback feel only — not Create max-speed.">Max-Speed</label>
+              <input type="range" id="pb-maxspeed" min="0.1" max="2" step="0.1" value="0.6" style="flex:1;" />
+              <span class="hint" id="pb-maxspeed-val" style="margin:0; min-width:2.5em;">0.6</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Live curve smoothing toward the next sample (0–1). Default 0.3. Playback feel only.">Smoothing</label>
+              <input type="range" id="pb-smoothing" min="0" max="1" step="0.05" value="0.3" style="flex:1;" />
+              <span class="hint" id="pb-smoothing-val" style="margin:0; min-width:2.5em;">0.3</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Ramp-in duration at play start (ms). Default 500. Playback feel only.">Soft-Start</label>
+              <input type="range" id="pb-softstart" min="0" max="3000" step="100" value="500" style="flex:1;" />
+              <span class="hint" id="pb-softstart-val" style="margin:0; min-width:3em;">500</span>
+            </div>
           </div>
           <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
           <div class="pb-adv-grid">
@@ -3206,6 +3222,28 @@ export function initPlayback(root) {
     renderPlaylist();
   });
 
+  function syncPlayAdvKnobLabels() {
+    const tick = el('#pb-tick');
+    const tickLab = el('#pb-tick-val');
+    if (tick && tickLab) tickLab.textContent = String(Math.round(Number(tick.value) || 0));
+    const max = el('#pb-maxspeed');
+    const maxLab = el('#pb-maxspeed-val');
+    if (max && maxLab) {
+      const n = Number(max.value);
+      maxLab.textContent = Number.isFinite(n) ? n.toFixed(1) : '0.6';
+    }
+    const sm = el('#pb-smoothing');
+    const smLab = el('#pb-smoothing-val');
+    if (sm && smLab) {
+      const n = Number(sm.value);
+      smLab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : '0.3';
+    }
+    const soft = el('#pb-softstart');
+    const softLab = el('#pb-softstart-val');
+    if (soft && softLab) softLab.textContent = String(Math.round(Number(soft.value) || 0));
+  }
+  syncPlayAdvKnobLabels();
+
   getSettingsCache().then(s => {
     el('#pb-mock').checked = s.playbackMock;
     el('#pb-sync').value = s.playbackSync;
@@ -3213,6 +3251,7 @@ export function initPlayback(root) {
     el('#pb-maxspeed').value = s.playbackMaxSpeed;
     el('#pb-smoothing').value = s.playbackSmoothing;
     el('#pb-softstart').value = s.playbackSoftStartMs;
+    syncPlayAdvKnobLabels();
     el('#pb-eo-enabled').checked = s.playbackEOEnabled;
     el('#pb-eo-min').value = s.playbackEOMin;
     el('#pb-eo-hold').value = s.playbackEOHoldS;
@@ -3228,10 +3267,26 @@ export function initPlayback(root) {
   });
   el('#pb-mock').addEventListener('change', e => saveSetting('playback.mock', e.target.checked));
   el('#pb-sync').addEventListener('change', e => saveSetting('playback.sync_mode', e.target.value));
-  el('#pb-tick').addEventListener('change', e => saveSetting('playback.tick_ms', parseFloat(e.target.value)));
-  el('#pb-maxspeed').addEventListener('change', e => saveSetting('playback.max_speed', parseFloat(e.target.value)));
-  el('#pb-smoothing').addEventListener('change', e => saveSetting('playback.smoothing', parseFloat(e.target.value)));
-  el('#pb-softstart').addEventListener('change', e => saveSetting('playback.soft_start_ms', parseFloat(e.target.value)));
+  el('#pb-tick').addEventListener('input', syncPlayAdvKnobLabels);
+  el('#pb-maxspeed').addEventListener('input', syncPlayAdvKnobLabels);
+  el('#pb-smoothing').addEventListener('input', syncPlayAdvKnobLabels);
+  el('#pb-softstart').addEventListener('input', syncPlayAdvKnobLabels);
+  el('#pb-tick').addEventListener('change', e => {
+    syncPlayAdvKnobLabels();
+    saveSetting('playback.tick_ms', parseFloat(e.target.value));
+  });
+  el('#pb-maxspeed').addEventListener('change', e => {
+    syncPlayAdvKnobLabels();
+    saveSetting('playback.max_speed', parseFloat(e.target.value));
+  });
+  el('#pb-smoothing').addEventListener('change', e => {
+    syncPlayAdvKnobLabels();
+    saveSetting('playback.smoothing', parseFloat(e.target.value));
+  });
+  el('#pb-softstart').addEventListener('change', e => {
+    syncPlayAdvKnobLabels();
+    saveSetting('playback.soft_start_ms', parseFloat(e.target.value));
+  });
   el('#pb-eo-enabled').addEventListener('change', e => saveSetting('playback.extended_o_enabled', e.target.checked));
   el('#pb-eo-min').addEventListener('change', e => saveSetting('playback.extended_o_min', parseFloat(e.target.value)));
   el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));

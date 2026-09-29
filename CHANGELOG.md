@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play Advanced: MakeVib-style feel knobs** — Tick / Max-Speed / Smoothing /
+  Soft-Start use range + live readout (same IDs and defaults). Playback feel
+  only — Create CSRT / Expert max-speed unchanged.
+
 - **Play: bookmark / chapter rename** — Rename on bookmark and chapter rows
   (OFS-style CRUD). Persists via existing Save APIs; Everyday CSRT unchanged.
 
