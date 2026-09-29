@@ -104,7 +104,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.39** | Shipped | GUI Anleitung alignment (#357) + Improve heal label (#356); Everyday Go CSRT unchanged — tag `v0.5.39` |
 | **v0.5.40** | Shipped | Contact Verify GUI (#359) + Bench Suggest beside (#360); Everyday Go CSRT unchanged — tag `v0.5.40` |
 | **v0.5.41** | Shipped | Sammel post-0.5.40: Tip-Find (#364), Clip-Prep cutter (#365), reacquire (#366), Bugfix (#372), E2E (#371), cleanup (#369), docs/tests (#362/#363/#367); #264 VP cancelled; Everyday Go CSRT unchanged — tag `v0.5.41` |
-| **v0.5.42** | THIS | Sammel post-0.5.41: GapFill (#403/#413); Play/Create knobs+probes (#378–#400); Plateau from floor (#426); Expert/EO/Contact 0 GUI (#425/#421/#424); seek/clock + CLI (#377/#401–#417); Intiface/training (#422); Audio cancel (#420); atomic funscript (#428); #264 cancelled; Everyday Go CSRT unchanged |
+| **v0.5.42** | Shipped | Sammel post-0.5.41: GapFill (#403/#413); Play/Create knobs+probes (#378–#400); Plateau from floor (#426); Expert/EO/Contact 0 GUI (#425/#421/#424); seek/clock + CLI (#377/#401–#417); Intiface/training (#422); Audio cancel (#420); atomic funscript (#428); #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.42` |
 | next | After v0.5.42 | Owner portable smoke on `v0.5.42` (GapFill, Plateau, Expert 0, Generate→Play→Neo 2). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3 |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
