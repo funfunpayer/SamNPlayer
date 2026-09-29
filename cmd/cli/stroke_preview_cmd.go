@@ -14,6 +14,16 @@ import (
 // runStrokePreview: sparse extrema / cut / pan probe (Stage A).
 // Usage: samnplayer stroke-preview VIDEO [--json] [--max-seconds N]
 func runStrokePreview(args []string) int {
+	return runStrokePreviewContext(context.Background(), args)
+}
+
+type strokePreviewAnalyzeFunc func(context.Context, string, strokepreview.Options) (strokepreview.Report, error)
+
+func runStrokePreviewContext(ctx context.Context, args []string) int {
+	return runStrokePreviewWithContext(ctx, args, strokepreview.Analyze)
+}
+
+func runStrokePreviewWithContext(ctx context.Context, args []string, analyze strokePreviewAnalyzeFunc) int {
 	fs := flag.NewFlagSet("stroke-preview", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	asJSON := fs.Bool("json", false, "emit Report JSON")
@@ -32,9 +42,9 @@ func runStrokePreview(args []string) int {
 	}
 	video := paths[0]
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	rep, err := strokepreview.Analyze(ctx, video, strokepreview.Options{
+	rep, err := analyze(ctx, video, strokepreview.Options{
 		MaxWidth:    *maxWidth,
 		AnalysisFPS: *analysisFPS,
 		SampleEvery: *sampleEvery,
