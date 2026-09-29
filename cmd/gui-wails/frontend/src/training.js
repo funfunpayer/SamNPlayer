@@ -306,9 +306,21 @@ export function initTraining(root) {
       <div class="field-row"><label>Ramp up (ms)</label><input type="number" min="0" step="500" id="tr-rampup" value="8000" /></div>
       <div class="field-row"><label>Hold (ms)</label><input type="number" min="0" step="500" id="tr-hold" value="3000" /></div>
       <div class="field-row"><label>Rest (ms)</label><input type="number" min="0" step="500" id="tr-rest" value="10000" /></div>
-      <div class="field-row"><label>Peak intensity</label><input type="number" min="0" max="1" step="0.05" id="tr-peak" value="0.8" /></div>
-      <div class="field-row" id="tr-plateau-row"><label>Plateau fraction</label><input type="number" min="0" max="1" step="0.05" id="tr-plateaufrac" value="0.7" /></div>
-      <div class="field-row"><label>Progression per cycle</label><input type="number" min="0" max="1" step="0.05" id="tr-progression" value="0.15" /></div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="Peak level for each cycle (0–1). Default 0.8. Training feel only — Create CSRT unchanged.">Peak intensity</label>
+        <input type="range" id="tr-peak" min="0" max="1" step="0.05" value="0.8" style="flex:1;" />
+        <span class="hint" id="tr-peak-val" style="margin:0; min-width:2.5em;">0.8</span>
+      </div>
+      <div class="field-row" id="tr-plateau-row" style="align-items:center;">
+        <label data-help="How high the plateau sits relative to peak (edging technique). Default 0.7. Training feel only.">Plateau fraction</label>
+        <input type="range" id="tr-plateaufrac" min="0" max="1" step="0.05" value="0.7" style="flex:1;" />
+        <span class="hint" id="tr-plateaufrac-val" style="margin:0; min-width:2.5em;">0.7</span>
+      </div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="How much peak grows each cycle (0–1). Default 0.15. Training feel only.">Progression per cycle</label>
+        <input type="range" id="tr-progression" min="0" max="1" step="0.05" value="0.15" style="flex:1;" />
+        <span class="hint" id="tr-progression-val" style="margin:0; min-width:2.5em;">0.15</span>
+      </div>
     </div>
 
     <div id="tr-pixel-stage" aria-label="Training pixel figure"></div>
@@ -1068,6 +1080,21 @@ export function initTraining(root) {
   renderEditorPhases();
   scheduleEditorPreview();
 
+  function syncTrainIntensityKnobLabels() {
+    for (const [sel, labSel, fallback] of [
+      ['#tr-peak', '#tr-peak-val', '0.8'],
+      ['#tr-plateaufrac', '#tr-plateaufrac-val', '0.7'],
+      ['#tr-progression', '#tr-progression-val', '0.15'],
+    ]) {
+      const inp = el(sel);
+      const lab = el(labSel);
+      if (!inp || !lab) continue;
+      const n = Number(inp.value);
+      lab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : fallback;
+    }
+  }
+  syncTrainIntensityKnobLabels();
+
   getSettingsCache().then(s => {
     el('#tr-mock').checked = s.trainingMock;
     el('#tr-technique').value = s.trainingTechnique;
@@ -1079,6 +1106,7 @@ export function initTraining(root) {
     el('#tr-peak').value = s.trainingPeakIntensity;
     el('#tr-plateaufrac').value = s.trainingPlateauFraction;
     el('#tr-progression').value = s.trainingProgressionPerCycle;
+    syncTrainIntensityKnobLabels();
     updateTechniqueVisibility();
   });
   el('#tr-mock').addEventListener('change', e => saveSetting('training.mock', e.target.checked));
@@ -1088,7 +1116,19 @@ export function initTraining(root) {
   el('#tr-rampup').addEventListener('change', e => saveSetting('training.ramp_up_ms', parseFloat(e.target.value)));
   el('#tr-hold').addEventListener('change', e => saveSetting('training.hold_ms', parseFloat(e.target.value)));
   el('#tr-rest').addEventListener('change', e => saveSetting('training.rest_ms', parseFloat(e.target.value)));
-  el('#tr-peak').addEventListener('change', e => saveSetting('training.peak_intensity', parseFloat(e.target.value)));
-  el('#tr-plateaufrac').addEventListener('change', e => saveSetting('training.plateau_fraction', parseFloat(e.target.value)));
-  el('#tr-progression').addEventListener('change', e => saveSetting('training.progression_per_cycle', parseFloat(e.target.value)));
+  el('#tr-peak').addEventListener('input', syncTrainIntensityKnobLabels);
+  el('#tr-plateaufrac').addEventListener('input', syncTrainIntensityKnobLabels);
+  el('#tr-progression').addEventListener('input', syncTrainIntensityKnobLabels);
+  el('#tr-peak').addEventListener('change', e => {
+    syncTrainIntensityKnobLabels();
+    saveSetting('training.peak_intensity', parseFloat(e.target.value));
+  });
+  el('#tr-plateaufrac').addEventListener('change', e => {
+    syncTrainIntensityKnobLabels();
+    saveSetting('training.plateau_fraction', parseFloat(e.target.value));
+  });
+  el('#tr-progression').addEventListener('change', e => {
+    syncTrainIntensityKnobLabels();
+    saveSetting('training.progression_per_cycle', parseFloat(e.target.value));
+  });
 }

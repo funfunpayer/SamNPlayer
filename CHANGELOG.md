@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Training: MakeVib-style intensity knobs** — Peak / Plateau / Progression use
+  range + live readout (defaults 0.8 / 0.7 / 0.15). Training feel only; Everyday
+  CSRT unchanged.
+
 - **Play: FPS-Snap knob** — OFS FPS-Snap uses range + live readout (`off` at 0,
   else fps). Default 0; Play edit only; Everyday CSRT unchanged.
 
