@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -106,5 +108,16 @@ func TestAudioEnvelope(t *testing.T) {
 func TestCheckAudioTempoNoAudio(t *testing.T) {
 	if CheckAudioTempo("/nonexistent/nope.mp4", []funscript.Action{{At: 0, Pos: 0}}) != nil {
 		t.Fatal("missing video must return nil")
+	}
+}
+
+
+func TestExtractAudioSamplesContextAlreadyCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, _, err := extractAudioSamplesContext(ctx, "/does/not/matter.mp4", 8000)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled before ffmpeg lookup/start, got %v", err)
 	}
 }
