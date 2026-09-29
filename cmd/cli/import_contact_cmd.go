@@ -23,7 +23,7 @@ func runImportContactCandidates(args []string) int {
 		fmt.Fprintf(os.Stderr, "(author auto, reviewed:false) for review; replaces earlier unconfirmed ones.\n")
 		fs.PrintDefaults()
 	}
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}

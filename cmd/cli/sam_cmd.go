@@ -25,7 +25,7 @@ func runSam(args []string) int {
 		fmt.Fprintf(os.Stderr, "bei Tf/Tj+Kontakt auch Intensity/Range — ohne GUI-Umbau.\n")
 		fs.PrintDefaults()
 	}
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}

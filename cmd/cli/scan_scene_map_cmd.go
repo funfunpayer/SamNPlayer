@@ -21,7 +21,7 @@ func runScanSceneMap(args []string) int {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s scan-scene-map VIDEO [--windows N] [--out FILE]\n\n", os.Args[0])
 		fs.PrintDefaults()
 	}
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
