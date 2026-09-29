@@ -31,7 +31,7 @@ type SamNeo2 struct {
 	protocol Protocol
 
 	device DeviceRef
-	char   bluetooth.DeviceCharacteristic
+	char   gattWriter
 
 	// NamePrefix wird beim Scan zum Filtern der Advertisements genutzt.
 	NamePrefix  string
@@ -136,6 +136,14 @@ func (s *SamNeo2) BatteryLevel() (int, bool) {
 	return pct, ok
 }
 
+// gattWriter ist der Teil der BLE-Characteristic, den SamNeo2 braucht
+// (bluetooth.DeviceCharacteristic erfüllt es auf allen Plattformen) - so
+// lässt sich die Kanal-Buchführung ohne echtes Gerät testen.
+type gattWriter interface {
+	Write(p []byte) (int, error)
+	WriteWithoutResponse(p []byte) (int, error)
+}
+
 // DeviceRef hält die verbundene BLE-Geräte-Referenz.
 type DeviceRef = bluetooth.Device
 
@@ -175,7 +183,14 @@ func (s *SamNeo2) Connect(ctx context.Context) error {
 			}
 			if strings.HasPrefix(name, s.NamePrefix) {
 				adapter.StopScan()
-				found <- result
+				// Nicht blockierend: nach StopScan können noch weitere
+				// Advertisements eintreffen, und nach Timeout/Abbruch liest
+				// niemand mehr - ein blockierender Send würde den Scan-
+				// Callback (und damit Scan()) für immer hängen lassen.
+				select {
+				case found <- result:
+				default:
+				}
 			}
 		})
 		if err != nil {
@@ -320,12 +335,18 @@ type rawEncoder interface {
 	EncodeSuctionRaw(byte) []byte
 }
 
+// Rohwerte schreiben immer (kein "unverändert -> überspringen") und merken
+// sich das Paket als Kanalzustand - wie Stop(). Vorher liefen sie über
+// write() an der Buchführung vorbei: das Keepalive spielte nach ~4s den
+// zuletzt gemerkten *normalen* Wert erneut ab. Der Diagnose-Sweep endet mit
+// Rohwert 0 - danach lief das Gerät von selbst wieder an; und ein folgender
+// SetVibration() mit dem alten Wert wurde als "unverändert" verschluckt.
 func (s *SamNeo2) SetVibrationRaw(speed byte) error {
 	enc, ok := s.protocol.(rawEncoder)
 	if !ok {
 		return fmt.Errorf("device: this protocol does not support raw values")
 	}
-	return s.write(enc.EncodeVibrationRaw(speed))
+	return s.writeChannelAlways(enc.EncodeVibrationRaw(speed), true)
 }
 
 func (s *SamNeo2) SetSuctionRaw(level byte) error {
@@ -333,7 +354,23 @@ func (s *SamNeo2) SetSuctionRaw(level byte) error {
 	if !ok {
 		return fmt.Errorf("device: this protocol does not support raw values")
 	}
-	return s.write(enc.EncodeSuctionRaw(level))
+	return s.writeChannelAlways(enc.EncodeSuctionRaw(level), false)
+}
+
+// writeChannelAlways sendet ein Kanalpaket ohne Unverändert-Prüfung und
+// merkt es sich für Keepalive und die nächste Unverändert-Prüfung.
+func (s *SamNeo2) writeChannelAlways(packet []byte, vibration bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.writeLocked(packet); err != nil {
+		return err
+	}
+	if vibration {
+		s.lastVibrationPacket = packet
+	} else {
+		s.lastSuctionPacket = packet
+	}
+	return nil
 }
 
 // SetSuction setzt den Sog-Level direkt, genau wie SetVibration - laut
@@ -383,20 +420,12 @@ func (s *SamNeo2) Stop() error {
 	return nil
 }
 
-// write schreibt ein Kommando auf die GATT-Characteristic. s.mu schützt hier
-// nicht nur die Buchführung (Kanalzustand/lastWriteAt), sondern den gesamten
-// Schreibvorgang selbst - ohne das könnten der reguläre Wiedergabe-Pfad und
-// die Keepalive-Goroutine (runKeepalive) gleichzeitig auf dieselbe BLE-
-// Characteristic schreiben, was der zugrundeliegende Treiber nicht als
-// nebenläufig-sicher garantiert.
-func (s *SamNeo2) write(packet []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.writeLocked(packet)
-}
-
 // writeLocked führt den eigentlichen GATT-Write aus. Aufrufer MUSS s.mu
-// bereits halten.
+// bereits halten: s.mu schützt nicht nur die Buchführung (Kanalzustand/
+// lastWriteAt), sondern den gesamten Schreibvorgang - sonst könnten der
+// Wiedergabe-Pfad und die Keepalive-Goroutine (runKeepalive) gleichzeitig
+// auf dieselbe BLE-Characteristic schreiben, was der Treiber nicht als
+// nebenläufig-sicher garantiert.
 func (s *SamNeo2) writeLocked(packet []byte) error {
 	var err error
 	if s.protocol.WriteWithResponse() {

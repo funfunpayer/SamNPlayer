@@ -137,6 +137,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Sam Neo 2: device restarting itself after the diagnostics test** — the
+  raw-value writes of the Device-tab test and diagnostics sweep bypassed the
+  remembered channel state, so ~4 s later the keepalive replayed the last
+  *normal* value: after the sweep ended with raw 0 the device started again
+  on its own, and a following normal command with that old value was
+  skipped as "unchanged". Raw writes now always send and update the channel
+  state (like `Stop()`). The BLE scan callback no longer blocks when more
+  matching advertisements arrive after the device was found.
+
 - **Extended-O with minimum 0** — a minimum level of 0 (CLI
   `--extended-o-min 0`) read back as full intensity: the player treated a
   scale of 0 as "not set" and used 1, so the end of the ramp and the whole
