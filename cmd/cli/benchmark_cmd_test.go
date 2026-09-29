@@ -83,6 +83,35 @@ func TestRunBenchmarkMissingArgs(t *testing.T) {
 	}
 }
 
+func TestRunBenchmarkMixedPositionalAndNamedPaths(t *testing.T) {
+	dir := t.TempDir()
+	actions := benchSineActions(20000, 2000, 40, 0, 40, 50)
+	ref := writeTestFunscript(t, dir, "ref.funscript", actions)
+	cand := writeTestFunscript(t, dir, "cand.funscript", actions)
+
+	for name, args := range map[string][]string{
+		"named reference": {"--reference", ref, cand},
+		"named candidate": {ref, "--candidate", cand},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if code := runBenchmark(args); code != 0 {
+				t.Fatalf("exit=%d, want 0", code)
+			}
+		})
+	}
+}
+
+func TestRunBenchmarkRejectsExtraPositionalPath(t *testing.T) {
+	dir := t.TempDir()
+	actions := benchSineActions(20000, 2000, 40, 0, 40, 50)
+	ref := writeTestFunscript(t, dir, "ref.funscript", actions)
+	cand := writeTestFunscript(t, dir, "cand.funscript", actions)
+
+	if code := runBenchmark([]string{"--reference", ref, "--candidate", cand, "extra.funscript"}); code != 2 {
+		t.Fatalf("exit=%d, want 2", code)
+	}
+}
+
 func TestRunBenchmarkGoldenClipFixture(t *testing.T) {
 	root := findRepoRoot(t)
 	ref := filepath.Join(root, "generator/testdata/golden_clips/clip_ausschnitt_native/mit_yolo/clip_ausschnitt.funscript")
