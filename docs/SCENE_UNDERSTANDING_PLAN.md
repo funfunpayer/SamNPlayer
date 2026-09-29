@@ -187,6 +187,28 @@ No default changes. Defaults are discussed only after ≥ 4–5 more clips
 (Owner). GUI: **"Verify with the engine (hybrid, K=1.5)"** next to Use contact
 points — shipped (opt-in, default off; same as CLI `--contact-verify 1.5`).
 
+### Hybrid step 2 — fill where the tracker lost the target (proposal, 29 Sep)
+
+Finding on main: `tracking_gaps` are built from `LostFlags`, and only the
+two-point / multi-point trackers set them. On the Everyday single-ROI path
+nothing records a gap, so *Heal tracking gaps* (#262) never fires there.
+Where it does fire it bridges the gap with a straight line, so the strokes
+inside the gap are lost.
+
+Proposal (board lane **GapFill**, ask first):
+
+1. **Record gaps on the single-ROI path too**, from CSRT loss (the same
+   per-frame signal `TrackerLostFrames` already counts). Measure first how
+   often it fires on the three clips and whether those windows are wrong.
+2. **Rhythm bridge (opt-in heal mode):** inside a gap, continue the stroke
+   pattern — tempo and amplitude from the neighbouring windows, phase
+   matched at both ends — instead of the straight line.
+3. **Measure with synthetic ground truth before shipping:** cut 5–10 s
+   spans out of good scripts (goldens, multi-person), heal them with the
+   line and with the rhythm bridge, and compare r against the uncut
+   original. Only if the rhythm bridge clearly wins does it go to the GUI
+   (Cursor: an option in Improve), still opt-in.
+
 **ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
 automatically".** The old locked rule "no silent ROI2" is now: no ROI2
 unless the user switched this setting on. The reason for the old rule still
