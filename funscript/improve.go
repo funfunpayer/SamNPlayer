@@ -37,6 +37,14 @@ type ImproveOpts struct {
 	// re-run CSRT — classical bridge only. Empty TrackingGaps = no-op.
 	HealTrackingGaps bool
 	TrackingGaps     []TrackingGap
+	// HealRhythm (opt-in): bridge the healed windows with the stroke rhythm
+	// around them (RhythmBridgeSpans) instead of the straight line; a window
+	// without rhythm on its sides still gets the line.
+	HealRhythm bool
+	// RepairSpans are user-selected spans ("repair this span"): the points
+	// inside are replaced by the rhythm bridge (line when no rhythm around).
+	// Empty = no-op.
+	RepairSpans []TrackingGap
 }
 
 // ImproveResult summarizes what changed.
@@ -50,6 +58,10 @@ type ImproveResult struct {
 	FillGapMs     int64    `json:"fillGapMs"`
 	FillStepMs    int64    `json:"fillStepMs"`
 	WindowsHealed int      `json:"windowsHealed"`
+	// RhythmBridged counts windows / spans filled with the rhythm bridge
+	// (the rest of WindowsHealed / SpansRepaired got the straight line).
+	RhythmBridged int `json:"rhythmBridged"`
+	SpansRepaired int `json:"spansRepaired"`
 	// ClearTrackingGaps hints the caller to drop healed windows from metadata
 	// so Contact vib is not muted forever on rewritten ranges.
 	ClearTrackingGaps bool `json:"clearTrackingGaps"`
@@ -363,13 +375,32 @@ func ImproveScript(actions []Action, opts ImproveOpts) (ImproveResult, error) {
 	}
 
 	if opts.HealTrackingGaps && len(opts.TrackingGaps) > 0 {
-		healed, nWin, nPts := HealTrackingGaps(cur, opts.TrackingGaps, opts.StepMs, opts.AudioHz)
-		if nWin > 0 {
-			cur = healed
-			res.WindowsHealed = nWin
-			res.PointsAdded += nPts
-			res.ClearTrackingGaps = true
+		if opts.HealRhythm {
+			healed, nRhythm, nLine, nPts := healSpansRhythm(cur, opts.TrackingGaps, opts.StepMs, opts.AudioHz)
+			if nRhythm+nLine > 0 {
+				cur = healed
+				res.WindowsHealed = nRhythm + nLine
+				res.RhythmBridged += nRhythm
+				res.PointsAdded += nPts
+				res.ClearTrackingGaps = true
+			}
+		} else {
+			healed, nWin, nPts := HealTrackingGaps(cur, opts.TrackingGaps, opts.StepMs, opts.AudioHz)
+			if nWin > 0 {
+				cur = healed
+				res.WindowsHealed = nWin
+				res.PointsAdded += nPts
+				res.ClearTrackingGaps = true
+			}
 		}
+	}
+
+	if len(opts.RepairSpans) > 0 {
+		repaired, nRhythm, nLine, nPts := healSpansRhythm(cur, opts.RepairSpans, opts.StepMs, opts.AudioHz)
+		cur = repaired
+		res.SpansRepaired = nRhythm + nLine
+		res.RhythmBridged += nRhythm
+		res.PointsAdded += nPts
 	}
 
 	if opts.FillGaps {
