@@ -18,7 +18,12 @@ measurement history behind each entry; this file is the short version for
   `ImproveOpts.RepairSpans` repairs user-selected spans. A span without
   rhythm around it falls back to the line. Synthetic gaps cut from the
   FunGen refs: r −0.11 → 0.43 (`clip_voll`, 4 s), 0.01 → 0.93
-  (`clip_ausschnitt`, 6 s). Default off; GUI entry pending (Cursor).
+  (`clip_ausschnitt`, 6 s). Default off.
+
+- **Review Improve: GapFill rhythm + repair span** — opt-in **Rhythm bridge** for
+  Heal tracking gaps and **Repair this span** (user From/To seconds →
+  `RepairSpans`). Defaults off; auto Improve after Generate unchanged.
+  Everyday CSRT unchanged.
 
 - **AI Train: Sampling + Box scale knobs** — every-N-th-frame and box scale use
   range + live readout (defaults 12 / 1.0). AI Train only; Everyday CSRT

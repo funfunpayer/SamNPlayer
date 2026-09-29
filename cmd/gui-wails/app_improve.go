@@ -24,6 +24,11 @@ type ImproveScriptRequest struct {
 	// HealTrackingGaps rewrites metadata.tracking_gaps windows (strip junk +
 	// linear bridge). Empty/missing gaps = no-op. Does not re-run CSRT.
 	HealTrackingGaps bool `json:"healTrackingGaps"`
+	// HealRhythm (opt-in): when healing tracking_gaps, bridge with stroke
+	// rhythm instead of a straight line (line fallback per window). Default off.
+	HealRhythm bool `json:"healRhythm"`
+	// RepairSpans are user-selected "repair this span" windows (ms). Empty = no-op.
+	RepairSpans []funscript.TrackingGap `json:"repairSpans"`
 	// AudioCheck re-runs tempo check and stamps metadata (does not rewrite curve).
 	AudioCheck bool `json:"audioCheck"`
 	// UseAudioForFill uses audio Hz (when available) for fill-gap step spacing.
@@ -41,6 +46,8 @@ type ImproveScriptResult struct {
 	FillGapMs     int64    `json:"fillGapMs"`
 	FillStepMs    int64    `json:"fillStepMs"`
 	WindowsHealed int      `json:"windowsHealed"`
+	RhythmBridged int      `json:"rhythmBridged"`
+	SpansRepaired int      `json:"spansRepaired"`
 	AudioHz       *float64 `json:"audioHz,omitempty"`
 	ScriptHz      *float64 `json:"scriptHz,omitempty"`
 	AudioWarnings []string `json:"audioWarnings,omitempty"`
@@ -94,7 +101,9 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 		FillGaps:         req.FillGaps,
 		MaxGapMs:         req.MaxGapMs,
 		HealTrackingGaps: req.HealTrackingGaps,
+		HealRhythm:       req.HealRhythm,
 		TrackingGaps:     append([]funscript.TrackingGap(nil), script.Metadata.TrackingGaps...),
+		RepairSpans:      append([]funscript.TrackingGap(nil), req.RepairSpans...),
 	}
 	if req.StartSec > 0 {
 		opts.StartMs = int64(req.StartSec * 1000)
@@ -118,9 +127,12 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	out.FillGapMs = improved.FillGapMs
 	out.FillStepMs = improved.FillStepMs
 	out.WindowsHealed = improved.WindowsHealed
+	out.RhythmBridged = improved.RhythmBridged
+	out.SpansRepaired = improved.SpansRepaired
 
 	changed := improved.Trimmed || improved.PointsAdded > 0 || improved.WindowsHealed > 0 ||
-		improved.GapsFilled > 0 || improved.AfterCount != improved.BeforeCount
+		improved.SpansRepaired > 0 || improved.GapsFilled > 0 ||
+		improved.AfterCount != improved.BeforeCount
 	if changed {
 		if err := saveImprovedActions(path, improved.Actions, improved.ClearTrackingGaps); err != nil {
 			return out, err
@@ -160,6 +172,12 @@ func (a *App) ImproveGeneratedScript(req ImproveScriptRequest) (ImproveScriptRes
 	}
 	if improved.WindowsHealed > 0 {
 		parts = append(parts, fmt.Sprintf("healed %d tracking gap(s)", improved.WindowsHealed))
+	}
+	if improved.SpansRepaired > 0 {
+		parts = append(parts, fmt.Sprintf("repaired %d span(s)", improved.SpansRepaired))
+	}
+	if improved.RhythmBridged > 0 {
+		parts = append(parts, fmt.Sprintf("%d rhythm bridge(s)", improved.RhythmBridged))
 	}
 	if improved.GapsFilled > 0 {
 		fillPts := improved.PointsAdded
