@@ -143,6 +143,23 @@ func InstallPackDir(pluginsRoot, srcDir string) (Pack, error) {
 		return Pack{}, err
 	}
 	dest := filepath.Join(pluginsRoot, sanitizeID(m.ID))
+	overlaps, err := pathsOverlap(srcDir, dest)
+	if err != nil {
+		return Pack{}, fmt.Errorf("pluginhost: compare source and destination: %w", err)
+	}
+	if overlaps {
+		return Pack{}, fmt.Errorf("pluginhost: source %q overlaps installation destination %q", srcDir, dest)
+	}
+	// Different manifest IDs may sanitize to the same directory name
+	// (for example "foo/bar" and "foo_bar"). Never let one pack silently
+	// replace another pack merely because their sanitized IDs collide.
+	if existing, err := LoadManifest(dest); err == nil {
+		if existing.ID != m.ID {
+			return Pack{}, fmt.Errorf("pluginhost: plugin id %q collides with installed plugin %q", m.ID, existing.ID)
+		}
+	} else if !os.IsNotExist(err) {
+		return Pack{}, fmt.Errorf("pluginhost: inspect existing plugin %q: %w", dest, err)
+	}
 	if err := os.RemoveAll(dest); err != nil {
 		return Pack{}, err
 	}
@@ -151,6 +168,45 @@ func InstallPackDir(pluginsRoot, srcDir string) (Pack, error) {
 		return Pack{}, err
 	}
 	return Pack{Root: dest, Manifest: m}, nil
+}
+
+func pathsOverlap(a, b string) (bool, error) {
+	canonical := func(path string) (string, error) {
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		if resolved, err := filepath.EvalSymlinks(abs); err == nil {
+			return resolved, nil
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+		parent, err := filepath.EvalSymlinks(filepath.Dir(abs))
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(parent, filepath.Base(abs)), nil
+	}
+
+	a, err := canonical(a)
+	if err != nil {
+		return false, err
+	}
+	b, err = canonical(b)
+	if err != nil {
+		return false, err
+	}
+	contains := func(parent, child string) (bool, error) {
+		rel, err := filepath.Rel(parent, child)
+		if err != nil {
+			return false, err
+		}
+		return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))), nil
+	}
+	if yes, err := contains(a, b); err != nil || yes {
+		return yes, err
+	}
+	return contains(b, a)
 }
 
 func sanitizeID(id string) string {
