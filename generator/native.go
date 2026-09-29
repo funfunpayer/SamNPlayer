@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
@@ -420,7 +421,7 @@ func writeNativeFunscriptNamed(path, videoPath string, actions []funscript.Actio
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := writeFileAtomic(path, data, 0o644); err != nil {
 		return err
 	}
 	sceneMarks := opts.SceneMarks
@@ -429,6 +430,32 @@ func writeNativeFunscriptNamed(path, videoPath string, actions []funscript.Actio
 	}
 	sceneMap := buildSceneMapMeta(videoPath, duration, tr.SceneMap, sceneMarks)
 	return writeCompanionSamn(path, videoPath, actions, opts, gaps, quality, traj, sceneMap)
+}
+
+func writeFileAtomic(path string, data []byte, mode os.FileMode) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+	}()
+
+	if err := tmp.Chmod(mode); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }
 
 // buildTrajectoryData zips tr.TrajectoryA/B with tr.TimestampsMs into the
