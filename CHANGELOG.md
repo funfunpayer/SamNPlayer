@@ -137,6 +137,33 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Intiface: playback hanging after a while** — Buttplug answers every
+  command and ping with "Ok", but after connecting nothing read them. The
+  replies backed up until the server blocked, stopped reading, and the next
+  command blocked for good while holding the connection lock, so playback,
+  the status display and Disconnect hung. That took ~200k commands on
+  Linux, and far fewer with Windows' smaller socket buffers. A reader now
+  drains the connection; the battery reading comes through it.
+- **Intiface: suction on Oscillate/Inflate devices** — the second channel
+  was always commanded as "Constrict", which Buttplug rejects when the
+  feature is Oscillate or Inflate. The adopted actuator type is now used.
+- **Training: "Interrupt now" ignored in the pause** — in Custom mode a
+  press during the ramp down (Stop-start) or the ramp to the plateau froze
+  the level where it was for the whole pause instead of going to 0. In a
+  script, a press during a pause with a channel still on (plateau floor,
+  "Suction focus") was not seen at all and was dropped when the next
+  repeat started. Both now cut to 0 and take the full pause, like a press
+  during the ramp up or the hold.
+- **Training scripts: the ending was abrupt after any earlier interrupt** —
+  one "Interrupt now" anywhere in the session switched off the 2 s
+  wind-down at the natural end, so a script that ended on a raised level
+  cut straight to 0.
+- **Training: sessions of custom scripts missing from the history** — the
+  script name went into the session-log file name as typed, so a name with
+  "/" (on Windows also ":" or "?") could not be created: the session was
+  not logged and did not count for history or the intensity nudge. The
+  file name now uses the same safe form as the saved script.
+
 - **Sam Neo 2: device restarting itself after the diagnostics test** — the
   raw-value writes of the Device-tab test and diagnostics sweep bypassed the
   remembered channel state, so ~4 s later the keepalive replayed the last

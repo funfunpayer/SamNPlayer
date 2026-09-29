@@ -46,14 +46,21 @@ type Intiface struct {
 	// Gerätebeschreibung - fest verdrahtete Annahmen wären hier falsch.
 	vibrateIdx   int
 	constrictIdx int
-	deviceName   string
-	connected    bool
-	hasBattery   bool
-	batteryPct   int
-	batteryOK    bool
-	batteryAt    time.Time
+	// constrictActuator ist der ActuatorType des zweiten Kanals, wie das
+	// Gerät ihn meldet (Constrict, Oscillate oder Inflate). Buttplug lehnt
+	// einen ScalarCmd ab, dessen ActuatorType nicht zum Feature passt.
+	constrictActuator string
+	deviceName        string
+	connected         bool
+	hasBattery        bool
+	batteryPct        int
+	batteryOK         bool
+	batteryAt         time.Time
 
 	stopPing chan struct{}
+	// batteryCh bekommt BatteryLevelReading-Werte von readLoop (je
+	// Verbindung neu angelegt, Puffer 1).
+	batteryCh chan float64
 	// reconnectUsed: one automatic Connect after a dead socket per
 	// healthy connection life (#281 liveness follow-up). Cleared on
 	// successful Connect so a later blip can recover once more; stays
@@ -210,6 +217,7 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 			// besser ein sinnvoll belegter zweiter Kanal als gar keiner.
 			if i.constrictIdx < 0 {
 				i.constrictIdx = idx
+				i.constrictActuator = actuator
 			}
 		}
 	}
@@ -241,6 +249,7 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	i.nextID = 0
 	i.deviceName = ""
 	i.vibrateIdx, i.constrictIdx = -1, -1
+	i.constrictActuator = ""
 	i.hasBattery = false
 	i.batteryOK = false
 	i.batteryPct = 0
@@ -294,7 +303,47 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	i.stopPing = make(chan struct{})
 	go i.pingLoop(i.stopPing)
 	_ = i.conn.SetReadDeadline(time.Time{})
+	i.batteryCh = make(chan float64, 1)
+	go i.readLoop(conn, i.batteryCh)
 	return nil
+}
+
+// readLoop liest nach dem Handshake alles, was der Server schickt. Buttplug
+// beantwortet jeden ScalarCmd und Ping mit "Ok" - ungelesen stauen sich
+// diese Antworten, bis der Server beim Schreiben blockiert, nicht mehr
+// liest, und unser nächster Write (unter i.mu) für immer hängt: Wiedergabe
+// und Info() stehen dann. Einziger Leser der Verbindung nach Connect;
+// endet, wenn die Verbindung schließt.
+func (i *Intiface) readLoop(conn *websocket.Conn, battery chan<- float64) {
+	for {
+		var batch []map[string]json.RawMessage
+		if err := conn.ReadJSON(&batch); err != nil {
+			i.mu.Lock()
+			if i.conn == conn { // nicht schon durch Disconnect/Reconnect ersetzt
+				i.markDeadLocked("read: " + err.Error())
+			}
+			i.mu.Unlock()
+			return
+		}
+		for _, message := range batch {
+			for name, raw := range message {
+				switch name {
+				case "BatteryLevelReading":
+					var body struct{ BatteryLevel float64 }
+					if json.Unmarshal(raw, &body) == nil {
+						select {
+						case battery <- body.BatteryLevel:
+						default: // niemand wartet (mehr) - verwerfen
+						}
+					}
+				case "Error":
+					logging.Warn("intiface: server error", "message", string(raw))
+				case "DeviceRemoved":
+					logging.Warn("intiface: device removed", "message", string(raw))
+				}
+			}
+		}
+	}
 }
 
 // TryReconnectOnce dials Intiface again after liveness marked the socket
@@ -390,7 +439,10 @@ func (i *Intiface) scalar(index int, value float64) error {
 	}
 	actuator := "Vibrate"
 	if index == i.constrictIdx {
-		actuator = "Constrict"
+		actuator = i.constrictActuator
+		if actuator == "" {
+			actuator = "Constrict"
+		}
 	}
 	_, err := i.send(map[string]any{"ScalarCmd": map[string]any{
 		"DeviceIndex": i.deviceIdx,
@@ -501,30 +553,42 @@ func (i *Intiface) Info() ConnectionInfo {
 }
 
 // BatteryLevel fragt Buttplug BatteryLevelCmd ab, sofern das Gerät sie anbietet.
-// Holds i.mu for the whole request+read so Disconnect/pingLoop cannot nil
-// i.conn under a concurrent readUntil (same pattern as Connect handshake).
+// Die Antwort liest readLoop (einziger Leser der Verbindung) und reicht sie
+// über batteryCh durch; gewartet wird ohne i.mu, damit Wiedergabe und
+// Ping in der Zeit weiterlaufen.
 func (i *Intiface) BatteryLevel() (int, bool) {
 	i.mu.Lock()
-	defer i.mu.Unlock()
 	if !i.connected || i.conn == nil || !i.hasBattery {
+		i.mu.Unlock()
 		return 0, false
 	}
 	if i.batteryOK && time.Since(i.batteryAt) < batteryCacheTTL {
-		return i.batteryPct, true
+		pct := i.batteryPct
+		i.mu.Unlock()
+		return pct, true
 	}
-	deviceIdx := i.deviceIdx
+	ch := i.batteryCh
+	if ch == nil { // kein readLoop - auf nil würde das Warten nie enden
+		i.mu.Unlock()
+		return 0, false
+	}
+	select { // veraltete Antwort einer abgelaufenen Anfrage verwerfen
+	case <-ch:
+	default:
+	}
 	if _, err := i.send(map[string]any{"BatteryLevelCmd": map[string]any{
-		"DeviceIndex": deviceIdx,
+		"DeviceIndex": i.deviceIdx,
 	}}); err != nil {
+		i.mu.Unlock()
 		return 0, false
 	}
-	body, err := i.readUntil("BatteryLevelReading", time.Now().Add(3*time.Second))
-	if err != nil {
-		logging.Debug("intiface: battery not readable", "error", err)
-		return 0, false
-	}
-	raw, ok := body["BatteryLevel"].(float64)
-	if !ok {
+	i.mu.Unlock()
+
+	var raw float64
+	select {
+	case raw = <-ch:
+	case <-time.After(3 * time.Second):
+		logging.Debug("intiface: battery not readable (no reading within 3s)")
 		return 0, false
 	}
 	pct := int(raw*100 + 0.5)
@@ -534,9 +598,11 @@ func (i *Intiface) BatteryLevel() (int, bool) {
 	if pct > 100 {
 		pct = 100
 	}
+	i.mu.Lock()
 	i.batteryPct = pct
 	i.batteryOK = true
 	i.batteryAt = time.Now()
+	i.mu.Unlock()
 	logging.Info("intiface: battery read", "percent", pct)
 	return pct, true
 }

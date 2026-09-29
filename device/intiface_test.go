@@ -25,6 +25,10 @@ type fakeButtplug struct {
 	noDevices      bool
 	// active holds the live server-side WebSocket so tests can drop it.
 	active *websocket.Conn
+	// burstAfterDeviceList > 0: right after the DeviceList reply, write
+	// that many bytes of unsolicited Ok messages, then close burstDone.
+	burstAfterDeviceList int
+	burstDone            chan struct{}
 }
 
 func (f *fakeButtplug) dropConnection() {
@@ -119,6 +123,15 @@ func (f *fakeButtplug) handler() http.HandlerFunc {
 						_ = conn.WriteJSON([]any{map[string]any{"DeviceList": map[string]any{
 							"Id": id, "Devices": devices,
 						}}})
+						if f.burstAfterDeviceList > 0 {
+							pad := strings.Repeat("x", 16<<10)
+							for sent := 0; sent < f.burstAfterDeviceList; sent += len(pad) {
+								if conn.WriteJSON([]any{map[string]any{"Ok": map[string]any{"Id": 0, "Pad": pad}}}) != nil {
+									return
+								}
+							}
+							close(f.burstDone)
+						}
 					case "BatteryLevelCmd":
 						_ = conn.WriteJSON([]any{map[string]any{"BatteryLevelReading": map[string]any{
 							"Id": id, "DeviceIndex": body["DeviceIndex"], "BatteryLevel": 0.73,
@@ -570,3 +583,71 @@ func TestIntifaceBatteryLevelLocked(t *testing.T) {
 type errorString string
 
 func (e errorString) Error() string { return string(e) }
+
+// Buttplug answers every ScalarCmd/Ping with Ok. If the client never reads
+// after Connect, those replies back up until the server blocks on its own
+// write, stops reading, and the client's next write blocks while holding
+// i.mu - playback, Info() and Disconnect hang (pre-fix: after ~200k
+// commands on Linux loopback, far sooner with Windows' small buffers). The
+// fake sends more unsolicited data right after DeviceList than socket
+// buffers hold; it can only finish if the client keeps reading.
+func TestIntifaceDrainsServerReplies(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: standardDeviceMessages(),
+		burstAfterDeviceList: 24 << 20, burstDone: make(chan struct{})}
+	url, server := startFake(t, fake)
+	defer server.Close()
+
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+	select {
+	case <-fake.burstDone:
+	case <-time.After(20 * time.Second):
+		fake.dropConnection() // unblock the fake's write before Disconnect
+		t.Fatal("server could not deliver its replies: the client stopped reading after Connect")
+	}
+	if err := dev.SetVibration(0.5); err != nil {
+		t.Fatalf("SetVibration after the burst: %v", err)
+	}
+	if !dev.Info().Connected {
+		t.Fatal("connection should still be up")
+	}
+	_ = dev.Disconnect()
+}
+
+// A second channel adopted from Oscillate/Inflate must be commanded with
+// that actuator type; Buttplug rejects a ScalarCmd whose ActuatorType does
+// not match the feature at that index.
+func TestIntifaceSuctionUsesAdoptedActuatorType(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: map[string]any{
+		"ScalarCmd": []any{
+			map[string]any{"StepCount": 20, "ActuatorType": "Vibrate"},
+			map[string]any{"StepCount": 20, "ActuatorType": "Oscillate"},
+		},
+		"StopDeviceCmd": map[string]any{},
+	}}
+	url, server := startFake(t, fake)
+	defer server.Close()
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+	defer dev.Disconnect()
+	if err := dev.SetSuction(0.5); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	cmds := fake.scalarCommands()
+	if len(cmds) == 0 {
+		t.Fatal("no ScalarCmd sent")
+	}
+	scalar := cmds[len(cmds)-1]["Scalars"].([]any)[0].(map[string]any)
+	if scalar["ActuatorType"] != "Oscillate" || scalar["Index"] != float64(1) {
+		t.Fatalf("suction sent as %v", scalar)
+	}
+}
