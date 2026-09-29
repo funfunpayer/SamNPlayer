@@ -26,7 +26,7 @@ func runStrokePreview(args []string) int {
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
-	if len(paths) < 1 {
+	if len(paths) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s stroke-preview VIDEO [--json] [--max-seconds N]\n", os.Args[0])
 		return 2
 	}
