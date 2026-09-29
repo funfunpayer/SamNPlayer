@@ -131,3 +131,29 @@ func TestSetOutputAppliesIntensityScale(t *testing.T) {
 		t.Fatalf("suc: want 0.1, got %v", suc)
 	}
 }
+
+// MinLevel 0 must silence the device, not read back as full power: the old
+// "scale <= 0 means 1" guard turned the end of the ramp and the whole hold
+// into full intensity.
+func TestExtendedOMinLevelZeroSilences(t *testing.T) {
+	dev := &recordingDev{}
+	p := New(dev)
+	p.setIntensityScale(0)
+	if got := p.getIntensityScale(); got != 0 {
+		t.Fatalf("scale 0 read back as %v", got)
+	}
+	if err := p.setOutput(funscript.Frame{At: 10, Vibration: 0.8, Suction: 0.4}); err != nil {
+		t.Fatal(err)
+	}
+	vib, suc := dev.snapshot()
+	if vib[0] != 0 || suc[0] != 0 {
+		t.Fatalf("MinLevel 0 must be silent, got vib=%v suc=%v", vib, suc)
+	}
+}
+
+func TestZeroValuePlayerPlaysFullHeight(t *testing.T) {
+	var p Player // not via New: must still play at full curve height
+	if got := p.getIntensityScale(); got != 1 {
+		t.Fatalf("zero-value scale = %v, want 1", got)
+	}
+}

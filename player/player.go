@@ -55,16 +55,18 @@ type Player struct {
 
 	extendedOCh chan ExtendedOOptions
 
-	intensityMu    sync.Mutex
-	intensityScale float64 // 1.0 = volle Kurvenhöhe; Extended-O senkt nur das
-	eoBusy         atomic.Bool
+	intensityMu sync.Mutex
+	// intensityCut ist die Absenkung durch Extended-O (Faktor = 1 - Cut).
+	// Nullwert = volle Kurvenhöhe, auch für einen Player ohne New(); so
+	// bleibt MinLevel 0 wirklich 0 statt als "nicht gesetzt" zu gelten.
+	intensityCut float64
+	eoBusy       atomic.Bool
 }
 
 func New(dev device.Device) *Player {
 	return &Player{
-		Device:         dev,
-		extendedOCh:    make(chan ExtendedOOptions, 1),
-		intensityScale: 1,
+		Device:      dev,
+		extendedOCh: make(chan ExtendedOOptions, 1),
 	}
 }
 

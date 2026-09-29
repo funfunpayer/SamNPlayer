@@ -46,10 +46,7 @@ func (p *Player) TriggerExtendedO(opts ExtendedOOptions) {
 func (p *Player) getIntensityScale() float64 {
 	p.intensityMu.Lock()
 	defer p.intensityMu.Unlock()
-	if p.intensityScale <= 0 {
-		return 1
-	}
-	return p.intensityScale
+	return 1 - p.intensityCut
 }
 
 func (p *Player) setIntensityScale(s float64) {
@@ -60,7 +57,7 @@ func (p *Player) setIntensityScale(s float64) {
 		s = 1
 	}
 	p.intensityMu.Lock()
-	p.intensityScale = s
+	p.intensityCut = 1 - s
 	p.intensityMu.Unlock()
 }
 

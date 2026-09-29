@@ -137,6 +137,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Extended-O with minimum 0** — a minimum level of 0 (CLI
+  `--extended-o-min 0`) read back as full intensity: the player treated a
+  scale of 0 as "not set" and used 1, so the end of the ramp and the whole
+  hold ran the device at full power instead of silent. The player now
+  stores the reduction (zero value = full height), so 0 stays 0.
+
 - **Rhythm-robust + marks after a seek** — with a start time (GUI seek past
   the intro) the rhythm grid evaluated time-limited exclude/source marks
   and followed-mark positions on its own clock (counting from the first
