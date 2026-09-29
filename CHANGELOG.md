@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AI Train: Sampling + Box scale knobs** — every-N-th-frame and box scale use
+  range + live readout (defaults 12 / 1.0). AI Train only; Everyday CSRT
+  unchanged.
+
 - **Training: MakeVib-style timing knobs** — Cycles / Ramp / Hold / Rest use
   range + live readout (defaults 5 / 8000 / 3000 / 10000). Training feel only;
   Everyday CSRT unchanged.
