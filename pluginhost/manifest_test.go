@@ -174,3 +174,40 @@ func TestInstallPackDirAllowsSameIDUpgrade(t *testing.T) {
 		t.Fatalf("upgrade version=%q", upgraded.Manifest.Version)
 	}
 }
+
+func TestInstallPackDirRejectsSourceDestinationOverlap(t *testing.T) {
+	root := t.TempDir()
+	dest := filepath.Join(root, sanitizeID("same/id"))
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	raw := []byte(`{"apiVersion":1,"id":"same/id","name":"Pack","version":"1","entry":{"kind":"asset_pack"}}`)
+	if err := os.WriteFile(filepath.Join(dest, ManifestFile), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(dest, "keep.txt")
+	if err := os.WriteFile(marker, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := InstallPackDir(root, dest); err == nil {
+		t.Fatal("expected same source and destination to be rejected")
+	}
+	if got, err := os.ReadFile(marker); err != nil || string(got) != "keep" {
+		t.Fatalf("installed pack was modified: got=%q err=%v", got, err)
+	}
+
+	nested := filepath.Join(dest, "nested")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, ManifestFile), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallPackDir(root, nested); err == nil {
+		t.Fatal("expected nested source to be rejected")
+	}
+	if _, err := os.Stat(filepath.Join(nested, ManifestFile)); err != nil {
+		t.Fatalf("nested source was removed: %v", err)
+	}
+}
