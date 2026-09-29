@@ -126,6 +126,12 @@ def main():
             check("vib polyline has points", vib.count(",") >= 3, vib)
             hint = page.locator("#pb-contact-vib-preview").inner_text()
             check("hint mentions probe", "probe" in hint.lower() or "span" in hint.lower(), hint)
+            check("active badge shows percent",
+                  "40% active" in page.locator("#pb-cv-badge-active").inner_text())
+            check("peak badge shows peak",
+                  "peak 80" in page.locator("#pb-cv-badge-peak").inner_text())
+            check("vib peak dots rendered",
+                  page.locator("#pb-contact-vib-peaks circle").count() >= 1)
 
             before = page.evaluate(
                 "window.__calls.filter(c => c[0]==='PreviewContactVibration').length")
