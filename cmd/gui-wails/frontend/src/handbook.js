@@ -10,7 +10,7 @@ const SECTIONS = [
    Optionally mark nipples/mouth for feel later.
 4. Click Create / Generate. Optional Expert knobs show a rich live probe
    (raw vs postprocess + peak badges — synthetic only).
-5. Review & improve: trim · Fill gaps · Heal tracking gaps · audio check
+5. Review & improve: trim · Fill gaps · Heal tracking gaps (+ opt-in Rhythm bridge) · Repair this span · audio check
    (Speech-Hold / Feel segment strip + optional chapters).
 6. Open Play — soft curve + dots; if the script has audio_check segments,
    the same Speech-Hold / Feel strip appears (seek · filters · optional chapters)
@@ -43,7 +43,7 @@ Still CLI / advanced / not Everyday GUI:
   {
     title: 'Fill gaps vs Heal tracking gaps',
     body: `Fill gaps — linear points across long time holes between actions.
-Heal tracking gaps — uses tracking_gaps from Generate: strips junk inside loss windows, bridges only those windows, clears metadata so Contact vib is not muted forever.
+Heal tracking gaps — uses tracking_gaps from Generate: strips junk inside loss windows, bridges only those windows, clears metadata so Contact vib is not muted forever. Opt-in Rhythm bridge continues the stroke rhythm (line fallback). Repair this span rewrites a user-marked range the same way without clearing tracking_gaps.
 
 Neither re-runs CSRT. Neither invents motion from audio (audio only spaces steps).`,
   },

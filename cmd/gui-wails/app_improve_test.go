@@ -62,6 +62,90 @@ func TestImproveGeneratedScriptHealTrackingGaps(t *testing.T) {
 	}
 }
 
+func TestImproveGeneratedScriptHealRhythmAndRepairSpans(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "clip.funscript")
+	// Regular up/down stroke so rhythm bridge has turning points around a gap.
+	actions := []map[string]any{}
+	for i := 0; i < 40; i++ {
+		at := int64(i * 200)
+		pos := 10
+		if i%2 == 1 {
+			pos = 90
+		}
+		actions = append(actions, map[string]any{"at": at, "pos": pos})
+	}
+	// Inject junk mid-gap window (flat high) that heal should replace.
+	actions = append(actions,
+		map[string]any{"at": 4100, "pos": 99},
+		map[string]any{"at": 4300, "pos": 98},
+	)
+	body := map[string]any{
+		"actions": actions,
+		"metadata": map[string]any{
+			"creator": "test",
+			"tracking_gaps": []map[string]any{
+				{"start_ms": 4000, "end_ms": 4800},
+			},
+		},
+	}
+	raw, _ := json.Marshal(body)
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{}
+	res, err := a.ImproveGeneratedScript(ImproveScriptRequest{
+		Path:             path,
+		HealTrackingGaps: true,
+		HealRhythm:       true,
+		FillGaps:         false,
+		AudioCheck:       false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.WindowsHealed < 1 {
+		t.Fatalf("expected heal windows, got %+v", res)
+	}
+	if res.RhythmBridged < 1 {
+		t.Fatalf("expected rhythm bridges, got %+v", res)
+	}
+
+	// Repair a later span that is still on the curve (no tracking_gaps clear for repair).
+	path2 := filepath.Join(dir, "clip2.funscript")
+	body2 := map[string]any{
+		"actions": []map[string]any{
+			{"at": 0, "pos": 10}, {"at": 200, "pos": 90}, {"at": 400, "pos": 10},
+			{"at": 600, "pos": 90}, {"at": 800, "pos": 10}, {"at": 1000, "pos": 90},
+			{"at": 1200, "pos": 10}, {"at": 1400, "pos": 90}, {"at": 1600, "pos": 10},
+			{"at": 1800, "pos": 90}, {"at": 2000, "pos": 10}, {"at": 2200, "pos": 90},
+			{"at": 2400, "pos": 50}, {"at": 2600, "pos": 50}, // flat junk span
+			{"at": 2800, "pos": 10}, {"at": 3000, "pos": 90}, {"at": 3200, "pos": 10},
+			{"at": 3400, "pos": 90}, {"at": 3600, "pos": 10}, {"at": 3800, "pos": 90},
+		},
+		"metadata": map[string]any{"creator": "test"},
+	}
+	raw2, _ := json.Marshal(body2)
+	if err := os.WriteFile(path2, raw2, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res2, err := a.ImproveGeneratedScript(ImproveScriptRequest{
+		Path: path2,
+		RepairSpans: []funscript.TrackingGap{
+			{StartMs: 2300, EndMs: 2700},
+		},
+		FillGaps:   false,
+		AudioCheck: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res2.SpansRepaired < 1 {
+		t.Fatalf("expected span repair, got %+v", res2)
+	}
+}
+
 func TestImproveGeneratedScriptFillGaps(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "clip.funscript")

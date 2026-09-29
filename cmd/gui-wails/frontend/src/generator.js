@@ -510,8 +510,12 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
           </label>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and linearly bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT.">
+            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT. Default bridge is a straight line — enable Rhythm below for stroke-rhythm bridge.">
             <input type="checkbox" id="gen-improve-heal" checked /> Heal tracking gaps
+          </label>
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Opt-in: when Healing tracking gaps, bridge with the stroke rhythm around each window instead of a straight line (line fallback if no rhythm). Off by default — does not change Everyday Create / auto-Improve.">
+            <input type="checkbox" id="gen-improve-heal-rhythm" /> Rhythm bridge
           </label>
           <label class="checkbox-row" style="margin:0;"
             data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
@@ -521,6 +525,16 @@ export function initGenerator(root, playback) {
             data-help="Compares script Hz to audio Hz (warn only). Also stamps Speech-Hold + holding/gentle/intense/climax segment hints for Review (never rewrites the stroke curve). Needs ffmpeg.">
             <input type="checkbox" id="gen-improve-audio" checked /> Audio check
           </label>
+        </div>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <label class="checkbox-row" style="margin:0;"
+            data-help="Opt-in: rewrite only this time range with a rhythm bridge (line fallback). Does not clear tracking_gaps. Mark start/end in seconds of the bad stretch.">
+            <input type="checkbox" id="gen-improve-repair" /> Repair this span
+          </label>
+          <label style="width:auto;">From (s)</label>
+          <input type="number" id="gen-improve-repair-start" value="0" min="0" step="0.5" style="width:5em;" disabled />
+          <label style="width:auto;">To (s)</label>
+          <input type="number" id="gen-improve-repair-end" value="0" min="0" step="0.5" style="width:5em;" disabled />
         </div>
         <div class="row" style="margin-top:8px;">
           <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
@@ -3606,6 +3620,33 @@ export function initGenerator(root, playback) {
     });
   });
 
+  function syncImproveRepairInputs() {
+    const on = !!el('#gen-improve-repair')?.checked;
+    const a = el('#gen-improve-repair-start');
+    const b = el('#gen-improve-repair-end');
+    if (a) a.disabled = !on;
+    if (b) b.disabled = !on;
+  }
+  function syncImproveHealRhythm() {
+    const healOn = !!el('#gen-improve-heal')?.checked;
+    const rhythm = el('#gen-improve-heal-rhythm');
+    if (!rhythm) return;
+    rhythm.disabled = !healOn;
+    if (!healOn) rhythm.checked = false;
+  }
+  el('#gen-improve-repair')?.addEventListener('change', syncImproveRepairInputs);
+  el('#gen-improve-heal')?.addEventListener('change', syncImproveHealRhythm);
+  syncImproveRepairInputs();
+  syncImproveHealRhythm();
+
+  function collectImproveRepairSpans() {
+    if (!el('#gen-improve-repair')?.checked) return [];
+    const startSec = parseFloat(el('#gen-improve-repair-start')?.value) || 0;
+    const endSec = parseFloat(el('#gen-improve-repair-end')?.value) || 0;
+    if (!(endSec > startSec) || endSec <= 0) return [];
+    return [{ start_ms: Math.round(startSec * 1000), end_ms: Math.round(endSec * 1000) }];
+  }
+
   el('#gen-improve-apply')?.addEventListener('click', async () => {
     if (!lastOutputPath) return;
     const status = el('#gen-improve-status');
@@ -3616,13 +3657,16 @@ export function initGenerator(root, playback) {
       const audioOn = !!el('#gen-improve-audio')?.checked;
       // Keep generate-time hidden flag in sync for any re-run.
       if (el('#gen-audio-check')) el('#gen-audio-check').checked = audioOn;
+      const healOn = !!el('#gen-improve-heal')?.checked;
       const result = await ImproveGeneratedScript({
         path: lastOutputPath,
         videoPath: videoPath || '',
         startSec: parseFloat(el('#gen-improve-start')?.value) || 0,
         endSec: parseFloat(el('#gen-improve-end')?.value) || 0,
         fillGaps: !!el('#gen-improve-fill')?.checked,
-        healTrackingGaps: !!el('#gen-improve-heal')?.checked,
+        healTrackingGaps: healOn,
+        healRhythm: healOn && !!el('#gen-improve-heal-rhythm')?.checked,
+        repairSpans: collectImproveRepairSpans(),
         maxGapMs: 0,
         audioCheck: audioOn,
         useAudioForFill: !!el('#gen-improve-audio-fill')?.checked,
@@ -3635,8 +3679,12 @@ export function initGenerator(root, playback) {
       // Do not label all PointsAdded as "fill" — Heal bridges count too (#348).
       const improveBits = [];
       const healedN = result.windowsHealed || result.WindowsHealed || 0;
+      const repairedN = result.spansRepaired || result.SpansRepaired || 0;
+      const rhythmN = result.rhythmBridged || result.RhythmBridged || 0;
       const addedN = result.pointsAdded || result.PointsAdded || 0;
       if (healedN > 0) improveBits.push(`healed ${healedN}`);
+      if (repairedN > 0) improveBits.push(`repaired ${repairedN}`);
+      if (rhythmN > 0) improveBits.push(`${rhythmN} rhythm`);
       if (addedN > 0) improveBits.push(`+${addedN} pts`);
       if (result.trimmed || result.Trimmed) improveBits.push('trimmed');
       el('#gen-status').textContent =
@@ -3803,6 +3851,8 @@ export function initGenerator(root, playback) {
           endSec: 0,
           fillGaps: true,
           healTrackingGaps: true,
+          healRhythm: false, // GapFill rhythm is opt-in manual Improve only
+          repairSpans: [],
           maxGapMs: 0, // auto + second pass @ 400ms
           audioCheck: !!(el('#gen-improve-audio')?.checked || el('#gen-audio-check')?.checked),
           useAudioForFill: el('#gen-improve-audio-fill')
