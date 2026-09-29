@@ -76,3 +76,29 @@ func TestSceneMarkTimebaseIncludesStartOffset(t *testing.T) {
 		t.Fatalf("regression guard invalid: mark unexpectedly active at relative time %dms", relativeOnly)
 	}
 }
+
+func TestSceneMarksShiftedKeepsSentinelAndInput(t *testing.T) {
+	in := []SceneMark{
+		{ID: "whole", Kind: "exclude"}, // 0/0 = whole clip
+		{ID: "timed", Kind: "exclude", FromMs: 65000, ToMs: 70000,
+			Path: []MarkSample{{Ms: 65000}, {Ms: 66000}}},
+	}
+	out := sceneMarksShifted(in, -60000)
+	if out[0].FromMs != 0 || out[0].ToMs != 0 {
+		t.Fatalf("sentinel moved: %+v", out[0])
+	}
+	if out[1].FromMs != 5000 || out[1].ToMs != 10000 || out[1].Path[0].Ms != 5000 || out[1].Path[1].Ms != 6000 {
+		t.Fatalf("timed mark: %+v", out[1])
+	}
+	if in[1].FromMs != 65000 || in[1].Path[0].Ms != 65000 {
+		t.Fatalf("input mutated: %+v", in[1])
+	}
+	// A run started 60 s in: the grid's window at relative 7 s is video 67 s,
+	// where the timed mark is active.
+	if !sceneMarkActive(out[1], 7000) || sceneMarkActive(in[1], 7000) {
+		t.Fatal("shifted mark must be active on the grid clock, the unshifted one not")
+	}
+	if got := sceneMarksShifted(in, 0); &got[0] != &in[0] {
+		t.Fatal("zero shift must return the input as is")
+	}
+}

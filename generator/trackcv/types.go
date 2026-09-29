@@ -52,6 +52,33 @@ func markShouldFollow(m SceneMark) bool {
 	}
 }
 
+// sceneMarksShifted returns a copy of marks with FromMs/ToMs and Path
+// sample times moved by deltaMs. The "whole clip" sentinel (FromMs = ToMs =
+// 0) stays as is. TrackROI uses it to put absolute-time marks on the rhythm
+// grid's clock, which counts from the first tracked frame (StartTimeSec).
+func sceneMarksShifted(marks []SceneMark, deltaMs int64) []SceneMark {
+	if deltaMs == 0 || len(marks) == 0 {
+		return marks
+	}
+	out := make([]SceneMark, len(marks))
+	for i, m := range marks {
+		if m.FromMs != 0 || m.ToMs != 0 {
+			m.FromMs += deltaMs
+			m.ToMs += deltaMs
+		}
+		if len(m.Path) > 0 {
+			path := make([]MarkSample, len(m.Path))
+			for j, ps := range m.Path {
+				ps.Ms += deltaMs
+				path[j] = ps
+			}
+			m.Path = path
+		}
+		out[i] = m
+	}
+	return out
+}
+
 // sceneMarkActive reports whether m applies at time midMs.
 func sceneMarkActive(m SceneMark, midMs int64) bool {
 	if m.FromMs == 0 && m.ToMs == 0 {
