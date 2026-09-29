@@ -12,6 +12,13 @@ import (
 
 var errNoFrames = errors.New("player: keine Frames zum Abspielen")
 
+// syncStaleAfter: kommt so lange keine Position, steht das Video (Pause
+// über die native Steuerung oder Leertaste, Puffern) - das Frontend meldet
+// Positionen nur per timeupdate (~250 ms), und das feuert im Stillstand
+// nicht. Sync geht dann auf 0, statt den letzten Wert endlos zu halten,
+// und folgt ab der nächsten Position wieder dem Skript. var für Tests.
+var syncStaleAfter = 1500 * time.Millisecond
+
 // Sync treibt das Gerät anhand einer EXTERNEN Positionsquelle statt der
 // eigenen Uhr von Play() - gedacht für echte Videowiedergabe (z.B. ein
 // HTML5-<video>-Element im Wails-Frontend), wo Pausieren, Spulen und die
@@ -37,11 +44,24 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 	}()
 
 	firstFrame := true
+	quiet := false // wegen fehlender Positionen auf 0 gesetzt
+	stale := time.NewTimer(syncStaleAfter)
+	defer stale.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+
+		case <-stale.C:
+			if firstFrame || quiet {
+				continue
+			}
+			logging.Info("player: keine Videoposition mehr (Pause?) - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
+			if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+				return err
+			}
+			quiet = true
 
 		case opts, ok := <-p.extendedOCh:
 			if !ok {
@@ -53,16 +73,18 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			if !ok {
 				return nil // Kanal geschlossen = Wiedergabe im Frontend beendet
 			}
+			stale.Reset(syncStaleAfter)
 			p.lastSyncPosMs = posMs
 			f := frameAt(frames, posMs)
-			if firstFrame && p.SoftStartMs > 0 {
+			// Nach einer Pause wie beim Start sanft hochfahren.
+			if (firstFrame || quiet) && p.SoftStartMs > 0 {
 				if err := p.softStart(ctx, f); err != nil {
 					return err
 				}
 			} else if err := p.setOutput(f); err != nil {
 				return err
 			}
-			firstFrame = false
+			firstFrame, quiet = false, false
 		}
 	}
 }

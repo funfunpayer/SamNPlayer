@@ -134,6 +134,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Play: device kept running while the video was paused** — with "Device
+  follows video position", pausing the video (its own controls or the space
+  key) or a buffering stall stopped the position updates, and the device
+  held its last level until playback resumed or was stopped. After 1.5 s
+  without a position it now goes to 0, and it follows the script again
+  (with the soft start, if set) as soon as the video moves.
+
 - **Intiface: playback hanging after a while** — Buttplug answers every
   command and ping with "Ok", but after connecting nothing read them. The
   replies backed up until the server blocked, stopped reading, and the next
