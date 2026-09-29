@@ -113,3 +113,65 @@ func TestStatusReflectsPack(t *testing.T) {
 		t.Fatalf("%+v", st)
 	}
 }
+
+
+func TestInstallPackDirRejectsSanitizedIDCollision(t *testing.T) {
+	root := t.TempDir()
+	writePack := func(dir, id, note string) {
+		t.Helper()
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		raw := []byte(`{"apiVersion":1,"id":"` + id + `","name":"Pack","version":"1","entry":{"kind":"asset_pack"}}`)
+		if err := os.WriteFile(filepath.Join(dir, ManifestFile), raw, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "note.txt"), []byte(note), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	first := filepath.Join(t.TempDir(), "first")
+	second := filepath.Join(t.TempDir(), "second")
+	writePack(first, "foo/bar", "first")
+	writePack(second, "foo_bar", "second")
+
+	installed, err := InstallPackDir(root, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InstallPackDir(root, second); err == nil {
+		t.Fatal("expected sanitized plugin ID collision to be rejected")
+	}
+	got, err := os.ReadFile(filepath.Join(installed.Root, "note.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "first" {
+		t.Fatalf("existing pack was modified: %q", got)
+	}
+}
+
+func TestInstallPackDirAllowsSameIDUpgrade(t *testing.T) {
+	root := t.TempDir()
+	write := func(dir, version string) {
+		t.Helper()
+		raw := []byte(`{"apiVersion":1,"id":"same/id","name":"Pack","version":"` + version + `","entry":{"kind":"asset_pack"}}`)
+		if err := os.WriteFile(filepath.Join(dir, ManifestFile), raw, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, second := t.TempDir(), t.TempDir()
+	write(first, "1")
+	write(second, "2")
+	if _, err := InstallPackDir(root, first); err != nil {
+		t.Fatal(err)
+	}
+	upgraded, err := InstallPackDir(root, second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if upgraded.Manifest.Version != "2" {
+		t.Fatalf("upgrade version=%q", upgraded.Manifest.Version)
+	}
+}
