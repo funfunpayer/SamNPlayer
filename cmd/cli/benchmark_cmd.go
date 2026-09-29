@@ -34,7 +34,7 @@ func runBenchmark(args []string) int {
 		fs.PrintDefaults()
 	}
 
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}

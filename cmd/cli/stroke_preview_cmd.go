@@ -22,7 +22,7 @@ func runStrokePreview(args []string) int {
 	analysisFPS := fs.Float64("fps", 12, "analysis FPS before sparse keep")
 	sampleEvery := fs.Int("sample-every", 2, "keep 1 of N analysis frames")
 	var paths, flagArgs []string
-	paths, flagArgs = splitCLIArgs(args)
+	paths, flagArgs = splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}

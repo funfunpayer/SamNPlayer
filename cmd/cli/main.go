@@ -232,7 +232,7 @@ func runPhase(args []string) int {
 	}
 
 	var paths, flagArgs []string
-	paths, flagArgs = splitCLIArgs(args)
+	paths, flagArgs = splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
@@ -350,7 +350,7 @@ func runCompare(args []string) int {
 		fmt.Fprintf(os.Stderr, "Usage: %s compare --dataset DIR [--output report.md] [--max-lag-ms N]\n", os.Args[0])
 		fs.PrintDefaults()
 	}
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
