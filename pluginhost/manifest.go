@@ -143,6 +143,16 @@ func InstallPackDir(pluginsRoot, srcDir string) (Pack, error) {
 		return Pack{}, err
 	}
 	dest := filepath.Join(pluginsRoot, sanitizeID(m.ID))
+	// Different manifest IDs may sanitize to the same directory name
+	// (for example "foo/bar" and "foo_bar"). Never let one pack silently
+	// replace another pack merely because their sanitized IDs collide.
+	if existing, err := LoadManifest(dest); err == nil {
+		if existing.ID != m.ID {
+			return Pack{}, fmt.Errorf("pluginhost: plugin id %q collides with installed plugin %q", m.ID, existing.ID)
+		}
+	} else if !os.IsNotExist(err) {
+		return Pack{}, fmt.Errorf("pluginhost: inspect existing plugin %q: %w", dest, err)
+	}
 	if err := os.RemoveAll(dest); err != nil {
 		return Pack{}, err
 	}
