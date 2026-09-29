@@ -89,11 +89,15 @@ export function initRoiTraining(root) {
     <datalist id="rt-class-list"></datalist>
     <div id="rt-body-figure" class="body-figure-host" aria-label="Human body map for class picking"></div>
     <div id="rt-class-chips" class="rt-chips" aria-label="Known classes"></div>
-    <div class="field-row"><label data-help="Write every N-th frame as a sample. Smaller = denser; larger = less redundancy.">Sampling (every N-th frame)</label>
-      <input type="number" id="rt-sample-every" value="12" min="1" max="120" style="width:5em;" />
+    <div class="field-row" style="align-items:center;">
+      <label data-help="Write every N-th frame as a sample (1–120). Smaller = denser; larger = less redundancy. Default 12. AI Train only — Create CSRT unchanged.">Sampling (every N-th frame)</label>
+      <input type="range" id="rt-sample-every" min="1" max="120" step="1" value="12" style="flex:1;" />
+      <span class="hint" id="rt-sample-every-val" style="margin:0; min-width:2.5em;">12</span>
     </div>
-    <div class="field-row"><label data-help="Multiply marked box size for YOLO labels (1.0 = exact mark; 1.1–1.2 adds a small pad). Prefer correcting boxes in review over a large scale.">Box scale</label>
-      <input type="number" id="rt-box-scale" value="1.0" min="0.5" max="2.0" step="0.05" style="width:5em;" />
+    <div class="field-row" style="align-items:center;">
+      <label data-help="Multiply marked box size for YOLO labels (0.5–2.0). 1.0 = exact mark; 1.1–1.2 adds a small pad. Prefer correcting boxes in review over a large scale. AI Train only.">Box scale</label>
+      <input type="range" id="rt-box-scale" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;" />
+      <span class="hint" id="rt-box-scale-val" style="margin:0; min-width:2.5em;">1</span>
     </div>
     <div class="checkbox-row"><input type="checkbox" id="rt-extract-audio" checked />
       <label for="rt-extract-audio" style="width:auto"
@@ -1259,6 +1263,23 @@ export function initRoiTraining(root) {
   }).catch(() => {
     el('#rt-device-status').textContent = '';
   });
+
+  function syncRoiTrainSampleKnobLabels() {
+    const every = el('#rt-sample-every');
+    const everyLab = el('#rt-sample-every-val');
+    if (every && everyLab) everyLab.textContent = String(Math.round(Number(every.value) || 12));
+    const scale = el('#rt-box-scale');
+    const scaleLab = el('#rt-box-scale-val');
+    if (scale && scaleLab) {
+      const n = Number(scale.value);
+      scaleLab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : '1';
+    }
+  }
+  syncRoiTrainSampleKnobLabels();
+  el('#rt-sample-every')?.addEventListener('input', syncRoiTrainSampleKnobLabels);
+  el('#rt-sample-every')?.addEventListener('change', syncRoiTrainSampleKnobLabels);
+  el('#rt-box-scale')?.addEventListener('input', syncRoiTrainSampleKnobLabels);
+  el('#rt-box-scale')?.addEventListener('change', syncRoiTrainSampleKnobLabels);
 
   renderMarkFields();
   el('#rt-class-list').innerHTML = CLASS_PRESETS.map(n => `<option value="${n}"></option>`).join('');
