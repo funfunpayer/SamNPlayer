@@ -370,16 +370,24 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 				return err
 			}
 		} else {
-			switch opts.Technique {
-			case TechniquePlateau:
-				plateau := clamp01(peak * opts.PlateauFraction)
-				if _, err := rampChannel(ctx, dev, opts.Channel, peak, plateau, restMs, control); err != nil {
+			target := 0.0 // TechniqueStopStart
+			if opts.Technique == TechniquePlateau {
+				target = clamp01(peak * opts.PlateauFraction)
+			}
+			stoppedDown, err := rampChannel(ctx, dev, opts.Channel, peak, target, restMs, control)
+			if err != nil {
+				return err
+			}
+			// Ein Stopp während der Abwärtsrampe wirkt wie jeder andere:
+			// sofort auf 0 und volle Pause. Vorher wurde er verworfen und
+			// der Kanal blieb die ganze Pause auf dem Zwischenwert stehen.
+			if stoppedDown {
+				result.StoppedByUser = true
+				if err := setChannel(dev, opts.Channel, 0); err != nil {
 					return err
 				}
-			default: // TechniqueStopStart
-				if _, err := rampChannel(ctx, dev, opts.Channel, peak, 0, restMs, control); err != nil {
-					return err
-				}
+			}
+			if stoppedDown || opts.Technique != TechniquePlateau {
 				if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
 					return err
 				}
@@ -862,7 +870,6 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 	// instead of leaving them elevated for the deferred dev.Stop() to cut
 	// abruptly.
 	var lastVib, lastSuc float64
-	interrupted := false
 	for pi := range script.Phases {
 		phase := script.Phases[pi]
 		for ri := 0; ri < phase.RepeatCycles; ri++ {
@@ -902,7 +909,6 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 			result.StoppedByUser = stopped
 
 			if stopped {
-				interrupted = true
 				if err := stopBothChannels(dev); err != nil {
 					return err
 				}
@@ -915,7 +921,27 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 					lastSuc = suc.EndLevel
 				}
 			}
-			if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
+			rest := time.Duration(restMs) * time.Millisecond
+			if lastVib > 0 || lastSuc > 0 {
+				// Ein Kanal steht in der Pause noch an (EndLevel > 0 oder
+				// aus einer früheren Phase mitgetragen): ein Stopp muss
+				// hier genauso wirken wie in der Rampe. Vorher sah ihn
+				// niemand, und das drain() des nächsten Zyklus verwarf ihn.
+				stoppedInRest, err := waitInterruptible(ctx, rest, control)
+				if err != nil {
+					return err
+				}
+				if stoppedInRest {
+					result.StoppedByUser = true
+					if err := stopBothChannels(dev); err != nil {
+						return err
+					}
+					lastVib, lastSuc = 0, 0
+					if err := waitOrDone(ctx, rest); err != nil {
+						return err
+					}
+				}
+			} else if err := waitOrDone(ctx, rest); err != nil {
 				return err
 			}
 
@@ -927,8 +953,9 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 		}
 	}
 
-	// A script that finishes naturally (not via user Interrupt, which
-	// already hard-cuts above) can still leave a channel above 0 - either
+	// A script that finishes with a channel still above 0 (a user
+	// Interrupt already hard-cut to 0 above and reset lastVib/lastSuc, so
+	// only repeats that ran after the last Interrupt count) - either
 	// its last phase's EndLevel is nonzero by design (e.g. "plateau"'s
 	// edging floor), or a phase later in the script never touched a
 	// channel an earlier one raised. Without this, the only thing that
@@ -937,7 +964,7 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 	// dropped. Ramp whichever channel(s) are still elevated back to 0
 	// instead, same as the felt shape of every other ramp-down in the
 	// script.
-	if !interrupted && (lastVib > 0 || lastSuc > 0) {
+	if lastVib > 0 || lastSuc > 0 {
 		if _, err := runPhaseRepeat(ctx, dev, closingRamp(ChannelVibration, lastVib), closingRamp(ChannelSuction, lastSuc), control); err != nil {
 			return err
 		}

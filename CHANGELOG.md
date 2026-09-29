@@ -147,6 +147,17 @@ measurement history behind each entry; this file is the short version for
 - **Intiface: suction on Oscillate/Inflate devices** — the second channel
   was always commanded as "Constrict", which Buttplug rejects when the
   feature is Oscillate or Inflate. The adopted actuator type is now used.
+- **Training: "Interrupt now" ignored in the pause** — in Custom mode a
+  press during the ramp down (Stop-start) or the ramp to the plateau froze
+  the level where it was for the whole pause instead of going to 0. In a
+  script, a press during a pause with a channel still on (plateau floor,
+  "Suction focus") was not seen at all and was dropped when the next
+  repeat started. Both now cut to 0 and take the full pause, like a press
+  during the ramp up or the hold.
+- **Training scripts: the ending was abrupt after any earlier interrupt** —
+  one "Interrupt now" anywhere in the session switched off the 2 s
+  wind-down at the natural end, so a script that ended on a raised level
+  cut straight to 0.
 
 - **Sam Neo 2: device restarting itself after the diagnostics test** — the
   raw-value writes of the Device-tab test and diagnostics sweep bypassed the

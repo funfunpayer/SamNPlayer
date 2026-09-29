@@ -1069,3 +1069,100 @@ func TestLevelMirrorReportsLiveWrites(t *testing.T) {
 		t.Fatalf("last levels vib=%v suc=%v", lastVib, lastSuc)
 	}
 }
+
+// stopAfter startet fn im Hintergrund, drückt nach `after` StopCycle und
+// liefert den Vibrationswert `settle` später - also den Stand, den der
+// Nutzer nach dem Druck auf "Unterbrechen" tatsächlich spürt.
+func stopAfter(t *testing.T, dev *recordingDevice, control *TrainingControl, after, settle time.Duration, fn func() error) (float64, float64, chan error) {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() { done <- fn() }()
+	time.Sleep(after)
+	control.StopCycle()
+	time.Sleep(settle)
+	return dev.last(), dev.lastSuction(), done
+}
+
+// Stopp während der Abwärtsrampe (Stop-Start) bzw. der Rampe aufs Plateau:
+// vorher brach rampChannel die Rampe ab und der Rückgabewert wurde
+// verworfen - der Kanal blieb für die ganze Pause auf dem Zwischenwert
+// stehen, statt wie bei jedem anderen Stopp sofort auf 0 zu gehen.
+func TestStopCycleDuringRampDownCutsToZero(t *testing.T) {
+	for _, tech := range []TrainingTechnique{TechniqueStopStart, TechniquePlateau} {
+		t.Run(string(tech), func(t *testing.T) {
+			dev := &recordingDevice{}
+			control := NewTrainingControl()
+			opts := TrainingOptions{Technique: tech, Channel: ChannelVibration, Cycles: 1,
+				RampUpMs: 50, HoldMs: 50, RestMs: 3000, PeakIntensity: 1.0, PlateauFraction: 0.7}
+			var results []TrainingCycleResult
+			vib, _, done := stopAfter(t, dev, control, 800*time.Millisecond, 200*time.Millisecond, func() error {
+				return RunTrainingWithControl(context.Background(), dev, opts, control, func(r TrainingCycleResult) {
+					results = append(results, r)
+				})
+			})
+			if vib != 0 {
+				t.Errorf("Stopp in der Abwärtsrampe: Vibration bleibt auf %v statt 0", vib)
+			}
+			if err := <-done; err != nil {
+				t.Fatal(err)
+			}
+			if len(results) != 1 || !results[0].StoppedByUser {
+				t.Errorf("Zyklus muss als vom Nutzer gestoppt gemeldet werden: %+v", results)
+			}
+		})
+	}
+}
+
+// Script-Modus: in der Pause steht ein Kanal mit EndLevel > 0 (Plateau,
+// "Suction focus") weiter an. Ein Stopp dort wurde bisher nicht gesehen und
+// vom drain() des nächsten Zyklus verworfen - der Knopf wirkte nicht.
+func TestRunTrainingScriptStopCycleDuringElevatedRest(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	script := TrainingScript{Phases: []TrainingPhase{{
+		Name:         "Plateau",
+		Vibration:    curve(ChannelVibration, 0, 0.8, 0.5, 50, 50, 50),
+		Suction:      curve(ChannelSuction, 0, 0.6, 0.3, 50, 50, 50),
+		RepeatCycles: 1,
+		RestMs:       3000,
+	}}}
+	var results []TrainingScriptCycleResult
+	vib, suc, done := stopAfter(t, dev, control, 600*time.Millisecond, 200*time.Millisecond, func() error {
+		return RunTrainingScript(context.Background(), dev, script, control, func(r TrainingScriptCycleResult) {
+			results = append(results, r)
+		})
+	})
+	if vib != 0 || suc != 0 {
+		t.Errorf("Stopp in der Pause: Vibration %v, Sog %v - beide müssen auf 0", vib, suc)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || !results[0].StoppedByUser {
+		t.Errorf("Wiederholung muss als vom Nutzer gestoppt gemeldet werden: %+v", results)
+	}
+}
+
+// Ein Stopp in einer frühen Wiederholung darf den sanften Rundown am
+// natürlichen Skriptende nicht für den Rest der Session abschalten: die
+// späteren Wiederholungen laufen normal und enden wieder erhöht.
+func TestRunTrainingScriptRampsDownAtEndAfterEarlierStop(t *testing.T) {
+	dev := &recordingDevice{}
+	control := NewTrainingControl()
+	script := TrainingScript{Phases: []TrainingPhase{
+		{Name: "Stopped", Vibration: curve(ChannelVibration, 0, 0.8, 0, 50, 2000, 50), RepeatCycles: 1, RestMs: 10},
+		{Name: "Ends elevated", Vibration: curve(ChannelVibration, 0, 0.8, 0.5, 50, 50, 50), RepeatCycles: 1, RestMs: 10},
+	}}
+	_, _, done := stopAfter(t, dev, control, 300*time.Millisecond, 0, func() error {
+		return RunTrainingScript(context.Background(), dev, script, control, nil)
+	})
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if !dev.vibrationsContainApprox(0.5, 0.01) {
+		t.Fatalf("zweite Phase hat ihr EndLevel 0.5 nie erreicht: %v", dev.vibrations)
+	}
+	if got := dev.last(); got != 0 {
+		t.Errorf("kein Rundown am Skriptende nach früherem Stopp, Vibration zuletzt %v", got)
+	}
+}
