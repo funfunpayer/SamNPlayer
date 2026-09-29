@@ -347,7 +347,10 @@ func finishNativeGenerate(
 	var audioMeta *funscript.AudioCheck
 	if opts.AudioCheck {
 		progress("Audio tempo check (Go, post-hoc)…")
-		audioMeta = CheckAudioTempo(videoPath, actions)
+		audioMeta = CheckAudioTempoContext(ctx, videoPath, actions)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if audioMeta == nil {
 			progress("Audio tempo check unavailable (no ffmpeg / no audio track)")
 		} else {
