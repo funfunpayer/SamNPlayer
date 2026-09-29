@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Feel / Play contact probe rich chrome** — active% + peak badges and vib peak
+  dots on Create Feel and Play Contact probes (from `PreviewContactVibration`).
+  Synthetic display only; Everyday CSRT unchanged.
+
 - **Play Advanced: MakeVib-style feel knobs** — Tick / Max-Speed / Smoothing /
   Soft-Start use range + live readout (same IDs and defaults). Playback feel
   only — Create CSRT / Expert max-speed unchanged.

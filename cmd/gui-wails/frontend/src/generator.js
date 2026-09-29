@@ -236,9 +236,14 @@ export function initGenerator(root, playback) {
             </select>
           </div>
           <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
+            <div class="gen-contact-vib-badges" id="gen-contact-vib-badges">
+              <span class="gen-cv-badge" id="gen-cv-badge-active">— active</span>
+              <span class="gen-cv-badge" id="gen-cv-badge-peak">— peak</span>
+            </div>
             <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
               <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
               <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+              <g id="gen-contact-vib-peaks" class="gen-contact-vib-peaks"></g>
             </svg>
             <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
               Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
@@ -1674,6 +1679,9 @@ export function initGenerator(root, playback) {
     const out = el('#gen-contact-vib-preview');
     const vibPoly = el('#gen-contact-vib-poly');
     const strokePoly = el('#gen-contact-vib-stroke');
+    const peaksG = el('#gen-contact-vib-peaks');
+    const badgeActive = el('#gen-cv-badge-active');
+    const badgePeak = el('#gen-cv-badge-peak');
     const probe = el('#gen-contact-vib-probe');
     if (!out || !probe) return;
     if (!el('#gen-contact-vibration')?.checked) {
@@ -1689,14 +1697,20 @@ export function initGenerator(root, playback) {
         curve,
       });
       out.textContent = res.hint || res.Hint || 'Feel probe';
+      const activePct = Number(res.activePct ?? res.ActivePct ?? 0);
+      const peakVib = Number(res.peakVib ?? res.PeakVib ?? 0);
+      if (badgeActive) badgeActive.textContent = `${Math.round(activePct)}% active`;
+      if (badgePeak) badgePeak.textContent = `peak ${Math.round(peakVib * 100)}`;
       const sample = res.sample || res.Sample || [];
       const w = 320;
       const h = 72;
       const pad = 4;
+      if (peaksG) peaksG.innerHTML = '';
       if (Array.isArray(sample) && sample.length >= 2) {
         const t0 = Number(sample[0].atMs ?? sample[0].AtMs ?? 0);
         const t1 = Number(sample[sample.length - 1].atMs ?? sample[sample.length - 1].AtMs ?? 1);
         const span = Math.max(1, t1 - t0);
+        const vibOf = (p) => Math.max(0, Math.min(100, Number(p.vib ?? p.Vib ?? 0)));
         const toPts = (key, Key) => sample.map((p) => {
           const t = Number(p.atMs ?? p.AtMs ?? 0);
           const pos = Math.max(0, Math.min(100, Number(p[key] ?? p[Key] ?? 0)));
@@ -1706,6 +1720,21 @@ export function initGenerator(root, playback) {
         }).join(' ');
         if (strokePoly) strokePoly.setAttribute('points', toPts('stroke', 'Stroke'));
         if (vibPoly) vibPoly.setAttribute('points', toPts('vib', 'Vib'));
+        if (peaksG) {
+          for (let i = 1; i < sample.length - 1; i++) {
+            const v = vibOf(sample[i]);
+            if (v < 15) continue;
+            if (v < vibOf(sample[i - 1]) || v < vibOf(sample[i + 1])) continue;
+            const t = Number(sample[i].atMs ?? sample[i].AtMs ?? 0);
+            const x = pad + ((t - t0) / span) * (w - 2 * pad);
+            const y = pad + (1 - v / 100) * (h - 2 * pad);
+            const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c.setAttribute('cx', x.toFixed(1));
+            c.setAttribute('cy', y.toFixed(1));
+            c.setAttribute('r', '2.4');
+            peaksG.appendChild(c);
+          }
+        }
       } else {
         if (strokePoly) strokePoly.setAttribute('points', '');
         if (vibPoly) vibPoly.setAttribute('points', '');
@@ -1714,6 +1743,9 @@ export function initGenerator(root, playback) {
       out.textContent = 'Feel probe unavailable: ' + err;
       if (strokePoly) strokePoly.setAttribute('points', '');
       if (vibPoly) vibPoly.setAttribute('points', '');
+      if (peaksG) peaksG.innerHTML = '';
+      if (badgeActive) badgeActive.textContent = '— active';
+      if (badgePeak) badgePeak.textContent = '— peak';
     }
   }
   function scheduleContactVibPreview() {
