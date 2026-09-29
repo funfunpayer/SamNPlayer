@@ -35,7 +35,10 @@ func main() {
 		os.Exit(runCompare(os.Args[2:]))
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "generate" {
-		os.Exit(runGenerate(os.Args[2:]))
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		code := runGenerateContext(ctx, os.Args[2:])
+		stop()
+		os.Exit(code)
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "sam" {
 		os.Exit(runSam(os.Args[2:]))
