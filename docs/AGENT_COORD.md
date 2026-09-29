@@ -164,6 +164,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | PlayEOKnobSliders | Cursor | [#395](https://github.com/funfunpayer/SamNPlayer/pull/395) merged (`4a22034`) | **Play Extended-O knobs** — Amplitude/Hold/Restore range + readout (defaults unchanged) | **DONE** |
 | PlayEOMinZero | Cursor | [#421](https://github.com/funfunpayer/SamNPlayer/pull/421) merged (`3698f45`) | **Play Extended-O Amplitude/Restore 0** — GUI `finiteOr` so slider 0 is not coerced to fallback | **DONE** |
 | PlayContactIntensityZero | Cursor | [#424](https://github.com/funfunpayer/SamNPlayer/pull/424) merged (`263fa37`) | **Play Contact Strength 0 in probe** — finiteOr so Strength 0 is not coerced to 1 | **DONE** |
+| ExpertSmoothPeakZero | Cursor | this PR | **Expert Smooth/Peakdist 0** — intOr so slider 0 reaches Preview/Generate | **THIS**
 | PlayOMarkerIntensity | Cursor | [#396](https://github.com/funfunpayer/SamNPlayer/pull/396) merged (`a36c85b`) | **Play O-marker Intensity knob** — secondary Intensity range + readout (default 0.5) | **DONE** |
 | PlayFpsSnapKnob | Cursor | [#397](https://github.com/funfunpayer/SamNPlayer/pull/397) merged (`def6d69`) | **Play FPS-Snap knob** — range + live readout (`off` at 0; default 0) | **DONE** |
 | TrainIntensityKnobs | Cursor | [#398](https://github.com/funfunpayer/SamNPlayer/pull/398) merged (`9d0f072`) | **Training intensity knobs** — Peak/Plateau/Progression range + readout (defaults unchanged) | **DONE** |
