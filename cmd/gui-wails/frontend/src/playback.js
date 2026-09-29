@@ -226,8 +226,10 @@ export function initPlayback(root) {
           </label>
           <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
           <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="If >0: seeks and new curve points snap to frame grid (ms). 0 = off.">
-            FPS-Snap<input type="number" id="pb-fps-snap" value="0" min="0" step="1" style="width:4em;" />
+            data-help="If >0: seeks and new curve points snap to that frame rate. 0 = off. Play edit only — does not change Create.">
+            FPS-Snap
+            <input type="range" id="pb-fps-snap" min="0" max="60" step="1" value="0" style="width:7em;" />
+            <span id="pb-fps-snap-val">off</span>
           </label>
           <label class="checkbox-row" style="margin:0;"
             data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
@@ -3120,6 +3122,17 @@ export function initPlayback(root) {
   }
   el('#pb-cap-intensity')?.addEventListener('input', updateCapIntensityLabel);
   updateCapIntensityLabel();
+
+  function syncPlayFpsSnapLabel() {
+    const inp = el('#pb-fps-snap');
+    const lab = el('#pb-fps-snap-val');
+    if (!inp || !lab) return;
+    const n = Math.round(Number(inp.value) || 0);
+    lab.textContent = n > 0 ? String(n) : 'off';
+  }
+  syncPlayFpsSnapLabel();
+  el('#pb-fps-snap')?.addEventListener('input', syncPlayFpsSnapLabel);
+  el('#pb-fps-snap')?.addEventListener('change', syncPlayFpsSnapLabel);
 
   updateSpeedHighlightLabel();
   el('#pb-speed-hl-thresh')?.addEventListener('input', () => {

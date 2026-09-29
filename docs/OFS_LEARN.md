@@ -16,7 +16,7 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | Chapters/bookmarks in `.funscript` metadata | `funscript/bookmarks.go` |
 | Heatmap PNG export (+ chapter ticks) | `funscript.ExportHeatmapPNG` / `ExportScriptHeatmapPNG` |
 | Project sidecar `.snp.json` | `funscript/project.go` / Save + **Load** in Play (`SavePlaybackProject` / `LoadPlaybackProject` / `PickPlaybackProject`) |
-| Frame snap (`SnapMs`) | `SnapTimeMs` + FPS-Snap in Wiedergabe |
+| Frame snap (`SnapMs`) | `SnapTimeMs` + Play FPS-Snap range + readout (`off` at 0) |
 | Range delete / speed-cap / scale | Play OFS row: Delete / **Speed-cap** (adjustable Cap intensity 150–800, default 400) / **Scale** (×0.5–×1.5, optional soft edges) on the **active Curve axis** (`EditDeleteRange`, `EditCapSpeedRange`, `EditScaleRange`) |
 | Feel / Speech-Hold display bands | Play heatmap (+ thin curve underlay): filtered `audio_check` segments as translucent bands; “Show on heatmap” + Opacity slider (display only) |
 | BPM / tempo grid overlay | Play OFS row: optional beat lines on the curve from BPM or `audio_check` Hz×60 (display only — no snap/rewrite) |
