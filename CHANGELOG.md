@@ -122,6 +122,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Contact verify after a seek** — with a start time (GUI seek past the
+  intro) the hybrid check (`--contact-verify` / *Verify with the engine*)
+  matched each absolute-time contact point against the window of the wrong
+  moment, because the engine's windows count from the first tracked frame.
+  It now shifts the window times by the start offset (same clock issue as
+  #377 for SceneMarks). Runs from 0 s are unchanged.
+
 - **Tip/partner appearance-reacquire vs coast** — `TrackTwoPoints` /
   `TrackMultiPoints` now share TrackROI's long-clip drift defenses: frame-0
   tip/partner seed as `templates[0]`, `matchesOriginal`-gated `remember()`,
