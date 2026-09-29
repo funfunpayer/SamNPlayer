@@ -424,9 +424,21 @@ export function initPlayback(root) {
           </div>
           <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
           <div class="pb-adv-grid">
-            <div class="field-row"><label title="Curve keeps rhythm; only height is multiplied">Amplitude</label><input type="number" step="0.05" min="0" max="1" id="pb-eo-min" value="0.1" /></div>
-            <div class="field-row"><label>Hold (s)</label><input type="number" id="pb-eo-hold" value="10" /></div>
-            <div class="field-row"><label>Restore (ms)</label><input type="number" id="pb-eo-restore" value="500" /></div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Extended-O amplitude multiplier (curve keeps rhythm; only height is scaled). Default 0.1. Playback feel only.">Amplitude</label>
+              <input type="range" id="pb-eo-min" min="0" max="1" step="0.05" value="0.1" style="flex:1;" />
+              <span class="hint" id="pb-eo-min-val" style="margin:0; min-width:2.5em;">0.1</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Extended-O hold duration in seconds. Default 10. Playback feel only.">Hold (s)</label>
+              <input type="range" id="pb-eo-hold" min="1" max="60" step="1" value="10" style="flex:1;" />
+              <span class="hint" id="pb-eo-hold-val" style="margin:0; min-width:2.5em;">10</span>
+            </div>
+            <div class="field-row" style="align-items:center;">
+              <label data-help="Extended-O restore ramp in milliseconds. Default 500. Playback feel only.">Restore (ms)</label>
+              <input type="range" id="pb-eo-restore" min="0" max="3000" step="100" value="500" style="flex:1;" />
+              <span class="hint" id="pb-eo-restore-val" style="margin:0; min-width:3em;">500</span>
+            </div>
           </div>
         </details>
 
@@ -3299,6 +3311,22 @@ export function initPlayback(root) {
   }
   syncPlayAdvKnobLabels();
 
+  function syncPlayEOKnobLabels() {
+    const amp = el('#pb-eo-min');
+    const ampLab = el('#pb-eo-min-val');
+    if (amp && ampLab) {
+      const n = Number(amp.value);
+      ampLab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : '0.1';
+    }
+    const hold = el('#pb-eo-hold');
+    const holdLab = el('#pb-eo-hold-val');
+    if (hold && holdLab) holdLab.textContent = String(Math.round(Number(hold.value) || 0));
+    const restore = el('#pb-eo-restore');
+    const restoreLab = el('#pb-eo-restore-val');
+    if (restore && restoreLab) restoreLab.textContent = String(Math.round(Number(restore.value) || 0));
+  }
+  syncPlayEOKnobLabels();
+
   getSettingsCache().then(s => {
     el('#pb-mock').checked = s.playbackMock;
     el('#pb-sync').value = s.playbackSync;
@@ -3311,6 +3339,7 @@ export function initPlayback(root) {
     el('#pb-eo-min').value = s.playbackEOMin;
     el('#pb-eo-hold').value = s.playbackEOHoldS;
     el('#pb-eo-restore').value = s.playbackEORestoreMs;
+    syncPlayEOKnobLabels();
     // !== false statt einer direkten Zuweisung: das Backend-Default ist
     // true (siehe prefPlaybackVideoPlayAutostart), und ein fehlendes Feld
     // (älterer Settings-Stand, Test-Stub ohne GetSettings-Override) soll
@@ -3343,9 +3372,21 @@ export function initPlayback(root) {
     saveSetting('playback.soft_start_ms', parseFloat(e.target.value));
   });
   el('#pb-eo-enabled').addEventListener('change', e => saveSetting('playback.extended_o_enabled', e.target.checked));
-  el('#pb-eo-min').addEventListener('change', e => saveSetting('playback.extended_o_min', parseFloat(e.target.value)));
-  el('#pb-eo-hold').addEventListener('change', e => saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value)));
-  el('#pb-eo-restore').addEventListener('change', e => saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value)));
+  el('#pb-eo-min').addEventListener('input', syncPlayEOKnobLabels);
+  el('#pb-eo-hold').addEventListener('input', syncPlayEOKnobLabels);
+  el('#pb-eo-restore').addEventListener('input', syncPlayEOKnobLabels);
+  el('#pb-eo-min').addEventListener('change', e => {
+    syncPlayEOKnobLabels();
+    saveSetting('playback.extended_o_min', parseFloat(e.target.value));
+  });
+  el('#pb-eo-hold').addEventListener('change', e => {
+    syncPlayEOKnobLabels();
+    saveSetting('playback.extended_o_hold_seconds', parseFloat(e.target.value));
+  });
+  el('#pb-eo-restore').addEventListener('change', e => {
+    syncPlayEOKnobLabels();
+    saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value));
+  });
   el('#pb-video-play-autostart').addEventListener('change', e => saveSetting('playback.video_play_autostart', e.target.checked));
   el('#pb-trajectory-toggle').addEventListener('change', e => {
     saveSetting('playback.trajectory_overlay', e.target.checked);

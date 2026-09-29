@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play Extended-O: MakeVib-style knobs** — Amplitude / Hold / Restore use
+  range + live readout (same IDs and defaults). Playback feel only; Everyday
+  CSRT unchanged.
+
 - **Play: Feel heatmap band opacity** — Opacity slider (0.2–1) for Feel /
   Speech-Hold bands on heatmap + curve underlay. Display only; Everyday CSRT
   unchanged.
