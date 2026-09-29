@@ -6,14 +6,15 @@ package trackcv
 // actually process. Container frame counts describe the whole video, so a
 // non-zero StartTimeSec must remove the frames skipped by the seek.
 func progressTotalFrames(totalFrames int, startTimeSec, fps float64, maxFrames int) int {
-	if totalFrames > 0 && startTimeSec > 0 && fps > 0 {
+	knownTotal := totalFrames > 0
+	if knownTotal && startTimeSec > 0 && fps > 0 {
 		skipped := int(startTimeSec*fps + 0.5)
 		totalFrames -= skipped
 		if totalFrames < 0 {
 			totalFrames = 0
 		}
 	}
-	if maxFrames > 0 && (totalFrames == 0 || maxFrames < totalFrames) {
+	if maxFrames > 0 && (!knownTotal || maxFrames < totalFrames) {
 		totalFrames = maxFrames
 	}
 	return totalFrames
