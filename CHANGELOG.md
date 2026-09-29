@@ -156,6 +156,10 @@ measurement history behind each entry; this file is the short version for
   coerced to the fallback (`|| 0.1` / `|| 500`) on Start/Trigger. Now uses
   `finiteOr` so 0 is preserved. Playback feel only.
 
+- **Play Contact Strength 0 in probe** — Strength slider `min="0"` was coerced
+  to 1 in the live vib probe hint/peak (`|| 1`). StartPlayback already kept 0;
+  probe now uses `finiteOr` too. Playback feel only.
+
 - **Rhythm-robust + marks after a seek** — with a start time (GUI seek past
   the intro) the rhythm grid evaluated time-limited exclude/source marks
   and followed-mark positions on its own clock (counting from the first
