@@ -233,6 +233,11 @@ inside the gap are lost.
   sides. The count is fitted so that the alternation lands on the
   far-side point.
 - No default change. The GUI entry (an Improve option) is Cursor's.
+- **Built (29 Sep, library):** `funscript.RhythmBridgeSpans`,
+  `ImproveOpts.HealRhythm` (rhythm bridge for *Heal tracking gaps*) and
+  `ImproveOpts.RepairSpans` (user spans), with a line fallback for spans
+  without rhythm around them. The library gives the same numbers as the
+  prototype.
 
 **ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
 automatically".** The old locked rule "no silent ROI2" is now: no ROI2

@@ -10,6 +10,16 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Rhythm bridge for gaps (opt-in, library)** — `funscript.RhythmBridgeSpans`
+  refills a span by continuing the stroke rhythm around it (turning points at
+  the half-period measured in 8 s on both sides, levels from those points,
+  count fitted to land on the point after the span) instead of the straight
+  line. `ImproveOpts.HealRhythm` uses it for *Heal tracking gaps*;
+  `ImproveOpts.RepairSpans` repairs user-selected spans. A span without
+  rhythm around it falls back to the line. Synthetic gaps cut from the
+  FunGen refs: r −0.11 → 0.43 (`clip_voll`, 4 s), 0.01 → 0.93
+  (`clip_ausschnitt`, 6 s). Default off; GUI entry pending (Cursor).
+
 - **AI Train: Sampling + Box scale knobs** — every-N-th-frame and box scale use
   range + live readout (defaults 12 / 1.0). AI Train only; Everyday CSRT
   unchanged.
