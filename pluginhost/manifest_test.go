@@ -114,7 +114,6 @@ func TestStatusReflectsPack(t *testing.T) {
 	}
 }
 
-
 func TestInstallPackDirRejectsSanitizedIDCollision(t *testing.T) {
 	root := t.TempDir()
 	writePack := func(dir, id, note string) {
