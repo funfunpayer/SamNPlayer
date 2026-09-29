@@ -70,8 +70,8 @@ BPM grid — optional beat lines on the curve (BPM field or audio tempo); displa
 Curve zoom — Zoom in/out / selection / reset (+ wheel) synced with heatmap; display/nav only
 Contact vibration — Strength / Sensitivity / Curve + live SVG probe (synthetic; optional Save to script)
 Playlist — queue multiple scripts
-Bookmarks — named times: add at playhead, seek, remove
-Chapters — named ranges: mark heatmap, add from selection, seek, remove
+Bookmarks — named times: add at playhead, seek, rename, remove
+Chapters — named ranges: mark heatmap, add from selection, seek, rename, remove
 Heatmap / markers — seek, loop, Extended-O, O-markers
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker.`,
