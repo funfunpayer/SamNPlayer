@@ -195,19 +195,44 @@ nothing records a gap, so *Heal tracking gaps* (#262) never fires there.
 Where it does fire it bridges the gap with a straight line, so the strokes
 inside the gap are lost.
 
-Proposal (board lane **GapFill**, ask first):
+**Measured before asking for code (29 Sep):**
 
-1. **Record gaps on the single-ROI path too**, from CSRT loss (the same
-   per-frame signal `TrackerLostFrames` already counts). Measure first how
-   often it fires on the three clips and whether those windows are wrong.
-2. **Rhythm bridge (opt-in heal mode):** inside a gap, continue the stroke
-   pattern — tempo and amplitude from the neighbouring windows, phase
-   matched at both ends — instead of the straight line.
-3. **Measure with synthetic ground truth before shipping:** cut 5–10 s
-   spans out of good scripts (goldens, multi-person), heal them with the
-   line and with the rhythm bridge, and compare r against the uncut
-   original. Only if the rhythm bridge clearly wins does it go to the GUI
-   (Cursor: an option in Improve), still opt-in.
+1. *Does CSRT report loss on the single-ROI path?* No. `TrackerLostFrames`
+   is 0 on all three clips — 6723 frames `clip_voll`, 1199
+   `clip_ausschnitt`, 19 263 on the multi-person clip, where the box
+   demonstrably sits on the wrong person. The single-ROI failure is
+   *wrong place*, not *lost*, and that is what the contact check
+   (`--contact-verify`) addresses. Recording CSRT-loss gaps there would
+   never fire, so that part of the proposal is dropped.
+2. *Rhythm bridge vs straight line* (synthetic ground truth: 4–10 s spans
+   cut out of the FunGen reference scripts every 30 s, healed, compared
+   with the uncut original inside the span; turning points found first,
+   so dense and sparse scripts read the same):
+
+   | Script | Span | r line | r rhythm | MAE line | MAE rhythm |
+   |---|---|---|---|---|---|
+   | clip_voll ref (extrema) | 4 s | −0.11 | **0.43** | 20.6 | **8.6** |
+   | clip_voll ref (dense) | 4 s | 0.08 | **0.35** | 30.3 | **21.4** |
+   | clip_ausschnitt ref (extrema) | 6 s | 0.01 | **0.93** | 32.2 | **5.1** |
+   | clip_voll ref (extrema) | 10 s | −0.02 | **0.31** | 21.3 | **10.8** |
+   | multi-person ref (erratic) | 6 s | 0.04 | 0.08 | 21.2 | 20.9 |
+
+   The rhythm bridge wins wherever the stroke is regular. On long spans
+   the phase drifts, but it still beats the line. On an erratic
+   reference both are about equally poor.
+
+**Revised proposal (lane GapFill, still ask-first):**
+
+- **Rhythm bridge as an opt-in heal mode** for the gaps that exist:
+  two-point / multi-point `tracking_gaps`, plus a **user-selected span**
+  in Improve ("repair this span"). The user marks the bad part, and the
+  bridge continues the rhythm from both sides. This is the realistic
+  gap-filler on the single-ROI path, since the engine does not know it
+  lost the stroke.
+- Tempo and amplitude come from the turning points within 8 s on both
+  sides. The count is fitted so that the alternation lands on the
+  far-side point.
+- No default change. The GUI entry (an Improve option) is Cursor's.
 
 **ROI2 — Owner decision 28 Sep: opt-in setting "Apply AI setup
 automatically".** The old locked rule "no silent ROI2" is now: no ROI2
