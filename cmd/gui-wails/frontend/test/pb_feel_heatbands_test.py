@@ -104,6 +104,10 @@ def main():
                   page.locator("#pb-seg-heatbands").count() == 1)
             check("heatbands default on",
                   page.locator("#pb-seg-heatbands").is_checked())
+            check("opacity slider present",
+                  page.locator("#pb-seg-heatbands-opacity").count() == 1)
+            check("opacity default 1",
+                  page.locator("#pb-seg-heatbands-opacity").input_value() == "1")
 
             page.click("#pb-choose")
             page.wait_for_function(
@@ -146,6 +150,24 @@ def main():
                       changed, str(after_filter))
 
             page.check("#pb-seg-f-gentle")
+            page.evaluate("""() => {
+              const o = document.querySelector('#pb-seg-heatbands-opacity');
+              o.value = '0.25';
+              o.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(80)
+            after_dim = page.evaluate(SAMPLE_PIXEL)
+            if samples and after_dim:
+                dim_diff = (
+                    abs(after_dim["gentle"][0] - after_dim["quiet"][0])
+                    + abs(after_dim["gentle"][1] - after_dim["quiet"][1])
+                    + abs(after_dim["gentle"][2] - after_dim["quiet"][2])
+                )
+                check("lower opacity reduces Feel tint vs quiet",
+                      dim_diff < gentle_diff, f"dim={dim_diff} was={gentle_diff}")
+            check("opacity readout shows 0.25",
+                  page.locator("#pb-seg-heatbands-opacity-val").inner_text() == "0.25")
+
             page.uncheck("#pb-seg-heatbands")
             page.wait_for_timeout(80)
             after_off = page.evaluate(SAMPLE_PIXEL)
@@ -158,6 +180,9 @@ def main():
                 )
                 check("heatbands off flattens Feel tint vs quiet",
                       gq < gentle_diff, f"gq={gq} was={gentle_diff}")
+            check("opacity row hidden when bands off",
+                  page.locator("#pb-seg-heatbands-opacity-row").evaluate(
+                      "e => e.style.display") == "none")
 
             browser.close()
     finally:

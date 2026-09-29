@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: Feel heatmap band opacity** — Opacity slider (0.2–1) for Feel /
+  Speech-Hold bands on heatmap + curve underlay. Display only; Everyday CSRT
+  unchanged.
+
 - **Feel / Play contact probe rich chrome** — active% + peak badges and vib peak
   dots on Create Feel and Play Contact probes (from `PreviewContactVibration`).
   Synthetic display only; Everyday CSRT unchanged.
