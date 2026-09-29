@@ -21,11 +21,11 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | Feel / Speech-Hold display bands | Play heatmap (+ thin curve underlay): filtered `audio_check` segments as translucent bands; “Show on heatmap” toggle (display only) |
 | BPM / tempo grid overlay | Play OFS row: optional beat lines on the curve from BPM or `audio_check` Hz×60 (display only — no snap/rewrite) |
 | Curve / heatmap zoom | Shared time window: Zoom in/out · Zoom selection · Reset · wheel on curve (display/nav only) |
+| Bookmark / chapter rename | Play list rows: Rename beside Seek / Remove (OFS-style CRUD) |
 
 ## Still optional later
 
 - WebSocket bridge to external players
-- Richer bookmark editor UI (CRUD list)
 
 ## Not copying
 

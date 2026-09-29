@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: bookmark / chapter rename** — Rename on bookmark and chapter rows
+  (OFS-style CRUD). Persists via existing Save APIs; Everyday CSRT unchanged.
+
 - **Play: contact vib live probe** — Strength / Sensitivity / Curve show a
   synthetic stroke+vib SVG probe (same `PreviewContactVibration` as Create Feel).
   Display feedback only — no stroke rewrite; Everyday CSRT unchanged.

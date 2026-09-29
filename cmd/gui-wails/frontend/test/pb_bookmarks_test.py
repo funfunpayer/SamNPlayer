@@ -79,6 +79,19 @@ def main():
             check("saved one bookmark", isinstance(saved, list) and len(saved) == 1)
             check("name Peak", saved and saved[0].get("name") == "Peak")
             check("list shows Peak", page.locator("#pb-bookmark-list").inner_text().find("Peak") >= 0)
+            check("rename control present",
+                  page.locator("#pb-bookmark-list button:text('Rename')").count() == 1)
+
+            page.once("dialog", lambda d: d.accept("Climax"))
+            page.click("#pb-bookmark-list button:text('Rename')")
+            page.wait_for_function(
+                "() => (window.__bookmarks[0] || {}).name === 'Climax'",
+                timeout=3000)
+            renamed = page.evaluate("() => window.__bookmarks[0]")
+            check("rename persists Climax",
+                  renamed and renamed.get("name") == "Climax", str(renamed))
+            check("list shows Climax",
+                  page.locator("#pb-bookmark-list").inner_text().find("Climax") >= 0)
 
             page.click("#pb-bookmark-list button:text('Remove')")
             page.wait_for_function(

@@ -268,7 +268,7 @@ export function initPlayback(root) {
         <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
 
         <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:10px;"
-          data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, or remove. Separate from O-markers and heatmap selection.">
+          data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, rename, or remove. Separate from O-markers and heatmap selection.">
           Bookmarks: named times in the script — see “?”.</div>
         <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
@@ -278,7 +278,7 @@ export function initPlayback(root) {
         <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
 
         <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:10px;"
-          data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
+          data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Rename or remove later. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
           Chapters: named ranges in the script — see “?”.</div>
         <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
@@ -849,12 +849,17 @@ export function initPlayback(root) {
       seekBtn.type = 'button';
       seekBtn.textContent = 'Seek';
       seekBtn.addEventListener('click', () => seekTo(b.time));
+      const renameBtn = document.createElement('button');
+      renameBtn.type = 'button';
+      renameBtn.textContent = 'Rename';
+      renameBtn.addEventListener('click', () => renameBookmark(index));
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.textContent = 'Remove';
       removeBtn.addEventListener('click', () => removeBookmark(index));
       row.appendChild(label);
       row.appendChild(seekBtn);
+      row.appendChild(renameBtn);
       row.appendChild(removeBtn);
       box.appendChild(row);
     });
@@ -872,6 +877,18 @@ export function initPlayback(root) {
       logError('Bookmarks: ' + err);
       return false;
     }
+  }
+
+  async function renameBookmark(index) {
+    const b = bookmarks[index];
+    if (!b) return;
+    const raw = window.prompt('Rename bookmark', b.name);
+    if (raw == null) return;
+    const name = String(raw).trim() || 'Bookmark';
+    if (name === b.name) return;
+    const previous = bookmarks.slice();
+    const next = bookmarks.map((item, i) => (i === index ? { ...item, name } : item));
+    await persistBookmarks(next, previous);
   }
 
   async function removeBookmark(index) {
@@ -921,12 +938,17 @@ export function initPlayback(root) {
       seekBtn.type = 'button';
       seekBtn.textContent = 'Seek';
       seekBtn.addEventListener('click', () => seekTo(c.startTime));
+      const renameBtn = document.createElement('button');
+      renameBtn.type = 'button';
+      renameBtn.textContent = 'Rename';
+      renameBtn.addEventListener('click', () => renameChapterMark(index));
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.textContent = 'Remove';
       removeBtn.addEventListener('click', () => removeChapterMark(index));
       row.appendChild(label);
       row.appendChild(seekBtn);
+      row.appendChild(renameBtn);
       row.appendChild(removeBtn);
       box.appendChild(row);
     });
@@ -945,6 +967,18 @@ export function initPlayback(root) {
       logError('Chapters: ' + err);
       return false;
     }
+  }
+
+  async function renameChapterMark(index) {
+    const c = chapterMarks[index];
+    if (!c) return;
+    const raw = window.prompt('Rename chapter', c.name);
+    if (raw == null) return;
+    const name = String(raw).trim() || 'Chapter';
+    if (name === c.name) return;
+    const previous = chapterMarks.slice();
+    const next = chapterMarks.map((item, i) => (i === index ? { ...item, name } : item));
+    await persistChapterMarks(next, previous);
   }
 
   async function removeChapterMark(index) {
