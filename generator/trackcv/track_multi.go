@@ -111,9 +111,7 @@ func TrackMultiPoints(videoPath string, tip Rect, partners []Partner, opts Optio
 	lastDist := d0
 
 	total := int(cap.Get(CapPropFrameCount))
-	if opts.MaxFrames > 0 && (total == 0 || opts.MaxFrames < total) {
-		total = opts.MaxFrames
-	}
+	total = progressTotalFrames(total, opts.StartTimeSec, fps, opts.MaxFrames)
 	prog := newProgressReporter(opts.OnProgress, total)
 	prog.report(0)
 

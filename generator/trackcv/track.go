@@ -247,9 +247,7 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 	var sceneCuts []int
 
 	totalFrames := int(cap.Get(CapPropFrameCount))
-	if opts.MaxFrames > 0 && (totalFrames == 0 || opts.MaxFrames < totalFrames) {
-		totalFrames = opts.MaxFrames
-	}
+	totalFrames = progressTotalFrames(totalFrames, opts.StartTimeSec, fps, opts.MaxFrames)
 	prog := newProgressReporter(opts.OnProgress, totalFrames)
 	prog.report(0)
 
