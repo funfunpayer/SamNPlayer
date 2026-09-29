@@ -22,6 +22,7 @@ Official project (archived): [OpenFunscripter/OFS](https://github.com/OpenFunscr
 | BPM / tempo grid overlay | Play OFS row: optional beat lines on the curve from BPM or `audio_check` Hz×60 (display only — no snap/rewrite) |
 | Curve / heatmap zoom | Shared time window: Zoom in/out · Zoom selection · Reset · wheel on curve (display/nav only) |
 | Bookmark / chapter rename | Play list rows: Rename beside Seek / Remove (OFS-style CRUD) |
+| O-marker secondary intensity | Play Intensity range + readout (authoring; default 0.5) |
 
 ## Still optional later
 

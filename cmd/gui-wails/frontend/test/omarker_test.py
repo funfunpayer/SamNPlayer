@@ -104,7 +104,12 @@ def main():
         page.select_option("#pb-omarker-kind", "secondary")
         check("Sekundär-Intensität sichtbar nach Kindwechsel",
               page.locator("#pb-omarker-intensity-row").evaluate("e => e.style.display") == "flex")
-        page.fill("#pb-omarker-intensity", "0.3")
+        page.evaluate("""() => {
+          const el = document.querySelector('#pb-omarker-intensity');
+          el.value = '0.3';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }""")
         page.click("#pb-omarker-add")
         page.wait_for_function("window.__calls.filter(c => c[0] === 'saveOMarkers').length === 2",
                                timeout=5000)

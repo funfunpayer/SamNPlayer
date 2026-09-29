@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: O-marker Intensity knob** — secondary O-marker Intensity uses range +
+  live readout (default 0.5). Authoring only; Everyday CSRT unchanged.
+
 - **Play Extended-O: MakeVib-style knobs** — Amplitude / Hold / Restore use
   range + live readout (same IDs and defaults). Playback feel only; Everyday
   CSRT unchanged.
