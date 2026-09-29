@@ -38,19 +38,22 @@ func runBenchmark(args []string) int {
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
-	// Allow positional: benchmark REF CAND
-	if *refPath == "" && len(paths) >= 1 {
+	// Allow positional: benchmark REF CAND, including mixed forms where one
+	// side is already supplied by a named flag.
+	if *refPath == "" && len(paths) > 0 {
 		*refPath = paths[0]
+		paths = paths[1:]
 	}
-	if *candPath == "" && len(paths) >= 2 {
-		*candPath = paths[1]
+	if *candPath == "" && len(paths) > 0 {
+		*candPath = paths[0]
+		paths = paths[1:]
 	}
 	if *refPath == "" || *candPath == "" {
 		fs.Usage()
 		return 2
 	}
-	if len(paths) > 2 {
-		fmt.Fprintln(os.Stderr, "Unerwartete Positionsargumente:", paths[2:])
+	if len(paths) > 0 {
+		fmt.Fprintln(os.Stderr, "Unerwartete Positionsargumente:", paths)
 		fs.Usage()
 		return 2
 	}
