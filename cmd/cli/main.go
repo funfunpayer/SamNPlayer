@@ -44,7 +44,10 @@ func main() {
 		os.Exit(runSam(os.Args[2:]))
 	}
 	if len(os.Args) >= 2 && (os.Args[1] == "stroke-preview" || os.Args[1] == "strokepreview") {
-		os.Exit(runStrokePreview(os.Args[2:]))
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		code := runStrokePreviewContext(ctx, os.Args[2:])
+		stop()
+		os.Exit(code)
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "scan-scene-map" {
 		os.Exit(runScanSceneMap(os.Args[2:]))
