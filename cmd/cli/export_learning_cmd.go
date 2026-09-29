@@ -28,6 +28,10 @@ func runExportLearning(args []string) int {
 		return 2
 	}
 	if *del {
+		if len(paths) != 0 {
+			fs.Usage()
+			return 2
+		}
 		root := *outDir
 		if root == "" {
 			root = generator.DefaultRoiDatasetDir()
