@@ -8,6 +8,8 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.42] — September 29, 2026
+
 ### Added
 
 - **Rhythm bridge for gaps (opt-in, library)** — `funscript.RhythmBridgeSpans`
@@ -211,6 +213,23 @@ measurement history behind each entry; this file is the short version for
   moment, because the engine's windows count from the first tracked frame.
   It now shifts the window times by the start offset (same clock issue as
   #377 for SceneMarks). Runs from 0 s are unchanged.
+
+- **Native funscript write atomic** — Generate writes the `.funscript` via a
+  temp file + rename so a crash mid-write cannot leave a truncated script
+  (#428).
+
+- **Cancel post-hoc audio ffmpeg with Generate** — stopping Generate also
+  aborts the post-hoc `audio_check` ffmpeg extract instead of leaving it
+  running (#420).
+
+- **CLI path / progress / plugin harden** — mixed benchmark paths (#417);
+  reject paths in export-delete and extra stroke-preview args (#410/#408);
+  keep paths after boolean options (#406); preserve exhausted seek total and
+  remaining progress after seek (#404/#401); reject sanitized plugin ID
+  collisions (#412).
+
+Everyday Go CSRT Create defaults unchanged. **#264** Virtual Person remains
+cancelled / out-of-scope.
 
 ## [0.5.41] — September 28, 2026
 
