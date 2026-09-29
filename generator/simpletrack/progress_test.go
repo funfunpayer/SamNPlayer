@@ -33,7 +33,6 @@ func TestProgressReporterNilSafe(t *testing.T) {
 	p.report(1)
 }
 
-
 func TestProgressTotalFramesAfterSeek(t *testing.T) {
 	if got := progressTotalFrames(3000, 50, 30, 0); got != 1500 {
 		t.Fatalf("remaining frames after seek = %d, want 1500", got)
