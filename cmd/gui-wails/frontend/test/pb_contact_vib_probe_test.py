@@ -144,6 +144,19 @@ def main():
             check("span change refreshes preview",
                   abs(float(mid.get("span", 0)) - 0.45) < 1e-6, str(mid))
 
+            # Strength min=0 must not coerce to 1 via || in the probe.
+            page.evaluate("""() => {
+              const i = document.querySelector('#pb-contact-intensity');
+              i.value = '0';
+              i.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(250)
+            hint0 = page.locator("#pb-contact-vib-preview").inner_text()
+            check("strength 0 shows ×0.00 in hint",
+                  "×0.00" in hint0 or "x0.00" in hint0.lower(), hint0)
+            check("strength 0 peak badge is peak 0",
+                  "peak 0" in page.locator("#pb-cv-badge-peak").inner_text())
+
             page.locator("#pb-contact-off").check()
             page.wait_for_timeout(250)
             check("contact off hides probe",

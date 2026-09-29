@@ -1756,7 +1756,8 @@ export function initPlayback(root) {
     probe.hidden = false;
     const span = parseFloat(el('#pb-contact-span')?.value) || 0.75;
     const curve = el('#pb-contact-curve')?.value || 'soft';
-    const intensity = Math.max(0, parseFloat(el('#pb-contact-intensity')?.value) || 1);
+    // finiteOr (not ||): Strength slider min=0 must stay 0 in the probe.
+    const intensity = Math.max(0, finiteOr(el('#pb-contact-intensity')?.value, 1));
     try {
       const res = await PreviewContactVibration({ span, curve });
       let hint = res.hint || res.Hint || 'Contact probe';
