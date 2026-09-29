@@ -2,6 +2,23 @@
 
 package trackcv
 
+// progressTotalFrames returns the number of frames this tracking run can
+// actually process. Container frame counts describe the whole video, so a
+// non-zero StartTimeSec must remove the frames skipped by the seek.
+func progressTotalFrames(totalFrames int, startTimeSec, fps float64, maxFrames int) int {
+	if totalFrames > 0 && startTimeSec > 0 && fps > 0 {
+		skipped := int(startTimeSec*fps + 0.5)
+		totalFrames -= skipped
+		if totalFrames < 0 {
+			totalFrames = 0
+		}
+	}
+	if maxFrames > 0 && (totalFrames == 0 || maxFrames < totalFrames) {
+		totalFrames = maxFrames
+	}
+	return totalFrames
+}
+
 // progressReporter throttles OnProgress to ~100 updates (same cadence as
 // generate_funscript.track_roi PROGRESS lines) so the GUI bar moves during
 // long Go-native tracking instead of jumping 0→100 at the end.
