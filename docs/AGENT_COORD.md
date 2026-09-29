@@ -108,7 +108,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | AudioCancel | ChatGPT | [#420](https://github.com/funfunpayer/SamNPlayer/pull/420) merged (`82062c7`) | Propagate Generate cancellation into post-hoc ffmpeg audio check; regression test; no defaults | **DONE** |
 | AtomicWrite | ChatGPT | [#428](https://github.com/funfunpayer/SamNPlayer/pull/428) merged (`6538296`) | Write native `.funscript` through same-directory temp + sync + rename; preserve destination on failure | **DONE** |
 | CLICancel | ChatGPT | [#432](https://github.com/funfunpayer/SamNPlayer/pull/432) merged (`3d8da4a`) | Propagate CLI `generate` signals into tracker/ffmpeg/Python cancellation; regression test; no defaults | **DONE** |
-| StrokePreviewCancel | ChatGPT | `chatgpt/stroke-preview-cancel` / [#434](https://github.com/funfunpayer/SamNPlayer/issues/434) | Propagate CLI `stroke-preview` signals into analyzer/ffmpeg cancellation; regression test; no defaults | **THIS** |
+| StrokePreviewCancel | ChatGPT | [#435](https://github.com/funfunpayer/SamNPlayer/pull/435) merged (`fedef03`) | Propagate CLI `stroke-preview` signals into analyzer/ffmpeg cancellation; regression test; no defaults | **DONE** |
 | Bugfix | Cursor | [#227](https://github.com/funfunpayer/SamNPlayer/pull/227) merged | **Create→Play `.samn` feel** (recipe/marks/trajectory) + Create busy/overwrite | **DONE** |
 | Look | Cursor | [#225](https://github.com/funfunpayer/SamNPlayer/pull/225) merged | Emotion GUI look (Sora/Figtree) | **DONE** |
 | Rel28 | Cursor | [#228](https://github.com/funfunpayer/SamNPlayer/pull/228) + tag `v0.5.28` | bump **v0.5.28** + Release (look + feel + CSRT guards) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.28 |
@@ -1027,6 +1027,7 @@ ring revision before committing.
 | 29 Sep | **CLI Generate cancellation claimed (ChatGPT).** `cmd/cli generate` used `context.Background()`, so Ctrl-C/termination was not propagated as cancellation into tracking, ffmpeg, or Python children. [#431](https://github.com/funfunpayer/SamNPlayer/issues/431): signal-aware CLI context + focused regression test; no defaults/VERSION/release/VP | ChatGPT |
 | 29 Sep | **CLI Generate cancellation DONE (ChatGPT).** [#432](https://github.com/funfunpayer/SamNPlayer/pull/432) merged @ `3d8da4a`; full CI green (Go/race, OpenCV Linux/Windows, Frontend, Python Generator). [#431](https://github.com/funfunpayer/SamNPlayer/issues/431) closed. No defaults/VERSION/release/VP | ChatGPT |
 | 29 Sep | **CLI stroke-preview cancellation claimed (ChatGPT).** The 10-minute preview timeout was rooted at `context.Background()`, so SIGINT/SIGTERM could not cancel analyzer/ffmpeg work through context. [#434](https://github.com/funfunpayer/SamNPlayer/issues/434): derive timeout from a signal-aware CLI context + regression test; no defaults/VERSION/release/VP | ChatGPT |
+| 29 Sep | **CLI stroke-preview cancellation DONE (ChatGPT).** [#435](https://github.com/funfunpayer/SamNPlayer/pull/435) merged @ `fedef03`; full CI green (Go/race, OpenCV Linux/Windows, Frontend, Python Generator). [#434](https://github.com/funfunpayer/SamNPlayer/issues/434) closed. Existing 10-minute safety timeout retained; no defaults/VERSION/release/VP | ChatGPT |
 
 ---
 
