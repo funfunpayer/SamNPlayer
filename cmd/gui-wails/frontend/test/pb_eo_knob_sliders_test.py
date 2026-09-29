@@ -4,6 +4,7 @@ Acceptance:
 1. Controls are range inputs with live value labels.
 2. Defaults match settings (0.1 / 10 / 500).
 3. Input updates readout.
+4. Amplitude / Restore 0 is preserved (not coerced to fallback via ||).
 
 Run: python3 cmd/gui-wails/frontend/test/pb_eo_knob_sliders_test.py
 """
@@ -36,6 +37,20 @@ def main():
             "playbackVideoPlayAutostart: true, playbackTrajectoryOverlay: false })"
         ),
         "SaveSetting": "async () => {}",
+        "LoadFunscript": "async () => ({ durationMs: 5000, path: '/tmp/t.funscript' })",
+        "GetHeatmap": "async () => ({ width: 4, height: 1, pngBase64: '' })",
+        "GetScriptCurve": "async () => ({ points: [{at:0,pos:0},{at:1000,pos:100}] })",
+        "GetOMarkers": "async () => []",
+        "GetMarker": "async () => null",
+        "GetPlaybackSource": "async () => ({ path: '/tmp/t.funscript' })",
+        "StartPlayback": (
+            "async (opts) => { window.__calls.push(['StartPlayback', opts]); }"
+        ),
+        "TriggerExtendedO": (
+            "async (min, hold, restore) => { "
+            "window.__calls.push(['TriggerExtendedO', min, hold, restore]); }"
+        ),
+        "StopPlayback": "async () => {}",
     }))
     harness = TEST_DIR / "_pb_eo_knob_sliders_harness.html"
     harness.write_text(PAGE)
@@ -70,6 +85,37 @@ def main():
             page.wait_for_timeout(40)
             check("hold readout follows",
                   page.locator("#pb-eo-hold-val").inner_text() == "25")
+
+            # Amplitude / Restore min=0 must not collapse via || fallback.
+            page.evaluate("""() => {
+              const a = document.querySelector('#pb-eo-min');
+              a.value = '0';
+              a.dispatchEvent(new Event('input', { bubbles: true }));
+              const r = document.querySelector('#pb-eo-restore');
+              r.value = '0';
+              r.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(40)
+            check("amplitude 0 readout",
+                  page.locator("#pb-eo-min-val").inner_text() == "0")
+            check("restore 0 readout",
+                  page.locator("#pb-eo-restore-val").inner_text() == "0")
+
+            page.evaluate("""() => {
+              window.__calls = [];
+              const btn = document.querySelector('#pb-eo-trigger');
+              btn.disabled = false;
+              btn.click();
+            }""")
+            page.wait_for_function(
+                "() => (window.__calls || []).some(c => c[0] === 'TriggerExtendedO')",
+                timeout=3000)
+            eo = page.evaluate(
+                "() => (window.__calls || []).filter(c => c[0] === 'TriggerExtendedO')")
+            check("TriggerExtendedO keeps amplitude 0",
+                  eo and eo[0][1] == 0, str(eo))
+            check("TriggerExtendedO keeps restore 0",
+                  eo and eo[0][3] == 0, str(eo))
 
             browser.close()
     finally:
