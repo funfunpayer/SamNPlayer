@@ -309,6 +309,12 @@ export function initPlayback(root) {
               data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
               <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
             </label>
+            <label class="field-row" id="pb-seg-heatbands-opacity-row" style="margin:0; align-items:center; gap:6px;"
+              data-help="Opacity of Feel heatmap bands (and curve underlay). Display only.">
+              Opacity
+              <input type="range" id="pb-seg-heatbands-opacity" min="0.2" max="1" step="0.05" value="1" style="width:7em;" />
+              <span class="hint" id="pb-seg-heatbands-opacity-val" style="margin:0; min-width:2.5em;">1.00</span>
+            </label>
           </div>
           <div id="pb-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -771,30 +777,47 @@ export function initPlayback(root) {
   }
 
   // Feel / Speech-Hold taxonomy bands (display only — synced with strip filters).
-  const FEEL_BAND_COLORS = {
-    holding: 'rgba(232, 188, 96, 0.38)',
-    gentle: 'rgba(90, 212, 196, 0.34)',
-    intense: 'rgba(184, 150, 232, 0.36)',
-    climax: 'rgba(232, 110, 110, 0.40)',
+  const FEEL_BAND_RGBA = {
+    holding: [232, 188, 96, 0.38],
+    gentle: [90, 212, 196, 0.34],
+    intense: [184, 150, 232, 0.36],
+    climax: [232, 110, 110, 0.40],
   };
   function feelHeatbandsEnabled() {
     const box = el('#pb-seg-heatbands');
     return !box || !!box.checked;
   }
+  function feelHeatbandsOpacity() {
+    const v = parseFloat(el('#pb-seg-heatbands-opacity')?.value);
+    if (!Number.isFinite(v)) return 1;
+    return Math.max(0.2, Math.min(1, v));
+  }
+  function feelBandFill(label, opacity) {
+    const c = FEEL_BAND_RGBA[label] || [200, 210, 230, 0.28];
+    return `rgba(${c[0]},${c[1]},${c[2]},${(c[3] * opacity).toFixed(3)})`;
+  }
+  function syncFeelHeatbandsOpacityUi() {
+    const on = feelHeatbandsEnabled();
+    const row = el('#pb-seg-heatbands-opacity-row');
+    if (row) row.style.display = on ? 'flex' : 'none';
+    const lab = el('#pb-seg-heatbands-opacity-val');
+    if (lab) lab.textContent = feelHeatbandsOpacity().toFixed(2);
+  }
   function drawFeelSegmentBands(ctx, w, h, { fullHeight = true } = {}) {
     if (!feelHeatbandsEnabled() || totalMs <= 0 || !audioSegments.length) return;
     const visible = visibleAudioSegments();
     if (!visible.length) return;
+    const opacity = feelHeatbandsOpacity();
     const bandH = fullHeight ? h : Math.max(3, Math.round(h * 0.14));
     const y = fullHeight ? 0 : h - bandH;
     for (const s of visible) {
       if (s.endMs < viewStartMs || s.startMs > viewEndMs) continue;
       const x0 = timeToX(s.startMs, w);
       const x1 = timeToX(s.endMs, w);
-      ctx.fillStyle = FEEL_BAND_COLORS[s.label] || 'rgba(200,210,230,0.28)';
+      ctx.fillStyle = feelBandFill(s.label, opacity);
       ctx.fillRect(x0, y, Math.max(1, x1 - x0), bandH);
       if (s.speechHold && fullHeight) {
-        ctx.strokeStyle = 'rgba(14, 17, 26, 0.35)';
+        ctx.strokeStyle = `rgba(14, 17, 26,${(0.35 * opacity).toFixed(3)})`;
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 2]);
         ctx.strokeRect(x0 + 0.5, 0.5, Math.max(1, x1 - x0) - 1, h - 1);
@@ -3412,9 +3435,16 @@ export function initPlayback(root) {
   });
   el('#pb-seg-f-speech-only')?.addEventListener('change', () => renderAudioSegmentsPanel());
   el('#pb-seg-heatbands')?.addEventListener('change', () => {
+    syncFeelHeatbandsOpacityUi();
     redrawHeatmap();
     redrawCurve();
   });
+  el('#pb-seg-heatbands-opacity')?.addEventListener('input', () => {
+    syncFeelHeatbandsOpacityUi();
+    redrawHeatmap();
+    redrawCurve();
+  });
+  syncFeelHeatbandsOpacityUi();
   el('#pb-audio-seg-chapters')?.addEventListener('click', () => {
     addVisibleAudioSegmentsAsChapters();
   });
