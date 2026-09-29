@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Play: FPS-Snap knob** — OFS FPS-Snap uses range + live readout (`off` at 0,
+  else fps). Default 0; Play edit only; Everyday CSRT unchanged.
+
 - **Play: O-marker Intensity knob** — secondary O-marker Intensity uses range +
   live readout (default 0.5). Authoring only; Everyday CSRT unchanged.
 
