@@ -294,15 +294,6 @@ func (a *App) StartTraining(req TrainingRequest) error {
 
 	dev, reusedDevice := a.claimSessionDevice(req.Mock)
 
-	logName := req.Technique
-	if req.ScriptName != "" {
-		logName = req.ScriptName
-	}
-	sessionFile, sessionErr := a.openSessionLog(logName)
-	if sessionErr != nil {
-		logging.Warn("app: session log could not be created", "error", sessionErr)
-	}
-
 	opts := player.TrainingOptions{
 		Technique:           player.TrainingTechnique(req.Technique),
 		Channel:             player.TrainingChannel(req.Channel),
@@ -320,6 +311,16 @@ func (a *App) StartTraining(req TrainingRequest) error {
 	ctx, err := a.tryStartSession()
 	if err != nil {
 		return err
+	}
+	// Erst nach dem Belegen des Slots: ein abgelehnter Start ließ sonst
+	// eine leere Protokolldatei samt offenem Handle zurück.
+	logName := req.Technique
+	if req.ScriptName != "" {
+		logName = req.ScriptName
+	}
+	sessionFile, sessionErr := a.openSessionLog(logName)
+	if sessionErr != nil {
+		logging.Warn("app: session log could not be created", "error", sessionErr)
 	}
 	ctx, cancelSafetyTimeout := context.WithTimeout(ctx, maxTrainingSessionDuration)
 	a.stateMu.Lock()
@@ -546,6 +547,15 @@ func (a *App) openSessionLog(technique string) (*os.File, error) {
 	if err := os.MkdirAll(sessionsDir, 0755); err != nil {
 		return nil, err
 	}
-	name := fmt.Sprintf("training-%s-%s.jsonl", technique, time.Now().Format("20060102-150405"))
+	// Eigene Scripts tragen frei getippte Namen ("Abend / kurz", "Edge:
+	// 10 min?") - roh im Dateinamen ließ "/" (Windows auch ":" und "?")
+	// os.Create scheitern, und die Session fehlte in Verlauf und Anpassung.
+	// Die Zuordnung zum Script läuft über Technique IM Protokoll, nicht
+	// über den Dateinamen.
+	slug, err := scriptFileSlug(technique)
+	if err != nil {
+		slug = "session"
+	}
+	name := fmt.Sprintf("training-%s-%s.jsonl", slug, time.Now().Format("20060102-150405"))
 	return os.Create(filepath.Join(sessionsDir, name))
 }

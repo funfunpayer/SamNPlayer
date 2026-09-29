@@ -187,3 +187,27 @@ func TestTrainingHistoryCSVEmptyHistoryIsJustHeader(t *testing.T) {
 		t.Fatalf("expected exactly one line (the header) for empty history, got %q", csv)
 	}
 }
+
+// Eigene Scripts dürfen beliebige Namen tragen ("Abend / kurz", "Edge: 10
+// min?"); der Name landete bisher roh im Dateinamen des Sessionprotokolls.
+// "/" ließ os.Create scheitern (auf Windows auch ":" und "?"), die Session
+// wurde nicht protokolliert und fehlte in Verlauf und Anpassung.
+func TestOpenSessionLogSanitizesScriptName(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+	a := &App{}
+	for _, name := range []string{"Abend / kurz: sanft?", "../../escape", "!!!"} {
+		f, err := a.openSessionLog(name)
+		if err != nil {
+			t.Fatalf("%q: %v", name, err)
+		}
+		f.Close()
+		dir, _ := filepath.Split(f.Name())
+		if filepath.Clean(dir) != filepath.Join(tmp, "SamNPlayer", "logs", "sessions") {
+			t.Errorf("%q: Protokoll außerhalb des Sessions-Ordners: %s", name, f.Name())
+		}
+		if base := filepath.Base(f.Name()); strings.ContainsAny(base, ` /\:?`) {
+			t.Errorf("%q: unsicherer Dateiname %q", name, base)
+		}
+	}
+}

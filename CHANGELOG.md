@@ -158,6 +158,11 @@ measurement history behind each entry; this file is the short version for
   one "Interrupt now" anywhere in the session switched off the 2 s
   wind-down at the natural end, so a script that ended on a raised level
   cut straight to 0.
+- **Training: sessions of custom scripts missing from the history** — the
+  script name went into the session-log file name as typed, so a name with
+  "/" (on Windows also ":" or "?") could not be created: the session was
+  not logged and did not count for history or the intensity nudge. The
+  file name now uses the same safe form as the saved script.
 
 - **Sam Neo 2: device restarting itself after the diagnostics test** — the
   raw-value writes of the Device-tab test and diagnostics sweep bypassed the
