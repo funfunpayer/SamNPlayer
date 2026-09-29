@@ -437,22 +437,29 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 			cellV = flowX
 		}
 		seed := rhythmSeed{X: float64(roi.X), Y: float64(roi.Y), W: float64(roi.W), H: float64(roi.H)}
+		// The grid's windows count from the first tracked frame; marks and
+		// contact points are absolute video times (same clock issue as #377).
+		// Give the grid its marks on its own clock, and rebase the returned
+		// map to video time like ScanSceneMap does.
+		offMs := int64(0)
+		if opts.StartTimeSec > 0 {
+			offMs = int64(opts.StartTimeSec*1000 + 0.5)
+		}
+		gridMarks := sceneMarksShifted(liveMarks, -offMs)
 		contactPts = opts.ContactPoints
 		if len(contactPts) > 0 && opts.ContactVerifyK > 0 {
 			_, own := rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
-				xPositions, yPositions, positions, seed, sceneCuts, fps, liveMarks)
-			// Window times are relative to the first tracked frame; the
-			// points are absolute (same clock issue as #377 for SceneMarks).
-			offMs := int64(0)
-			if opts.StartTimeSec > 0 {
-				offMs = int64(opts.StartTimeSec*1000 + 0.5)
-			}
+				xPositions, yPositions, positions, seed, sceneCuts, fps, gridMarks)
 			contactPts = verifyContactPointsAt(contactPts, own, opts.ContactVerifyK, offMs)
 		}
 		searchX, searchY := applyContactPoints(xPositions, yPositions, timestampsMs,
 			contactPts, int64(opts.ContactHoldMs), width, height, rhythmGridCols)
 		positions, sceneMap = rhythmGridPositionsWithMapMarks(cellV, rhythmGridCols, gridRows, width, height,
-			searchX, searchY, positions, seed, sceneCuts, fps, liveMarks)
+			searchX, searchY, positions, seed, sceneCuts, fps, gridMarks)
+		for i := range sceneMap.Windows {
+			sceneMap.Windows[i].StartMs += offMs
+			sceneMap.Windows[i].EndMs += offMs
+		}
 	}
 
 	confidence := 0.0

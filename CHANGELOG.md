@@ -132,6 +132,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Rhythm-robust + marks after a seek** — with a start time (GUI seek past
+  the intro) the rhythm grid evaluated time-limited exclude/source marks
+  and followed-mark positions on its own clock (counting from the first
+  tracked frame) against absolute mark times, so they acted at the wrong
+  moment; and the full-run scene map was saved with times shifted by the
+  start (the quick scan was already absolute). The grid now gets its marks
+  on its own clock and the map is rebased to video time (same issue as
+  #377 for the CSRT loop). Runs from 0 s are unchanged.
+
 - **Contact verify after a seek** — with a start time (GUI seek past the
   intro) the hybrid check (`--contact-verify` / *Verify with the engine*)
   matched each absolute-time contact point against the window of the wrong
