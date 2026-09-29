@@ -82,7 +82,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
     title: 'Device & Training',
     body: `Device — connect Sam Neo 2 / Handy / etc.; connection test optional in Settings.
 Intiface Central — start the server, then Via Intiface Central (empty address = this machine). After a single socket drop, one automatic reconnect is tried; if it stays down, tap Connect again.
-Training — practice patterns without a video (technique, channel, cycles; Peak/Plateau/Progression range + readout).
+Training — practice patterns without a video (technique, channel; Cycles/Ramp/Hold/Rest + Peak/Plateau/Progression range + readout).
 AI Train — label tip ROIs / train ONNX, and Train Go profile model (helpers only — not the stroke writer).`,
   },
   {
