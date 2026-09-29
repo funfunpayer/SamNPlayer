@@ -137,6 +137,17 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Intiface: playback hanging after a while** — Buttplug answers every
+  command and ping with "Ok", but after connecting nothing read them. The
+  replies backed up until the server blocked, stopped reading, and the next
+  command blocked for good while holding the connection lock, so playback,
+  the status display and Disconnect hung. That took ~200k commands on
+  Linux, and far fewer with Windows' smaller socket buffers. A reader now
+  drains the connection; the battery reading comes through it.
+- **Intiface: suction on Oscillate/Inflate devices** — the second channel
+  was always commanded as "Constrict", which Buttplug rejects when the
+  feature is Oscillate or Inflate. The adopted actuator type is now used.
+
 - **Sam Neo 2: device restarting itself after the diagnostics test** — the
   raw-value writes of the Device-tab test and diagnostics sweep bypassed the
   remembered channel state, so ~4 s later the keepalive replayed the last
