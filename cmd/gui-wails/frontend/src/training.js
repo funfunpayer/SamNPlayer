@@ -302,10 +302,26 @@ export function initTraining(root) {
           <option value="both">Both</option>
         </select>
       </div>
-      <div class="field-row"><label>Cycles</label><input type="number" min="1" id="tr-cycles" value="5" /></div>
-      <div class="field-row"><label>Ramp up (ms)</label><input type="number" min="0" step="500" id="tr-rampup" value="8000" /></div>
-      <div class="field-row"><label>Hold (ms)</label><input type="number" min="0" step="500" id="tr-hold" value="3000" /></div>
-      <div class="field-row"><label>Rest (ms)</label><input type="number" min="0" step="500" id="tr-rest" value="10000" /></div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="Number of training cycles (1–20). Default 5. Training feel only — Create CSRT unchanged.">Cycles</label>
+        <input type="range" id="tr-cycles" min="1" max="20" step="1" value="5" style="flex:1;" />
+        <span class="hint" id="tr-cycles-val" style="margin:0; min-width:2em;">5</span>
+      </div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="Ramp-up duration per cycle (ms). Default 8000. Training feel only.">Ramp up (ms)</label>
+        <input type="range" id="tr-rampup" min="0" max="30000" step="500" value="8000" style="flex:1;" />
+        <span class="hint" id="tr-rampup-val" style="margin:0; min-width:3.5em;">8000</span>
+      </div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="Hold duration at peak (ms). Default 3000. Training feel only.">Hold (ms)</label>
+        <input type="range" id="tr-hold" min="0" max="15000" step="500" value="3000" style="flex:1;" />
+        <span class="hint" id="tr-hold-val" style="margin:0; min-width:3.5em;">3000</span>
+      </div>
+      <div class="field-row" style="align-items:center;">
+        <label data-help="Rest between cycles (ms). Default 10000. Training feel only.">Rest (ms)</label>
+        <input type="range" id="tr-rest" min="0" max="60000" step="500" value="10000" style="flex:1;" />
+        <span class="hint" id="tr-rest-val" style="margin:0; min-width:3.5em;">10000</span>
+      </div>
       <div class="field-row" style="align-items:center;">
         <label data-help="Peak level for each cycle (0–1). Default 0.8. Training feel only — Create CSRT unchanged.">Peak intensity</label>
         <input type="range" id="tr-peak" min="0" max="1" step="0.05" value="0.8" style="flex:1;" />
@@ -1093,7 +1109,21 @@ export function initTraining(root) {
       lab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : fallback;
     }
   }
+  function syncTrainTimingKnobLabels() {
+    for (const [sel, labSel, fallback] of [
+      ['#tr-cycles', '#tr-cycles-val', '5'],
+      ['#tr-rampup', '#tr-rampup-val', '8000'],
+      ['#tr-hold', '#tr-hold-val', '3000'],
+      ['#tr-rest', '#tr-rest-val', '10000'],
+    ]) {
+      const inp = el(sel);
+      const lab = el(labSel);
+      if (!inp || !lab) continue;
+      lab.textContent = String(Math.round(Number(inp.value) || Number(fallback) || 0));
+    }
+  }
   syncTrainIntensityKnobLabels();
+  syncTrainTimingKnobLabels();
 
   getSettingsCache().then(s => {
     el('#tr-mock').checked = s.trainingMock;
@@ -1107,15 +1137,32 @@ export function initTraining(root) {
     el('#tr-plateaufrac').value = s.trainingPlateauFraction;
     el('#tr-progression').value = s.trainingProgressionPerCycle;
     syncTrainIntensityKnobLabels();
+    syncTrainTimingKnobLabels();
     updateTechniqueVisibility();
   });
   el('#tr-mock').addEventListener('change', e => saveSetting('training.mock', e.target.checked));
   el('#tr-technique').addEventListener('change', e => saveSetting('training.technique', e.target.value));
   el('#tr-channel').addEventListener('change', e => saveSetting('training.channel', e.target.value));
-  el('#tr-cycles').addEventListener('change', e => saveSetting('training.cycles', parseFloat(e.target.value)));
-  el('#tr-rampup').addEventListener('change', e => saveSetting('training.ramp_up_ms', parseFloat(e.target.value)));
-  el('#tr-hold').addEventListener('change', e => saveSetting('training.hold_ms', parseFloat(e.target.value)));
-  el('#tr-rest').addEventListener('change', e => saveSetting('training.rest_ms', parseFloat(e.target.value)));
+  el('#tr-cycles').addEventListener('input', syncTrainTimingKnobLabels);
+  el('#tr-rampup').addEventListener('input', syncTrainTimingKnobLabels);
+  el('#tr-hold').addEventListener('input', syncTrainTimingKnobLabels);
+  el('#tr-rest').addEventListener('input', syncTrainTimingKnobLabels);
+  el('#tr-cycles').addEventListener('change', e => {
+    syncTrainTimingKnobLabels();
+    saveSetting('training.cycles', parseFloat(e.target.value));
+  });
+  el('#tr-rampup').addEventListener('change', e => {
+    syncTrainTimingKnobLabels();
+    saveSetting('training.ramp_up_ms', parseFloat(e.target.value));
+  });
+  el('#tr-hold').addEventListener('change', e => {
+    syncTrainTimingKnobLabels();
+    saveSetting('training.hold_ms', parseFloat(e.target.value));
+  });
+  el('#tr-rest').addEventListener('change', e => {
+    syncTrainTimingKnobLabels();
+    saveSetting('training.rest_ms', parseFloat(e.target.value));
+  });
   el('#tr-peak').addEventListener('input', syncTrainIntensityKnobLabels);
   el('#tr-plateaufrac').addEventListener('input', syncTrainIntensityKnobLabels);
   el('#tr-progression').addEventListener('input', syncTrainIntensityKnobLabels);

@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Training: MakeVib-style timing knobs** — Cycles / Ramp / Hold / Rest use
+  range + live readout (defaults 5 / 8000 / 3000 / 10000). Training feel only;
+  Everyday CSRT unchanged.
+
 - **Training: MakeVib-style intensity knobs** — Peak / Plateau / Progression use
   range + live readout (defaults 0.8 / 0.7 / 0.15). Training feel only; Everyday
   CSRT unchanged.
