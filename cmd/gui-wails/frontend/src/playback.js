@@ -259,9 +259,10 @@ export function initPlayback(root) {
             <option value="primary">Primary (peak)</option>
             <option value="secondary">Secondary (earlier, softer)</option>
           </select>
-          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:4px;">
-            <label style="width:auto;">Intensity</label>
-            <input type="number" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:70px;" />
+          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:6px;">
+            <label style="width:auto;" data-help="Secondary O-marker strength (0–1). Default 0.5. Authoring only — does not change Create CSRT.">Intensity</label>
+            <input type="range" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:7em;" />
+            <span class="hint" id="pb-omarker-intensity-val" style="margin:0; min-width:2.5em;">0.5</span>
           </span>
           <button id="pb-omarker-add" disabled>Apply as O-marker</button>
         </div>
@@ -2335,8 +2336,20 @@ export function initPlayback(root) {
     if (scriptPath) SaveMarker(scriptPath, 0, 0).catch(err => log('Save selection: ' + err));
   });
 
+  function syncPlayOMarkerIntensityLabel() {
+    const inp = el('#pb-omarker-intensity');
+    const lab = el('#pb-omarker-intensity-val');
+    if (!inp || !lab) return;
+    const n = Number(inp.value);
+    lab.textContent = Number.isFinite(n) ? (Math.round(n * 100) / 100).toString() : '0.5';
+  }
+  syncPlayOMarkerIntensityLabel();
+  el('#pb-omarker-intensity')?.addEventListener('input', syncPlayOMarkerIntensityLabel);
+  el('#pb-omarker-intensity')?.addEventListener('change', syncPlayOMarkerIntensityLabel);
+
   el('#pb-omarker-kind').addEventListener('change', e => {
     el('#pb-omarker-intensity-row').style.display = e.target.value === 'secondary' ? 'flex' : 'none';
+    syncPlayOMarkerIntensityLabel();
   });
 
   el('#pb-omarker-add').addEventListener('click', async () => {
