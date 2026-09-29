@@ -22,11 +22,11 @@ func runStrokePreview(args []string) int {
 	analysisFPS := fs.Float64("fps", 12, "analysis FPS before sparse keep")
 	sampleEvery := fs.Int("sample-every", 2, "keep 1 of N analysis frames")
 	var paths, flagArgs []string
-	paths, flagArgs = splitCLIArgs(args)
+	paths, flagArgs = splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
-	if len(paths) < 1 {
+	if len(paths) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s stroke-preview VIDEO [--json] [--max-seconds N]\n", os.Args[0])
 		return 2
 	}

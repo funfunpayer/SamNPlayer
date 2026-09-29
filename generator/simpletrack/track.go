@@ -154,9 +154,7 @@ func TrackROI(ctx context.Context, videoPath string, roi Rect, opts Options) (Re
 	if info.Duration > 0 && fps > 0 {
 		totalFrames = int(info.Duration.Seconds()*fps + 0.5)
 	}
-	if opts.MaxFrames > 0 && (totalFrames == 0 || opts.MaxFrames < totalFrames) {
-		totalFrames = opts.MaxFrames
-	}
+	totalFrames = progressTotalFrames(totalFrames, opts.StartTimeSec, fps, opts.MaxFrames)
 	prog := newProgressReporter(opts.OnProgress, totalFrames)
 	prog.report(0)
 

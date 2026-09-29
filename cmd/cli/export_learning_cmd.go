@@ -23,11 +23,15 @@ func runExportLearning(args []string) int {
 		fmt.Fprintf(os.Stderr, "Does not write images/train or labels/train.\n")
 		fs.PrintDefaults()
 	}
-	paths, flagArgs := splitCLIArgs(args)
+	paths, flagArgs := splitCLIArgs(fs, args)
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
 	if *del {
+		if len(paths) != 0 {
+			fs.Usage()
+			return 2
+		}
 		root := *outDir
 		if root == "" {
 			root = generator.DefaultRoiDatasetDir()
