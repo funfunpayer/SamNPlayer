@@ -585,6 +585,15 @@ export function initGenerator(root, playback) {
   wireDataHelp(root);
 
   const el = id => root.querySelector(id);
+  /** parseInt/parseFloat that keeps 0 (unlike `x || fallback`). */
+  function finiteOr(raw, fallback) {
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function intOr(raw, fallback) {
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : fallback;
+  }
   el('#gen-open-handbook')?.addEventListener('click', () => openHandbook());
   const canvas = el('#roi-canvas');
   const ctx = canvas.getContext('2d');
@@ -2791,12 +2800,14 @@ export function initGenerator(root, playback) {
     const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     try {
       const res = await PreviewPostprocess({
-        smoothWindow: parseInt(el('#gen-smooth')?.value, 10) || 11,
-        minPeakDistanceMs: parseInt(el('#gen-peakdist')?.value, 10) || 150,
+        // intOr (not ||): Smooth/Peakdist sliders allow min=0; package API
+        // treats 0 as "use default" — do not coerce to 11/150 in the GUI.
+        smoothWindow: intOr(el('#gen-smooth')?.value, 11),
+        minPeakDistanceMs: intOr(el('#gen-peakdist')?.value, 150),
         peakProminence: Number.isFinite(prominenceRaw) && prominenceRaw > 0 ? prominenceRaw : 0,
-        rdpTolerance: parseFloat(el('#gen-rdp')?.value) || 0,
+        rdpTolerance: finiteOr(el('#gen-rdp')?.value, 0),
         adaptiveKeyframeError: el('#gen-adaptive')?.checked ? 6 : 0,
-        maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
+        maxSpeed: finiteOr(el('#gen-maxspeed')?.value, 0),
       });
       const hz = (res.meanHz || res.MeanHz || 0);
       const kf = res.keyframeCount ?? res.KeyframeCount ?? 0;
@@ -3277,8 +3288,8 @@ export function initGenerator(root, playback) {
       videoPath,
       x: effectiveRoi.x, y: effectiveRoi.y, w: effectiveRoi.w, h: effectiveRoi.h,
       invert: el('#gen-invert').checked,
-      smoothWindow: parseInt(el('#gen-smooth').value, 10) || 11,
-      minPeakDistanceMs: parseInt(el('#gen-peakdist').value, 10) || 150,
+      smoothWindow: intOr(el('#gen-smooth').value, 11),
+      minPeakDistanceMs: intOr(el('#gen-peakdist').value, 150),
       peakProminence: Number.isFinite(prominenceRaw) && prominenceRaw > 0 ? prominenceRaw : 0,
       disableCameraCompensation: !el('#gen-camcomp').checked,
       disableSceneCutDetection: !el('#gen-scenecut').checked,
@@ -3289,8 +3300,8 @@ export function initGenerator(root, playback) {
       dynamicRangeMs: el('#gen-dynrange').checked ? 3000 : 0,
       profile: el('#gen-profile').value || 'standard',
       axis: el('#gen-axis').value,
-      rdpTolerance: parseFloat(el('#gen-rdp').value) || 0,
-      maxSpeed: parseFloat(el('#gen-maxspeed')?.value) || 0,
+      rdpTolerance: finiteOr(el('#gen-rdp').value, 0),
+      maxSpeed: finiteOr(el('#gen-maxspeed')?.value, 0),
       overwrite,
       contactVibration: el('#gen-contact-vibration').checked,
       contactVibrationSpan: el('#gen-contact-vibration').checked

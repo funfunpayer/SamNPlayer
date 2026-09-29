@@ -187,6 +187,11 @@ measurement history behind each entry; this file is the short version for
   to 1 in the live vib probe hint/peak (`|| 1`). StartPlayback already kept 0;
   probe now uses `finiteOr` too. Playback feel only.
 
+- **Expert Smooth / Peakdist 0 in GUI** — sliders allow `min="0"` but Preview /
+  Generate used `|| 11` / `|| 150`, so picking 0 never reached the API. Now
+  uses `intOr` so 0 is preserved (package still treats 0 as use-default).
+  Everyday defaults unchanged (still 11 / 150).
+
 - **Rhythm-robust + marks after a seek** — with a start time (GUI seek past
   the intro) the rhythm grid evaluated time-limited exclude/source marks
   and followed-mark positions on its own clock (counting from the first
