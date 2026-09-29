@@ -17,6 +17,16 @@ import (
 // runGenerate is the headless generate path for release testing
 // (same GenerateWithContext as the GUI — Go auto / Python fallback).
 func runGenerate(args []string) int {
+	return runGenerateContext(context.Background(), args)
+}
+
+type generateWithContextFunc func(context.Context, string, generator.ROI, string, generator.Options, func(string), func(int)) error
+
+func runGenerateContext(ctx context.Context, args []string) int {
+	return runGenerateWithContext(ctx, args, generator.GenerateWithContext)
+}
+
+func runGenerateWithContext(ctx context.Context, args []string, generate generateWithContextFunc) int {
 	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	video := fs.String("video", "", "video path (required)")
@@ -75,7 +85,7 @@ func runGenerate(args []string) int {
 			return 2
 		}
 	}
-	err := generator.GenerateWithContext(context.Background(), *video, roi, out, opts,
+	err := generate(ctx, *video, roi, out, opts,
 		func(line string) { fmt.Fprintln(os.Stderr, line) },
 		nil)
 	if err != nil {
