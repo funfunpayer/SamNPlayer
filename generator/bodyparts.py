@@ -19,7 +19,8 @@ CANONICAL = [
     {"id": "vagina", "label": "Vagina", "aliases": ["pussy", "vulva"]},
 ]
 
-MAX_REGIONS_PER_IMAGE = len(CANONICAL)
+# Free tag boxes per frame (capacity > taxonomy so e.g. nipples×2 fits).
+MAX_REGIONS_PER_IMAGE = 12
 
 IDS = [p["id"] for p in CANONICAL]
 

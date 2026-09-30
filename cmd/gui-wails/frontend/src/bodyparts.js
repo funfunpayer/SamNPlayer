@@ -1,6 +1,7 @@
 /** Canonical English body-region taxonomy (mirrors generator/bodyparts). */
 
-export const MAX_REGIONS = 9;
+/** Free tag boxes per training frame (assign labels afterward; duplicates OK). */
+export const MAX_REGIONS = 12;
 
 export const CANONICAL = [
   { id: 'face', label: 'Face', aliases: ['kopf', 'gesicht'] },
@@ -36,11 +37,13 @@ export const CONTACT_CLASS_ORDER = [...CONTACT_VIBE_PARTNER_IDS];
 export const TIP_CLASS_ORDER = [...CONTACT_VIBE_TIP_IDS];
 
 /**
- * Broader tip list for strict AI expected-class (Advanced / Smarter tip find).
- * Still prefers tip IDs; leftovers appended by orderedCanonical.
+ * Full BODY_REGIONS order for strict AI expected-class (Advanced / Smarter tip find).
+ * Prefer tip-like ids first, then partners (nipples/breasts/…) so trained free-tag
+ * classes are selectable — not glans-only.
  */
 export const AI_TIP_CLASS_ORDER = [
   'glans', 'penis', 'hand_1', 'hand_2',
+  'nipples', 'breasts', 'mouth', 'vagina', 'face',
 ];
 
 /**

@@ -152,8 +152,9 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	return a.BootstrapRoiTrainingRegions(videoPath, regions, sampleEvery, extractAudio, startSeconds, boxScale)
 }
 
-// BootstrapRoiTrainingRegions tracks 1–9 marked body-part regions through the
-// video into the YOLO dataset (docs/BODY_REGIONS.md).
+// BootstrapRoiTrainingRegions tracks 1–MaxRegionsPerImage free tag boxes
+// through the video into the YOLO dataset (docs/BODY_REGIONS.md). Every
+// labeled box is tracked (nipples/breasts/…), not tip/glans alone.
 func (a *App) BootstrapRoiTrainingRegions(
 	videoPath string,
 	regions []generator.RoiTrainingRegion,

@@ -4,7 +4,8 @@ import bodyparts as bp
 
 
 def test_canonical_count():
-    assert len(bp.CANONICAL) == bp.MAX_REGIONS_PER_IMAGE == 9
+    assert len(bp.CANONICAL) == 9
+    assert bp.MAX_REGIONS_PER_IMAGE >= len(bp.CANONICAL) + 1  # free tags / nipples×2
 
 
 def test_normalize_aliases():

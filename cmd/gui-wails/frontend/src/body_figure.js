@@ -71,7 +71,7 @@ export function mountBodyFigure(host, opts = {}) {
   const headStrong = opts.heading || 'Body map';
   const headHint = opts.hint || (allowed
     ? 'Contact vibe: mouth · nipple/breast · tip (glans/penis). Not a stroke path.'
-    : 'Click a region — same classes as chips (Claude-style silhouette, human).');
+    : 'Free tags: draw boxes, then click a class — same label OK (nipples need two boxes).');
   host.classList.add('body-figure');
   host.innerHTML = `
     <div class="body-figure-card">
@@ -124,9 +124,11 @@ export function mountBodyFigure(host, opts = {}) {
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', ok ? '0' : '-1');
     el.setAttribute('aria-label', labelFor(id) || id);
-    el.title = ok
-      ? (REGION_HINTS[id] || labelFor(id) || id)
-      : 'Not used for Contact vibe marks (AI Train / Scene map Region keep full taxonomy)';
+    el.title = !ok
+      ? 'Not used for Contact vibe marks (AI Train / Scene map Region keep full taxonomy)'
+      : (!allowed && id === 'nipples')
+        ? 'Nipples — each side is its own free box, same label'
+        : (REGION_HINTS[id] || labelFor(id) || id);
     if (!ok) {
       el.style.pointerEvents = 'none';
       el.style.opacity = '0.22';

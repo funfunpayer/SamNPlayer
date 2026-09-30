@@ -23,9 +23,11 @@ const (
 	Vagina  = "vagina"
 )
 
-// MaxRegionsPerImage is how many boxes may be marked on one training frame
-// (one slot per canonical class).
-const MaxRegionsPerImage = 9
+// MaxRegionsPerImage is how many free tag boxes may be marked on one training
+// frame. Boxes are assigned to taxonomy labels afterward; the same class ID
+// may appear more than once (e.g. both nipples). Capacity is above
+// len(Canonical) so a full class set plus a second nipple still fits.
+const MaxRegionsPerImage = 12
 
 // Role describes how a marked region is used at generate time.
 type Role string

@@ -45,6 +45,39 @@ func TestBuildBootstrapArgsNineRegions(t *testing.T) {
 	}
 }
 
+func TestBuildBootstrapArgsTwelveFreeTagsAllClasses(t *testing.T) {
+	// Free tags: full taxonomy + nipples×2 + breasts must all reach Python —
+	// regression for the old i<9 cap that dropped later boxes (looked glans-only).
+	regions := []RoiTrainingRegion{
+		{ROI: ROI{1, 1, 10, 10}, ClassName: "face"},
+		{ROI: ROI{2, 2, 10, 10}, ClassName: "mouth"},
+		{ROI: ROI{3, 3, 10, 10}, ClassName: "breasts"},
+		{ROI: ROI{4, 4, 10, 10}, ClassName: "nipples"},
+		{ROI: ROI{5, 5, 10, 10}, ClassName: "nipples"},
+		{ROI: ROI{6, 6, 10, 10}, ClassName: "hand_1"},
+		{ROI: ROI{7, 7, 10, 10}, ClassName: "hand_2"},
+		{ROI: ROI{8, 8, 10, 10}, ClassName: "penis"},
+		{ROI: ROI{9, 9, 10, 10}, ClassName: "glans"},
+		{ROI: ROI{10, 10, 10, 10}, ClassName: "vagina"},
+		{ROI: ROI{11, 11, 10, 10}, ClassName: "breasts"},
+		{ROI: ROI{12, 12, 10, 10}, ClassName: "mouth"},
+	}
+	args := buildBootstrapArgs("script.py", "v.mp4", regions, "/data", "pfx")
+	joined := strings.Join(args, " ")
+	for _, want := range []string{
+		"--class-name face",
+		"--class-name2 mouth",
+		"--class-name3 breasts",
+		"--class-name4 nipples",
+		"--class-name5 nipples",
+		"--roi12", "--class-name12 mouth",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in %s", want, joined)
+		}
+	}
+}
+
 func TestBuildBootstrapArgsStartSeconds(t *testing.T) {
 	regions := []RoiTrainingRegion{{ROI: ROI{X: 1, Y: 2, W: 3, H: 4}, ClassName: "brust"}}
 	args := buildBootstrapArgsOpts("script.py", "v.mp4", regions, "/data", "", 12, 4.5, 1.0)

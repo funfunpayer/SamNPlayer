@@ -21,6 +21,7 @@ export function AutoDetectROI(arg1:string,arg2:string):Promise<void>;
 export function DetectExpectedTipROI(arg1:string,arg2:string,arg3:number,arg4:number):Promise<void>;
 
 export function SuggestROICandidates(arg1:string):Promise<void>;
+export function ListAIDetections(arg1:string,arg2:number):Promise<void>;
 
 export function BootstrapRoiTrainingSample(arg1:string,arg2:generator.ROI|null,arg3:generator.ROI|null,arg4:string,arg5:string):Promise<string>;
 

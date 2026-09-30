@@ -29,8 +29,12 @@ export function initRoiTraining(root) {
   root.innerHTML = `
     <h2>AI training</h2>
     <p class="hint">
-      Mark on video or still → sample → review → train locally.
-      Up to nine body-part classes per image (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina). Audio is stored with the dataset.
+      Free tag boxes → assign a body-part label → sample → review → train locally.
+      Draw boxes freely (up to ${MAX_REGIONS} per image), then assign each to a class
+      (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina).
+      The same label may be used more than once — <b>Nipples need two boxes</b> (left + right).
+      <b>Use for training</b> tracks <b>every</b> labeled box (nipples/breasts/…), not only Glans.
+      Add or delete tags anytime. Audio is stored with the dataset.
     </p>
     <div class="card" style="margin-bottom:16px; padding:12px 14px;">
       <h3 style="margin-top:0; margin-bottom:8px;">From marks to a good script</h3>
@@ -81,11 +85,21 @@ export function initRoiTraining(root) {
     </div>
     <div class="row" style="align-items:center; flex-wrap:wrap;">
       <button id="rt-mark-next" type="button"
-        data-help="Start next mark (up to 9 body-part boxes on the same image).">+ Mark</button>
+        data-help="Start next free tag box (same label may be reused — e.g. both nipples).">+ Mark</button>
+      <button id="rt-delete-mark" type="button"
+        data-help="Remove the active free tag box (Delete / Backspace).">Delete box</button>
       <button id="rt-clear-marks" type="button">Clear all</button>
-      <span class="hint" style="margin:0">Active: <span id="rt-active-mark">1</span>/9 — Shift+drag = next class</span>
+      <span class="hint" style="margin:0">Active box: <span id="rt-active-mark">1</span>/${MAX_REGIONS} — Shift+drag = next empty · then assign label (type any new tag name)</span>
+    </div>
+    <div class="row" style="align-items:center; flex-wrap:wrap; margin:4px 0;">
+      <input type="text" id="rt-new-tag" placeholder="new custom tag…" style="width:10em;"
+        list="rt-class-list" aria-label="New custom tag name" />
+      <button id="rt-add-tag" type="button"
+        data-help="Assign this custom class name to the active (or first unlabeled) box. Registered into the dataset on Use for training.">+ Add tag</button>
+      <span class="hint" style="margin:0">Or type in Box N / click body map. Custom names OK.</span>
     </div>
     <div id="rt-mark-fields"></div>
+    <p class="hint" id="rt-nipples-hint" style="margin:4px 0 0; display:none;"></p>
     <datalist id="rt-class-list"></datalist>
     <div id="rt-body-figure" class="body-figure-host" aria-label="Human body map for class picking"></div>
     <div id="rt-class-chips" class="rt-chips" aria-label="Known classes"></div>
@@ -233,18 +247,51 @@ export function initRoiTraining(root) {
   let sourceKind = null; // 'video' | 'image'
   let img = new Image();
   let nativeW = 0, nativeH = 0;
-  let marks = Array(9).fill(null); // up to MAX_REGIONS
+  let marks = Array(MAX_REGIONS).fill(null); // free tag boxes; assign labels after
   let activeMark = 0;
   let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let lastPrefix = '';
   let datasetDir = '';
   let seekSec = 0;
 
+  function markColor(i) {
+    return MARK_COLORS[i % MARK_COLORS.length];
+  }
+
+  function countClassOnMarks(classId) {
+    const n = normalizeClass(classId);
+    if (!n) return 0;
+    let c = 0;
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (!marks[i]) continue;
+      const v = normalizeClass(el(`#rt-class${i + 1}`)?.value || '');
+      if (v === n) c += 1;
+    }
+    return c;
+  }
+
+  function updateNipplesHint() {
+    const hint = el('#rt-nipples-hint');
+    if (!hint) return;
+    const n = countClassOnMarks('nipples');
+    if (n === 1) {
+      hint.style.display = '';
+      hint.textContent = 'Nipples: mark the second nipple too (same label on another free box).';
+    } else if (n >= 2) {
+      hint.style.display = '';
+      hint.textContent = `Nipples: ${n} boxes labeled — good.`;
+    } else {
+      hint.style.display = 'none';
+      hint.textContent = '';
+    }
+  }
+
   function applyClassToActiveMark(classId) {
     const n = normalizeClass(classId);
     if (!n) return;
     // Prefer the first drawn box that still has no class — body-map clicks
     // usually happen right after marking, when activeMark already advanced.
+    // Duplicate labels (e.g. second nipples) go on the next empty-class box.
     let idx = activeMark;
     for (let i = 0; i < MAX_REGIONS; i++) {
       if (marks[i] && !(el(`#rt-class${i + 1}`)?.value || '').trim()) {
@@ -258,6 +305,7 @@ export function initRoiTraining(root) {
       updateBootstrapEnabled();
     }
     bodyFigure?.setActive(n);
+    updateNipplesHint();
   }
 
   const bodyFigure = mountBodyFigure(el('#rt-body-figure'), {
@@ -267,10 +315,12 @@ export function initRoiTraining(root) {
 
   const DISPLAY_W = 560;
 
-  function renderMarkFields() {
+  function renderMarkFields(classOverrides) {
     const prev = [];
     for (let i = 0; i < MAX_REGIONS; i++) {
-      prev[i] = el(`#rt-class${i + 1}`)?.value || '';
+      prev[i] = classOverrides
+        ? (classOverrides[i] || '')
+        : (el(`#rt-class${i + 1}`)?.value || '');
     }
     const wrap = el('#rt-mark-fields');
     wrap.innerHTML = '';
@@ -279,16 +329,26 @@ export function initRoiTraining(root) {
       row.className = 'field-row';
       row.style.opacity = (i === 0 || marks[i] || i === activeMark) ? '1' : '0.55';
       const lab = document.createElement('label');
-      lab.textContent = `Class ${i + 1}`;
-      lab.style.borderLeft = `3px solid ${MARK_COLORS[i].stroke}`;
+      lab.textContent = `Box ${i + 1}`;
+      lab.style.borderLeft = `3px solid ${markColor(i).stroke}`;
       lab.style.paddingLeft = '6px';
+      lab.title = 'Free tag box — assign any taxonomy label (duplicates OK)';
       const input = document.createElement('input');
       input.type = 'text';
       input.id = `rt-class${i + 1}`;
       input.setAttribute('list', 'rt-class-list');
-      input.placeholder = CLASS_PRESETS[i] || 'e.g. glans';
+      input.placeholder = 'assign label…';
+      input.setAttribute('aria-label', `Label for free tag box ${i + 1}`);
       if (prev[i]) input.value = prev[i];
-      input.addEventListener('input', updateBootstrapEnabled);
+      input.addEventListener('input', () => {
+        updateBootstrapEnabled();
+        updateNipplesHint();
+      });
+      input.addEventListener('focus', () => {
+        activeMark = i;
+        el('#rt-active-mark').textContent = String(activeMark + 1);
+        bodyFigure?.setActive(input.value || '');
+      });
       const meta = document.createElement('span');
       meta.className = 'hint';
       meta.id = `rt-mark-label${i + 1}`;
@@ -299,20 +359,79 @@ export function initRoiTraining(root) {
       row.appendChild(lab);
       row.appendChild(input);
       row.appendChild(meta);
+      if (marks[i]) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'danger';
+        del.textContent = 'Delete';
+        del.title = `Delete free tag box ${i + 1}`;
+        del.setAttribute('aria-label', `Delete free tag box ${i + 1}`);
+        del.dataset.deleteMark = String(i);
+        del.addEventListener('click', () => removeMarkAt(i));
+        row.appendChild(del);
+      }
       wrap.appendChild(row);
     }
     el('#rt-active-mark').textContent = String(activeMark + 1);
     bodyFigure?.setActive(el(`#rt-class${activeMark + 1}`)?.value || '');
     updateBootstrapEnabled();
+    updateNipplesHint();
+  }
+
+  /** Remove one free tag and compact so later boxes stay contiguous for bootstrap. */
+  function removeMarkAt(idx) {
+    if (idx < 0 || idx >= MAX_REGIONS || !marks[idx]) return;
+    const classVals = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      classVals.push(el(`#rt-class${i + 1}`)?.value || '');
+    }
+    const nextMarks = [];
+    const nextClasses = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (i === idx) continue;
+      if (marks[i]) {
+        nextMarks.push(marks[i]);
+        nextClasses.push(classVals[i]);
+      }
+    }
+    marks = Array(MAX_REGIONS).fill(null);
+    const classOverrides = Array(MAX_REGIONS).fill('');
+    for (let i = 0; i < nextMarks.length; i++) {
+      marks[i] = nextMarks[i];
+      classOverrides[i] = nextClasses[i];
+    }
+    activeMark = Math.min(nextMarks.length, MAX_REGIONS - 1);
+    renderMarkFields(classOverrides);
+    redraw();
+  }
+
+  function collectLabeledRegions() {
+    const regions = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      const m = marks[i];
+      if (m && cls) {
+        regions.push({
+          ROI: { X: m.x, Y: m.y, W: m.w, H: m.h },
+          ClassName: normalizeClass(cls) || cls,
+        });
+      }
+    }
+    return regions;
   }
 
   function updateBootstrapEnabled() {
-    const class1 = el('#rt-class1')?.value.trim();
-    let ok = !!(sourcePath && marks[0] && class1);
-    for (let i = 1; i < MAX_REGIONS; i++) {
-      if (marks[i] && !(el(`#rt-class${i + 1}`)?.value.trim())) ok = false;
+    let labeled = 0;
+    let missingClass = false;
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (!marks[i]) continue;
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      if (!cls) missingClass = true;
+      else labeled += 1;
     }
-    el('#rt-bootstrap').disabled = !ok;
+    // Any labeled free-tag set unlocks bootstrap — not tip/glans / marks[0] only.
+    el('#rt-bootstrap').disabled = !(sourcePath && labeled > 0 && !missingClass);
+    updateNipplesHint();
   }
 
   function drawNativeRect(r, stroke, fill) {
@@ -330,11 +449,12 @@ export function initRoiTraining(root) {
     if (img.src) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     for (let i = 0; i < MAX_REGIONS; i++) {
       if (marks[i] && !(dragging && i === activeMark)) {
-        drawNativeRect(marks[i], MARK_COLORS[i].stroke, MARK_COLORS[i].fill);
+        const c = markColor(i);
+        drawNativeRect(marks[i], c.stroke, c.fill);
       }
     }
     if (dragging) {
-      const c = MARK_COLORS[activeMark];
+      const c = markColor(activeMark);
       const dx0 = Math.min(startX, curX), dy0 = Math.min(startY, curY);
       const dw = Math.abs(curX - startX), dh = Math.abs(curY - startY);
       ctx.strokeStyle = c.stroke;
@@ -387,8 +507,76 @@ export function initRoiTraining(root) {
     }
     renderMarkFields();
   });
+
+  function deleteActiveMark() {
+    if (!marks[activeMark] && !(el(`#rt-class${activeMark + 1}`)?.value || '').trim()) {
+      // Prefer deleting the last drawn box if active slot is empty.
+      for (let i = MAX_REGIONS - 1; i >= 0; i--) {
+        if (marks[i] || (el(`#rt-class${i + 1}`)?.value || '').trim()) {
+          activeMark = i;
+          break;
+        }
+      }
+    }
+    if (!marks[activeMark] && !(el(`#rt-class${activeMark + 1}`)?.value || '').trim()) return;
+    marks[activeMark] = null;
+    const input = el(`#rt-class${activeMark + 1}`);
+    if (input) input.value = '';
+    // Compact: shift later filled slots down so free tags stay contiguous.
+    const kept = [];
+    const classes = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      if (marks[i] || cls) {
+        kept.push(marks[i]);
+        classes.push(cls);
+      }
+    }
+    marks = Array(MAX_REGIONS).fill(null);
+    for (let i = 0; i < kept.length; i++) marks[i] = kept[i];
+    activeMark = Math.min(kept.length, MAX_REGIONS - 1);
+    renderMarkFields();
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const inp = el(`#rt-class${i + 1}`);
+      if (inp) inp.value = classes[i] || '';
+    }
+    updateBootstrapEnabled();
+    updateNipplesHint();
+    redraw();
+  }
+
+  el('#rt-delete-mark').addEventListener('click', deleteActiveMark);
+  el('#rt-add-tag').addEventListener('click', () => {
+    const raw = (el('#rt-new-tag')?.value || '').trim();
+    if (!raw) {
+      uiWarn('Type a custom tag name first.');
+      return;
+    }
+    applyClassToActiveMark(raw);
+    el('#rt-new-tag').value = '';
+    refreshClassList();
+    uiInfo(`Tag “${normalizeClass(raw) || raw}” assigned to a free box.`);
+  });
+  el('#rt-new-tag')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      el('#rt-add-tag').click();
+    }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if (reviewEditorOpen) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
+      return;
+    }
+    if (!root.contains(document.activeElement) && document.activeElement !== canvas) return;
+    e.preventDefault();
+    deleteActiveMark();
+  });
+
   el('#rt-clear-marks').addEventListener('click', () => {
-    marks = [null, null, null, null];
+    marks = Array(MAX_REGIONS).fill(null);
     activeMark = 0;
     renderMarkFields();
     updateBootstrapEnabled();
@@ -414,7 +602,7 @@ export function initRoiTraining(root) {
     seekSec = 0;
     el('#rt-seek').value = '0';
     el('#rt-video-path').textContent = path.split(/[\\/]/).pop();
-    marks = [null, null, null, null];
+    marks = Array(MAX_REGIONS).fill(null);
     activeMark = 0;
     renderMarkFields();
     updateBootstrapEnabled();
@@ -438,7 +626,7 @@ export function initRoiTraining(root) {
     sourcePath = path;
     sourceKind = 'image';
     el('#rt-video-path').textContent = path.split(/[\\/]/).pop() + ' (image)';
-    marks = [null, null, null, null];
+    marks = Array(MAX_REGIONS).fill(null);
     activeMark = 0;
     renderMarkFields();
     updateBootstrapEnabled();
@@ -492,29 +680,16 @@ export function initRoiTraining(root) {
   el('#rt-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#rt-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
 
-  function roiArg(m) {
-    return m ? { X: m.x, Y: m.y, W: m.w, H: m.h } : null;
-  }
-
   el('#rt-bootstrap').addEventListener('click', async () => {
-    if (!sourcePath || !marks[0]) return;
-    const classes = [];
-    for (let i = 1; i <= MAX_REGIONS; i++) {
-      classes.push(el(`#rt-class${i}`)?.value.trim() || '');
-    }
-    if (!classes[0]) return;
+    if (!sourcePath) return;
+    const regions = collectLabeledRegions();
+    if (!regions.length) return;
     el('#rt-bootstrap').disabled = true;
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
     showRunProgress('rt-bootstrap', true);
     try {
       if (sourceKind === 'image') {
-        const regions = [];
-        for (let i = 0; i < MAX_REGIONS; i++) {
-          if (marks[i] && classes[i]) {
-            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
-          }
-        }
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
         showRunProgress('rt-bootstrap', false);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
@@ -526,12 +701,10 @@ export function initRoiTraining(root) {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
         const boxScale = parseFloat(el('#rt-box-scale')?.value) || 1.0;
-        const regions = [];
-        for (let i = 0; i < MAX_REGIONS; i++) {
-          if (marks[i] && classes[i]) {
-            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
-          }
-        }
+        const tracked = regions.map(r => labelFor(r.ClassName) || r.ClassName).join(', ');
+        el('#rt-bootstrap-status').textContent = tracked
+          ? `Tracking ${regions.length} tags (${tracked})…`
+          : 'Running…';
         lastPrefix = await BootstrapRoiTrainingRegions(
           sourcePath, regions, sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
         );
@@ -787,6 +960,7 @@ export function initRoiTraining(root) {
       .map(normBox).filter(Boolean);
     let selectedIdx = boxes.length ? 0 : -1;
     let adjustMode = !!startAdjust;
+    let addMode = false;
     let scale = 1;
     let panX = 0;
     let panY = 0;
@@ -814,7 +988,7 @@ export function initRoiTraining(root) {
       <div>
         <p class="rt-review-kicker">AI Train · Review</p>
         <h2>${escapeReviewText(sample.split)} / ${escapeReviewText(sample.name)}</h2>
-        <p class="rt-review-sub hint">Scroll to zoom · drag to pan · select a window · set any body-part label · Adjust to redraw</p>
+        <p class="rt-review-sub hint">Free tags: select a window · assign any label (duplicates OK, nipples×2) · Adjust redraw · + Add box · Delete box · Discard sample. Bootstrap tracked every labeled box — not Glans only.</p>
       </div>
       <button type="button" class="rt-review-close" aria-label="Close review editor">Close</button>
     `;
@@ -826,15 +1000,22 @@ export function initRoiTraining(root) {
       <select id="rt-review-box-sel" aria-label="Detection window"></select>
       <label for="rt-review-class-sel">Label</label>
       <select id="rt-review-class-sel" aria-label="Detection / role label"></select>
+      <input type="text" id="rt-review-class-custom" list="rt-class-list" placeholder="or type new tag…"
+        aria-label="Custom tag name" style="width:9em;" />
+      <button type="button" id="rt-review-apply-custom" title="Apply custom tag to selected window">Apply tag</button>
       <span class="hint rt-review-role-hint" id="rt-review-role-hint"></span>
     `;
     const boxSel = labelBar.querySelector('#rt-review-box-sel');
     const classSel = labelBar.querySelector('#rt-review-class-sel');
+    const customInput = labelBar.querySelector('#rt-review-class-custom');
+    const applyCustomBtn = labelBar.querySelector('#rt-review-apply-custom');
     const roleHint = labelBar.querySelector('#rt-review-role-hint');
     for (const p of CANONICAL) {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = labelWithRole(p.id);
+      // Plain taxonomy label — generate roles (tracked/fixed/mask) do not gate
+      // AI Train bootstrap; every free tag is CSRT-tracked during Use for training.
+      opt.textContent = p.label;
       classSel.appendChild(opt);
     }
 
@@ -866,12 +1047,25 @@ export function initRoiTraining(root) {
     const adjustBtn = document.createElement('button');
     adjustBtn.type = 'button';
     adjustBtn.textContent = 'Adjust box';
+    const addBoxBtn = document.createElement('button');
+    addBoxBtn.type = 'button';
+    addBoxBtn.id = 'rt-review-add-box';
+    addBoxBtn.textContent = '+ Add box';
+    addBoxBtn.title = 'Draw a new free tag box, then assign a label (e.g. second nipple)';
+    const deleteBoxBtn = document.createElement('button');
+    deleteBoxBtn.type = 'button';
+    deleteBoxBtn.id = 'rt-review-delete-box';
+    deleteBoxBtn.className = 'danger';
+    deleteBoxBtn.textContent = 'Delete box';
+    deleteBoxBtn.title = 'Remove the selected free tag from this sample';
     const discardModalBtn = document.createElement('button');
     discardModalBtn.type = 'button';
     discardModalBtn.className = 'danger';
-    discardModalBtn.textContent = 'Discard';
+    discardModalBtn.textContent = 'Discard sample';
     actions.appendChild(confirmBtn);
     actions.appendChild(adjustBtn);
+    actions.appendChild(addBoxBtn);
+    actions.appendChild(deleteBoxBtn);
     actions.appendChild(discardModalBtn);
     foot.appendChild(status);
     foot.appendChild(actions);
@@ -896,8 +1090,9 @@ export function initRoiTraining(root) {
         opt.textContent = '(no boxes)';
         boxSel.appendChild(opt);
         boxSel.disabled = true;
-        classSel.disabled = true;
-        roleHint.textContent = '';
+        // Keep Label enabled in + Add box so the new free tag gets a class.
+        classSel.disabled = !addMode;
+        roleHint.textContent = addMode ? 'Pick label, then drag a new box' : '';
         return;
       }
       boxSel.disabled = false;
@@ -915,24 +1110,27 @@ export function initRoiTraining(root) {
       if (cur && ![...classSel.options].some((o) => o.value === cur)) {
         const opt = document.createElement('option');
         opt.value = cur;
-        opt.textContent = labelWithRole(cur);
+        opt.textContent = labelFor(cur) || cur;
         classSel.appendChild(opt);
       }
       if (cur) classSel.value = cur;
       else classSel.value = CANONICAL[0].id;
-      const m = labelWithRole(cur || classSel.value).match(/\(([^)]+)\)/);
-      roleHint.textContent = m ? `Typical role: ${m[1]}` : '';
+      const role = (labelWithRole(cur || classSel.value).match(/\(([^)]+)\)/) || [])[1];
+      roleHint.textContent = role
+        ? `Generate role hint: ${role} — bootstrap still tracks this box`
+        : '';
+      deleteBoxBtn.disabled = selectedIdx < 0 || !boxes.length || adjustMode || addMode;
     }
 
     function repaintScene() {
       paintBoxes(scene, boxes, {
         selectedIdx,
         onSelect: (i) => {
-          if (adjustMode) return;
+          if (adjustMode || addMode) return;
           selectedIdx = i;
           syncLabelControls();
           repaintScene();
-          status.textContent = `Window ${i + 1} selected — set Label or Adjust box.`;
+          status.textContent = `Window ${i + 1} selected — set Label, Adjust, + Add box, or Delete box.`;
         },
       });
     }
@@ -958,18 +1156,56 @@ export function initRoiTraining(root) {
       repaintScene();
     }
 
+    function idleStatus() {
+      const nip = boxes.filter((b) => normalizeClass(b.className) === 'nipples').length;
+      let msg = 'Looks good? Confirm — or Label / Adjust / + Add box / Delete box / Discard sample.';
+      if (nip === 1) {
+        msg = 'Nipples: only one box — use + Add box for the second nipple (same label).';
+      }
+      return msg;
+    }
+
+    function setDrawModes({ adjust = false, add = false } = {}) {
+      if (drawing && drawOverlay) {
+        drawing = false;
+        drawOverlay.remove();
+        drawOverlay = null;
+      }
+      adjustMode = !!adjust;
+      addMode = !!add;
+      const drawingOn = adjustMode || addMode;
+      viewport.classList.toggle('is-adjusting', drawingOn);
+      adjustBtn.textContent = adjustMode ? 'Cancel adjust' : 'Adjust box';
+      adjustBtn.classList.toggle('primary', adjustMode);
+      addBoxBtn.textContent = addMode ? 'Cancel add' : '+ Add box';
+      addBoxBtn.classList.toggle('primary', addMode);
+      deleteBoxBtn.disabled = !boxes.length || adjustMode || addMode || selectedIdx < 0;
+      confirmBtn.classList.toggle('primary', !drawingOn);
+      classSel.disabled = false;
+      if (addMode) {
+        const nip = boxes.filter((b) => normalizeClass(b.className) === 'nipples').length;
+        if (nip === 1) classSel.value = 'nipples';
+        status.textContent = 'Drag a new free tag box. Label select chooses its class (Nipples for the second). Escape cancels.';
+      } else if (adjustMode) {
+        const who = selectedIdx >= 0
+          ? (labelFor(boxes[selectedIdx]?.className) || `window ${selectedIdx + 1}`)
+          : 'selected window';
+        status.textContent = `Drag on the image to redraw ${who}. Escape cancels adjust.`;
+      } else {
+        status.textContent = idleStatus();
+      }
+    }
+
     function setAdjustMode(on) {
-      adjustMode = on;
-      viewport.classList.toggle('is-adjusting', on);
-      adjustBtn.textContent = on ? 'Cancel adjust' : 'Adjust box';
-      adjustBtn.classList.toggle('primary', on);
-      confirmBtn.classList.toggle('primary', !on);
-      const who = selectedIdx >= 0
-        ? (labelFor(boxes[selectedIdx]?.className) || `window ${selectedIdx + 1}`)
-        : 'selected window';
-      status.textContent = on
-        ? `Drag on the image to redraw ${who}. Escape cancels adjust.`
-        : 'Looks good? Confirm correct — or pick a window / Label / Adjust / Discard.';
+      setDrawModes(on ? { adjust: true } : {});
+    }
+
+    function setAddMode(on) {
+      if (on && boxes.length >= MAX_REGIONS) {
+        status.textContent = `At most ${MAX_REGIONS} free tag boxes per image.`;
+        return;
+      }
+      setDrawModes(on ? { add: true } : {});
     }
 
     function clientToNorm(clientX, clientY) {
@@ -996,7 +1232,7 @@ export function initRoiTraining(root) {
 
     function onPointerDown(e) {
       if (e.button !== 0) return;
-      if (adjustMode) {
+      if (adjustMode || addMode) {
         e.preventDefault();
         drawing = true;
         const p = clientToNorm(e.clientX, e.clientY);
@@ -1069,22 +1305,36 @@ export function initRoiTraining(root) {
         status.textContent = 'Box too small — drag a larger region.';
         return;
       }
-      const idx = selectedIdx >= 0 ? selectedIdx : 0;
-      const base = boxes[idx] || { classId: 0, className: classSel.value || 'face' };
       const next = boxes.slice();
+      const className = normalizeClass(classSel.value)
+        || (addMode ? 'nipples' : '')
+        || (boxes[selectedIdx]?.className)
+        || 'face';
       const updatedBox = {
-        classId: base.classId,
-        className: normalizeClass(classSel.value) || base.className || 'face',
+        classId: addMode ? 0 : (boxes[selectedIdx]?.classId ?? 0),
+        className,
         xc: L + W / 2,
         yc: T + H / 2,
         w: W,
         h: H,
       };
-      if (idx < next.length) next[idx] = updatedBox;
-      else next.push(updatedBox);
-      selectedIdx = Math.min(idx, next.length - 1);
-      if (await saveBoxes(next, `Box saved (${labelFor(updatedBox.className) || updatedBox.className}).`)) {
-        setAdjustMode(false);
+      if (addMode) {
+        if (next.length >= MAX_REGIONS) {
+          status.textContent = `At most ${MAX_REGIONS} free tag boxes per image.`;
+          setAddMode(false);
+          return;
+        }
+        next.push(updatedBox);
+        selectedIdx = next.length - 1;
+      } else {
+        const idx = selectedIdx >= 0 ? selectedIdx : 0;
+        if (idx < next.length) next[idx] = updatedBox;
+        else next.push(updatedBox);
+        selectedIdx = Math.min(idx, next.length - 1);
+      }
+      const verb = addMode ? 'Box added' : 'Box saved';
+      if (await saveBoxes(next, `${verb} (${labelFor(updatedBox.className) || updatedBox.className}).`)) {
+        setDrawModes({});
       }
     }
 
@@ -1100,13 +1350,13 @@ export function initRoiTraining(root) {
 
     function onKey(e) {
       if (e.key !== 'Escape') return;
-      if (adjustMode) {
+      if (adjustMode || addMode) {
         if (drawing && drawOverlay) {
           drawing = false;
           drawOverlay.remove();
           drawOverlay = null;
         }
-        setAdjustMode(false);
+        setDrawModes({});
         return;
       }
       closeReviewEditor();
@@ -1128,13 +1378,48 @@ export function initRoiTraining(root) {
     });
 
     classSel.addEventListener('change', async () => {
+      if (addMode) return; // label applies when the new box is drawn
       if (selectedIdx < 0 || !boxes[selectedIdx]) return;
       const n = normalizeClass(classSel.value);
       if (!n) return;
       const next = boxes.map((b, i) => (i === selectedIdx
         ? { ...b, className: n }
         : b));
-      await saveBoxes(next, `Label → ${labelWithRole(n)}`);
+      await saveBoxes(next, `Label → ${labelFor(n) || n}`);
+    });
+
+    async function applyCustomLabel() {
+      if (addMode) {
+        const n = normalizeClass(customInput.value);
+        if (n) classSel.value = n;
+        return;
+      }
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return;
+      const n = normalizeClass(customInput.value);
+      if (!n) {
+        uiWarn('Type a tag name first.');
+        return;
+      }
+      if (![...classSel.options].some((o) => o.value === n)) {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.textContent = labelWithRole(n) || n;
+        classSel.appendChild(opt);
+      }
+      classSel.value = n;
+      const next = boxes.map((b, i) => (i === selectedIdx
+        ? { ...b, className: n }
+        : b));
+      await saveBoxes(next, `Tag → ${labelWithRole(n) || n}`);
+      customInput.value = '';
+      refreshClassList();
+    }
+    applyCustomBtn.addEventListener('click', () => { applyCustomLabel(); });
+    customInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCustomLabel();
+      }
     });
 
     head.querySelector('.rt-review-close').addEventListener('click', closeReviewEditor);
@@ -1145,11 +1430,36 @@ export function initRoiTraining(root) {
       uiInfo('Sample confirmed.');
       closeReviewEditor();
     });
-    adjustBtn.addEventListener('click', () => setAdjustMode(!adjustMode));
+    adjustBtn.addEventListener('click', () => {
+      if (adjustMode) setAdjustMode(false);
+      else setAdjustMode(true);
+    });
+    addBoxBtn.addEventListener('click', () => {
+      if (addMode) setAddMode(false);
+      else setAddMode(true);
+    });
+    deleteBoxBtn.addEventListener('click', async () => {
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return;
+      if (adjustMode || addMode) setDrawModes({});
+      const removed = labelFor(boxes[selectedIdx].className)
+        || boxes[selectedIdx].className
+        || `window ${selectedIdx + 1}`;
+      const next = boxes.filter((_, i) => i !== selectedIdx);
+      selectedIdx = next.length ? Math.min(selectedIdx, next.length - 1) : -1;
+      if (await saveBoxes(next, `Deleted ${removed}.`)) {
+        syncLabelControls();
+        repaintScene();
+        status.textContent = next.length
+          ? idleStatus()
+          : 'No boxes left — + Add box or Discard sample.';
+      }
+    });
     discardModalBtn.addEventListener('click', async () => {
       discardModalBtn.disabled = true;
       confirmBtn.disabled = true;
       adjustBtn.disabled = true;
+      addBoxBtn.disabled = true;
+      deleteBoxBtn.disabled = true;
       try {
         await DiscardRoiTrainingSample(datasetDir, sample.split, sample.name);
         card.remove();
@@ -1160,6 +1470,8 @@ export function initRoiTraining(root) {
         discardModalBtn.disabled = false;
         confirmBtn.disabled = false;
         adjustBtn.disabled = false;
+        addBoxBtn.disabled = false;
+        deleteBoxBtn.disabled = false;
       }
     });
 
@@ -1173,7 +1485,7 @@ export function initRoiTraining(root) {
 
     const afterImg = () => {
       fitToView();
-      setAdjustMode(adjustMode);
+      setDrawModes(startAdjust ? { adjust: true } : {});
     };
     if (bigImg.complete && bigImg.naturalWidth) afterImg();
     else bigImg.addEventListener('load', afterImg, { once: true });
@@ -1205,7 +1517,10 @@ export function initRoiTraining(root) {
     const wrap = el('#rt-class-chips');
     if (!wrap) return;
     wrap.innerHTML = '';
-    const known = fromData.length ? fromData : allNames.slice(0, MAX_REGIONS);
+    // Always offer the full taxonomy (+ extra dataset names). Showing only
+    // classes.json (often just glans from early tip-only datasets) made other
+    // BODY_REGIONS look unavailable for marking/tracking.
+    const known = [...new Set([...(allNames || CLASS_PRESETS), ...(fromData || [])])];
     if (!known.length) {
       wrap.innerHTML = '<span class="hint">No classes yet — use the English body-part presets or mark a region.</span>';
       return;
@@ -1213,7 +1528,7 @@ export function initRoiTraining(root) {
     const label = document.createElement('span');
     label.className = 'hint';
     label.style.marginRight = '6px';
-    label.textContent = fromData.length ? 'From dataset:' : 'Body parts:';
+    label.textContent = fromData.length ? 'Body parts (+ dataset):' : 'Body parts:';
     wrap.appendChild(label);
     known.forEach(name => {
       const btn = document.createElement('button');

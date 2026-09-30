@@ -8,8 +8,13 @@ import (
 )
 
 func TestCanonicalCount(t *testing.T) {
-	if len(bodyparts.Canonical) != bodyparts.MaxRegionsPerImage {
-		t.Fatalf("want %d parts, got %d", bodyparts.MaxRegionsPerImage, len(bodyparts.Canonical))
+	if len(bodyparts.Canonical) != 9 {
+		t.Fatalf("want 9 taxonomy parts, got %d", len(bodyparts.Canonical))
+	}
+	// Free tags: capacity ≥ taxonomy so e.g. all 9 classes + nipples×2 fit.
+	if bodyparts.MaxRegionsPerImage < len(bodyparts.Canonical)+1 {
+		t.Fatalf("MaxRegionsPerImage=%d too small for duplicate labels (need ≥%d)",
+			bodyparts.MaxRegionsPerImage, len(bodyparts.Canonical)+1)
 	}
 }
 
