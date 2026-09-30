@@ -64,6 +64,11 @@ func (a *App) InvertScriptAtPath(path string) error {
 	} else if err := funscript.SaveActions(path, actions); err != nil {
 		return err
 	}
+	if !samn.IsSamnPath(path) {
+		if err := funscript.WriteInverted(path, false); err != nil {
+			return err
+		}
+	}
 	if a.loadedScriptPath() == path {
 		return a.reloadLoadedScript()
 	}
