@@ -59,12 +59,75 @@ import hashlib
 import json
 import os
 import random
+import shutil
 import sys
 from pathlib import Path
 
-import cv2
+_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
-import generate_funscript as g
+
+def _list_split_images(img_dir):
+    """Sorted image filenames in a YOLO split folder (train/val)."""
+    if not os.path.isdir(img_dir):
+        return []
+    names = []
+    for name in sorted(os.listdir(img_dir)):
+        if name.lower().endswith(_IMAGE_EXTS):
+            names.append(name)
+    return names
+
+
+def ensure_nonempty_splits(output_dir):
+    """Guarantee images/train and images/val each have ≥1 image when the
+    other side has samples.
+
+    Ultralytics dies with AssertionError/FileNotFoundError when data.yaml
+    points at an empty images/val (common with tiny datasets, unlucky
+    val_fraction draws, or after the review UI discards every val sample).
+    Copies image+matching label from the non-empty split into the empty
+    one (same stem — fine for small datasets; avoids rewriting data.yaml).
+
+    Returns (train_count, val_count) after healing.
+    """
+    img_train = os.path.join(output_dir, "images", "train")
+    img_val = os.path.join(output_dir, "images", "val")
+    lbl_train = os.path.join(output_dir, "labels", "train")
+    lbl_val = os.path.join(output_dir, "labels", "val")
+    for d in (img_train, img_val, lbl_train, lbl_val):
+        os.makedirs(d, exist_ok=True)
+
+    train_imgs = _list_split_images(img_train)
+    val_imgs = _list_split_images(img_val)
+
+    def _copy_one(src_img_dir, src_lbl_dir, dst_img_dir, dst_lbl_dir, name):
+        src_img = os.path.join(src_img_dir, name)
+        dst_img = os.path.join(dst_img_dir, name)
+        if not os.path.exists(dst_img):
+            shutil.copy2(src_img, dst_img)
+        stem, _ext = os.path.splitext(name)
+        src_lbl = os.path.join(src_lbl_dir, stem + ".txt")
+        dst_lbl = os.path.join(dst_lbl_dir, stem + ".txt")
+        if os.path.isfile(src_lbl) and not os.path.exists(dst_lbl):
+            shutil.copy2(src_lbl, dst_lbl)
+
+    if not val_imgs and train_imgs:
+        _copy_one(img_train, lbl_train, img_val, lbl_val, train_imgs[0])
+        print(
+            f"Hinweis: images/val was empty — copied {train_imgs[0]} from train "
+            "so Ultralytics validation can run",
+            file=sys.stderr,
+        )
+    elif not train_imgs and val_imgs:
+        _copy_one(img_val, lbl_val, img_train, lbl_train, val_imgs[0])
+        print(
+            f"Hinweis: images/train was empty — copied {val_imgs[0]} from val",
+            file=sys.stderr,
+        )
+
+    return (
+        len(_list_split_images(img_train)),
+        len(_list_split_images(img_val)),
+    )
 
 
 def track_center_path(video_path, roi, max_frames=None, cache_dir=None,
@@ -77,6 +140,7 @@ def track_center_path(video_path, roi, max_frames=None, cache_dir=None,
     anzufassen, um deren Vertrag und Tests unverändert zu lassen - einmalige
     Mehrkosten für einen Offline-Datensatzlauf, nicht Teil des
     interaktiven Erzeugungspfads."""
+    import generate_funscript as g
     ts, y_centers, frame_size, _cuts, _stats = g.track_roi_cached(
         video_path, roi, max_frames=max_frames, cache_dir=cache_dir,
         camera_compensation=camera_compensation,
@@ -197,6 +261,8 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
     stem = sample_prefix or _video_stem(video_path)
     rng = random.Random(seed)
 
+    import cv2
+
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
@@ -238,6 +304,9 @@ def build_dataset(video_path, regions, output_dir, sample_every=12,
         cap.release()
 
     print(f"{written} annotierte Frames geschrieben ({video_path})", file=sys.stderr)
+    # Random val_fraction can leave val (or train) empty on small clips —
+    # heal before data.yaml is written so training never sees an empty split.
+    ensure_nonempty_splits(output_dir)
     return written
 
 
@@ -511,6 +580,7 @@ def main():
 
     start_frame = 0
     if getattr(args, "start_seconds", 0) and args.start_seconds > 0:
+        import cv2
         _cap = cv2.VideoCapture(args.video)
         _fps = _cap.get(cv2.CAP_PROP_FPS) or 25.0
         _cap.release()
@@ -523,6 +593,7 @@ def main():
                   cache_dir=args.cache_dir, val_fraction=args.val_fraction,
                   sample_prefix=args.sample_prefix, start_frame=start_frame,
                   box_scale=args.box_scale)
+    ensure_nonempty_splits(args.output_dir)
     write_data_yaml(args.output_dir)
 
 

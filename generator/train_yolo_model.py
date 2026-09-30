@@ -34,10 +34,102 @@ Nutzung:
 import argparse
 import json
 import os
+import shutil
 import sys
 
 
 DEVICE_CHOICES = ("auto", "cuda", "directml", "mps", "cpu")
+
+_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
+
+# Ultralytics needs ≥1 image on each of train and val. One labeled frame is
+# enough to start (val gets a copy); zero images is a hard stop with a clear
+# message instead of AssertionError deep inside the dataloader.
+MIN_TRAINING_IMAGES = 1
+
+
+def _list_split_images(img_dir):
+    if not os.path.isdir(img_dir):
+        return []
+    return [
+        name for name in sorted(os.listdir(img_dir))
+        if name.lower().endswith(_IMAGE_EXTS)
+    ]
+
+
+def ensure_nonempty_splits(dataset_dir):
+    """Copy image+label into an empty train/val split so Ultralytics can build
+    both dataloaders. Same behavior as bootstrap_yolo_dataset.ensure_nonempty_splits
+    (duplicated here to avoid importing OpenCV via bootstrap when only training).
+
+    Returns (train_count, val_count) after healing.
+    """
+    img_train = os.path.join(dataset_dir, "images", "train")
+    img_val = os.path.join(dataset_dir, "images", "val")
+    lbl_train = os.path.join(dataset_dir, "labels", "train")
+    lbl_val = os.path.join(dataset_dir, "labels", "val")
+    for d in (img_train, img_val, lbl_train, lbl_val):
+        os.makedirs(d, exist_ok=True)
+
+    train_imgs = _list_split_images(img_train)
+    val_imgs = _list_split_images(img_val)
+
+    def _copy_one(src_img_dir, src_lbl_dir, dst_img_dir, dst_lbl_dir, name):
+        src_img = os.path.join(src_img_dir, name)
+        dst_img = os.path.join(dst_img_dir, name)
+        if not os.path.exists(dst_img):
+            shutil.copy2(src_img, dst_img)
+        stem, _ext = os.path.splitext(name)
+        src_lbl = os.path.join(src_lbl_dir, stem + ".txt")
+        dst_lbl = os.path.join(dst_lbl_dir, stem + ".txt")
+        if os.path.isfile(src_lbl) and not os.path.exists(dst_lbl):
+            shutil.copy2(src_lbl, dst_lbl)
+
+    if not val_imgs and train_imgs:
+        _copy_one(img_train, lbl_train, img_val, lbl_val, train_imgs[0])
+        print(
+            f"Hinweis: images/val was empty — copied {train_imgs[0]} from train "
+            "so Ultralytics validation can run",
+            file=sys.stderr,
+        )
+    elif not train_imgs and val_imgs:
+        _copy_one(img_val, lbl_val, img_train, lbl_train, val_imgs[0])
+        print(
+            f"Hinweis: images/train was empty — copied {val_imgs[0]} from val",
+            file=sys.stderr,
+        )
+
+    return (
+        len(_list_split_images(img_train)),
+        len(_list_split_images(img_val)),
+    )
+
+
+def prepare_dataset_for_training(dataset_dir):
+    """Heal empty splits and fail fast with a user-facing message when the
+    dataset has no labeled images. Call before ultralytics model.train().
+
+    Returns (train_count, val_count).
+    """
+    train_n, val_n = ensure_nonempty_splits(dataset_dir)
+    total = train_n + val_n
+    # After ensure, a single unique image appears in both splits (copied), so
+    # total counts the duplicate; unique ≈ max(train_n, val_n) when one was empty.
+    unique = max(train_n, val_n)
+    if unique < MIN_TRAINING_IMAGES or train_n < 1 or val_n < 1:
+        raise RuntimeError(
+            f"Training dataset is empty or still incomplete under {dataset_dir} "
+            f"(train={train_n}, val={val_n}). Need at least {MIN_TRAINING_IMAGES} "
+            "labeled image(s). In AI Train: mark region(s), click “Use for training”, "
+            "keep at least one sample in the review list, then start training again."
+        )
+    if unique < 5:
+        print(
+            f"Hinweis: only {unique} unique labeled image(s) — training will run, "
+            "but results will be weak; add more clips/stills if detection is poor.",
+            file=sys.stderr,
+        )
+    return train_n, val_n
 
 
 def available():
@@ -174,6 +266,8 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
             f"No data.yaml under {dataset_dir}. Collect samples first: in the AI Train "
             "tab mark region(s) and click “Use for training” (or run "
             "bootstrap_yolo_dataset.py), then start training again.")
+
+    prepare_dataset_for_training(dataset_dir)
 
     resolved = resolve_device(device)
     project_dir = project_dir or os.path.join(dataset_dir, "runs")

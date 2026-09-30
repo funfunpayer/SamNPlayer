@@ -290,6 +290,9 @@ func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs 
 	if _, err := os.Stat(dataYAML); err != nil {
 		return fmt.Errorf("no training dataset yet (missing %s). In AI Train: mark region(s), click “Use for training”, then start training", dataYAML)
 	}
+	if err := PrepareRoiDatasetForTraining(datasetDir); err != nil {
+		return err
+	}
 	py, err := FindPython()
 	if err != nil {
 		return err
