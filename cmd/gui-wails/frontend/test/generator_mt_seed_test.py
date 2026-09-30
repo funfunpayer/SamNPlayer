@@ -172,13 +172,13 @@ def main():
         check("Generate ready after Tip+2nd Apply",
               page.locator("#gen-generate").is_enabled())
 
-        # Contact-first Zone 2 dropdown (mouth before glans).
+        # Contact-vibe partner dropdown: mouth | nipple/breast only (no tip classes).
         z2_opts = page.eval_on_selector(
             "#gen-region-class2",
             "e => [...e.options].map(o => o.value).filter(Boolean)")
-        check("Zone 2 class list is contact-first (mouth before glans)",
-              z2_opts.index("mouth") < z2_opts.index("glans"),
-              str(z2_opts[:6]))
+        check("Zone 2 class list is contact-vibe partners only",
+              z2_opts == ["mouth", "nipples", "breasts"],
+              str(z2_opts))
 
         browser.close()
 

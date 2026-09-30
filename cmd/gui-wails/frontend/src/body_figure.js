@@ -10,13 +10,13 @@ import { bodyMapZoneCSS } from './figure_theme.js';
 
 const REGION_HINTS = {
   face: 'Head / face box',
-  mouth: 'Mouth / lips',
-  breasts: 'Chest / breasts',
-  nipples: 'Nipples (Tf/Tj contact)',
+  mouth: 'Mouth / lips (contact vibe)',
+  breasts: 'Breast contact (Owner: nipple/breast)',
+  nipples: 'Nipple contact (Owner: nipple/breast)',
   hand_1: 'Hand 1',
   hand_2: 'Hand 2',
-  penis: 'Penis / shaft',
-  glans: 'Glans / tip (common tracked tip)',
+  penis: 'Penis / shaft (tip)',
+  glans: 'Glans / tip (tracked tip)',
   vagina: 'Vagina / vulva',
 };
 
@@ -52,16 +52,32 @@ export function bodyFigureMarkup() {
 /**
  * Mount interactive body map into `host`.
  * @param {HTMLElement} host
- * @param {{ onSelect?: (classId: string) => void, getActive?: () => string }} opts
+ * @param {{
+ *   onSelect?: (classId: string) => void,
+ *   getActive?: () => string,
+ *   allowedClasses?: string[],  // Contact-vibe Create: minimal set only
+ *   heading?: string,
+ *   hint?: string,
+ * }} opts
  */
 export function mountBodyFigure(host, opts = {}) {
   if (!host) return { setActive() {}, destroy() {} };
+  const allowed = Array.isArray(opts.allowedClasses) && opts.allowedClasses.length
+    ? new Set(opts.allowedClasses.map((id) => normalizeClass(id)).filter(Boolean))
+    : null;
+  const legendParts = allowed
+    ? CANONICAL.filter((c) => allowed.has(c.id))
+    : CANONICAL;
+  const headStrong = opts.heading || 'Body map';
+  const headHint = opts.hint || (allowed
+    ? 'Contact vibe: mouth · nipple/breast · tip (glans/penis). Not a stroke path.'
+    : 'Click a region — same classes as chips (Claude-style silhouette, human).');
   host.classList.add('body-figure');
   host.innerHTML = `
     <div class="body-figure-card">
       <div class="body-figure-head">
-        <strong>Body map</strong>
-        <span class="hint">Click a region — same classes as chips (Claude-style silhouette, human).</span>
+        <strong>${headStrong}</strong>
+        <span class="hint">${headHint}</span>
       </div>
       <div class="body-figure-row">
         ${bodyFigureMarkup()}
@@ -76,8 +92,12 @@ export function mountBodyFigure(host, opts = {}) {
   function paint() {
     svg.querySelectorAll('.bf-zone').forEach(el => {
       const id = el.getAttribute('data-class');
-      el.classList.toggle('is-active', id === active);
-      el.setAttribute('aria-pressed', id === active ? 'true' : 'false');
+      const ok = !allowed || allowed.has(id);
+      el.classList.toggle('is-active', ok && id === active);
+      el.classList.toggle('is-disabled', !ok);
+      el.setAttribute('aria-pressed', ok && id === active ? 'true' : 'false');
+      el.setAttribute('aria-disabled', ok ? 'false' : 'true');
+      el.setAttribute('tabindex', ok ? '0' : '-1');
     });
     legend.querySelectorAll('[data-class]').forEach(li => {
       li.classList.toggle('is-active', li.getAttribute('data-class') === active);
@@ -87,22 +107,30 @@ export function mountBodyFigure(host, opts = {}) {
   function select(id) {
     const n = normalizeClass(id);
     if (!n) return;
+    if (allowed && !allowed.has(n)) return;
     active = n;
     paint();
     opts.onSelect?.(n);
   }
 
-  legend.innerHTML = CANONICAL.map(c =>
+  legend.innerHTML = legendParts.map(c =>
     `<li data-class="${c.id}" title="${REGION_HINTS[c.id] || c.label}">
        <button type="button" class="body-figure-leg-btn">${c.label}</button>
      </li>`).join('');
 
   svg.querySelectorAll('.bf-zone').forEach(el => {
     const id = el.getAttribute('data-class');
+    const ok = !allowed || allowed.has(id);
     el.setAttribute('role', 'button');
-    el.setAttribute('tabindex', '0');
+    el.setAttribute('tabindex', ok ? '0' : '-1');
     el.setAttribute('aria-label', labelFor(id) || id);
-    el.title = REGION_HINTS[id] || labelFor(id) || id;
+    el.title = ok
+      ? (REGION_HINTS[id] || labelFor(id) || id)
+      : 'Not used for Contact vibe marks (AI Train / Scene map Region keep full taxonomy)';
+    if (!ok) {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.22';
+    }
     el.addEventListener('click', () => select(id));
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(id); }

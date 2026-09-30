@@ -2,7 +2,8 @@ import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposal
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
-  labelFor, normalizeClass, orderedCanonical,
+  CONTACT_VIBE_IDS, AI_TIP_CLASS_ORDER, SCENE_REGION_CLASS_ORDER,
+  labelFor, normalizeClass, orderedCanonical, onlyCanonical,
 } from './bodyparts.js';
 import { mountBodyFigure } from './body_figure.js';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -24,7 +25,7 @@ export function initGenerator(root, playback) {
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
         <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
-        <li class="gen-step-item" data-step="2"><span class="gen-step-num">2</span> Where</li>
+        <li class="gen-step-item" data-step="2"><span class="gen-step-num">2</span> Tip &amp; contact</li>
         <li class="gen-step-item" data-step="3"><span class="gen-step-num">3</span> Feel</li>
         <li class="gen-step-item" data-step="4"><span class="gen-step-num">4</span> Create</li>
         <li class="gen-step-item" data-step="5"><span class="gen-step-num">5</span> Review</li>
@@ -56,15 +57,17 @@ export function initGenerator(root, playback) {
     </section>
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
-      <h3 class="gen-step-title">2 · Where it moves</h3>
+      <h3 class="gen-step-title">2 · Tip &amp; contact</h3>
       <p class="hint" style="margin-top:0">
-        Tip-Find paints a start box — drag it to refine. Contact areas only when Contact vibration is on.
+        Create does <b>not</b> need a stroke/motion path (FunGen2 / Everyday).
+        <b>Find tip</b> auto-boxes the tip — paint or drag only if Find missed.
+        Contact marks (below) are touch points for Contact vibration, not the stroke.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
-          data-help="Finds the tip start region from motion (or AI if checked). You can always correct the box.">Find tip area</button>
+          data-help="Auto tip box for Everyday CSRT (not a motion path). Paint/drag only if Find missed. Optional AI when checked.">Find tip area</button>
         <button id="gen-candidates" type="button" disabled
-          data-help="Shows ranked motion regions. Click = Tip. Shift-click = optional contact area when Contact vibration is on.">Show other spots</button>
+          data-help="Shows ranked tip candidates when auto Find is unsure. Click = Tip. Shift-click = optional contact (mouth / nipple-breast) when Contact vibration is on.">Show other spots</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
           data-help="Proposes Tip + optional contact area. Apply required.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
@@ -134,51 +137,51 @@ export function initGenerator(root, playback) {
           <div class="pos-gauge-value" id="gen-pos-value">—</div>
         </div>
       </div>
-      <div class="path-label" id="gen-roi-label">No region marked</div>
+      <div class="path-label" id="gen-roi-label">No tip box yet (Find tip runs on Create)</div>
       <p class="hint" id="gen-pipeline-auto" style="margin:4px 0 8px 0;"></p>
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration is on — optional labels &amp; contact areas (not required to Create).
-          Tip class = Glans/Penis for the tracked tip. Contact areas = where touch should feel (nipples…).
-          Multiple contact areas OK. Vib still follows stroke depth today.
+          Contact vibration — optional <b>touch points</b> only (not a stroke path; not required to Create).
+          Minimal set: <b>Mouth</b> · <b>Nipple/breast</b> · <b>Glans/penis</b> (tip).
+          Vib still follows stroke depth today; marks store where touch should feel.
         </p>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
-          <label style="width:auto;" data-help="Optional. Label the tracked tip (Glans preferred, or whole Penis). Empty = any. Only shown while Contact vibration is on — not required for CSRT.">Tip class</label>
+          <label style="width:auto;" data-help="Optional tip label: Glans preferred, or whole Penis. Empty = any. Contact-vibe set only — not required for CSRT Create.">Tip (glans/penis)</label>
           <select id="gen-region-class" style="min-width:8em;">
             <option value="">(any)</option>
           </select>
-          <label style="width:auto;" data-help="What the main contact area is (nipples, mouth, hand…). Defaults to Nipples when empty. Optional.">Contact type</label>
+          <label style="width:auto;" data-help="Main contact partner: Mouth or Nipple/breast. Defaults to Nipples. Optional — not a motion path.">Contact (mouth / nipple)</label>
           <select id="gen-region-class2" style="min-width:8em;">
             <option value="">(pick class)</option>
           </select>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipples/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
             <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
           </label>
         </div>
         <div class="row" style="align-items:center; margin-top:6px;">
           <button id="gen-roi2-toggle" type="button"
-            data-help="Mark the main contact area (gold). Example: one nipple, mouth, or hand. On Stroke, Contact vibration still follows stroke depth — the mark is for location/feel later. Tip↔partner distance needs Tf/Tj.">Mark contact area</button>
+            data-help="Mark one touch point (gold): mouth or nipple/breast. Not a stroke path. Stroke vib still follows tip CSRT depth — the mark is for contact feel / later spatial vibe.">Mark contact area</button>
           <button id="gen-target-add" type="button"
-            data-help="Add another contact area (magenta) — e.g. second nipple. Same idea as the first contact mark; you can mark several. With tip path on, extras follow the partner track on Play unless Stay fixed is checked.">+ Another contact area</button>
-          <label style="width:auto; margin:0;" data-help="Body-part type for the next extra contact mark.">Extra type</label>
+            data-help="Add another touch point (magenta) — e.g. second nipple or mouth. Same contact-vibe set. With tip trajectory on, extras can follow unless Stay fixed is checked.">+ Another contact area</button>
+          <label style="width:auto; margin:0;" data-help="Type for the next extra contact mark (mouth / nipple / breast).">Extra type</label>
           <select id="gen-target-class" style="min-width:7em;">
             <option value="">(any)</option>
           </select>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip path is recorded) = follow partner trajectory on Play / track partner in Tf/Tj distance mode. Use when the second contact barely moves.">
+            data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
             <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
           </label>
           <button id="gen-extras-clear" type="button"
             data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
-          <span class="hint" id="gen-roi2-hint" style="margin:0">All optional. Vib = stroke depth unless Tf/Tj distance.</span>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Create works without marks. Vib = stroke depth unless Tf/Tj.</span>
         </div>
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
         <div class="row" style="align-items:center; margin-top:4px;">
           <button id="gen-mask-add" type="button"
-            data-help="Ignore region (black): paints a whole-clip exclude that Create tracks with the subject. Same job as Scene map → Ignore — use when heatmap/detections latch onto knees etc. Does not drive the stroke.">+ Ignore region (black)</button>
+            data-help="Ignore region (black): exclude a wrong latch (knees, background). Same as Scene map → Ignore. Does not drive the stroke; use when auto tip/heatmap fails onto the wrong part.">+ Ignore region (black)</button>
         </div>
         <div id="gen-selected-mark" class="gen-selected-mark" hidden>
           <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
@@ -187,10 +190,10 @@ export function initGenerator(root, playback) {
           <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
         </div>
         <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
-          aria-label="Body map — click a part to label Tip / contact / region mark"></div>
+          aria-label="Body map — contact vibe: mouth, nipple/breast, tip"></div>
         <p class="hint" style="margin:4px 0 0 0;">
-          <b>Click a painted mark</b> on the preview to select it, then click the body map to set Tip / Contact / Region class.
-          Paint: drag a box (or use Mark contact / Ignore / Scene map → Paint mark).
+          <b>Click a painted mark</b>, then the body map (mouth · nipple/breast · tip only).
+          Paint tip only if Find tip missed; contact marks are touch points, not a motion path.
         </p>
       </div>
       <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
@@ -209,8 +212,8 @@ export function initGenerator(root, playback) {
         </select>
       </div>
       <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-        We follow the tip. Contact vibration (below) adds feel on deep strokes — on by default.
-        Keep Everyday simple: tip box → Create. Use Advanced → Scene map → <b>Ignore (black)</b>
+        Everyday: auto tip → Create (no motion-path marking). Contact vibration (below) adds feel — on by default.
+        Optional contact marks in Step 2 are touch points only. Use Advanced → Scene map → <b>Ignore (black)</b>
         only when detections latch onto the wrong part (knees etc.).
       </p>
       <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
@@ -218,7 +221,7 @@ export function initGenerator(root, playback) {
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
           <label for="gen-contact-vibration"
-            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default. When on, Step 2 shows Contact area marks (nipples/mouth/…). Marks do not change Stroke vib yet (still depth-based) — they store where touch should feel.">Contact vibration (on by default)</label>
+            data-help="Extra vibration on deep strokes (high position / stroke depth). On by default. When on, Step 2 shows optional touch-point marks (mouth · nipple/breast · tip). Not a stroke path — Create works without them. Marks store where touch should feel.">Contact vibration (on by default)</label>
         </div>
         <div id="gen-contact-vibration-opts" style="display:none; margin:4px 0 10px 22px;">
           <div class="field-row" style="align-items:center;">
@@ -284,7 +287,7 @@ export function initGenerator(root, playback) {
           <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
             data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
           <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records tip (x,y) per frame into the script. Needed for Feel Stage A/S2 (vib when tip grazes a contact mark; spatial preferred over depth fill) and the optional Play trajectory overlay. Soft-on with Contact vib; CSRT path only.">Record tip path (for contact feel + overlay)</label></div>
+            data-help="Records tip (x,y) per frame for Feel Stage A (buzz when tip grazes a contact mark) and the Play overlay. Not a user-drawn stroke path — Create never requires this. Soft-on with Contact vib; CSRT only.">Record tip trajectory (optional feel — not required to Create)</label></div>
 
           <div class="opt-group">Long-clip anti-drift</div>
           <p class="hint" style="margin:0 0 6px 0;">
@@ -337,11 +340,11 @@ export function initGenerator(root, playback) {
             <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
               data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
             <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Paint on the preview over the heatmap. Black Ignore = never use that region for recognition (knees, background). Follows the subject during Create unless you check Stay fixed. Default time = current map window.">Mark</label>
+              <label style="width:auto;" data-help="Advanced only. Ignore = exclude wrong latch (knees…). Source = optional hint when auto stroke search fails — not Everyday motion-path paint. Region = full taxonomy for train/review.">Mark</label>
               <select id="gen-scene-map-mark-kind">
                 <option value="exclude" selected>Ignore / black (not for recognition)</option>
-                <option value="source">Source (stroke is here)</option>
-                <option value="region">Region (body-part label)</option>
+                <option value="source">Source (only if auto stroke not found)</option>
+                <option value="region">Region (full taxonomy / train)</option>
               </select>
               <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
               <label class="checkbox-row" style="margin:0;"
@@ -2127,7 +2130,7 @@ export function initGenerator(root, playback) {
     if (!sel || sel.value) return '';
     sel.style.outline = '2px solid rgba(242,176,61,0.85)';
     setTimeout(() => { if (sel) sel.style.outline = ''; }, 2400);
-    return ' Pick contact type (nipples/mouth/hand…) — Partner is not the default.';
+    return ' Pick partner class (mouth · nipples · breasts) — one contact mark, not a stroke path.';
   }
 
   /** Ranked list → Tip (#1) + first non-overlapping partner. Suggest only. */
@@ -4514,24 +4517,29 @@ export function initGenerator(root, playback) {
     }
   });
 
-  // Body-part class selects (docs/BODY_REGIONS.md) — tip-first / contact-first.
-  const fillClassSelect = (selId, preferIds) => {
+  // Contact-vibe Create: tip + partner minimal sets only (no full taxonomy leftovers).
+  // AI tip / Scene-map Region keep broader lists via orderedCanonical.
+  const fillClassSelect = (selId, preferIds, { strict = false } = {}) => {
     const sel = el(selId);
     if (!sel) return;
-    for (const p of orderedCanonical(preferIds)) {
+    const parts = strict ? onlyCanonical(preferIds) : orderedCanonical(preferIds);
+    for (const p of parts) {
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.label;
       sel.appendChild(opt);
     }
   };
-  fillClassSelect('#gen-region-class', TIP_CLASS_ORDER);
-  fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER);
-  fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER);
-  fillClassSelect('#gen-ai-target-class', TIP_CLASS_ORDER);
-  fillClassSelect('#gen-scene-map-mark-class', CONTACT_CLASS_ORDER);
+  fillClassSelect('#gen-region-class', TIP_CLASS_ORDER, { strict: true });
+  fillClassSelect('#gen-region-class2', CONTACT_CLASS_ORDER, { strict: true });
+  fillClassSelect('#gen-target-class', CONTACT_CLASS_ORDER, { strict: true });
+  fillClassSelect('#gen-ai-target-class', AI_TIP_CLASS_ORDER);
+  fillClassSelect('#gen-scene-map-mark-class', SCENE_REGION_CLASS_ORDER);
 
   createBodyFigure = mountBodyFigure(el('#gen-body-figure'), {
+    allowedClasses: CONTACT_VIBE_IDS,
+    heading: 'Contact vibe map',
+    hint: 'Tip (glans/penis) + one partner (mouth or nipple/breast). Not a stroke path.',
     onSelect: applyBodyClassToMark,
     getActive: () => {
       if (selectedMark?.kind === 'tip') return regionClass1Value();
@@ -4549,11 +4557,6 @@ export function initGenerator(root, playback) {
       return regionClass1Value() || regionClass2Value();
     },
   });
-  // Compact Create copy: shorter head text.
-  const bfHead = el('#gen-body-figure')?.querySelector('.body-figure-head .hint');
-  if (bfHead) {
-    bfHead.textContent = 'Click a region to label Tip / Contact / Region mark (same classes as AI Train).';
-  }
 
   el('#gen-selected-mark-delete')?.addEventListener('click', () => deleteSelectedMark());
   el('#gen-ai-applied-undo')?.addEventListener('click', () => undoAiApplied());
