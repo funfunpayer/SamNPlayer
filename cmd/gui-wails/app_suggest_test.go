@@ -11,13 +11,16 @@ import (
 
 func TestSuggestPolarityAndInvertRoundtrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "p.funscript")
-	body := `{"actions":[{"at":0,"pos":10},{"at":100,"pos":15},{"at":200,"pos":12},{"at":300,"pos":80},{"at":400,"pos":90}]}`
+	body := `{"actions":[{"at":0,"pos":10},{"at":100,"pos":15},{"at":200,"pos":12},{"at":300,"pos":80},{"at":400,"pos":90}],"inverted":true}`
 	if err := os.WriteFile(path, []byte(body), 0644); err != nil {
 		t.Fatal(err)
 	}
 	a := NewApp()
 	if _, err := a.LoadFunscript(path); err != nil {
 		t.Fatal(err)
+	}
+	if !a.currentScript.Inverted {
+		t.Fatal("expected loaded inverted flag")
 	}
 	hint, err := a.SuggestPolarity()
 	if err != nil {
@@ -31,6 +34,20 @@ func TestSuggestPolarityAndInvertRoundtrip(t *testing.T) {
 	}
 	if a.currentScript.Actions[0].Pos != 90 {
 		t.Fatalf("erste Position nach Invert: %d", a.currentScript.Actions[0].Pos)
+	}
+	if a.currentScript.Inverted {
+		t.Fatal("Invert bake must clear top-level inverted so Play does not flip twice")
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := doc["inverted"]; ok {
+		t.Fatalf("disk inverted should be cleared, got %s", doc["inverted"])
 	}
 }
 

@@ -201,7 +201,8 @@ func applyContactCurve(t float64, curve string) float64 {
 }
 
 func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
-	if len(s.Actions) < 2 {
+	actions := s.PlaybackActions()
+	if len(actions) < 2 {
 		return nil
 	}
 	if opts.TickMs <= 0 {
@@ -223,16 +224,17 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 		envelope = DefaultContactEnvelopeSmooth
 	}
 
-	// Contact threshold once over the whole script (raw pos 0–100; Tf/Tj
+	// Contact threshold once over the whole script (playback pos 0–100; Tf/Tj
 	// actions are clamped 20–90 at generate time) — see ContactVibrationSpan.
+	// Uses PlaybackActions so OFS inverted scripts map depth correctly.
 	var contactMin, contactMax float64
 	contactEnabled := opts.ContactVibration
 	contactSpan := EffectiveContactSpan(opts.ContactVibrationSpan)
 	contactCurve := NormalizeContactCurve(opts.ContactVibrationCurve)
 	gaps := opts.TrackingGaps
 	if contactEnabled {
-		posMin, posMax := float64(s.Actions[0].Pos), float64(s.Actions[0].Pos)
-		for _, a := range s.Actions[1:] {
+		posMin, posMax := float64(actions[0].Pos), float64(actions[0].Pos)
+		for _, a := range actions[1:] {
 			p := float64(a.Pos)
 			if p < posMin {
 				posMin = p
@@ -323,10 +325,10 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				vib = 0
 			}
 		} else {
-			for segIdx < len(s.Actions)-2 && s.Actions[segIdx+1].At <= t {
+			for segIdx < len(actions)-2 && actions[segIdx+1].At <= t {
 				segIdx++
 			}
-			a, b := s.Actions[segIdx], s.Actions[segIdx+1]
+			a, b := actions[segIdx], actions[segIdx+1]
 			dt := b.At - a.At
 			if dt <= 0 {
 				dt = 1

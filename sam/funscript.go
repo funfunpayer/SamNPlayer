@@ -18,8 +18,11 @@ import (
 // (funscript.IsDistanceProfile prüft Metadata.Profile) - gefunden beim
 // Testen mit echten tj-Skripten aus diesem Projekt, nicht nur ausgedacht.
 func FromFunscript(fs *funscript.Script) *Script {
-	frames := make([]Frame, len(fs.Actions))
-	for i, a := range fs.Actions {
+	// PlaybackActions honors top-level OFS inverted (100−pos) so SAM/device
+	// play matches GetScriptCurve / ToIntensityCurve.
+	actions := fs.PlaybackActions()
+	frames := make([]Frame, len(actions))
+	for i, a := range actions {
 		frames[i] = Frame{
 			Time:   a.At,
 			Motion: Motion{Position: float64(a.Pos)},

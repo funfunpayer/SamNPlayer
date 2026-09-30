@@ -72,7 +72,12 @@ func (d *MetaDuration) UnmarshalJSON(b []byte) error {
 
 // Script ist das geparste .funscript-Dokument.
 type Script struct {
-	Actions  []Action `json:"actions"`
+	Actions []Action `json:"actions"`
+	// Inverted is the official funscript top-level flag: players flip
+	// positions (100−pos) at playback. Actions on disk stay as written.
+	// Review "Invert" bakes 100−pos into actions and clears this flag so
+	// playback does not flip twice.
+	Inverted bool `json:"inverted,omitempty"`
 	Metadata struct {
 		Duration        MetaDuration  `json:"duration"`
 		Creator         string        `json:"creator"`
@@ -189,4 +194,61 @@ func (s *Script) Duration() int64 {
 		return 0
 	}
 	return s.Actions[len(s.Actions)-1].At
+}
+
+// PlaybackActions is the stroke list the device and Play curve should use.
+// When Inverted is set, positions are 100−pos; the stored Actions are unchanged.
+func (s *Script) PlaybackActions() []Action {
+	if s == nil {
+		return nil
+	}
+	if !s.Inverted || len(s.Actions) == 0 {
+		return s.Actions
+	}
+	out := make([]Action, len(s.Actions))
+	for i, a := range s.Actions {
+		pos := 100 - a.Pos
+		if pos < 0 {
+			pos = 0
+		} else if pos > 100 {
+			pos = 100
+		}
+		out[i] = Action{At: a.At, Pos: pos}
+	}
+	return out
+}
+
+// WriteInverted sets or clears the top-level inverted flag without touching
+// actions. Cleared after Review Invert bakes 100−pos into the point list.
+func WriteInverted(path string, inverted bool) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("funscript: Datei konnte nicht gelesen werden: %w", err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return fmt.Errorf("funscript: ungültiges JSON: %w", err)
+	}
+	if !inverted {
+		delete(doc, "inverted")
+	} else {
+		b, err := json.Marshal(true)
+		if err != nil {
+			return err
+		}
+		doc["inverted"] = b
+	}
+	out, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, out, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }

@@ -39,6 +39,23 @@ func TestFromFunscriptPreservesTimingAndPosition(t *testing.T) {
 	}
 }
 
+func TestFromFunscriptHonorsInverted(t *testing.T) {
+	fs, err := funscript.Parse([]byte(`{"actions":[
+		{"at":0,"pos":10},{"at":500,"pos":90}
+	],"inverted":true}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := FromFunscript(fs)
+	if int(s.Frames[0].Motion.Position) != 90 || int(s.Frames[1].Motion.Position) != 10 {
+		t.Fatalf("SAM import must flip OFS inverted: %+v / disk %+v",
+			s.Frames[0].Motion.Position, fs.Actions[0].Pos)
+	}
+	if fs.Actions[0].Pos != 10 {
+		t.Fatal("disk Actions must stay unflipped")
+	}
+}
+
 func TestToFunscriptPreservesTimingAndPosition(t *testing.T) {
 	s := &Script{
 		Version: ScriptVersion,

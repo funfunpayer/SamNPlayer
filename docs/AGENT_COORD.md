@@ -149,6 +149,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel41 | Cursor | [#373](https://github.com/funfunpayer/SamNPlayer/pull/373) + tag `v0.5.41` | Sammel **v0.5.41** + Release (Tip-Find #364; Clip-Prep #365; Reacquire #366; Bugfix #372; E2E #371; Cleanup #369; docs/tests #362/#363/#367; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.41 |
 | Rel42 | Cursor | [#429](https://github.com/funfunpayer/SamNPlayer/pull/429) + tag `v0.5.42` | Sammel **v0.5.42** + Release (GapFill #403/#413; knobs/probes #378–#400; Plateau #426; Expert/EO/Contact 0 #425/#421/#424; seek/CLI #377/#401–#417; Intiface #422; Audio cancel #420; atomic write #428; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42 |
 | Rel43 | Cursor | this PR + tag `v0.5.43` | Sammel **v0.5.43** + Release (Train window labels #441; ROI empty-val heal #442; Play/Create/AI Train prefs #437–#439; CLI cancel #432/#435; #264 cancelled) | **THIS** |
+| Rel44 | Cursor | after Board cascade | Sammel **v0.5.44** — Owner greenlight after #448→#449→#450→#452→#453 (+ #451 Cursor) | **WAIT** — Claude IDLE / merge-ready |
+| SceneRolesTax | Claude | [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) | **scene_roles** PARTNERS/TIP_CLASSES parity (`nipples`/`hand_*`/`glans`) | **READY** — CI green; undrafted; Board watch cascade head |
+| SceneApplyNorm | Claude | [#449](https://github.com/funfunpayer/SamNPlayer/pull/449) | **ApplySceneProposal** `bodyparts.Normalize` + hand_* aliases | **READY** — CI green; undrafted; Board watch after #448 |
+| AtomicMeta | Claude | [#450](https://github.com/funfunpayer/SamNPlayer/pull/450) | **Atomic metadata patchers** (`writeFileAtomic`) | **READY** — CI green; undrafted; Board watch after #449 |
+| OFSInvert | Claude | [#453](https://github.com/funfunpayer/SamNPlayer/pull/453) | **OFS top-level `inverted` in Play** (supersedes broken [#447](https://github.com/funfunpayer/SamNPlayer/pull/447); keeps `mapper.go`) | **READY** — CI green; undrafted; Board after #449→#450→#452 |
+| FreeTagUI | Cursor | [#451](https://github.com/funfunpayer/SamNPlayer/pull/451) | AI Train free-tag frontend | **Cursor lane** — Claude does not touch; merge after #453 |
 | ExpertProbeSVG | Cursor | [#379](https://github.com/funfunpayer/SamNPlayer/pull/379) merged (`486109a`) | **Expert postprocess live SVG probe** — DeepFunGen-style viewer polyline for knob feedback (synthetic; Everyday unchanged) | **DONE** |
 | SpeechHoldUI | Cursor | [#378](https://github.com/funfunpayer/SamNPlayer/pull/378) merged (`ef77233`) | **Review Speech-Hold / Feel strip** — filters, seek, optional chapters from `audio_check.segments` (no stroke rewrite) | **DONE** |
 | PlaySpeechHold | Cursor | [#380](https://github.com/funfunpayer/SamNPlayer/pull/380) merged (`15868d2`) | **Play Speech-Hold / Feel strip** — LoadFunscript exposes segments; Play filters · seek · optional chapters (no stroke rewrite) | **DONE** |
@@ -243,12 +249,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (30 Sep — Rel43 cut; tip `2e0ce4e`):**
-- **In flight:** Cursor **Rel43** (VERSION/CHANGELOG bump → tag `v0.5.43`). Claude Owner-blocked (VLM + ≥4–5 clips). Cursor UX idle — Owner asks in store `docs/cursor-ux-owner-ask.md` (Epochs max / BPM-auto / offset rewrite).
-- **Shipped tip @ `2e0ce4e`:** ROI empty-val heal [#442](https://github.com/funfunpayer/SamNPlayer/pull/442); Train window all labels [#441](https://github.com/funfunpayer/SamNPlayer/pull/441); AI Train sample prefs [#439](https://github.com/funfunpayer/SamNPlayer/pull/439); Create Feel/Expert prefs [#438](https://github.com/funfunpayer/SamNPlayer/pull/438); Play OFS/Feel prefs [#437](https://github.com/funfunpayer/SamNPlayer/pull/437); CLI cancel [#432](https://github.com/funfunpayer/SamNPlayer/pull/432)/[#435](https://github.com/funfunpayer/SamNPlayer/pull/435); tag [`v0.5.42`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42).
-- **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
-- **Still Owner-gated:** portable smoke `v0.5.43` after tag; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; Epochs max / BPM-auto / offset rewrite (Cursor UX asks).
+**Status board (30 Sep — Rel43 done tip; Rel44 after Claude bugfix):**
+- **Claude bugfix queue:** Board watch merge order **#448→#449→#450→#452→#453→#451**. [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) merged; [#449](https://github.com/funfunpayer/SamNPlayer/pull/449)/[#450](https://github.com/funfunpayer/SamNPlayer/pull/450)/[#452](https://github.com/funfunpayer/SamNPlayer/pull/452)/[#453](https://github.com/funfunpayer/SamNPlayer/pull/453) undrafted. Leave [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) alone. Free-tag [#451](https://github.com/funfunpayer/SamNPlayer/pull/451) = Cursor.
+- **Rel44:** **Claude MERGE-READY / IDLE** — no further Claude slices; Owner greenlights **v0.5.44** after Board finishes cascade.
+- **Shipped tip @ `b0018c2`:** OFS load + companion export [#446](https://github.com/funfunpayer/SamNPlayer/pull/446); Contact-vibe tip+partner [#445](https://github.com/funfunpayer/SamNPlayer/pull/445); video swap [#444](https://github.com/funfunpayer/SamNPlayer/pull/444); plus Rel43 train/prefs/CLI work.
+- **#264 CANCELLED:** Virtual Person out-of-scope.
+- **Preserve:** No Everyday / Rhythm / AI default change. No VERSION/release from Claude.
 
 Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 
