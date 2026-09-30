@@ -3,7 +3,7 @@ import {
   BootstrapRoiTrainingRegions, AddRoiStillTrainingSample, RunRoiModelTraining,
   ListRoiTrainingSamples, DiscardRoiTrainingSample, UpdateRoiTrainingSample, GetRoiDatasetSummary,
   GetRoiTrainingSampleImage, CheckRoiTrainingAvailable, CheckRoiTrainingStatus,
-  InstallRoiTrainingDeps, ListRoiTrainingDevices,
+  InstallRoiTrainingDeps, ListRoiTrainingDevices, CancelRoiTraining,
   GetMotionProfileModelStatus, TrainMotionProfileModel,
 } from '../wailsjs/go/main/App';
 import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor, labelWithRole, CANONICAL } from './bodyparts.js';
@@ -119,6 +119,8 @@ export function initRoiTraining(root) {
     <div class="row">
       <button id="rt-bootstrap" class="primary" disabled
         data-help="Video: tracks marks and writes YOLO samples. Image: saves a still annotation.">Use for training</button>
+      <button id="rt-cancel-run" type="button" hidden
+        data-help="Stops the running bootstrap or YOLO training. Closing the app does the same.">Cancel</button>
     </div>
     <div class="path-label" id="rt-bootstrap-status"></div>
     <div id="rt-bootstrap-progress-wrap" class="run-progress" style="display:none;">
@@ -157,6 +159,8 @@ export function initRoiTraining(root) {
     </div>
     <p class="hint" id="rt-device-status" style="margin:0 0 8px;"></p>
     <div class="row"><button id="rt-train" class="primary" type="button" disabled>Start training</button>
+      <button id="rt-cancel-train" type="button" hidden
+        data-help="Stops the running YOLO training (minutes to hours). Closing the app also cancels.">Cancel</button>
       <button id="rt-install-deps" type="button"
         data-help="Installs ultralytics + onnx (+ PyTorch), then restores opencv-contrib-python so Use for training keeps CSRT. Prefer a real Python install (not the Windows Store stub). Large download.">Install AI train deps</button></div>
     <p class="hint" id="rt-train-unavailable" style="display:none; color:var(--danger);">
@@ -680,11 +684,35 @@ export function initRoiTraining(root) {
   el('#rt-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#rt-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
 
+  function isCancelError(err) {
+    return /cancel|abgebrochen|context canceled/i.test(String(err || ''));
+  }
+
+  function setCancelVisible(show) {
+    const boot = el('#rt-cancel-run');
+    const train = el('#rt-cancel-train');
+    if (boot) boot.hidden = !show;
+    if (train) train.hidden = !show;
+  }
+
+  async function cancelRoiRun() {
+    try {
+      const ok = await CancelRoiTraining();
+      if (!ok) uiWarn('No AI train run to cancel.');
+    } catch (err) {
+      uiError('Cancel training: ' + err);
+    }
+  }
+
+  el('#rt-cancel-run')?.addEventListener('click', cancelRoiRun);
+  el('#rt-cancel-train')?.addEventListener('click', cancelRoiRun);
+
   el('#rt-bootstrap').addEventListener('click', async () => {
     if (!sourcePath) return;
     const regions = collectLabeledRegions();
     if (!regions.length) return;
     el('#rt-bootstrap').disabled = true;
+    setCancelVisible(true);
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
     showRunProgress('rt-bootstrap', true);
@@ -692,6 +720,7 @@ export function initRoiTraining(root) {
       if (sourceKind === 'image') {
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
         showRunProgress('rt-bootstrap', false);
+        setCancelVisible(false);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
         updateBootstrapEnabled();
         refreshReview();
@@ -711,7 +740,12 @@ export function initRoiTraining(root) {
       }
     } catch (err) {
       showRunProgress('rt-bootstrap', false);
-      uiError('Save sample: ' + err, el('#rt-bootstrap-status'));
+      setCancelVisible(false);
+      if (isCancelError(err)) {
+        uiWarn('Bootstrap cancelled: ' + err, el('#rt-bootstrap-status'));
+      } else {
+        uiError('Save sample: ' + err, el('#rt-bootstrap-status'));
+      }
       updateBootstrapEnabled();
     }
   });
@@ -753,9 +787,14 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:bootstrap:percent', pct => applyRunPercent('rt-bootstrap', pct));
   EventsOn('roitraining:bootstrap:done', payload => {
     showRunProgress('rt-bootstrap', false);
+    setCancelVisible(false);
     updateBootstrapEnabled();
     if (payload.error) {
-      uiError('Bootstrap failed: ' + payload.error, el('#rt-bootstrap-status'));
+      if (isCancelError(payload.error)) {
+        uiWarn('Bootstrap cancelled: ' + payload.error, el('#rt-bootstrap-status'));
+      } else {
+        uiError('Bootstrap failed: ' + payload.error, el('#rt-bootstrap-status'));
+      }
       return;
     }
     lastPrefix = payload.prefix || lastPrefix;
@@ -1580,6 +1619,7 @@ export function initRoiTraining(root) {
     const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
+    setCancelVisible(true);
     el('#rt-train-status').textContent = 'Running…';
     el('#rt-train-log').textContent = '';
     showRunProgress('rt-train', true);
@@ -1587,7 +1627,12 @@ export function initRoiTraining(root) {
       await RunRoiModelTraining(epochs, device);
     } catch (err) {
       showRunProgress('rt-train', false);
-      uiError('ROI training: ' + err, el('#rt-train-status'));
+      setCancelVisible(false);
+      if (isCancelError(err)) {
+        uiWarn('Training cancelled: ' + err, el('#rt-train-status'));
+      } else {
+        uiError('ROI training: ' + err, el('#rt-train-status'));
+      }
       el('#rt-train').disabled = false;
     }
   });
@@ -1599,9 +1644,14 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:train:percent', pct => applyRunPercent('rt-train', pct));
   EventsOn('roitraining:train:done', payload => {
     showRunProgress('rt-train', false);
+    setCancelVisible(false);
     el('#rt-train').disabled = false;
     if (payload.error) {
-      uiError('Training failed: ' + payload.error, el('#rt-train-status'));
+      if (isCancelError(payload.error)) {
+        uiWarn('Training cancelled: ' + payload.error, el('#rt-train-status'));
+      } else {
+        uiError('Training failed: ' + payload.error, el('#rt-train-status'));
+      }
       return;
     }
     el('#rt-train-status').textContent = 'Done: ' + payload.modelPath

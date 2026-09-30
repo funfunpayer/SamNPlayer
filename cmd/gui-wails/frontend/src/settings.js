@@ -34,6 +34,7 @@ export function saveSetting(key, value) {
       'playback.extended_o_hold_seconds': 'playbackEOHoldS',
       'playback.extended_o_restore_ms': 'playbackEORestoreMs',
       'playback.video_play_autostart': 'playbackVideoPlayAutostart',
+      'playback.honor_inverted': 'playbackHonorInverted',
       'playback.trajectory_overlay': 'playbackTrajectoryOverlay',
       'playback.cap_intensity': 'playbackCapIntensity',
       'playback.speed_highlights': 'playbackSpeedHL',
@@ -96,6 +97,14 @@ export function initSettings(root) {
       <label for="st-connect-test">On connect, run a short connection test (brief vib/suction)</label>
     </div>
     <p class="hint" style="margin-top:0">Off by default. When on: after a successful connect, a short pulse confirms that commands arrive.</p>
+
+    <h3>Play</h3>
+    <div class="checkbox-row">
+      <input type="checkbox" id="st-honor-inverted" />
+      <label for="st-honor-inverted"
+        data-help="Some .funscript files (e.g. from OpenFunscripter) carry &quot;inverted&quot;: true. On: Play flips those files (100 − position) as the format intends. Off: they play exactly as the points are written — use this if such a file feels upside down. Review → Invert always flips what you currently see and removes the flag.">Honor "inverted" flag in .funscript files</label>
+    </div>
+    <p class="hint" style="margin-top:0">On by default (same as since v0.5.44). Changing this reloads the open script.</p>
 
     <h3>What you need (keep it lean)</h3>
     <ul class="hint" style="margin:0 0 12px; padding-left:1.2em; line-height:1.55;">
@@ -295,6 +304,9 @@ export function initSettings(root) {
   getSettingsCache().then(s => {
     el('#st-update-check').checked = s.updateCheckOnStartup;
     el('#st-connect-test').checked = !!s.deviceConnectTest;
+    if (el('#st-honor-inverted')) {
+      el('#st-honor-inverted').checked = s.playbackHonorInverted !== false;
+    }
     el('#st-log-level').value = s.logLevel;
     el('#st-log-path').textContent = s.logPath || '(no log file written yet)';
     el('#st-report-path').value = s.reportPath || '';
@@ -426,6 +438,8 @@ export function initSettings(root) {
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
   el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));
+  el('#st-honor-inverted')?.addEventListener('change', e =>
+    saveSetting('playback.honor_inverted', e.target.checked));
   el('#st-runtime-check').addEventListener('click', async () => {
     const status = el('#st-runtime-status');
     status.textContent = 'Checking…';
