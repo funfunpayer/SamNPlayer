@@ -1,7 +1,1 @@
-package funscript
-
-import (
-	"fmt"
-	"math"
-	"strings"
-)
+see-local-file
