@@ -8,6 +8,13 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Play: remember OFS / Feel knobs** — Cap / Speed-HL / Scale / FPS-Snap /
+  BPM-grid / O-marker Intensity / Feel heatbands (+ opacity) / Contact Strength
+  restore from settings across sessions (same defaults as the HTML knobs). BPM
+  number stays blank = audio auto (not persisted). Everyday CSRT unchanged.
+
 ## [0.5.42] — September 29, 2026
 
 ### Added
