@@ -8,30 +8,37 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.44] — September 30, 2026
+
+### Added
+
+- **AI Train: free tags add/delete + track full BODY_REGIONS** — draw free
+  boxes, assign taxonomy or custom labels (duplicates OK, e.g. nipples×2);
+  per-box Delete and Review Delete box; bootstrap tracks every labeled box
+  (not glans-only); Create **Show all AI tags** lists all classes on the
+  frame (#451). AI Train / Kai-Korrektur only; Everyday CSRT unchanged.
+
 ### Fixed
 
-- **Metadata patchers write .funscript atomically** — bookmarks, chapters,
-  oMarkers, contact recipe, axes, quality/audio/gap stamps and the project
-  sidecar used a direct overwrite. A crash mid-write could truncate the
-  script. They now use temp-file + rename (same pattern as native export /
-  companion ExportFunscript). No behavior change when the write succeeds.
-- **Chapters / bookmarks with OFS time stamps** — OpenFunscripter 3 writes
-  chapter and bookmark times as text (`"00:01:23.456"`). Loading them
-  failed ("chapters ungültig"), so Play showed none, and a later
-  companion export (Improve, Bake, …) removed them from the file. Times as
-  `HH:MM:SS.mmm` / `MM:SS` are now read, as before numbers in seconds or ms.
-- **OFS `inverted` ignored in Play** — top-level `"inverted": true` (OFS /
-  funjack) was dropped on parse, so Play/device used raw action positions.
-  The flag is kept on `Script`, playback uses `100−pos` (curve, mapper, SAM
-  import), and Review Invert clears the flag after baking into actions so
-  Play does not flip twice. Leaves broken [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) alone.
+- **Play: swap video after first load** — once a film was linked, picking
+  another via Video… / Link video… left the player on the first file. Cache-
+  bust the video URL epoch when the playback path changes and reload the
+  `<video>` element (#444).
+
+- **Create: Contact-vibe marks = tip + one partner** — marking no longer
+  reads as painting a motion/stroke path. Tip is `glans` | `penis`; one
+  partner is `mouth` | `nipples` | `breasts`; tip correction / Ignore /
+  Scene Source only when auto fails (#445). Everyday Go CSRT unchanged.
+
 - **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
   seconds, usually with decimals (`631.8`). The parser expected whole
   milliseconds, so every such file failed to load in Play, Improve and
   Convert with "ungültiges JSON". Scripts whose tool writes `at`/`pos` with
   decimals failed the same way. Decimals are now read and rounded, the OFS
   duration is converted from seconds, and an unreadable duration is ignored
-  instead of rejecting the script. Saved files still use whole numbers.
+  instead of rejecting the script. Saved files still use whole numbers
+  (#446).
+
 - **Companion .funscript lost its extra data on every save** — for a
   `.samn` script, Improve, Review (invert), contact settings and "Bake Neo
   axes" rewrite the `.funscript` beside it, and each write replaced the
@@ -40,21 +47,48 @@ measurement history behind each entry; this file is the short version for
   details (title, tags, performers, inverted, range, …) were gone after the
   first edit — after "Bake" also in a `.funscript` the user had loaded.
   The export now keeps every field it does not write itself, and writes
-  atomically.
+  atomically (#446).
+
 - **Scene roles: Train / Contact class IDs typed correctly** — `assign_roles`
   only knew NudeNet-style partners (`breasts`, `hand`, `mouth`, …) and tip
   `penis`. Marks and YOLO already emit `nipples`, `hand_1`/`hand_2`,
   `hand_left`/`hand_right`, and tip `glans`, so those windows stayed untyped
   and never became scene proposals / contact-point anchors. Partner map and
   tip set now cover the BODY_REGIONS IDs; proposal class strings are kept
-  (`nipples` stays `nipples`). Opt-in Scene2 only; Everyday CSRT unchanged.
+  (`nipples` stays `nipples`). Opt-in Scene2 only; Everyday CSRT unchanged
+  (#448).
+
 - **Apply scene proposal: store canonical region classes** — `ApplySceneProposal`
   wrote teacher/alias labels (`hand_right`, `left_hand`, …) into
   `RegionClass` when `IsCanonical` happened to pass after Normalize, or
   skipped them when the alias was unknown. Classes are now normalized to
   BODY_REGIONS IDs (`hand_2`, `hand_1`, …) before apply; `hand_left` /
   `hand_right` added as taxonomy aliases. Complements scene_roles partner
-  typing (#448). Opt-in Scene Apply only; Everyday CSRT unchanged.
+  typing (#448). Opt-in Scene Apply only; Everyday CSRT unchanged (#449).
+
+- **Metadata patchers write .funscript atomically** — bookmarks, chapters,
+  oMarkers, contact recipe, axes, quality/audio/gap stamps and the project
+  sidecar used a direct overwrite. A crash mid-write could truncate the
+  script. They now use temp-file + rename (same pattern as native export /
+  companion ExportFunscript). No behavior change when the write succeeds
+  (#450).
+
+- **Chapters / bookmarks with OFS time stamps** — OpenFunscripter 3 writes
+  chapter and bookmark times as text (`"00:01:23.456"`). Loading them
+  failed ("chapters ungültig"), so Play showed none, and a later
+  companion export (Improve, Bake, …) removed them from the file. Times as
+  `HH:MM:SS.mmm` / `MM:SS` are now read, as before numbers in seconds or ms
+  (#452).
+
+- **OFS `inverted` ignored in Play** — top-level `"inverted": true` (OFS /
+  funjack) was dropped on parse, so Play/device used raw action positions.
+  The flag is kept on `Script`, playback uses `100−pos` (curve, mapper, SAM
+  import), and Review Invert clears the flag after baking into actions so
+  Play does not flip twice (#453). Supersedes broken [#447](https://github.com/funfunpayer/SamNPlayer/pull/447)
+  (never merge).
+
+Everyday Go CSRT Create defaults unchanged. **#264** Virtual Person remains
+cancelled / out-of-scope.
 
 ## [0.5.43] — September 30, 2026
 
