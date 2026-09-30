@@ -1762,6 +1762,13 @@ type BenchmarkResult struct {
 // statt Einzelmessungen). historyPath="" bedeutet: kein Verlaufseintrag,
 // nur der aktuelle Lauf.
 func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(line string), onPercent func(pct int)) (BenchmarkResult, error) {
+	return RunGoldenClipBenchmarkCtx(context.Background(), manifestPath, historyPath, onProgress, onPercent)
+}
+
+// RunGoldenClipBenchmarkCtx is RunGoldenClipBenchmark bound to ctx:
+// cancelling stops the benchmark Python (GUI cancel, app close). A clip
+// generate it already started finishes that one clip on its own.
+func RunGoldenClipBenchmarkCtx(ctx context.Context, manifestPath, historyPath string, onProgress func(line string), onPercent func(pct int)) (BenchmarkResult, error) {
 	var result BenchmarkResult
 	py, err := FindPython()
 	if err != nil {
@@ -1789,7 +1796,8 @@ func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(li
 	if historyPath != "" {
 		args = append(args, "--history", historyPath)
 	}
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
+	cmd.WaitDelay = 5 * time.Second
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return result, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -1817,6 +1825,9 @@ func RunGoldenClipBenchmark(manifestPath, historyPath string, onProgress func(li
 		}
 	}
 	if err := cmd.Wait(); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return result, fmt.Errorf("generator: golden-clip benchmark cancelled: %w", ctxErr)
+		}
 		return result, fmt.Errorf("generator: golden-clip benchmark failed: %w\nLast output:\n%s", err, joinLines(lastLines))
 	}
 	data, err := os.ReadFile(jsonOutPath)

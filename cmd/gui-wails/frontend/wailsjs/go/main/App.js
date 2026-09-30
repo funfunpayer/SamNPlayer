@@ -28,6 +28,7 @@ export function KeepAIScriptDraft(arg1, arg2) {
 }
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
+export function CancelGoldenClipBenchmark() { return window['go']['main']['App']['CancelGoldenClipBenchmark'](); }
 export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }
 export function CancelRoiTraining() { return window['go']['main']['App']['CancelRoiTraining'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }

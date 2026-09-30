@@ -43,6 +43,8 @@ export function PickImageFile():Promise<string>;
 
 export function CancelGenerate():Promise<void>;
 
+export function CancelGoldenClipBenchmark():Promise<boolean>;
+
 export function CancelROIDetection():Promise<void>;
 
 export function CancelRoiTraining():Promise<boolean>;

@@ -17,6 +17,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Golden-clip benchmark: no cancel, kept running after closing, could run
+  twice** — the benchmark (minutes, one generate per clip) ran Python
+  without a way to stop it, closing SamNPlayer left it running, and a second
+  start (double click) ran in parallel, both appending to the same history
+  file. It is now cancellable (`CancelGoldenClipBenchmark`; button: Cursor),
+  stopped when the app closes, and a second start is refused while one runs.
 - **AI Train: training could not be stopped, and kept running after closing
   the app** — the YOLO training (minutes to hours) and the sample
   bootstrap ran Python without a way to cancel it. Closing SamNPlayer left
