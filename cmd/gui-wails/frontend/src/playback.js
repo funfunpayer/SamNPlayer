@@ -2468,6 +2468,18 @@ export function initPlayback(root) {
     window.focus();
   }
 
+  // Force the <video> element to pick up a new stream. VideoFileURL is a
+  // fixed localhost path; even with ?v=epoch, clearing first avoids stale
+  // decode buffers when the user swaps films after the first load.
+  function setVideoSrc(url) {
+    const next = (url || '').trim();
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    if (!next) return;
+    videoEl.src = next;
+  }
+
   async function attachVideoFromPicker() {
     if (!scriptPath) return;
     try {
@@ -2475,7 +2487,7 @@ export function initPlayback(root) {
       if (!path) return;
       const url = await SetPlaybackVideo(path);
       videoPath = path;
-      videoEl.src = url;
+      setVideoSrc(url);
       const stage = el('#pb-video-stage');
       stage.classList.add('has-video');
       stage.classList.remove('no-video');
@@ -2521,7 +2533,7 @@ export function initPlayback(root) {
     try {
       const info = await EnsurePlayablePlaybackVideo();
       videoPath = info.path;
-      videoEl.src = await VideoFileURL();
+      setVideoSrc(await VideoFileURL());
       if (warn) {
         warn.textContent = info.usingProxy
           ? ('Playable copy ready' + (info.proxyPath ? ': ' + info.proxyPath.split(/[\\/]/).pop() : ''))
@@ -2620,7 +2632,7 @@ export function initPlayback(root) {
     const stage = el('#pb-video-stage');
     if (info.hasVideo) {
       videoPath = info.videoPath;
-      videoEl.src = await VideoFileURL();
+      setVideoSrc(await VideoFileURL());
       stage.classList.add('has-video');
       stage.classList.remove('no-video');
       el('#pb-video-sync-row').style.display = 'flex';
@@ -2629,7 +2641,7 @@ export function initPlayback(root) {
       refreshVideoPlayability(videoPath);
     } else {
       videoPath = null;
-      videoEl.removeAttribute('src');
+      setVideoSrc('');
       stage.classList.remove('has-video', 'is-fs', 'is-playing');
       stage.classList.add('no-video');
       el('#pb-video-sync-row').style.display = 'none';
@@ -2731,7 +2743,7 @@ export function initPlayback(root) {
       try {
         const url = await SetPlaybackVideo(wantVideo);
         videoPath = wantVideo;
-        videoEl.src = url;
+        setVideoSrc(url);
         const stage = el('#pb-video-stage');
         stage.classList.add('has-video');
         stage.classList.remove('no-video');
