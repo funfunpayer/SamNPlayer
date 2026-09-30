@@ -8,21 +8,46 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.5.43] — September 30, 2026
+
 ### Added
+
+- **AI Train: any taxonomy label on review detection windows** — Window + Label
+  selects cover all nine body-part classes (Face / Mouth / Breasts / Nipples /
+  Hand 1 / Hand 2 / Penis / Glans / Vagina) with typical role hints; Adjust
+  redraws the selected window; new class names register in `classes.json`
+  (#441). AI Train only; Everyday CSRT unchanged.
 
 - **AI Train: remember Sampling + Box scale** — every-N-th-frame and box scale
   restore from settings (defaults 12 / 1.0). AI Train only; Everyday CSRT
-  unchanged.
+  unchanged (#439).
 
 - **Create: remember Feel + Expert knobs** — Contact Sensitivity / Curve and
   Expert Smooth / Peak spacing / Prominence / RDP / Max speed / Adaptive restore
   from settings (HTML defaults unchanged; Smooth/Peakdist/Prominence/RDP/Max-speed
-  still preserve 0). Everyday CSRT path unchanged.
+  still preserve 0). Everyday CSRT path unchanged (#438).
 
 - **Play: remember OFS / Feel knobs** — Cap / Speed-HL / Scale / FPS-Snap /
   BPM-grid / O-marker Intensity / Feel heatbands (+ opacity) / Contact Strength
   restore from settings across sessions (same defaults as the HTML knobs). BPM
-  number stays blank = audio auto (not persisted). Everyday CSRT unchanged.
+  number stays blank = audio auto (not persisted). Everyday CSRT unchanged
+  (#437).
+
+### Fixed
+
+- **AI Train: heal empty val split before YOLO** — when `images/val` (or train)
+  is empty after the random split / review discard, copy one image+label from
+  the other split so Ultralytics does not die; clear error if zero labeled
+  images remain (#442).
+
+- **CLI: propagate generate cancellation** — Ctrl-C / SIGTERM cancel tracking,
+  ffmpeg, and Python children instead of leaving them running (#432).
+
+- **CLI: propagate stroke-preview cancellation** — signal-aware context for
+  stroke-preview (existing 10-minute safety timeout kept) (#435).
+
+Everyday Go CSRT Create defaults unchanged. **#264** Virtual Person remains
+cancelled / out-of-scope.
 
 ## [0.5.42] — September 29, 2026
 
