@@ -250,7 +250,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
 **Status board (30 Sep — Rel43 done tip; Rel44 after Claude bugfix):**
-- **Claude bugfix queue:** [#448](https://github.com/funfunpayer/SamNPlayer/pull/448)→[#449](https://github.com/funfunpayer/SamNPlayer/pull/449)→[#450](https://github.com/funfunpayer/SamNPlayer/pull/450) + OFS inverted (`cursor/funscript-inverted-playback-1890`). Undraft #448/#449 when CI green (Board watch squash-merges). Keep #450 draft until its CI green. Leave [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) alone. Free-tag frontend = Cursor.
+- **Claude bugfix queue:** [#448](https://github.com/funfunpayer/SamNPlayer/pull/448)→[#449](https://github.com/funfunpayer/SamNPlayer/pull/449)→[#450](https://github.com/funfunpayer/SamNPlayer/pull/450)→[#453](https://github.com/funfunpayer/SamNPlayer/pull/453) (OFS inverted). Undraft #448/#449 when CI green (Board watch squash-merges). Keep #450/#453 draft until their CI green. Leave [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) alone. Free-tag [#451](https://github.com/funfunpayer/SamNPlayer/pull/451) = Cursor.
 - **Rel44:** Owner will greenlight **v0.5.44** after this Claude round lands — Claude wraps (no huge new features); signal merge-ready / idle.
 - **Shipped tip @ `b0018c2`:** OFS load + companion export [#446](https://github.com/funfunpayer/SamNPlayer/pull/446); Contact-vibe tip+partner [#445](https://github.com/funfunpayer/SamNPlayer/pull/445); video swap [#444](https://github.com/funfunpayer/SamNPlayer/pull/444); plus Rel43 train/prefs/CLI work.
 - **#264 CANCELLED:** Virtual Person out-of-scope.
