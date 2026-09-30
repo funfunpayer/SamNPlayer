@@ -33,7 +33,8 @@ export function initRoiTraining(root) {
       Draw boxes freely (up to ${MAX_REGIONS} per image), then assign each to a class
       (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina).
       The same label may be used more than once — <b>Nipples need two boxes</b> (left + right).
-      Audio is stored with the dataset.
+      <b>Use for training</b> tracks <b>every</b> labeled box (nipples/breasts/…), not only Glans.
+      Add or delete tags anytime. Audio is stored with the dataset.
     </p>
     <div class="card" style="margin-bottom:16px; padding:12px 14px;">
       <h3 style="margin-top:0; margin-bottom:8px;">From marks to a good script</h3>
@@ -305,10 +306,12 @@ export function initRoiTraining(root) {
 
   const DISPLAY_W = 560;
 
-  function renderMarkFields() {
+  function renderMarkFields(classOverrides) {
     const prev = [];
     for (let i = 0; i < MAX_REGIONS; i++) {
-      prev[i] = el(`#rt-class${i + 1}`)?.value || '';
+      prev[i] = classOverrides
+        ? (classOverrides[i] || '')
+        : (el(`#rt-class${i + 1}`)?.value || '');
     }
     const wrap = el('#rt-mark-fields');
     wrap.innerHTML = '';
@@ -347,6 +350,17 @@ export function initRoiTraining(root) {
       row.appendChild(lab);
       row.appendChild(input);
       row.appendChild(meta);
+      if (marks[i]) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'danger';
+        del.textContent = 'Delete';
+        del.title = `Delete free tag box ${i + 1}`;
+        del.setAttribute('aria-label', `Delete free tag box ${i + 1}`);
+        del.dataset.deleteMark = String(i);
+        del.addEventListener('click', () => removeMarkAt(i));
+        row.appendChild(del);
+      }
       wrap.appendChild(row);
     }
     el('#rt-active-mark').textContent = String(activeMark + 1);
@@ -355,13 +369,59 @@ export function initRoiTraining(root) {
     updateNipplesHint();
   }
 
-  function updateBootstrapEnabled() {
-    const class1 = el('#rt-class1')?.value.trim();
-    let ok = !!(sourcePath && marks[0] && class1);
-    for (let i = 1; i < MAX_REGIONS; i++) {
-      if (marks[i] && !(el(`#rt-class${i + 1}`)?.value.trim())) ok = false;
+  /** Remove one free tag and compact so later boxes stay contiguous for bootstrap. */
+  function removeMarkAt(idx) {
+    if (idx < 0 || idx >= MAX_REGIONS || !marks[idx]) return;
+    const classVals = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      classVals.push(el(`#rt-class${i + 1}`)?.value || '');
     }
-    el('#rt-bootstrap').disabled = !ok;
+    const nextMarks = [];
+    const nextClasses = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (i === idx) continue;
+      if (marks[i]) {
+        nextMarks.push(marks[i]);
+        nextClasses.push(classVals[i]);
+      }
+    }
+    marks = Array(MAX_REGIONS).fill(null);
+    const classOverrides = Array(MAX_REGIONS).fill('');
+    for (let i = 0; i < nextMarks.length; i++) {
+      marks[i] = nextMarks[i];
+      classOverrides[i] = nextClasses[i];
+    }
+    activeMark = Math.min(nextMarks.length, MAX_REGIONS - 1);
+    renderMarkFields(classOverrides);
+    redraw();
+  }
+
+  function collectLabeledRegions() {
+    const regions = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      const m = marks[i];
+      if (m && cls) {
+        regions.push({
+          ROI: { X: m.x, Y: m.y, W: m.w, H: m.h },
+          ClassName: normalizeClass(cls) || cls,
+        });
+      }
+    }
+    return regions;
+  }
+
+  function updateBootstrapEnabled() {
+    let labeled = 0;
+    let missingClass = false;
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      if (!marks[i]) continue;
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      if (!cls) missingClass = true;
+      else labeled += 1;
+    }
+    // Any labeled free-tag set unlocks bootstrap — not tip/glans / marks[0] only.
+    el('#rt-bootstrap').disabled = !(sourcePath && labeled > 0 && !missingClass);
     updateNipplesHint();
   }
 
@@ -543,29 +603,16 @@ export function initRoiTraining(root) {
   el('#rt-seek-plus').addEventListener('click', () => seekTo(seekSec + 1));
   el('#rt-seek-plus5').addEventListener('click', () => seekTo(seekSec + 5));
 
-  function roiArg(m) {
-    return m ? { X: m.x, Y: m.y, W: m.w, H: m.h } : null;
-  }
-
   el('#rt-bootstrap').addEventListener('click', async () => {
-    if (!sourcePath || !marks[0]) return;
-    const classes = [];
-    for (let i = 1; i <= MAX_REGIONS; i++) {
-      classes.push(el(`#rt-class${i}`)?.value.trim() || '');
-    }
-    if (!classes[0]) return;
+    if (!sourcePath) return;
+    const regions = collectLabeledRegions();
+    if (!regions.length) return;
     el('#rt-bootstrap').disabled = true;
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
     showRunProgress('rt-bootstrap', true);
     try {
       if (sourceKind === 'image') {
-        const regions = [];
-        for (let i = 0; i < MAX_REGIONS; i++) {
-          if (marks[i] && classes[i]) {
-            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
-          }
-        }
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
         showRunProgress('rt-bootstrap', false);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
@@ -577,12 +624,6 @@ export function initRoiTraining(root) {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
         const boxScale = parseFloat(el('#rt-box-scale')?.value) || 1.0;
-        const regions = [];
-        for (let i = 0; i < MAX_REGIONS; i++) {
-          if (marks[i] && classes[i]) {
-            regions.push({ ROI: roiArg(marks[i]), ClassName: normalizeClass(classes[i]) || classes[i] });
-          }
-        }
         lastPrefix = await BootstrapRoiTrainingRegions(
           sourcePath, regions, sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
         );
@@ -866,7 +907,7 @@ export function initRoiTraining(root) {
       <div>
         <p class="rt-review-kicker">AI Train · Review</p>
         <h2>${escapeReviewText(sample.split)} / ${escapeReviewText(sample.name)}</h2>
-        <p class="rt-review-sub hint">Free tags: select a window · assign any label (duplicates OK, nipples×2) · Adjust redraw · + Add box for a missed mark</p>
+        <p class="rt-review-sub hint">Free tags: select a window · assign any label (duplicates OK, nipples×2) · Adjust redraw · + Add box · Delete box · Discard sample. Bootstrap tracked every labeled box — not Glans only.</p>
       </div>
       <button type="button" class="rt-review-close" aria-label="Close review editor">Close</button>
     `;
@@ -886,7 +927,9 @@ export function initRoiTraining(root) {
     for (const p of CANONICAL) {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = labelWithRole(p.id);
+      // Plain taxonomy label — generate roles (tracked/fixed/mask) do not gate
+      // AI Train bootstrap; every free tag is CSRT-tracked during Use for training.
+      opt.textContent = p.label;
       classSel.appendChild(opt);
     }
 
@@ -923,13 +966,20 @@ export function initRoiTraining(root) {
     addBoxBtn.id = 'rt-review-add-box';
     addBoxBtn.textContent = '+ Add box';
     addBoxBtn.title = 'Draw a new free tag box, then assign a label (e.g. second nipple)';
+    const deleteBoxBtn = document.createElement('button');
+    deleteBoxBtn.type = 'button';
+    deleteBoxBtn.id = 'rt-review-delete-box';
+    deleteBoxBtn.className = 'danger';
+    deleteBoxBtn.textContent = 'Delete box';
+    deleteBoxBtn.title = 'Remove the selected free tag from this sample';
     const discardModalBtn = document.createElement('button');
     discardModalBtn.type = 'button';
     discardModalBtn.className = 'danger';
-    discardModalBtn.textContent = 'Discard';
+    discardModalBtn.textContent = 'Discard sample';
     actions.appendChild(confirmBtn);
     actions.appendChild(adjustBtn);
     actions.appendChild(addBoxBtn);
+    actions.appendChild(deleteBoxBtn);
     actions.appendChild(discardModalBtn);
     foot.appendChild(status);
     foot.appendChild(actions);
@@ -974,13 +1024,16 @@ export function initRoiTraining(root) {
       if (cur && ![...classSel.options].some((o) => o.value === cur)) {
         const opt = document.createElement('option');
         opt.value = cur;
-        opt.textContent = labelWithRole(cur);
+        opt.textContent = labelFor(cur) || cur;
         classSel.appendChild(opt);
       }
       if (cur) classSel.value = cur;
       else classSel.value = CANONICAL[0].id;
-      const m = labelWithRole(cur || classSel.value).match(/\(([^)]+)\)/);
-      roleHint.textContent = m ? `Typical role: ${m[1]}` : '';
+      const role = (labelWithRole(cur || classSel.value).match(/\(([^)]+)\)/) || [])[1];
+      roleHint.textContent = role
+        ? `Generate role hint: ${role} — bootstrap still tracks this box`
+        : '';
+      deleteBoxBtn.disabled = selectedIdx < 0 || !boxes.length || adjustMode || addMode;
     }
 
     function repaintScene() {
@@ -991,7 +1044,7 @@ export function initRoiTraining(root) {
           selectedIdx = i;
           syncLabelControls();
           repaintScene();
-          status.textContent = `Window ${i + 1} selected — set Label, Adjust, or + Add box.`;
+          status.textContent = `Window ${i + 1} selected — set Label, Adjust, + Add box, or Delete box.`;
         },
       });
     }
@@ -1019,7 +1072,7 @@ export function initRoiTraining(root) {
 
     function idleStatus() {
       const nip = boxes.filter((b) => normalizeClass(b.className) === 'nipples').length;
-      let msg = 'Looks good? Confirm — or Label / Adjust / + Add box / Discard.';
+      let msg = 'Looks good? Confirm — or Label / Adjust / + Add box / Delete box / Discard sample.';
       if (nip === 1) {
         msg = 'Nipples: only one box — use + Add box for the second nipple (same label).';
       }
@@ -1040,6 +1093,7 @@ export function initRoiTraining(root) {
       adjustBtn.classList.toggle('primary', adjustMode);
       addBoxBtn.textContent = addMode ? 'Cancel add' : '+ Add box';
       addBoxBtn.classList.toggle('primary', addMode);
+      deleteBoxBtn.disabled = !boxes.length || adjustMode || addMode || selectedIdx < 0;
       confirmBtn.classList.toggle('primary', !drawingOn);
       classSel.disabled = false;
       if (addMode) {
@@ -1245,7 +1299,7 @@ export function initRoiTraining(root) {
       const next = boxes.map((b, i) => (i === selectedIdx
         ? { ...b, className: n }
         : b));
-      await saveBoxes(next, `Label → ${labelWithRole(n)}`);
+      await saveBoxes(next, `Label → ${labelFor(n) || n}`);
     });
 
     head.querySelector('.rt-review-close').addEventListener('click', closeReviewEditor);
@@ -1264,11 +1318,28 @@ export function initRoiTraining(root) {
       if (addMode) setAddMode(false);
       else setAddMode(true);
     });
+    deleteBoxBtn.addEventListener('click', async () => {
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return;
+      if (adjustMode || addMode) setDrawModes({});
+      const removed = labelFor(boxes[selectedIdx].className)
+        || boxes[selectedIdx].className
+        || `window ${selectedIdx + 1}`;
+      const next = boxes.filter((_, i) => i !== selectedIdx);
+      selectedIdx = next.length ? Math.min(selectedIdx, next.length - 1) : -1;
+      if (await saveBoxes(next, `Deleted ${removed}.`)) {
+        syncLabelControls();
+        repaintScene();
+        status.textContent = next.length
+          ? idleStatus()
+          : 'No boxes left — + Add box or Discard sample.';
+      }
+    });
     discardModalBtn.addEventListener('click', async () => {
       discardModalBtn.disabled = true;
       confirmBtn.disabled = true;
       adjustBtn.disabled = true;
       addBoxBtn.disabled = true;
+      deleteBoxBtn.disabled = true;
       try {
         await DiscardRoiTrainingSample(datasetDir, sample.split, sample.name);
         card.remove();
@@ -1280,6 +1351,7 @@ export function initRoiTraining(root) {
         confirmBtn.disabled = false;
         adjustBtn.disabled = false;
         addBoxBtn.disabled = false;
+        deleteBoxBtn.disabled = false;
       }
     });
 
@@ -1325,7 +1397,10 @@ export function initRoiTraining(root) {
     const wrap = el('#rt-class-chips');
     if (!wrap) return;
     wrap.innerHTML = '';
-    const known = fromData.length ? fromData : allNames.slice(0, MAX_REGIONS);
+    // Always offer the full taxonomy (+ extra dataset names). Showing only
+    // classes.json (often just glans from early tip-only datasets) made other
+    // BODY_REGIONS look unavailable for marking/tracking.
+    const known = [...new Set([...(allNames || CLASS_PRESETS), ...(fromData || [])])];
     if (!known.length) {
       wrap.innerHTML = '<span class="hint">No classes yet — use the English body-part presets or mark a region.</span>';
       return;
@@ -1333,7 +1408,7 @@ export function initRoiTraining(root) {
     const label = document.createElement('span');
     label.className = 'hint';
     label.style.marginRight = '6px';
-    label.textContent = fromData.length ? 'From dataset:' : 'Body parts:';
+    label.textContent = fromData.length ? 'Body parts (+ dataset):' : 'Body parts:';
     wrap.appendChild(label);
     known.forEach(name => {
       const btn = document.createElement('button');

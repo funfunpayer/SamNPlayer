@@ -210,8 +210,9 @@ func ListRoiTrainingDevices() []RoiTrainingDevice {
 }
 
 // RoiTrainingRegion is a marked box + class for the YOLO bootstrap dataset
-// (bootstrap_yolo_dataset.py). ROI1 is required; ROI2–ROI9 optional (up to
-// bodyparts.MaxRegionsPerImage classes on one frame).
+// (bootstrap_yolo_dataset.py). ROI1 is required; ROI2+ optional (up to
+// bodyparts.MaxRegionsPerImage free tag boxes on one frame; duplicate class
+// IDs allowed). Every region is CSRT-tracked — not tip/glans only.
 type RoiTrainingRegion struct {
 	ROI       ROI    `json:"ROI"`
 	ClassName string `json:"ClassName"`
@@ -390,7 +391,10 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	if boxScale > 0 && (boxScale < 0.999 || boxScale > 1.001) {
 		args = append(args, "--box-scale", fmt.Sprintf("%.3f", boxScale))
 	}
-	for i := 1; i < len(regions) && i < 9; i++ {
+	// Pass every free-tag region (full BODY_REGIONS / duplicate labels), not only
+	// the first slot — older i<9 cap silently dropped nipples/breasts when capacity
+	// rose above 9 and made multi-class tracking look "glans-only".
+	for i := 1; i < len(regions); i++ {
 		n := i + 1
 		args = append(args,
 			"--roi"+itoa(n), roiArg(regions[i].ROI),

@@ -220,6 +220,22 @@ def main():
               "nipples need two" in page.locator("#root > .hint").first.inner_text().lower()
               or "same label" in page.locator("#root > .hint").first.inner_text().lower(),
               page.locator("#root > .hint").first.inner_text()[:120])
+        check("Copy sagt jedes Label wird getrackt (nicht nur Glans)",
+              "every" in page.locator("#root > .hint").first.inner_text().lower()
+              and "glans" in page.locator("#root > .hint").first.inner_text().lower(),
+              page.locator("#root > .hint").first.inner_text()[:160])
+        check("Collect Delete pro Box vorhanden",
+              page.locator('#rt-mark-fields button[data-delete-mark]').count() >= 2)
+        # Delete box 1 → compact; remaining nipples stays labeled, Use for training free
+        page.locator('#rt-mark-fields button[data-delete-mark="0"]').click()
+        page.wait_for_timeout(50)
+        check("Delete kompaktioniert auf eine Box",
+              page.locator('#rt-mark-fields button[data-delete-mark]').count() == 1)
+        check("Nach Delete bleibt Use for training frei",
+              not page.locator("#rt-bootstrap").is_disabled())
+        check("Chips listen Nipples (volle Taxonomy)",
+              "nipples" in page.locator("#rt-class-chips").inner_text().lower()
+              or "nipple" in page.locator("#rt-class-chips").inner_text().lower())
 
         # Restore a normal bootstrap path (brust + hand) for review samples -----
         page.click("#rt-clear-marks")
@@ -351,6 +367,26 @@ def main():
                     added_names.append(str(b.get("className") or b.get("ClassName") or "").lower())
         check("+ Add box kann nipples als Label setzen",
               "nipples" in added_names, str(added_names))
+
+        # Delete box: remove selected free tag (Korrektur)
+        before_del = page.evaluate(
+            "() => window.__calls.filter(c => Array.isArray(c) && c[0] === 'update').length")
+        n_boxes = page.locator("#rt-review-box-sel option").count()
+        page.click("#rt-review-delete-box")
+        page.wait_for_function(
+            f"() => window.__calls.filter(c => Array.isArray(c) && c[0] === 'update').length > {before_del}",
+            timeout=5000)
+        after_del = page.evaluate(
+            "() => { const u = window.__calls.filter(c => Array.isArray(c) && c[0]==='update'); "
+            "return u.length ? u[u.length-1] : null; }")
+        del_len = 0
+        if isinstance(after_del, list) and len(after_del) >= 4 and isinstance(after_del[3], list):
+            del_len = len(after_del[3])
+        check("Delete box speichert eine Box weniger",
+              del_len == max(0, n_boxes - 1) or del_len < n_boxes,
+              f"before_opts={n_boxes} after_boxes={del_len} call={str(after_del)[:160]}")
+        check("Delete box Button vorhanden",
+              page.locator("#rt-review-delete-box").count() == 1)
 
         page.locator(".rt-review-overlay button:text('Confirm correct')").click()
         page.wait_for_function(
