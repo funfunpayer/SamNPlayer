@@ -514,6 +514,9 @@ func (a *App) shutdown(ctx context.Context) {
 	if cancel != nil {
 		cancel()
 	}
+	// Ein laufendes KI-Training (kann Stunden dauern) nicht als
+	// unsichtbaren Python-Prozess weiterlaufen lassen.
+	a.CancelRoiTraining()
 	if dev != nil {
 		_ = dev.Stop()
 		_ = dev.Disconnect()

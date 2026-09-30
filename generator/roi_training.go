@@ -2,11 +2,13 @@ package generator
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/logging"
@@ -236,6 +238,14 @@ func BootstrapRoiTrainingSample(videoPath string, regions []RoiTrainingRegion, o
 // onPercent receives 0–100 (or -1) from Python PROGRESS lines during tracking.
 func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
 	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string), onPercent func(pct int)) error {
+	return BootstrapRoiTrainingSampleOptsCtx(context.Background(), videoPath, regions, outputDir, samplePrefix,
+		sampleEvery, extractAudio, startSeconds, boxScale, onProgress, onPercent)
+}
+
+// BootstrapRoiTrainingSampleOptsCtx is BootstrapRoiTrainingSampleOpts with a
+// context: cancelling it stops the tracking Python (GUI cancel, app close).
+func BootstrapRoiTrainingSampleOptsCtx(ctx context.Context, videoPath string, regions []RoiTrainingRegion, outputDir, samplePrefix string,
+	sampleEvery int, extractAudio bool, startSeconds, boxScale float64, onProgress func(line string), onPercent func(pct int)) error {
 	if len(regions) == 0 {
 		return fmt.Errorf("generator: at least one region required")
 	}
@@ -256,11 +266,11 @@ func BootstrapRoiTrainingSampleOpts(videoPath string, regions []RoiTrainingRegio
 		boxScale = 1.0
 	}
 
-	if err := runPythonScript(py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
+	if err := runPythonScriptCtx(ctx, py, buildBootstrapArgsOpts(scriptPath, videoPath, regions, outputDir, samplePrefix, sampleEvery, startSeconds, boxScale),
 		"roi_training", onProgress, onPercent); err != nil {
 		return err
 	}
-	if extractAudio {
+	if extractAudio && ctx.Err() == nil {
 		path, err := ExtractTrainingAudio(videoPath, outputDir, samplePrefix, startSeconds)
 		if err != nil {
 			if onProgress != nil {
@@ -287,6 +297,15 @@ func RunRoiModelTraining(datasetDir, outputModelPath string, epochs int, device 
 // (ultralytics rarely emits PROGRESS lines; kept for API symmetry / future hooks).
 func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs int, device string,
 	onProgress func(line string), onPercent func(pct int)) error {
+	return RunRoiModelTrainingCtx(context.Background(), datasetDir, outputModelPath, epochs, device, onProgress, onPercent)
+}
+
+// RunRoiModelTrainingCtx is RunRoiModelTrainingWithProgress with a context:
+// cancelling it stops the training Python. Without it an hours-long run
+// could neither be cancelled nor stopped by closing the app - the hidden
+// Python process kept the CPU/GPU busy.
+func RunRoiModelTrainingCtx(ctx context.Context, datasetDir, outputModelPath string, epochs int, device string,
+	onProgress func(line string), onPercent func(pct int)) error {
 	dataYAML := filepath.Join(datasetDir, "data.yaml")
 	if _, err := os.Stat(dataYAML); err != nil {
 		return fmt.Errorf("no training dataset yet (missing %s). In AI Train: mark region(s), click “Use for training”, then start training", dataYAML)
@@ -305,7 +324,7 @@ func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs 
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "train_yolo_model.py")
 
-	return runPythonScript(py, buildTrainArgs(scriptPath, datasetDir, outputModelPath, epochs, device),
+	return runPythonScriptCtx(ctx, py, buildTrainArgs(scriptPath, datasetDir, outputModelPath, epochs, device),
 		"roi_training", onProgress, onPercent)
 }
 
@@ -315,7 +334,16 @@ func RunRoiModelTrainingWithProgress(datasetDir, outputModelPath string, epochs 
 // Log-Weiterleitung und Erfolg/Fehler, kein geparstes Ergebnis auf stdout.
 func runPythonScript(py string, args []string, logPrefix string,
 	onProgress func(line string), onPercent func(pct int)) error {
-	cmd := command(py, args...)
+	return runPythonScriptCtx(context.Background(), py, args, logPrefix, onProgress, onPercent)
+}
+
+// runPythonScriptCtx is runPythonScript bound to ctx: cancelling kills the
+// process. WaitDelay bounds the wait for stderr if a child process (e.g. a
+// data-loader worker) still holds the pipe after the kill.
+func runPythonScriptCtx(ctx context.Context, py string, args []string, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) error {
+	cmd := commandContext(ctx, py, args...)
+	cmd.WaitDelay = 5 * time.Second
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -349,6 +377,9 @@ func runPythonScript(py string, args []string, logPrefix string,
 		}
 	}
 	if err := cmd.Wait(); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return fmt.Errorf("generator: %s abgebrochen: %w", logPrefix, ctxErr)
+		}
 		return fmt.Errorf("generator: %s fehlgeschlagen: %w\nLetzte Ausgabe:\n%s",
 			logPrefix, err, joinLines(lastLines))
 	}

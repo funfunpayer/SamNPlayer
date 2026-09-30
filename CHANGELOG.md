@@ -8,8 +8,31 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Setting: honor OFS "inverted"** (`playback.honor_inverted`, default
+  on = behavior since v0.5.44) — files that carry `"inverted": true` although
+  their author never meant players to flip them can be played as written.
+  Switching it reloads the open script. (Checkbox in Settings: Cursor.)
+
 ### Fixed
 
+- **AI Train: training could not be stopped, and kept running after closing
+  the app** — the YOLO training (minutes to hours) and the sample
+  bootstrap ran Python without a way to cancel it. Closing SamNPlayer left
+  that process running invisibly, keeping the CPU/GPU busy. Both runs are
+  now cancellable (`CancelRoiTraining`; button: Cursor) and are stopped when
+  the app closes. The "a run is already in progress" guard is now
+  thread-safe.
+- **Review "Invert" did nothing on OFS files with `"inverted": true`** — it
+  flipped the stored points and cleared the flag, so the played curve stayed
+  exactly the same. It now flips what Play shows. The polarity hint also
+  looks at the played curve, so it no longer suggests inverting a file whose
+  flag already sets the direction right.
+- **`.samn` from an inverted `.funscript`** — converting lost the inversion
+  (`.samn` has no flag), and the companion export kept `"inverted": true` on
+  points that were already as played, so other players flipped twice. The
+  conversion now takes the played positions, and the export drops the flag.
 - **Settings lost after a crash** — every knob change rewrites
   `settings.json` in place. A crash or power loss mid-write left it half
   written; the app then started with defaults and the next knob change

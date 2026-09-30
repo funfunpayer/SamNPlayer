@@ -23,7 +23,22 @@ func (a *App) loadScriptDocument(path string) (*funscript.Script, error) {
 		}
 		return doc.ToFunscript()
 	}
-	return funscript.Load(path)
+	script, err := funscript.Load(path)
+	if err != nil {
+		return nil, err
+	}
+	if script.Inverted && !a.honorInverted() {
+		// Schalter aus: die Datei wird so abgespielt, wie die Punkte
+		// dastehen. Alles, was danach PlaybackActions nutzt (Kurve,
+		// Gerät, SAM, Invertieren, .samn-Umwandlung), sieht dasselbe.
+		script.Inverted = false
+	}
+	return script, nil
+}
+
+// honorInverted: see prefPlaybackHonorInverted (default on).
+func (a *App) honorInverted() bool {
+	return a.settings == nil || a.settings.GetBool(prefPlaybackHonorInverted, true)
 }
 
 func (a *App) reloadLoadedScript() error {

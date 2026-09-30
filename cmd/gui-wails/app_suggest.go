@@ -13,7 +13,7 @@ func (a *App) SuggestPolarity() (funscript.PolarityHint, error) {
 	if script == nil {
 		return funscript.PolarityHint{}, fmt.Errorf("no script loaded")
 	}
-	return funscript.SuggestPolarity(script.Actions), nil
+	return funscript.SuggestPolarity(script.PlaybackActions()), nil
 }
 
 func (a *App) InvertLoadedScript() error {
@@ -25,8 +25,13 @@ func (a *App) InvertLoadedScript() error {
 	if path == "" {
 		return fmt.Errorf("no script path")
 	}
-	actions := make([]funscript.Action, len(script.Actions))
-	for i, act := range script.Actions {
+	// Flip what Play shows. With an OFS "inverted" flag that is 100−pos,
+	// so the stored points become the flipped PLAYED curve and the flag is
+	// cleared below - flipping the raw points instead left the played
+	// curve exactly as it was.
+	played := script.PlaybackActions()
+	actions := make([]funscript.Action, len(played))
+	for i, act := range played {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
 	if err := a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions); err != nil {

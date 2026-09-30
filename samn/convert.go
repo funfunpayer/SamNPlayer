@@ -18,7 +18,8 @@ func FromFunscript(s *funscript.Script, videoPath string) *Document {
 		Creator:    s.Metadata.Creator,
 		DurationMs: int64(s.Metadata.Duration),
 		Profile:    s.Metadata.Profile,
-		General:    append([]Point(nil), s.Actions...),
+		// As played: an OFS "inverted" flag is baked in, .samn has none.
+		General: append([]Point(nil), s.PlaybackActions()...),
 	}
 	if d.DurationMs <= 0 {
 		d.DurationMs = s.Duration()
@@ -192,7 +193,8 @@ func (d *Document) ExportFunscript(path string) error {
 	doc := map[string]any{}
 	if old, ok := readJSONObject(path); ok {
 		for k, v := range old {
-			if k != "actions" && k != "metadata" {
+			// "inverted": the exported actions are already as played.
+			if k != "actions" && k != "metadata" && k != "inverted" {
 				doc[k] = v
 			}
 		}
