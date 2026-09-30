@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Create: remember Feel + Expert knobs** — Contact Sensitivity / Curve and
+  Expert Smooth / Peak spacing / Prominence / RDP / Max speed / Adaptive restore
+  from settings (HTML defaults unchanged; Smooth/Peakdist/Prominence/RDP/Max-speed
+  still preserve 0). Everyday CSRT path unchanged.
+
 - **Play: remember OFS / Feel knobs** — Cap / Speed-HL / Scale / FPS-Snap /
   BPM-grid / O-marker Intensity / Feel heatbands (+ opacity) / Contact Strength
   restore from settings across sessions (same defaults as the HTML knobs). BPM

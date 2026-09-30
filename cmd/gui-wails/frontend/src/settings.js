@@ -62,6 +62,14 @@ export function saveSetting(key, value) {
       'generator.roiTrainingDatasetDir': 'roiDatasetDir',
       'generator.collectLearningData': 'collectLearningData',
       'generator.applyAISetupAutomatically': 'applyAISetupAutomatically',
+      'generator.contact_vibration_span': 'genContactVibrationSpan',
+      'generator.contact_vibration_curve': 'genContactVibrationCurve',
+      'generator.smooth_window': 'genSmoothWindow',
+      'generator.min_peak_distance_ms': 'genMinPeakDistanceMs',
+      'generator.peak_prominence': 'genPeakProminence',
+      'generator.rdp_tolerance': 'genRDPTolerance',
+      'generator.max_speed': 'genMaxSpeed',
+      'generator.adaptive_keyframe': 'genAdaptiveKeyframe',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;
