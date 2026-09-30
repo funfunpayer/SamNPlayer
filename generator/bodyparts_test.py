@@ -11,6 +11,8 @@ def test_normalize_aliases():
     assert bp.normalize("Brust") == "breasts"
     assert bp.normalize("eichel") == "glans"
     assert bp.normalize("Hand") == "hand_1"
+    assert bp.normalize("hand_left") == "hand_1"
+    assert bp.normalize("hand_right") == "hand_2"
     assert bp.normalize("Mund") == "mouth"
     assert bp.normalize("vagina") == "vagina"
     assert bp.normalize("custom_toy") == "custom_toy"
