@@ -27,7 +27,10 @@ func (a *App) InvertLoadedScript() error {
 	for i, act := range script.Actions {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
-	return a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions)
+	if err := a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions); err != nil {
+		return err
+	}
+	return funscript.WriteInverted(path, false)
 }
 
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {
@@ -70,13 +73,6 @@ func (a *App) ApplySuggestedOZone() (funscript.OZoneSuggestion, error) {
 	return zone, a.SaveOMarkers(path, markers)
 }
 
-// secondaryMarkerFromSuggestion leitet die Intensität eines sekundären
-// O-Markers aus dem Stärkeverhältnis zum Hauptmarker ab (sec.Mean/
-// primary.Mean) statt eine feste Zahl zu erfinden - "nicht so doll" (der
-// Nutzer, 14. September 2026) wird so vom tatsächlichen Signal bestimmt,
-// nicht geraten. Geklemmt auf 0.2-0.8: unter 0.2 wäre kaum wahrnehmbar,
-// SuggestSecondaryOZones' eigener Filter schließt alles über 0.85 des
-// Hauptmarkers ohnehin schon aus.
 func secondaryMarkerFromSuggestion(sec, primary funscript.OZoneSuggestion) funscript.OMarker {
 	intensity := 0.5
 	if primary.Mean > 0 {
@@ -96,10 +92,6 @@ func secondaryMarkerFromSuggestion(sec, primary funscript.OZoneSuggestion) funsc
 	}
 }
 
-// ApplyRingDown hängt nach atMs gedämpfte Halbzyklen an (siehe funscript.RingDown)
-// und speichert das Skript. cycles wird auf 1–2 geklemmt. Position unter 10
-// wird abgelehnt, damit keine unnötigen Null-Zyklen entstehen. Bestätigung
-// bleibt der UI überlassen.
 func (a *App) ApplyRingDown(atMs int64, cycles int) error {
 	script := a.loadedScript()
 	path := a.loadedScriptPath()
