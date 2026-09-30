@@ -5,6 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
 // settingsStore ist eine bewusst simple JSON-Datei-Persistenz - kein
@@ -38,7 +42,22 @@ func (s *settingsStore) load() {
 	if err != nil {
 		return // Datei existiert noch nicht - leere Defaults sind ok
 	}
-	_ = json.Unmarshal(b, &s.data)
+	var data map[string]any
+	if err := json.Unmarshal(b, &data); err != nil {
+		// Unlesbar (z.B. halb geschrieben): beiseitelegen statt beim
+		// nächsten Regler-Klick mit Defaults zu überschreiben - sonst
+		// wären alle Einstellungen unwiederbringlich weg.
+		aside := s.path + ".corrupt-" + time.Now().Format("20060102-150405")
+		if renameErr := os.Rename(s.path, aside); renameErr != nil {
+			logging.Warn("settings: unreadable settings file", "path", s.path, "error", err, "rename_error", renameErr)
+		} else {
+			logging.Warn("settings: unreadable settings file kept aside, using defaults", "path", aside, "error", err)
+		}
+		return
+	}
+	if data != nil { // "null" ließe die Map nil - Set() würde abstürzen
+		s.data = data
+	}
 }
 
 func (s *settingsStore) save() error {
@@ -48,7 +67,9 @@ func (s *settingsStore) save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.path, b, 0644)
+	// Atomar: jeder Regler speichert sofort, ein Absturz mitten im
+	// Schreiben darf die Datei nicht halb zurücklassen.
+	return funscript.WriteFileAtomic(s.path, b, 0o644)
 }
 
 func (s *settingsStore) GetString(key, fallback string) string {
