@@ -58,10 +58,22 @@ export function initGenerator(root, playback) {
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
       <h3 class="gen-step-title">2 · Tip &amp; contact</h3>
+      <div class="gen-mark-snack" id="gen-mark-snack" aria-live="polite">
+        <ol class="gen-mark-snack-steps">
+          <li data-snack="tip" class="is-current">1 · Tip (stroke)</li>
+          <li data-snack="partner">2 · Partner touch</li>
+          <li data-snack="extra">3 · More (optional)</li>
+        </ol>
+        <p class="hint gen-mark-snack-hint" id="gen-mark-snack-hint">
+          Like FunGen2: you do <b>not</b> paint a motion path. Tip = the small box CSRT follows for the stroke.
+          Partner marks = where Contact vibration should feel — not the stroke.
+        </p>
+      </div>
       <p class="hint" style="margin-top:0">
         Create does <b>not</b> need a stroke/motion path (FunGen2 / Everyday).
         <b>Find tip</b> auto-boxes the tip — paint or drag only if Find missed.
         Contact marks (below) are touch points for Contact vibration, not the stroke.
+        CSRT sticks to the tip box’s look — after a big camera-angle change, press Find tip again or nudge the box.
       </p>
       <div class="row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
@@ -144,9 +156,9 @@ export function initGenerator(root, playback) {
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration — optional <b>touch points</b> only (not a stroke path; not required to Create).
-          Minimal set: <b>Mouth</b> · <b>Nipple/breast</b> · <b>Glans/penis</b> (tip).
-          Vib still follows stroke depth today; marks store where touch should feel.
+          Contact vibration snack — mark in order when you want spatial feel:
+          <b>1 Tip</b> (Find tip / teal) → <b>2 Partner</b> (Mark contact / gold: mouth or nipple) →
+          <b>3 More</b> (+ Another, e.g. second nipple). Skip 2–3 anytime; Create still works.
         </p>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
           <label style="width:auto;" data-help="Optional tip label: Glans preferred, or whole Penis. Empty = any. Contact-vibe set only — not required for CSRT Create.">Tip (glans/penis)</label>
@@ -158,8 +170,8 @@ export function initGenerator(root, playback) {
             <option value="">(pick class)</option>
           </select>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
-            <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
+            data-help="Partner fest (Pixel): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+            <input type="checkbox" id="gen-roi2-fixed" /> Partner fest (Pixel)
           </label>
         </div>
         <div class="row" style="align-items:center; margin-top:6px;">
@@ -1110,11 +1122,11 @@ export function initGenerator(root, playback) {
 
   function updateRoiLabels() {
     el('#gen-roi-label').textContent = roi
-      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels)`
-      : 'No region marked';
+      ? `Tip (stroke tracker): x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} — CSRT follows this box only; after a big angle change press Find tip`
+      : 'No tip box yet (Find tip runs on Create — no motion path to paint)';
     el('#gen-roi2-label').textContent = roi2
       ? secondRegionLabel(roi2, 'gold')
-      : 'No contact area marked';
+      : 'No partner touch marked (optional)';
     const extras = el('#gen-extras-label');
     if (extras) {
       const parts = [];
@@ -1144,7 +1156,49 @@ export function initGenerator(root, playback) {
     if (be !== 'csrt') {
       el('#gen-backend').value = 'csrt';
     }
+    syncMarkSnack();
     updateGenerateEnabled();
+  }
+
+  // Guided snack for Tip → Partner → Extra (Contact vibe). Everyday still
+  // works with tip alone / auto-find — this only clarifies order.
+  function syncMarkSnack() {
+    const snack = el('#gen-mark-snack');
+    const hint = el('#gen-mark-snack-hint');
+    if (!snack || !hint) return;
+    const vibOn = !!el('#gen-contact-vibration')?.checked;
+    snack.style.display = vibOn ? '' : 'none';
+    if (!vibOn) return;
+
+    const hasTip = !!roi;
+    const hasPartner = !!roi2;
+    const hasExtra = extraTargets.length > 0;
+    let current = 'tip';
+    if (hasTip && !hasPartner) current = 'partner';
+    else if (hasTip && hasPartner) current = 'extra';
+
+    snack.querySelectorAll('[data-snack]').forEach((li) => {
+      const key = li.getAttribute('data-snack');
+      const done = (key === 'tip' && hasTip)
+        || (key === 'partner' && hasPartner)
+        || (key === 'extra' && hasExtra);
+      li.classList.toggle('is-done', done && key !== current);
+      li.classList.toggle('is-current', key === current);
+    });
+
+    if (!hasTip) {
+      hint.innerHTML = 'Snack <b>1</b>: press <b>Find tip</b> (or drag only if Find missed). '
+        + 'That teal box is the stroke tracker — not a whole-frame motion path.';
+    } else if (!hasPartner) {
+      hint.innerHTML = 'Snack <b>2</b>: <b>Mark contact</b> (gold) on mouth or nipple/breast. '
+        + 'Optional — Create works without it. Tip CSRT already owns the stroke.';
+    } else if (!hasExtra) {
+      hint.innerHTML = 'Snack <b>3</b> (optional): <b>+ Another contact</b> for a second nipple/mouth, then Create. '
+        + 'Partner fest (Pixel) only if that touch barely moves.';
+    } else {
+      hint.innerHTML = 'Tip + partner + extras set. Ready for Feel → Create. '
+        + 'After a big camera-angle change, re-run <b>Find tip</b>.';
+    }
   }
 
   // CSRT needs a tip mark. (Legacy no-mark backends are CLI-only now.)
@@ -1288,11 +1342,11 @@ export function initGenerator(root, playback) {
     const prompt = el('#gen-step-prompt');
     if (!prompt) return;
     if (!hasVideo) {
-      prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
+      prompt.textContent = 'Start here: choose a video. Like FunGen2 — no motion path to paint; we find the tip.';
     } else if (!hasRoi1 && !noMark) {
-      prompt.textContent = 'Finding tip… or mark / pick a spot. Then Create.';
+      prompt.textContent = 'Snack 1: Find tip (auto) — or mark only if Find missed. Tip = stroke box, not whole-scene tracking.';
     } else if (!canRun && !generating) {
-      prompt.textContent = 'Step 3: Contact vibration is on by default — Create unlocks when tracking is ready.';
+      prompt.textContent = 'Snack 2–3 optional: partner touch for Contact vibe, then Feel. Create unlocks when tip is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
@@ -1302,6 +1356,7 @@ export function initGenerator(root, playback) {
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve.';
     }
+    syncMarkSnack();
   }
 
   function updateGenerateEnabled() {
@@ -1693,6 +1748,7 @@ export function initGenerator(root, playback) {
       }
     }
     syncRoi2FixedDefault();
+    syncMarkSnack();
     updateGenerateEnabled();
   }
 
@@ -2729,12 +2785,15 @@ export function initGenerator(root, playback) {
       setRoi2Mode(false);
       // Zone 2 is optional for Contact vib — do not switch to legacy Tf/Tj.
       el('#gen-status').textContent = contactVibrationOn()
-        ? 'Optional contact zone set — Contact vib on (stroke depth / approach). Click body map to set Contact type.'
+        ? 'Snack 2 done — partner touch (gold). Optional: + Another, or continue to Feel → Create.'
         : 'Optional contact zone set.';
       setSelectedMark({ kind: 'contact' });
     } else {
       roi = box;
       setSelectedMark({ kind: 'tip' });
+      el('#gen-status').textContent = contactVibrationOn()
+        ? 'Snack 1 done — tip box is the stroke tracker (CSRT). Next: Mark contact (gold), or skip to Create.'
+        : 'Tip box set — CSRT follows this look; Find tip again after a big camera-angle change.';
     }
     updateRoiLabels();
     updateGenerateEnabled();

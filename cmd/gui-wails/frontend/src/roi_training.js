@@ -33,7 +33,8 @@ export function initRoiTraining(root) {
       Draw boxes freely (up to ${MAX_REGIONS} per image), then assign each to a class
       (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina).
       The same label may be used more than once — <b>Nipples need two boxes</b> (left + right).
-      <b>Use for training</b> tracks <b>every</b> labeled box (nipples/breasts/…), not only Glans.
+      <b>Use for training</b> tracks <b>every</b> labeled box through the clip (CSRT per tag) —
+      not Glans-only. If you only paint Glans, only Glans is tracked — mark partners too.
       Add or delete tags anytime. Audio is stored with the dataset.
     </p>
     <div class="card" style="margin-bottom:16px; padding:12px 14px;">
@@ -91,6 +92,9 @@ export function initRoiTraining(root) {
       <button id="rt-clear-marks" type="button">Clear all</button>
       <span class="hint" style="margin:0">Active box: <span id="rt-active-mark">1</span>/${MAX_REGIONS} — Shift+drag = next empty · then assign label (type any new tag name)</span>
     </div>
+    <p class="hint" id="rt-track-plan" style="margin:4px 0 8px 0;" aria-live="polite">
+      Will track: (mark + label at least one box)
+    </p>
     <div class="row" style="align-items:center; flex-wrap:wrap; margin:4px 0;">
       <input type="text" id="rt-new-tag" placeholder="new custom tag…" style="width:10em;"
         list="rt-class-list" aria-label="New custom tag name" />
@@ -427,14 +431,28 @@ export function initRoiTraining(root) {
   function updateBootstrapEnabled() {
     let labeled = 0;
     let missingClass = false;
+    const names = [];
     for (let i = 0; i < MAX_REGIONS; i++) {
       if (!marks[i]) continue;
       const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
       if (!cls) missingClass = true;
-      else labeled += 1;
+      else {
+        labeled += 1;
+        names.push(labelFor(normalizeClass(cls) || cls) || cls);
+      }
     }
     // Any labeled free-tag set unlocks bootstrap — not tip/glans / marks[0] only.
     el('#rt-bootstrap').disabled = !(sourcePath && labeled > 0 && !missingClass);
+    const plan = el('#rt-track-plan');
+    if (plan) {
+      if (!labeled) {
+        plan.textContent = 'Will track: (mark + label at least one box — every labeled box, not Glans-only)';
+      } else if (missingClass) {
+        plan.textContent = `Will track ${labeled} labeled + unlabeled boxes waiting — assign a class to each painted box.`;
+      } else {
+        plan.textContent = `Will track ${labeled} tag${labeled === 1 ? '' : 's'}: ${names.join(', ')}`;
+      }
+    }
     updateNipplesHint();
   }
 

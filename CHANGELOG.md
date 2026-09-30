@@ -8,6 +8,19 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Play: taller curve + heatmap** — curve strip 120→176px, intensity heatmap
+  28→56px (same zoom/selection tools). Easier to read Feel bands and intensity.
+- **Create: Tip → Partner snack guide** — Step 2 shows a compact snack
+  (1 Tip / 2 Partner touch / 3 More) so Contact vibe marking matches FunGen2
+  mental model: no motion path; tip box = CSRT stroke only; gold marks =
+  optional touch feel. Labels clarify angle-change → Find tip again;
+  “Partner fest (Pixel)” renames the old static-contact checkbox.
+- **AI Train: track-plan readout** — live “Will track N tags: …” under the
+  free-tag boxes so multi-class bootstrap is obvious (still tracks every
+  labeled box, not Glans-only).
+
 ### Added
 
 - **Setting: honor OFS "inverted"** (`playback.honor_inverted`, default

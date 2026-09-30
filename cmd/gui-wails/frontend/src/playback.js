@@ -80,8 +80,8 @@ export function initPlayback(root) {
             </div>
           </div>
         </div>
-        <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
-        <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <canvas id="pb-curve" height="176" class="pb-curve" style="display:none"></canvas>
+        <canvas id="pb-heatmap" height="56" class="pb-heatmap" style="display:none"></canvas>
         <div class="row pb-curve-zoom" id="pb-curve-zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
           <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
           <button type="button" id="pb-zoom-out" title="Zoom out">Zoom out</button>
@@ -2046,7 +2046,7 @@ export function initPlayback(root) {
     await refreshSpeedHighlights();
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
-    sizeCanvasForDPR(curveCanvas, 800, 120);
+    sizeCanvasForDPR(curveCanvas, 800, 176);
     redrawCurve();
   }
 
@@ -2251,7 +2251,7 @@ export function initPlayback(root) {
     heatmapCanvas.style.display = 'block';
     el('#pb-marker-hint').style.display = 'block';
     el('#pb-marker-auto-row').style.display = 'flex';
-    sizeCanvasForDPR(heatmapCanvas, 800, 28);
+    sizeCanvasForDPR(heatmapCanvas, 800, 56);
     redrawHeatmap();
   }
 
@@ -3027,11 +3027,11 @@ export function initPlayback(root) {
   // verzerrt skaliert dargestellt.
   window.addEventListener('resize', () => {
     if (curvePoints) {
-      sizeCanvasForDPR(curveCanvas, 800, 120);
+      sizeCanvasForDPR(curveCanvas, 800, 176);
       redrawCurve();
     }
     if (heatmapPoints) {
-      sizeCanvasForDPR(heatmapCanvas, 800, 28);
+      sizeCanvasForDPR(heatmapCanvas, 800, 56);
       redrawHeatmap();
     }
     redrawTrajectory();
