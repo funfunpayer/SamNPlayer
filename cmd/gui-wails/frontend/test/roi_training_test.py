@@ -185,6 +185,61 @@ def main():
         check("Mit beiden Klassennamen wieder frei",
               not page.locator("#rt-bootstrap").is_disabled())
 
+        # --- Free tags: same label twice (nipples×2) is allowed -------------------
+        page.click("#rt-clear-marks")
+        page.wait_for_timeout(50)
+        page.locator("#rt-canvas").scroll_into_view_if_needed()
+        box = page.locator("#rt-canvas").bounding_box()
+        page.mouse.move(box["x"] + 40, box["y"] + 40)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 100, box["y"] + 100, steps=5)
+        page.mouse.up()
+        page.fill("#rt-class1", "nipples")
+        page.locator("#rt-class1").dispatch_event("input")
+        page.wait_for_function(
+            "document.querySelector('#rt-nipples-hint').style.display !== 'none'",
+            timeout=3000)
+        check("Nipples×1 zeigt Hinweis auf zweite Box",
+              "second nipple" in page.locator("#rt-nipples-hint").inner_text().lower()
+              or "zweite" in page.locator("#rt-nipples-hint").inner_text().lower(),
+              page.locator("#rt-nipples-hint").inner_text())
+        page.click("#rt-mark-next")
+        box = page.locator("#rt-canvas").bounding_box()
+        page.mouse.move(box["x"] + 200, box["y"] + 40)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 260, box["y"] + 100, steps=5)
+        page.mouse.up()
+        page.fill("#rt-class2", "nipples")
+        page.locator("#rt-class2").dispatch_event("input")
+        check("Zwei Nipples-Labels halten Use for training frei",
+              not page.locator("#rt-bootstrap").is_disabled())
+        box1_lab = page.locator("#rt-mark-fields .field-row").first.locator("label").inner_text()
+        check("Box-Felder heißen Box N (free tags)",
+              box1_lab.strip() == "Box 1", box1_lab)
+        check("Free-tag Copy erwähnt duplicate / nipples",
+              "nipples need two" in page.locator("#root > .hint").first.inner_text().lower()
+              or "same label" in page.locator("#root > .hint").first.inner_text().lower(),
+              page.locator("#root > .hint").first.inner_text()[:120])
+
+        # Restore a normal bootstrap path (brust + hand) for review samples -----
+        page.click("#rt-clear-marks")
+        page.wait_for_timeout(50)
+        box = page.locator("#rt-canvas").bounding_box()
+        page.mouse.move(box["x"] + 40, box["y"] + 40)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 120, box["y"] + 120, steps=5)
+        page.mouse.up()
+        page.fill("#rt-class1", "brust")
+        page.locator("#rt-class1").dispatch_event("input")
+        page.click("#rt-mark-next")
+        box = page.locator("#rt-canvas").bounding_box()
+        page.mouse.move(box["x"] + 200, box["y"] + 40)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 280, box["y"] + 120, steps=5)
+        page.mouse.up()
+        page.fill("#rt-class2", "hand")
+        page.locator("#rt-class2").dispatch_event("input")
+
         # --- Bootstrap anstoßen und per Event abschließen ---------------------
         page.click("#rt-bootstrap")
         page.wait_for_function(
@@ -225,6 +280,8 @@ def main():
               page.locator(".rt-review-overlay").count() == 1)
         check("Editor zeigt Confirm correct",
               page.locator(".rt-review-overlay button:text('Confirm correct')").count() == 1)
+        check("Editor zeigt + Add box (free tag)",
+              page.locator("#rt-review-add-box").count() == 1)
         check("Editor zeigt Box auf großem Bild",
               page.locator(".rt-review-scene .rt-box").count() >= 1)
         # All taxonomy labels (not only Face) are settable on detection windows.
@@ -242,6 +299,59 @@ def main():
             "window.__calls.some(c => Array.isArray(c) && c[0] === 'update')",
             timeout=5000)
         check("Label-Wechsel ruft UpdateRoiTrainingSample auf", True)
+
+        # + Add box: second free tag with nipples (Korrektur path)
+        before_updates = page.evaluate(
+            "() => window.__calls.filter(c => Array.isArray(c) && c[0] === 'update').length")
+        page.click("#rt-review-add-box")
+        page.wait_for_function(
+            "document.querySelector('.rt-review-viewport.is-adjusting')", timeout=3000)
+        check("+ Add box schaltet Zeichenmodus",
+              page.locator(".rt-review-viewport.is-adjusting").count() == 1)
+        page.select_option("#rt-review-class-sel", "nipples")
+        # 1×1 stub image: drive pointer events on the scene (scaled) so Add finishes.
+        page.evaluate("""() => {
+          const vp = document.querySelector('.rt-review-viewport');
+          const scene = document.querySelector('.rt-review-scene');
+          if (!vp || !scene) throw new Error('missing review stage');
+          const r = scene.getBoundingClientRect();
+          const x0 = r.left + r.width * 0.1, y0 = r.top + r.height * 0.1;
+          const x1 = r.left + r.width * 0.45, y1 = r.top + r.height * 0.45;
+          const fire = (type, x, y) => {
+            vp.dispatchEvent(new PointerEvent(type, {
+              bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse',
+              clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1,
+            }));
+          };
+          fire('pointerdown', x0, y0);
+          fire('pointermove', x1, y1);
+          window.dispatchEvent(new PointerEvent('pointermove', {
+            bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse',
+            clientX: x1, clientY: y1, button: 0, buttons: 1,
+          }));
+          window.dispatchEvent(new PointerEvent('pointerup', {
+            bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse',
+            clientX: x1, clientY: y1, button: 0, buttons: 0,
+          }));
+        }""")
+        page.wait_for_function(
+            f"() => window.__calls.filter(c => Array.isArray(c) && c[0] === 'update').length > {before_updates}",
+            timeout=5000)
+        last_update = page.evaluate(
+            "() => { const u = window.__calls.filter(c => Array.isArray(c) && c[0]==='update'); "
+            "return u.length ? u[u.length-1] : null; }")
+        check("+ Add box speichert zusätzliche Box",
+              isinstance(last_update, list) and len(last_update) >= 4
+              and isinstance(last_update[3], list) and len(last_update[3]) >= 2,
+              str(last_update)[:200])
+        added_names = []
+        if isinstance(last_update, list) and len(last_update) >= 4:
+            for b in last_update[3]:
+                if isinstance(b, dict):
+                    added_names.append(str(b.get("className") or b.get("ClassName") or "").lower())
+        check("+ Add box kann nipples als Label setzen",
+              "nipples" in added_names, str(added_names))
+
         page.locator(".rt-review-overlay button:text('Confirm correct')").click()
         page.wait_for_function(
             "document.querySelectorAll('.rt-review-overlay').length === 0", timeout=5000)

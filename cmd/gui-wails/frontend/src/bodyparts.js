@@ -1,6 +1,7 @@
 /** Canonical English body-region taxonomy (mirrors generator/bodyparts). */
 
-export const MAX_REGIONS = 9;
+/** Free tag boxes per training frame (assign labels afterward; duplicates OK). */
+export const MAX_REGIONS = 12;
 
 export const CANONICAL = [
   { id: 'face', label: 'Face', aliases: ['kopf', 'gesicht'] },

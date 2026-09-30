@@ -264,6 +264,54 @@ func TestUpdateRoiTrainingSampleRegistersAnyTaxonomyLabel(t *testing.T) {
 	}
 }
 
+// Free tags / AI Korrektur: same class ID on two boxes (both nipples) must persist.
+func TestUpdateRoiTrainingSampleAllowsDuplicateNipples(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "classes.json"), []byte(`{"nipples":0}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeRoiSample(t, dir, "train", "clip_000000", "0 0.3 0.4 0.08 0.08\n")
+
+	a := NewApp()
+	boxes := []RoiTrainingBox{
+		{ClassID: 0, ClassName: "nipples", XC: 0.35, YC: 0.42, W: 0.08, H: 0.08},
+		{ClassID: 0, ClassName: "nipples", XC: 0.55, YC: 0.42, W: 0.08, H: 0.08},
+	}
+	if err := a.UpdateRoiTrainingSample(dir, "train", "clip_000000.jpg", boxes); err != nil {
+		t.Fatal(err)
+	}
+	samples, err := a.ListRoiTrainingSamples(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(samples) != 1 || len(samples[0].Boxes) != 2 {
+		t.Fatalf("expected 2 nipples boxes, got %+v", samples)
+	}
+	for i, b := range samples[0].Boxes {
+		if b.ClassName != "nipples" {
+			t.Fatalf("box %d class=%q want nipples", i, b.ClassName)
+		}
+	}
+	if samples[0].Boxes[0].XC == samples[0].Boxes[1].XC {
+		t.Fatalf("expected distinct geometry for L/R nipples: %+v", samples[0].Boxes)
+	}
+	labelPath := filepath.Join(dir, "labels", "train", "clip_000000.txt")
+	raw, err := os.ReadFile(labelPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("label file want 2 lines, got %q", raw)
+	}
+	// Same class_id twice is valid YOLO (free tags, not one-slot-per-class).
+	for _, line := range lines {
+		if !strings.HasPrefix(strings.TrimSpace(line), "0 ") {
+			t.Fatalf("expected class_id 0 for both nipples lines, got %q", line)
+		}
+	}
+}
+
 func TestGetRoiDatasetSummaryCountsPerClassAndSplit(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "classes.json"), []byte(`{"eichel":0,"brustwarze":1}`), 0o644); err != nil {
