@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,10 +25,19 @@ const maxBenchmarkHistoryEntries = 30
 // eigenem Event-Namensraum ("benchmark:...") statt "generate:...", damit
 // beide unabhängig laufen könnten (auch wenn die GUI aktuell nur eins nach
 // dem anderen anbietet).
-func (a *App) RunGoldenClipBenchmark(manifestPath string) {
+//
+// Ein zweiter Start während eines laufenden Benchmarks wird abgelehnt
+// (vorher liefen beide parallel und schrieben in dieselbe History-Datei);
+// CancelGoldenClipBenchmark bricht ab, das Schließen der App ebenso.
+func (a *App) RunGoldenClipBenchmark(manifestPath string) error {
+	runCtx, err := a.claimBenchmarkRun()
+	if err != nil {
+		return err
+	}
 	go func() {
+		defer a.releaseBenchmarkRun()
 		historyPath := a.settings.GetString(prefBenchmarkHistoryPath, defaultBenchmarkHistoryPath())
-		result, err := generator.RunGoldenClipBenchmark(manifestPath, historyPath,
+		result, err := generator.RunGoldenClipBenchmarkCtx(runCtx, manifestPath, historyPath,
 			func(line string) { runtime.EventsEmit(a.ctx, "benchmark:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "benchmark:percent", pct) })
 		if err != nil {
@@ -38,6 +49,41 @@ func (a *App) RunGoldenClipBenchmark(manifestPath string) {
 			"clips", result.Summary.Total, "ok", result.Summary.OK)
 		runtime.EventsEmit(a.ctx, "benchmark:done", map[string]any{"result": result})
 	}()
+	return nil
+}
+
+func (a *App) claimBenchmarkRun() (context.Context, error) {
+	a.benchmarkMu.Lock()
+	defer a.benchmarkMu.Unlock()
+	if a.benchmarkCancel != nil {
+		return nil, fmt.Errorf("a benchmark run is already in progress")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.benchmarkCancel = cancel
+	return ctx, nil
+}
+
+func (a *App) releaseBenchmarkRun() {
+	a.benchmarkMu.Lock()
+	defer a.benchmarkMu.Unlock()
+	if a.benchmarkCancel != nil {
+		a.benchmarkCancel()
+		a.benchmarkCancel = nil
+	}
+}
+
+// CancelGoldenClipBenchmark bricht einen laufenden Benchmark ab ("done"
+// meldet dann den Abbruch). Liefert false, wenn keiner lief. Auch beim
+// Schließen der App aufgerufen.
+func (a *App) CancelGoldenClipBenchmark() bool {
+	a.benchmarkMu.Lock()
+	defer a.benchmarkMu.Unlock()
+	if a.benchmarkCancel == nil {
+		return false
+	}
+	a.benchmarkCancel()
+	logging.Info("benchmark: run cancelled")
+	return true
 }
 
 // GetBenchmarkHistory liest die Verlaufsdatei (siehe

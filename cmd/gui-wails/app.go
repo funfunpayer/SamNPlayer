@@ -76,6 +76,11 @@ type App struct {
 	roiSeq    uint64
 	roiCancel context.CancelFunc
 
+	// benchmarkMu/benchmarkCancel: laufender Golden-Clip-Benchmark (siehe
+	// app_benchmark.go) - eigener Lock, unabhängig von stateMu.
+	benchmarkMu     sync.Mutex
+	benchmarkCancel context.CancelFunc
+
 	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
 	// gespeichert, weil er am Videoschnitt hängt und nicht an einer
 	// allgemeinen Vorliebe.
@@ -517,6 +522,7 @@ func (a *App) shutdown(ctx context.Context) {
 	// Ein laufendes KI-Training (kann Stunden dauern) nicht als
 	// unsichtbaren Python-Prozess weiterlaufen lassen.
 	a.CancelRoiTraining()
+	a.CancelGoldenClipBenchmark()
 	if dev != nil {
 		_ = dev.Stop()
 		_ = dev.Disconnect()
