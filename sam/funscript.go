@@ -90,7 +90,7 @@ func ToFunscript(s *Script) *funscript.Script {
 		fs.Metadata.TrackingGaps = toFunscriptGaps(s.Metadata.TrackingGaps)
 	}
 	if len(actions) > 0 {
-		fs.Metadata.Duration = actions[len(actions)-1].At
+		fs.Metadata.Duration = funscript.MetaDuration(actions[len(actions)-1].At)
 	}
 	return fs
 }

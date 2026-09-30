@@ -4,6 +4,7 @@ package funscript
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 )
@@ -14,11 +15,66 @@ type Action struct {
 	Pos int   `json:"pos"`
 }
 
+// UnmarshalJSON liest at/pos auch als Kommazahl ("at": 500.4, "pos": 99.6),
+// wie manche Werkzeuge sie schreiben, und rundet. Vorher scheiterte daran
+// das ganze Skript. Nicht-Zahlen bleiben ein Fehler; geschrieben wird
+// weiter mit ganzen Zahlen.
+func (a *Action) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		At  json.Number `json:"at"`
+		Pos json.Number `json:"pos"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	at, err := roundNumber(raw.At)
+	if err != nil {
+		return fmt.Errorf("at: %w", err)
+	}
+	pos, err := roundNumber(raw.Pos)
+	if err != nil {
+		return fmt.Errorf("pos: %w", err)
+	}
+	a.At, a.Pos = at, int(pos)
+	return nil
+}
+
+func roundNumber(n json.Number) (int64, error) {
+	if n == "" {
+		return 0, nil
+	}
+	if i, err := n.Int64(); err == nil {
+		return i, nil
+	}
+	f, err := n.Float64()
+	if err != nil {
+		return 0, err
+	}
+	return int64(math.Round(math.Max(-1e15, math.Min(1e15, f)))), nil
+}
+
+// MetaDuration is metadata.duration in ms. OFS writes it in seconds, often
+// as a fraction (631.8): read like OFS bookmark times (flexTimeMs), and Parse
+// scales an integer that is far too short for ms. Informational only - an
+// unreadable value ("10:31") becomes 0 instead of failing the whole script,
+// which is what the plain int64 did for every such OFS file.
+type MetaDuration int64
+
+func (d *MetaDuration) UnmarshalJSON(b []byte) error {
+	var t flexTimeMs
+	if err := t.UnmarshalJSON(b); err != nil {
+		*d = 0
+		return nil
+	}
+	*d = MetaDuration(t)
+	return nil
+}
+
 // Script ist das geparste .funscript-Dokument.
 type Script struct {
 	Actions  []Action `json:"actions"`
 	Metadata struct {
-		Duration        int64         `json:"duration"`
+		Duration        MetaDuration  `json:"duration"`
 		Creator         string        `json:"creator"`
 		QualityScore    *float64      `json:"quality_score,omitempty"`
 		QualityPassed   *bool         `json:"quality_passed,omitempty"`
@@ -120,6 +176,11 @@ func Parse(data []byte) (*Script, error) {
 	sort.Slice(s.Actions, func(i, j int) bool {
 		return s.Actions[i].At < s.Actions[j].At
 	})
+	// Ganzzahlige Sekunden (OFS "duration": 631): als ms wäre das weniger
+	// als 1 % der letzten Aktion - so kurz kann die Dauer nicht sein.
+	if d, last := int64(s.Metadata.Duration), s.Duration(); d > 0 && d*100 < last {
+		s.Metadata.Duration = MetaDuration(d * 1000)
+	}
 	return &s, nil
 }
 

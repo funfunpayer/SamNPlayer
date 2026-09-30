@@ -8,6 +8,25 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
+  seconds, usually with decimals (`631.8`). The parser expected whole
+  milliseconds, so every such file failed to load in Play, Improve and
+  Convert with "ungültiges JSON". Scripts whose tool writes `at`/`pos` with
+  decimals failed the same way. Decimals are now read and rounded, the OFS
+  duration is converted from seconds, and an unreadable duration is ignored
+  instead of rejecting the script. Saved files still use whole numbers.
+- **Companion .funscript lost its extra data on every save** — for a
+  `.samn` script, Improve, Review (invert), contact settings and "Bake Neo
+  axes" rewrite the `.funscript` beside it, and each write replaced the
+  file entirely. The audio check data (the Speech-Hold / Feel segment strip
+  in Play reads it from exactly this file), the AI opinion and the OFS
+  details (title, tags, performers, inverted, range, …) were gone after the
+  first edit — after "Bake" also in a `.funscript` the user had loaded.
+  The export now keeps every field it does not write itself, and writes
+  atomically.
+
 ## [0.5.43] — September 30, 2026
 
 ### Added

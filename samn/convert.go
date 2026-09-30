@@ -16,7 +16,7 @@ func FromFunscript(s *funscript.Script, videoPath string) *Document {
 		Kind:       Kind,
 		VideoPath:  videoPath,
 		Creator:    s.Metadata.Creator,
-		DurationMs: s.Metadata.Duration,
+		DurationMs: int64(s.Metadata.Duration),
 		Profile:    s.Metadata.Profile,
 		General:    append([]Point(nil), s.Actions...),
 	}
@@ -82,7 +82,7 @@ func (d *Document) ToFunscript() (*funscript.Script, error) {
 	}
 	s := &funscript.Script{Actions: append([]funscript.Action(nil), d.General...)}
 	s.Metadata.Creator = d.Creator
-	s.Metadata.Duration = d.DurationMs
+	s.Metadata.Duration = funscript.MetaDuration(d.DurationMs)
 	s.Metadata.Profile = d.Profile
 	s.Metadata.QualityScore = d.QualityScore
 	s.Metadata.QualityPassed = d.QualityPassed
@@ -125,9 +125,25 @@ func (d *Document) ToFunscript() (*funscript.Script, error) {
 	return s, nil
 }
 
+// exportManagedMeta: metadata keys ExportFunscript writes from the document
+// (or drops when the document has none). Every other key of an existing
+// target file is kept, see ExportFunscript.
+var exportManagedMeta = []string{
+	"creator", "duration", "profile", "device_recipe", "tracking_gaps",
+	"contact_marks", "trajectory", "quality_score", "quality_passed",
+	"quality_warnings", "chapters", "bookmarks", "oMarkers", "samn_axes",
+}
+
 // ExportFunscript writes a community .funscript: general → actions,
 // chapters/bookmarks in metadata. Neo-2 axes are NOT written (by design).
 // Recipe is included so SamNPlayer can re-import contact settings.
+//
+// The target is usually the companion .funscript beside the .samn (Improve,
+// Review, contact settings, Bake). Keys of an existing target the export
+// does not manage survive: audio_check (Play reads the Speech-Hold / Feel
+// segments of a .samn from exactly this file), ai_opinion, and the OFS
+// fields (title, tags, performers, inverted, range, ...). Before, every
+// export wiped them. The write is atomic (temp file + rename).
 func (d *Document) ExportFunscript(path string) error {
 	if err := d.Normalize(); err != nil {
 		return err
@@ -173,15 +189,57 @@ func (d *Document) ExportFunscript(path string) error {
 	if len(d.OMarkers) > 0 {
 		meta["oMarkers"] = d.OMarkers
 	}
-	doc := map[string]any{
-		"actions":  d.General,
-		"metadata": meta,
+	doc := map[string]any{}
+	if old, ok := readJSONObject(path); ok {
+		for k, v := range old {
+			if k != "actions" && k != "metadata" {
+				doc[k] = v
+			}
+		}
+		if oldMeta, ok := decodeJSONObject(old["metadata"]); ok {
+			for _, k := range exportManagedMeta {
+				delete(oldMeta, k)
+			}
+			for k, v := range oldMeta {
+				if _, set := meta[k]; !set {
+					meta[k] = v
+				}
+			}
+		}
 	}
+	doc["actions"] = d.General
+	doc["metadata"] = meta
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o644)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
+}
+
+// readJSONObject reads path as a JSON object; ok is false when it is
+// missing or not an object (the export then writes a plain file).
+func readJSONObject(path string) (map[string]json.RawMessage, bool) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+	return decodeJSONObject(b)
+}
+
+func decodeJSONObject(b []byte) (map[string]json.RawMessage, bool) {
+	var m map[string]json.RawMessage
+	if len(b) == 0 || json.Unmarshal(b, &m) != nil || m == nil {
+		return nil, false
+	}
+	return m, true
 }
 
 // BakeNeoAxes fills vibration/suction from the recipe mapper and sets
