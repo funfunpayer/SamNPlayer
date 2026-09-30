@@ -26,6 +26,13 @@ measurement history behind each entry; this file is the short version for
   first edit — after "Bake" also in a `.funscript` the user had loaded.
   The export now keeps every field it does not write itself, and writes
   atomically.
+- **Scene roles: Train / Contact class IDs typed correctly** — `assign_roles`
+  only knew NudeNet-style partners (`breasts`, `hand`, `mouth`, …) and tip
+  `penis`. Marks and YOLO already emit `nipples`, `hand_1`/`hand_2`,
+  `hand_left`/`hand_right`, and tip `glans`, so those windows stayed untyped
+  and never became scene proposals / contact-point anchors. Partner map and
+  tip set now cover the BODY_REGIONS IDs; proposal class strings are kept
+  (`nipples` stays `nipples`). Opt-in Scene2 only; Everyday CSRT unchanged.
 
 ## [0.5.43] — September 30, 2026
 
