@@ -118,9 +118,14 @@ func ApplySceneProposal(roi *ROI, opts *Options, p SceneProposal, withPartner bo
 	if roi != nil && (roi.W <= 0 || roi.H <= 0) {
 		*roi = ROI{X: p.Primary.X, Y: p.Primary.Y, W: p.Primary.W, H: p.Primary.H}
 		out = append(out, fmt.Sprintf("applied ROI %s = %s (%s)", box(p.Primary), p.Primary.Class, where))
-		if opts != nil && opts.RegionClass == "" && bodyparts.IsCanonical(p.Primary.Class) {
-			opts.RegionClass = p.Primary.Class
-			out = append(out, "applied region class "+p.Primary.Class)
+		// Normalize first: teachers / scene_roles may emit aliases
+		// (hand_right, left_hand, …) that IsCanonical accepts after
+		// Normalize, but RegionClass must store the canonical ID.
+		if opts != nil && opts.RegionClass == "" {
+			if cls := bodyparts.Normalize(p.Primary.Class); bodyparts.IsCanonical(cls) {
+				opts.RegionClass = cls
+				out = append(out, "applied region class "+cls)
+			}
 		}
 	}
 	if p.Partner == nil {
@@ -140,9 +145,11 @@ func ApplySceneProposal(roi *ROI, opts *Options, p SceneProposal, withPartner bo
 		opts.ROI2 = ROI{X: p.Partner.X, Y: p.Partner.Y, W: p.Partner.W, H: p.Partner.H}
 		opts.ROI2Fixed = false
 		out = append(out, fmt.Sprintf("applied ROI2 %s = %s, tracked (%s)", box(*p.Partner), p.Partner.Class, where))
-		if opts.RegionClass2 == "" && bodyparts.IsCanonical(p.Partner.Class) {
-			opts.RegionClass2 = p.Partner.Class
-			out = append(out, "applied region class 2 "+p.Partner.Class)
+		if opts.RegionClass2 == "" {
+			if cls := bodyparts.Normalize(p.Partner.Class); bodyparts.IsCanonical(cls) {
+				opts.RegionClass2 = cls
+				out = append(out, "applied region class 2 "+cls)
+			}
 		}
 	}
 	return out

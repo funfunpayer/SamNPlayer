@@ -33,6 +33,13 @@ measurement history behind each entry; this file is the short version for
   and never became scene proposals / contact-point anchors. Partner map and
   tip set now cover the BODY_REGIONS IDs; proposal class strings are kept
   (`nipples` stays `nipples`). Opt-in Scene2 only; Everyday CSRT unchanged.
+- **Apply scene proposal: store canonical region classes** — `ApplySceneProposal`
+  wrote teacher/alias labels (`hand_right`, `left_hand`, …) into
+  `RegionClass` when `IsCanonical` happened to pass after Normalize, or
+  skipped them when the alias was unknown. Classes are now normalized to
+  BODY_REGIONS IDs (`hand_2`, `hand_1`, …) before apply; `hand_left` /
+  `hand_right` added as taxonomy aliases. Complements scene_roles partner
+  typing (#448). Opt-in Scene Apply only; Everyday CSRT unchanged.
 
 ## [0.5.43] — September 30, 2026
 

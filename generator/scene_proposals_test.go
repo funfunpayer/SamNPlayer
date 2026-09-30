@@ -106,4 +106,14 @@ func TestApplySceneProposal(t *testing.T) {
 	if o.ROI2.W != 0 || !strings.Contains(lines(got), "two-point tracking") {
 		t.Fatalf("distance: o=%+v\n%s", o, lines(got))
 	}
+	// Aliases (hand_right from scene_roles / YOLO) → canonical RegionClass.
+	alias := SceneProposal{TMs: 34000, StartMs: 30000, EndMs: 38000, SceneType: "handjob", Confidence: 0.6,
+		Primary: ROICandidate{X: 100, Y: 100, W: 80, H: 80, Class: "hand_right"},
+		Partner: &ROICandidate{X: 200, Y: 200, W: 40, H: 60, Class: "glans"}}
+	roi, o = ROI{}, Options{}
+	got = ApplySceneProposal(&roi, &o, alias, true)
+	if o.RegionClass != "hand_2" || o.RegionClass2 != "glans" ||
+		!strings.Contains(lines(got), "applied region class hand_2") {
+		t.Fatalf("alias normalize: o=%+v\n%s", o, lines(got))
+	}
 }
