@@ -20,6 +20,11 @@ measurement history behind each entry; this file is the short version for
   failed ("chapters ungültig"), so Play showed none, and a later
   companion export (Improve, Bake, …) removed them from the file. Times as
   `HH:MM:SS.mmm` / `MM:SS` are now read, as before numbers in seconds or ms.
+- **OFS `inverted` ignored in Play** — top-level `"inverted": true` (OFS /
+  funjack) was dropped on parse, so Play/device used raw action positions.
+  The flag is kept on `Script`, playback uses `100−pos` (curve, mapper, SAM
+  import), and Review Invert clears the flag after baking into actions so
+  Play does not flip twice. Leaves broken [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) alone.
 - **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
   seconds, usually with decimals (`631.8`). The parser expected whole
   milliseconds, so every such file failed to load in Play, Improve and

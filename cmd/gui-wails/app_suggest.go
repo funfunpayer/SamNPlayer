@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 func (a *App) SuggestPolarity() (funscript.PolarityHint, error) {
@@ -27,7 +29,26 @@ func (a *App) InvertLoadedScript() error {
 	for i, act := range script.Actions {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
-	return a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions)
+	if err := a.SaveScriptAxisActions(string(funscript.AxisGeneral), actions); err != nil {
+		return err
+	}
+	// Bake cleared the authored polarity — drop the OFS flag on the
+	// community .funscript so Play does not flip twice. .samn itself has
+	// no inverted field; clear the companion when present.
+	fsPath := path
+	if samn.IsSamnPath(path) {
+		fsPath = samn.CompanionFunscriptPath(path)
+	}
+	if st, err := os.Stat(fsPath); err == nil && !st.IsDir() {
+		if err := funscript.WriteInverted(fsPath, false); err != nil {
+			return err
+		}
+	}
+	// SaveScriptAxisActions reloaded before the flag was cleared.
+	if !samn.IsSamnPath(path) {
+		return a.reloadLoadedScript()
+	}
+	return nil
 }
 
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {

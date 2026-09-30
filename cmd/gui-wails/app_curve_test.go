@@ -74,6 +74,24 @@ func TestGetScriptCurveWithoutScript(t *testing.T) {
 	}
 }
 
+func TestGetScriptCurveHonorsInverted(t *testing.T) {
+	a := NewApp()
+	a.currentScript = &funscript.Script{
+		Actions:  []funscript.Action{{At: 0, Pos: 10}, {At: 500, Pos: 90}, {At: 1000, Pos: 20}},
+		Inverted: true,
+	}
+	pts, err := a.GetScriptCurve(100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pts) != 3 {
+		t.Fatalf("got %d points", len(pts))
+	}
+	if pts[0].Pos != 90 || pts[1].Pos != 10 || pts[2].Pos != 80 {
+		t.Fatalf("curve must use PlaybackActions: %+v", pts)
+	}
+}
+
 func TestGetVibrationCurveContactRecipe(t *testing.T) {
 	a := NewApp()
 	script := &funscript.Script{Actions: []funscript.Action{

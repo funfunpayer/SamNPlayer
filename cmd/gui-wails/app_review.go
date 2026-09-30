@@ -57,11 +57,18 @@ func (a *App) InvertScriptAtPath(path string) error {
 		if err := samn.Save(path, doc); err != nil {
 			return err
 		}
-		if err := doc.ExportFunscript(samn.CompanionFunscriptPath(path)); err != nil {
+		companion := samn.CompanionFunscriptPath(path)
+		if err := doc.ExportFunscript(companion); err != nil {
 			logging.Warn("app: companion funscript export failed after review edit",
 				"path", path, "error", err)
+		} else if err := funscript.WriteInverted(companion, false); err != nil {
+			// Baked 100−pos into actions — drop OFS inverted so a later
+			// .funscript load does not flip twice.
+			return err
 		}
 	} else if err := funscript.SaveActions(path, actions); err != nil {
+		return err
+	} else if err := funscript.WriteInverted(path, false); err != nil {
 		return err
 	}
 	if a.loadedScriptPath() == path {

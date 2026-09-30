@@ -344,7 +344,7 @@ func (a *App) GetScriptCurve(maxPoints int) ([]CurvePoint, error) {
 	if script == nil {
 		return nil, fmt.Errorf("no script loaded")
 	}
-	actions := script.Actions
+	actions := script.PlaybackActions()
 	if len(actions) == 0 {
 		return nil, fmt.Errorf("script contains no actions")
 	}
