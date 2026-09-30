@@ -1,11 +1,12 @@
 import {
-  RunGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest, PickFunscriptFile, PickVideoFile,
+  RunGoldenClipBenchmark, CancelGoldenClipBenchmark, GetBenchmarkHistory, PickBenchmarkManifest,
+  PickFunscriptFile, PickVideoFile,
   ScoreScriptPair, AppendBenchmarkPairLabel, SuggestBenchmarkPairBesideVideo,
   ExportBenchmarkClip, PickBenchmarkClipOutput, SuggestBenchmarkClipOutput, ParseBenchmarkClipTime,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
-import { uiError } from './notify.js';
+import { uiError, uiWarn } from './notify.js';
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -198,7 +199,11 @@ export function initBenchmark(root) {
       <button id="bm-pick">Browse…</button>
     </div>
 
-    <div class="row"><button id="bm-run" class="primary" disabled>Run benchmark</button></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;">
+      <button id="bm-run" class="primary" disabled>Run benchmark</button>
+      <button id="bm-cancel" type="button" hidden
+        data-help="Stops the running golden-clip benchmark (minutes, one generate per clip). Closing the app also cancels.">Cancel</button>
+    </div>
     <div id="bm-progress-wrap" style="display:none; margin-top:8px;">
       <div style="height:10px; border-radius:5px; background:rgba(255,255,255,0.10); overflow:hidden;">
         <div id="bm-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--teal));
@@ -250,6 +255,15 @@ export function initBenchmark(root) {
     lastPairScore = null;
     el('#bm-pair-result').innerHTML = '';
     updateScoreEnabled();
+  }
+
+  function isCancelError(err) {
+    return /cancel|abgebrochen|context canceled/i.test(String(err || ''));
+  }
+
+  function setCancelVisible(show) {
+    const btn = el('#bm-cancel');
+    if (btn) btn.hidden = !show;
   }
 
   function showProgress(show) {
@@ -385,13 +399,36 @@ export function initBenchmark(root) {
     updateRunEnabled();
   });
 
-  el('#bm-run').addEventListener('click', () => {
+  async function cancelBenchmarkRun() {
+    try {
+      const ok = await CancelGoldenClipBenchmark();
+      if (!ok) uiWarn('No benchmark run to cancel.');
+    } catch (err) {
+      uiError('Cancel benchmark: ' + err);
+    }
+  }
+
+  el('#bm-cancel')?.addEventListener('click', cancelBenchmarkRun);
+
+  el('#bm-run').addEventListener('click', async () => {
     if (!manifestPath) return;
     el('#bm-run').disabled = true;
+    setCancelVisible(true);
     el('#bm-status').textContent = 'Running…';
     el('#bm-result').innerHTML = '';
     showProgress(true);
-    RunGoldenClipBenchmark(manifestPath);
+    try {
+      await RunGoldenClipBenchmark(manifestPath);
+    } catch (err) {
+      showProgress(false);
+      setCancelVisible(false);
+      if (isCancelError(err)) {
+        uiWarn('Benchmark cancelled: ' + err, el('#bm-status'));
+      } else {
+        uiError('Benchmark: ' + err, el('#bm-status'));
+      }
+      updateRunEnabled();
+    }
   });
 
   EventsOn('benchmark:percent', pct => {
@@ -403,9 +440,14 @@ export function initBenchmark(root) {
   });
   EventsOn('benchmark:done', payload => {
     showProgress(false);
+    setCancelVisible(false);
     updateRunEnabled();
     if (payload.error) {
-      uiError('Benchmark failed: ' + payload.error, el('#bm-status'));
+      if (isCancelError(payload.error)) {
+        uiWarn('Benchmark cancelled: ' + payload.error, el('#bm-status'));
+      } else {
+        uiError('Benchmark failed: ' + payload.error, el('#bm-status'));
+      }
       return;
     }
     el('#bm-status').textContent = 'Done: ' + formatDate(payload.result.timestamp);
