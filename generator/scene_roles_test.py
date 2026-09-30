@@ -93,6 +93,20 @@ class RolesTest(unittest.TestCase):
         self.assertEqual((r["scene_type"], r["primary"]["class"], r["partner"]["class"]),
                          ("titjob", "penis", "breasts"))
 
+    def test_nipples_and_glans_type_titjob_keeping_class_ids(self):
+        # Contact-vibe / Train use nipples + glans; before, neither was in
+        # PARTNERS / tip set so the window stayed untyped.
+        parts = [part("glans", (7, 7, 6, 8)), part("nipples", (5, 9, 5, 7))]
+        r = sr.assign_roles(parts, heat([(7, 6), (7, 7), (7, 8)]), COLS, ROWS)
+        self.assertEqual((r["scene_type"], r["primary"]["class"], r["partner"]["class"]),
+                         ("titjob", "glans", "nipples"))
+
+    def test_hand_1_alias_types_handjob(self):
+        parts = [part("penis", (7, 7, 6, 8)), part("hand_1", (6, 8, 5, 7))]
+        r = sr.assign_roles(parts, heat([(7, 6), (7, 7)]), COLS, ROWS)
+        self.assertEqual(r["scene_type"], "handjob")
+        self.assertEqual({r["primary"]["class"], r["partner"]["class"]}, {"penis", "hand_1"})
+
     def test_hidden_penis_uses_moving_part_with_low_confidence(self):
         parts = [part("breasts", (6, 8, 5, 7)), part("face", (6, 8, 1, 3))]
         r = sr.assign_roles(parts, heat([(7, 6), (7, 7)]), COLS, ROWS)

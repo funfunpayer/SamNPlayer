@@ -12,8 +12,9 @@ Two inputs, one rule set, no big model needed at run time:
 
 Per window the rules give roles - the primary stroke target (the part that
 moves most within the moving pair), the contact partner, parts to ignore -
-and the scene type from the pair (mouth + penis = blowjob, hand = handjob,
-breasts = titjob, vagina = penetration). Output `<clip>.scene.json` with
+and the scene type from the pair (mouth + tip = blowjob, hand_* = handjob,
+breasts/nipples = titjob, vagina = penetration; tip = penis|glans). Output
+`<clip>.scene.json` with
 per-window roles and ROICandidate-shaped proposals for the app, which
 remain proposals: the user applies them, or the opt-in setting "Apply AI
 setup automatically" does (Owner 28 Sep; default off, everything shown).
@@ -44,8 +45,21 @@ NUDENET_MAP = {
     "FACE_FEMALE": "face",
     "FACE_MALE": "face_male",
 }
-PARTNERS = {"mouth": "blowjob", "face": "blowjob", "hand": "handjob",
-            "breasts": "titjob", "vagina": "penetration", "buttocks": "penetration"}
+# Partner class → scene type. Includes BODY_REGIONS / Train IDs (nipples,
+# hand_1/hand_2) and common aliases so YOLO/marks/VLM labels type the same
+# way as NudeNet's breasts/hand/mouth. Class strings stay on the proposal
+# (Apply / contact marks keep "nipples" vs "breasts").
+PARTNERS = {
+    "mouth": "blowjob", "face": "blowjob",
+    "hand": "handjob", "hand_1": "handjob", "hand_2": "handjob",
+    "hand_left": "handjob", "hand_right": "handjob",
+    "left_hand": "handjob", "right_hand": "handjob",
+    "breasts": "titjob", "nipples": "titjob",
+    "vagina": "penetration", "buttocks": "penetration",
+}
+# Tip / shaft classes that pair against PARTNERS (glans is the Everyday tip
+# soft-default; vlm_parts already maps glans→penis, other teachers may not).
+TIP_CLASSES = {"penis", "glans"}
 MOTION_MIN = 0.25  # part motion (0..1 of the window's hottest cell) that counts as moving
 
 
@@ -163,24 +177,24 @@ def assign_roles(parts, score, cols, rows):
     confidence, ignore) - primary/partner are parts or None."""
     for p in parts:
         p["motion"] = round(part_motion(p["box"], score, cols, rows), 3)
-    penises = sorted([p for p in parts if p["class"] == "penis"], key=lambda p: -p["motion"])
+    tips = sorted([p for p in parts if p["class"] in TIP_CLASSES], key=lambda p: -p["motion"])
     cands = [p for p in parts if p["class"] in PARTNERS]
     res = {"primary": None, "partner": None, "scene_type": None, "confidence": 0.0, "ignore": []}
     best = None
-    for pe in penises:
+    for tip in tips:
         for pa in cands:
-            if not _near(pe["box"], pa["box"]):
+            if not _near(tip["box"], pa["box"]):
                 continue
-            pair_motion = max(pe["motion"], pa["motion"])
+            pair_motion = max(tip["motion"], pa["motion"])
             if best is None or pair_motion > best[0]:
-                best = (pair_motion, pe, pa)
+                best = (pair_motion, tip, pa)
     if best and best[0] >= MOTION_MIN:
-        m, pe, pa = best
-        primary, partner = (pa, pe) if pa["motion"] > pe["motion"] else (pe, pa)
+        m, tip, pa = best
+        primary, partner = (pa, tip) if pa["motion"] > tip["motion"] else (tip, pa)
         res.update(primary=primary, partner=partner, scene_type=PARTNERS[pa["class"]],
                    confidence=round(min(1.0, 0.5 + m / 2), 2))
     else:
-        # Penis hidden (in the mouth / between breasts) or no pair: the
+        # Tip hidden (in the mouth / between breasts) or no pair: the
         # most-moving partner-type part decides, with lower confidence.
         moving = sorted([p for p in cands if p["motion"] >= MOTION_MIN], key=lambda p: -p["motion"])
         if moving:
