@@ -16,7 +16,12 @@ type Action struct {
 
 // Script ist das geparste .funscript-Dokument.
 type Script struct {
-	Actions  []Action `json:"actions"`
+	Actions []Action `json:"actions"`
+	// Inverted is the official funscript top-level flag: players flip
+	// positions (100−pos) at playback. Actions on disk stay as written.
+	// Review "Invert" bakes 100−pos into actions and clears this flag
+	// so playback does not flip twice.
+	Inverted bool `json:"inverted,omitempty"`
 	Metadata struct {
 		Duration        int64         `json:"duration"`
 		Creator         string        `json:"creator"`
@@ -29,30 +34,17 @@ type Script struct {
 		TrackingGaps    []TrackingGap `json:"tracking_gaps,omitempty"`
 		AIOpinion       *AIOpinion    `json:"ai_opinion,omitempty"`
 		AudioCheck      *AudioCheck   `json:"audio_check,omitempty"`
-		// Trajectory: optional per-frame tip/partner track positions
-		// (MT-Debug Review/Play overlay). Only present when generated
-		// with the opt-in "capture trajectory" flag - off by default.
-		Trajectory *TrajectoryData `json:"trajectory,omitempty"`
-		// ContactMarks: optional tip/contact boxes + classes from Generate
-		// when Contact vibration is on. Everyday stroke curve stays tip-CSRT
-		// (drive_stroke=false); marks are for feel / later feel-decouple.
-		ContactMarks *ContactMarks `json:"contact_marks,omitempty"`
+		Trajectory      *TrajectoryData `json:"trajectory,omitempty"`
+		ContactMarks    *ContactMarks   `json:"contact_marks,omitempty"`
 	} `json:"metadata,omitempty"`
 }
 
-// TrajectoryPoint is one sampled tip/partner position in video-pixel space
-// (0,0 = top-left), timestamped against the same clock as Actions.
 type TrajectoryPoint struct {
 	AtMs int64   `json:"atMs"`
 	X    float64 `json:"x"`
 	Y    float64 `json:"y"`
 }
 
-// TrajectoryData is the optional MT-Debug trajectory payload: Width/Height
-// are the video's pixel dimensions at generation time (the coordinate
-// space Tip/Partner points are in). Partner is empty when the script has
-// no second tracked point (single-ROI Stroke) or when generated against
-// 2+ contact partners (ambiguous "the" partner).
 type TrajectoryData struct {
 	Width   int               `json:"width"`
 	Height  int               `json:"height"`
@@ -60,22 +52,11 @@ type TrajectoryData struct {
 	Partner []TrajectoryPoint `json:"partner,omitempty"`
 }
 
-// AIOpinion ist die optionale KI-Zweitmeinung zur Qualität (--ai-quality-
-// opinion, generator/ai_quality.py) - rein informativ, verändert
-// QualityScore/QualityPassed nicht.
 type AIOpinion struct {
 	Verdict string `json:"verdict"`
 	Reason  string `json:"reason"`
 }
 
-// AudioCheck ist das optionale Ergebnis der Audio-Tempo-Plausibilitätsprüfung
-// (--audio-check; Go: generator.CheckAudioTempo, Python: audio_check.py) -
-// wie AIOpinion rein informativ, verändert QualityScore/QualityPassed nicht.
-// Nur vorhanden, wenn die Prüfung tatsächlich lief (ffmpeg + lesbare Audiospur).
-//
-// Segments / SpeechHoldMs are optional review/chapter taxonomy hints
-// (Speech-Hold + holding|gentle|intense|climax). They never invent stroke
-// actions — same AUDIO_WORKFLOW rule as the tempo check.
 type AudioCheck struct {
 	ScriptHz     *float64           `json:"script_hz"`
 	AudioHz      *float64           `json:"audio_hz"`
@@ -84,13 +65,11 @@ type AudioCheck struct {
 	SpeechHoldMs int64              `json:"speech_hold_ms,omitempty"`
 }
 
-// AudioSegmentHint is a review/chapter label from classical speech-vs-impact
-// energy (funscript-ai-inspired taxonomy). Informational only.
 type AudioSegmentHint struct {
-	Label      string `json:"label"` // holding | gentle | intense | climax
+	Label      string `json:"label"`
 	StartMs    int64  `json:"start_ms"`
 	EndMs      int64  `json:"end_ms"`
-	SpeechHold bool   `json:"speech_hold,omitempty"` // dialogue/quiet hold cue
+	SpeechHold bool   `json:"speech_hold,omitempty"`
 	Reason     string `json:"reason,omitempty"`
 }
 
@@ -128,4 +107,49 @@ func (s *Script) Duration() int64 {
 		return 0
 	}
 	return s.Actions[len(s.Actions)-1].At
+}
+
+// PlaybackPos is the position the device should use at action i.
+// When Inverted is set, that is 100−pos; the stored action is unchanged.
+func (s *Script) PlaybackPos(i int) int {
+	if s == nil || i < 0 || i >= len(s.Actions) {
+		return 0
+	}
+	pos := s.Actions[i].Pos
+	if s.Inverted {
+		pos = 100 - pos
+	}
+	if pos < 0 {
+		return 0
+	}
+	if pos > 100 {
+		return 100
+	}
+	return pos
+}
+
+// WriteInverted sets the top-level inverted flag without touching actions.
+func WriteInverted(path string, inverted bool) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("funscript: Datei konnte nicht gelesen werden: %w", err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return fmt.Errorf("funscript: ungültiges JSON: %w", err)
+	}
+	if !inverted {
+		delete(doc, "inverted")
+	} else {
+		b, err := json.Marshal(true)
+		if err != nil {
+			return err
+		}
+		doc["inverted"] = b
+	}
+	out, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0o644)
 }
