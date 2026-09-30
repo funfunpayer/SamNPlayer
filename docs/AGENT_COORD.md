@@ -170,7 +170,8 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | PlayContactIntensityZero | Cursor | [#424](https://github.com/funfunpayer/SamNPlayer/pull/424) merged (`263fa37`) | **Play Contact Strength 0 in probe** — finiteOr so Strength 0 is not coerced to 1 | **DONE** |
 | ExpertSmoothPeakZero | Cursor | [#425](https://github.com/funfunpayer/SamNPlayer/pull/425) merged (`ce351da`) | **Expert Smooth/Peakdist 0** — intOr so slider 0 reaches Preview/Generate | **DONE** |
 | PlayOfsKnobPrefs | Cursor | [#437](https://github.com/funfunpayer/SamNPlayer/pull/437) merged (`c69a40f`) | **Play OFS/Feel knobs persist** — Cap/HL/Scale/FPS-Snap/BPM-grid/O-marker/Feel bands/Contact Strength via settings | **DONE** |
-| CreateFeelExpertPrefs | Cursor | (this PR) | **Create Feel + Expert knobs persist** — Span/Curve + Smooth/Peak/Prominence/RDP/Max-speed/Adaptive via settings | **THIS** |
+| CreateFeelExpertPrefs | Cursor | [#438](https://github.com/funfunpayer/SamNPlayer/pull/438) merged (`f32a104`) | **Create Feel + Expert knobs persist** — Span/Curve + Smooth/Peak/Prominence/RDP/Max-speed/Adaptive via settings | **DONE** |
+| RoiTrainSamplePrefs | Cursor | (this PR) | **AI Train Sampling + Box scale persist** — settings restore for #400 knobs (defaults 12 / 1.0) | **THIS** |
 | PlayOMarkerIntensity | Cursor | [#396](https://github.com/funfunpayer/SamNPlayer/pull/396) merged (`a36c85b`) | **Play O-marker Intensity knob** — secondary Intensity range + readout (default 0.5) | **DONE** |
 | PlayFpsSnapKnob | Cursor | [#397](https://github.com/funfunpayer/SamNPlayer/pull/397) merged (`def6d69`) | **Play FPS-Snap knob** — range + live readout (`off` at 0; default 0) | **DONE** |
 | TrainIntensityKnobs | Cursor | [#398](https://github.com/funfunpayer/SamNPlayer/pull/398) merged (`9d0f072`) | **Training intensity knobs** — Peak/Plateau/Progression range + readout (defaults unchanged) | **DONE** |
@@ -241,9 +242,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (30 Sep — post-#437; tip `c69a40f`):**
-- **In flight:** Cursor **CreateFeelExpertPrefs** (Create Feel + Expert knob settings persistence). Claude Owner-blocked (VLM + ≥4–5 clips).
-- **Shipped tip @ `c69a40f` / tag [`v0.5.42`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42):** Play OFS/Feel prefs [#437](https://github.com/funfunpayer/SamNPlayer/pull/437); Rel42 [#429](https://github.com/funfunpayer/SamNPlayer/pull/429); Stroke-preview cancel [#435](https://github.com/funfunpayer/SamNPlayer/pull/435)/[#436](https://github.com/funfunpayer/SamNPlayer/pull/436); Expert/EO/Contact 0 [#425](https://github.com/funfunpayer/SamNPlayer/pull/425)/[#421](https://github.com/funfunpayer/SamNPlayer/pull/421)/[#424](https://github.com/funfunpayer/SamNPlayer/pull/424).
+**Status board (30 Sep — post-#438; tip `f32a104`):**
+- **In flight:** Cursor **RoiTrainSamplePrefs** (AI Train Sampling + Box scale settings persistence). Claude Owner-blocked (VLM + ≥4–5 clips).
+- **Shipped tip @ `f32a104` / tag [`v0.5.42`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42):** Create Feel/Expert prefs [#438](https://github.com/funfunpayer/SamNPlayer/pull/438); Play OFS/Feel prefs [#437](https://github.com/funfunpayer/SamNPlayer/pull/437); Rel42 [#429](https://github.com/funfunpayer/SamNPlayer/pull/429); Expert/EO/Contact 0 [#425](https://github.com/funfunpayer/SamNPlayer/pull/425)/[#421](https://github.com/funfunpayer/SamNPlayer/pull/421)/[#424](https://github.com/funfunpayer/SamNPlayer/pull/424).
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
 - **Still Owner-gated:** portable smoke `v0.5.42`; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+.

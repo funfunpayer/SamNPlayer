@@ -1176,6 +1176,19 @@ export function initRoiTraining(root) {
   getSettingsCache().then(s => {
     datasetDir = s.roiDatasetDir || s.defaultRoiDatasetDir || '';
     el('#rt-dataset-dir').value = datasetDir;
+    if (s.roiSampleEvery != null && el('#rt-sample-every')) {
+      const n = Math.round(Number(s.roiSampleEvery));
+      if (Number.isFinite(n) && n >= 1 && n <= 120) {
+        el('#rt-sample-every').value = String(n);
+      }
+    }
+    if (s.roiBoxScale != null && el('#rt-box-scale')) {
+      const n = Number(s.roiBoxScale);
+      if (Number.isFinite(n) && n >= 0.5 && n <= 2.0) {
+        el('#rt-box-scale').value = String(n);
+      }
+    }
+    syncRoiTrainSampleKnobLabels();
     refreshClassList();
     refreshDatasetReadyHint();
   });
@@ -1277,9 +1290,17 @@ export function initRoiTraining(root) {
   }
   syncRoiTrainSampleKnobLabels();
   el('#rt-sample-every')?.addEventListener('input', syncRoiTrainSampleKnobLabels);
-  el('#rt-sample-every')?.addEventListener('change', syncRoiTrainSampleKnobLabels);
+  el('#rt-sample-every')?.addEventListener('change', e => {
+    syncRoiTrainSampleKnobLabels();
+    const n = Math.round(Number(e.target.value) || 12);
+    saveSetting('generator.roi_sample_every', n);
+  });
   el('#rt-box-scale')?.addEventListener('input', syncRoiTrainSampleKnobLabels);
-  el('#rt-box-scale')?.addEventListener('change', syncRoiTrainSampleKnobLabels);
+  el('#rt-box-scale')?.addEventListener('change', e => {
+    syncRoiTrainSampleKnobLabels();
+    const n = Number(e.target.value);
+    saveSetting('generator.roi_box_scale', Number.isFinite(n) ? n : 1.0);
+  });
 
   renderMarkFields();
   el('#rt-class-list').innerHTML = CLASS_PRESETS.map(n => `<option value="${n}"></option>`).join('');

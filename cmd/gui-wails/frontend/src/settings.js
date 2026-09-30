@@ -70,6 +70,8 @@ export function saveSetting(key, value) {
       'generator.rdp_tolerance': 'genRDPTolerance',
       'generator.max_speed': 'genMaxSpeed',
       'generator.adaptive_keyframe': 'genAdaptiveKeyframe',
+      'generator.roi_sample_every': 'roiSampleEvery',
+      'generator.roi_box_scale': 'roiBoxScale',
     };
     const field = map[key];
     if (field) cachedSettings[field] = value;

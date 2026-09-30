@@ -1582,6 +1582,8 @@ export namespace main {
 	    genRDPTolerance: number;
 	    genMaxSpeed: number;
 	    genAdaptiveKeyframe: boolean;
+	    roiSampleEvery: number;
+	    roiBoxScale: number;
 
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -1650,6 +1652,8 @@ export namespace main {
 	        this.genRDPTolerance = source["genRDPTolerance"];
 	        this.genMaxSpeed = source["genMaxSpeed"];
 	        this.genAdaptiveKeyframe = source["genAdaptiveKeyframe"];
+	        this.roiSampleEvery = source["roiSampleEvery"];
+	        this.roiBoxScale = source["roiBoxScale"];
 	    }
 	}
 	export class TrainingRequest {
