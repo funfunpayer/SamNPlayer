@@ -43,6 +43,9 @@ const (
 	prefGenRDPTolerance          = "generator.rdp_tolerance"
 	prefGenMaxSpeed              = "generator.max_speed"
 	prefGenAdaptiveKeyframe      = "generator.adaptive_keyframe"
+	// AI Train Sampling + Box scale (defaults match HTML / #400).
+	prefRoiSampleEvery = "generator.roi_sample_every"
+	prefRoiBoxScale    = "generator.roi_box_scale"
 
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
@@ -213,6 +216,9 @@ type Settings struct {
 	GenRDPTolerance          float64 `json:"genRDPTolerance"`
 	GenMaxSpeed              float64 `json:"genMaxSpeed"`
 	GenAdaptiveKeyframe      bool    `json:"genAdaptiveKeyframe"`
+
+	RoiSampleEvery float64 `json:"roiSampleEvery"`
+	RoiBoxScale    float64 `json:"roiBoxScale"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -290,6 +296,9 @@ func (a *App) GetSettings() Settings {
 		GenRDPTolerance:          s.GetFloat(prefGenRDPTolerance, 0),
 		GenMaxSpeed:              s.GetFloat(prefGenMaxSpeed, 0),
 		GenAdaptiveKeyframe:      s.GetBool(prefGenAdaptiveKeyframe, true),
+
+		RoiSampleEvery: s.GetFloat(prefRoiSampleEvery, 12),
+		RoiBoxScale:    s.GetFloat(prefRoiBoxScale, 1.0),
 	}
 }
 

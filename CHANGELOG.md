@@ -10,6 +10,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **AI Train: remember Sampling + Box scale** — every-N-th-frame and box scale
+  restore from settings (defaults 12 / 1.0). AI Train only; Everyday CSRT
+  unchanged.
+
 - **Create: remember Feel + Expert knobs** — Contact Sensitivity / Curve and
   Expert Smooth / Peak spacing / Prominence / RDP / Max speed / Adaptive restore
   from settings (HTML defaults unchanged; Smooth/Peakdist/Prominence/RDP/Max-speed
