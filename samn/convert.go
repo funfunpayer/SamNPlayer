@@ -16,7 +16,7 @@ func FromFunscript(s *funscript.Script, videoPath string) *Document {
 		Kind:       Kind,
 		VideoPath:  videoPath,
 		Creator:    s.Metadata.Creator,
-		DurationMs: s.Metadata.Duration,
+		DurationMs: int64(s.Metadata.Duration),
 		Profile:    s.Metadata.Profile,
 		General:    append([]Point(nil), s.Actions...),
 	}
@@ -82,7 +82,7 @@ func (d *Document) ToFunscript() (*funscript.Script, error) {
 	}
 	s := &funscript.Script{Actions: append([]funscript.Action(nil), d.General...)}
 	s.Metadata.Creator = d.Creator
-	s.Metadata.Duration = d.DurationMs
+	s.Metadata.Duration = funscript.MetaDuration(d.DurationMs)
 	s.Metadata.Profile = d.Profile
 	s.Metadata.QualityScore = d.QualityScore
 	s.Metadata.QualityPassed = d.QualityPassed

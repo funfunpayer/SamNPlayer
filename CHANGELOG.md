@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
+  seconds, usually with decimals (`631.8`). The parser expected whole
+  milliseconds, so every such file failed to load in Play, Improve and
+  Convert with "ungültiges JSON". Scripts whose tool writes `at`/`pos` with
+  decimals failed the same way. Decimals are now read and rounded, the OFS
+  duration is converted from seconds, and an unreadable duration is ignored
+  instead of rejecting the script. Saved files still use whole numbers.
+
 ## [0.5.43] — September 30, 2026
 
 ### Added
