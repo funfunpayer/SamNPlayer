@@ -146,6 +146,8 @@ initPostGenerateReview();
   }
 
   window.addEventListener('device:status', e => {
+    // Während eigener Topbar-Verbindung kein Fremd-Status überschreiben,
+    // außer das Ergebnis ist bereits connected (Erfolg vom Gerät-Tab).
     if (busy && !(e.detail && e.detail.connected)) return;
     if (e.detail && e.detail.connected) busy = false;
     render(e.detail || {});
@@ -196,6 +198,10 @@ CurrentVersion().then(v => {
   document.getElementById('version-label').textContent = v === 'dev' ? 'dev' : v;
 });
 
+// Silent startup update check: never alert()/confirm(), never toast.
+// Errors stay in the Log tab only; offer an in-app banner when a newer
+// release is actually available. Manual check lives in Settings.
+// Full release wins; only if none, offer an additive patch for this base.
 function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
   if (document.getElementById('update-banner')) return;
   const bar = document.createElement('div');
@@ -208,7 +214,7 @@ function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
     : '';
   bar.innerHTML = `<span>${kind} ${escapeHtml(label)} available (you have ${escapeHtml(currentVersion)}).</span>
     ${noteHtml}
-    <button type="button" id="update-banner-apply" class="primary">Download & restart</button>
+    <button type="button" id="update-banner-apply" class="primary">Download &amp; restart</button>
     <button type="button" id="update-banner-dismiss">Later</button>`;
   const host = document.getElementById('topbar') || document.getElementById('app');
   host?.prepend(bar);
@@ -218,6 +224,7 @@ function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
     btn.textContent = 'Downloading…';
     const apply = isPatch ? ApplyPatch() : ApplyUpdate();
     apply.catch(err => {
+      // Successful apply calls os.Exit — window closes. A reject here is real.
       uiError((isPatch ? 'Patch' : 'Update') + ' failed: ' + formatUpdateError(err));
       btn.disabled = false;
       btn.textContent = 'Download & restart';
@@ -228,16 +235,17 @@ function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
 
 function escapeHtml(s) {
   return String(s ?? '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 GetSettings().then(s => {
   if (!s.updateCheckOnStartup) return;
   CheckForUpdate().then(res => {
     if (res.error) {
+      // Log only — no popup. Manual Settings check still surfaces the error.
       uiLog('WARN', 'Update check on startup: ' + formatUpdateError(res.error));
       return;
     }
@@ -248,6 +256,7 @@ GetSettings().then(s => {
       });
       return;
     }
+    // No full release → check additive patch channel.
     return CheckForPatch().then(pres => {
       if (pres.error) {
         uiLog('WARN', 'Patch check on startup: ' + formatUpdateError(pres.error));
@@ -261,12 +270,24 @@ GetSettings().then(s => {
   }).catch(err => uiLog('WARN', 'Update check on startup: ' + formatUpdateError(err)));
 });
 
+
+// --- Dateien per Drag & Drop -------------------------------------------
+//
+// Go liefert die echten Dateipfade (siehe registerFileDrop in app.go) - die
+// Webview allein bekäme aus einem Drop nur einen Blob ohne Pfad, mit dem
+// der Generator nichts anfangen kann.
+//
+// Die fallengelassene Datei bestimmt den Tab: ein Video gehört in den
+// Generator, ein Skript in die Playback. Das erspart es, vorher den
+// richtigen Tab zu suchen.
 EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
   if (overlay) overlay.classList.remove('visible');
 
   if (data.videos && data.videos.length) {
     switchTab('generator');
+    // Multi-drop → Create queue (DeepFunGen UX). First video loads; paths[]
+    // carries the full batch so the generator can run Everyday Create in order.
     window.dispatchEvent(new CustomEvent('drop:video', {
       detail: {
         path: data.videos[0],
@@ -292,6 +313,7 @@ EventsOn('files:dropped', data => {
   }
 });
 
+// Sichtbare Feedback, solange etwas über dem Fenster schwebt.
 const overlay = document.createElement('div');
 overlay.id = 'drop-overlay';
 overlay.innerHTML = '<div>Drop video or Emotion Script here</div>';
@@ -305,6 +327,8 @@ window.addEventListener('dragenter', e => {
 });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('dragleave', () => {
+  // dragleave feuert auch beim Wechsel zwischen Kindelementen - deshalb
+  // zählen statt einfach auszublenden, sonst flackert die Anzeige.
   dragDepth = Math.max(0, dragDepth - 1);
   if (dragDepth === 0) overlay.classList.remove('visible');
 });
