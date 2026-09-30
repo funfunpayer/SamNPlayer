@@ -148,6 +148,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel40 | Cursor | [#361](https://github.com/funfunpayer/SamNPlayer/pull/361) + tag `v0.5.40` | patch **v0.5.40** + Release (Contact Verify GUI #359; Bench Suggest #360) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.40 |
 | Rel41 | Cursor | [#373](https://github.com/funfunpayer/SamNPlayer/pull/373) + tag `v0.5.41` | Sammel **v0.5.41** + Release (Tip-Find #364; Clip-Prep #365; Reacquire #366; Bugfix #372; E2E #371; Cleanup #369; docs/tests #362/#363/#367; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.41 |
 | Rel42 | Cursor | [#429](https://github.com/funfunpayer/SamNPlayer/pull/429) + tag `v0.5.42` | Sammel **v0.5.42** + Release (GapFill #403/#413; knobs/probes #378–#400; Plateau #426; Expert/EO/Contact 0 #425/#421/#424; seek/CLI #377/#401–#417; Intiface #422; Audio cancel #420; atomic write #428; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42 |
+| Rel43 | Cursor | this PR + tag `v0.5.43` | Sammel **v0.5.43** + Release (Train window labels #441; ROI empty-val heal #442; Play/Create/AI Train prefs #437–#439; CLI cancel #432/#435; #264 cancelled) | **THIS** |
 | ExpertProbeSVG | Cursor | [#379](https://github.com/funfunpayer/SamNPlayer/pull/379) merged (`486109a`) | **Expert postprocess live SVG probe** — DeepFunGen-style viewer polyline for knob feedback (synthetic; Everyday unchanged) | **DONE** |
 | SpeechHoldUI | Cursor | [#378](https://github.com/funfunpayer/SamNPlayer/pull/378) merged (`ef77233`) | **Review Speech-Hold / Feel strip** — filters, seek, optional chapters from `audio_check.segments` (no stroke rewrite) | **DONE** |
 | PlaySpeechHold | Cursor | [#380](https://github.com/funfunpayer/SamNPlayer/pull/380) merged (`15868d2`) | **Play Speech-Hold / Feel strip** — LoadFunscript exposes segments; Play filters · seek · optional chapters (no stroke rewrite) | **DONE** |
@@ -242,12 +243,12 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (30 Sep — post-#439; tip `c95c1f7`):**
-- **In flight:** none (Engine free). Cursor UX idle @ tip — Owner asks in store `docs/cursor-ux-owner-ask.md` (Epochs max / BPM-auto / offset rewrite). Claude Owner-blocked (VLM + ≥4–5 clips).
-- **Shipped tip @ `c95c1f7` / tag [`v0.5.42`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42):** AI Train sample prefs [#439](https://github.com/funfunpayer/SamNPlayer/pull/439); Create Feel/Expert prefs [#438](https://github.com/funfunpayer/SamNPlayer/pull/438); Play OFS/Feel prefs [#437](https://github.com/funfunpayer/SamNPlayer/pull/437); Rel42 [#429](https://github.com/funfunpayer/SamNPlayer/pull/429); Expert/EO/Contact 0 [#425](https://github.com/funfunpayer/SamNPlayer/pull/425)/[#421](https://github.com/funfunpayer/SamNPlayer/pull/421)/[#424](https://github.com/funfunpayer/SamNPlayer/pull/424).
+**Status board (30 Sep — Rel43 cut; tip `2e0ce4e`):**
+- **In flight:** Cursor **Rel43** (VERSION/CHANGELOG bump → tag `v0.5.43`). Claude Owner-blocked (VLM + ≥4–5 clips). Cursor UX idle — Owner asks in store `docs/cursor-ux-owner-ask.md` (Epochs max / BPM-auto / offset rewrite).
+- **Shipped tip @ `2e0ce4e`:** ROI empty-val heal [#442](https://github.com/funfunpayer/SamNPlayer/pull/442); Train window all labels [#441](https://github.com/funfunpayer/SamNPlayer/pull/441); AI Train sample prefs [#439](https://github.com/funfunpayer/SamNPlayer/pull/439); Create Feel/Expert prefs [#438](https://github.com/funfunpayer/SamNPlayer/pull/438); Play OFS/Feel prefs [#437](https://github.com/funfunpayer/SamNPlayer/pull/437); CLI cancel [#432](https://github.com/funfunpayer/SamNPlayer/pull/432)/[#435](https://github.com/funfunpayer/SamNPlayer/pull/435); tag [`v0.5.42`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42).
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
-- **Still Owner-gated:** portable smoke `v0.5.42`; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; Epochs max / BPM-auto / offset rewrite (Cursor UX asks).
+- **Still Owner-gated:** portable smoke `v0.5.43` after tag; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; Epochs max / BPM-auto / offset rewrite (Cursor UX asks).
 
 Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 
@@ -1031,6 +1032,7 @@ ring revision before committing.
 | 29 Sep | **CLI Generate cancellation DONE (ChatGPT).** [#432](https://github.com/funfunpayer/SamNPlayer/pull/432) merged @ `3d8da4a`; full CI green (Go/race, OpenCV Linux/Windows, Frontend, Python Generator). [#431](https://github.com/funfunpayer/SamNPlayer/issues/431) closed. No defaults/VERSION/release/VP | ChatGPT |
 | 29 Sep | **CLI stroke-preview cancellation claimed (ChatGPT).** The 10-minute preview timeout was rooted at `context.Background()`, so SIGINT/SIGTERM could not cancel analyzer/ffmpeg work through context. [#434](https://github.com/funfunpayer/SamNPlayer/issues/434): derive timeout from a signal-aware CLI context + regression test; no defaults/VERSION/release/VP | ChatGPT |
 | 29 Sep | **CLI stroke-preview cancellation DONE (ChatGPT).** [#435](https://github.com/funfunpayer/SamNPlayer/pull/435) merged @ `fedef03`; full CI green (Go/race, OpenCV Linux/Windows, Frontend, Python Generator). [#434](https://github.com/funfunpayer/SamNPlayer/issues/434) closed. Existing 10-minute safety timeout retained; no defaults/VERSION/release/VP | ChatGPT |
+| 30 Sep | **Rel43 prep (Cursor):** Owner greenlit after train fixes. Tip @ `2e0ce4e` includes #442 empty-val + #441 train labels + prefs #437–#439 + CLI cancel #432/#435. `VERSION`/`BaseVersion` 0.5.42→0.5.43; CHANGELOG Unreleased→0.5.43; Rel43 THIS. Everyday Go CSRT unchanged. Park #264/VP. Tag `v0.5.43` after CI green | Cursor |
 
 ---
 
