@@ -17,6 +17,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **AI Train: training could not be stopped, and kept running after closing
+  the app** — the YOLO training (minutes to hours) and the sample
+  bootstrap ran Python without a way to cancel it. Closing SamNPlayer left
+  that process running invisibly, keeping the CPU/GPU busy. Both runs are
+  now cancellable (`CancelRoiTraining`; button: Cursor) and are stopped when
+  the app closes. The "a run is already in progress" guard is now
+  thread-safe.
 - **Review "Invert" did nothing on OFS files with `"inverted": true`** — it
   flipped the stored points and cleared the flag, so the played curve stayed
   exactly the same. It now flips what Play shows. The polarity hint also

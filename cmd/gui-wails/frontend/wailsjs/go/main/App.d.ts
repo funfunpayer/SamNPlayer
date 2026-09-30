@@ -45,6 +45,8 @@ export function CancelGenerate():Promise<void>;
 
 export function CancelROIDetection():Promise<void>;
 
+export function CancelRoiTraining():Promise<boolean>;
+
 export function CheckAIRoiAvailable():Promise<boolean>;
 
 export function CheckAIServerAvailable():Promise<boolean>;

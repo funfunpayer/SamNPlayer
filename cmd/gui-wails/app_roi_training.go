@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -27,18 +29,51 @@ import (
 // roiTrainingRunning verhindert einen zweiten gleichzeitigen Bootstrap-
 // oder Trainingslauf - beide sind für Sekunden bis (beim Training) Stunden
 // blockierend und schreiben in denselben Datensatzordner.
-var roiTrainingRunning bool
+// Geschützt durch roiTrainingMu: claim läuft im Wails-Aufruf, release in
+// der Worker-Goroutine (vorher eine ungeschützte bool - Data Race).
+var (
+	roiTrainingMu      sync.Mutex
+	roiTrainingRunning bool
+	roiTrainingCancel  context.CancelFunc
+)
 
-func claimRoiTrainingRun() error {
+// claimRoiTrainingRun reserviert den Lauf und liefert seinen Kontext -
+// CancelRoiTraining (Knopf, App-Ende) bricht ihn ab.
+func claimRoiTrainingRun() (context.Context, error) {
+	roiTrainingMu.Lock()
+	defer roiTrainingMu.Unlock()
 	if roiTrainingRunning {
-		return fmt.Errorf("a bootstrap or training run is already in progress")
+		return nil, fmt.Errorf("a bootstrap or training run is already in progress")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
 	roiTrainingRunning = true
-	return nil
+	roiTrainingCancel = cancel
+	return ctx, nil
 }
 
 func releaseRoiTrainingRun() {
+	roiTrainingMu.Lock()
+	defer roiTrainingMu.Unlock()
+	if roiTrainingCancel != nil {
+		roiTrainingCancel()
+	}
 	roiTrainingRunning = false
+	roiTrainingCancel = nil
+}
+
+// CancelRoiTraining bricht einen laufenden Bootstrap- oder Trainingslauf ab
+// (der Python-Prozess wird beendet; "done" meldet dann den Abbruch).
+// Liefert false, wenn nichts lief. Auch beim Schließen der App aufgerufen -
+// vorher lief ein stundenlanges Training danach unsichtbar weiter.
+func (a *App) CancelRoiTraining() bool {
+	roiTrainingMu.Lock()
+	defer roiTrainingMu.Unlock()
+	if !roiTrainingRunning || roiTrainingCancel == nil {
+		return false
+	}
+	roiTrainingCancel()
+	logging.Info("roitraining: run cancelled")
+	return true
 }
 
 // roiTrainingSamplePrefix erzeugt einen stabilen, dateinamentauglichen
@@ -85,7 +120,7 @@ func (a *App) CheckRoiTrainingStatus() generator.RoiTrainingStatus {
 // Events roitraining:deps:progress|done). Für Release-Builds ohne
 // Quellbaum — requirements sind im Binary eingebettet.
 func (a *App) InstallRoiTrainingDeps() error {
-	if err := claimRoiTrainingRun(); err != nil {
+	if _, err := claimRoiTrainingRun(); err != nil {
 		return err
 	}
 	go func() {
@@ -163,7 +198,8 @@ func (a *App) BootstrapRoiTrainingRegions(
 	startSeconds float64,
 	boxScale float64,
 ) (string, error) {
-	if err := claimRoiTrainingRun(); err != nil {
+	runCtx, err := claimRoiTrainingRun()
+	if err != nil {
 		return "", err
 	}
 	if len(regions) == 0 {
@@ -188,7 +224,7 @@ func (a *App) BootstrapRoiTrainingRegions(
 
 	go func() {
 		defer releaseRoiTrainingRun()
-		err := generator.BootstrapRoiTrainingSampleOpts(videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
+		err := generator.BootstrapRoiTrainingSampleOptsCtx(runCtx, videoPath, regions, datasetDir, prefix, sampleEvery, extractAudio, startSeconds, boxScale,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "roitraining:bootstrap:percent", pct) })
 		if err != nil {
@@ -229,7 +265,8 @@ func (a *App) PickImageFile() (string, error) {
 // ist die KI-Erkennung im Generator-Tab also ohne weiteren Schritt nutzbar.
 // Läuft asynchron, kann bei einem echten Datensatz lange dauern.
 func (a *App) RunRoiModelTraining(epochs int, device string) error {
-	if err := claimRoiTrainingRun(); err != nil {
+	runCtx, err := claimRoiTrainingRun()
+	if err != nil {
 		return err
 	}
 
@@ -245,7 +282,7 @@ func (a *App) RunRoiModelTraining(epochs int, device string) error {
 			runtime.EventsEmit(a.ctx, "roitraining:train:done", map[string]any{"error": err.Error()})
 			return
 		}
-		err := generator.RunRoiModelTrainingWithProgress(datasetDir, modelPath, epochs, device,
+		err := generator.RunRoiModelTrainingCtx(runCtx, datasetDir, modelPath, epochs, device,
 			func(line string) { runtime.EventsEmit(a.ctx, "roitraining:train:progress", line) },
 			func(pct int) { runtime.EventsEmit(a.ctx, "roitraining:train:percent", pct) })
 		if err != nil {
