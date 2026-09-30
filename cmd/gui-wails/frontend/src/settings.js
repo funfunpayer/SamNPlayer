@@ -1,1 +1,1 @@
-see-file
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
