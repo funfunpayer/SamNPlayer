@@ -38,7 +38,7 @@ func TestExportFunscriptKeepsForeignMetadata(t *testing.T) {
 	if err := json.Unmarshal(b, &top); err != nil {
 		t.Fatal(err)
 	}
-	for _, k := range []string{"inverted", "range", "version"} {
+	for _, k := range []string{"range", "version"} {
 		if _, ok := top[k]; !ok {
 			t.Errorf("top-level %q lost", k)
 		}
@@ -58,6 +58,11 @@ func TestExportFunscriptKeepsForeignMetadata(t *testing.T) {
 		if _, ok := meta[k]; ok {
 			t.Errorf("metadata %q must follow the document (dropped)", k)
 		}
+	}
+	// Die exportierten Punkte sind schon so, wie sie gespielt werden - ein
+	// übernommenes "inverted" würde andere Player doppelt drehen lassen.
+	if _, ok := top["inverted"]; ok {
+		t.Error(`top-level "inverted" must not survive the export`)
 	}
 	s, err := funscript.Load(p)
 	if err != nil {
@@ -91,5 +96,18 @@ func TestExportFunscriptWithoutUsableTarget(t *testing.T) {
 		if _, err := os.Stat(p + ".tmp"); !os.IsNotExist(err) {
 			t.Errorf("%s: temp file left behind", name)
 		}
+	}
+}
+
+// Eine .funscript mit OFS "inverted": true wird so in .samn übernommen, wie
+// Play sie abspielt - .samn kennt kein Flag, vorher ging die Drehung verloren.
+func TestFromFunscriptBakesInverted(t *testing.T) {
+	s, err := funscript.Parse([]byte(`{"actions":[{"at":0,"pos":10},{"at":1000,"pos":80}],"inverted":true}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := FromFunscript(s, "")
+	if d.General[0].Pos != 90 || d.General[1].Pos != 20 {
+		t.Fatalf("general %v, want played positions 90/20", d.General)
 	}
 }

@@ -15,6 +15,7 @@ func TestSuggestPolarityAndInvertRoundtrip(t *testing.T) {
 	if err := os.WriteFile(path, []byte(body), 0644); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	a := NewApp()
 	if _, err := a.LoadFunscript(path); err != nil {
 		t.Fatal(err)
@@ -22,18 +23,27 @@ func TestSuggestPolarityAndInvertRoundtrip(t *testing.T) {
 	if !a.currentScript.Inverted {
 		t.Fatal("expected loaded inverted flag")
 	}
+	// Gespielt wird 90,85,88,20,10 - das Flag hat die Richtung schon
+	// korrigiert, also keine Empfehlung. (Vorher wurden die Rohwerte
+	// 10..90 bewertet und Invertieren empfohlen.)
 	hint, err := a.SuggestPolarity()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !hint.SuggestInvert {
-		t.Fatalf("erwartete Invert-Empfehlung: %+v", hint)
+	if hint.SuggestInvert {
+		t.Fatalf("played curve already has the right direction: %+v", hint)
 	}
+	if got := a.currentScript.PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("played first position before invert: %d", got)
+	}
+	// Invertieren dreht das, was gespielt wird: 90 -> 10. Vorher wurden
+	// die Rohwerte gedreht und das Flag gelöscht - die gespielte Kurve
+	// blieb dieselbe (90), der Knopf wirkte nicht.
 	if err := a.InvertLoadedScript(); err != nil {
 		t.Fatal(err)
 	}
-	if a.currentScript.Actions[0].Pos != 90 {
-		t.Fatalf("erste Position nach Invert: %d", a.currentScript.Actions[0].Pos)
+	if got := a.currentScript.PlaybackActions()[0].Pos; got != 10 {
+		t.Fatalf("played first position after invert: %d, want 10", got)
 	}
 	if a.currentScript.Inverted {
 		t.Fatal("Invert bake must clear top-level inverted so Play does not flip twice")
@@ -105,5 +115,44 @@ func TestApplyRingDownOnLoadedScript(t *testing.T) {
 	}
 	if last.At <= 2000 {
 		t.Fatalf("Ring-down muss nach atMs liegen: %+v", last)
+	}
+}
+
+// Schalter "inverted beachten" aus: die Datei spielt, wie die Punkte
+// dastehen; das Umschalten lädt das offene Skript sofort neu.
+func TestHonorInvertedSetting(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	path := filepath.Join(t.TempDir(), "inv.funscript")
+	if err := os.WriteFile(path, []byte(`{"actions":[{"at":0,"pos":10},{"at":1000,"pos":80}],"inverted":true}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := NewApp()
+	if !a.GetSettings().PlaybackHonorInverted {
+		t.Fatal("default must stay on (behavior since v0.5.44)")
+	}
+	if _, err := a.LoadFunscript(path); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("on: played %d, want 90", got)
+	}
+	if err := a.SetSetting(prefPlaybackHonorInverted, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 10 {
+		t.Fatalf("off: played %d, want 10 (file as written)", got)
+	}
+	// Invertieren dreht auch hier das Gespielte: 10 -> 90, Flag weg.
+	if err := a.InvertLoadedScript(); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("off + invert: played %d, want 90", got)
+	}
+	if err := a.SetSetting(prefPlaybackHonorInverted, true); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("flag cleared by invert, so on/off no longer matter: %d", got)
 	}
 }

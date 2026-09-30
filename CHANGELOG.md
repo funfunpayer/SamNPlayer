@@ -8,8 +8,24 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Setting: honor OFS "inverted"** (`playback.honor_inverted`, default
+  on = behavior since v0.5.44) — files that carry `"inverted": true` although
+  their author never meant players to flip them can be played as written.
+  Switching it reloads the open script. (Checkbox in Settings: Cursor.)
+
 ### Fixed
 
+- **Review "Invert" did nothing on OFS files with `"inverted": true`** — it
+  flipped the stored points and cleared the flag, so the played curve stayed
+  exactly the same. It now flips what Play shows. The polarity hint also
+  looks at the played curve, so it no longer suggests inverting a file whose
+  flag already sets the direction right.
+- **`.samn` from an inverted `.funscript`** — converting lost the inversion
+  (`.samn` has no flag), and the companion export kept `"inverted": true` on
+  points that were already as played, so other players flipped twice. The
+  conversion now takes the played positions, and the export drops the flag.
 - **Settings lost after a crash** — every knob change rewrites
   `settings.json` in place. A crash or power loss mid-write left it half
   written; the app then started with defaults and the next knob change

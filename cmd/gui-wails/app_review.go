@@ -44,8 +44,10 @@ func (a *App) InvertScriptAtPath(path string) error {
 	if err != nil {
 		return err
 	}
-	actions := make([]funscript.Action, len(script.Actions))
-	for i, act := range script.Actions {
+	// Flip what Play shows (see InvertLoadedScript).
+	played := script.PlaybackActions()
+	actions := make([]funscript.Action, len(played))
+	for i, act := range played {
 		actions[i] = funscript.Action{At: act.At, Pos: 100 - act.Pos}
 	}
 	if samn.IsSamnPath(path) {

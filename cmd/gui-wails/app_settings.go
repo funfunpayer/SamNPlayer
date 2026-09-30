@@ -68,6 +68,11 @@ const (
 	// position" (nur Positions-Sync während der Wiedergabe) - vorher lief
 	// das ungefragt immer mit, auch bei ausgeschaltetem Sync.
 	prefPlaybackVideoPlayAutostart = "playback.video_play_autostart"
+	// prefPlaybackHonorInverted: OFS/funscript top-level "inverted": true
+	// flips positions (100−pos) in Play (#453). Switchable (Owner 30 Sep):
+	// some files carry the flag although their authors never meant players
+	// to flip them. Default on = behavior since v0.5.44.
+	prefPlaybackHonorInverted = "playback.honor_inverted"
 
 	// Play OFS / Feel display+edit knobs (MakeVib-style). Defaults match HTML.
 	// Not Create / Everyday CSRT. BPM number stays blank=auto (not persisted).
@@ -113,6 +118,8 @@ type Settings struct {
 	// PlaybackVideoPlayAutostart: siehe prefPlaybackVideoPlayAutostart.
 	// Default true - bisheriges Verhalten bleibt ohne Zutun erhalten.
 	PlaybackVideoPlayAutostart bool `json:"playbackVideoPlayAutostart"`
+	// PlaybackHonorInverted: siehe prefPlaybackHonorInverted. Default true.
+	PlaybackHonorInverted bool `json:"playbackHonorInverted"`
 	// PlaybackTrajectoryOverlay: siehe prefPlaybackTrajectoryOverlay.
 	// Default false - Debug-Overlay, nicht jeder Nutzer/jedes Skript hat es.
 	PlaybackTrajectoryOverlay bool `json:"playbackTrajectoryOverlay"`
@@ -238,6 +245,7 @@ func (a *App) GetSettings() Settings {
 		PlaybackEORestoreMs:  s.GetFloat(prefPlaybackEORestoreMs, 500),
 
 		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
+		PlaybackHonorInverted:      s.GetBool(prefPlaybackHonorInverted, true),
 		PlaybackTrajectoryOverlay:  s.GetBool(prefPlaybackTrajectoryOverlay, false),
 
 		PlaybackCapIntensity:         s.GetFloat(prefPlaybackCapIntensity, 400),
@@ -311,7 +319,15 @@ func (a *App) SetSetting(key string, value any) error {
 			logging.SetLevel(parseLogLevel(s))
 		}
 	}
-	return a.settings.Set(key, value)
+	if err := a.settings.Set(key, value); err != nil {
+		return err
+	}
+	// Das geladene Skript trägt den Schalter schon in sich (siehe
+	// loadScriptDocument) - neu laden, damit Kurve und Gerät sofort folgen.
+	if key == prefPlaybackHonorInverted && a.loadedScriptPath() != "" {
+		return a.reloadLoadedScript()
+	}
+	return nil
 }
 
 func (a *App) OpenLogFolder() error {
