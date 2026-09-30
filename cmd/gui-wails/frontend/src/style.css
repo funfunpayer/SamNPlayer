@@ -1582,6 +1582,31 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   word-break: break-all;
 }
 .rt-review-sub { margin: 4px 0 0; }
+.rt-review-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.rt-review-labels label {
+  width: auto;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rt-review-labels select {
+  min-width: 10em;
+  max-width: 18em;
+}
+.rt-review-role-hint { margin: 0; }
+.rt-review-scene .rt-box.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  z-index: 2;
+}
 .rt-review-close {
   flex-shrink: 0;
 }

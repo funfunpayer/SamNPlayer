@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -215,6 +216,51 @@ func TestUpdateAndDiscardRoiTrainingSample(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "images", "train", "clip_000000.jpg")); !os.IsNotExist(err) {
 		t.Fatal("discard sollte auch die Bilddatei entfernen")
+	}
+}
+
+func TestUpdateRoiTrainingSampleRegistersAnyTaxonomyLabel(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "classes.json"), []byte(`{"face":0}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeRoiSample(t, dir, "train", "clip_000000", "0 0.5 0.5 0.2 0.2\n")
+
+	a := NewApp()
+	// Relabel Face window → Glans (+ add Mouth) so review can set all taxonomy labels.
+	boxes := []RoiTrainingBox{
+		{ClassID: 0, ClassName: "glans", XC: 0.4, YC: 0.4, W: 0.1, H: 0.1},
+		{ClassID: 0, ClassName: "mouth", XC: 0.6, YC: 0.6, W: 0.12, H: 0.12},
+	}
+	if err := a.UpdateRoiTrainingSample(dir, "train", "clip_000000.jpg", boxes); err != nil {
+		t.Fatal(err)
+	}
+	samples, err := a.ListRoiTrainingSamples(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(samples) != 1 || len(samples[0].Boxes) != 2 {
+		t.Fatalf("expected 2 boxes, got %+v", samples)
+	}
+	byName := map[string]RoiTrainingBox{}
+	for _, b := range samples[0].Boxes {
+		byName[b.ClassName] = b
+	}
+	if _, ok := byName["glans"]; !ok {
+		t.Fatalf("glans not registered: %+v", samples[0].Boxes)
+	}
+	if _, ok := byName["mouth"]; !ok {
+		t.Fatalf("mouth not registered: %+v", samples[0].Boxes)
+	}
+	if byName["glans"].ClassID == byName["mouth"].ClassID {
+		t.Fatalf("expected distinct class ids: %+v", byName)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "classes.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"glans"`) || !strings.Contains(string(raw), `"mouth"`) {
+		t.Fatalf("classes.json missing new labels: %s", raw)
 	}
 }
 

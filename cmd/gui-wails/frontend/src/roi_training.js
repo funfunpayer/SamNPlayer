@@ -6,7 +6,7 @@ import {
   InstallRoiTrainingDeps, ListRoiTrainingDevices,
   GetMotionProfileModelStatus, TrainMotionProfileModel,
 } from '../wailsjs/go/main/App';
-import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor } from './bodyparts.js';
+import { CLASS_PRESETS, MAX_REGIONS, normalizeClass, labelFor, labelWithRole, CANONICAL } from './bodyparts.js';
 import { mountBodyFigure } from './body_figure.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -606,26 +606,39 @@ export function initRoiTraining(root) {
     };
   }
 
-  function boxOverlay(box) {
+  function boxOverlay(box, opts = {}) {
     const b = normBox(box);
     if (!b) return null;
     const wrap = document.createElement('div');
-    wrap.className = 'rt-box';
+    wrap.className = 'rt-box' + (opts.selected ? ' is-selected' : '');
     wrap.style.left = ((b.xc - b.w / 2) * 100) + '%';
     wrap.style.top = ((b.yc - b.h / 2) * 100) + '%';
     wrap.style.width = (b.w * 100) + '%';
     wrap.style.height = (b.h * 100) + '%';
+    if (opts.index != null) wrap.dataset.boxIndex = String(opts.index);
     const label = document.createElement('span');
     label.className = 'rt-box-label';
-    label.textContent = b.className || ('#' + b.classId);
+    label.textContent = labelFor(b.className) || b.className || ('#' + b.classId);
     wrap.appendChild(label);
+    if (opts.onSelect) {
+      wrap.style.cursor = 'pointer';
+      wrap.title = 'Select window to set label';
+      wrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        opts.onSelect(opts.index);
+      });
+    }
     return wrap;
   }
 
-  function paintBoxes(thumbWrap, boxes) {
+  function paintBoxes(thumbWrap, boxes, opts = {}) {
     thumbWrap.querySelectorAll('.rt-box').forEach(n => n.remove());
-    (boxes || []).forEach(box => {
-      const node = boxOverlay(box);
+    (boxes || []).forEach((box, i) => {
+      const node = boxOverlay(box, {
+        index: i,
+        selected: opts.selectedIdx === i,
+        onSelect: opts.onSelect,
+      });
       if (node) thumbWrap.appendChild(node);
     });
   }
@@ -748,7 +761,9 @@ export function initRoiTraining(root) {
       .replace(/"/g, '&quot;');
   }
 
-  /** Large review pane: full image + boxes, pan/zoom, confirm / discard / adjust. */
+  /** Large review pane: full image + boxes, pan/zoom, confirm / discard / adjust.
+   * Any detection window can get any taxonomy label (Face was previously the only
+   * adjustable first-class box — Owner: set all detection/role labels). */
   async function openReviewEditor({ sample, card, thumbWrap, imgEl, startAdjust }) {
     closeReviewEditor();
     if (!imgEl.src) {
@@ -770,6 +785,7 @@ export function initRoiTraining(root) {
 
     let boxes = (Array.isArray(sample.boxes) ? sample.boxes : [])
       .map(normBox).filter(Boolean);
+    let selectedIdx = boxes.length ? 0 : -1;
     let adjustMode = !!startAdjust;
     let scale = 1;
     let panX = 0;
@@ -798,10 +814,29 @@ export function initRoiTraining(root) {
       <div>
         <p class="rt-review-kicker">AI Train · Review</p>
         <h2>${escapeReviewText(sample.split)} / ${escapeReviewText(sample.name)}</h2>
-        <p class="rt-review-sub hint">Scroll to zoom · drag to pan · Adjust box to redraw the first class</p>
+        <p class="rt-review-sub hint">Scroll to zoom · drag to pan · select a window · set any body-part label · Adjust to redraw</p>
       </div>
       <button type="button" class="rt-review-close" aria-label="Close review editor">Close</button>
     `;
+
+    const labelBar = document.createElement('div');
+    labelBar.className = 'rt-review-labels';
+    labelBar.innerHTML = `
+      <label for="rt-review-box-sel">Window</label>
+      <select id="rt-review-box-sel" aria-label="Detection window"></select>
+      <label for="rt-review-class-sel">Label</label>
+      <select id="rt-review-class-sel" aria-label="Detection / role label"></select>
+      <span class="hint rt-review-role-hint" id="rt-review-role-hint"></span>
+    `;
+    const boxSel = labelBar.querySelector('#rt-review-box-sel');
+    const classSel = labelBar.querySelector('#rt-review-class-sel');
+    const roleHint = labelBar.querySelector('#rt-review-role-hint');
+    for (const p of CANONICAL) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = labelWithRole(p.id);
+      classSel.appendChild(opt);
+    }
 
     const stage = document.createElement('div');
     stage.className = 'rt-review-stage';
@@ -822,9 +857,6 @@ export function initRoiTraining(root) {
     foot.className = 'rt-review-foot';
     const status = document.createElement('p');
     status.className = 'hint rt-review-status';
-    status.textContent = adjustMode
-      ? 'Drag on the image to redraw the first-class box. Escape cancels adjust.'
-      : 'Looks good? Confirm correct — or Adjust box / Discard.';
     const actions = document.createElement('div');
     actions.className = 'rt-review-actions';
     const confirmBtn = document.createElement('button');
@@ -845,10 +877,65 @@ export function initRoiTraining(root) {
     foot.appendChild(actions);
 
     panel.appendChild(head);
+    panel.appendChild(labelBar);
     panel.appendChild(stage);
     panel.appendChild(foot);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
+
+    function selectedLabel() {
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return '';
+      return normalizeClass(boxes[selectedIdx].className) || boxes[selectedIdx].className || '';
+    }
+
+    function syncLabelControls() {
+      boxSel.innerHTML = '';
+      if (!boxes.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '(no boxes)';
+        boxSel.appendChild(opt);
+        boxSel.disabled = true;
+        classSel.disabled = true;
+        roleHint.textContent = '';
+        return;
+      }
+      boxSel.disabled = false;
+      classSel.disabled = false;
+      boxes.forEach((b, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        const name = labelFor(b.className) || b.className || ('#' + b.classId);
+        opt.textContent = `${i + 1}/${boxes.length} · ${name}`;
+        boxSel.appendChild(opt);
+      });
+      if (selectedIdx < 0 || selectedIdx >= boxes.length) selectedIdx = 0;
+      boxSel.value = String(selectedIdx);
+      const cur = selectedLabel();
+      if (cur && ![...classSel.options].some((o) => o.value === cur)) {
+        const opt = document.createElement('option');
+        opt.value = cur;
+        opt.textContent = labelWithRole(cur);
+        classSel.appendChild(opt);
+      }
+      if (cur) classSel.value = cur;
+      else classSel.value = CANONICAL[0].id;
+      const m = labelWithRole(cur || classSel.value).match(/\(([^)]+)\)/);
+      roleHint.textContent = m ? `Typical role: ${m[1]}` : '';
+    }
+
+    function repaintScene() {
+      paintBoxes(scene, boxes, {
+        selectedIdx,
+        onSelect: (i) => {
+          if (adjustMode) return;
+          selectedIdx = i;
+          syncLabelControls();
+          repaintScene();
+          status.textContent = `Window ${i + 1} selected — set Label or Adjust box.`;
+        },
+      });
+    }
 
     function applyTransform() {
       scene.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
@@ -859,7 +946,6 @@ export function initRoiTraining(root) {
       const vh = viewport.clientHeight || 1;
       const iw = bigImg.naturalWidth || imgEl.naturalWidth || 1;
       const ih = bigImg.naturalHeight || imgEl.naturalHeight || 1;
-      // Size the scene to native pixels so YOLO % boxes map 1:1 before transform.
       scene.style.width = iw + 'px';
       scene.style.height = ih + 'px';
       bigImg.style.width = iw + 'px';
@@ -868,7 +954,8 @@ export function initRoiTraining(root) {
       panX = (vw - iw * scale) / 2;
       panY = (vh - ih * scale) / 2;
       applyTransform();
-      paintBoxes(scene, boxes);
+      syncLabelControls();
+      repaintScene();
     }
 
     function setAdjustMode(on) {
@@ -877,9 +964,12 @@ export function initRoiTraining(root) {
       adjustBtn.textContent = on ? 'Cancel adjust' : 'Adjust box';
       adjustBtn.classList.toggle('primary', on);
       confirmBtn.classList.toggle('primary', !on);
+      const who = selectedIdx >= 0
+        ? (labelFor(boxes[selectedIdx]?.className) || `window ${selectedIdx + 1}`)
+        : 'selected window';
       status.textContent = on
-        ? 'Drag on the image to redraw the first-class box. Escape cancels adjust.'
-        : 'Looks good? Confirm correct — or Adjust box / Discard.';
+        ? `Drag on the image to redraw ${who}. Escape cancels adjust.`
+        : 'Looks good? Confirm correct — or pick a window / Label / Adjust / Discard.';
     }
 
     function clientToNorm(clientX, clientY) {
@@ -947,6 +1037,25 @@ export function initRoiTraining(root) {
       applyTransform();
     }
 
+    async function saveBoxes(nextBoxes, okMsg) {
+      try {
+        await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, nextBoxes);
+        boxes = nextBoxes.map(normBox).filter(Boolean);
+        sample.boxes = boxes;
+        if (selectedIdx >= boxes.length) selectedIdx = boxes.length ? boxes.length - 1 : -1;
+        syncLabelControls();
+        repaintScene();
+        paintBoxes(thumbWrap, boxes);
+        status.textContent = okMsg || 'Saved.';
+        uiInfo(okMsg || 'Saved.');
+        return true;
+      } catch (err) {
+        uiError('Save box: ' + err);
+        status.textContent = 'Save failed: ' + err;
+        return false;
+      }
+    }
+
     async function finishDraw() {
       if (!drawing) return;
       drawing = false;
@@ -960,27 +1069,22 @@ export function initRoiTraining(root) {
         status.textContent = 'Box too small — drag a larger region.';
         return;
       }
-      const first = boxes[0] || { classId: 0, className: 'object' };
-      const updated = [{
-        classId: first.classId,
-        className: first.className,
+      const idx = selectedIdx >= 0 ? selectedIdx : 0;
+      const base = boxes[idx] || { classId: 0, className: classSel.value || 'face' };
+      const next = boxes.slice();
+      const updatedBox = {
+        classId: base.classId,
+        className: normalizeClass(classSel.value) || base.className || 'face',
         xc: L + W / 2,
         yc: T + H / 2,
         w: W,
         h: H,
-      }, ...boxes.slice(1)];
-      try {
-        await UpdateRoiTrainingSample(datasetDir, sample.split, sample.name, updated);
-        boxes = updated;
-        sample.boxes = updated;
-        paintBoxes(scene, boxes);
-        paintBoxes(thumbWrap, boxes);
+      };
+      if (idx < next.length) next[idx] = updatedBox;
+      else next.push(updatedBox);
+      selectedIdx = Math.min(idx, next.length - 1);
+      if (await saveBoxes(next, `Box saved (${labelFor(updatedBox.className) || updatedBox.className}).`)) {
         setAdjustMode(false);
-        status.textContent = 'Box saved.';
-        uiInfo('Box saved.');
-      } catch (err) {
-        uiError('Save box: ' + err);
-        status.textContent = 'Save failed: ' + err;
       }
     }
 
@@ -1015,6 +1119,23 @@ export function initRoiTraining(root) {
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('keydown', onKey);
     }
+
+    boxSel.addEventListener('change', () => {
+      selectedIdx = parseInt(boxSel.value, 10);
+      if (!Number.isFinite(selectedIdx)) selectedIdx = 0;
+      syncLabelControls();
+      repaintScene();
+    });
+
+    classSel.addEventListener('change', async () => {
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return;
+      const n = normalizeClass(classSel.value);
+      if (!n) return;
+      const next = boxes.map((b, i) => (i === selectedIdx
+        ? { ...b, className: n }
+        : b));
+      await saveBoxes(next, `Label → ${labelWithRole(n)}`);
+    });
 
     head.querySelector('.rt-review-close').addEventListener('click', closeReviewEditor);
     overlay.addEventListener('click', (e) => {
