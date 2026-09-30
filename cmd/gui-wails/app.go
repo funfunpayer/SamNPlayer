@@ -34,6 +34,7 @@ type App struct {
 
 	stateMu         sync.RWMutex
 	videoPath       string
+	videoURLEpoch   uint64 // bumps whenever videoPath changes so <video src> reloads
 	videoServerPort int
 	sessionActive   bool // true solange eine Wiedergabe ODER ein Training läuft
 
@@ -227,11 +228,11 @@ func (a *App) LoadFunscript(path string) (ScriptInfo, error) {
 	fillScriptInfoAudioCheck(&info, script, path)
 	a.stateMu.Lock()
 	if video, ok := findMatchingVideo(path); ok {
-		a.videoPath = video
+		a.setVideoPathLocked(video)
 		info.VideoPath = video
 		info.HasVideo = true
 	} else {
-		a.videoPath = ""
+		a.setVideoPathLocked("")
 	}
 	a.stateMu.Unlock()
 	return info, nil
@@ -279,6 +280,17 @@ func fileURL(path string) string {
 	return "file://" + filepath.ToSlash(path)
 }
 
+// setVideoPathLocked updates videoPath and bumps videoURLEpoch so the
+// frontend <video> element gets a distinct src when the user swaps films.
+// Caller must hold stateMu.
+func (a *App) setVideoPathLocked(path string) {
+	if a.videoPath == path {
+		return
+	}
+	a.videoPath = path
+	a.videoURLEpoch++
+}
+
 // VideoFileURL liefert die URL für das <video>-Element im Frontend.
 //
 // WICHTIG (getestet, nicht angenommen): eine direkte file://-URL wird von
@@ -288,9 +300,14 @@ func fileURL(path string) string {
 // Port pro Programmlauf), der die aktuell gewählte Videodatei mit
 // Range-Request-Unterstützung ausliefert (nötig fürs Spulen im Video) -
 // http.ServeFile() übernimmt Range-Handling automatisch korrekt.
+//
+// The query token (?v=<epoch>) changes whenever the active path changes.
+// Without it, assigning the same http://127.0.0.1:port/video string to
+// videoEl.src after SetPlaybackVideo leaves the browser on the first file.
 func (a *App) VideoFileURL() string {
 	a.stateMu.RLock()
 	path := a.videoPath
+	epoch := a.videoURLEpoch
 	a.stateMu.RUnlock()
 	if path == "" {
 		return ""
@@ -300,7 +317,7 @@ func (a *App) VideoFileURL() string {
 		logging.Error("app: local video server could not be started", "error", err)
 		return ""
 	}
-	return fmt.Sprintf("http://127.0.0.1:%d/video", port)
+	return fmt.Sprintf("http://127.0.0.1:%d/video?v=%d", port, epoch)
 }
 
 // SetPlaybackVideo verknüpft ein beliebiges Video mit dem geladenen Skript
@@ -315,7 +332,7 @@ func (a *App) SetPlaybackVideo(path string) (string, error) {
 		return "", fmt.Errorf("video file not found: %s", path)
 	}
 	a.stateMu.Lock()
-	a.videoPath = path
+	a.setVideoPathLocked(path)
 	a.stateMu.Unlock()
 	logging.Info("app: playback video set", "path", path)
 	url := a.VideoFileURL()
@@ -328,7 +345,7 @@ func (a *App) SetPlaybackVideo(path string) (string, error) {
 // ClearPlaybackVideo entfernt die Video-Verknüpfung (Skript allein).
 func (a *App) ClearPlaybackVideo() {
 	a.stateMu.Lock()
-	a.videoPath = ""
+	a.setVideoPathLocked("")
 	a.stateMu.Unlock()
 }
 

@@ -80,7 +80,7 @@ func (a *App) EnsurePlayablePlaybackVideo() (PlaybackVideoInfo, error) {
 		return PlaybackVideoInfo{Path: src, Warning: err.Error()}, err
 	}
 	a.stateMu.Lock()
-	a.videoPath = out
+	a.setVideoPathLocked(out)
 	a.stateMu.Unlock()
 	info, _ := a.ProbePlaybackVideo(out)
 	info.UsingProxy = converted || out != src
