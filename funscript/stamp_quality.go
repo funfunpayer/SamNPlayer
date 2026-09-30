@@ -50,5 +50,5 @@ func StampQuality(path string, q ScriptQualityResult) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0o644)
+	return writeFileAtomic(path, out, 0o644)
 }

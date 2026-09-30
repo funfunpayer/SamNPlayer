@@ -256,7 +256,7 @@ func SaveAxisActions(path string, axis AxisName, actions []Action) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0644)
+	return writeFileAtomic(path, out, 0o644)
 }
 
 // SavePlaybackSource updates device_recipe.playback_source only.
@@ -297,5 +297,5 @@ func SavePlaybackSource(path string, source string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0644)
+	return writeFileAtomic(path, out, 0o644)
 }

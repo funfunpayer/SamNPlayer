@@ -118,5 +118,5 @@ func SaveOMarkers(path string, markers []OMarker) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0644)
+	return writeFileAtomic(path, out, 0o644)
 }
