@@ -1126,7 +1126,7 @@ export function initGenerator(root, playback) {
       : 'No tip box yet (Find tip runs on Create — no motion path to paint)';
     el('#gen-roi2-label').textContent = roi2
       ? secondRegionLabel(roi2, 'gold')
-      : 'No partner touch marked (optional)';
+      : 'No contact area marked (optional partner touch)';
     const extras = el('#gen-extras-label');
     if (extras) {
       const parts = [];
