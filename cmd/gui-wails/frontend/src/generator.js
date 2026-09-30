@@ -5,7 +5,7 @@ import {
   labelFor, normalizeClass, orderedCanonical,
 } from './bodyparts.js';
 import { mountBodyFigure } from './body_figure.js';
-import { getSettingsCache } from './settings.js';
+import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 import { openHandbook } from './handbook.js';
@@ -2904,10 +2904,68 @@ export function initGenerator(root, playback) {
       schedulePostprocessPreview();
     });
   });
-  el('#gen-adaptive')?.addEventListener('change', schedulePostprocessPreview);
+  el('#gen-smooth')?.addEventListener('change', e => {
+    saveSetting('generator.smooth_window', intOr(e.target.value, 11));
+  });
+  el('#gen-peakdist')?.addEventListener('change', e => {
+    saveSetting('generator.min_peak_distance_ms', intOr(e.target.value, 150));
+  });
+  el('#gen-prominence')?.addEventListener('change', e => {
+    saveSetting('generator.peak_prominence', finiteOr(e.target.value, 0));
+  });
+  el('#gen-rdp')?.addEventListener('change', e => {
+    saveSetting('generator.rdp_tolerance', finiteOr(e.target.value, 0));
+  });
+  el('#gen-maxspeed')?.addEventListener('change', e => {
+    saveSetting('generator.max_speed', finiteOr(e.target.value, 0));
+  });
+  el('#gen-adaptive')?.addEventListener('change', e => {
+    schedulePostprocessPreview();
+    saveSetting('generator.adaptive_keyframe', !!e.target.checked);
+  });
   el('#gen-advanced-expert')?.addEventListener('toggle', () => {
     if (el('#gen-advanced-expert')?.open) refreshPostprocessPreview();
   });
+
+  // Restore Create Feel + Expert knobs from settings (defaults match HTML).
+  getSettingsCache().then((s) => {
+    if (!s) return;
+    if (s.genContactVibrationSpan != null && el('#gen-contact-span')) {
+      const span = Math.round(Number(s.genContactVibrationSpan));
+      if (Number.isFinite(span) && span >= 40 && span <= 95) {
+        el('#gen-contact-span').value = String(span);
+        updateContactSpanLabel();
+      }
+    }
+    const curve = s.genContactVibrationCurve;
+    if (curve && el('#gen-contact-curve')
+        && ['linear', 'soft', 'peak', 'impulse'].includes(curve)) {
+      el('#gen-contact-curve').value = curve;
+      el('#gen-contact-curve').dataset.userTouched = '1';
+      const impulse = el('#gen-contact-impulse');
+      if (impulse) impulse.checked = curve === 'impulse';
+    }
+    if (s.genSmoothWindow != null && el('#gen-smooth')) {
+      el('#gen-smooth').value = String(intOr(s.genSmoothWindow, 11));
+    }
+    if (s.genMinPeakDistanceMs != null && el('#gen-peakdist')) {
+      el('#gen-peakdist').value = String(intOr(s.genMinPeakDistanceMs, 150));
+    }
+    if (s.genPeakProminence != null && el('#gen-prominence')) {
+      el('#gen-prominence').value = String(finiteOr(s.genPeakProminence, 0));
+    }
+    if (s.genRDPTolerance != null && el('#gen-rdp')) {
+      el('#gen-rdp').value = String(finiteOr(s.genRDPTolerance, 0));
+    }
+    if (s.genMaxSpeed != null && el('#gen-maxspeed')) {
+      el('#gen-maxspeed').value = String(finiteOr(s.genMaxSpeed, 0));
+    }
+    if (typeof s.genAdaptiveKeyframe === 'boolean' && el('#gen-adaptive')) {
+      el('#gen-adaptive').checked = s.genAdaptiveKeyframe;
+    }
+    syncExpertKnobLabels();
+    scheduleContactVibPreview();
+  }).catch(() => { /* settings optional in tests */ });
 
   async function startQueueRun() {
     if (queueRunning || !generateQueue.some(q => q.status === 'queued')) return;
@@ -4239,16 +4297,21 @@ export function initGenerator(root, playback) {
       curve.value = 'soft';
     }
     scheduleContactVibPreview();
+    saveSetting('generator.contact_vibration_curve', curve.value || 'soft');
   });
   el('#gen-contact-curve').addEventListener('change', () => {
     el('#gen-contact-curve').dataset.userTouched = '1';
     const impulse = el('#gen-contact-impulse');
     if (impulse) impulse.checked = el('#gen-contact-curve').value === 'impulse';
     scheduleContactVibPreview();
+    saveSetting('generator.contact_vibration_curve', el('#gen-contact-curve').value || 'soft');
   });
   el('#gen-contact-span').addEventListener('input', () => {
     updateContactSpanLabel();
     scheduleContactVibPreview();
+  });
+  el('#gen-contact-span').addEventListener('change', e => {
+    saveSetting('generator.contact_vibration_span', intOr(e.target.value, 75));
   });
   el('#gen-contact-vibration')?.addEventListener('change', scheduleContactVibPreview);
   // Initial probe when Feel panel is shown with Contact vib on.

@@ -33,6 +33,17 @@ const (
 	// companion .scene.json when soft-loaded (default OFF; Owner 28 Sep).
 	prefApplyAISetupAutomatically = "generator.applyAISetupAutomatically"
 
+	// Create Feel + Expert knobs (MakeVib-style). Defaults match HTML.
+	// Does not flip Everyday on/off or CSRT path — remembers user tweaks only.
+	prefGenContactVibrationSpan  = "generator.contact_vibration_span"
+	prefGenContactVibrationCurve = "generator.contact_vibration_curve"
+	prefGenSmoothWindow          = "generator.smooth_window"
+	prefGenMinPeakDistanceMs     = "generator.min_peak_distance_ms"
+	prefGenPeakProminence        = "generator.peak_prominence"
+	prefGenRDPTolerance          = "generator.rdp_tolerance"
+	prefGenMaxSpeed              = "generator.max_speed"
+	prefGenAdaptiveKeyframe      = "generator.adaptive_keyframe"
+
 	prefPlaybackMock        = "playback.mock"
 	prefPlaybackSync        = "playback.sync_mode"
 	prefPlaybackTickMs      = "playback.tick_ms"
@@ -192,6 +203,16 @@ type Settings struct {
 	// Create, fill empty Tip (and contact partner) from the proposal. Default
 	// off — user Apply buttons remain the Everyday path. Undo in Create.
 	ApplyAISetupAutomatically bool `json:"applyAISetupAutomatically"`
+
+	// Create Feel + Expert knob prefs (defaults match HTML / Everyday).
+	GenContactVibrationSpan  float64 `json:"genContactVibrationSpan"`
+	GenContactVibrationCurve string  `json:"genContactVibrationCurve"`
+	GenSmoothWindow          float64 `json:"genSmoothWindow"`
+	GenMinPeakDistanceMs     float64 `json:"genMinPeakDistanceMs"`
+	GenPeakProminence        float64 `json:"genPeakProminence"`
+	GenRDPTolerance          float64 `json:"genRDPTolerance"`
+	GenMaxSpeed              float64 `json:"genMaxSpeed"`
+	GenAdaptiveKeyframe      bool    `json:"genAdaptiveKeyframe"`
 }
 
 func (a *App) GetSettings() Settings {
@@ -260,6 +281,15 @@ func (a *App) GetSettings() Settings {
 		CollectLearningData: s.GetBool(prefCollectLearningData, false),
 
 		ApplyAISetupAutomatically: s.GetBool(prefApplyAISetupAutomatically, false),
+
+		GenContactVibrationSpan:  s.GetFloat(prefGenContactVibrationSpan, 75),
+		GenContactVibrationCurve: s.GetString(prefGenContactVibrationCurve, "soft"),
+		GenSmoothWindow:          s.GetFloat(prefGenSmoothWindow, 11),
+		GenMinPeakDistanceMs:     s.GetFloat(prefGenMinPeakDistanceMs, 150),
+		GenPeakProminence:        s.GetFloat(prefGenPeakProminence, 0),
+		GenRDPTolerance:          s.GetFloat(prefGenRDPTolerance, 0),
+		GenMaxSpeed:              s.GetFloat(prefGenMaxSpeed, 0),
+		GenAdaptiveKeyframe:      s.GetBool(prefGenAdaptiveKeyframe, true),
 	}
 }
 

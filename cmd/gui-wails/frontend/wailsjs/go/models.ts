@@ -1573,6 +1573,15 @@ export namespace main {
 	    roiDatasetDir: string;
 	    defaultRoiDatasetDir: string;
 	    collectLearningData: boolean;
+	    applyAISetupAutomatically: boolean;
+	    genContactVibrationSpan: number;
+	    genContactVibrationCurve: string;
+	    genSmoothWindow: number;
+	    genMinPeakDistanceMs: number;
+	    genPeakProminence: number;
+	    genRDPTolerance: number;
+	    genMaxSpeed: number;
+	    genAdaptiveKeyframe: boolean;
 
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -1632,6 +1641,15 @@ export namespace main {
 	        this.roiDatasetDir = source["roiDatasetDir"];
 	        this.defaultRoiDatasetDir = source["defaultRoiDatasetDir"];
 	        this.collectLearningData = source["collectLearningData"];
+	        this.applyAISetupAutomatically = source["applyAISetupAutomatically"];
+	        this.genContactVibrationSpan = source["genContactVibrationSpan"];
+	        this.genContactVibrationCurve = source["genContactVibrationCurve"];
+	        this.genSmoothWindow = source["genSmoothWindow"];
+	        this.genMinPeakDistanceMs = source["genMinPeakDistanceMs"];
+	        this.genPeakProminence = source["genPeakProminence"];
+	        this.genRDPTolerance = source["genRDPTolerance"];
+	        this.genMaxSpeed = source["genMaxSpeed"];
+	        this.genAdaptiveKeyframe = source["genAdaptiveKeyframe"];
 	    }
 	}
 	export class TrainingRequest {
