@@ -15,6 +15,11 @@ measurement history behind each entry; this file is the short version for
   sidecar used a direct overwrite. A crash mid-write could truncate the
   script. They now use temp-file + rename (same pattern as native export /
   companion ExportFunscript). No behavior change when the write succeeds.
+- **Chapters / bookmarks with OFS time stamps** — OpenFunscripter 3 writes
+  chapter and bookmark times as text (`"00:01:23.456"`). Loading them
+  failed ("chapters ungültig"), so Play showed none, and a later
+  companion export (Improve, Bake, …) removed them from the file. Times as
+  `HH:MM:SS.mmm` / `MM:SS` are now read, as before numbers in seconds or ms.
 - **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
   seconds, usually with decimals (`631.8`). The parser expected whole
   milliseconds, so every such file failed to load in Play, Improve and

@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // Bookmark is a named time marker in funscript metadata (OFS/community style).
@@ -40,7 +41,13 @@ func (t *flexTimeMs) UnmarshalJSON(b []byte) error {
 		}
 		v, err := strconv.ParseFloat(s, 64)
 		if err != nil {
-			return err
+			// OFS 3 writes chapter/bookmark times as "HH:MM:SS.mmm".
+			ms, ok := parseClockMs(s)
+			if !ok {
+				return err
+			}
+			*t = flexTimeMs(ms)
+			return nil
 		}
 		*t = flexTimeMs(normalizeTimeToMs(v))
 		return nil
@@ -51,6 +58,26 @@ func (t *flexTimeMs) UnmarshalJSON(b []byte) error {
 	}
 	*t = flexTimeMs(normalizeTimeToMs(f))
 	return nil
+}
+
+// parseClockMs reads "[[H:]M:]S[.fff]" ("00:01:23.456", "1:23.5") as ms.
+func parseClockMs(s string) (int64, bool) {
+	parts := strings.Split(strings.TrimSpace(s), ":")
+	if len(parts) < 2 || len(parts) > 3 {
+		return 0, false
+	}
+	var total float64
+	for i, p := range parts {
+		v, err := strconv.ParseFloat(p, 64)
+		if err != nil || v < 0 || math.IsNaN(v) || math.IsInf(v, 0) {
+			return 0, false
+		}
+		if i < len(parts)-1 && v != math.Trunc(v) {
+			return 0, false // only the seconds part may have a fraction
+		}
+		total = total*60 + v
+	}
+	return int64(math.Round(total * 1000)), true
 }
 
 func bytesTrimSpace(b []byte) []byte {
