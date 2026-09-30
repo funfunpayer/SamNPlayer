@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -122,5 +123,20 @@ func TestRunRoiModelTrainingFailsFastWithoutDataYAML(t *testing.T) {
 	}
 	if !strings.Contains(msg, "Use for training") {
 		t.Fatalf("error should point user to Use for training, got: %v", err)
+	}
+}
+
+func TestRunRoiModelTrainingFailsFastOnEmptyDataset(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "data.yaml"), []byte("train: images/train\nval: images/val\nnames:\n  0: x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := RunRoiModelTraining(dir, filepath.Join(dir, "out.onnx"), 1, "cpu", nil)
+	if err == nil {
+		t.Fatal("expected error when dataset has no images")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "empty") && !strings.Contains(msg, "labeled") {
+		t.Fatalf("error should mention empty/labeled dataset, got: %v", err)
 	}
 }

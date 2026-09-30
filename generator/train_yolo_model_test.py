@@ -139,6 +139,49 @@ def main():
                       "Use for training" in str(exc) or "bootstrap_yolo_dataset.py" in str(exc),
                       str(exc))
 
+    # --- prepare_dataset_for_training: empty val heal + empty dataset error --
+    with tempfile.TemporaryDirectory() as tmp:
+        # train-only tiny dataset (the Windows portable failure mode)
+        os.makedirs(os.path.join(tmp, "images", "train"))
+        os.makedirs(os.path.join(tmp, "labels", "train"))
+        os.makedirs(os.path.join(tmp, "images", "val"))
+        os.makedirs(os.path.join(tmp, "labels", "val"))
+        with open(os.path.join(tmp, "images", "train", "a.jpg"), "wb") as f:
+            f.write(b"fake")
+        with open(os.path.join(tmp, "labels", "train", "a.txt"), "w") as f:
+            f.write("0 0.5 0.5 0.2 0.2\n")
+        train_n, val_n = train_yolo_model.prepare_dataset_for_training(tmp)
+        check("prepare: heals empty val from train",
+              train_n >= 1 and val_n >= 1, f"train={train_n} val={val_n}")
+        check("prepare: val file exists after heal",
+              os.path.isfile(os.path.join(tmp, "images", "val", "a.jpg")))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        os.makedirs(os.path.join(tmp, "images", "train"))
+        os.makedirs(os.path.join(tmp, "images", "val"))
+        try:
+            train_yolo_model.prepare_dataset_for_training(tmp)
+            check("prepare: empty dataset wirft", False)
+        except RuntimeError as exc:
+            check("prepare: empty dataset nennt labeled image / Use for training",
+                  "labeled" in str(exc).lower() and "Use for training" in str(exc),
+                  str(exc))
+
+    # train_and_export fails before YOLO when dataset has yaml but no images
+    with patch.dict(sys.modules, {"ultralytics": _fake_ultralytics()}):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "data.yaml"), "w") as f:
+                f.write("path: .\ntrain: images/train\nval: images/val\nnames:\n  0: x\n")
+            os.makedirs(os.path.join(tmp, "images", "train"))
+            os.makedirs(os.path.join(tmp, "images", "val"))
+            try:
+                train_yolo_model.train_and_export(tmp, os.path.join(tmp, "out.onnx"))
+                check("train_and_export wirft bei leerem Datensatz", False)
+            except RuntimeError as exc:
+                check("train_and_export Fail-Fast bei 0 Bildern (nicht Ultralytics-Assertion)",
+                      "empty" in str(exc).lower() or "labeled" in str(exc).lower(),
+                      str(exc))
+
     # --- train_and_export: batch=-1 + resolved device ------------------------
     captured_train_kwargs = {}
 
@@ -148,6 +191,13 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         with open(os.path.join(tmp, "data.yaml"), "w") as f:
             f.write("path: .\ntrain: images/train\nval: images/val\nnames:\n  0: x\n")
+        # Need ≥1 train image or prepare_dataset_for_training fails before train()
+        os.makedirs(os.path.join(tmp, "images", "train"))
+        os.makedirs(os.path.join(tmp, "labels", "train"))
+        with open(os.path.join(tmp, "images", "train", "x.jpg"), "wb") as f:
+            f.write(b"fake")
+        with open(os.path.join(tmp, "labels", "train", "x.txt"), "w") as f:
+            f.write("0 0.5 0.5 0.1 0.1\n")
         with patch.dict(sys.modules, {"ultralytics": _fake_ultralytics(capture_train)}), \
              patch.object(train_yolo_model, "resolve_device", return_value="cpu"):
             try:
@@ -159,6 +209,8 @@ def main():
               captured_train_kwargs.get("batch") == -1, str(captured_train_kwargs))
         check("model.train() bekommt aufgelöstes Gerät",
               captured_train_kwargs.get("device") == "cpu", str(captured_train_kwargs))
+        check("train_and_export heilt leeres val vor model.train()",
+              os.path.isfile(os.path.join(tmp, "images", "val", "x.jpg")))
 
     # --- main(): CLI-Argumente -----------------------------------------------
     captured = {}

@@ -95,6 +95,50 @@ def main():
     w3, h3 = b._scaled_box_wh((0, 0, 180, 90), 2.0, 200, 100)
     check("box_scale klemmt an Bildgrenze", w3 <= 200 and h3 <= 100, str((w3, h3)))
 
+    # --- ensure_nonempty_splits: empty val gets a copy from train ------------
+    with tempfile.TemporaryDirectory() as tmp_split:
+        out = Path(tmp_split) / "dataset"
+        (out / "images" / "train").mkdir(parents=True)
+        (out / "labels" / "train").mkdir(parents=True)
+        (out / "images" / "val").mkdir(parents=True)
+        (out / "labels" / "val").mkdir(parents=True)
+        (out / "images" / "train" / "only_train.jpg").write_bytes(b"fake")
+        (out / "labels" / "train" / "only_train.txt").write_text("0 0.5 0.5 0.2 0.2\n")
+        train_n, val_n = b.ensure_nonempty_splits(str(out))
+        check("ensure: empty val → copies from train (counts)",
+              train_n >= 1 and val_n >= 1, f"train={train_n} val={val_n}")
+        check("ensure: val image exists after heal",
+              (out / "images" / "val" / "only_train.jpg").is_file())
+        check("ensure: val label exists after heal",
+              (out / "labels" / "val" / "only_train.txt").is_file())
+
+        # Idempotent: already both non-empty → no crash, same counts
+        train_n2, val_n2 = b.ensure_nonempty_splits(str(out))
+        check("ensure: second call leaves both sides non-empty",
+              train_n2 >= 1 and val_n2 >= 1, f"train={train_n2} val={val_n2}")
+
+    # --- ensure_nonempty_splits: empty train gets a copy from val ------------
+    with tempfile.TemporaryDirectory() as tmp_train_empty:
+        out = Path(tmp_train_empty) / "dataset"
+        (out / "images" / "val").mkdir(parents=True)
+        (out / "labels" / "val").mkdir(parents=True)
+        (out / "images" / "train").mkdir(parents=True)
+        (out / "labels" / "train").mkdir(parents=True)
+        (out / "images" / "val" / "only_val.jpg").write_bytes(b"fake")
+        (out / "labels" / "val" / "only_val.txt").write_text("0 0.5 0.5 0.1 0.1\n")
+        train_n, val_n = b.ensure_nonempty_splits(str(out))
+        check("ensure: empty train → copies from val",
+              train_n >= 1 and val_n >= 1
+              and (out / "images" / "train" / "only_val.jpg").is_file(),
+              f"train={train_n} val={val_n}")
+
+    # --- ensure_nonempty_splits: both empty stays empty (no crash) -----------
+    with tempfile.TemporaryDirectory() as tmp_empty:
+        out = Path(tmp_empty) / "dataset"
+        train_n, val_n = b.ensure_nonempty_splits(str(out))
+        check("ensure: both empty → (0,0)",
+              train_n == 0 and val_n == 0, f"train={train_n} val={val_n}")
+
     # --- Kontrollansicht: Label lesen/schreiben/auflisten/verwerfen ---------
     with tempfile.TemporaryDirectory() as tmp3:
         out = Path(tmp3) / "dataset"

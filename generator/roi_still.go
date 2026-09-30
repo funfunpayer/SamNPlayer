@@ -135,6 +135,90 @@ func countImages(dir string) int {
 	return n
 }
 
+// listImageNames returns sorted image basenames in dir (same extensions as countImages).
+func listImageNames(dir string) []string {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, e := range ents {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+			names = append(names, e.Name())
+		}
+	}
+	return names
+}
+
+// EnsureRoiDatasetSplits copies one image+label into an empty train/val split
+// so Ultralytics never sees empty images/val (AssertionError / FileNotFoundError).
+// Returns train and val image counts after healing.
+func EnsureRoiDatasetSplits(datasetDir string) (trainN, valN int, err error) {
+	imgTrain := filepath.Join(datasetDir, "images", "train")
+	imgVal := filepath.Join(datasetDir, "images", "val")
+	lblTrain := filepath.Join(datasetDir, "labels", "train")
+	lblVal := filepath.Join(datasetDir, "labels", "val")
+	for _, d := range []string{imgTrain, imgVal, lblTrain, lblVal} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			return 0, 0, err
+		}
+	}
+	trainImgs := listImageNames(imgTrain)
+	valImgs := listImageNames(imgVal)
+
+	copyOne := func(srcImgDir, srcLblDir, dstImgDir, dstLblDir, name string) error {
+		srcImg := filepath.Join(srcImgDir, name)
+		dstImg := filepath.Join(dstImgDir, name)
+		if _, err := os.Stat(dstImg); os.IsNotExist(err) {
+			if err := copyFile(srcImg, dstImg); err != nil {
+				return err
+			}
+		}
+		stem := strings.TrimSuffix(name, filepath.Ext(name))
+		srcLbl := filepath.Join(srcLblDir, stem+".txt")
+		dstLbl := filepath.Join(dstLblDir, stem+".txt")
+		if _, err := os.Stat(srcLbl); err == nil {
+			if _, err := os.Stat(dstLbl); os.IsNotExist(err) {
+				if err := copyFile(srcLbl, dstLbl); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	switch {
+	case len(valImgs) == 0 && len(trainImgs) > 0:
+		if err := copyOne(imgTrain, lblTrain, imgVal, lblVal, trainImgs[0]); err != nil {
+			return 0, 0, fmt.Errorf("generator: heal empty val split: %w", err)
+		}
+	case len(trainImgs) == 0 && len(valImgs) > 0:
+		if err := copyOne(imgVal, lblVal, imgTrain, lblTrain, valImgs[0]); err != nil {
+			return 0, 0, fmt.Errorf("generator: heal empty train split: %w", err)
+		}
+	}
+	return countImages(imgTrain), countImages(imgVal), nil
+}
+
+// PrepareRoiDatasetForTraining heals empty splits and returns a clear error when
+// there are no labeled images left to train on.
+func PrepareRoiDatasetForTraining(datasetDir string) error {
+	trainN, valN, err := EnsureRoiDatasetSplits(datasetDir)
+	if err != nil {
+		return err
+	}
+	if trainN < 1 || valN < 1 {
+		return fmt.Errorf(
+			"training dataset is empty under %s (train=%d, val=%d). Need at least 1 labeled image. In AI Train: mark region(s), click “Use for training”, keep at least one sample, then start training again",
+			datasetDir, trainN, valN)
+	}
+	return nil
+}
+
 // stillImageSize returns pixel size for JPEG/PNG via stdlib, or via ffmpeg
 // for formats Go does not decode (WebP, HEIC, …).
 func stillImageSize(path string) (int, int, error) {
