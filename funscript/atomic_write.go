@@ -33,3 +33,9 @@ func writeFileAtomic(path string, data []byte, mode os.FileMode) error {
 	}
 	return os.Rename(tmpName, path)
 }
+
+// WriteFileAtomic is writeFileAtomic for other packages (e.g. the GUI
+// settings store, which writes on every knob change).
+func WriteFileAtomic(path string, data []byte, mode os.FileMode) error {
+	return writeFileAtomic(path, data, mode)
+}

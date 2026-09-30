@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Settings lost after a crash** — every knob change rewrites
+  `settings.json` in place. A crash or power loss mid-write left it half
+  written; the app then started with defaults and the next knob change
+  overwrote the file, so every setting was gone. The file is now written
+  atomically, and an unreadable one is kept aside as
+  `settings.json.corrupt-<time>` instead of being overwritten. A file
+  containing `null` no longer crashes the next save.
+
 ## [0.5.44] — September 30, 2026
 
 ### Added
