@@ -196,5 +196,5 @@ func patchMetadataKey(path, key string, value any) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0o644)
+	return writeFileAtomic(path, out, 0o644)
 }

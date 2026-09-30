@@ -10,6 +10,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Metadata patchers write .funscript atomically** — bookmarks, chapters,
+  oMarkers, contact recipe, axes, quality/audio/gap stamps and the project
+  sidecar used a direct overwrite. A crash mid-write could truncate the
+  script. They now use temp-file + rename (same pattern as native export /
+  companion ExportFunscript). No behavior change when the write succeeds.
 - **Loading OFS scripts** — OpenFunscripter writes `metadata.duration` in
   seconds, usually with decimals (`631.8`). The parser expected whole
   milliseconds, so every such file failed to load in Play, Improve and

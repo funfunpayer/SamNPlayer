@@ -68,5 +68,5 @@ func SaveContactRecipe(path string, enabled bool, span float64, curve string) er
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, out, 0644)
+	return writeFileAtomic(path, out, 0o644)
 }
