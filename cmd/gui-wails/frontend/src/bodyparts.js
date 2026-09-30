@@ -16,14 +16,40 @@ export const CANONICAL = [
 
 export const CLASS_PRESETS = CANONICAL.map(p => p.id);
 
-/** Zone 2 / contact proposals — body-part first (not generic "Partner"). */
-export const CONTACT_CLASS_ORDER = [
-  'mouth', 'hand_1', 'hand_2', 'vagina', 'nipples', 'breasts', 'face',
+/**
+ * Contact-vibe Create UI — Owner minimal set (not full taxonomy).
+ * Tip (tracked CSRT): glans / penis.
+ * Contact partners (touch feel): mouth, nipple/breast.
+ * Full CANONICAL stays for AI Train / Scene-map Region / Tf/Tj.
+ */
+export const CONTACT_VIBE_TIP_IDS = ['glans', 'penis'];
+export const CONTACT_VIBE_PARTNER_IDS = ['mouth', 'nipples', 'breasts'];
+export const CONTACT_VIBE_IDS = [
+  ...CONTACT_VIBE_TIP_IDS,
+  ...CONTACT_VIBE_PARTNER_IDS,
 ];
 
-/** Zone 1 tip proposals — glans/penis preferred for Everyday CSRT. */
-export const TIP_CLASS_ORDER = [
+/** Zone 2 / contact proposals — contact-vibe minimal (mouth + nipple/breast). */
+export const CONTACT_CLASS_ORDER = [...CONTACT_VIBE_PARTNER_IDS];
+
+/** Zone 1 tip proposals — glans/penis for Everyday CSRT + contact vibe. */
+export const TIP_CLASS_ORDER = [...CONTACT_VIBE_TIP_IDS];
+
+/**
+ * Broader tip list for strict AI expected-class (Advanced / Smarter tip find).
+ * Still prefers tip IDs; leftovers appended by orderedCanonical.
+ */
+export const AI_TIP_CLASS_ORDER = [
   'glans', 'penis', 'hand_1', 'hand_2',
+];
+
+/**
+ * Full contact-ish order for Scene-map Region labels (training / review).
+ * Not the Everyday Contact-vibe dropdown.
+ */
+export const SCENE_REGION_CLASS_ORDER = [
+  'mouth', 'nipples', 'breasts', 'hand_1', 'hand_2', 'vagina', 'face',
+  'glans', 'penis',
 ];
 
 const ALIAS = (() => {
@@ -48,33 +74,6 @@ export function labelFor(id) {
   return hit ? hit.label : (id || '');
 }
 
-/** Typical generate role for a class (docs/BODY_REGIONS.md) — label metadata only. */
-export function defaultRole(id) {
-  switch (normalizeClass(id)) {
-    case 'penis':
-    case 'glans':
-    case 'hand_1':
-    case 'hand_2':
-      return 'tracked';
-    case 'nipples':
-    case 'mouth':
-    case 'vagina':
-    case 'breasts':
-      return 'fixed';
-    case 'face':
-      return 'mask';
-    default:
-      return 'tracked';
-  }
-}
-
-/** UI option text: "Face (mask)", "Glans (tracked)", … */
-export function labelWithRole(id) {
-  const lab = labelFor(id) || id;
-  const role = defaultRole(id);
-  return role ? `${lab} (${role})` : lab;
-}
-
 /** Ordered CANONICAL entries for a select; leftovers appended in taxonomy order. */
 export function orderedCanonical(preferIds) {
   const seen = new Set();
@@ -89,6 +88,21 @@ export function orderedCanonical(preferIds) {
   }
   for (const p of CANONICAL) {
     if (!seen.has(p.id)) out.push(p);
+  }
+  return out;
+}
+
+/** Only the listed canonical IDs (no leftover taxonomy) — Contact-vibe Create. */
+export function onlyCanonical(ids) {
+  const seen = new Set();
+  const out = [];
+  for (const id of ids || []) {
+    const n = normalizeClass(id);
+    const hit = CANONICAL.find(p => p.id === n);
+    if (hit && !seen.has(hit.id)) {
+      seen.add(hit.id);
+      out.push(hit);
+    }
   }
   return out;
 }

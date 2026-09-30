@@ -65,6 +65,22 @@ def main():
               page.locator("#gen-roi2-toggle").inner_text().lower().find("contact") >= 0)
         check("Default contact type nipples",
               page.locator("#gen-region-class2").input_value() == "nipples")
+        tip_opts = page.eval_on_selector_all(
+            "#gen-region-class option", "els => els.map(e => e.value).filter(Boolean)")
+        contact_opts = page.eval_on_selector_all(
+            "#gen-region-class2 option", "els => els.map(e => e.value).filter(Boolean)")
+        check("Tip class minimal (glans/penis only)",
+              tip_opts == ["glans", "penis"])
+        check("Contact class minimal (mouth/nipples/breasts)",
+              contact_opts == ["mouth", "nipples", "breasts"])
+        legend_ids = page.eval_on_selector_all(
+            "#gen-body-figure .body-figure-legend [data-class]",
+            "els => els.map(e => e.getAttribute('data-class'))")
+        check("Contact body map legend is vibe-minimal",
+              set(legend_ids) == {"mouth", "breasts", "nipples", "penis", "glans"})
+        step2 = page.locator("#gen-step-region .gen-step-title").inner_text()
+        check("Step 2 title is Tip & contact (not motion path)",
+              "Tip" in step2 and "moves" not in step2.lower())
         check("4-zone everyday button hidden",
               page.locator("#gen-nomark").is_hidden())
         check("4-zone not in Tracking method dropdown",
