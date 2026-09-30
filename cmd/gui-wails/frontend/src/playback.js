@@ -1823,10 +1823,14 @@ export function initPlayback(root) {
   }
 
   el('#pb-contact-intensity').addEventListener('input', e => {
-    const v = Number(e.target.value) || 0;
+    // finiteOr (not ||): Strength min=0 must stay 0 in the label + prefs.
+    const v = finiteOr(e.target.value, 0);
     el('#pb-contact-intensity-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
     schedulePlayContactVibPreview();
+  });
+  el('#pb-contact-intensity').addEventListener('change', e => {
+    saveSetting('playback.contact_intensity', finiteOr(e.target.value, 1));
   });
   el('#pb-contact-span').addEventListener('input', e => {
     const v = Number(e.target.value) || 0;
@@ -2601,12 +2605,11 @@ export function initPlayback(root) {
     if (el('#pb-contact-save-status')) el('#pb-contact-save-status').textContent = '';
     if (!showContact) {
       el('#pb-contact-off').checked = false;
-      el('#pb-contact-intensity').value = '1';
-      el('#pb-contact-intensity-val').textContent = '1.00';
       const probe = el('#pb-contact-vib-probe');
       if (probe) probe.hidden = true;
     } else {
       // Rezept-Defaults in die Live-Controls übernehmen (Datei bleibt Quelle).
+      // Contact strength stays from settings/DOM (session preference; not in recipe).
       const span = (info.contactVibrationSpan > 0) ? info.contactVibrationSpan : 0.75;
       el('#pb-contact-span').value = String(span);
       el('#pb-contact-span-val').textContent = Number(span).toFixed(2);
@@ -3376,6 +3379,49 @@ export function initPlayback(root) {
     el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart !== false;
     el('#pb-trajectory-toggle').checked = !!s.playbackTrajectoryOverlay;
     redrawTrajectory();
+
+    // OFS / Feel knobs — restore when field present (older stubs omit them).
+    if (s.playbackCapIntensity != null && el('#pb-cap-intensity')) {
+      el('#pb-cap-intensity').value = s.playbackCapIntensity;
+      updateCapIntensityLabel();
+    }
+    if (typeof s.playbackSpeedHL === 'boolean' && el('#pb-speed-hl')) {
+      el('#pb-speed-hl').checked = s.playbackSpeedHL;
+    }
+    if (s.playbackSpeedHLThresh != null && el('#pb-speed-hl-thresh')) {
+      el('#pb-speed-hl-thresh').value = s.playbackSpeedHLThresh;
+      updateSpeedHighlightLabel();
+    }
+    if (s.playbackScaleFactor != null && el('#pb-scale-factor')) {
+      el('#pb-scale-factor').value = s.playbackScaleFactor;
+      updateScaleFactorLabel();
+    }
+    if (typeof s.playbackScaleSoftEdges === 'boolean' && el('#pb-scale-soft-edges')) {
+      el('#pb-scale-soft-edges').checked = s.playbackScaleSoftEdges;
+    }
+    if (s.playbackFpsSnap != null && el('#pb-fps-snap')) {
+      el('#pb-fps-snap').value = s.playbackFpsSnap;
+      syncPlayFpsSnapLabel();
+    }
+    if (typeof s.playbackBpmGrid === 'boolean' && el('#pb-bpm-grid')) {
+      el('#pb-bpm-grid').checked = s.playbackBpmGrid;
+    }
+    if (s.playbackOMarkerIntensity != null && el('#pb-omarker-intensity')) {
+      el('#pb-omarker-intensity').value = s.playbackOMarkerIntensity;
+      syncPlayOMarkerIntensityLabel();
+    }
+    if (typeof s.playbackFeelHeatbands === 'boolean' && el('#pb-seg-heatbands')) {
+      el('#pb-seg-heatbands').checked = s.playbackFeelHeatbands;
+    }
+    if (s.playbackFeelHeatbandsOpacity != null && el('#pb-seg-heatbands-opacity')) {
+      el('#pb-seg-heatbands-opacity').value = s.playbackFeelHeatbandsOpacity;
+    }
+    syncFeelHeatbandsOpacityUi();
+    if (s.playbackContactIntensity != null && el('#pb-contact-intensity')) {
+      const ci = finiteOr(s.playbackContactIntensity, 1);
+      el('#pb-contact-intensity').value = String(ci);
+      el('#pb-contact-intensity-val').textContent = ci.toFixed(2);
+    }
   });
   el('#pb-mock').addEventListener('change', e => saveSetting('playback.mock', e.target.checked));
   el('#pb-sync').addEventListener('change', e => saveSetting('playback.sync_mode', e.target.value));
@@ -3421,6 +3467,37 @@ export function initPlayback(root) {
     const hint = el('#pb-trajectory-hint');
     if (hint) hint.style.display = (e.target.checked && !trajectoryData) ? 'block' : 'none';
     redrawTrajectory();
+  });
+  el('#pb-cap-intensity')?.addEventListener('change', () => {
+    saveSetting('playback.cap_intensity', capIntensityValue());
+  });
+  el('#pb-speed-hl')?.addEventListener('change', e => {
+    saveSetting('playback.speed_highlights', e.target.checked);
+  });
+  el('#pb-speed-hl-thresh')?.addEventListener('change', () => {
+    const v = parseFloat(el('#pb-speed-hl-thresh')?.value);
+    saveSetting('playback.speed_highlight_thresh', Number.isFinite(v) ? v : 400);
+  });
+  el('#pb-scale-factor')?.addEventListener('change', () => {
+    saveSetting('playback.scale_factor', scaleFactorValue());
+  });
+  el('#pb-scale-soft-edges')?.addEventListener('change', e => {
+    saveSetting('playback.scale_soft_edges', e.target.checked);
+  });
+  el('#pb-fps-snap')?.addEventListener('change', e => {
+    saveSetting('playback.fps_snap', finiteOr(e.target.value, 0));
+  });
+  el('#pb-bpm-grid')?.addEventListener('change', e => {
+    saveSetting('playback.bpm_grid', e.target.checked);
+  });
+  el('#pb-omarker-intensity')?.addEventListener('change', e => {
+    saveSetting('playback.omarker_intensity', finiteOr(e.target.value, 0.5));
+  });
+  el('#pb-seg-heatbands')?.addEventListener('change', e => {
+    saveSetting('playback.feel_heatbands', e.target.checked);
+  });
+  el('#pb-seg-heatbands-opacity')?.addEventListener('change', e => {
+    saveSetting('playback.feel_heatbands_opacity', finiteOr(e.target.value, 1));
   });
   el('#pb-contact-marks-toggle')?.addEventListener('change', () => {
     redrawTrajectory();

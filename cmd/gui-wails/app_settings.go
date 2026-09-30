@@ -55,6 +55,20 @@ const (
 	// das ungefragt immer mit, auch bei ausgeschaltetem Sync.
 	prefPlaybackVideoPlayAutostart = "playback.video_play_autostart"
 
+	// Play OFS / Feel display+edit knobs (MakeVib-style). Defaults match HTML.
+	// Not Create / Everyday CSRT. BPM number stays blank=auto (not persisted).
+	prefPlaybackCapIntensity         = "playback.cap_intensity"
+	prefPlaybackSpeedHL              = "playback.speed_highlights"
+	prefPlaybackSpeedHLThresh        = "playback.speed_highlight_thresh"
+	prefPlaybackScaleFactor          = "playback.scale_factor"
+	prefPlaybackScaleSoftEdges       = "playback.scale_soft_edges"
+	prefPlaybackFpsSnap              = "playback.fps_snap"
+	prefPlaybackBpmGrid              = "playback.bpm_grid"
+	prefPlaybackOMarkerIntensity     = "playback.omarker_intensity"
+	prefPlaybackFeelHeatbands        = "playback.feel_heatbands"
+	prefPlaybackFeelHeatbandsOpacity = "playback.feel_heatbands_opacity"
+	prefPlaybackContactIntensity     = "playback.contact_intensity"
+
 	prefTrainingMock                = "training.mock"
 	prefTrainingTechnique           = "training.technique"
 	prefTrainingChannel             = "training.channel"
@@ -88,6 +102,18 @@ type Settings struct {
 	// PlaybackTrajectoryOverlay: siehe prefPlaybackTrajectoryOverlay.
 	// Default false - Debug-Overlay, nicht jeder Nutzer/jedes Skript hat es.
 	PlaybackTrajectoryOverlay bool `json:"playbackTrajectoryOverlay"`
+
+	PlaybackCapIntensity         float64 `json:"playbackCapIntensity"`
+	PlaybackSpeedHL              bool    `json:"playbackSpeedHL"`
+	PlaybackSpeedHLThresh        float64 `json:"playbackSpeedHLThresh"`
+	PlaybackScaleFactor          float64 `json:"playbackScaleFactor"`
+	PlaybackScaleSoftEdges       bool    `json:"playbackScaleSoftEdges"`
+	PlaybackFpsSnap              float64 `json:"playbackFpsSnap"`
+	PlaybackBpmGrid              bool    `json:"playbackBpmGrid"`
+	PlaybackOMarkerIntensity     float64 `json:"playbackOMarkerIntensity"`
+	PlaybackFeelHeatbands        bool    `json:"playbackFeelHeatbands"`
+	PlaybackFeelHeatbandsOpacity float64 `json:"playbackFeelHeatbandsOpacity"`
+	PlaybackContactIntensity     float64 `json:"playbackContactIntensity"`
 
 	TrainingMock                bool    `json:"trainingMock"`
 	TrainingTechnique           string  `json:"trainingTechnique"`
@@ -186,6 +212,18 @@ func (a *App) GetSettings() Settings {
 
 		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
 		PlaybackTrajectoryOverlay:  s.GetBool(prefPlaybackTrajectoryOverlay, false),
+
+		PlaybackCapIntensity:         s.GetFloat(prefPlaybackCapIntensity, 400),
+		PlaybackSpeedHL:              s.GetBool(prefPlaybackSpeedHL, true),
+		PlaybackSpeedHLThresh:        s.GetFloat(prefPlaybackSpeedHLThresh, 400),
+		PlaybackScaleFactor:          s.GetFloat(prefPlaybackScaleFactor, 0.8),
+		PlaybackScaleSoftEdges:       s.GetBool(prefPlaybackScaleSoftEdges, false),
+		PlaybackFpsSnap:              s.GetFloat(prefPlaybackFpsSnap, 0),
+		PlaybackBpmGrid:              s.GetBool(prefPlaybackBpmGrid, false),
+		PlaybackOMarkerIntensity:     s.GetFloat(prefPlaybackOMarkerIntensity, 0.5),
+		PlaybackFeelHeatbands:        s.GetBool(prefPlaybackFeelHeatbands, true),
+		PlaybackFeelHeatbandsOpacity: s.GetFloat(prefPlaybackFeelHeatbandsOpacity, 1),
+		PlaybackContactIntensity:     s.GetFloat(prefPlaybackContactIntensity, 1),
 
 		TrainingMock:                s.GetBool(prefTrainingMock, true),
 		TrainingTechnique:           s.GetString(prefTrainingTechnique, "stopstart"),
