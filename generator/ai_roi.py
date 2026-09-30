@@ -280,6 +280,79 @@ def resolve_preferred_class_ids(names_or_ids, registry=None):
     return out or None
 
 
+def invert_class_registry(registry):
+    """id -> preferred canonical name (first name that maps to that id)."""
+    out = {}
+    for name, cid in (registry or {}).items():
+        i = int(cid)
+        if i not in out:
+            out[i] = bodyparts.normalize(name) or str(name)
+    return out
+
+
+def list_detections(video_path, time_sec=0.0, model_path=None, confidence_threshold=0.35,
+                    preferred_class_ids=None, classes_json=None, max_detections=24,
+                    _run_model_fn=None):
+    """Return all ONNX detections on one frame with class names (not tip-only).
+
+    Used by Create “Show all AI tags” so nipples/breasts/etc. are visible
+    alongside glans — find_roi still returns a single tip box.
+    """
+    model_path = model_path or default_model_path()
+    registry_path = classes_json
+    if not registry_path and model_path:
+        registry_path = os.path.dirname(os.path.abspath(model_path))
+    registry = load_class_registry(registry_path) if registry_path else {}
+    id_to_name = invert_class_registry(registry)
+
+    if _run_model_fn is None:
+        session = _load_session(model_path)
+        _run_model_fn = lambda frame: _run_model(session, frame)
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Video konnte nicht geöffnet werden: {video_path}")
+    try:
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = float(cap.get(cv2.CAP_PROP_FPS)) or 30.0
+        idx = max(0, min(max(0, total - 1), int(round(float(time_sec) * fps))))
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        ok, frame = cap.read()
+        if not ok:
+            raise RuntimeError("AI detections: could not read frame")
+        raw = _run_model_fn(frame)
+        detections = decode_detections(raw, confidence_threshold)
+        detections = _filter_preferred(detections, preferred_class_ids)
+        detections = sorted(
+            detections,
+            key=lambda d: float(d.get("confidence", 0)),
+            reverse=True,
+        )[: max(1, int(max_detections))]
+        out = []
+        for d in detections:
+            x0 = int(d["x0"] * width)
+            y0 = int(d["y0"] * height)
+            x1 = int(d["x1"] * width)
+            y1 = int(d["y1"] * height)
+            x0, x1 = sorted((max(0, x0), min(width, x1)))
+            y0, y1 = sorted((max(0, y0), min(height, y1)))
+            w = max(1, x1 - x0)
+            h = max(1, y1 - y0)
+            cid = int(d.get("class_id", -1))
+            name = id_to_name.get(cid, str(cid))
+            out.append({
+                "x": x0, "y": y0, "w": w, "h": h,
+                "confidence": float(d["confidence"]),
+                "classId": cid,
+                "className": name,
+            })
+        return out
+    finally:
+        cap.release()
+
+
 def resolve_expected_class_id(expected_class, registry):
     """Resolve one canonical semantic class to exactly one model-specific ID.
 
@@ -667,6 +740,9 @@ def main():
                           "für Profile mit zweiter Region (tf/tj). UNGETESTET gegen echtes "
                           "Material, siehe find_two_rois()-Docstring: bleibt ein Vorschlag, "
                           "den ein Mensch bestätigt/korrigiert, nie automatisch übernommen.")
+    ap.add_argument("--list-detections", action="store_true",
+                     help="List all class detections on one frame (DETECTION lines). "
+                          "Shows nipples/breasts/etc., not tip-only. Does not apply a tip box.")
     args = ap.parse_args()
 
     if args.check:
@@ -681,6 +757,36 @@ def main():
 
     if args.strict_class and args.two:
         ap.error("--strict-class currently supports one expected Tip target, not --two")
+
+    if args.list_detections:
+        if not args.video:
+            ap.error("--list-detections requires --video")
+        preferred = None
+        if args.preferred_classes:
+            registry_path = args.classes_json
+            if not registry_path and args.model:
+                registry_path = os.path.dirname(os.path.abspath(args.model))
+            registry = load_class_registry(registry_path) if registry_path else {}
+            preferred = resolve_preferred_class_ids(args.preferred_classes, registry)
+        try:
+            dets = list_detections(
+                args.video,
+                time_sec=args.time_sec or 0.0,
+                model_path=args.model,
+                confidence_threshold=args.confidence,
+                preferred_class_ids=preferred,
+                classes_json=args.classes_json,
+            )
+        except (ModelUnavailable, RuntimeError) as exc:
+            print(f"AI detections failed: {exc}", file=sys.stderr)
+            sys.exit(1)
+        for i, d in enumerate(dets):
+            print(
+                f"DETECTION {d['x']} {d['y']} {d['w']} {d['h']} "
+                f"{d['confidence']:.4f} {d['classId']} {d['className']} {i}"
+            )
+        print(f"AI detections: {len(dets)} boxes", file=sys.stderr)
+        return
 
     if args.strict_class:
         if not args.expected_class:

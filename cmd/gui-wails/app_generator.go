@@ -405,6 +405,33 @@ func (a *App) SuggestROICandidates(videoPath string) {
 	}()
 }
 
+// ListAIDetections lists all ONNX class boxes on the current preview time
+// (nipples/breasts/glans/…). Event generate:ai-detections. Does not set tip ROI.
+func (a *App) ListAIDetections(videoPath string, timeSec float64) {
+	go func() {
+		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
+		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
+		model := a.settings.GetString(prefAIRoiModelPath, "")
+		pref := a.settings.GetString(prefAIPreferredClasses, "")
+		dets, err := generator.ListAIDetectionsWithProgress(videoPath, model, pref, timeSec, onLine, onPct)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{"error": err.Error()})
+			return
+		}
+		list := make([]map[string]any, 0, len(dets))
+		for _, d := range dets {
+			list = append(list, map[string]any{
+				"x": d.X, "y": d.Y, "w": d.W, "h": d.H,
+				"confidence": d.Confidence, "classId": d.ClassID,
+				"className": d.ClassName, "index": d.Index,
+			})
+		}
+		runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{
+			"detections": list,
+		})
+	}()
+}
+
 // attachROIVerify runs a lightweight Go second-pass motion check and adds
 // warning fields when the proposed box looks weak. Never changes the box.
 func attachROIVerify(payload map[string]any, videoPath string, roi generator.ROI) {

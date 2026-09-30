@@ -86,8 +86,17 @@ export function initRoiTraining(root) {
     <div class="row" style="align-items:center; flex-wrap:wrap;">
       <button id="rt-mark-next" type="button"
         data-help="Start next free tag box (same label may be reused — e.g. both nipples).">+ Mark</button>
+      <button id="rt-delete-mark" type="button"
+        data-help="Remove the active free tag box (Delete / Backspace).">Delete box</button>
       <button id="rt-clear-marks" type="button">Clear all</button>
-      <span class="hint" style="margin:0">Active box: <span id="rt-active-mark">1</span>/${MAX_REGIONS} — Shift+drag = next empty · then assign label</span>
+      <span class="hint" style="margin:0">Active box: <span id="rt-active-mark">1</span>/${MAX_REGIONS} — Shift+drag = next empty · then assign label (type any new tag name)</span>
+    </div>
+    <div class="row" style="align-items:center; flex-wrap:wrap; margin:4px 0;">
+      <input type="text" id="rt-new-tag" placeholder="new custom tag…" style="width:10em;"
+        list="rt-class-list" aria-label="New custom tag name" />
+      <button id="rt-add-tag" type="button"
+        data-help="Assign this custom class name to the active (or first unlabeled) box. Registered into the dataset on Use for training.">+ Add tag</button>
+      <span class="hint" style="margin:0">Or type in Box N / click body map. Custom names OK.</span>
     </div>
     <div id="rt-mark-fields"></div>
     <p class="hint" id="rt-nipples-hint" style="margin:4px 0 0; display:none;"></p>
@@ -498,6 +507,74 @@ export function initRoiTraining(root) {
     }
     renderMarkFields();
   });
+
+  function deleteActiveMark() {
+    if (!marks[activeMark] && !(el(`#rt-class${activeMark + 1}`)?.value || '').trim()) {
+      // Prefer deleting the last drawn box if active slot is empty.
+      for (let i = MAX_REGIONS - 1; i >= 0; i--) {
+        if (marks[i] || (el(`#rt-class${i + 1}`)?.value || '').trim()) {
+          activeMark = i;
+          break;
+        }
+      }
+    }
+    if (!marks[activeMark] && !(el(`#rt-class${activeMark + 1}`)?.value || '').trim()) return;
+    marks[activeMark] = null;
+    const input = el(`#rt-class${activeMark + 1}`);
+    if (input) input.value = '';
+    // Compact: shift later filled slots down so free tags stay contiguous.
+    const kept = [];
+    const classes = [];
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
+      if (marks[i] || cls) {
+        kept.push(marks[i]);
+        classes.push(cls);
+      }
+    }
+    marks = Array(MAX_REGIONS).fill(null);
+    for (let i = 0; i < kept.length; i++) marks[i] = kept[i];
+    activeMark = Math.min(kept.length, MAX_REGIONS - 1);
+    renderMarkFields();
+    for (let i = 0; i < MAX_REGIONS; i++) {
+      const inp = el(`#rt-class${i + 1}`);
+      if (inp) inp.value = classes[i] || '';
+    }
+    updateBootstrapEnabled();
+    updateNipplesHint();
+    redraw();
+  }
+
+  el('#rt-delete-mark').addEventListener('click', deleteActiveMark);
+  el('#rt-add-tag').addEventListener('click', () => {
+    const raw = (el('#rt-new-tag')?.value || '').trim();
+    if (!raw) {
+      uiWarn('Type a custom tag name first.');
+      return;
+    }
+    applyClassToActiveMark(raw);
+    el('#rt-new-tag').value = '';
+    refreshClassList();
+    uiInfo(`Tag “${normalizeClass(raw) || raw}” assigned to a free box.`);
+  });
+  el('#rt-new-tag')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      el('#rt-add-tag').click();
+    }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if (reviewEditorOpen) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
+      return;
+    }
+    if (!root.contains(document.activeElement) && document.activeElement !== canvas) return;
+    e.preventDefault();
+    deleteActiveMark();
+  });
+
   el('#rt-clear-marks').addEventListener('click', () => {
     marks = Array(MAX_REGIONS).fill(null);
     activeMark = 0;
@@ -624,6 +701,10 @@ export function initRoiTraining(root) {
         const sampleEvery = parseInt(el('#rt-sample-every').value, 10) || 12;
         const extractAudio = el('#rt-extract-audio').checked;
         const boxScale = parseFloat(el('#rt-box-scale')?.value) || 1.0;
+        const tracked = regions.map(r => labelFor(r.ClassName) || r.ClassName).join(', ');
+        el('#rt-bootstrap-status').textContent = tracked
+          ? `Tracking ${regions.length} tags (${tracked})…`
+          : 'Running…';
         lastPrefix = await BootstrapRoiTrainingRegions(
           sourcePath, regions, sampleEvery, extractAudio, seekSec > 0 ? seekSec : 0, boxScale,
         );
@@ -919,10 +1000,15 @@ export function initRoiTraining(root) {
       <select id="rt-review-box-sel" aria-label="Detection window"></select>
       <label for="rt-review-class-sel">Label</label>
       <select id="rt-review-class-sel" aria-label="Detection / role label"></select>
+      <input type="text" id="rt-review-class-custom" list="rt-class-list" placeholder="or type new tag…"
+        aria-label="Custom tag name" style="width:9em;" />
+      <button type="button" id="rt-review-apply-custom" title="Apply custom tag to selected window">Apply tag</button>
       <span class="hint rt-review-role-hint" id="rt-review-role-hint"></span>
     `;
     const boxSel = labelBar.querySelector('#rt-review-box-sel');
     const classSel = labelBar.querySelector('#rt-review-class-sel');
+    const customInput = labelBar.querySelector('#rt-review-class-custom');
+    const applyCustomBtn = labelBar.querySelector('#rt-review-apply-custom');
     const roleHint = labelBar.querySelector('#rt-review-role-hint');
     for (const p of CANONICAL) {
       const opt = document.createElement('option');
@@ -1300,6 +1386,40 @@ export function initRoiTraining(root) {
         ? { ...b, className: n }
         : b));
       await saveBoxes(next, `Label → ${labelFor(n) || n}`);
+    });
+
+    async function applyCustomLabel() {
+      if (addMode) {
+        const n = normalizeClass(customInput.value);
+        if (n) classSel.value = n;
+        return;
+      }
+      if (selectedIdx < 0 || !boxes[selectedIdx]) return;
+      const n = normalizeClass(customInput.value);
+      if (!n) {
+        uiWarn('Type a tag name first.');
+        return;
+      }
+      if (![...classSel.options].some((o) => o.value === n)) {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.textContent = labelWithRole(n) || n;
+        classSel.appendChild(opt);
+      }
+      classSel.value = n;
+      const next = boxes.map((b, i) => (i === selectedIdx
+        ? { ...b, className: n }
+        : b));
+      await saveBoxes(next, `Tag → ${labelWithRole(n) || n}`);
+      customInput.value = '';
+      refreshClassList();
+    }
+    applyCustomBtn.addEventListener('click', () => { applyCustomLabel(); });
+    customInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCustomLabel();
+      }
     });
 
     head.querySelector('.rt-review-close').addEventListener('click', closeReviewEditor);

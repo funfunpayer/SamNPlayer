@@ -487,6 +487,109 @@ func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProg
 	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
+// AIDetection is one labeled ONNX box (multi-class list — not tip-only).
+type AIDetection struct {
+	X          int     `json:"x"`
+	Y          int     `json:"y"`
+	W          int     `json:"w"`
+	H          int     `json:"h"`
+	Confidence float64 `json:"confidence"`
+	ClassID    int     `json:"classId"`
+	ClassName  string  `json:"className"`
+	Index      int     `json:"index"`
+}
+
+// ListAIDetectionsWithProgress runs ai_roi.py --list-detections on one frame.
+// Returns every class above confidence (nipples/breasts/glans/…), not a single tip.
+func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string, timeSec float64,
+	onProgress func(line string), onPercent func(pct int)) ([]AIDetection, error) {
+	py, err := FindPython()
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckDependencies(); err != nil {
+		return nil, err
+	}
+	mainScript, err := writeScriptToTemp()
+	if err != nil {
+		return nil, err
+	}
+	defer cleanupScriptTemp(mainScript)
+	scriptPath := filepath.Join(filepath.Dir(mainScript), "ai_roi.py")
+	args := []string{scriptPath, "--video", videoPath, "--list-detections",
+		"--time-sec", fmt.Sprintf("%.3f", timeSec)}
+	if modelPath != "" {
+		args = append(args, "--model", modelPath, "--classes-json", filepath.Dir(modelPath))
+	}
+	if preferredClasses != "" {
+		args = append(args, "--preferred-classes", preferredClasses)
+	}
+	cmd := command(py, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("generator: stdout-Pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("generator: start failed: %w", err)
+	}
+	var stderrDone sync.WaitGroup
+	stderrDone.Add(1)
+	go func() {
+		defer stderrDone.Done()
+		sc := bufio.NewScanner(stderr)
+		for sc.Scan() {
+			line := sc.Text()
+			if done, total, ok := parseProgress(line); ok {
+				if onPercent != nil {
+					onPercent(percentOf(done, total))
+				}
+				continue
+			}
+			logging.Debug("ai_roi list: " + line)
+			if onProgress != nil {
+				onProgress(line)
+			}
+		}
+	}()
+	var out []AIDetection
+	sc := bufio.NewScanner(stdout)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if !strings.HasPrefix(line, "DETECTION ") {
+			continue
+		}
+		fields := strings.Fields(line)
+		// DETECTION x y w h conf classId className index
+		if len(fields) < 9 {
+			continue
+		}
+		x, e1 := strconv.Atoi(fields[1])
+		y, e2 := strconv.Atoi(fields[2])
+		w, e3 := strconv.Atoi(fields[3])
+		h, e4 := strconv.Atoi(fields[4])
+		conf, e5 := strconv.ParseFloat(fields[5], 64)
+		cid, e6 := strconv.Atoi(fields[6])
+		idx, e7 := strconv.Atoi(fields[len(fields)-1])
+		if e1 != nil || e2 != nil || e3 != nil || e4 != nil || e5 != nil || e6 != nil || e7 != nil {
+			continue
+		}
+		name := strings.Join(fields[7:len(fields)-1], "_")
+		out = append(out, AIDetection{
+			X: x, Y: y, W: w, H: h, Confidence: conf,
+			ClassID: cid, ClassName: name, Index: idx,
+		})
+	}
+	stderrDone.Wait()
+	if err := cmd.Wait(); err != nil {
+		return out, fmt.Errorf("generator: ai_roi --list-detections: %w", err)
+	}
+	return out, nil
+}
+
 // TipDetection is a semantic AI proposal. It is deliberately separate from
 // the generic auto-ROI result: Match must be true and the frontend must still
 // ask the user to Apply before copying this box into the generator ROI.

@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -68,6 +68,8 @@ export function initGenerator(root, playback) {
           data-help="Auto tip box for Everyday CSRT (not a motion path). Paint/drag only if Find missed. Optional AI when checked.">Find tip area</button>
         <button id="gen-candidates" type="button" disabled
           data-help="Shows ranked tip candidates when auto Find is unsure. Click = Tip. Shift-click = optional contact (mouth / nipple-breast) when Contact vibration is on.">Show other spots</button>
+        <button id="gen-ai-detections" type="button" disabled
+          data-help="Lists all AI Train class boxes on this frame (nipples, breasts, glans, …) — not tip-only. Click a box to set Tip; Shift-click = optional contact. Needs Settings → AI model.">Show all AI tags</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
           data-help="Proposes Tip + optional contact area. Apply required.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
@@ -1034,10 +1036,12 @@ export function initGenerator(root, playback) {
       const target = el('#gen-ai-target-class');
       checkbox.disabled = !available;
       if (target) target.disabled = !available || !checkbox.checked;
+      const allTags = el('#gen-ai-detections');
+      if (allTags) allTags.disabled = !available || !videoPath;
       el('#gen-autoroi-hint').textContent = available
         ? 'AI mode checks the currently displayed frame for the expected body point and never '
           + 'falls back to another class. A matching box remains a proposal until you press Apply — '
-          + 'then drag anytime to refine.'
+          + 'then drag anytime to refine. Use “Show all AI tags” to see nipples/breasts/etc. together.'
         : 'Classic Tip-Find analyzes motion (no AI model) and paints an editable start box — '
           + 'drag on the preview to tighten toward the tip. AI detection: no local ONNX model '
           + 'found (Settings → AI model path, or default folder).';
@@ -4338,10 +4342,24 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = true;
     el('#gen-autoroi').disabled = true;
     el('#gen-nomark').disabled = true;
+    el('#gen-ai-detections') && (el('#gen-ai-detections').disabled = true);
     setSeedSuggestEnabled(false);
     clearPendingSeed();
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
+  });
+
+  el('#gen-ai-detections')?.addEventListener('click', () => {
+    if (!videoPath) return;
+    setNoMarkMotion(false);
+    el('#gen-ai-detections').disabled = true;
+    el('#gen-autoroi').disabled = true;
+    el('#gen-candidates').disabled = true;
+    el('#gen-nomark').disabled = true;
+    setSeedSuggestEnabled(false);
+    clearPendingSeed();
+    el('#gen-status').textContent = 'Listing all AI class tags on this frame (nipples/breasts/glans/…)…';
+    ListAIDetections(videoPath, seekSec || 0);
   });
 
   el('#gen-scene-proposals-load')?.addEventListener('click', async () => {
@@ -4405,6 +4423,7 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = false;
     el('#gen-autoroi').disabled = false;
     el('#gen-nomark').disabled = false;
+    refreshAIRoiAvailability();
     if (result.error) {
       uiError('Motion candidates: ' + result.error, el('#gen-status'));
       setSeedSuggestEnabled(false);
@@ -4429,6 +4448,39 @@ export function initGenerator(root, playback) {
     el('#gen-status').textContent = candidates.length >= 2
       ? `${candidates.length} motion candidates — click Tip; optional Shift-click 2nd body-part or Suggest Tip+2nd (Apply). Tip alone = Everyday.`
       : `1 motion candidate — click to set Tip. Contact mark never auto-filled.`;
+    redraw();
+  });
+
+  EventsOn('generate:ai-detections', result => {
+    hideProgress();
+    el('#gen-autoroi').disabled = false;
+    el('#gen-candidates').disabled = false;
+    el('#gen-nomark').disabled = false;
+    refreshAIRoiAvailability();
+    if (result.error) {
+      uiError('AI tags: ' + result.error, el('#gen-status'));
+      setSeedSuggestEnabled(false);
+      clearPendingSeed();
+      return;
+    }
+    const list = Array.isArray(result.detections) ? result.detections : [];
+    candidates = list.map((d, i) => ({
+      x: d.x, y: d.y, w: d.w, h: d.h,
+      score: d.confidence || 0,
+      index: d.index != null ? d.index + 1 : (i + 1),
+      class: normalizeClass(d.className || d.class || ''),
+    }));
+    clearPendingSeed();
+    if (!candidates.length) {
+      setSeedSuggestEnabled(false);
+      el('#gen-status').textContent = 'No AI class tags on this frame — train more samples or seek.';
+      redraw();
+      return;
+    }
+    const names = [...new Set(candidates.map((c) => labelFor(c.class) || c.class || '?'))];
+    setSeedSuggestEnabled(candidates.length >= 2);
+    el('#gen-status').textContent =
+      `${candidates.length} AI tags (${names.slice(0, 6).join(', ')}${names.length > 6 ? '…' : ''}) — click Tip; Shift-click contact. Not tip-only.`;
     redraw();
   });
 

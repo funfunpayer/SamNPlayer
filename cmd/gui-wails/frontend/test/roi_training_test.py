@@ -237,6 +237,26 @@ def main():
               "nipples" in page.locator("#rt-class-chips").inner_text().lower()
               or "nipple" in page.locator("#rt-class-chips").inner_text().lower())
 
+        # --- Add custom tag + Delete box -----------------------------------------
+        page.fill("#rt-new-tag", "custom_toy")
+        page.click("#rt-add-tag")
+        page.wait_for_timeout(50)
+        # After two nipples boxes, add-tag should land on next empty-class box or
+        # overwrite an empty-class preference — ensure custom chip/assign path works.
+        check("+ Add tag UI vorhanden", page.locator("#rt-add-tag").count() == 1)
+        check("Delete box UI vorhanden", page.locator("#rt-delete-mark").count() == 1)
+        vals_before = page.evaluate(
+            "() => [1,2,3,4].map(i => (document.querySelector('#rt-class'+i)||{}).value || '')")
+        page.click("#rt-delete-mark")
+        page.wait_for_timeout(50)
+        vals_after = page.evaluate(
+            "() => [1,2,3,4].map(i => (document.querySelector('#rt-class'+i)||{}).value || '')")
+        filled_before = sum(1 for v in vals_before if v.strip())
+        filled_after = sum(1 for v in vals_after if v.strip())
+        check("Delete box entfernt eine Markierung",
+              filled_after < filled_before or filled_after <= 1,
+              f"before={vals_before} after={vals_after}")
+
         # Restore a normal bootstrap path (brust + hand) for review samples -----
         page.click("#rt-clear-marks")
         page.wait_for_timeout(50)
@@ -298,6 +318,10 @@ def main():
               page.locator(".rt-review-overlay button:text('Confirm correct')").count() == 1)
         check("Editor zeigt + Add box (free tag)",
               page.locator("#rt-review-add-box").count() == 1)
+        check("Editor zeigt Delete box",
+              page.locator("#rt-review-delete-box").count() == 1)
+        check("Editor erlaubt custom tag input",
+              page.locator("#rt-review-class-custom").count() == 1)
         check("Editor zeigt Box auf großem Bild",
               page.locator(".rt-review-scene .rt-box").count() >= 1)
         # All taxonomy labels (not only Face) are settable on detection windows.
