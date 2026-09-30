@@ -15,6 +15,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/funfunpayer/SamNPlayer/generator"
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -442,13 +443,57 @@ func (a *App) GetRoiTrainingSampleImage(imagePath string) (string, error) {
 // UpdateRoiTrainingSample überschreibt die Boxen eines Beispiels - für
 // Korrekturen aus der Kontrollansicht (falsch/ungenau getrackte Box von
 // Hand richten, statt sie unkontrolliert ins Training gehen zu lassen).
+// ClassName is resolved through the product taxonomy and registered in
+// classes.json so review can set any detection label (not only Face / id 0).
 func (a *App) UpdateRoiTrainingSample(datasetDir, split, name string, boxes []RoiTrainingBox) error {
 	imagePath := filepath.Join(datasetDir, "images", split, name)
 	labelPath, err := roiLabelPathForImage(imagePath)
 	if err != nil {
 		return err
 	}
-	return writeRoiLabelFile(labelPath, boxes)
+	resolved, err := resolveRoiTrainingBoxes(datasetDir, boxes)
+	if err != nil {
+		return err
+	}
+	return writeRoiLabelFile(labelPath, resolved)
+}
+
+// resolveRoiTrainingBoxes maps ClassName → ClassID via classes.json,
+// registering new canonical names when the review editor assigns them.
+// Empty ClassName keeps the existing ClassID (geometry-only adjust).
+func resolveRoiTrainingBoxes(datasetDir string, boxes []RoiTrainingBox) ([]RoiTrainingBox, error) {
+	names := make([]string, 0, len(boxes))
+	for _, b := range boxes {
+		if n := bodyparts.Normalize(b.ClassName); n != "" {
+			names = append(names, n)
+		}
+	}
+	reg, err := generator.EnsureClassIDs(datasetDir, names)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RoiTrainingBox, len(boxes))
+	for i, b := range boxes {
+		out[i] = b
+		n := bodyparts.Normalize(b.ClassName)
+		if n == "" {
+			continue
+		}
+		if id, ok := reg[n]; ok {
+			out[i].ClassName = n
+			out[i].ClassID = id
+			continue
+		}
+		// Legacy German registry key that Normalize maps to n.
+		for k, id := range reg {
+			if bodyparts.Normalize(k) == n {
+				out[i].ClassName = k
+				out[i].ClassID = id
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 // DiscardRoiTrainingSample entfernt ein Beispiel vollständig (Bild +

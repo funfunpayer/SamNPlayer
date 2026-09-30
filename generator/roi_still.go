@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/funfunpayer/SamNPlayer/generator/bodyparts"
 	"github.com/funfunpayer/SamNPlayer/videox"
 )
 
@@ -262,6 +263,51 @@ func loadClassRegistry(dir string) (map[string]int, error) {
 		reg = map[string]int{}
 	}
 	return reg, nil
+}
+
+// EnsureClassIDs registers each non-empty class name in classes.json
+// (via bodyparts.Normalize) and returns the full name→id map. Rewrites
+// data.yaml when the registry grows. Used by still bootstrap and by the
+// AI Train review editor when the Owner sets any taxonomy label (not only
+// the first / Face window).
+func EnsureClassIDs(dir string, classNames []string) (map[string]int, error) {
+	reg, err := loadClassRegistry(dir)
+	if err != nil {
+		return nil, err
+	}
+	changed := false
+	for _, raw := range classNames {
+		name := bodyparts.Normalize(raw)
+		if name == "" {
+			continue
+		}
+		if _, ok := lookupClassID(reg, name); ok {
+			continue
+		}
+		_ = assignClassID(reg, name)
+		changed = true
+	}
+	if changed {
+		if err := saveClassRegistry(dir, reg); err != nil {
+			return nil, err
+		}
+		_ = writeDataYAMLFromRegistry(dir, reg)
+	}
+	return reg, nil
+}
+
+// lookupClassID finds an id for a normalized class name, including legacy
+// German registry keys that Normalize to the same canonical id.
+func lookupClassID(reg map[string]int, canonical string) (int, bool) {
+	if id, ok := reg[canonical]; ok {
+		return id, true
+	}
+	for k, id := range reg {
+		if bodyparts.Normalize(k) == canonical {
+			return id, true
+		}
+	}
+	return 0, false
 }
 
 func saveClassRegistry(dir string, reg map[string]int) error {

@@ -90,7 +90,8 @@ def main():
             "labelledScenes:3, usableSamples:3, readyToTrain:true, modelAvailable:true, "
             "trainedSamples:3, trainedAt:'2026-09-24T00:00:00Z', "
             "profiles:[{profile:'standard',count:2},{profile:'weich',count:1}] }); }",
-        "UpdateRoiTrainingSample": "async () => {}",
+        "UpdateRoiTrainingSample": "async (dir, split, name, boxes) => { "
+            "window.__calls.push(['update', split, name, boxes]); }",
         "ListRoiTrainingDevices": "async () => (["
             "{id:'auto',label:'Automatic (best available)',available:true},"
             "{id:'cuda',label:'NVIDIA CUDA',available:false},"
@@ -214,7 +215,8 @@ def main():
         page.wait_for_selector(".rt-box", timeout=5000)
         check("Box-Overlay wird gezeichnet", page.locator(".rt-box").count() >= 1)
         check("Klassenname steht auf dem Overlay",
-              "brust" in page.locator(".rt-box-label").first.inner_text())
+              any(x in page.locator(".rt-box-label").first.inner_text().lower()
+                  for x in ("brust", "breast")))
 
         # --- Großer Review-Editor: Thumb / Correct box öffnet Modal ------------
         page.locator(".rt-card .rt-thumb-wrap").first.click()
@@ -225,6 +227,21 @@ def main():
               page.locator(".rt-review-overlay button:text('Confirm correct')").count() == 1)
         check("Editor zeigt Box auf großem Bild",
               page.locator(".rt-review-scene .rt-box").count() >= 1)
+        # All taxonomy labels (not only Face) are settable on detection windows.
+        class_opts = page.locator("#rt-review-class-sel option").all_text_contents()
+        check("Label-Select listet alle 9 Taxonomy-Klassen",
+              len(class_opts) >= 9, str(class_opts))
+        joined = " | ".join(class_opts).lower()
+        for want in ("face", "mouth", "breasts", "nipples", "hand 1", "hand 2",
+                     "penis", "glans", "vagina"):
+            check(f"Label-Select enthält {want}", want in joined, joined)
+        check("Window-Select ist sichtbar",
+              page.locator("#rt-review-box-sel").count() == 1)
+        page.select_option("#rt-review-class-sel", "glans")
+        page.wait_for_function(
+            "window.__calls.some(c => Array.isArray(c) && c[0] === 'update')",
+            timeout=5000)
+        check("Label-Wechsel ruft UpdateRoiTrainingSample auf", True)
         page.locator(".rt-review-overlay button:text('Confirm correct')").click()
         page.wait_for_function(
             "document.querySelectorAll('.rt-review-overlay').length === 0", timeout=5000)
