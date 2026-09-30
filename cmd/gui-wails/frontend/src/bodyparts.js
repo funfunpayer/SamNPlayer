@@ -74,6 +74,33 @@ export function labelFor(id) {
   return hit ? hit.label : (id || '');
 }
 
+/** Typical generate role for a class (docs/BODY_REGIONS.md) — label metadata only. */
+export function defaultRole(id) {
+  switch (normalizeClass(id)) {
+    case 'penis':
+    case 'glans':
+    case 'hand_1':
+    case 'hand_2':
+      return 'tracked';
+    case 'nipples':
+    case 'mouth':
+    case 'vagina':
+    case 'breasts':
+      return 'fixed';
+    case 'face':
+      return 'mask';
+    default:
+      return 'tracked';
+  }
+}
+
+/** UI option text: "Face (mask)", "Glans (tracked)", … */
+export function labelWithRole(id) {
+  const lab = labelFor(id) || id;
+  const role = defaultRole(id);
+  return role ? `${lab} (${role})` : lab;
+}
+
 /** Ordered CANONICAL entries for a select; leftovers appended in taxonomy order. */
 export function orderedCanonical(preferIds) {
   const seen = new Set();
