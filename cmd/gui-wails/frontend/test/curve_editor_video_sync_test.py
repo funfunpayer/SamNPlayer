@@ -95,9 +95,15 @@ def main():
         page.wait_for_timeout(100)
 
         box = page.locator("#pb-curve").bounding_box()
-        # Mittlerer Punkt liegt bei (3000ms, pos=50) -> 50% Breite.
+        pad = 6.0
+        usable = box["height"] - 2 * pad
+
+        def y_for_pos(pos):
+            return box["y"] + pad + (1.0 - pos / 100.0) * usable
+
+        # Middle point (half duration, pos=50) → 50% width.
         mid_x = box["x"] + box["width"] * 0.5
-        mid_y = box["y"] + 55  # siehe curve_editor_test.py: pad=6, usableH=98, pos=50 -> y=55
+        mid_y = y_for_pos(50)
 
         page.mouse.move(mid_x, mid_y)
         page.mouse.down()
@@ -106,9 +112,9 @@ def main():
         check("Greifen eines Punkts spult das Video an dessen Zeit (~3.0s)",
               abs(after_down - 3.0) < 0.3, f"currentTime={after_down:.2f}")
 
-        # Auf den letzten Punkt ziehen (100% Breite, pos=100 -> y=6).
+        # Drag toward the last point (near 100% width, pos=100).
         end_x = box["x"] + box["width"] * 0.98
-        end_y = box["y"] + 6
+        end_y = y_for_pos(100)
         page.mouse.move(end_x, end_y, steps=5)
         page.wait_for_timeout(150)
         after_move = page.eval_on_selector("#pb-video", "e => e.currentTime")

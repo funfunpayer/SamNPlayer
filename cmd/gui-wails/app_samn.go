@@ -221,6 +221,13 @@ func (a *App) SaveScriptAxisActions(axis string, actions []funscript.Action) err
 		if err := samn.Save(path, doc); err != nil {
 			return err
 		}
+		// Keep the community companion .funscript in sync (curve edit / Invert
+		// on .samn). Without this, Share/other apps still saw the pre-edit curve.
+		companion := samn.CompanionFunscriptPath(path)
+		if err := doc.ExportFunscript(companion); err != nil {
+			logging.Warn("app: companion funscript export failed after axis save",
+				"path", path, "error", err)
+		}
 		return a.reloadLoadedScript()
 	}
 	if err := funscript.SaveAxisActions(path, name, actions); err != nil {

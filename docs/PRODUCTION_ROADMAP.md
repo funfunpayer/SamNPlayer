@@ -106,8 +106,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.41** | Shipped | Sammel post-0.5.40: Tip-Find (#364), Clip-Prep cutter (#365), reacquire (#366), Bugfix (#372), E2E (#371), cleanup (#369), docs/tests (#362/#363/#367); #264 VP cancelled; Everyday Go CSRT unchanged — tag `v0.5.41` |
 | **v0.5.42** | Shipped | Sammel post-0.5.41: GapFill (#403/#413); Play/Create knobs+probes (#378–#400); Plateau from floor (#426); Expert/EO/Contact 0 GUI (#425/#421/#424); seek/clock + CLI (#377/#401–#417); Intiface/training (#422); Audio cancel (#420); atomic funscript (#428); #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.42` |
 | **v0.5.43** | Shipped | Sammel post-0.5.42: Train window all labels (#441); ROI empty-val heal (#442); Play/Create/AI Train prefs (#437–#439); CLI generate/stroke-preview cancel (#432/#435); #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.43` |
-| **v0.5.44** | THIS | Sammel post-0.5.43: video swap (#444); Contact-vibe tip+partner (#445); Claude OFS load/companion (#446); scene roles (#448–#450); AI Train free tags/track (#451); OFS clock/inverted (#452–#453); never #447; #264 cancelled; Everyday Go CSRT unchanged |
-| next | After v0.5.44 | Owner portable smoke on `v0.5.44` (OFS load/inverted, video swap, Contact-vibe, AI Train free tags, Generate→Play→Neo 2). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3 |
+| **v0.5.44** | Shipped | Sammel post-0.5.43: video swap (#444); Contact-vibe tip+partner (#445); Claude OFS load/companion (#446); scene roles (#448–#450); AI Train free tags/track (#451); OFS clock/inverted (#452–#453); never #447; #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.44` |
+| next | After v0.5.44 | Owner portable smoke on `v0.5.44` (OFS load/inverted, video swap, Contact-vibe, AI Train free tags, Generate→Play→Neo 2). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3. Cursor: PlayHeatUX + bugfix (taller heatmap, Tip→Partner snack, Invert→companion sync) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag

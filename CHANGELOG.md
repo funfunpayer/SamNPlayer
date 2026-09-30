@@ -21,6 +21,19 @@ measurement history behind each entry; this file is the short version for
   free-tag boxes so multi-class bootstrap is obvious (still tracks every
   labeled box, not Glans-only).
 
+### Fixed
+
+- **Invert / curve edit on `.samn` left companion `.funscript` stale** — Play
+  usually loads `.samn` after Create; Invert and axis saves updated `.samn`
+  only (or cleared `inverted` without rewriting actions). Share/other apps
+  still saw the old curve. `SaveScriptAxisActions` now re-exports the
+  companion; Invert clears any leftover `inverted` flag.
+- **Frontend curve-editor tests broke after taller curve** — hit coordinates
+  were hardcoded for 120px height; tests now derive Y from canvas height.
+- **Orphan Cancel/Honor enhance modules** — native AI Train Cancel and
+  Settings honor-inverted already live in `roi_training.js` / `settings.js`;
+  dropped duplicate `roi_cancel.js` / `settings_honor.js` (double cancel toasts).
+
 ### Added
 
 - **Setting: honor OFS "inverted"** (`playback.honor_inverted`, default
@@ -28,7 +41,7 @@ measurement history behind each entry; this file is the short version for
   their author never meant players to flip them can be played as written.
   Switching it reloads the open script. (Checkbox in Settings: Cursor.)
 
-### Fixed
+### Fixed (earlier unreleased)
 
 - **Golden-clip benchmark: no cancel, kept running after closing, could run
   twice** — the benchmark (minutes, one generate per clip) ran Python

@@ -39,10 +39,16 @@ func (a *App) InvertLoadedScript() error {
 	}
 	// Bake cleared the authored polarity — drop the OFS flag on the
 	// community .funscript so Play does not flip twice. .samn itself has
-	// no inverted field; clear the companion when present.
+	// no inverted field; re-export companion when present (SaveScriptAxisActions
+	// already exports actions; WriteInverted clears any leftover flag).
 	fsPath := path
 	if samn.IsSamnPath(path) {
 		fsPath = samn.CompanionFunscriptPath(path)
+		if doc, err := samn.Load(path); err == nil {
+			if err := doc.ExportFunscript(fsPath); err != nil {
+				return err
+			}
+		}
 	}
 	if st, err := os.Stat(fsPath); err == nil && !st.IsDir() {
 		if err := funscript.WriteInverted(fsPath, false); err != nil {
@@ -50,10 +56,7 @@ func (a *App) InvertLoadedScript() error {
 		}
 	}
 	// SaveScriptAxisActions reloaded before the flag was cleared.
-	if !samn.IsSamnPath(path) {
-		return a.reloadLoadedScript()
-	}
-	return nil
+	return a.reloadLoadedScript()
 }
 
 func (a *App) SuggestOZone() (funscript.OZoneSuggestion, error) {
