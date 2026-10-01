@@ -1241,9 +1241,21 @@ export function initGenerator(root, playback) {
     return !!videoPath;
   }
 
+  let tipFindBusy = false; // manual Find tip / auto tip (not only tip-find-then-Create)
+
+  function setTipFindBusy(on) {
+    tipFindBusy = !!on;
+    if (on) {
+      el('#gen-cancel').disabled = false;
+    } else if (!generating) {
+      el('#gen-cancel').disabled = true;
+    }
+  }
+
   function clearCreateLock() {
     generating = false;
     el('#gen-cancel').disabled = true;
+    tipFindBusy = false;
     if (videoPath) {
       el('#gen-autoroi').disabled = false;
       el('#gen-candidates').disabled = false;
@@ -1298,6 +1310,7 @@ export function initGenerator(root, playback) {
     redraw();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
+    setTipFindBusy(true);
     const runAI = useAI && !autoContinue;
     el('#gen-status').textContent = (runAI
       ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
@@ -3546,6 +3559,7 @@ export function initGenerator(root, playback) {
   el('#gen-cancel').addEventListener('click', () => {
     userCancelRequested = true;
     const tipFindOnly = pendingGenerateAfterRoi;
+    const manualTipFind = tipFindBusy && !generating;
     pendingGenerateAfterRoi = false;
     CancelROIDetection().catch(() => {});
     CancelGenerate();
@@ -3558,6 +3572,16 @@ export function initGenerator(root, playback) {
       if (tipFindOnly && abortQueueDuringTipFind('Queue canceled.')) {
         return;
       }
+    } else if (manualTipFind) {
+      // Manual Find tip / post-load auto-find — Cancel was dead before.
+      setTipFindBusy(false);
+      if (videoPath) {
+        el('#gen-autoroi').disabled = false;
+        el('#gen-candidates').disabled = false;
+      }
+      hideProgress();
+      el('#gen-status').textContent = 'Tip find canceled.';
+      return;
     }
     el('#gen-status').textContent = queueRunning
       ? 'Cancel requested — stopping queue…'
@@ -3626,6 +3650,7 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = false;
     pendingGenerateAfterRoi = false;
     generating = false;
+    setTipFindBusy(false);
     el('#gen-cancel').disabled = true;
     if (result.error || !result.match) {
       clearPendingAITarget();
@@ -3667,6 +3692,7 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
+    setTipFindBusy(false);
     if (result.error) {
       const wasPending = pendingGenerateAfterRoi;
       pendingGenerateAfterRoi = false;

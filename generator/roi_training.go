@@ -38,7 +38,7 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	st := RoiTrainingStatus{}
 	py, err := FindPython()
 	if err != nil {
-		st.Detail = "Kein Python gefunden"
+		st.Detail = "No Python found"
 		return st
 	}
 	st.Python = true
@@ -47,7 +47,7 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	}
 	mainScript, err := writeScriptToTemp()
 	if err != nil {
-		st.Detail = "Eingebettete Skripte nicht schreibbar"
+		st.Detail = "Embedded scripts not writable"
 		return st
 	}
 	defer cleanupScriptTemp(mainScript)

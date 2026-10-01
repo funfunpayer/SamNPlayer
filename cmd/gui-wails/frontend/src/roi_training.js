@@ -42,7 +42,8 @@ export function initRoiTraining(root) {
       <ol class="hint" style="margin:0; padding-left:1.2em; line-height:1.55;">
         <li><b>Train here</b> — marks → “Use for training” → discard bad samples → start training. Result: <code>roi_detector.onnx</code>.</li>
         <li><b>Then Create</b> — Load video → enable “Smarter tip find” → “Find tip area”. AI suggests the box only.</li>
-        <li><b>Verify/correct boxes</b> — never apply blindly. For Tf/Tj, tip + fixed target (e.g. Glans + Nipples).</li>
+        <li><b>Verify/correct boxes</b> — never apply blindly. Tip (glans) for CSRT stroke;
+          optional partner marks (e.g. nipples) for Contact feel only.</li>
         <li><b>Create Emotion Script</b> — classic tracking (CSRT) writes the script. AI does not track by itself.</li>
         <li><b>Review in Play</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>

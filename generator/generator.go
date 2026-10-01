@@ -453,7 +453,12 @@ func FindROI(videoPath string, onProgress func(line string)) (ROI, error) {
 }
 
 func FindROIWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
-	return findROIViaScript("auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
+	return FindROIWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindROIWithContext is FindROIWithProgress with cancel via ctx (CommandContext).
+func FindROIWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return findROIViaScriptCtx(ctx, "auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
 }
 
 // FindROICandidatesWithProgress lists ranked motion regions (auto_roi --list).
@@ -474,6 +479,11 @@ func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onP
 // modelPath == "" uses ai_roi.default_model_path(). preferredClasses is a
 // comma-separated list of names or ids (empty = no class filter).
 func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return FindROIAIWithContext(context.Background(), videoPath, modelPath, preferredClasses, onProgress, onPercent)
+}
+
+// FindROIAIWithContext is FindROIAIWithProgress with cancel via ctx.
+func FindROIAIWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
 	var extraArgs []string
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
@@ -484,7 +494,7 @@ func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProg
 			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
 		}
 	}
-	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+	return findROIViaScriptCtx(ctx, "ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
 // AIDetection is one labeled ONNX box (multi-class list — not tip-only).
@@ -871,6 +881,14 @@ func AudioCheckAvailable() bool {
 // logPrefix kennzeichnet nur die Logzeilen, ändert das Protokoll nicht.
 func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
 	onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return findROIViaScriptCtx(context.Background(), scriptName, extraArgs, videoPath, logPrefix, onProgress, onPercent)
+}
+
+func findROIViaScriptCtx(ctx context.Context, scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return ROI{}, err
@@ -885,7 +903,7 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
 	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -937,6 +955,9 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return ROI{}, fmt.Errorf("generator: automatic region search cancelled: %w", ctx.Err())
+		}
 		return ROI{}, fmt.Errorf("generator: automatic region search failed: %w", err)
 	}
 	if !found {

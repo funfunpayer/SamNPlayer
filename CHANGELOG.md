@@ -40,6 +40,9 @@ measurement history behind each entry; this file is the short version for
 - **Create: Cancel during tip-find left Create locked** — tip-find-then-Create
   never gets `generate:done` until tracking starts; Cancel now clears
   `generating` + calls `CancelROIDetection` so Create unlocks immediately.
+- **Create: manual Find tip left Cancel dead** — Cancel enables during Find
+  tip / post-load auto-find (`tipFindBusy`); classic `AutoDetectROI` is
+  cancellable (`beginROIRequest` + `FindROIWithContext` CommandContext).
 - **Create queue: Cancel / tip-find failure left queue stuck** — Cancel during
   tip-find (before `GenerateScript`) now skips remaining entries and
   re-enables Clear; auto-ROI errors mid-queue call `advanceQueueAfterDone`.

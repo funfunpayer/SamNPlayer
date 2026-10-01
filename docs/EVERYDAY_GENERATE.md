@@ -112,7 +112,7 @@ Full knob map: `docs/GENERATE_HEURISTICS.md`.
 ## Acceptance
 
 1. New user: video → Generate without painting a box (auto-ROI ran).
-2. Result path is CSRT Stroke, not 4-zone, unless they opted in.
+2. Result path is CSRT Stroke (1-zone). 4-zone is CLI-only — not offered in Create GUI.
 3. AI off by default; on only proposes ROI.
 4. Clip gate: everyday path ≤ few % behind measured tip/hub CSRT on goldens.
 5. After Generate: gaps filled once (Go); Play shows dots; Edit is opt-in.

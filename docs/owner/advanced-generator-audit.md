@@ -102,7 +102,6 @@ Everyday Create / CSRT-Go-Pfad: unverändert (Defaults, Payload-IDs, Soft-ons).
 | Step 3 Feel | Style, Contact vib, Sensitivity, **Curve** (inkl. Impulse) | Everyday Feel |
 | Step 3 | Power-user: scene memory | Collapsed (Ballast policy) |
 | Step 2 | Ignore region (black) | Gleiches Job wie Scene map → Ignore |
-| `gen-nomark` | 4-zone | `hidden` — CLI only |
 | Preview (`roi_help.js`) | Invert-Klon | Sync → `#gen-invert`; nicht entfernen |
 
 ### Bereits entfernt (Ballast — dokumentiert)
@@ -113,6 +112,7 @@ Everyday Create / CSRT-Go-Pfad: unverändert (Defaults, Payload-IDs, Soft-ons).
 | Flow downscale | CLI / Flow-only — GUI weg |
 | Audio-check-Zeile in Advanced | Generate-Default bleibt hidden; UI = **Review → Audio check** |
 | 4-zone / Flow / grid_lk Dropdown | CLI; Produkt-GUI nur CSRT |
+| `#gen-nomark` (4-zone button) | **Removed** on PlayHeatUX (#460) — CLI backends kept; no GUI control |
 
 ---
 

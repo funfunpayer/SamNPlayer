@@ -139,7 +139,8 @@ type GenerateOptions struct {
 // Each call bumps roiSeq; only the latest seq may emit generate:autoroi
 // (stale finds are dropped). Payload always includes videoPath + seq.
 func (a *App) AutoDetectROI(videoPath string, engine string) {
-	mySeq, _, finish := a.beginROIRequest(false)
+	// Cancellable so CancelROIDetection kills classic/AI find (CommandContext).
+	mySeq, roiCtx, finish := a.beginROIRequest(true)
 
 	go func() {
 		defer finish()
@@ -195,7 +196,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 			attachROIVerify(payload, videoPath, roi)
 			a.emitAutoROI(videoPath, mySeq, payload)
 		case "ai":
-			roi, err := generator.FindROIAIWithProgress(videoPath,
+			roi, err := generator.FindROIAIWithContext(roiCtx, videoPath,
 				a.settings.GetString(prefAIRoiModelPath, ""),
 				a.settings.GetString(prefAIPreferredClasses, ""),
 				onLine, onPct)
@@ -209,7 +210,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 			attachROIVerify(payload, videoPath, roi)
 			a.emitAutoROI(videoPath, mySeq, payload)
 		default:
-			roi, err := generator.FindROIWithProgress(videoPath, onLine, onPct)
+			roi, err := generator.FindROIWithContext(roiCtx, videoPath, onLine, onPct)
 			if err != nil {
 				emitErr(err.Error())
 				return
