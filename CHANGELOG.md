@@ -34,6 +34,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Play/sidebar: vib/suction meters could show `NaN%`** — frame events without
+  finite vibration/suction now coerce to 0 before `Math.round`.
+- **Play: leftover German chrome** — Sync mode label + O-marker set log are English.
 - **Play: video pause/buffer left device on last intensity for ~1.5s** — Sync
   already zeroed after `syncStaleAfter`; frontend now calls
   `ReportVideoSyncIdle` on `<video>` `pause`/`waiting` so the device goes to

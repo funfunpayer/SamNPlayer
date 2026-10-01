@@ -340,8 +340,8 @@ risks Generate regressions — otherwise small orthogonal PRs OK.
 | C1 | Language sweep (leftover DE) | ongoing | Screenshot any DE |
 | C2 | Thanks / feedback English | done | usable / borderline / unusable |
 | C3 | README vs public portal | G4.S | Brand + portable CTA |
-| C5 | GUI improve pass | G4.C slices | Before/after screenshots — **#460:** Create mark snack + AI/options `<details>`; Play Cap/Scale/markers + Feel filters + Contact probe + Improve More + nested Extended-O progressive disclosure |
-| C6 | Settings License block polish | with C5; enforcement still off | Import → status obvious |
+| C5 | GUI improve pass | G4.C slices | Before/after screenshots — **#460:** Create Advanced nests; Play Contact tune / Project export; Settings Plugins+diagnostics; progressive disclosure throughout Create/Play |
+| C6 | Settings License block polish | with C5; enforcement still off | **#460:** multi-line Import → status (state / until / enforcement / effective) |
 | C4 | Curve zoom / BPM grid | after C5 | **Done** (BPM grid + curve/heatmap zoom) |
 | C7 | Empty states / errors | with C5 | Each banner + CTA |
 
