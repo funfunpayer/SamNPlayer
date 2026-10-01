@@ -196,52 +196,57 @@ export function initPlayback(root) {
           <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
           <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
           <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Max community intensity (500×|Δpos|/|Δt|) for Speed-cap on the heatmap selection. Lower = more stretch / calmer. Play edit only — does not change Create Expert max-speed.">
-            Cap
-            <input type="range" id="pb-cap-intensity" min="150" max="800" step="25" value="400" style="width:7em;" />
-            <span id="pb-cap-intensity-val">400</span>
-          </label>
-          <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Paint red “too fast” bands on the Play curve (OFS community intensity). Display only — separate from Speed-cap edit.">
-            <input type="checkbox" id="pb-speed-hl" checked /> Speed highlights
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Intensity threshold for Speed highlights on the curve (500×|Δpos|/|Δt|). Lower = more red bands. Does not change Cap edit or Create defaults.">
-            HL
-            <input type="range" id="pb-speed-hl-thresh" min="150" max="800" step="25" value="400" style="width:7em;" />
-            <span id="pb-speed-hl-thresh-val">400</span>
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
-            Scale
-            <input type="range" id="pb-scale-factor" min="0.5" max="1.5" step="0.05" value="0.8" style="width:7em;" />
-            <span id="pb-scale-factor-val">×0.80</span>
-          </label>
-          <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (active Curve axis)">Scale selection</button>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Ramp scale from ×1 at the selection edges to the chosen factor at the midpoint — gentler on Vibration / Suction.">
-            <input type="checkbox" id="pb-scale-soft-edges" /> Soft edges
-          </label>
-          <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="If >0: seeks and new curve points snap to that frame rate. 0 = off. Play edit only — does not change Create.">
-            FPS-Snap
-            <input type="range" id="pb-fps-snap" min="0" max="60" step="1" value="0" style="width:7em;" />
-            <span id="pb-fps-snap-val">off</span>
-          </label>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
-            <input type="checkbox" id="pb-bpm-grid" /> BPM grid
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Beats per minute for the curve grid. Leave blank to use audio_check tempo (Hz×60) when available.">
-            BPM
-            <input type="number" id="pb-bpm" value="" min="20" max="240" step="1" placeholder="auto" style="width:4.5em;" />
-          </label>
           <span class="hint" id="pb-ofs-status" style="margin:0"></span>
         </div>
+        <details class="pb-tools-details" id="pb-ofs-edit-details" style="display:none;">
+          <summary>Curve edit (Cap · Scale · Speed HL · BPM)</summary>
+          <div class="row pb-ofs-edit-row" style="flex-wrap:wrap; gap:8px; margin-top:6px; align-items:center;">
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Max community intensity (500×|Δpos|/|Δt|) for Speed-cap on the heatmap selection. Lower = more stretch / calmer. Play edit only — does not change Create Expert max-speed.">
+              Cap
+              <input type="range" id="pb-cap-intensity" min="150" max="800" step="25" value="400" style="width:7em;" />
+              <span id="pb-cap-intensity-val">400</span>
+            </label>
+            <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Paint red “too fast” bands on the Play curve (OFS community intensity). Display only — separate from Speed-cap edit.">
+              <input type="checkbox" id="pb-speed-hl" checked /> Speed highlights
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Intensity threshold for Speed highlights on the curve (500×|Δpos|/|Δt|). Lower = more red bands. Does not change Cap edit or Create defaults.">
+              HL
+              <input type="range" id="pb-speed-hl-thresh" min="150" max="800" step="25" value="400" style="width:7em;" />
+              <span id="pb-speed-hl-thresh-val">400</span>
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
+              Scale
+              <input type="range" id="pb-scale-factor" min="0.5" max="1.5" step="0.05" value="0.8" style="width:7em;" />
+              <span id="pb-scale-factor-val">×0.80</span>
+            </label>
+            <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (active Curve axis)">Scale selection</button>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Ramp scale from ×1 at the selection edges to the chosen factor at the midpoint — gentler on Vibration / Suction.">
+              <input type="checkbox" id="pb-scale-soft-edges" /> Soft edges
+            </label>
+            <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="If >0: seeks and new curve points snap to that frame rate. 0 = off. Play edit only — does not change Create.">
+              FPS-Snap
+              <input type="range" id="pb-fps-snap" min="0" max="60" step="1" value="0" style="width:7em;" />
+              <span id="pb-fps-snap-val">off</span>
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
+              <input type="checkbox" id="pb-bpm-grid" /> BPM grid
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Beats per minute for the curve grid. Leave blank to use audio_check tempo (Hz×60) when available.">
+              BPM
+              <input type="number" id="pb-bpm" value="" min="20" max="240" step="1" placeholder="auto" style="width:4.5em;" />
+            </label>
+          </div>
+        </details>
 
         <div class="hint" id="pb-marker-hint" style="display:none"
           data-help="Click the heatmap to seek. Drag to mark a range (Extended-O / loop / O-marker).">
@@ -253,42 +258,51 @@ export function initPlayback(root) {
           <label for="pb-marker-auto" data-help="Triggers Extended-O automatically when playback reaches the marked range.">Auto Extended-O in marked range</label>
         </div>
 
-        <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
-          data-help="O-markers are saved in the script (not local only). Primary = peak; secondary = softer spots. Mark a range first, then apply.">
-          O-markers: authored in script — see “?”.</div>
-        <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <select id="pb-omarker-kind">
-            <option value="primary">Primary (peak)</option>
-            <option value="secondary">Secondary (earlier, softer)</option>
-          </select>
-          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:6px;">
-            <label style="width:auto;" data-help="Secondary O-marker strength (0–1). Default 0.5. Authoring only — does not change Create CSRT.">Intensity</label>
-            <input type="range" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:7em;" />
-            <span class="hint" id="pb-omarker-intensity-val" style="margin:0; min-width:2.5em;">0.5</span>
-          </span>
-          <button id="pb-omarker-add" disabled>Apply as O-marker</button>
-        </div>
-        <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-omarker-details" style="display:none;">
+          <summary>O-markers</summary>
+          <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:6px;"
+            data-help="O-markers are saved in the script (not local only). Primary = peak; secondary = softer spots. Mark a range first, then apply.">
+            O-markers: authored in script — see “?”.</div>
+          <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <select id="pb-omarker-kind">
+              <option value="primary">Primary (peak)</option>
+              <option value="secondary">Secondary (earlier, softer)</option>
+            </select>
+            <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:6px;">
+              <label style="width:auto;" data-help="Secondary O-marker strength (0–1). Default 0.5. Authoring only — does not change Create CSRT.">Intensity</label>
+              <input type="range" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:7em;" />
+              <span class="hint" id="pb-omarker-intensity-val" style="margin:0; min-width:2.5em;">0.5</span>
+            </span>
+            <button id="pb-omarker-add" disabled>Apply as O-marker</button>
+          </div>
+          <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
-        <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:10px;"
-          data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, rename, or remove. Separate from O-markers and heatmap selection.">
-          Bookmarks: named times in the script — see “?”.</div>
-        <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
-          <button type="button" id="pb-bookmark-add"
-            data-help="Saves a bookmark at the current playhead time into the loaded script.">Add at playhead</button>
-        </div>
-        <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-bookmark-details" style="display:none;">
+          <summary>Bookmarks</summary>
+          <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:6px;"
+            data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, rename, or remove. Separate from O-markers and heatmap selection.">
+            Bookmarks: named times in the script — see “?”.</div>
+          <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+            <button type="button" id="pb-bookmark-add"
+              data-help="Saves a bookmark at the current playhead time into the loaded script.">Add at playhead</button>
+          </div>
+          <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
-        <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:10px;"
-          data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Rename or remove later. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
-          Chapters: named ranges in the script — see “?”.</div>
-        <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
-          <button type="button" id="pb-chapter-add" disabled
-            data-help="Saves a chapter from the current heatmap selection into the loaded script.">Add from selection</button>
-        </div>
-        <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-chapter-details" style="display:none;">
+          <summary>Chapters</summary>
+          <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:6px;"
+            data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Rename or remove later. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
+            Chapters: named ranges in the script — see “?”.</div>
+          <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+            <button type="button" id="pb-chapter-add" disabled
+              data-help="Saves a chapter from the current heatmap selection into the loaded script.">Add from selection</button>
+          </div>
+          <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
         <div id="pb-audio-segments" class="gen-audio-segments" hidden>
           <div class="gen-audio-segments-head">
@@ -690,6 +704,13 @@ export function initPlayback(root) {
     if (marker) {
       el('#pb-marker-label').textContent =
         `Marked: ${(marker.startMs / 1000).toFixed(1)}s - ${(marker.endMs / 1000).toFixed(1)}s`;
+      // Selection unlocks Cap/Scale/O-marker/Chapters — open those panels.
+      const edit = el('#pb-ofs-edit-details');
+      if (edit) edit.open = true;
+      const om = el('#pb-omarker-details');
+      if (om) om.open = true;
+      const ch = el('#pb-chapter-details');
+      if (ch) ch.open = true;
     } else {
       el('#pb-marker-label').textContent = '(no selection)';
     }
@@ -2701,14 +2722,18 @@ export function initPlayback(root) {
     drawCurve();
     describeScript();
     loadTrajectory();
+    el('#pb-omarker-details') && (el('#pb-omarker-details').style.display = 'block');
     el('#pb-omarker-hint').style.display = 'block';
     el('#pb-omarker-add-row').style.display = 'flex';
+    el('#pb-bookmark-details') && (el('#pb-bookmark-details').style.display = 'block');
     el('#pb-bookmark-hint').style.display = 'block';
     el('#pb-bookmark-add-row').style.display = 'flex';
+    el('#pb-chapter-details') && (el('#pb-chapter-details').style.display = 'block');
     el('#pb-chapter-hint').style.display = 'block';
     el('#pb-chapter-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
     el('#pb-ofs-row').style.display = 'flex';
+    el('#pb-ofs-edit-details') && (el('#pb-ofs-edit-details').style.display = 'block');
     el('#pb-script-doctor-result').style.display = 'none';
     el('#pb-script-doctor-status').textContent = '';
     if (el('#pb-ofs-status')) el('#pb-ofs-status').textContent = '';

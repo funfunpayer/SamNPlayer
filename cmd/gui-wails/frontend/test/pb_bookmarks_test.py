@@ -67,6 +67,7 @@ def main():
             page.wait_for_function(
                 "document.querySelector('#pb-bookmark-add-row').style.display === 'flex'",
                 timeout=5000)
+            page.locator("#pb-bookmark-details").evaluate("el => { el.open = true }")
             check("add row after load", True)
 
             page.fill("#pb-bookmark-name", "Peak")

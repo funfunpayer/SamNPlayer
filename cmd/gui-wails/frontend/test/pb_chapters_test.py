@@ -72,6 +72,7 @@ def main():
             page.wait_for_function(
                 "document.querySelector('#pb-chapter-add-row').style.display === 'flex'",
                 timeout=5000)
+            page.locator("#pb-chapter-details").evaluate("el => { el.open = true }")
             check("add row after load", True)
             check("add disabled without selection",
                   page.locator("#pb-chapter-add").is_disabled())

@@ -76,6 +76,13 @@ def main():
         page.wait_for_function(
             "() => document.querySelector('#pb-ofs-row').style.display === 'flex'",
             timeout=5000)
+        check("curve edit details present", page.locator("#pb-ofs-edit-details").count() == 1)
+        check("curve edit closed until selection",
+              page.locator("#pb-ofs-edit-details").evaluate("el => !el.open"))
+        check("omarker panel present collapsed",
+              page.locator("#pb-omarker-details").count() == 1
+              and page.locator("#pb-omarker-details").evaluate("el => !el.open"))
+        page.locator("#pb-ofs-edit-details").evaluate("el => { el.open = true }")
 
         check("Load project button present", page.locator("#pb-project-load").count() == 1)
         check("Scale range button present", page.locator("#pb-scale-range").count() == 1)

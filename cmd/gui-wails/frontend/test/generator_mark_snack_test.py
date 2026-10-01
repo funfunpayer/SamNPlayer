@@ -70,6 +70,14 @@ def main():
         check("Partner fest (Pixel) label present",
               "Partner fest" in page.locator("#gen-roi2-fixed").evaluate(
                   "el => (el.closest('label') || el.parentElement).textContent"))
+        check("AI assist starts closed",
+              page.locator("#gen-mark-ai-details").evaluate("el => !el.open"))
+        check("Mark options starts closed",
+              page.locator("#gen-mark-options-details").evaluate("el => !el.open"))
+        check("Partner fest lives under Mark options",
+              page.locator("#gen-mark-options-details #gen-roi2-fixed").count() == 1)
+        check("AI detections live under AI assist",
+              page.locator("#gen-mark-ai-details #gen-ai-detections").count() == 1)
 
         page.uncheck("#gen-contact-vibration")
         page.wait_for_timeout(50)

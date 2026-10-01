@@ -44,6 +44,7 @@ def main():
         page.wait_for_function("window.__ready === true")
         page.click("#pb-choose")
         page.wait_for_function("document.querySelector('#pb-omarker-add-row').style.display === 'flex'", timeout=5000)
+        page.locator("#pb-omarker-details").evaluate("el => { el.open = true }")
         check("O-Zone-Knopf existiert", page.locator("#pb-ozone-suggest").count() == 1)
         page.click("#pb-ozone-suggest")
         page.wait_for_function("window.__calls.some(c => c[0] === 'applyOzone')", timeout=5000)

@@ -98,6 +98,7 @@ def main():
                 "() => document.querySelector('#pb-ofs-row').style.display === 'flex'",
                 timeout=5000)
             page.wait_for_timeout(120)
+            page.locator("#pb-ofs-edit-details").evaluate("el => { el.open = true }")
 
             ph = page.locator("#pb-bpm").get_attribute("placeholder") or ""
             check("audioHz prefills auto BPM placeholder (~120)",

@@ -69,62 +69,61 @@ export function initGenerator(root, playback) {
           Partner marks = where Contact vibration should feel — not the stroke.
         </p>
       </div>
-      <p class="hint" style="margin-top:0">
-        Create does <b>not</b> need a stroke/motion path (FunGen2 / Everyday).
-        <b>Find tip</b> auto-boxes the tip — paint or drag only if Find missed.
-        Contact marks (below) are touch points for Contact vibration, not the stroke.
-        CSRT sticks to the tip box’s look — after a big camera-angle change, press Find tip again or nudge the box.
-      </p>
-      <div class="row" style="align-items:center;">
+      <div class="row gen-mark-primary-row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
           data-help="Auto tip box for Everyday CSRT (not a motion path). Paint/drag only if Find missed. Optional AI when checked.">Find tip area</button>
         <button id="gen-candidates" type="button" disabled
           data-help="Shows ranked tip candidates when auto Find is unsure. Click = Tip. Shift-click = optional contact (mouth / nipple-breast) when Contact vibration is on.">Show other spots</button>
-        <button id="gen-ai-detections" type="button" disabled
-          data-help="Lists all AI Train class boxes on this frame (nipples, breasts, glans, …) — not tip-only. Click a box to set Tip; Shift-click = optional contact. Needs Settings → AI model.">Show all AI tags</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
           data-help="Proposes Tip + optional contact area. Apply required.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
-        <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
-          <label for="gen-ai-roi" style="width:auto"
-            data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
-        <select id="gen-ai-target-class" disabled style="min-width:10em;">
-          <option value="">Expected body point…</option>
-        </select>
       </div>
-      <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
-        <p class="hint" style="margin:0 0 6px 0;">
-          Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
-          <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact
-          (unless Settings → <b>Apply AI setup automatically</b> is on — still undoable).
-        </p>
-        <div id="gen-ai-applied" class="gen-ai-applied" hidden>
-          <span id="gen-ai-applied-label" class="hint" style="margin:0;"></span>
-          <button type="button" id="gen-ai-applied-undo" class="secondary">Undo AI apply</button>
+      <details class="gen-adv-nested gen-mark-disclose" id="gen-mark-ai-details">
+        <summary>AI assist &amp; scene proposals</summary>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <button id="gen-ai-detections" type="button" disabled
+            data-help="Lists all AI Train class boxes on this frame (nipples, breasts, glans, …) — not tip-only. Click a box to set Tip; Shift-click = optional contact. Needs Settings → AI model.">Show all AI tags</button>
+          <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
+            <label for="gen-ai-roi" style="width:auto"
+              data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
+          <select id="gen-ai-target-class" disabled style="min-width:10em;">
+            <option value="">Expected body point…</option>
+          </select>
         </div>
-        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
-            data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
-          <button type="button" class="secondary" id="gen-scene-proposals-beside" disabled
-            data-help="Load &lt;clip&gt;.scene.json beside this video if present.">Use beside video</button>
-          <span class="hint" id="gen-scene-type-chip" style="margin:0;display:none;" aria-live="polite"></span>
-          <span class="hint" id="gen-scene-proposals-status" style="margin:0;"></span>
-        </div>
-        <div id="gen-scene-proposals-actions" style="display:none;margin-top:6px;">
+        <div class="hint" id="gen-ai-target-status" style="margin:4px 0 6px 0;"></div>
+        <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
+          <p class="hint" style="margin:0 0 6px 0;">
+            Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
+            <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact
+            (unless Settings → <b>Apply AI setup automatically</b> is on — still undoable).
+          </p>
+          <div id="gen-ai-applied" class="gen-ai-applied" hidden>
+            <span id="gen-ai-applied-label" class="hint" style="margin:0;"></span>
+            <button type="button" id="gen-ai-applied-undo" class="secondary">Undo AI apply</button>
+          </div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="hint" id="gen-scene-primary-label" style="margin:0;"></span>
-            <button type="button" class="primary" id="gen-scene-apply-primary"
-              data-help="Apply the proposed primary stroke target as Tip ROI (+ region class when canonical).">Apply as Tip</button>
-            <span class="hint" id="gen-scene-partner-label" style="margin:0;"></span>
-            <button type="button" class="secondary" id="gen-scene-apply-partner" hidden
-              data-help="Optional: apply the contact partner as ROI2. Never automatic (TFTJ no silent ROI2).">Apply as contact</button>
-            <button type="button" class="secondary" id="gen-scene-proposals-dismiss"
-              data-help="Clear the loaded scene proposal overlay without changing Tip/ROI2.">Dismiss</button>
+            <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
+              data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
+            <button type="button" class="secondary" id="gen-scene-proposals-beside" disabled
+              data-help="Load &lt;clip&gt;.scene.json beside this video if present.">Use beside video</button>
+            <span class="hint" id="gen-scene-type-chip" style="margin:0;display:none;" aria-live="polite"></span>
+            <span class="hint" id="gen-scene-proposals-status" style="margin:0;"></span>
+          </div>
+          <div id="gen-scene-proposals-actions" style="display:none;margin-top:6px;">
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="hint" id="gen-scene-primary-label" style="margin:0;"></span>
+              <button type="button" class="primary" id="gen-scene-apply-primary"
+                data-help="Apply the proposed primary stroke target as Tip ROI (+ region class when canonical).">Apply as Tip</button>
+              <span class="hint" id="gen-scene-partner-label" style="margin:0;"></span>
+              <button type="button" class="secondary" id="gen-scene-apply-partner" hidden
+                data-help="Optional: apply the contact partner as ROI2. Never automatic (TFTJ no silent ROI2).">Apply as contact</button>
+              <button type="button" class="secondary" id="gen-scene-proposals-dismiss"
+                data-help="Clear the loaded scene proposal overlay without changing Tip/ROI2.">Dismiss</button>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
       <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Auto tip after load — drag the box anytime to refine.</p>
-      <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -156,11 +155,9 @@ export function initGenerator(root, playback) {
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration snack — mark in order when you want spatial feel:
-          <b>1 Tip</b> (Find tip / teal) → <b>2 Partner</b> (Mark contact / gold: mouth or nipple) →
-          <b>3 More</b> (+ Another, e.g. second nipple). Skip 2–3 anytime; Create still works.
+          Optional touch points for Contact vibration — not the stroke. Skip anytime; Create still works.
         </p>
-        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+        <div class="row gen-mark-snack-actions" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
           <label style="width:auto;" data-help="Optional tip label: Glans preferred, or whole Penis. Empty = any. Contact-vibe set only — not required for CSRT Create.">Tip (glans/penis)</label>
           <select id="gen-region-class" style="min-width:8em;">
             <option value="">(any)</option>
@@ -169,12 +166,8 @@ export function initGenerator(root, playback) {
           <select id="gen-region-class2" style="min-width:8em;">
             <option value="">(pick class)</option>
           </select>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Partner fest (Pixel): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
-            <input type="checkbox" id="gen-roi2-fixed" /> Partner fest (Pixel)
-          </label>
         </div>
-        <div class="row" style="align-items:center; margin-top:6px;">
+        <div class="row gen-mark-snack-actions" style="align-items:center; margin-top:6px; flex-wrap:wrap; gap:8px;">
           <button id="gen-roi2-toggle" type="button"
             data-help="Mark one touch point (gold): mouth or nipple/breast. Not a stroke path. Stroke vib still follows tip CSRT depth — the mark is for contact feel / later spatial vibe.">Mark contact area</button>
           <button id="gen-target-add" type="button"
@@ -183,32 +176,38 @@ export function initGenerator(root, playback) {
           <select id="gen-target-class" style="min-width:7em;">
             <option value="">(any)</option>
           </select>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
-            <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
-          </label>
-          <button id="gen-extras-clear" type="button"
-            data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
-          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Create works without marks. Vib = stroke depth unless Tf/Tj.</span>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Vib = stroke depth unless Tf/Tj.</span>
         </div>
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
-        <div class="row" style="align-items:center; margin-top:4px;">
-          <button id="gen-mask-add" type="button"
-            data-help="Ignore region (black): exclude a wrong latch (knees, background). Same as Scene map → Ignore. Does not drive the stroke; use when auto tip/heatmap fails onto the wrong part.">+ Ignore region (black)</button>
-        </div>
-        <div id="gen-selected-mark" class="gen-selected-mark" hidden>
-          <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
-          <button type="button" id="gen-selected-mark-delete" class="secondary"
-            data-help="Removes the mark selected on the preview (Tip / contact / Ignore / Scene map).">Delete selected</button>
-          <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
-        </div>
-        <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
-          aria-label="Body map — contact vibe: mouth, nipple/breast, tip"></div>
-        <p class="hint" style="margin:4px 0 0 0;">
-          <b>Click a painted mark</b>, then the body map (mouth · nipple/breast · tip only).
-          Paint tip only if Find tip missed; contact marks are touch points, not a motion path.
-        </p>
+        <details class="gen-adv-nested gen-mark-disclose" id="gen-mark-options-details">
+          <summary>Mark options (Ignore, Partner fest, body map)</summary>
+          <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Partner fest (Pixel): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+              <input type="checkbox" id="gen-roi2-fixed" /> Partner fest (Pixel)
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
+              <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
+            </label>
+            <button id="gen-extras-clear" type="button"
+              data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
+            <button id="gen-mask-add" type="button"
+              data-help="Ignore region (black): exclude a wrong latch (knees, background). Same as Scene map → Ignore. Does not drive the stroke; use when auto tip/heatmap fails onto the wrong part.">+ Ignore region (black)</button>
+          </div>
+          <div id="gen-selected-mark" class="gen-selected-mark" hidden>
+            <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
+            <button type="button" id="gen-selected-mark-delete" class="secondary"
+              data-help="Removes the mark selected on the preview (Tip / contact / Ignore / Scene map).">Delete selected</button>
+            <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
+          </div>
+          <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
+            aria-label="Body map — contact vibe: mouth, nipple/breast, tip"></div>
+          <p class="hint" style="margin:4px 0 0 0;">
+            <b>Click a painted mark</b>, then the body map (mouth · nipple/breast · tip only).
+          </p>
+        </details>
       </div>
       <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
       <button id="gen-nomark" type="button" disabled hidden
@@ -2249,6 +2248,11 @@ export function initGenerator(root, playback) {
     };
   }
 
+  function openMarkAiDetails() {
+    const d = el('#gen-mark-ai-details');
+    if (d) d.open = true;
+  }
+
   function renderSceneProposalUI() {
     const chip = el('#gen-scene-type-chip');
     const actions = el('#gen-scene-proposals-actions');
@@ -2262,6 +2266,7 @@ export function initGenerator(root, playback) {
       if (partnerBtn) partnerBtn.hidden = true;
       return;
     }
+    openMarkAiDetails();
     const p = sceneProposal.proposal || {};
     const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
     const conf = typeof p.confidence === 'number' ? p.confidence : 0;

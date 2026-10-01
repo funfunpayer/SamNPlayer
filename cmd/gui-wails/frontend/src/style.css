@@ -2383,6 +2383,37 @@ button.primary:active:not(:disabled) {
   line-height: 1.45;
   color: var(--text-dim);
 }
+/* Progressive disclosure: AI / mark options stay closed until needed */
+.gen-mark-disclose {
+  margin: 8px 0 6px;
+}
+.gen-mark-primary-row {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+/* Play: Cap/Scale/markers behind closed details — primary row stays short */
+.pb-tools-details {
+  margin: 8px 0 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.12);
+  width: 100%;
+}
+.pb-tools-details > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+}
+.pb-tools-details > summary::-webkit-details-marker { display: none; }
+.pb-tools-details > summary::before { content: "▸ "; }
+.pb-tools-details[open] > summary::before { content: "▾ "; }
+.pb-ofs-edit-row {
+  margin-top: 6px;
+}
 @keyframes genStepIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
