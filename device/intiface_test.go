@@ -438,14 +438,25 @@ func TestIntifaceOneShotReconnect(t *testing.T) {
 	}
 
 	fake.dropConnection()
+	// Wait until the client read loop observes the drop — otherwise SetVibration
+	// can still succeed on a half-closed socket, return nil, then markDead races
+	// Info().Connected to false (flake under -race / loaded CI).
+	deadBy := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadBy) && dev.Info().Connected {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if dev.Info().Connected {
+		_ = dev.Disconnect()
+		t.Fatal("expected disconnect after dropConnection")
+	}
 
 	var err error
-	for attempt := 0; attempt < 8; attempt++ {
+	for attempt := 0; attempt < 20; attempt++ {
 		err = dev.SetVibration(0.35)
 		if err == nil && dev.Info().Connected {
 			break
 		}
-		time.Sleep(30 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 	if err != nil {
 		_ = dev.Disconnect()
