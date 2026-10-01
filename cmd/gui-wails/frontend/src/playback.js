@@ -190,12 +190,15 @@ export function initPlayback(root) {
           data-help="Space play/stop · ←/→ 5 s (Shift 1 s) · ,/. fine step · 1–9 jump · +/− offset · L loop · E Extended-O · O O-marker 4s">
           Keyboard help via “?”.</p>
 
-        <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
-        <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
-          <button id="pb-script-doctor" type="button">Check script</button>
-          <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
-        </div>
-        <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
+        <details class="pb-tools-details" id="pb-quality-details" style="display:none;">
+          <summary>Script check &amp; analysis</summary>
+          <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+          <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
+            <button id="pb-script-doctor" type="button">Check script</button>
+            <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
+          </div>
+          <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
+        </details>
 
         <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
           <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
@@ -2747,6 +2750,7 @@ export function initPlayback(root) {
     el('#pb-chapter-hint').style.display = 'block';
     el('#pb-chapter-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
+    el('#pb-quality-details') && (el('#pb-quality-details').style.display = 'block');
     el('#pb-ofs-row').style.display = 'flex';
     el('#pb-ofs-edit-details') && (el('#pb-ofs-edit-details').style.display = 'block');
     el('#pb-script-doctor-result').style.display = 'none';
@@ -3105,6 +3109,8 @@ export function initPlayback(root) {
       const result = await ScriptQuality();
       status.textContent = '';
       const pct = Math.round((result.score || 0) * 100);
+      const qd = el('#pb-quality-details');
+      if (qd) qd.open = true;
       box.style.display = 'block';
       box.style.background = result.passed ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       box.style.border = `1px solid ${result.passed ? 'var(--ok)' : 'var(--danger)'}`;
@@ -3119,6 +3125,8 @@ export function initPlayback(root) {
       }
       box.innerHTML = html;
     } catch (err) {
+      const qd = el('#pb-quality-details');
+      if (qd) qd.open = true;
       uiError('Quality check: ' + err, status);
     } finally {
       btn.disabled = false;

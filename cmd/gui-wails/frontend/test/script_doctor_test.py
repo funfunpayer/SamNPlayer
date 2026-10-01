@@ -65,6 +65,10 @@ def main():
         page.click("#pb-choose")
         page.wait_for_function(
             "document.querySelector('#pb-script-doctor-row').style.display === 'flex'", timeout=5000)
+        check("quality details present", page.locator("#pb-quality-details").count() == 1)
+        check("quality details closed by default",
+              page.locator("#pb-quality-details").evaluate("el => !el.open"))
+        page.locator("#pb-quality-details").evaluate("el => { el.open = true }")
         check("nach dem Laden: Knopf sichtbar", True)
 
         # Bestanden.
@@ -74,6 +78,8 @@ def main():
         page.wait_for_function(
             "document.querySelector('#pb-script-doctor-result').textContent.includes('90%')",
             timeout=5000)
+        check("check opens quality details",
+              page.locator("#pb-quality-details").evaluate("el => el.open"))
         result = page.locator("#pb-script-doctor-result")
         check("bestanden: Prozentwert sichtbar", "90%" in result.inner_text())
         check("passed: 'within normal' in text", "within normal" in result.inner_text())

@@ -12,10 +12,10 @@ measurement history behind each entry; this file is the short version for
 
 - **Create/Play GUI declutter (G4.C)** — Step 2 AI assist & scene proposals
   and Mark options (Ignore / Partner fest / body map) sit behind closed
-  `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, and
-  O-markers/Bookmarks/Chapters likewise. Heatmap selection auto-opens Cap +
-  O-marker + Chapters. Scene proposal load opens AI assist. Everyday Tip →
-  Partner snack stays primary.
+  `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, Script check &
+  analysis, and O-markers/Bookmarks/Chapters likewise. Heatmap selection
+  auto-opens Cap + O-marker + Chapters. Scene proposal load opens AI assist.
+  Everyday Tip → Partner snack stays primary.
 - **Play: taller curve + heatmap** — curve strip 120→176px, intensity heatmap
   28→56px (same zoom/selection tools). Easier to read Feel bands and intensity.
 - **Create: Tip → Partner snack guide** — Step 2 shows a compact snack
