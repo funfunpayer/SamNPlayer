@@ -378,9 +378,9 @@ func runPythonScriptCtx(ctx context.Context, py string, args []string, logPrefix
 	}
 	if err := cmd.Wait(); err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return fmt.Errorf("generator: %s abgebrochen: %w", logPrefix, ctxErr)
+			return fmt.Errorf("generator: %s cancelled: %w", logPrefix, ctxErr)
 		}
-		return fmt.Errorf("generator: %s fehlgeschlagen: %w\nLetzte Ausgabe:\n%s",
+		return fmt.Errorf("generator: %s failed: %w\nLast output:\n%s",
 			logPrefix, err, joinLines(lastLines))
 	}
 	return nil

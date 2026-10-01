@@ -1,4 +1,4 @@
-import { SuggestBackend } from '../wailsjs/go/main/App';
+/** Create preview coach: tip CSRT + optional Contact marks (no Tf/Tj Everyday). */
 
 export function enhanceGeneratorPreview(root) {
   const canvas = root.querySelector('#roi-canvas');
@@ -16,29 +16,10 @@ export function enhanceGeneratorPreview(root) {
     wrap.insertAdjacentElement('afterend', hint);
   }
 
-  const invertRow = root.querySelector('#gen-invert') && root.querySelector('#gen-invert').closest('.checkbox-row');
-  if (invertRow && !root.querySelector('#gen-invert-visible')) {
-    const clone = invertRow.cloneNode(true);
-    const input = clone.querySelector('input');
-    const label = clone.querySelector('label');
-    if (input && label) {
-      input.id = 'gen-invert-visible';
-      label.htmlFor = 'gen-invert-visible';
-      label.textContent = 'Invert motion direction (polarity — often feel direction, not a tracking bug)';
-      input.addEventListener('change', () => {
-        const orig = root.querySelector('#gen-invert');
-        if (orig) orig.checked = input.checked;
-      });
-      hint.insertAdjacentElement('afterend', clone);
-    }
-  }
-
   const overlay = document.createElement('canvas');
   overlay.id = 'roi-help-overlay';
   overlay.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;';
   wrap.appendChild(overlay);
-
-  let lastBackendHint = '';
 
   function parseBox(text) {
     const m = text && text.match(/x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)/);
@@ -46,46 +27,22 @@ export function enhanceGeneratorPreview(root) {
     return { x: +m[1], y: +m[2], w: +m[3], h: +m[4] };
   }
 
-  function backendHintLocal(r1) {
-    if (!r1) return '';
-    if (r1.w * r1.h < 800 || r1.w < 24 || r1.h < 24) {
-      return 'Small ROI — mark carefully; product tracking stays CSRT (Go path).';
-    }
-    return 'ROI size OK for CSRT (Go path).';
-  }
-
-  async function refreshBackendHint(r1) {
-    if (!r1) { lastBackendHint = ''; return; }
-    try {
-      const name = await SuggestBackend(r1.w, r1.h);
-      if (name && typeof name === 'string') {
-        lastBackendHint = 'Tracking: ' + name + ' (Go path).';
-        return;
-      }
-    } catch (_) { /* fallback below */ }
-    lastBackendHint = backendHintLocal(r1);
-  }
-
   function coachText(r1, r2) {
     const bits = [];
     if (r1) {
-      if (r1.w * r1.h < 400) bits.push('ROI1 is very small — tracking may lose lock.');
-      if (r1.x < 4 || r1.y < 4) bits.push('ROI1 is flush with the image edge.');
-      if (lastBackendHint) bits.push(lastBackendHint);
-      else bits.push(backendHintLocal(r1));
+      if (r1.w * r1.h < 400) bits.push('Tip box is very small — Find tip again or enlarge slightly.');
+      if (r1.x < 4 || r1.y < 4) bits.push('Tip box is flush with the image edge.');
+      bits.push('Tip box = CSRT stroke tracker (Go path).');
     } else {
-      bits.push('Set ROI1 on moving stroke, not just the tip.');
+      bits.push('Press Find tip, or drag a tip box if Find missed.');
     }
     if (r1 && r2) {
       const dx = (r1.x + r1.w / 2) - (r2.x + r2.w / 2);
       const dy = (r1.y + r1.h / 2) - (r2.y + r2.h / 2);
-      if (Math.hypot(dx, dy) < 12) bits.push('ROI2 almost on ROI1 — distance signal collapses.');
-      if (Math.abs(dy) < 4 && Math.abs(dx) > 8) {
-        bits.push('ROI2 is only shifted sideways (same height) — poor anchor.');
-      }
-      bits.push('Line = measured distance (Tf/Tj). ROI2 should be a counter-anchor, not a copy.');
+      if (Math.hypot(dx, dy) < 12) bits.push('Contact mark almost on tip — move it to mouth/nipple.');
+      bits.push('Gold = optional Contact feel (not a second stroke writer).');
     } else if (r1 && !r2) {
-      bits.push('For Tf/Tj set a second anchor — do not copy ROI1 sideways.');
+      bits.push('Optional: Mark contact for Contact vibe (mouth / nipple).');
     }
     return bits.filter(Boolean).join(' ');
   }
@@ -97,8 +54,7 @@ export function enhanceGeneratorPreview(root) {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     const r1 = parseBox(roiLabel && roiLabel.textContent);
     const r2 = parseBox(roi2Label && roi2Label.textContent);
-    if (r1) refreshBackendHint(r1).then(() => { hint.textContent = coachText(r1, r2); });
-    else hint.textContent = coachText(r1, r2);
+    hint.textContent = coachText(r1, r2);
     const nw = Number(canvas.dataset.nativeW || 0);
     const nh = Number(canvas.dataset.nativeH || 0);
     if (!r1 || !r2 || !nw || !nh) return;

@@ -132,7 +132,7 @@ func boxCenter(r Rect) Point {
 }
 
 // ErrCanceled is returned when Options.Cancel aborts the tracking loop.
-var ErrCanceled = errors.New("tracking abgebrochen")
+var ErrCanceled = errors.New("tracking cancelled")
 
 const (
 	sceneCutHistThreshold = 0.5

@@ -81,8 +81,8 @@ def main():
         step2 = page.locator("#gen-step-region .gen-step-title").inner_text()
         check("Step 2 title is Tip & contact (not motion path)",
               "Tip" in step2 and "moves" not in step2.lower())
-        check("4-zone everyday button hidden",
-              page.locator("#gen-nomark").is_hidden())
+        check("4-zone everyday button removed from Create",
+              page.locator("#gen-nomark").count() == 0)
         check("4-zone not in Tracking method dropdown",
               "region_fusion_auto" not in page.eval_on_selector_all(
                   "#gen-backend option", "els => els.map(e => e.value)"))

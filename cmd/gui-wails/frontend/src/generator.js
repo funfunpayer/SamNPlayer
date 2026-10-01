@@ -10,6 +10,7 @@ import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 import { openHandbook } from './handbook.js';
+import { rememberNativeSize } from './roi_help.js';
 
 export function initGenerator(root, playback) {
   root.classList.add('tab-create');
@@ -44,6 +45,9 @@ export function initGenerator(root, playback) {
         <span class="path-label" id="gen-video-path">No video selected</span>
         <button id="gen-check-deps">Check dependencies</button>
       </div>
+      <p class="hint" id="gen-empty-cta" style="margin:8px 0 0 0;">
+        Start here: pick a short clip → Find tip → Create Emotion Script. No Python needed for Everyday Go CSRT.
+      </p>
       <div id="gen-queue" class="gen-queue" hidden>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
           <span class="hint" id="gen-queue-summary" style="margin:0;"></span>
@@ -209,9 +213,6 @@ export function initGenerator(root, playback) {
           </p>
         </details>
       </div>
-      <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
-      <button id="gen-nomark" type="button" disabled hidden
-        data-help="Removed from Create GUI — use tip CSRT. 4-zone remains CLI-only.">4-zone (advanced)</button>
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
@@ -1216,63 +1217,38 @@ export function initGenerator(root, playback) {
     }
   }
 
-  // CSRT needs a tip mark. (Legacy no-mark backends are CLI-only now.)
+  // Product GUI is tip CSRT only (4-zone / research backends stay CLI).
   function backendNeedsRoi() {
-    return el('#gen-backend').value !== 'region_fusion_auto';
+    return true;
   }
 
-  function isNoMarkMotion() {
-    return el('#gen-backend').value === 'region_fusion_auto';
-  }
-
-  function setNoMarkMotion(on) {
-    // Product: never enable 4-zone from the GUI — force CSRT.
+  function forceCsrtBackend(msg) {
     const backend = el('#gen-backend');
     backend.value = 'csrt';
     delete backend.dataset.userTouched;
-    const btn = el('#gen-nomark');
-    if (btn) {
-      btn.style.outline = '';
-      btn.style.background = '';
-      btn.textContent = '4-zone (CLI only)';
-    }
-    if (on) {
+    if (msg) {
       normalizeProductProfile();
       candidates = [];
       clearPendingSeed();
       setSeedSuggestEnabled(false);
-      el('#gen-status').textContent =
-        'Tip CSRT is the Everyday stroke writer — 4-zone is CLI-only (not a GUI mode).';
+      el('#gen-status').textContent = msg;
     }
-    syncNoMarkButton();
     updateGenerateEnabled();
     redraw();
-  }
-
-  function syncNoMarkButton() {
-    const btn = el('#gen-nomark');
-    if (!btn) return;
-    const on = isNoMarkMotion();
-    btn.style.outline = on ? '2px solid #7ec8ff' : '';
-    btn.style.background = on ? 'rgba(126,200,255,0.18)' : '';
   }
 
   function contactVibrationOn() {
     return !!el('#gen-contact-vibration')?.checked;
   }
 
-  // Everyday Generate: tip mark (CSRT) or no-mark 4-zone. Zone 2 never required.
-  // FunGen-like: video alone is enough — Generate will auto-find tip if missing.
+  // Everyday: video alone is enough — Generate auto-finds tip if missing.
   function regionReadyForGenerate() {
-    if (!videoPath) return false;
-    if (isNoMarkMotion()) return true;
-    if (backendNeedsRoi() && !roi) return true; // Generate triggers auto-find
-    return true;
+    return !!videoPath;
   }
 
   function startAutoFindRegion() {
     if (!videoPath) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
     if (useAI && !expectedClass) {
@@ -1287,7 +1263,6 @@ export function initGenerator(root, playback) {
     redraw();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
     el('#gen-status').textContent = (useAI
       ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
       : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
@@ -1323,11 +1298,8 @@ export function initGenerator(root, playback) {
     const hasRoi1 = !!roi;
     const canRun = regionReadyForGenerate();
     const hasResult = !!lastOutputPath;
-    const noMark = isNoMarkMotion();
-
     const showRegion = hasVideo;
-    // Unlock motion/profile once tip is marked, 4-zone is on, OR video is loaded
-    // (Generate will auto-find tip — FunGen-like everyday path).
+    // Unlock motion/profile once video is loaded (Generate auto-finds tip).
     const showMotion = hasVideo;
     const showRun = canRun || generating;
     const showResult = hasResult;
@@ -1358,16 +1330,14 @@ export function initGenerator(root, playback) {
     if (!prompt) return;
     if (!hasVideo) {
       prompt.textContent = 'Start here: choose a video. Like FunGen2 — no motion path to paint; we find the tip.';
-    } else if (!hasRoi1 && !noMark) {
+    } else if (!hasRoi1) {
       prompt.textContent = 'Snack 1: Find tip (auto) — or mark only if Find missed. Tip = stroke box, not whole-scene tracking.';
     } else if (!canRun && !generating) {
       prompt.textContent = 'Snack 2–3 optional: partner touch for Contact vibe, then Feel. Create unlocks when tip is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
-      prompt.textContent = noMark
-        ? 'Step 4: Create your Emotion Script.'
-        : 'Step 4: Create Emotion Script — Advanced stays closed for Everyday; open only if needed.';
+      prompt.textContent = 'Step 4: Create Emotion Script — Advanced stays closed for Everyday; open only if needed.';
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve.';
     }
@@ -2388,7 +2358,7 @@ export function initGenerator(root, playback) {
     const p = sceneProposal.proposal || {};
     const primary = sceneProposalBox(p.primary || p.Primary);
     if (!primary || primary.w <= 0 || primary.h <= 0) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     roi = { x: primary.x, y: primary.y, w: primary.w, h: primary.h };
     const tipCls = normalizeClass(
       sceneProposal.regionClass || sceneProposal.region_class || primary.class || '');
@@ -2444,7 +2414,6 @@ export function initGenerator(root, playback) {
     if (videoPath) {
       el('#gen-autoroi').disabled = false;
       el('#gen-candidates').disabled = false;
-      el('#gen-nomark').disabled = false;
     }
   }
 
@@ -3214,6 +3183,8 @@ export function initGenerator(root, playback) {
     el('#gen-seek-plus').disabled = false;
     el('#gen-seek-plus5').disabled = false;
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
+    const emptyCta = el('#gen-empty-cta');
+    if (emptyCta) emptyCta.hidden = true;
     el('#gen-status').textContent = 'Loading preview frame…';
     roi = null;
     roi2 = null;
@@ -3264,9 +3235,7 @@ export function initGenerator(root, playback) {
       // Region buttons stay disabled until generate:autoroi (auto-find owns them).
       el('#gen-autoroi').disabled = true;
       el('#gen-candidates').disabled = true;
-      el('#gen-nomark').disabled = true;
-      syncNoMarkButton();
-      el('#gen-suggest-profile').disabled = false;
+            el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       updateSceneMapButton();
       const spLoad = el('#gen-scene-proposals-load');
@@ -3319,6 +3288,7 @@ export function initGenerator(root, playback) {
     nativeW = preview.width; nativeH = preview.height;
     const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
     canvas.width = DISPLAY_W; canvas.height = displayH;
+    rememberNativeSize(canvas, nativeW, nativeH);
     await new Promise((resolve, reject) => {
       img.onload = () => { redraw(); resolve(); };
       img.onerror = () => reject(new Error('Preview image could not be decoded'));
@@ -3608,7 +3578,6 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
     pendingGenerateAfterRoi = false;
     generating = false;
     el('#gen-cancel').disabled = true;
@@ -3652,7 +3621,6 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
     if (result.error) {
       pendingGenerateAfterRoi = false;
       generating = false;
@@ -3669,10 +3637,9 @@ export function initGenerator(root, playback) {
     // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
     if (!el('#gen-backend').dataset.userTouched) {
       el('#gen-backend').value = 'csrt';
-      setNoMarkMotion(false);
+      forceCsrtBackend();
     } else {
-      syncNoMarkButton();
-    }
+          }
     if (!el('#gen-profile').dataset.userTouched) {
       el('#gen-profile').value = 'standard';
     }
@@ -4415,8 +4382,7 @@ export function initGenerator(root, playback) {
   updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', () => {
     el('#gen-backend').dataset.userTouched = '1';
-    syncNoMarkButton();
-    normalizeProductProfile();
+        normalizeProductProfile();
     updateGenerateEnabled();
   });
   el('#gen-autoroi').addEventListener('click', () => {
@@ -4427,10 +4393,9 @@ export function initGenerator(root, playback) {
 
   el('#gen-candidates').addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     el('#gen-candidates').disabled = true;
     el('#gen-autoroi').disabled = true;
-    el('#gen-nomark').disabled = true;
     el('#gen-ai-detections') && (el('#gen-ai-detections').disabled = true);
     setSeedSuggestEnabled(false);
     clearPendingSeed();
@@ -4440,11 +4405,10 @@ export function initGenerator(root, playback) {
 
   el('#gen-ai-detections')?.addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     el('#gen-ai-detections').disabled = true;
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
     setSeedSuggestEnabled(false);
     clearPendingSeed();
     el('#gen-status').textContent = 'Listing all AI class tags on this frame (nipples/breasts/glans/…)…';
@@ -4502,16 +4466,10 @@ export function initGenerator(root, playback) {
     redraw();
   });
 
-  el('#gen-nomark').addEventListener('click', () => {
-    if (!videoPath) return;
-    setNoMarkMotion(!isNoMarkMotion());
-  });
-
   EventsOn('generate:roi-candidates', result => {
     hideProgress();
     el('#gen-candidates').disabled = false;
     el('#gen-autoroi').disabled = false;
-    el('#gen-nomark').disabled = false;
     refreshAIRoiAvailability();
     if (result.error) {
       uiError('Motion candidates: ' + result.error, el('#gen-status'));
@@ -4544,7 +4502,6 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
     refreshAIRoiAvailability();
     if (result.error) {
       uiError('AI tags: ' + result.error, el('#gen-status'));

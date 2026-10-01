@@ -1,8 +1,8 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
+  ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
+  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,

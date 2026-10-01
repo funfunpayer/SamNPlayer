@@ -501,11 +501,19 @@ func (a *App) ScriptExistsForVideo(videoPath string) bool {
 
 func (a *App) GenerateScript(opts GenerateOptions) {
 	go func() {
+		// Claim a seq immediately so early "already exists" errors cannot
+		// clobber a newer Create that started after this goroutine was queued.
+		a.stateMu.Lock()
+		a.genSeq++
+		mySeq := a.genSeq
+		a.stateMu.Unlock()
+
 		outPath := scriptPathForVideo(opts.VideoPath)
 		if !opts.Overwrite {
 			if _, err := os.Stat(outPath); err == nil {
 				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
 					"error": "Script already exists: " + outPath + " — generation cancelled to avoid overwriting it.",
+					"seq":   mySeq,
 				})
 				return
 			}
@@ -513,6 +521,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 				if _, err := os.Stat(companion); err == nil {
 					runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
 						"error": "Native script already exists: " + companion + " — generation cancelled to avoid overwriting it.",
+						"seq":   mySeq,
 					})
 					return
 				}
@@ -577,9 +586,12 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		genOpts.SceneMarks = opts.SceneMarks
 		ctx, cancel := context.WithCancel(context.Background())
 		a.stateMu.Lock()
+		if a.genSeq != mySeq {
+			a.stateMu.Unlock()
+			cancel()
+			return
+		}
 		prev := a.genCancel
-		a.genSeq++
-		mySeq := a.genSeq
 		a.genCancel = cancel
 		a.stateMu.Unlock()
 		if prev != nil {

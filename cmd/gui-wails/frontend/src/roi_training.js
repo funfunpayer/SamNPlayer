@@ -142,7 +142,13 @@ export function initRoiTraining(root) {
       <label class="hint" style="margin:0"
         data-help="Shows only samples from the last run."><input type="checkbox" id="rt-only-new" checked /> only newly added</label>
     </div>
-    <div id="rt-review-grid" class="hint">No samples loaded yet.</div>
+    <div id="rt-review-grid" class="hint">
+      No samples loaded yet.
+      <div class="row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
+        <button type="button" id="rt-empty-load-frame" class="secondary">Load frame</button>
+        <button type="button" id="rt-empty-refresh" class="secondary">Refresh review</button>
+      </div>
+    </div>
 
     <h3>3. Dataset summary</h3>
     <div class="row"><button id="rt-summary-refresh" type="button">Load summary</button></div>
@@ -1549,6 +1555,12 @@ export function initRoiTraining(root) {
   }
 
   el('#rt-refresh-review').addEventListener('click', refreshReview);
+  el('#rt-empty-refresh')?.addEventListener('click', () => {
+    el('#rt-refresh-review')?.click();
+  });
+  el('#rt-empty-load-frame')?.addEventListener('click', () => {
+    el('#rt-seek-btn')?.click();
+  });
   el('#rt-dataset-dir').addEventListener('change', e => {
     saveSetting('generator.roiTrainingDatasetDir', e.target.value.trim());
   });
