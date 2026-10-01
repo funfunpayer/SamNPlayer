@@ -157,13 +157,18 @@ export function initPlayback(root) {
           <select id="pb-strength" style="width:auto;">
             <option value="">—</option>
           </select>
-          <button type="button" id="pb-bake-axes" title="Bake vibration/suction into this Emotion Script">Bake feel channels</button>
           <button type="button" id="pb-optimize-neo2" class="primary"
             title="Imported file → polish, Contact on, bake Neo 2 feel, save as Emotion Script."
             data-help="One click for files from other apps: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save as Emotion Script. Then edit each curve if you want.">Optimize for Neo 2</button>
-          <button type="button" id="pb-export-funscript" title="Share stroke for other apps (.funscript)">Share for other apps</button>
           <button type="button" id="pb-save-samn" title="Save Emotion Script">Save Emotion Script</button>
         </div>
+        <details class="pb-tools-details" id="pb-export-bake-details" style="display:none;">
+          <summary>Bake &amp; share</summary>
+          <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap; margin-top:6px;">
+            <button type="button" id="pb-bake-axes" title="Bake vibration/suction into this Emotion Script">Bake feel channels</button>
+            <button type="button" id="pb-export-funscript" title="Share stroke for other apps (.funscript)">Share for other apps</button>
+          </div>
+        </details>
         <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
           data-help="Soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
@@ -2589,6 +2594,8 @@ export function initPlayback(root) {
     scriptHasNeoAxes = !!info.hasNeoAxes;
     const row = el('#pb-axis-row');
     if (row) row.style.display = 'flex';
+    const bakeShare = el('#pb-export-bake-details');
+    if (bakeShare) bakeShare.style.display = 'block';
     if (el('#pb-playback-source')) {
       el('#pb-playback-source').value = info.playbackSource === 'axes' ? 'axes' : 'recipe';
     }

@@ -61,6 +61,7 @@ Cloud “ChatGPT writes positions” is out of product. Everyday Create stays CS
     title: 'Play — quick map',
     body: `Play / Stop — device + curve (default). Video ▶ can also start device (toggle).
 Edit curve — drag dots; click empty = add; double-click = delete (≥2 remain).
+Bake & share (details) — Bake feel channels / Share for other apps
 Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/suction → .samn
 Load / Save project — .snp.json
 Curve edit (details) — Cap / Speed-cap / Scale / Delete / Speed HL / FPS-Snap / BPM (opens when you mark a heatmap range)
