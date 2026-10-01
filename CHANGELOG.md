@@ -18,6 +18,8 @@ measurement history behind each entry; this file is the short version for
   Advanced nests Tracking / Anti-drift / Scene map / Signal / Expert; Feel
   probe + Review filters + Improve More use progressive disclosure. Settings
   nests Plugins + Hardware/Cache/metrics; License status is multi-line (C6).
+  Dead 4-zone `#gen-nomark` button removed from Create DOM (CLI backends
+  kept). Create/AI Train empty CTAs; Tip↔Contact coach copy without Tf/Tj.
   Probe details auto-open when Sensitivity/Curve/Strength move. Heatmap
   selection auto-opens Cap + O-marker + Chapters. Everyday Tip → Partner
   snack stays primary.
@@ -34,6 +36,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Create: early “script exists” could clear a newer Create** — `GenerateScript`
+  now claims `genSeq` before overwrite checks and always emits `seq` on those
+  errors, so a stale exists-error cannot clobber an in-flight run.
+- **AI Train / trackcv cancel strings still German** — `cancelled` / `failed`
+  English for user-visible toasts (FE still matches `abgebrochen` for old builds).
 - **Play/sidebar: vib/suction meters could show `NaN%`** — frame events without
   finite vibration/suction now coerce to 0 before `Math.round`.
 - **Play: leftover German chrome** — Sync mode label + O-marker set log are English.
