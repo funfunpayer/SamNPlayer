@@ -185,11 +185,11 @@ export function initGenerator(root, playback) {
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
         <details class="gen-adv-nested gen-mark-disclose" id="gen-mark-options-details">
-          <summary>Mark options (Ignore, Partner fest, body map)</summary>
+          <summary>Mark options (Ignore, Partner fixed, body map)</summary>
           <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
             <label class="checkbox-row" style="margin:0;"
-              data-help="Partner fest (Pixel): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
-              <input type="checkbox" id="gen-roi2-fixed" /> Partner fest (Pixel)
+              data-help="Partner fixed (pixels): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+              <input type="checkbox" id="gen-roi2-fixed" /> Partner fixed (pixels)
             </label>
             <label class="checkbox-row" style="margin:0;"
               data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
@@ -230,7 +230,6 @@ export function initGenerator(root, playback) {
         Optional contact marks in Step 2 are touch points only. Use Advanced → Scene map → <b>Ignore (black)</b>
         only when detections latch onto the wrong part (knees etc.).
       </p>
-      <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
@@ -1210,7 +1209,7 @@ export function initGenerator(root, playback) {
         + 'Optional — Create works without it. Tip CSRT already owns the stroke.';
     } else if (!hasExtra) {
       hint.innerHTML = 'Snack <b>3</b> (optional): <b>+ Another contact</b> for a second nipple/mouth, then Create. '
-        + 'Partner fest (Pixel) only if that touch barely moves.';
+        + 'Partner fixed (pixels) only if that touch barely moves.';
     } else {
       hint.innerHTML = 'Tip + partner + extras set. Ready for Feel → Create. '
         + 'After a big camera-angle change, re-run <b>Find tip</b>.';
@@ -1242,16 +1241,56 @@ export function initGenerator(root, playback) {
     return !!videoPath;
   }
 
+  function clearCreateLock() {
+    generating = false;
+    el('#gen-cancel').disabled = true;
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    hideProgress();
+    updateGenerateEnabled();
+    updateSceneMapButton();
+    syncWorkflowSteps();
+  }
+
+  // Tip-find never reached GenerateScript — skip remaining queue entries.
+  function abortQueueDuringTipFind(statusMsg) {
+    if (!queueRunning) return false;
+    for (const q of generateQueue) {
+      if (q.status === 'queued' || q.status === 'running') q.status = 'skipped';
+    }
+    queueRunning = false;
+    renderQueue();
+    el('#gen-status').textContent = statusMsg || 'Queue canceled.';
+    return true;
+  }
+
   function startAutoFindRegion() {
     if (!videoPath) return;
     forceCsrtBackend();
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
-    if (useAI && !expectedClass) {
+    // Tip-find-then-Create / queue must auto-continue — classic find only
+    // (AI path waits for Apply and cannot finish unattended Create).
+    const autoContinue = pendingGenerateAfterRoi;
+    if (useAI && !expectedClass && !autoContinue) {
       pendingGenerateAfterRoi = false;
+      if (generating) clearCreateLock();
       el('#gen-status').textContent = (
         'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
       ) + videoBatchNote;
+      el('#gen-ai-target-class')?.focus();
+      return;
+    }
+    if (useAI && !expectedClass && autoContinue) {
+      pendingGenerateAfterRoi = false;
+      clearCreateLock();
+      if (!abortQueueDuringTipFind('Queue stopped — choose an AI body point, or turn AI off, then Create again.')) {
+        el('#gen-status').textContent = (
+          'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
+        ) + videoBatchNote;
+      }
       el('#gen-ai-target-class')?.focus();
       return;
     }
@@ -1259,10 +1298,11 @@ export function initGenerator(root, playback) {
     redraw();
     el('#gen-autoroi').disabled = true;
     el('#gen-candidates').disabled = true;
-    el('#gen-status').textContent = (useAI
+    const runAI = useAI && !autoContinue;
+    el('#gen-status').textContent = (runAI
       ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
       : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
-    if (useAI) {
+    if (runAI) {
       const requestId = ++aiTargetRequestSeq;
       activeAITargetRequest = { requestId, videoPath, expectedClass, timeSec: seekSec };
       DetectExpectedTipROI(videoPath, expectedClass, seekSec, requestId);
@@ -1826,7 +1866,6 @@ export function initGenerator(root, playback) {
 
   function updateProfileUi() {
     normalizeProductProfile();
-    el('#gen-tftj-hint').style.display = 'none';
     // Contact vib is the product feel layer — always shown.
     el('#gen-contact-vibration-wrap').style.display = 'block';
     el('#gen-contact-vibration-row').style.display = 'flex';
@@ -3397,9 +3436,8 @@ export function initGenerator(root, playback) {
       if (tip) tip.textContent = '';
       progressStartedAt = Date.now();
     }
-    // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
-    // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
-    // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
+    // Tip ROI required for CSRT; placeholder {0,0,0,0} is unused on the
+    // product path (research backends that ignore ROI stay CLI-only).
     const effectiveRoi = roi || { x: 0, y: 0, w: 0, h: 0 };
     const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     const payload = {
@@ -3507,20 +3545,19 @@ export function initGenerator(root, playback) {
 
   el('#gen-cancel').addEventListener('click', () => {
     userCancelRequested = true;
+    const tipFindOnly = pendingGenerateAfterRoi;
     pendingGenerateAfterRoi = false;
     CancelROIDetection().catch(() => {});
     CancelGenerate();
     // Tip-find-then-Create never gets generate:done until tracking starts —
     // clear the Create lock here so Cancel always unlocks the UI.
     if (generating) {
-      generating = false;
-      el('#gen-cancel').disabled = true;
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-      hideProgress();
-      updateGenerateEnabled();
-      updateSceneMapButton();
-      syncWorkflowSteps();
+      clearCreateLock();
+      // Queue tip-find never reached GenerateScript — tear down now or
+      // Clear stays disabled waiting forever for generate:done.
+      if (tipFindOnly && abortQueueDuringTipFind('Queue canceled.')) {
+        return;
+      }
     }
     el('#gen-status').textContent = queueRunning
       ? 'Cancel requested — stopping queue…'
@@ -3631,6 +3668,7 @@ export function initGenerator(root, playback) {
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
     if (result.error) {
+      const wasPending = pendingGenerateAfterRoi;
       pendingGenerateAfterRoi = false;
       generating = false;
       el('#gen-cancel').disabled = true;
@@ -3638,6 +3676,10 @@ export function initGenerator(root, playback) {
       updateSceneMapButton();
       syncWorkflowSteps();
       uiError('Automatic region search: ' + result.error, el('#gen-status'));
+      // Queue tip-find failed — advance/fail entry (do not leave queue stuck).
+      if (queueRunning && wasPending) {
+        advanceQueueAfterDone(false, result.error);
+      }
       return;
     }
     candidates = [];

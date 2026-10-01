@@ -11,7 +11,7 @@ measurement history behind each entry; this file is the short version for
 ### Changed
 
 - **Create/Play GUI declutter (G4.C)** — Step 2 AI assist & scene proposals
-  and Mark options (Ignore / Partner fest / body map) sit behind closed
+  and Mark options (Ignore / Partner fixed / body map) sit behind closed
   `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, Script check &
   analysis, O-markers/Bookmarks/Chapters, Feel filters & heatmap bands,
   Contact feel/tune, Project export, and nested Extended-O likewise. Create
@@ -22,20 +22,29 @@ measurement history behind each entry; this file is the short version for
   kept). Create/AI Train empty CTAs; Tip↔Contact coach copy without Tf/Tj.
   Probe details auto-open when Sensitivity/Curve/Strength move. Heatmap
   selection auto-opens Cap + O-marker + Chapters. Everyday Tip → Partner
-  snack stays primary.
+  snack stays primary. Partner fixed (pixels) EN label (was “Partner fest”).
+  USER_HANDBOOK: 4-zone noted as CLI-only.
 - **Play: taller curve + heatmap** — curve strip 120→176px, intensity heatmap
   28→56px (same zoom/selection tools). Easier to read Feel bands and intensity.
 - **Create: Tip → Partner snack guide** — Step 2 shows a compact snack
   (1 Tip / 2 Partner touch / 3 More) so Contact vibe marking matches FunGen2
   mental model: no motion path; tip box = CSRT stroke only; gold marks =
   optional touch feel. Labels clarify angle-change → Find tip again;
-  “Partner fest (Pixel)” renames the old static-contact checkbox.
+  “Partner fixed (pixels)” renames the old static-contact checkbox.
 - **AI Train: track-plan readout** — live “Will track N tags: …” under the
   free-tag boxes so multi-class bootstrap is obvious (still tracks every
   labeled box, not Glans-only).
 
 ### Fixed
 
+- **Create: Cancel during tip-find left Create locked** — tip-find-then-Create
+  never gets `generate:done` until tracking starts; Cancel now clears
+  `generating` + calls `CancelROIDetection` so Create unlocks immediately.
+- **Create queue: Cancel / tip-find failure left queue stuck** — Cancel during
+  tip-find (before `GenerateScript`) now skips remaining entries and
+  re-enables Clear; auto-ROI errors mid-queue call `advanceQueueAfterDone`.
+  Tip-find-then-Create / queue always uses classic CSRT find (AI Apply path
+  cannot finish unattended Create).
 - **Create: early “script exists” could clear a newer Create** — `GenerateScript`
   now claims `genSeq` before overwrite checks and always emits `seq` on those
   errors, so a stale exists-error cannot clobber an in-flight run.

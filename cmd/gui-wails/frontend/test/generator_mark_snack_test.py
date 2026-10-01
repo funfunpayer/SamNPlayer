@@ -1,4 +1,4 @@
-"""Create Tip→Partner snack guide + Partner fest label.
+"""Create Tip→Partner snack guide + Partner fixed label.
 
 Run: python3 cmd/gui-wails/frontend/test/generator_mark_snack_test.py
 """
@@ -67,14 +67,14 @@ def main():
         hint = page.locator("#gen-mark-snack-hint").inner_text().lower()
         check("Snack hint mentions tip + (stroke|contact|partner|find)",
               "tip" in hint and any(w in hint for w in ("stroke", "contact", "partner", "find")))
-        check("Partner fest (Pixel) label present",
-              "Partner fest" in page.locator("#gen-roi2-fixed").evaluate(
+        check("Partner fixed (pixels) label present",
+              "Partner fixed" in page.locator("#gen-roi2-fixed").evaluate(
                   "el => (el.closest('label') || el.parentElement).textContent"))
         check("AI assist starts closed",
               page.locator("#gen-mark-ai-details").evaluate("el => !el.open"))
         check("Mark options starts closed",
               page.locator("#gen-mark-options-details").evaluate("el => !el.open"))
-        check("Partner fest lives under Mark options",
+        check("Partner fixed lives under Mark options",
               page.locator("#gen-mark-options-details #gen-roi2-fixed").count() == 1)
         check("AI detections live under AI assist",
               page.locator("#gen-mark-ai-details #gen-ai-detections").count() == 1)
