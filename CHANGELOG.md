@@ -29,6 +29,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Frontend CI after G4.C declutter** — Playwright tests that toggle Cap/HL,
+  Stay fixed, or Smarter tip find now open the matching `<details>` first;
+  semantic tip wait no longer races on the old “No region” label.
+- **Mark options stay closed after painting a tip/contact** — selecting a
+  mark now opens Mark options so body map + Delete selected are visible.
 - **Invert / curve edit on `.samn` left companion `.funscript` stale** — Play
   usually loads `.samn` after Create; Invert and axis saves updated `.samn`
   only (or cleared `inverted` without rewriting actions). Share/other apps

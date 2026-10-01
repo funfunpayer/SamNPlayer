@@ -95,6 +95,7 @@ def main():
                       "() => (window.__calls || []).some(c => c[0]==='GetSpeedHighlights'"
                       " && c[1]===400)"))
 
+            page.locator("#pb-ofs-edit-details").evaluate("el => { el.open = true }")
             page.fill("#pb-speed-hl-thresh", "250")
             page.wait_for_function(
                 "() => (window.__calls || []).some(c => c[0]==='GetSpeedHighlights'"

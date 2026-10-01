@@ -85,6 +85,8 @@ def main():
 
         check("Tip paint selects mark",
               page.locator("#gen-selected-mark").is_visible())
+        check("Mark options opens when a mark is selected",
+              page.locator("#gen-mark-options-details").evaluate("el => el.open"))
         check("Selected label mentions Tip",
               "Tip" in (page.locator("#gen-selected-mark-label").inner_text() or ""))
 

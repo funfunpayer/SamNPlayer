@@ -54,11 +54,13 @@ def main():
             page.wait_for_function("window.__ready === true")
             page.click("#gen-choose")
             page.wait_for_function(
-                "!document.querySelector('#gen-roi-label').textContent.includes('No region')",
+                "document.querySelector('#gen-autoroi').disabled === false && "
+                "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
                 timeout=5000)
             initial_label = page.locator("#gen-roi-label").inner_text()
 
             page.wait_for_function("!document.querySelector('#gen-ai-roi').disabled", timeout=5000)
+            page.locator("#gen-mark-ai-details").evaluate("el => { el.open = true }")
             page.check("#gen-ai-roi")
             check("Strict target selector starts empty",
                   page.locator("#gen-ai-target-class").input_value() == "")

@@ -114,6 +114,8 @@ def main():
         }""")
         check("Extra contact should follow when tip path on", follow)
 
+        # Stay fixed lives under Mark options (G4.C progressive disclosure).
+        page.locator("#gen-mark-options-details").evaluate("el => { el.open = true }")
         page.check("#gen-extra-contact-sticky")
         page.wait_for_timeout(20)
         sticky_blocks = page.evaluate("""() => {

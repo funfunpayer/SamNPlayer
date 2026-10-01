@@ -1917,6 +1917,9 @@ export function initGenerator(root, playback) {
         el('#gen-region-class')?.value || el('#gen-region-class2')?.value || '');
       return;
     }
+    // Body map + Delete live under Mark options — open when a mark is selected.
+    const opts = el('#gen-mark-options-details');
+    if (opts) opts.open = true;
     wrap.hidden = false;
     let text = 'Selected: ';
     if (selectedMark.kind === 'tip') {
