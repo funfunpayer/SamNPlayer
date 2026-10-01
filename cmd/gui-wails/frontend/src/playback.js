@@ -2014,6 +2014,12 @@ export function initPlayback(root) {
     }
     box.textContent = text;
     box.style.display = text ? 'block' : 'none';
+    const sum = el('#pb-quality-details > summary');
+    if (sum) {
+      sum.textContent = text
+        ? 'Script check & analysis · summary ready'
+        : 'Script check & analysis';
+    }
   }
 
   function contactPreviewOpts() {
