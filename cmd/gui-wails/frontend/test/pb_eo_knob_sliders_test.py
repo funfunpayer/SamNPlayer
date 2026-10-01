@@ -63,10 +63,14 @@ def main():
             page.wait_for_function("window.__ready === true")
             page.wait_for_timeout(80)
             page.evaluate("document.querySelector('.pb-advanced').open = true")
+            page.evaluate(
+                "document.querySelector('#pb-eo-details').open = true")
 
             for sel in ("#pb-eo-min", "#pb-eo-hold", "#pb-eo-restore"):
                 check(f"{sel} is range",
                       page.locator(sel).evaluate("e => e.type") == "range")
+            check("Extended-O details present",
+                  page.locator("#pb-eo-details").count() == 1)
 
             check("amplitude default 0.1",
                   page.locator("#pb-eo-min").input_value() == "0.1")

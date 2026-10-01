@@ -453,24 +453,27 @@ export function initPlayback(root) {
               <span class="hint" id="pb-softstart-val" style="margin:0; min-width:3em;">500</span>
             </div>
           </div>
-          <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
-          <div class="pb-adv-grid">
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O amplitude multiplier (curve keeps rhythm; only height is scaled). Default 0.1. Playback feel only.">Amplitude</label>
-              <input type="range" id="pb-eo-min" min="0" max="1" step="0.05" value="0.1" style="flex:1;" />
-              <span class="hint" id="pb-eo-min-val" style="margin:0; min-width:2.5em;">0.1</span>
+          <details class="pb-tools-details" id="pb-eo-details">
+            <summary>Extended-O</summary>
+            <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
+            <div class="pb-adv-grid">
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O amplitude multiplier (curve keeps rhythm; only height is scaled). Default 0.1. Playback feel only.">Amplitude</label>
+                <input type="range" id="pb-eo-min" min="0" max="1" step="0.05" value="0.1" style="flex:1;" />
+                <span class="hint" id="pb-eo-min-val" style="margin:0; min-width:2.5em;">0.1</span>
+              </div>
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O hold duration in seconds. Default 10. Playback feel only.">Hold (s)</label>
+                <input type="range" id="pb-eo-hold" min="1" max="60" step="1" value="10" style="flex:1;" />
+                <span class="hint" id="pb-eo-hold-val" style="margin:0; min-width:2.5em;">10</span>
+              </div>
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O restore ramp in milliseconds. Default 500. Playback feel only.">Restore (ms)</label>
+                <input type="range" id="pb-eo-restore" min="0" max="3000" step="100" value="500" style="flex:1;" />
+                <span class="hint" id="pb-eo-restore-val" style="margin:0; min-width:3em;">500</span>
+              </div>
             </div>
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O hold duration in seconds. Default 10. Playback feel only.">Hold (s)</label>
-              <input type="range" id="pb-eo-hold" min="1" max="60" step="1" value="10" style="flex:1;" />
-              <span class="hint" id="pb-eo-hold-val" style="margin:0; min-width:2.5em;">10</span>
-            </div>
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O restore ramp in milliseconds. Default 500. Playback feel only.">Restore (ms)</label>
-              <input type="range" id="pb-eo-restore" min="0" max="3000" step="100" value="500" style="flex:1;" />
-              <span class="hint" id="pb-eo-restore-val" style="margin:0; min-width:3em;">500</span>
-            </div>
-          </div>
+          </details>
         </details>
 
         <div id="pb-log" class="pb-log"></div>
@@ -1863,12 +1866,17 @@ export function initPlayback(root) {
     clearTimeout(pbContactVibPreviewTimer);
     pbContactVibPreviewTimer = setTimeout(refreshPlayContactVibPreview, 160);
   }
+  function openPlayContactProbe() {
+    const d = el('#pb-contact-probe-details');
+    if (d) d.open = true;
+  }
 
   el('#pb-contact-intensity').addEventListener('input', e => {
     // finiteOr (not ||): Strength min=0 must stay 0 in the label + prefs.
     const v = finiteOr(e.target.value, 0);
     el('#pb-contact-intensity-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-intensity').addEventListener('change', e => {
@@ -1878,10 +1886,12 @@ export function initPlayback(root) {
     const v = Number(e.target.value) || 0;
     el('#pb-contact-span-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-curve').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-off').addEventListener('change', () => {

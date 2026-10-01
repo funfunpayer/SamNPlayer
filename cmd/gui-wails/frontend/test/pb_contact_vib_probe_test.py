@@ -137,6 +137,25 @@ def main():
             check("vib peak dots rendered",
                   page.locator("#pb-contact-vib-peaks circle").count() >= 1)
 
+            # Collapse, then tweak Strength — probe details should auto-open.
+            page.evaluate(
+                "document.querySelector('#pb-contact-probe-details').open = false")
+            page.evaluate("""() => {
+              const i = document.querySelector('#pb-contact-intensity');
+              i.value = '1.2';
+              i.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(40)
+            check("Strength tweak auto-opens Contact probe details",
+                  page.locator("#pb-contact-probe-details").evaluate("e => e.open") is True)
+            # Restore default strength for later ×0 assertions.
+            page.evaluate("""() => {
+              const i = document.querySelector('#pb-contact-intensity');
+              i.value = '1';
+              i.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(200)
+
             before = page.evaluate(
                 "window.__calls.filter(c => c[0]==='PreviewContactVibration').length")
             page.locator("#pb-contact-span").fill("0.45")

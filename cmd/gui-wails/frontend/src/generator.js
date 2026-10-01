@@ -251,20 +251,23 @@ export function initGenerator(root, playback) {
               <option value="impulse">Impulse (peaks only, experiment)</option>
             </select>
           </div>
-          <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
-            <div class="gen-contact-vib-badges" id="gen-contact-vib-badges">
-              <span class="gen-cv-badge" id="gen-cv-badge-active">— active</span>
-              <span class="gen-cv-badge" id="gen-cv-badge-peak">— peak</span>
+          <details class="gen-mark-disclose" id="gen-contact-probe-details">
+            <summary>Feel probe</summary>
+            <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
+              <div class="gen-contact-vib-badges" id="gen-contact-vib-badges">
+                <span class="gen-cv-badge" id="gen-cv-badge-active">— active</span>
+                <span class="gen-cv-badge" id="gen-cv-badge-peak">— peak</span>
+              </div>
+              <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+                <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+                <g id="gen-contact-vib-peaks" class="gen-contact-vib-peaks"></g>
+              </svg>
+              <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
+                Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+              </p>
             </div>
-            <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-              <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
-              <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
-              <g id="gen-contact-vib-peaks" class="gen-contact-vib-peaks"></g>
-            </svg>
-            <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
-              Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
-            </p>
-          </div>
+          </details>
         </div>
       </div>
 
@@ -567,16 +570,19 @@ export function initGenerator(root, playback) {
           <p class="hint" style="margin:4px 0 6px;">
             Review taxonomy only — click a block to seek Play. Optional: add as chapter marks (does not change the stroke).
           </p>
-          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-holding" checked /> Hold</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-gentle" checked /> Gentle</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-intense" checked /> Intense</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-climax" checked /> Climax</label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="When on, only dialogue/quiet Hold blocks stay visible in the strip.">
-              <input type="checkbox" id="gen-seg-f-speech-only" /> Speech-hold only
-            </label>
-          </div>
+          <details class="gen-mark-disclose" id="gen-feel-filters-details">
+            <summary>Filters</summary>
+            <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin:6px 0;">
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-holding" checked /> Hold</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-gentle" checked /> Gentle</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-intense" checked /> Intense</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-climax" checked /> Climax</label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="When on, only dialogue/quiet Hold blocks stay visible in the strip.">
+                <input type="checkbox" id="gen-seg-f-speech-only" /> Speech-hold only
+              </label>
+            </div>
+          </details>
           <div id="gen-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
             <button type="button" id="gen-audio-seg-chapters">Add visible as chapters</button>
@@ -1839,6 +1845,10 @@ export function initGenerator(root, playback) {
   function scheduleContactVibPreview() {
     clearTimeout(contactVibPreviewTimer);
     contactVibPreviewTimer = setTimeout(refreshContactVibPreview, 160);
+  }
+  function openCreateContactProbe() {
+    const d = el('#gen-contact-probe-details');
+    if (d) d.open = true;
   }
 
   function updateProfileUi() {
@@ -4380,11 +4390,13 @@ export function initGenerator(root, playback) {
     el('#gen-contact-curve').dataset.userTouched = '1';
     const impulse = el('#gen-contact-impulse');
     if (impulse) impulse.checked = el('#gen-contact-curve').value === 'impulse';
+    openCreateContactProbe();
     scheduleContactVibPreview();
     saveSetting('generator.contact_vibration_curve', el('#gen-contact-curve').value || 'soft');
   });
   el('#gen-contact-span').addEventListener('input', () => {
     updateContactSpanLabel();
+    openCreateContactProbe();
     scheduleContactVibPreview();
   });
   el('#gen-contact-span').addEventListener('change', e => {

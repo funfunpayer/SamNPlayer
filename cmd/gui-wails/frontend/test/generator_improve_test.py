@@ -164,6 +164,10 @@ def main():
             timeout=5000)
         check("Audio segments panel visible after Improve",
               page.locator("#gen-audio-segments").evaluate("e => !e.hidden"))
+        check("Create Feel filters details present",
+              page.locator("#gen-feel-filters-details").count() == 1)
+        page.evaluate(
+            "document.querySelector('#gen-feel-filters-details').open = true")
         segs = page.locator(".gen-audio-seg")
         check("Four segment blocks rendered", segs.count() == 4, str(segs.count()))
         check("Hold filter default on", page.locator("#gen-seg-f-holding").is_checked())
