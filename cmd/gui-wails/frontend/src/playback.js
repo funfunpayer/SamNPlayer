@@ -700,8 +700,15 @@ export function initPlayback(root) {
     }
   }
 
+  function markerIsValid(m) {
+    return !!(m
+      && Number.isFinite(m.startMs)
+      && Number.isFinite(m.endMs)
+      && m.endMs > m.startMs);
+  }
+
   function updateMarkerHint() {
-    if (marker) {
+    if (markerIsValid(marker)) {
       el('#pb-marker-label').textContent =
         `Marked: ${(marker.startMs / 1000).toFixed(1)}s - ${(marker.endMs / 1000).toFixed(1)}s`;
       // Selection unlocks Cap/Scale/O-marker/Chapters — open those panels.
@@ -714,9 +721,9 @@ export function initPlayback(root) {
     } else {
       el('#pb-marker-label').textContent = '(no selection)';
     }
-    el('#pb-omarker-add').disabled = !marker;
+    el('#pb-omarker-add').disabled = !markerIsValid(marker);
     const chAdd = el('#pb-chapter-add');
-    if (chAdd) chAdd.disabled = !marker;
+    if (chAdd) chAdd.disabled = !markerIsValid(marker);
     updateZoomChrome();
   }
 
@@ -2682,6 +2689,7 @@ export function initPlayback(root) {
     rememberAudioSegmentsFromInfo(info);
     try {
       marker = await GetMarker(scriptPath);
+      if (!markerIsValid(marker)) marker = null;
     } catch (err) {
       marker = null;
     }
