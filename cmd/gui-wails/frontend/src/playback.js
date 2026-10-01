@@ -321,26 +321,29 @@ export function initPlayback(root) {
             From script <code>audio_check</code> (Create Review / Audio check). Click to seek.
             Optional: add visible blocks as chapter marks — never rewrites the stroke.
           </p>
-          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-holding" checked /> Hold</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-gentle" checked /> Gentle</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-intense" checked /> Intense</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-climax" checked /> Climax</label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="When on, only dialogue/quiet Hold blocks stay visible.">
-              <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
-            </label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
-              <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
-            </label>
-            <label class="field-row" id="pb-seg-heatbands-opacity-row" style="margin:0; align-items:center; gap:6px;"
-              data-help="Opacity of Feel heatmap bands (and curve underlay). Display only.">
-              Opacity
-              <input type="range" id="pb-seg-heatbands-opacity" min="0.2" max="1" step="0.05" value="1" style="width:7em;" />
-              <span class="hint" id="pb-seg-heatbands-opacity-val" style="margin:0; min-width:2.5em;">1.00</span>
-            </label>
-          </div>
+          <details class="pb-tools-details" id="pb-feel-filters-details">
+            <summary>Filters &amp; heatmap bands</summary>
+            <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin:6px 0;">
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-holding" checked /> Hold</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-gentle" checked /> Gentle</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-intense" checked /> Intense</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-climax" checked /> Climax</label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="When on, only dialogue/quiet Hold blocks stay visible.">
+                <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
+              </label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
+                <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
+              </label>
+              <label class="field-row" id="pb-seg-heatbands-opacity-row" style="margin:0; align-items:center; gap:6px;"
+                data-help="Opacity of Feel heatmap bands (and curve underlay). Display only.">
+                Opacity
+                <input type="range" id="pb-seg-heatbands-opacity" min="0.2" max="1" step="0.05" value="1" style="width:7em;" />
+                <span class="hint" id="pb-seg-heatbands-opacity-val" style="margin:0; min-width:2.5em;">1.00</span>
+              </label>
+            </div>
+          </details>
           <div id="pb-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
             <button type="button" id="pb-audio-seg-chapters">Add visible as chapters</button>
@@ -375,20 +378,23 @@ export function initPlayback(root) {
               <option value="impulse">impulse (peaks only)</option>
             </select>
           </div>
-          <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
-            <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
-              <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
-              <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
+          <details class="pb-tools-details" id="pb-contact-probe-details">
+            <summary>Contact feel probe</summary>
+            <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
+              <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
+                <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
+                <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
+              </div>
+              <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+                <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+                <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
+              </svg>
+              <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
+                Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+              </p>
             </div>
-            <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-              <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
-              <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
-              <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
-            </svg>
-            <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
-              Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
-            </p>
-          </div>
+          </details>
           <div class="row" style="margin-top:8px;">
             <button type="button" id="pb-contact-save">Save to script</button>
             <span class="hint" id="pb-contact-save-status" style="margin:0"></span>

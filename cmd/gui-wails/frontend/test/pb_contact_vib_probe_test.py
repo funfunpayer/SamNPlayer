@@ -109,6 +109,10 @@ def main():
 
             check("contact block visible after load",
                   page.locator("#pb-contact-block").evaluate("e => e.hidden") is False)
+            check("Contact probe details present",
+                  page.locator("#pb-contact-probe-details").count() == 1)
+            page.evaluate(
+                "document.querySelector('#pb-contact-probe-details').open = true")
             check("PreviewContactVibration called",
                   page.evaluate(
                       "window.__calls.filter(c => c[0]==='PreviewContactVibration').length") >= 1)

@@ -526,12 +526,8 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
           </label>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT. Default bridge is a straight line — enable Rhythm below for stroke-rhythm bridge.">
+            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT. Default bridge is a straight line — enable Rhythm under More for stroke-rhythm bridge.">
             <input type="checkbox" id="gen-improve-heal" checked /> Heal tracking gaps
-          </label>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Opt-in: when Healing tracking gaps, bridge with the stroke rhythm around each window instead of a straight line (line fallback if no rhythm). Off by default — does not change Everyday Create / auto-Improve.">
-            <input type="checkbox" id="gen-improve-heal-rhythm" /> Rhythm bridge
           </label>
           <label class="checkbox-row" style="margin:0;"
             data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
@@ -542,16 +538,23 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-audio" checked /> Audio check
           </label>
         </div>
-        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Opt-in: rewrite only this time range with a rhythm bridge (line fallback). Does not clear tracking_gaps. Mark start/end in seconds of the bad stretch.">
-            <input type="checkbox" id="gen-improve-repair" /> Repair this span
-          </label>
-          <label style="width:auto;">From (s)</label>
-          <input type="number" id="gen-improve-repair-start" value="0" min="0" step="0.5" style="width:5em;" disabled />
-          <label style="width:auto;">To (s)</label>
-          <input type="number" id="gen-improve-repair-end" value="0" min="0" step="0.5" style="width:5em;" disabled />
-        </div>
+        <details class="gen-mark-disclose" id="gen-improve-more-details" style="margin-top:6px;">
+          <summary>More: Rhythm bridge &amp; repair span</summary>
+          <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Opt-in: when Healing tracking gaps, bridge with the stroke rhythm around each window instead of a straight line (line fallback if no rhythm). Off by default — does not change Everyday Create / auto-Improve.">
+              <input type="checkbox" id="gen-improve-heal-rhythm" /> Rhythm bridge
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Opt-in: rewrite only this time range with a rhythm bridge (line fallback). Does not clear tracking_gaps. Mark start/end in seconds of the bad stretch.">
+              <input type="checkbox" id="gen-improve-repair" /> Repair this span
+            </label>
+            <label style="width:auto;">From (s)</label>
+            <input type="number" id="gen-improve-repair-start" value="0" min="0" step="0.5" style="width:5em;" disabled />
+            <label style="width:auto;">To (s)</label>
+            <input type="number" id="gen-improve-repair-end" value="0" min="0" step="0.5" style="width:5em;" disabled />
+          </div>
+        </details>
         <div class="row" style="margin-top:8px;">
           <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
           <span class="hint" id="gen-improve-status" style="margin:0 0 0 8px;"></span>
