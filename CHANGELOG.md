@@ -43,6 +43,11 @@ measurement history behind each entry; this file is the short version for
 - **Create: manual Find tip left Cancel dead** — Cancel enables during Find
   tip / post-load auto-find (`tipFindBusy`); classic `AutoDetectROI` is
   cancellable (`beginROIRequest` + `FindROIWithContext` CommandContext).
+  Cancel also clears `activeAITargetRequest` so Smarter tip find cannot leave
+  Create stuck on “Wait for the body-point check…”. Candidates / AI tags
+  use the same Cancel unlock.
+- **Play: Loop / Auto-EO / project restore ignored invalid markers** —
+  `markerIsValid` guards loop seek, Auto Extended-O, and project save/load.
 - **Create queue: Cancel / tip-find failure left queue stuck** — Cancel during
   tip-find (before `GenerateScript`) now skips remaining entries and
   re-enables Clear; auto-ROI errors mid-queue call `advanceQueueAfterDone`.

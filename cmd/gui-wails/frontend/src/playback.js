@@ -2500,7 +2500,7 @@ export function initPlayback(root) {
   // löst Extended-O einmal pro Playback aus, sobald die Position in den
   // markierten Bereich eintritt (falls aktiviert).
   function checkAutoExtendedO(atMs) {
-    if (!marker || !el('#pb-marker-auto').checked || autoEOTriggeredForMarker) return;
+    if (!markerIsValid(marker) || !el('#pb-marker-auto').checked || autoEOTriggeredForMarker) return;
     if (atMs >= marker.startMs && atMs <= marker.endMs) {
       autoEOTriggeredForMarker = true;
       if (!el('#pb-eo-trigger').disabled) triggerEO();
@@ -2823,7 +2823,8 @@ export function initPlayback(root) {
       await applyOffset(p.offsetMs);
     }
     if (p.loopMarker && typeof p.loopMarker.startMs === 'number' && typeof p.loopMarker.endMs === 'number') {
-      marker = { startMs: p.loopMarker.startMs, endMs: p.loopMarker.endMs };
+      const m = { startMs: p.loopMarker.startMs, endMs: p.loopMarker.endMs };
+      marker = markerIsValid(m) ? m : null;
       updateMarkerHint();
       redrawHeatmap();
     }
@@ -3011,7 +3012,7 @@ export function initPlayback(root) {
     // der Offset überhaupt einstellen lässt: ohne Wiederholung müsste man
     // nach jeder Korrektur von Hand zurückspulen, und bis man wieder to der
     // fraglichen Stelle ist, hat man den Vergleich verloren.
-    if (el('#pb-loop').checked && marker && currentPosMs >= marker.endMs) {
+    if (el('#pb-loop').checked && markerIsValid(marker) && currentPosMs >= marker.endMs) {
       videoEl.currentTime = marker.startMs / 1000;
       currentPosMs = marker.startMs;
     }
@@ -3202,7 +3203,7 @@ export function initPlayback(root) {
         scriptPath: scriptPath || '',
         offsetMs: parseInt(el('#pb-offset')?.value, 10) || 0,
         seekMs: currentPosMs || 0,
-        loopMarker: marker ? { startMs: marker.startMs, endMs: marker.endMs } : null,
+        loopMarker: markerIsValid(marker) ? { startMs: marker.startMs, endMs: marker.endMs } : null,
       });
       ofsStatus('Project: ' + path);
       uiInfo('Project saved: ' + path);

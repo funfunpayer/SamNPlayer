@@ -1256,6 +1256,7 @@ export function initGenerator(root, playback) {
     generating = false;
     el('#gen-cancel').disabled = true;
     tipFindBusy = false;
+    activeAITargetRequest = null;
     if (videoPath) {
       el('#gen-autoroi').disabled = false;
       el('#gen-candidates').disabled = false;
@@ -3561,6 +3562,9 @@ export function initGenerator(root, playback) {
     const tipFindOnly = pendingGenerateAfterRoi;
     const manualTipFind = tipFindBusy && !generating;
     pendingGenerateAfterRoi = false;
+    // Drop in-flight Smarter tip find so Create is not stuck on
+    // “Wait for the body-point check…” after Cancel.
+    activeAITargetRequest = null;
     CancelROIDetection().catch(() => {});
     CancelGenerate();
     // Tip-find-then-Create never gets generate:done until tracking starts —
@@ -3580,7 +3584,7 @@ export function initGenerator(root, playback) {
         el('#gen-candidates').disabled = false;
       }
       hideProgress();
-      el('#gen-status').textContent = 'Tip find canceled.';
+      el('#gen-status').textContent = 'Search canceled.';
       return;
     }
     el('#gen-status').textContent = queueRunning
@@ -4475,6 +4479,7 @@ export function initGenerator(root, playback) {
     el('#gen-ai-detections') && (el('#gen-ai-detections').disabled = true);
     setSeedSuggestEnabled(false);
     clearPendingSeed();
+    setTipFindBusy(true);
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
   });
@@ -4487,6 +4492,7 @@ export function initGenerator(root, playback) {
     el('#gen-candidates').disabled = true;
     setSeedSuggestEnabled(false);
     clearPendingSeed();
+    setTipFindBusy(true);
     el('#gen-status').textContent = 'Listing all AI class tags on this frame (nipples/breasts/glans/…)…';
     ListAIDetections(videoPath, seekSec || 0);
   });
@@ -4546,6 +4552,7 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-candidates').disabled = false;
     el('#gen-autoroi').disabled = false;
+    setTipFindBusy(false);
     refreshAIRoiAvailability();
     if (result.error) {
       uiError('Motion candidates: ' + result.error, el('#gen-status'));
@@ -4578,6 +4585,7 @@ export function initGenerator(root, playback) {
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
+    setTipFindBusy(false);
     refreshAIRoiAvailability();
     if (result.error) {
       uiError('AI tags: ' + result.error, el('#gen-status'));
