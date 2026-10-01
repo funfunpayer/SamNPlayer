@@ -29,6 +29,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Play: video pause/buffer left device on last intensity for ~1.5s** — Sync
+  already zeroed after `syncStaleAfter`; frontend now calls
+  `ReportVideoSyncIdle` on `<video>` `pause`/`waiting` so the device goes to
+  0 immediately (soft-start resumes on `playing`). Stop clears `playing`
+  before pausing the element so idle is not reported after Stop.
 - **Frontend CI after G4.C declutter** — Playwright tests that toggle Cap/HL,
   Stay fixed, or Smarter tip find now open the matching `<details>` first;
   semantic tip wait no longer races on the old “No region” label.

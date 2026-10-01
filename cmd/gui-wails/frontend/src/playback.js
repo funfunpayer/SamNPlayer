@@ -1,7 +1,7 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
+  ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
@@ -2931,8 +2931,10 @@ export function initPlayback(root) {
   async function stop({ user = true } = {}) {
     if (user) userStopRequested = true;
     await StopPlayback();
-    if (videoPath) videoEl.pause();
+    // Clear playing before pause so the video 'pause' handler does not
+    // report sync-idle after the position channel is already closed.
     setPlayingState(false);
+    if (videoPath) videoEl.pause();
   }
 
   async function triggerEO() {
@@ -2977,6 +2979,22 @@ export function initPlayback(root) {
     redrawHeatmap();
     redrawCurve();
     redrawTrajectory();
+    pushVideoSyncPosition();
+  });
+  // Pause / buffering: zero the device immediately (Sync idle sentinel).
+  // Watchdog in player.Sync still covers lost timeupdate without these events.
+  function pushVideoSyncIdle() {
+    if (playing && el('#pb-use-video-sync')?.checked) {
+      ReportVideoSyncIdle().catch(() => {});
+    }
+  }
+  videoEl.addEventListener('pause', () => {
+    if (videoEl.ended) return; // ended handler stops playback separately
+    pushVideoSyncIdle();
+  });
+  videoEl.addEventListener('waiting', pushVideoSyncIdle);
+  videoEl.addEventListener('playing', () => {
+    // Resume after pause/buffer — push current position so Sync soft-starts.
     pushVideoSyncPosition();
   });
   // Video-Maße (videoWidth/Height) stehen erst nach 'loadedmetadata' fest -

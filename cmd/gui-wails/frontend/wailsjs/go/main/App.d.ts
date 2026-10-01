@@ -204,6 +204,7 @@ export function ReportExists():Promise<boolean>;
 export function ReportSummary():Promise<string>;
 
 export function ReportVideoPosition(arg1:number):Promise<void>;
+export function ReportVideoSyncIdle():Promise<void>;
 
 export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>;
 

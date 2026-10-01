@@ -53,3 +53,40 @@ func TestSyncGoesQuietWhenPositionsStop(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Frontend meldet Pause/Buffering sofort per SyncIdleSentinel — Gerät auf 0
+// ohne syncStaleAfter abzuwarten.
+func TestSyncGoesQuietOnIdleSentinel(t *testing.T) {
+	old := syncStaleAfter
+	syncStaleAfter = 5 * time.Second // would be too slow if sentinel ignored
+	defer func() { syncStaleAfter = old }()
+
+	dev := &recordingDev{}
+	p := New(dev)
+	frames := []funscript.Frame{{At: 0, Vibration: 0.8, Suction: 0.6}, {At: 10000, Vibration: 0.8, Suction: 0.6}}
+	positions := make(chan int64, 4)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- p.Sync(ctx, frames, positions) }()
+
+	positions <- 1000
+	time.Sleep(40 * time.Millisecond)
+	if v, s := lastOut(dev); v != 0.8 || s != 0.6 {
+		t.Fatalf("läuft nicht: vib %v suc %v", v, s)
+	}
+	positions <- SyncIdleSentinel
+	time.Sleep(40 * time.Millisecond)
+	if v, s := lastOut(dev); v != 0 || s != 0 {
+		t.Errorf("Idle-Sentinel muss Gerät sofort auf 0: vib %v suc %v", v, s)
+	}
+	positions <- 1500
+	time.Sleep(40 * time.Millisecond)
+	if v, s := lastOut(dev); v != 0.8 || s != 0.6 {
+		t.Errorf("nach Resume nicht zurück: vib %v suc %v", v, s)
+	}
+	close(positions)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}

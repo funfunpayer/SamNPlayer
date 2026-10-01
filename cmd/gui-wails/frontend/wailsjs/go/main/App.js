@@ -123,6 +123,7 @@ export function ReportArousal(arg1) { return window['go']['main']['App']['Report
 export function ReportExists() { return window['go']['main']['App']['ReportExists'](); }
 export function ReportSummary() { return window['go']['main']['App']['ReportSummary'](); }
 export function ReportVideoPosition(arg1) { return window['go']['main']['App']['ReportVideoPosition'](arg1); }
+export function ReportVideoSyncIdle() { return window['go']['main']['App']['ReportVideoSyncIdle'](); }
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
 export function RunDeviceDiagnostics() { return window['go']['main']['App']['RunDeviceDiagnostics'](); }
 export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }

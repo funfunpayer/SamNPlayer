@@ -19,6 +19,10 @@ var errNoFrames = errors.New("player: keine Frames zum Abspielen")
 // und folgt ab der nächsten Position wieder dem Skript. var für Tests.
 var syncStaleAfter = 1500 * time.Millisecond
 
+// SyncIdleSentinel: Frontend meldet Pause/Buffering sofort (ohne auf
+// syncStaleAfter zu warten). Negative Werte sind keine Videoms.
+const SyncIdleSentinel int64 = -1
+
 // Sync treibt das Gerät anhand einer EXTERNEN Positionsquelle statt der
 // eigenen Uhr von Play() - gedacht für echte Videowiedergabe (z.B. ein
 // HTML5-<video>-Element im Wails-Frontend), wo Pausieren, Spulen und die
@@ -29,6 +33,9 @@ var syncStaleAfter = 1500 * time.Millisecond
 // Bei jedem Wert wird der Frame gesucht, der zu dieser Position gehört, und
 // sofort ausgegeben - kein Timing-Loop, kein "warten bis Zielzeit erreicht",
 // da die Zeitbasis extern (vom Video) kommt statt von uns.
+//
+// SyncIdleSentinel (oder jeder Wert < 0) setzt das Gerät sofort auf 0
+// (Pause/Buffering), soft-startet bei der nächsten echten Position wieder.
 //
 // Extended-O funktioniert über TriggerExtendedO und skaliert nur die
 // Amplitude (Vib/Sog × Faktor) - Video und Skript-Rhythmus laufen weiter.
@@ -48,20 +55,27 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 	stale := time.NewTimer(syncStaleAfter)
 	defer stale.Stop()
 
+	goQuiet := func(reason string) error {
+		if firstFrame || quiet {
+			return nil
+		}
+		logging.Info("player: "+reason+" - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
+		if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+			return err
+		}
+		quiet = true
+		return nil
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 
 		case <-stale.C:
-			if firstFrame || quiet {
-				continue
-			}
-			logging.Info("player: keine Videoposition mehr (Pause?) - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
-			if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+			if err := goQuiet("keine Videoposition mehr (Pause?)"); err != nil {
 				return err
 			}
-			quiet = true
 
 		case opts, ok := <-p.extendedOCh:
 			if !ok {
@@ -72,6 +86,19 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 		case posMs, ok := <-positions:
 			if !ok {
 				return nil // Kanal geschlossen = Wiedergabe im Frontend beendet
+			}
+			if posMs < 0 {
+				// Idle sentinel: Pause/waiting — zero now; keep waiting for resume.
+				stale.Stop()
+				select {
+				case <-stale.C:
+				default:
+				}
+				stale.Reset(syncStaleAfter)
+				if err := goQuiet("Videoposition idle (Pause/Buffering)"); err != nil {
+					return err
+				}
+				continue
 			}
 			stale.Reset(syncStaleAfter)
 			p.lastSyncPosMs = posMs
