@@ -879,6 +879,34 @@ export function initRoiTraining(root) {
     });
   }
 
+  function renderReviewEmpty(msg) {
+    const grid = el('#rt-review-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const text = document.createElement('div');
+    text.className = 'hint';
+    text.textContent = msg;
+    grid.appendChild(text);
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style.cssText = 'margin-top:8px; gap:8px; flex-wrap:wrap;';
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.className = 'secondary';
+    loadBtn.id = 'rt-empty-load-frame';
+    loadBtn.textContent = 'Load frame';
+    loadBtn.addEventListener('click', () => el('#rt-seek-btn')?.click());
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'secondary';
+    refreshBtn.id = 'rt-empty-refresh';
+    refreshBtn.textContent = 'Refresh review';
+    refreshBtn.addEventListener('click', () => refreshReview());
+    row.appendChild(loadBtn);
+    row.appendChild(refreshBtn);
+    grid.appendChild(row);
+  }
+
   async function refreshReview() {
     datasetDir = el('#rt-dataset-dir').value.trim();
     const onlyNew = el('#rt-only-new').checked;
@@ -888,9 +916,9 @@ export function initRoiTraining(root) {
     try {
       const samples = await ListRoiTrainingSamples(datasetDir, prefix);
       if (!samples || samples.length === 0) {
-        grid.textContent = onlyNew && lastPrefix
+        renderReviewEmpty(onlyNew && lastPrefix
           ? 'No new samples — uncheck to use the full dataset.'
-          : 'No samples found.';
+          : 'No samples found.');
         return;
       }
       grid.innerHTML = '';

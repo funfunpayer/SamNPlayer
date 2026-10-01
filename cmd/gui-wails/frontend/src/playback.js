@@ -3650,7 +3650,7 @@ export function initPlayback(root) {
       updateZoomChrome();
       scriptHasContactVibration = !!info.contactVibration;
     } catch (err) {
-      logError('Skript nach Bearbeitung neu laden: ' + err);
+      logError('Reload script after edit: ' + err);
     }
     await refreshScriptVisuals();
   }

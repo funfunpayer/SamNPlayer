@@ -36,7 +36,7 @@ Audio never invents 0–100 actions. Everyday Create stays Go CSRT.`,
     body: `Almost for everyday use. Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2 — yes.
 
 Still CLI / advanced / not Everyday GUI:
-• Whole-frame 4-zone stroke mode (experiments; weaker on measured clips)
+• Whole-frame 4-zone stroke mode (CLI only — removed from Create GUI)
 • Flow tracker as Generate default (CLI)
 • ONNX vision AI draft writer (S2+ model inference — not shipped; imitation draft is available after Export classical run)`,
   },
