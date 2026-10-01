@@ -180,7 +180,7 @@ export function initRoiTraining(root) {
       <b>Use for training</b> keeps CSRT after ultralytics. Prefer a real
       Python from python.org — not the Windows Store stub. Or:
       <code>pip uninstall opencv-python opencv-python-headless &amp;&amp; pip install opencv-contrib-python ultralytics onnx</code>.
-      Details: <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
+      Details: see <code>docs/KI_TRAINING.md</code> in the repo.
     </p>
     <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">
       No training samples yet. Mark region(s) above and click <b>Use for training</b>
@@ -262,6 +262,8 @@ export function initRoiTraining(root) {
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let marks = Array(MAX_REGIONS).fill(null); // free tag boxes; assign labels after
+  let cancelKind = null; // 'bootstrap' | 'train' | null — which Cancel is shown
+  let trainPackagesAvailable = false;
   let activeMark = 0;
   let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let lastPrefix = '';
@@ -448,7 +450,9 @@ export function initRoiTraining(root) {
       }
     }
     // Any labeled free-tag set unlocks bootstrap — not tip/glans / marks[0] only.
-    el('#rt-bootstrap').disabled = !(sourcePath && labeled > 0 && !missingClass);
+    // Stay disabled while train/bootstrap run is claimed.
+    el('#rt-bootstrap').disabled = !!cancelKind
+      || !(sourcePath && labeled > 0 && !missingClass);
     const plan = el('#rt-track-plan');
     if (plan) {
       if (!labeled) {
@@ -712,11 +716,22 @@ export function initRoiTraining(root) {
     return /cancel|abgebrochen|context canceled/i.test(String(err || ''));
   }
 
-  function setCancelVisible(show) {
+  function setCancelVisible(kind) {
+    // kind: 'bootstrap' | 'train' | null — only that Cancel is shown.
+    cancelKind = kind || null;
     const boot = el('#rt-cancel-run');
     const train = el('#rt-cancel-train');
-    if (boot) boot.hidden = !show;
-    if (train) train.hidden = !show;
+    if (boot) boot.hidden = cancelKind !== 'bootstrap';
+    if (train) train.hidden = cancelKind !== 'train';
+    // Mutual disable: do not start the other run while one is claimed.
+    if (cancelKind === 'bootstrap') {
+      el('#rt-train').disabled = true;
+    } else if (cancelKind === 'train') {
+      el('#rt-bootstrap').disabled = true;
+    } else {
+      updateBootstrapEnabled();
+      el('#rt-train').disabled = !trainPackagesAvailable;
+    }
   }
 
   async function cancelRoiRun() {
@@ -736,7 +751,7 @@ export function initRoiTraining(root) {
     const regions = collectLabeledRegions();
     if (!regions.length) return;
     el('#rt-bootstrap').disabled = true;
-    setCancelVisible(true);
+    setCancelVisible('bootstrap');
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
     showRunProgress('rt-bootstrap', true);
@@ -744,7 +759,7 @@ export function initRoiTraining(root) {
       if (sourceKind === 'image') {
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
         showRunProgress('rt-bootstrap', false);
-        setCancelVisible(false);
+        if (cancelKind === 'bootstrap') setCancelVisible(null);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
         updateBootstrapEnabled();
         refreshReview();
@@ -764,7 +779,8 @@ export function initRoiTraining(root) {
       }
     } catch (err) {
       showRunProgress('rt-bootstrap', false);
-      setCancelVisible(false);
+      // Failed claim must not hide Cancel for a still-running train.
+      if (cancelKind === 'bootstrap') setCancelVisible(null);
       if (isCancelError(err)) {
         uiWarn('Bootstrap cancelled: ' + err, el('#rt-bootstrap-status'));
       } else {
@@ -811,7 +827,7 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:bootstrap:percent', pct => applyRunPercent('rt-bootstrap', pct));
   EventsOn('roitraining:bootstrap:done', payload => {
     showRunProgress('rt-bootstrap', false);
-    setCancelVisible(false);
+    if (cancelKind === 'bootstrap') setCancelVisible(null);
     updateBootstrapEnabled();
     if (payload.error) {
       if (isCancelError(payload.error)) {
@@ -1677,7 +1693,7 @@ export function initRoiTraining(root) {
     const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
-    setCancelVisible(true);
+    setCancelVisible('train');
     el('#rt-train-status').textContent = 'Running…';
     el('#rt-train-log').textContent = '';
     showRunProgress('rt-train', true);
@@ -1685,13 +1701,13 @@ export function initRoiTraining(root) {
       await RunRoiModelTraining(epochs, device);
     } catch (err) {
       showRunProgress('rt-train', false);
-      setCancelVisible(false);
+      if (cancelKind === 'train') setCancelVisible(null);
       if (isCancelError(err)) {
         uiWarn('Training cancelled: ' + err, el('#rt-train-status'));
       } else {
         uiError('ROI training: ' + err, el('#rt-train-status'));
       }
-      el('#rt-train').disabled = false;
+      el('#rt-train').disabled = !trainPackagesAvailable;
     }
   });
   EventsOn('roitraining:train:progress', line => {
@@ -1702,8 +1718,8 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:train:percent', pct => applyRunPercent('rt-train', pct));
   EventsOn('roitraining:train:done', payload => {
     showRunProgress('rt-train', false);
-    setCancelVisible(false);
-    el('#rt-train').disabled = false;
+    if (cancelKind === 'train') setCancelVisible(null);
+    else el('#rt-train').disabled = !trainPackagesAvailable;
     if (payload.error) {
       if (isCancelError(payload.error)) {
         uiWarn('Training cancelled: ' + payload.error, el('#rt-train-status'));
@@ -1738,7 +1754,8 @@ export function initRoiTraining(root) {
   });
 
   function applyTrainAvailability(available, detail) {
-    el('#rt-train').disabled = !available;
+    trainPackagesAvailable = !!available;
+    el('#rt-train').disabled = !trainPackagesAvailable || !!cancelKind;
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
     if (el('#rt-status-detail') && detail) {
       el('#rt-status-detail').textContent = detail;
@@ -1772,13 +1789,19 @@ export function initRoiTraining(root) {
 
   el('#rt-install-deps')?.addEventListener('click', async () => {
     el('#rt-install-deps').disabled = true;
-    el('#rt-train-status').textContent = 'Installing dependencies…';
+    el('#rt-train').disabled = true;
+    el('#rt-bootstrap').disabled = true;
+    el('#rt-train-status').textContent = 'Installing dependencies… (wait — no Cancel for install)';
     el('#rt-train-log').textContent = '';
     try {
       await InstallRoiTrainingDeps();
     } catch (err) {
       uiError('Installation: ' + err, el('#rt-train-status'));
       el('#rt-install-deps').disabled = false;
+      updateBootstrapEnabled();
+      CheckRoiTrainingStatus().then(st => {
+        applyTrainAvailability(!!st.ultralytics, st.detail || '');
+      }).catch(() => applyTrainAvailability(false, ''));
     }
   });
   EventsOn('roitraining:deps:progress', line => {
@@ -1788,8 +1811,12 @@ export function initRoiTraining(root) {
   });
   EventsOn('roitraining:deps:done', payload => {
     el('#rt-install-deps').disabled = false;
+    updateBootstrapEnabled();
     if (payload.error) {
       uiError('Install failed: ' + payload.error, el('#rt-train-status'));
+      CheckRoiTrainingStatus().then(st => {
+        applyTrainAvailability(!!st.ultralytics, st.detail || '');
+      }).catch(() => applyTrainAvailability(false, ''));
       return;
     }
     const st = payload.status || {};

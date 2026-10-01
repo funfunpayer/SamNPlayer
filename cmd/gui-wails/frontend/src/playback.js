@@ -745,6 +745,13 @@ export function initPlayback(root) {
       if (ch) ch.open = true;
     } else {
       el('#pb-marker-label').textContent = '(no selection)';
+      // Clear leaves Cap/O/Chapters closed — no disabled CTAs in open panels.
+      const edit = el('#pb-ofs-edit-details');
+      if (edit) edit.open = false;
+      const om = el('#pb-omarker-details');
+      if (om) om.open = false;
+      const ch = el('#pb-chapter-details');
+      if (ch) ch.open = false;
     }
     el('#pb-omarker-add').disabled = !markerIsValid(marker);
     const chAdd = el('#pb-chapter-add');
@@ -783,7 +790,7 @@ export function initPlayback(root) {
     const lab = el('#pb-zoom-label');
     const zoomSel = el('#pb-zoom-sel');
     if (row) row.style.display = scriptPath ? 'flex' : 'none';
-    if (zoomSel) zoomSel.disabled = !marker;
+    if (zoomSel) zoomSel.disabled = !markerIsValid(marker);
     if (!lab) return;
     if (!isZoomed()) {
       lab.textContent = 'Full';
@@ -823,7 +830,7 @@ export function initPlayback(root) {
     setViewWindow(Math.max(0, start), Math.min(totalMs, end));
   }
   function zoomToSelection() {
-    if (!marker) return;
+    if (!markerIsValid(marker)) return;
     const pad = Math.max(200, Math.round((marker.endMs - marker.startMs) * 0.08));
     setViewWindow(Math.max(0, marker.startMs - pad), Math.min(totalMs, marker.endMs + pad));
   }
@@ -1876,10 +1883,16 @@ export function initPlayback(root) {
   }
   function openPlayContactProbe() {
     const tune = el('#pb-contact-tune-details');
-    if (tune) tune.open = true;
+    // Do not re-force-open tune if the user collapsed it this session.
+    if (tune && !tune.dataset.userCollapsed) tune.open = true;
     const d = el('#pb-contact-probe-details');
-    if (d) d.open = true;
+    if (d && (!tune || tune.open)) d.open = true;
   }
+
+  el('#pb-contact-tune-details')?.addEventListener('toggle', (e) => {
+    if (!e.target.open) e.target.dataset.userCollapsed = '1';
+    else delete e.target.dataset.userCollapsed;
+  });
 
   el('#pb-contact-intensity').addEventListener('input', e => {
     // finiteOr (not ||): Strength min=0 must stay 0 in the label + prefs.
@@ -2428,7 +2441,7 @@ export function initPlayback(root) {
   });
 
   el('#pb-omarker-add').addEventListener('click', async () => {
-    if (!marker || !scriptPath) return;
+    if (!markerIsValid(marker) || !scriptPath) return;
     const kind = el('#pb-omarker-kind').value;
     const intensity = kind === 'primary'
       ? 1.0
@@ -2467,7 +2480,7 @@ export function initPlayback(root) {
       uiWarn('Load a script first.', el('#pb-log'));
       return;
     }
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.', el('#pb-log'));
       return;
     }
@@ -3281,7 +3294,7 @@ export function initPlayback(root) {
   }, { passive: false });
 
   el('#pb-cap-speed')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
@@ -3297,7 +3310,7 @@ export function initPlayback(root) {
     }
   });
   el('#pb-scale-range')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
@@ -3313,7 +3326,7 @@ export function initPlayback(root) {
     }
   });
   el('#pb-del-range')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }

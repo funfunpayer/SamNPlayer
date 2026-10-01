@@ -45,6 +45,14 @@ measurement history behind each entry; this file is the short version for
   re-enables Clear; auto-ROI errors mid-queue call `advanceQueueAfterDone`.
   Tip-find-then-Create / queue always uses classic CSRT find (AI Apply path
   cannot finish unattended Create).
+- **AI Train: Cancel hid the wrong button / wiped a live run’s Cancel** —
+  bootstrap vs train Cancel are separate; failed claim no longer hides the
+  other run’s Cancel; mutual disable while a run is claimed; dead
+  `docs/KI_TRAINING.md` `#` link replaced with plain path text.
+- **Play: Zoom/Cap/Scale/Delete/O-marker/Chapter accepted invalid markers** —
+  handlers and Zoom-to-selection now use `markerIsValid`; clearing selection
+  closes Cap/O/Chapters panels; Contact probe no longer force-reopens a
+  user-collapsed tune panel.
 - **Create: early “script exists” could clear a newer Create** — `GenerateScript`
   now claims `genSeq` before overwrite checks and always emits `seq` on those
   errors, so a stale exists-error cannot clobber an in-flight run.

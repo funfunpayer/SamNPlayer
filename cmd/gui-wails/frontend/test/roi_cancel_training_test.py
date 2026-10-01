@@ -83,6 +83,9 @@ def main():
         page.click("#rt-train")
         page.wait_for_function("window.__trainStarted === true", timeout=5000)
         check("cancel-train visible while training", page.is_visible("#rt-cancel-train"))
+        check("cancel-run stays hidden during train", page.is_hidden("#rt-cancel-run"))
+        check("bootstrap disabled during train",
+              page.locator("#rt-bootstrap").is_disabled() is True)
 
         page.click("#rt-cancel-train")
         page.wait_for_function("() => (window.__cancelCalls || 0) >= 1", timeout=3000)
