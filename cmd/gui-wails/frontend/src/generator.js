@@ -295,104 +295,109 @@ export function initGenerator(root, playback) {
             Everyday stays <b>tip → Go CSRT → Create</b>. Open only for polarity, long-clip assist, Ignore marks, or rare tuning — hybrid options never replace CSRT.
           </p>
 
-          <div class="opt-group">Tracking &amp; polarity</div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-            data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
-            data-help="Compensates camera pans using background features. Recommended for moving camera. Default on.">Camera motion compensation</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
-            data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records tip (x,y) per frame for Feel Stage A (buzz when tip grazes a contact mark) and the Play overlay. Not a user-drawn stroke path — Create never requires this. Soft-on with Contact vib; CSRT only.">Record tip trajectory (optional feel — not required to Create)</label></div>
-
-          <div class="opt-group">Long-clip anti-drift</div>
-          <p class="hint" style="margin:0 0 6px 0;">
-            Still Go CSRT. Rhythm / teachers steer only when opted in — off = bit-identical Everyday.
-          </p>
-          <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
-            data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
-            data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build via Generate below or CLI. Never a default.">Use contact points (teachers JSON)</label></div>
-          <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
-            <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
-              data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
-            <button type="button" class="secondary" id="gen-contact-points-pick" disabled
-              data-help="Choose an existing contact_points.py JSON.">Choose…</button>
-          </div>
-          <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
-            data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
-          <p class="hint" id="gen-contact-verify-hint" style="display:none; margin:0 0 6px 0;">Optional hybrid: engine drops weak teacher points (K=1.5). Default off — Everyday Create unchanged when off.</p>
-          <details id="gen-contact-points-gen" class="gen-adv-nested" style="display:none; margin:6px 0 8px 0;">
-            <summary>Generate teachers JSON (opt-in)</summary>
-            <p class="hint" style="margin:8px 0 6px 0;">Writes <code>.contact.json</code> beside the video. Does not change Everyday Create.</p>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
-              data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
-              data-help="Ask Ollama Qwen2.5-VL if the server is up. Skipped when unreachable.">Ollama Qwen2.5-VL</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-lmstudio" /><label for="gen-cp-lmstudio"
-              data-help="Ask LM Studio vision model if the local server is up.">LM Studio vision</label></div>
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
-              <button type="button" class="secondary" id="gen-contact-points-run"
-                data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
-              <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
-            </div>
+          <details id="gen-advanced-tracking" class="gen-adv-nested">
+            <summary>Tracking &amp; polarity</summary>
+            <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
+              data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
+              data-help="Compensates camera pans using background features. Recommended for moving camera. Default on.">Camera motion compensation</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
+              data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
+              data-help="Records tip (x,y) per frame for Feel Stage A (buzz when tip grazes a contact mark) and the Play overlay. Not a user-drawn stroke path — Create never requires this. Soft-on with Contact vib; CSRT only.">Record tip trajectory (optional feel — not required to Create)</label></div>
           </details>
 
-          <div class="opt-group">Scene map</div>
-          <p class="hint" style="margin:0 0 6px 0;">
-            Heatmap + Ignore marks without Create. Same Ignore job as Step 2 → <b>+ Ignore region</b>.
-          </p>
-          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="secondary" id="gen-scene-map" disabled
-              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
-            <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
-          </div>
-          <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
-              <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
-              <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+          <details id="gen-advanced-antidrift" class="gen-adv-nested">
+            <summary>Long-clip anti-drift</summary>
+            <p class="hint" style="margin:8px 0 6px 0;">
+              Still Go CSRT. Rhythm / teachers steer only when opted in — off = bit-identical Everyday.
+            </p>
+            <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
+              data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
+              data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build via Generate below or CLI. Never a default.">Use contact points (teachers JSON)</label></div>
+            <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
+              <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
+                data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
+              <button type="button" class="secondary" id="gen-contact-points-pick" disabled
+                data-help="Choose an existing contact_points.py JSON.">Choose…</button>
             </div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
-              data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Advanced only. Ignore = exclude wrong latch (knees…). Source = optional hint when auto stroke search fails — not Everyday motion-path paint. Region = full taxonomy for train/review.">Mark</label>
-              <select id="gen-scene-map-mark-kind">
-                <option value="exclude" selected>Ignore / black (not for recognition)</option>
-                <option value="source">Source (only if auto stroke not found)</option>
-                <option value="region">Region (full taxonomy / train)</option>
-              </select>
-              <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
-              <label class="checkbox-row" style="margin:0;"
-                data-help="Stay fixed: keep the painted box where you drew it. Off (default for Ignore) = Create tracks the box so it moves with the subject (knees, thigh, etc.).">
-                <input type="checkbox" id="gen-scene-map-mark-sticky" /> Stay fixed
-              </label>
-              <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
-              <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
-            </div>
-            <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
-            <details id="gen-scene-map-learning" class="gen-adv-nested" style="margin-top:8px;">
-              <summary>Learning export &amp; teacher candidates</summary>
-              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button type="button" class="secondary" id="gen-scene-map-export"
-                  data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
-                <button type="button" class="secondary" id="gen-scene-map-suggest"
-                  data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
-                <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+            <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
+              data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
+            <p class="hint" id="gen-contact-verify-hint" style="display:none; margin:0 0 6px 0;">Optional hybrid: engine drops weak teacher points (K=1.5). Default off — Everyday Create unchanged when off.</p>
+            <details id="gen-contact-points-gen" class="gen-adv-nested" style="display:none; margin:6px 0 8px 0;">
+              <summary>Generate teachers JSON (opt-in)</summary>
+              <p class="hint" style="margin:8px 0 6px 0;">Writes <code>.contact.json</code> beside the video. Does not change Everyday Create.</p>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
+                data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
+                data-help="Ask Ollama Qwen2.5-VL if the server is up. Skipped when unreachable.">Ollama Qwen2.5-VL</label></div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-lmstudio" /><label for="gen-cp-lmstudio"
+                data-help="Ask LM Studio vision model if the local server is up.">LM Studio vision</label></div>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+                <button type="button" class="secondary" id="gen-contact-points-run"
+                  data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
+                <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
               </div>
-              <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-                <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept → <code>reviewed:true</code> for P5c; Reject deletes.</p>
-                <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-                  <button type="button" class="secondary" id="gen-import-contact-candidates"
-                    data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
+            </details>
+          </details>
+
+          <details id="gen-advanced-scenemap" class="gen-adv-nested">
+            <summary>Scene map</summary>
+            <p class="hint" style="margin:8px 0 6px 0;">
+              Heatmap + Ignore marks without Create. Same Ignore job as Step 2 → <b>+ Ignore region</b>.
+            </p>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="secondary" id="gen-scene-map" disabled
+                data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
+              <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
+            </div>
+            <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
+                <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
+                <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+              </div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
+                data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                <label style="width:auto;" data-help="Advanced only. Ignore = exclude wrong latch (knees…). Source = optional hint when auto stroke search fails — not Everyday motion-path paint. Region = full taxonomy for train/review.">Mark</label>
+                <select id="gen-scene-map-mark-kind">
+                  <option value="exclude" selected>Ignore / black (not for recognition)</option>
+                  <option value="source">Source (only if auto stroke not found)</option>
+                  <option value="region">Region (full taxonomy / train)</option>
+                </select>
+                <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
+                <label class="checkbox-row" style="margin:0;"
+                  data-help="Stay fixed: keep the painted box where you drew it. Off (default for Ignore) = Create tracks the box so it moves with the subject (knees, thigh, etc.).">
+                  <input type="checkbox" id="gen-scene-map-mark-sticky" /> Stay fixed
+                </label>
+                <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
+                <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
+              </div>
+              <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
+              <details id="gen-scene-map-learning" class="gen-adv-nested" style="margin-top:8px;">
+                <summary>Learning export &amp; teacher candidates</summary>
+                <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                  <button type="button" class="secondary" id="gen-scene-map-export"
+                    data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+                  <button type="button" class="secondary" id="gen-scene-map-suggest"
+                    data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
+                  <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+                </div>
+                <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+                  <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept → <code>reviewed:true</code> for P5c; Reject deletes.</p>
+                  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="secondary" id="gen-import-contact-candidates"
+                      data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
                   <span class="hint" id="gen-auto-candidates-status" style="margin:0;"></span>
                 </div>
                 <div id="gen-auto-candidates-list" style="margin-top:6px;"></div>
               </div>
             </details>
           </div>
+          </details>
 
-          <div class="opt-group">AI assist</div>
           <details id="gen-advanced-ai-draft" class="gen-adv-nested">
             <summary>AI draft (experimental) — review-only after CSRT</summary>
             <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
@@ -411,16 +416,18 @@ export function initGenerator(root, playback) {
             </div>
           </details>
 
-          <div class="opt-group">Signal &amp; quality</div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
-            data-help="Smoothly lifts weak sections to usable strength. Default on.">Sliding dynamics</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
-            data-help="Automatically retries with other signal parameters when quality is poor. Default on.">Auto-Retry</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
-            data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
-          <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
-          <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
-          <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
+          <details id="gen-advanced-signal" class="gen-adv-nested">
+            <summary>Signal &amp; quality</summary>
+            <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
+              data-help="Smoothly lifts weak sections to usable strength. Default on.">Sliding dynamics</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
+              data-help="Automatically retries with other signal parameters when quality is poor. Default on.">Auto-Retry</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
+              data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
+            <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
+            <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
+            <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
+          </details>
 
           <details id="gen-advanced-expert" class="gen-adv-nested">
             <summary>Expert tuning — defaults are fine for Everyday</summary>

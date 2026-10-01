@@ -91,6 +91,7 @@ def main():
 
         # Open Advanced — marks label / tools live inside <details>.
         page.click("#gen-advanced > summary")
+        page.evaluate("document.querySelector('#gen-advanced-scenemap').open = true")
         page.wait_for_function(
             "() => (document.querySelector('#gen-scene-map-marks-label')"
             "?.textContent || '').includes('ignore')",

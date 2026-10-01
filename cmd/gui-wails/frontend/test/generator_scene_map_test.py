@@ -79,6 +79,7 @@ def main():
             timeout=5000)
 
         page.click("#gen-advanced > summary")
+        page.evaluate("document.querySelector('#gen-advanced-scenemap').open = true")
         page.wait_for_selector("#gen-scene-map", state="visible", timeout=5000)
         page.click("#gen-scene-map")
         page.wait_for_function(

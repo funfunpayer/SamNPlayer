@@ -77,6 +77,7 @@ def main():
 
         # The toggle lives in the collapsed "Advanced settings" <details>.
         page.click("#gen-advanced > summary")
+        page.evaluate("document.querySelector('#gen-advanced-antidrift').open = true")
         page.wait_for_selector("#gen-rhythm-grid", state="visible", timeout=5000)
 
         # Run 1: toggle OFF -> payload rhythmGrid false.

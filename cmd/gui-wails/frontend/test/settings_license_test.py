@@ -114,14 +114,18 @@ def main():
 
         page.click("#st-license-clear")
         page.wait_for_function(
-            "document.querySelector('#st-license-status').textContent.includes('enforcement: off') || document.querySelector('#st-license-status').textContent.includes('No license')",
+            "document.querySelector('#st-license-status').textContent.toLowerCase().includes('enforcement') && "
+            "(document.querySelector('#st-license-status').textContent.toLowerCase().includes('off') || "
+            "document.querySelector('#st-license-status').textContent.includes('No license'))",
             timeout=5000)
         text3 = page.locator("#st-license-status").inner_text()
         check("after clear shows none/off",
-              "enforcement: off" in text3 or "No license" in text3)
+              "enforcement" in text3.lower() and ("off" in text3.lower() or "no license" in text3.lower()))
 
-        check("Plugins heading visible",
-              page.locator("h3", has_text="Plugins").count() == 1)
+        check("Plugins details present",
+              page.locator("#st-plugins-details").count() == 1)
+        page.evaluate(
+            "document.querySelector('#st-plugins-details').open = true")
         page.wait_for_function(
             "document.querySelector('#st-plugins-status') && document.querySelector('#st-plugins-status').textContent.includes('Sample Pack')",
             timeout=5000)

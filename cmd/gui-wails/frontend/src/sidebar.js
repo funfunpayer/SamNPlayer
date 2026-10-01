@@ -82,7 +82,8 @@ export function initSidebar(root) {
     const box = el('#sb-quality-hint');
     if (genQuality && genQuality.style.display !== 'none' && genQuality.innerHTML.trim()) {
       box.innerHTML = genQuality.innerHTML;
-    } else if (pbAnalysis && pbAnalysis.style.display !== 'none' && pbAnalysis.textContent.trim()) {
+    } else if (pbAnalysis && pbAnalysis.style.display !== 'none' && (pbAnalysis.textContent || '').trim()) {
+      // textContent works even when parent #pb-quality-details is collapsed.
       box.textContent = pbAnalysis.textContent;
     } else {
       box.textContent = 'No analysis yet.';
@@ -90,8 +91,10 @@ export function initSidebar(root) {
   }
 
   EventsOn('playback:frame', f => {
-    const vib = Math.round(f.vibration * 100);
-    const suc = Math.round(f.suction * 100);
+    const vibRaw = Number(f && f.vibration);
+    const sucRaw = Number(f && f.suction);
+    const vib = Math.round((Number.isFinite(vibRaw) ? vibRaw : 0) * 100);
+    const suc = Math.round((Number.isFinite(sucRaw) ? sucRaw : 0) * 100);
     el('#sb-vib-pct').textContent = vib + '%';
     el('#sb-vib-bar').style.width = vib + '%';
     el('#sb-suc-pct').textContent = suc + '%';

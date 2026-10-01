@@ -111,8 +111,12 @@ def main():
                   page.locator("#pb-contact-block").evaluate("e => e.hidden") is False)
             check("Contact probe details present",
                   page.locator("#pb-contact-probe-details").count() == 1)
-            page.evaluate(
-                "document.querySelector('#pb-contact-probe-details').open = true")
+            page.evaluate("""() => {
+              const t = document.querySelector('#pb-contact-tune-details');
+              if (t) t.open = true;
+              const d = document.querySelector('#pb-contact-probe-details');
+              if (d) d.open = true;
+            }""")
             check("PreviewContactVibration called",
                   page.evaluate(
                       "window.__calls.filter(c => c[0]==='PreviewContactVibration').length") >= 1)

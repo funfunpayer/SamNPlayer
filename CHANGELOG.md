@@ -14,11 +14,13 @@ measurement history behind each entry; this file is the short version for
   and Mark options (Ignore / Partner fest / body map) sit behind closed
   `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, Script check &
   analysis, O-markers/Bookmarks/Chapters, Feel filters & heatmap bands,
-  Contact feel probe, and nested Extended-O likewise. Create Feel probe +
-  Review Speech-Hold filters + Improve Rhythm/repair under progressive
-  disclosure. Probe details auto-open when Sensitivity/Curve/Strength move.
-  Heatmap selection auto-opens Cap + O-marker + Chapters. Scene proposal
-  load opens AI assist. Everyday Tip → Partner snack stays primary.
+  Contact feel/tune, Project export, and nested Extended-O likewise. Create
+  Advanced nests Tracking / Anti-drift / Scene map / Signal / Expert; Feel
+  probe + Review filters + Improve More use progressive disclosure. Settings
+  nests Plugins + Hardware/Cache/metrics; License status is multi-line (C6).
+  Probe details auto-open when Sensitivity/Curve/Strength move. Heatmap
+  selection auto-opens Cap + O-marker + Chapters. Everyday Tip → Partner
+  snack stays primary.
 - **Play: taller curve + heatmap** — curve strip 120→176px, intensity heatmap
   28→56px (same zoom/selection tools). Easier to read Feel bands and intensity.
 - **Create: Tip → Partner snack guide** — Step 2 shows a compact snack

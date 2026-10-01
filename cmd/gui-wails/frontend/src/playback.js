@@ -200,11 +200,16 @@ export function initPlayback(root) {
           <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
         </details>
 
-        <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
-          <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
-          <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
-          <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
-          <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+        <div id="pb-ofs-row" style="display:none; margin-top:8px;">
+          <details class="pb-tools-details" id="pb-project-details">
+            <summary>Project &amp; heatmap export</summary>
+            <div class="row" style="flex-wrap:wrap; gap:8px; margin-top:6px; align-items:center;">
+              <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
+              <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
+              <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
+              <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+            </div>
+          </details>
         </div>
         <details class="pb-tools-details" id="pb-ofs-edit-details" style="display:none;">
           <summary>Curve edit (Cap · Scale · Speed HL · BPM)</summary>
@@ -359,41 +364,44 @@ export function initPlayback(root) {
             <label for="pb-contact-off"
               data-help="Turns off contact vibration stored in the script for this play only — without creating again. The curve preview stays visible.">Contact vibration off</label>
           </div>
-          <div class="field-row" id="pb-contact-intensity-row">
-            <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as created, 0 = off, up to 2 = stronger.">Contact strength</label>
-            <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
-            <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
-          </div>
-          <div class="field-row" id="pb-contact-span-row">
-            <label data-help="Live sensitivity without creating again. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
-            <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
-            <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
-          </div>
-          <div class="field-row" id="pb-contact-curve-row">
-            <label data-help="Live contact-vibration curve shape (linear / soft / peak / impulse), without rewriting the file.">Contact curve</label>
-            <select id="pb-contact-curve">
-              <option value="linear">linear</option>
-              <option value="soft">soft (contact-like)</option>
-              <option value="peak">peak</option>
-              <option value="impulse">impulse (peaks only)</option>
-            </select>
-          </div>
-          <details class="pb-tools-details" id="pb-contact-probe-details">
-            <summary>Contact feel probe</summary>
-            <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
-              <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
-                <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
-                <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
-              </div>
-              <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-                <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
-                <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
-                <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
-              </svg>
-              <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
-                Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
-              </p>
+          <details class="pb-tools-details" id="pb-contact-tune-details">
+            <summary>Strength · Sensitivity · Curve</summary>
+            <div class="field-row" id="pb-contact-intensity-row">
+              <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as created, 0 = off, up to 2 = stronger.">Contact strength</label>
+              <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+              <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
             </div>
+            <div class="field-row" id="pb-contact-span-row">
+              <label data-help="Live sensitivity without creating again. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
+              <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
+              <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
+            </div>
+            <div class="field-row" id="pb-contact-curve-row">
+              <label data-help="Live contact-vibration curve shape (linear / soft / peak / impulse), without rewriting the file.">Contact curve</label>
+              <select id="pb-contact-curve">
+                <option value="linear">linear</option>
+                <option value="soft">soft (contact-like)</option>
+                <option value="peak">peak</option>
+                <option value="impulse">impulse (peaks only)</option>
+              </select>
+            </div>
+            <details class="pb-tools-details" id="pb-contact-probe-details">
+              <summary>Contact feel probe</summary>
+              <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
+                <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
+                  <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
+                  <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
+                </div>
+                <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+                  <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+                  <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
+                </svg>
+                <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
+                  Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+                </p>
+              </div>
+            </details>
           </details>
           <div class="row" style="margin-top:8px;">
             <button type="button" id="pb-contact-save">Save to script</button>
@@ -421,7 +429,7 @@ export function initPlayback(root) {
           <div class="field-row"><label>Device</label>
             <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (no device)</label></span>
           </div>
-          <div class="field-row"><label>Sync-Modus</label>
+          <div class="field-row"><label>Sync mode</label>
             <select id="pb-sync">
               <option value="independent">independent</option>
               <option value="synchronized">synchronized</option>
@@ -1867,6 +1875,8 @@ export function initPlayback(root) {
     pbContactVibPreviewTimer = setTimeout(refreshPlayContactVibPreview, 160);
   }
   function openPlayContactProbe() {
+    const tune = el('#pb-contact-tune-details');
+    if (tune) tune.open = true;
     const d = el('#pb-contact-probe-details');
     if (d) d.open = true;
   }
@@ -3099,8 +3109,12 @@ export function initPlayback(root) {
     totalMs = Math.max(f.totalMs, 1);
     currentPosMs = f.atMs;
     el('#pb-progress').style.width = Math.min(100, (f.atMs / totalMs) * 100) + '%';
-    el('#pb-vib').textContent = Math.round(f.vibration * 100) + '%';
-    el('#pb-suc').textContent = Math.round(f.suction * 100) + '%';
+    const vibRaw = Number(f && f.vibration);
+    const sucRaw = Number(f && f.suction);
+    const vib = Math.round((Number.isFinite(vibRaw) ? vibRaw : 0) * 100);
+    const suc = Math.round((Number.isFinite(sucRaw) ? sucRaw : 0) * 100);
+    el('#pb-vib').textContent = vib + '%';
+    el('#pb-suc').textContent = suc + '%';
     checkAutoExtendedO(f.atMs);
     redrawHeatmap();
     redrawCurve();
@@ -3649,7 +3663,7 @@ export function initPlayback(root) {
       renderOMarkerList();
       redrawHeatmap();
       redrawCurve();
-      log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
+      log('O-marker set: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
     } catch (err) {
       logError('O-Taste: ' + err);
     }

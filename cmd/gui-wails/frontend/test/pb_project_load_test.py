@@ -83,8 +83,11 @@ def main():
               page.locator("#pb-omarker-details").count() == 1
               and page.locator("#pb-omarker-details").evaluate("el => !el.open"))
         page.locator("#pb-ofs-edit-details").evaluate("el => { el.open = true }")
+        page.evaluate(
+            "document.querySelector('#pb-project-details').open = true")
 
         check("Load project button present", page.locator("#pb-project-load").count() == 1)
+        check("Project details present", page.locator("#pb-project-details").count() == 1)
         check("Scale range button present", page.locator("#pb-scale-range").count() == 1)
         check("Scale factor slider present", page.locator("#pb-scale-factor").count() == 1)
         check("Cap intensity slider present", page.locator("#pb-cap-intensity").count() == 1)
