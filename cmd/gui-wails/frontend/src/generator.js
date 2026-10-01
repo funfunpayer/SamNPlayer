@@ -180,7 +180,7 @@ export function initGenerator(root, playback) {
           <select id="gen-target-class" style="min-width:7em;">
             <option value="">(any)</option>
           </select>
-          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Vib = stroke depth unless Tf/Tj.</span>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Vib = stroke depth; gold mark = Contact feel.</span>
         </div>
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
@@ -1218,10 +1218,6 @@ export function initGenerator(root, playback) {
   }
 
   // Product GUI is tip CSRT only (4-zone / research backends stay CLI).
-  function backendNeedsRoi() {
-    return true;
-  }
-
   function forceCsrtBackend(msg) {
     const backend = el('#gen-backend');
     backend.value = 'csrt';
@@ -3339,8 +3335,8 @@ export function initGenerator(root, playback) {
     }
     normalizeProductProfile();
 
-    // Everyday: no tip yet + CSRT → auto-find then continue.
-    if (backendNeedsRoi() && !roi) {
+    // Everyday: no tip yet → auto-find then continue.
+    if (!roi) {
       const strictAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
       if (strictAI) {
         pendingGenerateAfterRoi = false;
@@ -3512,7 +3508,20 @@ export function initGenerator(root, playback) {
   el('#gen-cancel').addEventListener('click', () => {
     userCancelRequested = true;
     pendingGenerateAfterRoi = false;
+    CancelROIDetection().catch(() => {});
     CancelGenerate();
+    // Tip-find-then-Create never gets generate:done until tracking starts —
+    // clear the Create lock here so Cancel always unlocks the UI.
+    if (generating) {
+      generating = false;
+      el('#gen-cancel').disabled = true;
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+      hideProgress();
+      updateGenerateEnabled();
+      updateSceneMapButton();
+      syncWorkflowSteps();
+    }
     el('#gen-status').textContent = queueRunning
       ? 'Cancel requested — stopping queue…'
       : 'Cancel requested…';
@@ -3634,12 +3643,11 @@ export function initGenerator(root, playback) {
     candidates = [];
     clearPendingSeed();
     setSeedSuggestEnabled(false);
-    // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
+    // Everyday first choice: tip CSRT.
     if (!el('#gen-backend').dataset.userTouched) {
       el('#gen-backend').value = 'csrt';
       forceCsrtBackend();
-    } else {
-          }
+    }
     if (!el('#gen-profile').dataset.userTouched) {
       el('#gen-profile').value = 'standard';
     }

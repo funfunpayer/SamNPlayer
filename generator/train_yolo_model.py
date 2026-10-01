@@ -180,11 +180,11 @@ def list_devices():
     mps_ok = _mps_available()
     dml_ok = _directml_device() is not None
     return [
-        {"id": "auto", "label": "Automatisch (bestes verfügbares)", "available": True},
+        {"id": "auto", "label": "Automatic (best available)", "available": True},
         {"id": "cuda", "label": "NVIDIA CUDA", "available": cuda_ok},
         {"id": "directml", "label": "DirectML (Windows, AMD/Intel/NVIDIA)", "available": dml_ok},
         {"id": "mps", "label": "Apple MPS", "available": mps_ok},
-        {"id": "cpu", "label": "CPU (sehr langsam)", "available": True},
+        {"id": "cpu", "label": "CPU (very slow)", "available": True},
     ]
 
 

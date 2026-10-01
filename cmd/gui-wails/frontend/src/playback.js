@@ -3665,7 +3665,7 @@ export function initPlayback(root) {
       redrawCurve();
       log('O-marker set: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
     } catch (err) {
-      logError('O-Taste: ' + err);
+      logError('O-marker hotkey: ' + err);
     }
   });
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });
