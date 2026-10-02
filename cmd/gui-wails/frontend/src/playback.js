@@ -37,6 +37,13 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
+        <div class="pb-brand-moment" aria-hidden="true">
+          <img class="pb-brand-mark" src="/src/assets/images/logo-universal.png" alt="" />
+          <p class="pb-brand-word">
+            <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
+          </p>
+        </div>
+        <p class="pb-empty-kicker">Play</p>
         <p class="pb-empty-title">Ready when you are</p>
         <p class="hint">Open an Emotion Script — with a film or without. Feel still reaches the device. Add more for a quiet list. Other apps’ files are welcome too.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
