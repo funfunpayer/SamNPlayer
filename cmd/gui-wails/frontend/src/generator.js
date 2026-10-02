@@ -3833,6 +3833,8 @@ export function initGenerator(root, playback) {
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
     updateProfileUi();
     updateGenerateEnabled();
+    el('#gen-roi-label').textContent =
+      `Tip (stroke tracker): ${via} found — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
     let status = hasRoi2
       ? `Tip + contact found (${via}) — drag either box to refine (editable).`
       : `Tip region found (${via}) — start box only; drag on the preview to refine.`;
