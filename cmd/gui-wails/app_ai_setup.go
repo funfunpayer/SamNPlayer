@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	aiSetupMu         sync.Mutex
-	aiSetupBusy       bool
-	contactPtsBusy    bool
-	contactPtsCancel  context.CancelFunc
-	contactPtsSeq     uint64
+	aiSetupMu        sync.Mutex
+	aiSetupBusy      bool
+	contactPtsBusy   bool
+	contactPtsCancel context.CancelFunc
+	contactPtsSeq    uint64
 )
 
 func claimAISetupRun() error {
