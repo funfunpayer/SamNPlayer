@@ -43,6 +43,7 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
 
 ### Fixed
 
+- **Create Find tip error (C7)** — tip-find failures name **Find tip** and show a retry button (classic error + strict AI miss). Cancel stays “Tip find canceled.” Everyday / Rhythm / AI defaults unchanged.
 - **Create Tip→Partner snack** — highlight Mark contact (outline + scroll) without auto-arming gold paint, so tip refine stays tip (`generator_mark_body_map_test`). Restored `generator.js` and this changelog after a file-URI overwrite on the PlayHeatUX branch.
 - **Create recognition block polish** — unified ROI cancel on seek/paint/AI
   toggle (classic Find no longer ignored); Find / other spots / AI tags mutual

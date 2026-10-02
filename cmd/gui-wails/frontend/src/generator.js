@@ -1338,6 +1338,29 @@ export function initGenerator(root, playback) {
   }
 
   // Tip-find never reached GenerateScript — skip remaining queue entries.
+  // C7: tip-find failures name the action and offer a real Find tip retry.
+  function showFindTipRetry(reason, level) {
+    const status = el('#gen-status');
+    const why = String(reason || 'no tip box').replace(/\s+/g, ' ').trim();
+    const msg = 'Find tip failed: ' + why + '.';
+    if (level === 'warn') uiWarn(msg, null);
+    else uiError(msg, null);
+    if (!status) return;
+    status.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = msg + ' ';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'secondary status-cta';
+    btn.textContent = 'Find tip';
+    btn.addEventListener('click', () => {
+      if (!videoPath || tipFindBusy || generating) return;
+      pendingGenerateAfterRoi = false;
+      startAutoFindRegion();
+    });
+    status.append(text, btn);
+  }
+
   function abortQueueDuringTipFind(statusMsg) {
     if (!queueRunning) return false;
     for (const q of generateQueue) {
@@ -3725,7 +3748,7 @@ export function initGenerator(root, playback) {
       const guidance = ['manifest_missing', 'manifest_invalid', 'class_unresolved', 'class_conflict'].includes(reason)
         ? 'Check that classes.json beside the ONNX model contains this class.'
         : 'Mark the intended point manually or train/correct more examples.';
-      uiWarn(`No confirmed ${wanted} (${reason}). ${guidance} Existing region kept.`, el('#gen-status'));
+      showFindTipRetry(`no confirmed ${wanted} (${reason}). ${guidance} Existing region kept`, 'warn');
       updateGenerateEnabled();
       return;
     }
@@ -3763,7 +3786,11 @@ export function initGenerator(root, playback) {
       updateGenerateEnabled();
       updateSceneMapButton();
       syncWorkflowSteps();
-      uiError('Automatic region search: ' + result.error + ' — press Find tip to retry.', el('#gen-status'));
+      if (/cancel/i.test(String(result.error || ''))) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        showFindTipRetry(result.error, 'error');
+      }
       // Queue tip-find failed — advance/fail entry (do not leave queue stuck).
       if (queueRunning && wasPending) {
         advanceQueueAfterDone(false, result.error);
