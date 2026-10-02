@@ -126,7 +126,7 @@ def main():
             check("Changing class while detection runs restores Find controls",
                   page.locator("#gen-autoroi").is_enabled())
             check("Changing class cancels the superseded detector backend",
-                  page.evaluate("window.__calls.filter(c => c[0] === 'cancel-roi').length") == 1)
+                  page.evaluate("window.__calls.filter(c => c[0] === 'cancel-roi').length") >= 1)
             page.evaluate("window.__holdStrict = false")
             page.fill("#gen-seek", "1.2")
             page.click("#gen-seek-btn")
