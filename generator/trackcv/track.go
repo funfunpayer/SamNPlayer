@@ -276,16 +276,17 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		var bbox Rect
 		if isCut {
 			sceneCuts = append(sceneCuts, frameIdx)
-			anchor := lastBbox
+			ok = false
 			if memory != nil {
 				if found, reacquired := memory.reacquire(gray); reacquired {
-					anchor = found
+					tracker.Close()
+					tracker = NewTracker()
+					tracker.Init(cap, found)
+					ok, bbox = true, found
 				}
 			}
-			tracker.Close()
-			tracker = NewTracker()
-			tracker.Init(cap, anchor)
-			ok, bbox = true, anchor
+			// No lastBbox re-init: inventing a tip on the old pixel after a
+			// hard cut is silent Ausfallcode (background latch).
 		} else {
 			bbox, ok = tracker.Update(cap)
 			if ok {

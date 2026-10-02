@@ -3629,11 +3629,7 @@ export function initGenerator(root, playback) {
       pipe.textContent = 'Path: Go CSRT';
     } else if (/PreferSimpletrack|simpletrack|NCC/i.test(s)) {
       pipe.textContent = 'Path: Go simpletrack (experimental)';
-    } else if (/Python CSRT|product path/i.test(s)) {
-      pipe.textContent = 'Path: Python CSRT';
-    } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
-      pipe.textContent = 'Path: Python';
-    } else if (/Fallback auf Python/i.test(s)) {
+    } else if (/Python CSRT|product path|using Python/i.test(s) && /Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     }
   };

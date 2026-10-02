@@ -274,24 +274,25 @@ func demoteWindowsAppsStubs(paths []string) []string {
 }
 
 func hasPackages(py string) (bool, string) {
-	// CSRT/KCF must exist — plain opencv-python (no contrib) imports cv2
-	// but leaves create_tracker() dead (Issues #94/#95).
+	// CSRT must exist — plain opencv-python (no contrib) imports cv2
+	// but leaves create_tracker() dead (Issues #94/#95). KCF/MIL alone
+	// is not accepted (no silent weak-tracker Ausfallcode).
 	script := "import cv2, scipy, numpy\n" +
 		"ok=False\n" +
 		"leg=getattr(cv2,'legacy',None)\n" +
-		"for free,cls in (('TrackerCSRT_create','TrackerCSRT'),('TrackerKCF_create','TrackerKCF'),('TrackerMIL_create','TrackerMIL')):\n" +
+		"for free,cls in (('TrackerCSRT_create','TrackerCSRT'),):\n" +
 		"  if callable(getattr(cv2,free,None)) or (getattr(cv2,cls,None) is not None and callable(getattr(getattr(cv2,cls,None),'create',None))):\n" +
 		"    ok=True; break\n" +
 		"  if leg is not None and (callable(getattr(leg,free,None)) or (getattr(leg,cls,None) is not None and callable(getattr(getattr(leg,cls,None),'create',None)))):\n" +
 		"    ok=True; break\n" +
-		"assert ok, 'OpenCV ohne Tracker (CSRT/KCF) — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
+		"assert ok, 'OpenCV ohne CSRT — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
 	out, err := command(py, "-c", script).CombinedOutput()
 	return err == nil, string(out)
 }
 
 // pythonHasCSRT reports whether the given interpreter's cv2 exposes any CSRT
-// factory (legacy or main). Used for a pre-track warning when Generate must
-// take the Python path (#338) — hasPackages also accepts KCF/MIL.
+// factory (legacy or main). Used for a pre-track check when Generate must
+// take the Python path (#338) — hasPackages requires CSRT only.
 func pythonHasCSRT(py string) (bool, string) {
 	script := "import cv2\n" +
 		"leg=getattr(cv2,'legacy',None)\n" +
@@ -1403,8 +1404,8 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	if err := CheckDependencies(); err != nil {
 		return fmt.Errorf("generator: Generate needs opencv-contrib-python (CSRT). Install with the pip line below — NCC is not the product path.\n%w", err)
 	}
-	if ok, detail := pythonHasCSRT(py); !ok && onProgress != nil {
-		onProgress("Warning: Python OpenCV has no CSRT (" + detail + ") — tracker will fall back to KCF/MIL. Fix: pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python. Windows portable: uncheck Advanced → Re-find region after each cut to use built-in Go CSRT instead.")
+	if ok, detail := pythonHasCSRT(py); !ok {
+		return fmt.Errorf("generator: Python OpenCV has no CSRT (%s) — needs opencv-contrib-python (no KCF/MIL fallback). Fix: pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python", detail)
 	}
 	scriptPath, err := writeScriptToTemp()
 	if err != nil {

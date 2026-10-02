@@ -13,8 +13,7 @@ WICHTIG - was hier NICHT passiert:
 - Kein Modell liegt im Repository oder wird automatisch heruntergeladen.
   `model_path` zeigt auf eine vom Nutzer bereitgestellte .onnx-Datei; ohne
   sie meldet `available()` False und `find_roi()` einen klaren Fehler, den
-  `track_by_scenes()` bereits abfängt und auf die vorherige Region
-  zurückfällt (siehe dortiger try/except).
+  `track_by_scenes()` abfängt und die Szene überspringt (kein Tip-Reuse).
 - Kein Code oder Gewicht aus FunGen 1 (PolyForm Strict) oder FunGen 2
   (geschlossenes Binary) wurde gelesen oder übernommen. Nur öffentlich
   beschriebenes VERHALTEN (fungen.app, Changelog: YOLO-Erkennung +
@@ -114,14 +113,16 @@ def decode_detections(raw_output, confidence_threshold=0.35):
 
 
 def _filter_preferred(detections, preferred_class_ids=None):
-    """If preferred_class_ids is set and at least one detection matches,
-    keep only those. Otherwise return detections unchanged (honest fallback
-    so a single-class model or an empty preference list still works)."""
+    """If preferred_class_ids is set, keep only matching detections.
+
+    Empty preferred match → empty list (fail closed). No silent fallback to
+    any other class — use find_expected_roi / strict binding when you need a
+    named body class, or leave preferred unset for confidence-only ranking.
+    """
     if not detections or not preferred_class_ids:
         return detections
     preferred = {int(c) for c in preferred_class_ids}
-    filtered = [d for d in detections if int(d.get("class_id", -1)) in preferred]
-    return filtered if filtered else detections
+    return [d for d in detections if int(d.get("class_id", -1)) in preferred]
 
 
 def _depth_rank_enabled(use_depth_rank=False):

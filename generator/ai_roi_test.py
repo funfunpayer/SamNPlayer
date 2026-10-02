@@ -118,10 +118,10 @@ def main():
     check("preferred_class_ids wählt Klasse 1 trotz niedrigerer Konfidenz",
           box_pref == (600, 300, 200, 200), str(box_pref))
 
-    box_fallback = ai_roi.select_best_box(mixed, frame_w=1000, frame_h=1000,
-                                           preferred_class_ids=[9])
-    check("preferred ohne Treffer fällt ehrlich auf alle Detektionen zurück",
-          box_fallback == (100, 100, 100, 100), str(box_fallback))
+    box_miss = ai_roi.select_best_box(mixed, frame_w=1000, frame_h=1000,
+                                      preferred_class_ids=[9])
+    check("preferred ohne Treffer fail-closed (kein Klassen-Fallback)",
+          box_miss is None, str(box_miss))
 
     # --- depth rank (opt-in): soft bonus from support_signals ----------------
     gray = np.zeros((200, 200), dtype=np.uint8)

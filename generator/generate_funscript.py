@@ -229,23 +229,16 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
                   and detect_scene_cut(prev_gray, gray))
         if is_cut:
             scene_cuts.append(frame_idx)
-            # Über einen harten Schnitt hinweg zu tracken ist sinnlos - CSRT
-            # würde versuchen, die Objektregion in einem komplett anderen
-            # Bild wiederzufinden und typischerweise auf eine falsche
-            # Region "kleben bleiben". Stattdessen: Tracker an der zuletzt
-            # bekannten Position in der neuen Szene neu verankern (kein
-            # Objekterkenner vorhanden, der die echte Position in der neuen
-            # Szene finden könnte - das ist der bestmögliche Fallback ohne KI).
-            # Erst im Erscheinungsgedächtnis nachsehen, wo die Region in
-            # der NEUEN Szene liegt. Nur wenn das nichts findet, an der
-            # letzten bekannten Position neu verankern - das ist der alte,
-            # schlechtere Fallback, bei dem der Tracker auf Hintergrund
-            # kleben bleiben kann.
+            # Hard cut: only re-anchor when appearance memory finds the tip
+            # in the new scene. Never invent a tip by sticking last_bbox on
+            # background (silent Ausfallcode).
             found = memory.reacquire(gray, last_bbox) if memory else None
-            anchor = found if found else last_bbox
-            tracker = create_tracker()
-            tracker.init(frame, tuple(int(v) for v in anchor))
-            ok, bbox = True, anchor
+            if found:
+                tracker = create_tracker()
+                tracker.init(frame, tuple(int(v) for v in found))
+                ok, bbox = True, found
+            else:
+                ok, bbox = False, last_bbox
         else:
             ok, bbox = tracker.update(frame)
             if not ok and memory:
@@ -275,8 +268,11 @@ def track_roi(video_path, roi, max_frames=None, camera_compensation=True,
             # Jeden Frame zu speichern brächte nichts: aufeinanderfolgende
             # Frames sehen praktisch gleich aus, die Sammlung wäre voller
             # Dubletten und würde die frühere Erscheinung verdrängen.
+            # Gate like Go: do not poison the bank with drifted crops.
             if memory and frame_idx % 25 == 0:
-                memory.remember(gray, bbox)
+                score, known = memory.matches_original(gray, bbox)
+                if not known or score >= memory.min_score:
+                    memory.remember(gray, bbox)
 
         if camera_compensation:
             if is_cut:
@@ -581,16 +577,23 @@ def track_by_scenes(video_path, fallback_roi, max_frames=None,
     offset = 0
 
     for scene_idx, (start, end) in enumerate(scenes):
-        roi = fallback_roi
         try:
             found = roi_finder(video_path, start, end)
-            if found:
-                roi = found
         except Exception as exc:
-            # Eine gescheiterte Regionssuche darf die Szene nicht
-            # überspringen - dann eben mit der bisherigen Region weiter.
-            print(f"Szene {scene_idx + 1}: Regionssuche fehlgeschlagen ({exc}), "
-                  "vorherige Region wird weiterverwendet", file=sys.stderr)
+            # Fail closed: do not silently reuse the previous scene's tip
+            # (wrong latch on a new shot). Skip this scene instead.
+            print(f"Szene {scene_idx + 1}: Regionssuche fehlgeschlagen ({exc}) — "
+                  "Szene übersprungen (kein Tip-Reuse)", file=sys.stderr)
+            continue
+        if found:
+            roi = found
+        elif scene_idx == 0 and fallback_roi:
+            # First scene only: user-provided seed when finder returns nothing.
+            roi = fallback_roi
+        else:
+            print(f"Szene {scene_idx + 1}: keine Region — Szene übersprungen "
+                  "(kein Tip-Reuse)", file=sys.stderr)
+            continue
 
         print(f"Szene {scene_idx + 1}/{len(scenes)}: Frames {start}-{end}, Region {roi}",
               file=sys.stderr)
@@ -1115,8 +1118,39 @@ class AppearanceMemory:
             # Ausschnitt, von dem sicher ist, dass er das Richtige zeigt.
             del self.templates[1]
 
+    def matches_original(self, gray, box):
+        """(score, known) vs templates[0] — gate remember/reacquire like Go."""
+        if not self.templates:
+            return 0.0, False
+        orig = self.templates[0]
+        scale = 1.0 / self.downscale if self.downscale != 1.0 else 1.0
+        orig_w = int(orig.shape[1] * scale)
+        orig_h = int(orig.shape[0] * scale)
+        search_w = orig_w * 2 + 16
+        search_h = orig_h * 2 + 16
+        x, y, w, h = [int(v) for v in box]
+        cx, cy = x + w // 2, y + h // 2
+        x0 = max(0, cx - search_w // 2)
+        y0 = max(0, cy - search_h // 2)
+        x1 = min(gray.shape[1], x0 + search_w)
+        y1 = min(gray.shape[0], y0 + search_h)
+        region = gray[y0:y1, x0:x1]
+        if region.size == 0:
+            return 0.0, False
+        frame = self._prepare(region)
+        if orig.shape[0] >= frame.shape[0] or orig.shape[1] >= frame.shape[1]:
+            return 0.0, False
+        result = cv2.matchTemplate(frame, orig, cv2.TM_CCOEFF_NORMED)
+        _, score, _, _ = cv2.minMaxLoc(result)
+        return float(score), True
+
     def reacquire(self, gray, box_size):
-        """Sucht die Region im ganzen Bild. Gibt (x, y, w, h) oder None."""
+        """Sucht die Region im ganzen Bild. Gibt (x, y, w, h) oder None.
+
+        Fail-closed: candidate must resemble templates[0] when present
+        (same gate as Go appearanceMemory.reacquire) — no silent latch onto
+        the globally best wrong patch.
+        """
         if not self.templates:
             return None
         frame = self._prepare(gray)
@@ -1138,8 +1172,13 @@ class AppearanceMemory:
         y = int(best_loc[1] * scale)
         w = int(best_shape[1] * scale)
         h = int(best_shape[0] * scale)
+        cand = (x, y, max(8, w), max(8, h))
+        seed_score, known = self.matches_original(gray, cand)
+        if known and seed_score < self.min_score:
+            self.failed_reacquisitions += 1
+            return None
         self.reacquisitions += 1
-        return (x, y, max(8, w), max(8, h))
+        return cand
 
 
 def _parse_bandpass_hz(value):
@@ -1317,7 +1356,7 @@ def enforce_min_interval(timestamps_ms, pos, keyframe_idx, min_interval_ms):
 
 
 def create_tracker():
-    """Erzeugt einen CSRT-Tracker (Fallback: KCF).
+    """Erzeugt einen CSRT-Tracker — hard-fail if CSRT is missing.
 
     Gekapselt, weil OpenCV die CSRT-Erzeugung je nach opencv-contrib-python-
     Version an verschiedenen Stellen anbietet, und welche davon existiert
@@ -1335,26 +1374,11 @@ def create_tracker():
     GEMESSEN (Issue #94/#95, Sep 18 2026, Windows, cv2 5.0.0): manche
     Installationen melden 5.0.0 OHNE jede CSRT-API — typisch wenn
     opencv-python (ohne contrib) opencv-contrib-python überschattet.
-    Dann Fallback auf KCF (mit Warnung), statt hart abzubrechen; Tf/Tj
-    und KI-Training brauchen irgendeinen Tracker.
-
-    CSRT bleibt bevorzugt (Qualität). KCF ist messbar schneller, auf
-    harten Tip-ROIs schwächer — siehe docs/NEXT.md Priorität 8.
+    No KCF/MIL soft-fallback: wrong tip quality is worse than a clear
+    install error. Product path is Go CSRT (OpenCV builds) or Python CSRT.
     """
     factory = _csrt_factory()
     if factory is not None:
-        return factory()
-    factory, kind = _fallback_tracker_factory()
-    if factory is not None:
-        print(
-            f"Warning: CSRT not available in OpenCV {getattr(cv2, '__version__', '?')} "
-            f"— using {kind} as fallback. For best quality: "
-            f"pip uninstall opencv-python opencv-python-headless && "
-            f"pip install opencv-contrib-python. "
-            f"Windows portable tip: uncheck Advanced → Re-find region after each cut "
-            f"to use built-in Go CSRT (no Python OpenCV needed).",
-            file=sys.stderr,
-        )
         return factory()
     raise RuntimeError(_opencv_tracker_missing_message())
 
@@ -1380,48 +1404,23 @@ def _csrt_factory():
     return None
 
 
-def _fallback_tracker_factory():
-    """(factory, kind) für KCF/MIL, oder (None, '')."""
-    candidates = (
-        ("KCF", "TrackerKCF_create", "TrackerKCF"),
-        ("MIL", "TrackerMIL_create", "TrackerMIL"),
-    )
-    legacy = getattr(cv2, "legacy", None)
-    for kind, free_name, cls_name in candidates:
-        if legacy is not None:
-            create_fn = getattr(legacy, free_name, None)
-            if callable(create_fn):
-                return create_fn, kind
-            cls = getattr(legacy, cls_name, None)
-            create_m = getattr(cls, "create", None) if cls is not None else None
-            if callable(create_m):
-                return create_m, kind
-        create_fn = getattr(cv2, free_name, None)
-        if callable(create_fn):
-            return create_fn, kind
-        cls = getattr(cv2, cls_name, None)
-        create_m = getattr(cls, "create", None) if cls is not None else None
-        if callable(create_m):
-            return create_m, kind
-    return None, ""
-
-
 def _opencv_tracker_missing_message():
     ver = getattr(cv2, "__version__", "?")
     origin = getattr(cv2, "__file__", "?")
     return (
-        f"No OpenCV tracker (CSRT/KCF/MIL) in cv2 {ver} "
+        f"No OpenCV CSRT tracker in cv2 {ver} "
         f"(loaded from {origin}). Common cause: opencv-python without "
         f"contrib shadowing opencv-contrib-python. Fix:\n"
         f"  pip uninstall opencv-python opencv-python-headless\n"
         f"  pip install opencv-contrib-python\n"
-        f"Then restart SamNPlayer."
+        f"Then restart SamNPlayer. Windows portable: use the Go CSRT build "
+        f"(uncheck Advanced → Prefer Python) instead of inventing a tip with KCF/MIL."
     )
 
 
 def opencv_has_usable_tracker():
-    """True, wenn create_tracker() einen Tracker erzeugen könnte."""
-    return _csrt_factory() is not None or _fallback_tracker_factory()[0] is not None
+    """True, wenn create_tracker() einen CSRT erzeugen könnte."""
+    return _csrt_factory() is not None
 
 
 def track_multi_points(video_path, tip_roi, targets, max_frames=None, start_frame=0,

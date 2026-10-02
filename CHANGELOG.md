@@ -37,6 +37,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Recognition honesty: drop silent tip Ausfallcode** — Python tracker is
+  CSRT-only (no KCF/MIL soft-fallback); scene-cut no longer re-inits on
+  `last_bbox` when reacquire fails (Go + Python); `track_by_scenes` skips a
+  scene instead of reusing the previous tip; AI preferred-class filter
+  fail-closes instead of picking any class; Python appearance memory gates
+  remember/reacquire on the seed like Go; dead `_legacy_threshold_box` removed.
 - **Play: pause during soft-start left device mid-ramp** — `Sync` soft-start
   now watches the positions channel; idle/pause zeros immediately (and
   `goQuiet` no longer no-ops while `firstFrame`/`quiet` is still set).
