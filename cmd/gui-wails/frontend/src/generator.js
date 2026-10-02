@@ -3773,7 +3773,7 @@ export function initGenerator(root, playback) {
       updateGenerateEnabled();
       updateSceneMapButton();
       syncWorkflowSteps();
-      uiError('Automatic region search: ' + result.error, el('#gen-status'));
+      uiError('Automatic region search: ' + result.error + ' — press Find tip to retry.', el('#gen-status'));
       // Queue tip-find failed — advance/fail entry (do not leave queue stuck).
       if (queueRunning && wasPending) {
         advanceQueueAfterDone(false, result.error);
