@@ -85,6 +85,9 @@ def main():
                   page.locator("#pb-seg-heatbands").is_checked() is False)
             check("feel opacity 0.4",
                   page.locator("#pb-seg-heatbands-opacity").input_value() == "0.4")
+            page.evaluate(
+                "document.querySelector('#pb-contact-tune-details') && "
+                "(document.querySelector('#pb-contact-tune-details').open = true)")
             check("contact strength 0 preserved",
                   page.locator("#pb-contact-intensity").input_value() == "0")
             check("contact strength label 0.00",

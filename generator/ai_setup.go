@@ -2,6 +2,7 @@ package generator
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -103,11 +104,16 @@ func contactPointsArgs(video string, o ContactPointsRun) ([]string, string, erro
 // teachers and returns the written <video>.contact.json - the file the
 // Advanced "Use contact points" option loads. One click instead of the CLI.
 func GenerateContactPoints(video string, o ContactPointsRun, onLine func(string)) (string, error) {
+	return GenerateContactPointsWithContext(context.Background(), video, o, onLine)
+}
+
+// GenerateContactPointsWithContext is GenerateContactPoints with cancel via ctx.
+func GenerateContactPointsWithContext(ctx context.Context, video string, o ContactPointsRun, onLine func(string)) (string, error) {
 	args, out, err := contactPointsArgs(video, o)
 	if err != nil {
 		return "", err
 	}
-	if _, err := runEmbeddedPython("contact_points.py", args, onLine); err != nil {
+	if _, err := runEmbeddedPythonCtx(ctx, "contact_points.py", args, onLine); err != nil {
 		return "", err
 	}
 	return out, nil
@@ -117,6 +123,13 @@ func GenerateContactPoints(video string, o ContactPointsRun, onLine func(string)
 // them with the detected Python, streams combined output lines to onLine
 // and returns stdout.
 func runEmbeddedPython(script string, args []string, onLine func(string)) (string, error) {
+	return runEmbeddedPythonCtx(context.Background(), script, args, onLine)
+}
+
+func runEmbeddedPythonCtx(ctx context.Context, script string, args []string, onLine func(string)) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return "", err
@@ -126,7 +139,7 @@ func runEmbeddedPython(script string, args []string, onLine func(string)) (strin
 		return "", err
 	}
 	defer cleanupScriptTemp(main)
-	cmd := command(py, append([]string{filepath.Join(filepath.Dir(main), script)}, args...)...)
+	cmd := commandContext(ctx, py, append([]string{filepath.Join(filepath.Dir(main), script)}, args...)...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return "", err
@@ -147,6 +160,9 @@ func runEmbeddedPython(script string, args []string, onLine func(string)) (strin
 		}
 	}
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return outBuf.String(), fmt.Errorf("generator: %s cancelled: %w", script, ctx.Err())
+		}
 		msg := strings.TrimSpace(errBuf.String())
 		if i := strings.LastIndex(msg, "\n"); i >= 0 {
 			msg = msg[i+1:]

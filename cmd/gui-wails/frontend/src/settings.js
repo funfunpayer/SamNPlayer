@@ -106,13 +106,15 @@ export function initSettings(root) {
     </div>
     <p class="hint" style="margin-top:0">On by default (same as since v0.5.44). Changing this reloads the open script.</p>
 
-    <h3>What you need (keep it lean)</h3>
-    <ul class="hint" style="margin:0 0 12px; padding-left:1.2em; line-height:1.55;">
-      <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
-      <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
-      <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
-      <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
-    </ul>
+    <details id="st-need-details" class="st-opt-panel">
+      <summary>What you need — portable Play + Create, no extra install</summary>
+      <ul class="hint" style="margin:8px 0 4px; padding-left:1.2em; line-height:1.55;">
+        <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
+        <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
+        <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
+        <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
+      </ul>
+    </details>
 
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
@@ -129,17 +131,19 @@ export function initSettings(root) {
       <button id="st-license-refresh" type="button">Refresh status</button>
     </div>
 
-    <h3>Plugins</h3>
-    <p class="hint">Drop-folder packs with <code>samn-plugin.json</code>. Open the folder or
-      <b>Install pack…</b> to copy one in. Virtual Person product is <b>cancelled / out of scope</b>
-      (not deferred) — Everyday Create/Play unchanged. See <code>docs/PLUGIN_SYSTEM.md</code>.</p>
-    <p class="hint" id="st-plugins-path" style="margin-top:0">Plugins folder: …</p>
-    <p class="hint" id="st-plugins-status" style="margin-top:0">…</p>
-    <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="st-plugins-install" type="button" class="primary">Install pack…</button>
-      <button id="st-plugins-open-folder" type="button">Open Plugins folder</button>
-      <button id="st-plugins-refresh" type="button">Refresh</button>
-    </div>
+    <details id="st-plugins-details" class="st-opt-panel">
+      <summary>Plugins — optional drop-folder packs</summary>
+      <p class="hint" style="margin:8px 0 6px;">Drop-folder packs with <code>samn-plugin.json</code>. Open the folder or
+        <b>Install pack…</b> to copy one in. Virtual Person product is <b>cancelled / out of scope</b>
+        (not deferred) — Everyday Create/Play unchanged. See <code>docs/PLUGIN_SYSTEM.md</code>.</p>
+      <p class="hint" id="st-plugins-path" style="margin-top:0">Plugins folder: …</p>
+      <p class="hint" id="st-plugins-status" style="margin-top:0">…</p>
+      <div class="row" style="align-items:center; margin-top:6px;">
+        <button id="st-plugins-install" type="button" class="primary">Install pack…</button>
+        <button id="st-plugins-open-folder" type="button">Open Plugins folder</button>
+        <button id="st-plugins-refresh" type="button">Refresh</button>
+      </div>
+    </details>
 
     <h3>Runtime &amp; updates</h3>
     <div class="row" style="align-items:center;">
@@ -153,18 +157,21 @@ export function initSettings(root) {
       <button id="st-update-apply" type="button" class="primary" style="display:none;">Download &amp; restart</button>
       <span class="hint" id="st-update-status" style="margin:0"></span>
     </div>
-    <div class="field-row"><label>Log level</label>
-      <select id="st-log-level">
-        <option value="debug">debug</option>
-        <option value="info">info</option>
-        <option value="warn">warn</option>
-        <option value="error">error</option>
-      </select>
-    </div>
-    <div class="row">
-      <span class="path-label" id="st-log-path"></span>
-      <button id="st-open-log">Open log folder</button>
-    </div>
+    <details id="st-logs-details" class="st-opt-panel">
+      <summary>Logs</summary>
+      <div class="field-row" style="margin-top:8px;"><label>Log level</label>
+        <select id="st-log-level">
+          <option value="debug">debug</option>
+          <option value="info">info</option>
+          <option value="warn">warn</option>
+          <option value="error">error</option>
+        </select>
+      </div>
+      <div class="row">
+        <span class="path-label" id="st-log-path"></span>
+        <button id="st-open-log">Open log folder</button>
+      </div>
+    </details>
 
     <details id="st-optional-ai" class="st-opt-panel">
       <summary>Optional AI &amp; learning — Everyday Create/Play need none of this</summary>
@@ -232,48 +239,51 @@ export function initSettings(root) {
     <pre id="st-ai-setup-out" class="hint" style="white-space:pre-wrap; margin-top:6px; max-height:14em; overflow:auto;"></pre>
     </details>
 
-    <h3>Hardware</h3>
-    <p class="hint">Which acceleration the generator can actually use. Having an
-      NVIDIA GPU does not mean it is used — typical OpenCV pip packages are built
-      without CUDA.</p>
-    <div class="row"><button id="st-hardware">Check hardware</button></div>
-    <pre id="st-hardware-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
+    <details id="st-diagnostics-details" class="st-opt-panel">
+      <summary>Hardware · Cache · Generator metrics</summary>
+      <h3>Hardware</h3>
+      <p class="hint">Which acceleration the generator can actually use. Having an
+        NVIDIA GPU does not mean it is used — typical OpenCV pip packages are built
+        without CUDA.</p>
+      <div class="row"><button id="st-hardware">Check hardware</button></div>
+      <pre id="st-hardware-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
 
-    <h3>Cache</h3>
-    <p class="hint">The generator stores tracking results so a re-run with different
-      settings does not re-decode the whole video — about 36× faster. The cache grows
-      with each video.</p>
-    <div class="row">
-      <span class="path-label" id="st-cache-info">…</span>
-      <button id="st-cache-clear">Clear now</button>
-    </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="st-cache-exit" />
-      <label for="st-cache-exit">Clear automatically on quit</label>
-    </div>
+      <h3>Cache</h3>
+      <p class="hint">The generator stores tracking results so a re-run with different
+        settings does not re-decode the whole video — about 36× faster. The cache grows
+        with each video.</p>
+      <div class="row">
+        <span class="path-label" id="st-cache-info">…</span>
+        <button id="st-cache-clear">Clear now</button>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="st-cache-exit" />
+        <label for="st-cache-exit">Clear automatically on quit</label>
+      </div>
 
-    <h3>Generator metrics</h3>
-    <p class="hint">Appends a line of metrics for every Create run (motion amplitude,
-      spectral concentration, tracker loss, runtime). Together with your judgments in
-      the Create tab, this is the basis for tuning quality scoring on real material —
-      so far it relies on synthetic test videos. Leave empty to disable recording.</p>
-    <div class="row">
-      <input type="text" id="st-report-path" placeholder="(no recording)"
-             style="flex:1;" />
-      <button id="st-pick-report">Choose…</button>
-      <button id="st-default-report">Default</button>
-    </div>
-    <p class="hint" id="st-report-status" style="margin-top:2px;"></p>
-    <div class="row">
-      <button id="st-report-summary">Show summary</button>
-      <button id="st-model-info">Show model</button>
-      <button id="st-model-train" class="primary">Learn from judgments</button>
-    </div>
-    <p class="hint">Quality scoring uses thresholds set on synthetic test videos.
-      With enough of your own judgments, a model can be learned instead. It is only
-      adopted if it beats the current rules in cross-validation — otherwise nothing
-      changes.</p>
-    <pre id="st-report-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
+      <h3>Generator metrics</h3>
+      <p class="hint">Appends a line of metrics for every Create run (motion amplitude,
+        spectral concentration, tracker loss, runtime). Together with your judgments in
+        the Create tab, this is the basis for tuning quality scoring on real material —
+        so far it relies on synthetic test videos. Leave empty to disable recording.</p>
+      <div class="row">
+        <input type="text" id="st-report-path" placeholder="(no recording)"
+               style="flex:1;" />
+        <button id="st-pick-report">Choose…</button>
+        <button id="st-default-report">Default</button>
+      </div>
+      <p class="hint" id="st-report-status" style="margin-top:2px;"></p>
+      <div class="row">
+        <button id="st-report-summary">Show summary</button>
+        <button id="st-model-info">Show model</button>
+        <button id="st-model-train" class="primary">Learn from judgments</button>
+      </div>
+      <p class="hint">Quality scoring uses thresholds set on synthetic test videos.
+        With enough of your own judgments, a model can be learned instead. It is only
+        adopted if it beats the current rules in cross-validation — otherwise nothing
+        changes.</p>
+      <pre id="st-report-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
+    </details>
   `;
 
   const el = id => root.querySelector(id);
@@ -329,19 +339,21 @@ export function initSettings(root) {
     if (!box) return;
     try {
       const st = await GetLicenseStatus();
-      const feats = Array.isArray(st.features) && st.features.length
-        ? `features: ${st.features.join(',')}`
-        : null;
-      const bits = [
-        `state: ${st.state || 'none'}`,
+      const state = st.state || 'none';
+      const lines = [
+        st.message || 'No license message.',
+        `state: ${state}`,
         st.sub ? `person: ${st.sub}` : null,
         st.tier ? `tier: ${st.tier}` : null,
-        st.validUntil ? `until: ${st.validUntil}` : null,
-        feats,
-        `enforcement: ${st.enforcement ? 'ON' : 'off'}`,
-        `effective: ${st.effective ? 'full access' : 'trial'}`,
+        st.validUntil ? `until: ${st.validUntil}` : 'until: (none / invite)',
+        Array.isArray(st.features) && st.features.length
+          ? `features: ${st.features.join(', ')}`
+          : null,
+        `enforcement: ${st.enforcement ? 'ON' : 'off'} (${st.enforcement ? 'limits Apply' : 'test path — Create/Play unlimited'})`,
+        `effective: ${st.effective ? 'full' : 'trial'}`,
       ].filter(Boolean);
-      box.textContent = (st.message || '') + ' · ' + bits.join(' · ');
+      box.textContent = lines.join('\n');
+      box.style.whiteSpace = 'pre-wrap';
     } catch (err) {
       box.textContent = 'License status failed: ' + err;
     }

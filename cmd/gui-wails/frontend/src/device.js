@@ -64,7 +64,9 @@ export function initDevice(root) {
       </div>
     </fieldset>
 
-    <fieldset id="dev-raw" disabled style="margin-top:16px; border:1px solid var(--border);
+    <details id="dev-raw-details" class="st-opt-panel">
+      <summary>Raw value test</summary>
+    <fieldset id="dev-raw" disabled style="margin-top:10px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
       <legend style="padding:0 6px;" data-help="Sends the level value without conversion. 0–10 / 0–5 come from Buttplug — whether firmware accepts more is unclear. Try 3 vs 4, then 20/50/100.">Raw value test</legend>
       <div class="row" style="align-items:center;">
@@ -77,8 +79,11 @@ export function initDevice(root) {
         <span id="dev-raw-hint" class="hint"></span>
       </div>
     </fieldset>
+    </details>
 
-    <fieldset id="dev-diag" disabled style="margin-top:16px; border:1px solid var(--border);
+    <details id="dev-diag-details" class="st-opt-panel">
+      <summary>Diagnostics</summary>
+    <fieldset id="dev-diag" disabled style="margin-top:10px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
       <legend style="padding:0 6px;" data-help="Automated test sequence (raw acceptance, update rate, channel interaction). Measures write latency and accepted values — not felt intensity. The device moves briefly several times.">Device diagnostics</legend>
       <div class="row"><button id="diag-run">Run diagnostics</button></div>
@@ -87,6 +92,7 @@ export function initDevice(root) {
       <h4 style="margin:14px 0 4px;">History</h4>
       <div id="diag-history" class="hint">Loading…</div>
     </fieldset>
+    </details>
 
     <div id="dev-log" class="hint" style="margin-top:12px; white-space:pre-wrap;"></div>
   `;

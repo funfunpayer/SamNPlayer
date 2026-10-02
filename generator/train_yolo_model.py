@@ -180,11 +180,11 @@ def list_devices():
     mps_ok = _mps_available()
     dml_ok = _directml_device() is not None
     return [
-        {"id": "auto", "label": "Automatisch (bestes verfügbares)", "available": True},
+        {"id": "auto", "label": "Automatic (best available)", "available": True},
         {"id": "cuda", "label": "NVIDIA CUDA", "available": cuda_ok},
         {"id": "directml", "label": "DirectML (Windows, AMD/Intel/NVIDIA)", "available": dml_ok},
         {"id": "mps", "label": "Apple MPS", "available": mps_ok},
-        {"id": "cpu", "label": "CPU (sehr langsam)", "available": True},
+        {"id": "cpu", "label": "CPU (very slow)", "available": True},
     ]
 
 
@@ -196,40 +196,40 @@ def resolve_device(requested="auto"):
     req = (requested or "auto").strip().lower()
     if req in ("", "auto"):
         if _cuda_available():
-            print("Gerät auto → cuda", file=sys.stderr)
+            print("Device auto → cuda", file=sys.stderr)
             return "0"
         if _mps_available():
-            print("Gerät auto → mps", file=sys.stderr)
+            print("Device auto → mps", file=sys.stderr)
             return "mps"
         dml = _directml_device()
         if dml is not None:
-            print("Gerät auto → directml", file=sys.stderr)
+            print("Device auto → directml", file=sys.stderr)
             return dml
-        print("Gerät auto → cpu (kein GPU-Backend gefunden)", file=sys.stderr)
+        print("Device auto → cpu (no GPU backend found)", file=sys.stderr)
         return "cpu"
 
     if req in ("cuda", "gpu"):
         if not _cuda_available():
             raise RuntimeError(
-                "CUDA wurde gewählt, ist aber nicht verfügbar "
-                "(kein NVIDIA-Treiber / kein torch mit CUDA). "
-                "Unter Windows ohne NVIDIA: --device directml oder auto.")
+                "CUDA was selected but is not available "
+                "(no NVIDIA driver / no torch with CUDA). "
+                "On Windows without NVIDIA: --device directml or auto.")
         return "0"
 
     if req == "mps":
         if not _mps_available():
             raise RuntimeError(
-                "MPS wurde gewählt, ist aber nicht verfügbar "
-                "(nur Apple Silicon mit passendem PyTorch).")
+                "MPS was selected but is not available "
+                "(Apple Silicon with matching PyTorch only).")
         return "mps"
 
     if req in ("directml", "dml"):
         dml = _directml_device()
         if dml is None:
             raise RuntimeError(
-                "DirectML wurde gewählt, ist aber nicht verfügbar. "
-                "Unter Windows: pip install torch-directml "
-                "(zusätzlich zu requirements-ai-train.txt).")
+                "DirectML was selected but is not available. "
+                "On Windows: pip install torch-directml "
+                "(in addition to requirements-ai-train.txt).")
         return dml
 
     if req == "cpu":
@@ -256,8 +256,8 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
         # Kommandozeile), damit auch der einen klaren Hinweis statt eines
         # rohen ModuleNotFoundError-Tracebacks bekommt.
         raise RuntimeError(
-            "ultralytics ist nicht installiert - für das Training nötig "
-            "(nicht Teil der Basis-Installation, siehe requirements-ai-train.txt): "
+            "ultralytics is not installed — required for training "
+            "(not part of the base install; see requirements-ai-train.txt): "
             "pip install -r generator/requirements-ai-train.txt") from exc
 
     data_yaml = os.path.join(dataset_dir, "data.yaml")
@@ -271,7 +271,7 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
 
     resolved = resolve_device(device)
     project_dir = project_dir or os.path.join(dataset_dir, "runs")
-    print(f"Training: {base_model} auf {data_yaml}, {epochs} Epochen, "
+    print(f"Training: {base_model} on {data_yaml}, {epochs} epochs, "
           f"device={device!r} → {resolved!r}",
           file=sys.stderr)
     model = YOLO(base_model)
@@ -289,15 +289,15 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
     weights_path = os.path.join(project_dir, run_name, "weights", "best.pt")
     if not os.path.isfile(weights_path):
         raise RuntimeError(
-            f"Training abgeschlossen, aber keine best.pt unter {weights_path} gefunden - "
-            "vermutlich ist das Training fehlgeschlagen, siehe Log oberhalb.")
+            f"Training finished but no best.pt under {weights_path} — "
+            "training likely failed; see the log above.")
 
     import export_yolo_onnx
-    print(f"Exportiere {weights_path} -> {output_path}...", file=sys.stderr)
+    print(f"Exporting {weights_path} -> {output_path}...", file=sys.stderr)
     export_yolo_onnx.export_and_normalize(weights_path, output_path, imgsz=imgsz)
     if not export_yolo_onnx.verify(output_path, imgsz):
-        print("WARNUNG: Verifikation des exportierten Modells unerwartet - "
-              "manuell prüfen, bevor es produktiv verwendet wird.", file=sys.stderr)
+        print("WARNING: verification of the exported model failed unexpectedly — "
+              "check manually before using it in production.", file=sys.stderr)
     # Keep classes.json next to the .onnx so inference can resolve
     # --preferred-classes names without pointing at the full dataset dir.
     import shutil
@@ -308,8 +308,8 @@ def train_and_export(dataset_dir, output_path, epochs=100, device="auto",
             shutil.copy2(classes_src, classes_dst)
             print(f"classes.json -> {classes_dst}", file=sys.stderr)
         except OSError as exc:
-            print(f"Hinweis: classes.json nicht kopiert: {exc}", file=sys.stderr)
-    print(f"Fertig: {output_path}", file=sys.stderr)
+            print(f"Note: could not copy classes.json: {exc}", file=sys.stderr)
+    print(f"Done: {output_path}", file=sys.stderr)
     return output_path
 
 

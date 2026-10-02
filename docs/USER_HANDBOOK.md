@@ -51,7 +51,7 @@ Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge 
 **Almost for everyday use.** Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2, **in-app handbook** — yes.
 
 Still **CLI / advanced / not Everyday GUI:**
-- Whole-frame **4-zone** stroke mode (kept for experiments; weaker on measured clips)
+- Whole-frame **4-zone** stroke mode (CLI-only — weaker on measured clips; not in Create GUI)
 - Flow tracker as Generate default (CLI)
 - ONNX vision AI **draft script** writer (S2+ model inference — not shipped; imitation draft is available after **Export classical run**)
 

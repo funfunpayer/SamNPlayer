@@ -155,6 +155,7 @@ def main():
               page.locator("#dev-vib").input_value())
 
         # --- Rohwert-Test: nur bei bestehender Verbindung bedienbar ------
+        page.locator("#dev-raw-details").evaluate("e => { e.open = true }")
         check("Rohwert-Bereich bei Verbindung frei", not disabled("#dev-raw"))
         page.eval_on_selector("#dev-raw-value", "e => e.value = 42")
         page.click("#dev-raw-send")
@@ -166,6 +167,7 @@ def main():
               page.locator("#dev-raw-hint").inner_text())
 
         # --- Geräte-Diagnose: nur bei bestehender Verbindung bedienbar ----
+        page.locator("#dev-diag-details").evaluate("e => { e.open = true }")
         check("Diagnose-Bereich bei Verbindung frei", not disabled("#dev-diag"))
         page.click("#diag-run")
         page.wait_for_function("window.__calls.some(c => c[0] === 'diagnose')")

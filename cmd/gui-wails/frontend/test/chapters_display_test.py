@@ -61,13 +61,19 @@ def main():
 
         page.click("#pb-choose")
         page.wait_for_function(
-            "document.querySelector('#pb-analysis').textContent.includes('Chapters')", timeout=5000)
-        text = page.locator("#pb-analysis").inner_text()
+            "document.querySelector('#pb-analysis') && "
+            "document.querySelector('#pb-analysis').textContent.includes('Chapters')",
+            timeout=5000)
+        # Analysis lives under closed Script-check details (G4.C) — read textContent.
+        page.locator("#pb-quality-details").evaluate("el => { el.open = true }")
+        text = page.locator("#pb-analysis").evaluate("el => el.textContent || ''")
         check("analysis summary kept", "steady" in text, text)
         check("chapter list is appended", "Chapters:" in text, text)
         check("chapter names translated (Pause/Crescendo)",
               "Pause" in text and "Crescendo" in text, text)
         check("times formatted as m:ss", "0:00" in text and "0:10" in text, text)
+        check("quality summary hints analysis ready",
+              "summary ready" in page.locator("#pb-quality-details > summary").inner_text())
 
         browser.close()
 

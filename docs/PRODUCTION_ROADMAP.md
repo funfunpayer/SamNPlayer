@@ -106,8 +106,8 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.41** | Shipped | Sammel post-0.5.40: Tip-Find (#364), Clip-Prep cutter (#365), reacquire (#366), Bugfix (#372), E2E (#371), cleanup (#369), docs/tests (#362/#363/#367); #264 VP cancelled; Everyday Go CSRT unchanged — tag `v0.5.41` |
 | **v0.5.42** | Shipped | Sammel post-0.5.41: GapFill (#403/#413); Play/Create knobs+probes (#378–#400); Plateau from floor (#426); Expert/EO/Contact 0 GUI (#425/#421/#424); seek/clock + CLI (#377/#401–#417); Intiface/training (#422); Audio cancel (#420); atomic funscript (#428); #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.42` |
 | **v0.5.43** | Shipped | Sammel post-0.5.42: Train window all labels (#441); ROI empty-val heal (#442); Play/Create/AI Train prefs (#437–#439); CLI generate/stroke-preview cancel (#432/#435); #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.43` |
-| **v0.5.44** | THIS | Sammel post-0.5.43: video swap (#444); Contact-vibe tip+partner (#445); Claude OFS load/companion (#446); scene roles (#448–#450); AI Train free tags/track (#451); OFS clock/inverted (#452–#453); never #447; #264 cancelled; Everyday Go CSRT unchanged |
-| next | After v0.5.44 | Owner portable smoke on `v0.5.44` (OFS load/inverted, video swap, Contact-vibe, AI Train free tags, Generate→Play→Neo 2). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3 |
+| **v0.5.44** | Shipped | Sammel post-0.5.43: video swap (#444); Contact-vibe tip+partner (#445); Claude OFS load/companion (#446); scene roles (#448–#450); AI Train free tags/track (#451); OFS clock/inverted (#452–#453); never #447; #264 cancelled; Everyday Go CSRT unchanged — tag `v0.5.44` |
+| next | After v0.5.44 | Owner portable smoke on `v0.5.44` (OFS load/inverted, video swap, Contact-vibe, AI Train free tags, Generate→Play→Neo 2). Still Owner: ≥4–5 rhythm clips (rhythm default gate); speed-cap; G1.3. Cursor: PlayHeatUX + G4.C declutter + bugfix (taller heatmap, Tip→Partner snack, Invert→companion, video sync idle, Device raw/diagnostics closed) |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
@@ -340,8 +340,8 @@ risks Generate regressions — otherwise small orthogonal PRs OK.
 | C1 | Language sweep (leftover DE) | ongoing | Screenshot any DE |
 | C2 | Thanks / feedback English | done | usable / borderline / unusable |
 | C3 | README vs public portal | G4.S | Brand + portable CTA |
-| C5 | GUI improve pass | G4.C slices | Before/after screenshots |
-| C6 | Settings License block polish | with C5; enforcement still off | Import → status obvious |
+| C5 | GUI improve pass | G4.C slices | Before/after screenshots — **#460:** Create Advanced nests; Play Contact tune / Project export; Settings Plugins+diagnostics; progressive disclosure throughout Create/Play |
+| C6 | Settings License block polish | with C5; enforcement still off | **#460:** multi-line Import → status (state / until / enforcement / effective) |
 | C4 | Curve zoom / BPM grid | after C5 | **Done** (BPM grid + curve/heatmap zoom) |
 | C7 | Empty states / errors | with C5 | Each banner + CTA |
 

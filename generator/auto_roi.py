@@ -354,22 +354,6 @@ def _shrink_box(x, y, w, h, width, height, pad_frac=0.1, min_side=16):
     return x0, y0, w2, h2
 
 
-def _legacy_threshold_box(scores, cell_w, cell_h, scale, width, height):
-    """Pre-peak Everyday find_roi: bbox of all cells ≥ 0.5×max.
-
-    Kept for comparison tests only — diffuse residual motion often made this
-    span most of the frame (bad tip seed). Production find_roi uses peak
-    regions instead.
-    """
-    threshold = scores.max() * 0.5
-    rows, cols = np.where(scores >= threshold)
-    x0 = int(cols.min() * cell_w / scale)
-    x1 = int((cols.max() + 1) * cell_w / scale)
-    y0 = int(rows.min() * cell_h / scale)
-    y1 = int((rows.max() + 1) * cell_h / scale)
-    return _shrink_box(x0, y0, x1 - x0, y1 - y0, width, height)
-
-
 def find_roi_candidates(video_path, max_regions=6, **kwargs):
     """Ranked motion regions as read-only proposals (TFTJ step 4b).
 

@@ -55,8 +55,8 @@ def main():
               "flow" not in options and "grid_lk" not in options
               and "region_fusion" not in options,
               str(options))
-        check("4-zone Everyday button stays hidden",
-              page.locator("#gen-nomark").is_hidden())
+        check("4-zone Everyday button removed",
+              page.locator("#gen-nomark").count() == 0)
 
         check("Generate disabled without video",
               page.eval_on_selector("#gen-generate", "e => e.disabled") is True)

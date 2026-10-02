@@ -76,6 +76,7 @@ def main():
             "() => (window.__calls || []).some(c => c[0] === 'LoadSceneMapForVideo')",
             timeout=5000)
         page.click("#gen-advanced > summary")
+        page.evaluate("document.querySelector('#gen-advanced-scenemap').open = true")
         # Tools show after map restore when windows exist
         page.wait_for_selector("#gen-scene-map-tools", state="visible", timeout=5000)
         page.locator("#gen-scene-map-learning").evaluate("el => { el.open = true; }")

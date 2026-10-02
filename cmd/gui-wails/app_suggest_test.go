@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
+	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
 func TestSuggestPolarityAndInvertRoundtrip(t *testing.T) {
@@ -154,5 +155,58 @@ func TestHonorInvertedSetting(t *testing.T) {
 	}
 	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 90 {
 		t.Fatalf("flag cleared by invert, so on/off no longer matter: %d", got)
+	}
+}
+
+// After Create, Play usually loads .samn (preferSamnCompanion). Invert must
+// rewrite the companion .funscript actions too — clearing "inverted" alone
+// left Share/other apps on the pre-invert curve.
+func TestInvertLoadedScriptExportsSamnCompanion(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	dir := t.TempDir()
+	samnPath := filepath.Join(dir, "clip.samn")
+	companion := filepath.Join(dir, "clip.funscript")
+
+	doc := &samn.Document{
+		Version: 1,
+		General: []funscript.Action{{At: 0, Pos: 10}, {At: 1000, Pos: 80}},
+	}
+	if err := samn.Save(samnPath, doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := doc.ExportFunscript(companion); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate an OFS-style leftover flag on the companion.
+	if err := funscript.WriteInverted(companion, true); err != nil {
+		t.Fatal(err)
+	}
+
+	a := NewApp()
+	if _, err := a.LoadFunscript(samnPath); err != nil {
+		t.Fatal(err)
+	}
+	if !samn.IsSamnPath(a.loadedScriptPath()) {
+		t.Fatalf("expected .samn loaded, got %s", a.loadedScriptPath())
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 10 {
+		t.Fatalf("before invert played %d", got)
+	}
+	if err := a.InvertLoadedScript(); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.loadedScript().PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("after invert played %d, want 90", got)
+	}
+
+	fs, err := funscript.Load(companion)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fs.Inverted {
+		t.Fatal("companion inverted flag must be cleared")
+	}
+	if got := fs.PlaybackActions()[0].Pos; got != 90 {
+		t.Fatalf("companion played %d, want 90 (actions rewritten, not only flag)", got)
 	}
 }

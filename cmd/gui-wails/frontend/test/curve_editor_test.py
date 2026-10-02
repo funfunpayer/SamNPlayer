@@ -89,16 +89,22 @@ def main():
         check("Editiermodus zeigt Hinweistext", True)
 
         box = page.locator("#pb-curve").bounding_box()
+        # Pad / usable height must match playback.js CURVE_PAD (6) — do not
+        # hardcode mid_y for a fixed canvas height (broke when curve grew 120→176).
+        pad = 6.0
+        usable = box["height"] - 2 * pad
 
-        # Mittlerer Punkt liegt bei (50000ms, pos=50) -> 50% Breite, mittige
-        # Höhe (pad=6, usableH=98 bei height=110: y = 6 + (1-0.5)*98 = 55).
+        def y_for_pos(pos):
+            return box["y"] + pad + (1.0 - pos / 100.0) * usable
+
+        # Middle point (50000ms, pos=50) → 50% width, mid height.
         mid_x = box["x"] + box["width"] * 0.5
-        mid_y = box["y"] + 55
+        mid_y = y_for_pos(50)
 
-        # Diesen Punkt nach oben ziehen (Richtung pos=100, kleineres y).
+        # Drag that point toward pos=100 (smaller y).
         page.mouse.move(mid_x, mid_y)
         page.mouse.down()
-        page.mouse.move(mid_x, box["y"] + 6, steps=5)
+        page.mouse.move(mid_x, y_for_pos(100), steps=5)
         page.mouse.up()
 
         page.wait_for_function("window.__calls.some(c => c[0] === 'saveActions')", timeout=5000)
@@ -109,10 +115,9 @@ def main():
         check("gezogener Punkt liegt jetzt nahe pos=100 (nach oben gezogen)",
               middle["pos"] >= 90, str(saved))
 
-        # Klick auf eine freie Stelle (25% Breite, tief unten = niedrige
-        # Position) legt einen neuen Punkt an.
+        # Click empty space (25% width, low pos) to add a point.
         free_x = box["x"] + box["width"] * 0.25
-        free_y = box["y"] + 100
+        free_y = y_for_pos(5)
         page.mouse.move(free_x, free_y)
         page.mouse.down()
         page.mouse.up()
@@ -122,12 +127,11 @@ def main():
         check("Klick auf freie Stelle legt einen vierten Punkt an",
               len(saved2) == 4, str(saved2))
 
-        # Doppelklick auf den (jetzt) ersten Punkt (at=0, pos=0, ganz links
-        # unten) löscht ihn wieder.
+        # Double-click the first point (at=0, pos=0, bottom-left) to delete it.
         first_x = box["x"] + 1
-        first_y = box["y"] + box["height"] - 7
-        page.mouse.move(first_x, first_y)
-        page.dblclick("#pb-curve", position={"x": 1, "y": box["height"] - 7})
+        first_y_local = pad + usable - 1  # near pos=0 in canvas CSS pixels
+        page.mouse.move(first_x, box["y"] + first_y_local)
+        page.dblclick("#pb-curve", position={"x": 1, "y": first_y_local})
         page.wait_for_function(
             "window.__calls.filter(c => c[0] === 'saveActions').length === 3", timeout=5000)
         saved3 = page.evaluate("window.__calls.filter(c => c[0] === 'saveActions').pop()[1]")

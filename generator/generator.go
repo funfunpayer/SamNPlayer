@@ -274,24 +274,25 @@ func demoteWindowsAppsStubs(paths []string) []string {
 }
 
 func hasPackages(py string) (bool, string) {
-	// CSRT/KCF must exist — plain opencv-python (no contrib) imports cv2
-	// but leaves create_tracker() dead (Issues #94/#95).
+	// CSRT must exist — plain opencv-python (no contrib) imports cv2
+	// but leaves create_tracker() dead (Issues #94/#95). KCF/MIL alone
+	// is not accepted (no silent weak-tracker Ausfallcode).
 	script := "import cv2, scipy, numpy\n" +
 		"ok=False\n" +
 		"leg=getattr(cv2,'legacy',None)\n" +
-		"for free,cls in (('TrackerCSRT_create','TrackerCSRT'),('TrackerKCF_create','TrackerKCF'),('TrackerMIL_create','TrackerMIL')):\n" +
+		"for free,cls in (('TrackerCSRT_create','TrackerCSRT'),):\n" +
 		"  if callable(getattr(cv2,free,None)) or (getattr(cv2,cls,None) is not None and callable(getattr(getattr(cv2,cls,None),'create',None))):\n" +
 		"    ok=True; break\n" +
 		"  if leg is not None and (callable(getattr(leg,free,None)) or (getattr(leg,cls,None) is not None and callable(getattr(getattr(leg,cls,None),'create',None)))):\n" +
 		"    ok=True; break\n" +
-		"assert ok, 'OpenCV ohne Tracker (CSRT/KCF) — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
+		"assert ok, 'OpenCV ohne CSRT — oft opencv-python statt opencv-contrib-python. pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python'\n"
 	out, err := command(py, "-c", script).CombinedOutput()
 	return err == nil, string(out)
 }
 
 // pythonHasCSRT reports whether the given interpreter's cv2 exposes any CSRT
-// factory (legacy or main). Used for a pre-track warning when Generate must
-// take the Python path (#338) — hasPackages also accepts KCF/MIL.
+// factory (legacy or main). Used for a pre-track check when Generate must
+// take the Python path (#338) — hasPackages requires CSRT only.
 func pythonHasCSRT(py string) (bool, string) {
 	script := "import cv2\n" +
 		"leg=getattr(cv2,'legacy',None)\n" +
@@ -453,20 +454,35 @@ func FindROI(videoPath string, onProgress func(line string)) (ROI, error) {
 }
 
 func FindROIWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
-	return findROIViaScript("auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
+	return FindROIWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindROIWithContext is FindROIWithProgress with cancel via ctx (CommandContext).
+func FindROIWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return findROIViaScriptCtx(ctx, "auto_roi.py", nil, videoPath, "auto_roi", onProgress, onPercent)
 }
 
 // FindROICandidatesWithProgress lists ranked motion regions (auto_roi --list).
 // Read-only proposals — caller must not silently commit ROI2 (TFTJ step 4b;
 // only ApplySceneProposal under the opt-in "Apply AI setup automatically").
 func FindROICandidatesWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
-	return findROICandidatesViaScript(videoPath, onProgress, onPercent)
+	return FindROICandidatesWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindROICandidatesWithContext is FindROICandidatesWithProgress with cancel via ctx.
+func FindROICandidatesWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	return findROICandidatesViaScriptCtx(ctx, videoPath, onProgress, onPercent)
 }
 
 // FindTwoROIsWithProgress schlägt ROI1+ROI2 vor (auto_roi --two). Nur
 // Vorschlag — GUI muss bestätigen/korrigieren (docs/NEXT.md Priorität 3).
 func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
-	return findTwoROIsViaScript("auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
+	return FindTwoROIsWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindTwoROIsWithContext is FindTwoROIsWithProgress with cancel via ctx.
+func FindTwoROIsWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return findTwoROIsViaScriptCtx(ctx, "auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
 }
 
 // FindROIAIWithProgress is the AI variant of FindROIWithProgress: same
@@ -474,6 +490,11 @@ func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onP
 // modelPath == "" uses ai_roi.default_model_path(). preferredClasses is a
 // comma-separated list of names or ids (empty = no class filter).
 func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return FindROIAIWithContext(context.Background(), videoPath, modelPath, preferredClasses, onProgress, onPercent)
+}
+
+// FindROIAIWithContext is FindROIAIWithProgress with cancel via ctx.
+func FindROIAIWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, error) {
 	var extraArgs []string
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
@@ -484,7 +505,7 @@ func FindROIAIWithProgress(videoPath, modelPath, preferredClasses string, onProg
 			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
 		}
 	}
-	return findROIViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+	return findROIViaScriptCtx(ctx, "ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
 // AIDetection is one labeled ONNX box (multi-class list — not tip-only).
@@ -503,6 +524,15 @@ type AIDetection struct {
 // Returns every class above confidence (nipples/breasts/glans/…), not a single tip.
 func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string, timeSec float64,
 	onProgress func(line string), onPercent func(pct int)) ([]AIDetection, error) {
+	return ListAIDetectionsWithContext(context.Background(), videoPath, modelPath, preferredClasses, timeSec, onProgress, onPercent)
+}
+
+// ListAIDetectionsWithContext is ListAIDetectionsWithProgress with cancel via ctx.
+func ListAIDetectionsWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, timeSec float64,
+	onProgress func(line string), onPercent func(pct int)) ([]AIDetection, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return nil, err
@@ -524,7 +554,7 @@ func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string,
 	if preferredClasses != "" {
 		args = append(args, "--preferred-classes", preferredClasses)
 	}
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -585,6 +615,9 @@ func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string,
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return out, fmt.Errorf("generator: ai_roi --list-detections cancelled: %w", ctx.Err())
+		}
 		return out, fmt.Errorf("generator: ai_roi --list-detections: %w", err)
 	}
 	return out, nil
@@ -777,6 +810,11 @@ func findExpectedTipROIAIWithProgressContext(ctx context.Context, sourceArgs []s
 // FindTwoROIsAIWithProgress is the AI variant of FindTwoROIsWithProgress
 // (ai_roi.py --two). roi2 may be empty when no second object was found.
 func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return FindTwoROIsAIWithContext(context.Background(), videoPath, modelPath, preferredClasses, onProgress, onPercent)
+}
+
+// FindTwoROIsAIWithContext is FindTwoROIsAIWithProgress with cancel via ctx.
+func FindTwoROIsAIWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
 	extraArgs := []string{"--two"}
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
@@ -787,7 +825,7 @@ func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, on
 			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
 		}
 	}
-	return findTwoROIsViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+	return findTwoROIsViaScriptCtx(ctx, "ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
 // AIRoiAvailable prüft (ohne ein Video zu öffnen), ob die KI-Regionssuche
@@ -871,6 +909,14 @@ func AudioCheckAvailable() bool {
 // logPrefix kennzeichnet nur die Logzeilen, ändert das Protokoll nicht.
 func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
 	onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	return findROIViaScriptCtx(context.Background(), scriptName, extraArgs, videoPath, logPrefix, onProgress, onPercent)
+}
+
+func findROIViaScriptCtx(ctx context.Context, scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return ROI{}, err
@@ -885,7 +931,7 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
 	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -937,6 +983,9 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return ROI{}, fmt.Errorf("generator: automatic region search cancelled: %w", ctx.Err())
+		}
 		return ROI{}, fmt.Errorf("generator: automatic region search failed: %w", err)
 	}
 	if !found {
@@ -948,6 +997,13 @@ func findROIViaScript(scriptName string, extraArgs []string, videoPath, logPrefi
 
 // findROICandidatesViaScript runs auto_roi.py --list and parses CANDIDATE lines.
 func findROICandidatesViaScript(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	return findROICandidatesViaScriptCtx(context.Background(), videoPath, onProgress, onPercent)
+}
+
+func findROICandidatesViaScriptCtx(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return nil, err
@@ -961,7 +1017,7 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 	}
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "auto_roi.py")
-	cmd := command(py, scriptPath, "--video", videoPath, "--list")
+	cmd := commandContext(ctx, py, scriptPath, "--video", videoPath, "--list")
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -1004,6 +1060,9 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("generator: motion candidate search cancelled: %w", ctx.Err())
+		}
 		return nil, fmt.Errorf("generator: motion candidate search failed: %w", err)
 	}
 	if len(out) == 0 {
@@ -1017,6 +1076,14 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 // "ROI2 x y w h". Fehlt ROI2, ist der zweite Rückgabewert leer (W=0).
 func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
 	onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return findTwoROIsViaScriptCtx(context.Background(), scriptName, extraArgs, videoPath, logPrefix, onProgress, onPercent)
+}
+
+func findTwoROIsViaScriptCtx(ctx context.Context, scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return ROI{}, ROI{}, err
@@ -1031,7 +1098,7 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
 	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return ROI{}, ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -1079,6 +1146,9 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return ROI{}, ROI{}, fmt.Errorf("generator: automatic two-region search cancelled: %w", ctx.Err())
+		}
 		return ROI{}, ROI{}, fmt.Errorf("generator: automatic two-region search failed: %w", err)
 	}
 	if !found {
@@ -1334,8 +1404,8 @@ func GenerateWithContext(ctx context.Context, videoPath string, roi ROI, outputP
 	if err := CheckDependencies(); err != nil {
 		return fmt.Errorf("generator: Generate needs opencv-contrib-python (CSRT). Install with the pip line below — NCC is not the product path.\n%w", err)
 	}
-	if ok, detail := pythonHasCSRT(py); !ok && onProgress != nil {
-		onProgress("Warning: Python OpenCV has no CSRT (" + detail + ") — tracker will fall back to KCF/MIL. Fix: pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python. Windows portable: uncheck Advanced → Re-find region after each cut to use built-in Go CSRT instead.")
+	if ok, detail := pythonHasCSRT(py); !ok {
+		return fmt.Errorf("generator: Python OpenCV has no CSRT (%s) — needs opencv-contrib-python (no KCF/MIL fallback). Fix: pip uninstall opencv-python opencv-python-headless && pip install opencv-contrib-python", detail)
 	}
 	scriptPath, err := writeScriptToTemp()
 	if err != nil {

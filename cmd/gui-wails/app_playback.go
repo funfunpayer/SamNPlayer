@@ -306,6 +306,20 @@ func (a *App) ReportVideoPosition(ms int64) {
 	}
 }
 
+// ReportVideoSyncIdle tells Sync the video paused or is buffering so the
+// device goes to 0 immediately (without waiting for the stale watchdog).
+func (a *App) ReportVideoSyncIdle() {
+	a.stateMu.RLock()
+	defer a.stateMu.RUnlock()
+	if a.videoPositionCh == nil {
+		return
+	}
+	select {
+	case a.videoPositionCh <- player.SyncIdleSentinel:
+	default:
+	}
+}
+
 func (a *App) TriggerExtendedO(minLevel, holdSeconds, restoreMs float64) {
 	a.stateMu.RLock()
 	p := a.activePlayer

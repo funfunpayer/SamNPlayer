@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,9 +11,11 @@ import (
 )
 
 var (
-	aiSetupMu      sync.Mutex
-	aiSetupBusy    bool
-	contactPtsBusy bool
+	aiSetupMu        sync.Mutex
+	aiSetupBusy      bool
+	contactPtsBusy   bool
+	contactPtsCancel context.CancelFunc
+	contactPtsSeq    uint64
 )
 
 func claimAISetupRun() error {
@@ -31,20 +34,45 @@ func releaseAISetupRun() {
 	aiSetupMu.Unlock()
 }
 
-func claimContactPointsRun() error {
+func claimContactPointsRun() (context.Context, uint64, error) {
 	aiSetupMu.Lock()
 	defer aiSetupMu.Unlock()
 	if contactPtsBusy {
-		return fmt.Errorf("contact points generation is already running")
+		return nil, 0, fmt.Errorf("contact points generation is already running")
+	}
+	if contactPtsCancel != nil {
+		contactPtsCancel()
+		contactPtsCancel = nil
 	}
 	contactPtsBusy = true
-	return nil
+	contactPtsSeq++
+	seq := contactPtsSeq
+	ctx, cancel := context.WithCancel(context.Background())
+	contactPtsCancel = cancel
+	return ctx, seq, nil
 }
 
-func releaseContactPointsRun() {
+func releaseContactPointsRun(seq uint64) {
 	aiSetupMu.Lock()
-	contactPtsBusy = false
+	defer aiSetupMu.Unlock()
+	if contactPtsSeq == seq {
+		contactPtsBusy = false
+		if contactPtsCancel != nil {
+			contactPtsCancel()
+			contactPtsCancel = nil
+		}
+	}
+}
+
+// CancelContactPoints stops an in-flight GenerateContactPointsForVideo run.
+// Safe when nothing is running. The worker emits contactpoints:done{cancelled}.
+func (a *App) CancelContactPoints() {
+	aiSetupMu.Lock()
+	cancel := contactPtsCancel
 	aiSetupMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }
 
 // CheckAISetup runs ai_setup.py check (GPU, packages, train venv, local
@@ -93,25 +121,40 @@ func (a *App) GenerateContactPointsForVideo(videoPath string, opts ContactPoints
 	if videoPath == "" {
 		return fmt.Errorf("no video selected")
 	}
-	if err := claimContactPointsRun(); err != nil {
+	ctx, seq, err := claimContactPointsRun()
+	if err != nil {
 		return err
 	}
 	go func() {
-		defer releaseContactPointsRun()
-		out, err := generator.GenerateContactPoints(videoPath, generator.ContactPointsRun{
+		defer releaseContactPointsRun(seq)
+		out, err := generator.GenerateContactPointsWithContext(ctx, videoPath, generator.ContactPointsRun{
 			NudeNet:  opts.NudeNet,
 			Teachers: opts.Teachers,
 			Onnx:     opts.Onnx,
 			StepS:    opts.StepS,
 			Out:      opts.Out,
 		}, func(line string) {
+			aiSetupMu.Lock()
+			cur := contactPtsSeq
+			aiSetupMu.Unlock()
+			if cur != seq {
+				return
+			}
 			runtime.EventsEmit(a.ctx, "contactpoints:progress", line)
 		})
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "contactpoints:done", map[string]any{"error": err.Error()})
+		aiSetupMu.Lock()
+		cur := contactPtsSeq
+		aiSetupMu.Unlock()
+		if cur != seq {
 			return
 		}
-		runtime.EventsEmit(a.ctx, "contactpoints:done", map[string]any{"path": out})
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "contactpoints:done", map[string]any{
+				"error": err.Error(), "seq": seq, "cancelled": ctx.Err() != nil,
+			})
+			return
+		}
+		runtime.EventsEmit(a.ctx, "contactpoints:done", map[string]any{"path": out, "seq": seq})
 	}()
 	return nil
 }

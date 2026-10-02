@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -10,6 +10,7 @@ import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError, uiInfo, uiWarn } from './notify.js';
 import { wireDataHelp } from './help.js';
 import { openHandbook } from './handbook.js';
+import { rememberNativeSize } from './roi_help.js';
 
 export function initGenerator(root, playback) {
   root.classList.add('tab-create');
@@ -44,6 +45,9 @@ export function initGenerator(root, playback) {
         <span class="path-label" id="gen-video-path">No video selected</span>
         <button id="gen-check-deps">Check dependencies</button>
       </div>
+      <p class="hint" id="gen-empty-cta" style="margin:8px 0 0 0;">
+        Start here: pick a short clip → Find tip → Create Emotion Script. No Python needed for Everyday Go CSRT.
+      </p>
       <div id="gen-queue" class="gen-queue" hidden>
         <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
           <span class="hint" id="gen-queue-summary" style="margin:0;"></span>
@@ -58,61 +62,72 @@ export function initGenerator(root, playback) {
 
     <section class="gen-step-panel" id="gen-step-region" data-step="2" hidden>
       <h3 class="gen-step-title">2 · Tip &amp; contact</h3>
-      <p class="hint" style="margin-top:0">
-        Create does <b>not</b> need a stroke/motion path (FunGen2 / Everyday).
-        <b>Find tip</b> auto-boxes the tip — paint or drag only if Find missed.
-        Contact marks (below) are touch points for Contact vibration, not the stroke.
-      </p>
-      <div class="row" style="align-items:center;">
+      <div class="gen-mark-snack" id="gen-mark-snack" aria-live="polite">
+        <ol class="gen-mark-snack-steps">
+          <li data-snack="tip" class="is-current">1 · Tip (stroke)</li>
+          <li data-snack="partner">2 · Partner touch</li>
+          <li data-snack="extra">3 · More (optional)</li>
+        </ol>
+        <p class="hint gen-mark-snack-hint" id="gen-mark-snack-hint">
+          Like FunGen2: you do <b>not</b> paint a motion path. Tip = the small box CSRT follows for the stroke.
+          Partner marks = where Contact vibration should feel — not the stroke.
+        </p>
+      </div>
+      <div class="row gen-mark-primary-row" style="align-items:center;">
         <button id="gen-autoroi" class="primary" disabled
           data-help="Auto tip box for Everyday CSRT (not a motion path). Paint/drag only if Find missed. Optional AI when checked.">Find tip area</button>
         <button id="gen-candidates" type="button" disabled
           data-help="Shows ranked tip candidates when auto Find is unsure. Click = Tip. Shift-click = optional contact (mouth / nipple-breast) when Contact vibration is on.">Show other spots</button>
-        <button id="gen-ai-detections" type="button" disabled
-          data-help="Lists all AI Train class boxes on this frame (nipples, breasts, glans, …) — not tip-only. Click a box to set Tip; Shift-click = optional contact. Needs Settings → AI model.">Show all AI tags</button>
         <button id="gen-seed-suggest" type="button" disabled hidden
           data-help="Proposes Tip + optional contact area. Apply required.">Suggest Tip+2nd</button>
         <span class="hint" id="gen-seed-status" style="margin:0"></span>
-        <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
-          <label for="gen-ai-roi" style="width:auto"
-            data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
-        <select id="gen-ai-target-class" disabled style="min-width:10em;">
-          <option value="">Expected body point…</option>
-        </select>
       </div>
-      <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
-        <p class="hint" style="margin:0 0 6px 0;">
-          Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
-          <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact
-          (unless Settings → <b>Apply AI setup automatically</b> is on — still undoable).
-        </p>
-        <div id="gen-ai-applied" class="gen-ai-applied" hidden>
-          <span id="gen-ai-applied-label" class="hint" style="margin:0;"></span>
-          <button type="button" id="gen-ai-applied-undo" class="secondary">Undo AI apply</button>
+      <details class="gen-adv-nested gen-mark-disclose" id="gen-mark-ai-details">
+        <summary>AI assist &amp; scene proposals</summary>
+        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <button id="gen-ai-detections" type="button" disabled
+            data-help="Lists all AI Train class boxes on this frame (nipples, breasts, glans, …) — not tip-only. Click a box to set Tip; Shift-click = optional contact. Needs Settings → AI model.">Show all AI tags</button>
+          <span class="checkbox-row" style="margin:0"><input type="checkbox" id="gen-ai-roi" disabled />
+            <label for="gen-ai-roi" style="width:auto"
+              data-help="Optional AI tip box suggestion — never writes the curve. Needs Settings → AI model.">Smarter tip find (optional)</label></span>
+          <select id="gen-ai-target-class" disabled style="min-width:10em;">
+            <option value="">Expected body point…</option>
+          </select>
         </div>
-        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
-            data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
-          <button type="button" class="secondary" id="gen-scene-proposals-beside" disabled
-            data-help="Load &lt;clip&gt;.scene.json beside this video if present.">Use beside video</button>
-          <span class="hint" id="gen-scene-type-chip" style="margin:0;display:none;" aria-live="polite"></span>
-          <span class="hint" id="gen-scene-proposals-status" style="margin:0;"></span>
-        </div>
-        <div id="gen-scene-proposals-actions" style="display:none;margin-top:6px;">
+        <div class="hint" id="gen-ai-target-status" style="margin:4px 0 6px 0;"></div>
+        <div id="gen-scene-proposals" style="margin:8px 0 6px 0;padding:8px;border:1px solid rgba(255,255,255,0.08);">
+          <p class="hint" style="margin:0 0 6px 0;">
+            Scene proposals (<code>.scene.json</code>) — roles + scene type from teachers × motion.
+            <b>Apply</b> sets Tip (primary); partner is proposal-only until you apply as contact
+            (unless Settings → <b>Apply AI setup automatically</b> is on — still undoable).
+          </p>
+          <div id="gen-ai-applied" class="gen-ai-applied" hidden>
+            <span id="gen-ai-applied-label" class="hint" style="margin:0;"></span>
+            <button type="button" id="gen-ai-applied-undo" class="secondary">Undo AI apply</button>
+          </div>
           <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="hint" id="gen-scene-primary-label" style="margin:0;"></span>
-            <button type="button" class="primary" id="gen-scene-apply-primary"
-              data-help="Apply the proposed primary stroke target as Tip ROI (+ region class when canonical).">Apply as Tip</button>
-            <span class="hint" id="gen-scene-partner-label" style="margin:0;"></span>
-            <button type="button" class="secondary" id="gen-scene-apply-partner" hidden
-              data-help="Optional: apply the contact partner as ROI2. Never automatic (TFTJ no silent ROI2).">Apply as contact</button>
-            <button type="button" class="secondary" id="gen-scene-proposals-dismiss"
-              data-help="Clear the loaded scene proposal overlay without changing Tip/ROI2.">Dismiss</button>
+            <button type="button" class="secondary" id="gen-scene-proposals-load" disabled
+              data-help="Choose a scene_roles.py JSON. Shows the proposal for the current Time seek.">Load scene proposals…</button>
+            <button type="button" class="secondary" id="gen-scene-proposals-beside" disabled
+              data-help="Load &lt;clip&gt;.scene.json beside this video if present.">Use beside video</button>
+            <span class="hint" id="gen-scene-type-chip" style="margin:0;display:none;" aria-live="polite"></span>
+            <span class="hint" id="gen-scene-proposals-status" style="margin:0;"></span>
+          </div>
+          <div id="gen-scene-proposals-actions" style="display:none;margin-top:6px;">
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="hint" id="gen-scene-primary-label" style="margin:0;"></span>
+              <button type="button" class="primary" id="gen-scene-apply-primary"
+                data-help="Apply the proposed primary stroke target as Tip ROI (+ region class when canonical).">Apply as Tip</button>
+              <span class="hint" id="gen-scene-partner-label" style="margin:0;"></span>
+              <button type="button" class="secondary" id="gen-scene-apply-partner" hidden
+                data-help="Optional: apply the contact partner as ROI2. Never automatic (TFTJ no silent ROI2).">Apply as contact</button>
+              <button type="button" class="secondary" id="gen-scene-proposals-dismiss"
+                data-help="Clear the loaded scene proposal overlay without changing Tip/ROI2.">Dismiss</button>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
       <p class="hint" id="gen-autoroi-hint" style="margin:0 0 6px 0">Auto tip after load — drag the box anytime to refine.</p>
-      <div class="hint" id="gen-ai-target-status" style="margin:0 0 6px 0;"></div>
 
       <div class="row" style="align-items:center; margin:4px 0;">
         <label style="width:auto;" data-help="Seek past a black intro before marking the region.">Time (s)</label>
@@ -144,11 +159,9 @@ export function initGenerator(root, playback) {
 
       <div id="gen-contact-marks-wrap" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
         <p class="hint" style="margin:0 0 6px 0;">
-          Contact vibration — optional <b>touch points</b> only (not a stroke path; not required to Create).
-          Minimal set: <b>Mouth</b> · <b>Nipple/breast</b> · <b>Glans/penis</b> (tip).
-          Vib still follows stroke depth today; marks store where touch should feel.
+          Optional touch points for Contact vibration — not the stroke. Skip anytime; Create still works.
         </p>
-        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
+        <div class="row gen-mark-snack-actions" style="align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0;">
           <label style="width:auto;" data-help="Optional tip label: Glans preferred, or whole Penis. Empty = any. Contact-vibe set only — not required for CSRT Create.">Tip (glans/penis)</label>
           <select id="gen-region-class" style="min-width:8em;">
             <option value="">(any)</option>
@@ -157,12 +170,8 @@ export function initGenerator(root, playback) {
           <select id="gen-region-class2" style="min-width:8em;">
             <option value="">(pick class)</option>
           </select>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Fix contact area (static): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
-            <input type="checkbox" id="gen-roi2-fixed" /> Fix contact area (static)
-          </label>
         </div>
-        <div class="row" style="align-items:center; margin-top:6px;">
+        <div class="row gen-mark-snack-actions" style="align-items:center; margin-top:6px; flex-wrap:wrap; gap:8px;">
           <button id="gen-roi2-toggle" type="button"
             data-help="Mark one touch point (gold): mouth or nipple/breast. Not a stroke path. Stroke vib still follows tip CSRT depth — the mark is for contact feel / later spatial vibe.">Mark contact area</button>
           <button id="gen-target-add" type="button"
@@ -171,36 +180,39 @@ export function initGenerator(root, playback) {
           <select id="gen-target-class" style="min-width:7em;">
             <option value="">(any)</option>
           </select>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
-            <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
-          </label>
-          <button id="gen-extras-clear" type="button"
-            data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
-          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Create works without marks. Vib = stroke depth unless Tf/Tj.</span>
+          <span class="hint" id="gen-roi2-hint" style="margin:0">Optional. Vib = stroke depth; gold mark = Contact feel.</span>
         </div>
         <div class="path-label" id="gen-roi2-label">No contact area marked</div>
         <div class="path-label" id="gen-extras-label" style="display:none;"></div>
-        <div class="row" style="align-items:center; margin-top:4px;">
-          <button id="gen-mask-add" type="button"
-            data-help="Ignore region (black): exclude a wrong latch (knees, background). Same as Scene map → Ignore. Does not drive the stroke; use when auto tip/heatmap fails onto the wrong part.">+ Ignore region (black)</button>
-        </div>
-        <div id="gen-selected-mark" class="gen-selected-mark" hidden>
-          <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
-          <button type="button" id="gen-selected-mark-delete" class="secondary"
-            data-help="Removes the mark selected on the preview (Tip / contact / Ignore / Scene map).">Delete selected</button>
-          <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
-        </div>
-        <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
-          aria-label="Body map — contact vibe: mouth, nipple/breast, tip"></div>
-        <p class="hint" style="margin:4px 0 0 0;">
-          <b>Click a painted mark</b>, then the body map (mouth · nipple/breast · tip only).
-          Paint tip only if Find tip missed; contact marks are touch points, not a motion path.
-        </p>
+        <details class="gen-adv-nested gen-mark-disclose" id="gen-mark-options-details">
+          <summary>Mark options (Ignore, Partner fixed, body map)</summary>
+          <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Partner fixed (pixels): keep the gold box where you drew it — do not track it. Use when nipple/mouth barely move and only the tip/camera moves. Off (default with Contact vib) = track that area so camera pans stay in sync.">
+              <input type="checkbox" id="gen-roi2-fixed" /> Partner fixed (pixels)
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Stay fixed (extra): keep the next magenta box where you drew it. Off (default when tip trajectory is recorded) = follow partner on Play. Use when the second contact barely moves.">
+              <input type="checkbox" id="gen-extra-contact-sticky" /> Stay fixed
+            </label>
+            <button id="gen-extras-clear" type="button"
+              data-help="Clear extra contact areas and soft masks (keeps tip + first contact mark).">Clear extras</button>
+            <button id="gen-mask-add" type="button"
+              data-help="Ignore region (black): exclude a wrong latch (knees, background). Same as Scene map → Ignore. Does not drive the stroke; use when auto tip/heatmap fails onto the wrong part.">+ Ignore region (black)</button>
+          </div>
+          <div id="gen-selected-mark" class="gen-selected-mark" hidden>
+            <span id="gen-selected-mark-label" class="hint" style="margin:0;"></span>
+            <button type="button" id="gen-selected-mark-delete" class="secondary"
+              data-help="Removes the mark selected on the preview (Tip / contact / Ignore / Scene map).">Delete selected</button>
+            <span class="hint" style="margin:0;">Click body map to set class · click empty preview to deselect</span>
+          </div>
+          <div id="gen-body-figure" class="body-figure-host gen-body-figure-compact"
+            aria-label="Body map — contact vibe: mouth, nipple/breast, tip"></div>
+          <p class="hint" style="margin:4px 0 0 0;">
+            <b>Click a painted mark</b>, then the body map (mouth · nipple/breast · tip only).
+          </p>
+        </details>
       </div>
-      <!-- 4-zone removed from product GUI (1-Zone CSRT Everyday). Backend kept for CLI / evidence experiments. -->
-      <button id="gen-nomark" type="button" disabled hidden
-        data-help="Removed from Create GUI — use tip CSRT. 4-zone remains CLI-only.">4-zone (advanced)</button>
     </section>
 
     <section class="gen-step-panel" id="gen-step-motion" data-step="3" hidden>
@@ -218,7 +230,6 @@ export function initGenerator(root, playback) {
         Optional contact marks in Step 2 are touch points only. Use Advanced → Scene map → <b>Ignore (black)</b>
         only when detections latch onto the wrong part (knees etc.).
       </p>
-      <p class="hint" id="gen-tftj-hint" style="display:none; margin:0 0 6px 0;"></p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
           <input type="checkbox" id="gen-contact-vibration" checked />
@@ -240,20 +251,23 @@ export function initGenerator(root, playback) {
               <option value="impulse">Impulse (peaks only, experiment)</option>
             </select>
           </div>
-          <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
-            <div class="gen-contact-vib-badges" id="gen-contact-vib-badges">
-              <span class="gen-cv-badge" id="gen-cv-badge-active">— active</span>
-              <span class="gen-cv-badge" id="gen-cv-badge-peak">— peak</span>
+          <details class="gen-mark-disclose" id="gen-contact-probe-details">
+            <summary>Feel probe</summary>
+            <div class="gen-contact-vib-probe" id="gen-contact-vib-probe" aria-live="polite">
+              <div class="gen-contact-vib-badges" id="gen-contact-vib-badges">
+                <span class="gen-cv-badge" id="gen-cv-badge-active">— active</span>
+                <span class="gen-cv-badge" id="gen-cv-badge-peak">— peak</span>
+              </div>
+              <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+                <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+                <g id="gen-contact-vib-peaks" class="gen-contact-vib-peaks"></g>
+              </svg>
+              <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
+                Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+              </p>
             </div>
-            <svg id="gen-contact-vib-svg" class="gen-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-              <polyline id="gen-contact-vib-stroke" class="gen-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
-              <polyline id="gen-contact-vib-poly" class="gen-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
-              <g id="gen-contact-vib-peaks" class="gen-contact-vib-peaks"></g>
-            </svg>
-            <p class="hint" id="gen-contact-vib-preview" style="margin:4px 0 0 0;">
-              Feel probe: change Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
-            </p>
-          </div>
+          </details>
         </div>
       </div>
 
@@ -281,104 +295,109 @@ export function initGenerator(root, playback) {
             Everyday stays <b>tip → Go CSRT → Create</b>. Open only for polarity, long-clip assist, Ignore marks, or rare tuning — hybrid options never replace CSRT.
           </p>
 
-          <div class="opt-group">Tracking &amp; polarity</div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
-            data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
-            data-help="Compensates camera pans using background features. Recommended for moving camera. Default on.">Camera motion compensation</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
-            data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
-            data-help="Records tip (x,y) per frame for Feel Stage A (buzz when tip grazes a contact mark) and the Play overlay. Not a user-drawn stroke path — Create never requires this. Soft-on with Contact vib; CSRT only.">Record tip trajectory (optional feel — not required to Create)</label></div>
-
-          <div class="opt-group">Long-clip anti-drift</div>
-          <p class="hint" style="margin:0 0 6px 0;">
-            Still Go CSRT. Rhythm / teachers steer only when opted in — off = bit-identical Everyday.
-          </p>
-          <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
-            data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
-            data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build via Generate below or CLI. Never a default.">Use contact points (teachers JSON)</label></div>
-          <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
-            <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
-              data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
-            <button type="button" class="secondary" id="gen-contact-points-pick" disabled
-              data-help="Choose an existing contact_points.py JSON.">Choose…</button>
-          </div>
-          <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
-            data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
-          <p class="hint" id="gen-contact-verify-hint" style="display:none; margin:0 0 6px 0;">Optional hybrid: engine drops weak teacher points (K=1.5). Default off — Everyday Create unchanged when off.</p>
-          <details id="gen-contact-points-gen" class="gen-adv-nested" style="display:none; margin:6px 0 8px 0;">
-            <summary>Generate teachers JSON (opt-in)</summary>
-            <p class="hint" style="margin:8px 0 6px 0;">Writes <code>.contact.json</code> beside the video. Does not change Everyday Create.</p>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
-              data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
-              data-help="Ask Ollama Qwen2.5-VL if the server is up. Skipped when unreachable.">Ollama Qwen2.5-VL</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-cp-lmstudio" /><label for="gen-cp-lmstudio"
-              data-help="Ask LM Studio vision model if the local server is up.">LM Studio vision</label></div>
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
-              <button type="button" class="secondary" id="gen-contact-points-run"
-                data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
-              <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
-            </div>
+          <details id="gen-advanced-tracking" class="gen-adv-nested">
+            <summary>Tracking &amp; polarity</summary>
+            <div class="checkbox-row"><input type="checkbox" id="gen-invert" /><label for="gen-invert"
+              data-help="Flips the stroke curve up↔down (100−pos). Use when the stroke feels inverted — not a tracker failure. Example: tip moves down but the script rises.">Invert motion direction</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-camcomp" checked /><label for="gen-camcomp"
+              data-help="Compensates camera pans using background features. Recommended for moving camera. Default on.">Camera motion compensation</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-scenecut" checked /><label for="gen-scenecut"
+              data-help="Detects hard cuts and re-anchors the tracker afterward. Default on.">Scene-cut detection</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-capture-trajectory" /><label for="gen-capture-trajectory"
+              data-help="Records tip (x,y) per frame for Feel Stage A (buzz when tip grazes a contact mark) and the Play overlay. Not a user-drawn stroke path — Create never requires this. Soft-on with Contact vib; CSRT only.">Record tip trajectory (optional feel — not required to Create)</label></div>
           </details>
 
-          <div class="opt-group">Scene map</div>
-          <p class="hint" style="margin:0 0 6px 0;">
-            Heatmap + Ignore marks without Create. Same Ignore job as Step 2 → <b>+ Ignore region</b>.
-          </p>
-          <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="secondary" id="gen-scene-map" disabled
-              data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
-            <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
-          </div>
-          <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
-              <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
-              <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+          <details id="gen-advanced-antidrift" class="gen-adv-nested">
+            <summary>Long-clip anti-drift</summary>
+            <p class="hint" style="margin:8px 0 6px 0;">
+              Still Go CSRT. Rhythm / teachers steer only when opted in — off = bit-identical Everyday.
+            </p>
+            <div class="checkbox-row"><input type="checkbox" id="gen-rhythm-grid" /><label for="gen-rhythm-grid"
+              data-help="Starts inside the confirmed target box and follows only nearby cells with matching rhythm. A stronger unrelated body part cannot take over merely because CSRT drifts toward it. Opt-in; Go CSRT path only; ~+18% analysis time.">Rhythm-robust signal (target-locked, long clips)</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-contact-points" disabled /><label for="gen-contact-points"
+              data-help="VLM1: load a contact_points.py JSON so the rhythm grid can search near teacher contact points when the tip box is far away (>3 cells). Needs Rhythm-robust signal on. Empty/off = bit-identical. Build via Generate below or CLI. Never a default.">Use contact points (teachers JSON)</label></div>
+            <div class="row" id="gen-contact-points-row" style="align-items:center; gap:8px; flex-wrap:wrap; display:none;">
+              <input type="text" id="gen-contact-points-path" placeholder="(contact_points JSON)" style="flex:1; min-width:12em;" disabled
+                data-help="Path from generator/contact_points.py (e.g. clip.contact.json). Only sent when the checkbox above is on and Rhythm-robust signal is on." />
+              <button type="button" class="secondary" id="gen-contact-points-pick" disabled
+                data-help="Choose an existing contact_points.py JSON.">Choose…</button>
             </div>
-            <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
-              data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
-            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-              <label style="width:auto;" data-help="Advanced only. Ignore = exclude wrong latch (knees…). Source = optional hint when auto stroke search fails — not Everyday motion-path paint. Region = full taxonomy for train/review.">Mark</label>
-              <select id="gen-scene-map-mark-kind">
-                <option value="exclude" selected>Ignore / black (not for recognition)</option>
-                <option value="source">Source (only if auto stroke not found)</option>
-                <option value="region">Region (full taxonomy / train)</option>
-              </select>
-              <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
-              <label class="checkbox-row" style="margin:0;"
-                data-help="Stay fixed: keep the painted box where you drew it. Off (default for Ignore) = Create tracks the box so it moves with the subject (knees, thigh, etc.).">
-                <input type="checkbox" id="gen-scene-map-mark-sticky" /> Stay fixed
-              </label>
-              <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
-              <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
-            </div>
-            <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
-            <details id="gen-scene-map-learning" class="gen-adv-nested" style="margin-top:8px;">
-              <summary>Learning export &amp; teacher candidates</summary>
-              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button type="button" class="secondary" id="gen-scene-map-export"
-                  data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
-                <button type="button" class="secondary" id="gen-scene-map-suggest"
-                  data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
-                <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+            <div class="checkbox-row" id="gen-contact-verify-row" style="display:none;"><input type="checkbox" id="gen-contact-verify" disabled /><label for="gen-contact-verify"
+              data-help="Hybrid assist: keep a teacher contact point only where the Go CSRT rhythm grid measures ≥1.5× stronger signal than at its own cell. Needs Use contact points + path. Off = every loaded point steers (same as CLI --contact-verify 0). Default off — measured K=1.5; never Everyday.">Verify with the engine (hybrid, K=1.5)</label></div>
+            <p class="hint" id="gen-contact-verify-hint" style="display:none; margin:0 0 6px 0;">Optional hybrid: engine drops weak teacher points (K=1.5). Default off — Everyday Create unchanged when off.</p>
+            <details id="gen-contact-points-gen" class="gen-adv-nested" style="display:none; margin:6px 0 8px 0;">
+              <summary>Generate teachers JSON (opt-in)</summary>
+              <p class="hint" style="margin:8px 0 6px 0;">Writes <code>.contact.json</code> beside the video. Does not change Everyday Create.</p>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-nudenet" checked /><label for="gen-cp-nudenet"
+                data-help="NudeNet teacher (optional pip install). Fast local boxes.">NudeNet</label></div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-ollama" /><label for="gen-cp-ollama"
+                data-help="Ask Ollama Qwen2.5-VL if the server is up. Skipped when unreachable.">Ollama Qwen2.5-VL</label></div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-cp-lmstudio" /><label for="gen-cp-lmstudio"
+                data-help="Ask LM Studio vision model if the local server is up.">LM Studio vision</label></div>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+                <button type="button" class="secondary" id="gen-contact-points-run"
+                  data-help="Runs contact_points.py with the checked teachers, fills the path above, and enables Use contact points.">Generate contact points</button>
+                <span class="hint" id="gen-contact-points-gen-status" style="margin:0;"></span>
               </div>
-              <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-                <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept → <code>reviewed:true</code> for P5c; Reject deletes.</p>
-                <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
-                  <button type="button" class="secondary" id="gen-import-contact-candidates"
-                    data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
+            </details>
+          </details>
+
+          <details id="gen-advanced-scenemap" class="gen-adv-nested">
+            <summary>Scene map</summary>
+            <p class="hint" style="margin:8px 0 6px 0;">
+              Heatmap + Ignore marks without Create. Same Ignore job as Step 2 → <b>+ Ignore region</b>.
+            </p>
+            <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="secondary" id="gen-scene-map" disabled
+                data-help="Quick rhythm heatmap (~6×8s windows) without running Generate. Explicit only — never auto before Create (Owner).">Show scene map</button>
+              <span class="hint" id="gen-scene-map-status" style="margin:0;"></span>
+            </div>
+            <div id="gen-scene-map-tools" style="display:none;margin:8px 0 4px 0;">
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                <label style="width:auto;" data-help="Which 8s window’s rhythm scores to draw on the preview.">Map window</label>
+                <input type="range" id="gen-scene-map-win" min="0" max="0" value="0" style="flex:1;min-width:120px;" />
+                <span class="hint" id="gen-scene-map-win-label" style="margin:0;"></span>
+              </div>
+              <div class="checkbox-row"><input type="checkbox" id="gen-scene-map-overlay" checked /><label for="gen-scene-map-overlay"
+                data-help="Draw the rhythm heatmap over the preview (Advanced). Off = hide overlay only; marks stay.">Show heatmap overlay</label></div>
+              <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                <label style="width:auto;" data-help="Advanced only. Ignore = exclude wrong latch (knees…). Source = optional hint when auto stroke search fails — not Everyday motion-path paint. Region = full taxonomy for train/review.">Mark</label>
+                <select id="gen-scene-map-mark-kind">
+                  <option value="exclude" selected>Ignore / black (not for recognition)</option>
+                  <option value="source">Source (only if auto stroke not found)</option>
+                  <option value="region">Region (full taxonomy / train)</option>
+                </select>
+                <select id="gen-scene-map-mark-class" style="display:none;" aria-label="Region class"></select>
+                <label class="checkbox-row" style="margin:0;"
+                  data-help="Stay fixed: keep the painted box where you drew it. Off (default for Ignore) = Create tracks the box so it moves with the subject (knees, thigh, etc.).">
+                  <input type="checkbox" id="gen-scene-map-mark-sticky" /> Stay fixed
+                </label>
+                <button type="button" class="secondary" id="gen-scene-map-mark">Paint mark</button>
+                <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
+              </div>
+              <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
+              <details id="gen-scene-map-learning" class="gen-adv-nested" style="margin-top:8px;">
+                <summary>Learning export &amp; teacher candidates</summary>
+                <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                  <button type="button" class="secondary" id="gen-scene-map-export"
+                    data-help="Writes local scene_map_learning JSON for this clip’s companion .samn. Requires Settings → Collect learning data. Never trains YOLO.">Export for learning</button>
+                  <button type="button" class="secondary" id="gen-scene-map-suggest"
+                    data-help="L1 priors: pre-fill Ignore boxes from your Collect exports (regions you often paint out, e.g. lower-left knees). Suggest only — review on the map; Clear removes them. Needs ≥3 clips with Ignore exports. Never auto-Create.">Suggest ignores from learning</button>
+                  <span class="hint" id="gen-scene-map-export-status" style="margin:0;"></span>
+                </div>
+                <div id="gen-auto-candidates" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+                  <p class="hint" style="margin:0 0 6px 0;">Teacher contact candidates (<code>author:auto</code>) — Accept → <code>reviewed:true</code> for P5c; Reject deletes.</p>
+                  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="secondary" id="gen-import-contact-candidates"
+                      data-help="Writes teacher-consensus boxes into the companion .samn as unreviewed auto region marks. Needs an existing scene map.">Import candidates…</button>
                   <span class="hint" id="gen-auto-candidates-status" style="margin:0;"></span>
                 </div>
                 <div id="gen-auto-candidates-list" style="margin-top:6px;"></div>
               </div>
             </details>
           </div>
+          </details>
 
-          <div class="opt-group">AI assist</div>
           <details id="gen-advanced-ai-draft" class="gen-adv-nested">
             <summary>AI draft (experimental) — review-only after CSRT</summary>
             <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
@@ -397,16 +416,18 @@ export function initGenerator(root, playback) {
             </div>
           </details>
 
-          <div class="opt-group">Signal &amp; quality</div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
-            data-help="Smoothly lifts weak sections to usable strength. Default on.">Sliding dynamics</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
-            data-help="Automatically retries with other signal parameters when quality is poor. Default on.">Auto-Retry</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
-            data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
-          <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
-          <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
-          <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
+          <details id="gen-advanced-signal" class="gen-adv-nested">
+            <summary>Signal &amp; quality</summary>
+            <div class="checkbox-row"><input type="checkbox" id="gen-dynrange" checked /><label for="gen-dynrange"
+              data-help="Smoothly lifts weak sections to usable strength. Default on.">Sliding dynamics</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-retry" checked /><label for="gen-retry"
+              data-help="Automatically retries with other signal parameters when quality is poor. Default on.">Auto-Retry</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="gen-auto-ozone" /><label for="gen-auto-ozone"
+              data-help="Suggests O-markers in the last eighth (highest mean position) only when the ending is clearly high. Classic from signal, no AI model.">Suggest O-markers automatically</label></div>
+            <!-- Audio check lives in Review → Improve (post-generate). Still default-on at generate time via hidden input. -->
+            <input type="checkbox" id="gen-audio-check" checked style="display:none" aria-hidden="true" />
+            <!-- Ballast removed: AI second opinion + Flow downscale (no Everyday effect). -->
+          </details>
 
           <details id="gen-advanced-expert" class="gen-adv-nested">
             <summary>Expert tuning — defaults are fine for Everyday</summary>
@@ -515,12 +536,8 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-fill" checked /> Fill gaps
           </label>
           <label class="checkbox-row" style="margin:0;"
-            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT. Default bridge is a straight line — enable Rhythm below for stroke-rhythm bridge.">
+            data-help="Rewrites known tracker-loss windows (metadata tracking_gaps): drops junk points inside and bridges the range. Clears those windows afterward so Contact vib is not muted forever. Does not re-run CSRT. Default bridge is a straight line — enable Rhythm under More for stroke-rhythm bridge.">
             <input type="checkbox" id="gen-improve-heal" checked /> Heal tracking gaps
-          </label>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Opt-in: when Healing tracking gaps, bridge with the stroke rhythm around each window instead of a straight line (line fallback if no rhythm). Off by default — does not change Everyday Create / auto-Improve.">
-            <input type="checkbox" id="gen-improve-heal-rhythm" /> Rhythm bridge
           </label>
           <label class="checkbox-row" style="margin:0;"
             data-help="When filling gaps, space new points using audio tempo (half-period) if ffmpeg finds a clear beat. Still linear positions — not audio→curve.">
@@ -531,16 +548,23 @@ export function initGenerator(root, playback) {
             <input type="checkbox" id="gen-improve-audio" checked /> Audio check
           </label>
         </div>
-        <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Opt-in: rewrite only this time range with a rhythm bridge (line fallback). Does not clear tracking_gaps. Mark start/end in seconds of the bad stretch.">
-            <input type="checkbox" id="gen-improve-repair" /> Repair this span
-          </label>
-          <label style="width:auto;">From (s)</label>
-          <input type="number" id="gen-improve-repair-start" value="0" min="0" step="0.5" style="width:5em;" disabled />
-          <label style="width:auto;">To (s)</label>
-          <input type="number" id="gen-improve-repair-end" value="0" min="0" step="0.5" style="width:5em;" disabled />
-        </div>
+        <details class="gen-mark-disclose" id="gen-improve-more-details" style="margin-top:6px;">
+          <summary>More: Rhythm bridge &amp; repair span</summary>
+          <div class="row" style="align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Opt-in: when Healing tracking gaps, bridge with the stroke rhythm around each window instead of a straight line (line fallback if no rhythm). Off by default — does not change Everyday Create / auto-Improve.">
+              <input type="checkbox" id="gen-improve-heal-rhythm" /> Rhythm bridge
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Opt-in: rewrite only this time range with a rhythm bridge (line fallback). Does not clear tracking_gaps. Mark start/end in seconds of the bad stretch.">
+              <input type="checkbox" id="gen-improve-repair" /> Repair this span
+            </label>
+            <label style="width:auto;">From (s)</label>
+            <input type="number" id="gen-improve-repair-start" value="0" min="0" step="0.5" style="width:5em;" disabled />
+            <label style="width:auto;">To (s)</label>
+            <input type="number" id="gen-improve-repair-end" value="0" min="0" step="0.5" style="width:5em;" disabled />
+          </div>
+        </details>
         <div class="row" style="margin-top:8px;">
           <button id="gen-improve-apply" class="primary" type="button">Improve script</button>
           <span class="hint" id="gen-improve-status" style="margin:0 0 0 8px;"></span>
@@ -553,16 +577,19 @@ export function initGenerator(root, playback) {
           <p class="hint" style="margin:4px 0 6px;">
             Review taxonomy only — click a block to seek Play. Optional: add as chapter marks (does not change the stroke).
           </p>
-          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-holding" checked /> Hold</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-gentle" checked /> Gentle</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-intense" checked /> Intense</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-climax" checked /> Climax</label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="When on, only dialogue/quiet Hold blocks stay visible in the strip.">
-              <input type="checkbox" id="gen-seg-f-speech-only" /> Speech-hold only
-            </label>
-          </div>
+          <details class="gen-mark-disclose" id="gen-feel-filters-details">
+            <summary>Filters</summary>
+            <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin:6px 0;">
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-holding" checked /> Hold</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-gentle" checked /> Gentle</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-intense" checked /> Intense</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="gen-seg-f-climax" checked /> Climax</label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="When on, only dialogue/quiet Hold blocks stay visible in the strip.">
+                <input type="checkbox" id="gen-seg-f-speech-only" /> Speech-hold only
+              </label>
+            </div>
+          </details>
           <div id="gen-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
             <button type="button" id="gen-audio-seg-chapters">Add visible as chapters</button>
@@ -794,6 +821,11 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   let userCancelRequested = false;
   let activeCreateSeq = 0;
+  EventsOn('generate:started', result => {
+    if (typeof result?.seq === 'number' && result.seq >= activeCreateSeq) {
+      activeCreateSeq = result.seq;
+    }
+  });
   let profileSuggestionSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
@@ -1110,11 +1142,11 @@ export function initGenerator(root, playback) {
 
   function updateRoiLabels() {
     el('#gen-roi-label').textContent = roi
-      ? `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels)`
-      : 'No region marked';
+      ? `Tip (stroke tracker): x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} — CSRT follows this box only; after a big angle change press Find tip`
+      : 'No tip box yet (Find tip runs on Create — no motion path to paint)';
     el('#gen-roi2-label').textContent = roi2
       ? secondRegionLabel(roi2, 'gold')
-      : 'No contact area marked';
+      : 'No contact area marked (optional partner touch)';
     const extras = el('#gen-extras-label');
     if (extras) {
       const parts = [];
@@ -1144,85 +1176,241 @@ export function initGenerator(root, playback) {
     if (be !== 'csrt') {
       el('#gen-backend').value = 'csrt';
     }
+    syncMarkSnack();
     updateGenerateEnabled();
   }
 
-  // CSRT needs a tip mark. (Legacy no-mark backends are CLI-only now.)
-  function backendNeedsRoi() {
-    return el('#gen-backend').value !== 'region_fusion_auto';
+  // Outline + scroll Mark contact without arming gold paint. Tip refine stays tip
+  // until the user presses the button (auto-arm made body-map paints land as Contact).
+  function highlightPartnerMark(scroll) {
+    const btn = el('#gen-roi2-toggle');
+    if (!btn || roi2Mode) return;
+    btn.style.outline = '2px solid #f2b03d';
+    btn.style.background = 'rgba(242,176,61,0.12)';
+    if (scroll) {
+      try { btn.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_) {}
+    }
   }
 
-  function isNoMarkMotion() {
-    return el('#gen-backend').value === 'region_fusion_auto';
+  function clearPartnerHighlight() {
+    if (roi2Mode) return;
+    const btn = el('#gen-roi2-toggle');
+    if (!btn) return;
+    btn.style.outline = '';
+    btn.style.background = '';
   }
 
-  function setNoMarkMotion(on) {
-    // Product: never enable 4-zone from the GUI — force CSRT.
+  // Guided snack for Tip → Partner → Extra (Contact vibe). Everyday still
+  // works with tip alone / auto-find — this only clarifies order.
+  function syncMarkSnack() {
+    const snack = el('#gen-mark-snack');
+    const hint = el('#gen-mark-snack-hint');
+    if (!snack || !hint) return;
+    const vibOn = !!el('#gen-contact-vibration')?.checked;
+    const hasTip = !!roi;
+    const hasPartner = !!roi2;
+    const hasExtra = extraTargets.length > 0;
+
+    // Contact-vib guide only. Off → hide (including after a tip is set).
+    if (!vibOn) {
+      clearPartnerHighlight();
+      snack.style.display = 'none';
+      snack.dataset.partnerArmed = '';
+      return;
+    }
+    snack.style.display = '';
+
+    let current = 'tip';
+    if (hasTip && !hasPartner) current = 'partner';
+    else if (hasTip && hasPartner) current = 'extra';
+
+    snack.querySelectorAll('[data-snack]').forEach((li) => {
+      const key = li.getAttribute('data-snack');
+      const done = (key === 'tip' && hasTip)
+        || (key === 'partner' && hasPartner)
+        || (key === 'extra' && hasExtra);
+      li.classList.toggle('is-done', done && key !== current);
+      li.classList.toggle('is-current', key === current);
+    });
+
+    if (!hasTip) {
+      snack.dataset.partnerArmed = '';
+      clearPartnerHighlight();
+      hint.innerHTML = 'Snack <b>1</b>: press <b>Find tip</b> (or drag only if Find missed). '
+        + 'That teal box is the stroke tracker — not a whole-frame motion path.';
+    } else if (!hasPartner) {
+      hint.innerHTML = 'Snack <b>2</b>: <b>Mark contact</b> (gold) on mouth or nipple/breast. '
+        + 'Optional — Create works without it. Tip CSRT already owns the stroke.';
+      // Highlight only — do not setRoi2Mode. Next canvas drag still refines tip.
+      if (snack.dataset.partnerArmed !== '1') {
+        snack.dataset.partnerArmed = '1';
+        highlightPartnerMark(true);
+      } else {
+        highlightPartnerMark(false);
+      }
+    } else if (!hasExtra) {
+      snack.dataset.partnerArmed = '1';
+      clearPartnerHighlight();
+      hint.innerHTML = 'Snack <b>3</b> (optional): <b>+ Another contact</b> for a second nipple/mouth, then Create. '
+        + 'Partner fixed (pixels) only if that touch barely moves.';
+    } else {
+      snack.dataset.partnerArmed = '1';
+      clearPartnerHighlight();
+      hint.innerHTML = 'Tip + partner + extras set. Ready for Feel → Create. '
+        + 'After a big camera-angle change, re-run <b>Find tip</b>.';
+    }
+  }
+
+  // Product GUI is tip CSRT only (4-zone / research backends stay CLI).
+  function forceCsrtBackend(msg) {
     const backend = el('#gen-backend');
     backend.value = 'csrt';
     delete backend.dataset.userTouched;
-    const btn = el('#gen-nomark');
-    if (btn) {
-      btn.style.outline = '';
-      btn.style.background = '';
-      btn.textContent = '4-zone (CLI only)';
-    }
-    if (on) {
+    if (msg) {
       normalizeProductProfile();
       candidates = [];
       clearPendingSeed();
       setSeedSuggestEnabled(false);
-      el('#gen-status').textContent =
-        'Tip CSRT is the Everyday stroke writer — 4-zone is CLI-only (not a GUI mode).';
+      el('#gen-status').textContent = msg;
     }
-    syncNoMarkButton();
     updateGenerateEnabled();
     redraw();
-  }
-
-  function syncNoMarkButton() {
-    const btn = el('#gen-nomark');
-    if (!btn) return;
-    const on = isNoMarkMotion();
-    btn.style.outline = on ? '2px solid #7ec8ff' : '';
-    btn.style.background = on ? 'rgba(126,200,255,0.18)' : '';
   }
 
   function contactVibrationOn() {
     return !!el('#gen-contact-vibration')?.checked;
   }
 
-  // Everyday Generate: tip mark (CSRT) or no-mark 4-zone. Zone 2 never required.
-  // FunGen-like: video alone is enough — Generate will auto-find tip if missing.
+  // Everyday: video alone is enough — Generate auto-finds tip if missing.
   function regionReadyForGenerate() {
-    if (!videoPath) return false;
-    if (isNoMarkMotion()) return true;
-    if (backendNeedsRoi() && !roi) return true; // Generate triggers auto-find
+    return !!videoPath;
+  }
+
+  let tipFindBusy = false; // manual Find tip / auto tip (not only tip-find-then-Create)
+  let progressStartedAt = 0;
+
+  function showTipFindProgress(label) {
+    const wrap = el('#gen-progress-wrap');
+    if (!wrap) return;
+    wrap.style.display = 'block';
+    el('#gen-progress-bar').style.width = '0%';
+    el('#gen-progress-bar').style.opacity = '1';
+    el('#gen-progress-text').textContent = label || 'Finding…';
+    progressStartedAt = Date.now();
+  }
+
+  function setTipFindBusy(on, progressLabel) {
+    tipFindBusy = !!on;
+    if (on) {
+      el('#gen-cancel').disabled = false;
+      el('#gen-autoroi').disabled = true;
+      el('#gen-candidates').disabled = true;
+      const aiTags = el('#gen-ai-detections');
+      if (aiTags) aiTags.disabled = true;
+      setSeedSuggestEnabled(false);
+      showTipFindProgress(progressLabel || 'Finding…');
+    } else if (!generating) {
+      el('#gen-cancel').disabled = true;
+    }
+  }
+
+  // Re-enable Find / other spots / AI tags after tip-find, Cancel, or seek.
+  function unlockRecognitionControls() {
+    tipFindBusy = false;
+    if (!generating) el('#gen-cancel').disabled = true;
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    refreshAIRoiAvailability();
+    hideProgress();
+  }
+
+  function clearCreateLock() {
+    generating = false;
+    el('#gen-cancel').disabled = true;
+    tipFindBusy = false;
+    activeAITargetRequest = null;
+    unlockRecognitionControls();
+    updateGenerateEnabled();
+    updateSceneMapButton();
+    syncWorkflowSteps();
+  }
+
+  // Tip-find never reached GenerateScript — skip remaining queue entries.
+  // C7: tip-find failures name the action and offer a real Find tip retry.
+  function showFindTipRetry(reason, level) {
+    const status = el('#gen-status');
+    const why = String(reason || 'no tip box').replace(/\s+/g, ' ').trim();
+    const msg = 'Find tip failed: ' + why + '.';
+    if (level === 'warn') uiWarn(msg, null);
+    else uiError(msg, null);
+    if (!status) return;
+    status.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = msg + ' ';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'secondary status-cta';
+    btn.textContent = 'Find tip';
+    btn.addEventListener('click', () => {
+      if (!videoPath || tipFindBusy || generating) return;
+      pendingGenerateAfterRoi = false;
+      startAutoFindRegion();
+    });
+    status.append(text, btn);
+  }
+
+  function abortQueueDuringTipFind(statusMsg) {
+    if (!queueRunning) return false;
+    for (const q of generateQueue) {
+      if (q.status === 'queued' || q.status === 'running') q.status = 'skipped';
+    }
+    queueRunning = false;
+    renderQueue();
+    el('#gen-status').textContent = statusMsg || 'Queue canceled.';
     return true;
   }
 
   function startAutoFindRegion() {
     if (!videoPath) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     const useAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const expectedClass = normalizeClass(el('#gen-ai-target-class')?.value || '');
-    if (useAI && !expectedClass) {
+    // Tip-find-then-Create / queue must auto-continue — classic find only
+    // (AI path waits for Apply and cannot finish unattended Create).
+    const autoContinue = pendingGenerateAfterRoi;
+    if (useAI && !expectedClass && !autoContinue) {
       pendingGenerateAfterRoi = false;
+      if (generating) clearCreateLock();
       el('#gen-status').textContent = (
         'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
       ) + videoBatchNote;
       el('#gen-ai-target-class')?.focus();
       return;
     }
+    if (useAI && !expectedClass && autoContinue) {
+      pendingGenerateAfterRoi = false;
+      clearCreateLock();
+      if (!abortQueueDuringTipFind('Queue stopped — choose an AI body point, or turn AI off, then Create again.')) {
+        el('#gen-status').textContent = (
+          'Choose the expected body point for strict AI detection, or turn AI off for generic motion search.'
+        ) + videoBatchNote;
+      }
+      el('#gen-ai-target-class')?.focus();
+      return;
+    }
     clearPendingAITarget();
     redraw();
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
-    el('#gen-status').textContent = (useAI
+    const runAI = useAI && !autoContinue;
+    const statusMsg = runAI
       ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
-      : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
-    if (useAI) {
+      : (autoContinue && useAI
+        ? 'Create uses classic tip-find (AI needs Apply first)…'
+        : 'Finding tip region automatically (CSRT)…');
+    setTipFindBusy(true, runAI ? 'Strict AI tip…' : 'Finding tip…');
+    el('#gen-status').textContent = statusMsg + videoBatchNote;
+    if (runAI) {
       const requestId = ++aiTargetRequestSeq;
       activeAITargetRequest = { requestId, videoPath, expectedClass, timeSec: seekSec };
       DetectExpectedTipROI(videoPath, expectedClass, seekSec, requestId);
@@ -1254,11 +1442,8 @@ export function initGenerator(root, playback) {
     const hasRoi1 = !!roi;
     const canRun = regionReadyForGenerate();
     const hasResult = !!lastOutputPath;
-    const noMark = isNoMarkMotion();
-
     const showRegion = hasVideo;
-    // Unlock motion/profile once tip is marked, 4-zone is on, OR video is loaded
-    // (Generate will auto-find tip — FunGen-like everyday path).
+    // Unlock motion/profile once video is loaded (Generate auto-finds tip).
     const showMotion = hasVideo;
     const showRun = canRun || generating;
     const showResult = hasResult;
@@ -1288,20 +1473,19 @@ export function initGenerator(root, playback) {
     const prompt = el('#gen-step-prompt');
     if (!prompt) return;
     if (!hasVideo) {
-      prompt.textContent = 'Start here: choose a video. The next step appears when this one is done.';
-    } else if (!hasRoi1 && !noMark) {
-      prompt.textContent = 'Finding tip… or mark / pick a spot. Then Create.';
+      prompt.textContent = 'Start here: choose a video. Like FunGen2 — no motion path to paint; we find the tip.';
+    } else if (!hasRoi1) {
+      prompt.textContent = 'Snack 1: Find tip (auto) — or mark only if Find missed. Tip = stroke box, not whole-scene tracking.';
     } else if (!canRun && !generating) {
-      prompt.textContent = 'Step 3: Contact vibration is on by default — Create unlocks when tracking is ready.';
+      prompt.textContent = 'Snack 2–3 optional: partner touch for Contact vibe, then Feel. Create unlocks when tip is ready.';
     } else if (generating) {
       prompt.textContent = 'Step 4: creating… you can Cancel if needed.';
     } else if (!hasResult) {
-      prompt.textContent = noMark
-        ? 'Step 4: Create your Emotion Script.'
-        : 'Step 4: Create Emotion Script — Advanced stays closed for Everyday; open only if needed.';
+      prompt.textContent = 'Step 4: Create Emotion Script — Advanced stays closed for Everyday; open only if needed.';
     } else {
       prompt.textContent = 'Step 5: Improve, then Play — edit dots on the soft curve.';
     }
+    syncMarkSnack();
   }
 
   function updateGenerateEnabled() {
@@ -1693,6 +1877,7 @@ export function initGenerator(root, playback) {
       }
     }
     syncRoi2FixedDefault();
+    syncMarkSnack();
     updateGenerateEnabled();
   }
 
@@ -1782,10 +1967,13 @@ export function initGenerator(root, playback) {
     clearTimeout(contactVibPreviewTimer);
     contactVibPreviewTimer = setTimeout(refreshContactVibPreview, 160);
   }
+  function openCreateContactProbe() {
+    const d = el('#gen-contact-probe-details');
+    if (d) d.open = true;
+  }
 
   function updateProfileUi() {
     normalizeProductProfile();
-    el('#gen-tftj-hint').style.display = 'none';
     // Contact vib is the product feel layer — always shown.
     el('#gen-contact-vibration-wrap').style.display = 'block';
     el('#gen-contact-vibration-row').style.display = 'flex';
@@ -1862,6 +2050,9 @@ export function initGenerator(root, playback) {
         el('#gen-region-class')?.value || el('#gen-region-class2')?.value || '');
       return;
     }
+    // Body map + Delete live under Mark options — open when a mark is selected.
+    const opts = el('#gen-mark-options-details');
+    if (opts) opts.open = true;
     wrap.hidden = false;
     let text = 'Selected: ';
     if (selectedMark.kind === 'tip') {
@@ -2193,6 +2384,11 @@ export function initGenerator(root, playback) {
     };
   }
 
+  function openMarkAiDetails() {
+    const d = el('#gen-mark-ai-details');
+    if (d) d.open = true;
+  }
+
   function renderSceneProposalUI() {
     const chip = el('#gen-scene-type-chip');
     const actions = el('#gen-scene-proposals-actions');
@@ -2206,6 +2402,7 @@ export function initGenerator(root, playback) {
       if (partnerBtn) partnerBtn.hidden = true;
       return;
     }
+    openMarkAiDetails();
     const p = sceneProposal.proposal || {};
     const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
     const conf = typeof p.confidence === 'number' ? p.confidence : 0;
@@ -2304,7 +2501,7 @@ export function initGenerator(root, playback) {
     const p = sceneProposal.proposal || {};
     const primary = sceneProposalBox(p.primary || p.Primary);
     if (!primary || primary.w <= 0 || primary.h <= 0) return;
-    setNoMarkMotion(false);
+    forceCsrtBackend();
     roi = { x: primary.x, y: primary.y, w: primary.w, h: primary.h };
     const tipCls = normalizeClass(
       sceneProposal.regionClass || sceneProposal.region_class || primary.class || '');
@@ -2322,14 +2519,15 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
     const typeLabel = SCENE_TYPE_LABELS[sceneType] || sceneType || 'scene';
-    const tipTag = tipCls ? `, ${labelFor(tipCls) || tipCls}` : '';
-    el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, scene primary${tipTag})`;
+    const stamp = () => {
+      el('#gen-roi-label').textContent =
+        `Tip (stroke tracker): scene primary — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
+    };
+    stamp();
     const msg = `Tip applied from scene proposal (${typeLabel}) — partner not applied (no silent ROI2).`;
     el('#gen-status').textContent = msg;
     redraw();
-    autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
+    autoApplyPipeline().then(() => { stamp(); el('#gen-status').textContent = msg; });
   }
 
   function applyScenePartner() {
@@ -2351,17 +2549,26 @@ export function initGenerator(root, playback) {
     if (status) status.textContent = '';
   }
 
-  function cancelActiveAITargetRequest() {
-    if (!activeAITargetRequest) return;
+  // Cancel any in-flight tip-find / candidates / AI tags / strict AI request.
+  // Always calls CancelROIDetection (not only when activeAITargetRequest is set)
+  // so classic AutoDetectROI cannot overwrite a paint or a seek frame.
+  function cancelAnyRoiRequest(statusMsg) {
+    const wasBusy = tipFindBusy || !!activeAITargetRequest;
+    const tipFindCreate = wasBusy && pendingGenerateAfterRoi;
     activeAITargetRequest = null;
-    pendingGenerateAfterRoi = false;
+    if (wasBusy) pendingGenerateAfterRoi = false;
     CancelROIDetection().catch(() => {});
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-      el('#gen-nomark').disabled = false;
+    if (!wasBusy) return;
+    if (tipFindCreate && generating) {
+      clearCreateLock();
+    } else {
+      unlockRecognitionControls();
     }
+    if (statusMsg) el('#gen-status').textContent = statusMsg;
+  }
+
+  function cancelActiveAITargetRequest() {
+    cancelAnyRoiRequest();
   }
 
   function renderPendingAITarget() {
@@ -2452,14 +2659,14 @@ export function initGenerator(root, playback) {
     updateRoiLabels();
     updateProfileUi();
     updateGenerateEnabled();
-    autoApplyPipeline();
-    const tipTag = regionClass1Value()
-      ? `, ${labelFor(regionClass1Value())}` : '';
-    el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, Tip candidate #${tip.index}${tipTag})`;
-    el('#gen-roi2-label').textContent =
-      secondRegionLabel(roi2, `2nd candidate #${partner.index}`);
+    const stampSeedLabels = () => {
+      el('#gen-roi-label').textContent =
+        `Tip candidate #${tip.index} — x=${tip.x} y=${tip.y} w=${tip.w} h=${tip.h}`;
+      el('#gen-roi2-label').textContent =
+        `2nd candidate #${partner.index} — x=${partner.x} y=${partner.y} w=${partner.w} h=${partner.h}`;
+    };
+    stampSeedLabels();
+    autoApplyPipeline().then(stampSeedLabels);
     const nudge = nudgeZone2ClassIfEmpty();
     el('#gen-status').textContent =
       `Tip #${tip.index} + contact #${partner.index} applied — correct by hand if needed.`
@@ -2555,12 +2762,10 @@ export function initGenerator(root, playback) {
     }
     // Never auto-fill Zone 2 from a Zone 1 pick (issue #8 / TFTJ 4b / MT-Seed).
     updateRoiLabels();
-    updateGenerateEnabled();
-    const tipTag = regionClass1Value()
-      ? `, ${labelFor(regionClass1Value())}` : '';
+    // Keep the candidate index in the label (MT-Seed tests + user feedback).
     el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, candidate #${c.index}${tipTag})`;
+      `Tip (stroke tracker): candidate #${c.index} — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
+    updateGenerateEnabled();
     const msg =
       `Tip set from candidate #${c.index} — optional: Shift-click a 2nd body-part mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
     el('#gen-status').textContent = msg;
@@ -2608,7 +2813,7 @@ export function initGenerator(root, playback) {
   }
 
   canvas.addEventListener('mousedown', e => {
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     const r = canvas.getBoundingClientRect();
     startX = curX = e.clientX - r.left;
@@ -2729,12 +2934,15 @@ export function initGenerator(root, playback) {
       setRoi2Mode(false);
       // Zone 2 is optional for Contact vib — do not switch to legacy Tf/Tj.
       el('#gen-status').textContent = contactVibrationOn()
-        ? 'Optional contact zone set — Contact vib on (stroke depth / approach). Click body map to set Contact type.'
+        ? 'Snack 2 done — partner touch (gold). Optional: + Another, or continue to Feel → Create.'
         : 'Optional contact zone set.';
       setSelectedMark({ kind: 'contact' });
     } else {
       roi = box;
       setSelectedMark({ kind: 'tip' });
+      el('#gen-status').textContent = contactVibrationOn()
+        ? 'Snack 1 done — tip box is the stroke tracker (CSRT). Next: Mark contact (gold), or skip to Create.'
+        : 'Tip box set — CSRT follows this look; Find tip again after a big camera-angle change.';
     }
     updateRoiLabels();
     updateGenerateEnabled();
@@ -3127,6 +3335,8 @@ export function initGenerator(root, playback) {
     el('#gen-seek-plus').disabled = false;
     el('#gen-seek-plus5').disabled = false;
     el('#gen-video-path').textContent = path.split(/[\\/]/).pop();
+    const emptyCta = el('#gen-empty-cta');
+    if (emptyCta) emptyCta.hidden = true;
     el('#gen-status').textContent = 'Loading preview frame…';
     roi = null;
     roi2 = null;
@@ -3177,8 +3387,6 @@ export function initGenerator(root, playback) {
       // Region buttons stay disabled until generate:autoroi (auto-find owns them).
       el('#gen-autoroi').disabled = true;
       el('#gen-candidates').disabled = true;
-      el('#gen-nomark').disabled = true;
-      syncNoMarkButton();
       el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       updateSceneMapButton();
@@ -3223,6 +3431,8 @@ export function initGenerator(root, playback) {
       }
     } catch (err) {
       // Keep batchNote so multi-drop queue hint stays visible even if preview fails.
+      cancelAnyRoiRequest();
+      unlockRecognitionControls();
       uiError('Load video: ' + err + batchNote, el('#gen-status'));
     }
   }
@@ -3232,6 +3442,7 @@ export function initGenerator(root, playback) {
     nativeW = preview.width; nativeH = preview.height;
     const displayH = Math.round(DISPLAY_W * nativeH / nativeW);
     canvas.width = DISPLAY_W; canvas.height = displayH;
+    rememberNativeSize(canvas, nativeW, nativeH);
     await new Promise((resolve, reject) => {
       img.onload = () => { redraw(); resolve(); };
       img.onerror = () => reject(new Error('Preview image could not be decoded'));
@@ -3241,7 +3452,7 @@ export function initGenerator(root, playback) {
 
   async function seekTo(sec) {
     if (!videoPath) return;
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     seekSec = Math.max(0, sec);
     el('#gen-seek').value = String(seekSec);
@@ -3282,8 +3493,8 @@ export function initGenerator(root, playback) {
     }
     normalizeProductProfile();
 
-    // Everyday: no tip yet + CSRT → auto-find then continue.
-    if (backendNeedsRoi() && !roi) {
+    // Everyday: no tip yet → auto-find then continue.
+    if (!roi) {
       const strictAI = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
       if (strictAI) {
         pendingGenerateAfterRoi = false;
@@ -3344,9 +3555,8 @@ export function initGenerator(root, playback) {
       if (tip) tip.textContent = '';
       progressStartedAt = Date.now();
     }
-    // Ohne markierte Region (flow/region_fusion_auto) dieselbe "keine ROI"-
-    // Platzhalter-Region wie die CLI ohne --roi fürs flow-Backend verschickt
-    // (0,0,0,0) - beide Backends ignorieren sie ohnehin vollständig.
+    // Tip ROI required for CSRT; placeholder {0,0,0,0} is unused on the
+    // product path (research backends that ignore ROI stay CLI-only).
     const effectiveRoi = roi || { x: 0, y: 0, w: 0, h: 0 };
     const prominenceRaw = parseFloat(el('#gen-prominence')?.value);
     const payload = {
@@ -3454,19 +3664,46 @@ export function initGenerator(root, playback) {
 
   el('#gen-cancel').addEventListener('click', () => {
     userCancelRequested = true;
+    const tipFindOnly = pendingGenerateAfterRoi;
+    const manualTipFind = tipFindBusy && !generating;
     pendingGenerateAfterRoi = false;
+    // Drop in-flight tip-find / candidates / AI tags / Smarter tip find.
+    activeAITargetRequest = null;
+    CancelROIDetection().catch(() => {});
+    CancelContactPoints().catch(() => {});
     CancelGenerate();
+    // Tip-find-then-Create never gets generate:done until tracking starts —
+    // clear the Create lock here so Cancel always unlocks the UI.
+    if (generating) {
+      clearCreateLock();
+      // Queue tip-find never reached GenerateScript — tear down now or
+      // Clear stays disabled waiting forever for generate:done.
+      if (tipFindOnly && abortQueueDuringTipFind('Queue canceled.')) {
+        return;
+      }
+      el('#gen-status').textContent = tipFindOnly
+        ? 'Tip find canceled.'
+        : (queueRunning ? 'Cancel requested — stopping queue…' : 'Cancel requested…');
+      return;
+    } else if (manualTipFind) {
+      unlockRecognitionControls();
+      el('#gen-status').textContent = 'Tip find canceled.';
+      return;
+    }
     el('#gen-status').textContent = queueRunning
       ? 'Cancel requested — stopping queue…'
       : 'Cancel requested…';
   });
 
   const handleProgressLine = line => {
-    el('#gen-status').textContent = line;
     const log = el('#gen-log');
     if (log) {
       log.textContent += line + '\n';
       log.scrollTop = log.scrollHeight;
+    }
+    // Tip-find keeps the friendly status; raw detector lines stay in the log.
+    if (!(tipFindBusy && !generating)) {
+      el('#gen-status').textContent = line;
     }
     const wrap = el('#gen-progress-wrap');
     if (wrap && wrap.style.display === 'none') {
@@ -3492,11 +3729,7 @@ export function initGenerator(root, playback) {
       pipe.textContent = 'Path: Go CSRT';
     } else if (/PreferSimpletrack|simpletrack|NCC/i.test(s)) {
       pipe.textContent = 'Path: Go simpletrack (experimental)';
-    } else if (/Python CSRT|product path/i.test(s)) {
-      pipe.textContent = 'Path: Python CSRT';
-    } else if (/Fallback auf Python|starte Generierung/i.test(s) && /Python/i.test(s)) {
-      pipe.textContent = 'Path: Python';
-    } else if (/Fallback auf Python/i.test(s)) {
+    } else if (/Python CSRT|product path|using Python/i.test(s) && /Python/i.test(s)) {
       pipe.textContent = 'Path: Python';
     }
   };
@@ -3518,10 +3751,7 @@ export function initGenerator(root, playback) {
       || expected !== request.expectedClass
       || (result.videoPath && result.videoPath !== request.videoPath)) return;
     activeAITargetRequest = null;
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
+    unlockRecognitionControls();
     pendingGenerateAfterRoi = false;
     generating = false;
     el('#gen-cancel').disabled = true;
@@ -3533,7 +3763,7 @@ export function initGenerator(root, playback) {
       const guidance = ['manifest_missing', 'manifest_invalid', 'class_unresolved', 'class_conflict'].includes(reason)
         ? 'Check that classes.json beside the ONNX model contains this class.'
         : 'Mark the intended point manually or train/correct more examples.';
-      uiWarn(`No confirmed ${wanted} (${reason}). ${guidance} Existing region kept.`, el('#gen-status'));
+      showFindTipRetry(`no confirmed ${wanted} (${reason}). ${guidance} Existing region kept`, 'warn');
       updateGenerateEnabled();
       return;
     }
@@ -3562,29 +3792,33 @@ export function initGenerator(root, playback) {
     if (result.videoPath && videoPath && result.videoPath !== videoPath) {
       return;
     }
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
+    unlockRecognitionControls();
     if (result.error) {
+      const wasPending = pendingGenerateAfterRoi;
       pendingGenerateAfterRoi = false;
       generating = false;
       el('#gen-cancel').disabled = true;
       updateGenerateEnabled();
       updateSceneMapButton();
       syncWorkflowSteps();
-      uiError('Automatic region search: ' + result.error, el('#gen-status'));
+      if (/cancel/i.test(String(result.error || ''))) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        showFindTipRetry(result.error, 'error');
+      }
+      // Queue tip-find failed — advance/fail entry (do not leave queue stuck).
+      if (queueRunning && wasPending) {
+        advanceQueueAfterDone(false, result.error);
+      }
       return;
     }
     candidates = [];
     clearPendingSeed();
     setSeedSuggestEnabled(false);
-    // Everyday first choice: tip CSRT — leave 4-zone only if user opted in.
+    // Everyday first choice: tip CSRT.
     if (!el('#gen-backend').dataset.userTouched) {
       el('#gen-backend').value = 'csrt';
-      setNoMarkMotion(false);
-    } else {
-      syncNoMarkButton();
+      forceCsrtBackend();
     }
     if (!el('#gen-profile').dataset.userTouched) {
       el('#gen-profile').value = 'standard';
@@ -3597,16 +3831,10 @@ export function initGenerator(root, playback) {
     }
     updateRoiLabels();
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
-    if (roi) {
-      el('#gen-roi-label').textContent =
-        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, ${via} — drag to refine)`;
-    }
-    if (hasRoi2 && roi2) {
-      el('#gen-roi2-label').textContent =
-        `Contact area: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — editable)`;
-    }
     updateProfileUi();
     updateGenerateEnabled();
+    el('#gen-roi-label').textContent =
+      `Tip (stroke tracker): ${via} found — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
     let status = hasRoi2
       ? `Tip + contact found (${via}) — drag either box to refine (editable).`
       : `Tip region found (${via}) — start box only; drag on the preview to refine.`;
@@ -3625,7 +3853,6 @@ export function initGenerator(root, playback) {
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
   // des videos unknown war. In dem Fall wird ein unbestimmter
   // Balken gezeigt statt eines erfundenen Prozentwerts.
-  let progressStartedAt = 0;
   const handleProgressPercent = pct => {
     const wrap = el('#gen-progress-wrap');
     const bar = el('#gen-progress-bar');
@@ -4310,11 +4537,13 @@ export function initGenerator(root, playback) {
     el('#gen-contact-curve').dataset.userTouched = '1';
     const impulse = el('#gen-contact-impulse');
     if (impulse) impulse.checked = el('#gen-contact-curve').value === 'impulse';
+    openCreateContactProbe();
     scheduleContactVibPreview();
     saveSetting('generator.contact_vibration_curve', el('#gen-contact-curve').value || 'soft');
   });
   el('#gen-contact-span').addEventListener('input', () => {
     updateContactSpanLabel();
+    openCreateContactProbe();
     scheduleContactVibPreview();
   });
   el('#gen-contact-span').addEventListener('change', e => {
@@ -4326,8 +4555,7 @@ export function initGenerator(root, playback) {
   updateContactSpanLabel();
   el('#gen-backend').addEventListener('change', () => {
     el('#gen-backend').dataset.userTouched = '1';
-    syncNoMarkButton();
-    normalizeProductProfile();
+        normalizeProductProfile();
     updateGenerateEnabled();
   });
   el('#gen-autoroi').addEventListener('click', () => {
@@ -4338,26 +4566,18 @@ export function initGenerator(root, playback) {
 
   el('#gen-candidates').addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
-    el('#gen-candidates').disabled = true;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-nomark').disabled = true;
-    el('#gen-ai-detections') && (el('#gen-ai-detections').disabled = true);
-    setSeedSuggestEnabled(false);
+    forceCsrtBackend();
     clearPendingSeed();
+    setTipFindBusy(true, 'Finding spots…');
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
   });
 
   el('#gen-ai-detections')?.addEventListener('click', () => {
     if (!videoPath) return;
-    setNoMarkMotion(false);
-    el('#gen-ai-detections').disabled = true;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    el('#gen-nomark').disabled = true;
-    setSeedSuggestEnabled(false);
+    forceCsrtBackend();
     clearPendingSeed();
+    setTipFindBusy(true, 'Listing AI tags…');
     el('#gen-status').textContent = 'Listing all AI class tags on this frame (nipples/breasts/glans/…)…';
     ListAIDetections(videoPath, seekSec || 0);
   });
@@ -4413,19 +4633,19 @@ export function initGenerator(root, playback) {
     redraw();
   });
 
-  el('#gen-nomark').addEventListener('click', () => {
-    if (!videoPath) return;
-    setNoMarkMotion(!isNoMarkMotion());
-  });
-
   EventsOn('generate:roi-candidates', result => {
-    hideProgress();
-    el('#gen-candidates').disabled = false;
-    el('#gen-autoroi').disabled = false;
-    el('#gen-nomark').disabled = false;
-    refreshAIRoiAvailability();
+    // Drop stale / cancelled / wrong-video results.
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
+    unlockRecognitionControls();
     if (result.error) {
-      uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      const cancelled = /cancelled/i.test(String(result.error || ''));
+      if (cancelled) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      }
       setSeedSuggestEnabled(false);
       clearPendingSeed();
       return;
@@ -4452,13 +4672,17 @@ export function initGenerator(root, playback) {
   });
 
   EventsOn('generate:ai-detections', result => {
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
-    el('#gen-nomark').disabled = false;
-    refreshAIRoiAvailability();
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
+    unlockRecognitionControls();
     if (result.error) {
-      uiError('AI tags: ' + result.error, el('#gen-status'));
+      const cancelled = /cancelled/i.test(String(result.error || ''));
+      if (cancelled) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        uiError('AI tags: ' + result.error, el('#gen-status'));
+      }
       setSeedSuggestEnabled(false);
       clearPendingSeed();
       return;
@@ -4617,27 +4841,17 @@ export function initGenerator(root, playback) {
     const enabled = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const target = el('#gen-ai-target-class');
     if (target) target.disabled = !enabled;
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     redraw();
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-    }
     el('#gen-autoroi-hint').textContent = enabled
       ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class. Result stays editable — drag to refine.'
       : 'Classic Tip-Find is active (editable start box). Enable AI plus an expected body point for strict matching.';
   });
   el('#gen-ai-target-class')?.addEventListener('change', () => {
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     redraw();
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-    }
     const cls = normalizeClass(el('#gen-ai-target-class').value || '');
     el('#gen-ai-target-status').textContent = cls
       ? `Strict target: ${labelFor(cls) || cls}. Press Find tip area.`
@@ -4713,6 +4927,12 @@ export function initGenerator(root, playback) {
   });
   el('#gen-contact-points-run')?.addEventListener('click', async () => {
     const status = el('#gen-contact-points-gen-status');
+    const btn = el('#gen-contact-points-run');
+    if (btn?.dataset.running === '1') {
+      CancelContactPoints().catch(() => {});
+      if (status) status.textContent = 'Canceling…';
+      return;
+    }
     if (!videoPath) {
       if (status) status.textContent = 'Load a video first.';
       return;
@@ -4726,9 +4946,17 @@ export function initGenerator(root, playback) {
       return;
     }
     if (status) status.textContent = 'Generating…';
+    if (btn) {
+      btn.dataset.running = '1';
+      btn.textContent = 'Cancel';
+    }
     try {
       await GenerateContactPointsForVideo(videoPath, { nudenet, teachers, onnx: [], stepS: 0, out: '' });
     } catch (err) {
+      if (btn) {
+        btn.dataset.running = '';
+        btn.textContent = 'Generate contact points';
+      }
       if (status) status.textContent = '';
       uiError('Generate contact points: ' + err, el('#gen-status'));
     }
@@ -4739,6 +4967,15 @@ export function initGenerator(root, playback) {
   });
   EventsOn('contactpoints:done', async (payload) => {
     const status = el('#gen-contact-points-gen-status');
+    const btn = el('#gen-contact-points-run');
+    if (btn) {
+      btn.dataset.running = '';
+      btn.textContent = 'Generate contact points';
+    }
+    if (payload?.cancelled || (payload?.error && /cancelled/i.test(String(payload.error)))) {
+      if (status) status.textContent = 'Canceled.';
+      return;
+    }
     if (payload?.error) {
       if (status) status.textContent = 'Failed: ' + payload.error;
       uiError('Generate contact points: ' + payload.error, el('#gen-status'));

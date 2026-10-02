@@ -82,6 +82,8 @@ def main():
                   page.locator("#gen-improve-heal-rhythm").count() == 1)
             check("repair control present",
                   page.locator("#gen-improve-repair").count() == 1)
+            check("Improve more details present",
+                  page.locator("#gen-improve-more-details").count() == 1)
             check("rhythm default off",
                   not page.locator("#gen-improve-heal-rhythm").is_checked())
             check("repair default off",
@@ -110,6 +112,10 @@ def main():
                   (isinstance(areq.get("repairSpans"), list) and
                    len(areq.get("repairSpans")) == 0),
                   str(areq))
+
+            # Open More details before toggling Rhythm / Repair.
+            page.evaluate(
+                "document.querySelector('#gen-improve-more-details').open = true")
 
             # Heal on → rhythm enabled; heal off → rhythm disabled + unchecked.
             check("rhythm enabled while heal on",

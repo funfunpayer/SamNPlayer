@@ -29,6 +29,7 @@ export function KeepAIScriptDraft(arg1, arg2) {
 export function PickImageFile() { return window['go']['main']['App']['PickImageFile'](); }
 export function CancelGenerate() { return window['go']['main']['App']['CancelGenerate'](); }
 export function CancelGoldenClipBenchmark() { return window['go']['main']['App']['CancelGoldenClipBenchmark'](); }
+export function CancelContactPoints() { return window['go']['main']['App']['CancelContactPoints'](); }
 export function CancelROIDetection() { return window['go']['main']['App']['CancelROIDetection'](); }
 export function CancelRoiTraining() { return window['go']['main']['App']['CancelRoiTraining'](); }
 export function CheckAIRoiAvailable() { return window['go']['main']['App']['CheckAIRoiAvailable'](); }
@@ -123,6 +124,7 @@ export function ReportArousal(arg1) { return window['go']['main']['App']['Report
 export function ReportExists() { return window['go']['main']['App']['ReportExists'](); }
 export function ReportSummary() { return window['go']['main']['App']['ReportSummary'](); }
 export function ReportVideoPosition(arg1) { return window['go']['main']['App']['ReportVideoPosition'](arg1); }
+export function ReportVideoSyncIdle() { return window['go']['main']['App']['ReportVideoSyncIdle'](); }
 export function ReviewGeneratedScript(arg1) { return window['go']['main']['App']['ReviewGeneratedScript'](arg1); }
 export function RunDeviceDiagnostics() { return window['go']['main']['App']['RunDeviceDiagnostics'](); }
 export function RunGoldenClipBenchmark(arg1) { return window['go']['main']['App']['RunGoldenClipBenchmark'](arg1); }

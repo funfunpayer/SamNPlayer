@@ -1,8 +1,7 @@
 """Test für generate_funscript.create_tracker().
 
-Deckt die bekannten OpenCV-API-Varianten ab und den KCF-Fallback, wenn
-CSRT fehlt (Issue #94/#95: Windows opencv 5.0.0 ohne CSRT — oft
-opencv-python ohne contrib).
+Deckt die bekannten OpenCV CSRT-API-Varianten ab. KCF/MIL soft-fallback
+is removed — missing CSRT must hard-fail (Issue #94/#95 honesty).
 
 Ausführen: python3 generator/create_tracker_test.py
 """
@@ -71,7 +70,6 @@ def main():
     try:
         fake_cls = SimpleNamespace(create=lambda: _FakeTracker())
         cv2.legacy = SimpleNamespace(TrackerCSRT=fake_cls)
-        # remove free/main CSRT leftovers already stripped
         t = gf.create_tracker()
         check("nutzt cv2.legacy.TrackerCSRT.create()", isinstance(t, _FakeTracker))
     finally:
@@ -86,14 +84,18 @@ def main():
     finally:
         restore()
 
-    # --- kein CSRT, aber KCF → Fallback ---
+    # --- kein CSRT, aber KCF → must NOT soft-fallback ---
     strip_csrt()
     try:
         cv2.TrackerKCF_create = lambda: _FakeTracker()
-        t = gf.create_tracker()
-        check("fällt auf KCF zurück ohne CSRT", isinstance(t, _FakeTracker))
-        check("opencv_has_usable_tracker mit nur KCF",
-              gf.opencv_has_usable_tracker())
+        try:
+            gf.create_tracker()
+            check("kein KCF-Fallback ohne CSRT", False)
+        except RuntimeError as exc:
+            check("RuntimeError ohne CSRT trotz KCF", True)
+            check("Fehlermeldung nennt CSRT", "CSRT" in str(exc), str(exc)[:200])
+        check("opencv_has_usable_tracker False mit nur KCF",
+              not gf.opencv_has_usable_tracker())
     finally:
         restore()
 

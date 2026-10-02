@@ -23,6 +23,8 @@ package trackcv
 import (
 	"errors"
 	"math"
+
+	"github.com/funfunpayer/SamNPlayer/generator/trackutil"
 )
 
 // Options steuert TrackROI - entspricht track_roi()'s Parametern.
@@ -132,7 +134,7 @@ func boxCenter(r Rect) Point {
 }
 
 // ErrCanceled is returned when Options.Cancel aborts the tracking loop.
-var ErrCanceled = errors.New("tracking abgebrochen")
+var ErrCanceled = errors.New("tracking cancelled")
 
 const (
 	sceneCutHistThreshold = 0.5
@@ -241,6 +243,8 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		flowY = [][]float32{make([]float32, rhythmGridCols*gridRows)}
 	}
 	lastBbox := roi
+	var tipCoast trackutil.Coast
+	tipCoast.ObserveOK(roi.X, roi.Y, roi.W, roi.H)
 	var guard dispGuard
 	trackerLostFrames := 0
 	cameraFramesLost := 0
@@ -272,16 +276,17 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 		var bbox Rect
 		if isCut {
 			sceneCuts = append(sceneCuts, frameIdx)
-			anchor := lastBbox
+			ok = false
 			if memory != nil {
 				if found, reacquired := memory.reacquire(gray); reacquired {
-					anchor = found
+					tracker.Close()
+					tracker = NewTracker()
+					tracker.Init(cap, found)
+					ok, bbox = true, found
 				}
 			}
-			tracker.Close()
-			tracker = NewTracker()
-			tracker.Init(cap, anchor)
-			ok, bbox = true, anchor
+			// No lastBbox re-init: inventing a tip on the old pixel after a
+			// hard cut is silent Ausfallcode (background latch).
 		} else {
 			bbox, ok = tracker.Update(cap)
 			if ok {
@@ -309,9 +314,17 @@ func TrackROI(videoPath string, roi Rect, opts Options) (Result, error) {
 
 		if !ok {
 			trackerLostFrames++
-			yPositions = append(yPositions, yPositions[len(yPositions)-1])
-			xPositions = append(xPositions, xPositions[len(xPositions)-1])
+			// Brief velocity coast (same budget as Tf/Tj partners) before hard-hold.
+			if x, y, w, h, on := tipCoast.OnLost(); on {
+				yPositions = append(yPositions, float64(y)+float64(h)/2.0)
+				xPositions = append(xPositions, float64(x)+float64(w)/2.0)
+				lastBbox = Rect{X: x, Y: y, W: w, H: h}
+			} else {
+				yPositions = append(yPositions, yPositions[len(yPositions)-1])
+				xPositions = append(xPositions, xPositions[len(xPositions)-1])
+			}
 		} else {
+			tipCoast.ObserveOK(bbox.X, bbox.Y, bbox.W, bbox.H)
 			validFrames++
 			yPositions = append(yPositions, float64(bbox.Y)+float64(bbox.H)/2.0)
 			xPositions = append(xPositions, float64(bbox.X)+float64(bbox.W)/2.0)

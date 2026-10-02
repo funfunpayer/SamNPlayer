@@ -108,6 +108,7 @@ def main():
         # AI optional toggle does not block Generate.
         page.wait_for_function(
             "document.querySelector('#gen-ai-roi').disabled === false", timeout=5000)
+        page.locator("#gen-mark-ai-details").evaluate("el => { el.open = true }")
         page.check("#gen-ai-roi")
         check("AI region can be turned on",
               page.locator("#gen-ai-roi").is_checked())

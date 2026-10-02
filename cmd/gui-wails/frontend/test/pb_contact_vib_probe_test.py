@@ -109,6 +109,14 @@ def main():
 
             check("contact block visible after load",
                   page.locator("#pb-contact-block").evaluate("e => e.hidden") is False)
+            check("Contact probe details present",
+                  page.locator("#pb-contact-probe-details").count() == 1)
+            page.evaluate("""() => {
+              const t = document.querySelector('#pb-contact-tune-details');
+              if (t) t.open = true;
+              const d = document.querySelector('#pb-contact-probe-details');
+              if (d) d.open = true;
+            }""")
             check("PreviewContactVibration called",
                   page.evaluate(
                       "window.__calls.filter(c => c[0]==='PreviewContactVibration').length") >= 1)
@@ -132,6 +140,25 @@ def main():
                   "peak 80" in page.locator("#pb-cv-badge-peak").inner_text())
             check("vib peak dots rendered",
                   page.locator("#pb-contact-vib-peaks circle").count() >= 1)
+
+            # Collapse, then tweak Strength — probe details should auto-open.
+            page.evaluate(
+                "document.querySelector('#pb-contact-probe-details').open = false")
+            page.evaluate("""() => {
+              const i = document.querySelector('#pb-contact-intensity');
+              i.value = '1.2';
+              i.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(40)
+            check("Strength tweak auto-opens Contact probe details",
+                  page.locator("#pb-contact-probe-details").evaluate("e => e.open") is True)
+            # Restore default strength for later ×0 assertions.
+            page.evaluate("""() => {
+              const i = document.querySelector('#pb-contact-intensity');
+              i.value = '1';
+              i.dispatchEvent(new Event('input', { bubbles: true }));
+            }""")
+            page.wait_for_timeout(200)
 
             before = page.evaluate(
                 "window.__calls.filter(c => c[0]==='PreviewContactVibration').length")

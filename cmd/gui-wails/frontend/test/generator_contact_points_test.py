@@ -80,6 +80,7 @@ def main():
             "!document.querySelector('#gen-roi-label').textContent.includes('No ')",
             timeout=5000)
         page.click("#gen-advanced > summary")
+        page.evaluate("document.querySelector('#gen-advanced-antidrift').open = true")
         page.wait_for_selector("#gen-rhythm-grid", state="visible", timeout=5000)
 
         page.check("#gen-rhythm-grid")

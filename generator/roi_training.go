@@ -38,7 +38,7 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	st := RoiTrainingStatus{}
 	py, err := FindPython()
 	if err != nil {
-		st.Detail = "Kein Python gefunden"
+		st.Detail = "No Python found"
 		return st
 	}
 	st.Python = true
@@ -47,7 +47,7 @@ func GetRoiTrainingStatus() RoiTrainingStatus {
 	}
 	mainScript, err := writeScriptToTemp()
 	if err != nil {
-		st.Detail = "Eingebettete Skripte nicht schreibbar"
+		st.Detail = "Embedded scripts not writable"
 		return st
 	}
 	defer cleanupScriptTemp(mainScript)
@@ -100,7 +100,7 @@ func InstallRoiTrainingDeps(onProgress func(line string)) error {
 	out, err := cmd.CombinedOutput()
 	emitPipLines(string(out), onProgress)
 	if err != nil {
-		return fmt.Errorf("generator: pip install fehlgeschlagen: %w", err)
+		return fmt.Errorf("generator: pip install failed: %w", err)
 	}
 	if onProgress != nil {
 		onProgress("Restoring opencv-contrib-python (CSRT for video bootstrap)…")
@@ -184,11 +184,11 @@ type RoiTrainingDevice struct {
 // resolve_device beim Start des Trainings.
 func ListRoiTrainingDevices() []RoiTrainingDevice {
 	fallback := []RoiTrainingDevice{
-		{ID: "auto", Label: "Automatisch (bestes verfügbares)", Available: true},
+		{ID: "auto", Label: "Automatic (best available)", Available: true},
 		{ID: "cuda", Label: "NVIDIA CUDA", Available: false},
 		{ID: "directml", Label: "DirectML (Windows, AMD/Intel/NVIDIA)", Available: false},
 		{ID: "mps", Label: "Apple MPS", Available: false},
-		{ID: "cpu", Label: "CPU (sehr langsam)", Available: true},
+		{ID: "cpu", Label: "CPU (very slow)", Available: true},
 	}
 	py, err := FindPython()
 	if err != nil {
@@ -349,7 +349,7 @@ func runPythonScriptCtx(ctx context.Context, py string, args []string, logPrefix
 		return fmt.Errorf("generator: stderr-Pipe: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("generator: Start fehlgeschlagen: %w", err)
+		return fmt.Errorf("generator: start failed: %w", err)
 	}
 	scanner := bufio.NewScanner(stderr)
 	// ultralytics' eigene Fortschrittszeilen können sehr lang werden
@@ -378,9 +378,9 @@ func runPythonScriptCtx(ctx context.Context, py string, args []string, logPrefix
 	}
 	if err := cmd.Wait(); err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return fmt.Errorf("generator: %s abgebrochen: %w", logPrefix, ctxErr)
+			return fmt.Errorf("generator: %s cancelled: %w", logPrefix, ctxErr)
 		}
-		return fmt.Errorf("generator: %s fehlgeschlagen: %w\nLetzte Ausgabe:\n%s",
+		return fmt.Errorf("generator: %s failed: %w\nLast output:\n%s",
 			logPrefix, err, joinLines(lastLines))
 	}
 	return nil

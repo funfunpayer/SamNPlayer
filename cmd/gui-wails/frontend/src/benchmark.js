@@ -50,7 +50,7 @@ function renderHistoryRow(r) {
 
 function labelDe(label) {
   if (label === 'good') return 'GUT';
-  if (label === 'review') return 'PRÜFEN';
+  if (label === 'review') return 'REVIEW';
   return 'NICHT GUT';
 }
 
@@ -159,7 +159,7 @@ export function initBenchmark(root) {
 
     <h3>Compare scripts</h3>
     <p class="hint" style="margin-top:0;">
-      Short clip + FunGen/reference + Everyday candidate → gut / prüfen / nicht gut.
+      Short clip + FunGen/reference + Everyday candidate → good / review / not good.
       After Clip-Prep, pick the clip then <b>Suggest beside video</b> (names like
       <code>clip.funscript</code> + <code>clip__hub.funscript</code>).
     </p>

@@ -19,6 +19,10 @@ var errNoFrames = errors.New("player: keine Frames zum Abspielen")
 // und folgt ab der nächsten Position wieder dem Skript. var für Tests.
 var syncStaleAfter = 1500 * time.Millisecond
 
+// SyncIdleSentinel: Frontend meldet Pause/Buffering sofort (ohne auf
+// syncStaleAfter zu warten). Negative Werte sind keine Videoms.
+const SyncIdleSentinel int64 = -1
+
 // Sync treibt das Gerät anhand einer EXTERNEN Positionsquelle statt der
 // eigenen Uhr von Play() - gedacht für echte Videowiedergabe (z.B. ein
 // HTML5-<video>-Element im Wails-Frontend), wo Pausieren, Spulen und die
@@ -29,6 +33,9 @@ var syncStaleAfter = 1500 * time.Millisecond
 // Bei jedem Wert wird der Frame gesucht, der zu dieser Position gehört, und
 // sofort ausgegeben - kein Timing-Loop, kein "warten bis Zielzeit erreicht",
 // da die Zeitbasis extern (vom Video) kommt statt von uns.
+//
+// SyncIdleSentinel (oder jeder Wert < 0) setzt das Gerät sofort auf 0
+// (Pause/Buffering), soft-startet bei der nächsten echten Position wieder.
 //
 // Extended-O funktioniert über TriggerExtendedO und skaliert nur die
 // Amplitude (Vib/Sog × Faktor) - Video und Skript-Rhythmus laufen weiter.
@@ -48,20 +55,27 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 	stale := time.NewTimer(syncStaleAfter)
 	defer stale.Stop()
 
+	goQuiet := func(reason string) error {
+		if firstFrame || quiet {
+			return nil
+		}
+		logging.Info("player: "+reason+" - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
+		if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+			return err
+		}
+		quiet = true
+		return nil
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 
 		case <-stale.C:
-			if firstFrame || quiet {
-				continue
-			}
-			logging.Info("player: keine Videoposition mehr (Pause?) - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
-			if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+			if err := goQuiet("keine Videoposition mehr (Pause?)"); err != nil {
 				return err
 			}
-			quiet = true
 
 		case opts, ok := <-p.extendedOCh:
 			if !ok {
@@ -73,13 +87,37 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			if !ok {
 				return nil // Kanal geschlossen = Wiedergabe im Frontend beendet
 			}
+			if posMs < 0 {
+				// Idle sentinel: Pause/waiting — zero now; keep waiting for resume.
+				stale.Stop()
+				select {
+				case <-stale.C:
+				default:
+				}
+				stale.Reset(syncStaleAfter)
+				if err := goQuiet("Videoposition idle (Pause/Buffering)"); err != nil {
+					return err
+				}
+				continue
+			}
 			stale.Reset(syncStaleAfter)
 			p.lastSyncPosMs = posMs
 			f := frameAt(frames, posMs)
 			// Nach einer Pause wie beim Start sanft hochfahren.
 			if (firstFrame || quiet) && p.SoftStartMs > 0 {
-				if err := p.softStart(ctx, f); err != nil {
+				idle, err := p.softStartWithPositions(ctx, f, positions)
+				if err != nil {
 					return err
+				}
+				if idle {
+					// Soft-start may already have written mid-ramp intensity.
+					// goQuiet no-ops while firstFrame/quiet — always zero here.
+					logging.Info("player: Videoposition idle during soft-start - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
+					if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+						return err
+					}
+					quiet = true
+					continue
 				}
 			} else if err := p.setOutput(f); err != nil {
 				return err
@@ -114,6 +152,14 @@ func (p *Player) setOutput(f funscript.Frame) error {
 // direkt zu springen - siehe Player.SoftStartMs. Genutzt beim allerersten
 // Frame von Play() und Sync(). Berücksichtigt den aktuellen Amplitudenfaktor.
 func (p *Player) softStart(ctx context.Context, target funscript.Frame) error {
+	_, err := p.softStartWithPositions(ctx, target, nil)
+	return err
+}
+
+// softStartWithPositions is softStart that also watches positions for an idle
+// sentinel so Pause during the ramp zeros the device instead of finishing the
+// ramp into a paused video.
+func (p *Player) softStartWithPositions(ctx context.Context, target funscript.Frame, positions <-chan int64) (hitIdle bool, err error) {
 	const steps = 10
 	stepDur := time.Duration(p.SoftStartMs) * time.Millisecond / steps
 	scale := p.getIntensityScale()
@@ -125,21 +171,38 @@ func (p *Player) softStart(ctx context.Context, target funscript.Frame) error {
 			Suction:   target.Suction * frac * scale,
 		}
 		if err := p.Device.SetVibration(out.Vibration); err != nil {
-			return err
+			return false, err
 		}
 		if err := p.Device.SetSuction(out.Suction); err != nil {
-			return err
+			return false, err
 		}
 		if p.OnFrame != nil {
 			p.OnFrame(out)
 		}
+		if positions == nil {
+			select {
+			case <-time.After(stepDur):
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
+			continue
+		}
 		select {
 		case <-time.After(stepDur):
 		case <-ctx.Done():
-			return ctx.Err()
+			return false, ctx.Err()
+		case posMs, ok := <-positions:
+			if !ok {
+				return false, nil
+			}
+			if posMs < 0 {
+				return true, nil
+			}
+			// Later positive positions during ramp: keep ramping; Sync will
+			// catch up on the next loop iteration.
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // frameAt sucht per Binärsuche den letzten Frame mit At <= posMs (bzw. den

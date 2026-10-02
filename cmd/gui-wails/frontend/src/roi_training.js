@@ -33,7 +33,8 @@ export function initRoiTraining(root) {
       Draw boxes freely (up to ${MAX_REGIONS} per image), then assign each to a class
       (Face, Mouth, Breasts, Nipples, Hand 1/2, Penis, Glans, Vagina).
       The same label may be used more than once — <b>Nipples need two boxes</b> (left + right).
-      <b>Use for training</b> tracks <b>every</b> labeled box (nipples/breasts/…), not only Glans.
+      <b>Use for training</b> tracks <b>every</b> labeled box through the clip (CSRT per tag) —
+      not Glans-only. If you only paint Glans, only Glans is tracked — mark partners too.
       Add or delete tags anytime. Audio is stored with the dataset.
     </p>
     <div class="card" style="margin-bottom:16px; padding:12px 14px;">
@@ -41,7 +42,8 @@ export function initRoiTraining(root) {
       <ol class="hint" style="margin:0; padding-left:1.2em; line-height:1.55;">
         <li><b>Train here</b> — marks → “Use for training” → discard bad samples → start training. Result: <code>roi_detector.onnx</code>.</li>
         <li><b>Then Create</b> — Load video → enable “Smarter tip find” → “Find tip area”. AI suggests the box only.</li>
-        <li><b>Verify/correct boxes</b> — never apply blindly. For Tf/Tj, tip + fixed target (e.g. Glans + Nipples).</li>
+        <li><b>Verify/correct boxes</b> — never apply blindly. Tip (glans) for CSRT stroke;
+          optional partner marks (e.g. nipples) for Contact feel only.</li>
         <li><b>Create Emotion Script</b> — classic tracking (CSRT) writes the script. AI does not track by itself.</li>
         <li><b>Review in Play</b> — Feedback buttons (usable/…) improve Quality Doctor later, not region AI.</li>
       </ol>
@@ -91,6 +93,9 @@ export function initRoiTraining(root) {
       <button id="rt-clear-marks" type="button">Clear all</button>
       <span class="hint" style="margin:0">Active box: <span id="rt-active-mark">1</span>/${MAX_REGIONS} — Shift+drag = next empty · then assign label (type any new tag name)</span>
     </div>
+    <p class="hint" id="rt-track-plan" style="margin:4px 0 8px 0;" aria-live="polite">
+      Will track: (mark + label at least one box)
+    </p>
     <div class="row" style="align-items:center; flex-wrap:wrap; margin:4px 0;">
       <input type="text" id="rt-new-tag" placeholder="new custom tag…" style="width:10em;"
         list="rt-class-list" aria-label="New custom tag name" />
@@ -138,7 +143,13 @@ export function initRoiTraining(root) {
       <label class="hint" style="margin:0"
         data-help="Shows only samples from the last run."><input type="checkbox" id="rt-only-new" checked /> only newly added</label>
     </div>
-    <div id="rt-review-grid" class="hint">No samples loaded yet.</div>
+    <div id="rt-review-grid" class="hint">
+      No samples loaded yet.
+      <div class="row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
+        <button type="button" id="rt-empty-load-frame" class="secondary">Load frame</button>
+        <button type="button" id="rt-empty-refresh" class="secondary">Refresh review</button>
+      </div>
+    </div>
 
     <h3>3. Dataset summary</h3>
     <div class="row"><button id="rt-summary-refresh" type="button">Load summary</button></div>
@@ -170,7 +181,7 @@ export function initRoiTraining(root) {
       <b>Use for training</b> keeps CSRT after ultralytics. Prefer a real
       Python from python.org — not the Windows Store stub. Or:
       <code>pip uninstall opencv-python opencv-python-headless &amp;&amp; pip install opencv-contrib-python ultralytics onnx</code>.
-      Details: <a href="#" id="rt-docs-link">docs/KI_TRAINING.md</a>
+      Details: see <code>docs/KI_TRAINING.md</code> in the repo.
     </p>
     <p class="hint" id="rt-dataset-hint" style="display:none; color:var(--danger);">
       No training samples yet. Mark region(s) above and click <b>Use for training</b>
@@ -252,6 +263,8 @@ export function initRoiTraining(root) {
   let img = new Image();
   let nativeW = 0, nativeH = 0;
   let marks = Array(MAX_REGIONS).fill(null); // free tag boxes; assign labels after
+  let cancelKind = null; // 'bootstrap' | 'train' | null — which Cancel is shown
+  let trainPackagesAvailable = false;
   let activeMark = 0;
   let dragging = false, startX = 0, startY = 0, curX = 0, curY = 0;
   let lastPrefix = '';
@@ -427,14 +440,30 @@ export function initRoiTraining(root) {
   function updateBootstrapEnabled() {
     let labeled = 0;
     let missingClass = false;
+    const names = [];
     for (let i = 0; i < MAX_REGIONS; i++) {
       if (!marks[i]) continue;
       const cls = (el(`#rt-class${i + 1}`)?.value || '').trim();
       if (!cls) missingClass = true;
-      else labeled += 1;
+      else {
+        labeled += 1;
+        names.push(labelFor(normalizeClass(cls) || cls) || cls);
+      }
     }
     // Any labeled free-tag set unlocks bootstrap — not tip/glans / marks[0] only.
-    el('#rt-bootstrap').disabled = !(sourcePath && labeled > 0 && !missingClass);
+    // Stay disabled while train/bootstrap run is claimed.
+    el('#rt-bootstrap').disabled = !!cancelKind
+      || !(sourcePath && labeled > 0 && !missingClass);
+    const plan = el('#rt-track-plan');
+    if (plan) {
+      if (!labeled) {
+        plan.textContent = 'Will track: (mark + label at least one box — every labeled box, not Glans-only)';
+      } else if (missingClass) {
+        plan.textContent = `Will track ${labeled} labeled + unlabeled boxes waiting — assign a class to each painted box.`;
+      } else {
+        plan.textContent = `Will track ${labeled} tag${labeled === 1 ? '' : 's'}: ${names.join(', ')}`;
+      }
+    }
     updateNipplesHint();
   }
 
@@ -688,11 +717,22 @@ export function initRoiTraining(root) {
     return /cancel|abgebrochen|context canceled/i.test(String(err || ''));
   }
 
-  function setCancelVisible(show) {
+  function setCancelVisible(kind) {
+    // kind: 'bootstrap' | 'train' | null — only that Cancel is shown.
+    cancelKind = kind || null;
     const boot = el('#rt-cancel-run');
     const train = el('#rt-cancel-train');
-    if (boot) boot.hidden = !show;
-    if (train) train.hidden = !show;
+    if (boot) boot.hidden = cancelKind !== 'bootstrap';
+    if (train) train.hidden = cancelKind !== 'train';
+    // Mutual disable: do not start the other run while one is claimed.
+    if (cancelKind === 'bootstrap') {
+      el('#rt-train').disabled = true;
+    } else if (cancelKind === 'train') {
+      el('#rt-bootstrap').disabled = true;
+    } else {
+      updateBootstrapEnabled();
+      el('#rt-train').disabled = !trainPackagesAvailable;
+    }
   }
 
   async function cancelRoiRun() {
@@ -712,7 +752,7 @@ export function initRoiTraining(root) {
     const regions = collectLabeledRegions();
     if (!regions.length) return;
     el('#rt-bootstrap').disabled = true;
-    setCancelVisible(true);
+    setCancelVisible('bootstrap');
     el('#rt-bootstrap-status').textContent = 'Running…';
     el('#rt-bootstrap-log').textContent = '';
     showRunProgress('rt-bootstrap', true);
@@ -720,7 +760,7 @@ export function initRoiTraining(root) {
       if (sourceKind === 'image') {
         lastPrefix = await AddRoiStillTrainingSample(sourcePath, regions);
         showRunProgress('rt-bootstrap', false);
-        setCancelVisible(false);
+        if (cancelKind === 'bootstrap') setCancelVisible(null);
         el('#rt-bootstrap-status').textContent = 'Still sample saved.';
         updateBootstrapEnabled();
         refreshReview();
@@ -740,7 +780,8 @@ export function initRoiTraining(root) {
       }
     } catch (err) {
       showRunProgress('rt-bootstrap', false);
-      setCancelVisible(false);
+      // Failed claim must not hide Cancel for a still-running train.
+      if (cancelKind === 'bootstrap') setCancelVisible(null);
       if (isCancelError(err)) {
         uiWarn('Bootstrap cancelled: ' + err, el('#rt-bootstrap-status'));
       } else {
@@ -787,7 +828,7 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:bootstrap:percent', pct => applyRunPercent('rt-bootstrap', pct));
   EventsOn('roitraining:bootstrap:done', payload => {
     showRunProgress('rt-bootstrap', false);
-    setCancelVisible(false);
+    if (cancelKind === 'bootstrap') setCancelVisible(null);
     updateBootstrapEnabled();
     if (payload.error) {
       if (isCancelError(payload.error)) {
@@ -855,6 +896,34 @@ export function initRoiTraining(root) {
     });
   }
 
+  function renderReviewEmpty(msg) {
+    const grid = el('#rt-review-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const text = document.createElement('div');
+    text.className = 'hint';
+    text.textContent = msg;
+    grid.appendChild(text);
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style.cssText = 'margin-top:8px; gap:8px; flex-wrap:wrap;';
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.className = 'secondary';
+    loadBtn.id = 'rt-empty-load-frame';
+    loadBtn.textContent = 'Load frame';
+    loadBtn.addEventListener('click', () => el('#rt-seek-btn')?.click());
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'secondary';
+    refreshBtn.id = 'rt-empty-refresh';
+    refreshBtn.textContent = 'Refresh review';
+    refreshBtn.addEventListener('click', () => refreshReview());
+    row.appendChild(loadBtn);
+    row.appendChild(refreshBtn);
+    grid.appendChild(row);
+  }
+
   async function refreshReview() {
     datasetDir = el('#rt-dataset-dir').value.trim();
     const onlyNew = el('#rt-only-new').checked;
@@ -864,9 +933,9 @@ export function initRoiTraining(root) {
     try {
       const samples = await ListRoiTrainingSamples(datasetDir, prefix);
       if (!samples || samples.length === 0) {
-        grid.textContent = onlyNew && lastPrefix
+        renderReviewEmpty(onlyNew && lastPrefix
           ? 'No new samples — uncheck to use the full dataset.'
-          : 'No samples found.';
+          : 'No samples found.');
         return;
       }
       grid.innerHTML = '';
@@ -1531,6 +1600,12 @@ export function initRoiTraining(root) {
   }
 
   el('#rt-refresh-review').addEventListener('click', refreshReview);
+  el('#rt-empty-refresh')?.addEventListener('click', () => {
+    el('#rt-refresh-review')?.click();
+  });
+  el('#rt-empty-load-frame')?.addEventListener('click', () => {
+    el('#rt-seek-btn')?.click();
+  });
   el('#rt-dataset-dir').addEventListener('change', e => {
     saveSetting('generator.roiTrainingDatasetDir', e.target.value.trim());
   });
@@ -1619,7 +1694,7 @@ export function initRoiTraining(root) {
     const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
-    setCancelVisible(true);
+    setCancelVisible('train');
     el('#rt-train-status').textContent = 'Running…';
     el('#rt-train-log').textContent = '';
     showRunProgress('rt-train', true);
@@ -1627,13 +1702,13 @@ export function initRoiTraining(root) {
       await RunRoiModelTraining(epochs, device);
     } catch (err) {
       showRunProgress('rt-train', false);
-      setCancelVisible(false);
+      if (cancelKind === 'train') setCancelVisible(null);
       if (isCancelError(err)) {
         uiWarn('Training cancelled: ' + err, el('#rt-train-status'));
       } else {
         uiError('ROI training: ' + err, el('#rt-train-status'));
       }
-      el('#rt-train').disabled = false;
+      el('#rt-train').disabled = !trainPackagesAvailable;
     }
   });
   EventsOn('roitraining:train:progress', line => {
@@ -1644,8 +1719,8 @@ export function initRoiTraining(root) {
   EventsOn('roitraining:train:percent', pct => applyRunPercent('rt-train', pct));
   EventsOn('roitraining:train:done', payload => {
     showRunProgress('rt-train', false);
-    setCancelVisible(false);
-    el('#rt-train').disabled = false;
+    if (cancelKind === 'train') setCancelVisible(null);
+    else el('#rt-train').disabled = !trainPackagesAvailable;
     if (payload.error) {
       if (isCancelError(payload.error)) {
         uiWarn('Training cancelled: ' + payload.error, el('#rt-train-status'));
@@ -1680,7 +1755,8 @@ export function initRoiTraining(root) {
   });
 
   function applyTrainAvailability(available, detail) {
-    el('#rt-train').disabled = !available;
+    trainPackagesAvailable = !!available;
+    el('#rt-train').disabled = !trainPackagesAvailable || !!cancelKind;
     el('#rt-train-unavailable').style.display = available ? 'none' : 'block';
     if (el('#rt-status-detail') && detail) {
       el('#rt-status-detail').textContent = detail;
@@ -1714,13 +1790,19 @@ export function initRoiTraining(root) {
 
   el('#rt-install-deps')?.addEventListener('click', async () => {
     el('#rt-install-deps').disabled = true;
-    el('#rt-train-status').textContent = 'Installing dependencies…';
+    el('#rt-train').disabled = true;
+    el('#rt-bootstrap').disabled = true;
+    el('#rt-train-status').textContent = 'Installing dependencies… (wait — no Cancel for install)';
     el('#rt-train-log').textContent = '';
     try {
       await InstallRoiTrainingDeps();
     } catch (err) {
       uiError('Installation: ' + err, el('#rt-train-status'));
       el('#rt-install-deps').disabled = false;
+      updateBootstrapEnabled();
+      CheckRoiTrainingStatus().then(st => {
+        applyTrainAvailability(!!st.ultralytics, st.detail || '');
+      }).catch(() => applyTrainAvailability(false, ''));
     }
   });
   EventsOn('roitraining:deps:progress', line => {
@@ -1730,8 +1812,12 @@ export function initRoiTraining(root) {
   });
   EventsOn('roitraining:deps:done', payload => {
     el('#rt-install-deps').disabled = false;
+    updateBootstrapEnabled();
     if (payload.error) {
       uiError('Install failed: ' + payload.error, el('#rt-train-status'));
+      CheckRoiTrainingStatus().then(st => {
+        applyTrainAvailability(!!st.ultralytics, st.detail || '');
+      }).catch(() => applyTrainAvailability(false, ''));
       return;
     }
     const st = payload.status || {};

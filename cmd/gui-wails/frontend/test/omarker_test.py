@@ -66,6 +66,7 @@ def main():
         page.click("#pb-choose")
         page.wait_for_function(
             "document.querySelector('#pb-omarker-add-row').style.display === 'flex'", timeout=5000)
+        page.locator("#pb-omarker-details").evaluate("el => { el.open = true }")
         check("nach dem Laden: Add-Zeile sichtbar", True)
         check("ohne Live-Markierung: Übernehmen-Knopf gesperrt",
               page.locator("#pb-omarker-add").is_disabled())

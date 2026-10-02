@@ -79,8 +79,13 @@ def main():
     scale = 320.0 / width
     cell_w = (width * scale) / cols
     cell_h = (height * scale) / rows
-    legacy_box = auto_roi._legacy_threshold_box(
-        scores_haze, cell_w, cell_h, scale, width, height)
+    # Inline legacy threshold bbox (deleted helper — was Ausfallcode only for
+    # comparison). Same formula: bbox of all cells ≥ 0.5×max.
+    lx0 = int(lc.min() * cell_w / scale)
+    lx1 = int((lc.max() + 1) * cell_w / scale)
+    ly0 = int(lr.min() * cell_h / scale)
+    ly1 = int((lr.max() + 1) * cell_h / scale)
+    legacy_box = auto_roi._shrink_box(lx0, ly0, lx1 - lx0, ly1 - ly0, width, height)
     peak_xywh = auto_roi._cells_to_box(best, cell_w, cell_h, scale, width, height)
     peak_box = auto_roi._shrink_box(*peak_xywh, width, height)
     legacy_frac = (legacy_box[2] * legacy_box[3]) / (width * height)

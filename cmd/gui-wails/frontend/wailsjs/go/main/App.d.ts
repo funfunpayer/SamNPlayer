@@ -45,6 +45,8 @@ export function CancelGenerate():Promise<void>;
 
 export function CancelGoldenClipBenchmark():Promise<boolean>;
 
+export function CancelContactPoints():Promise<void>;
+
 export function CancelROIDetection():Promise<void>;
 
 export function CancelRoiTraining():Promise<boolean>;
@@ -204,6 +206,7 @@ export function ReportExists():Promise<boolean>;
 export function ReportSummary():Promise<string>;
 
 export function ReportVideoPosition(arg1:number):Promise<void>;
+export function ReportVideoSyncIdle():Promise<void>;
 
 export function ReviewGeneratedScript(arg1:string):Promise<main.GeneratedReview>;
 

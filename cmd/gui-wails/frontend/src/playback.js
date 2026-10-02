@@ -1,8 +1,8 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
-  ReportVideoPosition, GetOMarkers, SaveOMarkers, GetScriptActions, SaveScriptActions, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, GetPlaybackSource, SetPlaybackSource,
+  ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
+  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -37,6 +37,13 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty">
       <div class="pb-empty-inner">
+        <div class="pb-brand-moment" aria-hidden="true">
+          <img class="pb-brand-mark" src="/src/assets/images/logo-universal.png" alt="" />
+          <p class="pb-brand-word">
+            <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
+          </p>
+        </div>
+        <p class="pb-empty-kicker">Play</p>
         <p class="pb-empty-title">Ready when you are</p>
         <p class="hint">Open an Emotion Script — with a film or without. Feel still reaches the device. Add more for a quiet list. Other apps’ files are welcome too.</p>
         <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
@@ -80,8 +87,8 @@ export function initPlayback(root) {
             </div>
           </div>
         </div>
-        <canvas id="pb-curve" height="120" class="pb-curve" style="display:none"></canvas>
-        <canvas id="pb-heatmap" height="28" class="pb-heatmap" style="display:none"></canvas>
+        <canvas id="pb-curve" height="176" class="pb-curve" style="display:none"></canvas>
+        <canvas id="pb-heatmap" height="56" class="pb-heatmap" style="display:none"></canvas>
         <div class="row pb-curve-zoom" id="pb-curve-zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
           <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
           <button type="button" id="pb-zoom-out" title="Zoom out">Zoom out</button>
@@ -157,13 +164,18 @@ export function initPlayback(root) {
           <select id="pb-strength" style="width:auto;">
             <option value="">—</option>
           </select>
-          <button type="button" id="pb-bake-axes" title="Bake vibration/suction into this Emotion Script">Bake feel channels</button>
           <button type="button" id="pb-optimize-neo2" class="primary"
             title="Imported file → polish, Contact on, bake Neo 2 feel, save as Emotion Script."
             data-help="One click for files from other apps: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save as Emotion Script. Then edit each curve if you want.">Optimize for Neo 2</button>
-          <button type="button" id="pb-export-funscript" title="Share stroke for other apps (.funscript)">Share for other apps</button>
           <button type="button" id="pb-save-samn" title="Save Emotion Script">Save Emotion Script</button>
         </div>
+        <details class="pb-tools-details" id="pb-export-bake-details" style="display:none;">
+          <summary>Bake &amp; share</summary>
+          <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap; margin-top:6px;">
+            <button type="button" id="pb-bake-axes" title="Bake vibration/suction into this Emotion Script">Bake feel channels</button>
+            <button type="button" id="pb-export-funscript" title="Share stroke for other apps (.funscript)">Share for other apps</button>
+          </div>
+        </details>
         <p class="hint" id="pb-optimize-neo2-status" style="display:none; margin:4px 0 0 0;"></p>
         <p class="hint" id="pb-curve-edit-hint" style="display:none; margin-top:0;"
           data-help="Soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
@@ -185,63 +197,76 @@ export function initPlayback(root) {
           data-help="Space play/stop · ←/→ 5 s (Shift 1 s) · ,/. fine step · 1–9 jump · +/− offset · L loop · E Extended-O · O O-marker 4s">
           Keyboard help via “?”.</p>
 
-        <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
-        <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
-          <button id="pb-script-doctor" type="button">Check script</button>
-          <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
-        </div>
-        <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
+        <details class="pb-tools-details" id="pb-quality-details" style="display:none;">
+          <summary>Script check &amp; analysis</summary>
+          <div id="pb-analysis" class="hint" style="display:none; margin-top:6px;"></div>
+          <div class="row" id="pb-script-doctor-row" style="display:none; align-items:center; margin-top:6px;">
+            <button id="pb-script-doctor" type="button">Check script</button>
+            <span class="hint" id="pb-script-doctor-status" style="margin:0"></span>
+          </div>
+          <div id="pb-script-doctor-result" class="hint" style="display:none; margin-top:6px; padding:8px; border-radius:4px;"></div>
+        </details>
 
-        <div class="row" id="pb-ofs-row" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center;">
-          <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
-          <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
-          <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Max community intensity (500×|Δpos|/|Δt|) for Speed-cap on the heatmap selection. Lower = more stretch / calmer. Play edit only — does not change Create Expert max-speed.">
-            Cap
-            <input type="range" id="pb-cap-intensity" min="150" max="800" step="25" value="400" style="width:7em;" />
-            <span id="pb-cap-intensity-val">400</span>
-          </label>
-          <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Paint red “too fast” bands on the Play curve (OFS community intensity). Display only — separate from Speed-cap edit.">
-            <input type="checkbox" id="pb-speed-hl" checked /> Speed highlights
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Intensity threshold for Speed highlights on the curve (500×|Δpos|/|Δt|). Lower = more red bands. Does not change Cap edit or Create defaults.">
-            HL
-            <input type="range" id="pb-speed-hl-thresh" min="150" max="800" step="25" value="400" style="width:7em;" />
-            <span id="pb-speed-hl-thresh-val">400</span>
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
-            Scale
-            <input type="range" id="pb-scale-factor" min="0.5" max="1.5" step="0.05" value="0.8" style="width:7em;" />
-            <span id="pb-scale-factor-val">×0.80</span>
-          </label>
-          <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (active Curve axis)">Scale selection</button>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Ramp scale from ×1 at the selection edges to the chosen factor at the midpoint — gentler on Vibration / Suction.">
-            <input type="checkbox" id="pb-scale-soft-edges" /> Soft edges
-          </label>
-          <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="If >0: seeks and new curve points snap to that frame rate. 0 = off. Play edit only — does not change Create.">
-            FPS-Snap
-            <input type="range" id="pb-fps-snap" min="0" max="60" step="1" value="0" style="width:7em;" />
-            <span id="pb-fps-snap-val">off</span>
-          </label>
-          <label class="checkbox-row" style="margin:0;"
-            data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
-            <input type="checkbox" id="pb-bpm-grid" /> BPM grid
-          </label>
-          <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
-            data-help="Beats per minute for the curve grid. Leave blank to use audio_check tempo (Hz×60) when available.">
-            BPM
-            <input type="number" id="pb-bpm" value="" min="20" max="240" step="1" placeholder="auto" style="width:4.5em;" />
-          </label>
-          <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+        <div id="pb-ofs-row" style="display:none; margin-top:8px;">
+          <details class="pb-tools-details" id="pb-project-details">
+            <summary>Project &amp; heatmap export</summary>
+            <div class="row" style="flex-wrap:wrap; gap:8px; margin-top:6px; align-items:center;">
+              <button type="button" id="pb-heatmap-export" title="Intensity heatmap as PNG (chapters as ticks)">Heatmap PNG</button>
+              <button type="button" id="pb-project-save" title="Save video+script+offset as .snp.json">Save project</button>
+              <button type="button" id="pb-project-load" title="Open a .snp.json project (script, video, offset, seek, loop)">Load project</button>
+              <span class="hint" id="pb-ofs-status" style="margin:0"></span>
+            </div>
+          </details>
         </div>
+        <details class="pb-tools-details" id="pb-ofs-edit-details" style="display:none;">
+          <summary>Curve edit (Cap · Scale · Speed HL · BPM)</summary>
+          <div class="row pb-ofs-edit-row" style="flex-wrap:wrap; gap:8px; margin-top:6px; align-items:center;">
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Max community intensity (500×|Δpos|/|Δt|) for Speed-cap on the heatmap selection. Lower = more stretch / calmer. Play edit only — does not change Create Expert max-speed.">
+              Cap
+              <input type="range" id="pb-cap-intensity" min="150" max="800" step="25" value="400" style="width:7em;" />
+              <span id="pb-cap-intensity-val">400</span>
+            </label>
+            <button type="button" id="pb-cap-speed" title="Time-stretch segments that are too fast in the heatmap selection (active Curve axis)">Speed-cap selection</button>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Paint red “too fast” bands on the Play curve (OFS community intensity). Display only — separate from Speed-cap edit.">
+              <input type="checkbox" id="pb-speed-hl" checked /> Speed highlights
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Intensity threshold for Speed highlights on the curve (500×|Δpos|/|Δt|). Lower = more red bands. Does not change Cap edit or Create defaults.">
+              HL
+              <input type="range" id="pb-speed-hl-thresh" min="150" max="800" step="25" value="400" style="width:7em;" />
+              <span id="pb-speed-hl-thresh-val">400</span>
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Scale factor for the heatmap selection around 50. Applies to the active Curve axis (General / Vibration / Suction).">
+              Scale
+              <input type="range" id="pb-scale-factor" min="0.5" max="1.5" step="0.05" value="0.8" style="width:7em;" />
+              <span id="pb-scale-factor-val">×0.80</span>
+            </label>
+            <button type="button" id="pb-scale-range" title="Scale positions in the heatmap selection around 50 (active Curve axis)">Scale selection</button>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Ramp scale from ×1 at the selection edges to the chosen factor at the midpoint — gentler on Vibration / Suction.">
+              <input type="checkbox" id="pb-scale-soft-edges" /> Soft edges
+            </label>
+            <button type="button" id="pb-del-range" title="Delete points in the heatmap selection (active Curve axis)">Delete range</button>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="If >0: seeks and new curve points snap to that frame rate. 0 = off. Play edit only — does not change Create.">
+              FPS-Snap
+              <input type="range" id="pb-fps-snap" min="0" max="60" step="1" value="0" style="width:7em;" />
+              <span id="pb-fps-snap-val">off</span>
+            </label>
+            <label class="checkbox-row" style="margin:0;"
+              data-help="Draw beat lines on the Play curve from BPM (or audio tempo when BPM is blank). Display only — never snaps or rewrites the stroke.">
+              <input type="checkbox" id="pb-bpm-grid" /> BPM grid
+            </label>
+            <label class="hint" style="margin:0; display:inline-flex; align-items:center; gap:6px;"
+              data-help="Beats per minute for the curve grid. Leave blank to use audio_check tempo (Hz×60) when available.">
+              BPM
+              <input type="number" id="pb-bpm" value="" min="20" max="240" step="1" placeholder="auto" style="width:4.5em;" />
+            </label>
+          </div>
+        </details>
 
         <div class="hint" id="pb-marker-hint" style="display:none"
           data-help="Click the heatmap to seek. Drag to mark a range (Extended-O / loop / O-marker).">
@@ -253,42 +278,51 @@ export function initPlayback(root) {
           <label for="pb-marker-auto" data-help="Triggers Extended-O automatically when playback reaches the marked range.">Auto Extended-O in marked range</label>
         </div>
 
-        <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:8px;"
-          data-help="O-markers are saved in the script (not local only). Primary = peak; secondary = softer spots. Mark a range first, then apply.">
-          O-markers: authored in script — see “?”.</div>
-        <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <select id="pb-omarker-kind">
-            <option value="primary">Primary (peak)</option>
-            <option value="secondary">Secondary (earlier, softer)</option>
-          </select>
-          <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:6px;">
-            <label style="width:auto;" data-help="Secondary O-marker strength (0–1). Default 0.5. Authoring only — does not change Create CSRT.">Intensity</label>
-            <input type="range" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:7em;" />
-            <span class="hint" id="pb-omarker-intensity-val" style="margin:0; min-width:2.5em;">0.5</span>
-          </span>
-          <button id="pb-omarker-add" disabled>Apply as O-marker</button>
-        </div>
-        <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-omarker-details" style="display:none;">
+          <summary>O-markers</summary>
+          <div class="hint" id="pb-omarker-hint" style="display:none; margin-top:6px;"
+            data-help="O-markers are saved in the script (not local only). Primary = peak; secondary = softer spots. Mark a range first, then apply.">
+            O-markers: authored in script — see “?”.</div>
+          <div class="row" id="pb-omarker-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <select id="pb-omarker-kind">
+              <option value="primary">Primary (peak)</option>
+              <option value="secondary">Secondary (earlier, softer)</option>
+            </select>
+            <span id="pb-omarker-intensity-row" style="display:none; align-items:center; gap:6px;">
+              <label style="width:auto;" data-help="Secondary O-marker strength (0–1). Default 0.5. Authoring only — does not change Create CSRT.">Intensity</label>
+              <input type="range" id="pb-omarker-intensity" min="0" max="1" step="0.05" value="0.5" style="width:7em;" />
+              <span class="hint" id="pb-omarker-intensity-val" style="margin:0; min-width:2.5em;">0.5</span>
+            </span>
+            <button id="pb-omarker-add" disabled>Apply as O-marker</button>
+          </div>
+          <div id="pb-omarker-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
-        <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:10px;"
-          data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, rename, or remove. Separate from O-markers and heatmap selection.">
-          Bookmarks: named times in the script — see “?”.</div>
-        <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
-          <button type="button" id="pb-bookmark-add"
-            data-help="Saves a bookmark at the current playhead time into the loaded script.">Add at playhead</button>
-        </div>
-        <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-bookmark-details" style="display:none;">
+          <summary>Bookmarks</summary>
+          <div class="hint" id="pb-bookmark-hint" style="display:none; margin-top:6px;"
+            data-help="Named times saved in the script (OFS-style metadata.bookmarks / .samn). Add at the current playhead, seek, rename, or remove. Separate from O-markers and heatmap selection.">
+            Bookmarks: named times in the script — see “?”.</div>
+          <div class="row" id="pb-bookmark-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="pb-bookmark-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+            <button type="button" id="pb-bookmark-add"
+              data-help="Saves a bookmark at the current playhead time into the loaded script.">Add at playhead</button>
+          </div>
+          <div id="pb-bookmark-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
-        <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:10px;"
-          data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Rename or remove later. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
-          Chapters: named ranges in the script — see “?”.</div>
-        <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
-          <button type="button" id="pb-chapter-add" disabled
-            data-help="Saves a chapter from the current heatmap selection into the loaded script.">Add from selection</button>
-        </div>
-        <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
+        <details class="pb-tools-details" id="pb-chapter-details" style="display:none;">
+          <summary>Chapters</summary>
+          <div class="hint" id="pb-chapter-hint" style="display:none; margin-top:6px;"
+            data-help="Named ranges saved in the script (OFS-style metadata.chapters / .samn). Mark a heatmap range first, then add. Rename or remove later. Stored chapters replace auto chapter summary in analysis. Separate from O-markers and bookmarks.">
+            Chapters: named ranges in the script — see “?”.</div>
+          <div class="row" id="pb-chapter-add-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="pb-chapter-name" placeholder="Name (optional)" maxlength="80" style="width:11em;" />
+            <button type="button" id="pb-chapter-add" disabled
+              data-help="Saves a chapter from the current heatmap selection into the loaded script.">Add from selection</button>
+          </div>
+          <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
+        </details>
 
         <div id="pb-audio-segments" class="gen-audio-segments" hidden>
           <div class="gen-audio-segments-head">
@@ -299,26 +333,29 @@ export function initPlayback(root) {
             From script <code>audio_check</code> (Create Review / Audio check). Click to seek.
             Optional: add visible blocks as chapter marks — never rewrites the stroke.
           </p>
-          <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-holding" checked /> Hold</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-gentle" checked /> Gentle</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-intense" checked /> Intense</label>
-            <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-climax" checked /> Climax</label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="When on, only dialogue/quiet Hold blocks stay visible.">
-              <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
-            </label>
-            <label class="checkbox-row" style="margin:0;"
-              data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
-              <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
-            </label>
-            <label class="field-row" id="pb-seg-heatbands-opacity-row" style="margin:0; align-items:center; gap:6px;"
-              data-help="Opacity of Feel heatmap bands (and curve underlay). Display only.">
-              Opacity
-              <input type="range" id="pb-seg-heatbands-opacity" min="0.2" max="1" step="0.05" value="1" style="width:7em;" />
-              <span class="hint" id="pb-seg-heatbands-opacity-val" style="margin:0; min-width:2.5em;">1.00</span>
-            </label>
-          </div>
+          <details class="pb-tools-details" id="pb-feel-filters-details">
+            <summary>Filters &amp; heatmap bands</summary>
+            <div class="row gen-audio-seg-filters" style="align-items:center; flex-wrap:wrap; gap:10px; margin:6px 0;">
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-holding" checked /> Hold</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-gentle" checked /> Gentle</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-intense" checked /> Intense</label>
+              <label class="checkbox-row" style="margin:0;"><input type="checkbox" id="pb-seg-f-climax" checked /> Climax</label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="When on, only dialogue/quiet Hold blocks stay visible.">
+                <input type="checkbox" id="pb-seg-f-speech-only" /> Speech-hold only
+              </label>
+              <label class="checkbox-row" style="margin:0;"
+                data-help="Paint filtered Feel segments as translucent bands on the Play heatmap (and a thin curve underlay). Display only — never rewrites the stroke.">
+                <input type="checkbox" id="pb-seg-heatbands" checked /> Show on heatmap
+              </label>
+              <label class="field-row" id="pb-seg-heatbands-opacity-row" style="margin:0; align-items:center; gap:6px;"
+                data-help="Opacity of Feel heatmap bands (and curve underlay). Display only.">
+                Opacity
+                <input type="range" id="pb-seg-heatbands-opacity" min="0.2" max="1" step="0.05" value="1" style="width:7em;" />
+                <span class="hint" id="pb-seg-heatbands-opacity-val" style="margin:0; min-width:2.5em;">1.00</span>
+              </label>
+            </div>
+          </details>
           <div id="pb-audio-seg-strip" class="gen-audio-seg-strip" role="list"></div>
           <div class="row" style="margin-top:8px; align-items:center; flex-wrap:wrap; gap:8px;">
             <button type="button" id="pb-audio-seg-chapters">Add visible as chapters</button>
@@ -334,39 +371,45 @@ export function initPlayback(root) {
             <label for="pb-contact-off"
               data-help="Turns off contact vibration stored in the script for this play only — without creating again. The curve preview stays visible.">Contact vibration off</label>
           </div>
-          <div class="field-row" id="pb-contact-intensity-row">
-            <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as created, 0 = off, up to 2 = stronger.">Contact strength</label>
-            <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
-            <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
-          </div>
-          <div class="field-row" id="pb-contact-span-row">
-            <label data-help="Live sensitivity without creating again. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
-            <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
-            <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
-          </div>
-          <div class="field-row" id="pb-contact-curve-row">
-            <label data-help="Live contact-vibration curve shape (linear / soft / peak / impulse), without rewriting the file.">Contact curve</label>
-            <select id="pb-contact-curve">
-              <option value="linear">linear</option>
-              <option value="soft">soft (contact-like)</option>
-              <option value="peak">peak</option>
-              <option value="impulse">impulse (peaks only)</option>
-            </select>
-          </div>
-          <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
-            <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
-              <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
-              <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
+          <details class="pb-tools-details" id="pb-contact-tune-details">
+            <summary>Strength · Sensitivity · Curve</summary>
+            <div class="field-row" id="pb-contact-intensity-row">
+              <label data-help="Live scaling of contact vibration without rewriting the file (SAM runtime). 1 = as created, 0 = off, up to 2 = stronger.">Contact strength</label>
+              <input type="range" id="pb-contact-intensity" min="0" max="2" step="0.05" value="1" style="flex:1;" />
+              <span id="pb-contact-intensity-val" class="hint" style="margin:0; min-width:2.5em;">1.00</span>
             </div>
-            <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
-              <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
-              <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
-              <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
-            </svg>
-            <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
-              Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
-            </p>
-          </div>
+            <div class="field-row" id="pb-contact-span-row">
+              <label data-help="Live sensitivity without creating again. Lower = engages earlier. Default from the script recipe.">Sensitivity</label>
+              <input type="range" id="pb-contact-span" min="0.4" max="0.95" step="0.05" value="0.75" style="flex:1;" />
+              <span id="pb-contact-span-val" class="hint" style="margin:0; min-width:2.5em;">0.75</span>
+            </div>
+            <div class="field-row" id="pb-contact-curve-row">
+              <label data-help="Live contact-vibration curve shape (linear / soft / peak / impulse), without rewriting the file.">Contact curve</label>
+              <select id="pb-contact-curve">
+                <option value="linear">linear</option>
+                <option value="soft">soft (contact-like)</option>
+                <option value="peak">peak</option>
+                <option value="impulse">impulse (peaks only)</option>
+              </select>
+            </div>
+            <details class="pb-tools-details" id="pb-contact-probe-details">
+              <summary>Contact feel probe</summary>
+              <div class="pb-contact-vib-probe" id="pb-contact-vib-probe" aria-live="polite">
+                <div class="pb-contact-vib-badges" id="pb-contact-vib-badges">
+                  <span class="pb-cv-badge" id="pb-cv-badge-active">— active</span>
+                  <span class="pb-cv-badge" id="pb-cv-badge-peak">— peak</span>
+                </div>
+                <svg id="pb-contact-vib-svg" class="pb-contact-vib-svg" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline id="pb-contact-vib-stroke" class="pb-contact-vib-stroke" fill="none" stroke-width="1.4" points="" />
+                  <polyline id="pb-contact-vib-poly" class="pb-contact-vib-poly" fill="none" stroke-width="1.8" points="" />
+                  <g id="pb-contact-vib-peaks" class="pb-contact-vib-peaks"></g>
+                </svg>
+                <p class="hint" id="pb-contact-vib-preview" style="margin:4px 0 0 0;">
+                  Contact probe: change Strength / Sensitivity / Curve for live vib feedback (synthetic bounce — not your clip).
+                </p>
+              </div>
+            </details>
+          </details>
           <div class="row" style="margin-top:8px;">
             <button type="button" id="pb-contact-save">Save to script</button>
             <span class="hint" id="pb-contact-save-status" style="margin:0"></span>
@@ -393,7 +436,7 @@ export function initPlayback(root) {
           <div class="field-row"><label>Device</label>
             <span class="checkbox-row" style="margin:0"><input type="checkbox" id="pb-mock" /> <label for="pb-mock" style="width:auto">Mock (no device)</label></span>
           </div>
-          <div class="field-row"><label>Sync-Modus</label>
+          <div class="field-row"><label>Sync mode</label>
             <select id="pb-sync">
               <option value="independent">independent</option>
               <option value="synchronized">synchronized</option>
@@ -425,24 +468,27 @@ export function initPlayback(root) {
               <span class="hint" id="pb-softstart-val" style="margin:0; min-width:3em;">500</span>
             </div>
           </div>
-          <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
-          <div class="pb-adv-grid">
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O amplitude multiplier (curve keeps rhythm; only height is scaled). Default 0.1. Playback feel only.">Amplitude</label>
-              <input type="range" id="pb-eo-min" min="0" max="1" step="0.05" value="0.1" style="flex:1;" />
-              <span class="hint" id="pb-eo-min-val" style="margin:0; min-width:2.5em;">0.1</span>
+          <details class="pb-tools-details" id="pb-eo-details">
+            <summary>Extended-O</summary>
+            <div class="checkbox-row"><input type="checkbox" id="pb-eo-enabled" checked /><label for="pb-eo-enabled">Extended-O enabled</label></div>
+            <div class="pb-adv-grid">
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O amplitude multiplier (curve keeps rhythm; only height is scaled). Default 0.1. Playback feel only.">Amplitude</label>
+                <input type="range" id="pb-eo-min" min="0" max="1" step="0.05" value="0.1" style="flex:1;" />
+                <span class="hint" id="pb-eo-min-val" style="margin:0; min-width:2.5em;">0.1</span>
+              </div>
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O hold duration in seconds. Default 10. Playback feel only.">Hold (s)</label>
+                <input type="range" id="pb-eo-hold" min="1" max="60" step="1" value="10" style="flex:1;" />
+                <span class="hint" id="pb-eo-hold-val" style="margin:0; min-width:2.5em;">10</span>
+              </div>
+              <div class="field-row" style="align-items:center;">
+                <label data-help="Extended-O restore ramp in milliseconds. Default 500. Playback feel only.">Restore (ms)</label>
+                <input type="range" id="pb-eo-restore" min="0" max="3000" step="100" value="500" style="flex:1;" />
+                <span class="hint" id="pb-eo-restore-val" style="margin:0; min-width:3em;">500</span>
+              </div>
             </div>
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O hold duration in seconds. Default 10. Playback feel only.">Hold (s)</label>
-              <input type="range" id="pb-eo-hold" min="1" max="60" step="1" value="10" style="flex:1;" />
-              <span class="hint" id="pb-eo-hold-val" style="margin:0; min-width:2.5em;">10</span>
-            </div>
-            <div class="field-row" style="align-items:center;">
-              <label data-help="Extended-O restore ramp in milliseconds. Default 500. Playback feel only.">Restore (ms)</label>
-              <input type="range" id="pb-eo-restore" min="0" max="3000" step="100" value="500" style="flex:1;" />
-              <span class="hint" id="pb-eo-restore-val" style="margin:0; min-width:3em;">500</span>
-            </div>
-          </div>
+          </details>
         </details>
 
         <div id="pb-log" class="pb-log"></div>
@@ -686,16 +732,37 @@ export function initPlayback(root) {
     }
   }
 
+  function markerIsValid(m) {
+    return !!(m
+      && Number.isFinite(m.startMs)
+      && Number.isFinite(m.endMs)
+      && m.endMs > m.startMs);
+  }
+
   function updateMarkerHint() {
-    if (marker) {
+    if (markerIsValid(marker)) {
       el('#pb-marker-label').textContent =
         `Marked: ${(marker.startMs / 1000).toFixed(1)}s - ${(marker.endMs / 1000).toFixed(1)}s`;
+      // Selection unlocks Cap/Scale/O-marker/Chapters — open those panels.
+      const edit = el('#pb-ofs-edit-details');
+      if (edit) edit.open = true;
+      const om = el('#pb-omarker-details');
+      if (om) om.open = true;
+      const ch = el('#pb-chapter-details');
+      if (ch) ch.open = true;
     } else {
       el('#pb-marker-label').textContent = '(no selection)';
+      // Clear leaves Cap/O/Chapters closed — no disabled CTAs in open panels.
+      const edit = el('#pb-ofs-edit-details');
+      if (edit) edit.open = false;
+      const om = el('#pb-omarker-details');
+      if (om) om.open = false;
+      const ch = el('#pb-chapter-details');
+      if (ch) ch.open = false;
     }
-    el('#pb-omarker-add').disabled = !marker;
+    el('#pb-omarker-add').disabled = !markerIsValid(marker);
     const chAdd = el('#pb-chapter-add');
-    if (chAdd) chAdd.disabled = !marker;
+    if (chAdd) chAdd.disabled = !markerIsValid(marker);
     updateZoomChrome();
   }
 
@@ -730,7 +797,7 @@ export function initPlayback(root) {
     const lab = el('#pb-zoom-label');
     const zoomSel = el('#pb-zoom-sel');
     if (row) row.style.display = scriptPath ? 'flex' : 'none';
-    if (zoomSel) zoomSel.disabled = !marker;
+    if (zoomSel) zoomSel.disabled = !markerIsValid(marker);
     if (!lab) return;
     if (!isZoomed()) {
       lab.textContent = 'Full';
@@ -770,7 +837,7 @@ export function initPlayback(root) {
     setViewWindow(Math.max(0, start), Math.min(totalMs, end));
   }
   function zoomToSelection() {
-    if (!marker) return;
+    if (!markerIsValid(marker)) return;
     const pad = Math.max(200, Math.round((marker.endMs - marker.startMs) * 0.08));
     setViewWindow(Math.max(0, marker.startMs - pad), Math.min(totalMs, marker.endMs + pad));
   }
@@ -1203,7 +1270,7 @@ export function initPlayback(root) {
       return;
     }
     if (!scriptPath) {
-      if (status) status.textContent = 'Load a script first.';
+      showChooseScriptRetry('Load a script first.', status);
       return;
     }
     try {
@@ -1821,12 +1888,25 @@ export function initPlayback(root) {
     clearTimeout(pbContactVibPreviewTimer);
     pbContactVibPreviewTimer = setTimeout(refreshPlayContactVibPreview, 160);
   }
+  function openPlayContactProbe() {
+    const tune = el('#pb-contact-tune-details');
+    // Do not re-force-open tune if the user collapsed it this session.
+    if (tune && !tune.dataset.userCollapsed) tune.open = true;
+    const d = el('#pb-contact-probe-details');
+    if (d && (!tune || tune.open)) d.open = true;
+  }
+
+  el('#pb-contact-tune-details')?.addEventListener('toggle', (e) => {
+    if (!e.target.open) e.target.dataset.userCollapsed = '1';
+    else delete e.target.dataset.userCollapsed;
+  });
 
   el('#pb-contact-intensity').addEventListener('input', e => {
     // finiteOr (not ||): Strength min=0 must stay 0 in the label + prefs.
     const v = finiteOr(e.target.value, 0);
     el('#pb-contact-intensity-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-intensity').addEventListener('change', e => {
@@ -1836,10 +1916,12 @@ export function initPlayback(root) {
     const v = Number(e.target.value) || 0;
     el('#pb-contact-span-val').textContent = v.toFixed(2);
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-curve').addEventListener('change', () => {
     if (scriptHasContactVibration) drawCurve();
+    openPlayContactProbe();
     schedulePlayContactVibPreview();
   });
   el('#pb-contact-off').addEventListener('change', () => {
@@ -1978,6 +2060,12 @@ export function initPlayback(root) {
     }
     box.textContent = text;
     box.style.display = text ? 'block' : 'none';
+    const sum = el('#pb-quality-details > summary');
+    if (sum) {
+      sum.textContent = text
+        ? 'Script check & analysis · summary ready'
+        : 'Script check & analysis';
+    }
   }
 
   function contactPreviewOpts() {
@@ -2046,7 +2134,7 @@ export function initPlayback(root) {
     await refreshSpeedHighlights();
     curveCanvas.style.display = 'block';
     el('#pb-curve-edit-row').style.display = 'flex';
-    sizeCanvasForDPR(curveCanvas, 800, 120);
+    sizeCanvasForDPR(curveCanvas, 800, 176);
     redrawCurve();
   }
 
@@ -2251,7 +2339,7 @@ export function initPlayback(root) {
     heatmapCanvas.style.display = 'block';
     el('#pb-marker-hint').style.display = 'block';
     el('#pb-marker-auto-row').style.display = 'flex';
-    sizeCanvasForDPR(heatmapCanvas, 800, 28);
+    sizeCanvasForDPR(heatmapCanvas, 800, 56);
     redrawHeatmap();
   }
 
@@ -2360,7 +2448,7 @@ export function initPlayback(root) {
   });
 
   el('#pb-omarker-add').addEventListener('click', async () => {
-    if (!marker || !scriptPath) return;
+    if (!markerIsValid(marker) || !scriptPath) return;
     const kind = el('#pb-omarker-kind').value;
     const intensity = kind === 'primary'
       ? 1.0
@@ -2380,7 +2468,7 @@ export function initPlayback(root) {
 
   el('#pb-bookmark-add')?.addEventListener('click', async () => {
     if (!scriptPath) {
-      uiWarn('Load a script first.', el('#pb-log'));
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
       return;
     }
     const nameInput = el('#pb-bookmark-name');
@@ -2396,10 +2484,10 @@ export function initPlayback(root) {
 
   el('#pb-chapter-add')?.addEventListener('click', async () => {
     if (!scriptPath) {
-      uiWarn('Load a script first.', el('#pb-log'));
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
       return;
     }
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.', el('#pb-log'));
       return;
     }
@@ -2419,7 +2507,7 @@ export function initPlayback(root) {
   // löst Extended-O einmal pro Playback aus, sobald die Position in den
   // markierten Bereich eintritt (falls aktiviert).
   function checkAutoExtendedO(atMs) {
-    if (!marker || !el('#pb-marker-auto').checked || autoEOTriggeredForMarker) return;
+    if (!markerIsValid(marker) || !el('#pb-marker-auto').checked || autoEOTriggeredForMarker) return;
     if (atMs >= marker.startMs && atMs <= marker.endMs) {
       autoEOTriggeredForMarker = true;
       if (!el('#pb-eo-trigger').disabled) triggerEO();
@@ -2435,9 +2523,27 @@ export function initPlayback(root) {
       : [e.detail.path];
     replacePlaylist(paths, 0);
     loadScript(paths[0], { keepPlaylist: true }).catch(err => {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
     });
   });
+
+  // C7: load failures and no-script actions name Choose Emotion Script.
+  function showChooseScriptRetry(reason, statusEl, level) {
+    const msg = String(reason || 'Load a script first.').replace(/\s+/g, ' ').trim();
+    if (level === 'error') uiError(msg);
+    else uiWarn(msg);
+    const host = statusEl || el('#pb-log');
+    if (!host) return;
+    host.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = msg + ' ';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'secondary pb-choose-retry';
+    btn.textContent = 'Choose Emotion Script…';
+    btn.addEventListener('click', () => { chooseScript(); });
+    host.append(text, btn);
+  }
 
   async function chooseScript() {
     const path = await PickFunscriptFile();
@@ -2447,7 +2553,7 @@ export function initPlayback(root) {
     try {
       await loadScript(path, { keepPlaylist: true });
     } catch (err) {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
     }
   }
 
@@ -2561,6 +2667,8 @@ export function initPlayback(root) {
     scriptHasNeoAxes = !!info.hasNeoAxes;
     const row = el('#pb-axis-row');
     if (row) row.style.display = 'flex';
+    const bakeShare = el('#pb-export-bake-details');
+    if (bakeShare) bakeShare.style.display = 'block';
     if (el('#pb-playback-source')) {
       el('#pb-playback-source').value = info.playbackSource === 'axes' ? 'axes' : 'recipe';
     }
@@ -2594,7 +2702,7 @@ export function initPlayback(root) {
     try {
       info = await LoadFunscript(path);
     } catch (err) {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
       throw err;
     }
     scriptPath = info.path;
@@ -2661,6 +2769,7 @@ export function initPlayback(root) {
     rememberAudioSegmentsFromInfo(info);
     try {
       marker = await GetMarker(scriptPath);
+      if (!markerIsValid(marker)) marker = null;
     } catch (err) {
       marker = null;
     }
@@ -2701,14 +2810,19 @@ export function initPlayback(root) {
     drawCurve();
     describeScript();
     loadTrajectory();
+    el('#pb-omarker-details') && (el('#pb-omarker-details').style.display = 'block');
     el('#pb-omarker-hint').style.display = 'block';
     el('#pb-omarker-add-row').style.display = 'flex';
+    el('#pb-bookmark-details') && (el('#pb-bookmark-details').style.display = 'block');
     el('#pb-bookmark-hint').style.display = 'block';
     el('#pb-bookmark-add-row').style.display = 'flex';
+    el('#pb-chapter-details') && (el('#pb-chapter-details').style.display = 'block');
     el('#pb-chapter-hint').style.display = 'block';
     el('#pb-chapter-add-row').style.display = 'flex';
     el('#pb-script-doctor-row').style.display = 'flex';
+    el('#pb-quality-details') && (el('#pb-quality-details').style.display = 'block');
     el('#pb-ofs-row').style.display = 'flex';
+    el('#pb-ofs-edit-details') && (el('#pb-ofs-edit-details').style.display = 'block');
     el('#pb-script-doctor-result').style.display = 'none';
     el('#pb-script-doctor-status').textContent = '';
     if (el('#pb-ofs-status')) el('#pb-ofs-status').textContent = '';
@@ -2734,7 +2848,8 @@ export function initPlayback(root) {
       await applyOffset(p.offsetMs);
     }
     if (p.loopMarker && typeof p.loopMarker.startMs === 'number' && typeof p.loopMarker.endMs === 'number') {
-      marker = { startMs: p.loopMarker.startMs, endMs: p.loopMarker.endMs };
+      const m = { startMs: p.loopMarker.startMs, endMs: p.loopMarker.endMs };
+      marker = markerIsValid(m) ? m : null;
       updateMarkerHint();
       redrawHeatmap();
     }
@@ -2891,8 +3006,10 @@ export function initPlayback(root) {
   async function stop({ user = true } = {}) {
     if (user) userStopRequested = true;
     await StopPlayback();
-    if (videoPath) videoEl.pause();
+    // Clear playing before pause so the video 'pause' handler does not
+    // report sync-idle after the position channel is already closed.
     setPlayingState(false);
+    if (videoPath) videoEl.pause();
   }
 
   async function triggerEO() {
@@ -2920,7 +3037,7 @@ export function initPlayback(root) {
     // der Offset überhaupt einstellen lässt: ohne Wiederholung müsste man
     // nach jeder Korrektur von Hand zurückspulen, und bis man wieder to der
     // fraglichen Stelle ist, hat man den Vergleich verloren.
-    if (el('#pb-loop').checked && marker && currentPosMs >= marker.endMs) {
+    if (el('#pb-loop').checked && markerIsValid(marker) && currentPosMs >= marker.endMs) {
       videoEl.currentTime = marker.startMs / 1000;
       currentPosMs = marker.startMs;
     }
@@ -2937,6 +3054,22 @@ export function initPlayback(root) {
     redrawHeatmap();
     redrawCurve();
     redrawTrajectory();
+    pushVideoSyncPosition();
+  });
+  // Pause / buffering: zero the device immediately (Sync idle sentinel).
+  // Watchdog in player.Sync still covers lost timeupdate without these events.
+  function pushVideoSyncIdle() {
+    if (playing && el('#pb-use-video-sync')?.checked) {
+      ReportVideoSyncIdle().catch(() => {});
+    }
+  }
+  videoEl.addEventListener('pause', () => {
+    if (videoEl.ended) return; // ended handler stops playback separately
+    pushVideoSyncIdle();
+  });
+  videoEl.addEventListener('waiting', pushVideoSyncIdle);
+  videoEl.addEventListener('playing', () => {
+    // Resume after pause/buffer — push current position so Sync soft-starts.
     pushVideoSyncPosition();
   });
   // Video-Maße (videoWidth/Height) stehen erst nach 'loadedmetadata' fest -
@@ -3015,8 +3148,12 @@ export function initPlayback(root) {
     totalMs = Math.max(f.totalMs, 1);
     currentPosMs = f.atMs;
     el('#pb-progress').style.width = Math.min(100, (f.atMs / totalMs) * 100) + '%';
-    el('#pb-vib').textContent = Math.round(f.vibration * 100) + '%';
-    el('#pb-suc').textContent = Math.round(f.suction * 100) + '%';
+    const vibRaw = Number(f && f.vibration);
+    const sucRaw = Number(f && f.suction);
+    const vib = Math.round((Number.isFinite(vibRaw) ? vibRaw : 0) * 100);
+    const suc = Math.round((Number.isFinite(sucRaw) ? sucRaw : 0) * 100);
+    el('#pb-vib').textContent = vib + '%';
+    el('#pb-suc').textContent = suc + '%';
     checkAutoExtendedO(f.atMs);
     redrawHeatmap();
     redrawCurve();
@@ -3027,11 +3164,11 @@ export function initPlayback(root) {
   // verzerrt skaliert dargestellt.
   window.addEventListener('resize', () => {
     if (curvePoints) {
-      sizeCanvasForDPR(curveCanvas, 800, 120);
+      sizeCanvasForDPR(curveCanvas, 800, 176);
       redrawCurve();
     }
     if (heatmapPoints) {
-      sizeCanvasForDPR(heatmapCanvas, 800, 28);
+      sizeCanvasForDPR(heatmapCanvas, 800, 56);
       redrawHeatmap();
     }
     redrawTrajectory();
@@ -3047,6 +3184,8 @@ export function initPlayback(root) {
       const result = await ScriptQuality();
       status.textContent = '';
       const pct = Math.round((result.score || 0) * 100);
+      const qd = el('#pb-quality-details');
+      if (qd) qd.open = true;
       box.style.display = 'block';
       box.style.background = result.passed ? 'rgba(61,216,117,0.12)' : 'rgba(216,77,77,0.12)';
       box.style.border = `1px solid ${result.passed ? 'var(--ok)' : 'var(--danger)'}`;
@@ -3061,6 +3200,8 @@ export function initPlayback(root) {
       }
       box.innerHTML = html;
     } catch (err) {
+      const qd = el('#pb-quality-details');
+      if (qd) qd.open = true;
       uiError('Quality check: ' + err, status);
     } finally {
       btn.disabled = false;
@@ -3087,7 +3228,7 @@ export function initPlayback(root) {
         scriptPath: scriptPath || '',
         offsetMs: parseInt(el('#pb-offset')?.value, 10) || 0,
         seekMs: currentPosMs || 0,
-        loopMarker: marker ? { startMs: marker.startMs, endMs: marker.endMs } : null,
+        loopMarker: markerIsValid(marker) ? { startMs: marker.startMs, endMs: marker.endMs } : null,
       });
       ofsStatus('Project: ' + path);
       uiInfo('Project saved: ' + path);
@@ -3179,7 +3320,7 @@ export function initPlayback(root) {
   }, { passive: false });
 
   el('#pb-cap-speed')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
@@ -3195,7 +3336,7 @@ export function initPlayback(root) {
     }
   });
   el('#pb-scale-range')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
@@ -3211,7 +3352,7 @@ export function initPlayback(root) {
     }
   });
   el('#pb-del-range')?.addEventListener('click', async () => {
-    if (!marker) {
+    if (!markerIsValid(marker)) {
       uiWarn('Mark a range on the heatmap first.');
       return;
     }
@@ -3548,7 +3689,7 @@ export function initPlayback(root) {
       updateZoomChrome();
       scriptHasContactVibration = !!info.contactVibration;
     } catch (err) {
-      logError('Skript nach Bearbeitung neu laden: ' + err);
+      logError('Reload script after edit: ' + err);
     }
     await refreshScriptVisuals();
   }
@@ -3561,9 +3702,9 @@ export function initPlayback(root) {
       renderOMarkerList();
       redrawHeatmap();
       redrawCurve();
-      log('O-Marker gesetzt: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
+      log('O-marker set: ' + (nowMs / 1000).toFixed(1) + 's–' + ((nowMs + 4000) / 1000).toFixed(1) + 's');
     } catch (err) {
-      logError('O-Taste: ' + err);
+      logError('O-marker hotkey: ' + err);
     }
   });
   window.addEventListener('ozone:suggested', () => { refreshScriptVisuals(); });

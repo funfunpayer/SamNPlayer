@@ -55,6 +55,8 @@ def main():
         page.on("pageerror", lambda e: print("   [pageerror]", e))
         page.goto(f"{base}/test/_report_status_harness.html")
         page.wait_for_function("window.__ready === true")
+        page.evaluate(
+            "document.querySelector('#st-diagnostics-details').open = true")
 
         page.wait_for_function(
             "document.querySelector('#st-report-status').textContent.includes('Already')",

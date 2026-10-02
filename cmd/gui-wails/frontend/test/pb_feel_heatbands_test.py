@@ -116,6 +116,11 @@ def main():
                 timeout=5000)
             check("segment strip visible after load",
                   page.locator("#pb-audio-segments").is_visible())
+            check("Feel filters details present",
+                  page.locator("#pb-feel-filters-details").count() == 1)
+            # Filters start collapsed — open before toggling checkboxes.
+            page.evaluate(
+                "document.querySelector('#pb-feel-filters-details').open = true")
             page.wait_for_function(
                 "document.querySelector('#pb-heatmap') && "
                 "document.querySelector('#pb-heatmap').style.display === 'block'",

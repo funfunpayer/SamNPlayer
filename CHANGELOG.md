@@ -6,7 +6,127 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## [0.5.45] - 2026-10-02
+
+PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive disclosure, recognition honesty. Everyday / Rhythm / AI defaults unchanged.
+
 ## Unreleased
+
+
+### Changed
+
+- **Play: load / no-script retry (C7)** — failed Emotion Script load and
+  no-script actions (bookmarks, chapters, Feel-segment chapters) name the
+  problem and offer **Choose Emotion Script…** in the status. Empty Play
+  CTA unchanged. Everyday / Rhythm / AI defaults unchanged.
+
+- **Device tab density (G4.C)** — Connect + function test stay primary; Raw value test and Diagnostics sit behind closed details. Everyday / Rhythm / AI defaults unchanged.
+- **Create/Play GUI declutter (G4.C)** — Step 2 AI assist & scene proposals
+  and Mark options (Ignore / Partner fixed / body map) sit behind closed
+  `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, Script check &
+  analysis, O-markers/Bookmarks/Chapters, Feel filters & heatmap bands,
+  Contact feel/tune, Project export, and nested Extended-O likewise. Create
+  Advanced nests Tracking / Anti-drift / Scene map / Signal / Expert; Feel
+  probe + Review filters + Improve More use progressive disclosure. Settings
+  nests Plugins + Hardware/Cache/metrics; License status is multi-line (C6).
+  Dead 4-zone `#gen-nomark` button removed from Create DOM (CLI backends
+  kept). Create/AI Train empty CTAs; Tip↔Contact coach copy without Tf/Tj.
+  Probe details auto-open when Sensitivity/Curve/Strength move. Heatmap
+  selection auto-opens Cap + O-marker + Chapters. Everyday Tip → Partner
+  snack stays primary. Partner fixed (pixels) EN label (was “Partner fest”).
+  USER_HANDBOOK: 4-zone noted as CLI-only.
+- **Play: taller curve + heatmap** — curve strip 120→176px, intensity heatmap
+  28→56px (same zoom/selection tools). Easier to read Feel bands and intensity.
+- **Create: Tip → Partner snack guide** — Step 2 shows a compact snack
+  (1 Tip / 2 Partner touch / 3 More) so Contact vibe marking matches FunGen2
+  mental model: no motion path; tip box = CSRT stroke only; gold marks =
+  optional touch feel. Labels clarify angle-change → Find tip again;
+  “Partner fixed (pixels)” renames the old static-contact checkbox.
+- **AI Train: track-plan readout** — live “Will track N tags: …” under the
+  free-tag boxes so multi-class bootstrap is obvious (still tracks every
+  labeled box, not Glans-only).
+
+### Fixed
+
+- **Create Find tip error (C7)** — tip-find failures name **Find tip** and show a retry button (classic error + strict AI miss). Cancel stays “Tip find canceled.” Everyday / Rhythm / AI defaults unchanged.
+- **Create Tip→Partner snack** — highlight Mark contact (outline + scroll) without auto-arming gold paint, so tip refine stays tip (`generator_mark_body_map_test`). Restored `generator.js` and this changelog after a file-URI overwrite on the PlayHeatUX branch.
+- **Create recognition block polish** — unified ROI cancel on seek/paint/AI
+  toggle (classic Find no longer ignored); Find / other spots / AI tags mutual
+  exclusion + unlock helper; tip-find keeps friendly status (raw lines → log);
+  progress shows immediately; Cancel says “Tip find canceled.”; Create-with-AI
+  opt-in status notes classic tip-find; tip labels stay “Tip (stroke tracker)”;
+  Partner snack arms gold mark mode and reminds when Contact vib is off.
+- **Recognition honesty: drop silent tip Ausfallcode** — Python tracker is
+  CSRT-only (no KCF/MIL soft-fallback); scene-cut no longer re-inits on
+  `last_bbox` when reacquire fails (Go + Python); `track_by_scenes` skips a
+  scene instead of reusing the previous tip; AI preferred-class filter
+  fail-closes instead of picking any class; Python appearance memory gates
+  remember/reacquire on the seed like Go; dead `_legacy_threshold_box` removed.
+- **Play: pause during soft-start left device mid-ramp** — `Sync` soft-start
+  now watches the positions channel; idle/pause zeros immediately (and
+  `goQuiet` no longer no-ops while `firstFrame`/`quiet` is still set).
+- **Create: Candidates / AI tags / two-ROI Find ignored Cancel** — motion
+  candidates, AI class list, and two-ROI find use `beginROIRequest` +
+  `CommandContext`; FE drops stale results for the wrong video. Create
+  emits `generate:started` and gates progress/done on `genSeq` so a
+  superseded run cannot unlock the wrong Create.
+- **Create: contact-points Generate had no Cancel** — `GenerateContactPoints`
+  is context-cancellable; Advanced run button toggles to Cancel; Create
+  Cancel also stops an in-flight teacher run.
+- **TrackROI (tip): brief tracker loss hard-held forever** — tip path now
+  velocity-coasts for the same short budget as Tf/Tj partners before hold.
+- **Create: Cancel during tip-find left Create locked** — tip-find-then-Create
+  never gets `generate:done` until tracking starts; Cancel now clears
+  `generating` + calls `CancelROIDetection` so Create unlocks immediately.
+- **Create: manual Find tip left Cancel dead** — Cancel enables during Find
+  tip / post-load auto-find (`tipFindBusy`); classic `AutoDetectROI` is
+  cancellable (`beginROIRequest` + `FindROIWithContext` CommandContext).
+  Cancel also clears `activeAITargetRequest` so Smarter tip find cannot leave
+  Create stuck on “Wait for the body-point check…”. Candidates / AI tags
+  use the same Cancel unlock.
+- **Play: Loop / Auto-EO / project restore ignored invalid markers** —
+  `markerIsValid` guards loop seek, Auto Extended-O, and project save/load.
+- **Create queue: Cancel / tip-find failure left queue stuck** — Cancel during
+  tip-find (before `GenerateScript`) now skips remaining entries and
+  re-enables Clear; auto-ROI errors mid-queue call `advanceQueueAfterDone`.
+  Tip-find-then-Create / queue always uses classic CSRT find (AI Apply path
+  cannot finish unattended Create).
+- **AI Train: Cancel hid the wrong button / wiped a live run’s Cancel** —
+  bootstrap vs train Cancel are separate; failed claim no longer hides the
+  other run’s Cancel; mutual disable while a run is claimed; dead
+  `docs/KI_TRAINING.md` `#` link replaced with plain path text.
+- **Play: Zoom/Cap/Scale/Delete/O-marker/Chapter accepted invalid markers** —
+  handlers and Zoom-to-selection now use `markerIsValid`; clearing selection
+  closes Cap/O/Chapters panels; Contact probe no longer force-reopens a
+  user-collapsed tune panel.
+- **Create: early “script exists” could clear a newer Create** — `GenerateScript`
+  now claims `genSeq` before overwrite checks and always emits `seq` on those
+  errors, so a stale exists-error cannot clobber an in-flight run.
+- **AI Train / trackcv cancel strings still German** — `cancelled` / `failed`
+  English for user-visible toasts (FE still matches `abgebrochen` for old builds).
+- **Play/sidebar: vib/suction meters could show `NaN%`** — frame events without
+  finite vibration/suction now coerce to 0 before `Math.round`.
+- **Play: leftover German chrome** — Sync mode label + O-marker set log are English.
+- **Play: video pause/buffer left device on last intensity for ~1.5s** — Sync
+  already zeroed after `syncStaleAfter`; frontend now calls
+  `ReportVideoSyncIdle` on `<video>` `pause`/`waiting` so the device goes to
+  0 immediately (soft-start resumes on `playing`). Stop clears `playing`
+  before pausing the element so idle is not reported after Stop.
+- **Frontend CI after G4.C declutter** — Playwright tests that toggle Cap/HL,
+  Stay fixed, or Smarter tip find now open the matching `<details>` first;
+  semantic tip wait no longer races on the old “No region” label.
+- **Mark options stay closed after painting a tip/contact** — selecting a
+  mark now opens Mark options so body map + Delete selected are visible.
+- **Invert / curve edit on `.samn` left companion `.funscript` stale** — Play
+  usually loads `.samn` after Create; Invert and axis saves updated `.samn`
+  only (or cleared `inverted` without rewriting actions). Share/other apps
+  still saw the old curve. `SaveScriptAxisActions` now re-exports the
+  companion; Invert clears any leftover `inverted` flag.
+- **Frontend curve-editor tests broke after taller curve** — hit coordinates
+  were hardcoded for 120px height; tests now derive Y from canvas height.
+- **Orphan Cancel/Honor enhance modules** — native AI Train Cancel and
+  Settings honor-inverted already live in `roi_training.js` / `settings.js`;
+  dropped duplicate `roi_cancel.js` / `settings_honor.js` (double cancel toasts).
 
 ### Added
 
@@ -15,7 +135,7 @@ measurement history behind each entry; this file is the short version for
   their author never meant players to flip them can be played as written.
   Switching it reloads the open script. (Checkbox in Settings: Cursor.)
 
-### Fixed
+### Fixed (earlier unreleased)
 
 - **Golden-clip benchmark: no cancel, kept running after closing, could run
   twice** — the benchmark (minutes, one generate per clip) ran Python
