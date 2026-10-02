@@ -159,7 +159,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 		}
 		switch engine {
 		case "ai_two":
-			roi, roi2, err := generator.FindTwoROIsAIWithProgress(videoPath,
+			roi, roi2, err := generator.FindTwoROIsAIWithContext(roiCtx, videoPath,
 				a.settings.GetString(prefAIRoiModelPath, ""),
 				a.settings.GetString(prefAIPreferredClasses, ""),
 				onLine, onPct)
@@ -179,7 +179,7 @@ func (a *App) AutoDetectROI(videoPath string, engine string) {
 			attachROIVerify(payload, videoPath, roi)
 			a.emitAutoROI(videoPath, mySeq, payload)
 		case "auto_two":
-			roi, roi2, err := generator.FindTwoROIsWithProgress(videoPath, onLine, onPct)
+			roi, roi2, err := generator.FindTwoROIsWithContext(roiCtx, videoPath, onLine, onPct)
 			if err != nil {
 				emitErr(err.Error())
 				return
@@ -385,12 +385,26 @@ func (a *App) emitAutoROI(videoPath string, seq uint64, payload map[string]any) 
 // SuggestROICandidates lists ranked motion regions without applying any ROI.
 // Event generate:roi-candidates — TFTJ step 4b (pick primary yourself).
 func (a *App) SuggestROICandidates(videoPath string) {
+	mySeq, roiCtx, finish := a.beginROIRequest(true)
 	go func() {
-		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
-		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
-		cands, err := generator.FindROICandidatesWithProgress(videoPath, onLine, onPct)
+		defer finish()
+		onLine := func(line string) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:progress", line)
+			}
+		}
+		onPct := func(pct int) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:percent", pct)
+			}
+		}
+		cands, err := generator.FindROICandidatesWithContext(roiCtx, videoPath, onLine, onPct)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{"error": err.Error()})
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{
+					"error": err.Error(), "videoPath": videoPath, "seq": mySeq,
+				})
+			}
 			return
 		}
 		list := make([]map[string]any, 0, len(cands))
@@ -400,23 +414,39 @@ func (a *App) SuggestROICandidates(videoPath string) {
 				"score": c.Score, "index": c.Index,
 			})
 		}
-		runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{
-			"candidates": list,
-		})
+		if a.roiRequestCurrent(mySeq) {
+			runtime.EventsEmit(a.ctx, "generate:roi-candidates", map[string]any{
+				"candidates": list, "videoPath": videoPath, "seq": mySeq,
+			})
+		}
 	}()
 }
 
 // ListAIDetections lists all ONNX class boxes on the current preview time
 // (nipples/breasts/glans/…). Event generate:ai-detections. Does not set tip ROI.
 func (a *App) ListAIDetections(videoPath string, timeSec float64) {
+	mySeq, roiCtx, finish := a.beginROIRequest(true)
 	go func() {
-		onLine := func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) }
-		onPct := func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) }
+		defer finish()
+		onLine := func(line string) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:progress", line)
+			}
+		}
+		onPct := func(pct int) {
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:percent", pct)
+			}
+		}
 		model := a.settings.GetString(prefAIRoiModelPath, "")
 		pref := a.settings.GetString(prefAIPreferredClasses, "")
-		dets, err := generator.ListAIDetectionsWithProgress(videoPath, model, pref, timeSec, onLine, onPct)
+		dets, err := generator.ListAIDetectionsWithContext(roiCtx, videoPath, model, pref, timeSec, onLine, onPct)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{"error": err.Error()})
+			if a.roiRequestCurrent(mySeq) {
+				runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{
+					"error": err.Error(), "videoPath": videoPath, "seq": mySeq,
+				})
+			}
 			return
 		}
 		list := make([]map[string]any, 0, len(dets))
@@ -427,9 +457,11 @@ func (a *App) ListAIDetections(videoPath string, timeSec float64) {
 				"className": d.ClassName, "index": d.Index,
 			})
 		}
-		runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{
-			"detections": list,
-		})
+		if a.roiRequestCurrent(mySeq) {
+			runtime.EventsEmit(a.ctx, "generate:ai-detections", map[string]any{
+				"detections": list, "videoPath": videoPath, "seq": mySeq,
+			})
+		}
 	}()
 }
 
@@ -508,11 +540,40 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		a.genSeq++
 		mySeq := a.genSeq
 		a.stateMu.Unlock()
+		runtime.EventsEmit(a.ctx, "generate:started", map[string]any{"seq": mySeq})
+
+		emitDone := func(payload map[string]any) {
+			a.stateMu.RLock()
+			cur := a.genSeq
+			a.stateMu.RUnlock()
+			if cur != mySeq {
+				return
+			}
+			runtime.EventsEmit(a.ctx, "generate:done", payload)
+		}
+		emitProgress := func(line string) {
+			a.stateMu.RLock()
+			cur := a.genSeq
+			a.stateMu.RUnlock()
+			if cur != mySeq {
+				return
+			}
+			runtime.EventsEmit(a.ctx, "generate:progress", line)
+		}
+		emitPercent := func(pct int) {
+			a.stateMu.RLock()
+			cur := a.genSeq
+			a.stateMu.RUnlock()
+			if cur != mySeq {
+				return
+			}
+			runtime.EventsEmit(a.ctx, "generate:percent", pct)
+		}
 
 		outPath := scriptPathForVideo(opts.VideoPath)
 		if !opts.Overwrite {
 			if _, err := os.Stat(outPath); err == nil {
-				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
+				emitDone(map[string]any{
 					"error": "Script already exists: " + outPath + " — generation cancelled to avoid overwriting it.",
 					"seq":   mySeq,
 				})
@@ -520,7 +581,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			}
 			if companion := samn.CompanionSamnPath(outPath); companion != "" {
 				if _, err := os.Stat(companion); err == nil {
-					runtime.EventsEmit(a.ctx, "generate:done", map[string]any{
+					emitDone(map[string]any{
 						"error": "Native script already exists: " + companion + " — generation cancelled to avoid overwriting it.",
 						"seq":   mySeq,
 					})
@@ -607,14 +668,13 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 			cancel()
 		}()
 		err := generator.GenerateWithContext(ctx, opts.VideoPath, roi, outPath, genOpts,
-			func(line string) { runtime.EventsEmit(a.ctx, "generate:progress", line) },
-			func(pct int) { runtime.EventsEmit(a.ctx, "generate:percent", pct) })
+			emitProgress, emitPercent)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": "Generation cancelled", "cancelled": true, "seq": mySeq})
+				emitDone(map[string]any{"error": "Generation cancelled", "cancelled": true, "seq": mySeq})
 				return
 			}
-			runtime.EventsEmit(a.ctx, "generate:done", map[string]any{"error": err.Error(), "seq": mySeq})
+			emitDone(map[string]any{"error": err.Error(), "seq": mySeq})
 			return
 		}
 		payload := map[string]any{"path": openPathAfterGenerate(outPath), "funscriptPath": outPath, "pipeline": "python", "seq": mySeq}
@@ -689,7 +749,7 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		} else {
 			logging.Warn("generator: generated script not readable", "output", outPath, "error", loadErr)
 		}
-		runtime.EventsEmit(a.ctx, "generate:done", payload)
+		emitDone(payload)
 	}()
 }
 

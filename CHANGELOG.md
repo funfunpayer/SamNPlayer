@@ -37,6 +37,19 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Play: pause during soft-start left device mid-ramp** — `Sync` soft-start
+  now watches the positions channel; idle/pause zeros immediately (and
+  `goQuiet` no longer no-ops while `firstFrame`/`quiet` is still set).
+- **Create: Candidates / AI tags / two-ROI Find ignored Cancel** — motion
+  candidates, AI class list, and two-ROI find use `beginROIRequest` +
+  `CommandContext`; FE drops stale results for the wrong video. Create
+  emits `generate:started` and gates progress/done on `genSeq` so a
+  superseded run cannot unlock the wrong Create.
+- **Create: contact-points Generate had no Cancel** — `GenerateContactPoints`
+  is context-cancellable; Advanced run button toggles to Cancel; Create
+  Cancel also stops an in-flight teacher run.
+- **TrackROI (tip): brief tracker loss hard-held forever** — tip path now
+  velocity-coasts for the same short budget as Tf/Tj partners before hold.
 - **Create: Cancel during tip-find left Create locked** — tip-find-then-Create
   never gets `generate:done` until tracking starts; Cancel now clears
   `generating` + calls `CancelROIDetection` so Create unlocks immediately.

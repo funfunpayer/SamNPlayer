@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -821,6 +821,11 @@ export function initGenerator(root, playback) {
   let pendingGenerateAfterRoi = false;
   let userCancelRequested = false;
   let activeCreateSeq = 0;
+  EventsOn('generate:started', result => {
+    if (typeof result?.seq === 'number' && result.seq >= activeCreateSeq) {
+      activeCreateSeq = result.seq;
+    }
+  });
   let profileSuggestionSeq = 0;
   // Multi-drop batch note — keep visible through auto-find status updates.
   let videoBatchNote = '';
@@ -3566,6 +3571,7 @@ export function initGenerator(root, playback) {
     // “Wait for the body-point check…” after Cancel.
     activeAITargetRequest = null;
     CancelROIDetection().catch(() => {});
+    CancelContactPoints().catch(() => {});
     CancelGenerate();
     // Tip-find-then-Create never gets generate:done until tracking starts —
     // clear the Create lock here so Cancel always unlocks the UI.
@@ -4549,6 +4555,10 @@ export function initGenerator(root, playback) {
   });
 
   EventsOn('generate:roi-candidates', result => {
+    // Drop stale / cancelled / wrong-video results.
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
     hideProgress();
     el('#gen-candidates').disabled = false;
     el('#gen-autoroi').disabled = false;
@@ -4582,6 +4592,9 @@ export function initGenerator(root, playback) {
   });
 
   EventsOn('generate:ai-detections', result => {
+    if (result.videoPath && videoPath && result.videoPath !== videoPath) {
+      return;
+    }
     hideProgress();
     el('#gen-autoroi').disabled = false;
     el('#gen-candidates').disabled = false;
@@ -4843,6 +4856,12 @@ export function initGenerator(root, playback) {
   });
   el('#gen-contact-points-run')?.addEventListener('click', async () => {
     const status = el('#gen-contact-points-gen-status');
+    const btn = el('#gen-contact-points-run');
+    if (btn?.dataset.running === '1') {
+      CancelContactPoints().catch(() => {});
+      if (status) status.textContent = 'Canceling…';
+      return;
+    }
     if (!videoPath) {
       if (status) status.textContent = 'Load a video first.';
       return;
@@ -4856,9 +4875,17 @@ export function initGenerator(root, playback) {
       return;
     }
     if (status) status.textContent = 'Generating…';
+    if (btn) {
+      btn.dataset.running = '1';
+      btn.textContent = 'Cancel';
+    }
     try {
       await GenerateContactPointsForVideo(videoPath, { nudenet, teachers, onnx: [], stepS: 0, out: '' });
     } catch (err) {
+      if (btn) {
+        btn.dataset.running = '';
+        btn.textContent = 'Generate contact points';
+      }
       if (status) status.textContent = '';
       uiError('Generate contact points: ' + err, el('#gen-status'));
     }
@@ -4869,6 +4896,15 @@ export function initGenerator(root, playback) {
   });
   EventsOn('contactpoints:done', async (payload) => {
     const status = el('#gen-contact-points-gen-status');
+    const btn = el('#gen-contact-points-run');
+    if (btn) {
+      btn.dataset.running = '';
+      btn.textContent = 'Generate contact points';
+    }
+    if (payload?.cancelled || (payload?.error && /cancelled/i.test(String(payload.error)))) {
+      if (status) status.textContent = 'Canceled.';
+      return;
+    }
     if (payload?.error) {
       if (status) status.textContent = 'Failed: ' + payload.error;
       uiError('Generate contact points: ' + payload.error, el('#gen-status'));

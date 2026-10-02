@@ -150,7 +150,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel42 | Cursor | [#429](https://github.com/funfunpayer/SamNPlayer/pull/429) + tag `v0.5.42` | Sammel **v0.5.42** + Release (GapFill #403/#413; knobs/probes #378–#400; Plateau #426; Expert/EO/Contact 0 #425/#421/#424; seek/CLI #377/#401–#417; Intiface #422; Audio cancel #420; atomic write #428; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42 |
 | Rel43 | Cursor | [#443](https://github.com/funfunpayer/SamNPlayer/pull/443) + tag `v0.5.43` | Sammel **v0.5.43** + Release (Train window labels #441; ROI empty-val heal #442; Play/Create/AI Train prefs #437–#439; CLI cancel #432/#435; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.43 |
 | Rel44 | Cursor | [#454](https://github.com/funfunpayer/SamNPlayer/pull/454) + tag `v0.5.44` | Sammel **v0.5.44** + Release (video swap #444; Contact-vibe #445; Claude OFS #446; scene roles #448–#450; AI train free tags #451; OFS clock/inverted #452–#453; #264 cancelled; never #447) | **DONE** |
-| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Create Tip→Partner snack + **G4.C declutter** + dead 4-zone GUI removed + genSeq exists-race fix + EN cancel + empty CTAs + AI Train/coach cleanup + bugfix (NaN meters, Sync EN, Invert→companion, video sync idle) + Cancel tip-find/queue unlock + Partner fixed EN | **THIS** |
+| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Create Tip→Partner snack + **G4.C declutter** + dead 4-zone GUI removed + genSeq exists-race/`generate:started` + EN cancel + empty CTAs + AI Train/coach cleanup + bugfix (NaN meters, Sync EN, Invert→companion, video sync idle, soft-start idle) + Cancel tip-find/queue/candidates/AI tags/two-ROI + tipCoast + Partner fixed EN + Play markerIsValid | **THIS** |
 | SceneRolesTax | Claude | [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) merged (`97bb07a`) | **scene_roles** PARTNERS/TIP_CLASSES parity (`nipples`/`hand_*`/`glans`) | **DONE** |
 | SceneApplyNorm | Claude | [#449](https://github.com/funfunpayer/SamNPlayer/pull/449) merged (`ecb888e`) | **ApplySceneProposal** `bodyparts.Normalize` + hand_* aliases | **DONE** |
 | AtomicMeta | Claude | [#450](https://github.com/funfunpayer/SamNPlayer/pull/450) merged (`8e5c17d`) | **Atomic metadata patchers** (`writeFileAtomic`) | **DONE** |
@@ -250,13 +250,13 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (1 Oct — PlayHeatUX; tip `f1b2932`+):**
-- **In flight:** Cursor **PlayHeatUX** — taller Play curve/heatmap + Create Tip→Partner snack + G4.C declutter + Cancel tip-find/queue/manual Find + AI Train EN/cancelKind + Partner fixed + Play markerIsValid (no Everyday default flip). Rel44 **DONE** (tag `v0.5.44`).
-- **Shipped tip @ `f1b2932`:** PlayHeatUX #460 WIP; prior Cancel UI #459; benchmark cancel #458; honor-inverted + AI Train Cancel #457; Rel44 #454.
+**Status board (2 Oct — PlayHeatUX core bugfix; tip advancing):**
+- **In flight:** Cursor **PlayHeatUX** — taller Play curve/heatmap + Create Tip→Partner snack + G4.C declutter + Cancel tip-find/queue/manual Find/candidates/AI tags + soft-start idle zero + tipCoast + genSeq/`generate:started` + AI Train EN/cancelKind + Partner fixed + Play markerIsValid (no Everyday default flip). Rel44 **DONE** (tag `v0.5.44`).
+- **Shipped tip @ `43bf93c`:** PlayHeatUX #460 WIP; Intiface reconnect flake harden; prior Cancel UI #459; benchmark cancel #458; honor-inverted + AI Train Cancel #457; Rel44 #454.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Never merge:** [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) Grok WIP (closed; superseded by #453).
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
-- **Still Owner-gated:** portable smoke `v0.5.44`; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; Epochs max / BPM-auto / offset rewrite (Cursor UX asks).
+- **Still Owner-gated:** portable smoke `v0.5.44`; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; Epochs max / BPM-auto / offset rewrite (Cursor UX asks). Owner smoke waived for this core/bugfix pass.
 
 Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 

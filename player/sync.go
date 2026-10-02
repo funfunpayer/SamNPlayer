@@ -105,8 +105,19 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			f := frameAt(frames, posMs)
 			// Nach einer Pause wie beim Start sanft hochfahren.
 			if (firstFrame || quiet) && p.SoftStartMs > 0 {
-				if err := p.softStart(ctx, f); err != nil {
+				idle, err := p.softStartWithPositions(ctx, f, positions)
+				if err != nil {
 					return err
+				}
+				if idle {
+					// Soft-start may already have written mid-ramp intensity.
+					// goQuiet no-ops while firstFrame/quiet — always zero here.
+					logging.Info("player: Videoposition idle during soft-start - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
+					if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
+						return err
+					}
+					quiet = true
+					continue
 				}
 			} else if err := p.setOutput(f); err != nil {
 				return err
@@ -141,6 +152,14 @@ func (p *Player) setOutput(f funscript.Frame) error {
 // direkt zu springen - siehe Player.SoftStartMs. Genutzt beim allerersten
 // Frame von Play() und Sync(). Berücksichtigt den aktuellen Amplitudenfaktor.
 func (p *Player) softStart(ctx context.Context, target funscript.Frame) error {
+	_, err := p.softStartWithPositions(ctx, target, nil)
+	return err
+}
+
+// softStartWithPositions is softStart that also watches positions for an idle
+// sentinel so Pause during the ramp zeros the device instead of finishing the
+// ramp into a paused video.
+func (p *Player) softStartWithPositions(ctx context.Context, target funscript.Frame, positions <-chan int64) (hitIdle bool, err error) {
 	const steps = 10
 	stepDur := time.Duration(p.SoftStartMs) * time.Millisecond / steps
 	scale := p.getIntensityScale()
@@ -152,21 +171,38 @@ func (p *Player) softStart(ctx context.Context, target funscript.Frame) error {
 			Suction:   target.Suction * frac * scale,
 		}
 		if err := p.Device.SetVibration(out.Vibration); err != nil {
-			return err
+			return false, err
 		}
 		if err := p.Device.SetSuction(out.Suction); err != nil {
-			return err
+			return false, err
 		}
 		if p.OnFrame != nil {
 			p.OnFrame(out)
 		}
+		if positions == nil {
+			select {
+			case <-time.After(stepDur):
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
+			continue
+		}
 		select {
 		case <-time.After(stepDur):
 		case <-ctx.Done():
-			return ctx.Err()
+			return false, ctx.Err()
+		case posMs, ok := <-positions:
+			if !ok {
+				return false, nil
+			}
+			if posMs < 0 {
+				return true, nil
+			}
+			// Later positive positions during ramp: keep ramping; Sync will
+			// catch up on the next loop iteration.
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // frameAt sucht per Binärsuche den letzten Frame mit At <= posMs (bzw. den

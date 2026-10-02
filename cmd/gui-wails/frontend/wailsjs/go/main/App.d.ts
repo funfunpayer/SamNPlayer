@@ -45,6 +45,8 @@ export function CancelGenerate():Promise<void>;
 
 export function CancelGoldenClipBenchmark():Promise<boolean>;
 
+export function CancelContactPoints():Promise<void>;
+
 export function CancelROIDetection():Promise<void>;
 
 export function CancelRoiTraining():Promise<boolean>;

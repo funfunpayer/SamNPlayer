@@ -465,13 +465,23 @@ func FindROIWithContext(ctx context.Context, videoPath string, onProgress func(l
 // Read-only proposals — caller must not silently commit ROI2 (TFTJ step 4b;
 // only ApplySceneProposal under the opt-in "Apply AI setup automatically").
 func FindROICandidatesWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
-	return findROICandidatesViaScript(videoPath, onProgress, onPercent)
+	return FindROICandidatesWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindROICandidatesWithContext is FindROICandidatesWithProgress with cancel via ctx.
+func FindROICandidatesWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	return findROICandidatesViaScriptCtx(ctx, videoPath, onProgress, onPercent)
 }
 
 // FindTwoROIsWithProgress schlägt ROI1+ROI2 vor (auto_roi --two). Nur
 // Vorschlag — GUI muss bestätigen/korrigieren (docs/NEXT.md Priorität 3).
 func FindTwoROIsWithProgress(videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
-	return findTwoROIsViaScript("auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
+	return FindTwoROIsWithContext(context.Background(), videoPath, onProgress, onPercent)
+}
+
+// FindTwoROIsWithContext is FindTwoROIsWithProgress with cancel via ctx.
+func FindTwoROIsWithContext(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return findTwoROIsViaScriptCtx(ctx, "auto_roi.py", []string{"--two"}, videoPath, "auto_roi", onProgress, onPercent)
 }
 
 // FindROIAIWithProgress is the AI variant of FindROIWithProgress: same
@@ -513,6 +523,15 @@ type AIDetection struct {
 // Returns every class above confidence (nipples/breasts/glans/…), not a single tip.
 func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string, timeSec float64,
 	onProgress func(line string), onPercent func(pct int)) ([]AIDetection, error) {
+	return ListAIDetectionsWithContext(context.Background(), videoPath, modelPath, preferredClasses, timeSec, onProgress, onPercent)
+}
+
+// ListAIDetectionsWithContext is ListAIDetectionsWithProgress with cancel via ctx.
+func ListAIDetectionsWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, timeSec float64,
+	onProgress func(line string), onPercent func(pct int)) ([]AIDetection, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return nil, err
@@ -534,7 +553,7 @@ func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string,
 	if preferredClasses != "" {
 		args = append(args, "--preferred-classes", preferredClasses)
 	}
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -595,6 +614,9 @@ func ListAIDetectionsWithProgress(videoPath, modelPath, preferredClasses string,
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return out, fmt.Errorf("generator: ai_roi --list-detections cancelled: %w", ctx.Err())
+		}
 		return out, fmt.Errorf("generator: ai_roi --list-detections: %w", err)
 	}
 	return out, nil
@@ -787,6 +809,11 @@ func findExpectedTipROIAIWithProgressContext(ctx context.Context, sourceArgs []s
 // FindTwoROIsAIWithProgress is the AI variant of FindTwoROIsWithProgress
 // (ai_roi.py --two). roi2 may be empty when no second object was found.
 func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return FindTwoROIsAIWithContext(context.Background(), videoPath, modelPath, preferredClasses, onProgress, onPercent)
+}
+
+// FindTwoROIsAIWithContext is FindTwoROIsAIWithProgress with cancel via ctx.
+func FindTwoROIsAIWithContext(ctx context.Context, videoPath, modelPath, preferredClasses string, onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
 	extraArgs := []string{"--two"}
 	if modelPath != "" {
 		extraArgs = append(extraArgs, "--model", modelPath)
@@ -797,7 +824,7 @@ func FindTwoROIsAIWithProgress(videoPath, modelPath, preferredClasses string, on
 			extraArgs = append(extraArgs, "--classes-json", filepath.Dir(modelPath))
 		}
 	}
-	return findTwoROIsViaScript("ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
+	return findTwoROIsViaScriptCtx(ctx, "ai_roi.py", extraArgs, videoPath, "ai_roi", onProgress, onPercent)
 }
 
 // AIRoiAvailable prüft (ohne ein Video zu öffnen), ob die KI-Regionssuche
@@ -969,6 +996,13 @@ func findROIViaScriptCtx(ctx context.Context, scriptName string, extraArgs []str
 
 // findROICandidatesViaScript runs auto_roi.py --list and parses CANDIDATE lines.
 func findROICandidatesViaScript(videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	return findROICandidatesViaScriptCtx(context.Background(), videoPath, onProgress, onPercent)
+}
+
+func findROICandidatesViaScriptCtx(ctx context.Context, videoPath string, onProgress func(line string), onPercent func(pct int)) ([]ROICandidate, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return nil, err
@@ -982,7 +1016,7 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 	}
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), "auto_roi.py")
-	cmd := command(py, scriptPath, "--video", videoPath, "--list")
+	cmd := commandContext(ctx, py, scriptPath, "--video", videoPath, "--list")
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -1025,6 +1059,9 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("generator: motion candidate search cancelled: %w", ctx.Err())
+		}
 		return nil, fmt.Errorf("generator: motion candidate search failed: %w", err)
 	}
 	if len(out) == 0 {
@@ -1038,6 +1075,14 @@ func findROICandidatesViaScript(videoPath string, onProgress func(line string), 
 // "ROI2 x y w h". Fehlt ROI2, ist der zweite Rückgabewert leer (W=0).
 func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logPrefix string,
 	onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	return findTwoROIsViaScriptCtx(context.Background(), scriptName, extraArgs, videoPath, logPrefix, onProgress, onPercent)
+}
+
+func findTwoROIsViaScriptCtx(ctx context.Context, scriptName string, extraArgs []string, videoPath, logPrefix string,
+	onProgress func(line string), onPercent func(pct int)) (ROI, ROI, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	py, err := FindPython()
 	if err != nil {
 		return ROI{}, ROI{}, err
@@ -1052,7 +1097,7 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 	defer cleanupScriptTemp(mainScript)
 	scriptPath := filepath.Join(filepath.Dir(mainScript), scriptName)
 	args := append([]string{scriptPath, "--video", videoPath}, extraArgs...)
-	cmd := command(py, args...)
+	cmd := commandContext(ctx, py, args...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return ROI{}, ROI{}, fmt.Errorf("generator: stderr-Pipe: %w", err)
@@ -1100,6 +1145,9 @@ func findTwoROIsViaScript(scriptName string, extraArgs []string, videoPath, logP
 	}
 	stderrDone.Wait()
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() != nil {
+			return ROI{}, ROI{}, fmt.Errorf("generator: automatic two-region search cancelled: %w", ctx.Err())
+		}
 		return ROI{}, ROI{}, fmt.Errorf("generator: automatic two-region search failed: %w", err)
 	}
 	if !found {
