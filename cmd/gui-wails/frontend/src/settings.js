@@ -106,13 +106,15 @@ export function initSettings(root) {
     </div>
     <p class="hint" style="margin-top:0">On by default (same as since v0.5.44). Changing this reloads the open script.</p>
 
-    <h3>What you need (keep it lean)</h3>
-    <ul class="hint" style="margin:0 0 12px; padding-left:1.2em; line-height:1.55;">
-      <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
-      <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
-      <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
-      <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
-    </ul>
+    <details id="st-need-details" class="st-opt-panel">
+      <summary>What you need — portable Play + Create, no extra install</summary>
+      <ul class="hint" style="margin:8px 0 4px; padding-left:1.2em; line-height:1.55;">
+        <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
+        <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
+        <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
+        <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
+      </ul>
+    </details>
 
     <h3>License</h3>
     <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
@@ -155,18 +157,21 @@ export function initSettings(root) {
       <button id="st-update-apply" type="button" class="primary" style="display:none;">Download &amp; restart</button>
       <span class="hint" id="st-update-status" style="margin:0"></span>
     </div>
-    <div class="field-row"><label>Log level</label>
-      <select id="st-log-level">
-        <option value="debug">debug</option>
-        <option value="info">info</option>
-        <option value="warn">warn</option>
-        <option value="error">error</option>
-      </select>
-    </div>
-    <div class="row">
-      <span class="path-label" id="st-log-path"></span>
-      <button id="st-open-log">Open log folder</button>
-    </div>
+    <details id="st-logs-details" class="st-opt-panel">
+      <summary>Logs</summary>
+      <div class="field-row" style="margin-top:8px;"><label>Log level</label>
+        <select id="st-log-level">
+          <option value="debug">debug</option>
+          <option value="info">info</option>
+          <option value="warn">warn</option>
+          <option value="error">error</option>
+        </select>
+      </div>
+      <div class="row">
+        <span class="path-label" id="st-log-path"></span>
+        <button id="st-open-log">Open log folder</button>
+      </div>
+    </details>
 
     <details id="st-optional-ai" class="st-opt-panel">
       <summary>Optional AI &amp; learning — Everyday Create/Play need none of this</summary>

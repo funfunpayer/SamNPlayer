@@ -28,7 +28,7 @@ tokens — Look v3, Owner 26 Sep: lila preferred over honey orange). Emotion fon
 | Idea | Why | Risk |
 |------|-----|------|
 | Play first viewport brand moment | Competitors judge players first | **#460:** wordmark + mark on empty Play; no stats/chips |
-| Settings density | Pro tools look | English copy only |
+| Settings density | Pro tools look | **#460:** need-list + Logs behind closed details; license/runtime stay primary |
 | Screenshot pack for README | Public face | Match Look v3 |## Explicit non-goals
 
 - Frameless glass everywhere  
