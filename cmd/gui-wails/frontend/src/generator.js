@@ -2750,6 +2750,9 @@ export function initGenerator(root, playback) {
     }
     // Never auto-fill Zone 2 from a Zone 1 pick (issue #8 / TFTJ 4b / MT-Seed).
     updateRoiLabels();
+    // Keep the candidate index in the label (MT-Seed tests + user feedback).
+    el('#gen-roi-label').textContent =
+      `Tip (stroke tracker): candidate #${c.index} — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
     updateGenerateEnabled();
     const msg =
       `Tip set from candidate #${c.index} — optional: Shift-click a 2nd body-part mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
