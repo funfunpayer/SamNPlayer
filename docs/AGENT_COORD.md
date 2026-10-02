@@ -250,9 +250,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (2 Oct — PlayHeatUX core bugfix; tip advancing):**
-- **In flight:** Cursor **PlayHeatUX** — taller Play curve/heatmap + Create Tip→Partner snack + G4.C declutter + Cancel tip-find/queue/manual Find/candidates/AI tags + soft-start idle zero + tipCoast + genSeq/`generate:started` + AI Train EN/cancelKind + Partner fixed + Play markerIsValid + Play brand moment + Settings density (no Everyday default flip). Rel44 **DONE** (tag `v0.5.44`).
-- **Shipped tip @ `43bf93c`:** PlayHeatUX #460 WIP; Intiface reconnect flake harden; prior Cancel UI #459; benchmark cancel #458; honor-inverted + AI Train Cancel #457; Rel44 #454.
+**Status board (2 Oct — PlayHeatUX recognition polish; tip advancing):**
+- **In flight:** Cursor **PlayHeatUX** — recognition block polish (unified Cancel/unlock, status honesty, partner snack arm) + honesty (no KCF/MIL Ausfallcode) + taller Play curve/heatmap + Tip→Partner snack + G4.C + soft-start idle + tipCoast + markerIsValid (no Everyday default flip). Rel44 **DONE** (tag `v0.5.44`).
+- **Shipped tip @ `3ecd91a`:** PlayHeatUX #460 WIP; recognition polish; prior honesty + Cancel/soft-start; Play brand + Settings density; Rel44 #454.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Never merge:** [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) Grok WIP (closed; superseded by #453).
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
