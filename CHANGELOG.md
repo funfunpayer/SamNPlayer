@@ -10,6 +10,7 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Device tab density (G4.C)** — Connect + function test stay primary; Raw value test and Diagnostics sit behind closed details. Everyday / Rhythm / AI defaults unchanged.
 - **Create/Play GUI declutter (G4.C)** — Step 2 AI assist & scene proposals
   and Mark options (Ignore / Partner fixed / body map) sit behind closed
   `<details>`; Play Cap/Scale/Speed-HL/BPM, Bake/Share, Script check &
