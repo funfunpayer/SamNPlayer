@@ -37,6 +37,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Create recognition block polish** — unified ROI cancel on seek/paint/AI
+  toggle (classic Find no longer ignored); Find / other spots / AI tags mutual
+  exclusion + unlock helper; tip-find keeps friendly status (raw lines → log);
+  progress shows immediately; Cancel says “Tip find canceled.”; Create-with-AI
+  opt-in status notes classic tip-find; tip labels stay “Tip (stroke tracker)”;
+  Partner snack arms gold mark mode and reminds when Contact vib is off.
 - **Recognition honesty: drop silent tip Ausfallcode** — Python tracker is
   CSRT-only (no KCF/MIL soft-fallback); scene-cut no longer re-inits on
   `last_bbox` when reacquire fails (Go + Python); `track_by_scenes` skips a

@@ -1187,12 +1187,28 @@ export function initGenerator(root, playback) {
     const hint = el('#gen-mark-snack-hint');
     if (!snack || !hint) return;
     const vibOn = !!el('#gen-contact-vibration')?.checked;
-    snack.style.display = vibOn ? '' : 'none';
-    if (!vibOn) return;
-
     const hasTip = !!roi;
     const hasPartner = !!roi2;
     const hasExtra = extraTargets.length > 0;
+
+    // Tip set but Contact vib off: keep a one-line partner path reminder.
+    if (!vibOn) {
+      if (hasTip) {
+        snack.style.display = '';
+        snack.querySelectorAll('[data-snack]').forEach((li) => {
+          li.classList.toggle('is-done', li.getAttribute('data-snack') === 'tip');
+          li.classList.toggle('is-current', li.getAttribute('data-snack') === 'partner');
+        });
+        hint.innerHTML = 'Turn on <b>Contact vibration</b> (Feel) to mark partner touch. '
+          + 'Tip CSRT already owns the stroke — partner is optional feel only.';
+      } else {
+        snack.style.display = 'none';
+      }
+      snack.dataset.partnerArmed = '';
+      return;
+    }
+    snack.style.display = '';
+
     let current = 'tip';
     if (hasTip && !hasPartner) current = 'partner';
     else if (hasTip && hasPartner) current = 'extra';
@@ -1207,15 +1223,23 @@ export function initGenerator(root, playback) {
     });
 
     if (!hasTip) {
+      snack.dataset.partnerArmed = '';
       hint.innerHTML = 'Snack <b>1</b>: press <b>Find tip</b> (or drag only if Find missed). '
         + 'That teal box is the stroke tracker — not a whole-frame motion path.';
     } else if (!hasPartner) {
       hint.innerHTML = 'Snack <b>2</b>: <b>Mark contact</b> (gold) on mouth or nipple/breast. '
         + 'Optional — Create works without it. Tip CSRT already owns the stroke.';
+      // Arm gold mark mode once so the next click paints partner (not tip).
+      if (snack.dataset.partnerArmed !== '1') {
+        snack.dataset.partnerArmed = '1';
+        setRoi2Mode(true);
+      }
     } else if (!hasExtra) {
+      snack.dataset.partnerArmed = '1';
       hint.innerHTML = 'Snack <b>3</b> (optional): <b>+ Another contact</b> for a second nipple/mouth, then Create. '
         + 'Partner fixed (pixels) only if that touch barely moves.';
     } else {
+      snack.dataset.partnerArmed = '1';
       hint.innerHTML = 'Tip + partner + extras set. Ready for Feel → Create. '
         + 'After a big camera-angle change, re-run <b>Find tip</b>.';
     }
@@ -1247,14 +1271,43 @@ export function initGenerator(root, playback) {
   }
 
   let tipFindBusy = false; // manual Find tip / auto tip (not only tip-find-then-Create)
+  let progressStartedAt = 0;
 
-  function setTipFindBusy(on) {
+  function showTipFindProgress(label) {
+    const wrap = el('#gen-progress-wrap');
+    if (!wrap) return;
+    wrap.style.display = 'block';
+    el('#gen-progress-bar').style.width = '0%';
+    el('#gen-progress-bar').style.opacity = '1';
+    el('#gen-progress-text').textContent = label || 'Finding…';
+    progressStartedAt = Date.now();
+  }
+
+  function setTipFindBusy(on, progressLabel) {
     tipFindBusy = !!on;
     if (on) {
       el('#gen-cancel').disabled = false;
+      el('#gen-autoroi').disabled = true;
+      el('#gen-candidates').disabled = true;
+      const aiTags = el('#gen-ai-detections');
+      if (aiTags) aiTags.disabled = true;
+      setSeedSuggestEnabled(false);
+      showTipFindProgress(progressLabel || 'Finding…');
     } else if (!generating) {
       el('#gen-cancel').disabled = true;
     }
+  }
+
+  // Re-enable Find / other spots / AI tags after tip-find, Cancel, or seek.
+  function unlockRecognitionControls() {
+    tipFindBusy = false;
+    if (!generating) el('#gen-cancel').disabled = true;
+    if (videoPath) {
+      el('#gen-autoroi').disabled = false;
+      el('#gen-candidates').disabled = false;
+    }
+    refreshAIRoiAvailability();
+    hideProgress();
   }
 
   function clearCreateLock() {
@@ -1262,11 +1315,7 @@ export function initGenerator(root, playback) {
     el('#gen-cancel').disabled = true;
     tipFindBusy = false;
     activeAITargetRequest = null;
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-    }
-    hideProgress();
+    unlockRecognitionControls();
     updateGenerateEnabled();
     updateSceneMapButton();
     syncWorkflowSteps();
@@ -1314,13 +1363,14 @@ export function initGenerator(root, playback) {
     }
     clearPendingAITarget();
     redraw();
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    setTipFindBusy(true);
     const runAI = useAI && !autoContinue;
-    el('#gen-status').textContent = (runAI
+    const statusMsg = runAI
       ? `Looking only for ${labelFor(expectedClass) || expectedClass} (strict AI; no class fallback)…`
-      : 'Finding tip region automatically (CSRT)…') + videoBatchNote;
+      : (autoContinue && useAI
+        ? 'Create uses classic tip-find (AI needs Apply first)…'
+        : 'Finding tip region automatically (CSRT)…');
+    setTipFindBusy(true, runAI ? 'Strict AI tip…' : 'Finding tip…');
+    el('#gen-status').textContent = statusMsg + videoBatchNote;
     if (runAI) {
       const requestId = ++aiTargetRequestSeq;
       activeAITargetRequest = { requestId, videoPath, expectedClass, timeSec: seekSec };
@@ -2430,10 +2480,6 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
     const typeLabel = SCENE_TYPE_LABELS[sceneType] || sceneType || 'scene';
-    const tipTag = tipCls ? `, ${labelFor(tipCls) || tipCls}` : '';
-    el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, scene primary${tipTag})`;
     const msg = `Tip applied from scene proposal (${typeLabel}) — partner not applied (no silent ROI2).`;
     el('#gen-status').textContent = msg;
     redraw();
@@ -2459,16 +2505,26 @@ export function initGenerator(root, playback) {
     if (status) status.textContent = '';
   }
 
-  function cancelActiveAITargetRequest() {
-    if (!activeAITargetRequest) return;
+  // Cancel any in-flight tip-find / candidates / AI tags / strict AI request.
+  // Always calls CancelROIDetection (not only when activeAITargetRequest is set)
+  // so classic AutoDetectROI cannot overwrite a paint or a seek frame.
+  function cancelAnyRoiRequest(statusMsg) {
+    const wasBusy = tipFindBusy || !!activeAITargetRequest;
+    const tipFindCreate = wasBusy && pendingGenerateAfterRoi;
     activeAITargetRequest = null;
-    pendingGenerateAfterRoi = false;
+    if (wasBusy) pendingGenerateAfterRoi = false;
     CancelROIDetection().catch(() => {});
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
+    if (!wasBusy) return;
+    if (tipFindCreate && generating) {
+      clearCreateLock();
+    } else {
+      unlockRecognitionControls();
     }
+    if (statusMsg) el('#gen-status').textContent = statusMsg;
+  }
+
+  function cancelActiveAITargetRequest() {
+    cancelAnyRoiRequest();
   }
 
   function renderPendingAITarget() {
@@ -2560,13 +2616,6 @@ export function initGenerator(root, playback) {
     updateProfileUi();
     updateGenerateEnabled();
     autoApplyPipeline();
-    const tipTag = regionClass1Value()
-      ? `, ${labelFor(regionClass1Value())}` : '';
-    el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, Tip candidate #${tip.index}${tipTag})`;
-    el('#gen-roi2-label').textContent =
-      secondRegionLabel(roi2, `2nd candidate #${partner.index}`);
     const nudge = nudgeZone2ClassIfEmpty();
     el('#gen-status').textContent =
       `Tip #${tip.index} + contact #${partner.index} applied — correct by hand if needed.`
@@ -2663,11 +2712,6 @@ export function initGenerator(root, playback) {
     // Never auto-fill Zone 2 from a Zone 1 pick (issue #8 / TFTJ 4b / MT-Seed).
     updateRoiLabels();
     updateGenerateEnabled();
-    const tipTag = regionClass1Value()
-      ? `, ${labelFor(regionClass1Value())}` : '';
-    el('#gen-roi-label').textContent =
-      `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`
-      + ` (video pixels, candidate #${c.index}${tipTag})`;
     const msg =
       `Tip set from candidate #${c.index} — optional: Shift-click a 2nd body-part mark, or Suggest Tip+2nd. Everyday tip alone is fine.`;
     el('#gen-status').textContent = msg;
@@ -2715,7 +2759,7 @@ export function initGenerator(root, playback) {
   }
 
   canvas.addEventListener('mousedown', e => {
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     const r = canvas.getBoundingClientRect();
     startX = curX = e.clientX - r.left;
@@ -3289,7 +3333,7 @@ export function initGenerator(root, playback) {
       // Region buttons stay disabled until generate:autoroi (auto-find owns them).
       el('#gen-autoroi').disabled = true;
       el('#gen-candidates').disabled = true;
-            el('#gen-suggest-profile').disabled = false;
+      el('#gen-suggest-profile').disabled = false;
       el('#gen-label-scene').disabled = false;
       updateSceneMapButton();
       const spLoad = el('#gen-scene-proposals-load');
@@ -3333,6 +3377,8 @@ export function initGenerator(root, playback) {
       }
     } catch (err) {
       // Keep batchNote so multi-drop queue hint stays visible even if preview fails.
+      cancelAnyRoiRequest();
+      unlockRecognitionControls();
       uiError('Load video: ' + err + batchNote, el('#gen-status'));
     }
   }
@@ -3352,7 +3398,7 @@ export function initGenerator(root, playback) {
 
   async function seekTo(sec) {
     if (!videoPath) return;
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     seekSec = Math.max(0, sec);
     el('#gen-seek').value = String(seekSec);
@@ -3567,8 +3613,7 @@ export function initGenerator(root, playback) {
     const tipFindOnly = pendingGenerateAfterRoi;
     const manualTipFind = tipFindBusy && !generating;
     pendingGenerateAfterRoi = false;
-    // Drop in-flight Smarter tip find so Create is not stuck on
-    // “Wait for the body-point check…” after Cancel.
+    // Drop in-flight tip-find / candidates / AI tags / Smarter tip find.
     activeAITargetRequest = null;
     CancelROIDetection().catch(() => {});
     CancelContactPoints().catch(() => {});
@@ -3582,15 +3627,13 @@ export function initGenerator(root, playback) {
       if (tipFindOnly && abortQueueDuringTipFind('Queue canceled.')) {
         return;
       }
+      el('#gen-status').textContent = tipFindOnly
+        ? 'Tip find canceled.'
+        : (queueRunning ? 'Cancel requested — stopping queue…' : 'Cancel requested…');
+      return;
     } else if (manualTipFind) {
-      // Manual Find tip / post-load auto-find — Cancel was dead before.
-      setTipFindBusy(false);
-      if (videoPath) {
-        el('#gen-autoroi').disabled = false;
-        el('#gen-candidates').disabled = false;
-      }
-      hideProgress();
-      el('#gen-status').textContent = 'Search canceled.';
+      unlockRecognitionControls();
+      el('#gen-status').textContent = 'Tip find canceled.';
       return;
     }
     el('#gen-status').textContent = queueRunning
@@ -3599,11 +3642,14 @@ export function initGenerator(root, playback) {
   });
 
   const handleProgressLine = line => {
-    el('#gen-status').textContent = line;
     const log = el('#gen-log');
     if (log) {
       log.textContent += line + '\n';
       log.scrollTop = log.scrollHeight;
+    }
+    // Tip-find keeps the friendly status; raw detector lines stay in the log.
+    if (!(tipFindBusy && !generating)) {
+      el('#gen-status').textContent = line;
     }
     const wrap = el('#gen-progress-wrap');
     if (wrap && wrap.style.display === 'none') {
@@ -3651,12 +3697,9 @@ export function initGenerator(root, playback) {
       || expected !== request.expectedClass
       || (result.videoPath && result.videoPath !== request.videoPath)) return;
     activeAITargetRequest = null;
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
+    unlockRecognitionControls();
     pendingGenerateAfterRoi = false;
     generating = false;
-    setTipFindBusy(false);
     el('#gen-cancel').disabled = true;
     if (result.error || !result.match) {
       clearPendingAITarget();
@@ -3695,10 +3738,7 @@ export function initGenerator(root, playback) {
     if (result.videoPath && videoPath && result.videoPath !== videoPath) {
       return;
     }
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
-    setTipFindBusy(false);
+    unlockRecognitionControls();
     if (result.error) {
       const wasPending = pendingGenerateAfterRoi;
       pendingGenerateAfterRoi = false;
@@ -3733,14 +3773,6 @@ export function initGenerator(root, playback) {
     }
     updateRoiLabels();
     const via = result.engine === 'ai' ? 'AI detection' : 'classic auto';
-    if (roi) {
-      el('#gen-roi-label').textContent =
-        `Region: x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h} (video pixels, ${via} — drag to refine)`;
-    }
-    if (hasRoi2 && roi2) {
-      el('#gen-roi2-label').textContent =
-        `Contact area: x=${roi2.x} y=${roi2.y} w=${roi2.w} h=${roi2.h} (video pixels, ${via} — editable)`;
-    }
     updateProfileUi();
     updateGenerateEnabled();
     let status = hasRoi2
@@ -3761,7 +3793,6 @@ export function initGenerator(root, playback) {
   // Fortschritt: das Backend schickt 0-100, oder -1 wenn die Frame-Anzahl
   // des videos unknown war. In dem Fall wird ein unbestimmter
   // Balken gezeigt statt eines erfundenen Prozentwerts.
-  let progressStartedAt = 0;
   const handleProgressPercent = pct => {
     const wrap = el('#gen-progress-wrap');
     const bar = el('#gen-progress-bar');
@@ -4476,12 +4507,8 @@ export function initGenerator(root, playback) {
   el('#gen-candidates').addEventListener('click', () => {
     if (!videoPath) return;
     forceCsrtBackend();
-    el('#gen-candidates').disabled = true;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-ai-detections') && (el('#gen-ai-detections').disabled = true);
-    setSeedSuggestEnabled(false);
     clearPendingSeed();
-    setTipFindBusy(true);
+    setTipFindBusy(true, 'Finding spots…');
     el('#gen-status').textContent = 'Finding motion candidates (nothing applied until you click / Apply)…';
     SuggestROICandidates(videoPath);
   });
@@ -4489,12 +4516,8 @@ export function initGenerator(root, playback) {
   el('#gen-ai-detections')?.addEventListener('click', () => {
     if (!videoPath) return;
     forceCsrtBackend();
-    el('#gen-ai-detections').disabled = true;
-    el('#gen-autoroi').disabled = true;
-    el('#gen-candidates').disabled = true;
-    setSeedSuggestEnabled(false);
     clearPendingSeed();
-    setTipFindBusy(true);
+    setTipFindBusy(true, 'Listing AI tags…');
     el('#gen-status').textContent = 'Listing all AI class tags on this frame (nipples/breasts/glans/…)…';
     ListAIDetections(videoPath, seekSec || 0);
   });
@@ -4555,13 +4578,14 @@ export function initGenerator(root, playback) {
     if (result.videoPath && videoPath && result.videoPath !== videoPath) {
       return;
     }
-    hideProgress();
-    el('#gen-candidates').disabled = false;
-    el('#gen-autoroi').disabled = false;
-    setTipFindBusy(false);
-    refreshAIRoiAvailability();
+    unlockRecognitionControls();
     if (result.error) {
-      uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      const cancelled = /cancelled/i.test(String(result.error || ''));
+      if (cancelled) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        uiError('Motion candidates: ' + result.error, el('#gen-status'));
+      }
       setSeedSuggestEnabled(false);
       clearPendingSeed();
       return;
@@ -4591,13 +4615,14 @@ export function initGenerator(root, playback) {
     if (result.videoPath && videoPath && result.videoPath !== videoPath) {
       return;
     }
-    hideProgress();
-    el('#gen-autoroi').disabled = false;
-    el('#gen-candidates').disabled = false;
-    setTipFindBusy(false);
-    refreshAIRoiAvailability();
+    unlockRecognitionControls();
     if (result.error) {
-      uiError('AI tags: ' + result.error, el('#gen-status'));
+      const cancelled = /cancelled/i.test(String(result.error || ''));
+      if (cancelled) {
+        el('#gen-status').textContent = 'Tip find canceled.';
+      } else {
+        uiError('AI tags: ' + result.error, el('#gen-status'));
+      }
       setSeedSuggestEnabled(false);
       clearPendingSeed();
       return;
@@ -4756,27 +4781,17 @@ export function initGenerator(root, playback) {
     const enabled = el('#gen-ai-roi').checked && !el('#gen-ai-roi').disabled;
     const target = el('#gen-ai-target-class');
     if (target) target.disabled = !enabled;
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     redraw();
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-    }
     el('#gen-autoroi-hint').textContent = enabled
       ? 'Choose the exact expected body point on the displayed frame. AI fails closed instead of choosing another class. Result stays editable — drag to refine.'
       : 'Classic Tip-Find is active (editable start box). Enable AI plus an expected body point for strict matching.';
   });
   el('#gen-ai-target-class')?.addEventListener('change', () => {
-    cancelActiveAITargetRequest();
+    cancelAnyRoiRequest();
     clearPendingAITarget();
     redraw();
-    hideProgress();
-    if (videoPath) {
-      el('#gen-autoroi').disabled = false;
-      el('#gen-candidates').disabled = false;
-    }
     const cls = normalizeClass(el('#gen-ai-target-class').value || '');
     el('#gen-ai-target-status').textContent = cls
       ? `Strict target: ${labelFor(cls) || cls}. Press Find tip area.`

@@ -99,6 +99,21 @@ def main():
             status = page.locator("#gen-status").inner_text().lower()
             check("Status says tip find canceled",
                   "cancel" in status, status)
+
+            # Seek during classic Find must CancelROIDetection (not only AI).
+            page.evaluate("() => { window.__calls = []; window.__autoRoiN = 1; }")
+            page.click("#gen-autoroi")
+            page.wait_for_function(
+                "() => (window.__calls || []).some(c => c[0] === 'AutoDetectROI')",
+                timeout=3000)
+            page.fill("#gen-seek", "2")
+            page.click("#gen-seek-btn")
+            page.wait_for_timeout(120)
+            calls2 = page.evaluate("() => window.__calls || []")
+            check("Seek cancels classic Find via CancelROIDetection",
+                  any(c[0] == "CancelROIDetection" for c in calls2), str(calls2))
+            check("Find tip re-enabled after seek cancel",
+                  page.locator("#gen-autoroi").is_disabled() is False)
             browser.close()
     finally:
         shutdown()
