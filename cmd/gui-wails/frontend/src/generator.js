@@ -2654,7 +2654,14 @@ export function initGenerator(root, playback) {
     updateRoiLabels();
     updateProfileUi();
     updateGenerateEnabled();
-    autoApplyPipeline();
+    const stampSeedLabels = () => {
+      el('#gen-roi-label').textContent =
+        `Tip candidate #${tip.index} — x=${tip.x} y=${tip.y} w=${tip.w} h=${tip.h}`;
+      el('#gen-roi2-label').textContent =
+        `2nd candidate #${partner.index} — x=${partner.x} y=${partner.y} w=${partner.w} h=${partner.h}`;
+    };
+    stampSeedLabels();
+    autoApplyPipeline().then(stampSeedLabels);
     const nudge = nudgeZone2ClassIfEmpty();
     el('#gen-status').textContent =
       `Tip #${tip.index} + contact #${partner.index} applied — correct by hand if needed.`
