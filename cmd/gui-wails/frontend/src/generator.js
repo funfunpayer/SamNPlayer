@@ -2519,10 +2519,15 @@ export function initGenerator(root, playback) {
     updateGenerateEnabled();
     const sceneType = (p.scene_type || p.sceneType || '').toLowerCase();
     const typeLabel = SCENE_TYPE_LABELS[sceneType] || sceneType || 'scene';
+    const stamp = () => {
+      el('#gen-roi-label').textContent =
+        `Tip (stroke tracker): scene primary — x=${roi.x} y=${roi.y} w=${roi.w} h=${roi.h}`;
+    };
+    stamp();
     const msg = `Tip applied from scene proposal (${typeLabel}) — partner not applied (no silent ROI2).`;
     el('#gen-status').textContent = msg;
     redraw();
-    autoApplyPipeline().then(() => { el('#gen-status').textContent = msg; });
+    autoApplyPipeline().then(() => { stamp(); el('#gen-status').textContent = msg; });
   }
 
   function applyScenePartner() {
