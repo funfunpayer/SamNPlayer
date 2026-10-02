@@ -63,7 +63,8 @@ def main():
                   retry.inner_text() if retry.count() else "missing")
 
             page.evaluate("() => { window.__calls = []; }")
-            retry.click()
+            retry.scroll_into_view_if_needed()
+            retry.click(force=True)
             page.wait_for_function(
                 "() => (window.__calls || []).some(c => c[0] === 'PickFunscriptFile')",
                 timeout=5000)
