@@ -1,1 +1,1 @@
-file:///workspace/CHANGELOG.md
+__WORKSPACE_FILE__:/workspace/CHANGELOG.md
