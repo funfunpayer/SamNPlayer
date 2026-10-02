@@ -6,7 +6,12 @@ GitHub for the exact PR-by-PR history. `docs/NEXT.md` carries the detailed
 measurement history behind each entry; this file is the short version for
 "what changed", not "why" or "how it was measured".
 
+## [0.5.45] - 2026-10-02
+
+PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive disclosure, recognition honesty. Everyday / Rhythm / AI defaults unchanged.
+
 ## Unreleased
+
 
 ### Changed
 

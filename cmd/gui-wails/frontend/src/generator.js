@@ -1211,20 +1211,10 @@ export function initGenerator(root, playback) {
     const hasPartner = !!roi2;
     const hasExtra = extraTargets.length > 0;
 
-    // Tip set but Contact vib off: keep a one-line partner path reminder.
+    // Contact-vib guide only. Off → hide (including after a tip is set).
     if (!vibOn) {
       clearPartnerHighlight();
-      if (hasTip) {
-        snack.style.display = '';
-        snack.querySelectorAll('[data-snack]').forEach((li) => {
-          li.classList.toggle('is-done', li.getAttribute('data-snack') === 'tip');
-          li.classList.toggle('is-current', li.getAttribute('data-snack') === 'partner');
-        });
-        hint.innerHTML = 'Turn on <b>Contact vibration</b> (Feel) to mark partner touch. '
-          + 'Tip CSRT already owns the stroke — partner is optional feel only.';
-      } else {
-        snack.style.display = 'none';
-      }
+      snack.style.display = 'none';
       snack.dataset.partnerArmed = '';
       return;
     }
