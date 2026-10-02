@@ -150,7 +150,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel42 | Cursor | [#429](https://github.com/funfunpayer/SamNPlayer/pull/429) + tag `v0.5.42` | Sammel **v0.5.42** + Release (GapFill #403/#413; knobs/probes #378–#400; Plateau #426; Expert/EO/Contact 0 #425/#421/#424; seek/CLI #377/#401–#417; Intiface #422; Audio cancel #420; atomic write #428; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.42 |
 | Rel43 | Cursor | [#443](https://github.com/funfunpayer/SamNPlayer/pull/443) + tag `v0.5.43` | Sammel **v0.5.43** + Release (Train window labels #441; ROI empty-val heal #442; Play/Create/AI Train prefs #437–#439; CLI cancel #432/#435; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.43 |
 | Rel44 | Cursor | [#454](https://github.com/funfunpayer/SamNPlayer/pull/454) + tag `v0.5.44` | Sammel **v0.5.44** + Release (video swap #444; Contact-vibe #445; Claude OFS #446; scene roles #448–#450; AI train free tags #451; OFS clock/inverted #452–#453; #264 cancelled; never #447) | **DONE** |
-| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Tip→Partner snack + **G4.C** + recognition honesty + **recognition block polish** (unified Cancel/unlock, status/progress, partner arm) + soft-start idle + tipCoast + contact Cancel + markerIsValid + Play brand moment + Settings density + Device density | **THIS** |
+| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Tip→Partner snack + **G4.C** + recognition honesty + **recognition block polish** (unified Cancel/unlock, status/progress, partner arm) + soft-start idle + tipCoast + contact Cancel + markerIsValid + Play brand moment + Settings density | **THIS** |
 | SceneRolesTax | Claude | [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) merged (`97bb07a`) | **scene_roles** PARTNERS/TIP_CLASSES parity (`nipples`/`hand_*`/`glans`) | **DONE** |
 | SceneApplyNorm | Claude | [#449](https://github.com/funfunpayer/SamNPlayer/pull/449) merged (`ecb888e`) | **ApplySceneProposal** `bodyparts.Normalize` + hand_* aliases | **DONE** |
 | AtomicMeta | Claude | [#450](https://github.com/funfunpayer/SamNPlayer/pull/450) merged (`8e5c17d`) | **Atomic metadata patchers** (`writeFileAtomic`) | **DONE** |
@@ -250,9 +250,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (2 Oct — PlayHeatUX recognition polish; tip advancing):**
-- **In flight:** Cursor **PlayHeatUX** — recognition block polish (unified Cancel/unlock, status honesty, partner snack arm) + honesty (no KCF/MIL Ausfallcode) + taller Play curve/heatmap + Tip→Partner snack + G4.C + soft-start idle + tipCoast + markerIsValid (no Everyday default flip). Rel44 **DONE** (tag `v0.5.44`).
-- **Shipped tip:** PlayHeatUX #460 WIP; recognition polish; Device density (raw/diagnostics closed); prior honesty + Cancel/soft-start; Play brand + Settings density; Rel44 #454.
+**Status board (2 Oct — PlayHeatUX CI restore; tip advancing):**
+- **In flight:** Cursor **PlayHeatUX** — head had overwritten `generator.js` with a `file://` path (vite `Expression expected`, Go/FE CI red). Restored: partner snack highlights Mark contact without arming gold paint. Next slice: C7 tip-find error names **Find tip** retry. No Everyday / Rhythm / AI default flip. Rel44 **DONE** (tag `v0.5.44`).
+- **Shipped tip @ `c7b33902`:** PlayHeatUX #460 WIP; `generator.js` restored; partner snack highlight; prior recognition polish + honesty + Cancel/soft-start; Rel44 #454.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Never merge:** [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) Grok WIP (closed; superseded by #453).
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
