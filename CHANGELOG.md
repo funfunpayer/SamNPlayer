@@ -1,1 +1,1 @@
-/workspace/CHANGELOG.md
+file:///workspace/CHANGELOG.md
