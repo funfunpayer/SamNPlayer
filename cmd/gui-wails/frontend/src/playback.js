@@ -1270,7 +1270,7 @@ export function initPlayback(root) {
       return;
     }
     if (!scriptPath) {
-      if (status) status.textContent = 'Load a script first.';
+      showChooseScriptRetry('Load a script first.', status);
       return;
     }
     try {
@@ -2468,7 +2468,7 @@ export function initPlayback(root) {
 
   el('#pb-bookmark-add')?.addEventListener('click', async () => {
     if (!scriptPath) {
-      uiWarn('Load a script first.', el('#pb-log'));
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
       return;
     }
     const nameInput = el('#pb-bookmark-name');
@@ -2484,7 +2484,7 @@ export function initPlayback(root) {
 
   el('#pb-chapter-add')?.addEventListener('click', async () => {
     if (!scriptPath) {
-      uiWarn('Load a script first.', el('#pb-log'));
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
       return;
     }
     if (!markerIsValid(marker)) {
@@ -2523,9 +2523,27 @@ export function initPlayback(root) {
       : [e.detail.path];
     replacePlaylist(paths, 0);
     loadScript(paths[0], { keepPlaylist: true }).catch(err => {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
     });
   });
+
+  // C7: load failures and no-script actions name Choose Emotion Script.
+  function showChooseScriptRetry(reason, statusEl, level) {
+    const msg = String(reason || 'Load a script first.').replace(/\s+/g, ' ').trim();
+    if (level === 'error') uiError(msg);
+    else uiWarn(msg);
+    const host = statusEl || el('#pb-log');
+    if (!host) return;
+    host.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = msg + ' ';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'secondary pb-choose-retry';
+    btn.textContent = 'Choose Emotion Script…';
+    btn.addEventListener('click', () => { chooseScript(); });
+    host.append(text, btn);
+  }
 
   async function chooseScript() {
     const path = await PickFunscriptFile();
@@ -2535,7 +2553,7 @@ export function initPlayback(root) {
     try {
       await loadScript(path, { keepPlaylist: true });
     } catch (err) {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
     }
   }
 
@@ -2684,7 +2702,7 @@ export function initPlayback(root) {
     try {
       info = await LoadFunscript(path);
     } catch (err) {
-      uiError('Could not load script: ' + err, el('#pb-log'));
+      showChooseScriptRetry('Could not load script: ' + err, el('#pb-log'), 'error');
       throw err;
     }
     scriptPath = info.path;

@@ -15,6 +15,11 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
 
 ### Changed
 
+- **Play: load / no-script retry (C7)** — failed Emotion Script load and
+  no-script actions (bookmarks, chapters, Feel-segment chapters) name the
+  problem and offer **Choose Emotion Script…** in the status. Empty Play
+  CTA unchanged. Everyday / Rhythm / AI defaults unchanged.
+
 - **Device tab density (G4.C)** — Connect + function test stay primary; Raw value test and Diagnostics sit behind closed details. Everyday / Rhythm / AI defaults unchanged.
 - **Create/Play GUI declutter (G4.C)** — Step 2 AI assist & scene proposals
   and Mark options (Ignore / Partner fixed / body map) sit behind closed

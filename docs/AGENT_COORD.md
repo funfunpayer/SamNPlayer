@@ -151,7 +151,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel43 | Cursor | [#443](https://github.com/funfunpayer/SamNPlayer/pull/443) + tag `v0.5.43` | Sammel **v0.5.43** + Release (Train window labels #441; ROI empty-val heal #442; Play/Create/AI Train prefs #437–#439; CLI cancel #432/#435; #264 cancelled) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.43 |
 | Rel44 | Cursor | [#454](https://github.com/funfunpayer/SamNPlayer/pull/454) + tag `v0.5.44` | Sammel **v0.5.44** + Release (video swap #444; Contact-vibe #445; Claude OFS #446; scene roles #448–#450; AI train free tags #451; OFS clock/inverted #452–#453; #264 cancelled; never #447) | **DONE** |
 | Rel45 | Grok | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) + tag `v0.5.45` | Sammel **v0.5.45** + Release (PlayHeatUX / G4.C #460; snack hides when Contact vib off) | **THIS** |
-| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Tip→Partner snack + **G4.C** + recognition honesty + recognition polish + **C7 Find tip retry** + soft-start idle + tipCoast + contact Cancel + markerIsValid + Play brand moment + Settings density | **THIS** |
+| PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) | **Play taller curve/heatmap** + Tip→Partner snack + **G4.C** + recognition honesty + recognition polish + **C7 Find tip retry** + **C7 Play load retry** + soft-start idle + tipCoast + contact Cancel + markerIsValid + Play brand moment + Settings density | **THIS** |
 | SceneRolesTax | Claude | [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) merged (`97bb07a`) | **scene_roles** PARTNERS/TIP_CLASSES parity (`nipples`/`hand_*`/`glans`) | **DONE** |
 | SceneApplyNorm | Claude | [#449](https://github.com/funfunpayer/SamNPlayer/pull/449) merged (`ecb888e`) | **ApplySceneProposal** `bodyparts.Normalize` + hand_* aliases | **DONE** |
 | AtomicMeta | Claude | [#450](https://github.com/funfunpayer/SamNPlayer/pull/450) merged (`8e5c17d`) | **Atomic metadata patchers** (`writeFileAtomic`) | **DONE** |
@@ -251,9 +251,9 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (2 Oct — PlayHeatUX C7 tip-find retry; tip advancing):**
-- **In flight:** Cursor **PlayHeatUX** — C7 tip-find errors name **Find tip** and offer a retry button (classic miss + strict AI miss; cancel stays canceled). Prior: partner snack highlight without gold-paint arm; `generator.js` restored after file-URI overwrite. Next slice: remaining C7 empty banners (Play load / no-script) if still prose-only. No Everyday / Rhythm / AI default flip. Rel44 **DONE** (tag `v0.5.44`).
-- **Shipped tip @ `baf8291`:** PlayHeatUX #460 WIP; snack hidden when Contact vib off; recognition polish + honesty + Cancel/soft-start; Rel44 #454.
+**Status board (2 Oct — PlayHeatUX C7 Play load retry; tip advancing):**
+- **In flight:** Cursor **PlayHeatUX** — C7 Play load / no-script status offers **Choose Emotion Script…** (failed load, bookmark/chapter, Feel-segment chapters). Prior: C7 Find tip retry; candidate index stays on the tip label. Next slice: remaining C7 empty banners on Benchmark / AI Train if still prose-only. No Everyday / Rhythm / AI default flip. Rel44 **DONE** (tag `v0.5.44`).
+- **Shipped tip @ `88125e8`:** PlayHeatUX #460 WIP; candidate index on tip label; C7 tip-find names Find tip; snack hidden when Contact vib off; Rel44 #454.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Never merge:** [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) Grok WIP (closed; superseded by #453).
 - **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
