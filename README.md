@@ -91,7 +91,7 @@ suggested.
 | Quality | “Looks fine” | **Quality Doctor**, Script Doctor, golden-clip benchmark — numbers before claims |
 | Engineering | Feature pile-on | **Measure → ship or reject** (`HANDOFF.md`, `docs/ENGINEERING_STANCE.md`) |
 
-**What we deliberately do *not* do:** FunGen clones, silent AI Funscripts,
+**What we deliberately do *not* do:** silent AI Funscripts,
 frameless glassmorphism fashion, or cloud sync. If it is not measured or
 not needed, it stays out.
 
