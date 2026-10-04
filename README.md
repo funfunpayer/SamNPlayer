@@ -116,13 +116,6 @@ not needed, it stays out.
   <br />
   Live device meters, soft, Extended-O — curve and device keep running even without a film
 </p>
-
-<p align="center">
-  <img src="docs/media/gui-training.png" alt="Training tab" width="900" />
-  <br />
-  <em>Training</em> — multi-phase scripts, live dual ring, session history
-</p>
-
 ---
 
 ## What you get
