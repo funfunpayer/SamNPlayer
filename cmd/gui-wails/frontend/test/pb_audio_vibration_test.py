@@ -47,6 +47,13 @@ def main():
             help_text = label.get_attribute("data-help") or ""
             check("help mentions suction stays on the script",
                   "Suction still follows the script" in help_text)
+            # The row lives in the collapsed "Playback & Extended-O" details
+            # of the loaded-script panel (hidden until a script loads): show
+            # both, as after loading a script and opening the section.
+            page.evaluate("""() => {
+              document.querySelector('#pb-loaded').style.display = 'block';
+              document.querySelector('#pb-audio-vibration').closest('details').open = true;
+            }""")
             page.check("#pb-audio-vibration")
             page.wait_for_function(
                 "() => (window.__calls || []).some(c => c[0]==='playback.audio_vibration' && c[1]===true)",
