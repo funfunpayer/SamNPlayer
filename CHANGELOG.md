@@ -22,6 +22,15 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
   audio. Off by default; no file is changed. Without a video or sound track
   Play keeps the script vibration and says so in the log.
 
+### Fixed
+
+- **Stroke preview read 2–3× the real stroke rate** — at stroke turning
+  points there is no real motion, and codec noise (or a jump to mid-frame)
+  set the motion centroid, adding false extrema. Noise below 8 grey levels
+  no longer steers the centroid, and motion-free samples hold the last
+  value. A clean 1 Hz bounce now reads 1 Hz (was 2–3 Hz depending on the
+  encoder's thread count, which also made the CI test flaky).
+
 ### Changed
 
 - **Play: load / no-script retry (C7)** — failed Emotion Script load and

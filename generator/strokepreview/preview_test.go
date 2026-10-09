@@ -2,6 +2,7 @@ package strokepreview
 
 import (
 	"context"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,11 +41,33 @@ func TestAnalyzeSyntheticBounceFindsExtrema(t *testing.T) {
 		t.Fatalf("expected several extrema on ~1Hz bounce, got up=%d down=%d span=%.4f",
 			rep.UpCount, rep.DownCount, rep.SignalSpan)
 	}
-	if rep.StrokeHz < 0.4 || rep.StrokeHz > 2.0 {
+	// Was 0.4–2.0 and the analyzer read 2–3 Hz depending on the x264 thread
+	// count (codec noise at the turning points). Now pinned to the real 1 Hz.
+	if rep.StrokeHz < 0.7 || rep.StrokeHz > 1.4 {
 		t.Fatalf("stroke Hz out of range for 1Hz bounce: %.3f (rep=%+v)", rep.StrokeHz, rep)
 	}
 	if rep.Quality == "" {
 		t.Fatal("quality unset")
+	}
+}
+
+func TestFrameStatsIgnoresCodecNoise(t *testing.T) {
+	const w, h = 16, 16
+	prev := make([]byte, w*h)
+	cur := make([]byte, w*h)
+	// Only ±3 grey levels of noise near the top: no real motion.
+	for x := 0; x < w; x++ {
+		cur[x] = 3
+	}
+	if _, cy, _ := frameStats(prev, cur, w, h); !math.IsNaN(cy) {
+		t.Fatalf("noise-only diff must give no centroid (NaN), got %v", cy)
+	}
+	// Real motion at the bottom row wins over the noise at the top.
+	for x := 0; x < w; x++ {
+		cur[(h-1)*w+x] = 200
+	}
+	if _, cy, _ := frameStats(prev, cur, w, h); cy < 0.99 {
+		t.Fatalf("centroid must follow the real motion (bottom), got %v", cy)
 	}
 }
 
