@@ -81,6 +81,10 @@ type App struct {
 	benchmarkMu     sync.Mutex
 	benchmarkCancel context.CancelFunc
 
+	// audioVib: letzte Audio-Hüllkurve für "Vibration nur aus Audio"
+	// (siehe app_audio_vibration.go) - eigener Lock.
+	audioVib audioVibCache
+
 	// scriptOffsetMs verschiebt das Skript gegen das Video. Pro Skript
 	// gespeichert, weil er am Videoschnitt hängt und nicht an einer
 	// allgemeinen Vorliebe.

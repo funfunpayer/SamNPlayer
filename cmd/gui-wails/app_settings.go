@@ -120,6 +120,8 @@ type Settings struct {
 	PlaybackVideoPlayAutostart bool `json:"playbackVideoPlayAutostart"`
 	// PlaybackHonorInverted: siehe prefPlaybackHonorInverted. Default true.
 	PlaybackHonorInverted bool `json:"playbackHonorInverted"`
+	// PlaybackAudioVibration: siehe prefPlaybackAudioVibration. Default false.
+	PlaybackAudioVibration bool `json:"playbackAudioVibration"`
 	// PlaybackTrajectoryOverlay: siehe prefPlaybackTrajectoryOverlay.
 	// Default false - Debug-Overlay, nicht jeder Nutzer/jedes Skript hat es.
 	PlaybackTrajectoryOverlay bool `json:"playbackTrajectoryOverlay"`
@@ -246,6 +248,7 @@ func (a *App) GetSettings() Settings {
 
 		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
 		PlaybackHonorInverted:      s.GetBool(prefPlaybackHonorInverted, true),
+		PlaybackAudioVibration:     s.GetBool(prefPlaybackAudioVibration, false),
 		PlaybackTrajectoryOverlay:  s.GetBool(prefPlaybackTrajectoryOverlay, false),
 
 		PlaybackCapIntensity:         s.GetFloat(prefPlaybackCapIntensity, 400),
@@ -326,6 +329,11 @@ func (a *App) SetSetting(key string, value any) error {
 	// loadScriptDocument) - neu laden, damit Kurve und Gerät sofort folgen.
 	if key == prefPlaybackHonorInverted && a.loadedScriptPath() != "" {
 		return a.reloadLoadedScript()
+	}
+	// Audio-Vibration eingeschaltet: Ton schon jetzt im Hintergrund lesen,
+	// damit der nächste Play-Start nicht auf ffmpeg wartet.
+	if key == prefPlaybackAudioVibration && a.audioVibrationEnabled() {
+		a.warmAudioVibration(int64(a.settings.GetFloat(prefPlaybackTickMs, 50)))
 	}
 	return nil
 }
