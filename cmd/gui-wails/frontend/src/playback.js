@@ -427,6 +427,12 @@ export function initPlayback(root) {
             <label for="pb-video-play-autostart"
               data-help="Off: the video's own play button/spacebar (with the video focused) plays the video only, without starting the device/curve — use the app's Play button for that. On (default): native video play also starts device playback, same as before.">Video ▶ also starts device</label>
           </div>
+          <div class="checkbox-row" id="pb-audio-vibration-row">
+            <input type="checkbox" id="pb-audio-vibration" />
+            <label for="pb-audio-vibration"
+              data-help="On: during Play the vibration follows the loudness of the video's sound (music, voices, beats) instead of the script. Suction still follows the script. Same switch as Settings → Play. Needs a video with a sound track; without one, Play keeps the script vibration and says so in the log. Files are not changed.">Vibration from video audio only</label>
+          </div>
+          <p class="hint" id="pb-audio-vibration-hint" style="margin-top:0">Off by default. Suction stays on the script. Takes effect at the next Play start; the first start may take a few seconds while the sound is read.</p>
           <div class="checkbox-row" id="pb-trajectory-row" style="display:none">
             <input type="checkbox" id="pb-trajectory-toggle" />
             <label for="pb-trajectory-toggle"
@@ -3530,6 +3536,9 @@ export function initPlayback(root) {
     // nicht durch undefined -> false versehentlich das native Video-Play
     // stummschalten.
     el('#pb-video-play-autostart').checked = s.playbackVideoPlayAutostart !== false;
+    if (el('#pb-audio-vibration')) {
+      el('#pb-audio-vibration').checked = !!s.playbackAudioVibration;
+    }
     el('#pb-trajectory-toggle').checked = !!s.playbackTrajectoryOverlay;
     redrawTrajectory();
 
@@ -3615,6 +3624,11 @@ export function initPlayback(root) {
     saveSetting('playback.extended_o_restore_ms', parseFloat(e.target.value));
   });
   el('#pb-video-play-autostart').addEventListener('change', e => saveSetting('playback.video_play_autostart', e.target.checked));
+  el('#pb-audio-vibration')?.addEventListener('change', e => {
+    saveSetting('playback.audio_vibration', e.target.checked);
+    const st = document.querySelector('#st-audio-vibration');
+    if (st && st.checked !== e.target.checked) st.checked = e.target.checked;
+  });
   el('#pb-trajectory-toggle').addEventListener('change', e => {
     saveSetting('playback.trajectory_overlay', e.target.checked);
     const hint = el('#pb-trajectory-hint');

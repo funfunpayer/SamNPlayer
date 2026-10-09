@@ -462,8 +462,11 @@ export function initSettings(root) {
   el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));
   el('#st-honor-inverted')?.addEventListener('change', e =>
     saveSetting('playback.honor_inverted', e.target.checked));
-  el('#st-audio-vibration')?.addEventListener('change', e =>
-    saveSetting('playback.audio_vibration', e.target.checked));
+  el('#st-audio-vibration')?.addEventListener('change', e => {
+    saveSetting('playback.audio_vibration', e.target.checked);
+    const pb = document.querySelector('#pb-audio-vibration');
+    if (pb && pb.checked !== e.target.checked) pb.checked = e.target.checked;
+  });
   el('#st-runtime-check').addEventListener('click', async () => {
     const status = el('#st-runtime-status');
     status.textContent = 'Checking…';

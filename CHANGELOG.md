@@ -15,7 +15,7 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
 ### Added
 
 - **Play: vibration from video audio only (switchable)** — Settings → Play
-  → *Vibration from video audio only*. On: the vibration channel follows
+  and Play → Playback & Extended-O → *Vibration from video audio only*. On: the vibration channel follows
   the loudness of the video's sound track (adaptive per video, silence =
   off, fast attack / soft release); suction keeps following the script; the
   script offset is respected and vibration continues to the end of the
