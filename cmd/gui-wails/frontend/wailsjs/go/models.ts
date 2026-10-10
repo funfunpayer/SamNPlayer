@@ -758,6 +758,21 @@ export namespace generator {
 }
 
 export namespace main {
+	
+	export class BakeOffsetResult {
+	    shiftedMs: number;
+	    dropped: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new BakeOffsetResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.shiftedMs = source["shiftedMs"];
+	        this.dropped = source["dropped"];
+	    }
+	}
 
 	export class BenchmarkClipExportRequest {
 	    source: string;

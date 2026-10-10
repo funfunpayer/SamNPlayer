@@ -613,3 +613,66 @@ func clamp01Playback(v float64) float64 {
 	}
 	return v
 }
+
+// BakeOffsetResult reports what BakeScriptOffset changed.
+type BakeOffsetResult struct {
+	ShiftedMs int64 `json:"shiftedMs"`
+	// Dropped counts points, bookmarks and chapters that would have landed
+	// before 0 ms (only possible with a negative offset).
+	Dropped int `json:"dropped"`
+}
+
+// BakeScriptOffset writes the current Play offset into the script itself
+// (Owner UX ask "offset rewrite"): every curve point on every axis, the
+// bookmarks and the chapters move by the offset, the file is saved, and the
+// offset goes back to 0 — so other players see the corrected timing too.
+// Trajectory / tracking-gap / contact-mark metadata are not moved.
+func (a *App) BakeScriptOffset() (BakeOffsetResult, error) {
+	a.stateMu.RLock()
+	offset := a.scriptOffsetMs
+	a.stateMu.RUnlock()
+	res := BakeOffsetResult{ShiftedMs: offset}
+	if a.loadedScriptPath() == "" {
+		return res, fmt.Errorf("no script loaded")
+	}
+	if offset == 0 {
+		return res, nil
+	}
+	for _, axis := range []funscript.AxisName{funscript.AxisGeneral, funscript.AxisVibration, funscript.AxisSuction} {
+		acts, err := a.GetScriptAxisActions(string(axis))
+		if err != nil {
+			return res, err
+		}
+		if len(acts) == 0 {
+			continue
+		}
+		shifted, dropped := funscript.ShiftActions(acts, offset)
+		res.Dropped += dropped
+		if len(shifted) == 0 {
+			return res, fmt.Errorf("offset %d ms would move every %s point before the start", offset, axis)
+		}
+		if err := a.SaveScriptAxisActions(string(axis), shifted); err != nil {
+			return res, err
+		}
+	}
+	if bms, err := a.GetScriptBookmarks(); err == nil && len(bms) > 0 {
+		shifted, dropped := funscript.ShiftBookmarks(bms, offset)
+		res.Dropped += dropped
+		if err := a.SaveScriptBookmarks(shifted); err != nil {
+			return res, err
+		}
+	}
+	if chs, err := a.GetScriptChapterMarks(); err == nil && len(chs) > 0 {
+		shifted, dropped := funscript.ShiftChapters(chs, offset)
+		res.Dropped += dropped
+		if err := a.SaveScriptChapterMarks(shifted); err != nil {
+			return res, err
+		}
+	}
+	if err := a.reloadLoadedScript(); err != nil {
+		return res, err
+	}
+	a.SetScriptOffset(0)
+	logging.Info("playback: script offset baked into file", "ms", offset, "dropped", res.Dropped)
+	return res, nil
+}

@@ -116,3 +116,24 @@ func TestAudioVibrationEnvelopeCancelled(t *testing.T) {
 		t.Fatal("cancelled context must return an error")
 	}
 }
+
+func TestEstimateVideoAudioTempoHzClickTrack(t *testing.T) {
+	bin, err := videox.FFmpeg()
+	if err != nil {
+		t.Skip("ffmpeg not available")
+	}
+	path := filepath.Join(t.TempDir(), "clicks.wav")
+	// 100 ms beep every 500 ms for 20 s → 2 Hz.
+	cmd := exec.Command(bin, "-loglevel", "error", "-f", "lavfi",
+		"-i", "aevalsrc=sin(2*PI*440*t)*lt(mod(t\\,0.5)\\,0.1):s=8000:d=20", path)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Skipf("ffmpeg lavfi unavailable: %v %s", err, out)
+	}
+	hz, err := EstimateVideoAudioTempoHz(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(hz-2) > 0.1 {
+		t.Fatalf("click track at 2 Hz read as %.3f Hz", hz)
+	}
+}

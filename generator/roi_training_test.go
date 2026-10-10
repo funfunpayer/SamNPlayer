@@ -173,3 +173,14 @@ func TestRunRoiModelTrainingFailsFastOnEmptyDataset(t *testing.T) {
 		t.Fatalf("error should mention empty/labeled dataset, got: %v", err)
 	}
 }
+
+func TestBuildTrainArgsClampsEpochs(t *testing.T) {
+	args := buildTrainArgs("script.py", "/data", "/models/roi.onnx", 10000, "")
+	got := strings.Join(args, " ")
+	if !strings.Contains(got, "--epochs 500") {
+		t.Fatalf("epochs must be capped at %d: %s", MaxRoiTrainingEpochs, got)
+	}
+	if ClampRoiTrainingEpochs(80) != 80 || ClampRoiTrainingEpochs(0) != 0 {
+		t.Fatal("values inside the range must stay unchanged")
+	}
+}

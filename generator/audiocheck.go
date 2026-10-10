@@ -246,16 +246,42 @@ func compareTempo(scriptHz, audioHz *float64, tolerance float64, harmonics []flo
 }
 
 func extractAudioSamplesContext(ctx context.Context, videoPath string, sampleRate int) ([]float64, float64, error) {
+	return extractAudioSamplesLimit(ctx, videoPath, sampleRate, 0)
+}
+
+// audioTempoMaxSeconds bounds EstimateVideoAudioTempoHz: ten minutes of
+// 8 kHz mono is ~38 MB of float64 and enough for a stable tempo.
+const audioTempoMaxSeconds = 600
+
+// EstimateVideoAudioTempoHz measures the dominant beat of the video's sound
+// (same envelope + FFT as the post-hoc audio check, first ten minutes).
+// Used by Play's BPM grid when the script carries no audio_check tempo.
+// Returns 0 without error when the audio has no clear tempo.
+func EstimateVideoAudioTempoHz(ctx context.Context, videoPath string) (float64, error) {
+	samples, sr, err := extractAudioSamplesLimit(ctx, videoPath, 8000, audioTempoMaxSeconds)
+	if err != nil {
+		return 0, err
+	}
+	if hz := estimateAudioTempoHz(samples, sr, 50.0); hz != nil {
+		return *hz, nil
+	}
+	return 0, nil
+}
+
+func extractAudioSamplesLimit(ctx context.Context, videoPath string, sampleRate int, maxSeconds int) ([]float64, float64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, 0, err
 	}
-	cmd, err := videox.CommandContext(ctx,
-		"-i", videoPath,
-		"-vn", "-ac", "1", "-ar", fmt.Sprintf("%d", sampleRate),
+	args := []string{"-i", videoPath}
+	if maxSeconds > 0 {
+		args = append(args, "-t", fmt.Sprintf("%d", maxSeconds))
+	}
+	args = append(args, "-vn", "-ac", "1", "-ar", fmt.Sprintf("%d", sampleRate),
 		"-f", "f32le", "-loglevel", "error", "-")
+	cmd, err := videox.CommandContext(ctx, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("ffmpeg ist nicht installiert")
 	}
