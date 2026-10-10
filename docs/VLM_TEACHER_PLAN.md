@@ -257,6 +257,15 @@ The ≥ 4–5 clip gate still applies before this is ever on by default.
 
 ### V1 — VLM proposals as marks (Cursor, after V0 passes)
 
+> **Status 10 Oct (Claude, took over Cursor's lane):** superseded as
+> planned. VLM0 showed that teacher output has to drive the rhythm-grid
+> *search anchor*, not SceneMap source marks (marks: 1 % hit, anchor:
+> 62 %). That path is built: `contact_points.py --vlm/--teacher` feeds
+> both the anchor (`--contact-points`) and the reviewable candidates
+> (`import-contact-candidates`, Accept / Reject in the map view). A
+> separate `.vlm.json` → marks importer is not needed. The original plan
+> stays below for reference.
+
 - Import `.vlm.json` as SceneMap marks:
   - `contact` becomes `source`.
   - `thigh` and `hand_*` become `exclude`.
@@ -336,6 +345,12 @@ Still open:
      means either an Ultralytics licence or an Apache-2.0 detector (for
      example YOLOX or D-FINE / RT-DETR in a permissive implementation).
    - This only has to be decided before V3 ships, not for V0–V2.
+   - **Claude's recommendation (10 Oct): RF-DETR (Apache-2.0)** — it is
+     already what `contact_detector.py` trains, it is at least as accurate
+     as YOLO on small objects in public benchmarks, code *and* weights are
+     Apache-2.0, and it removes the AGPL question for paid builds. Keep
+     `ultralytics` only for the existing optional AI Train path, never
+     for shipped weights. **Owner to confirm.**
 2. **Runtime default:** Ollama or LM Studio. Proposal: document both, and
    default the probe to Ollama.
 3. **Optional:** allow `huggingface.co` in the cloud environment's network

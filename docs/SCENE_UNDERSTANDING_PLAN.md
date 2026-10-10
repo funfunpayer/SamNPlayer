@@ -173,6 +173,44 @@ Real engine (`TrackROI`, OpenCV build), windowed r against the FunGen refs:
 
 The offline harness gave the same numbers and kept the same points.
 
+### Second multi-person clip (re-measured 10 Oct, main @ `a7c6e1d`)
+
+Owner upload: 1573 s couple clip (man + woman, POV, many shots and camera
+moves, 256×144, AV1 → transcoded to H.264 because OpenCV's Python build
+cannot decode AV1 and NudeNet then sees 0 frames). The first frame is
+black, so the run starts at 120 s (ROI on the mouth, `68,53,64,64`); the
+FunGen 2.6.3 reference is shifted by −120 s. Real engine (`TrackROI`,
+OpenCV build), `--rhythm-grid`, scored with
+`fungen_compare_windowed.py` (30 s windows, mean |r| of confident
+windows). The 642 s clip was re-run on the same tip with the same scorer
+as a cross-check.
+
+| Clip | Points | r |
+|---|---|---|
+| couple 1573 s (41 windows) | none | 0.328 |
+| couple | NudeNet (stage 1), 486 points | 0.320 |
+| couple | NudeNet + `--contact-verify 1.5` | 0.323 |
+| couple | **scene-roles moving part + verify 1.5**, 390 points | **0.349** |
+| multi-person 642 s (22 windows) | none | 0.293 |
+| multi-person | NudeNet (stage 1) | 0.396 |
+| multi-person | NudeNet + verify 1.5 | 0.404 |
+| multi-person | **scene-roles moving part + verify 1.5** | **0.445** |
+
+- The 642 s numbers reproduce the 28 Sep table on today's engine (same
+  ranking, within ±0.01 of the older scorer).
+- On the couple clip NudeNet's stage-1 points do **not** help (−0.008;
+  the verify check limits the loss to −0.005). There is only one partner
+  and the ROI is already near the contact much of the time; 418 of the
+  486 teacher points come from the `cleavage` rule (68 from `penis`), so
+  outside titjob shots they likely pull the search to the wrong body part
+  (not verified per window).
+- The scene-roles moving part with the engine check is the only variant
+  that helps on **both** clips (+0.021 and +0.152). It is the
+  recommended opt-in chain; NudeNet stage-1 points alone stay a
+  multi-person tool.
+- Still two clips with multi-person content; the ≥ 4–5 clip gate for any
+  default stands.
+
 **Recommended opt-in chain** (Owner PC, until more clips are measured):
 
 ```
