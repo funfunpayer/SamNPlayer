@@ -322,6 +322,7 @@ export function VideoFileURL():Promise<string>;
 export function ProbePlaybackVideo(arg1:string):Promise<main.PlaybackVideoInfo>;
 export function EnsurePlayablePlaybackVideo():Promise<main.PlaybackVideoInfo>;
 export function EnsureVideoTools():Promise<void>;
+export function EstimatePlaybackAudioBPM():Promise<number>;
 export function ExportScriptHeatmapPNG():Promise<string>;
 export function SavePlaybackProject(arg1:funscript.Project):Promise<string>;
 export function LoadPlaybackProject(arg1:string):Promise<funscript.Project>;
