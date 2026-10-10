@@ -33,7 +33,7 @@ quality).
   G4 License go-live / platforms / mobile / site   (when G0–G2 hold)
 ```
 
-**License:** stay in **developer mode** (`Enforcement = false`) through
+**License (10 Oct 2026):** freeware + EULA + donations, key system removed — see `docs/LICENSE_SYSTEM.md`. Older note: stay in **developer mode** (`Enforcement = false`) through
 G0–G2. Import/verify Settings stay; do not flip sharpness until Generate
 + device mapping feel stable.
 

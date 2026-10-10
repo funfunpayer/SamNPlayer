@@ -42,8 +42,6 @@ export function ImportContactCandidatesForVideo(arg1, arg2) { return window['go'
 export function CheckAudioCheckAvailable() { return window['go']['main']['App']['CheckAudioCheckAvailable'](); }
 export function CheckRoiTrainingAvailable() { return window['go']['main']['App']['CheckRoiTrainingAvailable'](); }
 export function CheckRoiTrainingStatus() { return window['go']['main']['App']['CheckRoiTrainingStatus'](); }
-export function ImportLicenseFile() { return window['go']['main']['App']['ImportLicenseFile'](); }
-export function ImportLicenseText(arg1) { return window['go']['main']['App']['ImportLicenseText'](arg1); }
 export function InstallRoiTrainingDeps() { return window['go']['main']['App']['InstallRoiTrainingDeps'](); }
 export function WriteAIRequirementFiles(arg1) { return window['go']['main']['App']['WriteAIRequirementFiles'](arg1); }
 export function CheckForPatch() { return window['go']['main']['App']['CheckForPatch'](); }
@@ -51,7 +49,6 @@ export function CheckForUpdate() { return window['go']['main']['App']['CheckForU
 export function CheckGeneratorDependencies() { return window['go']['main']['App']['CheckGeneratorDependencies'](); }
 export function ClearCache() { return window['go']['main']['App']['ClearCache'](); }
 export function ClearLogEntries() { return window['go']['main']['App']['ClearLogEntries'](); }
-export function ClearLicense() { return window['go']['main']['App']['ClearLicense'](); }
 export function ClearPlaybackVideo() { return window['go']['main']['App']['ClearPlaybackVideo'](); }
 export function ConnectDevice(arg1) { return window['go']['main']['App']['ConnectDevice'](arg1); }
 export function ConnectDeviceVia(arg1, arg2) { return window['go']['main']['App']['ConnectDeviceVia'](arg1, arg2); }
@@ -68,7 +65,6 @@ export function GetDeviceStatus() { return window['go']['main']['App']['GetDevic
 export function GetDiagnosticsHistory() { return window['go']['main']['App']['GetDiagnosticsHistory'](); }
 export function GetHardwareInfo() { return window['go']['main']['App']['GetHardwareInfo'](); }
 export function GetHeatmap(arg1) { return window['go']['main']['App']['GetHeatmap'](arg1); }
-export function GetLicenseStatus() { return window['go']['main']['App']['GetLicenseStatus'](); }
 export function GetLogEntries() { return window['go']['main']['App']['GetLogEntries'](); }
 export function GetMotionProfileModelStatus() { return window['go']['main']['App']['GetMotionProfileModelStatus'](); }
 export function GetMarker(arg1) { return window['go']['main']['App']['GetMarker'](arg1); }
@@ -99,7 +95,6 @@ export function ImproveGeneratedScript(arg1) { return window['go']['main']['App'
 export function InvertScriptAtPath(arg1) { return window['go']['main']['App']['InvertScriptAtPath'](arg1); }
 export function LabelScene(arg1, arg2) { return window['go']['main']['App']['LabelScene'](arg1, arg2); }
 export function LabelSceneWithProfile(arg1, arg2, arg3) { return window['go']['main']['App']['LabelSceneWithProfile'](arg1, arg2, arg3); }
-export function LicenseAllowsFullFeatures() { return window['go']['main']['App']['LicenseAllowsFullFeatures'](); }
 export function OpenPluginsFolder() { return window['go']['main']['App']['OpenPluginsFolder'](); }
 export function PluginsDir() { return window['go']['main']['App']['PluginsDir'](); }
 export function ListInstalledPlugins() { return window['go']['main']['App']['ListInstalledPlugins'](); }
@@ -197,3 +192,9 @@ export function GetScriptBookmarks() { return window['go']['main']['App']['GetSc
 export function SaveScriptBookmarks(arg1) { return window['go']['main']['App']['SaveScriptBookmarks'](arg1); }
 export function GetScriptChapterMarks() { return window['go']['main']['App']['GetScriptChapterMarks'](); }
 export function SaveScriptChapterMarks(arg1) { return window['go']['main']['App']['SaveScriptChapterMarks'](arg1); }
+export function AcceptEULA(arg1) { return window['go']['main']['App']['AcceptEULA'](arg1); }
+export function DeclineEULA() { return window['go']['main']['App']['DeclineEULA'](); }
+export function GetDonateLinks() { return window['go']['main']['App']['GetDonateLinks'](); }
+export function GetEULA() { return window['go']['main']['App']['GetEULA'](); }
+export function GetThirdPartyNotices() { return window['go']['main']['App']['GetThirdPartyNotices'](); }
+export function OpenDonateLink(arg1) { return window['go']['main']['App']['OpenDonateLink'](arg1); }

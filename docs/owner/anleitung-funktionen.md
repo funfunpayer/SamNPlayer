@@ -448,7 +448,7 @@ Tab **Settings** · auch **Open user handbook**
 | **AI server** | Colibri/OpenAI-URL · **Test AI server** (`/v1/models`) |
 | **Local AI setup** | **Check AI setup** · Install teachers / train / models |
 | **Plugins** | Install pack… · Open Plugins folder · Refresh |
-| Runtime / Updates / Cache / Hardware / License / Metrics | Betrieb |
+| Runtime / Updates / Cache / Hardware / Lizenz (EULA) / Spenden / Metrics | Betrieb |
 
 **Check AI setup** ändert nichts — nur Diagnose (GPU, Packages, Train-Venv, Ollama/LM Studio/Colibri).
 

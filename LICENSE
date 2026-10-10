@@ -11,11 +11,13 @@ copyright holder.
 ## End-user binaries
 
 Official release binaries published by the copyright holder (for example on
-https://github.com/funfunpayer/SamNPlayer-site) may be downloaded and used
-for personal, non-commercial purposes, subject to any additional terms shipped
-with those builds. Redistribution of those binaries, reverse engineering for
-the purpose of creating a competing product, and redistribution of extracted
-assets are not permitted without prior written permission.
+https://github.com/funfunpayer/SamNPlayer-site) are **freeware**: they may be
+downloaded and used free of charge for private, non-commercial purposes under
+the End User License Agreement shipped with them (`legal/EULA.md`, `EULA.txt`
+in the download packages). No licence key is required. Redistribution of
+those binaries and distribution of modified versions are not permitted
+without prior written permission. Third-party components keep their own
+licences (`legal/THIRD_PARTY_NOTICES.md`).
 
 ## No warranty
 

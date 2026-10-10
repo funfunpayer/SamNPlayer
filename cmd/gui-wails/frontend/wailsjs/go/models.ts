@@ -757,7 +757,43 @@ export namespace generator {
 
 }
 
+export namespace legal {
+	
+	export class DonateLink {
+	    name: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DonateLink(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.url = source["url"];
+	    }
+	}
+
+}
+
 export namespace main {
+	
+	export class EULAInfo {
+	    version: string;
+	    text: string;
+	    accepted: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new EULAInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.text = source["text"];
+	        this.accepted = source["accepted"];
+	    }
+	}
 	
 	export class BakeOffsetResult {
 	    shiftedMs: number;

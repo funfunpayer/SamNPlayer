@@ -2984,3 +2984,25 @@ fieldset,
   .gen-audio-seg:hover { transform: none; }
 }
 
+
+/* Freeware terms + donations (legal.js) */
+.legal-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.legal-dialog {
+  background: var(--panel, #1b1d24); color: inherit;
+  width: min(760px, 92vw); max-height: 86vh;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px 20px; border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.legal-dialog h2 { margin: 0; font-size: 18px; }
+.legal-text {
+  flex: 1; overflow: auto; margin: 0; padding: 10px 12px;
+  white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.5;
+  background: rgba(255, 255, 255, 0.04); border-radius: 6px;
+}
+.legal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
+.donate-pill { cursor: pointer; }
