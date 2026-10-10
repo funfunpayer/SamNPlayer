@@ -1,4 +1,5 @@
-import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetRuntimeHealth, EnsureVideoTools, GetLicenseStatus, ImportLicenseText, ImportLicenseFile, ClearLicense, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
+import { showEULA, showThirdPartyNotices, renderDonateButtons } from './legal.js';
+import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetRuntimeHealth, EnsureVideoTools, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
@@ -123,19 +124,18 @@ export function initSettings(root) {
       </ul>
     </details>
 
-    <h3>License</h3>
-    <p class="hint">Personal yearly key (one person). Invite/internal keys have no expiry.
-      Enforcement is <b>off</b> in this build — import works so we can test the path;
-      Create/Play are not limited yet. See docs/LICENSE_SYSTEM.md.</p>
-    <p class="hint" id="st-license-status" style="margin-top:0">…</p>
-    <div class="row" style="align-items:flex-start;">
-      <textarea id="st-license-paste" rows="3" placeholder="Paste license token (SNP1.…)" style="flex:1; font-family:ui-monospace,monospace; font-size:12px;"></textarea>
+    <div data-donate-section>
+      <h3>Support SamNPlayer</h3>
+      <p class="hint">SamNPlayer is free. If it is useful to you, a donation keeps development going —
+        it is voluntary and changes nothing in the app.</p>
+      <div class="row" id="st-donate-buttons" style="align-items:center; gap:8px;"></div>
     </div>
-    <div class="row" style="align-items:center; margin-top:6px;">
-      <button id="st-license-import-text" type="button">Import pasted key</button>
-      <button id="st-license-import-file" type="button">Import from file…</button>
-      <button id="st-license-clear" type="button">Clear license</button>
-      <button id="st-license-refresh" type="button">Refresh status</button>
+
+    <h3>Licence</h3>
+    <p class="hint">Freeware for private, non-commercial use — not open source. No licence key needed.</p>
+    <div class="row" style="align-items:center;">
+      <button id="st-show-eula" type="button" class="secondary">Show licence agreement (EULA)</button>
+      <button id="st-show-notices" type="button" class="secondary">Third-party notices</button>
     </div>
 
     <details id="st-plugins-details" class="st-opt-panel">
@@ -340,34 +340,9 @@ export function initSettings(root) {
       el('#st-apply-ai-setup').checked = !!s.applyAISetupAutomatically;
     }
     updateReportStatus();
-    refreshLicenseStatus();
+    renderDonateButtons(el('#st-donate-buttons'));
     refreshPluginsStatus();
   });
-
-  async function refreshLicenseStatus() {
-    const box = el('#st-license-status');
-    if (!box) return;
-    try {
-      const st = await GetLicenseStatus();
-      const state = st.state || 'none';
-      const lines = [
-        st.message || 'No license message.',
-        `state: ${state}`,
-        st.sub ? `person: ${st.sub}` : null,
-        st.tier ? `tier: ${st.tier}` : null,
-        st.validUntil ? `until: ${st.validUntil}` : 'until: (none / invite)',
-        Array.isArray(st.features) && st.features.length
-          ? `features: ${st.features.join(', ')}`
-          : null,
-        `enforcement: ${st.enforcement ? 'ON' : 'off'} (${st.enforcement ? 'limits Apply' : 'test path — Create/Play unlimited'})`,
-        `effective: ${st.effective ? 'full' : 'trial'}`,
-      ].filter(Boolean);
-      box.textContent = lines.join('\n');
-      box.style.whiteSpace = 'pre-wrap';
-    } catch (err) {
-      box.textContent = 'License status failed: ' + err;
-    }
-  }
 
   async function refreshPluginsStatus() {
     const box = el('#st-plugins-status');
@@ -424,39 +399,8 @@ export function initSettings(root) {
     }
   });
 
-  el('#st-license-refresh')?.addEventListener('click', () => refreshLicenseStatus());
-  el('#st-license-import-text')?.addEventListener('click', async () => {
-    const box = el('#st-license-status');
-    const raw = el('#st-license-paste')?.value || '';
-    try {
-      const st = await ImportLicenseText(raw);
-      el('#st-license-paste').value = '';
-      uiInfo(st.message || 'License imported.', box);
-      await refreshLicenseStatus();
-    } catch (err) {
-      uiError('Import license: ' + err, box);
-    }
-  });
-  el('#st-license-import-file')?.addEventListener('click', async () => {
-    const box = el('#st-license-status');
-    try {
-      const st = await ImportLicenseFile();
-      uiInfo(st.message || 'License imported.', box);
-      await refreshLicenseStatus();
-    } catch (err) {
-      uiError('Import license: ' + err, box);
-    }
-  });
-  el('#st-license-clear')?.addEventListener('click', async () => {
-    const box = el('#st-license-status');
-    try {
-      await ClearLicense();
-      uiInfo('License cleared.', box);
-      await refreshLicenseStatus();
-    } catch (err) {
-      uiError('Clear license: ' + err, box);
-    }
-  });
+  el('#st-show-eula')?.addEventListener('click', () => showEULA());
+  el('#st-show-notices')?.addEventListener('click', () => showThirdPartyNotices());
 
   el('#st-update-check').addEventListener('change', e => saveSetting('update.check_on_startup', e.target.checked));
   el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));

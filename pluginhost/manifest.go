@@ -21,14 +21,13 @@ const ManifestFile = "samn-plugin.json"
 // Manifest is the on-disk contract for a SamNPlayer plugin pack
 // (drop-folder asset packs; Virtual Person product is cancelled / out of scope).
 type Manifest struct {
-	APIVersion      int           `json:"apiVersion"`
-	ID              string        `json:"id"`
-	Name            string        `json:"name"`
-	Version         string        `json:"version"`
-	HostMinStage    string        `json:"hostMinStage,omitempty"`
-	RequiresFeature string        `json:"requiresFeature,omitempty"`
-	Description     string        `json:"description,omitempty"`
-	Entry           ManifestEntry `json:"entry"`
+	APIVersion   int           `json:"apiVersion"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	Version      string        `json:"version"`
+	HostMinStage string        `json:"hostMinStage,omitempty"`
+	Description  string        `json:"description,omitempty"`
+	Entry        ManifestEntry `json:"entry"`
 }
 
 // ManifestEntry describes how the host should treat the pack contents.

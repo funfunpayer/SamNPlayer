@@ -16,6 +16,8 @@ import { initSidebar } from './sidebar.js';
 import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
+import { ensureEULAAccepted } from './legal.js';
+import { GetDonateLinks } from '../wailsjs/go/main/App';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -187,6 +189,21 @@ initPostGenerateReview();
 
   render({ connected: false });
 })();
+
+// Freeware terms: ask once per EULA version (Decline quits the app).
+ensureEULAAccepted();
+
+// Header donate pill: shown only when a donation link is configured; opens
+// Settings → Support SamNPlayer.
+GetDonateLinks().then(links => {
+  const btn = document.getElementById('topbar-donate');
+  if (!btn || !Array.isArray(links) || !links.length) return;
+  btn.hidden = false;
+  btn.addEventListener('click', () => {
+    switchTab('settings');
+    document.querySelector('[data-donate-section]')?.scrollIntoView({ behavior: 'smooth' });
+  });
+}).catch(() => {});
 
 let currentVersion = 'dev';
 CurrentVersion().then(v => {

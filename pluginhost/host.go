@@ -1,7 +1,7 @@
 // Package pluginhost is the narrow SamNPlayer host surface for drop-folder
 // plugin packs (docs/PLUGIN_SYSTEM.md).
 //
-// Stage H1 (infra): license-aware Slot + drop-folder discovery
+// Stage H1 (infra): Slot + drop-folder discovery
 // (samn-plugin.json) + optional OnFrame Tick wiring. Virtual Person product
 // (#264) is cancelled / out of scope — this package keeps the generic
 // handshake only. No marketplace, no dynamic Go .so, no Everyday CSRT
@@ -13,11 +13,6 @@ import (
 	"sync"
 	"sync/atomic"
 )
-
-// PluginIDVirtualPerson is the reserved pack id for the cancelled Virtual
-// Person product. Drop-folder discovery accepts any valid manifest id; this
-// constant stays for pack compatibility and tests.
-const PluginIDVirtualPerson = "virtual_person"
 
 // Stage is the host maturity marker (H1 = drop-folder + optional OnFrame tick).
 const Stage = "H1"
@@ -39,8 +34,6 @@ type PoseSample struct {
 
 // Status reports a plugin-host slot for Settings / API.
 type Status struct {
-	FeatureID   string `json:"featureId,omitempty"`
-	Allowed     bool   `json:"allowed"`
 	Enabled     bool   `json:"enabled"`
 	Running     bool   `json:"running"`
 	Stage       string `json:"stage"`
@@ -67,7 +60,6 @@ type Slot struct {
 	lastEmit   PoseSample
 	pack       *Pack
 	pluginsDir string
-	featureID  string
 }
 
 // NewSlot returns an idle plugin-host slot.
@@ -80,13 +72,6 @@ func (s *Slot) SetPluginsDir(dir string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.pluginsDir = dir
-}
-
-// SetFeatureID overrides the license feature id shown in Status (optional).
-func (s *Slot) SetFeatureID(id string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.featureID = id
 }
 
 // BindPack attaches a discovered pack (may be nil to clear).
@@ -106,17 +91,11 @@ func (s *Slot) BoundPack() (Pack, bool) {
 	return *s.pack, true
 }
 
-// Status builds the UI/API view. allowed comes from the license gate.
-func (s *Slot) Status(allowed bool) Status {
+// Status builds the UI/API view.
+func (s *Slot) Status() Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	featureID := s.featureID
-	if featureID == "" && s.pack != nil && s.pack.Manifest.RequiresFeature != "" {
-		featureID = s.pack.Manifest.RequiresFeature
-	}
 	st := Status{
-		FeatureID:  featureID,
-		Allowed:    allowed,
 		Enabled:    s.enabled,
 		Running:    s.running,
 		Stage:      Stage,
@@ -131,8 +110,6 @@ func (s *Slot) Status(allowed bool) Status {
 		st.PackRoot = s.pack.Root
 	}
 	switch {
-	case !allowed:
-		st.Message = "License required for this plugin pack. Everyday Create stays free."
 	case s.running && s.pack != nil:
 		st.Message = fmt.Sprintf("Plugin host running — pack %s v%s.", s.pack.Manifest.Name, s.pack.Manifest.Version)
 	case s.running:
@@ -147,17 +124,9 @@ func (s *Slot) Status(allowed bool) Status {
 	return st
 }
 
-// Enable arms the host slot. Fails closed when allowed is false.
-// Idempotent when already running. Product Enable UI is cancelled / out of
+// Enable arms the host slot. Idempotent when already running. Product Enable UI is cancelled / out of
 // scope (Virtual Person #264 closed) — API kept for infra/tests only.
-func (s *Slot) Enable(allowed bool) error {
-	if !allowed {
-		id := s.featureID
-		if id == "" {
-			id = "plugin"
-		}
-		return fmt.Errorf("pluginhost: license feature %q required", id)
-	}
+func (s *Slot) Enable() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.enabled = true

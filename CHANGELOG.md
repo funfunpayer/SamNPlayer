@@ -8,6 +8,24 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **SamNPlayer is now freeware — licence keys removed.** Owner decision:
+  free for private, non-commercial use under an EULA, financed by
+  donations, not open source. The key system (import, trial cap on
+  Generate, `.samn` play gate, plugin feature gate, `license-tool`) is
+  gone; every build is fully unlocked and old keys are ignored.
+
+### Added
+
+- **EULA on first start** — shown once per EULA version (Accept / Decline
+  and quit); Settings → Licence shows it again; shipped as `EULA.txt`.
+- **Third-party notices** — FFmpeg (GPL build), OpenCV, Wails, fonts and
+  more; Settings → Third-party notices; shipped as `THIRD_PARTY_NOTICES.txt`
+  plus FFmpeg's own licence text in the download packages.
+- **Donations** — Settings → *Support SamNPlayer* and a ♥ Donate button in
+  the header (Patreon / PayPal; buttons appear once the links are set).
+
 ## [0.5.46] - 2026-10-10
 
 Audio vibration (switchable, default off), Owner UX asks (Epochs cap, BPM from audio, write offset into script) and the stroke-preview rate fix. Everyday / Rhythm / AI defaults unchanged.

@@ -17,7 +17,6 @@ func TestLoadManifestAndDiscover(t *testing.T) {
   "id": "sample_pack",
   "name": "Sample Pack",
   "version": "0.1.0",
-  "requiresFeature": "sample_feature",
   "entry": {
     "kind": "asset_pack",
     "webRoot": "web",
@@ -86,7 +85,7 @@ func TestInstallPackDir(t *testing.T) {
 func TestStatusReflectsPack(t *testing.T) {
 	s := NewSlot()
 	s.SetPluginsDir("/tmp/plugins")
-	st := s.Status(true)
+	st := s.Status()
 	if st.PackFound || st.Stage != Stage {
 		t.Fatalf("%+v", st)
 	}
@@ -101,14 +100,14 @@ func TestStatusReflectsPack(t *testing.T) {
 		},
 	}
 	s.BindPack(p)
-	st = s.Status(true)
+	st = s.Status()
 	if !st.PackFound || st.PackVersion != "0.1.0" {
 		t.Fatalf("%+v", st)
 	}
-	if err := s.Enable(true); err != nil {
+	if err := s.Enable(); err != nil {
 		t.Fatal(err)
 	}
-	st = s.Status(true)
+	st = s.Status()
 	if !st.Running || st.Message == "" {
 		t.Fatalf("%+v", st)
 	}

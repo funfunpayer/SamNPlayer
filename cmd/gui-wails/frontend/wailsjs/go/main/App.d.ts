@@ -5,6 +5,7 @@ import {generator} from '../models';
 import {funscript} from '../models';
 import {motionx} from '../models';
 import {profilemodel} from '../models';
+import {legal} from '../models';
 
 export function AnalyzeScript():Promise<main.ScriptAnalysis>;
 
@@ -73,9 +74,7 @@ export function CheckRoiTrainingStatus():Promise<generator.RoiTrainingStatus>;
 
 export function InstallRoiTrainingDeps():Promise<void>;
 
-export function ImportLicenseFile():Promise<any>;
 
-export function ImportLicenseText(arg1:string):Promise<any>;
 
 export function WriteAIRequirementFiles(arg1:string):Promise<void>;
 
@@ -89,7 +88,6 @@ export function ClearCache():Promise<main.CacheInfo>;
 
 export function ClearLogEntries():Promise<void>;
 
-export function ClearLicense():Promise<any>;
 
 export function ClearPlaybackVideo():Promise<void>;
 
@@ -120,7 +118,6 @@ export function GetHardwareInfo():Promise<string>;
 
 export function GetHeatmap(arg1:number):Promise<Array<main.HeatmapPoint>>;
 
-export function GetLicenseStatus():Promise<any>;
 
 export function GetLogEntries():Promise<Array<Record<string, any>>>;
 
@@ -161,7 +158,6 @@ export function LabelScene(arg1:string,arg2:string):Promise<void>;
 
 export function LabelSceneWithProfile(arg1:string,arg2:string,arg3:string):Promise<void>;
 
-export function LicenseAllowsFullFeatures():Promise<boolean>;
 export function OpenPluginsFolder():Promise<void>;
 export function PluginsDir():Promise<string>;
 export function ListInstalledPlugins():Promise<Array<Record<string, any>>>;
@@ -338,3 +334,9 @@ export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promis
 export function OptimizeLoadedForNeo2(arg1:boolean):Promise<any>;
 export function BakeNeoAxesOnLoaded():Promise<string>;
 export function SaveLoadedAsSamn():Promise<string>;
+export function AcceptEULA(arg1:string):Promise<void>;
+export function DeclineEULA():Promise<void>;
+export function GetDonateLinks():Promise<Array<legal.DonateLink>>;
+export function GetEULA():Promise<main.EULAInfo>;
+export function GetThirdPartyNotices():Promise<string>;
+export function OpenDonateLink(arg1:string):Promise<void>;

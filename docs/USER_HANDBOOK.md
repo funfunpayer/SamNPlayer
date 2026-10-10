@@ -107,8 +107,10 @@ Settings → **Local AI setup** → **Check AI setup** probes GPU/packages/train
 ### Mac / Linux / Windows?
 Windows portable is the primary smoke target. See release notes for your build.
 
-### Trial / license?
-See Settings / license UI for the current seat rules (trial length may change by release).
+### Does it cost anything? Do I need a key?
+No. SamNPlayer is freeware for private, non-commercial use — no key, no trial
+limits. Accept the EULA on first start (Settings → Licence shows it again). If
+it helps you, Settings → *Support SamNPlayer* has the donation links.
 
 ---
 

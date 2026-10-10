@@ -255,7 +255,7 @@ Host contract: [`docs/PLUGIN_SYSTEM.md`](docs/PLUGIN_SYSTEM.md)
 | [`docs/PLUGIN_INSTALL_DE.md`](docs/PLUGIN_INSTALL_DE.md) | Plugins — Endnutzer (Deutsch) |
 | [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) | Who owns what (agents) |
 | [`docs/AUDIO_WORKFLOW.md`](docs/AUDIO_WORKFLOW.md) | Audio tempo check in generate |
-| [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Yearly personal license — **€40 / year** |
+| [`docs/LICENSE_SYSTEM.md`](docs/LICENSE_SYSTEM.md) | Licence model — **freeware with EULA, donations** (key system removed 10 Oct 2026) |
 | [`website/`](website/) | Public landing + guides (sync → SamNPlayer-site) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Release notes |
 | [`HANDOFF.md`](HANDOFF.md) | Architecture + tested-and-rejected table |

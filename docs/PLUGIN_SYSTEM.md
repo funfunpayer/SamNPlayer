@@ -2,7 +2,7 @@
 
 **Status:** H1 infra kept — drop-folder discover / Install / Open Plugins.  
 **Virtual Person product:** **CANCELLED / OUT OF SCOPE** ([#264](https://github.com/funfunpayer/SamNPlayer/pull/264) closed) — not deferred / not “parked for later”.  
-**Related:** package [`pluginhost/`](../pluginhost/) · reserved pack id `virtual_person` · license feature `virtual_person` (stamped for key compatibility only) · Animation Studio [`funfunpayer/tracken`](https://github.com/funfunpayer/tracken)
+**Related:** package [`pluginhost/`](../pluginhost/) · Animation Studio [`funfunpayer/tracken`](https://github.com/funfunpayer/tracken)
 
 ---
 
@@ -35,11 +35,8 @@ and other external work stay outside this repo.
 
 ## License
 
-| Decision | Choice |
-|----------|--------|
-| Feature id | **`virtual_person`** (reserved; stamped on standard keys for compatibility) |
-| Monetization | N/A while product cancelled — id remains on keys |
-| Enforcement | Remains **off** — do not flip without Owner OK |
+No license gate (Owner 10 Oct 2026: SamNPlayer is freeware with an EULA,
+financed by donations; the key system was removed). Plugin packs are free.
 
 ---
 
@@ -54,7 +51,6 @@ and other external work stay outside this repo.
   "name": "Example Pack",
   "version": "0.1.0",
   "hostMinStage": "H1",
-  "requiresFeature": "",
   "description": "Asset pack for SamNPlayer",
   "entry": {
     "kind": "asset_pack",
@@ -91,5 +87,4 @@ and other external work stay outside this repo.
 Wails App methods (shipped): `PluginsDir`, `ListInstalledPlugins`, `InstallPluginPack`,
 `OpenPluginsFolder`.
 
-Packages: `pluginhost/` (manifest + paths + Slot stub). License keeps
-`FeatureVirtualPerson` in `DefaultFeatures` for key compatibility only.
+Packages: `pluginhost/` (manifest + paths + Slot stub).

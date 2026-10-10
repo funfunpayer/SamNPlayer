@@ -108,7 +108,7 @@ Repeat for every new version after the private release finishes.
 
 ## License file
 
-The repo root [`LICENSE`](../LICENSE) is a **proprietary** notice (not MIT):
+The repo root [`LICENSE`](../LICENSE) is a **proprietary** notice (not MIT). End users get the binaries as **freeware** under `legal/EULA.md` (Owner 10 Oct 2026, no keys, donations):
 
 - Source and private docs: no copy / redistribute without permission
 - Official site binaries: personal non-commercial use allowed

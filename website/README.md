@@ -8,7 +8,7 @@ gold + teal, Space Grotesk).
 
 ```text
 website/
-  index.html          Landing (hero, why, product, guides teaser, €40, download)
+  index.html          Landing (hero, why, product, guides teaser, free + donate, download)
   faq.html
   changelog.html
   guides/             Getting started, Neo 2 BLE, license import

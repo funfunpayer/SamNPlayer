@@ -2,24 +2,16 @@ package pluginhost
 
 import "testing"
 
-func TestEnableRequiresAllow(t *testing.T) {
+func TestEnableStartsHost(t *testing.T) {
 	s := NewSlot()
-	s.SetFeatureID(PluginIDVirtualPerson)
-	if err := s.Enable(false); err == nil {
-		t.Fatal("expected license error")
-	}
-	st := s.Status(false)
-	if st.Allowed || st.Running || st.FeatureID != PluginIDVirtualPerson {
-		t.Fatalf("status %+v", st)
-	}
-	if err := s.Enable(true); err != nil {
+	if err := s.Enable(); err != nil {
 		t.Fatal(err)
 	}
 	if !s.Running() {
 		t.Fatal("expected running after enable")
 	}
-	st = s.Status(true)
-	if !st.Allowed || !st.Enabled || !st.Running || st.Stage != Stage {
+	st := s.Status()
+	if !st.Enabled || !st.Running || st.Stage != Stage {
 		t.Fatalf("status %+v", st)
 	}
 }
@@ -30,7 +22,7 @@ func TestTickNoOpWhenDisabled(t *testing.T) {
 	if s.TickCount() != 0 || s.NowMs() != 0 {
 		t.Fatalf("disabled tick must be no-op count=%d now=%d", s.TickCount(), s.NowMs())
 	}
-	if err := s.Enable(true); err != nil {
+	if err := s.Enable(); err != nil {
 		t.Fatal(err)
 	}
 	s.Tick(2500, 40, 0.5, 0.3)
@@ -50,8 +42,8 @@ func TestTickNoOpWhenDisabled(t *testing.T) {
 
 func TestEnableIdempotent(t *testing.T) {
 	s := NewSlot()
-	_ = s.Enable(true)
-	if err := s.Enable(true); err != nil {
+	_ = s.Enable()
+	if err := s.Enable(); err != nil {
 		t.Fatal(err)
 	}
 	if !s.Running() {

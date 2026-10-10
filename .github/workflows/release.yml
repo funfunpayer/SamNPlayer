@@ -65,6 +65,10 @@ jobs:
           cp "$(command -v ffmpeg)" portable-linux/ffmpeg
           cp "$(command -v ffprobe)" portable-linux/ffprobe
           chmod +x portable-linux/*
+          # Freeware terms + third-party notices (Owner 10 Oct: EULA, no keys).
+          cp legal/EULA.md portable-linux/EULA.txt
+          cp legal/THIRD_PARTY_NOTICES.md portable-linux/THIRD_PARTY_NOTICES.txt
+          cp /usr/share/doc/ffmpeg/copyright portable-linux/FFMPEG_LICENSE.txt
           tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
 
       - name: Run tests (non-GUI packages)
@@ -184,6 +188,11 @@ jobs:
           unzip -q /tmp/ffmpeg-win.zip -d /tmp/ffmpeg-win
           find /tmp/ffmpeg-win -name 'ffmpeg.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffmpeg.exe
           find /tmp/ffmpeg-win -name 'ffprobe.exe' | head -n1 | xargs -I{} cp {} portable-windows/ffprobe.exe
+          # FFmpeg's own licence text from the same zip (GPL build).
+          find /tmp/ffmpeg-win -name 'LICENSE.txt' | head -n1 | xargs -I{} cp {} portable-windows/FFMPEG_LICENSE.txt
+          cp legal/EULA.md portable-windows/EULA.txt
+          cp legal/THIRD_PARTY_NOTICES.md portable-windows/THIRD_PARTY_NOTICES.txt
+          test -f portable-windows/EULA.txt
           test -f portable-windows/ffmpeg.exe
           test -f portable-windows/ffprobe.exe
           test -f portable-windows/SamNPlayer.exe

@@ -629,14 +629,6 @@ func (a *App) GenerateScript(opts GenerateOptions) {
 		if opts.RhythmGrid && strings.TrimSpace(opts.ContactPointsFile) != "" && opts.ContactVerifyK > 0 {
 			genOpts.ContactVerifyK = opts.ContactVerifyK
 		}
-		// License gate (docs/LICENSE_SYSTEM.md): while Enforcement is off,
-		// EffectiveLicensed is always true. When sharp, unlicensed Generate
-		// is capped to 60s output (trial).
-		if !a.LicenseAllowsFullFeatures() {
-			genOpts.MaxOutputMs = 60_000
-			runtime.EventsEmit(a.ctx, "generate:progress",
-				"License: trial mode — output capped to 60s (Settings → License for full Generate)")
-		}
 		if opts.W2 > 0 && opts.H2 > 0 {
 			genOpts.ROI2 = generator.ROI{X: opts.X2, Y: opts.Y2, W: opts.W2, H: opts.H2}
 			genOpts.ROI2Fixed = opts.Roi2Fixed

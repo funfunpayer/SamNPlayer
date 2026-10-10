@@ -1,5 +1,9 @@
 # Selling SamNPlayer — what we still need
 
+> **Superseded 10 Oct 2026 (Owner):** SamNPlayer is **freeware with an EULA,
+> financed by donations** — no keys, no price, no checkout. The key/price
+> rows below are history; see `docs/LICENSE_SYSTEM.md`.
+
 Living checklist for turning the product into something people can
 **find, trust, buy, and run**. Chat with the owner may be German; this
 doc stays English with the rest of the product surface.
