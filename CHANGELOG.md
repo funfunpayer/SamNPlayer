@@ -22,6 +22,16 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
   audio. Off by default; no file is changed. Without a video or sound track
   Play keeps the script vibration and says so in the log.
 
+- **AI Train: Epochs capped at 500** — the field has max 500 and the run
+  is clamped (a typo like 10000 no longer keeps the GPU busy for days).
+- **Play: BPM "From audio"** — measures the beat of the video's sound
+  (first 10 min), fills the BPM field and turns the BPM grid on. Works for
+  scripts without an audio check (OFS / FunGen). Display only.
+- **Play: offset "Write into script"** — moves every curve point (all
+  axes), bookmark and chapter by the Play offset, saves the script and sets
+  the offset back to 0, so other players get the corrected timing. Asks
+  first; items that would land before 0 ms are removed and counted.
+
 ### Fixed
 
 - **Stroke preview read 2–3× the real stroke rate** — at stroke turning

@@ -350,7 +350,7 @@ Still open:
      as YOLO on small objects in public benchmarks, code *and* weights are
      Apache-2.0, and it removes the AGPL question for paid builds. Keep
      `ultralytics` only for the existing optional AI Train path, never
-     for shipped weights. **Owner to confirm.**
+     for shipped weights. **Owner confirmed 10 Oct ("Ja zu allem").**
 2. **Runtime default:** Ollama or LM Studio. Proposal: document both, and
    default the probe to Ollama.
 3. **Optional:** allow `huggingface.co` in the cloud environment's network

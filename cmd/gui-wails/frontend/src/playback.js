@@ -1,6 +1,6 @@
 import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
-  TriggerExtendedO, EstimatePlaybackAudioBPM, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
+  TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
@@ -188,6 +188,8 @@ export function initPlayback(root) {
           <span class="hint" style="margin:0;">ms</span>
           <button id="pb-offset-plus" title="Script 50 ms later (+ key)">+50</button>
           <button id="pb-offset-reset">Reset</button>
+          <button id="pb-offset-bake" class="secondary"
+            data-help="Writes the offset into the script file: every curve point, bookmark and chapter moves by the offset, then the offset goes back to 0. Other players then see the corrected timing too. Points that would land before 0 ms are removed (you are told how many).">Write into script</button>
           <span class="checkbox-row" style="margin:0 0 0 12px;">
             <input type="checkbox" id="pb-loop" />
             <label for="pb-loop" style="width:auto;" data-help="Repeats the marked section (drag on heatmap).">Loop selection</label>
@@ -1814,6 +1816,20 @@ export function initPlayback(root) {
   el('#pb-offset-plus').addEventListener('click',
     () => applyOffset((Number(el('#pb-offset').value) || 0) + 50));
   el('#pb-offset-reset').addEventListener('click', () => applyOffset(0));
+  el('#pb-offset-bake')?.addEventListener('click', async () => {
+    const ms = Number(el('#pb-offset').value) || 0;
+    if (!ms) { log('Offset is 0 — nothing to write.'); return; }
+    if (!window.confirm(`Move every point, bookmark and chapter by ${ms} ms and save the script? The offset then goes back to 0.`)) return;
+    try {
+      const res = await BakeScriptOffset();
+      el('#pb-offset').value = 0;
+      const dropped = Number(res?.dropped || 0);
+      log(`Offset ${ms} ms written into the script` + (dropped ? ` — ${dropped} item(s) before 0 ms removed.` : '.'));
+      await reloadAfterRangeEdit();
+    } catch (err) {
+      logError('Write offset: ' + err);
+    }
+  });
   let pbContactVibPreviewTimer = 0;
   async function refreshPlayContactVibPreview() {
     const out = el('#pb-contact-vib-preview');
