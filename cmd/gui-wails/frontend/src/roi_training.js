@@ -158,7 +158,7 @@ export function initRoiTraining(root) {
     <h3>4. Train model</h3>
     <p class="hint">Optional. Only needed if you want your own ONNX region model.
       Play / Create work without this. Device: Auto picks CUDA → MPS → DirectML → CPU.</p>
-    <div class="field-row"><label data-help="Training passes. 50–100 typical for small sets.">Epochs</label><input type="number" id="rt-epochs" value="100" min="1" /></div>
+    <div class="field-row"><label data-help="Training passes. 50–100 typical for small sets. Capped at 500 — more rarely helps small sets and can keep the GPU busy for days.">Epochs</label><input type="number" id="rt-epochs" value="100" min="1" max="500" /></div>
     <div class="field-row"><label data-help="auto = best available backend.">Device</label>
       <select id="rt-device">
         <option value="auto" selected>Automatic</option>
@@ -1691,7 +1691,9 @@ export function initRoiTraining(root) {
         return;
       }
     } catch (_) { /* fall through; Go/Python will fail fast with a clear error */ }
-    const epochs = parseInt(el('#rt-epochs').value, 10) || 100;
+    // Same cap as generator.MaxRoiTrainingEpochs (Go clamps too).
+    const epochs = Math.min(500, Math.max(1, parseInt(el('#rt-epochs').value, 10) || 100));
+    el('#rt-epochs').value = epochs;
     const device = el('#rt-device').value;
     el('#rt-train').disabled = true;
     setCancelVisible('train');

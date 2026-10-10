@@ -435,7 +435,22 @@ func buildBootstrapArgsOpts(scriptPath, videoPath string, regions []RoiTrainingR
 	return args
 }
 
+// MaxRoiTrainingEpochs caps one AI Train run (Owner UX ask "Epochs max").
+// Small hand-labelled sets stop improving long before this; a typo like
+// 10000 would otherwise keep the GPU busy for days.
+const MaxRoiTrainingEpochs = 500
+
+// ClampRoiTrainingEpochs keeps epochs in 1..MaxRoiTrainingEpochs
+// (0 or less = script default).
+func ClampRoiTrainingEpochs(epochs int) int {
+	if epochs > MaxRoiTrainingEpochs {
+		return MaxRoiTrainingEpochs
+	}
+	return epochs
+}
+
 func buildTrainArgs(scriptPath, datasetDir, outputModelPath string, epochs int, device string) []string {
+	epochs = ClampRoiTrainingEpochs(epochs)
 	args := []string{scriptPath,
 		"--dataset-dir", datasetDir,
 		"--output", outputModelPath,
