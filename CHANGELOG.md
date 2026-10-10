@@ -12,6 +12,24 @@ PlayHeatUX / G4.C (#460): taller Play heatmap, Tip→Partner snack, progressive 
 
 ## Unreleased
 
+### Added
+
+- **Play: vibration from video audio only (switchable)** — Settings → Play
+  and Play → Playback & Extended-O → *Vibration from video audio only*. On: the vibration channel follows
+  the loudness of the video's sound track (adaptive per video, silence =
+  off, fast attack / soft release); suction keeps following the script; the
+  script offset is respected and vibration continues to the end of the
+  audio. Off by default; no file is changed. Without a video or sound track
+  Play keeps the script vibration and says so in the log.
+
+### Fixed
+
+- **Stroke preview read 2–3× the real stroke rate** — at stroke turning
+  points there is no real motion, and codec noise (or a jump to mid-frame)
+  set the motion centroid, adding false extrema. Noise below 8 grey levels
+  no longer steers the centroid, and motion-free samples hold the last
+  value. A clean 1 Hz bounce now reads 1 Hz (was 2–3 Hz depending on the
+  encoder's thread count, which also made the CI test flaky).
 
 ### Changed
 

@@ -149,6 +149,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	}
 	vibScale := opts.ContactIntensityScale
 	sucScale := 1.0
+	presetVibScale := 1.0
 	if path := a.loadedScriptPath(); samn.IsSamnPath(path) {
 		if doc, err := samn.Load(path); err == nil {
 			if p := doc.ActivePreset(); p != nil {
@@ -156,6 +157,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 					vibScale = 1
 				}
 				vibScale *= p.VibrationScale
+				presetVibScale = p.VibrationScale
 				sucScale = p.SuctionScale
 				// Recipe mode: preset may override contact shape before mapping.
 				if !mapOpts.UseExplicitAxes && mapOpts.ContactVibration {
@@ -189,6 +191,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	if len(frames) == 0 {
 		return fmt.Errorf("script contains no playable actions")
 	}
+	// Schalter "Vibration nur aus Audio": ersetzt nur die Vibrationsspur.
+	frames, audioNote := a.withAudioVibration(frames, mapOpts.TickMs, presetVibScale)
 	a.setCurrentFrames(frames)
 	dev, reusedDevice := a.claimSessionDevice(opts.Mock)
 	p := player.New(dev)
@@ -235,7 +239,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			defer dev.Disconnect()
 		}
 		runtime.EventsEmit(a.ctx, "playback:log", "Playback starting...")
-		if contactOn {
+		if audioNote != "" {
+			runtime.EventsEmit(a.ctx, "playback:log", audioNote)
+		} else if contactOn {
 			runtime.EventsEmit(a.ctx, "playback:log", "Contact vibration active (SAM)")
 		}
 		var playErr error

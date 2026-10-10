@@ -147,6 +147,15 @@ func Analyze(ctx context.Context, videoPath string, opts Options) (Report, error
 			continue
 		}
 		mad, cy, hx := frameStats(prev, fr.Pixels, fr.Width, fr.Height)
+		if math.IsNaN(cy) {
+			// No real motion between the two samples (stroke turning
+			// point): hold the last centroid instead of inventing a
+			// jump to mid-frame, which doubled/tripled StrokeHz.
+			cy = 0.5
+			if n := len(signal); n > 0 {
+				cy = signal[n-1]
+			}
+		}
 		signal = append(signal, cy)
 		mads = append(mads, mad)
 		timesMs = append(timesMs, atMs)
@@ -231,14 +240,20 @@ func Analyze(ctx context.Context, videoPath string, opts Options) (Report, error
 	return rep, nil
 }
 
+// centroidNoiseFloor: per-pixel abs diffs below this are codec noise and do
+// not steer the motion centroid (they still count toward MAD / pan).
+const centroidNoiseFloor = 8.0
+
 // frameStats returns mean abs diff, motion-energy centroid y (0=top..1=bottom),
 // and a crude horizontal shift proxy (right energy − left energy of abs diff).
+// centroidY is NaN when no pixel moved above centroidNoiseFloor — the caller
+// holds the previous value then.
 func frameStats(prev, cur []byte, w, h int) (mad, centroidY, horizShift float64) {
 	if len(prev) != len(cur) || w*h != len(cur) || w < 4 || h < 4 {
 		return 0, 0.5, 0
 	}
 	x0, x1 := w/4, 3*w/4 // center band — ignore borders (letterbox / UI)
-	var sumDiff, sumWY float64
+	var sumDiff, sumWY, sumC float64
 	var left, right float64
 	mid := w / 2
 	n := 0
@@ -247,7 +262,10 @@ func frameStats(prev, cur []byte, w, h int) (mad, centroidY, horizShift float64)
 		for x := x0; x < x1; x++ {
 			d := math.Abs(float64(cur[row+x]) - float64(prev[row+x]))
 			sumDiff += d
-			sumWY += d * float64(y)
+			if d >= centroidNoiseFloor {
+				sumC += d
+				sumWY += d * float64(y)
+			}
 			if x < mid {
 				left += d
 			} else {
@@ -260,10 +278,10 @@ func frameStats(prev, cur []byte, w, h int) (mad, centroidY, horizShift float64)
 		return 0, 0.5, 0
 	}
 	mad = sumDiff / float64(n)
-	if sumDiff > 1e-6 {
-		centroidY = (sumWY / sumDiff) / float64(h-1)
+	if sumC > 1e-6 {
+		centroidY = (sumWY / sumC) / float64(h-1)
 	} else {
-		centroidY = 0.5
+		centroidY = math.NaN()
 	}
 	// Normalize horizontal imbalance to a soft “pixel-like” shift scale.
 	horizShift = (right - left) / float64(n) * float64(w) / 40.0

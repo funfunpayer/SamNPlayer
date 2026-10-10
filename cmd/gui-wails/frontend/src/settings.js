@@ -35,6 +35,7 @@ export function saveSetting(key, value) {
       'playback.extended_o_restore_ms': 'playbackEORestoreMs',
       'playback.video_play_autostart': 'playbackVideoPlayAutostart',
       'playback.honor_inverted': 'playbackHonorInverted',
+      'playback.audio_vibration': 'playbackAudioVibration',
       'playback.trajectory_overlay': 'playbackTrajectoryOverlay',
       'playback.cap_intensity': 'playbackCapIntensity',
       'playback.speed_highlights': 'playbackSpeedHL',
@@ -105,6 +106,12 @@ export function initSettings(root) {
         data-help="Some .funscript files (e.g. from OpenFunscripter) carry &quot;inverted&quot;: true. On: Play flips those files (100 − position) as the format intends. Off: they play exactly as the points are written — use this if such a file feels upside down. Review → Invert always flips what you currently see and removes the flag.">Honor "inverted" flag in .funscript files</label>
     </div>
     <p class="hint" style="margin-top:0">On by default (same as since v0.5.44). Changing this reloads the open script.</p>
+    <div class="checkbox-row">
+      <input type="checkbox" id="st-audio-vibration" />
+      <label for="st-audio-vibration"
+        data-help="On: during Play the vibration follows the loudness of the video's sound (music, voices, beats) instead of the script. Suction still follows the script. Needs a video with a sound track; without one, Play keeps the script vibration and says so in the log. Your files are not changed.">Vibration from video audio only</label>
+    </div>
+    <p class="hint" style="margin-top:0">Off by default. Takes effect at the next Play start; the first start may take a few seconds while the sound is read.</p>
 
     <details id="st-need-details" class="st-opt-panel">
       <summary>What you need — portable Play + Create, no extra install</summary>
@@ -317,6 +324,9 @@ export function initSettings(root) {
     if (el('#st-honor-inverted')) {
       el('#st-honor-inverted').checked = s.playbackHonorInverted !== false;
     }
+    if (el('#st-audio-vibration')) {
+      el('#st-audio-vibration').checked = !!s.playbackAudioVibration;
+    }
     el('#st-log-level').value = s.logLevel;
     el('#st-log-path').textContent = s.logPath || '(no log file written yet)';
     el('#st-report-path').value = s.reportPath || '';
@@ -452,6 +462,11 @@ export function initSettings(root) {
   el('#st-connect-test').addEventListener('change', e => saveSetting('device.connect_test', e.target.checked));
   el('#st-honor-inverted')?.addEventListener('change', e =>
     saveSetting('playback.honor_inverted', e.target.checked));
+  el('#st-audio-vibration')?.addEventListener('change', e => {
+    saveSetting('playback.audio_vibration', e.target.checked);
+    const pb = document.querySelector('#pb-audio-vibration');
+    if (pb && pb.checked !== e.target.checked) pb.checked = e.target.checked;
+  });
   el('#st-runtime-check').addEventListener('click', async () => {
     const status = el('#st-runtime-status');
     status.textContent = 'Checking…';
