@@ -446,192 +446,180 @@ button:not(.primary):not(.danger):not(.tab-btn):hover:not(:disabled) {
   .gen-step-panel:not([hidden]) { animation: none; }
 }
 
-/* Phase 7 — Tools tabs polish (Log, Benchmark, Settings, ROI Training, Device),
-   tables, checkboxes, consistent spacing, brand tagline & final contrast tweaks.
-   CSS only — no markup or JS changes. */
-.brand-tagline {
-  color: #1bcfff;
-  opacity: 0.85;
-}
-
-#tab-log, #tab-benchmark, #tab-settings, #tab-roi-training, #tab-device {
-  color: var(--text);
-}
-
-#tab-log table,
-#tab-benchmark table,
-#tab-roi-training table,
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: rgba(8, 22, 36, .55);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 201, 245, .12);
-}
-
-#tab-log th, #tab-benchmark th, #tab-roi-training th, table th {
-  background: rgba(4, 201, 245, .08);
-  color: var(--accent);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(0, 201, 245, .15);
-}
-
-#tab-log td, #tab-benchmark td, #tab-roi-training td, table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 201, 245, .08);
-  color: var(--text);
-}
-
-#tab-log tr:hover td,
-#tab-benchmark tr:hover td,
-#tab-roi-training tr:hover td,
-table tr:hover td {
-  background: rgba(4, 201, 245, .06);
-}
-
-input[type="checkbox"],
-input[type="radio"] {
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-}
-
-#tab-settings .field-row,
-#tab-device .field-row,
-#tab-roi-training .field-row {
-  margin-bottom: 14px;
-}
-
-#tab-log .card,
-#tab-benchmark .card,
-#tab-settings .card,
-#tab-roi-training .card {
-  border-radius: 16px;
-  background: rgba(11, 30, 46, .92);
-}
-
-/* Subtle cyan left accent on tools cards for visual consistency */
-#tab-log .card,
-#tab-benchmark .card,
-#tab-settings .card,
-#tab-roi-training .card,
-#tab-device .card {
-  border-left: 3px solid rgba(4, 201, 245, .35);
-}
-
-/* Ensure disabled states stay readable */
-button:disabled,
-input:disabled,
-select:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-@media (max-width: 900px) {
-  table {
-    font-size: 13px;
-  }
-  #tab-log th, #tab-benchmark th, table th,
-  #tab-log td, #tab-benchmark td, table td {
-    padding: 7px 8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  table tr:hover td {
-    transition: none;
-  }
-}
-
-/* Phase 8 — Sidebar toggle styles, body surface consistency, lists, badges,
-   update banner, prefers-contrast, final responsive topbar & panel refinements.
-   Restores full theme after accidental placeholder. CSS only. */
-body {
-  background:
-    radial-gradient(1000px 500px at 10% -10%, rgba(4, 201, 245, .08), transparent 60%),
-    radial-gradient(800px 400px at 90% 10%, rgba(255, 145, 43, .05), transparent 55%),
-    #06101c;
-  color: var(--text);
-}
-
+/* Workspace panel visibility: does not destroy sidebar state or listeners. */
+body.flow-sidebar-hidden #sidebar { display: none !important; }
 .flow-workspace-toggle {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid rgba(4, 201, 245, .25);
+  border-radius: 999px;
+  background: rgba(4, 201, 245, .075);
   color: var(--text);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
+  font: inherit;
   font-size: 12px;
-  font-weight: 600;
+  padding: 7px 12px;
   cursor: pointer;
-  margin-right: 12px;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 .flow-workspace-toggle:hover {
-  background: var(--surface);
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgba(4, 201, 245, .55);
+  background: rgba(4, 201, 245, .14);
 }
-.flow-workspace-toggle:focus-visible {
-  outline: 2px solid #45dcff;
-  outline-offset: 2px;
+@media (prefers-reduced-motion: reduce) {
+  .flow-workspace-toggle { transition: none; }
 }
 
-body.flow-sidebar-hidden #sidebar {
-  display: none;
-}
-body.flow-sidebar-hidden .stage {
-  /* keep stage full when sidebar hidden */
-}
-
-ul, ol {
+/* Phase 7 — body surface, lists, checkboxes, badges, banners, consistency & contrast */
+body {
+  background:
+    radial-gradient(1100px 480px at 12% -10%, rgba(4, 201, 245, .09), transparent 62%),
+    radial-gradient(820px 400px at 96% 8%, rgba(0, 203, 209, .06), transparent 55%),
+    linear-gradient(180deg, #081422 0%, var(--bg) 48%);
   color: var(--text);
 }
-li::marker {
-  color: var(--accent);
-}
-
-.badge, .pill.badge {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: rgba(4, 201, 245, .25);
-}
-
 .update-banner {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  border-bottom-color: rgba(4, 201, 245, .2);
+  background: color-mix(in srgb, var(--teal) 16%, var(--surface));
+  border-bottom-color: var(--border);
   color: var(--text);
 }
-
-@media (max-width: 600px) {
+.list {
+  border-color: var(--border);
+  background: rgba(8, 22, 36, .4);
+}
+.list-item {
+  border-bottom-color: var(--border);
+  color: var(--text);
+}
+.list-item:hover {
+  background: rgba(4, 201, 245, .07);
+}
+.list-item.selected {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.badge {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.badge.direct {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.checkbox-row input[type="checkbox"] {
+  border-color: var(--border-strong);
+  background: var(--bg-alt);
+}
+.checkbox-row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.hint, .text-dim {
+  color: #b8d0e0;
+}
+.error-text {
+  color: var(--danger);
+}
+.card h2, .card h3 {
+  color: var(--text);
+}
+.two-col {
+  gap: 18px;
+}
+@media (max-width: 640px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
   #topbar {
     flex-wrap: wrap;
     height: auto;
     min-height: 54px;
-    padding: 8px 12px;
-    gap: 8px;
+    padding-block: 8px;
   }
-  .flow-workspace-toggle {
-    order: -1;
-    margin-right: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-item, .checkbox-row input[type="checkbox"] {
+    transition: none;
   }
 }
 
+/* Phase 8 — handbook overlay, generator specifics, better lists/badges, prefers-contrast, refined responsive topbar & panels */
+.handbook-overlay {
+  background: rgba(6, 16, 28, .72);
+}
+.handbook-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+  border-radius: 16px;
+}
+.handbook-head, .handbook-foot {
+  border-color: var(--border);
+}
+.handbook-kicker {
+  color: var(--accent);
+}
+.handbook-nav-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.help-chip, .help-popover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.gen-steps-list {
+  background: rgba(8, 22, 36, .35);
+  border-radius: 12px;
+}
+.gen-step-item {
+  border-color: var(--border-soft);
+}
+.gen-step-item.active {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+}
+.gen-step-num {
+  background: var(--accent);
+  color: #051018;
+}
+.badge, .gen-cv-badge, .gen-pp-badge {
+  background: rgba(4, 201, 245, .1);
+  border-color: rgba(4, 201, 245, .25);
+  color: var(--text);
+}
+.list-item.selected,
+.gen-queue-list .selected {
+  background: var(--accent-soft);
+}
 @media (prefers-contrast: more) {
   :root {
     --text: #ffffff;
     --text-dim: #d0e8f5;
-    --border: #2a5570;
+    --border: #3a6a88;
   }
-  .card {
-    border-width: 1.5px;
+  button.primary {
+    box-shadow: none;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 480px) {
+  .pills {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .topbar-device-wrap {
+    order: 2;
+  }
   .flow-workspace-toggle {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+.card:focus-within {
+  border-color: rgba(4, 201, 245, .4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .handbook-panel, .gen-step-item, .list-item {
     transition: none;
   }
 }
