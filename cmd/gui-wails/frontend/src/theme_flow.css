@@ -1,0 +1,15 @@
+/* SamNPlayer Flow look (V1.0) — owned by ChatGPT (look), see docs/V1_PLAN.md.
+ *
+ * Rules (Owner, 11 Oct): Claude builds the core and structure; ChatGPT builds the
+ * look. Put all visual polish for the 1.0 mockup HERE, in this one file:
+ * glows, waves, panel surfaces, spacing, typography, icon tints.
+ *
+ * Loaded after style.css, so rules here win at equal specificity.
+ * Style only through the hooks in docs/PLAY_UI_CONTRACT.md:
+ *   [data-pb-region=library|main|inspector-tabs|bottom|bottom-tabs|video|
+ *    transport|timeline|curve|lanes|heatmap], .pb-lib-item, .pb-insp-tab,
+ *   .pb-insp-panel, .pb-chan-row, .pb-card, .pb-bottom-tab, #topbar, #rail,
+ *   and the tokens --accent, --axis-stroke, --axis-vibration, --axis-suction,
+ *   --pb-playhead, --pb-grid.
+ * Never hide or remove controls here; never change ids.
+ */

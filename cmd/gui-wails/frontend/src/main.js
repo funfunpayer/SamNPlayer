@@ -1,4 +1,5 @@
 import './style.css';
+import './theme_flow.css'; // V1 look (ChatGPT) — loaded after style.css
 import './help.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
