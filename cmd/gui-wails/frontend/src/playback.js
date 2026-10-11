@@ -24,7 +24,7 @@ const HEATMAP_BUCKETS = 300;
 export function initPlayback(root) {
   root.classList.add('tab-playback');
   root.innerHTML = `
-    <div class="pb-head">
+    <div class="pb-head" data-pb-region="head">
       <div class="pb-head-text">
         <h2>Play</h2>
         <span class="path-label" id="pb-script-path">No Emotion Script selected</span>
@@ -35,7 +35,7 @@ export function initPlayback(root) {
       </div>
     </div>
 
-    <div class="pb-empty" id="pb-empty">
+    <div class="pb-empty" id="pb-empty" data-pb-region="empty">
       <div class="pb-empty-inner">
         <div class="pb-brand-moment" aria-hidden="true">
           <img class="pb-brand-mark" src="/src/assets/images/logo-universal.png" alt="" />
@@ -51,8 +51,8 @@ export function initPlayback(root) {
     </div>
 
     <div class="pb-loaded" id="pb-loaded" hidden>
-      <div class="pb-media">
-        <div class="pb-video-stage" id="pb-video-stage">
+      <div class="pb-media" data-pb-region="media">
+        <div class="pb-video-stage" id="pb-video-stage" data-pb-region="video">
           <video id="pb-video" controls playsinline></video>
           <canvas id="pb-trajectory" class="pb-trajectory-canvas" hidden aria-hidden="true"></canvas>
           <div id="pb-pos-overlay" class="pos-gauge" hidden aria-hidden="true">
@@ -87,24 +87,7 @@ export function initPlayback(root) {
             </div>
           </div>
         </div>
-        <div class="pb-axis-legend" id="pb-axis-legend" hidden>
-          <button type="button" class="pb-axis-chip" data-axis="general" title="Show / edit the stroke curve"><i></i>Stroke</button>
-          <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
-          <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
-        </div>
-        <canvas id="pb-curve" height="176" class="pb-curve" style="display:none"></canvas>
-        <canvas id="pb-axis-lanes" class="pb-axis-lanes" hidden
-          title="Feel channels — click a lane to show / edit it above"></canvas>
-        <canvas id="pb-heatmap" height="56" class="pb-heatmap" style="display:none"></canvas>
-        <div class="row pb-curve-zoom" id="pb-curve-zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
-          <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
-          <button type="button" id="pb-zoom-out" title="Zoom out">Zoom out</button>
-          <button type="button" id="pb-zoom-sel" title="Zoom to the current heatmap selection" disabled>Zoom selection</button>
-          <button type="button" id="pb-zoom-reset" title="Show the full script">Reset zoom</button>
-          <span class="hint" id="pb-zoom-label" style="margin:0">Full</span>
-        </div>
-        <div id="pb-chart-tooltip" class="pb-chart-tooltip" hidden></div>
-        <div class="pb-transport">
+        <div class="pb-transport" data-pb-region="transport">
           <div class="row pb-transport-btns">
             <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
@@ -123,7 +106,26 @@ export function initPlayback(root) {
             <span>Suction <b id="pb-suc">-</b></span>
           </div>
         </div>
-        <div class="pb-playlist" id="pb-playlist" hidden>
+        <div class="pb-timeline" data-pb-region="timeline">
+          <div class="pb-axis-legend" id="pb-axis-legend" data-pb-region="legend" role="toolbar" aria-label="Curve axis" hidden>
+            <button type="button" class="pb-axis-chip" data-axis="general" title="Show / edit the stroke curve"><i></i>Stroke</button>
+            <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
+            <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
+          </div>
+          <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
+          <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
+            title="Feel channels — click a lane to show / edit it above"></canvas>
+          <canvas id="pb-heatmap" height="56" class="pb-heatmap" data-pb-region="heatmap" style="display:none"></canvas>
+          <div class="row pb-curve-zoom" id="pb-curve-zoom" data-pb-region="zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
+            <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
+            <button type="button" id="pb-zoom-out" title="Zoom out">Zoom out</button>
+            <button type="button" id="pb-zoom-sel" title="Zoom to the current heatmap selection" disabled>Zoom selection</button>
+            <button type="button" id="pb-zoom-reset" title="Show the full script">Reset zoom</button>
+            <span class="hint" id="pb-zoom-label" style="margin:0">Full</span>
+          </div>
+        </div>
+        <div id="pb-chart-tooltip" class="pb-chart-tooltip" hidden></div>
+        <div class="pb-playlist" id="pb-playlist" data-pb-region="playlist" hidden>
           <div class="pb-playlist-head">
             <span class="pb-playlist-title">Playlist</span>
             <div class="pb-playlist-opts">
@@ -145,7 +147,7 @@ export function initPlayback(root) {
         </div>
       </div>
 
-      <div class="pb-tools" id="pb-tools">
+      <div class="pb-tools" id="pb-tools" data-pb-region="tools">
         <div class="pb-tools-head">
           <span class="pb-tools-title">Tools</span>
           <button type="button" class="secondary pb-tools-toggle" id="pb-tools-toggle"
@@ -160,7 +162,7 @@ export function initPlayback(root) {
           <input type="checkbox" id="pb-pos-overlay-toggle" checked />
           0–100 on video
         </label>
-        <div class="row" id="pb-axis-row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div class="row" id="pb-axis-row" data-pb-region="tool-group" data-pb-group="feel" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
           <label style="width:auto;" data-help="Motion = main stroke. Vibration / Suction = Neo 2 feel channels on Emotion Scripts.">Curve</label>
           <select id="pb-axis" style="width:auto;">
             <option value="general">General</option>
@@ -193,7 +195,7 @@ export function initPlayback(root) {
           data-help="Soft curve + keyframe dots. Click+drag = move. Click empty = new. Double-click = delete (keep ≥2). Saves immediately.">
           Edit dots on the curve: drag / click / double-click — see “?”.</p>
 
-        <div class="row" id="pb-offset-row" style="display:none; align-items:center;">
+        <div class="row" id="pb-offset-row" data-pb-region="tool-group" data-pb-group="timing" style="display:none; align-items:center;">
           <label style="width:auto;" data-help="Positive value = script applies later. Takes effect immediately, including during playback. Saved per script.">Script offset</label>
           <button id="pb-offset-minus" title="Script 50 ms earlier (− key)">−50</button>
           <input type="number" id="pb-offset" value="0" step="10" style="width:90px;" />
@@ -550,7 +552,21 @@ export function initPlayback(root) {
   const curveCanvas = el('#pb-curve');
   // Multi-axis view (Owner 11 Oct): one colour per channel everywhere —
   // main curve, lanes, legend chips (style.css uses the same values).
-  const AXIS_COLORS = { general: '#5fd0c8', vibration: '#f0a050', suction: '#c39bff' };
+  // Defaults; the layout may override them with CSS custom properties
+  // (--axis-stroke / --axis-vibration / --axis-suction, docs/PLAY_UI_CONTRACT.md).
+  const AXIS_DEFAULTS = { general: '#5fd0c8', vibration: '#f0a050', suction: '#c39bff' };
+  const AXIS_TOKENS = { general: '--axis-stroke', vibration: '--axis-vibration', suction: '--axis-suction' };
+  const AXIS_COLORS = { ...AXIS_DEFAULTS };
+  const THEME = { playhead: '#ffffff', grid: 'rgba(255,255,255,0.10)', curveWidth: 1.5 };
+  function readTheme() {
+    const cs = getComputedStyle(root);
+    const tok = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+    for (const axis of Object.keys(AXIS_DEFAULTS)) AXIS_COLORS[axis] = tok(AXIS_TOKENS[axis], AXIS_DEFAULTS[axis]);
+    THEME.playhead = tok('--pb-playhead', '#ffffff');
+    THEME.grid = tok('--pb-grid', 'rgba(255,255,255,0.10)');
+    const w = parseFloat(tok('--pb-curve-width', '1.5'));
+    THEME.curveWidth = Number.isFinite(w) && w > 0 ? w : 1.5;
+  }
   const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
   const LANE_AXES = ['vibration', 'suction'];
   const AXIS_LANE_CSS_H = 34;
@@ -641,6 +657,7 @@ export function initPlayback(root) {
   }
 
   function setScriptLoaded(loaded) {
+    root.dataset.pbState = loaded ? 'loaded' : 'empty';
     el('#pb-empty').hidden = !!loaded;
     el('#pb-loaded').hidden = !loaded;
     root.classList.toggle('has-script', !!loaded);
@@ -1690,6 +1707,7 @@ export function initPlayback(root) {
   function redrawCurve() {
     const points = (editMode && rawActions) ? rawActions : curvePoints;
     if (!points || points.length < 2) return;
+    readTheme();
     const ctx = curveCanvas.getContext('2d');
     const w = curveCanvas.width, h = curveCanvas.height;
     ctx.clearRect(0, 0, w, h);
@@ -1698,7 +1716,7 @@ export function initPlayback(root) {
 
     // Hilfslinien bei 0 / 50 / 100 - ohne Bezug ist die Amplitude nicht
     // einzuschätzen.
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.strokeStyle = THEME.grid;
     ctx.lineWidth = 1;
     for (const pos of [0, 50, 100]) {
       const y = Math.round(yOf(pos)) + 0.5;
@@ -1738,7 +1756,7 @@ export function initPlayback(root) {
 
     // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour.
     ctx.strokeStyle = axisColor;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = THEME.curveWidth * (window.devicePixelRatio || 1);
     ctx.lineJoin = 'round';
     drawSmoothCurve(ctx, points, xOf, yOf);
 
@@ -1784,7 +1802,7 @@ export function initPlayback(root) {
     if (totalMs > 0) {
       const x = Math.round(xOf(Math.max(0, currentPosMs))) + 0.5;
       if (currentPosMs > 0) {
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = THEME.playhead;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -1855,6 +1873,8 @@ export function initPlayback(root) {
       });
     }
     axisLanesCanvas.hidden = false;
+    axisLanesCanvas.setAttribute('aria-label',
+      `Feel channel lanes: ${lanes.map(a => AXIS_LABELS[a]).join(', ')}. Up/Down chooses the channel shown above.`);
     const cssH = lanes.length * AXIS_LANE_CSS_H;
     if (axisLanesCanvas.style.height !== cssH + 'px') axisLanesCanvas.style.height = cssH + 'px';
     const dpr = window.devicePixelRatio || 1;
@@ -1905,7 +1925,7 @@ export function initPlayback(root) {
     });
     if (totalMs > 0 && currentPosMs > 0) {
       const x = Math.round(xOf(currentPosMs)) + 0.5;
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = THEME.playhead;
       ctx.lineWidth = 1.25 * dpr;
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -1960,6 +1980,7 @@ export function initPlayback(root) {
   // collapsed so the video takes the full width. Remembered per viewer.
   function setToolsCollapsed(on) {
     root.classList.toggle('pb-tools-collapsed', on);
+    root.dataset.pbTools = on ? 'folded' : 'open';
     const btn = el('#pb-tools-toggle');
     if (btn) {
       btn.textContent = on ? '⟨' : '⟩';
@@ -3357,6 +3378,40 @@ export function initPlayback(root) {
     redrawCurve();
   });
 
+  // Any layout may resize the canvases (grid, fold, window): redraw them at
+  // their new CSS size so they stay sharp — the layout never calls JS.
+  if (typeof ResizeObserver === 'function') {
+    let pending = false;
+    const ro = new ResizeObserver(() => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        if (curvePoints && curveCanvas.style.display !== 'none') {
+          sizeCanvasForDPR(curveCanvas, 800, 176);
+          redrawCurve();
+        }
+        if (heatmapPoints && heatmapCanvas.style.display !== 'none') {
+          sizeCanvasForDPR(heatmapCanvas, 800, 56);
+          redrawHeatmap();
+        }
+      });
+    });
+    ro.observe(curveCanvas);
+    ro.observe(heatmapCanvas);
+    ro.observe(axisLanesCanvas);
+  }
+  // Mirror stage state as data attributes for layout CSS (docs/PLAY_UI_CONTRACT.md).
+  const stageEl = el('#pb-video-stage');
+  function syncStageState() {
+    root.dataset.pbPlaying = stageEl.classList.contains('is-playing') ? 'true' : 'false';
+    root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
+  }
+  new MutationObserver(syncStageState).observe(stageEl, { attributes: true, attributeFilter: ['class'] });
+  syncStageState();
+  if (!root.dataset.pbState) root.dataset.pbState = 'empty';
+  if (!root.dataset.pbTools) root.dataset.pbTools = 'open';
+
   // Canvas-Breite ist eine feste Pixelangabe, keine CSS-Größe - bei einer
   // Fenstergrößenänderung muss sie neu gesetzt werden, sonst wird die Kurve
   // verzerrt skaliert dargestellt.
@@ -3981,6 +4036,31 @@ export function initPlayback(root) {
   el('#pb-axis-legend')?.addEventListener('click', e => {
     const chip = e.target.closest('[data-axis]');
     if (chip) selectAxis(chip.dataset.axis);
+  });
+  // Keyboard: ←/→ (and Home/End) move between the visible axis chips and
+  // select the axis; ↑/↓ on the focused lanes canvas pick a feel channel.
+  el('#pb-axis-legend')?.addEventListener('keydown', e => {
+    const chips = [...el('#pb-axis-legend').querySelectorAll('[data-axis]')].filter(b => !b.hidden);
+    const i = chips.indexOf(document.activeElement);
+    if (i < 0) return;
+    let j = i;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = (i + 1) % chips.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = (i - 1 + chips.length) % chips.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = chips.length - 1;
+    else return;
+    e.preventDefault();
+    chips[j].focus();
+    selectAxis(chips[j].dataset.axis);
+  });
+  axisLanesCanvas.addEventListener('keydown', e => {
+    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+    e.preventDefault();
+    const cur = lanes.indexOf(editAxis);
+    const j = cur < 0 ? (e.key === 'ArrowDown' ? 0 : lanes.length - 1)
+      : (cur + (e.key === 'ArrowDown' ? 1 : lanes.length - 1)) % lanes.length;
+    selectAxis(lanes[j]);
   });
   axisLanesCanvas.addEventListener('click', e => {
     const lanes = LANE_AXES.filter(a => axisLanePoints[a]);

@@ -65,6 +65,7 @@ def main():
             timeout=5000,
         )
 
+        page.locator("#pb-curve").scroll_into_view_if_needed()  # layout may push it below the fold
         box = page.locator("#pb-curve").bounding_box()
         page.mouse.move(box["x"] + box["width"] * 0.25, box["y"] + box["height"] * 0.5)
         page.wait_for_function(
@@ -75,6 +76,7 @@ def main():
         tip = page.locator("#pb-chart-tooltip").inner_text()
         check("curve tooltip visible with time and value", "·" in tip, tip)
 
+        page.locator("#pb-heatmap").scroll_into_view_if_needed()  # layout may push it below the fold
         hbox = page.locator("#pb-heatmap").bounding_box()
         page.mouse.move(hbox["x"] + hbox["width"] * 0.5, hbox["y"] + hbox["height"] * 0.5)
         page.wait_for_function(
