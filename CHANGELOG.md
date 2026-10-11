@@ -19,6 +19,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Bigger Play view (FunGen2-style)** — the info column is hidden on
+  Play, the tools sit in a sticky right column, and **T** (or ⟩) folds
+  them away so video and curve take the full width (remembered).
+- **Multi-axis view in Play** — stroke teal, vibration amber, suction
+  lilac everywhere; legend chips and colour-coded lanes under the curve
+  switch the shown/edited axis, the stroke stays as a faint guide.
+- **Refreshed README and website** — new screenshots of the current GUI,
+  lilac wordmark and website palette.
+
 - **Settings → About SamNPlayer** — logo, version, edition, EULA version
   and a partner graphic (SamNPlayer 🤝 the "Sex for him" site); the
   website link appears once its address is set.
