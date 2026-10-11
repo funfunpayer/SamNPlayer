@@ -1,6 +1,6 @@
 # Flow theme + Play layout v2 — QA / acceptance checklist
 
-Companion to `docs/BRAND_FLOW_UI_DIRECTION_2026-10.md`, `docs/design/flow-theme-tokens.css`, `docs/design/play-layout-v2-proposal.css` and `docs/PLAY_UI_CONTRACT.md`.
+Companion to `docs/BRAND_FLOW_UI_DIRECTION_2026-10.md`, `docs/design/flow-theme-tokens.css`, `docs/design/play-layout-v2-proposal.css`, `docs/design/generator-layout-proposal.css`, `docs/design/training-layout-proposal.css` and `docs/PLAY_UI_CONTRACT.md`.
 
 **Status:** proposal for Claude's implementation PR (branch `claude/keen-davinci-t2ysrs`). No assets or frontend changes in this file.
 
@@ -27,8 +27,8 @@ Companion to `docs/BRAND_FLOW_UI_DIRECTION_2026-10.md`, `docs/design/flow-theme-
 ## Post-merge visual QA (Owner / ChatGPT)
 
 - [ ] Wave motifs low-opacity, never behind text.
-- [ ] Generator / Training / Settings reuse the same spacing, card and button tokens; no fictional controls.
+- [ ] Generator / Training / Settings reuse the same spacing, card and button tokens; no fictional controls. See lightweight proposals in `docs/design/generator-layout-proposal.css`, `docs/design/training-layout-proposal.css` and `docs/design/OTHER_TABS_NOTES.md`.
 - [ ] Multi-axis lanes retain shared playhead, legend, zoom; colours match tokens.
 - [ ] No regression in device controls, script loading or existing bindings.
 
-**Next after this checklist is green:** token mapping notes or lightweight proposals for Generator / Training panels if needed.
+**Next after this checklist is green:** further polish notes if needed; assets integration once Owner pastes binaries to #477.
