@@ -90,6 +90,9 @@ def main():
             check("Scene Map bottom tab opens the Scene Map view",
                   page.get_attribute("#tab-generator", "data-view") == "scenemap")
             page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click("#pb-lib-editor")
+            check("Library → Editor turns on curve editing", page.is_checked("#pb-curve-edit")
+                  and page.evaluate(f"{root}.dataset.pbInspector") == "view")
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
             check("no page errors", errors == [], str(errors[:3]))

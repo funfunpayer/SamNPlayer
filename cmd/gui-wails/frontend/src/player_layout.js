@@ -43,6 +43,7 @@ const ICONS = {
   map: icon('<path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.3"/>'),
   wave: icon('<path d="M3 12h2l2-6 3 12 3-9 2 5 2-2h4"/>'),
   bpm: icon('<path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/>'),
+  edit: icon('<path d="M4.5 19.5h4l10-10a2.8 2.8 0 0 0-4-4l-10 10z"/><path d="M13.5 6.5l4 4"/>'),
   drop: icon('<path d="M12 4v10M7.5 9.5 12 14l4.5-4.5"/><path d="M5 17.5v1.5h14v-1.5"/>'),
 };
 
@@ -75,6 +76,7 @@ export function applyPlayerLayoutV1(root, api) {
     <ol class="pb-lib-recent" id="pb-lib-recent"></ol>
     <button type="button" class="pb-lib-item" id="pb-lib-playlist">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
     <p class="pb-lib-title">Tools</p>
+    <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-scenemap">${ICONS.map}<span>Scene Map</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-audio">${ICONS.wave}<span>Audio Analysis</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-bpm">${ICONS.bpm}<span>BPM Detection</span></button>
@@ -156,7 +158,7 @@ export function applyPlayerLayoutV1(root, api) {
   if (adv) panels.playback.appendChild(adv);
   ['#pb-quality-details', '#pb-ofs-row', '#pb-marker-auto-row', '#pb-log'].forEach(s => move(s, 'playback'));
   // View: curve display / editing.
-  ['#pb-curve-edit-row', '#pb-curve-edit-hint', '#pb-pos-overlay-row', '#pb-ofs-edit-details',
+  ['#pb-curve-edit-row', '#pb-curve-edit-hint', '#pb-audio-lane-row', '#pb-pos-overlay-row', '#pb-ofs-edit-details',
     '#pb-marker-hint', '#pb-omarker-details'].forEach(s => move(s, 'view'));
   // Anything left (future additions) lands in Playback so nothing is lost.
   [...tools.children].forEach(n => {
@@ -258,6 +260,21 @@ export function applyPlayerLayoutV1(root, api) {
   // ---- Library actions ----------------------------------------------------
   q('#pb-lib-local').addEventListener('click', () => q('#pb-choose')?.click());
   q('#pb-lib-scenemap').addEventListener('click', () => showBottom('scenemap'));
+  // Editor: curve edit mode of the loaded script (existing #pb-curve-edit).
+  q('#pb-lib-editor').addEventListener('click', () => {
+    const box = q('#pb-curve-edit');
+    if (root.dataset.pbState !== 'loaded' || !box || box.disabled) {
+      q('#pb-choose')?.focus();
+      return;
+    }
+    showInspector('view');
+    showBottom('timeline');
+    if (!box.checked) {
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+    }
+    q('#pb-curve')?.scrollIntoView({ block: 'nearest' });
+  });
   q('#pb-lib-audio').addEventListener('click', () => showBottom('audio'));
   q('#pb-lib-bpm').addEventListener('click', () => {
     showInspector('audio');

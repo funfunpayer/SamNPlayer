@@ -65,6 +65,7 @@ the repo (it is a raster concept, not an asset).
 | S7 | **Inspector, Devices + Effects**: per-channel enable + level + live wave, profile, Mode, Sync; Effects / Curve / Limits / Advanced; knobs | Claude | Per-channel level is new core (device-safe) |
 | S8 | **Audio Analysis + Script Tools cards**, incl. **Auto sync (audio)** (Go: offset estimate audio↔script, suggest-only) | Claude | Needs a measurement on real clips |
 | S9 | **Brand assets**: Flow icon (EXE ICO 16–256, 1024 PNG), banner, website/README | Claude integrates; ChatGPT + Owner supply the final files | Exact files, no redraw |
+| S9b | **Editor mode, Generator first** (Owner, 11 Oct): the Library gets a Tools → **Editor** entry (Player: curve edit of the loaded script, done with S4a). The editor in the **Generator** must become clearly better: a review/edit step with the same curve editor (drag / add / delete dots, range tools, undo), the multi-axis lanes, ruler and audio lane | Claude | Scope to be confirmed with the Owner before building |
 | S10 | **Other tabs** in the same style: Generator, Training, Scene Map, Tools (Device / Log / Settings) | Claude | Shared cards, buttons, spacing |
 | S11 | **Release 1.0**: `VERSION` 1.0.0, CHANGELOG, handbook, screenshots, QA at 1366×768 and 1920×1080; the Owner pushes the tag | Claude + ChatGPT | Full test matrix (`docs/QA_CHECK_*`) |
 

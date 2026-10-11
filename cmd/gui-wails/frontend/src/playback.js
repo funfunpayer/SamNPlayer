@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource,
+  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -112,6 +112,7 @@ export function initPlayback(root) {
             <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
             <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
           </div>
+          <canvas id="pb-ruler" class="pb-ruler" data-pb-region="ruler" hidden aria-hidden="true"></canvas>
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
@@ -157,6 +158,11 @@ export function initPlayback(root) {
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
+        <label class="checkbox-row" id="pb-audio-lane-row" style="margin:0;"
+          data-help="Audio Level lane under the curve: loudness of the video's sound over time (needs a linked video and ffmpeg). On by default.">
+          <input type="checkbox" id="pb-audio-lane-toggle" checked />
+          Audio level lane
+        </label>
         <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
           data-help="0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
           <input type="checkbox" id="pb-pos-overlay-toggle" checked />
@@ -575,6 +581,13 @@ export function initPlayback(root) {
   }
   const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
   const LANE_AXES = ['vibration', 'suction'];
+  const AUDIO_STEP_MS = 50;          // GetAudioLevelEnvelope resolution
+  let audioLevel = null;             // [0..1] per AUDIO_STEP_MS, current video
+  let audioLevelFor = '';            // script+video key the envelope belongs to
+  let audioLaneOn = true;            // Owner: audio display on by default
+  try { audioLaneOn = localStorage.getItem('pb.audioLane') !== '0'; } catch (_) { /* ignore */ }
+  let lanesDrawn = [];               // lane order as last drawn (click/keyboard)
+  const rulerCanvas = el('#pb-ruler');
   const AXIS_LANE_CSS_H = 34;
   const axisLanesCanvas = el('#pb-axis-lanes');
   let axisLanePoints = { vibration: null, suction: null };
@@ -1874,8 +1887,12 @@ export function initPlayback(root) {
 
   function redrawAxisLanes() {
     const legend = el('#pb-axis-legend');
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const feelLanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const withAudio = audioLaneOn && Array.isArray(audioLevel) && audioLevel.length > 1;
+    const lanes = withAudio ? [...feelLanes, 'audio'] : feelLanes;
+    lanesDrawn = lanes;
     const shown = curveCanvas.style.display !== 'none';
+    redrawRuler();
     if (!lanes.length || !shown) {
       axisLanesCanvas.hidden = true;
       if (legend) legend.hidden = true;
@@ -1883,7 +1900,7 @@ export function initPlayback(root) {
     }
     const active = editAxis || 'general';
     if (legend) {
-      legend.hidden = false;
+      legend.hidden = !feelLanes.length;
       legend.querySelectorAll('[data-axis]').forEach(b => {
         const a = b.dataset.axis;
         b.hidden = a !== 'general' && !axisLanePoints[a];
@@ -1893,7 +1910,7 @@ export function initPlayback(root) {
     }
     axisLanesCanvas.hidden = false;
     axisLanesCanvas.setAttribute('aria-label',
-      `Feel channel lanes: ${lanes.map(a => AXIS_LABELS[a]).join(', ')}. Up/Down chooses the channel shown above.`);
+      `Lanes: ${lanes.map(a => (a === 'audio' ? 'Audio level' : AXIS_LABELS[a])).join(', ')}. Up/Down chooses the channel shown above.`);
     const cssH = lanes.length * AXIS_LANE_CSS_H;
     if (axisLanesCanvas.style.height !== cssH + 'px') axisLanesCanvas.style.height = cssH + 'px';
     const dpr = window.devicePixelRatio || 1;
@@ -1911,6 +1928,14 @@ export function initPlayback(root) {
     ctx.clearRect(0, 0, w, h);
     lanes.forEach((axis, i) => {
       const top = i * laneH;
+      if (axis === 'audio') {
+        if (i > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(0, Math.round(top), w, Math.max(1, Math.round(dpr)));
+        }
+        drawAudioLane(ctx, top, laneH, w, dpr);
+        return;
+      }
       const yOf = pos => top + pad + (1 - pos / 100) * (laneH - pad * 2);
       const color = AXIS_COLORS[axis];
       if (axis === active) {
@@ -1950,6 +1975,107 @@ export function initPlayback(root) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
+    }
+  }
+
+  // Audio Level lane (mockup "Audio Level"): mirrored waveform of the video's
+  // loudness, one bar per ~2 CSS px, same time axis / zoom as the curve.
+  function drawAudioLane(ctx, top, laneH, w, dpr) {
+    const env = audioLevel;
+    const color = (getComputedStyle(root).getPropertyValue('--axis-audio') || '').trim() || '#93aec4';
+    const mid = top + laneH / 2;
+    const half = laneH / 2 - 3 * dpr;
+    const step = Math.max(1, Math.round(2 * dpr));
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.85;
+    for (let x = 0; x < w; x += step) {
+      const t0 = viewStartMs + (x / w) * viewSpanMs();
+      const t1 = viewStartMs + ((x + step) / w) * viewSpanMs();
+      let i0 = Math.floor(t0 / AUDIO_STEP_MS), i1 = Math.max(i0 + 1, Math.ceil(t1 / AUDIO_STEP_MS));
+      if (i0 >= env.length) break;
+      let peak = 0;
+      for (let i = i0; i < Math.min(i1, env.length); i++) if (env[i] > peak) peak = env[i];
+      const hgt = Math.max(dpr * 0.6, peak * half);
+      ctx.fillRect(x, mid - hgt, Math.max(1, step - Math.round(dpr * 0.6)), hgt * 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color;
+    ctx.fillText('AUDIO LEVEL', 6 * dpr, top + 3 * dpr);
+  }
+
+  async function loadAudioLevel() {
+    const key = `${scriptPath}|${root.dataset.pbVideo}`;
+    if (root.dataset.pbVideo !== 'true') {
+      audioLevel = null;
+      audioLevelFor = '';
+      redrawAxisLanes();
+      return;
+    }
+    if (!audioLaneOn || audioLevelFor === key) return;
+    audioLevelFor = key;
+    try {
+      const env = await GetAudioLevelEnvelope();
+      if (audioLevelFor !== key) return; // video changed meanwhile
+      audioLevel = Array.isArray(env) && env.length > 1 ? env : null;
+    } catch (err) {
+      audioLevel = null;
+      log('Audio level lane unavailable: ' + err);
+    }
+    redrawAxisLanes();
+  }
+
+  // Time ruler (mm:ss) above the curve; follows zoom like the curve.
+  function fmtRuler(ms) {
+    const s = Math.round(ms / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const mm = String(m).padStart(h ? 2 : 2, '0'), ss = String(sec).padStart(2, '0');
+    return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  }
+  function redrawRuler() {
+    if (!rulerCanvas) return;
+    const shown = curveCanvas.style.display !== 'none' && totalMs > 1;
+    rulerCanvas.hidden = !shown;
+    if (!shown) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = rulerCanvas.clientWidth || curveCanvas.clientWidth || 800;
+    const cssH = rulerCanvas.clientHeight || 22;
+    const wantW = Math.round(cssW * dpr), wantH = Math.round(cssH * dpr);
+    if (rulerCanvas.width !== wantW || rulerCanvas.height !== wantH) {
+      rulerCanvas.width = wantW;
+      rulerCanvas.height = wantH;
+    }
+    const ctx = rulerCanvas.getContext('2d');
+    const w = rulerCanvas.width, h = rulerCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const span = viewSpanMs();
+    const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600].map(x => x * 1000);
+    const minPx = 72 * dpr;
+    const stepMs = steps.find(st => (st / span) * w >= minPx) || steps[steps.length - 1];
+    const first = Math.ceil(viewStartMs / stepMs) * stepMs;
+    const muted = (getComputedStyle(root).getPropertyValue('--text-dim') || '').trim() || '#9db8ca';
+    ctx.font = `500 ${11 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    for (let t = first; t <= viewEndMs; t += stepMs) {
+      const x = Math.round(timeToX(t, w)) + 0.5;
+      ctx.fillStyle = muted;
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(x, h - 5 * dpr, Math.max(1, dpr), 5 * dpr);
+      ctx.globalAlpha = 1;
+      const label = fmtRuler(t);
+      const tw = ctx.measureText(label).width;
+      if (x + tw / 2 < w && x - tw / 2 > 0) ctx.fillText(label, x - tw / 2, 2 * dpr);
+    }
+    if (currentPosMs > 0) {
+      const x = timeToX(currentPosMs, w);
+      ctx.fillStyle = AXIS_COLORS.vibration || '#00bfe9';
+      ctx.beginPath();
+      ctx.moveTo(x - 5 * dpr, h - 7 * dpr);
+      ctx.lineTo(x + 5 * dpr, h - 7 * dpr);
+      ctx.lineTo(x, h);
+      ctx.closePath();
+      ctx.fill();
     }
   }
 
@@ -2352,6 +2478,7 @@ export function initPlayback(root) {
       return;
     }
     await loadAxisLanes();
+    loadAudioLevel();
     // FunGen-like dots: load full keyframes even when not editing.
     if (!editMode) {
       try {
@@ -3421,6 +3548,7 @@ export function initPlayback(root) {
     ro.observe(curveCanvas);
     ro.observe(heatmapCanvas);
     ro.observe(axisLanesCanvas);
+    if (rulerCanvas) ro.observe(rulerCanvas);
   }
   // Mirror stage state as data attributes for layout CSS (docs/PLAY_UI_CONTRACT.md).
   const stageEl = el('#pb-video-stage');
@@ -3428,7 +3556,17 @@ export function initPlayback(root) {
     root.dataset.pbPlaying = stageEl.classList.contains('is-playing') ? 'true' : 'false';
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
   }
-  new MutationObserver(syncStageState).observe(stageEl, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(() => { syncStageState(); loadAudioLevel(); })
+    .observe(stageEl, { attributes: true, attributeFilter: ['class'] });
+  const audioLaneBox = el('#pb-audio-lane-toggle');
+  if (audioLaneBox) {
+    audioLaneBox.checked = audioLaneOn;
+    audioLaneBox.addEventListener('change', () => {
+      audioLaneOn = !!audioLaneBox.checked;
+      try { localStorage.setItem('pb.audioLane', audioLaneOn ? '1' : '0'); } catch (_) { /* ignore */ }
+      if (audioLaneOn) { audioLevelFor = ''; loadAudioLevel(); } else redrawAxisLanes();
+    });
+  }
   syncStageState();
   if (!root.dataset.pbState) root.dataset.pbState = 'empty';
   if (!root.dataset.pbTools) root.dataset.pbTools = 'open';
@@ -4075,7 +4213,7 @@ export function initPlayback(root) {
     selectAxis(chips[j].dataset.axis);
   });
   axisLanesCanvas.addEventListener('keydown', e => {
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const lanes = lanesDrawn.filter(a => a !== 'audio');
     if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     const cur = lanes.indexOf(editAxis);
@@ -4084,11 +4222,12 @@ export function initPlayback(root) {
     selectAxis(lanes[j]);
   });
   axisLanesCanvas.addEventListener('click', e => {
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const lanes = lanesDrawn;
     if (!lanes.length) return;
     const rect = axisLanesCanvas.getBoundingClientRect();
     const i = Math.floor(((e.clientY - rect.top) / Math.max(1, rect.height)) * lanes.length);
-    selectAxis(lanes[Math.max(0, Math.min(lanes.length - 1, i))]);
+    const lane = lanes[Math.max(0, Math.min(lanes.length - 1, i))];
+    if (lane && lane !== 'audio') selectAxis(lane);
   });
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {
