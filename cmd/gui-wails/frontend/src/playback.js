@@ -3575,6 +3575,7 @@ export function initPlayback(root) {
   function syncStageState() {
     root.dataset.pbPlaying = stageEl.classList.contains('is-playing') ? 'true' : 'false';
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
+    root.dataset.pbVideoPath = (root.dataset.pbVideo === 'true' && videoPath) ? videoPath : '';
   }
   new MutationObserver(() => { syncStageState(); loadAudioLevel(); })
     .observe(stageEl, { attributes: true, attributeFilter: ['class'] });

@@ -8,7 +8,7 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
-import { SetChannelLevels } from '../wailsjs/go/main/App';
+import { SetChannelLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -48,6 +48,10 @@ const ICONS = {
   bpm: icon('<path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/>'),
   edit: icon('<path d="M4.5 19.5h4l10-10a2.8 2.8 0 0 0-4-4l-10 10z"/><path d="M13.5 6.5l4 4"/>'),
   drop: icon('<path d="M12 4v10M7.5 9.5 12 14l4.5-4.5"/><path d="M5 17.5v1.5h14v-1.5"/>'),
+  bookmark: icon('<path d="M7 4h10v16l-5-4-5 4z"/>'),
+  image: icon('<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l5-5 4 4 2-2 3 3"/>'),
+  expand: icon('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>'),
+  chevron: icon('<path d="M7 10l5 5 5-5"/>'),
 };
 
 /**
@@ -203,6 +207,53 @@ export function applyPlayerLayoutV1(root, api) {
     bar.querySelector(`[data-insp="${keys[j]}"]`)?.focus();
   });
   showInspector(load(INSPECTOR_KEY) || 'devices');
+
+  // ---- Video bar (mockup: "Select a video file…" + bookmark · snapshot · fullscreen)
+  const stage = q('#pb-video-stage');
+  const vbar = document.createElement('div');
+  vbar.className = 'pb-videobar';
+  vbar.dataset.pbRegion = 'videobar';
+  vbar.innerHTML = `
+    <button type="button" class="pb-vb-select" id="pb-vb-video" title="Link or change the video for this script">
+      ${ICONS.folder}<span id="pb-vb-name">Select a video file…</span>${ICONS.chevron}</button>
+    <span class="pb-vb-spacer"></span>
+    <button type="button" class="pb-vb-icon" id="pb-vb-bookmark" title="Add a bookmark at the current time" aria-label="Add bookmark">${ICONS.bookmark}</button>
+    <button type="button" class="pb-vb-icon" id="pb-vb-snapshot" title="Save the current video frame as PNG" aria-label="Save frame">${ICONS.image}</button>
+    <button type="button" class="pb-vb-icon" id="pb-vb-fs" title="Fullscreen" aria-label="Fullscreen">${ICONS.expand}</button>
+    <span class="hint pb-vb-status" id="pb-vb-status"></span>`;
+  stage?.before(vbar);
+  const vbName = q('#pb-vb-name');
+  const syncVideoName = () => {
+    const p = root.dataset.pbVideoPath || '';
+    vbName.textContent = p ? baseName(p) : 'Select a video file…';
+    q('#pb-vb-snapshot').disabled = !p;
+  };
+  new MutationObserver(syncVideoName).observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
+  syncVideoName();
+  q('#pb-vb-video').addEventListener('click', () => {
+    const change = q('#pb-video-change');
+    const vid = root.dataset.pbVideo === 'true';
+    (vid && change ? change : q('#pb-pick-video'))?.click();
+  });
+  q('#pb-vb-fs').addEventListener('click', () => q('#pb-video-fs')?.click());
+  q('#pb-vb-bookmark').addEventListener('click', () => {
+    showBottom('bookmarks');
+    const name = q('#pb-bookmark-name');
+    const add = q('#pb-bookmark-add');
+    if (add && !add.disabled) add.click();
+    else name?.focus();
+  });
+  q('#pb-vb-snapshot').addEventListener('click', async () => {
+    const vid = q('#pb-video');
+    const ms = Math.round((vid?.currentTime || 0) * 1000);
+    const status = q('#pb-vb-status');
+    try {
+      const out = await SaveVideoSnapshot(ms);
+      if (out) status.textContent = 'Saved ' + baseName(out);
+    } catch (err) {
+      status.textContent = 'Snapshot failed: ' + err;
+    }
+  });
 
   // ---- Bottom tabs: Timeline · Chapters · Bookmarks · Scene Map · Audio Analysis
   const timeline = q('.pb-timeline');

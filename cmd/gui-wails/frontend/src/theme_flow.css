@@ -193,3 +193,9 @@ body {
 @media (prefers-reduced-motion: reduce) { .pb-chan-on, .pb-chan-on::after { transition: none; } }
 .pb-chan-row .pb-chan-bar { height: 4px; }
 .pb-chan-row .pb-chan-bar b::after { display: none; }
+
+/* Video bar (mockup top of the video card). */
+.pb-vb-select { background: rgba(4, 14, 28, 0.75); border: 1px solid var(--flow-card-border); border-radius: 12px; color: #e6f1fb; }
+.pb-vb-select svg:first-child { stroke: #8fd3ff; }
+.pb-vb-icon { background: transparent; border: 0; color: #d6e6f5; }
+.pb-vb-icon:hover { background: rgba(0, 180, 255, 0.10); color: #fff; }

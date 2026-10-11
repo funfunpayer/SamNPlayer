@@ -36,6 +36,7 @@ def main():
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
         "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
+        "SaveVideoSnapshot": "async (ms) => { window.__snap = ms; return '/out/frame.png'; }",
     }))
     try:
         with sync_playwright() as p:
@@ -107,6 +108,22 @@ def main():
                   and page.evaluate(f"{root}.dataset.pbInspector") == "view")
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
+            # Video bar above the video.
+            page.click('#rail .tab-btn[data-tab="playback"]')
+            check("video bar present", page.is_visible("[data-pb-region='videobar']"))
+            check("no video → placeholder text", page.text_content("#pb-vb-name") == "Select a video file…")
+            check("snapshot disabled without a video", page.is_disabled("#pb-vb-snapshot"))
+            page.evaluate(f"{root}.dataset.pbVideo = 'true'; {root}.dataset.pbVideoPath = '/v/My Clip.mp4'")
+            page.wait_for_function("document.querySelector('#pb-vb-name').textContent === 'My Clip.mp4'", timeout=3000)
+            check("video bar shows the video name", True)
+            page.click("#pb-vb-snapshot")
+            page.wait_for_function("window.__snap !== undefined", timeout=3000)
+            check("snapshot saves via SaveVideoSnapshot", "frame.png" in page.text_content("#pb-vb-status"))
+            page.evaluate("window.__fsv = 0; document.querySelector('#pb-video-fs').addEventListener('click', () => window.__fsv++)")
+            page.click("#pb-vb-fs")
+            check("video bar fullscreen", page.evaluate("window.__fsv") == 1)
+            page.click("#pb-vb-bookmark")
+            check("bookmark icon opens Bookmarks", page.evaluate(f"{root}.dataset.pbBottom") == "bookmarks")
             check("no page errors", errors == [], str(errors[:3]))
             b.close()
     finally:
