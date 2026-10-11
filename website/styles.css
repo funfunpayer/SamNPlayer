@@ -5,11 +5,11 @@
   --border: #2a3548;
   --text: #f2f5fa;
   --text-dim: #93a0b5;
-  --accent: #f3b23c;
-  --accent-hover: #ffc857;
+  --accent: #b896e8;
+  --accent-hover: #cbb0f2;
   --teal: #2fd4c4;
   --teal-soft: rgba(47, 212, 196, 0.14);
-  --accent-soft: rgba(243, 178, 60, 0.16);
+  --accent-soft: rgba(184, 150, 232, 0.16);
   --font: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   --max: 1080px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -49,7 +49,7 @@ body {
   font-weight: 400;
   color: var(--text);
   background:
-    radial-gradient(900px 480px at 12% -10%, rgba(243, 178, 60, 0.12), transparent 55%),
+    radial-gradient(900px 480px at 12% -10%, rgba(184, 150, 232, 0.12), transparent 55%),
     radial-gradient(720px 420px at 100% 8%, rgba(47, 212, 196, 0.09), transparent 50%),
     linear-gradient(180deg, #0a1018 0%, var(--bg) 40%);
   line-height: 1.55;
@@ -80,8 +80,8 @@ code {
   letter-spacing: -0.02em;
   line-height: 1;
 }
-.wm-sam { color: var(--accent); }
-.wm-n { color: var(--teal); }
+.wm-sam { color: var(--text); }
+.wm-n { color: var(--accent); }
 .wm-player { color: var(--text); }
 .wordmark-lg { font-size: clamp(2rem, 5vw, 3.25rem); }
 .wordmark-sm { font-size: 1rem; }
@@ -225,8 +225,8 @@ code {
 }
 .btn:hover { transform: translateY(-1px); }
 .btn-primary {
-  background: linear-gradient(90deg, var(--accent), #ff8c28 55%, var(--teal));
-  color: #111;
+  background: var(--accent);
+  color: #140f1f;
 }
 .btn-primary:hover { filter: brightness(1.06); }
 .btn-ghost {

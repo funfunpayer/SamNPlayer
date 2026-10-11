@@ -5,7 +5,7 @@
 <h1 align="center">SamNPlayer</h1>
 
 <p align="center">
-  <strong>Generate · Play · Train</strong> — local desktop app for
+  <strong>Play · Create · Feel</strong> — free local desktop app for
   <code>.samn</code> / <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
 </p>
 
@@ -100,22 +100,36 @@ not needed, it stays out.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/media/gui-generator.png" alt="Generator tab — ROI workflow, device rail" width="900" />
+  <img src="docs/media/gui-playback.png" alt="Play tab — big video, tools column, stroke curve with vibration and suction lanes" width="900" />
   <br />
-  <em>Generate</em> — mark tip / contact, pick profile, Quality Doctor on the rail
+  <em>Play</em> — big video, tools in a collapsible column, stroke curve with the feel channels underneath
 </p>
 
 <p align="center">
-  <img src="docs/media/gui-playback.png" alt="Playback tab with funscript curve" width="900" />
+  <img src="docs/media/gui-multiaxis.png" alt="Multi-axis view — Stroke, Vibration and Suction chips, colour-coded lanes" width="900" />
   <br />
-  <em>Playback</em> — script-alone or video-synced; heatmap, contact vibration, playlist
+  <em>Multi-axis view</em> — one colour per channel; click a chip or a lane to show and edit that axis, the stroke stays as a faint guide
 </p>
 
 <p align="center">
-  <img src="docs/media/gui-player-rail.png" alt="Player layout with live vibration and suction meters" width="900" />
+  <img src="docs/media/gui-player-rail.png" alt="Play with the tools column collapsed — full-width video" width="900" />
   <br />
-  Live device meters, soft, Extended-O — curve and device keep running even without a film
+  <em>Focus mode</em> — press <kbd>T</kbd> (or ⟩) to fold the tools away; video and curve take the full width
 </p>
+
+<p align="center">
+  <img src="docs/media/gui-generator.png" alt="Create tab — step-by-step Emotion Script creation" width="900" />
+  <br />
+  <em>Create</em> — choose a video, find the tip, pick the feel, create — classical tracking, no AI install needed
+</p>
+
+<p align="center">
+  <img src="docs/media/gui-device.png" alt="Device tab — Sam Neo 2 connection and diagnostics" width="440" />
+  <img src="docs/media/gui-about.png" alt="Settings — licence, donations and About SamNPlayer" width="440" />
+  <br />
+  <em>Device</em> — BLE / Intiface / Mock with diagnostics · <em>Settings</em> — EULA, donations, About
+</p>
+
 ---
 
 ## What you get
@@ -123,6 +137,8 @@ not needed, it stays out.
 ### Playback
 - Real `<video>` in-app (no separate VLC window); optional **video-position sync** to the device
 - Heatmap, curve editor, chapters, O-markers, Script Doctor
+- **Big video** like FunGen2 — tools sit in a sticky right column that folds away with <kbd>T</kbd>
+- **Multi-axis view** — stroke / vibration / suction in one colour each, with clickable lanes under the curve
 - Hover **tooltips** (time + value) on curve and heatmap
 - Playlist with **shuffle** and **repeat**
 - Script-alone mode when there is no video yet
@@ -134,8 +150,8 @@ not needed, it stays out.
 - **Scene map** (Advanced): quick rhythm heatmap + exclude / source / region marks
 - Optional **local AI ROI** (ONNX) — strict expected body point, Apply required
 - Local **Go profilemodel** suggestions from Create labels (suggest-only)
-- Quality Doctor + human accept/reject → optional learned quality model
-- Golden-clip benchmark tab for repeatable FunGen comparisons
+- Quality Doctor + human accept/reject
+- *Studio build only:* learned quality model, AI training, golden-clip benchmark ([editions](docs/EDITIONS.md))
 
 ### Device & training
 - BLE, Intiface/Buttplug, and Mock transports
@@ -143,7 +159,8 @@ not needed, it stays out.
 - Training tab: stop-start / plateau, multi-phase scripts, live dual ring + clip motion, session history
 
 ### Desktop craft
-- Emotion look (Sora / Figtree), English product language
+- Calm lilac look, English product language
+- Freeware with EULA — no licence key; voluntary donations keep the project alive
 - Window min-size, ARIA tabs, ERROR toast → Log
 - Auto-update from GitHub Releases with checksum verification
 
