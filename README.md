@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31"><img alt="v0.5.31" src="https://img.shields.io/badge/release-v0.5.31-d4a017?style=flat-square" /></a>
-  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><img alt="Latest public" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=0d9488&label=public%20download" /></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45"><img alt="Private release v0.5.45" src="https://img.shields.io/badge/private%20release-v0.5.45-d4a017?style=flat-square" /></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases"><img alt="Public download pending" src="https://img.shields.io/badge/public%20download-pending-64748b?style=flat-square" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
   <img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" />
   <img alt="No Electron" src="https://img.shields.io/badge/GUI-~13%20MB%20native-0d9488?style=flat-square" />
@@ -19,9 +19,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><strong>Download</strong></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases"><strong>Download status</strong></a>
   ·
-  <a href="#whats-new-in-v0531">What’s new</a>
+  <a href="#release-status">Release status</a>
   ·
   <a href="#why-samnplayer">Why this app</a>
   ·
@@ -40,16 +40,26 @@
 
 ---
 
-## What’s new in v0.5.31
+## Release status
 
-Shipped **24 Sep 2026** — [release notes](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31) · [CHANGELOG](CHANGELOG.md)
+Verified **11 Oct 2026** against GitHub tags, releases and release assets.
 
-| Theme | What landed |
-|-------|-------------|
-| **Scene map** | Advanced *Show scene map* — rhythm heatmap, window slider, exclude / source / region marks (#246 / #247) |
-| **Target lock** | Strict expected body-point proposal + rhythm-grid seed lock — stronger neighbours cannot steal the stroke (#248) |
-| **Local learning** | Go `profilemodel` — train from Create labels; suggestions stay suggest-only (#244) |
-| **Stage B** | Stroke-preview steers cut-rate → re-find + pan → camera compensation (#239) |
+| Channel | Confirmed state |
+|---------|-----------------|
+| Source on `main` | `VERSION` is **0.5.46**; [CHANGELOG](CHANGELOG.md) has a **2026-10-10** entry. This is not proof of publication. |
+| Private tag / release | **[v0.5.45](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45)**, published **2 Oct 2026**, with four Windows/Linux GUI/CLI binaries, two portable archives and `checksums.txt`. |
+| v0.5.46 publication | **Pending** — no `v0.5.46` tag or GitHub release exists. |
+| Public download | **Pending** — [SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases) contains no releases. Private assets require repository access. |
+
+The **0.5.46 source changes** include switchable audio-driven vibration
+(default off; suction stays on the script), BPM measurement from audio,
+writing the playback offset into a script, an AI training limit of 500
+epochs, and the stroke-preview rate fix. These are not yet available in a
+published 0.5.46 download. Later freeware/EULA changes are listed separately
+under **Unreleased** in the changelog.
+
+The screenshots below illustrate existing scene-map and target-selection
+features; they do not indicate the published version.
 
 <p align="center">
   <img src="docs/media/gui-scenemap-marks.png" alt="Scene map heatmap with exclude mark on the preview" width="900" />
@@ -69,7 +79,7 @@ Shipped **24 Sep 2026** — [release notes](https://github.com/funfunpayer/SamNP
   <em>Semantic target</em> — expected body point + Apply (AI proposes, never auto-writes)
 </p>
 
-**Still Owner before next defaults:** speed-cap product rule; ≥4–5 rhythm-grid clips. Next build theme: SceneMap **P3** (engine consumes marks).
+Current work and release planning: [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) and [`docs/PRODUCTION_ROADMAP.md`](docs/PRODUCTION_ROADMAP.md).
 
 ---
 
@@ -151,18 +161,48 @@ not needed, it stays out.
 
 ## Download
 
-Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are published on the
-**public** showcase ([SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases))
-with `checksums.txt`. Private-repo releases are not anonymously downloadable —
-after each tag run `./scripts/publish-public-release.sh vX.Y.Z` (and
-`./scripts/sync-public-site.sh` when screenshots/landing change).
+**No public binary download is published yet (checked 11 Oct 2026).**
+The public distribution location is
+[SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases).
+The latest private release, **v0.5.45**, has Windows/Linux GUI and CLI
+binaries, portable archives and `checksums.txt`, but requires repository access.
 
-Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
-include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
-install. Single-file GUI binaries remain for in-app updates. Details:
+For releases that provide them, prefer the portable archives
+(`SamNPlayer-portable-linux-amd64.tar.gz` /
+`SamNPlayer-portable-windows-amd64.zip`). They include `ffmpeg` /
+`ffprobe` next to the GUI; Windows also bundles OpenCV/MinGW DLLs.
+Single-file GUI binaries remain for in-app updates. Details:
 [`docs/FFMPEG_TOOLS.md`](docs/FFMPEG_TOOLS.md).
 
-| Platform | Now | Later |
+### Maintainer publication steps
+
+1. Choose and verify the release commit, reconcile its changelog scope
+   (including any changes currently under **Unreleased**), and complete
+   the checks in [CONTRIBUTING](CONTRIBUTING.md#versions).
+2. Push the matching `vX.Y.Z` tag. [`release.yml`](.github/workflows/release.yml)
+   runs on tag pushes matching `v*.*.*`; changing `VERSION` or merging
+   to `main` alone does not publish a release. The Linux job checks
+   the tag against `VERSION` and `update.BaseVersion`.
+3. Wait for **both** Linux and Windows builds. The dependent `publish`
+   job combines their artifacts, computes SHA-256 checksums, and creates
+   the private release with generated release notes. Verify all **seven**
+   assets: four GUI/CLI binaries, two portable archives and `checksums.txt`.
+4. Only after that private release exists, run
+   `./scripts/publish-public-release.sh vX.Y.Z` with access to both repositories.
+   **The current script copies only the four binaries and `checksums.txt`;
+   it does not upload either portable archive.** Add both archives to
+   the public release separately, or extend the script before using it
+   for a complete publication. Verify all seven public assets and their
+   checksums before advertising portable downloads.
+5. Run `./scripts/sync-public-site.sh` when landing-page content or
+   screenshots change. Site sync is separate from binary publication.
+   Update the status above only after the tag, private release and public
+   download have each been verified.
+
+For **0.5.46**, the tag, successful release workflow, private release and
+public publication are still outstanding.
+
+| Platform | Private release / source support | Later |
 |----------|-----|-------|
 | Windows / Linux | GUI + CLI + portable ffmpeg | — |
 | macOS | Code-ready; **no release binary yet** (needs Mac builder) | Signed `.app` |
@@ -172,9 +212,9 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Latest private tag: **[v0.5.31](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31)**  
-Public downloads: **[SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
-Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
+Latest private tag / release: **[v0.5.45](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45)**  
+Public downloads: **pending** — [SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases)  
+Source version: **0.5.46** — [`VERSION`](VERSION) (`update.BaseVersion`); tag/release pending.
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
 antenna (e.g. TP-Link UB500 / Asus USB-BT500), not bare onboard radios.
@@ -196,9 +236,10 @@ cd cmd/gui-wails && wails build -tags webkit2_41   # GUI (Linux / WebKitGTK 4.1)
 Cross-compile Windows GUI from Linux:
 
 ```bash
+SOURCE_VERSION="$(cat VERSION)"
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.31"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${SOURCE_VERSION}-dev"
 ```
 
 Generator extras need **Python 3.9+** and
