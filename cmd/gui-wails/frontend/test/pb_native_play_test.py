@@ -103,9 +103,9 @@ def main():
         check("Video wird beim nativen Play NICHT auf 0 zurückgespult (anders als #pb-play)",
               cur_time > 1.0, f"currentTime={cur_time:.2f}")
 
-        play_disabled = page.eval_on_selector("#pb-play", "e => e.disabled")
-        check("App-eigener Abspielen-Knopf wird beim nativen Play mitgesperrt (Status synchron)",
-              play_disabled is True)
+        play_state = page.eval_on_selector("#pb-play", "e => e.dataset.state")
+        check("App-eigener Knopf zeigt beim nativen Play Pause (Status synchron)",
+              play_state == "pause", str(play_state))
 
         # Ein zweites 'play'-Event waehrend bereits laufender Wiedergabe
         # (z.B. video:resume nach Extended-O) darf StartPlayback nicht

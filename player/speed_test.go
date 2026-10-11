@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"math"
 	"testing"
 	"time"
@@ -95,5 +96,32 @@ func TestSetOutputReducePeaks(t *testing.T) {
 	vib, _ = dev.snapshot()
 	if got := vib[len(vib)-1]; math.Abs(got-0.5) > 1e-9 {
 		t.Fatalf("off: vibration %v, want 0.5", got)
+	}
+}
+
+func TestPlayStartAtMsResumes(t *testing.T) {
+	dev := &recordingDev{}
+	p := New(dev)
+	p.StartAtMs = 1000
+	frames := []funscript.Frame{
+		{At: 0, Vibration: 0.1}, {At: 500, Vibration: 0.2},
+		{At: 1000, Vibration: 0.3}, {At: 1040, Vibration: 0.4},
+	}
+	start := time.Now()
+	if err := p.Play(context.Background(), frames); err != nil {
+		t.Fatal(err)
+	}
+	if el := time.Since(start); el > 400*time.Millisecond {
+		t.Fatalf("resume at 1000 ms must not wait for the skipped second, took %v", el)
+	}
+	vib, _ := dev.snapshot()
+	if len(vib) != 2 || vib[0] != 0.3 || vib[1] != 0.4 {
+		t.Fatalf("resumed output %v, want [0.3 0.4]", vib)
+	}
+	if got := framesFrom(frames, 5000); len(got) != 1 || got[0].At != 1040 {
+		t.Fatalf("past the end keeps the last frame, got %v", got)
+	}
+	if got := framesFrom(frames, 0); len(got) != 4 {
+		t.Fatal("0 keeps all frames")
 	}
 }

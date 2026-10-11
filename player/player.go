@@ -51,6 +51,11 @@ type Player struct {
 	// 0 = aus (Standardverhalten wie bisher).
 	SoftStartMs int
 
+	// StartAtMs: script time Play() starts from (resume after Pause in the
+	// GUI without video). Frames before it are skipped and the clock starts
+	// there. 0 = from the beginning.
+	StartAtMs int64
+
 	lastSyncPosMs int64
 
 	// Playback speed (V1: 0.5×–2×). The clock maps real time to script
@@ -195,7 +200,21 @@ func (p *Player) startClock(at time.Time) {
 		p.speed = 1
 	}
 	p.anchorReal = at
-	p.anchorScriptMs = 0
+	p.anchorScriptMs = float64(p.StartAtMs)
+}
+
+// framesFrom drops the frames before atMs (resume); keeps all when atMs <= 0
+// or when nothing would be left.
+func framesFrom(frames []funscript.Frame, atMs int64) []funscript.Frame {
+	if atMs <= 0 {
+		return frames
+	}
+	for i, f := range frames {
+		if f.At >= atMs {
+			return frames[i:]
+		}
+	}
+	return frames[len(frames)-1:]
 }
 
 // realTimeFor returns the wall time at which script time atMs is due.
@@ -237,7 +256,8 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 	if len(frames) == 0 {
 		return fmt.Errorf("player: keine Frames zum Abspielen")
 	}
-	logging.Info("player: Wiedergabe startet", "frames", len(frames), "dauer_ms", frames[len(frames)-1].At)
+	frames = framesFrom(frames, p.StartAtMs)
+	logging.Info("player: Wiedergabe startet", "frames", len(frames), "dauer_ms", frames[len(frames)-1].At, "start_ms", p.StartAtMs)
 	defer func() {
 		logging.Info("player: Wiedergabe beendet")
 		p.setIntensityScale(1)
