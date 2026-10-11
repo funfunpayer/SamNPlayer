@@ -558,6 +558,12 @@ export function initPlayback(root) {
   const AXIS_TOKENS = { general: '--axis-stroke', vibration: '--axis-vibration', suction: '--axis-suction' };
   const AXIS_COLORS = { ...AXIS_DEFAULTS };
   const THEME = { playhead: '#ffffff', grid: 'rgba(255,255,255,0.10)', curveWidth: 1.5 };
+  // "r, g, b" channel token from CSS (e.g. --accent-rgb), so canvas colours
+  // follow the theme like the rest of the UI.
+  function rgbToken(name, fallback) {
+    const v = (getComputedStyle(root).getPropertyValue(name) || '').trim();
+    return /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v : fallback;
+  }
   function readTheme() {
     const cs = getComputedStyle(root);
     const tok = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
@@ -914,6 +920,15 @@ export function initPlayback(root) {
     intense: [184, 150, 232, 0.36],
     climax: [232, 110, 110, 0.40],
   };
+  // gentle / intense follow the theme's secondary / accent colours.
+  function themedFeelBands() {
+    const parse = v => v.split(',').map(n => Number(n.trim()));
+    return {
+      ...FEEL_BAND_RGBA,
+      gentle: [...parse(rgbToken('--teal-rgb', '90, 212, 196')), FEEL_BAND_RGBA.gentle[3]],
+      intense: [...parse(rgbToken('--accent-rgb', '184, 150, 232')), FEEL_BAND_RGBA.intense[3]],
+    };
+  }
   function feelHeatbandsEnabled() {
     const box = el('#pb-seg-heatbands');
     return !box || !!box.checked;
@@ -924,7 +939,7 @@ export function initPlayback(root) {
     return Math.max(0.2, Math.min(1, v));
   }
   function feelBandFill(label, opacity) {
-    const c = FEEL_BAND_RGBA[label] || [200, 210, 230, 0.28];
+    const c = themedFeelBands()[label] || [200, 210, 230, 0.28];
     return `rgba(${c[0]},${c[1]},${c[2]},${(c[3] * opacity).toFixed(3)})`;
   }
   function syncFeelHeatbandsOpacityUi() {
@@ -1237,12 +1252,13 @@ export function initPlayback(root) {
     const maxLines = 240;
     let n = Math.floor(viewStartMs / period);
     let t = n * period;
+    const accentRgb = rgbToken('--accent-rgb', '184, 150, 232');
     let drawn = 0;
     while (t <= viewEndMs && drawn < maxLines) {
       if (t >= viewStartMs) {
         const x = Math.round(timeToX(t, w)) + 0.5;
         const bar = n % 4 === 0;
-        ctx.strokeStyle = bar ? 'rgba(184, 150, 232, 0.38)' : 'rgba(184, 150, 232, 0.16)';
+        ctx.strokeStyle = bar ? `rgba(${accentRgb}, 0.38)` : `rgba(${accentRgb}, 0.16)`;
         ctx.lineWidth = bar ? 1.25 : 1;
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -1459,8 +1475,9 @@ export function initPlayback(root) {
     ctx.clearRect(0, 0, w, h);
 
     if (trajectoryWanted()) {
-      drawTrajectoryPath(ctx, trajectoryData.tip, w, h, 'rgba(184, 150, 232, 0.88)');
-      drawTrajectoryPath(ctx, trajectoryData.partner, w, h, 'rgba(95, 208, 200, 0.85)');
+      const accentRgb = rgbToken('--accent-rgb', '184, 150, 232');
+      drawTrajectoryPath(ctx, trajectoryData.tip, w, h, `rgba(${accentRgb}, 0.88)`);
+      drawTrajectoryPath(ctx, trajectoryData.partner, w, h, `rgba(${rgbToken('--teal-rgb', '95, 208, 200')}, 0.85)`);
       const tipNow = nearestTrajectoryPoint(trajectoryData.tip, currentPosMs);
       if (tipNow) {
         const dpr = window.devicePixelRatio || 1;
@@ -1468,7 +1485,7 @@ export function initPlayback(root) {
         const y = (tipNow.y / trajectoryData.height) * h;
         ctx.beginPath();
         ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
-        ctx.fillStyle = '#b896e8';
+        ctx.fillStyle = `rgb(${accentRgb})`;
         ctx.fill();
         ctx.lineWidth = 1.5 * dpr;
         ctx.strokeStyle = '#fff';
@@ -1748,10 +1765,12 @@ export function initPlayback(root) {
     const axisColor = AXIS_COLORS[editAxis] || AXIS_COLORS.general;
     // Showing a feel channel: keep the stroke as a faint ghost for timing.
     if (strokeGhostPoints && strokeGhostPoints.length >= 2) {
-      ctx.strokeStyle = 'rgba(95, 208, 200, 0.28)';
+      ctx.strokeStyle = AXIS_COLORS.general;
+      ctx.globalAlpha = 0.3;
       ctx.lineWidth = 1;
       ctx.lineJoin = 'round';
       drawSmoothCurve(ctx, strokeGhostPoints, xOf, yOf);
+      ctx.globalAlpha = 1;
     }
 
     // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour.
