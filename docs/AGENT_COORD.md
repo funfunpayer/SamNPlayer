@@ -1130,3 +1130,5 @@ AGENT_COORD:
 | Release spine | `docs/PRODUCTION_ROADMAP.md` |
 | Signal ≠ Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
 | Architecture | `HANDOFF.md` |
+
+- S3 Player 3-column shell: IN PROGRESS (Grok) — 3-col CSS grid (Library | Center | Inspector + bottom Timeline), collapsible panels + tab state in localStorage. Existing controls in Playback panel. Next: split controls into Devices/Audio/Playback/View tabs.

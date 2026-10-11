@@ -521,6 +521,119 @@ export function initPlayback(root) {
     </div>
   `;
 
+  // === V1 S3: Player 3-column shell ===
+  (function buildS3Shell() {
+    const loaded = document.getElementById('pb-loaded');
+    if (!loaded || loaded.dataset.s3) return;
+    loaded.dataset.s3 = '1';
+
+    // Create the grid containers
+    const grid = document.createElement('div');
+    grid.className = 'pb-3col';
+
+    const library = document.createElement('aside');
+    library.className = 'pb-library';
+    library.id = 'pb-library';
+    library.dataset.pbRegion = 'library';
+    library.innerHTML = `
+      <div class="pb-panel-head">
+        <h3>Library</h3>
+        <button type="button" class="pb-collapse" data-collapse="library" title="Collapse library" aria-label="Collapse library">‹</button>
+      </div>
+      <div class="pb-library-body">
+        <div class="pb-quick-drop" id="pb-quick-drop">Drop script / video</div>
+      </div>`;
+
+    const center = document.createElement('div');
+    center.className = 'pb-center';
+
+    const inspector = document.createElement('aside');
+    inspector.className = 'pb-inspector';
+    inspector.id = 'pb-inspector';
+    inspector.dataset.pbRegion = 'inspector';
+    inspector.innerHTML = `
+      <div class="pb-panel-head">
+        <div class="pb-inspector-tabs" role="tablist" aria-label="Inspector">
+          <button type="button" class="pb-itab" data-itab="devices" role="tab">Devices</button>
+          <button type="button" class="pb-itab" data-itab="audio" role="tab">Audio</button>
+          <button type="button" class="pb-itab active" data-itab="playback" role="tab">Playback</button>
+          <button type="button" class="pb-itab" data-itab="view" role="tab">View</button>
+        </div>
+        <button type="button" class="pb-collapse" data-collapse="inspector" title="Collapse inspector" aria-label="Collapse inspector">›</button>
+      </div>
+      <div class="pb-inspector-body">
+        <div class="pb-itab-panel" data-itab-panel="devices" hidden></div>
+        <div class="pb-itab-panel" data-itab-panel="audio" hidden></div>
+        <div class="pb-itab-panel active" data-itab-panel="playback"></div>
+        <div class="pb-itab-panel" data-itab-panel="view" hidden></div>
+      </div>`;
+
+    const tlDock = document.createElement('div');
+    tlDock.className = 'pb-timeline-dock';
+    tlDock.dataset.pbRegion = 'timeline-dock';
+
+    // Move existing nodes
+    const media = loaded.querySelector('.pb-media');
+    const timeline = loaded.querySelector('.pb-timeline');
+    const playlist = loaded.querySelector('#pb-playlist');
+    const tools = loaded.querySelector('#pb-tools');
+
+    if (media) center.appendChild(media);
+    if (timeline) tlDock.appendChild(timeline);
+    const libBody = library.querySelector('.pb-library-body');
+    if (playlist && libBody) libBody.appendChild(playlist);
+    const pbPanel = inspector.querySelector('[data-itab-panel="playback"]');
+    if (tools && pbPanel) pbPanel.appendChild(tools);
+
+    // Clear loaded and append new structure
+    loaded.innerHTML = '';
+    grid.append(library, center, inspector, tlDock);
+    loaded.appendChild(grid);
+
+    // Wire tabs
+    const KEY_TAB = 'samn.s3.inspectorTab';
+    const KEY_COLL = 'samn.s3.collapse';
+    const tabs = inspector.querySelectorAll('.pb-itab');
+    const panels = inspector.querySelectorAll('.pb-itab-panel');
+    function showTab(id) {
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.itab === id));
+      panels.forEach(p => {
+        const on = p.dataset.itabPanel === id;
+        p.hidden = !on;
+        p.classList.toggle('active', on);
+      });
+      try { localStorage.setItem(KEY_TAB, id); } catch (e) {}
+    }
+    tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.itab)));
+    try { showTab(localStorage.getItem(KEY_TAB) || 'playback'); } catch (e) { showTab('playback'); }
+
+    // Collapse
+    let coll = {};
+    try { coll = JSON.parse(localStorage.getItem(KEY_COLL) || '{}'); } catch (e) {}
+    function applyCollapse() {
+      library.classList.toggle('is-collapsed', !!coll.library);
+      inspector.classList.toggle('is-collapsed', !!coll.inspector);
+    }
+    inspector.querySelectorAll('.pb-collapse, .pb-library .pb-collapse').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const which = btn.dataset.collapse;
+        coll[which] = !coll[which];
+        try { localStorage.setItem(KEY_COLL, JSON.stringify(coll)); } catch (e) {}
+        applyCollapse();
+      });
+    });
+    // also the library one
+    library.querySelectorAll('.pb-collapse').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const which = btn.dataset.collapse;
+        coll[which] = !coll[which];
+        try { localStorage.setItem(KEY_COLL, JSON.stringify(coll)); } catch (e) {}
+        applyCollapse();
+      });
+    });
+    applyCollapse();
+  })();
+
   wireDataHelp(root);
   const el = id => root.querySelector(id);
   const videoEl = el('#pb-video');
