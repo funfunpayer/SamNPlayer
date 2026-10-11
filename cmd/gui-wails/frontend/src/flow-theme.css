@@ -446,25 +446,102 @@ button:not(.primary):not(.danger):not(.tab-btn):hover:not(:disabled) {
   .gen-step-panel:not([hidden]) { animation: none; }
 }
 
-/* Workspace panel visibility: does not destroy sidebar state or listeners. */
-body.flow-sidebar-hidden #sidebar { display: none !important; }
-.flow-workspace-toggle {
-  appearance: none;
-  flex: 0 0 auto;
-  border: 1px solid rgba(4, 201, 245, .25);
-  border-radius: 999px;
-  background: rgba(4, 201, 245, .075);
+/* Phase 7 — Tools tabs polish (Log, Benchmark, Settings, ROI Training, Device),
+   tables, checkboxes, consistent spacing, brand tagline & final contrast tweaks.
+   CSS only — no markup or JS changes. */
+.brand-tagline {
+  color: #1bcfff;
+  opacity: 0.85;
+}
+
+#tab-log, #tab-benchmark, #tab-settings, #tab-roi-training, #tab-device {
   color: var(--text);
-  font: inherit;
-  font-size: 12px;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
 }
-.flow-workspace-toggle:hover {
-  border-color: rgba(4, 201, 245, .55);
-  background: rgba(4, 201, 245, .14);
+
+#tab-log table,
+#tab-benchmark table,
+#tab-roi-training table,
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(8, 22, 36, .55);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 201, 245, .12);
 }
+
+#tab-log th, #tab-benchmark th, #tab-roi-training th, table th {
+  background: rgba(4, 201, 245, .08);
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 201, 245, .15);
+}
+
+#tab-log td, #tab-benchmark td, #tab-roi-training td, table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(0, 201, 245, .08);
+  color: var(--text);
+}
+
+#tab-log tr:hover td,
+#tab-benchmark tr:hover td,
+#tab-roi-training tr:hover td,
+table tr:hover td {
+  background: rgba(4, 201, 245, .06);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+#tab-settings .field-row,
+#tab-device .field-row,
+#tab-roi-training .field-row {
+  margin-bottom: 14px;
+}
+
+#tab-log .card,
+#tab-benchmark .card,
+#tab-settings .card,
+#tab-roi-training .card {
+  border-radius: 16px;
+  background: rgba(11, 30, 46, .92);
+}
+
+/* Subtle cyan left accent on tools cards for visual consistency */
+#tab-log .card,
+#tab-benchmark .card,
+#tab-settings .card,
+#tab-roi-training .card,
+#tab-device .card {
+  border-left: 3px solid rgba(4, 201, 245, .35);
+}
+
+/* Ensure disabled states stay readable */
+button:disabled,
+input:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  table {
+    font-size: 13px;
+  }
+  #tab-log th, #tab-benchmark th, table th,
+  #tab-log td, #tab-benchmark td, table td {
+    padding: 7px 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .flow-workspace-toggle { transition: none; }
+  table tr:hover td {
+    transition: none;
+  }
 }
