@@ -146,9 +146,18 @@ Before a new release:
 3. Before building, the release workflow checks the tag, `VERSION`, and
    `BaseVersion`. It stops on a mismatch. Go and Wails CLI versions come from
    `go.mod`.
-4. Verify the workflow result, four binaries (GUI/CLI for Windows/Linux),
-   and `checksums.txt`. A successful build does not replace a hardware test
-   or a self-update test using the installed application.
+4. Verify that both build jobs and the dependent publish job succeeded.
+   The private release must contain seven assets: four binaries (GUI/CLI
+   for Windows/Linux), both portable archives, and `checksums.txt`.
+   A successful build does not replace a hardware test or a self-update
+   test using the installed application.
+5. Publish public downloads separately to `funfunpayer/SamNPlayer-site`.
+   `scripts/publish-public-release.sh vX.Y.Z` requires the private release
+   to exist and currently uploads only four binaries and `checksums.txt`.
+   Upload both portable archives separately or extend that script before
+   advertising a complete public release. Verify the public assets and
+   checksums; syncing the website alone does not publish binaries.
+   See [README publication steps](README.md#maintainer-publication-steps).
 
 Do not move published tags. Correcting the source version does not modify
 an already published release.
