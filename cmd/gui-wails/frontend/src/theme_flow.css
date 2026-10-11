@@ -10,6 +10,8 @@
   --accent-rgb: 0, 217, 244;
   --accent-soft: rgba(0, 217, 244, .12);
   --secondary: #ff8a23;
+  --navy: rgba(10, 27, 43, .6);
+  --navy-soft: rgba(10, 27, 43, .35);
 }
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -187,6 +189,7 @@
 }
 .pb-axis-chip[data-axis="general"] {
   --axis-c: var(--secondary);
+  color: var(--secondary);
 }
 .pb-lib-item:focus-visible,
 .pb-lib-recent-item:focus-visible,
@@ -329,24 +332,36 @@
 .pb-collapse:hover {
   color: var(--accent-hover);
 }
-/* Next open point polish: secondary orange accents for stroke, better progress and empty CTA */
+/* Continued open-point polish: secondary orange on stroke/general, quieter timeline navy, restrained cyan markers, improved progress/empty CTA, tabular values */
 .pb-axis-chip[data-axis="general"] {
   color: var(--secondary);
+  border-color: rgba(255, 138, 35, .4);
 }
 [data-pb-region="transport"] .progress-bar {
   height: 6px;
   border-radius: 3px;
+  background: rgba(10, 27, 43, .8);
+}
+[data-pb-region="transport"] .progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
 }
 .pb-empty-inner button,
 [data-pb-region="empty"] button {
   background: var(--accent);
   color: #06121f;
   border-radius: var(--radius-sm);
-  transition: background-color 140ms ease;
+  transition: background-color 140ms ease, transform 140ms ease;
+  font-weight: 600;
 }
 .pb-empty-inner button:hover,
 [data-pb-region="empty"] button:hover {
   background: var(--accent-hover);
+}
+[data-pb-region="timeline"] .pb-marker {
+  background: rgba(0, 217, 244, .22);
+}
+[data-pb-region="lanes"] {
+  background: var(--navy-soft);
 }
 @media (prefers-contrast: more) {
   .pb-card,
