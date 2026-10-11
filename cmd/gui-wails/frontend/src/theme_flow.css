@@ -340,3 +340,33 @@ body {
   #tab-generator, #tab-training, #tab-scenemap,
   #tab-device, #tab-log, #tab-settings { color: #fff; }
 }
+
+/* S7b / S8b: integrated inspector dial and audio-sync visual states.
+   Only target stable class hooks, never alter value or drag behavior. */
+#tab-playback .pb-audio-card-bpm {
+  color: #66eaff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(0, 217, 244, .26);
+}
+#tab-playback .pb-aa-wave {
+  border: 1px solid rgba(0, 217, 244, .16);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0, 120, 185, .08), rgba(3, 16, 29, .24));
+}
+#tab-playback .pb-fav-toggle[aria-pressed="true"] {
+  color: #ffc16c;
+  border-color: rgba(255, 138, 35, .72);
+  background: rgba(255, 138, 35, .09);
+  box-shadow: 0 0 12px rgba(255, 138, 35, .18);
+}
+#tab-playback .pb-scene-thumb:focus-visible,
+#tab-playback .pb-scene-mark:focus-visible,
+#tab-playback .pb-fav-toggle:focus-visible,
+#tab-playback .pb-vb-menu-item:focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 3px;
+}
+@media (prefers-contrast: more) {
+  #tab-playback .pb-aa-wave { border-color: #8ef0ff; }
+  #tab-playback .pb-fav-toggle[aria-pressed="true"] { border-color: #ffc16c; }
+}
