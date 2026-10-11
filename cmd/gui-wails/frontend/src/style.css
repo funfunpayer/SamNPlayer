@@ -3143,6 +3143,35 @@ body[data-tab="playback"] #sidebar { display: none; }
   background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
 }
+/* S8a Audio Analysis card (structure only). */
+.pb-audio-card { padding: 6px 0; }
+.pb-audio-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pb-audio-card-bpm { font-variant-numeric: tabular-nums; font-weight: 700; }
+.pb-aa-wave { display: block; width: 100%; height: 72px; cursor: pointer; }
+.pb-aa-wave[hidden] { display: none; }
+/* S4b scene strip: thumbnails + chapter-start diamonds + "+" (structure only). */
+.pb-scene-strip[hidden] { display: none !important; }
+.pb-scene-strip {
+  position: relative; height: 44px; margin-right: 30px;
+  border-top: 1px solid var(--border); background: rgba(255, 255, 255, 0.02);
+}
+.pb-scene-thumbs { position: absolute; inset: 0; overflow: hidden; }
+.pb-scene-thumb {
+  position: absolute; top: 2px; height: calc(100% - 4px);
+  object-fit: cover; opacity: 0.8; border-radius: 3px; pointer-events: none;
+}
+.pb-scene-marks { position: absolute; inset: 0; pointer-events: none; }
+.pb-scene-mark {
+  position: absolute; top: -6px; width: 12px; height: 12px; min-height: 0;
+  margin-left: -6px; padding: 0; transform: rotate(45deg);
+  border: 1px solid #fff; border-radius: 2px; background: var(--accent, #00d9f4);
+  box-shadow: none; cursor: pointer; pointer-events: auto;
+}
+.pb-scene-add {
+  position: absolute; right: -30px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%;
+  font-size: 16px; line-height: 1;
+}
 
 /* ===== Tools sub-navigation (Owner 11 Oct, #475): Device · Log · Settings.
    Functional baseline only — the layout owner may restyle it. ===== */
@@ -3526,7 +3555,19 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 /* V1: live levels live in the Inspector (Devices) — not repeated in the transport. */
 #tab-playback[data-pb-layout="v1"] .pb-transport .pb-live { display: none; }
 /* V1 S7a: channel rows with on/off + level. */
-.pb-chan-row { grid-template-columns: 30px 14px 76px 1fr 40px 44px 34px; }
+.pb-chan-row {
+  grid-template-columns: 30px 14px minmax(0, 1fr) 44px 38px;
+  grid-template-areas: "on dot name lvl live" ". . level level level" ". . bar bar bar";
+  row-gap: 4px;
+}
+.pb-chan-on, .pb-chan-on-spacer { grid-area: on; }
+.pb-chan-dot { grid-area: dot; }
+.pb-chan-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-chan-level, .pb-chan-level-spacer { grid-area: level; min-width: 0; }
+.pb-chan-row .pb-chan-val { grid-area: lvl; }
+.pb-chan-row .pb-chan-bar { grid-area: bar; }
+.pb-chan-live { grid-area: live; }
+.pb-chan-row[data-axis="stroke"] .pb-chan-level-spacer { display: none; }
 .pb-chan-on { margin: 0; accent-color: var(--accent); width: 18px; height: 18px; }
 .pb-chan-level { width: 100%; accent-color: var(--c, var(--accent)); }
 .pb-chan-row .pb-chan-bar { height: 4px; }
@@ -3540,3 +3581,19 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 .pb-vb-spacer { flex: 1; }
 .pb-vb-icon { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; min-height: 0; border-radius: 10px; }
 .pb-vb-status { margin: 0 0 0 6px; }
+.pb-videobar { position: relative; }
+.pb-vb-more { width: 30px; margin-left: -6px; }
+.pb-vb-menu {
+  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 260px; max-width: 60%;
+  margin: 4px 0 0; padding: 4px; list-style: none;
+  background: var(--panel, #10233a); border: 1px solid var(--border); border-radius: 10px;
+}
+.pb-vb-menu[hidden] { display: none; }
+.pb-vb-menu-item {
+  display: block; width: 100%; padding: 6px 10px; min-height: 0; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: transparent; border: 0; box-shadow: none;
+}
+.pb-fav-toggle { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; min-height: 0; }
+.pb-fav-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.pb-fav-toggle[aria-pressed="true"] svg { fill: currentColor; }

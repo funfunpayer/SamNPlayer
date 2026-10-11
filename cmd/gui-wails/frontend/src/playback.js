@@ -11,7 +11,7 @@ import {
   SaveContactSettings, PreviewContactVibration, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
   GetScriptBookmarks, SaveScriptBookmarks,
-  GetScriptChapterMarks, SaveScriptChapterMarks,
+  GetScriptChapterMarks, SaveScriptChapterMarks, GetVideoThumbnails,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -135,6 +135,12 @@ export function initPlayback(root) {
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
+          <div class="pb-scene-strip" id="pb-scene-strip" data-pb-region="scenes" hidden>
+            <div class="pb-scene-thumbs" id="pb-scene-thumbs" aria-hidden="true"></div>
+            <div class="pb-scene-marks" id="pb-scene-marks" role="toolbar" aria-label="Scene markers"></div>
+            <button type="button" class="pb-scene-add" id="pb-scene-add"
+              title="Add a scene marker at the playhead (starts a chapter)" aria-label="Add scene marker">+</button>
+          </div>
           <canvas id="pb-heatmap" height="56" class="pb-heatmap" data-pb-region="heatmap" style="display:none"></canvas>
           <div class="row pb-curve-zoom" id="pb-curve-zoom" data-pb-region="zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
             <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
@@ -181,6 +187,11 @@ export function initPlayback(root) {
           data-help="Audio Level lane under the curve: loudness of the video's sound over time (needs a linked video and ffmpeg). On by default.">
           <input type="checkbox" id="pb-audio-lane-toggle" checked />
           Audio level lane
+        </label>
+        <label class="checkbox-row" id="pb-scenes-row" style="margin:0;"
+          data-help="Scene strip under the lanes: video thumbnails and scene markers (◆ = chapter start, + adds one at the playhead). Off by default in the Player; scenes are a Generator tool.">
+          <input type="checkbox" id="pb-scenes-toggle" />
+          Scene markers + thumbnails
         </label>
         <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
           data-help="0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
@@ -368,6 +379,17 @@ export function initPlayback(root) {
           <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
         </details>
 
+        <section class="pb-audio-card" id="pb-audio-card" data-pb-region="audio-analysis" aria-label="Audio Analysis">
+          <div class="pb-audio-card-head">
+            <b>Audio Analysis</b>
+            <span class="pb-audio-card-bpm" id="pb-aa-bpm">— BPM</span>
+            <button type="button" class="secondary" id="pb-aa-detect"
+              data-help="Measure the beat of the video's sound (same as View → From audio). Display only.">From audio</button>
+          </div>
+          <canvas id="pb-aa-wave" class="pb-aa-wave" height="72" tabindex="0"
+            aria-label="Audio waveform of the whole video with beat lines. Click to seek."></canvas>
+          <p class="hint" id="pb-aa-empty" style="margin:4px 0 0;">Link a video to see its sound.</p>
+        </section>
         <div id="pb-audio-segments" class="gen-audio-segments" hidden>
           <div class="gen-audio-segments-head">
             <b>Speech-Hold / Feel segments</b>
@@ -606,6 +628,14 @@ export function initPlayback(root) {
   let audioLaneOn = true;            // Owner: audio display on by default
   try { audioLaneOn = localStorage.getItem('pb.audioLane') !== '0'; } catch (_) { /* ignore */ }
   let lanesDrawn = [];               // lane order as last drawn (click/keyboard)
+  // Scene strip (V1 S4b): thumbnails + chapter-start diamonds. Owner: on in the
+  // Generator, off by default in the Player.
+  const SCENE_THUMBS = 24;
+  let scenesOn = false;
+  try { scenesOn = localStorage.getItem('pb.scenes') === '1'; } catch (_) { /* ignore */ }
+  let sceneThumbs = null;            // [{atMs, dataUrl}] for the linked video
+  let sceneThumbsFor = '';
+  let sceneStripSig = '';
   const rulerCanvas = el('#pb-ruler');
   const AXIS_LANE_CSS_H = 34;
   const axisLanesCanvas = el('#pb-axis-lanes');
@@ -1142,6 +1172,7 @@ export function initPlayback(root) {
   }
 
   function renderChapterList() {
+    renderSceneStrip();
     const box = el('#pb-chapter-list');
     if (!box) return;
     box.innerHTML = '';
@@ -1912,6 +1943,8 @@ export function initPlayback(root) {
     lanesDrawn = lanes;
     const shown = curveCanvas.style.display !== 'none';
     redrawRuler();
+    renderSceneStrip();
+    drawAudioCard();
     if (!lanes.length || !shown) {
       axisLanesCanvas.hidden = true;
       if (legend) legend.hidden = true;
@@ -2024,6 +2057,150 @@ export function initPlayback(root) {
     ctx.fillText('AUDIO LEVEL', 6 * dpr, top + 3 * dpr);
   }
 
+  // Scene strip: DOM, not canvas — diamonds are real buttons (seek, keyboard).
+  // Rebuilt only when the view window, thumbnails or chapters change.
+  function renderSceneStrip() {
+    const strip = el('#pb-scene-strip');
+    if (!strip) return;
+    const shown = scenesOn && !!scriptPath && curveCanvas.style.display !== 'none' && totalMs > 1;
+    strip.hidden = !shown;
+    root.dataset.pbScenes = shown ? 'on' : 'off';
+    if (!shown) { sceneStripSig = ''; return; }
+    const sig = [viewStartMs, viewEndMs, sceneThumbsFor, sceneThumbs ? sceneThumbs.length : 0,
+      JSON.stringify(chapterMarks)].join('|');
+    if (sig === sceneStripSig) return;
+    sceneStripSig = sig;
+    const pct = ms => `${((ms - viewStartMs) / viewSpanMs()) * 100}%`;
+    const inView = ms => ms >= viewStartMs && ms <= viewEndMs;
+    const thumbsBox = el('#pb-scene-thumbs');
+    thumbsBox.innerHTML = '';
+    if (sceneThumbs && sceneThumbs.length) {
+      const slot = sceneThumbs.length > 1 ? sceneThumbs[1].atMs - sceneThumbs[0].atMs : totalMs;
+      for (const t of sceneThumbs) {
+        const from = t.atMs - slot / 2, to = t.atMs + slot / 2;
+        if (to < viewStartMs || from > viewEndMs || !t.dataUrl) continue;
+        const img = document.createElement('img');
+        img.className = 'pb-scene-thumb';
+        img.src = t.dataUrl;
+        img.alt = '';
+        img.draggable = false;
+        img.style.left = pct(from);
+        img.style.width = `${(slot / viewSpanMs()) * 100}%`;
+        thumbsBox.appendChild(img);
+      }
+    }
+    const marks = el('#pb-scene-marks');
+    marks.innerHTML = '';
+    chapterMarks.forEach(c => {
+      if (!inView(c.startTime)) return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pb-scene-mark';
+      b.style.left = pct(c.startTime);
+      b.title = `${c.name} · ${fmtRuler(c.startTime)} — click to seek`;
+      b.setAttribute('aria-label', `Scene ${c.name} at ${fmtRuler(c.startTime)}`);
+      b.addEventListener('click', () => seekTo(c.startTime));
+      marks.appendChild(b);
+    });
+  }
+
+  async function loadSceneThumbs() {
+    const key = root.dataset.pbVideoPath || '';
+    if (!scenesOn || !key) {
+      if (!key) { sceneThumbs = null; sceneThumbsFor = ''; }
+      renderSceneStrip();
+      return;
+    }
+    if (sceneThumbsFor === key) return;
+    sceneThumbsFor = key;
+    try {
+      const thumbs = await GetVideoThumbnails(SCENE_THUMBS);
+      if (sceneThumbsFor !== key) return;
+      sceneThumbs = Array.isArray(thumbs) ? thumbs : null;
+    } catch (err) {
+      sceneThumbs = null;
+      log('Scene thumbnails unavailable: ' + err);
+    }
+    renderSceneStrip();
+  }
+
+  // "+": a scene marker is a chapter start. The new chapter runs to the next
+  // one (or the end); a chapter that spanned the point now ends there.
+  async function addSceneMarkerAt(atMs) {
+    if (!scriptPath) {
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
+      return;
+    }
+    const t = Math.max(0, Math.round(atMs));
+    if (chapterMarks.some(c => Math.abs(c.startTime - t) < 250)) {
+      uiWarn('A scene marker is already here.', el('#pb-log'));
+      return;
+    }
+    const previous = chapterMarks.slice();
+    const nextStart = chapterMarks.map(c => c.startTime).filter(s => s > t).sort((a, b) => a - b)[0] || 0;
+    const next = chapterMarks.map(c => (c.startTime < t && (!c.endTime || c.endTime > t) ? { ...c, endTime: t } : c));
+    const name = `Scene ${chapterMarks.length + 1}`;
+    next.push({ name, startTime: t, endTime: nextStart });
+    next.sort((a, b) => a.startTime - b.startTime);
+    if (await persistChapterMarks(next, previous)) {
+      uiInfo(`Scene marker “${name}” at ${fmtRuler(t)}`, el('#pb-log'));
+    }
+  }
+
+  // Audio Analysis card: the whole video's sound (not the zoom window) with
+  // the BPM beat grid and the playhead. Click seeks.
+  function drawAudioCard() {
+    const cv = el('#pb-aa-wave');
+    if (!cv) return;
+    const period = bpmPeriodMs();
+    const bpmEl = el('#pb-aa-bpm');
+    if (bpmEl) bpmEl.textContent = period > 0 ? `${Math.round(60000 / period)} BPM` : '— BPM';
+    const env = Array.isArray(audioLevel) && audioLevel.length > 1 ? audioLevel : null;
+    const empty = el('#pb-aa-empty');
+    if (empty) {
+      empty.hidden = !!env;
+      empty.textContent = root.dataset.pbVideo === 'true' ? 'Reading the sound…' : 'Link a video to see its sound.';
+    }
+    cv.hidden = !env;
+    if (!env || !cv.clientWidth) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(cv.clientWidth * dpr), h = Math.round((cv.clientHeight || 72) * dpr);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    const span = Math.max(totalMs, env.length * AUDIO_STEP_MS);
+    const xOf = ms => (ms / span) * w;
+    if (period > 0) {
+      const accentRgb = rgbToken('--accent-rgb', '184, 150, 232');
+      const every = Math.max(1, Math.ceil((span / period) / (w / (4 * dpr)))); // ≥ 4 px apart
+      for (let n = 0, t = 0; t <= span; n += every, t = n * period) {
+        const x = Math.round(xOf(t)) + 0.5;
+        ctx.strokeStyle = `rgba(${accentRgb}, ${n % 4 === 0 ? 0.3 : 0.14})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+    }
+    const color = (getComputedStyle(root).getPropertyValue('--axis-audio') || '').trim() || '#93aec4';
+    const mid = h / 2, half = h / 2 - 2 * dpr;
+    const step = Math.max(1, Math.round(2 * dpr));
+    ctx.fillStyle = color;
+    for (let x = 0; x < w; x += step) {
+      const i0 = Math.floor((x / w) * span / AUDIO_STEP_MS);
+      const i1 = Math.max(i0 + 1, Math.ceil(((x + step) / w) * span / AUDIO_STEP_MS));
+      if (i0 >= env.length) break;
+      let peak = 0;
+      for (let i = i0; i < Math.min(i1, env.length); i++) if (env[i] > peak) peak = env[i];
+      const hgt = Math.max(dpr * 0.6, peak * half);
+      ctx.fillRect(x, mid - hgt, Math.max(1, step - Math.round(dpr * 0.6)), hgt * 2);
+    }
+    if (currentPosMs > 0) {
+      const x = Math.round(xOf(currentPosMs)) + 0.5;
+      ctx.strokeStyle = THEME.playhead;
+      ctx.lineWidth = 1.25 * dpr;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+  }
+
   async function loadAudioLevel() {
     const key = `${scriptPath}|${root.dataset.pbVideo}`;
     if (root.dataset.pbVideo !== 'true') {
@@ -2032,7 +2209,7 @@ export function initPlayback(root) {
       redrawAxisLanes();
       return;
     }
-    if (!audioLaneOn || audioLevelFor === key) return;
+    if ((!audioLaneOn && root.dataset.pbBottom !== 'audio') || audioLevelFor === key) return;
     audioLevelFor = key;
     try {
       const env = await GetAudioLevelEnvelope();
@@ -2177,6 +2354,7 @@ export function initPlayback(root) {
     if (!window.confirm(`Move every point, bookmark and chapter by ${ms} ms and save the script? The offset then goes back to 0.`)) return;
     try {
       const res = await BakeScriptOffset();
+      markEdited();
       el('#pb-offset').value = 0;
       const dropped = Number(res?.dropped || 0);
       log(`Offset ${ms} ms written into the script` + (dropped ? ` — ${dropped} item(s) before 0 ms removed.` : '.'));
@@ -2655,6 +2833,7 @@ export function initPlayback(root) {
     const sorted = [...rawActions].sort((a, b) => a.atMs - b.atMs);
     try {
       await SaveScriptAxisActions(editAxis || 'general', sorted.map(p => ({ at: p.atMs, pos: p.pos })));
+      markEdited();
     } catch (err) {
       logError('Save curve: ' + err);
       return;
@@ -2786,6 +2965,11 @@ export function initPlayback(root) {
   //
   // Curve + heatmap redraw immediately (do not wait for timeupdate — that
   // event can lag or miss while paused). Device sync is pushed on 'seeked'.
+  // Library "Scripts → Edited": the loaded script was changed and saved.
+  function markEdited() {
+    if (scriptPath) window.dispatchEvent(new CustomEvent('pb:edited', { detail: { path: scriptPath } }));
+  }
+
   async function seekTo(atMs) {
     let t = atMs;
     const fps = parseFloat(el('#pb-fps-snap')?.value) || 0;
@@ -2972,9 +3156,20 @@ export function initPlayback(root) {
 
   async function attachVideoFromPicker() {
     if (!scriptPath) return;
+    let path = '';
     try {
-      const path = await PickVideoFile();
-      if (!path) return;
+      path = await PickVideoFile();
+    } catch (err) {
+      uiError('Link video: ' + err);
+      return;
+    }
+    if (path) await attachVideoPath(path);
+  }
+
+  // Link a known video file (picker or Library "recent videos").
+  async function attachVideoPath(path) {
+    if (!scriptPath || !path) return;
+    try {
       const url = await SetPlaybackVideo(path);
       videoPath = path;
       setVideoSrc(url);
@@ -3092,8 +3287,11 @@ export function initPlayback(root) {
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
-    // Library "Recent" (player_layout.js) listens for successful loads.
-    window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: scriptPath } }));
+    // Library "Recent" / "Scripts" (player_layout.js) listen for successful
+    // loads. origin: Generator results open with opts.review.
+    window.dispatchEvent(new CustomEvent('pb:loaded', {
+      detail: { path: scriptPath, origin: opts.review ? 'generated' : 'imported' },
+    }));
     if (!opts.keepPlaylist) {
       replacePlaylist([scriptPath], 0);
     } else {
@@ -3577,7 +3775,7 @@ export function initPlayback(root) {
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
     root.dataset.pbVideoPath = (root.dataset.pbVideo === 'true' && videoPath) ? videoPath : '';
   }
-  new MutationObserver(() => { syncStageState(); loadAudioLevel(); })
+  new MutationObserver(() => { syncStageState(); loadAudioLevel(); loadSceneThumbs(); })
     .observe(stageEl, { attributes: true, attributeFilter: ['class'] });
   const audioLaneBox = el('#pb-audio-lane-toggle');
   if (audioLaneBox) {
@@ -3588,6 +3786,16 @@ export function initPlayback(root) {
       if (audioLaneOn) { audioLevelFor = ''; loadAudioLevel(); } else redrawAxisLanes();
     });
   }
+  const scenesBox = el('#pb-scenes-toggle');
+  if (scenesBox) {
+    scenesBox.checked = scenesOn;
+    scenesBox.addEventListener('change', () => {
+      scenesOn = !!scenesBox.checked;
+      try { localStorage.setItem('pb.scenes', scenesOn ? '1' : '0'); } catch (_) { /* ignore */ }
+      if (scenesOn) loadSceneThumbs(); else renderSceneStrip();
+    });
+  }
+  el('#pb-scene-add')?.addEventListener('click', () => addSceneMarkerAt(currentPosMs));
   syncStageState();
   if (!root.dataset.pbState) root.dataset.pbState = 'empty';
   if (!root.dataset.pbTools) root.dataset.pbTools = 'open';
@@ -3743,6 +3951,7 @@ export function initPlayback(root) {
       if (Number.isFinite(bpm) && bpm >= 20 && bpm <= 240) {
         el('#pb-bpm').value = String(Math.round(bpm));
         if (status) status.textContent = `${Math.round(bpm)} BPM from audio`;
+        drawAudioCard();
         if (el('#pb-bpm-grid') && !el('#pb-bpm-grid').checked) {
           el('#pb-bpm-grid').checked = true;
           el('#pb-bpm-grid').dispatchEvent(new Event('change'));
@@ -3759,7 +3968,26 @@ export function initPlayback(root) {
   });
   el('#pb-bpm')?.addEventListener('input', () => {
     if (el('#pb-bpm-grid')?.checked) redrawCurve();
+    drawAudioCard();
   });
+  el('#pb-aa-detect')?.addEventListener('click', async () => {
+    el('#pb-bpm-auto')?.click();
+  });
+  el('#pb-aa-wave')?.addEventListener('click', e => {
+    const cv = e.currentTarget;
+    const env = audioLevel;
+    if (!env || !cv.clientWidth) return;
+    const span = Math.max(totalMs, env.length * AUDIO_STEP_MS);
+    const frac = Math.max(0, Math.min(1, e.offsetX / cv.clientWidth));
+    seekTo(Math.round(frac * span));
+  });
+  if (typeof ResizeObserver !== 'undefined' && el('#pb-aa-wave')) {
+    new ResizeObserver(() => drawAudioCard()).observe(el('#pb-aa-wave'));
+  }
+  // Audio Analysis tab shown (layout sets data-pb-bottom): load the sound
+  // even when the Audio Level lane is off.
+  new MutationObserver(() => { if (root.dataset.pbBottom === 'audio') loadAudioLevel(); })
+    .observe(root, { attributes: true, attributeFilter: ['data-pb-bottom'] });
 
   el('#pb-zoom-in')?.addEventListener('click', () => zoomByFactor(1.6, currentPosMs));
   el('#pb-zoom-out')?.addEventListener('click', () => zoomByFactor(1 / 1.6, currentPosMs));
@@ -3785,6 +4013,7 @@ export function initPlayback(root) {
     const maxI = capIntensityValue();
     try {
       await EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI);
+      markEdited();
       ofsStatus(`Speed cap @ ${Math.round(maxI)} (${axis})`);
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
       await reloadAfterRangeEdit();
@@ -3802,6 +4031,7 @@ export function initPlayback(root) {
     const soft = !!el('#pb-scale-soft-edges')?.checked;
     try {
       await EditScaleRange(axis, marker.startMs, marker.endMs, factor, soft);
+      markEdited();
       ofsStatus(`Scale ×${factor.toFixed(2)}${soft ? ' soft' : ''} (${axis})`);
       await reloadAfterRangeEdit();
     } catch (err) {
@@ -3816,6 +4046,7 @@ export function initPlayback(root) {
     const axis = activeEditAxis();
     try {
       await EditDeleteRange(axis, marker.startMs, marker.endMs);
+      markEdited();
       ofsStatus(`Range deleted (${axis})`);
       marker = null;
       await reloadAfterRangeEdit();
@@ -4424,6 +4655,7 @@ export function initPlayback(root) {
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
     seekMs: (atMs) => seekTo(atMs),
+    attachVideoPath: (path) => attachVideoPath(path),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,
     setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),

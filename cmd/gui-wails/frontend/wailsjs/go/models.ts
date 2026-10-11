@@ -977,6 +977,20 @@ export namespace main {
 	        this.vibration = source["vibration"];
 	    }
 	}
+	export class VideoThumb {
+	    atMs: number;
+	    dataUrl: string;
+
+	    static createFrom(source: any = {}) {
+	        return new VideoThumb(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.atMs = source["atMs"];
+	        this.dataUrl = source["dataUrl"];
+	    }
+	}
 	export class DeviceStatus {
 	    connected: boolean;
 	    mock: boolean;

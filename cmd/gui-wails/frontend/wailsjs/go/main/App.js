@@ -91,6 +91,7 @@ export function GetSpeedHighlights(arg1) { return window['go']['main']['App']['G
 export function GetScriptCurve(arg1) { return window['go']['main']['App']['GetScriptCurve'](arg1); }
 export function GetVibrationCurve(arg1) { return window['go']['main']['App']['GetVibrationCurve'](arg1); }
 export function GetVibrationCurvePreview(arg1) { return window['go']['main']['App']['GetVibrationCurvePreview'](arg1); }
+export function GetVideoThumbnails(arg1) { return window['go']['main']['App']['GetVideoThumbnails'](arg1); }
 export function GetScriptOffset() { return window['go']['main']['App']['GetScriptOffset'](); }
 export function GetTrajectory() { return window['go']['main']['App']['GetTrajectory'](); }
 export function GetSettings() { return window['go']['main']['App']['GetSettings'](); }

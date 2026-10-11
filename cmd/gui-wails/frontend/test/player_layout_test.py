@@ -37,6 +37,7 @@ def main():
         "VideoFileURL": "async () => ''",
         "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
         "SaveVideoSnapshot": "async (ms) => { window.__snap = ms; return '/out/frame.png'; }",
+        "SetPlaybackVideo": "async (p) => { window.__linked = p; return ''; }",
     }))
     try:
         with sync_playwright() as p:
@@ -65,6 +66,19 @@ def main():
             page.click(".pb-lib-recent-item")
             page.wait_for_function("window.__loaded.length === 2", timeout=3000)
             check("Recent entry reloads it", page.evaluate("window.__loaded[1]") == "/s/demo.samn")
+            # Favorites (S6): star next to the script name, list in the Library.
+            check("Favorites starts with a hint", "Star a script" in page.text_content("#pb-lib-fav"))
+            check("star enabled once loaded", page.is_enabled("#pb-fav-toggle")
+                  and page.get_attribute("#pb-fav-toggle", "aria-pressed") == "false")
+            page.click("#pb-fav-toggle")
+            check("star → favorite", page.get_attribute("#pb-fav-toggle", "aria-pressed") == "true"
+                  and "demo.samn" in page.text_content("#pb-lib-fav"))
+            check("favorites remembered", page.evaluate("JSON.parse(localStorage.getItem('pb.favorites'))") == ["/s/demo.samn"])
+            page.click("#pb-lib-fav .pb-lib-recent-item")
+            page.wait_for_function("window.__loaded.length === 3", timeout=3000)
+            check("favorite entry loads it", page.evaluate("window.__loaded[2]") == "/s/demo.samn")
+            page.click("#pb-fav-toggle")
+            check("star again removes it", "Star a script" in page.text_content("#pb-lib-fav"))
 
             tabs = page.evaluate("[...document.querySelectorAll('.pb-insp-tab')].map(b => b.textContent.trim())")
             check("Inspector tabs Devices · Audio · Playback · View", tabs == ["Devices", "Audio", "Playback", "View"], str(tabs))
@@ -124,6 +138,38 @@ def main():
             check("video bar fullscreen", page.evaluate("window.__fsv") == 1)
             page.click("#pb-vb-bookmark")
             check("bookmark icon opens Bookmarks", page.evaluate(f"{root}.dataset.pbBottom") == "bookmarks")
+            # Scripts (S6): Imported / Generated / Edited from real origins.
+            check("Imported lists the opened script", page.text_content("#pb-lib-imported-count") == "1")
+            check("Generated / Edited start empty", page.text_content("#pb-lib-generated-count") == ""
+                  and page.text_content("#pb-lib-edited-count") == "")
+            page.evaluate("""() => {
+                window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: '/out/My "best" <cut>.samn', origin: 'generated' } }));
+                window.dispatchEvent(new CustomEvent('pb:edited', { detail: { path: '/s/demo.samn' } })); }""")
+            check("Generator result → Generated", page.text_content("#pb-lib-generated-count") == "1"
+                  and page.text_content("#pb-lib-imported-count") == "1")
+            check("saved edit → Edited", page.text_content("#pb-lib-edited-count") == "1")
+            page.click("#pb-lib-generated-btn")
+            check("category list unfolds", page.is_visible("#pb-lib-generated")
+                  and page.get_attribute("#pb-lib-generated-btn", "aria-expanded") == "true")
+            item = page.query_selector("#pb-lib-generated .pb-lib-recent-item")
+            check("paths with quotes / < are escaped", item.get_attribute("title") == '/out/My "best" <cut>.samn'
+                  and item.text_content() == 'My "best" <cut>.samn')
+            n = page.evaluate("window.__loaded.length")
+            item.click()
+            page.wait_for_function(f"window.__loaded.length === {n + 1}", timeout=3000)
+            check("generated entry loads it, stays out of Imported",
+                  page.text_content("#pb-lib-imported-count") == "1")
+            # Recent videos (S6): chevron menu next to the video name.
+            page.evaluate(f"{root}.dataset.pbVideoPath = '/v/Other.mp4'")
+            page.wait_for_function("document.querySelector('#pb-vb-name').textContent === 'Other.mp4'", timeout=3000)
+            page.click("#pb-vb-recent")
+            check("recent-video menu open", page.is_visible("#pb-vb-menu")
+                  and page.get_attribute("#pb-vb-recent", "aria-expanded") == "true")
+            items = page.evaluate("[...document.querySelectorAll('.pb-vb-menu-item')].map(b => b.textContent.trim())")
+            check("menu lists earlier videos, not the current one", items == ["My Clip.mp4"], str(items))
+            page.click(".pb-vb-menu-item")
+            page.wait_for_function("window.__linked === '/v/My Clip.mp4'", timeout=3000)
+            check("menu entry links that video", page.is_hidden("#pb-vb-menu"))
             check("no page errors", errors == [], str(errors[:3]))
             b.close()
     finally:

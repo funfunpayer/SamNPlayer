@@ -147,6 +147,8 @@ export function GetVibrationCurve(arg1:number):Promise<Array<main.VibrationCurve
 
 export function GetVibrationCurvePreview(arg1:main.ContactPreviewOptions):Promise<Array<main.VibrationCurvePoint>>;
 
+export function GetVideoThumbnails(arg1:number):Promise<Array<main.VideoThumb>>;
+
 export function GetScriptOffset():Promise<number>;
 
 export function GetTrajectory():Promise<funscript.TrajectoryData>;
