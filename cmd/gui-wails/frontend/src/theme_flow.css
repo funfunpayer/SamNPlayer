@@ -2,6 +2,7 @@
  * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
+ * Quiet navy surfaces, restrained cyan (#00D9F4) primary, warm orange secondary accents.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -19,11 +20,16 @@
   color: var(--text-dim);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.6rem;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
 .pb-lib-item.is-primary {
   color: var(--accent);
   background: rgba(0, 217, 244, .1);
   border-color: rgba(0, 217, 244, .35);
+}
+.pb-lib-item:hover:not(:disabled) {
+  color: var(--accent);
+  background-color: rgba(0, 217, 244, .08);
 }
 .pb-lib-drop {
   border: 1px dashed rgba(104, 180, 212, .4);
@@ -51,6 +57,24 @@
   border-top: 1px solid rgba(104, 180, 212, .2);
   border-bottom: 1px solid rgba(104, 180, 212, .14);
   border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}
+[data-pb-region="transport"] button {
+  border-radius: var(--radius-sm);
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+[data-pb-region="transport"] button:hover:not(:disabled) {
+  color: var(--accent);
+  background: rgba(0, 217, 244, .08);
+}
+[data-pb-region="transport"] button.primary {
+  background: var(--accent);
+  color: #06121f;
+  border-color: transparent;
+}
+[data-pb-region="transport"] button.primary:hover:not(:disabled) {
+  background: #65efff;
+  color: #06121f;
 }
 [data-pb-region="legend"] {
   background: rgba(10, 27, 43, .5);
@@ -77,6 +101,18 @@
   background: radial-gradient(circle at 30% 20%, rgba(0, 217, 244, .06), transparent 50%),
               linear-gradient(180deg, rgba(10, 27, 43, .4), transparent);
 }
+.pb-empty-title {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.pb-empty-kicker {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
 .pb-card {
   background: rgba(10, 27, 43, .75);
   border: 1px solid rgba(104, 180, 212, .22);
@@ -93,14 +129,12 @@
   text-transform: uppercase;
   margin: 0 0 0.45rem;
 }
-.pb-lib-item,
 .pb-insp-tab,
 .pb-bottom-tab,
 .pb-axis-chip {
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
   color: var(--text-dim);
 }
-.pb-lib-item:hover:not(:disabled),
 .pb-insp-tab:hover:not(:disabled),
 .pb-bottom-tab:hover:not(:disabled),
 .pb-axis-chip:hover:not(:disabled) {
@@ -118,7 +152,9 @@
 .pb-insp-tab:focus-visible,
 .pb-bottom-tab:focus-visible,
 [data-pb-region="legend"] [data-axis]:focus-visible,
-.pb-axis-chip:focus-visible {
+.pb-axis-chip:focus-visible,
+[data-pb-region="transport"] button:focus-visible,
+[data-pb-region="zoom"] button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
@@ -176,6 +212,15 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.75rem;
+}
+.pb-playlist-list li {
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+}
+.pb-playlist-list li:hover {
+  color: var(--accent);
+  background: rgba(0, 217, 244, .06);
 }
 /* S4 timeline core visual prep (approved hooks only) */
 [data-pb-region="timeline"] .pb-ruler,
@@ -238,7 +283,8 @@
   .pb-axis-chip,
   [data-pb-region="legend"] [data-axis],
   .pb-chan-bar b,
-  [data-pb-region="zoom"] button {
+  [data-pb-region="zoom"] button,
+  [data-pb-region="transport"] button {
     transition: none;
   }
 }
