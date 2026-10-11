@@ -370,3 +370,20 @@ body {
   #tab-playback .pb-aa-wave { border-color: #8ef0ff; }
   #tab-playback .pb-fav-toggle[aria-pressed="true"] { border-color: #ffc16c; }
 }
+
+/* Compact-window safety: keep navigation readable without clipping controls. */
+@media (max-width: 1400px) {
+  #rail.topnav .tab-btn { min-width: 0; }
+  #rail.topnav .tab-btn span { white-space: nowrap; }
+  #topbar .brand-tagline { letter-spacing: .08em; }
+  #tab-playback .pb-vb-menu { max-width: min(420px, calc(100vw - 40px)); }
+}
+@media (max-width: 1100px) {
+  #rail.topnav { gap: 4px; }
+  #rail.topnav .tab-btn { padding-inline: 7px; }
+  #topbar .brand-wordmark { white-space: nowrap; }
+}
+@media (max-height: 800px) {
+  #tab-playback .pb-scene-thumb { max-height: 72px; }
+  #tab-playback .pb-aa-wave { max-height: 100px; }
+}
