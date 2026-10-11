@@ -195,6 +195,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
 	p.SetSpeed(opts.Speed)
+	a.stateMu.RLock()
+	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
+	a.stateMu.RUnlock()
 	p.OnLog = func(line string) { runtime.EventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
 		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
@@ -320,6 +323,29 @@ func (a *App) ReportVideoSyncIdle() {
 	select {
 	case a.videoPositionCh <- player.SyncIdleSentinel:
 	default:
+	}
+}
+
+// SetChannelLevels sets the vibration / suction output level (0–1) for the
+// running and every following playback (V1 Inspector → Devices: per-channel
+// on/off and level). Script files are not changed.
+func (a *App) SetChannelLevels(vibration, suction float64) {
+	clamp := func(v float64) float64 {
+		if !(v >= 0) {
+			return 0
+		}
+		if v > 1 {
+			return 1
+		}
+		return v
+	}
+	vibration, suction = clamp(vibration), clamp(suction)
+	a.stateMu.Lock()
+	a.vibCut, a.sucCut = 1-vibration, 1-suction
+	p := a.activePlayer
+	a.stateMu.Unlock()
+	if p != nil {
+		p.SetChannelLevels(vibration, suction)
 	}
 }
 

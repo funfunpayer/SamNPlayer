@@ -177,3 +177,19 @@ body {
 #tab-playback .pb-transport { flex-wrap: wrap; row-gap: 8px; }
 #tab-playback .pb-transport .progress-bar { order: -1; flex: 1 1 100%; }
 #tab-playback .pb-transport-right { margin-left: auto; }
+
+/* Channel rows: toggle switch + coloured level slider (mockup Devices). */
+.pb-chan-row { grid-template-columns: 40px 22px 80px 1fr 44px 40px 34px; }
+.pb-chan-on {
+  appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14); position: relative; cursor: pointer; transition: background .15s;
+}
+.pb-chan-on::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform .15s;
+}
+.pb-chan-on:checked { background: var(--c, #00d9f4); box-shadow: 0 0 10px var(--c, #00d9f4); }
+.pb-chan-on:checked::after { transform: translateX(16px); }
+@media (prefers-reduced-motion: reduce) { .pb-chan-on, .pb-chan-on::after { transition: none; } }
+.pb-chan-row .pb-chan-bar { height: 4px; }
+.pb-chan-row .pb-chan-bar b::after { display: none; }

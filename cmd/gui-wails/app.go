@@ -38,7 +38,10 @@ type App struct {
 	videoServerPort int
 	sessionActive   bool // true solange eine Wiedergabe ODER ein Training läuft
 
-	activePlayer    *player.Player
+	activePlayer *player.Player
+	// Per-channel output cut (V1 Inspector → Devices); zero value = full.
+	// Guarded by stateMu; applied to every new and the running player.
+	vibCut, sucCut  float64
 	activeDevice    device.Device
 	playCancel      context.CancelFunc
 	videoPositionCh chan int64

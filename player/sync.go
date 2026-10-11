@@ -131,10 +131,11 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 // die Amplitude) und meldet den ausgegebenen Wert per OnFrame.
 func (p *Player) setOutput(f funscript.Frame) error {
 	scale := p.getIntensityScale()
+	vibLevel, sucLevel := p.ChannelLevels()
 	out := funscript.Frame{
 		At:        f.At,
-		Vibration: f.Vibration * scale,
-		Suction:   f.Suction * scale,
+		Vibration: f.Vibration * scale * vibLevel,
+		Suction:   f.Suction * scale * sucLevel,
 	}
 	if err := p.Device.SetVibration(out.Vibration); err != nil {
 		return err

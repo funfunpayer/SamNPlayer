@@ -35,6 +35,7 @@ def main():
         "GetHeatmap": "async n => Array.from({ length: n }, (_, i) => ({ atMs: i * 200, intensity: 0.5 }))",
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
+        "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
     }))
     try:
         with sync_playwright() as p:
@@ -69,6 +70,17 @@ def main():
             check("Devices: channel rows Stroke / Vibration / Suction",
                   page.evaluate("[...document.querySelectorAll('.pb-chan-name')].map(e => e.textContent)") == ["Stroke", "Vibration", "Suction"])
             check("Devices shows the axis row", page.is_visible("#pb-axis-row"))
+            check("channels start at full output", page.evaluate("window.__levels") == [1, 1])
+            page.fill("#pb-chan-vibration-level", "50")
+            page.dispatch_event("#pb-chan-vibration-level", "input")
+            check("vibration level 50% → SetChannelLevels(0.5, 1)", page.evaluate("window.__levels") == [0.5, 1])
+            page.uncheck("#pb-chan-suction-on")
+            check("suction off → level 0", page.evaluate("window.__levels") == [0.5, 0]
+                  and page.text_content("#pb-chan-suction-lvl") == "Off")
+            check("channel settings remembered",
+                  page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels')).suction.on") is False)
+            page.check("#pb-chan-suction-on")
+            check("Stroke row has no level control (drives the recipe)", page.evaluate("!document.querySelector('#pb-chan-stroke-level')"))
             page.click('.pb-insp-tab[data-insp="audio"]')
             check("Audio tab: BPM and audio vibration", page.is_visible("#pb-bpm-auto") and page.is_visible("#pb-audio-vibration"))
             check("Devices content hidden on Audio tab", page.is_hidden("#pb-axis-row"))

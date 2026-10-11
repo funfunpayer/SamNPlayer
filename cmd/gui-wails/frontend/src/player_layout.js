@@ -8,7 +8,10 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
+import { SetChannelLevels } from '../wailsjs/go/main/App';
+
 const RECENT_KEY = 'pb.recent';
+const CHAN_KEY = 'pb.chanLevels';
 const RECENT_MAX = 8;
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
@@ -112,11 +115,17 @@ export function applyPlayerLayoutV1(root, api) {
   // Devices: live channel rows (real values mirrored from the transport).
   const live = document.createElement('div');
   live.className = 'pb-chan-rows';
-  live.innerHTML = [['stroke', 'Stroke', '#pb-pos-value'], ['vibration', 'Vibration', '#pb-vib'], ['suction', 'Suction', '#pb-suc']]
-    .map(([k, label]) => `<div class="pb-chan-row" data-axis="${k}">
+  // Stroke drives the feel recipe (not sent to the Neo 2 directly): live only.
+  // Vibration / Suction: on/off + output level (device-side, files unchanged).
+  live.innerHTML = [['stroke', 'Stroke', false], ['vibration', 'Vibration', true], ['suction', 'Suction', true]]
+    .map(([k, label, ctl]) => `<div class="pb-chan-row" data-axis="${k}">
+        ${ctl ? `<input type="checkbox" class="pb-chan-on" id="pb-chan-${k}-on" checked aria-label="${label} on" />` : '<span class="pb-chan-on-spacer"></span>'}
         <i class="pb-chan-dot"></i><span class="pb-chan-name">${label}</span>
-        <span class="pb-chan-bar"><b id="pb-chan-${k}-fill"></b></span>
-        <span class="pb-chan-val" id="pb-chan-${k}-val">–</span></div>`).join('');
+        ${ctl ? `<input type="range" class="pb-chan-level" id="pb-chan-${k}-level" min="0" max="100" step="5" value="100" aria-label="${label} level" />`
+              : '<span class="pb-chan-level-spacer"></span>'}
+        <span class="pb-chan-val" id="pb-chan-${k}-lvl">${ctl ? '100%' : ''}</span>
+        <span class="pb-chan-bar" title="Live output"><b id="pb-chan-${k}-fill"></b></span>
+        <span class="pb-chan-live" id="pb-chan-${k}-val">–</span></div>`).join('');
   panels.devices.appendChild(live);
 
   const move = (sel, panel) => {
@@ -336,6 +345,38 @@ export function applyPlayerLayoutV1(root, api) {
   mirror('#pb-pos-value', 'stroke', 1);
   mirror('#pb-vib', 'vibration', 1);
   mirror('#pb-suc', 'suction', 1);
+
+  // ---- Channel on/off + level → device output (SetChannelLevels) ----------
+  let saved = {};
+  try { saved = JSON.parse(load(CHAN_KEY) || '{}') || {}; } catch (_) { saved = {}; }
+  const chans = ['vibration', 'suction'];
+  for (const k of chans) {
+    const st = saved[k] || {};
+    const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
+    if (on && typeof st.on === 'boolean') on.checked = st.on;
+    if (lvl && Number.isFinite(st.level)) lvl.value = String(Math.max(0, Math.min(100, st.level)));
+  }
+  function applyChannels() {
+    const out = {};
+    const level = k => {
+      const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
+      const v = Number(lvl?.value ?? 100);
+      out[k] = { on: !!on?.checked, level: v };
+      q(`#pb-chan-${k}-lvl`).textContent = on?.checked ? `${v}%` : 'Off';
+      lvl.disabled = !on?.checked;
+      q(`.pb-chan-row[data-axis="${k}"]`)?.classList.toggle('is-off', !on?.checked);
+      return on?.checked ? v / 100 : 0;
+    };
+    const vib = level('vibration'), suc = level('suction');
+    store(CHAN_KEY, JSON.stringify(out));
+    root.dataset.pbChannels = `${vib},${suc}`;
+    SetChannelLevels(vib, suc).catch(() => {});
+  }
+  for (const k of chans) {
+    q(`#pb-chan-${k}-on`)?.addEventListener('change', applyChannels);
+    q(`#pb-chan-${k}-level`)?.addEventListener('input', applyChannels);
+  }
+  applyChannels();
 
   return { showInspector, showBottom, renderRecent };
 }
