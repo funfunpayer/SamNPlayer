@@ -45,6 +45,11 @@ export function initGenerator(root, playback) {
         <span class="path-label" id="gen-video-path">No video selected</span>
         <button id="gen-check-deps">Check dependencies</button>
       </div>
+      <div class="row gen-use-player" id="gen-use-player-row" hidden>
+        <button type="button" id="gen-use-player-video" class="secondary"
+          data-help="Use the video that is linked in Play, so Create and Play work on the same clip.">Use Player video</button>
+        <span class="hint" id="gen-use-player-name" style="margin:0;"></span>
+      </div>
       <p class="hint" id="gen-empty-cta" style="margin:8px 0 0 0;">
         Start here: pick a short clip → Find tip → Create Emotion Script. No Python needed for Everyday Go CSRT.
       </p>
@@ -2980,6 +2985,29 @@ export function initGenerator(root, playback) {
   // Fallengelassenes video Apply. Teilt sich den Ladeweg mit der
   // Dateiauswahl, damit beide Wege garantiert dasselbe tun.
   // paths[] = full multi-drop list (current first); queue holds all clips.
+  // Workspace (V1 W3): offer the Play video in Create step 1 when it differs.
+  function playerVideoPath() {
+    return document.getElementById('tab-playback')?.dataset.pbVideoPath || '';
+  }
+  function syncUsePlayerVideo() {
+    const row = el('#gen-use-player-row');
+    if (!row) return;
+    const pv = playerVideoPath();
+    const show = !!pv && pv !== videoPath && !generating;
+    row.hidden = !show;
+    if (show) el('#gen-use-player-name').textContent = pv.split(/[\\/]/).pop();
+  }
+  el('#gen-use-player-video')?.addEventListener('click', () => {
+    const pv = playerVideoPath();
+    if (pv && pv !== videoPath) loadVideo(pv);
+  });
+  const pbRoot = document.getElementById('tab-playback');
+  if (pbRoot) {
+    new MutationObserver(syncUsePlayerVideo).observe(pbRoot, { attributes: true, attributeFilter: ['data-pb-video-path'] });
+  }
+  window.addEventListener('ws:view', syncUsePlayerVideo);
+  syncUsePlayerVideo();
+
   window.addEventListener('drop:video', e => {
     const path = e.detail.path;
     const paths = (e.detail.paths && e.detail.paths.length)
@@ -3319,6 +3347,10 @@ export function initGenerator(root, playback) {
   async function loadVideo(path, extraCount = 0, remainingPaths = null, opts = {}) {
     cancelActiveAITargetRequest();
     videoPath = path;
+    // Workspace (V1 W3): Play lists this clip under its recent videos, and
+    // the "Use Player video" offer hides once both use the same file.
+    window.dispatchEvent(new CustomEvent('gen:video', { detail: { path } }));
+    syncUsePlayerVideo();
     lastSceneMap = null;
     sceneMapWinIdx = 0;
     sceneMapMarks = [];

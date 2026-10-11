@@ -351,6 +351,8 @@ export function applyPlayerLayoutV1(root, api) {
     syncVideoName();
     pushRecentVideo(root.dataset.pbVideoPath || '');
   }).observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
+  // A clip chosen in Create is one click away in Play (recent videos).
+  window.addEventListener('gen:video', e => pushRecentVideo(e.detail && e.detail.path));
   syncVideoName();
   const vbMenu = q('#pb-vb-menu');
   const vbMore = q('#pb-vb-recent');
