@@ -63,6 +63,7 @@ The older classes (`pb-tools-collapsed`, `has-script`, `.is-playing`,
   for all three views. Play / Edit is remembered (`localStorage ws.view`).
 - **Create** shows `#tab-generator` (unchanged). **Edit** shows `#tab-playback`
   with curve editing on, Inspector on View, Timeline tab, scene strip on.
+- **Edit history (W2):** `#pb-history` with `#pb-undo` / `#pb-redo` next to "Edit curve"; root `data-pb-undo` = steps available.
 - **Events:** `ws:view` (detail.view) after every switch; `ws:set` asks for a
   view (a Generator result sends `edit`).
 

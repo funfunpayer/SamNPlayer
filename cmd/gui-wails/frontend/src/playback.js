@@ -182,6 +182,10 @@ export function initPlayback(root) {
         <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve (dots)</label>
+          <span class="pb-history" id="pb-history" data-pb-region="history">
+            <button type="button" id="pb-undo" disabled title="Undo the last curve change (Ctrl+Z)" aria-label="Undo">↶ Undo</button>
+            <button type="button" id="pb-redo" disabled title="Redo (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Redo">↷ Redo</button>
+          </span>
         </div>
         <label class="checkbox-row" id="pb-audio-lane-row" style="margin:0;"
           data-help="Audio Level lane under the curve: loudness of the video's sound over time (needs a linked video and ffmpeg). On by default.">
@@ -2887,8 +2891,10 @@ export function initPlayback(root) {
   async function persistRawActions() {
     if (!scriptPath || !rawActions) return;
     const sorted = [...rawActions].sort((a, b) => a.atMs - b.atMs);
+    const axis = editAxis || 'general';
     try {
-      await SaveScriptAxisActions(editAxis || 'general', sorted.map(p => ({ at: p.atMs, pos: p.pos })));
+      await withHistory(axis, 'curve dots', () =>
+        SaveScriptAxisActions(axis, sorted.map(p => ({ at: p.atMs, pos: p.pos }))));
       markEdited();
     } catch (err) {
       logError('Save curve: ' + err);
@@ -3021,6 +3027,83 @@ export function initPlayback(root) {
   //
   // Curve + heatmap redraw immediately (do not wait for timeupdate — that
   // event can lag or miss while paused). Device sync is pushed on 'seeked'.
+  // Edit history (V1 W2): every curve change — dots and range tools — is
+  // recorded as the axis before / after; Undo writes "before" back through
+  // the same SaveScriptAxisActions the editor uses. Per loaded script.
+  const HISTORY_MAX = 50;
+  let undoStack = [];
+  let redoStack = [];
+  let historyBusy = false;
+  const snapshotAxis = async axis => {
+    const acts = await GetScriptAxisActions(axis);
+    return (Array.isArray(acts) ? acts : []).map(a => ({ at: a.at, pos: a.pos }));
+  };
+  const sameActions = (a, b) => a.length === b.length && a.every((x, i) => x.at === b[i].at && x.pos === b[i].pos);
+  function syncHistoryButtons() {
+    const u = el('#pb-undo'), r = el('#pb-redo');
+    if (u) {
+      u.disabled = historyBusy || !undoStack.length;
+      u.title = undoStack.length ? `Undo: ${undoStack[undoStack.length - 1].label} (Ctrl+Z)` : 'Nothing to undo';
+    }
+    if (r) {
+      r.disabled = historyBusy || !redoStack.length;
+      r.title = redoStack.length ? `Redo: ${redoStack[redoStack.length - 1].label} (Ctrl+Y)` : 'Nothing to redo';
+    }
+    root.dataset.pbUndo = String(undoStack.length);
+  }
+  function resetHistory() {
+    undoStack = [];
+    redoStack = [];
+    syncHistoryButtons();
+  }
+  // Runs op() and records the axis change. op throws → nothing recorded.
+  async function withHistory(axis, label, op) {
+    let before = null;
+    try { before = await snapshotAxis(axis); } catch (_) { before = null; }
+    await op();
+    if (!before) return;
+    let after;
+    try { after = await snapshotAxis(axis); } catch (_) { return; }
+    if (sameActions(before, after)) return;
+    undoStack.push({ axis, label, before, after });
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    syncHistoryButtons();
+  }
+  async function stepHistory(dir) {
+    const from = dir === 'undo' ? undoStack : redoStack;
+    const to = dir === 'undo' ? redoStack : undoStack;
+    if (historyBusy || !from.length || !scriptPath) return;
+    const entry = from.pop();
+    historyBusy = true;
+    syncHistoryButtons();
+    try {
+      await SaveScriptAxisActions(entry.axis, dir === 'undo' ? entry.before : entry.after);
+      to.push(entry);
+      markEdited();
+      log(`${dir === 'undo' ? 'Undo' : 'Redo'}: ${entry.label} (${entry.axis})`);
+      await reloadAfterRangeEdit();
+      if (editMode && rawActions) keyframeDots = rawActions.map(p => ({ ...p }));
+    } catch (err) {
+      from.push(entry);
+      logError(`${dir === 'undo' ? 'Undo' : 'Redo'}: ` + err);
+    } finally {
+      historyBusy = false;
+      syncHistoryButtons();
+    }
+  }
+  el('#pb-undo')?.addEventListener('click', () => stepHistory('undo'));
+  el('#pb-redo')?.addEventListener('click', () => stepHistory('redo'));
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (/INPUT|TEXTAREA|SELECT/.test(tag) && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+    if (document.body.dataset.tab && document.body.dataset.tab !== 'playback') return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); stepHistory('undo'); }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); stepHistory('redo'); }
+  });
+
   // Library "Scripts → Edited": the loaded script was changed and saved.
   function markEdited() {
     if (scriptPath) window.dispatchEvent(new CustomEvent('pb:edited', { detail: { path: scriptPath } }));
@@ -3346,6 +3429,7 @@ export function initPlayback(root) {
     // Library "Recent" / "Scripts" (player_layout.js) listen for successful
     // loads. origin: Generator results open with opts.review.
     syncAutoSyncButton();
+    resetHistory();
     if (el('#pb-autosync-status')) el('#pb-autosync-status').textContent = '';
     if (el('#pb-autosync-apply')) el('#pb-autosync-apply').hidden = true;
     window.dispatchEvent(new CustomEvent('pb:loaded', {
@@ -4073,7 +4157,7 @@ export function initPlayback(root) {
     const axis = activeEditAxis();
     const maxI = capIntensityValue();
     try {
-      await EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI);
+      await withHistory(axis, 'speed cap', () => EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI));
       markEdited();
       ofsStatus(`Speed cap @ ${Math.round(maxI)} (${axis})`);
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
@@ -4091,7 +4175,7 @@ export function initPlayback(root) {
     const factor = scaleFactorValue();
     const soft = !!el('#pb-scale-soft-edges')?.checked;
     try {
-      await EditScaleRange(axis, marker.startMs, marker.endMs, factor, soft);
+      await withHistory(axis, 'scale range', () => EditScaleRange(axis, marker.startMs, marker.endMs, factor, soft));
       markEdited();
       ofsStatus(`Scale ×${factor.toFixed(2)}${soft ? ' soft' : ''} (${axis})`);
       await reloadAfterRangeEdit();
@@ -4106,7 +4190,7 @@ export function initPlayback(root) {
     }
     const axis = activeEditAxis();
     try {
-      await EditDeleteRange(axis, marker.startMs, marker.endMs);
+      await withHistory(axis, 'delete range', () => EditDeleteRange(axis, marker.startMs, marker.endMs));
       markEdited();
       ofsStatus(`Range deleted (${axis})`);
       marker = null;
