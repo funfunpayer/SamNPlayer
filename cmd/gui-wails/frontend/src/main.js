@@ -1,4 +1,5 @@
 import './style.css';
+import './theme_flow.css';
 import './help.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
@@ -283,7 +284,7 @@ function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
     : '';
   bar.innerHTML = `<span>${kind} ${escapeHtml(label)} available (you have ${escapeHtml(currentVersion)}).</span>
     ${noteHtml}
-    <button type="button" id="update-banner-apply" class="primary">Download &amp; restart</button>
+    <button type="button" id="update-banner-apply" class="primary">Download & restart</button>
     <button type="button" id="update-banner-dismiss">Later</button>`;
   const host = document.getElementById('topbar') || document.getElementById('app');
   host?.prepend(bar);
@@ -304,10 +305,10 @@ function showUpdateBanner(label, { isPatch = false, notes = '' } = {}) {
 
 function escapeHtml(s) {
   return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
 }
 
 GetSettings().then(s => {
