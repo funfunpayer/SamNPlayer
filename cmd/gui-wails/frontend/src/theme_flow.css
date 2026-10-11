@@ -212,3 +212,7 @@ body {
   color: var(--accent, #00d9f4); background: rgba(var(--accent-rgb, 0, 217, 244), 0.08);
   border: 1px solid rgba(var(--accent-rgb, 0, 217, 244), 0.45);
 }
+
+/* S8a Audio Analysis card look */
+.pb-audio-card-bpm { color: var(--accent, #00d9f4); font-size: 18px; text-shadow: 0 0 10px rgba(var(--accent-rgb, 0, 217, 244), 0.5); }
+.pb-aa-wave { border-radius: 8px; background: rgba(var(--accent-rgb, 0, 217, 244), 0.04); }

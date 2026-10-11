@@ -3143,6 +3143,12 @@ body[data-tab="playback"] #sidebar { display: none; }
   background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
 }
+/* S8a Audio Analysis card (structure only). */
+.pb-audio-card { padding: 6px 0; }
+.pb-audio-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pb-audio-card-bpm { font-variant-numeric: tabular-nums; font-weight: 700; }
+.pb-aa-wave { display: block; width: 100%; height: 72px; cursor: pointer; }
+.pb-aa-wave[hidden] { display: none; }
 /* S4b scene strip: thumbnails + chapter-start diamonds + "+" (structure only). */
 .pb-scene-strip[hidden] { display: none !important; }
 .pb-scene-strip {

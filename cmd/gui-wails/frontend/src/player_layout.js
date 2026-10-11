@@ -293,8 +293,11 @@ export function applyPlayerLayoutV1(root, api) {
   };
   openDetails('#pb-chapter-details', 'chapters');
   openDetails('#pb-bookmark-details', 'bookmarks');
+  const audioPanel = mk('audio');
+  const card = q('#pb-audio-card');
+  if (card) audioPanel.appendChild(card);
   const segs = q('#pb-audio-segments');
-  if (segs) mk('audio').appendChild(segs);
+  if (segs) audioPanel.appendChild(segs);
   function showBottom(k) {
     if (k === 'scenemap') {
       document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click();

@@ -22,6 +22,10 @@ in #475 and Claude adds it. Don't work around a missing hook in JS.
 | `legend` | `#pb-axis-legend` | Axis chips `[data-axis=general\|vibration\|suction]` (role toolbar) |
 | `curve` | `#pb-curve` | Main curve canvas (shown axis + stroke ghost) |
 | `lanes` | `#pb-axis-lanes` | Feel-channel lanes canvas (focusable, ↑/↓) |
+| `ruler` | `#pb-ruler` | Time ruler (mm:ss) above the curve |
+| `scenes` | `#pb-scene-strip` | Scene strip: thumbnails `.pb-scene-thumb`, diamonds `.pb-scene-mark` (chapter starts, click seeks), `#pb-scene-add` ("+"). Off by default in the Player (`#pb-scenes-toggle`) |
+| `videobar` | `.pb-videobar` | Above the video: `#pb-vb-video` (name, opens picker), `#pb-vb-bookmark`, `#pb-vb-snapshot`, `#pb-vb-fs` |
+| `audio-analysis` | `#pb-audio-card` | Audio Analysis card: `#pb-aa-bpm`, `#pb-aa-detect`, waveform `#pb-aa-wave` (click seeks) |
 | `heatmap` | `#pb-heatmap` | Heatmap / selection canvas |
 | `zoom` | `#pb-curve-zoom` | Zoom buttons + `#pb-zoom-label` |
 | `playlist` | `#pb-playlist` | Playlist (shuffle / repeat / auto-advance) |
@@ -40,6 +44,9 @@ areas or `order`, but must not move elements in JS.
 | `data-pb-tools` | `open` / `folded` | Tools column folded with ⟩ or **T** (remembered) |
 | `data-pb-playing` | `true` / `false` | Playback running |
 | `data-pb-video` | `true` / `false` | A playable video is linked |
+| `data-pb-video-path` | path / empty | The linked video file |
+| `data-pb-scenes` | `on` / `off` | Scene strip shown |
+| `data-pb-bottom` | `timeline` / `chapters` / `bookmarks` / `audio` | Bottom tab (V1 layout) |
 
 The older classes (`pb-tools-collapsed`, `has-script`, `.is-playing`,
 `.has-video` on the stage) still work. New CSS should use the attributes.

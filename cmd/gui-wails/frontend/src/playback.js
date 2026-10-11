@@ -379,6 +379,17 @@ export function initPlayback(root) {
           <div id="pb-chapter-list" style="display:none; margin-top:6px;"></div>
         </details>
 
+        <section class="pb-audio-card" id="pb-audio-card" data-pb-region="audio-analysis" aria-label="Audio Analysis">
+          <div class="pb-audio-card-head">
+            <b>Audio Analysis</b>
+            <span class="pb-audio-card-bpm" id="pb-aa-bpm">— BPM</span>
+            <button type="button" class="secondary" id="pb-aa-detect"
+              data-help="Measure the beat of the video's sound (same as View → From audio). Display only.">From audio</button>
+          </div>
+          <canvas id="pb-aa-wave" class="pb-aa-wave" height="72" tabindex="0"
+            aria-label="Audio waveform of the whole video with beat lines. Click to seek."></canvas>
+          <p class="hint" id="pb-aa-empty" style="margin:4px 0 0;">Link a video to see its sound.</p>
+        </section>
         <div id="pb-audio-segments" class="gen-audio-segments" hidden>
           <div class="gen-audio-segments-head">
             <b>Speech-Hold / Feel segments</b>
@@ -1933,6 +1944,7 @@ export function initPlayback(root) {
     const shown = curveCanvas.style.display !== 'none';
     redrawRuler();
     renderSceneStrip();
+    drawAudioCard();
     if (!lanes.length || !shown) {
       axisLanesCanvas.hidden = true;
       if (legend) legend.hidden = true;
@@ -2135,6 +2147,60 @@ export function initPlayback(root) {
     }
   }
 
+  // Audio Analysis card: the whole video's sound (not the zoom window) with
+  // the BPM beat grid and the playhead. Click seeks.
+  function drawAudioCard() {
+    const cv = el('#pb-aa-wave');
+    if (!cv) return;
+    const period = bpmPeriodMs();
+    const bpmEl = el('#pb-aa-bpm');
+    if (bpmEl) bpmEl.textContent = period > 0 ? `${Math.round(60000 / period)} BPM` : '— BPM';
+    const env = Array.isArray(audioLevel) && audioLevel.length > 1 ? audioLevel : null;
+    const empty = el('#pb-aa-empty');
+    if (empty) {
+      empty.hidden = !!env;
+      empty.textContent = root.dataset.pbVideo === 'true' ? 'Reading the sound…' : 'Link a video to see its sound.';
+    }
+    cv.hidden = !env;
+    if (!env || !cv.clientWidth) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(cv.clientWidth * dpr), h = Math.round((cv.clientHeight || 72) * dpr);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    const span = Math.max(totalMs, env.length * AUDIO_STEP_MS);
+    const xOf = ms => (ms / span) * w;
+    if (period > 0) {
+      const accentRgb = rgbToken('--accent-rgb', '184, 150, 232');
+      const every = Math.max(1, Math.ceil((span / period) / (w / (4 * dpr)))); // ≥ 4 px apart
+      for (let n = 0, t = 0; t <= span; n += every, t = n * period) {
+        const x = Math.round(xOf(t)) + 0.5;
+        ctx.strokeStyle = `rgba(${accentRgb}, ${n % 4 === 0 ? 0.3 : 0.14})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+    }
+    const color = (getComputedStyle(root).getPropertyValue('--axis-audio') || '').trim() || '#93aec4';
+    const mid = h / 2, half = h / 2 - 2 * dpr;
+    const step = Math.max(1, Math.round(2 * dpr));
+    ctx.fillStyle = color;
+    for (let x = 0; x < w; x += step) {
+      const i0 = Math.floor((x / w) * span / AUDIO_STEP_MS);
+      const i1 = Math.max(i0 + 1, Math.ceil(((x + step) / w) * span / AUDIO_STEP_MS));
+      if (i0 >= env.length) break;
+      let peak = 0;
+      for (let i = i0; i < Math.min(i1, env.length); i++) if (env[i] > peak) peak = env[i];
+      const hgt = Math.max(dpr * 0.6, peak * half);
+      ctx.fillRect(x, mid - hgt, Math.max(1, step - Math.round(dpr * 0.6)), hgt * 2);
+    }
+    if (currentPosMs > 0) {
+      const x = Math.round(xOf(currentPosMs)) + 0.5;
+      ctx.strokeStyle = THEME.playhead;
+      ctx.lineWidth = 1.25 * dpr;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+  }
+
   async function loadAudioLevel() {
     const key = `${scriptPath}|${root.dataset.pbVideo}`;
     if (root.dataset.pbVideo !== 'true') {
@@ -2143,7 +2209,7 @@ export function initPlayback(root) {
       redrawAxisLanes();
       return;
     }
-    if (!audioLaneOn || audioLevelFor === key) return;
+    if ((!audioLaneOn && root.dataset.pbBottom !== 'audio') || audioLevelFor === key) return;
     audioLevelFor = key;
     try {
       const env = await GetAudioLevelEnvelope();
@@ -3864,6 +3930,7 @@ export function initPlayback(root) {
       if (Number.isFinite(bpm) && bpm >= 20 && bpm <= 240) {
         el('#pb-bpm').value = String(Math.round(bpm));
         if (status) status.textContent = `${Math.round(bpm)} BPM from audio`;
+        drawAudioCard();
         if (el('#pb-bpm-grid') && !el('#pb-bpm-grid').checked) {
           el('#pb-bpm-grid').checked = true;
           el('#pb-bpm-grid').dispatchEvent(new Event('change'));
@@ -3880,7 +3947,26 @@ export function initPlayback(root) {
   });
   el('#pb-bpm')?.addEventListener('input', () => {
     if (el('#pb-bpm-grid')?.checked) redrawCurve();
+    drawAudioCard();
   });
+  el('#pb-aa-detect')?.addEventListener('click', async () => {
+    el('#pb-bpm-auto')?.click();
+  });
+  el('#pb-aa-wave')?.addEventListener('click', e => {
+    const cv = e.currentTarget;
+    const env = audioLevel;
+    if (!env || !cv.clientWidth) return;
+    const span = Math.max(totalMs, env.length * AUDIO_STEP_MS);
+    const frac = Math.max(0, Math.min(1, e.offsetX / cv.clientWidth));
+    seekTo(Math.round(frac * span));
+  });
+  if (typeof ResizeObserver !== 'undefined' && el('#pb-aa-wave')) {
+    new ResizeObserver(() => drawAudioCard()).observe(el('#pb-aa-wave'));
+  }
+  // Audio Analysis tab shown (layout sets data-pb-bottom): load the sound
+  // even when the Audio Level lane is off.
+  new MutationObserver(() => { if (root.dataset.pbBottom === 'audio') loadAudioLevel(); })
+    .observe(root, { attributes: true, attributeFilter: ['data-pb-bottom'] });
 
   el('#pb-zoom-in')?.addEventListener('click', () => zoomByFactor(1.6, currentPosMs));
   el('#pb-zoom-out')?.addEventListener('click', () => zoomByFactor(1 / 1.6, currentPosMs));
