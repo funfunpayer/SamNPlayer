@@ -1,0 +1,146 @@
+/* SamNPlayer V1 — neon visual layer.
+ * Owner: ChatGPT LOOK only; Claude imports after style.css.
+ * Scope: approved Player hooks. No global tokens, DOM/visibility changes,
+ * canvas dimensions, background animation or device behaviour.
+ */
+[data-pb-region="library"] {
+  background: linear-gradient(160deg, #061b2e 0%, #03111e 55%, #030b14 100%);
+  border: 1px solid rgba(0, 191, 233, .17);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(95, 210, 255, .08), 0 12px 28px rgba(0, 0, 0, .16);
+}
+.pb-lib-item {
+  color: #d6eafa;
+  border-radius: 11px;
+  border-color: transparent;
+  background: transparent;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+.pb-lib-item.is-primary {
+  color: var(--accent);
+  border-color: rgba(0, 205, 255, .65);
+  background: linear-gradient(90deg, #007cac 0%, #06335b 16%, #052745 80%, #006c9b 100%);
+  box-shadow: inset 0 0 12px rgba(0, 211, 255, .32), 0 0 15px rgba(0, 180, 255, .25);
+}
+.pb-lib-item:hover:not(:disabled) {
+  color: #edfbff;
+  border-color: rgba(0, 217, 244, .55);
+  background-color: rgba(0, 158, 218, .13);
+}
+[data-pb-region="video"] {
+  background: radial-gradient(ellipse at 30% 70%, rgba(0, 151, 224, .12), transparent 62%),
+              radial-gradient(ellipse at 90% 95%, rgba(255, 138, 35, .07), transparent 50%), #020b14;
+  border-color: rgba(0, 186, 255, .32);
+  box-shadow: inset 0 0 28px rgba(0, 100, 185, .08), 0 0 0 1px rgba(0, 191, 233, .22);
+  border-radius: 18px;
+}
+[data-pb-region="transport"] {
+  background: linear-gradient(180deg, rgba(3, 16, 29, .92), rgba(2, 9, 18, .98));
+  border-top: 1px solid rgba(0, 191, 233, .2);
+  border-bottom: 1px solid rgba(0, 191, 233, .2);
+  border-radius: 0 0 16px 16px;
+}
+[data-pb-region="transport"] button {
+  color: #d5eaf9;
+  border-color: rgba(0, 181, 244, .22);
+  background: linear-gradient(180deg, #09233a, #03121f);
+  box-shadow: inset 0 1px 0 rgba(92, 212, 255, .08);
+}
+[data-pb-region="transport"] button:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: rgba(0, 211, 255, .65);
+  box-shadow: 0 0 12px rgba(0, 191, 233, .18);
+}
+/* Existing first primary transport control is Play; keep text and its
+ * original accessible name, handlers, order and disabled behaviour. */
+[data-pb-region="transport"] button.primary:first-child {
+  width: 62px;
+  height: 62px;
+  padding: 7px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  color: #8ff7ff;
+  background: linear-gradient(#041a2d, #02111e) padding-box,
+              conic-gradient(from 190deg, #00d9f4, #0598ff 45%, #ff8a23 72%, #00d9f4) border-box;
+  box-shadow: 0 0 17px rgba(0, 199, 255, .34), inset 0 0 13px rgba(0, 185, 255, .17);
+  font-size: 11px;
+  gap: 3px;
+}
+[data-pb-region="transport"] button.primary:first-child:hover:not(:disabled) {
+  color: #ffffff;
+  box-shadow: 0 0 23px rgba(0, 211, 255, .48), inset 0 0 16px rgba(0, 185, 255, .25);
+}
+[data-pb-region="inspector-tabs"],
+[data-pb-region="bottom-tabs"] {
+  background: linear-gradient(180deg, rgba(5, 25, 43, .95), rgba(2, 13, 24, .92));
+  border-bottom-color: rgba(0, 186, 255, .3);
+  border-radius: 13px 13px 0 0;
+}
+.pb-insp-tab,
+.pb-bottom-tab {
+  color: #bbd1e4;
+  border-radius: 12px 12px 4px 4px;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+.pb-insp-tab[aria-selected="true"],
+.pb-bottom-tab[aria-selected="true"] {
+  color: #f2fcff;
+  background: linear-gradient(180deg, #064d89 0%, #05365f 52%, #0779b4 100%);
+  border-bottom-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(59, 187, 255, .65),
+              inset 0 -4px 12px rgba(0, 192, 255, .3), 0 3px 17px rgba(0, 177, 255, .24);
+}
+.pb-insp-tab:hover:not(:disabled),
+.pb-bottom-tab:hover:not(:disabled) {
+  color: #ffffff;
+  border-bottom-color: var(--accent);
+}
+.pb-insp-panel {
+  background: linear-gradient(160deg, rgba(5, 24, 41, .64), rgba(2, 12, 23, .15));
+  border-radius: 0 0 16px 16px;
+}
+.pb-card {
+  background: linear-gradient(155deg, #082035, #03111e 72%);
+  border-color: rgba(0, 174, 238, .23);
+  border-radius: 15px;
+  box-shadow: inset 0 1px 0 rgba(118, 209, 255, .06), 0 5px 16px rgba(0, 0, 0, .12);
+}
+.pb-chan-row {
+  color: #d9eaf5;
+  font-variant-numeric: tabular-nums;
+}
+[data-pb-region="bottom"] {
+  background: linear-gradient(135deg, #061a2d, #020b15 70%);
+  border: 1px solid rgba(0, 167, 240, .23);
+  border-radius: 17px;
+  box-shadow: inset 0 1px 0 rgba(27, 149, 236, .09);
+}
+[data-pb-region="timeline"] {
+  background: transparent;
+  border-top-color: rgba(0, 174, 238, .18);
+}
+[data-pb-region="curve"],
+[data-pb-region="lanes"] {
+  background: linear-gradient(180deg, rgba(2, 10, 20, .55), rgba(4, 18, 31, .3));
+}
+.pb-lib-item:focus-visible,
+.pb-insp-tab:focus-visible,
+.pb-bottom-tab:focus-visible,
+[data-pb-region="transport"] button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-lib-item, .pb-insp-tab, .pb-bottom-tab,
+  [data-pb-region="transport"] button { transition: none; }
+}
+@media (prefers-contrast: more) {
+  .pb-card, [data-pb-region="library"], [data-pb-region="bottom"] {
+    border-color: var(--accent);
+  }
+  .pb-insp-tab[aria-selected="true"],
+  .pb-bottom-tab[aria-selected="true"] {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
