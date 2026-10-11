@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 from _harness import Checker, app_stub, serve
 
-PAGE = """<!doctype html><html><head><link rel="stylesheet" href="/src/style.css"></head><body><div id="root"></div>
+PAGE = """<!doctype html><html><head><link rel="stylesheet" href="/src/style.css?real"></head><body><div id="root"></div>
 <script type="module">
   import { initSettings } from '/src/settings.js';
   initSettings(document.querySelector('#root'));
@@ -70,13 +70,16 @@ def main():
         page.goto(f"{base}/test/_edition_switch_harness.html")
         page.wait_for_function("window.__ready === true")
 
+        # Open every section first so "hidden" can only come from the edition rule.
+        page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        check("real stylesheet loaded (?real bypasses the harness stub)",
+              page.evaluate("[...document.styleSheets].some(s => (s.href||'').includes('style.css'))"))
         page.evaluate("document.documentElement.dataset.edition = 'customer'")
         check("customer: Learn from judgments hidden", page.is_hidden("#st-model-train"))
         check("customer: learning data hidden", page.is_hidden("#st-collect-learning"))
         check("customer: Open AI training hidden", page.is_hidden("#st-open-ai-train"))
         check("customer: normal settings still visible", page.is_visible("#st-show-eula"))
         page.evaluate("document.documentElement.dataset.edition = 'studio'")
-        page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
         check("studio: Learn from judgments visible", page.is_visible("#st-model-train"))
         check("studio: Open AI training visible", page.is_visible("#st-open-ai-train"))
 
