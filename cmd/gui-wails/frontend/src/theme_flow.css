@@ -4,7 +4,7 @@
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
  * Brand-orange (#ff8a23) hints on non-channel CTAs + refined timeline marker/playhead glow applied.
- * Next open point worked: further S4 audio-level lane visual prep (lanes/ruler framing) and empty-state wave refinement.
+ * Next open point worked: inspector/card micro-polish, brand empty-state refinement, transport progress glow.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
@@ -299,6 +299,32 @@
 [data-pb-region="ruler"] {
   box-shadow: 0 1px 0 rgba(0, 217, 244, .06), inset 0 -1px 0 rgba(104, 180, 212, .1);
 }
+/* Inspector / card micro-polish and brand empty-state refinement (look only) */
+.pb-card {
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+.pb-card:hover {
+  box-shadow: 0 1px 0 rgba(104, 180, 212, .12), 0 0 28px rgba(0, 217, 244, .06);
+  border-color: rgba(104, 180, 212, .32);
+}
+[data-pb-region="empty"] .pb-brand-word,
+[data-pb-region="empty"] .pb-brand-mark {
+  filter: drop-shadow(0 0 12px rgba(0, 217, 244, .2)) drop-shadow(0 0 4px rgba(255, 138, 35, .15));
+}
+[data-pb-region="empty"] .wm-sam {
+  color: #ff8a23;
+  text-shadow: 0 0 8px rgba(255, 138, 35, .3);
+}
+[data-pb-region="empty"] .wm-n,
+[data-pb-region="empty"] .wm-rest {
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .25);
+}
+/* Transport progress additional glow for Flow feel */
+[data-pb-region="transport"] .progress-bar-fill,
+#pb-progress {
+  box-shadow: 0 0 12px rgba(0, 217, 244, .5), 0 0 6px rgba(255, 138, 35, .3);
+}
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
@@ -330,7 +356,8 @@
   .pb-playlist-list li,
   .pb-tools-toggle,
   [data-pb-region="empty"] .primary,
-  [data-pb-region="video"] .primary {
+  [data-pb-region="video"] .primary,
+  .pb-card {
     transition: none;
   }
 }
