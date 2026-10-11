@@ -214,3 +214,32 @@ body {
     text-underline-offset: 4px;
   }
 }
+
+/* Empty Player: typographic hierarchy and calm, static Flow light.
+ * Decorative only; no replacement of approved brand asset or empty-state CTA.
+ */
+#tab-playback .pb-empty {
+  background: radial-gradient(ellipse 48% 42% at 50% 40%, rgba(0, 191, 233, .10), transparent 78%);
+}
+#tab-playback .pb-empty-inner {
+  color: #dceff9;
+}
+#tab-playback .pb-brand-word .wm-sam,
+#tab-playback .pb-brand-word .wm-n { color: #ff982e; }
+#tab-playback .pb-brand-word .wm-rest { color: #44dfff; }
+#tab-playback .pb-empty-kicker {
+  color: #62e5ff;
+  letter-spacing: .20em;
+  text-transform: uppercase;
+}
+#tab-playback .pb-empty-title {
+  color: #f0faff;
+  text-shadow: 0 0 24px rgba(0, 191, 233, .12);
+}
+#tab-playback #pb-choose-empty:focus-visible {
+  outline: 2px solid #a6f3ff;
+  outline-offset: 4px;
+}
+@media (prefers-contrast: more) {
+  #tab-playback .pb-empty-title { text-shadow: none; }
+}
