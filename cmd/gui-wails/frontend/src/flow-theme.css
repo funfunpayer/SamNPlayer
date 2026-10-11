@@ -445,3 +445,26 @@ button:not(.primary):not(.danger):not(.tab-btn):hover:not(:disabled) {
   #tab-playback #pb-tools { transition: none; }
   .gen-step-panel:not([hidden]) { animation: none; }
 }
+
+/* Workspace panel visibility: does not destroy sidebar state or listeners. */
+body.flow-sidebar-hidden #sidebar { display: none !important; }
+.flow-workspace-toggle {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid rgba(4, 201, 245, .25);
+  border-radius: 999px;
+  background: rgba(4, 201, 245, .075);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.flow-workspace-toggle:hover {
+  border-color: rgba(4, 201, 245, .55);
+  background: rgba(4, 201, 245, .14);
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-workspace-toggle { transition: none; }
+}
