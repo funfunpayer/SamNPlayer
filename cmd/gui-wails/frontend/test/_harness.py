@@ -73,6 +73,7 @@ def make_handler(app_stub_code):
             # Test schlägt aus einem Grund fehl, der nichts mit dem
             # Prüfgegenstand zu tun hat.
             "/src/style.css": "export default '';",
+            "/src/theme_flow.css": "export default '';",
         }
 
         def do_GET(self):

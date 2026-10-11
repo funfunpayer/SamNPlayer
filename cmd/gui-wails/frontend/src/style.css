@@ -3495,7 +3495,7 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 #tab-playback[data-pb-layout="v1"] .pb-video-stage video,
 #tab-playback[data-pb-layout="v1"] .pb-video-stage.is-playing.has-video video,
 #tab-playback[data-pb-layout="v1"].pb-tools-collapsed .pb-video-stage video {
-  max-height: max(240px, calc(100vh - 650px));
+  max-height: max(220px, calc(100vh - 720px));
 }
 #tab-playback[data-pb-layout="v1"] .pb-bottom-tabs { margin: 0 0 4px; }
 #tab-playback[data-pb-layout="v1"] .pb-bottom-tab { padding: 7px 14px; font-size: 13.5px; }
@@ -3507,3 +3507,19 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
   #tab-playback[data-pb-layout="v1"] .pb-axis-legend { padding: 2px 0; }
   #tab-playback[data-pb-layout="v1"] .pb-transport { padding: 4px; }
 }
+
+/* V1 S4a: time ruler + Audio Level lane (structure only; look → theme_flow.css). */
+:root { --axis-audio: #93aec4; }
+.pb-ruler { display: block; width: 100%; height: 22px; }
+.pb-ruler[hidden] { display: none; }
+
+/* V1 S5 transport: icon buttons, speed, volume (structure; look in theme_flow.css). */
+.pb-transport-btns, .pb-transport-right { display: flex; align-items: center; gap: 10px; }
+.pb-t-icon {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; min-height: 0;
+  border-radius: 50%; background: transparent; border: 1px solid var(--border-soft); color: var(--text);
+}
+.pb-t-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.pb-t-icon[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.pb-speed { width: auto; min-width: 74px; padding: 6px 10px; border-radius: 10px; }
+.pb-volume { width: 120px; accent-color: var(--accent); }

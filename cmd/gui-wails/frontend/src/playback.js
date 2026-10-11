@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource,
+  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -89,6 +89,16 @@ export function initPlayback(root) {
         </div>
         <div class="pb-transport" data-pb-region="transport">
           <div class="row pb-transport-btns">
+            <button id="pb-t-loop" class="pb-t-icon" type="button" title="Loop the marked range (same as Loop selection)" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+            </button>
+            <select id="pb-speed" class="pb-speed" title="Playback speed — video and device stay in sync">
+              <option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option>
+              <option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2.0×</option>
+            </select>
+            <button id="pb-prev" class="pb-t-icon" type="button" title="Previous item / back to start">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/></svg>
+            </button>
             <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <span>Play</span>
@@ -99,6 +109,15 @@ export function initPlayback(root) {
             </button>
             <button id="pb-eo-trigger" type="button" disabled>Extended-O</button>
             <button id="pb-next" type="button" hidden title="Next item in the list">Next</button>
+          </div>
+          <div class="row pb-transport-right">
+            <button id="pb-mute" class="pb-t-icon" type="button" title="Mute video sound" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+            </button>
+            <input type="range" id="pb-volume" class="pb-volume" min="0" max="1" step="0.05" value="1" title="Video volume" aria-label="Video volume" />
+            <button id="pb-t-fs" class="pb-t-icon" type="button" title="Fullscreen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+            </button>
           </div>
           <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
           <div class="stat-row pb-live">
@@ -112,6 +131,7 @@ export function initPlayback(root) {
             <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
             <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
           </div>
+          <canvas id="pb-ruler" class="pb-ruler" data-pb-region="ruler" hidden aria-hidden="true"></canvas>
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
@@ -157,6 +177,11 @@ export function initPlayback(root) {
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve (dots)</label>
         </div>
+        <label class="checkbox-row" id="pb-audio-lane-row" style="margin:0;"
+          data-help="Audio Level lane under the curve: loudness of the video's sound over time (needs a linked video and ffmpeg). On by default.">
+          <input type="checkbox" id="pb-audio-lane-toggle" checked />
+          Audio level lane
+        </label>
         <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
           data-help="0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
           <input type="checkbox" id="pb-pos-overlay-toggle" checked />
@@ -575,6 +600,13 @@ export function initPlayback(root) {
   }
   const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
   const LANE_AXES = ['vibration', 'suction'];
+  const AUDIO_STEP_MS = 50;          // GetAudioLevelEnvelope resolution
+  let audioLevel = null;             // [0..1] per AUDIO_STEP_MS, current video
+  let audioLevelFor = '';            // script+video key the envelope belongs to
+  let audioLaneOn = true;            // Owner: audio display on by default
+  try { audioLaneOn = localStorage.getItem('pb.audioLane') !== '0'; } catch (_) { /* ignore */ }
+  let lanesDrawn = [];               // lane order as last drawn (click/keyboard)
+  const rulerCanvas = el('#pb-ruler');
   const AXIS_LANE_CSS_H = 34;
   const axisLanesCanvas = el('#pb-axis-lanes');
   let axisLanePoints = { vibration: null, suction: null };
@@ -1874,8 +1906,12 @@ export function initPlayback(root) {
 
   function redrawAxisLanes() {
     const legend = el('#pb-axis-legend');
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const feelLanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const withAudio = audioLaneOn && Array.isArray(audioLevel) && audioLevel.length > 1;
+    const lanes = withAudio ? [...feelLanes, 'audio'] : feelLanes;
+    lanesDrawn = lanes;
     const shown = curveCanvas.style.display !== 'none';
+    redrawRuler();
     if (!lanes.length || !shown) {
       axisLanesCanvas.hidden = true;
       if (legend) legend.hidden = true;
@@ -1883,7 +1919,7 @@ export function initPlayback(root) {
     }
     const active = editAxis || 'general';
     if (legend) {
-      legend.hidden = false;
+      legend.hidden = !feelLanes.length;
       legend.querySelectorAll('[data-axis]').forEach(b => {
         const a = b.dataset.axis;
         b.hidden = a !== 'general' && !axisLanePoints[a];
@@ -1893,7 +1929,7 @@ export function initPlayback(root) {
     }
     axisLanesCanvas.hidden = false;
     axisLanesCanvas.setAttribute('aria-label',
-      `Feel channel lanes: ${lanes.map(a => AXIS_LABELS[a]).join(', ')}. Up/Down chooses the channel shown above.`);
+      `Lanes: ${lanes.map(a => (a === 'audio' ? 'Audio level' : AXIS_LABELS[a])).join(', ')}. Up/Down chooses the channel shown above.`);
     const cssH = lanes.length * AXIS_LANE_CSS_H;
     if (axisLanesCanvas.style.height !== cssH + 'px') axisLanesCanvas.style.height = cssH + 'px';
     const dpr = window.devicePixelRatio || 1;
@@ -1911,6 +1947,14 @@ export function initPlayback(root) {
     ctx.clearRect(0, 0, w, h);
     lanes.forEach((axis, i) => {
       const top = i * laneH;
+      if (axis === 'audio') {
+        if (i > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(0, Math.round(top), w, Math.max(1, Math.round(dpr)));
+        }
+        drawAudioLane(ctx, top, laneH, w, dpr);
+        return;
+      }
       const yOf = pos => top + pad + (1 - pos / 100) * (laneH - pad * 2);
       const color = AXIS_COLORS[axis];
       if (axis === active) {
@@ -1950,6 +1994,107 @@ export function initPlayback(root) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
+    }
+  }
+
+  // Audio Level lane (mockup "Audio Level"): mirrored waveform of the video's
+  // loudness, one bar per ~2 CSS px, same time axis / zoom as the curve.
+  function drawAudioLane(ctx, top, laneH, w, dpr) {
+    const env = audioLevel;
+    const color = (getComputedStyle(root).getPropertyValue('--axis-audio') || '').trim() || '#93aec4';
+    const mid = top + laneH / 2;
+    const half = laneH / 2 - 3 * dpr;
+    const step = Math.max(1, Math.round(2 * dpr));
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.85;
+    for (let x = 0; x < w; x += step) {
+      const t0 = viewStartMs + (x / w) * viewSpanMs();
+      const t1 = viewStartMs + ((x + step) / w) * viewSpanMs();
+      let i0 = Math.floor(t0 / AUDIO_STEP_MS), i1 = Math.max(i0 + 1, Math.ceil(t1 / AUDIO_STEP_MS));
+      if (i0 >= env.length) break;
+      let peak = 0;
+      for (let i = i0; i < Math.min(i1, env.length); i++) if (env[i] > peak) peak = env[i];
+      const hgt = Math.max(dpr * 0.6, peak * half);
+      ctx.fillRect(x, mid - hgt, Math.max(1, step - Math.round(dpr * 0.6)), hgt * 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color;
+    ctx.fillText('AUDIO LEVEL', 6 * dpr, top + 3 * dpr);
+  }
+
+  async function loadAudioLevel() {
+    const key = `${scriptPath}|${root.dataset.pbVideo}`;
+    if (root.dataset.pbVideo !== 'true') {
+      audioLevel = null;
+      audioLevelFor = '';
+      redrawAxisLanes();
+      return;
+    }
+    if (!audioLaneOn || audioLevelFor === key) return;
+    audioLevelFor = key;
+    try {
+      const env = await GetAudioLevelEnvelope();
+      if (audioLevelFor !== key) return; // video changed meanwhile
+      audioLevel = Array.isArray(env) && env.length > 1 ? env : null;
+    } catch (err) {
+      audioLevel = null;
+      log('Audio level lane unavailable: ' + err);
+    }
+    redrawAxisLanes();
+  }
+
+  // Time ruler (mm:ss) above the curve; follows zoom like the curve.
+  function fmtRuler(ms) {
+    const s = Math.round(ms / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const mm = String(m).padStart(h ? 2 : 2, '0'), ss = String(sec).padStart(2, '0');
+    return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  }
+  function redrawRuler() {
+    if (!rulerCanvas) return;
+    const shown = curveCanvas.style.display !== 'none' && totalMs > 1;
+    rulerCanvas.hidden = !shown;
+    if (!shown) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = rulerCanvas.clientWidth || curveCanvas.clientWidth || 800;
+    const cssH = rulerCanvas.clientHeight || 22;
+    const wantW = Math.round(cssW * dpr), wantH = Math.round(cssH * dpr);
+    if (rulerCanvas.width !== wantW || rulerCanvas.height !== wantH) {
+      rulerCanvas.width = wantW;
+      rulerCanvas.height = wantH;
+    }
+    const ctx = rulerCanvas.getContext('2d');
+    const w = rulerCanvas.width, h = rulerCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const span = viewSpanMs();
+    const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600].map(x => x * 1000);
+    const minPx = 72 * dpr;
+    const stepMs = steps.find(st => (st / span) * w >= minPx) || steps[steps.length - 1];
+    const first = Math.ceil(viewStartMs / stepMs) * stepMs;
+    const muted = (getComputedStyle(root).getPropertyValue('--text-dim') || '').trim() || '#9db8ca';
+    ctx.font = `500 ${11 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    for (let t = first; t <= viewEndMs; t += stepMs) {
+      const x = Math.round(timeToX(t, w)) + 0.5;
+      ctx.fillStyle = muted;
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(x, h - 5 * dpr, Math.max(1, dpr), 5 * dpr);
+      ctx.globalAlpha = 1;
+      const label = fmtRuler(t);
+      const tw = ctx.measureText(label).width;
+      if (x + tw / 2 < w && x - tw / 2 > 0) ctx.fillText(label, x - tw / 2, 2 * dpr);
+    }
+    if (currentPosMs > 0) {
+      const x = timeToX(currentPosMs, w);
+      ctx.fillStyle = AXIS_COLORS.vibration || '#00bfe9';
+      ctx.beginPath();
+      ctx.moveTo(x - 5 * dpr, h - 7 * dpr);
+      ctx.lineTo(x + 5 * dpr, h - 7 * dpr);
+      ctx.lineTo(x, h);
+      ctx.closePath();
+      ctx.fill();
     }
   }
 
@@ -2352,6 +2497,7 @@ export function initPlayback(root) {
       return;
     }
     await loadAxisLanes();
+    loadAudioLevel();
     // FunGen-like dots: load full keyframes even when not editing.
     if (!editMode) {
       try {
@@ -3214,6 +3360,7 @@ export function initPlayback(root) {
       contactVibrationCurve: scriptHasContactVibration
         ? (el('#pb-contact-curve').value || '')
         : '',
+      speed: currentSpeed(),
     };
 
     try {
@@ -3421,6 +3568,7 @@ export function initPlayback(root) {
     ro.observe(curveCanvas);
     ro.observe(heatmapCanvas);
     ro.observe(axisLanesCanvas);
+    if (rulerCanvas) ro.observe(rulerCanvas);
   }
   // Mirror stage state as data attributes for layout CSS (docs/PLAY_UI_CONTRACT.md).
   const stageEl = el('#pb-video-stage');
@@ -3428,7 +3576,17 @@ export function initPlayback(root) {
     root.dataset.pbPlaying = stageEl.classList.contains('is-playing') ? 'true' : 'false';
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
   }
-  new MutationObserver(syncStageState).observe(stageEl, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(() => { syncStageState(); loadAudioLevel(); })
+    .observe(stageEl, { attributes: true, attributeFilter: ['class'] });
+  const audioLaneBox = el('#pb-audio-lane-toggle');
+  if (audioLaneBox) {
+    audioLaneBox.checked = audioLaneOn;
+    audioLaneBox.addEventListener('change', () => {
+      audioLaneOn = !!audioLaneBox.checked;
+      try { localStorage.setItem('pb.audioLane', audioLaneOn ? '1' : '0'); } catch (_) { /* ignore */ }
+      if (audioLaneOn) { audioLevelFor = ''; loadAudioLevel(); } else redrawAxisLanes();
+    });
+  }
   syncStageState();
   if (!root.dataset.pbState) root.dataset.pbState = 'empty';
   if (!root.dataset.pbTools) root.dataset.pbTools = 'open';
@@ -3668,6 +3826,78 @@ export function initPlayback(root) {
   el('#pb-choose-empty').addEventListener('click', chooseScript);
   el('#pb-queue-add').addEventListener('click', queueAddScript);
   el('#pb-next').addEventListener('click', () => playNextInPlaylist());
+
+  // ---- V1 transport (S5): speed, previous, loop, volume, fullscreen -------
+  function currentSpeed() {
+    const v = parseFloat(el('#pb-speed')?.value);
+    return Number.isFinite(v) && v > 0 ? v : 1;
+  }
+  function applySpeed() {
+    const v = currentSpeed();
+    const vid = el('#pb-video');
+    if (vid) { vid.playbackRate = v; vid.defaultPlaybackRate = v; }
+    SetPlaybackSpeed(v).catch(() => {});
+    root.dataset.pbSpeed = String(v);
+  }
+  el('#pb-speed')?.addEventListener('change', applySpeed);
+  el('#pb-video')?.addEventListener('loadedmetadata', () => {
+    const vid = el('#pb-video');
+    vid.playbackRate = currentSpeed();
+    vid.defaultPlaybackRate = currentSpeed();
+  });
+  el('#pb-prev')?.addEventListener('click', async () => {
+    if (playlist.length > 1 && playlistIndex > 0 && !advancingPlaylist) {
+      advancingPlaylist = true;
+      try {
+        const wasPlaying = playing;
+        if (playing) await stop({ user: false });
+        playlistIndex -= 1;
+        renderPlaylist();
+        await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+        if (wasPlaying) await play();
+      } catch (err) {
+        logError('Previous item: ' + err);
+      } finally {
+        advancingPlaylist = false;
+      }
+      return;
+    }
+    seekTo(0);
+  });
+  const loopBox = el('#pb-loop');
+  const loopBtn = el('#pb-t-loop');
+  const syncLoopBtn = () => loopBtn?.setAttribute('aria-pressed', loopBox?.checked ? 'true' : 'false');
+  loopBtn?.addEventListener('click', () => {
+    if (!loopBox) return;
+    loopBox.checked = !loopBox.checked;
+    loopBox.dispatchEvent(new Event('change'));
+    syncLoopBtn();
+  });
+  loopBox?.addEventListener('change', syncLoopBtn);
+  const vol = el('#pb-volume');
+  const muteBtn = el('#pb-mute');
+  try {
+    const saved = parseFloat(localStorage.getItem('pb.volume'));
+    if (Number.isFinite(saved) && vol) vol.value = String(Math.max(0, Math.min(1, saved)));
+  } catch (_) { /* ignore */ }
+  const applyVolume = () => {
+    const vid = el('#pb-video');
+    if (!vid || !vol) return;
+    vid.volume = parseFloat(vol.value);
+    muteBtn?.setAttribute('aria-pressed', vid.muted ? 'true' : 'false');
+  };
+  vol?.addEventListener('input', () => {
+    applyVolume();
+    try { localStorage.setItem('pb.volume', vol.value); } catch (_) { /* ignore */ }
+  });
+  muteBtn?.addEventListener('click', () => {
+    const vid = el('#pb-video');
+    if (!vid) return;
+    vid.muted = !vid.muted;
+    applyVolume();
+  });
+  applyVolume();
+  el('#pb-t-fs')?.addEventListener('click', () => el('#pb-video-fs')?.click());
   el('#pb-play-novideo').addEventListener('click', play);
   el('#pb-playlist-list').addEventListener('click', async e => {
     const remove = e.target.closest('.pb-playlist-remove');
@@ -4075,7 +4305,7 @@ export function initPlayback(root) {
     selectAxis(chips[j].dataset.axis);
   });
   axisLanesCanvas.addEventListener('keydown', e => {
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const lanes = lanesDrawn.filter(a => a !== 'audio');
     if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     const cur = lanes.indexOf(editAxis);
@@ -4084,11 +4314,12 @@ export function initPlayback(root) {
     selectAxis(lanes[j]);
   });
   axisLanesCanvas.addEventListener('click', e => {
-    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const lanes = lanesDrawn;
     if (!lanes.length) return;
     const rect = axisLanesCanvas.getBoundingClientRect();
     const i = Math.floor(((e.clientY - rect.top) / Math.max(1, rect.height)) * lanes.length);
-    selectAxis(lanes[Math.max(0, Math.min(lanes.length - 1, i))]);
+    const lane = lanes[Math.max(0, Math.min(lanes.length - 1, i))];
+    if (lane && lane !== 'audio') selectAxis(lane);
   });
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {

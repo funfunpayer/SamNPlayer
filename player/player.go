@@ -53,6 +53,16 @@ type Player struct {
 
 	lastSyncPosMs int64
 
+	// Playback speed (V1: 0.5×–2×). The clock maps real time to script
+	// time as scriptMs = anchorScriptMs + (now - anchorReal) × speed, so a
+	// speed change mid-play re-anchors at the current script position and
+	// nothing jumps. Only used by Play(); Sync() follows the video clock,
+	// whose playbackRate already carries the speed.
+	clockMu        sync.Mutex
+	speed          float64
+	anchorReal     time.Time
+	anchorScriptMs float64
+
 	extendedOCh chan ExtendedOOptions
 
 	intensityMu sync.Mutex
@@ -68,6 +78,79 @@ func New(dev device.Device) *Player {
 		Device:      dev,
 		extendedOCh: make(chan ExtendedOOptions, 1),
 	}
+}
+
+// MinSpeed / MaxSpeed bound SetSpeed (V1 transport 0.5×–2×).
+const (
+	MinSpeed = 0.5
+	MaxSpeed = 2.0
+)
+
+// ClampSpeed limits s to [MinSpeed, MaxSpeed]; 0 / NaN mean 1×.
+func ClampSpeed(s float64) float64 {
+	if !(s > 0) {
+		return 1
+	}
+	if s < MinSpeed {
+		return MinSpeed
+	}
+	if s > MaxSpeed {
+		return MaxSpeed
+	}
+	return s
+}
+
+// SetSpeed changes the playback speed, also while Play() runs.
+func (p *Player) SetSpeed(s float64) {
+	s = ClampSpeed(s)
+	p.clockMu.Lock()
+	defer p.clockMu.Unlock()
+	if p.speed <= 0 {
+		p.speed = 1
+	}
+	if !p.anchorReal.IsZero() {
+		now := time.Now()
+		p.anchorScriptMs += float64(now.Sub(p.anchorReal).Milliseconds()) * p.speed
+		p.anchorReal = now
+	}
+	p.speed = s
+}
+
+// Speed returns the current playback speed (1 when unset).
+func (p *Player) Speed() float64 {
+	p.clockMu.Lock()
+	defer p.clockMu.Unlock()
+	if p.speed <= 0 {
+		return 1
+	}
+	return p.speed
+}
+
+func (p *Player) startClock(at time.Time) {
+	p.clockMu.Lock()
+	defer p.clockMu.Unlock()
+	if p.speed <= 0 {
+		p.speed = 1
+	}
+	p.anchorReal = at
+	p.anchorScriptMs = 0
+}
+
+// realTimeFor returns the wall time at which script time atMs is due.
+func (p *Player) realTimeFor(atMs int64) time.Time {
+	p.clockMu.Lock()
+	defer p.clockMu.Unlock()
+	sp := p.speed
+	if sp <= 0 {
+		sp = 1
+	}
+	return p.anchorReal.Add(time.Duration((float64(atMs) - p.anchorScriptMs) / sp * float64(time.Millisecond)))
+}
+
+func (p *Player) shiftClock(d time.Duration) {
+	p.clockMu.Lock()
+	p.anchorReal = p.anchorReal.Add(d)
+	p.clockMu.Unlock()
 }
 
 func (p *Player) logf(format string, args ...interface{}) {
@@ -101,19 +184,20 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 
 	start := time.Now()
 	lastLog := start
+	p.startClock(start)
 
 	if p.SoftStartMs > 0 && len(frames) > 0 {
 		t0 := time.Now()
 		if err := p.softStart(ctx, frames[0]); err != nil {
 			return err
 		}
-		start = start.Add(time.Since(t0)) // Zeitbasis um die Ramp-Dauer verschieben, sonst "hinkt" der Rest der Wiedergabe hinterher und holt hektisch auf
+		p.shiftClock(time.Since(t0)) // Zeitbasis um die Ramp-Dauer verschieben, sonst "hinkt" der Rest der Wiedergabe hinterher und holt hektisch auf
 	}
 
 	for _, f := range frames {
 		p.drainExtendedO(ctx)
 
-		target := start.Add(time.Duration(f.At) * time.Millisecond)
+		target := p.realTimeFor(f.At)
 		if d := time.Until(target); d > 0 {
 			select {
 			case <-time.After(d):
@@ -121,7 +205,7 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 				// Trigger kam während des Wartens - Amplitude skalieren,
 				// Timeline nicht anhalten.
 				p.startExtendedO(ctx, opts)
-				if d := time.Until(start.Add(time.Duration(f.At) * time.Millisecond)); d > 0 {
+				if d := time.Until(p.realTimeFor(f.At)); d > 0 {
 					select {
 					case <-time.After(d):
 					case <-ctx.Done():
