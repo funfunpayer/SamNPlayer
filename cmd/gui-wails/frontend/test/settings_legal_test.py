@@ -29,6 +29,7 @@ def main():
         "GetThirdPartyNotices": "async () => 'NOTICES FFmpeg GPL'",
         "GetDonateLinks": "async () => [{name:'Patreon', url:'https://www.patreon.com/x'}, {name:'PayPal', url:'https://paypal.me/x'}]",
         "OpenDonateLink": "async (u) => { window.__opened = u; }",
+        "GetAboutInfo": "async () => ({version:'v0.5.47', edition:'customer', eulaVersion:'2026-10-11', partnerName:'Sex for him', partnerUrl:''})",
         "SetSetting": "async (key, value) => { window.__calls = window.__calls || []; window.__calls.push([key, value]); }",
         "ReportExists": "async () => false",
         "GetCacheInfo": "async () => ({files:0, humanSize:'0 B', path:'/tmp', entries:0, bytes:0})",
@@ -83,6 +84,14 @@ def main():
         check("EULA dialog closes", page.locator(".legal-overlay").count() == 0)
         page.click("#st-show-notices")
         check("notices dialog shows FFmpeg", "FFmpeg" in page.inner_text(".legal-text"))
+        page.click("#legal-close")
+        page.wait_for_function("document.querySelector('#st-about-version').textContent.includes('v0.5.47')", timeout=3000)
+        check("About shows version + free edition",
+              "Free edition" in page.inner_text("#st-about-version"))
+        check("About partner text says coming soon without URL",
+              "coming soon" in page.inner_text("#st-about-partner-text"))
+        check("partner button disabled without URL", page.is_disabled("#st-about-partner"))
+        check("partner graphic present", page.locator(".st-about-partner img").count() == 1)
 
         browser.close()
 

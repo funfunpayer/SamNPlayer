@@ -47,3 +47,10 @@ func DonateLinks() []DonateLink {
 	}
 	return out
 }
+
+// Partner site shown in Settings → About (Owner 11 Oct: the "Sex for him"
+// info site; the URL follows — empty = "coming soon", no link).
+const (
+	PartnerSiteName = "Sex for him"
+	PartnerSiteURL  = ""
+)

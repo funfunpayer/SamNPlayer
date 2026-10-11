@@ -33,3 +33,17 @@ func TestOpenDonateLinkRefusesUnknownURL(t *testing.T) {
 		t.Fatal("only configured donation links may be opened")
 	}
 }
+
+func TestAboutInfo(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	a := NewApp()
+	info := a.GetAboutInfo()
+	if info.Version == "" || info.Edition == "" || info.EULAVersion != legal.EULAVersion || info.PartnerName == "" {
+		t.Fatalf("about info incomplete: %+v", info)
+	}
+	if legal.PartnerSiteURL == "" {
+		if err := a.OpenPartnerSite(); err == nil {
+			t.Fatal("without a URL the partner link must say coming soon")
+		}
+	}
+}
