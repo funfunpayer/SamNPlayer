@@ -16,6 +16,10 @@ const RECENT_MAX = 8;
 const FAV_KEY = 'pb.favorites';
 const FAV_MAX = 50;
 const VIDEO_KEY = 'pb.recentVideos';
+const SCRIPTS_IMP_KEY = 'pb.scripts.imported';
+const SCRIPTS_GEN_KEY = 'pb.scripts.generated';
+const SCRIPTS_EDIT_KEY = 'pb.scripts.edited';
+const SCRIPTS_MAX = 100;
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
 
@@ -49,6 +53,18 @@ export function toggleFavorite(path) {
 }
 
 export function readRecentVideos() { return readList(VIDEO_KEY); }
+
+export function readScripts(category) {
+  const key = category === 'generated' ? SCRIPTS_GEN_KEY : category === 'edited' ? SCRIPTS_EDIT_KEY : SCRIPTS_IMP_KEY;
+  return readList(key);
+}
+
+export function pushScript(path, category = 'imported') {
+  if (!path) return;
+  const key = category === 'generated' ? SCRIPTS_GEN_KEY : category === 'edited' ? SCRIPTS_EDIT_KEY : SCRIPTS_IMP_KEY;
+  const list = [path, ...readList(key).filter(p => p !== path)].slice(0, SCRIPTS_MAX);
+  store(key, JSON.stringify(list));
+}
 
 export function pushRecentVideo(path) {
   if (!path) return readRecentVideos();
@@ -116,6 +132,13 @@ export function applyPlayerLayoutV1(root, api) {
     <button type="button" class="pb-lib-item" id="pb-lib-fav-btn" aria-expanded="true">${ICONS.star}<span>Favorites</span></button>
     <ol class="pb-lib-recent pb-lib-fav" id="pb-lib-fav"></ol>
     <button type="button" class="pb-lib-item" id="pb-lib-playlist">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
+    <p class="pb-lib-title">Scripts</p>
+    <button type="button" class="pb-lib-item" id="pb-lib-imported-btn" aria-expanded="true">${ICONS.folder}<span>Imported</span></button>
+    <ol class="pb-lib-recent pb-lib-imported" id="pb-lib-imported"></ol>
+    <button type="button" class="pb-lib-item" id="pb-lib-generated-btn" aria-expanded="true">${ICONS.edit}<span>Generated</span></button>
+    <ol class="pb-lib-recent pb-lib-generated" id="pb-lib-generated"></ol>
+    <button type="button" class="pb-lib-item" id="pb-lib-edited-btn" aria-expanded="true">${ICONS.edit}<span>Edited</span></button>
+    <ol class="pb-lib-recent pb-lib-edited" id="pb-lib-edited"></ol>
     <p class="pb-lib-title">Tools</p>
     <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-scenemap">${ICONS.map}<span>Scene Map</span></button>
@@ -480,6 +503,44 @@ export function applyPlayerLayoutV1(root, api) {
   });
   renderRecent();
   renderFavorites();
+
+  // Scripts categories (Imported / Generated / Edited) — local lists for now.
+  const scriptCats = [
+    { key: 'imported', btn: '#pb-lib-imported-btn', list: '#pb-lib-imported', empty: 'No imported scripts yet' },
+    { key: 'generated', btn: '#pb-lib-generated-btn', list: '#pb-lib-generated', empty: 'No generated scripts yet' },
+    { key: 'edited', btn: '#pb-lib-edited-btn', list: '#pb-lib-edited', empty: 'No edited scripts yet' },
+  ];
+  function renderScripts() {
+    for (const c of scriptCats) {
+      const el = q(c.list);
+      if (!el) continue;
+      const list = readScripts(c.key);
+      el.innerHTML = list.length
+        ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" data-cat="${c.key}" title="${p.replace(/"/g, '"')}">${baseName(p)}</button></li>`).join('')
+        : `<li class="pb-lib-empty">${c.empty}</li>`;
+    }
+  }
+  for (const c of scriptCats) {
+    const listEl = q(c.list);
+    listEl?.addEventListener('click', async e => {
+      const b = e.target.closest('.pb-lib-recent-item');
+      if (!b) return;
+      const p = readScripts(b.dataset.cat)[Number(b.dataset.i)];
+      if (p) await api.loadScriptPath(p).catch(() => {});
+    });
+    q(c.btn)?.addEventListener('click', () => {
+      const open = listEl.hidden;
+      listEl.hidden = !open;
+      q(c.btn).setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+  window.addEventListener('pb:loaded', e => {
+    const p = (e.detail && e.detail.path) || '';
+    if (p) pushScript(p, 'imported'); // default; refine classification later
+    renderScripts();
+  });
+  renderScripts();
+
   const plCount = q('#pb-lib-playlist-count');
   const syncCount = () => {
     const n = q('#pb-playlist-list')?.children.length || 0;
