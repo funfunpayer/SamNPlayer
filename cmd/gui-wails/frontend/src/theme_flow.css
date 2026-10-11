@@ -3,10 +3,12 @@
  * No structure, visibility, sizing, script, device or canvas changes.
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
+ * Next open point: subtle glows, flowing surfaces and airy polish.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
   color: var(--text);
+  box-shadow: inset 0 0 40px rgba(0, 217, 244, .03);
 }
 [data-pb-region="inspector-tabs"],
 [data-pb-region="bottom-tabs"] {
@@ -16,22 +18,25 @@
   background: rgba(10, 27, 43, .52);
   border-bottom: 1px solid rgba(104, 180, 212, .18);
   color: var(--text);
+  box-shadow: 0 1px 0 rgba(0, 217, 244, .06);
 }
 [data-pb-region="media"] {
   background: transparent;
 }
 [data-pb-region="video"] {
   background: #020a12;
-  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22);
+  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22), 0 0 24px rgba(0, 217, 244, .05);
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
   background: linear-gradient(180deg, rgba(10, 27, 43, .42), transparent 72%);
+  box-shadow: inset 0 1px 0 rgba(0, 217, 244, .04);
 }
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .6);
   border-top: 1px solid rgba(104, 180, 212, .2);
   border-bottom: 1px solid rgba(104, 180, 212, .14);
+  box-shadow: 0 -1px 0 rgba(0, 217, 244, .05);
 }
 [data-pb-region="legend"] {
   background: rgba(10, 27, 43, .48);
@@ -49,15 +54,17 @@
 [data-pb-region="playlist"] {
   background: rgba(10, 27, 43, .52);
   border-top: 1px solid rgba(104, 180, 212, .18);
+  box-shadow: inset 0 0 20px rgba(0, 217, 244, .02);
 }
 [data-pb-region="tools"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .58), transparent 82%);
+  box-shadow: inset -1px 0 0 rgba(104, 180, 212, .08);
 }
 [data-pb-region="tool-group"] {
   background: rgba(10, 27, 43, .32);
 }
 [data-pb-region="empty"] {
-  background: radial-gradient(circle at 32% 18%, rgba(0, 217, 244, .06), transparent 52%),
+  background: radial-gradient(circle at 32% 18%, rgba(0, 217, 244, .07), transparent 52%),
               linear-gradient(180deg, rgba(10, 27, 43, .38), transparent);
 }
 .pb-lib-title,
@@ -74,7 +81,7 @@
 .pb-insp-tab,
 .pb-bottom-tab,
 .pb-axis-chip {
-  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   color: var(--text-dim);
 }
 .pb-lib-item:hover:not(:disabled),
@@ -84,6 +91,7 @@
 .pb-axis-chip:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
+  box-shadow: 0 0 12px rgba(0, 217, 244, .08);
 }
 .pb-insp-tab[aria-selected="true"],
 .pb-bottom-tab[aria-selected="true"],
@@ -91,11 +99,12 @@
   color: var(--accent);
   border-bottom-color: var(--accent);
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
+  box-shadow: 0 0 16px rgba(0, 217, 244, .1);
 }
 .pb-card {
   background: rgba(10, 27, 43, .72);
   border-color: rgba(104, 180, 212, .22);
-  box-shadow: 0 1px 0 rgba(104, 180, 212, .08);
+  box-shadow: 0 1px 0 rgba(104, 180, 212, .08), 0 0 20px rgba(0, 217, 244, .03);
 }
 .pb-card-title {
   color: var(--text-dim);
@@ -115,6 +124,7 @@
 [data-pb-region="tools"] button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 217, 244, .12);
 }
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
@@ -123,6 +133,7 @@
 .pb-live b {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .25);
 }
 .pb-empty-title {
   color: var(--text);
@@ -134,11 +145,13 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-size: 0.68rem;
+  text-shadow: 0 0 12px rgba(0, 217, 244, .3);
 }
 .pb-lib-drop {
   border: 1px dashed rgba(104, 180, 212, .38);
   background: rgba(10, 27, 43, .42);
   color: var(--text-dim);
+  box-shadow: inset 0 0 16px rgba(0, 217, 244, .04);
 }
 /* S4 timeline core visual prep (approved hooks only, look only) */
 [data-pb-region="timeline"] .pb-ruler,
@@ -147,6 +160,7 @@
   color: var(--text-dim);
   border-bottom: 1px solid rgba(104, 180, 212, .18);
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 0 rgba(0, 217, 244, .04);
 }
 [data-pb-region="lanes"] .pb-lane-name,
 [data-pb-region="legend"] .pb-lane-label {
@@ -157,16 +171,18 @@
 [data-pb-region="timeline"] .pb-scene-marker {
   color: var(--accent);
   background: rgba(0, 217, 244, .14);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .2);
 }
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
   color: var(--text-dim);
-  transition: color 150ms ease, background-color 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 [data-pb-region="zoom"] button:hover,
 [data-pb-region="zoom"] .pb-zoom-btn:hover {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .1);
 }
 .pb-panel-head {
   color: var(--text-dim);
@@ -175,16 +191,17 @@
 }
 .pb-collapse {
   color: var(--accent);
-  transition: color 150ms ease;
+  transition: color 150ms ease, text-shadow 150ms ease;
 }
 .pb-collapse:hover {
   color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .3);
 }
 /* Transport buttons + progress polish (look only, approved hooks) */
 [data-pb-region="transport"] button,
 [data-pb-region="transport"] .pb-btn {
   color: var(--text-dim);
-  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   background-color: transparent;
   border-color: transparent;
 }
@@ -192,6 +209,7 @@
 [data-pb-region="transport"] .pb-btn:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .09);
+  box-shadow: 0 0 12px rgba(0, 217, 244, .12);
 }
 [data-pb-region="transport"] button:active:not(:disabled),
 [data-pb-region="transport"] .pb-btn:active:not(:disabled) {
@@ -202,6 +220,7 @@
 [data-pb-region="transport"] .pb-progress {
   background: rgba(10, 27, 43, .68);
   border-radius: 3px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, .3);
 }
 #pb-progress::-webkit-progress-bar,
 .progress-bar {
@@ -211,32 +230,41 @@
 .progress-bar-fill,
 [data-pb-region="transport"] .pb-progress-fill {
   background: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .4);
 }
-/* Next open point: playlist items, tool toggles and secondary accents (look only) */
+/* Playlist items, tool toggles and secondary accents (look only) */
 .pb-playlist-list li,
 .pb-playlist-item {
   color: var(--text-dim);
-  transition: color 140ms ease, background-color 140ms ease;
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 .pb-playlist-list li:hover,
 .pb-playlist-item:hover {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .06);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .08);
 }
 .pb-tools-toggle,
 [data-pb-region="tools"] .pb-collapse {
   color: var(--text-dim);
-  transition: color 140ms ease;
+  transition: color 140ms ease, text-shadow 140ms ease;
 }
 .pb-tools-toggle:hover,
 [data-pb-region="tools"] .pb-collapse:hover {
   color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .25);
 }
 [data-pb-region="empty"] .primary,
 [data-pb-region="video"] .primary {
   background: var(--accent);
   color: #021018;
   border-color: transparent;
+  box-shadow: 0 0 16px rgba(0, 217, 244, .25);
+  transition: box-shadow 150ms ease;
+}
+[data-pb-region="empty"] .primary:hover,
+[data-pb-region="video"] .primary:hover {
+  box-shadow: 0 0 24px rgba(0, 217, 244, .4);
 }
 @media (prefers-contrast: more) {
   .pb-card,
