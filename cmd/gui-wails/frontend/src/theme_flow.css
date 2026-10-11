@@ -1,10 +1,10 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
  * Import after style.css (Claude). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 Library / Inspector / bottom tabs.
+ * Isolated Flow polish for S3 shell + remaining regions ahead of S4.
  */
 [data-pb-region="library"] {
-  background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 80%);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 85%);
   color: var(--text);
 }
 .pb-lib-title {
@@ -13,6 +13,11 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.72rem;
+  margin: 1rem 0 0.4rem;
+}
+.pb-lib-item {
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
 }
 .pb-lib-item.is-primary {
   color: var(--accent);
@@ -24,6 +29,8 @@
   background: rgba(10, 27, 43, .4);
   color: var(--text-dim);
   border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  text-align: center;
 }
 [data-pb-region="inspector-tabs"],
 [data-pb-region="bottom-tabs"] {
@@ -32,15 +39,41 @@
 [data-pb-region="video"] {
   background: #020a12;
   box-shadow: 0 0 0 1px rgba(104, 180, 212, .2);
+  border-radius: var(--radius-sm);
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .2);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .35), transparent);
+}
+[data-pb-region="transport"] {
+  background: rgba(10, 27, 43, .55);
+  border-top: 1px solid rgba(104, 180, 212, .18);
+  border-bottom: 1px solid rgba(104, 180, 212, .12);
+  border-radius: var(--radius-sm);
+}
+[data-pb-region="legend"] {
+  background: rgba(10, 27, 43, .4);
+  border-bottom: 1px solid rgba(104, 180, 212, .16);
+}
+[data-pb-region="lanes"],
+[data-pb-region="curve"] {
+  background: transparent;
 }
 .pb-card {
   background: rgba(10, 27, 43, .72);
-  border-color: rgba(104, 180, 212, .2);
+  border: 1px solid rgba(104, 180, 212, .2);
   box-shadow: none;
   border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.pb-card-title {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
 }
 .pb-lib-item,
 .pb-insp-tab,
@@ -62,26 +95,63 @@
 }
 .pb-lib-item:focus-visible,
 .pb-insp-tab:focus-visible,
-.pb-bottom-tab:focus-visible {
+.pb-bottom-tab:focus-visible,
+[data-pb-region="legend"] [data-axis]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
 }
 .pb-chan-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 217, 244, .25);
+  flex-shrink: 0;
+}
+.pb-chan-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(104, 180, 212, .15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pb-chan-bar b {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 80ms linear;
 }
 .pb-insp-panel {
   background: transparent;
+}
+.progress-bar {
+  background: rgba(10, 27, 43, .6);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  background: var(--accent);
+}
+.pb-live b {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
 }
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
   [data-pb-region="bottom-tabs"],
   [data-pb-region="timeline"],
+  [data-pb-region="transport"],
+  [data-pb-region="legend"],
   .pb-lib-drop {
     border-color: var(--accent);
   }
@@ -94,7 +164,9 @@
 @media (prefers-reduced-motion: reduce) {
   .pb-lib-item,
   .pb-insp-tab,
-  .pb-bottom-tab {
+  .pb-bottom-tab,
+  [data-pb-region="legend"] [data-axis],
+  .pb-chan-bar b {
     transition: none;
   }
 }
