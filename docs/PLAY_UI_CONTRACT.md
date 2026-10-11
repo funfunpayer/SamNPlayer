@@ -44,22 +44,27 @@ areas or `order`, but must not move elements in JS.
 The older classes (`pb-tools-collapsed`, `has-script`, `.is-playing`,
 `.has-video` on the stage) still work. New CSS should use the attributes.
 
-## 2b. App tabs (Owner decision 11 Oct)
+## 2b. App tabs (Owner decisions 11 Oct; V1 shell S2)
 
-The main tabs are **Play · Generator · Training · Tools**, and the tagline is
-**Generate · Play · Train**. *Train* means the stamina Training tab.
+The top bar holds the brand (icon, "SamNPlayer", tagline GENERATE · PLAY ·
+TRAIN), the tabs, and the actions: device pill, Donate, version, folder,
+gear. The left rail is gone.
 
-- Rail: `#rail .tab-btn[data-tab="playback|generator|training|tools"]`.
-- Tools sub-navigation: `#tools-nav` (role tablist, `hidden` outside Tools)
-  holds `.tab-btn.tools-sub-btn[data-tab="device|log|settings"]`. Studio
-  builds add `benchmark` and `roi-training` there.
-- `body[data-tab]` names the visible panel (`playback`, `device`, …).
-  `body[data-tab-group]` is `tools` for all Tools sections and otherwise
-  the same as `data-tab`.
-- `switchTab('tools')` opens the last Tools section (Device first).
-  `switchTab('device')` and `.tab-btn[data-tab="log"].click()` keep working.
-- The layout decides where these go. The mockup puts the main tabs in a
-  top bar and Tools sections as a strip.
+- **Tabs:** `#topbar #rail .tab-btn[data-tab="playback|generator|training|scenemap|tools"]`.
+  The labels are **Player · Generator · Training · Scene Map · Tools**.
+- **Scene Map:** `switchTab('scenemap')` shows `#tab-generator` with
+  `data-view="scenemap"`. That is a focused view: the video chooser and the
+  Generator's scene-map section (`#gen-advanced-scenemap`, same IDs, same
+  state). `main.js` marks the path with `data-sm-path`.
+- **Tools sub-navigation:** `#tools-nav` (role tablist, `hidden` outside
+  Tools) holds `.tab-btn.tools-sub-btn[data-tab="device|log|settings"]`.
+  Studio builds add `benchmark` and `roi-training`.
+- **Top-bar actions:** `#topbar-open` opens the Player's file picker
+  (`#pb-choose`); `#topbar-settings` opens Tools → Settings.
+- **`body[data-tab]`** names the visible view (`playback`, `scenemap`,
+  `device`, …). **`body[data-tab-group]`** is `tools` for all Tools sections.
+- **Old entry points keep working:** `switchTab('device')` and
+  `.tab-btn[data-tab="log"].click()`.
 
 ## 3. Theme tokens (CSS custom properties, read by JS on every redraw)
 
@@ -108,7 +113,7 @@ Legend:
 |---|---|---|
 | Logo + "SamNPlayer" | ✅ | Rail brand (`.brand-lockup`); mark/font redesign pending (#474 comment) |
 | Tagline "Generate · Play · Train" | ✅ | **Decided 11 Oct:** "Generate · Play · Train"; *Train* = stamina Training (`#brand-tagline`, README, site) |
-| Tabs Play / Generator / Training / Tools | ✅ | **Decided 11 Oct:** rail tabs Play · Generator · Training · Tools; Tools = Device · Log · Settings (+ studio Bench, AI Train) via `#tools-nav` (§2b) |
+| Tabs Player / Generator / Training / Scene Map / Tools | ✅ | **Final mockup, 11 Oct:** top-bar tabs exactly as the mockup (§2b, V1 S2) |
 | Folder icon / gear icon | ✅ | `#pb-choose` / Settings tab |
 | Window controls (min/max/close) | ⛔ | Native window frame; frameless would be a Go/Wails change. Not planned. |
 

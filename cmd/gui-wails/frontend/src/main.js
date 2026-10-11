@@ -26,8 +26,27 @@ import { GetDonateLinks, IsStudioBuild } from '../wailsjs/go/main/App';
 const TOOLS_SECTIONS = new Set(['device', 'log', 'settings', 'benchmark', 'roi-training']);
 let lastToolsSection = 'device';
 
+// Scene Map (Owner 11 Oct, V1): its own top tab, showing the Generator's
+// scene-map section for the Generator video in a focused view. The code
+// stays in generator.js (same IDs, same state) — only the view changes.
+function setSceneMapView(on) {
+  const gen = document.getElementById('tab-generator');
+  if (!gen) return;
+  gen.querySelectorAll('[data-sm-path]').forEach(n => n.removeAttribute('data-sm-path'));
+  if (!on) { delete gen.dataset.view; return; }
+  gen.dataset.view = 'scenemap';
+  const target = gen.querySelector('#gen-advanced-scenemap');
+  for (let n = target; n && n !== gen; n = n.parentElement) {
+    n.setAttribute('data-sm-path', '');
+    if (n.tagName === 'DETAILS') n.open = true;
+  }
+}
+
 function switchTab(name) {
   if (name === 'tools') name = lastToolsSection;
+  const sceneMap = name === 'scenemap';
+  setSceneMapView(sceneMap);
+  const panelName = sceneMap ? 'generator' : name;
   const inTools = TOOLS_SECTIONS.has(name);
   if (inTools) lastToolsSection = name;
   // Layout hooks: CSS can adapt per tab (Play hides the info column) / group.
@@ -42,7 +61,7 @@ function switchTab(name) {
   const toolsNav = document.getElementById('tools-nav');
   if (toolsNav) toolsNav.hidden = !inTools;
   document.querySelectorAll('.tab-panel').forEach(p => {
-    const on = p.id === 'tab-' + name;
+    const on = p.id === 'tab-' + panelName;
     p.classList.toggle('active', on);
     if (on) p.removeAttribute('hidden');
     else p.setAttribute('hidden', '');
@@ -56,7 +75,7 @@ function initTabA11y() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     const name = btn.dataset.tab;
     btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-controls', name === 'tools' ? 'tools-nav' : 'tab-' + name);
+    btn.setAttribute('aria-controls', name === 'tools' ? 'tools-nav' : name === 'scenemap' ? 'tab-generator' : 'tab-' + name);
     btn.id = btn.id || 'tabbtn-' + name;
     const on = btn.classList.contains('active');
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -101,6 +120,12 @@ initTabA11y();
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
+// Top bar (V1): folder = open an Emotion Script in the Player; gear = Settings.
+document.getElementById('topbar-open')?.addEventListener('click', () => {
+  switchTab('playback');
+  document.getElementById('pb-choose')?.click();
+});
+document.getElementById('topbar-settings')?.addEventListener('click', () => switchTab('settings'));
 
 const playback = initPlayback(document.getElementById('tab-playback'));
 initTraining(document.getElementById('tab-training'));

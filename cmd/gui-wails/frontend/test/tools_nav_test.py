@@ -25,6 +25,7 @@ def main():
         "IsStudioBuild": "async () => false",
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false})",
+        "PickFunscriptFile": "async () => { window.__picked = (window.__picked || 0) + 1; return ''; }",
     }))
     try:
         with sync_playwright() as p:
@@ -34,7 +35,9 @@ def main():
             page.goto(f"{base}/test/_tools_nav_harness.html")
             page.wait_for_timeout(800)
             rail = page.evaluate("[...document.querySelectorAll('#rail .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("rail shows Play · Generator · Training · Tools", rail == ["Play", "Generator", "Training", "Tools"], str(rail))
+            check("top tabs: Player · Generator · Training · Scene Map · Tools",
+                  rail == ["Player", "Generator", "Training", "Scene Map", "Tools"], str(rail))
+            check("tabs live in the top bar", page.evaluate("!!document.querySelector('#topbar #rail')"))
             check("tagline is Generate · Play · Train",
                   page.get_attribute("#brand-tagline", "aria-label") == "Generate · Play · Train"
                   and " ".join(page.text_content("#brand-tagline").split()) == "Generate Play Train")
@@ -63,6 +66,25 @@ def main():
             page.click('#rail .tab-btn[data-tab="playback"]')
             page.click("#topbar-device")
             check("top-bar device button opens Tools → Device", page.is_visible("#tab-device"))
+
+            # Scene Map: focused view on the Generator's scene map (same IDs).
+            page.click('#rail .tab-btn[data-tab="scenemap"]')
+            check("Scene Map shows the Generator panel in scene-map view",
+                  page.is_visible("#tab-generator")
+                  and page.get_attribute("#tab-generator", "data-view") == "scenemap")
+            check("scene map controls visible", page.is_visible("#gen-scene-map"))
+            check("video chooser visible in Scene Map", page.is_visible("#gen-choose"))
+            check("other Generator steps hidden in Scene Map", page.is_hidden("#gen-steps"))
+            page.click('#rail .tab-btn[data-tab="generator"]')
+            check("Generator tab leaves scene-map view",
+                  page.get_attribute("#tab-generator", "data-view") is None and page.is_visible("#gen-steps"))
+            # Top-bar actions.
+            page.click("#topbar-settings")
+            check("gear opens Tools → Settings", page.is_visible("#tab-settings"))
+            page.click("#topbar-open")
+            check("folder opens the Player and the file picker",
+                  page.is_visible("#tab-playback") and page.evaluate("window.__picked") == 1)
+            page.click('#rail .tab-btn[data-tab="tools"]')
 
             # Keyboard inside the sub-nav.
             page.focus('#tools-nav .tab-btn[data-tab="device"]')

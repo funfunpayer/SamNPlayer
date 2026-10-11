@@ -3299,3 +3299,86 @@ button.primary:hover:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   #tab-playback .pb-tools { transition: none; }
 }
+
+/* =====================================================================
+   V1 app shell (S2, docs/V1_PLAN.md): top bar with brand · tabs · actions.
+   The old left rail is gone; #rail is now the horizontal tab list.
+   ===================================================================== */
+#topbar {
+  height: 68px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, rgba(6, 18, 31, 0.96), rgba(6, 18, 31, 0.82));
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: none;
+}
+.topbar-brand-block { position: relative; display: flex; align-items: center; min-width: 236px; height: 56px; }
+.topbar-brand-block .brand-lockup { width: 44px; height: 44px; margin: 0; }
+.topbar-brand-block .brand { width: 44px; height: 44px; }
+.topbar-brand-block .brand-wordmark { font-size: 24px; top: 38%; }
+.topbar-brand-block .brand-tagline {
+  position: absolute; left: 56px; top: 40px; margin: 0;
+  font-size: 9.5px; letter-spacing: 0.32em; white-space: nowrap; text-align: left;
+}
+.topbar-brand-block .brand-tagline span { display: inline; }
+.topbar-brand-block .brand-tagline span + span::before { content: "·"; margin: 0 0.55em; opacity: 0.8; }
+
+#topbar #rail {
+  width: auto; height: auto; padding: 0; margin: 0 auto;
+  flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+  background: none; border: 0; position: static;
+}
+#topbar #rail::after { display: none; }
+#topbar #rail .tab-btn {
+  flex-direction: row; gap: 9px;
+  width: auto; height: 42px; min-height: 0; margin: 0;
+  padding: 0 16px; border-radius: 999px;
+  font-size: 14px; letter-spacing: 0.01em; text-transform: none;
+  color: var(--text-dim); background: transparent; border: 1px solid transparent;
+}
+#topbar #rail .tab-btn svg { width: 20px; height: 20px; margin: 0; }
+#topbar #rail .tab-btn .dot { display: none; }
+#topbar #rail .tab-btn:hover { color: var(--text); background: rgba(var(--accent-rgb), 0.06); }
+#topbar #rail .tab-btn.active {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.12));
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.25);
+}
+#topbar #rail .tab-btn.active svg { color: var(--accent); }
+#topbar .pills { gap: 8px; }
+.topbar-icon {
+  display: inline-grid; place-items: center;
+  width: 38px; height: 38px; padding: 0; min-height: 0;
+  border-radius: 10px; background: transparent; border: 1px solid transparent;
+  color: var(--text-dim);
+}
+.topbar-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.topbar-icon:hover { color: var(--text); background: rgba(var(--accent-rgb), 0.08); }
+@media (max-width: 1280px) {
+  .topbar-brand-block .brand-tagline { display: none; }
+  #topbar #rail .tab-btn { padding: 0 11px; }
+}
+@media (max-width: 1100px) {
+  #topbar #rail .tab-btn span { display: none; }
+  .topbar-brand-block { min-width: 190px; }
+}
+
+/* Scene Map tab: the Generator's scene-map section in a focused view —
+   video chooser + scene map only (main.js marks the path with data-sm-path). */
+#tab-generator[data-view="scenemap"] > :not([data-sm-path]):not(#gen-step-video) { display: none !important; }
+#tab-generator[data-view="scenemap"] [data-sm-path]:not(#gen-advanced-scenemap) > :not([data-sm-path]) { display: none !important; }
+#tab-generator[data-view="scenemap"] [data-sm-path][hidden] { display: block !important; }
+#tab-generator[data-view="scenemap"]::before {
+  content: "Scene Map";
+  display: block; margin: 0 0 4px;
+  font: 700 var(--type-display) var(--font); color: var(--text);
+}
+#tab-generator[data-view="scenemap"] #gen-step-video .gen-step-title::after {
+  content: " — the scene map follows this video"; font-weight: 400; color: var(--text-dim);
+}
+#topbar #rail .tab-btn span { text-transform: none; font-size: 14px; letter-spacing: 0.01em; font-weight: 500; }
+#topbar #rail .tab-btn::before, #topbar #rail .tab-btn::after { display: none; }
