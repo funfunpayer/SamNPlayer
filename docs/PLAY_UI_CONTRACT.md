@@ -182,7 +182,7 @@ Legend:
 
 ## 7. Core follow-ups (Claude, one PR each, in this order)
 
-1. Time ruler and lane name column on the timeline, with marker triangles.
+1. Time ruler and lane name column on the timeline, with marker triangles. **(in progress: time ruler canvas + mm:ss ticks, marker triangles on lanes added)**
 2. Transport additions: previous item, step ±, volume slider (video), snapshot PNG.
 3. Video info: `audioCodec`, `sizeBytes` in `PlaybackVideoInfo` and the video card data.
 4. Recent scripts/videos (pref + binding), feeding the selectors.

@@ -112,6 +112,7 @@ export function initPlayback(root) {
             <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
             <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
           </div>
+          <canvas id="pb-time-ruler" class="pb-time-ruler" data-pb-region="ruler" height="22" style="display:none" aria-hidden="true"></canvas>
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
@@ -571,6 +572,7 @@ export function initPlayback(root) {
   const LANE_AXES = ['vibration', 'suction'];
   const AXIS_LANE_CSS_H = 34;
   const axisLanesCanvas = el('#pb-axis-lanes');
+  const timeRulerCanvas = el('#pb-time-ruler');
   let axisLanePoints = { vibration: null, suction: null };
   let strokeGhostPoints = null; // stroke behind a feel channel being shown
   const chartTooltip = el('#pb-chart-tooltip');
@@ -1704,6 +1706,56 @@ export function initPlayback(root) {
   // einen mitlaufenden Positionszeiger. Die Heatmap-Leiste darunter bleibt
   // erhalten: sie gibt den groben Überblick, die Kurve die genaue Form.
   // FunGen-like: soft curve + keyframe dots always (edit mode = drag those dots).
+
+  function formatTimeMmSs(ms) {
+    const totalSec = Math.max(0, Math.round(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function redrawTimeRuler() {
+    if (!timeRulerCanvas || !totalMs || totalMs <= 0) {
+      if (timeRulerCanvas) timeRulerCanvas.style.display = 'none';
+      return;
+    }
+    timeRulerCanvas.style.display = '';
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = timeRulerCanvas.clientWidth || curveCanvas.clientWidth || 800;
+    const cssH = 22;
+    const wantW = Math.round(cssW * dpr);
+    const wantH = Math.round(cssH * dpr);
+    if (timeRulerCanvas.width !== wantW || timeRulerCanvas.height !== wantH) {
+      timeRulerCanvas.width = wantW;
+      timeRulerCanvas.height = wantH;
+    }
+    const ctx = timeRulerCanvas.getContext('2d');
+    const w = timeRulerCanvas.width, h = timeRulerCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = `${10 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    const span = viewSpanMs();
+    const start = viewStartMs || 0;
+    // Aim for ~8-12 major ticks
+    const targetTicks = 10;
+    let stepMs = Math.max(1000, Math.round(span / targetTicks / 1000) * 1000);
+    if (stepMs < 5000) stepMs = 1000;
+    else if (stepMs < 15000) stepMs = 5000;
+    else if (stepMs < 60000) stepMs = 10000;
+    else stepMs = 30000;
+    const first = Math.ceil(start / stepMs) * stepMs;
+    for (let t = first; t <= start + span; t += stepMs) {
+      const x = timeToX(t, w);
+      if (x < 8 * dpr || x > w - 8 * dpr) continue;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(Math.round(x), h - 6 * dpr, 1, 6 * dpr);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(formatTimeMmSs(t), x, h * 0.42);
+    }
+  }
+
   function redrawCurve() {
     const points = (editMode && rawActions) ? rawActions : curvePoints;
     if (!points || points.length < 2) return;
@@ -1824,6 +1876,7 @@ export function initPlayback(root) {
       updatePbPosOverlay(null);
     }
     redrawAxisLanes();
+    redrawTimeRuler();
   }
 
   // --- Feel channel lanes under the curve ----------------------------------
@@ -1931,6 +1984,37 @@ export function initPlayback(root) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
+    }
+    // Marker triangles on lanes (bookmarks = point, O-markers/chapters = range start)
+    if (totalMs > 0) {
+      const drawTri = (ms, color, tipDown = true) => {
+        const x = xOf(ms);
+        if (x < 0 || x > w) return;
+        const size = 5 * dpr;
+        const y = tipDown ? 4 * dpr : h - 4 * dpr;
+        ctx.beginPath();
+        if (tipDown) {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - size, y + size);
+          ctx.lineTo(x + size, y + size);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - size, y - size);
+          ctx.lineTo(x + size, y - size);
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      };
+      for (const b of bookmarks) {
+        if (b && typeof b.time === 'number') drawTri(b.time, '#ffcc55', true);
+      }
+      for (const m of oMarkers) {
+        if (m && typeof m.startMs === 'number') drawTri(m.startMs, '#00c8ff', false);
+      }
+      for (const c of chapterMarks) {
+        if (c && typeof c.startTime === 'number') drawTri(c.startTime, '#a0e080', true);
+      }
     }
   }
 

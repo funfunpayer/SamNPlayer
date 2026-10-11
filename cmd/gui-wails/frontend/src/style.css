@@ -3160,3 +3160,13 @@ body[data-tab="playback"] #sidebar { display: none; }
 .tools-nav .tab-btn svg { width: 16px; height: 16px; margin: 0; }
 .tools-nav .tab-btn .dot { display: none; }
 .tools-nav .tab-btn.active { background: var(--accent-soft, rgba(184,150,232,0.16)); color: var(--text); }
+
+/* Time ruler on Play timeline (follow-up #475) */
+.pb-time-ruler {
+  display: block;
+  width: 100%;
+  height: 22px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+}
+.pb-time-ruler[style*="display:none"] { display: none !important; }
