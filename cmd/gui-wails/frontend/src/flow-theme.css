@@ -54,3 +54,57 @@
   #rail .tab-btn { transition: none; }
   #rail .tab-btn:hover { transform: none; }
 }
+
+/* Phase 2 — studio layout: use available width, keep existing DOM and events. */
+:root {
+  --accent-rgb: 4, 201, 245;
+  --teal-rgb: 0, 203, 209;
+  --flow-orange: #ff912b;
+  --flow-glow: rgba(4, 201, 245, .11);
+}
+#app::before, #app::after { display: none; }
+#topbar {
+  background: linear-gradient(180deg, #0b1c2c, #081523);
+  border-bottom: 1px solid rgba(40, 119, 149, .24);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.stage-main {
+  background: radial-gradient(850px 380px at 50% 0%, rgba(0, 167, 215, .065), transparent 75%), #071422;
+}
+.tab-panel {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: clamp(14px, 2vw, 28px) clamp(14px, 2.2vw, 32px) 44px;
+}
+#tab-playback { max-width: none; }
+#sidebar {
+  background: #091827;
+  border-left: 1px solid rgba(0, 201, 245, .12);
+}
+.card {
+  background: rgba(11, 30, 46, .88);
+  border: 1px solid rgba(63, 129, 158, .18);
+  box-shadow: none;
+}
+.card::before { opacity: .3; }
+.pb-media {
+  background: #06101a;
+  border: 1px solid rgba(0, 201, 245, .16);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .14);
+}
+.pb-video-stage {
+  background: #030b13;
+  min-height: clamp(220px, 32vh, 500px);
+}
+.pb-video-stage:not(.has-video) {
+  background: radial-gradient(ellipse at 50% 44%, rgba(0, 160, 220, .085), transparent 60%), #030b13;
+}
+.pb-axis-lanes { border-top-color: rgba(0, 201, 245, .14); }
+@media (max-width: 900px) {
+  .tab-panel { padding: 16px 14px 32px; }
+  #topbar { padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel.active { animation: none; }
+}
