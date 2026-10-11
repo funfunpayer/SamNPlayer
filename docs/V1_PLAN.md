@@ -58,8 +58,8 @@ the repo (it is a raster concept, not an asset).
 |---|---|---|---|
 | S1 | Flow theme + compact Play layout | Claude | ✅ #480 |
 | S2 | **App shell**: top bar with tabs (Player, Generator, Training, Scene Map, Tools), folder + gear, logo/wordmark/tagline; rail removed; Tools sub-nav kept | Claude | IDs and `data-tab` values unchanged; Scene Map tab shows the Generator scene-map section for the current video |
-| S3 | **Player 3-column shell**: Library left, Inspector right (tabs Devices / Audio / Playback / View), timeline tabs bottom; existing controls moved into their tab, IDs unchanged | Claude | Collapsible panels, state remembered |
-| S4 | **Timeline core**: time ruler, lane names with colour dots, Audio Level lane (envelope), scene markers (diamonds) + "+" add, thumbnail strip | Claude | Go: thumbnails via ffmpeg (cached), audio envelope reused |
+| S3 ✅ | **Player 3-column shell**: Library left, Inspector right (tabs Devices / Audio / Playback / View), timeline tabs bottom; existing controls moved into their tab, IDs unchanged | Claude | Collapsible panels, state remembered |
+| S4 | **Timeline core**: time ruler, lane names with colour dots, Audio Level lane (envelope), scene markers (diamonds) + "+" add, thumbnail strip | Claude | Go: thumbnails via ffmpeg (cached), audio envelope reused. **Owner 11 Oct:** scene images/markers are mainly for the **Generator** (on there); the Player has them too but **off by default** (toggle under View) |
 | S5 | **Transport**: big circular play, loop, previous / next, volume, fullscreen, **speed 0.5–2×** (Go: playback time scale), sleep timer | Claude | Speed is new core; device sync tested |
 | S6 | **Library**: Recent, Favorites, Playlists, Scripts Imported / Generated / Edited (Go library index), Tools shortcuts, Quick Access drop zone, video selector dropdown | Claude | Local only |
 | S7 | **Inspector, Devices + Effects**: per-channel enable + level + live wave, profile, Mode, Sync; Effects / Curve / Limits / Advanced; knobs | Claude | Per-channel level is new core (device-safe) |
@@ -67,6 +67,11 @@ the repo (it is a raster concept, not an asset).
 | S9 | **Brand assets**: Flow icon (EXE ICO 16–256, 1024 PNG), banner, website/README | Claude integrates; ChatGPT + Owner supply the final files | Exact files, no redraw |
 | S10 | **Other tabs** in the same style: Generator, Training, Scene Map, Tools (Device / Log / Settings) | Claude | Shared cards, buttons, spacing |
 | S11 | **Release 1.0**: `VERSION` 1.0.0, CHANGELOG, handbook, screenshots, QA at 1366×768 and 1920×1080; the Owner pushes the tag | Claude + ChatGPT | Full test matrix (`docs/QA_CHECK_*`) |
+
+**Split (Owner, 11 Oct): Claude builds the core and the structure; ChatGPT builds the look.**
+ChatGPT works on its own branch, ideally in a **new** stylesheet
+(`src/theme_flow.css`, imported once by Claude) so nothing can be overwritten.
+ChatGPT never pushes to `claude/*` branches.
 
 **ChatGPT, per step:**
 - acceptance checklist and visual review on each PR;

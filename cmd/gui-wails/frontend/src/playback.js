@@ -2946,6 +2946,8 @@ export function initPlayback(root) {
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
+    // Library "Recent" (player_layout.js) listens for successful loads.
+    window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: scriptPath } }));
     if (!opts.keepPlaylist) {
       replacePlaylist([scriptPath], 0);
     } else {

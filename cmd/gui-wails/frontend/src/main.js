@@ -4,6 +4,7 @@ import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 import { initPlayback } from './playback.js';
+import { applyPlayerLayoutV1 } from './player_layout.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -138,6 +139,8 @@ initSettings(document.getElementById('tab-settings'));
 initSidebar(document.getElementById('sidebar'));
 enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
+// V1.0 Player shell: Library · video/timeline · Inspector (docs/V1_PLAN.md S3).
+applyPlayerLayoutV1(document.getElementById('tab-playback'), playback);
 initPostGenerateReview();
 
 // Topbar: Geräte-Status + Connect/Disconnect (Transport bleibt im Gerät-Tab).
