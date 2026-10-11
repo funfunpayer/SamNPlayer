@@ -36,6 +36,8 @@ def main():
         "VideoFileURL": "async () => ''",
         "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
         "SetScriptOffset": "async (ms) => { window.__offset = ms; }",
+        "GetScriptAxisActions": "async (axis) => axis === 'vibration' ? %s : (!axis || axis === 'general') ? %s : null" % (json.dumps([{"at": a["at"], "pos": 50} for a in acts]), json.dumps(acts)),
+        "GetAudioLevelEnvelope": "async () => Array.from({ length: 1200 }, (_, i) => Math.abs(Math.sin(i / 9)))",
         "EstimateAudioSyncOffset": "async () => { window.__syncCalls = (window.__syncCalls || 0) + 1; return window.__sync; }",
     }))
     try:
@@ -67,6 +69,21 @@ def main():
                 k.dispatchEvent(new Event('input')); k.dispatchEvent(new Event('change')); }""")
             check("Response 100% → smoothing 0", page.evaluate("document.querySelector('#pb-smoothing').value") == "0")
             check("smoothing saved as setting", (page.evaluate("window.__saved || {}") or {}).get("playback.smoothing") == 0)
+            # Sync with audio mirrors the Audio tab switch.
+            page.check("#pb-fx-audio-sync")
+            check("Sync with audio sets the real switch", page.evaluate("document.querySelector('#pb-audio-vibration').checked"))
+            page.evaluate("""() => { const s = document.querySelector('#pb-audio-vibration'); s.checked = false;
+                s.dispatchEvent(new Event('change', { bubbles: true })); }""")
+            check("and follows it back", not page.is_checked("#pb-fx-audio-sync"))
+            # Lane names column (Timeline).
+            page.wait_for_function("document.querySelectorAll('.pb-lane-name').length >= 3", timeout=5000)
+            lanes = page.evaluate("[...document.querySelectorAll('.pb-lane-name')].map(e => e.textContent.trim())")
+            check("lane names Stroke · Vibration · Audio Level", lanes == ["Stroke", "Vibration", "Audio Level"], str(lanes))
+            off = page.evaluate("""() => { const n = document.querySelector('.pb-lane-name[data-lane="stroke"]').getBoundingClientRect();
+                const c = document.querySelector('#pb-curve').getBoundingClientRect();
+                return [Math.round(n.top - c.top), Math.round(c.left - n.right)]; }""")
+            check("Stroke name sits left of the curve, same top", abs(off[0]) <= 1 and off[1] >= 0, str(off))
+            check("no in-canvas lane labels in the V1 layout", page.evaluate("document.querySelector('#tab-playback').dataset.pbLayout") == "v1")
             page.focus("#pb-knob-intensity")
             page.keyboard.press("ArrowLeft")
             check("knob works with the keyboard", page.text_content("#pb-knob-intensity-val") == "45%")

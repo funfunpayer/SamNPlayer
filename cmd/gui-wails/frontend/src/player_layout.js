@@ -210,6 +210,26 @@ export function applyPlayerLayoutV1(root, api) {
     ${knob('intensity', 'Intensity', 'Overall output of vibration and suction (on top of the channel levels). Live.')}
     ${knob('response', 'Response', 'How directly the device follows the script: high = crisp, low = smooth. Uses Play smoothing; applies from the next Play.')}
   </div>`;
+  // "Sync with audio" (mockup) = the existing "Vibration from video audio"
+  // switch; both stay in step.
+  const avSrc = q('#pb-audio-vibration');
+  if (avSrc) {
+    const row = document.createElement('label');
+    row.className = 'checkbox-row pb-effects-check';
+    row.innerHTML = '<input type="checkbox" id="pb-fx-audio-sync" /> Sync with audio';
+    row.title = 'Vibration follows the loudness of the video\'s sound (same switch as Audio → Vibration from video audio).';
+    fx.appendChild(row);
+    const mirror = row.querySelector('#pb-fx-audio-sync');
+    const pull = () => { mirror.checked = avSrc.checked; mirror.disabled = avSrc.disabled; };
+    mirror.addEventListener('change', () => {
+      if (avSrc.checked === mirror.checked) return;
+      avSrc.checked = mirror.checked;
+      avSrc.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    avSrc.addEventListener('change', pull);
+    new MutationObserver(pull).observe(avSrc, { attributes: true, attributeFilter: ['disabled', 'checked'] });
+    pull();
+  }
   panels.devices.appendChild(fx);
   // Knob drawing: the SVG is turned 135°, so 0 % sits bottom-left and the
   // arc / pointer sweep 270° clockwise.
@@ -441,6 +461,49 @@ export function applyPlayerLayoutV1(root, api) {
     if (b) showBottom(b.dataset.btab);
   });
   showBottom(load(BOTTOM_KEY) || 'timeline');
+
+  // ---- Lane names (mockup): coloured dot + name left of every lane ---------
+  const LANE_NAMES = { general: ['Stroke', 'stroke'], vibration: ['Vibration', 'vibration'],
+    suction: ['Suction', 'suction'], audio: ['Audio Level', 'audio'] };
+  const names = document.createElement('div');
+  names.className = 'pb-lane-names';
+  names.dataset.pbRegion = 'lane-names';
+  names.setAttribute('aria-hidden', 'true'); // canvases carry their own labels
+  timeline.prepend(names);
+  function placeLaneNames() {
+    const base = timeline.getBoundingClientRect();
+    const rows = [];
+    const add = (el, label, key, top, h) => rows.push({ label, key, top: top - base.top, h });
+    const curve = q('#pb-curve');
+    if (curve && curve.style.display !== 'none' && curve.offsetHeight) {
+      const r = curve.getBoundingClientRect();
+      add(curve, 'Stroke', 'stroke', r.top, r.height);
+    }
+    const lanesEl = q('#pb-axis-lanes');
+    const list = (root.dataset.pbLanes || '').split(',').filter(Boolean);
+    if (lanesEl && !lanesEl.hidden && list.length) {
+      const r = lanesEl.getBoundingClientRect();
+      const h = r.height / list.length;
+      list.forEach((k, i) => { const [label, key] = LANE_NAMES[k] || [k, k]; add(lanesEl, label, key, r.top + i * h, h); });
+    }
+    const strip = q('#pb-scene-strip');
+    if (strip && !strip.hidden) {
+      const r = strip.getBoundingClientRect();
+      add(strip, 'Scene Markers', 'scenes', r.top, r.height);
+    }
+    names.innerHTML = rows.map(r => `<span class="pb-lane-name" data-lane="${r.key}" style="top:${Math.round(r.top)}px;height:${Math.round(r.h)}px"><i></i>${r.label}</span>`).join('');
+  }
+  let lanePending = false;
+  const scheduleNames = () => {
+    if (lanePending) return;
+    lanePending = true;
+    requestAnimationFrame(() => { lanePending = false; placeLaneNames(); });
+  };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(scheduleNames).observe(timeline);
+  new MutationObserver(scheduleNames).observe(root, { attributes: true,
+    attributeFilter: ['data-pb-lanes', 'data-pb-scenes', 'data-pb-state', 'data-pb-bottom'] });
+  window.addEventListener('resize', scheduleNames);
+  scheduleNames();
 
   // ---- Library actions ----------------------------------------------------
   q('#pb-lib-local').addEventListener('click', () => q('#pb-choose')?.click());
