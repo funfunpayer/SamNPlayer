@@ -88,6 +88,8 @@ def main():
             "document.querySelector('#pb-curve-edit-hint').style.display === 'block'", timeout=5000)
         check("Editiermodus zeigt Hinweistext", True)
 
+        # Mouse coordinates must land on screen (legend / lanes add height).
+        page.locator("#pb-curve").scroll_into_view_if_needed()
         box = page.locator("#pb-curve").bounding_box()
         # Pad / usable height must match playback.js CURVE_PAD (6) — do not
         # hardcode mid_y for a fixed canvas height (broke when curve grew 120→176).
