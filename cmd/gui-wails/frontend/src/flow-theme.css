@@ -1,0 +1,56 @@
+/* SamNPlayer Flow GUI foundation — owner-approved cyan/orange.
+ * CSS-only: existing markup, Wails APIs and interactions are preserved.
+ * Intentionally avoid animated background, blur and per-frame paint effects.
+ */
+:root {
+  --bg: #06101c;
+  --bg-alt: #081727;
+  --surface: #0c1c2d;
+  --surface-2: #10263a;
+  --surface-soft: #0b2031;
+  --border: #1b3c51;
+  --border-strong: #24536a;
+  --border-soft: rgba(0, 200, 244, .13);
+  --text: #eaf8ff;
+  --text-dim: #a0bbcd;
+  --accent: #04c9f5;
+  --accent-hover: #64eaff;
+  --accent-soft: rgba(4, 201, 245, .13);
+  --teal: #00cbd1;
+  --teal-soft: rgba(0, 203, 209, .12);
+  --feel: #ff912b;
+  --feel-soft: rgba(255, 145, 43, .12);
+  --warn: #ffad51;
+  --focus-ring: 0 0 0 2px rgba(4, 201, 245, .38);
+}
+.brand-wordmark .wm-sam, .brand-wordmark .wm-n {
+  color: #ff8a24;
+}
+.brand-wordmark .wm-rest {
+  color: #1bcfff;
+}
+#rail {
+  background: linear-gradient(180deg, #061423 0%, #07111e 100%);
+  border-color: rgba(0, 201, 245, .12);
+}
+#rail .tab-btn {
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+#rail .tab-btn:hover {
+  transform: translateY(-1px);
+}
+#rail .tab-btn.active {
+  color: #52e3ff;
+}
+.pb-axis-chip[data-axis="vibration"] { --axis-c: #ff8a24; }
+.pb-axis-chip[data-axis="suction"] { --axis-c: #06cfff; }
+.pb-axis-chip[data-axis="general"] { --axis-c: #26cdbd; }
+.pb-axis-lanes { background: rgba(0, 25, 44, .3); }
+:where(button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #45dcff;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  #rail .tab-btn { transition: none; }
+  #rail .tab-btn:hover { transform: none; }
+}
