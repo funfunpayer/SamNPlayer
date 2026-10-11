@@ -564,100 +564,59 @@ body.flow-sidebar-hidden .stage {
   }
 }
 
-/* Phase 9 — tab coverage, empty states, interactive polish & contrast */
-#tab-playback[data-pb-state="empty"],
-#tab-generator:empty,
-#tab-training:empty {
+/* Phase 9 — Tools subtabs, Log viewer, Settings forms, Benchmark/ROI polish, empty states & consistency */
+#tab-log pre, #tab-log .log-view, #tab-log textarea[readonly] {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.45;
+  background: #050d16;
+  color: #d4eefc;
+  border: 1px solid rgba(0, 201, 245, .15);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+#tab-settings .field-row,
+#tab-device .field-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  min-height: 50vh;
+  gap: 10px 16px;
 }
 
-#pb-empty,
-.gen-empty,
-.tr-empty,
-.empty-state {
-  text-align: center;
+#tab-benchmark .card,
+#tab-roi-training .card {
+  border-radius: 14px;
+}
+
+.empty-state, .no-data, .hint-block {
   color: var(--text-dim);
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-#pb-empty h2,
-.empty-state h2 {
-  color: var(--text);
-  margin-bottom: 8px;
+  text-align: center;
+  padding: 32px 16px;
+  border: 1px dashed rgba(0, 201, 245, .2);
+  border-radius: 12px;
+  background: rgba(4, 201, 245, .03);
 }
 
 .tools-nav .tab-btn {
-  border-radius: 8px;
-  margin-right: 4px;
+  border-radius: 10px;
+  padding: 8px 12px;
 }
-.tools-nav .tab-btn:hover:not(.active) {
+.tools-nav .tab-btn:hover {
   background: rgba(4, 201, 245, .06);
   color: var(--text);
 }
 
-#sidebar .card {
-  margin-bottom: 12px;
-}
-#sidebar .card h2 {
-  font-size: 0.92em;
-  margin-bottom: 8px;
-}
-
-details summary {
-  cursor: pointer;
-  color: var(--text);
-  font-weight: 500;
-}
-details summary:hover {
-  color: var(--accent);
-}
-
-button:disabled,
-input:disabled,
-select:disabled,
-textarea:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.pills {
-  gap: 8px;
-}
-.pill {
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-@media (max-width: 720px) {
-  .pills {
-    gap: 6px;
+@media (max-width: 640px) {
+  .tools-nav {
+    padding: 6px 8px;
+    overflow-x: auto;
   }
-  .pill {
-    padding: 3px 8px;
-    font-size: 11px;
-  }
-  #rail .tab-btn {
-    padding: 10px 0;
+  .tools-nav .tab-btn span {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tools-nav .tab-btn,
-  details summary,
-  .card {
-    transition: none;
-  }
-}
-
-@media (prefers-contrast: more) {
-  .tools-nav .tab-btn.active {
-    outline: 1px solid var(--accent);
-  }
-  button:disabled {
-    opacity: 0.7;
-  }
+  .tools-nav .tab-btn { transition: none; }
 }
