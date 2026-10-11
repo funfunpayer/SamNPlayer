@@ -139,7 +139,7 @@ body {
 .pb-lib-drop { border-color: rgba(90, 170, 255, 0.35); background: rgba(0, 0, 0, 0.12); }
 
 /* Channel rows: glowing dot, thicker bar with knob. */
-.pb-chan-row { grid-template-columns: 22px 84px 1fr 44px; }
+
 .pb-chan-dot { width: 20px; height: 20px; box-shadow: 0 0 12px var(--c), inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .pb-chan-bar { height: 6px; overflow: visible; position: relative; }
 .pb-chan-bar b { position: relative; box-shadow: 0 0 8px var(--c); }
@@ -157,6 +157,10 @@ body {
 #tab-playback[data-pb-layout="v1"] .pb-video-stage.is-playing.has-video video,
 #tab-playback[data-pb-layout="v1"].pb-tools-collapsed .pb-video-stage video {
   max-height: max(200px, calc(100vh - 770px));
+}
+/* Scene strip on (S4b): give the strip its 50 px so the view still fits. */
+#tab-playback[data-pb-layout="v1"][data-pb-scenes="on"] .pb-video-stage video {
+  max-height: max(180px, calc(100vh - 820px));
 }
 #tab-playback[data-pb-layout="v1"] .pb-transport { padding: 8px 18px; }
 #tab-playback[data-pb-layout="v1"] .pb-heatmap { height: 18px; border-radius: 6px; opacity: 0.9; }
@@ -179,7 +183,7 @@ body {
 #tab-playback .pb-transport-right { margin-left: auto; }
 
 /* Channel rows: toggle switch + coloured level slider (mockup Devices). */
-.pb-chan-row { grid-template-columns: 40px 22px 80px 1fr 44px 40px 34px; }
+.pb-chan-row { grid-template-columns: 40px 22px minmax(0, 1fr) 44px 38px; }
 .pb-chan-on {
   appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.14); position: relative; cursor: pointer; transition: background .15s;

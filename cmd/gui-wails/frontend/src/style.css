@@ -3555,7 +3555,19 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 /* V1: live levels live in the Inspector (Devices) — not repeated in the transport. */
 #tab-playback[data-pb-layout="v1"] .pb-transport .pb-live { display: none; }
 /* V1 S7a: channel rows with on/off + level. */
-.pb-chan-row { grid-template-columns: 30px 14px 76px 1fr 40px 44px 34px; }
+.pb-chan-row {
+  grid-template-columns: 30px 14px minmax(0, 1fr) 44px 38px;
+  grid-template-areas: "on dot name lvl live" ". . level level level" ". . bar bar bar";
+  row-gap: 4px;
+}
+.pb-chan-on, .pb-chan-on-spacer { grid-area: on; }
+.pb-chan-dot { grid-area: dot; }
+.pb-chan-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-chan-level, .pb-chan-level-spacer { grid-area: level; min-width: 0; }
+.pb-chan-row .pb-chan-val { grid-area: lvl; }
+.pb-chan-row .pb-chan-bar { grid-area: bar; }
+.pb-chan-live { grid-area: live; }
+.pb-chan-row[data-axis="stroke"] .pb-chan-level-spacer { display: none; }
 .pb-chan-on { margin: 0; accent-color: var(--accent); width: 18px; height: 18px; }
 .pb-chan-level { width: 100%; accent-color: var(--c, var(--accent)); }
 .pb-chan-row .pb-chan-bar { height: 4px; }
