@@ -1,3 +1,5 @@
+//go:build studio
+
 package main
 
 import (

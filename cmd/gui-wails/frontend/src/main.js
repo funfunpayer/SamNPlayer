@@ -17,7 +17,7 @@ import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
 import { ensureEULAAccepted } from './legal.js';
-import { GetDonateLinks } from '../wailsjs/go/main/App';
+import { GetDonateLinks, IsStudioBuild } from '../wailsjs/go/main/App';
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -189,6 +189,14 @@ initPostGenerateReview();
 
   render({ connected: false });
 })();
+
+// Edition switch (Owner 11 Oct): the customer build hides every [data-studio]
+// control (AI Train, benchmark, learning export, model training). The CSS
+// rule covers markup rendered later too. Default = customer until told.
+document.documentElement.dataset.edition = 'customer';
+IsStudioBuild().then(studio => {
+  if (studio) document.documentElement.dataset.edition = 'studio';
+}).catch(() => {});
 
 // Freeware terms: ask once per EULA version (Decline quits the app).
 ensureEULAAccepted();

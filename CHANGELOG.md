@@ -10,6 +10,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Two editions from one code base** — the release (customer) build no
+  longer shows AI training and learning tools (AI Train tab, golden-clip
+  benchmark, learning-data export, candidate review, "Remember scene +
+  style", AI draft/imitation export, "Learn from judgments"). AI *use*
+  (detection, scene proposals, contact points) stays. Internal studio
+  build: `-tags studio` (see `docs/EDITIONS.md`).
+
 - **SamNPlayer is now freeware — licence keys removed.** Owner decision:
   free for private, non-commercial use under an EULA, financed by
   donations, not open source. The key system (import, trial cap on

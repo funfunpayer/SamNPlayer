@@ -76,6 +76,11 @@ jobs:
       - name: Tests with race detector
         run: go test -race ./...
 
+      # Edition switch (Owner 11 Oct): releases are the customer build; the
+      # studio build (-tags studio) adds AI training / learning tools.
+      - name: Tests, studio edition
+        run: go test -race -tags studio ./edition/ ./cmd/gui-wails/
+
       # Regression: cgo on, no OpenCV headers — must still build (stub path).
       - name: Build without OpenCV (CGO on)
         run: |

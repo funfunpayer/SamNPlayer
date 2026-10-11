@@ -3006,3 +3006,6 @@ fieldset,
 }
 .legal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
 .donate-pill { cursor: pointer; }
+
+/* Edition switch: customer build hides studio-only tools (main.js). */
+html[data-edition="customer"] [data-studio] { display: none !important; }
