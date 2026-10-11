@@ -3,6 +3,7 @@
  * No structure, visibility, sizing, script, device or canvas changes.
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan (#00D9F4) primary, warm orange secondary accents.
+ * Added: subtle glows, flowing surfaces, typography refinements, airy spacing.
  */
 :root {
   --accent: #00D9F4;
@@ -10,8 +11,8 @@
   --accent-rgb: 0, 217, 244;
   --accent-soft: rgba(0, 217, 244, .12);
   --secondary: #ff8a23;
-  --navy: rgba(10, 27, 43, .6);
-  --navy-soft: rgba(10, 27, 43, .35);
+  --flow-bg: #06121f;
+  --flow-surface: #0a1b2b;
 }
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -29,16 +30,18 @@
   color: var(--text-dim);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.6rem;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 .pb-lib-item.is-primary {
   color: var(--accent);
   background: rgba(0, 217, 244, .1);
   border-color: rgba(0, 217, 244, .35);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .15);
 }
 .pb-lib-item:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
+  box-shadow: 0 0 6px rgba(0, 217, 244, .12);
 }
 .pb-lib-recent-item {
   color: var(--text-dim);
@@ -73,7 +76,7 @@
 }
 [data-pb-region="video"] {
   background: #020a12;
-  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22);
+  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22), 0 0 24px rgba(0, 217, 244, .08);
   border-radius: var(--radius-sm);
 }
 [data-pb-region="timeline"] {
@@ -89,20 +92,23 @@
 }
 [data-pb-region="transport"] button {
   border-radius: var(--radius-sm);
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 [data-pb-region="transport"] button:hover:not(:disabled) {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .15);
 }
 [data-pb-region="transport"] button.primary {
   background: var(--accent);
   color: #06121f;
   border-color: transparent;
+  box-shadow: 0 0 12px rgba(0, 217, 244, .35);
 }
 [data-pb-region="transport"] button.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   color: #06121f;
+  box-shadow: 0 0 16px rgba(0, 217, 244, .45);
 }
 [data-pb-region="legend"] {
   background: rgba(10, 27, 43, .5);
@@ -149,7 +155,7 @@
 .pb-card {
   background: rgba(10, 27, 43, .75);
   border: 1px solid rgba(104, 180, 212, .22);
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
   border-radius: var(--radius-sm);
   padding: 0.8rem;
   margin-bottom: 0.8rem;
@@ -180,6 +186,7 @@
   color: var(--accent);
   border-bottom-color: var(--accent);
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 .pb-axis-chip[data-axis="vibration"] {
   --axis-c: #f0a050;
@@ -202,6 +209,7 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 217, 244, .25);
 }
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
@@ -229,7 +237,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 217, 244, .28);
+  box-shadow: 0 0 0 2px rgba(0, 217, 244, .28), 0 0 8px rgba(0, 217, 244, .4);
   flex-shrink: 0;
 }
 .pb-chan-bar {
@@ -245,6 +253,7 @@
   background: var(--accent);
   width: 0%;
   transition: width 80ms linear;
+  box-shadow: 0 0 6px rgba(0, 217, 244, .5);
 }
 .pb-insp-panel {
   background: transparent;
@@ -256,11 +265,13 @@
 }
 .progress-bar-fill {
   background: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .4);
 }
 .pb-live b {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   font-weight: 600;
+  text-shadow: 0 0 6px rgba(0, 217, 244, .35);
 }
 .pb-playlist-title,
 .pb-tools-title {
@@ -274,6 +285,7 @@
   color: var(--text-dim);
   border-radius: var(--radius-sm);
   padding: 0.25rem 0.4rem;
+  transition: color 140ms ease, background-color 140ms ease;
 }
 .pb-playlist-list li:hover {
   color: var(--accent);
@@ -301,7 +313,7 @@
   color: var(--accent);
   background: rgba(0, 217, 244, .15);
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 217, 244, .3);
+  box-shadow: 0 0 0 1px rgba(0, 217, 244, .3), 0 0 6px rgba(0, 217, 244, .25);
 }
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
@@ -332,36 +344,30 @@
 .pb-collapse:hover {
   color: var(--accent-hover);
 }
-/* Continued open-point polish: secondary orange on stroke/general, quieter timeline navy, restrained cyan markers, improved progress/empty CTA, tabular values */
-.pb-axis-chip[data-axis="general"] {
-  color: var(--secondary);
-  border-color: rgba(255, 138, 35, .4);
-}
+/* Next open point polish: glows, flowing surfaces, secondary orange, better progress and empty CTA */
 [data-pb-region="transport"] .progress-bar {
   height: 6px;
   border-radius: 3px;
-  background: rgba(10, 27, 43, .8);
-}
-[data-pb-region="transport"] .progress-bar-fill {
-  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
 }
 .pb-empty-inner button,
 [data-pb-region="empty"] button {
   background: var(--accent);
   color: #06121f;
   border-radius: var(--radius-sm);
-  transition: background-color 140ms ease, transform 140ms ease;
-  font-weight: 600;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 0 12px rgba(0, 217, 244, .3);
 }
 .pb-empty-inner button:hover,
 [data-pb-region="empty"] button:hover {
   background: var(--accent-hover);
+  box-shadow: 0 0 16px rgba(0, 217, 244, .45);
 }
-[data-pb-region="timeline"] .pb-marker {
-  background: rgba(0, 217, 244, .22);
-}
-[data-pb-region="lanes"] {
-  background: var(--navy-soft);
+/* Subtle flowing wave surface on library and empty for airy Flow feel */
+[data-pb-region="library"],
+[data-pb-region="empty"] {
+  background-image: 
+    radial-gradient(ellipse at 20% 30%, rgba(0, 217, 244, .04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(255, 138, 35, .03) 0%, transparent 45%);
 }
 @media (prefers-contrast: more) {
   .pb-card,
