@@ -14,7 +14,8 @@ Use the owner-approved **final banner** from 2026-10-11 11:39, not earlier conce
 ## Application layout: airy, not boxed
 - Deep navy surfaces; use implied divisions through spacing and low-contrast separators, not thick rectangular borders.
 - Primary cyan #00D9F4, warm orange #FF8A23, dark navy #06121F; reserve purple/teal for distinguishable data series and accessible contrast.
-- Top nav: Player / Generator / Training / Scene Map / Tools. Navigation and functional labels reflect **actual implemented features**, not illustrative placeholders.
+- Top nav: **Play / Generator / Training / Tools** (matches Owner decision in #475 / #478 and `docs/PLAY_UI_CONTRACT.md` §2b). Scene Map lives inside Generator (Advanced) today; promoting it to a main tab needs a separate Owner decision.
+- In-app tagline keeps **Generate · Play · Train** (with dots). Banner lettering may omit dots for visual style.
 - Left library, right device/effects inspector, bottom timeline/scene thumbnails: each independently collapsible; persist layout when feasible; compact / studio / advanced can be proposed as layout presets, not assumed shipped.
 - Keep video area visually dominant; when no media is loaded show branded abstract waves/logo **without implying video content**.
 - Retain functional multi-axis lanes from #472 with shared playhead, legible scale, axis visibility, colored legends, and scene thumbnails only when supported by real data.
