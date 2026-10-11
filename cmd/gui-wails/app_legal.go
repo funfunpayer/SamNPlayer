@@ -7,8 +7,8 @@ import (
 
 	"github.com/funfunpayer/SamNPlayer/edition"
 	"github.com/funfunpayer/SamNPlayer/legal"
-	"github.com/funfunpayer/SamNPlayer/update"
 	"github.com/funfunpayer/SamNPlayer/logging"
+	"github.com/funfunpayer/SamNPlayer/update"
 )
 
 // prefEULAAccepted stores the EULA version the user accepted. The GUI asks
