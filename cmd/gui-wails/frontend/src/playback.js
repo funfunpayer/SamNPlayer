@@ -1948,6 +1948,10 @@ export function initPlayback(root) {
     const lanes = withAudio ? [...feelLanes, 'audio'] : feelLanes;
     lanesDrawn = lanes;
     const shown = curveCanvas.style.display !== 'none';
+    // V1 layout draws the lane names in a column (player_layout.js).
+    const laneList = shown ? lanes.join(',') : '';
+    if (root.dataset.pbLanes !== laneList) root.dataset.pbLanes = laneList;
+    const inCanvasNames = root.dataset.pbLayout !== 'v1';
     redrawRuler();
     renderSceneStrip();
     drawAudioCard();
@@ -2020,10 +2024,12 @@ export function initPlayback(root) {
       ctx.lineWidth = (axis === active ? 1.6 : 1.1) * dpr;
       ctx.lineJoin = 'round';
       ctx.stroke();
-      ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = color;
-      ctx.fillText(AXIS_LABELS[axis].toUpperCase(), 6 * dpr, top + 3 * dpr);
+      if (inCanvasNames) {
+        ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = color;
+        ctx.fillText(AXIS_LABELS[axis].toUpperCase(), 6 * dpr, top + 3 * dpr);
+      }
     });
     if (totalMs > 0 && currentPosMs > 0) {
       const x = Math.round(xOf(currentPosMs)) + 0.5;
@@ -2057,6 +2063,7 @@ export function initPlayback(root) {
       ctx.fillRect(x, mid - hgt, Math.max(1, step - Math.round(dpr * 0.6)), hgt * 2);
     }
     ctx.globalAlpha = 1;
+    if (root.dataset.pbLayout === 'v1') return; // name column shows it
     ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
     ctx.textBaseline = 'top';
     ctx.fillStyle = color;
