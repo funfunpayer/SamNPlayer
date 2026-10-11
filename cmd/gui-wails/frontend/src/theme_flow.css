@@ -4,7 +4,7 @@
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
  * Brand-orange (#ff8a23) hints on non-channel CTAs + refined timeline marker/playhead glow applied.
- * Next open point worked: inspector/card micro-polish, brand empty-state refinement, transport progress glow.
+ * Next open point worked: playing-state transport/video glow, curve region framing, airy legend & zoom polish.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
@@ -27,6 +27,10 @@
 [data-pb-region="video"] {
   background: #020a12;
   box-shadow: 0 0 0 1px rgba(104, 180, 212, .22), 0 0 24px rgba(0, 217, 244, .05);
+  transition: box-shadow 200ms ease;
+}
+[data-pb-playing="true"] [data-pb-region="video"] {
+  box-shadow: 0 0 0 1px rgba(0, 217, 244, .35), 0 0 32px rgba(0, 217, 244, .12), 0 0 8px rgba(255, 138, 35, .08);
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
@@ -38,19 +42,28 @@
   border-top: 1px solid rgba(104, 180, 212, .2);
   border-bottom: 1px solid rgba(104, 180, 212, .14);
   box-shadow: 0 -1px 0 rgba(0, 217, 244, .05);
+  transition: box-shadow 200ms ease;
+}
+[data-pb-playing="true"] [data-pb-region="transport"] {
+  box-shadow: 0 -1px 0 rgba(0, 217, 244, .12), 0 0 20px rgba(0, 217, 244, .06);
 }
 [data-pb-region="legend"] {
   background: rgba(10, 27, 43, .48);
   border-bottom: 1px solid rgba(104, 180, 212, .2);
+  box-shadow: inset 0 -1px 0 rgba(0, 217, 244, .04);
 }
 [data-pb-region="lanes"],
 [data-pb-region="curve"],
 [data-pb-region="heatmap"] {
   background: transparent;
 }
+[data-pb-region="curve"] {
+  box-shadow: inset 0 0 30px rgba(10, 27, 43, .25), 0 0 0 1px rgba(104, 180, 212, .08);
+}
 [data-pb-region="zoom"] {
   background: rgba(10, 27, 43, .38);
   border-top: 1px solid rgba(104, 180, 212, .16);
+  box-shadow: inset 0 1px 0 rgba(0, 217, 244, .03);
 }
 [data-pb-region="playlist"] {
   background: rgba(10, 27, 43, .52);
@@ -325,6 +338,13 @@
 #pb-progress {
   box-shadow: 0 0 12px rgba(0, 217, 244, .5), 0 0 6px rgba(255, 138, 35, .3);
 }
+/* Playing-state airy glow refinements (look only, approved hooks) */
+[data-pb-playing="true"] [data-pb-region="legend"] {
+  border-bottom-color: rgba(0, 217, 244, .28);
+}
+[data-pb-playing="true"] [data-pb-region="zoom"] {
+  box-shadow: inset 0 1px 0 rgba(0, 217, 244, .06);
+}
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
@@ -357,7 +377,9 @@
   .pb-tools-toggle,
   [data-pb-region="empty"] .primary,
   [data-pb-region="video"] .primary,
-  .pb-card {
+  .pb-card,
+  [data-pb-region="video"],
+  [data-pb-region="transport"] {
     transition: none;
   }
 }
