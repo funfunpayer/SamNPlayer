@@ -5,7 +5,7 @@
 <h1 align="center">SamNPlayer</h1>
 
 <p align="center">
-  <strong>Play · Create · Feel</strong> — free local desktop app for
+  <strong>Generate · Play · Train</strong> — free local desktop app for
   <code>.samn</code> / <code>.funscript</code> and SVAKOM Sam Neo&nbsp;2 / Neo&nbsp;2&nbsp;Pro
 </p>
 
@@ -118,16 +118,16 @@ not needed, it stays out.
 </p>
 
 <p align="center">
-  <img src="docs/media/gui-generator.png" alt="Create tab — step-by-step Emotion Script creation" width="900" />
+  <img src="docs/media/gui-generator.png" alt="Generator tab — step-by-step Emotion Script creation" width="900" />
   <br />
-  <em>Create</em> — choose a video, find the tip, pick the feel, create — classical tracking, no AI install needed
+  <em>Generator</em> — choose a video, find the tip, pick the feel, create — classical tracking, no AI install needed
 </p>
 
 <p align="center">
   <img src="docs/media/gui-device.png" alt="Device tab — Sam Neo 2 connection and diagnostics" width="440" />
   <img src="docs/media/gui-about.png" alt="Settings — licence, donations and About SamNPlayer" width="440" />
   <br />
-  <em>Device</em> — BLE / Intiface / Mock with diagnostics · <em>Settings</em> — EULA, donations, About
+  <em>Tools → Device</em> — BLE / Intiface / Mock with diagnostics · <em>Tools → Settings</em> — EULA, donations, About
 </p>
 
 ---

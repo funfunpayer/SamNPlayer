@@ -295,7 +295,7 @@ func (a *App) testDeviceOrErr() (device.Device, error) {
 		return nil, fmt.Errorf("device test not available during playback or training")
 	}
 	if dev == nil {
-		return nil, fmt.Errorf("no device connected — connect in the Device tab first")
+		return nil, fmt.Errorf("no device connected — connect in Tools → Device first")
 	}
 	return dev, nil
 }

@@ -342,7 +342,7 @@ func (a *App) StartTraining(req TrainingRequest) error {
 			// Bereits über den Geräte-Tab verbunden - nicht erneut
 			// verbinden und am Ende NICHT trennen, das bleibt dessen
 			// Sache (siehe claimSessionDevice).
-			runtime.EventsEmit(a.ctx, "training:log", "Using existing connection from Device tab.")
+			runtime.EventsEmit(a.ctx, "training:log", "Using existing connection from Tools → Device.")
 		} else {
 			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 			defer connectCancel()

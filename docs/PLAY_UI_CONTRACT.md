@@ -44,6 +44,23 @@ areas or `order`, but must not move elements in JS.
 The older classes (`pb-tools-collapsed`, `has-script`, `.is-playing`,
 `.has-video` on the stage) still work. New CSS should use the attributes.
 
+## 2b. App tabs (Owner decision 11 Oct)
+
+The main tabs are **Play · Generator · Training · Tools**, and the tagline is
+**Generate · Play · Train**. *Train* means the stamina Training tab.
+
+- Rail: `#rail .tab-btn[data-tab="playback|generator|training|tools"]`.
+- Tools sub-navigation: `#tools-nav` (role tablist, `hidden` outside Tools)
+  holds `.tab-btn.tools-sub-btn[data-tab="device|log|settings"]`. Studio
+  builds add `benchmark` and `roi-training` there.
+- `body[data-tab]` names the visible panel (`playback`, `device`, …).
+  `body[data-tab-group]` is `tools` for all Tools sections and otherwise
+  the same as `data-tab`.
+- `switchTab('tools')` opens the last Tools section (Device first).
+  `switchTab('device')` and `.tab-btn[data-tab="log"].click()` keep working.
+- The layout decides where these go. The mockup puts the main tabs in a
+  top bar and Tools sections as a strip.
+
 ## 3. Theme tokens (CSS custom properties, read by JS on every redraw)
 
 | Token | Default | Used for |
@@ -90,8 +107,8 @@ Legend:
 | Mockup | Status | Real feature / note |
 |---|---|---|
 | Logo + "SamNPlayer" | ✅ | Rail brand (`.brand-lockup`); mark/font redesign pending (#474 comment) |
-| Tagline "Generate · Play · Train" | 🟡 | Product tagline is **"Play · Create · Feel"** (README/site, #474). *Train* (AI) is studio-only. **Owner decides.** |
-| Tabs Play / Generator / Training / Tools | 🟡 | Real tabs: **Play**, **Create** (`data-tab="generator"`), **Training** (stamina), **Device**, **Log**, **Settings** (studio adds Bench, AI Train). There is no "Tools" tab. **Owner decides on names.** |
+| Tagline "Generate · Play · Train" | ✅ | **Decided 11 Oct:** "Generate · Play · Train"; *Train* = stamina Training (`#brand-tagline`, README, site) |
+| Tabs Play / Generator / Training / Tools | ✅ | **Decided 11 Oct:** rail tabs Play · Generator · Training · Tools; Tools = Device · Log · Settings (+ studio Bench, AI Train) via `#tools-nav` (§2b) |
 | Folder icon / gear icon | ✅ | `#pb-choose` / Settings tab |
 | Window controls (min/max/close) | ⛔ | Native window frame; frameless would be a Go/Wails change. Not planned. |
 

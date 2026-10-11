@@ -19,15 +19,28 @@ import { initPostGenerateReview } from './postgen.js';
 import { ensureEULAAccepted } from './legal.js';
 import { GetDonateLinks, IsStudioBuild } from '../wailsjs/go/main/App';
 
+// Owner 11 Oct (#475): main tabs Play · Generator · Training · Tools.
+// Tools bundles Device, Log, Settings (+ studio Bench / AI Train) behind a
+// sub-navigation; every panel and data-tab name stays the same, so
+// switchTab('device') and `.tab-btn[data-tab="log"]` keep working.
+const TOOLS_SECTIONS = new Set(['device', 'log', 'settings', 'benchmark', 'roi-training']);
+let lastToolsSection = 'device';
+
 function switchTab(name) {
-  // Layout hook: CSS can adapt per tab (Play hides the info column).
+  if (name === 'tools') name = lastToolsSection;
+  const inTools = TOOLS_SECTIONS.has(name);
+  if (inTools) lastToolsSection = name;
+  // Layout hooks: CSS can adapt per tab (Play hides the info column) / group.
   document.body.dataset.tab = name;
+  document.body.dataset.tabGroup = inTools ? 'tools' : name;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.tab === name;
+    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools');
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
   });
+  const toolsNav = document.getElementById('tools-nav');
+  if (toolsNav) toolsNav.hidden = !inTools;
   document.querySelectorAll('.tab-panel').forEach(p => {
     const on = p.id === 'tab-' + name;
     p.classList.toggle('active', on);
@@ -39,10 +52,11 @@ function switchTab(name) {
 function initTabA11y() {
   const rail = document.getElementById('rail');
   if (rail) rail.setAttribute('role', 'tablist');
+  document.getElementById('tools-nav')?.setAttribute('role', 'tablist');
   document.querySelectorAll('.tab-btn').forEach(btn => {
     const name = btn.dataset.tab;
     btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-controls', 'tab-' + name);
+    btn.setAttribute('aria-controls', name === 'tools' ? 'tools-nav' : 'tab-' + name);
     btn.id = btn.id || 'tabbtn-' + name;
     const on = btn.classList.contains('active');
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -54,8 +68,8 @@ function initTabA11y() {
     p.setAttribute('aria-labelledby', 'tabbtn-' + name);
     if (!p.classList.contains('active')) p.setAttribute('hidden', '');
   });
-  rail?.addEventListener('keydown', (e) => {
-    const tabs = [...document.querySelectorAll('.tab-btn')];
+  const arrowNav = (container) => container?.addEventListener('keydown', (e) => {
+    const tabs = [...container.querySelectorAll('.tab-btn')].filter(b => b.offsetParent !== null || b === document.activeElement);
     const i = tabs.indexOf(document.activeElement);
     if (i < 0) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
@@ -78,6 +92,8 @@ function initTabA11y() {
       switchTab(tabs[tabs.length - 1].dataset.tab);
     }
   });
+  arrowNav(rail);
+  arrowNav(document.getElementById('tools-nav'));
 }
 
 initTabA11y();
@@ -134,14 +150,14 @@ initPostGenerateReview();
       action.disabled = busy;
       const battTitle = batt ? ` · Battery ${st.batteryPct}%` : '';
       btn.title = st.address
-        ? `${label}${battTitle} · ${st.address} — Details in Device tab`
-        : `${label}${battTitle} — Details in Device tab`;
+        ? `${label}${battTitle} · ${st.address} — Details in Tools → Device`
+        : `${label}${battTitle} — Details in Tools → Device`;
     } else {
       wrap.classList.add('is-offline');
       nameEl.textContent = 'Not connected';
       action.textContent = 'Connect';
       action.disabled = busy;
-      btn.title = 'Details / connection type in Device tab';
+      btn.title = 'Details / connection type in Tools → Device';
     }
   }
 
@@ -185,7 +201,7 @@ initPostGenerateReview();
     } catch (err) {
       busy = false;
       render({ connected: false });
-      uiError('Connection failed: ' + err + ' — choose connection type (BLE / Intiface / Mock) in the Device tab.');
+      uiError('Connection failed: ' + err + ' — choose connection type (BLE / Intiface / Mock) in Tools → Device.');
     }
   });
 
