@@ -303,3 +303,40 @@ body {
     box-shadow: none;
   }
 }
+
+/* Cross-tab visual foundation. Keep form controls and app bindings intact. */
+#tab-generator, #tab-training, #tab-scenemap,
+#tab-device, #tab-log, #tab-settings {
+  color: #dcecf7;
+  accent-color: #00d9f4;
+}
+#tab-generator :is(input, select, textarea),
+#tab-training :is(input, select, textarea),
+#tab-scenemap :is(input, select, textarea),
+#tab-device :is(input, select, textarea),
+#tab-log :is(input, select, textarea),
+#tab-settings :is(input, select, textarea) {
+  color-scheme: dark;
+  accent-color: #00d9f4;
+}
+#tab-generator :is(button, input, select, textarea):focus-visible,
+#tab-training :is(button, input, select, textarea):focus-visible,
+#tab-scenemap :is(button, input, select, textarea):focus-visible,
+#tab-device :is(button, input, select, textarea):focus-visible,
+#tab-log :is(button, input, select, textarea):focus-visible,
+#tab-settings :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 3px;
+}
+#tab-generator :is(button, input, select, textarea):disabled,
+#tab-training :is(button, input, select, textarea):disabled,
+#tab-scenemap :is(button, input, select, textarea):disabled,
+#tab-device :is(button, input, select, textarea):disabled,
+#tab-log :is(button, input, select, textarea):disabled,
+#tab-settings :is(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+@media (prefers-contrast: more) {
+  #tab-generator, #tab-training, #tab-scenemap,
+  #tab-device, #tab-log, #tab-settings { color: #fff; }
+}
