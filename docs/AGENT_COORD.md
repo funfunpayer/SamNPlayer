@@ -17,8 +17,7 @@ Never merge on red or conflicted CI.
 ## V1.0 board (Owner 11 Oct)
 
 - S2 App shell: DONE (top bar tabs Player · Generator · Training · Scene Map · Tools)
-- S3 Player 3-column shell: IN PROGRESS (Claude) — CSS grid skeleton + Library/Inspector placeholders, timeline bottom, collapsible panels (state remembered). Controls still in Inspector; full move to Devices/Audio/Playback/View tabs next.
-
-Next open: finish S3 grouping, then S4 timeline core.
+- S3 Player 3-column shell: IN PROGRESS (Claude) — CSS grid skeleton + Library/Inspector placeholders, timeline bottom, collapsible panels (state remembered in localStorage). Controls still in center/Inspector; full move to Devices/Audio/Playback/View tabs next.
+- Next open: finish S3 grouping of existing controls into inspector tabs, then S4 timeline core.
 
 (Full previous content restored in next commit if needed; this is the active board.)
