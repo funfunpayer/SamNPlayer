@@ -63,7 +63,7 @@ markers are on in Create / Edit, opt-in in Play). Coordination: #477.
 |---|---|---|---|
 | W1 ✅ | Workspace shell: `#ws-view` (Play · Create · Edit), Create = Generator panel (same IDs), Scene Map button inside Create, Edit = Player with curve editing + scene strip on, Generator result opens in Edit; top bar reduced to three tabs | Claude | `data-tab="generator"` / `"scenemap"` stay as routes (hidden shim buttons), so `switchTab()` and old clicks keep working |
 | W2 ✅ | Edit view: undo / redo for curve dots and range tools (Cap / Scale / Delete), Ctrl+Z / Ctrl+Y; scene strip + "+" on in Edit (W1) | Claude | History per loaded script (50 steps), axis before / after, written back through SaveScriptAxisActions |
-| W3 | One video / script state for Create and Play; Generate → Edit → Play pipeline | Claude | |
+| W3 ✅ | One clip for Create and Play: Create step 1 offers the Play video ("Use Player video"), a clip chosen in Create is in Play's recent videos; a Generator result opens in Edit (W1), Play from there | Claude | Events `gen:video` (Create chose a clip); nothing starts automatically (no tip-find on a switch) |
 | W4 | Training and Tools in the same style; QA 1366×768 / 1920×1080 | Claude + ChatGPT | |
 | G | **Graphics** (Owner: ChatGPT generates them): icon set, background art, empty-state illustrations, no-video poster — list in #477 | ChatGPT | Files under `frontend/src/assets/flow/`; Claude wires them in |
 
