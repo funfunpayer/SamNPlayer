@@ -20,6 +20,10 @@ measurement history behind each entry; this file is the short version for
 
 - **EULA on first start** — shown once per EULA version (Accept / Decline
   and quit); Settings → Licence shows it again; shipped as `EULA.txt`.
+  International structure (version 2026-10-11): definitions, ownership,
+  termination, "as is" disclaimer, liability split EU / rest of world with a
+  savings clause, export/sanctions, governing law with consumer protection
+  of the country of residence, severability, English version prevails.
 - **Third-party notices** — FFmpeg (GPL build), OpenCV, Wails, fonts and
   more; Settings → Third-party notices; shipped as `THIRD_PARTY_NOTICES.txt`
   plus FFmpeg's own licence text in the download packages.

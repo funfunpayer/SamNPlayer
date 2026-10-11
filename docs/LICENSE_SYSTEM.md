@@ -15,8 +15,13 @@ financed by **donations**. It is **not open source**. The licence-key system
 | Source | Private repo; binaries on the public SamNPlayer-site releases (`docs/CLOSED_SOURCE.md`) |
 
 Bump `legal.EULAVersion` whenever the EULA changes in a way users must accept
-again. The EULA is a template written for this project, not legal advice —
-have it checked by a lawyer before relying on it.
+again. The EULA was reviewed (Owner, 11 Oct 2026) and then brought to an
+international structure (version 2026-10-11): definitions, licence grant,
+restrictions, ownership, your content, donations, age, device safety,
+privacy (GDPR), third parties, updates, termination, "as is" disclaimer,
+liability split (EU/Germany clause kept as reviewed; rest of world; savings
+clause), export/sanctions, governing law with consumer-residence protection,
+severability, entire agreement, no waiver, assignment, English prevails.
 
 The pre-10-Oct key design is in git history (`license/`, last on main at
 `533457e`).
