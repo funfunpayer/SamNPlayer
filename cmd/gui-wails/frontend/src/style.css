@@ -505,6 +505,9 @@ body {
   display: block;
   animation: tabIn .26s cubic-bezier(.22, .9, .25, 1) both;
 }
+/* A panel that sets its own display (the V1 Player grid) must still hide
+   when it is not the active tab. */
+.tab-panel[hidden], .tab-panel:not(.active) { display: none !important; }
 @keyframes tabIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -3492,6 +3495,25 @@ details.pb-in-bottom > summary { display: none; }
 details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 
 .pb-chan-rows { display: grid; gap: 10px; margin: 4px 0 14px; }
+/* Player workspace view switch (V1 W1): Play · Create · Edit + Scene Map
+   inside Create. Structure only; the look lives in theme_flow.css. */
+.ws-view[hidden] { display: none !important; }
+.ws-view-sub[hidden], #rail .tab-btn[hidden] { display: none !important; }
+.ws-view {
+  display: flex; align-items: center; gap: 6px; margin: 14px 28px 0; padding: 4px;
+  border: 1px solid var(--border); border-radius: 999px; width: fit-content; min-width: 340px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.ws-view-spacer { flex: 1; min-width: 12px; }
+.ws-view-btn, .ws-view-sub {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 0; margin: 0;
+  padding: 6px 16px; border-radius: 999px; font-size: 13.5px;
+  background: transparent; border: 1px solid transparent; box-shadow: none; color: var(--text-dim);
+}
+.ws-view-btn svg, .ws-view-sub svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ws-view-btn.is-active { color: var(--text); border-color: rgba(var(--accent-rgb), 0.55); background: rgba(var(--accent-rgb), 0.14); }
+.ws-view-sub[aria-pressed="true"] { color: var(--text); border-color: rgba(var(--accent-rgb), 0.45); }
+.ws-view-btn:focus-visible, .ws-view-sub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Lane name column (mockup): names sit left of the lanes; positions are set
    by player_layout.js from the real canvas rects. */
 #tab-playback[data-pb-layout="v1"] .pb-timeline { position: relative; padding-left: 116px; }

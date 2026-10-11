@@ -51,6 +51,21 @@ areas or `order`, but must not move elements in JS.
 The older classes (`pb-tools-collapsed`, `has-script`, `.is-playing`,
 `.has-video` on the stage) still work. New CSS should use the attributes.
 
+## 2a. Player workspace (V1 W1, Owner 11 Oct)
+
+- **Top tabs:** Player · Training · Tools. `#rail .tab-btn[data-tab="generator"|"scenemap"]`
+  stay in the DOM as hidden routes (`data-ws-shim`).
+- **View switch:** `#ws-view` (role tablist, `hidden` outside the Player) with
+  `.ws-view-btn[data-ws-view="play|create|edit"]` and `#ws-scenemap`
+  (Create only, `aria-pressed`).
+- **State:** `body[data-ws-view]` and `#tab-playback[data-ws-view]`
+  (`play` / `create` / `edit`; `none` outside the Player); `body[data-tab-group="player"]`
+  for all three views. Play / Edit is remembered (`localStorage ws.view`).
+- **Create** shows `#tab-generator` (unchanged). **Edit** shows `#tab-playback`
+  with curve editing on, Inspector on View, Timeline tab, scene strip on.
+- **Events:** `ws:view` (detail.view) after every switch; `ws:set` asks for a
+  view (a Generator result sends `edit`).
+
 ## 2b. App tabs (Owner decisions 11 Oct; V1 shell S2)
 
 The top bar holds the brand (icon, "SamNPlayer", tagline GENERATE · PLAY ·
