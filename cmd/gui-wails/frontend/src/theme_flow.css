@@ -525,3 +525,51 @@ body[data-ws-view="edit"] #tab-playback .pb-insp-tab[aria-selected="true"] {
 @media (prefers-reduced-motion: reduce) {
   #ws-scenemap { transition: none; }
 }
+
+/* W1 Create: use the same Flow surfaces as Play, preserving generator behavior. */
+body[data-ws-view="create"] #tab-generator .create-head {
+  padding: 16px 20px;
+  border: 1px solid rgba(0, 217, 244, .23);
+  border-radius: 16px;
+  background: linear-gradient(115deg, rgba(0, 217, 244, .07), rgba(255, 138, 35, .035));
+}
+body[data-ws-view="create"] #tab-generator .create-lede {
+  color: #b4cede;
+  line-height: 1.5;
+}
+body[data-ws-view="create"] #tab-generator .gen-steps {
+  border: 1px solid rgba(0, 217, 244, .19);
+  border-radius: 16px;
+  background: rgba(5, 20, 35, .76);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .12);
+}
+body[data-ws-view="create"] #tab-generator .gen-step-item {
+  border-radius: 11px;
+  color: #bbd4e4;
+  transition: background .16s ease, color .16s ease;
+}
+body[data-ws-view="create"] #tab-generator .gen-step-item.is-current {
+  color: #f5fbff;
+  background: linear-gradient(100deg, rgba(0, 217, 244, .16), rgba(255, 138, 35, .07));
+  box-shadow: inset 3px 0 #00d9f4;
+}
+body[data-ws-view="create"] #tab-generator .gen-step-num {
+  color: #ffb15d;
+  font-variant-numeric: tabular-nums;
+}
+body[data-ws-view="create"] #tab-generator .gen-step-panel {
+  border: 1px solid rgba(0, 217, 244, .17);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(9, 29, 48, .85), rgba(5, 16, 29, .91));
+}
+body[data-ws-view="create"] #tab-generator .gen-queue {
+  border-color: rgba(255, 138, 35, .26);
+  border-radius: 12px;
+}
+body[data-ws-view="create"] #tab-generator :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-ws-view="create"] #tab-generator .gen-step-item { transition: none; }
+}
