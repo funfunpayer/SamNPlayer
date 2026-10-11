@@ -77,6 +77,7 @@ def main():
             check("add disabled without selection",
                   page.locator("#pb-chapter-add").is_disabled())
 
+            page.locator("#pb-heatmap").scroll_into_view_if_needed()  # layout may push it below the fold
             box = page.locator("#pb-heatmap").bounding_box()
             y = box["y"] + box["height"] / 2
             x_start = box["x"] + box["width"] * 0.10

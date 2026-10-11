@@ -75,6 +75,7 @@ def main():
 
         # Abschnitt auf der Heatmap-Leiste ziehen (10%-40% der Breite =
         # 10s-40s bei 100s Gesamtdauer).
+        page.locator("#pb-heatmap").scroll_into_view_if_needed()  # layout may push it below the fold
         box = page.locator("#pb-heatmap").bounding_box()
         y = box["y"] + box["height"] / 2
         x_start = box["x"] + box["width"] * 0.10
