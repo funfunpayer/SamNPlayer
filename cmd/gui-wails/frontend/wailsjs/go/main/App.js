@@ -184,6 +184,7 @@ export function VideoFileURL() { return window['go']['main']['App']['VideoFileUR
 export function ProbePlaybackVideo(arg1) { return window['go']['main']['App']['ProbePlaybackVideo'](arg1); }
 export function EnsurePlayablePlaybackVideo() { return window['go']['main']['App']['EnsurePlayablePlaybackVideo'](); }
 export function EnsureVideoTools() { return window['go']['main']['App']['EnsureVideoTools'](); }
+export function EstimateAudioSyncOffset() { return window['go']['main']['App']['EstimateAudioSyncOffset'](); }
 export function EstimatePlaybackAudioBPM() { return window['go']['main']['App']['EstimatePlaybackAudioBPM'](); }
 export function BakeScriptOffset() { return window['go']['main']['App']['BakeScriptOffset'](); }
 export function ExportScriptHeatmapPNG() { return window['go']['main']['App']['ExportScriptHeatmapPNG'](); }
