@@ -119,6 +119,9 @@ type ExportAIScriptImitationResult struct {
 // AI draft training (S1). Opt-in only — never called from Everyday Generate.
 // tipX/Y/W/H are optional Create tip ROI seed (zeros = omitted).
 func (a *App) ExportAIScriptImitation(scriptPath, videoPath string, tipX, tipY, tipW, tipH float64) (ExportAIScriptImitationResult, error) {
+	if err := requireStudio(); err != nil {
+		return ExportAIScriptImitationResult{}, err
+	}
 	out := ExportAIScriptImitationResult{}
 	scriptPath = strings.TrimSpace(scriptPath)
 	if scriptPath == "" {

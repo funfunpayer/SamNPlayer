@@ -42,14 +42,14 @@
         </svg>
         <span>Create</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="benchmark" title="Golden-Clip-Benchmark">
+      <button class="tab-btn" data-studio data-tab="benchmark" title="Golden-Clip-Benchmark">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M7.5 19V10.5M12 19V6.5M16.5 19v-5"/>
           <path d="M6 19.2h12"/>
         </svg>
         <span>Bench</span><i class="dot"></i>
       </button>
-      <button class="tab-btn" data-tab="roi-training" title="AI training">
+      <button class="tab-btn" data-studio data-tab="roi-training" title="AI training">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3.8" y="3.8" width="7" height="7" rx="2"/>
           <rect x="13.2" y="3.8" width="7" height="7" rx="2"/>
@@ -100,7 +100,7 @@
             <button type="button" id="topbar-device-action" class="topbar-device-action">Connect</button>
           </div>
           <button type="button" id="topbar-donate" class="pill donate-pill" hidden
-            data-help="SamNPlayer is free. A voluntary donation keeps development going.">♥ Donate</button>
+            data-help="SamNPlayer is free. A donation keeps the project alive and makes new features possible.">♥ Donate</button>
           <span id="version-label" class="pill"></span>
         </div>
       </header>
@@ -110,8 +110,8 @@
           <section id="tab-playback" class="tab-panel active"></section>
           <section id="tab-training" class="tab-panel"></section>
           <section id="tab-generator" class="tab-panel"></section>
-          <section id="tab-benchmark" class="tab-panel"></section>
-          <section id="tab-roi-training" class="tab-panel"></section>
+          <section id="tab-benchmark" class="tab-panel" data-studio></section>
+          <section id="tab-roi-training" class="tab-panel" data-studio></section>
           <section id="tab-device" class="tab-panel"></section>
           <section id="tab-log" class="tab-panel"></section>
           <section id="tab-settings" class="tab-panel"></section>

@@ -198,3 +198,4 @@ export function GetDonateLinks() { return window['go']['main']['App']['GetDonate
 export function GetEULA() { return window['go']['main']['App']['GetEULA'](); }
 export function GetThirdPartyNotices() { return window['go']['main']['App']['GetThirdPartyNotices'](); }
 export function OpenDonateLink(arg1) { return window['go']['main']['App']['OpenDonateLink'](arg1); }
+export function IsStudioBuild() { return window['go']['main']['App']['IsStudioBuild'](); }

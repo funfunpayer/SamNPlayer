@@ -6,8 +6,10 @@ import (
 )
 
 func TestEULAEmbedded(t *testing.T) {
-	e := EULA()
-	for _, want := range []string{"freeware", "not open", "private, non-commercial", EULAVersion, "Donations", "own risk"} {
+	e := strings.Join(strings.Fields(EULA()), " ") // line breaks do not matter
+	for _, want := range []string{"freeware", "not open", "private, non-commercial", EULAVersion, "Donations", "own risk",
+		// international clauses (Owner 11 Oct)
+		"Severability", "CISG", "habitual residence", "AS IS", "Export and sanctions", "English version prevails"} {
 		if !strings.Contains(e, want) {
 			t.Errorf("EULA missing %q", want)
 		}

@@ -11,7 +11,7 @@ import (
 
 // EULAVersion identifies the EULA text. Bump it when EULA.md changes in a
 // way users must accept again; the GUI asks once per version.
-const EULAVersion = "2026-10-10"
+const EULAVersion = "2026-10-11"
 
 //go:embed EULA.md
 var eulaText string

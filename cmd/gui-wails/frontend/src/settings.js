@@ -120,14 +120,15 @@ export function initSettings(root) {
         <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
         <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
         <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
-        <li><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
+        <li data-studio><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
       </ul>
     </details>
 
     <div data-donate-section>
       <h3>Support SamNPlayer</h3>
-      <p class="hint">SamNPlayer is free. If it is useful to you, a donation keeps development going —
-        it is voluntary and changes nothing in the app.</p>
+      <p class="hint">SamNPlayer is free and stays free. Your donation keeps the project alive and makes
+        new features possible — every contribution goes into further development. Donations are
+        voluntary gifts: everyone gets the same app, with or without one.</p>
       <div class="row" id="st-donate-buttons" style="align-items:center; gap:8px;"></div>
     </div>
 
@@ -191,7 +192,7 @@ export function initSettings(root) {
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
       <button id="st-ai-roi-check">Check availability</button>
-      <button id="st-open-ai-train" type="button"
+      <button id="st-open-ai-train" type="button" data-studio
         data-help="Switches to the AI Train tab (label tip ROIs / train ONNX; also Train Go profile model).">Open AI training</button>
     </div>
     <div class="field-row" style="margin-top:8px">
@@ -201,6 +202,7 @@ export function initSettings(root) {
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
+    <div data-studio>
     <h3>Scene map learning</h3>
     <p class="hint">Local JSON/JSONL under the ROI dataset. Default <b>off</b>. Never uploads; never writes YOLO train folders.</p>
     <div class="checkbox-row">
@@ -212,6 +214,7 @@ export function initSettings(root) {
       <button id="st-delete-learning" type="button"
         data-help="Deletes only scene_map_learning under the ROI dataset folder. Hand YOLO samples stay.">Delete learning data</button>
       <span class="hint" id="st-learning-status" style="margin:0"></span>
+    </div>
     </div>
 
     <h3>Scene proposals — Apply AI setup</h3>
@@ -283,7 +286,7 @@ export function initSettings(root) {
       <div class="row">
         <button id="st-report-summary">Show summary</button>
         <button id="st-model-info">Show model</button>
-        <button id="st-model-train" class="primary">Learn from judgments</button>
+        <button id="st-model-train" class="primary" data-studio>Learn from judgments</button>
       </div>
       <p class="hint">Quality scoring uses thresholds set on synthetic test videos.
         With enough of your own judgments, a model can be learned instead. It is only
