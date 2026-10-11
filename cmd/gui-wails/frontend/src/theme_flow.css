@@ -1,150 +1,150 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
- * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
+ * Import after style.css (Claude, see #484). Uses only the approved Player
+ * region/class hooks and --accent.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
- * Quiet navy surfaces, restrained cyan (#00D9F4) primary, warm orange secondary accents.
- * Added: subtle glows, flowing surfaces, typography refinements, airy spacing.
+ * Isolated Flow polish: quiet navy surfaces, restrained cyan hover/selected,
+ * keyboard focus, tabular live values, higher-contrast underlines, reduced-motion.
+ * Existing channel colours (axis tokens) remain untouched.
  */
 :root {
   --accent: #00D9F4;
-  --accent-hover: #65efff;
-  --accent-rgb: 0, 217, 244;
-  --accent-soft: rgba(0, 217, 244, .12);
-  --secondary: #ff8a23;
-  --flow-bg: #06121f;
-  --flow-surface: #0a1b2b;
 }
+
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
   color: var(--text);
 }
+
 .pb-lib-title {
   color: var(--text-dim);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.72rem;
-  margin: 1rem 0 0.4rem;
 }
+
 .pb-lib-item {
   color: var(--text-dim);
   border-radius: var(--radius-sm);
-  padding: 0.35rem 0.6rem;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
+
 .pb-lib-item.is-primary {
   color: var(--accent);
   background: rgba(0, 217, 244, .1);
   border-color: rgba(0, 217, 244, .35);
-  box-shadow: 0 0 8px rgba(0, 217, 244, .15);
 }
+
 .pb-lib-item:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
-  box-shadow: 0 0 6px rgba(0, 217, 244, .12);
 }
+
 .pb-lib-recent-item {
   color: var(--text-dim);
   background: transparent;
   border-radius: var(--radius-sm);
-  padding: 0.2rem 0.5rem;
   transition: color 140ms ease, background-color 140ms ease;
 }
+
 .pb-lib-recent-item:hover {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .06);
 }
+
 .pb-lib-drop {
   border: 1px dashed rgba(104, 180, 212, .4);
   background: rgba(10, 27, 43, .45);
   color: var(--text-dim);
   border-radius: var(--radius-sm);
-  padding: 0.85rem;
   text-align: center;
 }
+
 [data-pb-region="inspector-tabs"],
 [data-pb-region="bottom-tabs"] {
   border-bottom-color: rgba(104, 180, 212, .28);
 }
+
 [data-pb-region="head"] {
   background: rgba(10, 27, 43, .55);
   border-bottom: 1px solid rgba(104, 180, 212, .18);
   color: var(--text);
 }
-[data-pb-region="media"] {
-  background: transparent;
-}
+
 [data-pb-region="video"] {
   background: #020a12;
-  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22), 0 0 24px rgba(0, 217, 244, .08);
+  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22);
   border-radius: var(--radius-sm);
 }
+
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
   background: linear-gradient(180deg, rgba(10, 27, 43, .45), rgba(2, 10, 18, .2) 70%);
 }
+
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .62);
   border-top: 1px solid rgba(104, 180, 212, .2);
   border-bottom: 1px solid rgba(104, 180, 212, .14);
   border-radius: var(--radius-sm);
-  padding: 0.4rem 0.6rem;
 }
+
 [data-pb-region="transport"] button {
   border-radius: var(--radius-sm);
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
+
 [data-pb-region="transport"] button:hover:not(:disabled) {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
-  box-shadow: 0 0 8px rgba(0, 217, 244, .15);
 }
+
 [data-pb-region="transport"] button.primary {
   background: var(--accent);
   color: #06121f;
   border-color: transparent;
-  box-shadow: 0 0 12px rgba(0, 217, 244, .35);
 }
+
 [data-pb-region="transport"] button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: #65efff;
   color: #06121f;
-  box-shadow: 0 0 16px rgba(0, 217, 244, .45);
 }
+
 [data-pb-region="legend"] {
   background: rgba(10, 27, 43, .5);
   border-bottom: 1px solid rgba(104, 180, 212, .2);
 }
-[data-pb-region="lanes"],
-[data-pb-region="curve"],
-[data-pb-region="heatmap"] {
-  background: transparent;
-}
+
 [data-pb-region="zoom"] {
   background: rgba(10, 27, 43, .4);
   border-top: 1px solid rgba(104, 180, 212, .15);
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
+
 [data-pb-region="playlist"] {
   background: rgba(10, 27, 43, .55);
   border-top: 1px solid rgba(104, 180, 212, .18);
 }
+
 [data-pb-region="tools"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 80%);
 }
+
 [data-pb-region="tool-group"] {
   background: rgba(10, 27, 43, .35);
   border-radius: var(--radius-sm);
-  padding: 0.4rem;
 }
+
 [data-pb-region="empty"] {
   background: radial-gradient(circle at 30% 20%, rgba(0, 217, 244, .06), transparent 50%),
               linear-gradient(180deg, rgba(10, 27, 43, .4), transparent);
 }
+
 .pb-empty-title {
   color: var(--text);
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
+
 .pb-empty-kicker {
   color: var(--accent);
   font-weight: 600;
@@ -152,52 +152,49 @@
   text-transform: uppercase;
   font-size: 0.7rem;
 }
+
 .pb-card {
   background: rgba(10, 27, 43, .75);
   border: 1px solid rgba(104, 180, 212, .22);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  box-shadow: none;
   border-radius: var(--radius-sm);
-  padding: 0.8rem;
-  margin-bottom: 0.8rem;
 }
+
 .pb-card-title {
   color: var(--text-dim);
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin: 0 0 0.45rem;
 }
+
 .pb-insp-tab,
 .pb-bottom-tab,
 .pb-axis-chip {
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
   color: var(--text-dim);
 }
+
 .pb-insp-tab:hover:not(:disabled),
 .pb-bottom-tab:hover:not(:disabled),
 .pb-axis-chip:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
 }
+
 .pb-insp-tab[aria-selected="true"],
 .pb-bottom-tab[aria-selected="true"],
 .pb-axis-chip[aria-pressed="true"] {
   color: var(--accent);
   border-bottom-color: var(--accent);
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
-  box-shadow: inset 0 -2px 0 var(--accent);
 }
-.pb-axis-chip[data-axis="vibration"] {
-  --axis-c: #f0a050;
-}
-.pb-axis-chip[data-axis="suction"] {
-  --axis-c: #c39bff;
-}
+
+/* Preserve distinct real-channel colours via existing axis tokens; only accent for general/selected where appropriate */
 .pb-axis-chip[data-axis="general"] {
-  --axis-c: var(--secondary);
-  color: var(--secondary);
+  color: #ff8a23;
 }
+
 .pb-lib-item:focus-visible,
 .pb-lib-recent-item:focus-visible,
 .pb-insp-tab:focus-visible,
@@ -209,70 +206,45 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
-  box-shadow: 0 0 0 4px rgba(0, 217, 244, .25);
 }
+
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0.3rem 0;
 }
+
 .pb-chan-name {
   color: var(--text-dim);
   font-size: 0.75rem;
-  min-width: 4.5rem;
 }
+
 .pb-chan-val {
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
   font-weight: 600;
   font-size: 0.75rem;
-  min-width: 2.5rem;
-  text-align: right;
 }
-.pb-chan-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 217, 244, .28), 0 0 8px rgba(0, 217, 244, .4);
-  flex-shrink: 0;
-}
-.pb-chan-bar {
-  flex: 1;
-  height: 4px;
-  background: rgba(104, 180, 212, .18);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.pb-chan-bar b {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  width: 0%;
-  transition: width 80ms linear;
-  box-shadow: 0 0 6px rgba(0, 217, 244, .5);
-}
+
+/* Channel dots and bars keep their existing --c / axis colours from style.css; no forced accent */
+
 .pb-insp-panel {
   background: transparent;
 }
+
 .progress-bar {
   background: rgba(10, 27, 43, .65);
   border-radius: 2px;
-  overflow: hidden;
 }
+
 .progress-bar-fill {
   background: var(--accent);
-  box-shadow: 0 0 8px rgba(0, 217, 244, .4);
 }
+
 .pb-live b {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   font-weight: 600;
-  text-shadow: 0 0 6px rgba(0, 217, 244, .35);
 }
+
 .pb-playlist-title,
 .pb-tools-title {
   color: var(--text-dim);
@@ -281,16 +253,17 @@
   text-transform: uppercase;
   font-size: 0.75rem;
 }
+
 .pb-playlist-list li {
   color: var(--text-dim);
   border-radius: var(--radius-sm);
-  padding: 0.25rem 0.4rem;
-  transition: color 140ms ease, background-color 140ms ease;
 }
+
 .pb-playlist-list li:hover {
   color: var(--accent);
   background: rgba(0, 217, 244, .06);
 }
+
 /* S4 timeline core visual prep (approved hooks only) */
 [data-pb-region="timeline"] .pb-ruler,
 [data-pb-region="timeline"] .pb-time-ruler {
@@ -299,22 +272,23 @@
   border-bottom: 1px solid rgba(104, 180, 212, .18);
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
-  letter-spacing: 0.02em;
 }
+
 [data-pb-region="lanes"] .pb-lane-name,
 [data-pb-region="legend"] .pb-lane-label {
   color: var(--text-dim);
   font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
 }
+
 .pb-marker,
 [data-pb-region="timeline"] .pb-scene-marker {
   color: var(--accent);
   background: rgba(0, 217, 244, .15);
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 217, 244, .3), 0 0 6px rgba(0, 217, 244, .25);
+  box-shadow: 0 0 0 1px rgba(0, 217, 244, .3);
 }
+
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
   color: var(--text-dim);
@@ -323,52 +297,32 @@
   border-radius: var(--radius-sm);
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
+
 [data-pb-region="zoom"] button:hover,
 [data-pb-region="zoom"] .pb-zoom-btn:hover {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
   border-color: rgba(0, 217, 244, .25);
 }
+
 .pb-bottom-panel {
   background: transparent;
 }
+
 .pb-panel-head {
   color: var(--text-dim);
   font-weight: 600;
-  letter-spacing: 0.04em;
 }
+
 .pb-collapse {
   color: var(--accent);
   transition: color 140ms ease, opacity 140ms ease;
 }
+
 .pb-collapse:hover {
-  color: var(--accent-hover);
+  color: #65efff;
 }
-/* Next open point polish: glows, flowing surfaces, secondary orange, better progress and empty CTA */
-[data-pb-region="transport"] .progress-bar {
-  height: 6px;
-  border-radius: 3px;
-}
-.pb-empty-inner button,
-[data-pb-region="empty"] button {
-  background: var(--accent);
-  color: #06121f;
-  border-radius: var(--radius-sm);
-  transition: background-color 140ms ease, box-shadow 140ms ease;
-  box-shadow: 0 0 12px rgba(0, 217, 244, .3);
-}
-.pb-empty-inner button:hover,
-[data-pb-region="empty"] button:hover {
-  background: var(--accent-hover);
-  box-shadow: 0 0 16px rgba(0, 217, 244, .45);
-}
-/* Subtle flowing wave surface on library and empty for airy Flow feel */
-[data-pb-region="library"],
-[data-pb-region="empty"] {
-  background-image: 
-    radial-gradient(ellipse at 20% 30%, rgba(0, 217, 244, .04) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255, 138, 35, .03) 0%, transparent 45%);
-}
+
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
@@ -389,6 +343,7 @@
     text-decoration-thickness: 2px;
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .pb-lib-item,
   .pb-lib-recent-item,
@@ -396,11 +351,9 @@
   .pb-bottom-tab,
   .pb-axis-chip,
   [data-pb-region="legend"] [data-axis],
-  .pb-chan-bar b,
   [data-pb-region="zoom"] button,
   [data-pb-region="transport"] button,
-  .pb-collapse,
-  .pb-empty-inner button {
+  .pb-collapse {
     transition: none;
   }
 }
