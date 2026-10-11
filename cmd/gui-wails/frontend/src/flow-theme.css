@@ -52,9 +52,9 @@
   background: linear-gradient(180deg, rgba(4, 201, 245, .16) 0%, rgba(4, 201, 245, .04) 100%);
   box-shadow: inset 0 0 0 1px rgba(4, 201, 245, .22);
 }
-.pb-axis-chip[data-axis="vibration"] { --axis-c: #ff8a24; }
-.pb-axis-chip[data-axis="suction"] { --axis-c: #06cfff; }
-.pb-axis-chip[data-axis="general"] { --axis-c: #26cdbd; }
+.pb-axis-chip[data-axis="vibration"] { --axis-c: var(--axis-vibration); }
+.pb-axis-chip[data-axis="suction"] { --axis-c: var(--axis-suction); }
+.pb-axis-chip[data-axis="general"] { --axis-c: var(--axis-stroke); }
 .pb-axis-lanes { background: rgba(0, 25, 44, .3); }
 :where(button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid #45dcff;
@@ -189,9 +189,10 @@ input::placeholder, textarea::placeholder {
 .topbar-device-wrap.is-searching {
   border-color: rgba(4, 201, 245, .45);
 }
-.topbar-device-wrap.is-searching .topbar-device,
-.topbar-device-wrap.is-searching .topbar-device-led {
+.topbar-device-wrap.is-searching .topbar-device {
   color: var(--accent);
+}
+.topbar-device-wrap.is-searching .topbar-device-led {
   background: var(--accent);
 }
 
@@ -274,12 +275,6 @@ h1, h2, h3, .card h2 {
 }
 
 @media (max-width: 720px) {
-  #rail {
-    width: 64px;
-  }
-  #rail .tab-btn span {
-    display: none;
-  }
   .tab-panel {
     padding: 12px 10px 28px;
   }
@@ -404,7 +399,7 @@ button:not(.primary):not(.danger):not(.tab-btn):hover:not(:disabled) {
 .pb-axis-chip {
   border-color: rgba(0, 201, 245, .2);
 }
-.pb-axis-chip[data-axis="stroke"] { --axis-c: #ff8a23; }
+.pb-axis-chip[data-axis="stroke"] { --axis-c: var(--axis-stroke); }
 
 .gen-step-panel {
   background: rgba(11, 30, 46, .75);
@@ -565,9 +560,9 @@ body.flow-sidebar-hidden .stage {
 }
 
 /* Phase 9 — tab coverage, empty states, interactive polish & contrast */
-#tab-playback[data-pb-state="empty"],
-#tab-generator:empty,
-#tab-training:empty {
+#tab-playback.active[data-pb-state="empty"],
+#tab-generator.active:empty,
+#tab-training.active:empty {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -639,9 +634,6 @@ textarea:disabled {
   .pill {
     padding: 3px 8px;
     font-size: 11px;
-  }
-  #rail .tab-btn {
-    padding: 10px 0;
   }
 }
 
