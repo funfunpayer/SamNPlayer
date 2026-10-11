@@ -164,7 +164,8 @@ from the start of the video (not from the playhead), fills BPM and enables
 This is a visual timing guide only: no points are snapped, no script is
 saved, and neither vibration nor suction output is changed.
 
-The BPM field starts blank; when blank, the grid uses existing
+**BPM grid** defaults to **off** and remembers your choice. The BPM field
+starts blank; when blank, the grid uses existing
 `audio_check` tempo if available. Without a usable tempo it draws no
 beat lines. **From audio** reports **No clear beat in the sound** or
 **No audio tempo: …** on failure and leaves the current BPM/grid state
