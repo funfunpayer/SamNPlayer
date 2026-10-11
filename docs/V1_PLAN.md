@@ -99,7 +99,7 @@ ChatGPT never pushes to `claude/*` branches.
 ChatGPT doesn't edit `playback.js`, `main.js`, `index.html` or `style.css` while a Claude step PR is open. Hooks are listed in `docs/PLAY_UI_CONTRACT.md`.
 
 ## Not in 1.0 (unless the Owner asks)
-- Thrust / Rotation axes.
+- Thrust / Rotation axes **in 1.0**. Owner, 11 Oct: other devices (The Handy, multi-axis strokers, vibrators) must be fully supported, and their curves appear when the device is connected. That is the next block after W4: steps D1–D5 in `docs/DEVICE_SUPPORT.md`. Until then every V1 step keeps channels data-driven, not hard-wired to the Neo 2.
 - The "Frequency" knob: Neo 2 vibration has intensity only, so the mockup knob row becomes Intensity · Response.
 - Picture-in-picture.
 - Frameless window controls: the min / max / close buttons in the mockup are the OS frame.
