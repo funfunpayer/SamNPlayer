@@ -39,11 +39,9 @@ go build -tags "studio opencv" ./cmd/cli
 go test -tags studio ./edition/ ./cmd/gui-wails/
 ```
 
-## Studio-only embed
+## Not yet split
 
-Training Python scripts (`train_yolo_model.py`, `bootstrap_yolo_dataset.py`,
-`export_yolo_onnx.py`) and `requirements-ai-train.txt` live under
-`generator/studio/` and are embedded only in the studio build
-(`//go:build studio` in `studio_embed.go`). The customer build never ships
-them. `writeScriptToTemp` copies them into the temp dir only when the studio
-tag is set.
+The generator's embedded Python files (`generator/*.py`, including the
+training scripts) are still embedded in both builds; the customer build
+just never offers or runs the training paths. Moving the training scripts
+into a studio-only embed is a follow-up.

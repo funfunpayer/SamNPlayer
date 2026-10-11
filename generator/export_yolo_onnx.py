@@ -103,9 +103,42 @@ def export_and_normalize(pt_path, output_path, imgsz=640, simplify=True):
 
 
 def verify(onnx_path, imgsz):
-    # abbreviated for brevity in this commit; full file is in the branch
-    pass
+    """Lädt das Ergebnis erneut und prüft an einem echten Zufallsbild, dass
+    alle Koordinatenwerte im Bereich 0..imgsz*1.5 liegen (etwas Spielraum,
+    YOLO-NMS-Boxen können knapp über den Bildrand hinausragen) - kein voller
+    Vertragstest (der bräuchte ein Modell mit echten Detektionen), aber
+    fängt einen falschen Divisor oder eine vertauschte Achse zuverlässig ab."""
+    import onnxruntime as ort
+    sess = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+    input_name = sess.get_inputs()[0].name
+    x = np.random.rand(1, 3, imgsz, imgsz).astype(np.float32)
+    out = sess.run(None, {input_name: x})[0]
+    arr = np.asarray(out).reshape(-1, 6)
+    coord_max = float(arr[:, :4].max()) if arr.size else 0.0
+    ok = coord_max <= 1.5
+    print(f"Verifikation: höchster Koordinatenwert {coord_max:.3f} "
+          f"({'OK, wirkt normalisiert' if ok else 'VERDÄCHTIG, sieht nach Pixelkoordinaten aus'})",
+          file=sys.stderr)
+    return ok
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--model", required=True, help="Pfad zur trainierten .pt-Datei")
+    ap.add_argument("--output", required=True, help="Zielpfad für die .onnx-Datei")
+    ap.add_argument("--imgsz", type=int, default=640,
+                     help="Muss zur beim Training verwendeten imgsz passen (Standard: 640)")
+    ap.add_argument("--no-simplify", action="store_true")
+    args = ap.parse_args()
+
+    out = export_and_normalize(args.model, args.output, imgsz=args.imgsz,
+                                simplify=not args.no_simplify)
+    if not verify(out, args.imgsz):
+        print("WARNUNG: Verifikation unerwartet - Ausgabe manuell prüfen, "
+              "bevor das Modell produktiv verwendet wird.", file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
-    # full CLI in the actual file
-    pass
+    main()
