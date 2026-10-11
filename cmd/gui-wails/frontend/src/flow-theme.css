@@ -468,122 +468,77 @@ body.flow-sidebar-hidden #sidebar { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .flow-workspace-toggle { transition: none; }
 }
-/* Phase 7 — contrast boost, body bg override, tools nav, remaining elements, a11y */
 
-/* Override body background to pure Flow navy, no old lilac glows */
+/* Phase 7 — body surface, lists, checkboxes, badges, banners, consistency & contrast */
 body {
   background:
-    radial-gradient(900px 500px at 10% -10%, rgba(4, 201, 245, .06), transparent 60%),
-    radial-gradient(700px 400px at 95% 5%, rgba(255, 145, 43, .04), transparent 55%),
-    linear-gradient(180deg, #071422 0%, var(--bg) 70%);
+    radial-gradient(1100px 480px at 12% -10%, rgba(4, 201, 245, .09), transparent 62%),
+    radial-gradient(820px 400px at 96% 8%, rgba(0, 203, 209, .06), transparent 55%),
+    linear-gradient(180deg, #081422 0%, var(--bg) 48%);
   color: var(--text);
 }
-
-/* Boost muted text contrast for better readability */
-:root {
-  --text-dim: #b8d4e6;
-  --border-soft: rgba(4, 201, 245, .18);
-}
-
-.text-dim, .hint, .path-label, .field-row label, label {
-  color: #c5e0f0;
-}
-
-/* Tools sub-nav polish */
-.tools-nav {
-  background: rgba(6, 18, 30, .85);
-  border-bottom: 1px solid rgba(4, 201, 245, .15);
-  gap: 4px;
-}
-.tools-nav .tab-btn {
-  border-radius: 12px;
-  padding: 8px 12px;
-}
-.tools-nav .tab-btn:hover {
-  background: rgba(4, 201, 245, .1);
+.update-banner {
+  background: color-mix(in srgb, var(--teal) 16%, var(--surface));
+  border-bottom-color: var(--border);
   color: var(--text);
 }
-.tools-nav .tab-btn.active {
-  background: linear-gradient(180deg, rgba(4, 201, 245, .2), rgba(4, 201, 245, .06));
-  color: var(--accent-hover);
-  box-shadow: inset 0 0 0 1px rgba(4, 201, 245, .3);
-}
-
-/* Cards on all tabs get consistent soft elevation */
-.card {
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-.card:hover {
-  box-shadow: 0 4px 20px rgba(4, 201, 245, .08);
-}
-
-/* Progress and status indicators */
-.progress-bar {
-  border-radius: 999px;
-  overflow: hidden;
-}
-.progress-bar-fill {
-  border-radius: 999px;
-}
-
-/* Device status better contrast */
-.topbar-device-wrap.is-online {
-  border-color: rgba(74, 222, 128, .55);
-}
-.topbar-device-wrap.is-offline {
+.list {
   border-color: var(--border);
+  background: rgba(8, 22, 36, .4);
 }
-
-/* Focus ring consistency across all interactive */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-.tab-btn:focus-visible,
-.flow-workspace-toggle:focus-visible {
-  outline: 2px solid #45dcff;
-  outline-offset: 2px;
-  box-shadow: var(--focus-ring);
+.list-item {
+  border-bottom-color: var(--border);
+  color: var(--text);
 }
-
-/* Small screen further refinements */
-@media (max-width: 600px) {
+.list-item:hover {
+  background: rgba(4, 201, 245, .07);
+}
+.list-item.selected {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.badge {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.badge.direct {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.checkbox-row input[type="checkbox"] {
+  border-color: var(--border-strong);
+  background: var(--bg-alt);
+}
+.checkbox-row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.hint, .text-dim {
+  color: #b8d0e0;
+}
+.error-text {
+  color: var(--danger);
+}
+.card h2, .card h3 {
+  color: var(--text);
+}
+.two-col {
+  gap: 18px;
+}
+@media (max-width: 640px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
   #topbar {
+    flex-wrap: wrap;
     height: auto;
     min-height: 54px;
-    flex-wrap: wrap;
-    padding: 8px 12px;
-  }
-  .pills {
-    width: 100%;
-    justify-content: flex-end;
-    margin-top: 4px;
-  }
-  .tab-panel {
-    padding: 12px 8px 24px;
+    padding-block: 8px;
   }
 }
-
-/* Ensure sidebar when hidden doesn't leave gap */
-body.flow-sidebar-hidden .stage {
-  /* sidebar display:none already handles layout */
-}
-
-/* High contrast mode preference support */
-@media (prefers-contrast: more) {
-  :root {
-    --text: #ffffff;
-    --text-dim: #d0e8f5;
-    --border: #2a5a7a;
-    --accent: #00e5ff;
-  }
-  .card, input, select, textarea {
-    border-width: 1.5px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .card, .tools-nav .tab-btn, .flow-workspace-toggle {
+  .list-item, .checkbox-row input[type="checkbox"] {
     transition: none;
   }
 }
