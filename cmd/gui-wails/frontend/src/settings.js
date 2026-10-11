@@ -708,7 +708,7 @@ export function initSettings(root) {
     }
     const status = el('#st-ai-roi-status');
     if (status) {
-      status.textContent = 'Open the AI Train tab from the left rail (label tip ROIs → train ONNX).';
+      status.textContent = 'Open Tools → AI Train (label tip ROIs → train ONNX).';
     }
   });
 

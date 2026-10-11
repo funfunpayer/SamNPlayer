@@ -217,7 +217,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			// Bereits über den Geräte-Tab verbunden - nicht erneut
 			// verbinden und am Ende NICHT trennen, das bleibt dessen
 			// Sache (siehe claimSessionDevice).
-			runtime.EventsEmit(a.ctx, "playback:log", "Using existing connection from Device tab.")
+			runtime.EventsEmit(a.ctx, "playback:log", "Using existing connection from Tools → Device.")
 		} else {
 			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 			defer connectCancel()
