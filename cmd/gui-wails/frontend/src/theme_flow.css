@@ -1,7 +1,7 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
  * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 shell; ready to review against S4 timeline core.
+ * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -44,7 +44,7 @@
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
-  background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .45), rgba(2, 10, 18, .2) 70%);
 }
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .62);
@@ -53,8 +53,8 @@
   border-radius: var(--radius-sm);
 }
 [data-pb-region="legend"] {
-  background: rgba(10, 27, 43, .45);
-  border-bottom: 1px solid rgba(104, 180, 212, .18);
+  background: rgba(10, 27, 43, .5);
+  border-bottom: 1px solid rgba(104, 180, 212, .2);
 }
 [data-pb-region="lanes"],
 [data-pb-region="curve"],
@@ -62,8 +62,8 @@
   background: transparent;
 }
 [data-pb-region="zoom"] {
-  background: rgba(10, 27, 43, .35);
-  border-top: 1px solid rgba(104, 180, 212, .12);
+  background: rgba(10, 27, 43, .4);
+  border-top: 1px solid rgba(104, 180, 212, .15);
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 [data-pb-region="playlist"] {
@@ -177,6 +177,40 @@
   text-transform: uppercase;
   font-size: 0.75rem;
 }
+/* S4 timeline core visual prep (approved hooks only) */
+[data-pb-region="timeline"] .pb-ruler,
+[data-pb-region="timeline"] .pb-time-ruler {
+  background: rgba(10, 27, 43, .55);
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(104, 180, 212, .18);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+}
+[data-pb-region="lanes"] .pb-lane-name,
+[data-pb-region="legend"] .pb-lane-label {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.pb-marker,
+[data-pb-region="timeline"] .pb-scene-marker {
+  color: var(--accent);
+  background: rgba(0, 217, 244, .15);
+  border-radius: 2px;
+}
+[data-pb-region="zoom"] button,
+[data-pb-region="zoom"] .pb-zoom-btn {
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+[data-pb-region="zoom"] button:hover,
+[data-pb-region="zoom"] .pb-zoom-btn:hover {
+  color: var(--accent);
+  background: rgba(0, 217, 244, .08);
+  border-color: rgba(0, 217, 244, .25);
+}
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
@@ -203,7 +237,8 @@
   .pb-bottom-tab,
   .pb-axis-chip,
   [data-pb-region="legend"] [data-axis],
-  .pb-chan-bar b {
+  .pb-chan-bar b,
+  [data-pb-region="zoom"] button {
     transition: none;
   }
 }
