@@ -722,3 +722,37 @@ body[data-ws-view="edit"] #pb-history :is(#pb-undo, #pb-redo):focus-visible {
 @media (max-width: 800px) {
   body[data-ws-view="edit"] #pb-history { flex-wrap: wrap; margin-left: 0; }
 }
+
+/* Brand transport: motion communicates playback, never replaces button semantics.
+   Claude owns the Play/Pause icon and accessible state in playback.js. */
+#tab-playback #pb-play {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 217, 244, .7);
+  background: radial-gradient(circle at 35% 25%, rgba(0, 217, 244, .28), rgba(7, 25, 42, .95) 72%);
+  box-shadow: 0 0 0 4px rgba(0, 217, 244, .07), 0 0 26px rgba(0, 217, 244, .3), inset 0 1px rgba(255,255,255,.2);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+#tab-playback #pb-play:hover {
+  transform: scale(1.045);
+  box-shadow: 0 0 0 5px rgba(0, 217, 244, .1), 0 0 32px rgba(0, 217, 244, .42), inset 0 1px rgba(255,255,255,.25);
+}
+#tab-playback #pb-play:focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 5px;
+}
+#tab-playback[data-pb-playing="true"] #pb-play {
+  border-color: rgba(255, 138, 35, .9);
+  box-shadow: 0 0 0 4px rgba(255, 138, 35, .09), 0 0 26px rgba(255, 138, 35, .3);
+  animation: flow-transport-pulse 2.8s ease-in-out infinite;
+}
+@keyframes flow-transport-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 138, 35, .08), 0 0 21px rgba(255, 138, 35, .22); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 138, 35, .025), 0 0 35px rgba(255, 138, 35, .45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tab-playback #pb-play { transition: none; }
+  #tab-playback[data-pb-playing="true"] #pb-play { animation: none; }
+}
