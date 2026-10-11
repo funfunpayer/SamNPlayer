@@ -225,3 +225,89 @@ h1, h2, h3, .card h2 {
     transition: none;
   }
 }
+
+/* Phase 4 — responsive refinement, panel interactions, scrollbar & contrast */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(4, 201, 245, .35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: rgba(8, 18, 30, .6);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(4, 201, 245, .55), rgba(0, 203, 209, .4));
+  border-radius: 999px;
+  border: 1px solid rgba(6, 16, 28, .8);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+}
+
+.card:hover {
+  border-color: rgba(4, 201, 245, .28);
+  transition: border-color 140ms ease;
+}
+#sidebar .card:hover {
+  border-color: rgba(4, 201, 245, .32);
+}
+
+#tab-generator .card,
+#tab-training .card,
+#tab-settings .card,
+#tab-device .card,
+#tab-log .card,
+#tab-benchmark .card,
+#tab-roi-training .card {
+  background: rgba(11, 30, 46, .9);
+  border-color: rgba(63, 129, 158, .2);
+}
+
+.tab-panel {
+  color: var(--text);
+}
+.tab-panel h2, .tab-panel h3 {
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 720px) {
+  #rail {
+    width: 64px;
+  }
+  #rail .tab-btn span {
+    display: none;
+  }
+  .tab-panel {
+    padding: 12px 10px 28px;
+  }
+  #sidebar {
+    width: 100%;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid rgba(0, 201, 245, .12);
+  }
+  .stage {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transition: none;
+  }
+}
+
+/* High-contrast focus for better a11y */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #45dcff;
+  outline-offset: 2px;
+}
