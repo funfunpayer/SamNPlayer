@@ -3149,9 +3149,20 @@ export function initPlayback(root) {
 
   async function attachVideoFromPicker() {
     if (!scriptPath) return;
+    let path = '';
     try {
-      const path = await PickVideoFile();
-      if (!path) return;
+      path = await PickVideoFile();
+    } catch (err) {
+      uiError('Link video: ' + err);
+      return;
+    }
+    if (path) await attachVideoPath(path);
+  }
+
+  // Link a known video file (picker or Library "recent videos").
+  async function attachVideoPath(path) {
+    if (!scriptPath || !path) return;
+    try {
       const url = await SetPlaybackVideo(path);
       videoPath = path;
       setVideoSrc(url);
@@ -4631,6 +4642,7 @@ export function initPlayback(root) {
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
     seekMs: (atMs) => seekTo(atMs),
+    attachVideoPath: (path) => attachVideoPath(path),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,
     setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),

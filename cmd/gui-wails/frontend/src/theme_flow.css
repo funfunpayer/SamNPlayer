@@ -216,3 +216,10 @@ body {
 /* S8a Audio Analysis card look */
 .pb-audio-card-bpm { color: var(--accent, #00d9f4); font-size: 18px; text-shadow: 0 0 10px rgba(var(--accent-rgb, 0, 217, 244), 0.5); }
 .pb-aa-wave { border-radius: 8px; background: rgba(var(--accent-rgb, 0, 217, 244), 0.04); }
+
+/* S6 Library: favorites star + recent-video menu */
+.pb-fav-toggle { background: transparent; border: 1px solid var(--flow-card-border, rgba(0, 217, 244, 0.25)); border-radius: 10px; color: #d6e6f5; }
+.pb-fav-toggle[aria-pressed="true"] { color: #ffb24d; border-color: rgba(255, 138, 35, 0.6); box-shadow: 0 0 10px rgba(255, 138, 35, 0.35); }
+.pb-vb-menu { background: rgba(6, 18, 31, 0.97); border-color: var(--flow-card-border, rgba(0, 217, 244, 0.25)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); }
+.pb-vb-menu-item { color: #d6e6f5; border-radius: 8px; }
+.pb-vb-menu-item:hover, .pb-vb-menu-item:focus-visible { background: rgba(0, 180, 255, 0.12); color: #fff; }

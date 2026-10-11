@@ -3569,3 +3569,19 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 .pb-vb-spacer { flex: 1; }
 .pb-vb-icon { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; min-height: 0; border-radius: 10px; }
 .pb-vb-status { margin: 0 0 0 6px; }
+.pb-videobar { position: relative; }
+.pb-vb-more { width: 30px; margin-left: -6px; }
+.pb-vb-menu {
+  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 260px; max-width: 60%;
+  margin: 4px 0 0; padding: 4px; list-style: none;
+  background: var(--panel, #10233a); border: 1px solid var(--border); border-radius: 10px;
+}
+.pb-vb-menu[hidden] { display: none; }
+.pb-vb-menu-item {
+  display: block; width: 100%; padding: 6px 10px; min-height: 0; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: transparent; border: 0; box-shadow: none;
+}
+.pb-fav-toggle { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; min-height: 0; }
+.pb-fav-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.pb-fav-toggle[aria-pressed="true"] svg { fill: currentColor; }

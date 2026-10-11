@@ -13,6 +13,9 @@ import { SetChannelLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
 const RECENT_MAX = 8;
+const FAV_KEY = 'pb.favorites';
+const FAV_MAX = 50;
+const VIDEO_KEY = 'pb.recentVideos';
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
 
@@ -24,6 +27,34 @@ export function readRecent() {
     const list = JSON.parse(load(RECENT_KEY) || '[]');
     return Array.isArray(list) ? list.filter(p => typeof p === 'string' && p) : [];
   } catch (_) { return []; }
+}
+
+function readList(key) {
+  try {
+    const list = JSON.parse(load(key) || '[]');
+    return Array.isArray(list) ? list.filter(p => typeof p === 'string' && p) : [];
+  } catch (_) { return []; }
+}
+
+export function readFavorites() { return readList(FAV_KEY); }
+
+/** Toggles path in Favorites; returns true when it is a favorite now. */
+export function toggleFavorite(path) {
+  if (!path) return false;
+  const list = readFavorites();
+  const on = !list.includes(path);
+  const next = on ? [path, ...list].slice(0, FAV_MAX) : list.filter(p => p !== path);
+  store(FAV_KEY, JSON.stringify(next));
+  return on;
+}
+
+export function readRecentVideos() { return readList(VIDEO_KEY); }
+
+export function pushRecentVideo(path) {
+  if (!path) return readRecentVideos();
+  const list = [path, ...readRecentVideos().filter(p => p !== path)].slice(0, RECENT_MAX);
+  store(VIDEO_KEY, JSON.stringify(list));
+  return list;
 }
 
 export function pushRecent(path) {
@@ -52,6 +83,7 @@ const ICONS = {
   image: icon('<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l5-5 4 4 2-2 3 3"/>'),
   expand: icon('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>'),
   chevron: icon('<path d="M7 10l5 5 5-5"/>'),
+  star: icon('<path d="M12 4.2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/>'),
 };
 
 /**
@@ -81,6 +113,8 @@ export function applyPlayerLayoutV1(root, api) {
     <button type="button" class="pb-lib-item is-primary" id="pb-lib-local">${ICONS.folder}<span>Local Files</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-recent-btn" aria-expanded="true">${ICONS.recent}<span>Recent</span></button>
     <ol class="pb-lib-recent" id="pb-lib-recent"></ol>
+    <button type="button" class="pb-lib-item" id="pb-lib-fav-btn" aria-expanded="true">${ICONS.star}<span>Favorites</span></button>
+    <ol class="pb-lib-recent pb-lib-fav" id="pb-lib-fav"></ol>
     <button type="button" class="pb-lib-item" id="pb-lib-playlist">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
     <p class="pb-lib-title">Tools</p>
     <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
@@ -215,7 +249,10 @@ export function applyPlayerLayoutV1(root, api) {
   vbar.dataset.pbRegion = 'videobar';
   vbar.innerHTML = `
     <button type="button" class="pb-vb-select" id="pb-vb-video" title="Link or change the video for this script">
-      ${ICONS.folder}<span id="pb-vb-name">Select a video file…</span>${ICONS.chevron}</button>
+      ${ICONS.folder}<span id="pb-vb-name">Select a video file…</span></button>
+    <button type="button" class="pb-vb-icon pb-vb-more" id="pb-vb-recent" title="Recent videos"
+      aria-label="Recent videos" aria-haspopup="menu" aria-expanded="false">${ICONS.chevron}</button>
+    <ul class="pb-vb-menu" id="pb-vb-menu" role="menu" hidden></ul>
     <span class="pb-vb-spacer"></span>
     <button type="button" class="pb-vb-icon" id="pb-vb-bookmark" title="Add a bookmark at the current time" aria-label="Add bookmark">${ICONS.bookmark}</button>
     <button type="button" class="pb-vb-icon" id="pb-vb-snapshot" title="Save the current video frame as PNG" aria-label="Save frame">${ICONS.image}</button>
@@ -228,8 +265,38 @@ export function applyPlayerLayoutV1(root, api) {
     vbName.textContent = p ? baseName(p) : 'Select a video file…';
     q('#pb-vb-snapshot').disabled = !p;
   };
-  new MutationObserver(syncVideoName).observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
+  new MutationObserver(() => {
+    syncVideoName();
+    pushRecentVideo(root.dataset.pbVideoPath || '');
+  }).observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
   syncVideoName();
+  const vbMenu = q('#pb-vb-menu');
+  const vbMore = q('#pb-vb-recent');
+  const closeMenu = () => { vbMenu.hidden = true; vbMore.setAttribute('aria-expanded', 'false'); };
+  vbMore.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!vbMenu.hidden) { closeMenu(); return; }
+    const cur = root.dataset.pbVideoPath || '';
+    const list = readRecentVideos().filter(p => p !== cur);
+    const loaded = root.dataset.pbState === 'loaded';
+    vbMenu.innerHTML = list.length
+      ? list.map((p, i) => `<li role="none"><button type="button" role="menuitem" class="pb-vb-menu-item" data-i="${i}"
+          title="${p.replace(/"/g, '&quot;')}" ${loaded ? '' : 'disabled'}>${baseName(p)}</button></li>`).join('')
+      : '<li class="pb-lib-empty" role="none">No recent videos</li>';
+    vbMenu._list = list;
+    vbMenu.hidden = false;
+    vbMore.setAttribute('aria-expanded', 'true');
+    vbMenu.querySelector('button:not([disabled])')?.focus();
+  });
+  vbMenu.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-vb-menu-item');
+    if (!b) return;
+    const p = (vbMenu._list || [])[Number(b.dataset.i)];
+    closeMenu();
+    if (p && api.attachVideoPath) await api.attachVideoPath(p);
+  });
+  vbMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); vbMore.focus(); } });
+  document.addEventListener('click', e => { if (!vbar.contains(e.target)) closeMenu(); });
   q('#pb-vb-video').addEventListener('click', () => {
     const change = q('#pb-video-change');
     const vid = root.dataset.pbVideo === 'true';
@@ -366,11 +433,53 @@ export function applyPlayerLayoutV1(root, api) {
     recentList.hidden = !open;
     q('#pb-lib-recent-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
   });
+  // Favorites: star next to the script name, list in the Library.
+  const favList = q('#pb-lib-fav');
+  const headActions = q('.pb-head-actions') || q('.pb-head');
+  const star = document.createElement('button');
+  star.type = 'button';
+  star.id = 'pb-fav-toggle';
+  star.className = 'pb-fav-toggle';
+  star.innerHTML = ICONS.star;
+  headActions?.prepend(star);
+  let currentScript = '';
+  function syncStar() {
+    const on = !!currentScript && readFavorites().includes(currentScript);
+    star.disabled = !currentScript;
+    star.setAttribute('aria-pressed', on ? 'true' : 'false');
+    star.title = on ? 'Remove from Favorites' : 'Add to Favorites';
+    star.setAttribute('aria-label', star.title);
+  }
+  function renderFavorites() {
+    const list = readFavorites();
+    favList.innerHTML = list.length
+      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${p.replace(/"/g, '&quot;')}">${baseName(p)}</button></li>`).join('')
+      : '<li class="pb-lib-empty">Star a script to keep it here</li>';
+    syncStar();
+  }
+  star.addEventListener('click', () => {
+    toggleFavorite(currentScript);
+    renderFavorites();
+  });
+  favList.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-lib-recent-item');
+    if (!b) return;
+    const p = readFavorites()[Number(b.dataset.i)];
+    if (p) await api.loadScriptPath(p).catch(() => {});
+  });
+  q('#pb-lib-fav-btn').addEventListener('click', () => {
+    const open = favList.hidden;
+    favList.hidden = !open;
+    q('#pb-lib-fav-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
   window.addEventListener('pb:loaded', e => {
-    pushRecent(e.detail && e.detail.path);
+    currentScript = (e.detail && e.detail.path) || '';
+    pushRecent(currentScript);
     renderRecent();
+    syncStar();
   });
   renderRecent();
+  renderFavorites();
   const plCount = q('#pb-lib-playlist-count');
   const syncCount = () => {
     const n = q('#pb-playlist-list')?.children.length || 0;
