@@ -634,6 +634,46 @@ export function initPlayback(root) {
     applyCollapse();
   })();
 
+
+  // V1 S3 next: distribute controls into inspector tabs (IDs kept)
+  (function groupInspectorControls() {
+    const insp = document.getElementById('pb-inspector');
+    if (!insp) return;
+    const pbPanel = insp.querySelector('[data-itab-panel="playback"]');
+    const devicesPanel = insp.querySelector('[data-itab-panel="devices"]');
+    const audioPanel = insp.querySelector('[data-itab-panel="audio"]');
+    const viewPanel = insp.querySelector('[data-itab-panel="view"]');
+    if (!pbPanel || !devicesPanel) return;
+
+    // Move device-related
+    ['#pb-strength', '#pb-playback-source', '#pb-optimize-neo2', '#pb-contact-block', '#pb-axis-row'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el && devicesPanel) {
+        // move the closest row or the element
+        const row = el.closest('.row') || el.closest('.checkbox-row') || el;
+        if (row.parentElement === pbPanel || row.closest('#pb-tools')) devicesPanel.appendChild(row);
+      }
+    });
+
+    // Move audio-related
+    ['#pb-offset-row', '#pb-bpm', '#pb-audio-analysis'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el && audioPanel) {
+        const row = el.closest('.row') || el;
+        if (row.parentElement && row.closest('#pb-tools')) audioPanel.appendChild(row);
+      }
+    });
+
+    // Move view-related
+    ['#pb-pos-overlay-row', '#pb-curve-edit-row'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el && viewPanel) {
+        const row = el.closest('.checkbox-row') || el;
+        if (row.closest('#pb-tools')) viewPanel.appendChild(row);
+      }
+    });
+  })();
+
   wireDataHelp(root);
   const el = id => root.querySelector(id);
   const videoEl = el('#pb-video');

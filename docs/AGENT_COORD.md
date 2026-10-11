@@ -1131,4 +1131,4 @@ AGENT_COORD:
 | Signal ≠ Fidelity | `docs/SIGNAL_VS_FIDELITY.md` |
 | Architecture | `HANDOFF.md` |
 
-- S3 Player 3-column shell: IN PROGRESS (Grok) — 3-col CSS grid (Library | Center | Inspector + bottom Timeline), collapsible panels + tab state in localStorage. Existing controls in Playback panel. Next: split controls into Devices/Audio/Playback/View tabs.
+- S3 Player 3-column shell: IN PROGRESS (Grok) — 3-col CSS grid done, regions reparented, inspector tabs wired. Started splitting controls (device/audio/view groups moved; remaining stay in Playback). Next: refine grouping + full library, then S4.
