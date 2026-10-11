@@ -408,3 +408,61 @@ body {
 @media (prefers-contrast: more) {
   #tab-playback .pb-lane-names { border-right-color: #8ef0ff; }
 }
+
+/* W1 merged workspace: Play / Create / Edit are modes of one Player. */
+#ws-view[role="tablist"] {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(0, 217, 244, .23);
+  border-radius: 15px;
+  background: rgba(3, 16, 29, .76);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+#ws-view[hidden] { display: none !important; }
+#ws-view .ws-view-btn {
+  position: relative;
+  min-height: 36px;
+  padding: 7px 17px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: #aac4d8;
+  font-weight: 650;
+  letter-spacing: .02em;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+#ws-view .ws-view-btn:hover {
+  background: rgba(0, 217, 244, .085);
+  color: #effbff;
+}
+#ws-view .ws-view-btn.is-active,
+#ws-view .ws-view-btn[aria-selected="true"] {
+  color: #fff;
+  background: linear-gradient(120deg, rgba(0, 217, 244, .19), rgba(255, 138, 35, .105));
+  border-color: rgba(0, 217, 244, .52);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .08), 0 0 17px rgba(0, 217, 244, .14);
+}
+#ws-view .ws-view-btn[data-ws-view="create"].is-active,
+#ws-view .ws-view-btn[data-ws-view="create"][aria-selected="true"] {
+  border-color: rgba(255, 138, 35, .57);
+  box-shadow: 0 0 16px rgba(255, 138, 35, .12);
+}
+#ws-view .ws-view-btn:focus-visible,
+#ws-scenemap:focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 3px;
+}
+#ws-scenemap[aria-pressed="true"] {
+  color: #ffbd73;
+  background: rgba(255, 138, 35, .12);
+  border-color: rgba(255, 138, 35, .6);
+}
+@media (max-width: 700px) {
+  #ws-view { gap: 2px; padding: 3px; }
+  #ws-view .ws-view-btn { min-height: 34px; padding: 6px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ws-view .ws-view-btn { transition: none; }
+}
