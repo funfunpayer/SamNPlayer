@@ -2,7 +2,7 @@
 
 **Product:** SamNPlayer Emotion GUI · **Format:** `.samn` (Emotion Script) · Funscript = share/import only.  
 **Audience:** Owner + everyday users. English product copy.  
-**Last updated:** 27 Sep 2026 (Contact points Advanced GUI + handbook; local helpers; Test AI server).
+**Last updated:** 11 Oct 2026 (Play audio vibration, BPM From audio and offset writing).
 
 **In the app:** Settings → **Open user handbook** · Create → **User handbook** (same FAQ modal).  
 Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTENT_SOURCES.md`, `AUDIO_WORKFLOW.md`.  
@@ -129,6 +129,72 @@ it helps you, Settings → *Support SamNPlayer* has the donation links.
 | Contact strength / curve | Live feel without rewriting file |
 
 Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extended-O · O marker — see Play help chip.
+
+### Audio vibration — video loudness during Play
+
+1. Load a playable script and its video in **Play**. Audio decoding needs
+   `ffmpeg` and a readable audio track; see [Video tools](FFMPEG_TOOLS.md).
+2. Open **Playback & Extended-O** → **Vibration from video audio only**,
+   or use the same switch in **Settings → Play**. Default: **off**; the
+   choice is remembered.
+3. Start Play (stop and start again after changing the switch). The first
+   start may wait while audio is decoded; subsequent starts can reuse it.
+
+Only vibration is replaced by the video's loudness (including music and
+voices); suction keeps its script mapping. The Play offset is respected.
+If audio continues beyond the script, playback frames extend to the audio
+end with **suction 0**. This does not edit the script or its stored axes.
+
+Without a video, the Play log says **“Audio vibration: no video loaded —
+using script vibration.”** Missing/unreadable audio, missing ffmpeg or a
+decode failure produces **“Audio vibration unavailable (…) — using script
+vibration.”** Playback falls back to script vibration. A readable silent
+track instead produces zero audio vibration; silence is not a fallback.
+
+### BPM — From audio
+
+Load the script and video, then open **Play → Curve edit (Cap · Scale ·
+Speed HL · BPM)** and click **From audio** beside BPM. This needs ffmpeg
+and readable video audio, but does **not** need `audio_check` metadata
+(so imported OFS / FunGen scripts also work).
+
+The button shows **Listening…**, measures up to the **first 10 minutes**
+from the start of the video (not from the playhead), fills BPM and enables
+**BPM grid**. The estimate is rounded and octave-folded into **20–240 BPM**.
+This is a visual timing guide only: no points are snapped, no script is
+saved, and neither vibration nor suction output is changed.
+
+The BPM field starts blank; when blank, the grid uses existing
+`audio_check` tempo if available. Without a usable tempo it draws no
+beat lines. **From audio** reports **No clear beat in the sound** or
+**No audio tempo: …** on failure and leaves the current BPM/grid state
+unchanged. You can enter **20–240 BPM** manually and enable **BPM grid**.
+
+### Offset — Write into script
+
+1. Load the script in **Play** and adjust **Offset** in milliseconds:
+   positive = later, negative = earlier. Preview the timing first.
+2. Keep a copy of the original before making the timing permanent. Click
+   **Write into script** beside the offset controls and confirm the save;
+   cancelling makes no change. Offset **0** has nothing to write.
+3. On success the script reloads and Offset becomes **0**, avoiding a
+   second shift. The Play log reports how many items were removed.
+
+This overwrites the loaded script: **general/stroke, vibration and suction
+axes**, bookmarks and chapters move by the offset. For `.samn`, saving
+axes also updates the companion `.funscript`; check the log for export
+failures before using the companion in another player.
+
+Points and bookmarks before **0 ms** are removed. A chapter crossing
+0 keeps its positive-time portion with its start clamped to 0; chapters
+shifted entirely before the start, and open-ended chapters whose start
+becomes negative, are removed. Trajectory, tracking-gap and contact-mark
+metadata are **not shifted**.
+
+The operation reports an error if an axis would lose every point, or a
+save fails. Axes are saved in sequence: an error can leave earlier changes
+on disk; do not assume rollback or click again blindly. Check/reload the
+file or restore your copy before retrying.
 
 ---
 
