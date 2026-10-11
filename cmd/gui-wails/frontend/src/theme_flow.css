@@ -28,6 +28,14 @@
   border-top-color: rgba(104, 180, 212, .2);
   background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
 }
+[data-pb-region="ruler"],
+[data-pb-region="timeline"] .pb-ruler,
+[data-pb-region="timeline"] .pb-time-ruler {
+  background: rgba(10, 27, 43, .5);
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(104, 180, 212, .16);
+  font-variant-numeric: tabular-nums;
+}
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .58);
   border-top: 1px solid rgba(104, 180, 212, .18);
@@ -140,13 +148,6 @@
   color: var(--text-dim);
 }
 /* S4 timeline core visual prep (approved hooks only, look only) */
-[data-pb-region="timeline"] .pb-ruler,
-[data-pb-region="timeline"] .pb-time-ruler {
-  background: rgba(10, 27, 43, .5);
-  color: var(--text-dim);
-  border-bottom: 1px solid rgba(104, 180, 212, .16);
-  font-variant-numeric: tabular-nums;
-}
 [data-pb-region="lanes"] .pb-lane-name,
 [data-pb-region="legend"] .pb-lane-label {
   color: var(--text-dim);
@@ -184,6 +185,7 @@
   [data-pb-region="inspector-tabs"],
   [data-pb-region="bottom-tabs"],
   [data-pb-region="timeline"],
+  [data-pb-region="ruler"],
   [data-pb-region="transport"],
   [data-pb-region="legend"],
   [data-pb-region="zoom"],
