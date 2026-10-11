@@ -26,7 +26,7 @@ export function initPlayback(root) {
   root.innerHTML = `
     <div class="pb-head" data-pb-region="head">
       <div class="pb-head-text">
-        <h2>Play</h2>
+        <h2>Player</h2>
         <span class="path-label" id="pb-script-path">No Emotion Script selected</span>
       </div>
       <div class="pb-head-actions">
@@ -2946,6 +2946,8 @@ export function initPlayback(root) {
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
+    // Library "Recent" (player_layout.js) listens for successful loads.
+    window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: scriptPath } }));
     if (!opts.keepPlaylist) {
       replacePlaylist([scriptPath], 0);
     } else {

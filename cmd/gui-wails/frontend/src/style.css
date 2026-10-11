@@ -3299,3 +3299,211 @@ button.primary:hover:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   #tab-playback .pb-tools { transition: none; }
 }
+
+/* =====================================================================
+   V1 app shell (S2, docs/V1_PLAN.md): top bar with brand · tabs · actions.
+   The old left rail is gone; #rail is now the horizontal tab list.
+   ===================================================================== */
+#topbar {
+  height: 68px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, rgba(6, 18, 31, 0.96), rgba(6, 18, 31, 0.82));
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: none;
+}
+.topbar-brand-block { position: relative; display: flex; align-items: center; min-width: 236px; height: 56px; }
+.topbar-brand-block .brand-lockup { width: 44px; height: 44px; margin: 0; }
+.topbar-brand-block .brand { width: 44px; height: 44px; }
+.topbar-brand-block .brand-wordmark { font-size: 24px; top: 38%; }
+.topbar-brand-block .brand-tagline {
+  position: absolute; left: 56px; top: 40px; margin: 0;
+  font-size: 9.5px; letter-spacing: 0.32em; white-space: nowrap; text-align: left;
+}
+.topbar-brand-block .brand-tagline span { display: inline; }
+.topbar-brand-block .brand-tagline span + span::before { content: "·"; margin: 0 0.55em; opacity: 0.8; }
+
+#topbar #rail {
+  width: auto; height: auto; padding: 0; margin: 0 auto;
+  flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+  background: none; border: 0; position: static;
+}
+#topbar #rail::after { display: none; }
+#topbar #rail .tab-btn {
+  flex-direction: row; gap: 9px;
+  width: auto; height: 42px; min-height: 0; margin: 0;
+  padding: 0 16px; border-radius: 999px;
+  font-size: 14px; letter-spacing: 0.01em; text-transform: none;
+  color: var(--text-dim); background: transparent; border: 1px solid transparent;
+}
+#topbar #rail .tab-btn svg { width: 20px; height: 20px; margin: 0; }
+#topbar #rail .tab-btn .dot { display: none; }
+#topbar #rail .tab-btn:hover { color: var(--text); background: rgba(var(--accent-rgb), 0.06); }
+#topbar #rail .tab-btn.active {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.12));
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.25);
+}
+#topbar #rail .tab-btn.active svg { color: var(--accent); }
+#topbar .pills { gap: 8px; }
+.topbar-icon {
+  display: inline-grid; place-items: center;
+  width: 38px; height: 38px; padding: 0; min-height: 0;
+  border-radius: 10px; background: transparent; border: 1px solid transparent;
+  color: var(--text-dim);
+}
+.topbar-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.topbar-icon:hover { color: var(--text); background: rgba(var(--accent-rgb), 0.08); }
+@media (max-width: 1280px) {
+  .topbar-brand-block .brand-tagline { display: none; }
+  #topbar #rail .tab-btn { padding: 0 11px; }
+}
+@media (max-width: 1100px) {
+  #topbar #rail .tab-btn span { display: none; }
+  .topbar-brand-block { min-width: 190px; }
+}
+
+/* Scene Map tab: the Generator's scene-map section in a focused view —
+   video chooser + scene map only (main.js marks the path with data-sm-path). */
+#tab-generator[data-view="scenemap"] > :not([data-sm-path]):not(#gen-step-video) { display: none !important; }
+#tab-generator[data-view="scenemap"] [data-sm-path]:not(#gen-advanced-scenemap) > :not([data-sm-path]) { display: none !important; }
+#tab-generator[data-view="scenemap"] [data-sm-path][hidden] { display: block !important; }
+#tab-generator[data-view="scenemap"]::before {
+  content: "Scene Map";
+  display: block; margin: 0 0 4px;
+  font: 700 var(--type-display) var(--font); color: var(--text);
+}
+#tab-generator[data-view="scenemap"] #gen-step-video .gen-step-title::after {
+  content: " — the scene map follows this video"; font-weight: 400; color: var(--text-dim);
+}
+#topbar #rail .tab-btn span { text-transform: none; font-size: 14px; letter-spacing: 0.01em; font-weight: 500; }
+#topbar #rail .tab-btn::before, #topbar #rail .tab-btn::after { display: none; }
+
+/* =====================================================================
+   V1 Player shell (S3): Library · main · Inspector, bottom tabs.
+   Built by player_layout.js from existing controls (ids unchanged).
+   ===================================================================== */
+#tab-playback[data-pb-layout="v1"] {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+#tab-playback[data-pb-layout="v1"] .pb-main-col { min-width: 0; }
+
+/* Library */
+.pb-library {
+  position: sticky; top: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px 0 12px;
+  max-height: calc(100vh - 110px); overflow-y: auto;
+}
+.pb-lib-title {
+  margin: 14px 8px 6px; font-size: 13px; font-weight: 600;
+  color: var(--text-dim); letter-spacing: 0.02em;
+}
+.pb-lib-title:first-child { margin-top: 2px; }
+.pb-lib-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; min-height: 0; padding: 9px 12px; margin: 0;
+  border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--text); text-align: left;
+  font-size: 14px; font-weight: 500; box-shadow: none;
+}
+.pb-lib-item svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: var(--text-dim); stroke-width: 1.6; }
+.pb-lib-item:hover { background: rgba(var(--accent-rgb), 0.07); }
+.pb-lib-item.is-primary {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.08));
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+.pb-lib-item.is-primary svg { stroke: var(--accent); }
+.pb-lib-count { margin-left: auto; font-size: 11px; color: var(--accent); font-weight: 600; }
+.pb-lib-recent { list-style: none; margin: 0 0 4px 32px; padding: 0; }
+.pb-lib-recent[hidden] { display: none; }
+.pb-lib-recent-item {
+  display: block; width: 100%; padding: 4px 8px; min-height: 0; margin: 0;
+  background: transparent; border: 0; box-shadow: none; text-align: left;
+  font-size: 12.5px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pb-lib-recent-item:hover { color: var(--text); }
+.pb-lib-empty { font-size: 12px; color: var(--text-dim); padding: 2px 8px; opacity: 0.7; }
+.pb-lib-drop {
+  display: grid; justify-items: center; gap: 6px; margin: 4px 8px 0;
+  padding: 18px 8px; border: 1px dashed var(--border-strong); border-radius: 14px;
+  color: var(--text-dim); font-size: 12.5px; text-align: center;
+}
+.pb-lib-drop svg { width: 26px; height: 26px; fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
+.pb-lib-drop small { font-size: 11px; opacity: 0.75; }
+
+/* Inspector */
+.pb-insp-tabs, .pb-bottom-tabs {
+  display: flex; gap: 2px; border-bottom: 1px solid var(--border-soft); margin: 2px 0 10px;
+}
+.pb-insp-tab, .pb-bottom-tab {
+  flex: 1 1 auto; min-height: 0; margin: 0; padding: 10px 8px 9px;
+  background: transparent; border: 0; border-radius: 10px 10px 0 0; box-shadow: none;
+  color: var(--text-dim); font-size: 14px; font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.pb-insp-tab:hover, .pb-bottom-tab:hover { color: var(--text); }
+.pb-insp-tab.is-active, .pb-bottom-tab.is-active {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.16), transparent);
+  border-bottom-color: var(--accent);
+}
+.pb-insp-panel:not(.is-active), .pb-bottom-panel:not(.is-active) { display: none; }
+.pb-bottom-tabs { justify-content: flex-start; }
+.pb-bottom-tab { flex: 0 0 auto; padding: 9px 16px; }
+details.pb-in-bottom > summary { display: none; }
+details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
+
+.pb-chan-rows { display: grid; gap: 10px; margin: 4px 0 14px; }
+.pb-chan-row { display: grid; grid-template-columns: 14px 78px 1fr 42px; align-items: center; gap: 10px; font-size: 13.5px; }
+.pb-chan-row[data-axis="stroke"] { --c: var(--axis-stroke); }
+.pb-chan-row[data-axis="vibration"] { --c: var(--axis-vibration); }
+.pb-chan-row[data-axis="suction"] { --c: var(--axis-suction); }
+.pb-chan-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.pb-chan-bar { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.pb-chan-bar b { display: block; height: 100%; width: 0; background: var(--c); border-radius: inherit; transition: width .12s linear; }
+.pb-chan-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 12.5px; }
+@media (prefers-reduced-motion: reduce) { .pb-chan-bar b { transition: none; } }
+
+.pb-card {
+  margin: 0 0 12px; padding: 12px 14px;
+  border-radius: 14px; background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-soft);
+}
+.pb-card-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--text); }
+.pb-card-body { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pb-card-body > .hint { flex-basis: 100%; }
+
+@media (max-width: 1280px) {
+  #tab-playback[data-pb-layout="v1"] { grid-template-columns: 180px minmax(0, 1fr); gap: 14px; }
+  .pb-loaded { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+@media (max-width: 1100px) {
+  #tab-playback[data-pb-layout="v1"] { grid-template-columns: minmax(0, 1fr); }
+  .pb-library { display: none; }
+}
+/* S3 fit: the bottom tab bar needs room — keep video + transport + timeline
+   visible together (measured at 1366×768 and 1920×1080). */
+#tab-playback[data-pb-layout="v1"] .pb-video-stage video,
+#tab-playback[data-pb-layout="v1"] .pb-video-stage.is-playing.has-video video,
+#tab-playback[data-pb-layout="v1"].pb-tools-collapsed .pb-video-stage video {
+  max-height: max(240px, calc(100vh - 650px));
+}
+#tab-playback[data-pb-layout="v1"] .pb-bottom-tabs { margin: 0 0 4px; }
+#tab-playback[data-pb-layout="v1"] .pb-bottom-tab { padding: 7px 14px; font-size: 13.5px; }
+@media (max-height: 860px) {
+  #tab-playback[data-pb-layout="v1"] .pb-head { margin-bottom: 4px; }
+  #tab-playback[data-pb-layout="v1"] .pb-head h2 { font-size: 1.2rem; margin: 0; }
+  #tab-playback[data-pb-layout="v1"] .pb-curve { height: 104px; }
+  #tab-playback[data-pb-layout="v1"] .pb-heatmap { height: 26px; }
+  #tab-playback[data-pb-layout="v1"] .pb-axis-legend { padding: 2px 0; }
+  #tab-playback[data-pb-layout="v1"] .pb-transport { padding: 4px; }
+}
