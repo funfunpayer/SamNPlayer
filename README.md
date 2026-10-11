@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/logo.png" alt="SamNPlayer mark" width="140" />
+  <img src="docs/media/banner.jpg" alt="SamNPlayer — Generate · Play · Train" width="900" />
 </p>
 
 <h1 align="center">SamNPlayer</h1>
@@ -32,10 +32,6 @@
   <a href="docs/PLATFORMS.md">Platforms</a>
   ·
   <a href="CHANGELOG.md">Changelog</a>
-</p>
-
-<p align="center">
-  <img src="docs/media/wordmark.png" alt="SamNPlayer wordmark" width="320" />
 </p>
 
 ---
