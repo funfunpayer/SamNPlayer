@@ -9,7 +9,6 @@
 // that run without CSS still reach every control.
 
 import { SetChannelLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
-import { OnFileDrop } from '../wailsjs/runtime/runtime';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -129,7 +128,418 @@ export function applyPlayerLayoutV1(root, api) {
   root.prepend(lib);
   lib.after(main);
 
-  // ... rest of the function remains the same until the end ...
-  // (truncated for brevity in this call; full content is used in practice)
+  // ---- Inspector (right): tabs Devices · Audio · Playback · View ----------
+  const tools = q('#pb-tools');
+  const head = tools.querySelector('.pb-tools-head');
+  const title = head?.querySelector('.pb-tools-title');
+  if (title) title.textContent = 'Inspector';
+  const tabs = [['devices', 'Devices'], ['audio', 'Audio'], ['playback', 'Playback'], ['view', 'View']];
+  const bar = document.createElement('div');
+  bar.className = 'pb-insp-tabs';
+  bar.dataset.pbRegion = 'inspector-tabs';
+  bar.setAttribute('role', 'tablist');
+  bar.innerHTML = tabs.map(([k, label]) =>
+    `<button type="button" role="tab" class="pb-insp-tab" data-insp="${k}" id="pb-insp-tab-${k}">${label}</button>`).join('');
+  const panels = {};
+  for (const [k] of tabs) {
+    const p = document.createElement('div');
+    p.className = 'pb-insp-panel';
+    p.dataset.inspPanel = k;
+    p.id = `pb-insp-${k}`;
+    p.setAttribute('role', 'tabpanel');
+    p.setAttribute('aria-labelledby', `pb-insp-tab-${k}`);
+    panels[k] = p;
+  }
+  // Devices: live channel rows (real values mirrored from the transport).
+  const live = document.createElement('div');
+  live.className = 'pb-chan-rows';
+  // Stroke drives the feel recipe (not sent to the Neo 2 directly): live only.
+  // Vibration / Suction: on/off + output level (device-side, files unchanged).
+  live.innerHTML = [['stroke', 'Stroke', false], ['vibration', 'Vibration', true], ['suction', 'Suction', true]]
+    .map(([k, label, ctl]) => `<div class="pb-chan-row" data-axis="${k}">
+        ${ctl ? `<input type="checkbox" class="pb-chan-on" id="pb-chan-${k}-on" checked aria-label="${label} on" />` : '<span class="pb-chan-on-spacer"></span>'}
+        <i class="pb-chan-dot"></i><span class="pb-chan-name">${label}</span>
+        ${ctl ? `<input type="range" class="pb-chan-level" id="pb-chan-${k}-level" min="0" max="100" step="5" value="100" aria-label="${label} level" />`
+              : '<span class="pb-chan-level-spacer"></span>'}
+        <span class="pb-chan-val" id="pb-chan-${k}-lvl">${ctl ? '100%' : ''}</span>
+        <span class="pb-chan-bar" title="Live output"><b id="pb-chan-${k}-fill"></b></span>
+        <span class="pb-chan-live" id="pb-chan-${k}-val">–</span></div>`).join('');
+  panels.devices.appendChild(live);
+
+  const move = (sel, panel) => {
+    const n = typeof sel === 'string' ? q(sel) : sel;
+    if (n) panels[panel].appendChild(n);
+    return n;
+  };
+  // Devices: script → device mapping.
+  ['#pb-axis-row', '#pb-optimize-neo2-status', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  // Audio: audio vibration + BPM card.
+  const bpmCard = document.createElement('div');
+  bpmCard.className = 'pb-card';
+  bpmCard.id = 'pb-bpm-card';
+  bpmCard.innerHTML = '<p class="pb-card-title">BPM</p><div class="pb-card-body"></div>';
+  const bpmBody = bpmCard.querySelector('.pb-card-body');
+  for (const n of [q('#pb-bpm')?.closest('label'), q('#pb-bpm-auto'), q('#pb-bpm-auto-status'), q('#pb-bpm-grid')?.closest('label')]) {
+    if (n) bpmBody.appendChild(n);
+  }
+  const avCard = document.createElement('div');
+  avCard.className = 'pb-card';
+  avCard.id = 'pb-audio-vib-card';
+  avCard.innerHTML = '<p class="pb-card-title">Audio Vibration</p><div class="pb-card-body"></div>';
+  for (const s of ['#pb-audio-vibration-row', '#pb-audio-vibration-hint']) {
+    const n = q(s);
+    if (n) avCard.querySelector('.pb-card-body').appendChild(n);
+  }
+  panels.audio.append(bpmCard, avCard);
+  // Playback: script tools (offset), playback settings, checks, log.
+  const st = document.createElement('div');
+  st.className = 'pb-card';
+  st.id = 'pb-script-tools-card';
+  st.innerHTML = '<p class="pb-card-title">Script Tools</p><div class="pb-card-body"></div>';
+  for (const s of ['#pb-offset-row', '#pb-offset-hint']) {
+    const n = q(s);
+    if (n) st.querySelector('.pb-card-body').appendChild(n);
+  }
+  panels.playback.appendChild(st);
+  const adv = [...tools.querySelectorAll(':scope > details.pb-advanced')][0];
+  if (adv) panels.playback.appendChild(adv);
+  ['#pb-quality-details', '#pb-ofs-row', '#pb-marker-auto-row', '#pb-log'].forEach(s => move(s, 'playback'));
+  // View: curve display / editing.
+  ['#pb-curve-edit-row', '#pb-curve-edit-hint', '#pb-audio-lane-row', '#pb-scenes-row', '#pb-pos-overlay-row', '#pb-ofs-edit-details',
+    '#pb-marker-hint', '#pb-omarker-details'].forEach(s => move(s, 'view'));
+  // Anything left (future additions) lands in Playback so nothing is lost.
+  [...tools.children].forEach(n => {
+    if (n !== head && !n.classList.contains('pb-insp-panel')) panels.playback.appendChild(n);
+  });
+  tools.append(bar, ...Object.values(panels));
+
+  function showInspector(k) {
+    if (!panels[k]) k = 'devices';
+    for (const [key, p] of Object.entries(panels)) p.classList.toggle('is-active', key === k);
+    bar.querySelectorAll('[data-insp]').forEach(b => {
+      const on = b.dataset.insp === k;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    root.dataset.pbInspector = k;
+    store(INSPECTOR_KEY, k);
+  }
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('[data-insp]');
+    if (b) showInspector(b.dataset.insp);
+  });
+  bar.addEventListener('keydown', e => {
+    const keys = tabs.map(t => t[0]);
+    const i = keys.indexOf(root.dataset.pbInspector);
+    let j = i;
+    if (e.key === 'ArrowRight') j = (i + 1) % keys.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + keys.length) % keys.length;
+    else return;
+    e.preventDefault();
+    showInspector(keys[j]);
+    bar.querySelector(`[data-insp="${keys[j]}"]`)?.focus();
+  });
+  showInspector(load(INSPECTOR_KEY) || 'devices');
+
+  // ---- Video bar (mockup: "Select a video file…" + bookmark · snapshot · fullscreen)
+  const stage = q('#pb-video-stage');
+  const vbar = document.createElement('div');
+  vbar.className = 'pb-videobar';
+  vbar.dataset.pbRegion = 'videobar';
+  vbar.innerHTML = `
+    <button type="button" class="pb-vb-select" id="pb-vb-video" title="Link or change the video for this script">
+      ${ICONS.folder}<span id="pb-vb-name">Select a video file…</span></button>
+    <button type="button" class="pb-vb-icon pb-vb-more" id="pb-vb-recent" title="Recent videos"
+      aria-label="Recent videos" aria-haspopup="menu" aria-expanded="false">${ICONS.chevron}</button>
+    <ul class="pb-vb-menu" id="pb-vb-menu" role="menu" hidden></ul>
+    <span class="pb-vb-spacer"></span>
+    <button type="button" class="pb-vb-icon" id="pb-vb-bookmark" title="Add a bookmark at the current time" aria-label="Add bookmark">${ICONS.bookmark}</button>
+    <button type="button" class="pb-vb-icon" id="pb-vb-snapshot" title="Save the current video frame as PNG" aria-label="Save frame">${ICONS.image}</button>
+    <button type="button" class="pb-vb-icon" id="pb-vb-fs" title="Fullscreen" aria-label="Fullscreen">${ICONS.expand}</button>
+    <span class="hint pb-vb-status" id="pb-vb-status"></span>`;
+  stage?.before(vbar);
+  const vbName = q('#pb-vb-name');
+  const syncVideoName = () => {
+    const p = root.dataset.pbVideoPath || '';
+    vbName.textContent = p ? baseName(p) : 'Select a video file…';
+    q('#pb-vb-snapshot').disabled = !p;
+  };
+  new MutationObserver(() => {
+    syncVideoName();
+    pushRecentVideo(root.dataset.pbVideoPath || '');
+  }).observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
+  syncVideoName();
+  const vbMenu = q('#pb-vb-menu');
+  const vbMore = q('#pb-vb-recent');
+  const closeMenu = () => { vbMenu.hidden = true; vbMore.setAttribute('aria-expanded', 'false'); };
+  vbMore.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!vbMenu.hidden) { closeMenu(); return; }
+    const cur = root.dataset.pbVideoPath || '';
+    const list = readRecentVideos().filter(p => p !== cur);
+    const loaded = root.dataset.pbState === 'loaded';
+    vbMenu.innerHTML = list.length
+      ? list.map((p, i) => `<li role="none"><button type="button" role="menuitem" class="pb-vb-menu-item" data-i="${i}"
+          title="${p.replace(/"/g, '&quot;')}" ${loaded ? '' : 'disabled'}>${baseName(p)}</button></li>`).join('')
+      : '<li class="pb-lib-empty" role="none">No recent videos</li>';
+    vbMenu._list = list;
+    vbMenu.hidden = false;
+    vbMore.setAttribute('aria-expanded', 'true');
+    vbMenu.querySelector('button:not([disabled])')?.focus();
+  });
+  vbMenu.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-vb-menu-item');
+    if (!b) return;
+    const p = (vbMenu._list || [])[Number(b.dataset.i)];
+    closeMenu();
+    if (p && api.attachVideoPath) await api.attachVideoPath(p);
+  });
+  vbMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); vbMore.focus(); } });
+  document.addEventListener('click', e => { if (!vbar.contains(e.target)) closeMenu(); });
+  q('#pb-vb-video').addEventListener('click', () => {
+    const change = q('#pb-video-change');
+    const vid = root.dataset.pbVideo === 'true';
+    (vid && change ? change : q('#pb-pick-video'))?.click();
+  });
+  q('#pb-vb-fs').addEventListener('click', () => q('#pb-video-fs')?.click());
+  q('#pb-vb-bookmark').addEventListener('click', () => {
+    showBottom('bookmarks');
+    const name = q('#pb-bookmark-name');
+    const add = q('#pb-bookmark-add');
+    if (add && !add.disabled) add.click();
+    else name?.focus();
+  });
+  q('#pb-vb-snapshot').addEventListener('click', async () => {
+    const vid = q('#pb-video');
+    const ms = Math.round((vid?.currentTime || 0) * 1000);
+    const status = q('#pb-vb-status');
+    try {
+      const out = await SaveVideoSnapshot(ms);
+      if (out) status.textContent = 'Saved ' + baseName(out);
+    } catch (err) {
+      status.textContent = 'Snapshot failed: ' + err;
+    }
+  });
+
+  // ---- Bottom tabs: Timeline · Chapters · Bookmarks · Scene Map · Audio Analysis
+  const timeline = q('.pb-timeline');
+  const bottom = document.createElement('div');
+  bottom.className = 'pb-bottom';
+  bottom.dataset.pbRegion = 'bottom';
+  const btabs = [['timeline', 'Timeline'], ['chapters', 'Chapters'], ['bookmarks', 'Bookmarks'],
+    ['scenemap', 'Scene Map'], ['audio', 'Audio Analysis']];
+  const bbar = document.createElement('div');
+  bbar.className = 'pb-bottom-tabs';
+  bbar.dataset.pbRegion = 'bottom-tabs';
+  bbar.setAttribute('role', 'tablist');
+  bbar.innerHTML = btabs.map(([k, label]) =>
+    `<button type="button" role="tab" class="pb-bottom-tab" data-btab="${k}" id="pb-btab-${k}">${label}</button>`).join('');
+  timeline.before(bottom);
+  bottom.appendChild(bbar);
+  const bpanels = {};
+  const mk = k => {
+    const p = document.createElement('div');
+    p.className = 'pb-bottom-panel';
+    p.dataset.btabPanel = k;
+    p.setAttribute('role', 'tabpanel');
+    bottom.appendChild(p);
+    bpanels[k] = p;
+    return p;
+  };
+  mk('timeline').appendChild(timeline);
+  const openDetails = (sel, k) => {
+    const d = q(sel);
+    if (!d) return;
+    d.open = true;
+    d.classList.add('pb-in-bottom');
+    // As a bottom tab the section has no summary to reopen it, and Play
+    // closes these panels when the selection clears — keep it open.
+    d.addEventListener('toggle', () => { if (!d.open) d.open = true; });
+    mk(k).appendChild(d);
+  };
+  openDetails('#pb-chapter-details', 'chapters');
+  openDetails('#pb-bookmark-details', 'bookmarks');
+  const audioPanel = mk('audio');
+  const card = q('#pb-audio-card');
+  if (card) audioPanel.appendChild(card);
+  const segs = q('#pb-audio-segments');
+  if (segs) audioPanel.appendChild(segs);
+  function showBottom(k) {
+    if (k === 'scenemap') {
+      document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click();
+      return;
+    }
+    if (!bpanels[k]) k = 'timeline';
+    for (const [key, p] of Object.entries(bpanels)) p.classList.toggle('is-active', key === k);
+    bbar.querySelectorAll('[data-btab]').forEach(b => {
+      const on = b.dataset.btab === k;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    root.dataset.pbBottom = k;
+    store(BOTTOM_KEY, k);
+    // Canvases inside a re-shown panel redraw via their ResizeObserver.
+  }
+  bbar.addEventListener('click', e => {
+    const b = e.target.closest('[data-btab]');
+    if (b) showBottom(b.dataset.btab);
+  });
+  showBottom(load(BOTTOM_KEY) || 'timeline');
+
+  // ---- Library actions ----------------------------------------------------
+  q('#pb-lib-local').addEventListener('click', () => q('#pb-choose')?.click());
+  q('#pb-lib-scenemap').addEventListener('click', () => showBottom('scenemap'));
+  // Editor: curve edit mode of the loaded script (existing #pb-curve-edit).
+  q('#pb-lib-editor').addEventListener('click', () => {
+    const box = q('#pb-curve-edit');
+    if (root.dataset.pbState !== 'loaded' || !box || box.disabled) {
+      q('#pb-choose')?.focus();
+      return;
+    }
+    showInspector('view');
+    showBottom('timeline');
+    if (!box.checked) {
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+    }
+    q('#pb-curve')?.scrollIntoView({ block: 'nearest' });
+  });
+  q('#pb-lib-audio').addEventListener('click', () => showBottom('audio'));
+  q('#pb-lib-bpm').addEventListener('click', () => {
+    showInspector('audio');
+    q('#pb-bpm-auto')?.focus();
+  });
+  q('#pb-lib-playlist').addEventListener('click', () => {
+    const pl = q('#pb-playlist');
+    if (pl && !pl.hidden) pl.scrollIntoView({ block: 'nearest' });
+    else q('#pb-queue-add')?.focus();
+  });
+  const recentList = q('#pb-lib-recent');
+  function renderRecent() {
+    const list = readRecent();
+    recentList.innerHTML = list.length
+      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${p.replace(/"/g, '&quot;')}">${baseName(p)}</button></li>`).join('')
+      : '<li class="pb-lib-empty">Nothing yet</li>';
+  }
+  recentList.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-lib-recent-item');
+    if (!b) return;
+    const p = readRecent()[Number(b.dataset.i)];
+    if (p) await api.loadScriptPath(p).catch(() => {});
+  });
+  q('#pb-lib-recent-btn').addEventListener('click', () => {
+    const open = recentList.hidden;
+    recentList.hidden = !open;
+    q('#pb-lib-recent-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  // Favorites: star next to the script name, list in the Library.
+  const favList = q('#pb-lib-fav');
+  const headActions = q('.pb-head-actions') || q('.pb-head');
+  const star = document.createElement('button');
+  star.type = 'button';
+  star.id = 'pb-fav-toggle';
+  star.className = 'pb-fav-toggle';
+  star.innerHTML = ICONS.star;
+  headActions?.prepend(star);
+  let currentScript = '';
+  function syncStar() {
+    const on = !!currentScript && readFavorites().includes(currentScript);
+    star.disabled = !currentScript;
+    star.setAttribute('aria-pressed', on ? 'true' : 'false');
+    star.title = on ? 'Remove from Favorites' : 'Add to Favorites';
+    star.setAttribute('aria-label', star.title);
+  }
+  function renderFavorites() {
+    const list = readFavorites();
+    favList.innerHTML = list.length
+      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${p.replace(/"/g, '&quot;')}">${baseName(p)}</button></li>`).join('')
+      : '<li class="pb-lib-empty">Star a script to keep it here</li>';
+    syncStar();
+  }
+  star.addEventListener('click', () => {
+    toggleFavorite(currentScript);
+    renderFavorites();
+  });
+  favList.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-lib-recent-item');
+    if (!b) return;
+    const p = readFavorites()[Number(b.dataset.i)];
+    if (p) await api.loadScriptPath(p).catch(() => {});
+  });
+  q('#pb-lib-fav-btn').addEventListener('click', () => {
+    const open = favList.hidden;
+    favList.hidden = !open;
+    q('#pb-lib-fav-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  window.addEventListener('pb:loaded', e => {
+    currentScript = (e.detail && e.detail.path) || '';
+    pushRecent(currentScript);
+    renderRecent();
+    syncStar();
+  });
+  renderRecent();
+  renderFavorites();
+  const plCount = q('#pb-lib-playlist-count');
+  const syncCount = () => {
+    const n = q('#pb-playlist-list')?.children.length || 0;
+    plCount.textContent = n > 1 ? String(n) : '';
+  };
+  const plList = q('#pb-playlist-list');
+  if (plList) new MutationObserver(syncCount).observe(plList, { childList: true });
+  syncCount();
+
+  // ---- Live channel rows: mirror real values ------------------------------
+  const mirror = (srcSel, k, scale) => {
+    const src = q(srcSel);
+    if (!src) return;
+    const fill = q(`#pb-chan-${k}-fill`);
+    const val = q(`#pb-chan-${k}-val`);
+    const sync = () => {
+      const n = parseFloat(String(src.textContent).replace(',', '.'));
+      const pct = Number.isFinite(n) ? Math.max(0, Math.min(100, n * scale)) : null;
+      fill.style.width = pct == null ? '0%' : pct + '%';
+      val.textContent = pct == null ? '–' : Math.round(pct) + '%';
+    };
+    new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+    sync();
+  };
+  // All three show 0–100 already (#pb-vib / #pb-suc as "58%").
+  mirror('#pb-pos-value', 'stroke', 1);
+  mirror('#pb-vib', 'vibration', 1);
+  mirror('#pb-suc', 'suction', 1);
+
+  // ---- Channel on/off + level → device output (SetChannelLevels) ----------
+  let saved = {};
+  try { saved = JSON.parse(load(CHAN_KEY) || '{}') || {}; } catch (_) { saved = {}; }
+  const chans = ['vibration', 'suction'];
+  for (const k of chans) {
+    const st = saved[k] || {};
+    const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
+    if (on && typeof st.on === 'boolean') on.checked = st.on;
+    if (lvl && Number.isFinite(st.level)) lvl.value = String(Math.max(0, Math.min(100, st.level)));
+  }
+  function applyChannels() {
+    const out = {};
+    const level = k => {
+      const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
+      const v = Number(lvl?.value ?? 100);
+      out[k] = { on: !!on?.checked, level: v };
+      q(`#pb-chan-${k}-lvl`).textContent = on?.checked ? `${v}%` : 'Off';
+      lvl.disabled = !on?.checked;
+      q(`.pb-chan-row[data-axis="${k}"]`)?.classList.toggle('is-off', !on?.checked);
+      return on?.checked ? v / 100 : 0;
+    };
+    const vib = level('vibration'), suc = level('suction');
+    store(CHAN_KEY, JSON.stringify(out));
+    root.dataset.pbChannels = `${vib},${suc}`;
+    SetChannelLevels(vib, suc).catch(() => {});
+  }
+  for (const k of chans) {
+    q(`#pb-chan-${k}-on`)?.addEventListener('change', applyChannels);
+    q(`#pb-chan-${k}-level`)?.addEventListener('input', applyChannels);
+  }
+  applyChannels();
+
   return { showInspector, showBottom, renderRecent };
 }
