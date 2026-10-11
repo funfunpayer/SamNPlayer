@@ -3080,3 +3080,43 @@ button.primary:hover:not(:disabled) {
 .st-about-partner { margin: 10px 0; }
 .st-about-partner img { width: 100%; max-width: 560px; height: auto; display: block; border-radius: 14px; }
 .st-about-partner figcaption { margin-top: 6px; }
+
+/* ===== Play layout (Owner 11 Oct, FunGen2-style): big video, tools in a
+   collapsible right column, info column hidden on Play. ===== */
+body[data-tab="playback"] #sidebar { display: none; }
+.pb-loaded {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+}
+#tab-playback.pb-tools-collapsed .pb-loaded { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+#tab-playback.pb-tools-collapsed .pb-tools > :not(.pb-tools-head) { display: none !important; }
+#tab-playback.pb-tools-collapsed .pb-tools { padding: 0; max-height: none; overflow: visible; }
+#tab-playback.pb-tools-collapsed .pb-tools-head { border-bottom: 0; padding: 0; }
+#tab-playback.pb-tools-collapsed .pb-tools-title { display: none; }
+.pb-tools {
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding: 0 4px 12px 2px;
+}
+.pb-tools-head {
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 2;
+  padding: 4px 0 8px; margin-bottom: 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.pb-tools-title {
+  font-size: var(--type-chip); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-dim); font-weight: 600;
+}
+.pb-tools-toggle { padding: 4px 10px; min-height: 0; }
+.pb-video-stage { min-height: 360px; }
+.pb-video-stage video { max-height: min(70vh, 900px); }
+.pb-video-stage.is-playing.has-video video { max-height: min(76vh, 980px); }
+#tab-playback.pb-tools-collapsed .pb-video-stage video { max-height: min(78vh, 1100px); }
+@media (max-width: 1100px) {
+  .pb-loaded { grid-template-columns: 1fr; }
+  .pb-tools { position: static; max-height: none; overflow: visible; }
+}
