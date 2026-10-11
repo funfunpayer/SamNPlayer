@@ -11,7 +11,7 @@ import {
   SaveContactSettings, PreviewContactVibration, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
   GetScriptBookmarks, SaveScriptBookmarks,
-  GetScriptChapterMarks, SaveScriptChapterMarks,
+  GetScriptChapterMarks, SaveScriptChapterMarks, GetVideoThumbnails,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
@@ -135,6 +135,12 @@ export function initPlayback(root) {
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
+          <div class="pb-scene-strip" id="pb-scene-strip" data-pb-region="scenes" hidden>
+            <div class="pb-scene-thumbs" id="pb-scene-thumbs" aria-hidden="true"></div>
+            <div class="pb-scene-marks" id="pb-scene-marks" role="toolbar" aria-label="Scene markers"></div>
+            <button type="button" class="pb-scene-add" id="pb-scene-add"
+              title="Add a scene marker at the playhead (starts a chapter)" aria-label="Add scene marker">+</button>
+          </div>
           <canvas id="pb-heatmap" height="56" class="pb-heatmap" data-pb-region="heatmap" style="display:none"></canvas>
           <div class="row pb-curve-zoom" id="pb-curve-zoom" data-pb-region="zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
             <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
@@ -181,6 +187,11 @@ export function initPlayback(root) {
           data-help="Audio Level lane under the curve: loudness of the video's sound over time (needs a linked video and ffmpeg). On by default.">
           <input type="checkbox" id="pb-audio-lane-toggle" checked />
           Audio level lane
+        </label>
+        <label class="checkbox-row" id="pb-scenes-row" style="margin:0;"
+          data-help="Scene strip under the lanes: video thumbnails and scene markers (◆ = chapter start, + adds one at the playhead). Off by default in the Player; scenes are a Generator tool.">
+          <input type="checkbox" id="pb-scenes-toggle" />
+          Scene markers + thumbnails
         </label>
         <label class="checkbox-row" id="pb-pos-overlay-row" style="display:none; margin:0;"
           data-help="0–100 stroke gauge over the video. Follows playhead. Turn off anytime.">
@@ -606,6 +617,14 @@ export function initPlayback(root) {
   let audioLaneOn = true;            // Owner: audio display on by default
   try { audioLaneOn = localStorage.getItem('pb.audioLane') !== '0'; } catch (_) { /* ignore */ }
   let lanesDrawn = [];               // lane order as last drawn (click/keyboard)
+  // Scene strip (V1 S4b): thumbnails + chapter-start diamonds. Owner: on in the
+  // Generator, off by default in the Player.
+  const SCENE_THUMBS = 24;
+  let scenesOn = false;
+  try { scenesOn = localStorage.getItem('pb.scenes') === '1'; } catch (_) { /* ignore */ }
+  let sceneThumbs = null;            // [{atMs, dataUrl}] for the linked video
+  let sceneThumbsFor = '';
+  let sceneStripSig = '';
   const rulerCanvas = el('#pb-ruler');
   const AXIS_LANE_CSS_H = 34;
   const axisLanesCanvas = el('#pb-axis-lanes');
@@ -1142,6 +1161,7 @@ export function initPlayback(root) {
   }
 
   function renderChapterList() {
+    renderSceneStrip();
     const box = el('#pb-chapter-list');
     if (!box) return;
     box.innerHTML = '';
@@ -1912,6 +1932,7 @@ export function initPlayback(root) {
     lanesDrawn = lanes;
     const shown = curveCanvas.style.display !== 'none';
     redrawRuler();
+    renderSceneStrip();
     if (!lanes.length || !shown) {
       axisLanesCanvas.hidden = true;
       if (legend) legend.hidden = true;
@@ -2022,6 +2043,96 @@ export function initPlayback(root) {
     ctx.textBaseline = 'top';
     ctx.fillStyle = color;
     ctx.fillText('AUDIO LEVEL', 6 * dpr, top + 3 * dpr);
+  }
+
+  // Scene strip: DOM, not canvas — diamonds are real buttons (seek, keyboard).
+  // Rebuilt only when the view window, thumbnails or chapters change.
+  function renderSceneStrip() {
+    const strip = el('#pb-scene-strip');
+    if (!strip) return;
+    const shown = scenesOn && !!scriptPath && curveCanvas.style.display !== 'none' && totalMs > 1;
+    strip.hidden = !shown;
+    root.dataset.pbScenes = shown ? 'on' : 'off';
+    if (!shown) { sceneStripSig = ''; return; }
+    const sig = [viewStartMs, viewEndMs, sceneThumbsFor, sceneThumbs ? sceneThumbs.length : 0,
+      JSON.stringify(chapterMarks)].join('|');
+    if (sig === sceneStripSig) return;
+    sceneStripSig = sig;
+    const pct = ms => `${((ms - viewStartMs) / viewSpanMs()) * 100}%`;
+    const inView = ms => ms >= viewStartMs && ms <= viewEndMs;
+    const thumbsBox = el('#pb-scene-thumbs');
+    thumbsBox.innerHTML = '';
+    if (sceneThumbs && sceneThumbs.length) {
+      const slot = sceneThumbs.length > 1 ? sceneThumbs[1].atMs - sceneThumbs[0].atMs : totalMs;
+      for (const t of sceneThumbs) {
+        const from = t.atMs - slot / 2, to = t.atMs + slot / 2;
+        if (to < viewStartMs || from > viewEndMs || !t.dataUrl) continue;
+        const img = document.createElement('img');
+        img.className = 'pb-scene-thumb';
+        img.src = t.dataUrl;
+        img.alt = '';
+        img.draggable = false;
+        img.style.left = pct(from);
+        img.style.width = `${(slot / viewSpanMs()) * 100}%`;
+        thumbsBox.appendChild(img);
+      }
+    }
+    const marks = el('#pb-scene-marks');
+    marks.innerHTML = '';
+    chapterMarks.forEach(c => {
+      if (!inView(c.startTime)) return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pb-scene-mark';
+      b.style.left = pct(c.startTime);
+      b.title = `${c.name} · ${fmtRuler(c.startTime)} — click to seek`;
+      b.setAttribute('aria-label', `Scene ${c.name} at ${fmtRuler(c.startTime)}`);
+      b.addEventListener('click', () => seekTo(c.startTime));
+      marks.appendChild(b);
+    });
+  }
+
+  async function loadSceneThumbs() {
+    const key = root.dataset.pbVideoPath || '';
+    if (!scenesOn || !key) {
+      if (!key) { sceneThumbs = null; sceneThumbsFor = ''; }
+      renderSceneStrip();
+      return;
+    }
+    if (sceneThumbsFor === key) return;
+    sceneThumbsFor = key;
+    try {
+      const thumbs = await GetVideoThumbnails(SCENE_THUMBS);
+      if (sceneThumbsFor !== key) return;
+      sceneThumbs = Array.isArray(thumbs) ? thumbs : null;
+    } catch (err) {
+      sceneThumbs = null;
+      log('Scene thumbnails unavailable: ' + err);
+    }
+    renderSceneStrip();
+  }
+
+  // "+": a scene marker is a chapter start. The new chapter runs to the next
+  // one (or the end); a chapter that spanned the point now ends there.
+  async function addSceneMarkerAt(atMs) {
+    if (!scriptPath) {
+      showChooseScriptRetry('Load a script first.', el('#pb-log'));
+      return;
+    }
+    const t = Math.max(0, Math.round(atMs));
+    if (chapterMarks.some(c => Math.abs(c.startTime - t) < 250)) {
+      uiWarn('A scene marker is already here.', el('#pb-log'));
+      return;
+    }
+    const previous = chapterMarks.slice();
+    const nextStart = chapterMarks.map(c => c.startTime).filter(s => s > t).sort((a, b) => a - b)[0] || 0;
+    const next = chapterMarks.map(c => (c.startTime < t && (!c.endTime || c.endTime > t) ? { ...c, endTime: t } : c));
+    const name = `Scene ${chapterMarks.length + 1}`;
+    next.push({ name, startTime: t, endTime: nextStart });
+    next.sort((a, b) => a.startTime - b.startTime);
+    if (await persistChapterMarks(next, previous)) {
+      uiInfo(`Scene marker “${name}” at ${fmtRuler(t)}`, el('#pb-log'));
+    }
   }
 
   async function loadAudioLevel() {
@@ -3577,7 +3688,7 @@ export function initPlayback(root) {
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
     root.dataset.pbVideoPath = (root.dataset.pbVideo === 'true' && videoPath) ? videoPath : '';
   }
-  new MutationObserver(() => { syncStageState(); loadAudioLevel(); })
+  new MutationObserver(() => { syncStageState(); loadAudioLevel(); loadSceneThumbs(); })
     .observe(stageEl, { attributes: true, attributeFilter: ['class'] });
   const audioLaneBox = el('#pb-audio-lane-toggle');
   if (audioLaneBox) {
@@ -3588,6 +3699,16 @@ export function initPlayback(root) {
       if (audioLaneOn) { audioLevelFor = ''; loadAudioLevel(); } else redrawAxisLanes();
     });
   }
+  const scenesBox = el('#pb-scenes-toggle');
+  if (scenesBox) {
+    scenesBox.checked = scenesOn;
+    scenesBox.addEventListener('change', () => {
+      scenesOn = !!scenesBox.checked;
+      try { localStorage.setItem('pb.scenes', scenesOn ? '1' : '0'); } catch (_) { /* ignore */ }
+      if (scenesOn) loadSceneThumbs(); else renderSceneStrip();
+    });
+  }
+  el('#pb-scene-add')?.addEventListener('click', () => addSceneMarkerAt(currentPosMs));
   syncStageState();
   if (!root.dataset.pbState) root.dataset.pbState = 'empty';
   if (!root.dataset.pbTools) root.dataset.pbTools = 'open';

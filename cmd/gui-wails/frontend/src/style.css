@@ -3143,6 +3143,29 @@ body[data-tab="playback"] #sidebar { display: none; }
   background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
 }
+/* S4b scene strip: thumbnails + chapter-start diamonds + "+" (structure only). */
+.pb-scene-strip[hidden] { display: none !important; }
+.pb-scene-strip {
+  position: relative; height: 44px; margin-right: 30px;
+  border-top: 1px solid var(--border); background: rgba(255, 255, 255, 0.02);
+}
+.pb-scene-thumbs { position: absolute; inset: 0; overflow: hidden; }
+.pb-scene-thumb {
+  position: absolute; top: 2px; height: calc(100% - 4px);
+  object-fit: cover; opacity: 0.8; border-radius: 3px; pointer-events: none;
+}
+.pb-scene-marks { position: absolute; inset: 0; pointer-events: none; }
+.pb-scene-mark {
+  position: absolute; top: -6px; width: 12px; height: 12px; min-height: 0;
+  margin-left: -6px; padding: 0; transform: rotate(45deg);
+  border: 1px solid #fff; border-radius: 2px; background: var(--accent, #00d9f4);
+  box-shadow: none; cursor: pointer; pointer-events: auto;
+}
+.pb-scene-add {
+  position: absolute; right: -30px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%;
+  font-size: 16px; line-height: 1;
+}
 
 /* ===== Tools sub-navigation (Owner 11 Oct, #475): Device · Log · Settings.
    Functional baseline only — the layout owner may restyle it. ===== */

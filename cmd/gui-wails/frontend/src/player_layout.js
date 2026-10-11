@@ -171,7 +171,7 @@ export function applyPlayerLayoutV1(root, api) {
   if (adv) panels.playback.appendChild(adv);
   ['#pb-quality-details', '#pb-ofs-row', '#pb-marker-auto-row', '#pb-log'].forEach(s => move(s, 'playback'));
   // View: curve display / editing.
-  ['#pb-curve-edit-row', '#pb-curve-edit-hint', '#pb-audio-lane-row', '#pb-pos-overlay-row', '#pb-ofs-edit-details',
+  ['#pb-curve-edit-row', '#pb-curve-edit-hint', '#pb-audio-lane-row', '#pb-scenes-row', '#pb-pos-overlay-row', '#pb-ofs-edit-details',
     '#pb-marker-hint', '#pb-omarker-details'].forEach(s => move(s, 'view'));
   // Anything left (future additions) lands in Playback so nothing is lost.
   [...tools.children].forEach(n => {

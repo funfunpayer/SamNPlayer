@@ -199,3 +199,16 @@ body {
 .pb-vb-select svg:first-child { stroke: #8fd3ff; }
 .pb-vb-icon { background: transparent; border: 0; color: #d6e6f5; }
 .pb-vb-icon:hover { background: rgba(0, 180, 255, 0.10); color: #fff; }
+
+/* S4b scene strip look */
+.pb-scene-strip { background: rgba(var(--accent-rgb, 0, 217, 244), 0.03); }
+.pb-scene-thumb { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.pb-scene-mark {
+  background: var(--axis-stroke, #ff8a23);
+  box-shadow: 0 0 8px rgba(255, 138, 35, 0.7);
+}
+.pb-scene-mark:hover, .pb-scene-mark:focus-visible { background: #fff; }
+.pb-scene-add {
+  color: var(--accent, #00d9f4); background: rgba(var(--accent-rgb, 0, 217, 244), 0.08);
+  border: 1px solid rgba(var(--accent-rgb, 0, 217, 244), 0.45);
+}
