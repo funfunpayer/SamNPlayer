@@ -10,6 +10,21 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **New look: lilac SamNPlayer logo and calmer colours** — the S-N logo is
+  redrawn as a vector in lilac with a teal edge (app icon, Windows `.exe`
+  icon 16–256 px, in-app and website logo; sources in
+  `cmd/gui-wails/build/brand/`). One accent colour, flat buttons and
+  progress bars instead of colour sweeps, a single-colour wordmark; teal
+  and feel colours stay for data only.
+
+### Added
+
+- **Settings → About SamNPlayer** — logo, version, edition, EULA version
+  and a partner graphic (SamNPlayer 🤝 the "Sex for him" site); the
+  website link appears once its address is set.
+
+### Changed
+
 - **Two editions from one code base** — the release (customer) build no
   longer shows AI training and learning tools (AI Train tab, golden-clip
   benchmark, learning-data export, candidate review, "Remember scene +

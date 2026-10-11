@@ -341,3 +341,5 @@ export function GetEULA():Promise<main.EULAInfo>;
 export function GetThirdPartyNotices():Promise<string>;
 export function OpenDonateLink(arg1:string):Promise<void>;
 export function IsStudioBuild():Promise<boolean>;
+export function GetAboutInfo():Promise<main.AboutInfo>;
+export function OpenPartnerSite():Promise<void>;

@@ -778,6 +778,27 @@ export namespace legal {
 
 export namespace main {
 	
+	export class AboutInfo {
+	    version: string;
+	    edition: string;
+	    eulaVersion: string;
+	    partnerName: string;
+	    partnerUrl: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AboutInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.edition = source["edition"];
+	        this.eulaVersion = source["eulaVersion"];
+	        this.partnerName = source["partnerName"];
+	        this.partnerUrl = source["partnerUrl"];
+	    }
+	}
+	
 	export class EULAInfo {
 	    version: string;
 	    text: string;

@@ -1,6 +1,6 @@
 // Freeware terms + donations (Owner 10 Oct 2026: no licence keys —
 // free with an EULA, financed by donations).
-import { GetEULA, AcceptEULA, DeclineEULA, GetThirdPartyNotices, GetDonateLinks, OpenDonateLink } from '../wailsjs/go/main/App';
+import { GetEULA, AcceptEULA, DeclineEULA, GetThirdPartyNotices, GetDonateLinks, OpenDonateLink, GetAboutInfo, OpenPartnerSite } from '../wailsjs/go/main/App';
 
 function escapeText(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => (
@@ -76,5 +76,29 @@ export async function renderDonateButtons(box) {
     btn.textContent = `♥ Donate via ${l.name}`;
     btn.addEventListener('click', () => OpenDonateLink(l.url));
     box.appendChild(btn);
+  }
+}
+
+// Settings → About SamNPlayer: version, edition, partner site (link appears
+// once its URL is set in legal.PartnerSiteURL).
+export async function renderAbout(root) {
+  const q = sel => root.querySelector(sel);
+  let info = {};
+  try { info = (await GetAboutInfo()) || {}; } catch (_) { info = {}; }
+  const v = q('#st-about-version');
+  if (v) v.textContent = `Version ${info.version || '?'} · ${info.edition === 'studio' ? 'Studio edition' : 'Free edition'} · EULA ${info.eulaVersion || ''}`;
+  const name = info.partnerName || 'our partner site';
+  const txt = q('#st-about-partner-text');
+  const btn = q('#st-about-partner');
+  if (info.partnerUrl) {
+    if (txt) txt.textContent = `In partnership with ${name} — guides and articles around SamNPlayer.`;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = `Visit ${name}`;
+      btn.onclick = () => OpenPartnerSite();
+    }
+  } else {
+    if (txt) txt.textContent = `In partnership with ${name} — website coming soon.`;
+    if (btn) { btn.disabled = true; btn.textContent = 'Website coming soon'; }
   }
 }

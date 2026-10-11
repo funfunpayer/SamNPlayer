@@ -3009,3 +3009,74 @@ fieldset,
 
 /* Edition switch: customer build hides studio-only tools (main.js). */
 html[data-edition="customer"] [data-studio] { display: none !important; }
+
+/* ===== Calm palette (Owner 11 Oct): one accent (lilac), flat surfaces,
+   teal / feel colours only for data (curves, meters, bands). Overrides the
+   earlier decorative gradients in one place. ===== */
+body {
+  background: var(--bg);
+}
+#app::after,
+#rail::after {
+  background: var(--border);
+}
+#rail {
+  background: var(--bg-alt);
+}
+.stage-main,
+.pb-empty,
+.gen-step-panel {
+  background: var(--surface-soft);
+}
+.stage-main { background: none; }
+.tab-btn.active {
+  background: var(--accent-soft);
+}
+h2::after {
+  background: var(--accent);
+}
+button.primary {
+  background-image: none;
+  background: var(--accent);
+  color: #16131c;
+}
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: none;
+}
+.progress-bar-fill,
+.pb-loaded .progress-bar-fill,
+.run-progress-bar {
+  background: var(--accent);
+  animation: none;
+}
+.checkbox-row input[type="checkbox"]:checked {
+  background: var(--accent);
+}
+.gen-mark-snack {
+  background: var(--surface);
+}
+/* Wordmark: one colour, only the N in the accent. */
+.brand-wordmark,
+.brand-wordmark .wm-sam,
+.brand-wordmark .wm-rest,
+.topbar-brand .mark,
+.topbar-brand .rest {
+  color: var(--text);
+}
+.brand-wordmark .wm-n {
+  color: var(--accent);
+}
+.topbar-brand .slash {
+  color: var(--text-dim);
+}
+
+/* Settings → About SamNPlayer */
+.st-about { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.st-about-head { display: flex; align-items: center; gap: 14px; margin: 8px 0 10px; }
+.st-about-logo { width: 64px; height: 64px; border-radius: 16px; }
+.st-about-name { font-family: "Sora", var(--font); font-weight: 700; font-size: 20px; color: var(--text); }
+.st-about-name .wm-n { color: var(--accent); }
+.st-about-partner { margin: 10px 0; }
+.st-about-partner img { width: 100%; max-width: 560px; height: auto; display: block; border-radius: 14px; }
+.st-about-partner figcaption { margin-top: 6px; }

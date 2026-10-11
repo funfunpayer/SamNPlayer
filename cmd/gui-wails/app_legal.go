@@ -5,7 +5,9 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/funfunpayer/SamNPlayer/edition"
 	"github.com/funfunpayer/SamNPlayer/legal"
+	"github.com/funfunpayer/SamNPlayer/update"
 	"github.com/funfunpayer/SamNPlayer/logging"
 )
 
@@ -63,4 +65,33 @@ func (a *App) OpenDonateLink(url string) error {
 		}
 	}
 	return fmt.Errorf("unknown donation link")
+}
+
+// AboutInfo feeds Settings → About SamNPlayer.
+type AboutInfo struct {
+	Version     string `json:"version"`
+	Edition     string `json:"edition"`
+	EULAVersion string `json:"eulaVersion"`
+	PartnerName string `json:"partnerName"`
+	PartnerURL  string `json:"partnerUrl"`
+}
+
+// GetAboutInfo returns version, edition and the partner site (URL may be empty).
+func (a *App) GetAboutInfo() AboutInfo {
+	return AboutInfo{
+		Version:     update.Describe(),
+		Edition:     edition.Name(),
+		EULAVersion: legal.EULAVersion,
+		PartnerName: legal.PartnerSiteName,
+		PartnerURL:  legal.PartnerSiteURL,
+	}
+}
+
+// OpenPartnerSite opens the partner website when its URL is set.
+func (a *App) OpenPartnerSite() error {
+	if legal.PartnerSiteURL == "" {
+		return fmt.Errorf("partner website coming soon")
+	}
+	runtime.BrowserOpenURL(a.ctx, legal.PartnerSiteURL)
+	return nil
 }

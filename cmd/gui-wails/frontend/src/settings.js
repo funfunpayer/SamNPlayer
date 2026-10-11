@@ -1,4 +1,4 @@
-import { showEULA, showThirdPartyNotices, renderDonateButtons } from './legal.js';
+import { showEULA, showThirdPartyNotices, renderDonateButtons, renderAbout } from './legal.js';
 import { GetSettings, SetSetting, PickReportPath, ReportSummary, ReportExists, GetHardwareInfo, GetCacheInfo, ClearCache, TrainQualityModel, QualityModelInfo, OpenLogFolder, CheckAIRoiAvailable, CheckAIServerAvailable, CheckAISetup, InstallAISetup, CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetRuntimeHealth, EnsureVideoTools, DeleteSceneMapLearningData, InstallPluginPack, OpenPluginsFolder, PluginsDir, ListInstalledPlugins } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
@@ -138,6 +138,7 @@ export function initSettings(root) {
       <button id="st-show-eula" type="button" class="secondary">Show licence agreement (EULA)</button>
       <button id="st-show-notices" type="button" class="secondary">Third-party notices</button>
     </div>
+
 
     <details id="st-plugins-details" class="st-opt-panel">
       <summary>Plugins — optional drop-folder packs</summary>
@@ -294,6 +295,25 @@ export function initSettings(root) {
         changes.</p>
       <pre id="st-report-out" class="hint" style="white-space:pre-wrap; margin-top:6px;"></pre>
     </details>
+    <section id="st-about" class="st-about">
+      <h3>About SamNPlayer</h3>
+      <div class="st-about-head">
+        <img src="/src/assets/images/logo-universal.png" alt="SamNPlayer logo" class="st-about-logo" />
+        <div>
+          <div class="st-about-name">Sam<span class="wm-n">N</span>Player</div>
+          <div class="hint" id="st-about-version" style="margin:2px 0 0;">…</div>
+        </div>
+      </div>
+      <p class="hint">Free player and script generator for SVAKOM Sam Neo 2 and Funscript devices.
+        Made with care — supported by donations.</p>
+      <figure class="st-about-partner">
+        <img src="/src/assets/images/partner.svg" alt="SamNPlayer and the Sex for him website — partners" />
+        <figcaption class="hint" id="st-about-partner-text">…</figcaption>
+      </figure>
+      <div class="row" style="align-items:center;">
+        <button id="st-about-partner" type="button" class="secondary" disabled>Visit website</button>
+      </div>
+    </section>
   `;
 
   const el = id => root.querySelector(id);
@@ -344,6 +364,7 @@ export function initSettings(root) {
     }
     updateReportStatus();
     renderDonateButtons(el('#st-donate-buttons'));
+    renderAbout(root);
     refreshPluginsStatus();
   });
 
