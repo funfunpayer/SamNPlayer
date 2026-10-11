@@ -31,6 +31,17 @@
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
 }
+.pb-lib-recent-item {
+  color: var(--text-dim);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.5rem;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.pb-lib-recent-item:hover {
+  color: var(--accent);
+  background-color: rgba(0, 217, 244, .06);
+}
 .pb-lib-drop {
   border: 1px dashed rgba(104, 180, 212, .4);
   background: rgba(10, 27, 43, .45);
@@ -149,6 +160,7 @@
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
 }
 .pb-lib-item:focus-visible,
+.pb-lib-recent-item:focus-visible,
 .pb-insp-tab:focus-visible,
 .pb-bottom-tab:focus-visible,
 [data-pb-region="legend"] [data-axis]:focus-visible,
@@ -166,6 +178,19 @@
   align-items: center;
   gap: 0.55rem;
   margin: 0.3rem 0;
+}
+.pb-chan-name {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  min-width: 4.5rem;
+}
+.pb-chan-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.75rem;
+  min-width: 2.5rem;
+  text-align: right;
 }
 .pb-chan-dot {
   width: 8px;
@@ -230,18 +255,21 @@
   border-bottom: 1px solid rgba(104, 180, 212, .18);
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
+  letter-spacing: 0.02em;
 }
 [data-pb-region="lanes"] .pb-lane-name,
 [data-pb-region="legend"] .pb-lane-label {
   color: var(--text-dim);
   font-size: 0.72rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 .pb-marker,
 [data-pb-region="timeline"] .pb-scene-marker {
   color: var(--accent);
   background: rgba(0, 217, 244, .15);
   border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 217, 244, .3);
 }
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
@@ -249,12 +277,28 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
 }
 [data-pb-region="zoom"] button:hover,
 [data-pb-region="zoom"] .pb-zoom-btn:hover {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
   border-color: rgba(0, 217, 244, .25);
+}
+.pb-bottom-panel {
+  background: transparent;
+}
+.pb-panel-head {
+  color: var(--text-dim);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.pb-collapse {
+  color: var(--accent);
+  transition: color 140ms ease, opacity 140ms ease;
+}
+.pb-collapse:hover {
+  color: #65efff;
 }
 @media (prefers-contrast: more) {
   .pb-card,
@@ -278,13 +322,15 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .pb-lib-item,
+  .pb-lib-recent-item,
   .pb-insp-tab,
   .pb-bottom-tab,
   .pb-axis-chip,
   [data-pb-region="legend"] [data-axis],
   .pb-chan-bar b,
   [data-pb-region="zoom"] button,
-  [data-pb-region="transport"] button {
+  [data-pb-region="transport"] button,
+  .pb-collapse {
     transition: none;
   }
 }
