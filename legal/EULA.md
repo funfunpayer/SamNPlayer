@@ -59,7 +59,8 @@ to Your Content and for how you use and share it.
 
 ## 6. Donations
 
-The Software is financed by voluntary donations. A donation is a gift: it
+The Software is financed by voluntary donations, which keep the project
+alive and make new features possible. A donation is a gift: it
 does not buy a licence, extra features, support or any other service, and
 the Software is the same with or without it. Donations are processed by the
 chosen payment platform (for example Patreon or PayPal) under its own terms;

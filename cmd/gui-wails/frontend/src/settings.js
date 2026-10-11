@@ -126,8 +126,9 @@ export function initSettings(root) {
 
     <div data-donate-section>
       <h3>Support SamNPlayer</h3>
-      <p class="hint">SamNPlayer is free. If it is useful to you, a donation keeps development going —
-        it is voluntary and changes nothing in the app.</p>
+      <p class="hint">SamNPlayer is free and stays free. Your donation keeps the project alive and makes
+        new features possible — every contribution goes into further development. Donations are
+        voluntary gifts: everyone gets the same app, with or without one.</p>
       <div class="row" id="st-donate-buttons" style="align-items:center; gap:8px;"></div>
     </div>
 
