@@ -132,10 +132,14 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 func (p *Player) setOutput(f funscript.Frame) error {
 	scale := p.getIntensityScale()
 	vibLevel, sucLevel := p.ChannelLevels()
+	vib, suc := f.Vibration, f.Suction
+	if p.PeakReduce() {
+		vib, suc = ReducePeak(vib), ReducePeak(suc)
+	}
 	out := funscript.Frame{
 		At:        f.At,
-		Vibration: f.Vibration * scale * vibLevel,
-		Suction:   f.Suction * scale * sucLevel,
+		Vibration: vib * scale * vibLevel,
+		Suction:   suc * scale * sucLevel,
 	}
 	if err := p.Device.SetVibration(out.Vibration); err != nil {
 		return err

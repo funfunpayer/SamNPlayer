@@ -77,6 +77,37 @@ type Player struct {
 	// New(). Level = 1 - cut; 0 switches the channel off.
 	vibCut float64
 	sucCut float64
+	// peakReduce: soft limiter on vibration / suction (Effects → Reduce peaks).
+	peakReduce bool
+}
+
+// Reduce peaks: values up to PeakKnee pass unchanged, everything above is
+// compressed by PeakRatio, so a full-strength burst (1.0) comes out at 0.76.
+const (
+	PeakKnee  = 0.6
+	PeakRatio = 0.4
+)
+
+// ReducePeak applies the Reduce peaks soft limiter to one output value (0–1).
+func ReducePeak(v float64) float64 {
+	if v <= PeakKnee {
+		return v
+	}
+	return PeakKnee + (v-PeakKnee)*PeakRatio
+}
+
+// SetPeakReduce turns the Reduce peaks limiter on or off, also while playing.
+func (p *Player) SetPeakReduce(on bool) {
+	p.intensityMu.Lock()
+	p.peakReduce = on
+	p.intensityMu.Unlock()
+}
+
+// PeakReduce reports whether Reduce peaks is on.
+func (p *Player) PeakReduce() bool {
+	p.intensityMu.Lock()
+	defer p.intensityMu.Unlock()
+	return p.peakReduce
 }
 
 func New(dev device.Device) *Player {

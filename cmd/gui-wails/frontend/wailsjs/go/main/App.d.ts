@@ -24,6 +24,8 @@ export function DetectExpectedTipROI(arg1:string,arg2:string,arg3:number,arg4:nu
 export function GetAudioLevelEnvelope():Promise<Array<number>>;
 export function SaveVideoSnapshot(arg1:number):Promise<string>;
 export function SetChannelLevels(arg1:number,arg2:number):Promise<void>;
+
+export function SetPeakReduce(arg1:boolean):Promise<void>;
 export function SetPlaybackSpeed(arg1:number):Promise<number>;
 export function SuggestROICandidates(arg1:string):Promise<void>;
 export function ListAIDetections(arg1:string,arg2:number):Promise<void>;

@@ -35,6 +35,7 @@ def main():
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
         "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
+        "SetPeakReduce": "async (on) => { window.__peaks = on; }",
         "SetScriptOffset": "async (ms) => { window.__offset = ms; }",
         "GetScriptAxisActions": "async (axis) => axis === 'vibration' ? %s : (!axis || axis === 'general') ? %s : null" % (json.dumps([{"at": a["at"], "pos": 50} for a in acts]), json.dumps(acts)),
         "GetAudioLevelEnvelope": "async () => Array.from({ length: 1200 }, (_, i) => Math.abs(Math.sin(i / 9)))",
@@ -75,6 +76,11 @@ def main():
             page.evaluate("""() => { const s = document.querySelector('#pb-audio-vibration'); s.checked = false;
                 s.dispatchEvent(new Event('change', { bubbles: true })); }""")
             check("and follows it back", not page.is_checked("#pb-fx-audio-sync"))
+            # Reduce peaks.
+            check("Reduce peaks off by default", page.evaluate("window.__peaks") is False and not page.is_checked("#pb-fx-reduce-peaks"))
+            page.check("#pb-fx-reduce-peaks")
+            check("Reduce peaks → SetPeakReduce(true)", page.evaluate("window.__peaks") is True)
+            check("Reduce peaks remembered", page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels')).reducePeaks") is True)
             # Lane names column (Timeline).
             page.wait_for_function("document.querySelectorAll('.pb-lane-name').length >= 3", timeout=5000)
             lanes = page.evaluate("[...document.querySelectorAll('.pb-lane-name')].map(e => e.textContent.trim())")
