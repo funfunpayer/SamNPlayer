@@ -8,7 +8,7 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
-import { SetChannelLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
+import { SetChannelLevels, SetPeakReduce, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -230,6 +230,13 @@ export function applyPlayerLayoutV1(root, api) {
     new MutationObserver(pull).observe(avSrc, { attributes: true, attributeFilter: ['disabled', 'checked'] });
     pull();
   }
+  // Reduce peaks: soft limiter in the player (above 60 % softened, full
+  // strength → 76 %). Live; files unchanged.
+  const peaks = document.createElement('label');
+  peaks.className = 'checkbox-row pb-effects-check';
+  peaks.title = 'Softens strong bursts: vibration and suction above 60 % are compressed (100 % comes out at 76 %). Live, files unchanged.';
+  peaks.innerHTML = '<input type="checkbox" id="pb-fx-reduce-peaks" /> Reduce peaks';
+  fx.appendChild(peaks);
   panels.devices.appendChild(fx);
   // Knob drawing: the SVG is turned 135°, so 0 % sits bottom-left and the
   // arc / pointer sweep 270° clockwise.
@@ -689,6 +696,10 @@ export function applyPlayerLayoutV1(root, api) {
     };
     const master = Math.max(0, Math.min(100, Number(q('#pb-knob-intensity')?.value ?? 100)));
     out.master = master;
+    const reduce = !!q('#pb-fx-reduce-peaks')?.checked;
+    out.reducePeaks = reduce;
+    root.dataset.pbReducePeaks = reduce ? 'on' : 'off';
+    SetPeakReduce(reduce).catch(() => {});
     drawKnob('intensity', master);
     const vib = level('vibration') * master / 100, suc = level('suction') * master / 100;
     store(CHAN_KEY, JSON.stringify(out));
@@ -702,6 +713,11 @@ export function applyPlayerLayoutV1(root, api) {
   const intensity = q('#pb-knob-intensity');
   if (intensity && Number.isFinite(saved.master)) intensity.value = String(Math.max(0, Math.min(100, saved.master)));
   intensity?.addEventListener('input', applyChannels);
+  const peakBox = q('#pb-fx-reduce-peaks');
+  if (peakBox) {
+    peakBox.checked = saved.reducePeaks === true;
+    peakBox.addEventListener('change', applyChannels);
+  }
   applyChannels();
 
   // Response ↔ Play smoothing (0–1, saved as playback.smoothing by playback.js).

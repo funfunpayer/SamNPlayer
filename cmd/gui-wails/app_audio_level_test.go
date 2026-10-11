@@ -48,3 +48,14 @@ func TestSetChannelLevelsStoresClampedCut(t *testing.T) {
 		t.Fatalf("levels %v %v, want 0.3 1", vib, suc)
 	}
 }
+
+func TestSetPeakReduceStored(t *testing.T) {
+	a := NewApp()
+	a.SetPeakReduce(true)
+	a.stateMu.RLock()
+	on := a.peakReduce
+	a.stateMu.RUnlock()
+	if !on {
+		t.Fatal("SetPeakReduce(true) not stored for the next playback")
+	}
+}

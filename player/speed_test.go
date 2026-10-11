@@ -1,8 +1,11 @@
 package player
 
 import (
+	"math"
 	"testing"
 	"time"
+
+	"github.com/funfunpayer/SamNPlayer/funscript"
 )
 
 func TestClampSpeed(t *testing.T) {
@@ -45,5 +48,52 @@ func TestChannelLevelsDefaultFullAndClamp(t *testing.T) {
 	p.SetChannelLevels(7, 0.25)
 	if v, s := p.ChannelLevels(); v != 1 || s != 0.25 {
 		t.Fatalf("levels %v %v, want 1 0.25", v, s)
+	}
+}
+
+func TestReducePeak(t *testing.T) {
+	cases := map[float64]float64{0: 0, 0.3: 0.3, PeakKnee: PeakKnee, 0.8: 0.68, 1: 0.76}
+	for in, want := range cases {
+		if got := ReducePeak(in); math.Abs(got-want) > 1e-9 {
+			t.Errorf("ReducePeak(%v) = %v, want %v", in, got, want)
+		}
+	}
+	// Monotonic: a stronger input never comes out weaker.
+	prev := -1.0
+	for v := 0.0; v <= 1.0001; v += 0.01 {
+		if got := ReducePeak(v); got < prev {
+			t.Fatalf("not monotonic at %v", v)
+		} else {
+			prev = got
+		}
+	}
+}
+
+func TestSetOutputReducePeaks(t *testing.T) {
+	dev := &recordingDev{}
+	p := New(dev)
+	if p.PeakReduce() {
+		t.Fatal("Reduce peaks must be off by default")
+	}
+	p.SetPeakReduce(true)
+	p.SetChannelLevels(0.5, 1)
+	if err := p.setOutput(funscript.Frame{At: 10, Vibration: 1, Suction: 0.4}); err != nil {
+		t.Fatal(err)
+	}
+	// Peak first, then the channel level: 1 → 0.76 → ×0.5; 0.4 stays below the knee.
+	vib, suc := dev.snapshot()
+	if got := vib[len(vib)-1]; math.Abs(got-0.38) > 1e-9 {
+		t.Fatalf("vibration %v, want 0.38", got)
+	}
+	if got := suc[len(suc)-1]; math.Abs(got-0.4) > 1e-9 {
+		t.Fatalf("suction %v, want 0.4", got)
+	}
+	p.SetPeakReduce(false)
+	if err := p.setOutput(funscript.Frame{At: 20, Vibration: 1, Suction: 1}); err != nil {
+		t.Fatal(err)
+	}
+	vib, _ = dev.snapshot()
+	if got := vib[len(vib)-1]; math.Abs(got-0.5) > 1e-9 {
+		t.Fatalf("off: vibration %v, want 0.5", got)
 	}
 }

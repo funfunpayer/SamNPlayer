@@ -42,6 +42,7 @@ type App struct {
 	// Per-channel output cut (V1 Inspector → Devices); zero value = full.
 	// Guarded by stateMu; applied to every new and the running player.
 	vibCut, sucCut  float64
+	peakReduce      bool
 	activeDevice    device.Device
 	playCancel      context.CancelFunc
 	videoPositionCh chan int64

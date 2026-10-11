@@ -197,6 +197,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p.SetSpeed(opts.Speed)
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
+	p.SetPeakReduce(a.peakReduce)
 	a.stateMu.RUnlock()
 	p.OnLog = func(line string) { runtime.EventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
@@ -346,6 +347,19 @@ func (a *App) SetChannelLevels(vibration, suction float64) {
 	a.stateMu.Unlock()
 	if p != nil {
 		p.SetChannelLevels(vibration, suction)
+	}
+}
+
+// SetPeakReduce turns Effects → Reduce peaks on or off for the running and
+// every following playback: vibration and suction above 60 % are softened
+// (full strength comes out at 76 %). Script files are not changed.
+func (a *App) SetPeakReduce(on bool) {
+	a.stateMu.Lock()
+	a.peakReduce = on
+	p := a.activePlayer
+	a.stateMu.Unlock()
+	if p != nil {
+		p.SetPeakReduce(on)
 	}
 }
 
