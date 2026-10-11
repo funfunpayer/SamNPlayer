@@ -1,5 +1,6 @@
 import './style.css';
 import './help.js';
+import { initFlowWorkspace } from './flow_workspace.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
@@ -377,3 +378,6 @@ window.addEventListener('drop', () => {
   dragDepth = 0;
   overlay.classList.remove('visible');
 });
+
+// Flow workspace is independent of Wails/Go initialization.
+initFlowWorkspace();
