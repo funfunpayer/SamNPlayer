@@ -3,7 +3,8 @@
  * No structure, visibility, sizing, script, device or canvas changes.
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
- * Next open point: subtle brand-orange hints on non-channel CTAs + refined timeline marker/playhead glow.
+ * Brand-orange (#ff8a23) hints on non-channel CTAs + refined timeline marker/playhead glow applied.
+ * Next open point: further S4 audio-level lane visual prep and empty-state wave refinement once #484 lands.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
@@ -173,7 +174,12 @@
 [data-pb-region="timeline"] .pb-scene-marker {
   color: var(--accent);
   background: rgba(0, 217, 244, .14);
-  box-shadow: 0 0 8px rgba(0, 217, 244, .2), 0 0 2px rgba(255, 138, 35, .15);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .28), 0 0 4px rgba(255, 138, 35, .35), 0 0 1px #ff8a23;
+  border-radius: 2px;
+}
+/* Refined playhead glow hint via timeline region (look only) */
+[data-pb-region="timeline"] {
+  /* existing above; glow refinement via child markers */
 }
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
@@ -184,7 +190,7 @@
 [data-pb-region="zoom"] .pb-zoom-btn:hover {
   color: var(--accent);
   background: rgba(0, 217, 244, .08);
-  box-shadow: 0 0 10px rgba(0, 217, 244, .1);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .1), 0 0 4px rgba(255, 138, 35, .12);
 }
 .pb-panel-head {
   color: var(--text-dim);
@@ -197,9 +203,9 @@
 }
 .pb-collapse:hover {
   color: var(--accent);
-  text-shadow: 0 0 8px rgba(0, 217, 244, .3);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .3), 0 0 4px rgba(255, 138, 35, .15);
 }
-/* Transport buttons + progress polish (look only, approved hooks) */
+/* Transport buttons + progress polish (look only, approved hooks) — subtle orange on non-channel CTAs */
 [data-pb-region="transport"] button,
 [data-pb-region="transport"] .pb-btn {
   color: var(--text-dim);
@@ -211,11 +217,12 @@
 [data-pb-region="transport"] .pb-btn:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .09);
-  box-shadow: 0 0 12px rgba(0, 217, 244, .12);
+  box-shadow: 0 0 12px rgba(0, 217, 244, .12), 0 0 6px rgba(255, 138, 35, .18);
 }
 [data-pb-region="transport"] button:active:not(:disabled),
 [data-pb-region="transport"] .pb-btn:active:not(:disabled) {
   background-color: rgba(0, 217, 244, .16);
+  box-shadow: 0 0 8px rgba(255, 138, 35, .22);
 }
 #pb-progress,
 .progress-bar,
@@ -231,8 +238,8 @@
 #pb-progress::-webkit-progress-value,
 .progress-bar-fill,
 [data-pb-region="transport"] .pb-progress-fill {
-  background: linear-gradient(90deg, var(--accent), #00b4ff 70%, rgba(255, 138, 35, .6));
-  box-shadow: 0 0 8px rgba(0, 217, 244, .4);
+  background: linear-gradient(90deg, var(--accent), #00b4ff 55%, #ff8a23 92%);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .45), 0 0 4px rgba(255, 138, 35, .35);
 }
 /* Playlist items, tool toggles and secondary accents (look only) */
 .pb-playlist-list li,
@@ -244,7 +251,7 @@
 .pb-playlist-item:hover {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .06);
-  box-shadow: 0 0 10px rgba(0, 217, 244, .08);
+  box-shadow: 0 0 10px rgba(0, 217, 244, .08), 0 0 3px rgba(255, 138, 35, .1);
 }
 .pb-tools-toggle,
 [data-pb-region="tools"] .pb-collapse {
@@ -254,19 +261,20 @@
 .pb-tools-toggle:hover,
 [data-pb-region="tools"] .pb-collapse:hover {
   color: var(--accent);
-  text-shadow: 0 0 8px rgba(0, 217, 244, .25);
+  text-shadow: 0 0 8px rgba(0, 217, 244, .25), 0 0 4px rgba(255, 138, 35, .12);
 }
 [data-pb-region="empty"] .primary,
 [data-pb-region="video"] .primary {
   background: var(--accent);
   color: #021018;
   border-color: transparent;
-  box-shadow: 0 0 16px rgba(0, 217, 244, .25), 0 0 4px rgba(255, 138, 35, .2);
-  transition: box-shadow 150ms ease;
+  box-shadow: 0 0 16px rgba(0, 217, 244, .25), 0 0 6px rgba(255, 138, 35, .28);
+  transition: box-shadow 150ms ease, background 150ms ease;
 }
 [data-pb-region="empty"] .primary:hover,
 [data-pb-region="video"] .primary:hover {
-  box-shadow: 0 0 24px rgba(0, 217, 244, .4), 0 0 8px rgba(255, 138, 35, .3);
+  background: linear-gradient(135deg, var(--accent), #ff8a23 140%);
+  box-shadow: 0 0 24px rgba(0, 217, 244, .4), 0 0 10px rgba(255, 138, 35, .4);
 }
 @media (prefers-contrast: more) {
   .pb-card,
@@ -297,7 +305,9 @@
   [data-pb-region="transport"] button,
   .pb-collapse,
   .pb-playlist-list li,
-  .pb-tools-toggle {
+  .pb-tools-toggle,
+  [data-pb-region="empty"] .primary,
+  [data-pb-region="video"] .primary {
     transition: none;
   }
 }
