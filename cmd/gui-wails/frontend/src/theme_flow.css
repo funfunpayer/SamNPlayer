@@ -3,7 +3,7 @@
  * No structure, visibility, sizing, script, device or canvas changes.
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
- * Next open point: subtle glows, flowing surfaces and airy polish.
+ * Next open point: subtle brand-orange hints on non-channel CTAs + refined timeline marker/playhead glow.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
@@ -134,6 +134,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   text-shadow: 0 0 8px rgba(0, 217, 244, .25);
+  font-weight: 600;
 }
 .pb-empty-title {
   color: var(--text);
@@ -155,7 +156,8 @@
 }
 /* S4 timeline core visual prep (approved hooks only, look only) */
 [data-pb-region="timeline"] .pb-ruler,
-[data-pb-region="timeline"] .pb-time-ruler {
+[data-pb-region="timeline"] .pb-time-ruler,
+[data-pb-region="ruler"] {
   background: rgba(10, 27, 43, .52);
   color: var(--text-dim);
   border-bottom: 1px solid rgba(104, 180, 212, .18);
@@ -171,7 +173,7 @@
 [data-pb-region="timeline"] .pb-scene-marker {
   color: var(--accent);
   background: rgba(0, 217, 244, .14);
-  box-shadow: 0 0 8px rgba(0, 217, 244, .2);
+  box-shadow: 0 0 8px rgba(0, 217, 244, .2), 0 0 2px rgba(255, 138, 35, .15);
 }
 [data-pb-region="zoom"] button,
 [data-pb-region="zoom"] .pb-zoom-btn {
@@ -229,7 +231,7 @@
 #pb-progress::-webkit-progress-value,
 .progress-bar-fill,
 [data-pb-region="transport"] .pb-progress-fill {
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), #00b4ff 70%, rgba(255, 138, 35, .6));
   box-shadow: 0 0 8px rgba(0, 217, 244, .4);
 }
 /* Playlist items, tool toggles and secondary accents (look only) */
@@ -259,12 +261,12 @@
   background: var(--accent);
   color: #021018;
   border-color: transparent;
-  box-shadow: 0 0 16px rgba(0, 217, 244, .25);
+  box-shadow: 0 0 16px rgba(0, 217, 244, .25), 0 0 4px rgba(255, 138, 35, .2);
   transition: box-shadow 150ms ease;
 }
 [data-pb-region="empty"] .primary:hover,
 [data-pb-region="video"] .primary:hover {
-  box-shadow: 0 0 24px rgba(0, 217, 244, .4);
+  box-shadow: 0 0 24px rgba(0, 217, 244, .4), 0 0 8px rgba(255, 138, 35, .3);
 }
 @media (prefers-contrast: more) {
   .pb-card,
