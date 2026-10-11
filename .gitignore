@@ -38,3 +38,5 @@ demo_server.py
 # Local Wails binary from `go build` (repo root only)
 /gui-wails
 tmp/
+/cmd/gui-wails/gui-wails
+/cmd/gui-wails/frontend/test/_*_harness.html
