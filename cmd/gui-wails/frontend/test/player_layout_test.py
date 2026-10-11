@@ -138,6 +138,27 @@ def main():
             check("video bar fullscreen", page.evaluate("window.__fsv") == 1)
             page.click("#pb-vb-bookmark")
             check("bookmark icon opens Bookmarks", page.evaluate(f"{root}.dataset.pbBottom") == "bookmarks")
+            # Scripts (S6): Imported / Generated / Edited from real origins.
+            check("Imported lists the opened script", page.text_content("#pb-lib-imported-count") == "1")
+            check("Generated / Edited start empty", page.text_content("#pb-lib-generated-count") == ""
+                  and page.text_content("#pb-lib-edited-count") == "")
+            page.evaluate("""() => {
+                window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: '/out/My "best" <cut>.samn', origin: 'generated' } }));
+                window.dispatchEvent(new CustomEvent('pb:edited', { detail: { path: '/s/demo.samn' } })); }""")
+            check("Generator result → Generated", page.text_content("#pb-lib-generated-count") == "1"
+                  and page.text_content("#pb-lib-imported-count") == "1")
+            check("saved edit → Edited", page.text_content("#pb-lib-edited-count") == "1")
+            page.click("#pb-lib-generated-btn")
+            check("category list unfolds", page.is_visible("#pb-lib-generated")
+                  and page.get_attribute("#pb-lib-generated-btn", "aria-expanded") == "true")
+            item = page.query_selector("#pb-lib-generated .pb-lib-recent-item")
+            check("paths with quotes / < are escaped", item.get_attribute("title") == '/out/My "best" <cut>.samn'
+                  and item.text_content() == 'My "best" <cut>.samn')
+            n = page.evaluate("window.__loaded.length")
+            item.click()
+            page.wait_for_function(f"window.__loaded.length === {n + 1}", timeout=3000)
+            check("generated entry loads it, stays out of Imported",
+                  page.text_content("#pb-lib-imported-count") == "1")
             # Recent videos (S6): chevron menu next to the video name.
             page.evaluate(f"{root}.dataset.pbVideoPath = '/v/Other.mp4'")
             page.wait_for_function("document.querySelector('#pb-vb-name').textContent === 'Other.mp4'", timeout=3000)

@@ -16,6 +16,8 @@ const RECENT_MAX = 8;
 const FAV_KEY = 'pb.favorites';
 const FAV_MAX = 50;
 const VIDEO_KEY = 'pb.recentVideos';
+const SCRIPT_KEYS = { imported: 'pb.scripts.imported', generated: 'pb.scripts.generated', edited: 'pb.scripts.edited' };
+const SCRIPTS_MAX = 50;
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
 
@@ -50,6 +52,22 @@ export function toggleFavorite(path) {
 
 export function readRecentVideos() { return readList(VIDEO_KEY); }
 
+/** Library "Scripts": imported (opened), generated (Generator result), edited (saved edit). */
+export function readScripts(cat) { return SCRIPT_KEYS[cat] ? readList(SCRIPT_KEYS[cat]) : []; }
+
+export function pushScript(path, cat) {
+  const key = SCRIPT_KEYS[cat];
+  if (!path || !key) return;
+  store(key, JSON.stringify([path, ...readList(key).filter(p => p !== path)].slice(0, SCRIPTS_MAX)));
+}
+
+function escAttr(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+function escText(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+
 export function pushRecentVideo(path) {
   if (!path) return readRecentVideos();
   const list = [path, ...readRecentVideos().filter(p => p !== path)].slice(0, RECENT_MAX);
@@ -83,6 +101,7 @@ const ICONS = {
   image: icon('<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17l5-5 4 4 2-2 3 3"/>'),
   expand: icon('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>'),
   chevron: icon('<path d="M7 10l5 5 5-5"/>'),
+  spark: icon('<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/><path d="M18.5 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'),
   star: icon('<path d="M12 4.2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/>'),
 };
 
@@ -116,6 +135,10 @@ export function applyPlayerLayoutV1(root, api) {
     <button type="button" class="pb-lib-item" id="pb-lib-fav-btn" aria-expanded="true">${ICONS.star}<span>Favorites</span></button>
     <ol class="pb-lib-recent pb-lib-fav" id="pb-lib-fav"></ol>
     <button type="button" class="pb-lib-item" id="pb-lib-playlist">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
+    <p class="pb-lib-title">Scripts</p>
+    ${[['imported', 'Imported', ICONS.drop], ['generated', 'Generated', ICONS.spark], ['edited', 'Edited', ICONS.edit]].map(([k, label, ic]) =>
+    `<button type="button" class="pb-lib-item" id="pb-lib-${k}-btn" aria-expanded="false" aria-controls="pb-lib-${k}">${ic}<span>${label}</span><b class="pb-lib-count" id="pb-lib-${k}-count"></b></button>
+    <ol class="pb-lib-recent" id="pb-lib-${k}" hidden></ol>`).join('')}
     <p class="pb-lib-title">Tools</p>
     <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-scenemap">${ICONS.map}<span>Scene Map</span></button>
@@ -281,7 +304,7 @@ export function applyPlayerLayoutV1(root, api) {
     const loaded = root.dataset.pbState === 'loaded';
     vbMenu.innerHTML = list.length
       ? list.map((p, i) => `<li role="none"><button type="button" role="menuitem" class="pb-vb-menu-item" data-i="${i}"
-          title="${p.replace(/"/g, '&quot;')}" ${loaded ? '' : 'disabled'}>${baseName(p)}</button></li>`).join('')
+          title="${escAttr(p)}" ${loaded ? '' : 'disabled'}>${escText(baseName(p))}</button></li>`).join('')
       : '<li class="pb-lib-empty" role="none">No recent videos</li>';
     vbMenu._list = list;
     vbMenu.hidden = false;
@@ -419,7 +442,7 @@ export function applyPlayerLayoutV1(root, api) {
   function renderRecent() {
     const list = readRecent();
     recentList.innerHTML = list.length
-      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${p.replace(/"/g, '&quot;')}">${baseName(p)}</button></li>`).join('')
+      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${escAttr(p)}">${escText(baseName(p))}</button></li>`).join('')
       : '<li class="pb-lib-empty">Nothing yet</li>';
   }
   recentList.addEventListener('click', async e => {
@@ -453,7 +476,7 @@ export function applyPlayerLayoutV1(root, api) {
   function renderFavorites() {
     const list = readFavorites();
     favList.innerHTML = list.length
-      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${p.replace(/"/g, '&quot;')}">${baseName(p)}</button></li>`).join('')
+      ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-i="${i}" title="${escAttr(p)}">${escText(baseName(p))}</button></li>`).join('')
       : '<li class="pb-lib-empty">Star a script to keep it here</li>';
     syncStar();
   }
@@ -480,6 +503,45 @@ export function applyPlayerLayoutV1(root, api) {
   });
   renderRecent();
   renderFavorites();
+
+  // Scripts: Imported / Generated / Edited — folded lists with a count.
+  const CATS = ['imported', 'generated', 'edited'];
+  const EMPTY = { imported: 'Scripts you open show here', generated: 'Generator results show here', edited: 'Scripts you edit and save show here' };
+  function renderScripts() {
+    for (const k of CATS) {
+      const list = readScripts(k);
+      q(`#pb-lib-${k}`).innerHTML = list.length
+        ? list.map((p, i) => `<li><button type="button" class="pb-lib-recent-item" data-cat="${k}" data-i="${i}" title="${escAttr(p)}">${escText(baseName(p))}</button></li>`).join('')
+        : `<li class="pb-lib-empty">${EMPTY[k]}</li>`;
+      q(`#pb-lib-${k}-count`).textContent = list.length ? String(list.length) : '';
+    }
+  }
+  for (const k of CATS) {
+    const listEl = q(`#pb-lib-${k}`);
+    const btn = q(`#pb-lib-${k}-btn`);
+    btn.addEventListener('click', () => {
+      listEl.hidden = !listEl.hidden;
+      btn.setAttribute('aria-expanded', listEl.hidden ? 'false' : 'true');
+    });
+    listEl.addEventListener('click', async e => {
+      const b = e.target.closest('.pb-lib-recent-item');
+      if (!b) return;
+      const p = readScripts(b.dataset.cat)[Number(b.dataset.i)];
+      if (p) await api.loadScriptPath(p).catch(() => {});
+    });
+  }
+  window.addEventListener('pb:loaded', e => {
+    const d = e.detail || {};
+    // A Generator result re-opened from the Library stays "Generated".
+    if (d.origin === 'generated') pushScript(d.path, 'generated');
+    else if (!readScripts('generated').includes(d.path)) pushScript(d.path, 'imported');
+    renderScripts();
+  });
+  window.addEventListener('pb:edited', e => {
+    pushScript(e.detail && e.detail.path, 'edited');
+    renderScripts();
+  });
+  renderScripts();
   const plCount = q('#pb-lib-playlist-count');
   const syncCount = () => {
     const n = q('#pb-playlist-list')?.children.length || 0;

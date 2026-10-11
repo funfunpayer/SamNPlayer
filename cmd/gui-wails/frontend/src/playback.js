@@ -2354,6 +2354,7 @@ export function initPlayback(root) {
     if (!window.confirm(`Move every point, bookmark and chapter by ${ms} ms and save the script? The offset then goes back to 0.`)) return;
     try {
       const res = await BakeScriptOffset();
+      markEdited();
       el('#pb-offset').value = 0;
       const dropped = Number(res?.dropped || 0);
       log(`Offset ${ms} ms written into the script` + (dropped ? ` — ${dropped} item(s) before 0 ms removed.` : '.'));
@@ -2832,6 +2833,7 @@ export function initPlayback(root) {
     const sorted = [...rawActions].sort((a, b) => a.atMs - b.atMs);
     try {
       await SaveScriptAxisActions(editAxis || 'general', sorted.map(p => ({ at: p.atMs, pos: p.pos })));
+      markEdited();
     } catch (err) {
       logError('Save curve: ' + err);
       return;
@@ -2963,6 +2965,11 @@ export function initPlayback(root) {
   //
   // Curve + heatmap redraw immediately (do not wait for timeupdate — that
   // event can lag or miss while paused). Device sync is pushed on 'seeked'.
+  // Library "Scripts → Edited": the loaded script was changed and saved.
+  function markEdited() {
+    if (scriptPath) window.dispatchEvent(new CustomEvent('pb:edited', { detail: { path: scriptPath } }));
+  }
+
   async function seekTo(atMs) {
     let t = atMs;
     const fps = parseFloat(el('#pb-fps-snap')?.value) || 0;
@@ -3280,8 +3287,11 @@ export function initPlayback(root) {
     scriptPath = info.path;
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
-    // Library "Recent" (player_layout.js) listens for successful loads.
-    window.dispatchEvent(new CustomEvent('pb:loaded', { detail: { path: scriptPath } }));
+    // Library "Recent" / "Scripts" (player_layout.js) listen for successful
+    // loads. origin: Generator results open with opts.review.
+    window.dispatchEvent(new CustomEvent('pb:loaded', {
+      detail: { path: scriptPath, origin: opts.review ? 'generated' : 'imported' },
+    }));
     if (!opts.keepPlaylist) {
       replacePlaylist([scriptPath], 0);
     } else {
@@ -4003,6 +4013,7 @@ export function initPlayback(root) {
     const maxI = capIntensityValue();
     try {
       await EditCapSpeedRange(axis, marker.startMs, marker.endMs, maxI);
+      markEdited();
       ofsStatus(`Speed cap @ ${Math.round(maxI)} (${axis})`);
       // Reload duration + curve/edit buffer — CapSpeedRange can stretch At.
       await reloadAfterRangeEdit();
@@ -4020,6 +4031,7 @@ export function initPlayback(root) {
     const soft = !!el('#pb-scale-soft-edges')?.checked;
     try {
       await EditScaleRange(axis, marker.startMs, marker.endMs, factor, soft);
+      markEdited();
       ofsStatus(`Scale ×${factor.toFixed(2)}${soft ? ' soft' : ''} (${axis})`);
       await reloadAfterRangeEdit();
     } catch (err) {
@@ -4034,6 +4046,7 @@ export function initPlayback(root) {
     const axis = activeEditAxis();
     try {
       await EditDeleteRange(axis, marker.startMs, marker.endMs);
+      markEdited();
       ofsStatus(`Range deleted (${axis})`);
       marker = null;
       await reloadAfterRangeEdit();
