@@ -1,6 +1,6 @@
 # SamNPlayer 1.0 — build plan (Owner, 11 Oct 2026)
 
-**Target:** the Owner's final mockup of 11 Oct, "this is the new look". The
+**Target:** the Owner's final mockup of 11 Oct, "this is the new look". The Owner repeated it on 11 Oct ("so soll das am Ende aussehen"): every step is measured against that mockup, minus the items under *Not in 1.0*. The
 release is **Version 1.0**, built together by Claude and ChatGPT. The mockup
 image is the visual reference. It contains no unsafe media, but stays out of
 the repo (it is a raster concept, not an asset).
@@ -64,7 +64,7 @@ the repo (it is a raster concept, not an asset).
 | S6 ✅ | **Library**: Recent, Favorites, Playlists, Scripts Imported / Generated / Edited (Go library index), Tools shortcuts, Quick Access drop zone, video selector dropdown | Claude | Local only (localStorage). Favorites (star), recent videos menu, Scripts: Imported (opened) / Generated (Generator result) / Edited (saved edit). Drops work app-wide (video → Generator, script → Player) |
 | S7 (S7a ✅) | **Inspector, Devices + Effects**: per-channel enable + level + live wave, profile, Mode, Sync; Effects / Curve / Limits / Advanced; knobs | Claude | Per-channel level is new core (device-safe). S7a: channel toggle + level + live bar, video bar with snapshot (#487) |
 | S8 (S8a ✅) | **Audio Analysis + Script Tools cards**, incl. **Auto sync (audio)** (Go: offset estimate audio↔script, suggest-only) | Claude | Needs a measurement on real clips. S8a: Audio Analysis card — whole-video waveform, BPM readout + beat grid, From audio, click seeks |
-| S9 | **Brand assets**: Flow icon (EXE ICO 16–256, 1024 PNG), banner, website/README | Claude integrates; ChatGPT + Owner supply the final files | Exact files, no redraw |
+| S9 (icon ✅) | **Brand assets**: Flow icon (EXE ICO 16–256, 1024 PNG), banner, website/README | Claude integrates; ChatGPT + Owner supply the final files | Exact files, no redraw. **Owner 11 Oct:** the Flow banner (ChatGPT) is the brand: its play-ring mark is the top-bar icon and the EXE icon (cropped from the banner, pixels unchanged; `logo-universal.png`, `build/appicon.png`, `build/windows/icon.ico` 16–256, `docs/media` + `website/media` logo); banner on README |
 | S9b | **Editor mode, Generator first** (Owner, 11 Oct): the Library gets a Tools → **Editor** entry (Player: curve edit of the loaded script, done with S4a). The editor in the **Generator** must become clearly better: a review/edit step with the same curve editor (drag / add / delete dots, range tools, undo), the multi-axis lanes, ruler and audio lane | Claude | Scope to be confirmed with the Owner before building |
 | S10 | **Other tabs** in the same style: Generator, Training, Scene Map, Tools (Device / Log / Settings) | Claude | Shared cards, buttons, spacing |
 | S11 | **Release 1.0**: `VERSION` 1.0.0, CHANGELOG, handbook, screenshots, QA at 1366×768 and 1920×1080; the Owner pushes the tag | Claude + ChatGPT | Full test matrix (`docs/QA_CHECK_*`) |

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/logo.png" alt="SamNPlayer mark" width="140" />
+  <img src="docs/media/banner.jpg" alt="SamNPlayer — Generate · Play · Train" width="900" />
 </p>
 
 <h1 align="center">SamNPlayer</h1>
@@ -24,10 +24,6 @@
   <a href="#why-samnplayer">Why this app</a>
   ·
   <a href="#screenshots">Screenshots</a>
-</p>
-
-<p align="center">
-  <img src="docs/media/wordmark.png" alt="SamNPlayer wordmark" width="320" />
 </p>
 
 > **Public:** this page, the [HTML landing](./index.html), and **release binaries**.  
