@@ -71,7 +71,7 @@ export function initPlayback(root) {
             <button type="button" id="pb-video-convert" title="Convert to H.264/AAC MP4 (ffmpeg)" hidden>Make playable</button>
           </div>
           <div id="pb-video-warn" class="pb-video-warn" hidden></div>
-          <p class="pb-keys-hint hint" id="pb-keys-hint">Space play/stop · ←/→ seek · ,/. fine · +/- offset · E Extended-O · Esc leave fullscreen</p>
+          <p class="pb-keys-hint hint" id="pb-keys-hint">Space play/pause · ←/→ seek · ,/. fine · +/- offset · E Extended-O · Esc leave fullscreen</p>
           <div class="checkbox-row" id="pb-contact-marks-row" style="display:none; margin:0.35rem 0 0;">
             <input type="checkbox" id="pb-contact-marks-toggle" checked />
             <label for="pb-contact-marks-toggle"
@@ -99,8 +99,9 @@ export function initPlayback(root) {
             <button id="pb-prev" class="pb-t-icon" type="button" title="Previous item / back to start">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/></svg>
             </button>
-            <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play (Space)" aria-label="Play" data-state="play">
+              <svg class="pb-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
+              <svg class="pb-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5.5" width="4" height="13" rx="1.4"/><rect x="13.5" y="5.5" width="4" height="13" rx="1.4"/></svg>
               <span>Play</span>
             </button>
             <button id="pb-stop" class="pb-btn-icon" type="button" disabled title="Stop">
@@ -256,7 +257,7 @@ export function initPlayback(root) {
           </div>
         </div>
         <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
-          data-help="Space play/stop · ←/→ 5 s (Shift 1 s) · ,/. fine step · 1–9 jump · +/− offset · L loop · E Extended-O · O O-marker 4s">
+          data-help="Space play/pause · ←/→ 5 s (Shift 1 s) · ,/. fine step · 1–9 jump · +/− offset · L loop · E Extended-O · O O-marker 4s">
           Keyboard help via “?”.</p>
 
         <details class="pb-tools-details" id="pb-quality-details" style="display:none;">
@@ -839,14 +840,30 @@ export function initPlayback(root) {
     uiError(line);
   }
 
+  // Play / Pause (Owner 11 Oct): #pb-play toggles; Pause keeps the position,
+  // Stop resets it. pausedAt = script position to resume from (null = none).
+  let pausedAt = null;
+  function syncPlayButton() {
+    const btn = el('#pb-play');
+    if (!btn) return;
+    const state = playing ? 'pause' : 'play';
+    btn.dataset.state = state;
+    const label = playing ? 'Pause' : (pausedAt != null ? 'Resume' : 'Play');
+    btn.setAttribute('aria-label', label);
+    btn.title = `${label} (Space)`;
+    const span = btn.querySelector('span');
+    if (span) span.textContent = label;
+    root.dataset.pbPaused = pausedAt != null && !playing ? 'true' : 'false';
+  }
   function setPlayingState(isPlaying) {
     playing = isPlaying;
-    el('#pb-play').disabled = isPlaying;
-    el('#pb-stop').disabled = !isPlaying;
+    el('#pb-play').disabled = false;
+    el('#pb-stop').disabled = !isPlaying && pausedAt == null;
+    syncPlayButton();
     el('#pb-eo-trigger').disabled = !isPlaying || !el('#pb-eo-enabled').checked;
     const playAlone = el('#pb-play-novideo');
     if (playAlone) playAlone.disabled = isPlaying;
-    if (!isPlaying) el('#pb-progress').style.width = '0%';
+    if (!isPlaying && pausedAt == null) el('#pb-progress').style.width = '0%';
     if (isPlaying) autoEOTriggeredForMarker = false;
     el('#pb-video-stage').classList.toggle('is-playing', !!isPlaying);
     // Bearbeiten während der Playback wäre verwirrend (die Kurve bewegt
@@ -3671,7 +3688,7 @@ export function initPlayback(root) {
   // Video von vorn startet) und den nativen Video-Play-Listener weiter
   // unten (der das Video NICHT zurückspulen darf, weil es dort schon an
   // seiner Position läuft). Gibt zurück, ob der Start geklappt hat.
-  async function startScriptPlayback() {
+  async function startScriptPlayback(startAtMs = 0) {
     if (!scriptPath) { log('Choose an Emotion Script first.'); return false; }
     el('#pb-log').textContent = '';
     userStopRequested = false;
@@ -3702,6 +3719,7 @@ export function initPlayback(root) {
         ? (el('#pb-contact-curve').value || '')
         : '',
       speed: currentSpeed(),
+      startAtMs: Math.max(0, Math.round(startAtMs || 0)),
     };
 
     try {
@@ -3720,19 +3738,40 @@ export function initPlayback(root) {
   }
 
   async function play() {
+    if (!scriptPath) { log('Choose an Emotion Script first.'); return; }
     const useVideoSync = videoPath && el('#pb-use-video-sync').checked;
-    if (!(await startScriptPlayback())) return;
+    // Resume after Pause: from the current position (a seek while paused
+    // moves it), video not rewound.
+    const resumeAt = pausedAt != null ? currentPosMs : null;
+    if (!(await startScriptPlayback(useVideoSync ? 0 : (resumeAt || 0)))) return;
+    pausedAt = null;
+    syncPlayButton();
 
     if (useVideoSync) {
-      videoEl.currentTime = 0;
+      if (resumeAt == null) videoEl.currentTime = 0;
       videoEl.play().catch(() => {});
     }
+  }
+
+  // Pause: device stops, position stays (video paused there).
+  async function pause() {
+    if (!playing) return;
+    const at = currentPosMs;
+    await stop();
+    pausedAt = at;
+    currentPosMs = at;
+    setPlayingState(false);
+  }
+
+  function togglePlay() {
+    if (playing) pause(); else play();
   }
 
   // user=true: Stop-Knopf / manuelles Beenden — Playlist nicht weiter.
   // user=false: natürliches Video-/Skript-Ende — Auto-Next darf greifen.
   async function stop({ user = true } = {}) {
     if (user) userStopRequested = true;
+    pausedAt = null;
     await StopPlayback();
     // Clear playing before pause so the video 'pause' handler does not
     // report sync-idle after the position channel is already closed.
@@ -4315,7 +4354,7 @@ export function initPlayback(root) {
     e.preventDefault();
     toggleVideoFullscreen();
   });
-  el('#pb-play').addEventListener('click', play);
+  el('#pb-play').addEventListener('click', togglePlay);
   el('#pb-stop').addEventListener('click', stop);
   el('#pb-eo-trigger').addEventListener('click', triggerEO);
   el('#pb-eo-enabled').addEventListener('change', () => {
@@ -4336,7 +4375,7 @@ export function initPlayback(root) {
 
     if (e.code === 'Space') {
       e.preventDefault();
-      if (playing) stop(); else play();
+      togglePlay();
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       // Springen, ohne die Maus zu benutzen. Der Player wird typischerweise
       // einhändig bedient - alles, was einen Mausweg spart, zählt hier mehr

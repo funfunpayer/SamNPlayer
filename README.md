@@ -83,7 +83,7 @@ suggested.
 | AI | Cloud, bundled weights, or AI-only scripts | **Optional local ONNX + Go profilemodel** — AI *proposes*, classical tracking *writes* the Funscript |
 | Privacy | Telemetry / downloads common | **Local-only** — no model in the binary, no surprise downloads, no cloud calls |
 | Video tools | “Install ffmpeg yourself” | **Portable zip** ships ffmpeg next to the app; optional Settings install (`docs/FFMPEG_TOOLS.md`) |
-| Device | Generic Buttplug clients | **Sam Neo 2 first-class** (BLE + Intiface + Mock) with diagnostics |
+| Device | Generic Buttplug clients | **Sam Neo 2 first-class** (BLE + Intiface + Mock) with diagnostics. **Next:** strokers (The Handy, OSR2 / SR6) and other devices with their own channels — the Player shows what the connected device can do ([`docs/DEVICE_SUPPORT.md`](docs/DEVICE_SUPPORT.md)) |
 | Quality | “Looks fine” | **Quality Doctor**, Script Doctor, golden-clip benchmark — numbers before claims |
 | Engineering | Feature pile-on | **Measure → ship or reject** (`HANDOFF.md`, `docs/ENGINEERING_STANCE.md`) |
 

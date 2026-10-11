@@ -73,8 +73,8 @@ def main():
         opts = page.evaluate(
             "window.__calls.filter(c => c[0] === 'StartPlayback').pop()[1]")
         check("StartPlayback ohne Video-Sync", opts.get("useVideoSync") is False, str(opts))
-        check("Transport-Abspielen gesperrt während Lauf",
-              page.locator("#pb-play").evaluate("e => e.disabled"))
+        check("Transport-Knopf wird während des Laufs zu Pause",
+              page.locator("#pb-play").evaluate("e => e.dataset.state === 'pause' && e.getAttribute('aria-label') === 'Pause'"))
 
         page.click("#pb-stop")
         page.wait_for_function(

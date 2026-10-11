@@ -38,6 +38,9 @@ type PlaybackOptions struct {
 	// Speed: playback speed 0.5–2 (V1 transport; 0 = 1×). With video sync the
 	// device follows the video clock, whose playbackRate carries the speed.
 	Speed float64 `json:"speed"`
+	// StartAtMs: resume position (V1 Play / Pause) for playback without video
+	// sync; with video sync the video position drives the device anyway.
+	StartAtMs int64 `json:"startAtMs"`
 }
 
 // ContactPreviewOptions steuert die zweite Kurvenspur inkl. Live-Overrides.
@@ -194,6 +197,9 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p := player.New(dev)
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
+	if opts.StartAtMs > 0 && !opts.UseVideoSync {
+		p.StartAtMs = opts.StartAtMs
+	}
 	p.SetSpeed(opts.Speed)
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
