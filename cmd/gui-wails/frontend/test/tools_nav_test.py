@@ -36,7 +36,8 @@ def main():
             rail = page.evaluate("[...document.querySelectorAll('#rail .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
             check("rail shows Play · Generator · Training · Tools", rail == ["Play", "Generator", "Training", "Tools"], str(rail))
             check("tagline is Generate · Play · Train",
-                  page.text_content("#brand-tagline").strip() == "Generate · Play · Train")
+                  page.get_attribute("#brand-tagline", "aria-label") == "Generate · Play · Train"
+                  and " ".join(page.text_content("#brand-tagline").split()) == "Generate Play Train")
             check("tools sub-nav hidden on Play", page.is_hidden("#tools-nav"))
 
             page.click('#rail .tab-btn[data-tab="tools"]')

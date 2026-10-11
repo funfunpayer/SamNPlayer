@@ -32,7 +32,14 @@ PIXELS_OF = """
   return n;
 }
 """
-TEAL, AMBER, LILAC = [95, 208, 200], [240, 160, 80], [195, 155, 255]
+# Channel colours come from the theme tokens (--axis-*), not fixed values.
+TOKEN_RGB = """
+(name) => {
+  const v = getComputedStyle(document.querySelector('#tab-playback')).getPropertyValue(name).trim();
+  const m = v.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+}
+"""
 
 
 def main():
@@ -69,12 +76,17 @@ def main():
             page.click("#pb-choose")
             page.wait_for_function("!document.querySelector('#pb-axis-lanes').hidden", timeout=5000)
             check("lanes visible for a script with feel channels", page.is_visible("#pb-axis-lanes"))
+            STROKE = page.evaluate(TOKEN_RGB, "--axis-stroke")
+            VIB = page.evaluate(TOKEN_RGB, "--axis-vibration")
+            SUC = page.evaluate(TOKEN_RGB, "--axis-suction")
+            check("theme defines three distinct channel colours", None not in (STROKE, VIB, SUC)
+                  and len({tuple(STROKE), tuple(VIB), tuple(SUC)}) == 3, str((STROKE, VIB, SUC)))
             check("legend visible", page.is_visible("#pb-axis-legend"))
             check("two lanes → 68 px tall",
                   page.evaluate("document.querySelector('#pb-axis-lanes').getBoundingClientRect().height") == 68)
-            check("vibration lane drawn in amber", page.evaluate(PIXELS_OF, ["#pb-axis-lanes", AMBER]) > 200)
-            check("suction lane drawn in lilac", page.evaluate(PIXELS_OF, ["#pb-axis-lanes", LILAC]) > 200)
-            check("main curve is teal (stroke)", page.evaluate(PIXELS_OF, ["#pb-curve", TEAL]) > 200)
+            check("vibration lane drawn in its token colour", page.evaluate(PIXELS_OF, ["#pb-axis-lanes", VIB]) > 200)
+            check("suction lane drawn in its token colour", page.evaluate(PIXELS_OF, ["#pb-axis-lanes", SUC]) > 200)
+            check("main curve in the stroke colour", page.evaluate(PIXELS_OF, ["#pb-curve", STROKE]) > 200)
             check("Stroke chip active",
                   page.get_attribute('.pb-axis-chip[data-axis="general"]', "aria-pressed") == "true")
 
@@ -83,7 +95,7 @@ def main():
                 "document.querySelector('.pb-axis-chip[data-axis=\"suction\"]').getAttribute('aria-pressed') === 'true'",
                 timeout=5000)
             check("chip switches the axis select", page.input_value("#pb-axis") == "suction")
-            check("main curve now lilac", page.evaluate(PIXELS_OF, ["#pb-curve", LILAC]) > 200)
+            check("main curve now in the suction colour", page.evaluate(PIXELS_OF, ["#pb-curve", SUC]) > 200)
 
             box = page.locator("#pb-axis-lanes").bounding_box()
             page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.25)
@@ -92,7 +104,7 @@ def main():
                 "document.querySelector('.pb-axis-chip[data-axis=\"vibration\"]').getAttribute('aria-pressed') === 'true'",
                 timeout=5000)
             check("clicking the top lane selects vibration", page.input_value("#pb-axis") == "vibration")
-            check("main curve now amber", page.evaluate(PIXELS_OF, ["#pb-curve", AMBER]) > 200)
+            check("main curve now in the vibration colour", page.evaluate(PIXELS_OF, ["#pb-curve", VIB]) > 200)
 
             # A plain funscript without feel channels: no lanes, no legend.
             page.evaluate("window.__axes.vibration = null; window.__axes.suction = []")
