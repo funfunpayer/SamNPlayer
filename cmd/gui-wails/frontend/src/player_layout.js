@@ -531,6 +531,37 @@ export function applyPlayerLayoutV1(root, api) {
     q('#pb-curve')?.scrollIntoView({ block: 'nearest' });
   });
   q('#pb-lib-audio').addEventListener('click', () => showBottom('audio'));
+
+  // ---- Workspace Edit view (main.js sets data-ws-view): curve editing on,
+  // Inspector on View, Timeline in front. Leaving Edit turns editing off
+  // again only if Edit turned it on.
+  let editTurnedOn = false;
+  const setCurveEdit = on => {
+    const box = q('#pb-curve-edit');
+    if (!box || box.disabled || box.checked === on) return false;
+    box.checked = on;
+    box.dispatchEvent(new Event('change'));
+    return true;
+  };
+  function applyWorkspaceView(view) {
+    if (view === 'edit') {
+      showInspector('view');
+      showBottom('timeline');
+      if (root.dataset.pbState === 'loaded' && setCurveEdit(true)) editTurnedOn = true;
+    } else if (view === 'play' && editTurnedOn) {
+      setCurveEdit(false);
+      editTurnedOn = false;
+    }
+  }
+  window.addEventListener('ws:view', e => applyWorkspaceView(e.detail && e.detail.view));
+  // A load resets editing and shows the edit row only once the curve is
+  // drawn — turn editing on at that moment when Edit is the view.
+  const editRow = q('#pb-curve-edit-row');
+  if (editRow) {
+    new MutationObserver(() => {
+      if (root.dataset.wsView === 'edit' && editRow.style.display !== 'none' && setCurveEdit(true)) editTurnedOn = true;
+    }).observe(editRow, { attributes: true, attributeFilter: ['style'] });
+  }
   q('#pb-lib-bpm').addEventListener('click', () => {
     showInspector('audio');
     q('#pb-bpm-auto')?.focus();

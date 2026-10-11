@@ -31,7 +31,7 @@
             </svg>
             <span>Player</span><i class="dot"></i>
           </button>
-          <button class="tab-btn" data-tab="generator" title="Generator — create Emotion Scripts from video">
+          <button class="tab-btn" data-tab="generator" data-ws-shim hidden title="Generator — create Emotion Scripts from video">
             <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4.5" y="4.5" width="15" height="15" rx="3"/>
           <path d="M8 9.2h5.5M8 12h8M8 14.8h4"/>
@@ -47,7 +47,7 @@
             </svg>
             <span>Training</span><i class="dot"></i>
           </button>
-          <button class="tab-btn" data-tab="scenemap" title="Scene Map — rhythm heatmap and marks for the Generator video">
+          <button class="tab-btn" data-tab="scenemap" data-ws-shim hidden title="Scene Map — rhythm heatmap and marks for the Generator video">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/>
               <circle cx="12" cy="10.4" r="2.3"/>
@@ -130,6 +130,25 @@
               </svg>
               <span>AI Train</span><i class="dot"></i>
             </button>
+          </nav>
+          <nav id="ws-view" class="ws-view" role="tablist" aria-label="Player view" data-pb-region="ws-view">
+            <button type="button" role="tab" class="ws-view-btn is-active" data-ws-view="play" aria-selected="true"
+              title="Play Emotion Scripts with video and device">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M10.2 8.6v6.8l6-3.4z" fill="currentColor" stroke="none"/></svg>
+              <span>Play</span></button>
+            <button type="button" role="tab" class="ws-view-btn" data-ws-view="create" aria-selected="false" tabindex="-1"
+              title="Create an Emotion Script from a video (Generator)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8 9.2h5.5M8 12h8M8 14.8h4"/><path d="M16.2 8.2l2.6 2.1-2.6 2.1"/></svg>
+              <span>Create</span></button>
+            <button type="button" role="tab" class="ws-view-btn" data-ws-view="edit" aria-selected="false" tabindex="-1"
+              title="Edit the loaded script: curve dots, lanes, scene markers">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5h4l10-10a2.8 2.8 0 0 0-4-4l-10 10z"/><path d="M13.5 6.5l4 4"/></svg>
+              <span>Edit</span></button>
+            <span class="ws-view-spacer"></span>
+            <button type="button" class="ws-view-sub" id="ws-scenemap" aria-pressed="false" hidden
+              title="Scene Map — rhythm heatmap and marks for the Create video">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.3"/></svg>
+              <span>Scene Map</span></button>
           </nav>
           <section id="tab-playback" class="tab-panel active"></section>
           <section id="tab-training" class="tab-panel"></section>

@@ -76,7 +76,9 @@ def main():
         page.goto(f"{base}/test/_drop_harness.html")
         page.wait_for_function("window.__ready === true")
 
-        active = lambda: page.locator(".tab-btn.active").get_attribute("data-tab")
+        # The open tab (body[data-tab]); in the Player workspace the Player
+        # button stays highlighted while Create (= generator) is shown.
+        active = lambda: page.evaluate("document.body.dataset.tab || document.querySelector('.tab-btn.active').dataset.tab")
         check("Start im Wiedergabe-Tab", active() == "playback", str(active()))
 
         # --- Video: muss in den Generator führen --------------------------

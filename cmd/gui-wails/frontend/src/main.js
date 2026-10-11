@@ -44,6 +44,52 @@ function setSceneMapView(on) {
   }
 }
 
+// Player workspace (Owner 11 Oct, V1 W1): one top tab "Player" with the view
+// switch Play · Create · Edit. Create is the Generator panel (same IDs, same
+// generator.js), Scene Map lives inside Create. The old data-tab values
+// "generator" / "scenemap" stay as routes, so switchTab() calls and
+// `.tab-btn[data-tab=…]` clicks elsewhere keep working.
+const WORKSPACE_TABS = new Set(['playback', 'generator', 'scenemap']);
+const WS_VIEWS = ['play', 'create', 'edit'];
+let playView = 'play'; // last of play / edit, restored when Player opens
+try {
+  const v = localStorage.getItem('ws.view');
+  if (v === 'play' || v === 'edit') playView = v;
+} catch (_) { /* ignore */ }
+
+function setWorkspaceView(view) {
+  if (!WS_VIEWS.includes(view)) return;
+  if (view === 'create') {
+    switchTab('generator');
+    return;
+  }
+  playView = view;
+  try { localStorage.setItem('ws.view', view); } catch (_) { /* ignore */ }
+  switchTab('playback');
+}
+
+function syncWorkspace(name) {
+  const inWs = WORKSPACE_TABS.has(name);
+  const view = !inWs ? '' : name === 'playback' ? playView : 'create';
+  const nav = document.getElementById('ws-view');
+  if (nav) nav.hidden = !inWs;
+  document.body.dataset.wsView = view;
+  const pb = document.getElementById('tab-playback');
+  if (pb) pb.dataset.wsView = view || 'none';
+  document.querySelectorAll('#ws-view [data-ws-view]').forEach(b => {
+    const on = b.dataset.wsView === view;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+  const sm = document.getElementById('ws-scenemap');
+  if (sm) {
+    sm.hidden = view !== 'create';
+    sm.setAttribute('aria-pressed', name === 'scenemap' ? 'true' : 'false');
+  }
+  if (inWs) window.dispatchEvent(new CustomEvent('ws:view', { detail: { view } }));
+}
+
 function switchTab(name) {
   if (name === 'tools') name = lastToolsSection;
   const sceneMap = name === 'scenemap';
@@ -51,11 +97,13 @@ function switchTab(name) {
   const panelName = sceneMap ? 'generator' : name;
   const inTools = TOOLS_SECTIONS.has(name);
   if (inTools) lastToolsSection = name;
+  const inWs = WORKSPACE_TABS.has(name);
   // Layout hooks: CSS can adapt per tab (Play hides the info column) / group.
   document.body.dataset.tab = name;
-  document.body.dataset.tabGroup = inTools ? 'tools' : name;
+  document.body.dataset.tabGroup = inTools ? 'tools' : inWs ? 'player' : name;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools');
+    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools')
+      || (inWs && b.dataset.tab === 'playback');
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
@@ -68,6 +116,7 @@ function switchTab(name) {
     if (on) p.removeAttribute('hidden');
     else p.setAttribute('hidden', '');
   });
+  syncWorkspace(name);
 }
 
 function initTabA11y() {
@@ -122,6 +171,27 @@ initTabA11y();
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
+// Workspace view switch (Play · Create · Edit) + Scene Map inside Create.
+document.querySelectorAll('#ws-view [data-ws-view]').forEach(b => {
+  b.addEventListener('click', () => setWorkspaceView(b.dataset.wsView));
+});
+document.getElementById('ws-view')?.addEventListener('keydown', e => {
+  const btns = [...document.querySelectorAll('#ws-view [data-ws-view]')];
+  const i = btns.indexOf(document.activeElement);
+  if (i < 0) return;
+  let j = -1;
+  if (e.key === 'ArrowRight') j = (i + 1) % btns.length;
+  else if (e.key === 'ArrowLeft') j = (i - 1 + btns.length) % btns.length;
+  if (j < 0) return;
+  e.preventDefault();
+  btns[j].focus();
+  setWorkspaceView(btns[j].dataset.wsView);
+});
+document.getElementById('ws-scenemap')?.addEventListener('click', () => {
+  switchTab(document.body.dataset.tab === 'scenemap' ? 'generator' : 'scenemap');
+});
+// Other modules ask for a view (e.g. a Generator result opens in Edit).
+window.addEventListener('ws:set', e => setWorkspaceView(e.detail && e.detail.view));
 // Top bar (V1): folder = open an Emotion Script in the Player; gear = Settings.
 document.getElementById('topbar-open')?.addEventListener('click', () => {
   switchTab('playback');
@@ -142,6 +212,8 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 // V1.0 Player shell: Library · video/timeline · Inspector (docs/V1_PLAN.md S3).
 applyPlayerLayoutV1(document.getElementById('tab-playback'), playback);
+// Workspace view (Play / Edit remembered) once the Player layout exists.
+syncWorkspace(document.body.dataset.tab || 'playback');
 initPostGenerateReview();
 
 // Topbar: Geräte-Status + Connect/Disconnect (Transport bleibt im Gerät-Tab).

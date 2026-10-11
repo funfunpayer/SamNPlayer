@@ -2075,7 +2075,9 @@ export function initPlayback(root) {
   function renderSceneStrip() {
     const strip = el('#pb-scene-strip');
     if (!strip) return;
-    const shown = scenesOn && !!scriptPath && curveCanvas.style.display !== 'none' && totalMs > 1;
+    // Owner: scene markers are on in Create / Edit, opt-in in Play.
+    const shown = (scenesOn || root.dataset.wsView === 'edit') && !!scriptPath
+      && curveCanvas.style.display !== 'none' && totalMs > 1;
     strip.hidden = !shown;
     root.dataset.pbScenes = shown ? 'on' : 'off';
     if (!shown) { sceneStripSig = ''; return; }
@@ -2119,7 +2121,7 @@ export function initPlayback(root) {
 
   async function loadSceneThumbs() {
     const key = root.dataset.pbVideoPath || '';
-    if (!scenesOn || !key) {
+    if ((!scenesOn && root.dataset.wsView !== 'edit') || !key) {
       if (!key) { sceneThumbs = null; sceneThumbsFor = ''; }
       renderSceneStrip();
       return;
@@ -3853,6 +3855,8 @@ export function initPlayback(root) {
     });
   }
   el('#pb-scene-add')?.addEventListener('click', () => addSceneMarkerAt(currentPosMs));
+  new MutationObserver(() => { renderSceneStrip(); loadSceneThumbs(); })
+    .observe(root, { attributes: true, attributeFilter: ['data-ws-view'] });
   syncStageState();
   if (!root.dataset.pbState) root.dataset.pbState = 'empty';
   if (!root.dataset.pbTools) root.dataset.pbTools = 'open';
@@ -4712,7 +4716,11 @@ export function initPlayback(root) {
   return {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
-    loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => switchToPlaybackTab()),
+    // A Generator result (opts.review) opens in the workspace Edit view.
+    loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => {
+      switchToPlaybackTab();
+      if (opts && opts.review) window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }));
+    }),
     seekMs: (atMs) => seekTo(atMs),
     attachVideoPath: (path) => attachVideoPath(path),
     nextPlaylistIndexAfterAdvance,
