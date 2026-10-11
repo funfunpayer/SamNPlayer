@@ -71,6 +71,12 @@ type Player struct {
 	// bleibt MinLevel 0 wirklich 0 statt als "nicht gesetzt" zu gelten.
 	intensityCut float64
 	eoBusy       atomic.Bool
+
+	// Per-channel output level (V1 Inspector → Devices): stored as a cut so
+	// the zero value means full output, also for a Player built without
+	// New(). Level = 1 - cut; 0 switches the channel off.
+	vibCut float64
+	sucCut float64
 }
 
 func New(dev device.Device) *Player {
@@ -78,6 +84,31 @@ func New(dev device.Device) *Player {
 		Device:      dev,
 		extendedOCh: make(chan ExtendedOOptions, 1),
 	}
+}
+
+// SetChannelLevels sets the vibration / suction output levels (0–1), also
+// while playing. Values outside 0–1 are clamped.
+func (p *Player) SetChannelLevels(vibration, suction float64) {
+	clamp := func(v float64) float64 {
+		if !(v >= 0) {
+			return 0
+		}
+		if v > 1 {
+			return 1
+		}
+		return v
+	}
+	p.intensityMu.Lock()
+	p.vibCut = 1 - clamp(vibration)
+	p.sucCut = 1 - clamp(suction)
+	p.intensityMu.Unlock()
+}
+
+// ChannelLevels returns the vibration / suction output levels (0–1).
+func (p *Player) ChannelLevels() (vibration, suction float64) {
+	p.intensityMu.Lock()
+	defer p.intensityMu.Unlock()
+	return 1 - p.vibCut, 1 - p.sucCut
 }
 
 // MinSpeed / MaxSpeed bound SetSpeed (V1 transport 0.5×–2×).

@@ -37,3 +37,14 @@ func TestAudioLevelEnvelopeSharesDecodeWithAudioVibration(t *testing.T) {
 		t.Fatalf("expected one shared decode, calls %d err %v", calls, err)
 	}
 }
+
+func TestSetChannelLevelsStoresClampedCut(t *testing.T) {
+	a := NewApp()
+	a.SetChannelLevels(0.3, 2)
+	a.stateMu.RLock()
+	vib, suc := 1-a.vibCut, 1-a.sucCut
+	a.stateMu.RUnlock()
+	if vib < 0.299 || vib > 0.301 || suc != 1 {
+		t.Fatalf("levels %v %v, want 0.3 1", vib, suc)
+	}
+}

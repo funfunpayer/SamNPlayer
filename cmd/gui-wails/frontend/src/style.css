@@ -3523,3 +3523,20 @@ details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 .pb-t-icon[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .pb-speed { width: auto; min-width: 74px; padding: 6px 10px; border-radius: 10px; }
 .pb-volume { width: 120px; accent-color: var(--accent); }
+/* V1: live levels live in the Inspector (Devices) — not repeated in the transport. */
+#tab-playback[data-pb-layout="v1"] .pb-transport .pb-live { display: none; }
+/* V1 S7a: channel rows with on/off + level. */
+.pb-chan-row { grid-template-columns: 30px 14px 76px 1fr 40px 44px 34px; }
+.pb-chan-on { margin: 0; accent-color: var(--accent); width: 18px; height: 18px; }
+.pb-chan-level { width: 100%; accent-color: var(--c, var(--accent)); }
+.pb-chan-row .pb-chan-bar { height: 4px; }
+.pb-chan-live { font-size: 11px; color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.pb-chan-row.is-off .pb-chan-name, .pb-chan-row.is-off .pb-chan-val { opacity: 0.5; }
+/* V1 video bar above the video (structure). */
+.pb-videobar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.pb-vb-select { display: inline-flex; align-items: center; gap: 10px; min-width: 260px; max-width: 60%; padding: 8px 12px; min-height: 0; }
+.pb-vb-select span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.pb-vb-select svg, .pb-vb-icon svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pb-vb-spacer { flex: 1; }
+.pb-vb-icon { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; min-height: 0; border-radius: 10px; }
+.pb-vb-status { margin: 0 0 0 6px; }

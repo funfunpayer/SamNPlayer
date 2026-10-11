@@ -32,3 +32,18 @@ func TestSpeedScalesClockAndReanchors(t *testing.T) {
 		t.Fatalf("Speed() = %v", p.Speed())
 	}
 }
+
+func TestChannelLevelsDefaultFullAndClamp(t *testing.T) {
+	var p Player // zero value, as in tests without New()
+	if v, s := p.ChannelLevels(); v != 1 || s != 1 {
+		t.Fatalf("default levels %v %v, want full", v, s)
+	}
+	p.SetChannelLevels(0.4, -3)
+	if v, s := p.ChannelLevels(); v != 0.4 || s != 0 {
+		t.Fatalf("levels %v %v, want 0.4 0", v, s)
+	}
+	p.SetChannelLevels(7, 0.25)
+	if v, s := p.ChannelLevels(); v != 1 || s != 0.25 {
+		t.Fatalf("levels %v %v, want 1 0.25", v, s)
+	}
+}

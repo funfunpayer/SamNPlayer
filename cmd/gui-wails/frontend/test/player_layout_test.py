@@ -35,6 +35,8 @@ def main():
         "GetHeatmap": "async n => Array.from({ length: n }, (_, i) => ({ atMs: i * 200, intensity: 0.5 }))",
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
+        "SetChannelLevels": "async (v, s) => { window.__levels = [v, s]; }",
+        "SaveVideoSnapshot": "async (ms) => { window.__snap = ms; return '/out/frame.png'; }",
     }))
     try:
         with sync_playwright() as p:
@@ -69,6 +71,17 @@ def main():
             check("Devices: channel rows Stroke / Vibration / Suction",
                   page.evaluate("[...document.querySelectorAll('.pb-chan-name')].map(e => e.textContent)") == ["Stroke", "Vibration", "Suction"])
             check("Devices shows the axis row", page.is_visible("#pb-axis-row"))
+            check("channels start at full output", page.evaluate("window.__levels") == [1, 1])
+            page.fill("#pb-chan-vibration-level", "50")
+            page.dispatch_event("#pb-chan-vibration-level", "input")
+            check("vibration level 50% → SetChannelLevels(0.5, 1)", page.evaluate("window.__levels") == [0.5, 1])
+            page.uncheck("#pb-chan-suction-on")
+            check("suction off → level 0", page.evaluate("window.__levels") == [0.5, 0]
+                  and page.text_content("#pb-chan-suction-lvl") == "Off")
+            check("channel settings remembered",
+                  page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels')).suction.on") is False)
+            page.check("#pb-chan-suction-on")
+            check("Stroke row has no level control (drives the recipe)", page.evaluate("!document.querySelector('#pb-chan-stroke-level')"))
             page.click('.pb-insp-tab[data-insp="audio"]')
             check("Audio tab: BPM and audio vibration", page.is_visible("#pb-bpm-auto") and page.is_visible("#pb-audio-vibration"))
             check("Devices content hidden on Audio tab", page.is_hidden("#pb-axis-row"))
@@ -95,6 +108,22 @@ def main():
                   and page.evaluate(f"{root}.dataset.pbInspector") == "view")
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
+            # Video bar above the video.
+            page.click('#rail .tab-btn[data-tab="playback"]')
+            check("video bar present", page.is_visible("[data-pb-region='videobar']"))
+            check("no video → placeholder text", page.text_content("#pb-vb-name") == "Select a video file…")
+            check("snapshot disabled without a video", page.is_disabled("#pb-vb-snapshot"))
+            page.evaluate(f"{root}.dataset.pbVideo = 'true'; {root}.dataset.pbVideoPath = '/v/My Clip.mp4'")
+            page.wait_for_function("document.querySelector('#pb-vb-name').textContent === 'My Clip.mp4'", timeout=3000)
+            check("video bar shows the video name", True)
+            page.click("#pb-vb-snapshot")
+            page.wait_for_function("window.__snap !== undefined", timeout=3000)
+            check("snapshot saves via SaveVideoSnapshot", "frame.png" in page.text_content("#pb-vb-status"))
+            page.evaluate("window.__fsv = 0; document.querySelector('#pb-video-fs').addEventListener('click', () => window.__fsv++)")
+            page.click("#pb-vb-fs")
+            check("video bar fullscreen", page.evaluate("window.__fsv") == 1)
+            page.click("#pb-vb-bookmark")
+            check("bookmark icon opens Bookmarks", page.evaluate(f"{root}.dataset.pbBottom") == "bookmarks")
             check("no page errors", errors == [], str(errors[:3]))
             b.close()
     finally:
