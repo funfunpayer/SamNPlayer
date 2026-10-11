@@ -1,10 +1,29 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
  * Import after style.css (Claude). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Extended for remaining regions ahead of S4 timeline core.
+ * Isolated Flow polish for S3 Library / Inspector / bottom tabs.
  */
 [data-pb-region="library"] {
-  background: linear-gradient(180deg, rgba(10, 27, 43, .6), transparent);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 80%);
+  color: var(--text);
+}
+.pb-lib-title {
+  color: var(--text-dim);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+.pb-lib-item.is-primary {
+  color: var(--accent);
+  background: rgba(0, 217, 244, .08);
+  border-color: rgba(0, 217, 244, .3);
+}
+.pb-lib-drop {
+  border: 1px dashed rgba(104, 180, 212, .35);
+  background: rgba(10, 27, 43, .4);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
 }
 [data-pb-region="inspector-tabs"],
 [data-pb-region="bottom-tabs"] {
@@ -16,30 +35,18 @@
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .2);
-  background: linear-gradient(180deg, rgba(10, 27, 43, .35), transparent);
-}
-[data-pb-region="transport"] {
-  background: rgba(10, 27, 43, .55);
-  border-top: 1px solid rgba(104, 180, 212, .18);
-  border-bottom: 1px solid rgba(104, 180, 212, .12);
-}
-[data-pb-region="legend"] {
-  background: rgba(10, 27, 43, .4);
-  border-bottom: 1px solid rgba(104, 180, 212, .16);
-}
-[data-pb-region="lanes"],
-[data-pb-region="curve"] {
-  background: transparent;
 }
 .pb-card {
   background: rgba(10, 27, 43, .72);
   border-color: rgba(104, 180, 212, .2);
   box-shadow: none;
+  border-radius: var(--radius-sm);
 }
 .pb-lib-item,
 .pb-insp-tab,
 .pb-bottom-tab {
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  color: var(--text-dim);
 }
 .pb-lib-item:hover:not(:disabled),
 .pb-insp-tab:hover:not(:disabled),
@@ -55,29 +62,27 @@
 }
 .pb-lib-item:focus-visible,
 .pb-insp-tab:focus-visible,
-.pb-bottom-tab:focus-visible,
-[data-pb-region="legend"] [data-axis]:focus-visible {
+.pb-bottom-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
-/* Axis chips / legend items — keep distinct channel colours from #480 */
-[data-pb-region="legend"] [data-axis] {
-  border-radius: 6px;
-  transition: background-color 140ms ease, color 140ms ease;
+.pb-chan-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 217, 244, .25);
 }
-[data-pb-region="legend"] [data-axis]:hover {
-  background-color: rgba(0, 217, 244, .08);
+.pb-insp-panel {
+  background: transparent;
 }
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
   [data-pb-region="bottom-tabs"],
   [data-pb-region="timeline"],
-  [data-pb-region="transport"],
-  [data-pb-region="legend"] {
+  .pb-lib-drop {
     border-color: var(--accent);
   }
   .pb-insp-tab[aria-selected="true"],
@@ -89,8 +94,7 @@
 @media (prefers-reduced-motion: reduce) {
   .pb-lib-item,
   .pb-insp-tab,
-  .pb-bottom-tab,
-  [data-pb-region="legend"] [data-axis] {
+  .pb-bottom-tab {
     transition: none;
   }
 }
