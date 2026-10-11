@@ -189,6 +189,38 @@ export function applyPlayerLayoutV1(root, api) {
         <span class="pb-chan-live" id="pb-chan-${k}-val">–</span></div>`).join('');
   panels.devices.appendChild(live);
 
+  // Effects knobs (mockup; Owner 11 Oct): Intensity = overall output of the
+  // feel channels (master over the channel levels), Response = how direct the
+  // device follows the script (inverse of Play smoothing). No Frequency knob:
+  // the Neo 2 vibration has intensity only.
+  const knob = (k, label, help) => `
+    <label class="pb-knob" data-knob="${k}" title="${help}">
+      <span class="pb-knob-label">${label}</span>
+      <span class="pb-knob-dial" aria-hidden="true"><svg viewBox="0 0 48 48">
+        <circle class="pb-knob-track" cx="24" cy="24" r="19" pathLength="100" />
+        <circle class="pb-knob-arc" id="pb-knob-${k}-arc" cx="24" cy="24" r="19" pathLength="100" />
+        <line class="pb-knob-tick" id="pb-knob-${k}-tick" x1="24" y1="24" x2="36" y2="24" /></svg></span>
+      <input type="range" class="pb-knob-input" id="pb-knob-${k}" min="0" max="100" step="5" value="100" aria-label="${label}" />
+      <span class="pb-knob-val" id="pb-knob-${k}-val">100%</span>
+    </label>`;
+  const fx = document.createElement('div');
+  fx.className = 'pb-effects';
+  fx.dataset.pbRegion = 'effects';
+  fx.innerHTML = `<p class="pb-effects-title">Effects</p><div class="pb-knobs">
+    ${knob('intensity', 'Intensity', 'Overall output of vibration and suction (on top of the channel levels). Live.')}
+    ${knob('response', 'Response', 'How directly the device follows the script: high = crisp, low = smooth. Uses Play smoothing; applies from the next Play.')}
+  </div>`;
+  panels.devices.appendChild(fx);
+  // Knob drawing: the SVG is turned 135°, so 0 % sits bottom-left and the
+  // arc / pointer sweep 270° clockwise.
+  function drawKnob(k, v) {
+    const arc = q(`#pb-knob-${k}-arc`), tick = q(`#pb-knob-${k}-tick`);
+    if (arc) arc.style.strokeDasharray = `${v * 0.75} 100`;
+    if (tick) tick.setAttribute('transform', `rotate(${v * 2.7} 24 24)`);
+    const val = q(`#pb-knob-${k}-val`);
+    if (val) val.textContent = `${Math.round(v)}%`;
+  }
+
   const move = (sel, panel) => {
     const n = typeof sel === 'string' ? q(sel) : sel;
     if (n) panels[panel].appendChild(n);
@@ -592,7 +624,10 @@ export function applyPlayerLayoutV1(root, api) {
       q(`.pb-chan-row[data-axis="${k}"]`)?.classList.toggle('is-off', !on?.checked);
       return on?.checked ? v / 100 : 0;
     };
-    const vib = level('vibration'), suc = level('suction');
+    const master = Math.max(0, Math.min(100, Number(q('#pb-knob-intensity')?.value ?? 100)));
+    out.master = master;
+    drawKnob('intensity', master);
+    const vib = level('vibration') * master / 100, suc = level('suction') * master / 100;
     store(CHAN_KEY, JSON.stringify(out));
     root.dataset.pbChannels = `${vib},${suc}`;
     SetChannelLevels(vib, suc).catch(() => {});
@@ -601,7 +636,31 @@ export function applyPlayerLayoutV1(root, api) {
     q(`#pb-chan-${k}-on`)?.addEventListener('change', applyChannels);
     q(`#pb-chan-${k}-level`)?.addEventListener('input', applyChannels);
   }
+  const intensity = q('#pb-knob-intensity');
+  if (intensity && Number.isFinite(saved.master)) intensity.value = String(Math.max(0, Math.min(100, saved.master)));
+  intensity?.addEventListener('input', applyChannels);
   applyChannels();
+
+  // Response ↔ Play smoothing (0–1, saved as playback.smoothing by playback.js).
+  const smooth = q('#pb-smoothing');
+  const response = q('#pb-knob-response');
+  const syncResponse = () => {
+    const sm = parseFloat(smooth?.value);
+    const v = Number.isFinite(sm) ? Math.round((1 - sm) * 100) : 70;
+    response.value = String(v);
+    drawKnob('response', v);
+  };
+  if (smooth && response) {
+    response.addEventListener('input', () => {
+      const v = Number(response.value);
+      smooth.value = String(Math.round((1 - v / 100) * 20) / 20);
+      smooth.dispatchEvent(new Event('input'));
+      drawKnob('response', v);
+    });
+    response.addEventListener('change', () => smooth.dispatchEvent(new Event('change')));
+    smooth.addEventListener('input', syncResponse); // also fired after settings load
+    syncResponse();
+  }
 
   return { showInspector, showBottom, renderRecent };
 }

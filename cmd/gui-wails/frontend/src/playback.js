@@ -7,7 +7,7 @@ import {
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
   EditCapSpeedRange, EditDeleteRange, EditScaleRange, SnapTimeMs,
-  ScriptChapters, ScriptQuality,
+  ScriptChapters, ScriptQuality, EstimateAudioSyncOffset,
   SaveContactSettings, PreviewContactVibration, PickVideoFile, SetPlaybackVideo, ClearPlaybackVideo,
   ProbePlaybackVideo, EnsurePlayablePlaybackVideo, GetTrajectory,
   GetScriptBookmarks, SaveScriptBookmarks,
@@ -244,6 +244,12 @@ export function initPlayback(root) {
             <input type="checkbox" id="pb-loop" />
             <label for="pb-loop" style="width:auto;" data-help="Repeats the marked section (drag on heatmap).">Loop selection</label>
           </span>
+          <div class="pb-autosync" id="pb-autosync" data-pb-region="autosync">
+            <button type="button" class="secondary" id="pb-auto-sync" disabled
+              data-help="Compares the video's sound (first 10 min) with the script's motion and suggests an offset. Only a suggestion: nothing changes until you press Apply. Needs a linked video with sound.">Auto sync (audio)</button>
+            <span class="hint pb-autosync-status" id="pb-autosync-status" aria-live="polite"></span>
+            <button type="button" id="pb-autosync-apply" hidden>Apply</button>
+          </div>
         </div>
         <p class="hint" id="pb-offset-hint" style="display:none; margin-top:0;"
           data-help="Space play/stop · ←/→ 5 s (Shift 1 s) · ,/. fine step · 1–9 jump · +/− offset · L loop · E Extended-O · O O-marker 4s">
@@ -2307,6 +2313,47 @@ export function initPlayback(root) {
     seekTo(Math.max(0, Math.min(totalMs, currentPosMs + deltaMs)));
   }
 
+  // Auto sync (audio), V1 S8b: suggest only — Apply uses the normal offset.
+  let autoSyncSuggestion = null;
+  function syncAutoSyncButton() {
+    const btn = el('#pb-auto-sync');
+    if (btn) btn.disabled = !scriptPath || root.dataset.pbVideo !== 'true';
+  }
+  el('#pb-auto-sync')?.addEventListener('click', async () => {
+    const btn = el('#pb-auto-sync');
+    const status = el('#pb-autosync-status');
+    const apply = el('#pb-autosync-apply');
+    autoSyncSuggestion = null;
+    apply.hidden = true;
+    btn.disabled = true;
+    status.textContent = 'Listening…';
+    try {
+      const res = await EstimateAudioSyncOffset();
+      status.textContent = res.note || '';
+      status.dataset.confidence = res.confidence || 'none';
+      if (res.confidence !== 'none' && res.offsetMs !== res.currentMs) {
+        autoSyncSuggestion = res.offsetMs;
+        apply.hidden = false;
+        apply.textContent = `Apply ${res.offsetMs > 0 ? '+' : ''}${res.offsetMs} ms`;
+      } else if (res.confidence !== 'none') {
+        status.textContent = `${res.note} That is the offset in use.`;
+      }
+    } catch (err) {
+      status.textContent = 'Auto sync: ' + (err?.message || err);
+      status.dataset.confidence = 'none';
+    } finally {
+      syncAutoSyncButton();
+    }
+  });
+  el('#pb-autosync-apply')?.addEventListener('click', async () => {
+    if (autoSyncSuggestion == null) return;
+    await applyOffset(autoSyncSuggestion);
+    log(`Offset ${autoSyncSuggestion} ms from Auto sync (audio).`);
+    el('#pb-autosync-apply').hidden = true;
+    el('#pb-autosync-status').textContent = `Applied ${autoSyncSuggestion} ms — Write into script keeps it for other players.`;
+    autoSyncSuggestion = null;
+  });
+
   async function applyOffset(ms) {
     const value = Math.max(-10000, Math.min(10000, Math.round(ms)));
     el('#pb-offset').value = value;
@@ -3289,6 +3336,9 @@ export function initPlayback(root) {
     resetViewWindow();
     // Library "Recent" / "Scripts" (player_layout.js) listen for successful
     // loads. origin: Generator results open with opts.review.
+    syncAutoSyncButton();
+    if (el('#pb-autosync-status')) el('#pb-autosync-status').textContent = '';
+    if (el('#pb-autosync-apply')) el('#pb-autosync-apply').hidden = true;
     window.dispatchEvent(new CustomEvent('pb:loaded', {
       detail: { path: scriptPath, origin: opts.review ? 'generated' : 'imported' },
     }));
@@ -3775,7 +3825,7 @@ export function initPlayback(root) {
     root.dataset.pbVideo = stageEl.classList.contains('has-video') ? 'true' : 'false';
     root.dataset.pbVideoPath = (root.dataset.pbVideo === 'true' && videoPath) ? videoPath : '';
   }
-  new MutationObserver(() => { syncStageState(); loadAudioLevel(); loadSceneThumbs(); })
+  new MutationObserver(() => { syncStageState(); loadAudioLevel(); loadSceneThumbs(); syncAutoSyncButton(); })
     .observe(stageEl, { attributes: true, attributeFilter: ['class'] });
   const audioLaneBox = el('#pb-audio-lane-toggle');
   if (audioLaneBox) {
@@ -4277,6 +4327,8 @@ export function initPlayback(root) {
     el('#pb-tick').value = s.playbackTickMs;
     el('#pb-maxspeed').value = s.playbackMaxSpeed;
     el('#pb-smoothing').value = s.playbackSmoothing;
+    // Inspector Response knob mirrors this slider (player_layout.js).
+    el('#pb-smoothing').dispatchEvent(new Event('input'));
     el('#pb-softstart').value = s.playbackSoftStartMs;
     syncPlayAdvKnobLabels();
     el('#pb-eo-enabled').checked = s.playbackEOEnabled;

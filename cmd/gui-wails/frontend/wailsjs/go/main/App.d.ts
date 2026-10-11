@@ -324,6 +324,8 @@ export function VideoFileURL():Promise<string>;
 export function ProbePlaybackVideo(arg1:string):Promise<main.PlaybackVideoInfo>;
 export function EnsurePlayablePlaybackVideo():Promise<main.PlaybackVideoInfo>;
 export function EnsureVideoTools():Promise<void>;
+export function EstimateAudioSyncOffset():Promise<main.AudioSyncSuggestion>;
+
 export function EstimatePlaybackAudioBPM():Promise<number>;
 export function BakeScriptOffset():Promise<main.BakeOffsetResult>;
 export function ExportScriptHeatmapPNG():Promise<string>;

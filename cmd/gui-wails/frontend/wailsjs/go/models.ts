@@ -977,6 +977,28 @@ export namespace main {
 	        this.vibration = source["vibration"];
 	    }
 	}
+	export class AudioSyncSuggestion {
+	    offsetMs: number;
+	    currentMs: number;
+	    r: number;
+	    margin: number;
+	    confidence: string;
+	    note: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AudioSyncSuggestion(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.offsetMs = source["offsetMs"];
+	        this.currentMs = source["currentMs"];
+	        this.r = source["r"];
+	        this.margin = source["margin"];
+	        this.confidence = source["confidence"];
+	        this.note = source["note"];
+	    }
+	}
 	export class VideoThumb {
 	    atMs: number;
 	    dataUrl: string;
