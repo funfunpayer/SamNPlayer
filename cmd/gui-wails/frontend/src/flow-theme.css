@@ -311,3 +311,64 @@ textarea:focus-visible,
   outline: 2px solid #45dcff;
   outline-offset: 2px;
 }
+
+/* Phase 5 — form labels, range sliders, links, secondary buttons & panel polish */
+.field-row label,
+label,
+.path-label {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.field-row label {
+  letter-spacing: 0.01em;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+  height: 6px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(4, 201, 245, .35);
+}
+input[type="range"]::-moz-range-thumb {
+  background: var(--accent);
+  border: none;
+  box-shadow: 0 0 0 2px rgba(4, 201, 245, .35);
+}
+
+a, .link {
+  color: var(--accent);
+  text-decoration-color: rgba(4, 201, 245, .45);
+}
+a:hover, .link:hover {
+  color: var(--accent-hover);
+}
+
+button:not(.primary):not(.danger):not(.tab-btn) {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+button:not(.primary):not(.danger):not(.tab-btn):hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--accent);
+}
+
+.card + .card,
+.field-row + .field-row {
+  margin-top: var(--space-3, 12px);
+}
+
+#tab-generator .progress-bar-fill,
+#tab-training .progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--feel));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input[type="range"]::-webkit-slider-thumb,
+  input[type="range"]::-moz-range-thumb {
+    transition: none;
+  }
+}
