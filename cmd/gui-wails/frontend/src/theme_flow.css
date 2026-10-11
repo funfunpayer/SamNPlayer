@@ -387,3 +387,24 @@ body {
   #tab-playback .pb-scene-thumb { max-height: 72px; }
   #tab-playback .pb-aa-wave { max-height: 100px; }
 }
+
+/* S4 lane legend: stable typography and color dots; no canvas changes. */
+#tab-playback .pb-lane-name,
+#tab-playback .pb-lane-label {
+  color: #cfe4f2;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .015em;
+}
+#tab-playback .pb-lane-names {
+  border-right: 1px solid rgba(0, 217, 244, .14);
+  background: linear-gradient(90deg, rgba(4, 21, 36, .46), transparent);
+}
+#tab-playback .pb-lane-name:focus-visible,
+#tab-playback .pb-lane-label:focus-visible {
+  outline: 2px solid #8ef0ff;
+  outline-offset: 2px;
+}
+@media (prefers-contrast: more) {
+  #tab-playback .pb-lane-names { border-right-color: #8ef0ff; }
+}
