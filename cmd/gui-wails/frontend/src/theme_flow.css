@@ -177,3 +177,40 @@ body {
 #tab-playback .pb-transport { flex-wrap: wrap; row-gap: 8px; }
 #tab-playback .pb-transport .progress-bar { order: -1; flex: 1 1 100%; }
 #tab-playback .pb-transport-right { margin-left: auto; }
+
+/* ChatGPT integration polish after S4a merge: stronger, accessible states.
+ * CSS-only: preserve transport bindings, geometry and channel semantics.
+ */
+[data-pb-region="library"] .pb-lib-item.is-primary {
+  color: #f1fcff;
+  border-color: rgba(0, 217, 244, .72);
+  background: linear-gradient(90deg, rgba(0, 127, 179, .72), rgba(4, 46, 79, .88));
+  box-shadow: inset 0 0 12px rgba(0, 211, 255, .23), 0 0 14px rgba(0, 180, 255, .18);
+}
+[data-pb-region="library"] .pb-lib-item:hover:not(:disabled) {
+  border-color: rgba(0, 217, 244, .55);
+  background-color: rgba(0, 158, 218, .13);
+}
+.pb-insp-tab[aria-selected="true"],
+.pb-bottom-tab[aria-selected="true"] {
+  color: #f4fcff;
+  background: linear-gradient(180deg, rgba(4, 79, 132, .92), rgba(4, 48, 84, .92));
+  border-bottom-color: #00d9f4;
+  box-shadow: inset 0 1px 0 rgba(78, 196, 255, .48), inset 0 -3px 10px rgba(0, 192, 255, .24);
+}
+.pb-lib-item:focus-visible,
+.pb-insp-tab:focus-visible,
+.pb-bottom-tab:focus-visible,
+[data-pb-region="transport"] button:focus-visible {
+  outline: 2px solid #7ceeff;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-lib-item, .pb-insp-tab, .pb-bottom-tab { transition: none; }
+}
+@media (prefers-contrast: more) {
+  .pb-insp-tab[aria-selected="true"], .pb-bottom-tab[aria-selected="true"] {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
