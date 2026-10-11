@@ -1,7 +1,7 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
  * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 shell + S4 timeline prep (ruler, lanes, markers ready).
+ * Isolated Flow polish for S3 shell; ready to review against S4 timeline core.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -44,8 +44,7 @@
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
-  background: linear-gradient(180deg, rgba(10, 27, 43, .45), transparent 75%);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
 }
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .62);
@@ -54,9 +53,8 @@
   border-radius: var(--radius-sm);
 }
 [data-pb-region="legend"] {
-  background: rgba(10, 27, 43, .5);
-  border-bottom: 1px solid rgba(104, 180, 212, .2);
-  padding: 0.3rem 0.5rem;
+  background: rgba(10, 27, 43, .45);
+  border-bottom: 1px solid rgba(104, 180, 212, .18);
 }
 [data-pb-region="lanes"],
 [data-pb-region="curve"],
@@ -65,7 +63,19 @@
 }
 [data-pb-region="zoom"] {
   background: rgba(10, 27, 43, .35);
-  border-top: 1px solid rgba(104, 180, 212, .15);
+  border-top: 1px solid rgba(104, 180, 212, .12);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+[data-pb-region="playlist"] {
+  background: rgba(10, 27, 43, .55);
+  border-top: 1px solid rgba(104, 180, 212, .18);
+}
+[data-pb-region="tools"] {
+  background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 80%);
+}
+[data-pb-region="empty"] {
+  background: radial-gradient(circle at 30% 20%, rgba(0, 217, 244, .06), transparent 50%),
+              linear-gradient(180deg, rgba(10, 27, 43, .4), transparent);
 }
 .pb-card {
   background: rgba(10, 27, 43, .75);
@@ -86,20 +96,20 @@
 .pb-lib-item,
 .pb-insp-tab,
 .pb-bottom-tab,
-[data-pb-region="legend"] [data-axis] {
+.pb-axis-chip {
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
   color: var(--text-dim);
 }
 .pb-lib-item:hover:not(:disabled),
 .pb-insp-tab:hover:not(:disabled),
 .pb-bottom-tab:hover:not(:disabled),
-[data-pb-region="legend"] [data-axis]:hover {
+.pb-axis-chip:hover:not(:disabled) {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
 }
 .pb-insp-tab[aria-selected="true"],
 .pb-bottom-tab[aria-selected="true"],
-[data-pb-region="legend"] [data-axis][aria-pressed="true"] {
+.pb-axis-chip[aria-pressed="true"] {
   color: var(--accent);
   border-bottom-color: var(--accent);
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
@@ -108,7 +118,7 @@
 .pb-insp-tab:focus-visible,
 .pb-bottom-tab:focus-visible,
 [data-pb-region="legend"] [data-axis]:focus-visible,
-[data-pb-region="zoom"] button:focus-visible {
+.pb-axis-chip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
@@ -159,16 +169,13 @@
   color: var(--accent);
   font-weight: 600;
 }
-/* S4 prep: timeline ruler, lane names, markers — visual only, hooks when Claude adds them */
-[data-pb-region="timeline"] .pb-ruler,
-[data-pb-region="timeline"] .pb-lane-names {
+.pb-playlist-title,
+.pb-tools-title {
   color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.68rem;
-}
-[data-pb-region="timeline"] .pb-marker {
-  color: var(--accent);
-  filter: drop-shadow(0 0 2px rgba(0, 217, 244, .4));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 @media (prefers-contrast: more) {
   .pb-card,
@@ -177,11 +184,14 @@
   [data-pb-region="timeline"],
   [data-pb-region="transport"],
   [data-pb-region="legend"],
+  [data-pb-region="zoom"],
+  [data-pb-region="playlist"],
   .pb-lib-drop {
     border-color: var(--accent);
   }
   .pb-insp-tab[aria-selected="true"],
-  .pb-bottom-tab[aria-selected="true"] {
+  .pb-bottom-tab[aria-selected="true"],
+  .pb-axis-chip[aria-pressed="true"] {
     text-decoration: underline;
     text-underline-offset: 4px;
     text-decoration-thickness: 2px;
@@ -191,6 +201,7 @@
   .pb-lib-item,
   .pb-insp-tab,
   .pb-bottom-tab,
+  .pb-axis-chip,
   [data-pb-region="legend"] [data-axis],
   .pb-chan-bar b {
     transition: none;
