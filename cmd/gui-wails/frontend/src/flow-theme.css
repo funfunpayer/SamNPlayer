@@ -21,6 +21,8 @@
   --feel: #ff912b;
   --feel-soft: rgba(255, 145, 43, .12);
   --warn: #ffad51;
+  --danger: #ff6b6b;
+  --ok: #4ade80;
   --focus-ring: 0 0 0 2px rgba(4, 201, 245, .38);
 }
 .brand-wordmark .wm-sam, .brand-wordmark .wm-n {
@@ -38,9 +40,12 @@
 }
 #rail .tab-btn:hover {
   transform: translateY(-1px);
+  background: rgba(4, 201, 245, .08);
 }
 #rail .tab-btn.active {
   color: #52e3ff;
+  background: linear-gradient(180deg, rgba(4, 201, 245, .16) 0%, rgba(4, 201, 245, .04) 100%);
+  box-shadow: inset 0 0 0 1px rgba(4, 201, 245, .22);
 }
 .pb-axis-chip[data-axis="vibration"] { --axis-c: #ff8a24; }
 .pb-axis-chip[data-axis="suction"] { --axis-c: #06cfff; }
@@ -107,4 +112,116 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .tab-panel.active { animation: none; }
+}
+
+/* Phase 3 — full-tab coverage: buttons, forms, tools, pills, device states */
+button.primary {
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  color: #051018;
+  border-color: transparent;
+  box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 3px 14px rgba(4, 201, 245, .22);
+}
+button.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #8af4ff 0%, var(--accent-hover) 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.22) inset, 0 5px 18px rgba(4, 201, 245, .28);
+}
+button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+button.danger:hover:not(:disabled) {
+  background: rgba(255, 107, 107, .12);
+}
+
+input, select, textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-dim);
+  opacity: .7;
+}
+
+.tools-nav {
+  background: rgba(8, 22, 36, .6);
+  border-bottom: 1px solid rgba(0, 201, 245, .1);
+  padding: 8px 16px;
+}
+.tools-nav .tab-btn {
+  color: var(--text-dim);
+}
+.tools-nav .tab-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pill {
+  background: var(--surface);
+  border-color: var(--border);
+  border-left-color: var(--teal);
+  color: var(--text-dim);
+}
+.donate-pill {
+  border-left-color: var(--feel);
+}
+
+.topbar-device-wrap.is-online {
+  border-color: rgba(74, 222, 128, .45);
+  background: rgba(74, 222, 128, .08);
+}
+.topbar-device-wrap.is-online .topbar-device-led {
+  background: var(--ok);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, .25);
+}
+.topbar-device-wrap.is-offline .topbar-device-action {
+  background: var(--accent);
+  color: #051018;
+}
+.topbar-device-wrap.is-offline .topbar-device-action:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.topbar-device-wrap.is-searching {
+  border-color: rgba(4, 201, 245, .45);
+}
+.topbar-device-wrap.is-searching .topbar-device,
+.topbar-device-wrap.is-searching .topbar-device-led {
+  color: var(--accent);
+  background: var(--accent);
+}
+
+.progress-bar {
+  background: var(--bg-alt);
+  border-color: var(--border);
+}
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+}
+
+/* Ensure high contrast text on all surfaces */
+h1, h2, h3, .card h2 {
+  color: var(--text);
+}
+.card h2 {
+  color: var(--text-dim);
+}
+
+@media (max-width: 1100px) {
+  #sidebar {
+    width: 260px;
+  }
+  .tab-panel {
+    max-width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, input, select, .tab-btn, .pill {
+    transition: none;
+  }
 }
