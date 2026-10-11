@@ -127,6 +127,10 @@ not needed, it stays out.
 - Playlist with **shuffle** and **repeat**
 - Script-alone mode when there is no video yet
 - “Make playable” H.264 proxy when the webview cannot decode the source
+- **Vibration from video audio only** — Play → Playback & Extended-O or Settings → Play; off by default, applies on the next Play start. Needs video audio + ffmpeg; falls back to script vibration on decode failure. Suction stays script-driven; no file edits.
+- **BPM From audio** — Play → Curve edit; measures the first 10 minutes, fills BPM and enables the visual grid. Does not change playback channels or script points.
+- **Offset → Write into script** — confirm to save the shift on all axes, bookmarks and chapters; negative-time points are removed and the offset resets to 0 on success.
+- [Play steps, prerequisites and failure behavior](docs/USER_HANDBOOK.md#4-play--quick-map)
 
 ### Generator
 - Classical CV first (CSRT / flow) — works without any AI install
