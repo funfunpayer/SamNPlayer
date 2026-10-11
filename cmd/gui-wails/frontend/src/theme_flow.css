@@ -28,14 +28,6 @@
   border-top-color: rgba(104, 180, 212, .2);
   background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
 }
-[data-pb-region="ruler"],
-[data-pb-region="timeline"] .pb-ruler,
-[data-pb-region="timeline"] .pb-time-ruler {
-  background: rgba(10, 27, 43, .5);
-  color: var(--text-dim);
-  border-bottom: 1px solid rgba(104, 180, 212, .16);
-  font-variant-numeric: tabular-nums;
-}
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .58);
   border-top: 1px solid rgba(104, 180, 212, .18);
@@ -148,6 +140,13 @@
   color: var(--text-dim);
 }
 /* S4 timeline core visual prep (approved hooks only, look only) */
+[data-pb-region="timeline"] .pb-ruler,
+[data-pb-region="timeline"] .pb-time-ruler {
+  background: rgba(10, 27, 43, .5);
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(104, 180, 212, .16);
+  font-variant-numeric: tabular-nums;
+}
 [data-pb-region="lanes"] .pb-lane-name,
 [data-pb-region="legend"] .pb-lane-label {
   color: var(--text-dim);
@@ -180,12 +179,43 @@
 .pb-collapse:hover {
   color: var(--accent);
 }
+/* Next open point: transport buttons + progress polish (look only, approved hooks) */
+[data-pb-region="transport"] button,
+[data-pb-region="transport"] .pb-btn {
+  color: var(--text-dim);
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  background-color: transparent;
+  border-color: transparent;
+}
+[data-pb-region="transport"] button:hover:not(:disabled),
+[data-pb-region="transport"] .pb-btn:hover:not(:disabled) {
+  color: var(--accent);
+  background-color: rgba(0, 217, 244, .08);
+}
+[data-pb-region="transport"] button:active:not(:disabled),
+[data-pb-region="transport"] .pb-btn:active:not(:disabled) {
+  background-color: rgba(0, 217, 244, .14);
+}
+#pb-progress,
+.progress-bar,
+[data-pb-region="transport"] .pb-progress {
+  background: rgba(10, 27, 43, .65);
+  border-radius: 2px;
+}
+#pb-progress::-webkit-progress-bar,
+.progress-bar {
+  background: rgba(10, 27, 43, .65);
+}
+#pb-progress::-webkit-progress-value,
+.progress-bar-fill,
+[data-pb-region="transport"] .pb-progress-fill {
+  background: var(--accent);
+}
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
   [data-pb-region="bottom-tabs"],
   [data-pb-region="timeline"],
-  [data-pb-region="ruler"],
   [data-pb-region="transport"],
   [data-pb-region="legend"],
   [data-pb-region="zoom"],
