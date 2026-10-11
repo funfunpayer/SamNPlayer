@@ -1,7 +1,7 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
  * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 shell; ready to review against S4 timeline core.
+ * Isolated Flow polish for S3 shell + S4 timeline prep (ruler, lanes, markers ready).
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
@@ -44,7 +44,8 @@
 }
 [data-pb-region="timeline"] {
   border-top-color: rgba(104, 180, 212, .22);
-  background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .45), transparent 75%);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 [data-pb-region="transport"] {
   background: rgba(10, 27, 43, .62);
@@ -53,12 +54,18 @@
   border-radius: var(--radius-sm);
 }
 [data-pb-region="legend"] {
-  background: rgba(10, 27, 43, .45);
-  border-bottom: 1px solid rgba(104, 180, 212, .18);
+  background: rgba(10, 27, 43, .5);
+  border-bottom: 1px solid rgba(104, 180, 212, .2);
+  padding: 0.3rem 0.5rem;
 }
 [data-pb-region="lanes"],
-[data-pb-region="curve"] {
+[data-pb-region="curve"],
+[data-pb-region="heatmap"] {
   background: transparent;
+}
+[data-pb-region="zoom"] {
+  background: rgba(10, 27, 43, .35);
+  border-top: 1px solid rgba(104, 180, 212, .15);
 }
 .pb-card {
   background: rgba(10, 27, 43, .75);
@@ -78,18 +85,21 @@
 }
 .pb-lib-item,
 .pb-insp-tab,
-.pb-bottom-tab {
+.pb-bottom-tab,
+[data-pb-region="legend"] [data-axis] {
   transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
   color: var(--text-dim);
 }
 .pb-lib-item:hover:not(:disabled),
 .pb-insp-tab:hover:not(:disabled),
-.pb-bottom-tab:hover:not(:disabled) {
+.pb-bottom-tab:hover:not(:disabled),
+[data-pb-region="legend"] [data-axis]:hover {
   color: var(--accent);
   background-color: rgba(0, 217, 244, .08);
 }
 .pb-insp-tab[aria-selected="true"],
-.pb-bottom-tab[aria-selected="true"] {
+.pb-bottom-tab[aria-selected="true"],
+[data-pb-region="legend"] [data-axis][aria-pressed="true"] {
   color: var(--accent);
   border-bottom-color: var(--accent);
   background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
@@ -97,7 +107,8 @@
 .pb-lib-item:focus-visible,
 .pb-insp-tab:focus-visible,
 .pb-bottom-tab:focus-visible,
-[data-pb-region="legend"] [data-axis]:focus-visible {
+[data-pb-region="legend"] [data-axis]:focus-visible,
+[data-pb-region="zoom"] button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
@@ -147,6 +158,17 @@
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   font-weight: 600;
+}
+/* S4 prep: timeline ruler, lane names, markers — visual only, hooks when Claude adds them */
+[data-pb-region="timeline"] .pb-ruler,
+[data-pb-region="timeline"] .pb-lane-names {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+}
+[data-pb-region="timeline"] .pb-marker {
+  color: var(--accent);
+  filter: drop-shadow(0 0 2px rgba(0, 217, 244, .4));
 }
 @media (prefers-contrast: more) {
   .pb-card,
