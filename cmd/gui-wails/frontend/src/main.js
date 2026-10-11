@@ -20,6 +20,8 @@ import { ensureEULAAccepted } from './legal.js';
 import { GetDonateLinks, IsStudioBuild } from '../wailsjs/go/main/App';
 
 function switchTab(name) {
+  // Layout hook: CSS can adapt per tab (Play hides the info column).
+  document.body.dataset.tab = name;
   document.querySelectorAll('.tab-btn').forEach(b => {
     const on = b.dataset.tab === name;
     b.classList.toggle('active', on);
@@ -197,6 +199,8 @@ document.documentElement.dataset.edition = 'customer';
 IsStudioBuild().then(studio => {
   if (studio) document.documentElement.dataset.edition = 'studio';
 }).catch(() => {});
+
+document.body.dataset.tab = document.querySelector('.tab-btn.active')?.dataset.tab || 'playback';
 
 // Freeware terms: ask once per EULA version (Decline quits the app).
 ensureEULAAccepted();

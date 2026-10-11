@@ -138,7 +138,12 @@ export function initPlayback(root) {
         </div>
       </div>
 
-      <div class="pb-tools">
+      <div class="pb-tools" id="pb-tools">
+        <div class="pb-tools-head">
+          <span class="pb-tools-title">Tools</span>
+          <button type="button" class="secondary pb-tools-toggle" id="pb-tools-toggle"
+            title="Hide tools — bigger video (T)" aria-expanded="true">⟩</button>
+        </div>
         <div class="checkbox-row" id="pb-curve-edit-row" style="display:none">
           <input type="checkbox" id="pb-curve-edit" />
           <label for="pb-curve-edit">Edit curve (dots)</label>
@@ -1809,6 +1814,30 @@ export function initPlayback(root) {
       logError('Offset: ' + err);
     }
   }
+
+  // Play layout (Owner 11 Oct, FunGen2-style): the tools column can be
+  // collapsed so the video takes the full width. Remembered per viewer.
+  function setToolsCollapsed(on) {
+    root.classList.toggle('pb-tools-collapsed', on);
+    const btn = el('#pb-tools-toggle');
+    if (btn) {
+      btn.textContent = on ? '⟨' : '⟩';
+      btn.title = on ? 'Show tools (T)' : 'Hide tools — bigger video (T)';
+      btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    }
+    try { localStorage.setItem('pb.toolsCollapsed', on ? '1' : '0'); } catch (_) { /* ignore */ }
+  }
+  el('#pb-tools-toggle')?.addEventListener('click', () =>
+    setToolsCollapsed(!root.classList.contains('pb-tools-collapsed')));
+  try { if (localStorage.getItem('pb.toolsCollapsed') === '1') setToolsCollapsed(true); } catch (_) { /* ignore */ }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 't' && e.key !== 'T') return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    if (document.body.dataset.tab && document.body.dataset.tab !== 'playback') return;
+    setToolsCollapsed(!root.classList.contains('pb-tools-collapsed'));
+  });
 
   el('#pb-offset').addEventListener('change', e => applyOffset(Number(e.target.value) || 0));
   el('#pb-offset-minus').addEventListener('click',
