@@ -1,10 +1,10 @@
 /* SamNPlayer V1.0 — look only, Owner rules of 11 October.
- * Import after style.css (Claude). Uses only the approved Player hooks.
+ * Import after style.css (Claude, see #484). Uses only the approved Player hooks.
  * No structure, visibility, sizing, script, device or canvas changes.
- * Isolated Flow polish for S3 Library / Inspector / bottom tabs.
+ * Isolated Flow polish for S3 shell; ready to review against S4 timeline core.
  */
 [data-pb-region="library"] {
-  background: linear-gradient(180deg, rgba(10, 27, 43, .65), transparent 80%);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .72), transparent 90%);
   color: var(--text);
 }
 .pb-lib-title {
@@ -13,63 +13,68 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.72rem;
-  margin: 1.2rem 0 0.4rem;
+  margin: 1rem 0 0.4rem;
+}
+.pb-lib-item {
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
 }
 .pb-lib-item.is-primary {
   color: var(--accent);
-  background: rgba(0, 217, 244, .08);
-  border-color: rgba(0, 217, 244, .3);
+  background: rgba(0, 217, 244, .1);
+  border-color: rgba(0, 217, 244, .35);
 }
 .pb-lib-drop {
-  border: 1px dashed rgba(104, 180, 212, .35);
-  background: rgba(10, 27, 43, .4);
+  border: 1px dashed rgba(104, 180, 212, .4);
+  background: rgba(10, 27, 43, .45);
   color: var(--text-dim);
   border-radius: var(--radius-sm);
-  padding: 1rem;
+  padding: 0.85rem;
   text-align: center;
-}
-.pb-lib-recent-item {
-  color: var(--text-dim);
-  background: transparent;
-  border: 0;
-  padding: 0.35rem 0.5rem;
-  border-radius: var(--radius-sm);
-  width: 100%;
-  text-align: left;
-}
-.pb-lib-recent-item:hover {
-  color: var(--accent);
-  background: rgba(0, 217, 244, .06);
 }
 [data-pb-region="inspector-tabs"],
 [data-pb-region="bottom-tabs"] {
-  border-bottom-color: rgba(104, 180, 212, .24);
+  border-bottom-color: rgba(104, 180, 212, .28);
 }
 [data-pb-region="video"] {
   background: #020a12;
-  box-shadow: 0 0 0 1px rgba(104, 180, 212, .2);
+  box-shadow: 0 0 0 1px rgba(104, 180, 212, .22);
+  border-radius: var(--radius-sm);
 }
 [data-pb-region="timeline"] {
-  border-top-color: rgba(104, 180, 212, .2);
+  border-top-color: rgba(104, 180, 212, .22);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .4), transparent 70%);
 }
 [data-pb-region="transport"] {
+  background: rgba(10, 27, 43, .62);
+  border-top: 1px solid rgba(104, 180, 212, .2);
+  border-bottom: 1px solid rgba(104, 180, 212, .14);
+  border-radius: var(--radius-sm);
+}
+[data-pb-region="legend"] {
   background: rgba(10, 27, 43, .45);
-  border-top: 1px solid rgba(104, 180, 212, .18);
+  border-bottom: 1px solid rgba(104, 180, 212, .18);
+}
+[data-pb-region="lanes"],
+[data-pb-region="curve"] {
+  background: transparent;
 }
 .pb-card {
-  background: rgba(10, 27, 43, .72);
-  border-color: rgba(104, 180, 212, .2);
+  background: rgba(10, 27, 43, .75);
+  border: 1px solid rgba(104, 180, 212, .22);
   box-shadow: none;
   border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
 }
 .pb-card-title {
   color: var(--text-dim);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 0.7rem;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.45rem;
 }
 .pb-lib-item,
 .pb-insp-tab,
@@ -81,75 +86,75 @@
 .pb-insp-tab:hover:not(:disabled),
 .pb-bottom-tab:hover:not(:disabled) {
   color: var(--accent);
-  background-color: rgba(0, 217, 244, .07);
+  background-color: rgba(0, 217, 244, .08);
 }
 .pb-insp-tab[aria-selected="true"],
 .pb-bottom-tab[aria-selected="true"] {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  background: linear-gradient(180deg, rgba(0, 217, 244, .12), transparent);
+  background: linear-gradient(180deg, rgba(0, 217, 244, .14), transparent);
 }
 .pb-lib-item:focus-visible,
 .pb-insp-tab:focus-visible,
 .pb-bottom-tab:focus-visible,
-.pb-lib-recent-item:focus-visible {
+[data-pb-region="legend"] [data-axis]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 .pb-chan-row {
   font-variant-numeric: tabular-nums;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0;
+  gap: 0.55rem;
+  margin: 0.3rem 0;
 }
 .pb-chan-dot {
-  background: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 217, 244, .25);
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 217, 244, .28);
   flex-shrink: 0;
 }
 .pb-chan-bar {
   flex: 1;
   height: 4px;
-  background: rgba(104, 180, 212, .15);
+  background: rgba(104, 180, 212, .18);
   border-radius: 2px;
   overflow: hidden;
 }
-.pb-chan-bar > b {
+.pb-chan-bar b {
   display: block;
   height: 100%;
   background: var(--accent);
   width: 0%;
   transition: width 80ms linear;
 }
-.pb-chan-val {
-  min-width: 2.8rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 .pb-insp-panel {
   background: transparent;
 }
-[data-pb-region="empty"] {
-  color: var(--text-dim);
+.progress-bar {
+  background: rgba(10, 27, 43, .65);
+  border-radius: 2px;
+  overflow: hidden;
 }
-#topbar {
-  background: linear-gradient(180deg, rgba(10, 27, 43, .95), rgba(2, 10, 18, .9));
-  border-bottom-color: rgba(104, 180, 212, .22);
+.progress-bar-fill {
+  background: var(--accent);
 }
-#rail .tab-btn.active {
+.pb-live b {
+  font-variant-numeric: tabular-nums;
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(0, 217, 244, .25);
+  font-weight: 600;
 }
 @media (prefers-contrast: more) {
   .pb-card,
   [data-pb-region="inspector-tabs"],
   [data-pb-region="bottom-tabs"],
   [data-pb-region="timeline"],
+  [data-pb-region="transport"],
+  [data-pb-region="legend"],
   .pb-lib-drop {
     border-color: var(--accent);
   }
@@ -157,13 +162,15 @@
   .pb-bottom-tab[aria-selected="true"] {
     text-decoration: underline;
     text-underline-offset: 4px;
+    text-decoration-thickness: 2px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .pb-lib-item,
   .pb-insp-tab,
   .pb-bottom-tab,
-  .pb-chan-bar > b {
+  [data-pb-region="legend"] [data-axis],
+  .pb-chan-bar b {
     transition: none;
   }
 }
