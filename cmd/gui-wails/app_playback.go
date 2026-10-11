@@ -35,6 +35,9 @@ type PlaybackOptions struct {
 	// (0 / "" = aus DeviceRecipe). Datei bleibt unverändert.
 	ContactVibrationSpan  float64 `json:"contactVibrationSpan"`
 	ContactVibrationCurve string  `json:"contactVibrationCurve"`
+	// Speed: playback speed 0.5–2 (V1 transport; 0 = 1×). With video sync the
+	// device follows the video clock, whose playbackRate carries the speed.
+	Speed float64 `json:"speed"`
 }
 
 // ContactPreviewOptions steuert die zweite Kurvenspur inkl. Live-Overrides.
@@ -191,6 +194,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p := player.New(dev)
 	p.LogEvery = time.Second
 	p.SoftStartMs = opts.SoftStartMs
+	p.SetSpeed(opts.Speed)
 	p.OnLog = func(line string) { runtime.EventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
 		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
@@ -317,6 +321,20 @@ func (a *App) ReportVideoSyncIdle() {
 	case a.videoPositionCh <- player.SyncIdleSentinel:
 	default:
 	}
+}
+
+// SetPlaybackSpeed changes the speed of a running playback (0.5–2×) and
+// returns the clamped value. Without a running session it only reports the
+// clamp; the next StartPlayback takes PlaybackOptions.Speed.
+func (a *App) SetPlaybackSpeed(speed float64) float64 {
+	speed = player.ClampSpeed(speed)
+	a.stateMu.RLock()
+	p := a.activePlayer
+	a.stateMu.RUnlock()
+	if p != nil {
+		p.SetSpeed(speed)
+	}
+	return speed
 }
 
 func (a *App) TriggerExtendedO(minLevel, holdSeconds, restoreMs float64) {

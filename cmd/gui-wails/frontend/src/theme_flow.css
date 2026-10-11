@@ -165,3 +165,15 @@ body {
   #tab-playback[data-pb-layout="v1"] .pb-curve { height: 90px; }
   #topbar { height: 74px; }
 }
+
+/* S5 transport look (mockup: loop · speed | prev · PLAY · next | volume · fullscreen). */
+#tab-playback .pb-t-icon { border-color: transparent; color: #d6e6f5; }
+#tab-playback .pb-t-icon:hover { color: #fff; background: rgba(0, 180, 255, 0.10); }
+#tab-playback #pb-prev svg, #tab-playback #pb-next svg { width: 24px; height: 24px; }
+#tab-playback .pb-speed {
+  background: rgba(4, 14, 28, 0.7); border: 1px solid var(--flow-card-border); color: #e6f1fb;
+}
+#tab-playback .pb-volume { accent-color: #00d9f4; }
+#tab-playback .pb-transport { flex-wrap: wrap; row-gap: 8px; }
+#tab-playback .pb-transport .progress-bar { order: -1; flex: 1 1 100%; }
+#tab-playback .pb-transport-right { margin-left: auto; }

@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope,
+  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -89,6 +89,16 @@ export function initPlayback(root) {
         </div>
         <div class="pb-transport" data-pb-region="transport">
           <div class="row pb-transport-btns">
+            <button id="pb-t-loop" class="pb-t-icon" type="button" title="Loop the marked range (same as Loop selection)" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+            </button>
+            <select id="pb-speed" class="pb-speed" title="Playback speed — video and device stay in sync">
+              <option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option>
+              <option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2.0×</option>
+            </select>
+            <button id="pb-prev" class="pb-t-icon" type="button" title="Previous item / back to start">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/></svg>
+            </button>
             <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <span>Play</span>
@@ -99,6 +109,15 @@ export function initPlayback(root) {
             </button>
             <button id="pb-eo-trigger" type="button" disabled>Extended-O</button>
             <button id="pb-next" type="button" hidden title="Next item in the list">Next</button>
+          </div>
+          <div class="row pb-transport-right">
+            <button id="pb-mute" class="pb-t-icon" type="button" title="Mute video sound" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+            </button>
+            <input type="range" id="pb-volume" class="pb-volume" min="0" max="1" step="0.05" value="1" title="Video volume" aria-label="Video volume" />
+            <button id="pb-t-fs" class="pb-t-icon" type="button" title="Fullscreen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+            </button>
           </div>
           <div class="progress-bar"><div class="progress-bar-fill" id="pb-progress"></div></div>
           <div class="stat-row pb-live">
@@ -3341,6 +3360,7 @@ export function initPlayback(root) {
       contactVibrationCurve: scriptHasContactVibration
         ? (el('#pb-contact-curve').value || '')
         : '',
+      speed: currentSpeed(),
     };
 
     try {
@@ -3806,6 +3826,78 @@ export function initPlayback(root) {
   el('#pb-choose-empty').addEventListener('click', chooseScript);
   el('#pb-queue-add').addEventListener('click', queueAddScript);
   el('#pb-next').addEventListener('click', () => playNextInPlaylist());
+
+  // ---- V1 transport (S5): speed, previous, loop, volume, fullscreen -------
+  function currentSpeed() {
+    const v = parseFloat(el('#pb-speed')?.value);
+    return Number.isFinite(v) && v > 0 ? v : 1;
+  }
+  function applySpeed() {
+    const v = currentSpeed();
+    const vid = el('#pb-video');
+    if (vid) { vid.playbackRate = v; vid.defaultPlaybackRate = v; }
+    SetPlaybackSpeed(v).catch(() => {});
+    root.dataset.pbSpeed = String(v);
+  }
+  el('#pb-speed')?.addEventListener('change', applySpeed);
+  el('#pb-video')?.addEventListener('loadedmetadata', () => {
+    const vid = el('#pb-video');
+    vid.playbackRate = currentSpeed();
+    vid.defaultPlaybackRate = currentSpeed();
+  });
+  el('#pb-prev')?.addEventListener('click', async () => {
+    if (playlist.length > 1 && playlistIndex > 0 && !advancingPlaylist) {
+      advancingPlaylist = true;
+      try {
+        const wasPlaying = playing;
+        if (playing) await stop({ user: false });
+        playlistIndex -= 1;
+        renderPlaylist();
+        await loadScript(playlist[playlistIndex].path, { keepPlaylist: true });
+        if (wasPlaying) await play();
+      } catch (err) {
+        logError('Previous item: ' + err);
+      } finally {
+        advancingPlaylist = false;
+      }
+      return;
+    }
+    seekTo(0);
+  });
+  const loopBox = el('#pb-loop');
+  const loopBtn = el('#pb-t-loop');
+  const syncLoopBtn = () => loopBtn?.setAttribute('aria-pressed', loopBox?.checked ? 'true' : 'false');
+  loopBtn?.addEventListener('click', () => {
+    if (!loopBox) return;
+    loopBox.checked = !loopBox.checked;
+    loopBox.dispatchEvent(new Event('change'));
+    syncLoopBtn();
+  });
+  loopBox?.addEventListener('change', syncLoopBtn);
+  const vol = el('#pb-volume');
+  const muteBtn = el('#pb-mute');
+  try {
+    const saved = parseFloat(localStorage.getItem('pb.volume'));
+    if (Number.isFinite(saved) && vol) vol.value = String(Math.max(0, Math.min(1, saved)));
+  } catch (_) { /* ignore */ }
+  const applyVolume = () => {
+    const vid = el('#pb-video');
+    if (!vid || !vol) return;
+    vid.volume = parseFloat(vol.value);
+    muteBtn?.setAttribute('aria-pressed', vid.muted ? 'true' : 'false');
+  };
+  vol?.addEventListener('input', () => {
+    applyVolume();
+    try { localStorage.setItem('pb.volume', vol.value); } catch (_) { /* ignore */ }
+  });
+  muteBtn?.addEventListener('click', () => {
+    const vid = el('#pb-video');
+    if (!vid) return;
+    vid.muted = !vid.muted;
+    applyVolume();
+  });
+  applyVolume();
+  el('#pb-t-fs')?.addEventListener('click', () => el('#pb-video-fs')?.click());
   el('#pb-play-novideo').addEventListener('click', play);
   el('#pb-playlist-list').addEventListener('click', async e => {
     const remove = e.target.closest('.pb-playlist-remove');

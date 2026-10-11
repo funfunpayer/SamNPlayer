@@ -1468,6 +1468,7 @@ export namespace main {
 	    contactExtraSmooth: number;
 	    contactVibrationSpan: number;
 	    contactVibrationCurve: string;
+	    speed: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PlaybackOptions(source);
@@ -1491,6 +1492,7 @@ export namespace main {
 	        this.contactExtraSmooth = source["contactExtraSmooth"];
 	        this.contactVibrationSpan = source["contactVibrationSpan"];
 	        this.contactVibrationCurve = source["contactVibrationCurve"];
+	        this.speed = source["speed"];
 	    }
 	}
 	export class ReportFeedback {
