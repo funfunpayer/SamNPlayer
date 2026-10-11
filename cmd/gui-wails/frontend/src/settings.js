@@ -275,7 +275,7 @@ export function initSettings(root) {
       <h3>Generator metrics</h3>
       <p class="hint">Appends a line of metrics for every Create run (motion amplitude,
         spectral concentration, tracker loss, runtime). Together with your judgments in
-        the Create tab, this is the basis for tuning quality scoring on real material —
+        the Generator tab, this is the basis for tuning quality scoring on real material —
         so far it relies on synthetic test videos. Leave empty to disable recording.</p>
       <div class="row">
         <input type="text" id="st-report-path" placeholder="(no recording)"
@@ -593,7 +593,7 @@ export function initSettings(root) {
       const available = await CheckAIServerAvailable();
       if (status) {
         status.textContent = available
-          ? 'Reachable — Suggest profile can use the AI fallback; quality opinion available when enabled in Create.'
+          ? 'Reachable — Suggest profile can use the AI fallback; quality opinion available when enabled in the Generator.'
           : 'Not reachable — start coli serve (or your OpenAI-compatible server), then test again. Create still works without it.';
       }
     } catch (err) {
@@ -692,7 +692,7 @@ export function initSettings(root) {
     try {
       const available = await CheckAIRoiAvailable();
       status.textContent = available
-        ? 'Available — the Create tab now offers smarter tip find.'
+        ? 'Available — the Generator tab now offers smarter tip find.'
         : 'Not available — onnxruntime missing or no .onnx at '
           + '(specified or default) path.';
     } catch (err) {

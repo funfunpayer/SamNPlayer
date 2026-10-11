@@ -4,7 +4,7 @@
 const SECTIONS = [
   {
     title: 'Everyday Create (recommended)',
-    body: `1. Open Create → choose a video.
+    body: `1. Open Generator → choose a video.
 2. Find tip area (or paint the box). Optional: Smarter tip find if an AI ROI model is set in Settings.
 3. Leave Contact vibration on (Feel: Sensitivity / Curve show a live vib probe with active%/peak badges).
    Optionally mark nipples/mouth for feel later.
@@ -51,7 +51,7 @@ Neither re-runs CSRT. Neither invents motion from audio (audio only spaces steps
     title: 'Can AI write the Funscript?',
     body: `Path is open, opt-in, local only:
 • S0 plan + stub — shipped
-• S1 Export classical run (Create → Advanced) — after Create, status reminds you; builds a local imitation library
+• S1 Export classical run (Generator → Advanced) — after Create, status reminds you; builds a local imitation library
 • S2-imitation — with ≥1 export, AI draft script stretches the best duration + tip-aspect match → Quality Doctor → Keep/Discard (experimental; not Everyday default)
 • ONNX vision draft writer — not shipped yet
 

@@ -217,7 +217,7 @@ export function initBenchmark(root) {
 
     <h3 style="margin-top:16px;">History</h3>
     <p class="hint" style="margin-top:0;">Each manifest run is appended to the history file
-      (Settings tab) — one line per past run, newest first.</p>
+      (Tools → Settings) — one line per past run, newest first.</p>
     <div id="bm-history" class="hint">Loading…</div>
   `;
 

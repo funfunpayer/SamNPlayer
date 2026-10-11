@@ -52,7 +52,7 @@ export function initRoiTraining(root) {
     <div class="card" id="rt-motion-profile-card" style="margin-bottom:16px; padding:12px 14px;">
       <h3 style="margin-top:0; margin-bottom:6px;">Learned generation profile (Go)</h3>
       <p class="hint" style="margin:0 0 8px;">
-        Learns from scenes remembered in <b>Create → Power-user: scene memory</b> and the
+        Learns from scenes remembered in <b>Generator → Power-user: scene memory</b> and the
         Style selected there. Training/classification are pure Go and offline; measuring a
         new video's signature uses the existing local OpenCV adapter. It suggests
         Normal / Soft / Autotune only; it never changes settings or writes a script without Apply/Create.
@@ -60,7 +60,7 @@ export function initRoiTraining(root) {
       <div class="row" style="align-items:center; flex-wrap:wrap;">
         <button id="rt-profile-refresh" type="button">Refresh learning data</button>
         <button id="rt-profile-train" class="primary" type="button" disabled>Train Go profile model</button>
-        <button id="rt-open-create" type="button">Generate in Create…</button>
+        <button id="rt-open-create" type="button">Open Generator…</button>
         <button id="rt-open-settings" type="button"
           data-help="Settings → Check availability after an ONNX model is in the default or custom path.">Open Settings (Check availability)…</button>
       </div>
@@ -216,7 +216,7 @@ export function initRoiTraining(root) {
         + (profiles ? ` · ${profiles}` : '');
       pathEl.textContent = status.readyToTrain
         ? 'Ready to train. New remembered scenes are included on the next training run.'
-        : 'Remember at least two scenes with a selected Style in Create before training.';
+        : 'Remember at least two scenes with a selected Style in the Generator before training.';
       if (status.modelWarning) {
         pathEl.textContent += ' Existing model is unreadable/incompatible; training will replace it.';
       }
@@ -240,7 +240,7 @@ export function initRoiTraining(root) {
       const status = await TrainMotionProfileModel();
       statusEl.textContent = `Model trained from ${status.trainedSamples || status.usableSamples || 0} scenes. `
         + 'Create can now ask it for a profile suggestion.';
-      uiInfo('Local motion-profile model trained. Suggestions stay opt-in in Create.');
+      uiInfo('Local motion-profile model trained. Suggestions stay opt-in in the Generator.');
       window.dispatchEvent(new CustomEvent('samn-motion-profile-refresh'));
       await refreshMotionProfileModelStatus();
     } catch (err) {
@@ -1732,7 +1732,7 @@ export function initRoiTraining(root) {
       return;
     }
     el('#rt-train-status').textContent = 'Done: ' + payload.modelPath
-      + ' — AI detection in the Create tab updates automatically.';
+      + ' — AI detection in the Generator tab updates automatically.';
     window.dispatchEvent(new CustomEvent('samn-ai-roi-refresh'));
   });
 
