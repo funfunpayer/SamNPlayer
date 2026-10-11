@@ -18,6 +18,7 @@ const FAV_MAX = 50;
 const VIDEO_KEY = 'pb.recentVideos';
 const SCRIPT_KEYS = { imported: 'pb.scripts.imported', generated: 'pb.scripts.generated', edited: 'pb.scripts.edited' };
 const SCRIPTS_MAX = 50;
+const PLAYLISTS_KEY = 'pb.playlists';
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
 
@@ -62,10 +63,31 @@ export function pushScript(path, cat) {
 }
 
 function escAttr(v) {
-  return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return String(v).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<');
 }
 function escText(v) {
-  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  return String(v).replace(/&/g, '&').replace(/</g, '<');
+}
+
+export function readPlaylists() {
+  try {
+    const obj = JSON.parse(load(PLAYLISTS_KEY) || '{}');
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch (_) { return {}; }
+}
+
+export function savePlaylist(name, paths) {
+  if (!name || !Array.isArray(paths) || !paths.length) return;
+  const all = readPlaylists();
+  all[name] = paths.slice(0, 50);
+  store(PLAYLISTS_KEY, JSON.stringify(all));
+}
+
+export function deletePlaylist(name) {
+  const all = readPlaylists();
+  delete all[name];
+  store(PLAYLISTS_KEY, JSON.stringify(all));
+}
 }
 
 export function pushRecentVideo(path) {
@@ -134,7 +156,9 @@ export function applyPlayerLayoutV1(root, api) {
     <ol class="pb-lib-recent" id="pb-lib-recent"></ol>
     <button type="button" class="pb-lib-item" id="pb-lib-fav-btn" aria-expanded="true">${ICONS.star}<span>Favorites</span></button>
     <ol class="pb-lib-recent pb-lib-fav" id="pb-lib-fav"></ol>
-    <button type="button" class="pb-lib-item" id="pb-lib-playlist">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
+    <button type="button" class="pb-lib-item" id="pb-lib-playlist" aria-expanded="false">${ICONS.list}<span>Playlists</span><b class="pb-lib-count" id="pb-lib-playlist-count"></b></button>
+    <ol class="pb-lib-recent pb-lib-playlists" id="pb-lib-playlists" hidden></ol>
+    <button type="button" class="pb-lib-item" id="pb-lib-playlist-save">${ICONS.edit}<span>Save current playlist</span></button>
     <p class="pb-lib-title">Scripts</p>
     ${[['imported', 'Imported', ICONS.drop], ['generated', 'Generated', ICONS.spark], ['edited', 'Edited', ICONS.edit]].map(([k, label, ic]) =>
     `<button type="button" class="pb-lib-item" id="pb-lib-${k}-btn" aria-expanded="false" aria-controls="pb-lib-${k}">${ic}<span>${label}</span><b class="pb-lib-count" id="pb-lib-${k}-count"></b></button>
@@ -542,6 +566,46 @@ export function applyPlayerLayoutV1(root, api) {
     renderScripts();
   });
   renderScripts();
+
+
+  // Saved Playlists (named lists of script paths, localStorage).
+  const plSavedList = q('#pb-lib-playlists');
+  function renderSavedPlaylists() {
+    const all = readPlaylists();
+    const names = Object.keys(all);
+    plSavedList.innerHTML = names.length
+      ? names.map(n => `<li><button type="button" class="pb-lib-recent-item" data-name="${n.replace(/"/g, '"')}" title="${all[n].length} scripts">${n}</button></li>`).join('')
+      : '<li class="pb-lib-empty">None saved</li>';
+  }
+  plSavedList?.addEventListener('click', async e => {
+    const b = e.target.closest('.pb-lib-recent-item');
+    if (!b) return;
+    const name = b.dataset.name;
+    const paths = readPlaylists()[name] || [];
+    for (const p of paths) {
+      if (p) await api.loadScriptPath(p).catch(() => {});
+    }
+  });
+  q('#pb-lib-playlist')?.addEventListener('click', () => {
+    const open = plSavedList.hidden;
+    plSavedList.hidden = !open;
+    q('#pb-lib-playlist').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) renderSavedPlaylists();
+  });
+  q('#pb-lib-playlist-save')?.addEventListener('click', () => {
+    const items = Array.from(q('#pb-playlist-list')?.querySelectorAll('.pb-playlist-name') || []);
+    const paths = items.map(el => el.title || el.textContent).filter(Boolean);
+    if (!paths.length) return;
+    const name = prompt('Playlist name:', 'My playlist');
+    if (!name) return;
+    savePlaylist(name.trim(), paths);
+    renderSavedPlaylists();
+    plSavedList.hidden = false;
+    q('#pb-lib-playlist').setAttribute('aria-expanded', 'true');
+  });
+  renderSavedPlaylists();
+
+
   const plCount = q('#pb-lib-playlist-count');
   const syncCount = () => {
     const n = q('#pb-playlist-list')?.children.length || 0;
