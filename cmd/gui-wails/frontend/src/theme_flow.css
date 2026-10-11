@@ -177,3 +177,51 @@ body {
 #tab-playback .pb-transport { flex-wrap: wrap; row-gap: 8px; }
 #tab-playback .pb-transport .progress-bar { order: -1; flex: 1 1 100%; }
 #tab-playback .pb-transport-right { margin-left: auto; }
+
+/* S5: big circular Play button and refined transport (mockup). */
+#tab-playback #pb-play {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #00d9f4, #00a8c8);
+  border: none;
+  box-shadow: 0 0 20px rgba(0, 217, 244, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+  color: #00141a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+#tab-playback #pb-play:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 28px rgba(0, 217, 244, 0.7);
+}
+#tab-playback #pb-play svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+#tab-playback #pb-play span { display: none; } /* icon only for circular */
+
+#tab-playback .pb-t-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#tab-playback .pb-speed {
+  min-width: 70px;
+  height: 36px;
+  border-radius: 18px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+#tab-playback .pb-volume {
+  width: 90px;
+  height: 6px;
+  border-radius: 3px;
+}
