@@ -4,7 +4,8 @@
  * Isolated Flow polish for S3 shell + S4 timeline core visual prep.
  * Quiet navy surfaces, restrained cyan primary, existing channel colours untouched.
  * Brand-orange (#ff8a23) hints on non-channel CTAs + refined timeline marker/playhead glow applied.
- * Next open point: further S4 audio-level lane visual prep and empty-state wave refinement once #484 lands.
+ * S4 audio-level lane visual prep (via --axis-audio on lanes) + empty-state wave refinement applied.
+ * Next open point: visual QA / contrast checks once fully imported, and any missing hooks for topbar/brand.
  */
 [data-pb-region="library"] {
   background: linear-gradient(180deg, rgba(10, 27, 43, .62), transparent 92%);
@@ -48,6 +49,11 @@
 [data-pb-region="heatmap"] {
   background: transparent;
 }
+/* S4 audio-level lane: set non-channel colour token read by canvas draw (look only) */
+[data-pb-region="lanes"],
+[data-pb-region="timeline"] {
+  --axis-audio: #6ec8e0;
+}
 [data-pb-region="zoom"] {
   background: rgba(10, 27, 43, .38);
   border-top: 1px solid rgba(104, 180, 212, .16);
@@ -65,8 +71,11 @@
   background: rgba(10, 27, 43, .32);
 }
 [data-pb-region="empty"] {
-  background: radial-gradient(circle at 32% 18%, rgba(0, 217, 244, .07), transparent 52%),
-              linear-gradient(180deg, rgba(10, 27, 43, .38), transparent);
+  background:
+    radial-gradient(ellipse 120% 60% at 20% 80%, rgba(0, 217, 244, .06), transparent 55%),
+    radial-gradient(ellipse 90% 40% at 75% 25%, rgba(255, 138, 35, .04), transparent 50%),
+    linear-gradient(180deg, rgba(10, 27, 43, .38), transparent);
+  box-shadow: inset 0 0 80px rgba(0, 217, 244, .03);
 }
 .pb-lib-title,
 .pb-playlist-title,
