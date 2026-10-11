@@ -87,7 +87,14 @@ export function initPlayback(root) {
             </div>
           </div>
         </div>
+        <div class="pb-axis-legend" id="pb-axis-legend" hidden>
+          <button type="button" class="pb-axis-chip" data-axis="general" title="Show / edit the stroke curve"><i></i>Stroke</button>
+          <button type="button" class="pb-axis-chip" data-axis="vibration" title="Show / edit the vibration channel"><i></i>Vibration</button>
+          <button type="button" class="pb-axis-chip" data-axis="suction" title="Show / edit the suction channel"><i></i>Suction</button>
+        </div>
         <canvas id="pb-curve" height="176" class="pb-curve" style="display:none"></canvas>
+        <canvas id="pb-axis-lanes" class="pb-axis-lanes" hidden
+          title="Feel channels — click a lane to show / edit it above"></canvas>
         <canvas id="pb-heatmap" height="56" class="pb-heatmap" style="display:none"></canvas>
         <div class="row pb-curve-zoom" id="pb-curve-zoom" style="display:none; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
           <button type="button" id="pb-zoom-in" title="Zoom in on the curve / heatmap window">Zoom in</button>
@@ -541,6 +548,15 @@ export function initPlayback(root) {
   let audioHzHint = 0;
   const AUDIO_SEG_LABELS = ['holding', 'gentle', 'intense', 'climax'];
   const curveCanvas = el('#pb-curve');
+  // Multi-axis view (Owner 11 Oct): one colour per channel everywhere —
+  // main curve, lanes, legend chips (style.css uses the same values).
+  const AXIS_COLORS = { general: '#5fd0c8', vibration: '#f0a050', suction: '#c39bff' };
+  const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
+  const LANE_AXES = ['vibration', 'suction'];
+  const AXIS_LANE_CSS_H = 34;
+  const axisLanesCanvas = el('#pb-axis-lanes');
+  let axisLanePoints = { vibration: null, suction: null };
+  let strokeGhostPoints = null; // stroke behind a feel channel being shown
   const chartTooltip = el('#pb-chart-tooltip');
 
   // sizeCanvasForDPR setzt die Backing-Store-Auflösung auf CSS-Größe ×
@@ -1711,8 +1727,17 @@ export function initPlayback(root) {
       }
     }
 
-    // Soft stroke curve (Catmull-Rom) — FunGen-like “schwingen”.
-    ctx.strokeStyle = '#5fd0c8';
+    const axisColor = AXIS_COLORS[editAxis] || AXIS_COLORS.general;
+    // Showing a feel channel: keep the stroke as a faint ghost for timing.
+    if (strokeGhostPoints && strokeGhostPoints.length >= 2) {
+      ctx.strokeStyle = 'rgba(95, 208, 200, 0.28)';
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      drawSmoothCurve(ctx, strokeGhostPoints, xOf, yOf);
+    }
+
+    // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour.
+    ctx.strokeStyle = axisColor;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     drawSmoothCurve(ctx, points, xOf, yOf);
@@ -1724,11 +1749,13 @@ export function initPlayback(root) {
         atMs: p.atMs,
         pos: Math.max(0, Math.min(100, (p.vibration || 0) * 100)),
       }));
-      ctx.strokeStyle = 'rgba(255, 170, 80, 0.85)';
+      ctx.strokeStyle = AXIS_COLORS.vibration;
+      ctx.globalAlpha = 0.85;
       ctx.lineWidth = 1.25;
       ctx.setLineDash([4, 3]);
       drawSmoothCurve(ctx, vibPts, xOf, yOf);
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     }
 
     // Keyframe dots — always on (FunGen2-style); brighter / larger when editing.
@@ -1768,7 +1795,7 @@ export function initPlayback(root) {
       if (livePos != null && currentPosMs > 0) {
         ctx.beginPath();
         ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#5fd0c8';
+        ctx.fillStyle = axisColor;
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.25;
         ctx.fill();
@@ -1778,6 +1805,120 @@ export function initPlayback(root) {
     } else {
       updatePbPosOverlay(null);
     }
+    redrawAxisLanes();
+  }
+
+  // --- Feel channel lanes under the curve ----------------------------------
+  // One thin lane per channel the script carries (vibration / suction), same
+  // time axis and zoom as the curve, so all axes read together at a glance.
+  async function loadAxisLanes() {
+    const next = { vibration: null, suction: null };
+    for (const axis of LANE_AXES) {
+      try {
+        const acts = await GetScriptAxisActions(axis);
+        const pts = (Array.isArray(acts) ? acts : []).map(a => ({ atMs: a.at, pos: a.pos }));
+        next[axis] = pts.length >= 2 ? pts : null;
+      } catch (err) {
+        next[axis] = null;
+      }
+    }
+    axisLanePoints = next;
+    strokeGhostPoints = null;
+    if (editAxis && editAxis !== 'general' && axisLanePoints[editAxis]) {
+      try { strokeGhostPoints = await GetScriptCurve(CURVE_MAX_POINTS); } catch (err) { strokeGhostPoints = null; }
+    }
+  }
+
+  function clearAxisLanes() {
+    axisLanePoints = { vibration: null, suction: null };
+    strokeGhostPoints = null;
+    redrawAxisLanes();
+  }
+
+  function redrawAxisLanes() {
+    const legend = el('#pb-axis-legend');
+    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    const shown = curveCanvas.style.display !== 'none';
+    if (!lanes.length || !shown) {
+      axisLanesCanvas.hidden = true;
+      if (legend) legend.hidden = true;
+      return;
+    }
+    const active = editAxis || 'general';
+    if (legend) {
+      legend.hidden = false;
+      legend.querySelectorAll('[data-axis]').forEach(b => {
+        const a = b.dataset.axis;
+        b.hidden = a !== 'general' && !axisLanePoints[a];
+        b.classList.toggle('active', a === active);
+        b.setAttribute('aria-pressed', a === active ? 'true' : 'false');
+      });
+    }
+    axisLanesCanvas.hidden = false;
+    const cssH = lanes.length * AXIS_LANE_CSS_H;
+    if (axisLanesCanvas.style.height !== cssH + 'px') axisLanesCanvas.style.height = cssH + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    const wantW = Math.round((axisLanesCanvas.clientWidth || curveCanvas.clientWidth || 800) * dpr);
+    const wantH = Math.round(cssH * dpr);
+    if (axisLanesCanvas.width !== wantW || axisLanesCanvas.height !== wantH) {
+      axisLanesCanvas.width = wantW;
+      axisLanesCanvas.height = wantH;
+    }
+    const ctx = axisLanesCanvas.getContext('2d');
+    const w = axisLanesCanvas.width, h = axisLanesCanvas.height;
+    const laneH = h / lanes.length;
+    const pad = 3 * dpr;
+    const xOf = ms => timeToX(ms, w);
+    ctx.clearRect(0, 0, w, h);
+    lanes.forEach((axis, i) => {
+      const top = i * laneH;
+      const yOf = pos => top + pad + (1 - pos / 100) * (laneH - pad * 2);
+      const color = AXIS_COLORS[axis];
+      if (axis === active) {
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(0, top, w, laneH);
+      }
+      if (i > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(0, Math.round(top), w, Math.max(1, Math.round(dpr)));
+      }
+      const pts = axisLanePoints[axis];
+      ctx.beginPath();
+      ctx.moveTo(xOf(pts[0].atMs), yOf(0));
+      for (const p of pts) ctx.lineTo(xOf(p.atMs), yOf(p.pos));
+      ctx.lineTo(xOf(pts[pts.length - 1].atMs), yOf(0));
+      ctx.closePath();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      pts.forEach((p, k) => (k ? ctx.lineTo(xOf(p.atMs), yOf(p.pos)) : ctx.moveTo(xOf(p.atMs), yOf(p.pos))));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = (axis === active ? 1.6 : 1.1) * dpr;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = color;
+      ctx.fillText(AXIS_LABELS[axis].toUpperCase(), 6 * dpr, top + 3 * dpr);
+    });
+    if (totalMs > 0 && currentPosMs > 0) {
+      const x = Math.round(xOf(currentPosMs)) + 0.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.25 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+  }
+
+  function selectAxis(axis) {
+    const sel = el('#pb-axis');
+    if (!sel || !AXIS_COLORS[axis] || (editAxis || 'general') === axis) return;
+    sel.value = axis;
+    sel.dispatchEvent(new Event('change'));
   }
 
   function interpPosAt(points, tMs) {
@@ -2157,6 +2298,7 @@ export function initPlayback(root) {
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       updatePbPosOverlay(null);
+      clearAxisLanes();
       return;
     }
     if (!curvePoints || curvePoints.length < 2) {
@@ -2166,8 +2308,10 @@ export function initPlayback(root) {
       curveCanvas.style.display = 'none';
       el('#pb-curve-edit-row').style.display = 'none';
       updatePbPosOverlay(null);
+      clearAxisLanes();
       return;
     }
+    await loadAxisLanes();
     // FunGen-like dots: load full keyframes even when not editing.
     if (!editMode) {
       try {
@@ -3834,6 +3978,17 @@ export function initPlayback(root) {
     addVisibleAudioSegmentsAsChapters();
   });
 
+  el('#pb-axis-legend')?.addEventListener('click', e => {
+    const chip = e.target.closest('[data-axis]');
+    if (chip) selectAxis(chip.dataset.axis);
+  });
+  axisLanesCanvas.addEventListener('click', e => {
+    const lanes = LANE_AXES.filter(a => axisLanePoints[a]);
+    if (!lanes.length) return;
+    const rect = axisLanesCanvas.getBoundingClientRect();
+    const i = Math.floor(((e.clientY - rect.top) / Math.max(1, rect.height)) * lanes.length);
+    selectAxis(lanes[Math.max(0, Math.min(lanes.length - 1, i))]);
+  });
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {
       editAxis = el('#pb-axis').value || 'general';

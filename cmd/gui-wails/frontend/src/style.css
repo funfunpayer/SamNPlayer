@@ -3120,3 +3120,24 @@ body[data-tab="playback"] #sidebar { display: none; }
   .pb-loaded { grid-template-columns: 1fr; }
   .pb-tools { position: static; max-height: none; overflow: visible; }
 }
+
+/* ===== Multi-axis view (Owner 11 Oct): one colour per channel ===== */
+.pb-axis-legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 6px 0 4px; }
+.pb-axis-legend[hidden], .pb-axis-lanes[hidden], .pb-axis-chip[hidden] { display: none !important; }
+.pb-axis-chip[data-axis="general"] { --axis-c: #5fd0c8; }
+.pb-axis-chip[data-axis="vibration"] { --axis-c: #f0a050; }
+.pb-axis-chip[data-axis="suction"] { --axis-c: #c39bff; }
+.pb-axis-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; min-height: 0; border-radius: 999px;
+  font-size: var(--type-chip); background: transparent;
+  border: 1px solid var(--border); color: var(--text-dim); box-shadow: none;
+}
+.pb-axis-chip i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; background: var(--axis-c); }
+.pb-axis-chip.active { color: var(--text); border-color: var(--axis-c); background: rgba(255, 255, 255, 0.04); }
+.pb-axis-lanes {
+  display: block; width: 100%; height: 68px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
