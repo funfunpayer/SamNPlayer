@@ -3711,3 +3711,21 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-fx-presets label { margin: 0; font-size: 12px; color: var(--text-dim); }
 .pb-fx-presets select { flex: 1 1 auto; width: auto; min-width: 0; }
 .pb-fx-presets button { flex: 0 0 auto; padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+/* Training stage: pixel clip or any film (training_video.js). */
+.tr-stage-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; }
+.tr-stage-mode { display: inline-flex; border: 1px solid var(--border-soft); border-radius: 10px; overflow: hidden; }
+.tr-stage-btn {
+  margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  padding: 6px 12px; font-size: 13px; color: var(--text-dim);
+}
+.tr-stage-btn.is-active { color: var(--text); background: rgba(var(--accent-rgb), 0.18); }
+.tr-stage-video-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.tr-stage-video-ctl[hidden], .tr-video-view[hidden], .tr-video-empty[hidden] { display: none !important; }
+.tr-stage-video-ctl select { width: auto; max-width: 14em; }
+.tr-stage-video-ctl .checkbox-row { margin: 0; }
+.tr-video-view { position: relative; margin: 0 0 10px; }
+.tr-video-view video {
+  display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain;
+  background: #04101c; border-radius: 14px;
+}
+.tr-video-empty { margin: 6px 0 0; }

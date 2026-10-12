@@ -36,7 +36,10 @@ type App struct {
 	videoPath       string
 	videoURLEpoch   uint64 // bumps whenever videoPath changes so <video src> reloads
 	videoServerPort int
-	sessionActive   bool // true solange eine Wiedergabe ODER ein Training läuft
+	// Training stage film (app_training_video.go); separate from videoPath.
+	trainingVideoPath  string
+	trainingVideoEpoch uint64
+	sessionActive      bool // true solange eine Wiedergabe ODER ein Training läuft
 
 	activePlayer *player.Player
 	// Per-channel output cut (V1 Inspector → Devices); zero value = full.
@@ -381,6 +384,7 @@ func (a *App) ensureVideoServer() (int, error) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/video", a.servePlaybackVideo)
+	mux.HandleFunc("/training-video", a.serveTrainingVideo)
 	srv := &http.Server{Handler: mux}
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

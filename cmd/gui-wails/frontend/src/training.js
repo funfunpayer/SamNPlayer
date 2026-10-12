@@ -8,6 +8,7 @@ import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
 import { mountTrainingPixelStage } from './pixel_figure.js';
 import { createRings } from './training_rings.js';
+import { mountTrainingVideo } from './training_video.js';
 import './training_rings.css';
 
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
@@ -391,6 +392,8 @@ export function initTraining(root) {
   // that finishes after done cannot call setRunningState(true) again.
   let startEpoch = 0;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
+  // Stage switch: pixel clip or any film that plays along (training_video.js).
+  const trainingVideo = mountTrainingVideo(el('#tr-pixel-stage'));
   // C2: device-adaptive live rings (real values only; Claude wiring).
   const ringsHost = el('#tr-rings-host');
   const trainingRings = ringsHost ? createRings(ringsHost, ['vibration', 'suction']) : null;
@@ -414,6 +417,7 @@ export function initTraining(root) {
 
   function setRunningState(isRunning) {
     running = isRunning;
+    trainingVideo.setRunning(isRunning);
     el('#tr-start').disabled = isRunning;
     el('#tr-stop').disabled = !isRunning;
     el('#tr-pause').disabled = !isRunning;

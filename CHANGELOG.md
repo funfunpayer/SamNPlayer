@@ -17,6 +17,12 @@ measurement history behind each entry; this file is the short version for
   save Intensity, Response / smoothing, Max-Speed, Reduce peaks, tick and
   soft-start under a name in the settings file; *Default* restores the
   built-in values. Applying a preset works like moving the controls.
+- **Training with any video** — the Training stage switches between the
+  pixel clip and a film of your choice (*Choose video…* or a recent video,
+  shared with the Player library). Training still drives the device; the
+  film plays along while the session runs and pauses when it ends. Loop
+  and Muted are on by default; mode, film and options are remembered. The
+  Player's linked video is not changed.
 
 ## [0.6.0] - 2026-10-12
 
