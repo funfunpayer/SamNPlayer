@@ -47,8 +47,8 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | "Custom Profile" dropdown | ✅ | Strength presets (`#pb-strength`) |
 | Channel rows: toggle, level, live, settings ⚙ | ✅ | Rows show the **connected device's channels** from D3; Axis 3/4 only on devices that have them |
 | Mode / Sync | ✅ | Recipe / Axes, video sync |
-| Effects sub-tabs (Effects · Curve · Limits · Advanced) | 🔧 | Regroup existing controls: Curve = smoothing / Drive, Limits = Max-Speed + Reduce peaks, Advanced = tick / soft-start |
-| Effects preset dropdown ("Smooth") + Save Preset | 🔧 | Save the effect knobs as named presets |
+| Effects sub-tabs (Effects · Curve · Limits · Advanced) | ✅ | Curve = smoothing + sync mode, Limits = Max-Speed + Reduce peaks, Advanced = tick + soft-start (Drive stays next to Curve / Strength) |
+| Effects preset dropdown ("Smooth") + Save Preset | ✅ | Named presets in the settings file (`playback.effect_presets`); Custom / Default / user presets — no invented factory presets |
 | Intensity / Response knobs | ✅ | #491 |
 | Frequency knob | ⛔ | The Neo 2 has none; shown only if a device reports a frequency channel |
 | Sync with audio | ✅ | #492 |
