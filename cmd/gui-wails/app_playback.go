@@ -14,6 +14,10 @@ import (
 	"github.com/funfunpayer/SamNPlayer/samn"
 )
 
+// eventsEmit is runtime.EventsEmit. Tests swap it to record what the GUI
+// would receive (the Wails runtime itself needs a live app context).
+var eventsEmit = runtime.EventsEmit
+
 type PlaybackOptions struct {
 	Mock                    bool    `json:"mock"`
 	SyncMode                string  `json:"syncMode"`
@@ -205,15 +209,15 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
 	p.SetPeakReduce(a.peakReduce)
 	a.stateMu.RUnlock()
-	p.OnLog = func(line string) { runtime.EventsEmit(a.ctx, "playback:log", line) }
+	p.OnLog = func(line string) { eventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
-		runtime.EventsEmit(a.ctx, "playback:frame", map[string]any{
+		eventsEmit(a.ctx, "playback:frame", map[string]any{
 			"atMs": f.At, "vibration": f.Vibration, "suction": f.Suction, "totalMs": frames[len(frames)-1].At,
 		})
 	}
 	if opts.UseVideoSync {
-		p.PauseVideo = func() { runtime.EventsEmit(a.ctx, "video:pause") }
-		p.ResumeVideo = func() { runtime.EventsEmit(a.ctx, "video:resume") }
+		p.PauseVideo = func() { eventsEmit(a.ctx, "video:pause") }
+		p.ResumeVideo = func() { eventsEmit(a.ctx, "video:resume") }
 	}
 	// Set session pointers only after the session slot is ours — otherwise a
 	// rejected second StartPlayback would replace the live session's player.
@@ -231,25 +235,25 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			// Bereits über den Geräte-Tab verbunden - nicht erneut
 			// verbinden und am Ende NICHT trennen, das bleibt dessen
 			// Sache (siehe claimSessionDevice).
-			runtime.EventsEmit(a.ctx, "playback:log", "Using existing connection from Tools → Device.")
+			eventsEmit(a.ctx, "playback:log", "Using existing connection from Tools → Device.")
 		} else {
 			connectCtx, connectCancel := context.WithTimeout(ctx, 20*time.Second)
 			defer connectCancel()
-			runtime.EventsEmit(a.ctx, "playback:log", "Connecting...")
+			eventsEmit(a.ctx, "playback:log", "Connecting...")
 			if err := dev.Connect(connectCtx); err != nil {
 				logging.Error("app: connection failed", "error", err)
-				runtime.EventsEmit(a.ctx, "playback:error", err.Error())
+				eventsEmit(a.ctx, "playback:error", err.Error())
 				// failed:true — frontend must NOT auto-advance the playlist
-				runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
+				eventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
 				return
 			}
 			defer dev.Disconnect()
 		}
-		runtime.EventsEmit(a.ctx, "playback:log", "Playback starting...")
+		eventsEmit(a.ctx, "playback:log", "Playback starting...")
 		if audioNote != "" {
-			runtime.EventsEmit(a.ctx, "playback:log", audioNote)
+			eventsEmit(a.ctx, "playback:log", audioNote)
 		} else if contactOn {
-			runtime.EventsEmit(a.ctx, "playback:log", "Contact vibration active (SAM)")
+			eventsEmit(a.ctx, "playback:log", "Contact vibration active (SAM)")
 		}
 		var playErr error
 		if opts.UseVideoSync {
@@ -262,11 +266,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 			playErr = p.Play(ctx, frames)
 		}
 		if playErr != nil && playErr != context.Canceled {
-			runtime.EventsEmit(a.ctx, "playback:error", playErr.Error())
-			runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
+			eventsEmit(a.ctx, "playback:error", playErr.Error())
+			eventsEmit(a.ctx, "playback:done", map[string]any{"failed": true})
 			return
 		}
-		runtime.EventsEmit(a.ctx, "playback:done", map[string]any{"failed": false})
+		eventsEmit(a.ctx, "playback:done", map[string]any{"failed": false})
 	}()
 	return nil
 }
