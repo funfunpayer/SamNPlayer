@@ -6,13 +6,15 @@
 |---|---|---|
 | **SamNPlayer Free** | The software for customers. | Default build (no tag), edition name `free` |
 | **SamNPlayer Suite** | **Our internal extended version** with AI training and the batch test system. It keeps the name "Suite". | `-tags suite`, edition name `suite` |
-| **SamNPlayer Next (Studio)** | The future commercial product. Suite features are carried over into it. It gets a **licence system**. | Not built yet (`docs/FREE_TO_STUDIO_PRODUCT_PLAN_2026-10-12.md`, PR #510) |
+| **SamNPlayer Next Level 2.0** | Future donation-supported freeware, developed as a separate software generation using proven parts of SamNPlayer. **No paid unlock or licence-key plan.** | Separate public [project and roadmap](https://github.com/funfunpayer/SamNPlayer-Next-Level); not yet released |
 
 Rules:
 - **Free stays free.** Free is also our test system.
 - **Which features later move out of Free** (for example batch processing) is the Owner's decision alone.
 - **Safety stays in every edition:** emergency stop and device limits.
-- The licence system belongs to Next only, after the legal clarification noted in #510.
+- **Both Free and Next Level 2.0 are free and supported by voluntary donations.** There is no paid Studio product, €40 unlock, compulsory subscription or timed trial planned. The historical paid-Studio proposal in PR #510 is superseded.
+- The previously proposed seven-day feature preview was cancelled; PR #515 was closed without merge.
+- Later Free scope reductions (smaller AI surface and removal of permanent batch) require their own reviewed change, migration documentation and regression tests; they are **not part of the current Free release**.
 
 ## Free vs Suite today
 
