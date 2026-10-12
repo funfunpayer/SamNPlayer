@@ -225,3 +225,81 @@ Der Owner wünscht: „Wer mehr als 40 € spendet, erhält automatisch Studio.�
 5. **Releasezeitpunkt:** nur nach tatsächlichem FREE-07-Abnahmeprotokoll, nicht nach Kalenderdatum.
 
 **Bevor neue Architektur-/Monetarisierungscodearbeit beginnt:** Dieses Konzept in Issue #477 prüfen, abweichende ältere Roadmaptexte als historisch kennzeichnen, und pro Arbeitspaket eigene PRs mit Benchmark/Test/Abnahme erstellen.
+
+
+## 11. OWNER ADDENDUM — internationaler Markt, verpflichtender Studio-Zugang nach Unterstützung >40 € (12.10.2026)
+
+**Diese neuere Owner-Vorgabe übersteuert abweichende frühere Preis-/Supporter-Vorschläge in diesem Dokument.** Free dauerhaft weiterentwickeln; Studio zusätzlich, nicht Ersatz. Weltweit/englischsprachig vermarkten, analog zur Marktpräsenz von FunGen 2, **ohne** dessen Code/Assets zu übernehmen. Mehr als 40 € Unterstützung **berechtigen verbindlich** zum Studio-Zugang, sobald Studio veröffentlicht ist. Exakter Schwellenwert ist **> 40,00 EUR**, nicht >= 40,00; 40,00 EUR allein reicht nach wörtlicher Owner-Regel nicht. Vor Produktivstart in Marketing/Kaufbedingungen verständlich klarstellen, falls Owner die Schwelle in eine runde 40-€-Option ändern möchte. Bis Studio verfügbar ist: keine falsche Sofortzugangszusage, ein klar dokumentierter Einlöseanspruch erst ab Start; keine Vorverkaufszahlung ohne geklärte Lieferbedingungen und Verbraucherschutz.
+
+### 11.1 Studio-Funktionen nach Abhängigkeiten / Nachweis
+
+| ID | Priorität | Studio-Feature | Technischer Leistungsumfang und Abnahme | Abgrenzung Free |
+|---|---|---|---|---|
+| STUDIO-A1 AutoDirector | P0 | Auto-Verfahrenswahl pro Szene | Fast Scan, Kandidatenranking mit Gründe-Codes, selective retry und Golden-Clip-Report; verifiziert gegen heutige Baseline | Free klassisches Create bleibt |
+| STUDIO-A2 Smart Batch | P0 | Mehrere Videos sicher automatisiert bearbeiten | persisted queue, Multi-Preset, eingeschränkte parallele CPU/GPU-Auslastung, Clip/Scene-Retry, crash resume, progress/error JSON | Bestehende einfache Queue in Free nicht entfernen |
+| STUDIO-A3 Quality Compare | P0 | Klassische/AI/neue Kandidaten vergleichen | zwei Kurven, Scene-Scores, Changed-Segments, undo/accept/reject; keine Verbesserung ohne Gate | Free Quality Doctor bleibt |
+| STUDIO-A4 Device Optimizer | P0 | Master-Script je Device projizieren | capability match, safe limits, Multi-Export, Preview mit Mock-Device, keine erfundenen Achsen | Free Gerätsteuerung/Not-Stopp bleibt |
+| STUDIO-A5 Intelligent Repair | P0 | Problemsegmente reparieren | targeted re-run, loss/jitter/PTS/camera QA, accept only on measured win, fallback always available | Free Grundglättung bleibt |
+| STUDIO-A6 Recovery | P0 | State/Job Resume | restart across interrupted export/job, atomic results, no orphan state, clear recovery UI | Free darf keinen Datenverlust haben |
+| STUDIO-B1 Scene Studio | P1 | Region/szene sperren und ersetzen | locks, mark provenance, scene-only rerun, version history, undo | Free Scene Map/Editor bleibt |
+| STUDIO-B2 Multi-target | P1 | mehrere Zielpunkte verfolgen | stable IDs, Occlusion, no silent identity switch, explicit target chosen | Free einzelne ROI bleibt |
+| STUDIO-B3 Local Learning | P1 | lernende automatische Verfahrenswahl | consent, data deletion, shadow mode, measured model gains before default use | Free persönliche Daten bleiben lokal |
+| STUDIO-B4 Pro Exports | P1 | Report + Device-Profile | batch JSON/CSV quality, per-axis companion export, device map manifests | Free Funscript-Export bleibt |
+| STUDIO-B5 Hardware Profiler | P1 | Engine auto tuning | 30/60fps & VFR speed/quality measurements, cache + tuning profiles, no secret uploads | Free grundlegende Performance |
+| STUDIO-C1 VR | P2 | 180/360 stereoskopische Analyse | camera projection, target ROI continuity, dedicated golden clips/quality gate | erst nach echter Testmatrix |
+
+**Nicht als Studio-Feature verkaufen:** bloßer KI-Chat, Fake-Confidence, leere Presets, nicht verdrahtete Buttons, angebliche universelle Unterstützung ohne Geräte-Mocks.
+
+### 11.2 Internationales Angebot / Wettbewerb
+
+**Referenz zum heutigen Markt:** FunGen 2 zeigt öffentlich Free, Pro 1 Jahr 75 EUR, Pro Perpetual 250 EUR und mehrere Zahlungswege. Diese Zahlen sind **Wettbewerbsbeobachtung**, keine Studio-Preisfreigabe. SamNPlayer darf keine Überlegenheit versprechen, bevor Vergleichstests auf denselben Clips und vergleichbarer Hardware durchgeführt wurden.
+
+- **Website EN zuerst:** sprachneutrale Screenshots aus realem Build, Feature-Matrix Free vs Studio, klare Scope-/Hardware-/AI-Voraussetzungen, Datenschutz „local first“, Download/Changelog/FAQ und öffentliche Limitations.
+- **Optional DE:** lokalisierte zweite Seite erst nach stabiler EN-Version; Preise in EUR plus verständliche Umrechnung bei Checkout; Steuer-/Ländervorgaben des Anbieters gelten.
+- **Studio Unique Value Proposition:** „Classical motion tracking + optional local AI + measured verification + device-aware export + reliable automation“, bewusst keine reine AI-Cloud-Dienstleistung.
+- **Legal/age:** nur für Erwachsene; Transparenz zu Geräten/Content; internationaler Verkauf benötigt regionale Regeln, Refund/Terms, Tax/VAT, Händler-/Payment-Eignung und Anbieterprüfung. **Stripe ist für viele Adult-Content-/Adult-Produkt-Kategorien nicht verfügbar; keine Integration ohne schriftliche Eignungsbestätigung.**
+- **Distribution:** offizielle öffentliche Site als Download-Ort, privates Source-Repo, signierte Offline-Entitlements ohne Cloud-Zwang, keine fremden Modelweights in Paketen ohne Lizenzprüfung.
+
+### 11.3 >40-EUR-Unterstützerrecht — gewünschtes verbindliches Verhalten
+
+**Produktregel:** Nach bestätigter, nicht erstatteter qualifizierender Unterstützung **von mehr als 40,00 EUR** ist ein **Studio-Zugangsanspruch** zu vergeben. Für Beiträge vor Verfügbarkeit von Studio muss die zukünftige Leistung klar beschrieben sein (betroffene Studio-Edition, Dauer, Upgrade-Rechte, Zeitpunkt/Abhängigkeiten, Refund bei Nichtlieferung); vor finalen Bedingungen darf der Anspruch nicht öffentlich beworben oder Zahlung dafür angenommen werden.
+
+**Rechtliche Einordnung:** Eine Zahlung mit verbindlicher Lizenzgegenleistung ist regelmäßig kein rein freiwilliges Geschenk; die Benennung „Spende“ ändert den wirtschaftlichen Vorgang nicht. Die bestehende EULA §6 („Donations ... do not buy a licence, extra features“) widerspricht einem garantierten Studio-Recht. Erforderliche Umsetzung vor Aktivierung: angepasste Terms/EULA, korrekte Rechnungen/Steuern, Verbraucherrechte, Zahlungsanbieter der den Adult-nahen Software-Use-Case ausdrücklich akzeptiert. Separate weiterhin freiwillige Spenden ohne Gegenleistung bleiben möglich.
+
+**Entitlement-Datenmodell (nur Konzept, keine Implementierung oder personenbezogenen Daten im Repo):**
+
+```text
+SupporterEntitlement {
+  id: UUID,
+  payment_provider: string,
+  payment_reference_hash: string,
+  amount_received_minor: int64, currency: ISO4217,
+  amount_eur_reference_minor: int64,
+  currency_conversion_source: string,
+  settled_at: UTC,
+  status: pending | qualified | issued | refunded | revoked,
+  product: studio,
+  edition_scope: string,
+  license_term: string,
+  user_contact_reference: string,
+  pass_serial: string,
+  issued_at: UTC | null
+}
+```
+
+**Spezifikation:**
+1. Checkout/Payment event **serverseitig signiert** und idempotent verifizieren, nicht nur Browser Return-URL.
+2. Währung zum vereinbarten Zeitpunkt nach dokumentierter Referenz in EUR umrechnen; Gebührenfrage und Schwelle transparent anzeigen, Grenzfälle (40,00 / 40,01 EUR) testen.
+3. Auf bestätigte Zahlung + Betrag >40 EUR prüfen, Rückerstattung/Chargeback behandeln; mehrfach ausgelöste Webhooks erzeugen keine Duplikate.
+4. Studio erst **nach Veröffentlichung**, dann signierten lokal verifizierbaren Pass ausgeben (Ed25519 Public Key in App; geheimen Private Key nur beim Betreiber); Eigentümer kann verlorenen Pass erneut anfordern; kein „Online every launch“.
+5. Automatik: Pass per E-Mail/Account-Portal nach Bestätigung, Re-issue/Support + datensparsame Logs; **no filming data transmitted**. Status auch bei Ausfall der Mailzustellung nachvollziehbar.
+6. Freiwillige Spenden ohne Anspruch, qualifizierender Supporter-Studio-Beitrag und normaler Studio-Kauf **im Checkout klar unterscheiden**; das kann auf derselben Seite erklärt werden.
+7. Vor Implementierung Owner festlegen: Anspruch **zeitlich unbefristet für die erworbene Studio-Hauptversion** (empfohlener Default, zukünftige Major-Upgrades nicht automatisch enthalten) oder Lifetime inklusive künftiger Versionen; kein stillschweigend erfundener Lifetime-Anspruch.
+8. **Sicherheit:** Pass-Prüfung backendseitig; Free-Player/Not-Stopp/Sicherheitsgrenzen bleiben immer frei; Testmatrix Offline, Uhrzeitfehler, Mehrfachaktivierung, Refund, Editionsupdate.
+
+### 11.4 Separate Studio-Launch-Gates
+
+- **Commercial:** internationale EN-Rechtstexte und rechtssicherer qualifizierender >40-€-Supporter-Vertrag; Support-/Return-/Tax/Provider bestätigt; no unapproved marketing claims.
+- **Product:** P0 A1–A6 mit Tests; Free unverändert; Demo-Clip-Produktion ohne reale intime Medien in öffentlichem Repo.
+- **Technical:** native CPU/GPU-Baselines, Golden-Curve-Metriken, Crash/Resume, signed entitlement/renewal, Windows offline smoke.
+- **Competition:** FunGen-Vergleich ausschließlich anhand nachvollziehbarer Prüfungen, nicht bloß Feature-Liste.
