@@ -211,3 +211,4 @@ export function OpenPartnerSite() { return window['go']['main']['App']['OpenPart
 export function SetTrainingVideo(arg1) { return window['go']['main']['App']['SetTrainingVideo'](arg1); }
 export function ClearTrainingVideo() { return window['go']['main']['App']['ClearTrainingVideo'](); }
 export function TrainingVideoURL() { return window['go']['main']['App']['TrainingVideoURL'](); }
+export function ProbeCreateVideo(arg1) { return window['go']['main']['App']['ProbeCreateVideo'](arg1); }

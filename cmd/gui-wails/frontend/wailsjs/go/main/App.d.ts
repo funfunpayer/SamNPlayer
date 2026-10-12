@@ -363,3 +363,4 @@ export function SetActiveStrength(arg1:string):Promise<void>;
 export function SetTrainingVideo(arg1:string):Promise<string>;
 export function ClearTrainingVideo():Promise<void>;
 export function TrainingVideoURL():Promise<string>;
+export function ProbeCreateVideo(arg1:string):Promise<main.CreateVideoInfo>;

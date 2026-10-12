@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -23,6 +23,13 @@ export function initGenerator(root, playback) {
           data-help="Opens the in-app handbook: Create steps, gaps, AI export, Play map.">User handbook</button>
       </div>
     </header>
+    <section class="gen-project-head" id="gen-project-head" aria-label="Project" hidden>
+      <img class="gen-project-poster" id="gen-project-poster" alt="" hidden />
+      <div class="gen-project-info">
+        <h3 class="gen-project-name" id="gen-project-name"></h3>
+        <p class="gen-project-meta" id="gen-project-meta"></p>
+      </div>
+    </section>
     <nav class="gen-steps" id="gen-steps" aria-label="Create workflow">
       <ol class="gen-steps-list">
         <li class="gen-step-item is-current" data-step="1"><span class="gen-step-num">1</span> Video</li>
@@ -3344,9 +3351,49 @@ export function initGenerator(root, playback) {
     await loadVideo(path);
   }
 
+  // Project header (V1 target create.png): real facts from ffprobe and a
+  // poster frame. Values the probe cannot read are left out, never guessed.
+  let projectHeadSeq = 0;
+  const fmtClock = sec => {
+    const s = Math.max(0, Math.round(sec));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const two = n => String(n).padStart(2, '0');
+    return h ? `${h}:${two(m)}:${two(r)}` : `${two(m)}:${two(r)}`;
+  };
+  async function refreshProjectHead(path) {
+    const seq = ++projectHeadSeq;
+    const head = el('#gen-project-head');
+    const poster = el('#gen-project-poster');
+    if (!head) return;
+    head.hidden = !path;
+    if (!path) return;
+    el('#gen-project-name').textContent = path.split(/[\\/]/).pop();
+    el('#gen-project-meta').textContent = 'Reading video details…';
+    poster.hidden = true;
+    poster.removeAttribute('src');
+    try {
+      const info = await ProbeCreateVideo(path);
+      if (seq !== projectHeadSeq) return;
+      const parts = [];
+      if (info.width > 0 && info.height > 0) parts.push(`${info.width} × ${info.height}`);
+      if (info.fps > 0) parts.push(`${Number(info.fps.toFixed(2))} fps${info.vfr ? ' (variable)' : ''}`);
+      if (info.durationSec > 0) parts.push(fmtClock(info.durationSec));
+      if (info.codec) parts.push(String(info.codec).toUpperCase());
+      el('#gen-project-meta').textContent = parts.join('  ·  ');
+      if (info.posterUrl) {
+        poster.src = info.posterUrl;
+        poster.hidden = false;
+      }
+    } catch (err) {
+      if (seq !== projectHeadSeq) return;
+      el('#gen-project-meta').textContent = 'Video details not readable — ' + (err?.message || err);
+    }
+  }
+
   async function loadVideo(path, extraCount = 0, remainingPaths = null, opts = {}) {
     cancelActiveAITargetRequest();
     videoPath = path;
+    refreshProjectHead(path);
     // Workspace (V1 W3): Play lists this clip under its recent videos, and
     // the "Use Player video" offer hides once both use the same file.
     window.dispatchEvent(new CustomEvent('gen:video', { detail: { path } }));
