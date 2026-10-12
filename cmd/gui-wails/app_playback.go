@@ -210,6 +210,7 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
 	p.SetPeakReduce(a.peakReduce)
+	p.SetStrokeOutput(!a.strokeOff, a.strokeLo, 1-a.strokeHiCut)
 	a.stateMu.RUnlock()
 	p.OnLog = func(line string) { eventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
@@ -373,6 +374,23 @@ func (a *App) SetPeakReduce(on bool) {
 	if p != nil {
 		p.SetPeakReduce(on)
 	}
+}
+
+// SetStrokeOutput sets the stroke output for strokers (The Handy …) for the
+// running and every following playback: on/off and the safety range the
+// device may move in (0–1, at least player.MinStrokeSpan wide). Returns the
+// range actually used. Script files are not changed.
+func (a *App) SetStrokeOutput(on bool, lo, hi float64) []float64 {
+	lo, hi = player.ClampStrokeRange(lo, hi)
+	a.stateMu.Lock()
+	a.strokeOff = !on
+	a.strokeLo, a.strokeHiCut = lo, 1-hi
+	p := a.activePlayer
+	a.stateMu.Unlock()
+	if p != nil {
+		p.SetStrokeOutput(on, lo, hi)
+	}
+	return []float64{lo, hi}
 }
 
 // SetPlaybackSpeed changes the speed of a running playback (0.5–2×) and

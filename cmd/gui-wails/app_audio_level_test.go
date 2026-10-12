@@ -59,3 +59,17 @@ func TestSetPeakReduceStored(t *testing.T) {
 		t.Fatal("SetPeakReduce(true) not stored for the next playback")
 	}
 }
+
+func TestSetStrokeOutputStoresClampedRange(t *testing.T) {
+	a := NewApp()
+	got := a.SetStrokeOutput(false, 0.5, 0.52)
+	if len(got) != 2 || got[1]-got[0] < 0.0999 {
+		t.Fatalf("range %v, want at least 10 %% wide", got)
+	}
+	a.stateMu.RLock()
+	off, lo, hi := a.strokeOff, a.strokeLo, 1-a.strokeHiCut
+	a.stateMu.RUnlock()
+	if !off || lo != got[0] || hi != got[1] {
+		t.Fatalf("stored off=%v %v–%v, want off %v", off, lo, hi, got)
+	}
+}
