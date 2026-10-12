@@ -3685,3 +3685,12 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-fav-toggle { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; min-height: 0; }
 .pb-fav-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
 .pb-fav-toggle[aria-pressed="true"] svg { fill: currentColor; }
+
+/* C1 Flow stage hosts (ChatGPT #503) in the empty Player and "Feel without
+   film". The stage is decorative; the text and buttons stay as before. */
+.pb-flow-host { width: 100%; pointer-events: none; }
+.pb-flow-host--empty { width: min(420px, 80%); aspect-ratio: 16 / 9; }
+.pb-flow-host--novideo { width: min(360px, 70%); aspect-ratio: 16 / 9; margin: 0 auto 8px; }
+.pb-flow-host .flow-fx { min-height: 0; }
+/* C4 placeholder for a scene frame ffmpeg could not read. */
+.pb-scene-thumb.is-placeholder { object-fit: cover; opacity: .7; }

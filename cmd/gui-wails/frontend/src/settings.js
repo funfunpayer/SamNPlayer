@@ -6,6 +6,11 @@ import { openHandbook } from './handbook.js';
 import { wireDataHelp } from './help.js';
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 
+// new URL(…, import.meta.url): Vite copies the file into the build. A plain
+// "/src/…" string works in dev but is missing in the packaged app.
+const LOGO_URL = new URL('./assets/images/logo-universal.png', import.meta.url).href;
+const PARTNER_URL = new URL('./assets/images/partner.svg', import.meta.url).href;
+
 let cachedSettings = null;
 let cachedPromise = null;
 
@@ -298,7 +303,7 @@ export function initSettings(root) {
     <section id="st-about" class="st-about">
       <h3>About SamNPlayer</h3>
       <div class="st-about-head">
-        <img src="/src/assets/images/logo-universal.png" alt="SamNPlayer logo" class="st-about-logo" />
+        <img src="${LOGO_URL}" alt="SamNPlayer logo" class="st-about-logo" />
         <div>
           <div class="st-about-name">Sam<span class="wm-n">N</span>Player</div>
           <div class="hint" id="st-about-version" style="margin:2px 0 0;">…</div>
@@ -307,7 +312,7 @@ export function initSettings(root) {
       <p class="hint">Free player and script generator for SVAKOM Sam Neo 2 and Funscript devices.
         Made with care — supported by donations.</p>
       <figure class="st-about-partner">
-        <img src="/src/assets/images/partner.svg" alt="SamNPlayer and the Sex for him website — partners" />
+        <img src="${PARTNER_URL}" alt="SamNPlayer and the Sex for him website — partners" />
         <figcaption class="hint" id="st-about-partner-text">…</figcaption>
       </figure>
       <div class="row" style="align-items:center;">

@@ -63,7 +63,9 @@ def main():
             check("strip shown when on", page.is_visible("#pb-scene-strip"))
             check("thumbnails fetched once", page.evaluate("window.__thumbCalls") == 1)
             n = page.evaluate("window.__thumbN")
-            check("empty frames skipped", page.evaluate("document.querySelectorAll('.pb-scene-thumb').length") == n - 1)
+            check("every slot drawn", page.evaluate("document.querySelectorAll('.pb-scene-thumb').length") == n)
+            check("unreadable frame shows the Flow placeholder",
+                  page.evaluate("[...document.querySelectorAll('.pb-scene-thumb.is-placeholder')].map(i => i.src.endsWith('/scene-placeholder.svg'))") == [True])
             check("toggle remembered", page.evaluate("localStorage.getItem('pb.scenes')") == "1")
             marks = page.query_selector_all(".pb-scene-mark")
             check("one diamond per chapter", len(marks) == 1)

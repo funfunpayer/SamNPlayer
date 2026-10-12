@@ -78,6 +78,12 @@ def make_handler(app_stub_code):
 
         def do_GET(self):
             stub = self.STUBS.get(self.path)
+            # Every CSS module import ("import './x.css'") gets the same empty
+            # stub, so a new stylesheet imported from any module (C1/C2 Flow
+            # CSS) cannot break the app start in tests. "?real" requests are
+            # the <link> stylesheets and stay real files.
+            if stub is None and self.path.startswith("/src/") and self.path.endswith(".css"):
+                stub = "export default '';"
             if stub is not None:
                 body = stub.encode()
                 self.send_response(200)
