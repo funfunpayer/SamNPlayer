@@ -126,3 +126,20 @@
     transition: none !important;
   }
 }
+
+/* True output history, only populated by successive real update() calls. */
+.flow-tr__spark {
+  display: block;
+  width: min(100%, 154px);
+  height: 28px;
+  margin: 7px auto 0;
+  overflow: visible;
+}
+.flow-tr__spark-line {
+  stroke: var(--flow-tr-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .72;
+  filter: drop-shadow(0 0 3px var(--flow-tr-accent));
+}
