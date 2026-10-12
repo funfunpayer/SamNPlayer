@@ -3155,7 +3155,7 @@ body[data-tab="playback"] #sidebar { display: none; }
 /* S4b scene strip: thumbnails + chapter-start diamonds + "+" (structure only). */
 .pb-scene-strip[hidden] { display: none !important; }
 .pb-scene-strip {
-  position: relative; height: 44px; margin-right: 30px;
+  position: relative; height: 44px; /* full curve width: same time scale as curve and lanes */
   border-top: 1px solid var(--border); background: rgba(255, 255, 255, 0.02);
 }
 .pb-scene-thumbs { position: absolute; inset: 0; overflow: hidden; }
@@ -3171,9 +3171,9 @@ body[data-tab="playback"] #sidebar { display: none; }
   box-shadow: none; cursor: pointer; pointer-events: auto;
 }
 .pb-scene-add {
-  position: absolute; right: -30px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); z-index: 1;
   width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%;
-  font-size: 16px; line-height: 1;
+  font-size: 16px; line-height: 1; background: var(--surface-2); border: 1px solid var(--border-strong);
 }
 
 /* ===== Tools sub-navigation (Owner 11 Oct, #475): Device · Log · Settings.
@@ -3770,7 +3770,7 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 
 /* Chapter bands over the scene strip (V1 target scene-map.png). */
 .pb-chapter-bands[hidden] { display: none !important; }
-.pb-chapter-bands { position: relative; height: 26px; margin: 4px 30px 2px 0; } /* same scale as the scene strip */
+.pb-chapter-bands { position: relative; height: 26px; margin: 4px 0 2px; } /* same scale as curve and scene strip */
 .pb-chapter-band {
   position: absolute; top: 0; bottom: 0; margin: 0; padding: 0 8px; min-width: 0;
   border-radius: 7px; border: 1px solid transparent; box-shadow: none;

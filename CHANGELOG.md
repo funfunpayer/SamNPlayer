@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Player timeline:** the scene strip and the chapter bands are now as wide
+  as the curve (they were 30 px narrower), so markers, bands and the curve
+  share one time scale; the "+" sits inside the strip.
 - **Create queue:** a file name containing `<` no longer breaks the list
   (names are always shown as text).
 
