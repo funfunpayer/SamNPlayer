@@ -883,15 +883,74 @@ export function initGenerator(root, playback) {
         (failed ? `, ${failed} skipped/failed` : '') + ')';
     if (runBtn) runBtn.disabled = queueRunning || pending === 0;
     if (clearBtn) clearBtn.disabled = queueRunning;
-    list.innerHTML = generateQueue.map((q, i) => {
+    // Source clips grid (V1 target create.png): one card per clip with a
+    // poster frame, name, duration and status. Built with DOM nodes, so a
+    // file name is always text (a "<" in a name used to break the list).
+    list.replaceChildren(...generateQueue.map((q, i) => {
       const mark = q.status === 'done' ? '✓'
         : q.status === 'running' ? '…'
         : q.status === 'failed' ? '✗'
         : q.status === 'skipped' ? '–'
         : String(i + 1);
-      return `<li data-status="${q.status}"><span class="gen-queue-mark">${mark}</span> ${basename(q.path)} <span class="hint">(${q.status})</span></li>`;
-    }).join('');
+      const li = document.createElement('li');
+      li.className = 'gen-clip';
+      li.dataset.status = q.status;
+      li.dataset.path = q.path;
+      li.classList.toggle('is-current', q.path === videoPath);
+      li.title = q.path;
+      const thumb = document.createElement('div');
+      thumb.className = 'gen-clip-thumb';
+      const img = document.createElement('img');
+      img.alt = '';
+      img.hidden = true;
+      thumb.appendChild(img);
+      const markEl = document.createElement('span');
+      markEl.className = 'gen-queue-mark';
+      markEl.textContent = mark;
+      thumb.appendChild(markEl);
+      const name = document.createElement('span');
+      name.className = 'gen-clip-name';
+      name.textContent = basename(q.path);
+      const meta = document.createElement('span');
+      meta.className = 'hint gen-clip-meta';
+      meta.textContent = q.status;
+      li.append(thumb, name, meta);
+      fillClipCard(li, q);
+      return li;
+    }));
   }
+
+  // Poster + duration per clip, read once per path (ProbeCreateVideo) and
+  // one after the other so a long queue does not start many ffmpeg runs.
+  const clipInfo = new Map(); // path -> Promise<CreateVideoInfo|null>
+  let clipInfoChain = Promise.resolve();
+  function clipInfoFor(path) {
+    if (!clipInfo.has(path)) {
+      const p = clipInfoChain.then(() => ProbeCreateVideo(path)).catch(() => null);
+      clipInfoChain = p.then(() => {}, () => {});
+      clipInfo.set(path, p);
+    }
+    return clipInfo.get(path);
+  }
+  function fillClipCard(li, q) {
+    clipInfoFor(q.path).then(info => {
+      if (!li.isConnected || !info) return;
+      const img = li.querySelector('img');
+      if (info.posterUrl) {
+        img.src = info.posterUrl;
+        img.hidden = false;
+      }
+      const meta = li.querySelector('.gen-clip-meta');
+      const dur = info.durationSec > 0 ? fmtClock(info.durationSec) : '';
+      meta.textContent = dur ? `${dur} · ${q.status}` : q.status;
+    });
+  }
+
+  el('#gen-queue-list')?.addEventListener('click', e => {
+    const li = e.target.closest('.gen-clip');
+    if (!li || queueRunning || !li.dataset.path || li.dataset.path === videoPath) return;
+    loadVideo(li.dataset.path, 0, null, { keepQueue: true });
+  });
 
   function setQueueFromPaths(paths) {
     const uniq = [];
@@ -3354,12 +3413,12 @@ export function initGenerator(root, playback) {
   // Project header (V1 target create.png): real facts from ffprobe and a
   // poster frame. Values the probe cannot read are left out, never guessed.
   let projectHeadSeq = 0;
-  const fmtClock = sec => {
+  function fmtClock(sec) {
     const s = Math.max(0, Math.round(sec));
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
     const two = n => String(n).padStart(2, '0');
     return h ? `${h}:${two(m)}:${two(r)}` : `${two(m)}:${two(r)}`;
-  };
+  }
   async function refreshProjectHead(path) {
     const seq = ++projectHeadSeq;
     const head = el('#gen-project-head');
@@ -3436,7 +3495,8 @@ export function initGenerator(root, playback) {
     updateRoiLabels();
     // Multi-drop → queue (DeepFunGen UX). remainingPaths = videos after current.
     // fromQueueAdvance: keep existing queue entries; only refresh status UI.
-    if (!opts.fromQueueAdvance) {
+    // keepQueue: a clip card was clicked — same, but auto-find still runs.
+    if (!opts.fromQueueAdvance && !opts.keepQueue) {
       if (Array.isArray(remainingPaths) && remainingPaths.length) {
         // Full batch including the clip just loaded (DeepFunGen-style queue).
         setQueueFromPaths([path, ...remainingPaths]);
