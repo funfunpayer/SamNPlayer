@@ -59,7 +59,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Script Tools: Write into script, Apply offset ±, Auto sync | ✅ | |
 | Timeline tabs, lane names, Audio Level lane | ✅ | |
 | Scene Markers row with thumbnails and "+" | ✅ | Off by default in Play, on in Edit |
-| **Sound Curve** (curve from the video's sound) | 🔧 | Exists as "Vibration from video audio" and the audio lane. Missing: write it **as a curve into the script** (vibration axis from the audio envelope) and show it as its own lane |
+| **Sound Curve** (curve from the video's sound) | ✅ | Audio Analysis → "Write as vibration curve": loudness → Vibration curve (smoothed, thinned), lane, undoable |
 | **Invert Curve** | ✅ | Edit: "⇅ Invert" — shown channel, marked range or whole script, undoable |
 
 ## Create (`create.png`)
