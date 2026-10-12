@@ -89,6 +89,10 @@ export function initPlayback(root) {
         </div>
         <div class="pb-transport" data-pb-region="transport">
           <div class="row pb-transport-btns">
+            <select id="pb-sleep" class="pb-sleep" title="Sleep timer — stop playback after this time" aria-label="Sleep timer">
+              <option value="0" selected>Sleep off</option><option value="15">15 min</option><option value="30">30 min</option>
+              <option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option>
+            </select>
             <button id="pb-t-loop" class="pb-t-icon" type="button" title="Loop the marked range (same as Loop selection)" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
             </button>
@@ -99,10 +103,16 @@ export function initPlayback(root) {
             <button id="pb-prev" class="pb-t-icon" type="button" title="Previous item / back to start">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/></svg>
             </button>
+            <button id="pb-back10" class="pb-t-icon" type="button" title="Back 10 s" aria-label="Back 10 seconds">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.2 4.5v3.6h3.6"/><text x="12" y="15.2" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor" stroke="none">10</text></svg>
+            </button>
             <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play (Space)" aria-label="Play" data-state="play">
               <svg class="pb-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
               <svg class="pb-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5.5" width="4" height="13" rx="1.4"/><rect x="13.5" y="5.5" width="4" height="13" rx="1.4"/></svg>
               <span>Play</span>
+            </button>
+            <button id="pb-fwd10" class="pb-t-icon" type="button" title="Forward 10 s" aria-label="Forward 10 seconds">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.8 4.5v3.6h-3.6"/><text x="12" y="15.2" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor" stroke="none">10</text></svg>
             </button>
             <button id="pb-stop" class="pb-btn-icon" type="button" disabled title="Stop">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>
@@ -186,6 +196,7 @@ export function initPlayback(root) {
           <span class="pb-history" id="pb-history" data-pb-region="history">
             <button type="button" id="pb-undo" disabled title="Undo the last curve change (Ctrl+Z)" aria-label="Undo">↶ Undo</button>
             <button type="button" id="pb-redo" disabled title="Redo (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Redo">↷ Redo</button>
+            <button type="button" id="pb-invert-curve" title="Invert the curve (100 − position) of the shown channel — the marked range, or the whole script without a selection. Undo brings it back.">⇅ Invert</button>
           </span>
         </div>
         <label class="checkbox-row" id="pb-audio-lane-row" style="margin:0;"
@@ -856,7 +867,9 @@ export function initPlayback(root) {
     root.dataset.pbPaused = pausedAt != null && !playing ? 'true' : 'false';
   }
   function setPlayingState(isPlaying) {
+    const was = playing;
     playing = isPlaying;
+    if (isPlaying && !was && typeof armSleepTimer === 'function') armSleepTimer();
     el('#pb-play').disabled = false;
     el('#pb-stop').disabled = !isPlaying && pausedAt == null;
     syncPlayButton();
@@ -3110,6 +3123,30 @@ export function initPlayback(root) {
     }
   }
   el('#pb-undo')?.addEventListener('click', () => stepHistory('undo'));
+  // Invert Curve (V1 target): 100 − pos on the shown channel, in the marked
+  // range or over the whole script; recorded in the edit history.
+  async function invertCurve() {
+    if (!scriptPath) return;
+    const axis = activeEditAxis();
+    const ranged = markerIsValid(marker);
+    if (!ranged && !window.confirm(`Invert the whole ${axis === 'general' ? 'stroke' : axis} curve? (Undo can bring it back.)`)) return;
+    const from = ranged ? marker.startMs : -Infinity;
+    const to = ranged ? marker.endMs : Infinity;
+    try {
+      await withHistory(axis, ranged ? 'invert range' : 'invert curve', async () => {
+        const acts = await snapshotAxis(axis);
+        const next = acts.map(a => (a.at >= from && a.at <= to ? { at: a.at, pos: 100 - a.pos } : a));
+        await SaveScriptAxisActions(axis, next);
+      });
+      markEdited();
+      log(`Curve inverted (${axis}${ranged ? `, ${(from / 1000).toFixed(1)}–${(to / 1000).toFixed(1)} s` : ''}).`);
+      await reloadAfterRangeEdit();
+      if (editMode && rawActions) keyframeDots = rawActions.map(p => ({ ...p }));
+    } catch (err) {
+      logError('Invert curve: ' + err);
+    }
+  }
+  el('#pb-invert-curve')?.addEventListener('click', invertCurve);
   el('#pb-redo')?.addEventListener('click', () => stepHistory('redo'));
   document.addEventListener('keydown', e => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -4314,6 +4351,22 @@ export function initPlayback(root) {
   });
   applyVolume();
   el('#pb-t-fs')?.addEventListener('click', () => el('#pb-video-fs')?.click());
+  el('#pb-back10')?.addEventListener('click', () => seekBy(-10000));
+  el('#pb-fwd10')?.addEventListener('click', () => seekBy(10000));
+  // Sleep timer: stops playback after N minutes of playing (resets on Stop).
+  let sleepTimer = 0;
+  function armSleepTimer() {
+    clearTimeout(sleepTimer);
+    sleepTimer = 0;
+    const min = parseInt(el('#pb-sleep')?.value || '0', 10);
+    root.dataset.pbSleep = min > 0 ? String(min) : 'off';
+    if (!(min > 0) || !playing) return;
+    sleepTimer = setTimeout(() => {
+      sleepTimer = 0;
+      if (playing) { log(`Sleep timer: stopped after ${min} min.`); stop(); }
+    }, min * 60000);
+  }
+  el('#pb-sleep')?.addEventListener('change', armSleepTimer);
   el('#pb-play-novideo').addEventListener('click', play);
   el('#pb-playlist-list').addEventListener('click', async e => {
     const remove = e.target.closest('.pb-playlist-remove');
