@@ -407,6 +407,8 @@ export function initPlayback(root) {
             <span class="pb-audio-card-bpm" id="pb-aa-bpm">— BPM</span>
             <button type="button" class="secondary" id="pb-aa-detect"
               data-help="Measure the beat of the video's sound (same as View → From audio). Display only.">From audio</button>
+            <button type="button" class="secondary" id="pb-aa-write" disabled
+              data-help="Sound Curve: write the loudness of the video's sound into the script as the Vibration curve (smoothed, about 4 points per second). Undo brings the old curve back. In a .samn file, playback then uses the written channels (axes mode).">Write as vibration curve</button>
           </div>
           <canvas id="pb-aa-wave" class="pb-aa-wave" height="72" tabindex="0"
             aria-label="Audio waveform of the whole video with beat lines. Click to seek."></canvas>
@@ -2199,6 +2201,7 @@ export function initPlayback(root) {
   // Audio Analysis card: the whole video's sound (not the zoom window) with
   // the BPM beat grid and the playhead. Click seeks.
   function drawAudioCard() {
+    syncSoundCurveButton();
     const cv = el('#pb-aa-wave');
     if (!cv) return;
     const period = bpmPeriodMs();
@@ -2249,6 +2252,46 @@ export function initPlayback(root) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
   }
+
+  // Sound Curve (V1 target): the audio envelope as a vibration curve —
+  // 250 ms averages, points kept on a change of ≥ 4 or every 2 s.
+  function soundCurveActions(env, totalLen) {
+    const win = Math.max(1, Math.round(250 / AUDIO_STEP_MS));
+    const raw = [];
+    for (let i = 0; i < env.length; i += win) {
+      let sum = 0, n = 0;
+      for (let k = i; k < Math.min(env.length, i + win); k++) { sum += env[k]; n++; }
+      const at = i * AUDIO_STEP_MS;
+      if (totalLen > 0 && at > totalLen) break;
+      raw.push({ at, pos: Math.max(0, Math.min(100, Math.round((sum / n) * 100))) });
+    }
+    const out = [];
+    for (const p of raw) {
+      const last = out[out.length - 1];
+      if (!last || Math.abs(p.pos - last.pos) >= 4 || p.at - last.at >= 2000) out.push(p);
+    }
+    const tail = raw[raw.length - 1];
+    if (tail && out[out.length - 1] !== tail) out.push(tail);
+    return out;
+  }
+  function syncSoundCurveButton() {
+    const btn = el('#pb-aa-write');
+    if (btn) btn.disabled = !scriptPath || !(Array.isArray(audioLevel) && audioLevel.length > 1);
+  }
+  el('#pb-aa-write')?.addEventListener('click', async () => {
+    if (!scriptPath || !Array.isArray(audioLevel) || audioLevel.length < 2) return;
+    const acts = soundCurveActions(audioLevel, totalMs);
+    if (acts.length < 2) { uiWarn('The sound is too short for a curve.'); return; }
+    if (!window.confirm(`Write the sound as the Vibration curve (${acts.length} points)? The current Vibration curve is replaced — Undo brings it back.`)) return;
+    try {
+      await withHistory('vibration', 'sound curve', () => SaveScriptAxisActions('vibration', acts));
+      markEdited();
+      log(`Sound curve written to Vibration (${acts.length} points).`);
+      await reloadAfterRangeEdit();
+    } catch (err) {
+      logError('Sound curve: ' + err);
+    }
+  });
 
   async function loadAudioLevel() {
     const key = `${scriptPath}|${root.dataset.pbVideo}`;
@@ -4699,6 +4742,9 @@ export function initPlayback(root) {
       logError('Reload script after edit: ' + err);
     }
     await refreshScriptVisuals();
+    // Feel-channel lanes follow edits / undo on vibration and suction too.
+    await loadAxisLanes();
+    redrawAxisLanes();
   }
 
   window.addEventListener('ozone:hotkey', async (ev) => {
