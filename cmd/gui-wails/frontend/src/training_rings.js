@@ -89,6 +89,15 @@ function createChannelCard(spec, index) {
     bar.className = 'flow-tr__meter-bar';
     meter.append(bar);
   }
+  // Sparkline contains only successive real readings; no invented samples.
+  const spark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  spark.classList.add('flow-tr__spark');
+  spark.setAttribute('viewBox', '0 0 120 28');
+  spark.setAttribute('aria-hidden', 'true');
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  line.classList.add('flow-tr__spark-line');
+  line.setAttribute('fill', 'none');
+  spark.append(line);
   const note = document.createElement('span');
   note.className = 'flow-tr__meter-note';
   note.textContent = 'Output level';
@@ -174,6 +183,15 @@ export function createRings(el, channels) {
         view.value.setAttribute('aria-label',
           specs.find((spec) => spec.id === id).name + ' output: '
           + (value === null ? 'unavailable' : text));
+        // Unknown readings interrupt the trace; never bridge gaps with fake values.
+        if (value === null) view.history.length = 0;
+        else {
+          view.history.push(value);
+          if (view.history.length > 24) view.history.shift();
+        }
+        view.line.setAttribute('points', view.history.length < 2 ? '' :
+          view.history.map((v, i) => (i * 120 / 23).toFixed(1)
+            + ',' + (26 - v * 24).toFixed(1)).join(' '));
         view.card.dataset.available = String(value !== null);
         view.card.dataset.active = String(value !== null && value > 0);
         view.card.style.setProperty('--flow-tr-level', value === null ? '0' : String(value));
