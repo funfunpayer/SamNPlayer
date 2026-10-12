@@ -177,12 +177,27 @@ export function applyPlayerLayoutV1(root, api) {
     panels[k] = p;
   }
   // Devices: live channel rows (real values mirrored from the transport).
+  // D3: rows follow the connected device's capabilities (docs/DEVICE_SUPPORT.md).
+  // Without a device, show the classic Stroke / Vibration / Suction.
   const live = document.createElement('div');
   live.className = 'pb-chan-rows';
-  // Stroke drives the feel recipe (not sent to the Neo 2 directly): live only.
-  // Vibration / Suction: on/off + output level (device-side, files unchanged).
-  live.innerHTML = [['stroke', 'Stroke', false], ['vibration', 'Vibration', true], ['suction', 'Suction', true]]
-    .map(([k, label, ctl]) => `<div class="pb-chan-row" data-axis="${k}">
+  live.id = 'pb-chan-rows';
+  panels.devices.appendChild(live);
+  function channelLabel(ch) {
+    const map = { stroke: 'Stroke', vibration: 'Vibration', suction: 'Suction',
+      surge: 'Surge', sway: 'Sway', twist: 'Twist', roll: 'Roll', pitch: 'Pitch',
+      rotate: 'Rotate', oscillate: 'Oscillate' };
+    return map[ch] || ch.replace(/^./, c => c.toUpperCase());
+  }
+  function isControllable(f) {
+    // Intensity channels get on/off + level; linear position is live-only.
+    return f.kind !== 'linear';
+  }
+  function renderChannelRows(features) {
+    const rows = (features && features.length)
+      ? features.filter(f => f.driven !== false).map(f => [f.channel, channelLabel(f.channel), isControllable(f)])
+      : [['stroke', 'Stroke', false], ['vibration', 'Vibration', true], ['suction', 'Suction', true]];
+    live.innerHTML = rows.map(([k, label, ctl]) => `<div class="pb-chan-row" data-axis="${k}">
         ${ctl ? `<input type="checkbox" class="pb-chan-on" id="pb-chan-${k}-on" checked aria-label="${label} on" />` : '<span class="pb-chan-on-spacer"></span>'}
         <i class="pb-chan-dot"></i><span class="pb-chan-name">${label}</span>
         ${ctl ? `<input type="range" class="pb-chan-level" id="pb-chan-${k}-level" min="0" max="100" step="5" value="100" aria-label="${label} level" />`
@@ -190,7 +205,10 @@ export function applyPlayerLayoutV1(root, api) {
         <span class="pb-chan-val" id="pb-chan-${k}-lvl">${ctl ? '100%' : ''}</span>
         <span class="pb-chan-bar" title="Live output"><b id="pb-chan-${k}-fill"></b></span>
         <span class="pb-chan-live" id="pb-chan-${k}-val">–</span></div>`).join('');
-  panels.devices.appendChild(live);
+    // Re-bind level listeners after re-render (see applyChannels below).
+    window.dispatchEvent(new CustomEvent('pb:channels-rendered'));
+  }
+  renderChannelRows(null); // classic default
 
   // Effects knobs (mockup; Owner 11 Oct): Intensity = overall output of the
   // feel channels (master over the channel levels), Response = how direct the
@@ -695,11 +713,19 @@ export function applyPlayerLayoutV1(root, api) {
   syncCount();
 
   // ---- Live channel rows: mirror real values ------------------------------
-  const mirror = (srcSel, k, scale) => {
+  const LIVE_SOURCES = {
+    stroke: ['#pb-pos-value', 1],
+    vibration: ['#pb-vib', 1],
+    suction: ['#pb-suc', 1],
+  };
+  function mirrorChannel(k) {
+    const srcInfo = LIVE_SOURCES[k];
+    if (!srcInfo) return;
+    const [srcSel, scale] = srcInfo;
     const src = q(srcSel);
-    if (!src) return;
     const fill = q(`#pb-chan-${k}-fill`);
     const val = q(`#pb-chan-${k}-val`);
+    if (!src || !fill || !val) return;
     const sync = () => {
       const n = parseFloat(String(src.textContent).replace(',', '.'));
       const pct = Number.isFinite(n) ? Math.max(0, Math.min(100, n * scale)) : null;
@@ -708,21 +734,29 @@ export function applyPlayerLayoutV1(root, api) {
     };
     new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
     sync();
-  };
-  // All three show 0–100 already (#pb-vib / #pb-suc as "58%").
-  mirror('#pb-pos-value', 'stroke', 1);
-  mirror('#pb-vib', 'vibration', 1);
-  mirror('#pb-suc', 'suction', 1);
+  }
+  function bindLiveMirrors() {
+    for (const row of live.querySelectorAll('.pb-chan-row')) {
+      mirrorChannel(row.dataset.axis);
+    }
+  }
+  bindLiveMirrors();
 
   // ---- Channel on/off + level → device output (SetChannelLevels) ----------
+  // D3: levels for every controllable channel; backend still receives vib/suc
+  // for the Neo 2 path. Extra channels are stored and shown.
   let saved = {};
   try { saved = JSON.parse(load(CHAN_KEY) || '{}') || {}; } catch (_) { saved = {}; }
-  const chans = ['vibration', 'suction'];
-  for (const k of chans) {
-    const st = saved[k] || {};
-    const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
-    if (on && typeof st.on === 'boolean') on.checked = st.on;
-    if (lvl && Number.isFinite(st.level)) lvl.value = String(Math.max(0, Math.min(100, st.level)));
+  function controllableChannels() {
+    return [...live.querySelectorAll('.pb-chan-on')].map(el => el.id.replace(/^pb-chan-|-on$/g, ''));
+  }
+  function restoreChannelState() {
+    for (const k of controllableChannels()) {
+      const st = saved[k] || {};
+      const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
+      if (on && typeof st.on === 'boolean') on.checked = st.on;
+      if (lvl && Number.isFinite(st.level)) lvl.value = String(Math.max(0, Math.min(100, st.level)));
+    }
   }
   function applyChannels() {
     const out = {};
@@ -730,8 +764,9 @@ export function applyPlayerLayoutV1(root, api) {
       const on = q(`#pb-chan-${k}-on`), lvl = q(`#pb-chan-${k}-level`);
       const v = Number(lvl?.value ?? 100);
       out[k] = { on: !!on?.checked, level: v };
-      q(`#pb-chan-${k}-lvl`).textContent = on?.checked ? `${v}%` : 'Off';
-      lvl.disabled = !on?.checked;
+      const lvlSpan = q(`#pb-chan-${k}-lvl`);
+      if (lvlSpan) lvlSpan.textContent = on?.checked ? `${v}%` : 'Off';
+      if (lvl) lvl.disabled = !on?.checked;
       q(`.pb-chan-row[data-axis="${k}"]`)?.classList.toggle('is-off', !on?.checked);
       return on?.checked ? v / 100 : 0;
     };
@@ -742,15 +777,26 @@ export function applyPlayerLayoutV1(root, api) {
     root.dataset.pbReducePeaks = reduce ? 'on' : 'off';
     SetPeakReduce(reduce).catch(() => {});
     drawKnob('intensity', master);
-    const vib = level('vibration') * master / 100, suc = level('suction') * master / 100;
+    const vib = level('vibration') * master / 100;
+    const suc = level('suction') * master / 100;
+    // Extra channels: apply level for display; backend extension later.
+    for (const k of controllableChannels()) if (k !== 'vibration' && k !== 'suction') level(k);
     store(CHAN_KEY, JSON.stringify(out));
     root.dataset.pbChannels = `${vib},${suc}`;
     SetChannelLevels(vib, suc).catch(() => {});
   }
-  for (const k of chans) {
-    q(`#pb-chan-${k}-on`)?.addEventListener('change', applyChannels);
-    q(`#pb-chan-${k}-level`)?.addEventListener('input', applyChannels);
+  function bindChannelControls() {
+    restoreChannelState();
+    for (const k of controllableChannels()) {
+      q(`#pb-chan-${k}-on`)?.addEventListener('change', applyChannels);
+      q(`#pb-chan-${k}-level`)?.addEventListener('input', applyChannels);
+    }
+    applyChannels();
   }
+  window.addEventListener('pb:channels-rendered', () => {
+    bindLiveMirrors();
+    bindChannelControls();
+  });
   const intensity = q('#pb-knob-intensity');
   if (intensity && Number.isFinite(saved.master)) intensity.value = String(Math.max(0, Math.min(100, saved.master)));
   intensity?.addEventListener('input', applyChannels);
@@ -759,7 +805,25 @@ export function applyPlayerLayoutV1(root, api) {
     peakBox.checked = saved.reducePeaks === true;
     peakBox.addEventListener('change', applyChannels);
   }
-  applyChannels();
+  bindChannelControls();
+
+  // D3: follow connected device capabilities.
+  function updateAxisLegend(features) {
+    const legend = q('#pb-axis-legend');
+    if (!legend) return;
+    const chips = (features && features.length)
+      ? features.filter(f => f.driven !== false).map(f => [f.channel, channelLabel(f.channel)])
+      : [['general', 'Stroke'], ['vibration', 'Vibration'], ['suction', 'Suction']];
+    legend.innerHTML = chips.map(([k, label]) =>
+      `<button type="button" class="pb-axis-chip" data-axis="${k}" title="Show / edit the ${label} channel"><i></i>${label}</button>`).join('');
+  }
+  window.addEventListener('device:status', e => {
+    const st = e.detail || {};
+    const feats = (st.connected && st.capabilities && Array.isArray(st.capabilities.features))
+      ? st.capabilities.features : null;
+    renderChannelRows(feats);
+    updateAxisLegend(feats);
+  });
 
   // Response ↔ Play smoothing (0–1, saved as playback.smoothing by playback.js).
   const smooth = q('#pb-smoothing');

@@ -78,7 +78,7 @@ The expected channels follow from the public Buttplug device descriptions. The r
 |---|---|
 | D1 ✅ | Capability model in Go (`device.Capabilities`); Neo 2, Mock and Intiface report theirs; the GUI receives them on connect |
 | D2 ✅ | Intiface `LinearCmd` and `RotateCmd`, plus vibrate per motor; the Player sends the stroke position to linear devices |
-| D3 | Player UI follows capabilities: channel rows and lanes per connected device; per-channel level and Reduce peaks for every channel |
+| D3 🔧 | Player UI follows capabilities: channel rows and lanes per connected device; per-channel level and Reduce peaks for every channel (inspector rows + legend dynamic; lanes follow-up) |
 | D4 | Multi-axis script loading (companion axis files) and export |
 | D5 | TCode transport (OSR2 / SR6); optional Handy online API |
 
