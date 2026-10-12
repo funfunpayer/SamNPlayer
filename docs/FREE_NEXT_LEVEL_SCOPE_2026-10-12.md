@@ -44,3 +44,20 @@
 5. Verify Free regression suite: one video analysis to script, playback sync, save/export/import, no-model fallback, undo/redo, all current device safety caps and emergency stop.
 6. Mark changed Free functionality clearly in release notes and public website, including editions/upgrade path. No silent update that destroys an existing project.
 7. Do **not** perform the simplification now. Focus on finishing and publishing the current Free release first; Next Level development in separate repository.
+
+
+## Final Owner positioning: Community excellent, Next Level exceptional (2026-10-12)
+
+**Community Edition / Free** must be **excellent at the essentials**, polished, dependable and worth recommending. It does **not** need Studio-grade depth or best-in-class professional automation. No deliberately broken, unsafe or artificially slowed-down workflows. The Owner's distinction is *good/excellent and focused*, versus *exceptional professional Next Level*, not parity of feature breadth.
+
+- Always maintain **Donate / Support Development** in Community Edition, in app and on website. Voluntary donations fund community bug fixes and future exploration. Current EULA §6: donations without guaranteed reward. A later guaranteed Studio entitlement for contributions over EUR 40 requires separate binding terms/payment classification before advertising or accepting.
+- **Stable Community features:** reliable single-video classical generation, normal video-to-script workflow, functional standard Editor/Player/Training, supported devices and emergency stop, standard import/export. Feature matrix subject to an Owner-reviewed audit, but user data cannot silently disappear.
+- **Reduced stable AI:** keep only a modest, useful Community AI scope later; most advanced model-training, generative repair, autonomous selection and deep local learning move to Next Level.
+- **No permanent Batch in future Community:** professional batch processing belongs to Next Level. The current Free release being finished is not retroactively stripped; schedule controlled transition with full compatibility and truthful release notes.
+- **Time-limited Studio feature previews in Community:** for selected new features, explicitly advertise start/end dates, quality/experimental state, hardware/model prerequisites, and that access expires or is withdrawn after the announced trial window. Preview is not a permanent promise. May offer periodic Preview Weeks or fixed release-based windows; never pretend an unannounced expiry is a bug.
+- **No destructive expiry:** expiration disables only the premium action in Community. Existing user-authored video, .funscript, .samn and projects remain readable/exportable where technically possible. Safe fallback: standard Free viewer/export or a documented conversion path. Playback/emergency stop must never be gated by trial expiry.
+- **Preview release contract:** feature manifest records id, label, edition, enabled_from_utc, enabled_until_utc, platform, model_requirements, fallback_action, migration_behavior. Expiry should be enforced by backend product/edition logic, not CSS hiding alone. Offline behaviour must be documented (time source tampering / no network) without a forced cloud dependency.
+- **Feedback loop:** opt-in feedback from Preview testers (manual reports, no automatic intimate-video uploads), scene repro and quality benchmarks; classify each preview after testing as `Community Stable`, `Studio Only`, `Redesign` or `Withdraw`. Keep a public changelog of decisions.
+- **Marketing:** Community Edition = "Free. Reliable. Community-supported." Next Level / Studio = "Professional automation, full multi-axis editing, advanced hybrid AI and batch". Avoid false product performance or superiority claims.
+
+**Implementation order:** finish current Free, document future focused Community edition, finish Next Level core and preview-gating design, then run the first explicitly advertised limited-time Community feature preview **only when working Studio code and expiry/migration tests exist**. No immediate expiring trial implementation in the unfinished Free release.
