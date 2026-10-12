@@ -2,14 +2,14 @@
 
 **This decision supersedes the earlier proposal to build large Studio/AI machinery inside the original Free repository.**
 
-## SamNPlayer Free: a complete, high-quality free product
+## SamNPlayer Free: high-quality, focused core edition (later scope reduction approved by Owner)
 
 - Keep polished Play, Create, Edit, Training, tools, current classical generator, current working optional AI helper features, existing script formats, reliable device controls and emergency stop.
 - Prioritize measured quality, usability, performance, compatibility, documentation, security, fast startup and successful Windows releases.
 - Do NOT substantially expand heavyweight AI training, automatic AI-script-writing research, experimental Go/Rust generator rewrites or professional adaptive multi-backend processing here.
-- Retain and maintain already-shipped functionality and core safety. Do not intentionally degrade Free to make Studio attractive.
+- **Owner correction:** in a LATER clearly communicated edition split, deliberately simplify Free to the essential polished workflow. Free gets substantially **less AI than the current development build**, and **batch/queue processing is removed from the future Free product** and reserved for Next Level Studio. This is intentional product focus, not an artificial slowdown or quality degradation. The current near-term Free build stays intact until an explicit transition is approved.
 - Before removing bundled training Python, runtime dependencies or a user-facing control, audit actual call sites and edition builds, prove no-loss of existing Free behavior with automated and native QA, and seek Owner approval for a breaking change.
-- Preserve currently usable basic queues and script validation; never retroactively gate current capabilities behind payment.
+- **Migration requirement:** inventory existing batch UI, API, scheduler, tests and AI training/draft/model features; in the future focused Free edition cleanly remove/hide batch entry points and unnecessary packaged components while preserving single-video Create/Save/Play/Edit, fundamental validation, stable classical tracking, useful core capabilities and device safety. Do not merely hide CSS controls while leaving unneeded heavy background tasks enabled. Scope any removals by a tested edition feature manifest; no cleanup before current Free release QA. Publish honest changelog and forward compatibility. Respect existing license grants and third-party rights.
 
 ## SamNPlayer Next Level: new separate software generation derived from Free
 
@@ -26,7 +26,7 @@
 2. Create and privately bootstrap Next Level with full safe code ancestry (see NEXT_LEVEL_REPOSITORY_BOOTSTRAP_2026-10-12.md).
 3. Develop Next Level experimentally, in isolation from stable Free releases. Advance by golden-clip and device-safety gates even when research takes months/years.
 4. Upstream or cherry-pick stable bug fixes deliberately with tests. No automatic bidirectional merging and no second experimental stack in Free.
-5. Free receives reliability/security and small compatible innovations; Next Level takes heavyweight new generation, Editor and Studio commercialization.
+5. Free receives reliability/security and small compatible innovations; Next Level takes heavyweight new generation, Editor and Studio commercialization. **After Free release and with explicit Owner go-ahead, ship the focused Free edition: reduced AI and no batch processing; regression-test the single-file workflows and migration from prior Free releases.**
 
 ## Ownership and launch
 
@@ -34,3 +34,13 @@
 - ChatGPT: visual implementation, copy, documentation and benchmark/architecture proposals on independent branches.
 - Owner: release, paid Studio and user-facing changes; no new repository or payment collection claimed as already complete.
 - Guaranteed Studio access for support above EUR 40 requires explicit purchase/entitlement terms and legal/payment review; current Free donations do not grant a licence under the present EULA.
+
+## Deferred Free simplification acceptance gates
+
+1. Baseline inventory: list every shipped AI-related control, underlying API/runtime process, model installer, data-store dependency and batch queue path; distinguish basic optional ROI helper from Studio training/writer features.
+2. Decide a concrete Free feature manifest with Owner sign-off, rather than broad claims; keep standalone functional Play/Create/Edit/Training, standard Funscript and existing essential device/safety controls.
+3. Disable Studio-only paths at the Go/backend boundary; avoid accidental calls to removed Python runtimes and nonexistent batch workers. Validate startup and portable package without removed assets.
+4. Migrate old single-job project and script libraries non-destructively; preserve existing saved batch project files as user data even if the new Free edition cannot run batch (warn/open in Studio or offer single-item import when possible).
+5. Verify Free regression suite: one video analysis to script, playback sync, save/export/import, no-model fallback, undo/redo, all current device safety caps and emergency stop.
+6. Mark changed Free functionality clearly in release notes and public website, including editions/upgrade path. No silent update that destroys an existing project.
+7. Do **not** perform the simplification now. Focus on finishing and publishing the current Free release first; Next Level development in separate repository.
