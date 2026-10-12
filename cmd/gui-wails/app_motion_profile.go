@@ -11,7 +11,7 @@ import (
 // GetMotionProfileModelStatus reports both the collected scene-memory samples
 // and the persisted Go model. Reading JSON/JSONL is cheap and synchronous.
 func (a *App) GetMotionProfileModelStatus() (profilemodel.Status, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return profilemodel.Status{}, err
 	}
 	return profilemodel.StatusDefault()
@@ -21,7 +21,7 @@ func (a *App) GetMotionProfileModelStatus() (profilemodel.Status, error) {
 // saved motion signatures. Training/classification need no PyTorch, GPU or
 // network; extracting a new video's signature still uses local Python/OpenCV.
 func (a *App) TrainMotionProfileModel() (profilemodel.Status, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return profilemodel.Status{}, err
 	}
 	model, err := profilemodel.TrainDefault()
@@ -39,7 +39,7 @@ func (a *App) TrainMotionProfileModel() (profilemodel.Status, error) {
 // actually selected in Create. The profile is supervision, not an automatic
 // prediction, and is later consumed by TrainMotionProfileModel.
 func (a *App) LabelSceneWithProfile(videoPath, label, profile string) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	profile = profilemodel.NormalizeProfile(profile)

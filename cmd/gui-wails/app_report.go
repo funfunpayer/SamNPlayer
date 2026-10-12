@@ -86,7 +86,7 @@ func (a *App) PickReportPath() (string, error) {
 
 // TrainQualityModel lernt aus den gesammelten Urteilen.
 func (a *App) TrainQualityModel() (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	path := a.activeReportPath()

@@ -205,7 +205,7 @@ export function GetDonateLinks() { return window['go']['main']['App']['GetDonate
 export function GetEULA() { return window['go']['main']['App']['GetEULA'](); }
 export function GetThirdPartyNotices() { return window['go']['main']['App']['GetThirdPartyNotices'](); }
 export function OpenDonateLink(arg1) { return window['go']['main']['App']['OpenDonateLink'](arg1); }
-export function IsStudioBuild() { return window['go']['main']['App']['IsStudioBuild'](); }
+export function IsSuiteBuild() { return window['go']['main']['App']['IsSuiteBuild'](); }
 export function GetAboutInfo() { return window['go']['main']['App']['GetAboutInfo'](); }
 export function OpenPartnerSite() { return window['go']['main']['App']['OpenPartnerSite'](); }
 export function SetTrainingVideo(arg1) { return window['go']['main']['App']['SetTrainingVideo'](arg1); }

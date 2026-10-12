@@ -34,7 +34,7 @@ func (a *App) LoadSceneMapForVideo(videoPath string) (generator.SceneMapLoad, er
 // .samn (or companion beside a video/funscript). Requires Settings
 // Collect learning data. Never writes YOLO images/labels/train.
 func (a *App) ExportSceneMapLearning(path string) (generator.LearningExportResult, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return generator.LearningExportResult{}, err
 	}
 	samnPath, err := resolveSamnForLearning(path)
@@ -60,7 +60,7 @@ func (a *App) ExportSceneMapLearning(path string) (generator.LearningExportResul
 // DeleteSceneMapLearningData removes only scene_map_learning under the
 // configured ROI dataset root (or the default). Hand YOLO samples stay.
 func (a *App) DeleteSceneMapLearningData() error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	root := ""
@@ -87,7 +87,7 @@ func (a *App) SuggestExcludePriors(width, height int) (generator.ExcludePriorRes
 // one author:auto contact candidate in the companion .samn beside videoPath.
 // Map-view Accept / Reject for teacher-contact marks (V3). No Generate change.
 func (a *App) ReviewAutoContactCandidate(videoPath, markID string, accept bool) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	return generator.ReviewAutoContactCandidate(videoPath, markID, accept)
@@ -97,7 +97,7 @@ func (a *App) ReviewAutoContactCandidate(videoPath, markID string, accept bool) 
 // a contact_points JSON into the companion .samn as author:auto reviewed:false
 // marks. Requires an existing scene map (Create with rhythm grid first).
 func (a *App) ImportContactCandidatesForVideo(videoPath, contactPath string) (int, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return 0, err
 	}
 	return generator.ImportContactCandidatesForVideo(videoPath, contactPath)

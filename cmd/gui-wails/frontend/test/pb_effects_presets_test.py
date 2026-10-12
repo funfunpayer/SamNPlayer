@@ -25,7 +25,7 @@ def main():
     harness.write_text(html)
     base, shutdown = serve(app_stub({
         "GetEULA": "async () => ({version:'x', text:'', accepted:true})",
-        "IsStudioBuild": "async () => false",
+        "IsSuiteBuild": "async () => false",
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false, playbackMock:true, playbackSmoothing:0.3, playbackSoftStartMs:500, playbackTickMs:50, playbackMaxSpeed:0.6, playbackEffectPresets: %s})"
                        % json.dumps(json.dumps(SAVED)),

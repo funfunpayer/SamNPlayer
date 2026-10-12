@@ -30,7 +30,7 @@ const maxBenchmarkHistoryEntries = 30
 // (vorher liefen beide parallel und schrieben in dieselbe History-Datei);
 // CancelGoldenClipBenchmark bricht ab, das Schließen der App ebenso.
 func (a *App) RunGoldenClipBenchmark(manifestPath string) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	runCtx, err := a.claimBenchmarkRun()
@@ -79,7 +79,7 @@ func (a *App) releaseBenchmarkRun() {
 // meldet dann den Abbruch). Liefert false, wenn keiner lief. Auch beim
 // Schließen der App aufgerufen.
 func (a *App) CancelGoldenClipBenchmark() bool {
-	if requireStudio() != nil {
+	if requireSuite() != nil {
 		return false
 	}
 	a.benchmarkMu.Lock()
@@ -99,7 +99,7 @@ func (a *App) CancelGoldenClipBenchmark() bool {
 // dasselbe Muster wie TrainingHistory (app_training_history.go). Eine
 // kaputte Zeile wird übersprungen, nicht die ganze Datei verworfen.
 func (a *App) GetBenchmarkHistory() ([]generator.BenchmarkResult, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return nil, err
 	}
 	path := a.settings.GetString(prefBenchmarkHistoryPath, defaultBenchmarkHistoryPath())
@@ -146,7 +146,7 @@ type BenchmarkPairScore = funscript.PairScore
 // .funscript (Owner Bench: pick video optional + pick scripts → gut/nicht gut).
 // Synchronous — no generate subprocess; uses pure Go ScorePair.
 func (a *App) ScoreScriptPair(referencePath, candidatePath, videoPath string) (BenchmarkPairScore, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return BenchmarkPairScore{}, err
 	}
 	var empty BenchmarkPairScore
@@ -173,7 +173,7 @@ func (a *App) ScoreScriptPair(referencePath, candidatePath, videoPath string) (B
 // AppendBenchmarkPairLabel writes one KI-ready JSONL label for a scored pair
 // into the configured benchmark history directory (labels.jsonl beside history).
 func (a *App) AppendBenchmarkPairLabel(score BenchmarkPairScore) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	historyPath := a.settings.GetString(prefBenchmarkHistoryPath, defaultBenchmarkHistoryPath())
