@@ -24,6 +24,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Stroke safety range (D3):** with a stroker connected, Player →
+  Inspector → Devices shows "Send stroke to the device" and a bottom / top
+  range; the device only moves inside it (the script's stroke is scaled
+  into it), also while playing. Rows for channels the connected device does
+  not have are hidden.
 - **Strokers and multi-motor devices (D2):** over Intiface, a stroker such
   as The Handy now gets the script's real stroke positions (`LinearCmd`,
   in sync with the video, honouring speed, stopping on pause). Every

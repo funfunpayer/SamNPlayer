@@ -3851,3 +3851,13 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .th-recent-item { width: 100%; margin: 0; text-align: left; background: transparent; border: 0; box-shadow: none; padding: 5px 6px; border-radius: 8px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .th-recent-item:hover { background: var(--accent-soft); }
 @media (max-width: 900px) { .th { grid-template-columns: 1fr; } .th-status { grid-row: auto; } }
+
+/* D3: stroke output controls for a connected stroker (player_layout.js). */
+.pb-stroke-ctl { margin: 2px 0 8px 22px; padding: 8px 10px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); font-size: 12.5px; }
+.pb-stroke-ctl[hidden], .pb-chan-row[hidden] { display: none; }
+.pb-stroke-on { display: flex; align-items: center; gap: 6px; }
+.pb-stroke-range { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 6px; }
+.pb-stroke-range label { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.pb-stroke-range input[type="range"] { width: 90px; }
+.pb-stroke-range-val { font-family: var(--font-mono); }
+.pb-stroke-ctl .hint { margin: 6px 0 0; }

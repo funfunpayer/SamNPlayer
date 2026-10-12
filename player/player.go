@@ -89,6 +89,12 @@ type Player struct {
 	sucCut float64
 	// peakReduce: soft limiter on vibration / suction (Effects → Reduce peaks).
 	peakReduce bool
+	// Stroke output settings (stroke.go), zero value = on, full range:
+	// strokeOff switches positions off; the device moves only between
+	// strokeLo and 1 - strokeHiCut (safety range, Inspector → Devices).
+	strokeOff   bool
+	strokeLo    float64
+	strokeHiCut float64
 }
 
 // Reduce peaks: values up to PeakKnee pass unchanged, everything above is

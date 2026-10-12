@@ -30,6 +30,58 @@ func (p *Player) SetStroke(actions []funscript.Action) {
 	p.strokeNext = -1
 }
 
+// MinStrokeSpan: the safety range is never narrower than this (0–1), so a
+// stray setting cannot pin the device to one point.
+const MinStrokeSpan = 0.1
+
+// SetStrokeOutput sets the stroke output, also while playing: on/off and
+// the range the device may move in (lo, hi in 0–1; positions are scaled
+// into it, so a script's full stroke uses the whole allowed range).
+func (p *Player) SetStrokeOutput(on bool, lo, hi float64) {
+	lo, hi = ClampStrokeRange(lo, hi)
+	p.intensityMu.Lock()
+	p.strokeOff = !on
+	p.strokeLo = lo
+	p.strokeHiCut = 1 - hi
+	p.intensityMu.Unlock()
+}
+
+// StrokeOutput returns on/off and the range (lo, hi).
+func (p *Player) StrokeOutput() (on bool, lo, hi float64) {
+	p.intensityMu.Lock()
+	defer p.intensityMu.Unlock()
+	return !p.strokeOff, p.strokeLo, 1 - p.strokeHiCut
+}
+
+// ClampStrokeRange keeps lo / hi in 0–1, ordered and at least
+// MinStrokeSpan apart (widening around the middle of the two when needed).
+func ClampStrokeRange(lo, hi float64) (float64, float64) {
+	c := func(v float64) float64 {
+		if !(v >= 0) {
+			return 0
+		}
+		if v > 1 {
+			return 1
+		}
+		return v
+	}
+	lo, hi = c(lo), c(hi)
+	if lo > hi {
+		lo, hi = hi, lo
+	}
+	if hi-lo < MinStrokeSpan {
+		mid := (lo + hi) / 2
+		lo, hi = mid-MinStrokeSpan/2, mid+MinStrokeSpan/2
+		if lo < 0 {
+			lo, hi = 0, MinStrokeSpan
+		}
+		if hi > 1 {
+			lo, hi = 1-MinStrokeSpan, 1
+		}
+	}
+	return lo, hi
+}
+
 // linearDevice returns the device as a LinearDevice when it reports a
 // driven linear channel (checked after Connect, when channels are known).
 func (p *Player) linearDevice() device.LinearDevice {
@@ -49,6 +101,11 @@ func (p *Player) driveStroke(posMs int64) error {
 	if ld == nil {
 		return nil
 	}
+	on, lo, hi := p.StrokeOutput()
+	if !on {
+		p.strokeNext = -1 // switched back on → the next position sends
+		return nil
+	}
 	next := sort.Search(len(p.stroke), func(i int) bool { return p.stroke[i].At > posMs })
 	if next >= len(p.stroke) {
 		return nil // past the last action: hold
@@ -62,7 +119,7 @@ func (p *Player) driveStroke(posMs int64) error {
 	if dur < minStrokeMove {
 		dur = minStrokeMove
 	}
-	pos := float64(a.Pos) / 100
+	pos := lo + float64(a.Pos)/100*(hi-lo)
 	if err := ld.SetPosition(pos, dur); err != nil {
 		return err
 	}

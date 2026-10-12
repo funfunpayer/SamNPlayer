@@ -8,7 +8,7 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
-import { SetChannelLevels, SetPeakReduce, SaveVideoSnapshot } from '../wailsjs/go/main/App';
+import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { mountScenePanel } from './scene_panel.js';
 
@@ -191,6 +191,21 @@ export function applyPlayerLayoutV1(root, api) {
         <span class="pb-chan-bar" title="Live output"><b id="pb-chan-${k}-fill"></b></span>
         <span class="pb-chan-live" id="pb-chan-${k}-val">–</span></div>`).join('');
   panels.devices.appendChild(live);
+  // D3: a stroker (The Handy …) gets the script's positions. Its row gets an
+  // on/off and a safety range; shown only while such a device is connected.
+  const strokeCtl = document.createElement('div');
+  strokeCtl.className = 'pb-stroke-ctl';
+  strokeCtl.id = 'pb-stroke-ctl';
+  strokeCtl.hidden = true;
+  strokeCtl.innerHTML = `
+    <label class="pb-stroke-on"><input type="checkbox" id="pb-stroke-on" checked /> Send stroke to the device</label>
+    <div class="pb-stroke-range">
+      <label>Bottom <input type="range" id="pb-stroke-lo" min="0" max="90" step="5" value="0" aria-label="Stroke range bottom" /></label>
+      <label>Top <input type="range" id="pb-stroke-hi" min="10" max="100" step="5" value="100" aria-label="Stroke range top" /></label>
+      <span class="pb-stroke-range-val" id="pb-stroke-range-val">0–100 %</span>
+    </div>
+    <p class="hint">Safety range: the device only moves inside it; the script's full stroke is scaled into it.</p>`;
+  live.querySelector('.pb-chan-row[data-axis="stroke"]')?.after(strokeCtl);
 
   // Effects knobs (mockup; Owner 11 Oct): Intensity = overall output of the
   // feel channels (master over the channel levels), Response = how direct the
@@ -743,6 +758,10 @@ export function applyPlayerLayoutV1(root, api) {
     SetPeakReduce(reduce).catch(() => {});
     drawKnob('intensity', master);
     const vib = level('vibration') * master / 100, suc = level('suction') * master / 100;
+    try { // keep the stroke block (written by applyStroke)
+      const prev = JSON.parse(load(CHAN_KEY) || '{}');
+      if (prev && prev.stroke) out.stroke = prev.stroke;
+    } catch (_) { /* ignore */ }
     store(CHAN_KEY, JSON.stringify(out));
     root.dataset.pbChannels = `${vib},${suc}`;
     SetChannelLevels(vib, suc).catch(() => {});
@@ -760,6 +779,49 @@ export function applyPlayerLayoutV1(root, api) {
     peakBox.addEventListener('change', applyChannels);
   }
   applyChannels();
+
+  // ---- Stroke output (D3) + rows that follow the connected device ---------
+  const strokeOn = q('#pb-stroke-on'), strokeLo = q('#pb-stroke-lo'), strokeHi = q('#pb-stroke-hi');
+  const st0 = saved.stroke || {};
+  if (typeof st0.on === 'boolean') strokeOn.checked = st0.on;
+  if (Number.isFinite(st0.lo)) strokeLo.value = String(st0.lo);
+  if (Number.isFinite(st0.hi)) strokeHi.value = String(st0.hi);
+  async function applyStroke(e) {
+    let lo = Number(strokeLo.value), hi = Number(strokeHi.value);
+    // Keep at least 10 % apart: the slider being moved pushes the other one.
+    if (hi - lo < 10) {
+      if (e && e.target === strokeLo) hi = Math.min(100, lo + 10);
+      else lo = Math.max(0, hi - 10);
+      strokeLo.value = String(lo); strokeHi.value = String(hi);
+    }
+    q('#pb-stroke-range-val').textContent = `${lo}–${hi} %`;
+    strokeLo.disabled = strokeHi.disabled = !strokeOn.checked;
+    let cur = {};
+    try { cur = JSON.parse(load(CHAN_KEY) || '{}') || {}; } catch (_) { cur = {}; }
+    cur.stroke = { on: strokeOn.checked, lo, hi };
+    store(CHAN_KEY, JSON.stringify(cur));
+    root.dataset.pbStroke = strokeOn.checked ? `${lo},${hi}` : 'off';
+    try { await SetStrokeOutput(strokeOn.checked, lo / 100, hi / 100); } catch (_) { /* binding missing in old builds */ }
+  }
+  strokeOn.addEventListener('change', applyStroke);
+  strokeLo.addEventListener('input', applyStroke);
+  strokeHi.addEventListener('input', applyStroke);
+  applyStroke();
+
+  // Connected device → show what it can do: the stroke controls for a
+  // stroker, no rows for channels it lacks. Without a device: all rows.
+  window.addEventListener('device:status', e => {
+    const st = e.detail || {};
+    const feats = (st.connected && st.capabilities && Array.isArray(st.capabilities.features)) ? st.capabilities.features : null;
+    const has = ch => !feats || feats.some(f => f.driven && String(f.channel).replace(/\d+$/, '') === ch);
+    const stroker = !!feats && feats.some(f => f.driven && f.kind === 'linear');
+    strokeCtl.hidden = !stroker;
+    root.dataset.pbStroker = stroker ? 'on' : 'off';
+    for (const k of chans) {
+      const row = q(`.pb-chan-row[data-axis="${k}"]`);
+      if (row) row.hidden = !has(k);
+    }
+  });
 
   // Response ↔ Play smoothing (0–1, saved as playback.smoothing by playback.js).
   const smooth = q('#pb-smoothing');

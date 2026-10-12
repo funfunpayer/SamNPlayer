@@ -159,3 +159,46 @@ func TestPlayDrivesStroke(t *testing.T) {
 		t.Fatalf("two strokes: %+v", m)
 	}
 }
+
+func TestStrokeRangeScalesPositions(t *testing.T) {
+	dev := &linearDev{linear: true}
+	p := New(dev)
+	p.SetStroke(strokeActions)
+	p.SetStrokeOutput(true, 0.2, 0.7)
+	_ = p.driveStroke(100)  // → 100
+	_ = p.driveStroke(1500) // → 20
+	m := dev.snapshotMoves()
+	if len(m) != 2 || m[0].pos != 0.7 || (m[1].pos-0.3) > 1e-9 || (0.3-m[1].pos) > 1e-9 {
+		t.Fatalf("positions scaled into 20–70 %%: %+v", m)
+	}
+	p.SetStrokeOutput(false, 0, 1)
+	_ = p.driveStroke(2500)
+	if len(dev.snapshotMoves()) != 2 {
+		t.Fatal("stroke off sends nothing")
+	}
+	p.SetStrokeOutput(true, 0, 1)
+	_ = p.driveStroke(2500)
+	if m := dev.snapshotMoves(); len(m) != 3 || m[2].pos != 0.9 {
+		t.Fatalf("back on sends the current target: %+v", m)
+	}
+}
+
+func TestClampStrokeRange(t *testing.T) {
+	cases := [][4]float64{
+		{0, 1, 0, 1},
+		{0.8, 0.2, 0.2, 0.8},        // swapped
+		{-1, 2, 0, 1},               // clamped
+		{0.5, 0.52, 0.46, 0.56},     // widened around the middle
+		{0.98, 1, 0.9, 1},           // widened at the top
+		{0, 0.01, 0, MinStrokeSpan}, // widened at the bottom
+	}
+	for _, c := range cases {
+		lo, hi := ClampStrokeRange(c[0], c[1])
+		if d := lo - c[2]; d > 1e-9 || d < -1e-9 {
+			t.Errorf("ClampStrokeRange(%v,%v) lo=%v want %v", c[0], c[1], lo, c[2])
+		}
+		if d := hi - c[3]; d > 1e-9 || d < -1e-9 {
+			t.Errorf("ClampStrokeRange(%v,%v) hi=%v want %v", c[0], c[1], hi, c[3])
+		}
+	}
+}
