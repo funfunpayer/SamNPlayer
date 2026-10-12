@@ -104,10 +104,16 @@ func (m *Mock) DeviceCapabilities() Capabilities {
 	return neo2Capabilities("Mock device", false)
 }
 
-// buttplugFeatures maps a Buttplug DeviceMessages block to features. The
-// first Vibrate drives vibration, the first Constrict / Oscillate / Inflate
-// drives suction (as before); everything else is listed, not driven yet.
-func buttplugFeatures(messages map[string]any, vibrateIdx, constrictIdx int) []Feature {
+// buttplugFeatures maps a Buttplug DeviceMessages block to features (D2):
+//   - every Vibrate motor follows the vibration curve (LELO F1S: both);
+//   - the first Constrict / Inflate (or the Oscillate picked as suction)
+//     follows the suction curve;
+//   - other Oscillate and Rotate scalars and every RotateCmd follow the
+//     vibration curve as intensity;
+//   - the first LinearCmd gets the script's stroke positions.
+//
+// A scalar "Position" actuator is listed but not driven.
+func buttplugFeatures(messages map[string]any, constrictIdx int) []Feature {
 	var out []Feature
 	count := map[string]int{}
 	name := func(ch string) string {
@@ -140,18 +146,18 @@ func buttplugFeatures(messages map[string]any, vibrateIdx, constrictIdx int) []F
 		default:
 			continue
 		}
+		driven := ch != ChStroke && (ch != ChSuction || idx == constrictIdx)
 		out = append(out, Feature{
-			Channel: name(ch), Kind: KindScalar, Index: idx, Actuator: actuator,
-			Driven: idx == vibrateIdx || idx == constrictIdx,
+			Channel: name(ch), Kind: KindScalar, Index: idx, Actuator: actuator, Driven: driven,
 		})
 	}
 	linears, _ := messages["LinearCmd"].([]any)
 	for idx := range linears {
-		out = append(out, Feature{Channel: name(ChStroke), Kind: KindLinear, Index: idx})
+		out = append(out, Feature{Channel: name(ChStroke), Kind: KindLinear, Index: idx, Driven: idx == 0})
 	}
 	rotates, _ := messages["RotateCmd"].([]any)
 	for idx := range rotates {
-		out = append(out, Feature{Channel: name(ChRotate), Kind: KindRotate, Index: idx})
+		out = append(out, Feature{Channel: name(ChRotate), Kind: KindRotate, Index: idx, Driven: true})
 	}
 	return out
 }

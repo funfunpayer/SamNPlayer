@@ -24,6 +24,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Strokers and multi-motor devices (D2):** over Intiface, a stroker such
+  as The Handy now gets the script's real stroke positions (`LinearCmd`,
+  in sync with the video, honouring speed, stopping on pause). Every
+  vibration motor is driven (LELO F1S V3: both), rotating devices follow
+  the vibration curve (`RotateCmd`). Tested against a Buttplug test server;
+  hardware test pending.
 - **Tools → Home:** Tools now opens on a home page with the app's real
   status: device (live), runtime dependencies such as ffmpeg (a missing
   required one is red, a missing optional one amber), app folders, the

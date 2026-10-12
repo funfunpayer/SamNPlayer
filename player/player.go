@@ -58,6 +58,11 @@ type Player struct {
 
 	lastSyncPosMs int64
 
+	// Stroke output for linear devices (stroke.go). strokeNext: index of
+	// the action the device is moving to, -1 = none sent.
+	stroke     []funscript.Action
+	strokeNext int
+
 	// Playback speed (V1: 0.5×–2×). The clock maps real time to script
 	// time as scriptMs = anchorScriptMs + (now - anchorReal) × speed, so a
 	// speed change mid-play re-anchors at the current script position and
@@ -119,6 +124,7 @@ func New(dev device.Device) *Player {
 	return &Player{
 		Device:      dev,
 		extendedOCh: make(chan ExtendedOOptions, 1),
+		strokeNext:  -1,
 	}
 }
 
@@ -301,6 +307,9 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 
 		if err := p.setOutput(f); err != nil {
 			return fmt.Errorf("player: Ausgabe bei t=%dms: %w", f.At, err)
+		}
+		if err := p.driveStroke(f.At); err != nil {
+			return fmt.Errorf("player: Hub bei t=%dms: %w", f.At, err)
 		}
 
 		if p.LogEvery > 0 && time.Since(lastLog) >= p.LogEvery {

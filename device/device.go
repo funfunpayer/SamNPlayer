@@ -1,6 +1,9 @@
 package device
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Device ist die minimale Steuerschnittstelle, die der Player benötigt.
 // Intensitäten sind immer 0.0 (aus) bis 1.0 (voll).
@@ -15,4 +18,15 @@ type Device interface {
 	SetSuction(intensity float64) error
 	// Stop schaltet beide Kanäle sofort aus (z.B. bei Pause/Abbruch).
 	Stop() error
+}
+
+// LinearDevice is a device that moves to a position (strokers: The Handy,
+// OSR2 …; docs/DEVICE_SUPPORT.md D2). The player sends the script's stroke
+// positions to it in addition to the vibration / suction channels.
+type LinearDevice interface {
+	// HasLinear reports whether the connected device has a driven linear
+	// channel (known after Connect).
+	HasLinear() bool
+	// SetPosition moves to pos (0 = bottom, 1 = top) within duration.
+	SetPosition(pos float64, duration time.Duration) error
 }
