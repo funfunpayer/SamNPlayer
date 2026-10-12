@@ -50,12 +50,14 @@ type Intiface struct {
 	// Gerät ihn meldet (Constrict, Oscillate oder Inflate). Buttplug lehnt
 	// einen ScalarCmd ab, dessen ActuatorType nicht zum Feature passt.
 	constrictActuator string
-	deviceName        string
-	connected         bool
-	hasBattery        bool
-	batteryPct        int
-	batteryOK         bool
-	batteryAt         time.Time
+	// features: every channel the adopted device lists (D1), driven or not.
+	features   []Feature
+	deviceName string
+	connected  bool
+	hasBattery bool
+	batteryPct int
+	batteryOK  bool
+	batteryAt  time.Time
 
 	stopPing chan struct{}
 	// batteryCh bekommt BatteryLevelReading-Werte von readLoop (je
@@ -221,10 +223,14 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 			}
 		}
 	}
-	if i.vibrateIdx < 0 && i.constrictIdx < 0 {
+	features := buttplugFeatures(messages, i.vibrateIdx, i.constrictIdx)
+	if len(features) == 0 {
 		logging.Warn("intiface: device skipped (no usable channels)", "device", name)
 		return
 	}
+	// Strokers (e.g. The Handy: LinearCmd only) are adopted too, so the GUI
+	// can show their channels; driving linear / rotate comes with D2.
+	i.features = features
 	// Akku nur anbieten, wenn Buttplug BatteryLevelCmd listet.
 	if _, ok := messages["BatteryLevelCmd"]; ok {
 		i.hasBattery = true
@@ -232,7 +238,8 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 	i.deviceIdx = int(index)
 	i.deviceName = name
 	logging.Info("intiface: device adopted", "device", name, "index", i.deviceIdx,
-		"vibration", i.vibrateIdx, "suction", i.constrictIdx, "battery", i.hasBattery)
+		"vibration", i.vibrateIdx, "suction", i.constrictIdx, "battery", i.hasBattery,
+		"channels", len(features))
 }
 
 func (i *Intiface) Connect(ctx context.Context) error {
@@ -250,6 +257,7 @@ func (i *Intiface) Connect(ctx context.Context) error {
 	i.deviceName = ""
 	i.vibrateIdx, i.constrictIdx = -1, -1
 	i.constrictActuator = ""
+	i.features = nil
 	i.hasBattery = false
 	i.batteryOK = false
 	i.batteryPct = 0
@@ -528,6 +536,17 @@ func (i *Intiface) Capabilities() (vibration, suction, battery bool) {
 	return i.vibrateIdx >= 0, i.constrictIdx >= 0, i.hasBattery
 }
 
+// DeviceCapabilities lists every channel of the adopted device (D1).
+func (i *Intiface) DeviceCapabilities() Capabilities {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return Capabilities{
+		Device:   i.deviceName,
+		Features: append([]Feature(nil), i.features...),
+		Battery:  i.hasBattery,
+	}
+}
+
 // Info liefert den Verbindungszustand für die Anzeige.
 func (i *Intiface) Info() ConnectionInfo {
 	i.mu.Lock()
@@ -535,11 +554,12 @@ func (i *Intiface) Info() ConnectionInfo {
 	name := i.deviceName
 	if name != "" {
 		channels := []string{}
-		if i.vibrateIdx >= 0 {
-			channels = append(channels, "Vibration")
-		}
-		if i.constrictIdx >= 0 {
-			channels = append(channels, "Suction")
+		for _, f := range i.features {
+			label := strings.ToUpper(f.Channel[:1]) + f.Channel[1:]
+			if !f.Driven {
+				label += " (not driven yet)"
+			}
+			channels = append(channels, label)
 		}
 		name = fmt.Sprintf("%s (via Intiface, %s)", name, strings.Join(channels, " + "))
 	}

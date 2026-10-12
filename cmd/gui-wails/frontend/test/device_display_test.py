@@ -128,6 +128,22 @@ def main():
         check("Verbunden: Fähigkeitschips sichtbar", "Vibration" in caps and "Suction" in caps, caps)
         check("Capability chip uses English Battery (not Akku)",
               "Battery" in caps and "Akku" not in caps, caps)
+        # D1: a stroker over Intiface reports its own channels.
+        page.evaluate("""window.__setState({ name: 'The Handy (via Intiface, Stroke (not driven yet))', transport: 'intiface',
+            capabilities: { device: 'The Handy', battery: false, features: [
+              { channel: 'stroke', kind: 'linear', index: 0, driven: false } ] } })""")
+        page.wait_for_function("document.querySelector('#dev-caps').textContent.includes('Stroke')", timeout=5000)
+        chip = page.locator('#dev-caps .dev-cap[data-channel="stroke"]')
+        check("D1: stroker shows its Stroke channel", chip.count() == 1)
+        check("D1: not-driven channel is marked 'coming'", "coming" in chip.inner_text()
+              and "dev-cap-off" in (chip.get_attribute("class") or ""))
+        check("D1: no Vibration chip for a stroke-only device",
+              page.locator('#dev-caps .dev-cap[data-channel="vibration"]').count() == 0)
+        page.evaluate("""window.__setState({ name: 'Sam Neo 2 Pro', transport: 'ble', capabilities: { device: 'Sam Neo 2', battery: true,
+            features: [ { channel: 'vibration', kind: 'scalar', index: 0, driven: true },
+                        { channel: 'suction', kind: 'scalar', index: 1, driven: true } ] } })""")
+        page.wait_for_function("!document.querySelector('#dev-caps').textContent.includes('Stroke')", timeout=5000)
+        check("D1: Neo 2 channels driven (no 'coming')", "coming" not in page.locator("#dev-caps").inner_text())
         check("Verbunden: Testbereich frei", not disabled("#dev-test"))
         check("Verbunden: Verbinden gesperrt", disabled("#dev-connect"))
 

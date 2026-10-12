@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDeviceTabFlow(t *testing.T) {
 	a := NewApp()
@@ -104,4 +107,20 @@ func TestClaimTestDeviceConnectSerializes(t *testing.T) {
 		t.Errorf("Claim nach dem Freigeben muss wieder gelingen: %v", err)
 	}
 	a.releaseTestDeviceConnect()
+}
+
+func TestDeviceStatusCarriesCapabilities(t *testing.T) {
+	a := NewApp()
+	if st := a.GetDeviceStatus(); len(st.Capabilities.Features) != 0 {
+		t.Fatalf("no device → no channels, got %+v", st.Capabilities)
+	}
+	st, err := a.ConnectDevice(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.DisconnectDevice()
+	got := strings.Join(st.Capabilities.Channels(), ",")
+	if got != "vibration,suction" {
+		t.Fatalf("mock channels %q, want vibration,suction", got)
+	}
 }
