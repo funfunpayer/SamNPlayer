@@ -360,3 +360,6 @@ export function GetScriptAxisActions(arg1:string):Promise<Array<funscript.Action
 export function SaveScriptAxisActions(arg1:string,arg2:Array<funscript.Action>):Promise<void>;
 export function GetStrengthPresets():Promise<Record<string, any>>;
 export function SetActiveStrength(arg1:string):Promise<void>;
+export function SetTrainingVideo(arg1:string):Promise<string>;
+export function ClearTrainingVideo():Promise<void>;
+export function TrainingVideoURL():Promise<string>;

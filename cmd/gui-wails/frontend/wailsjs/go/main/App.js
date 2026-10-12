@@ -208,3 +208,6 @@ export function OpenDonateLink(arg1) { return window['go']['main']['App']['OpenD
 export function IsStudioBuild() { return window['go']['main']['App']['IsStudioBuild'](); }
 export function GetAboutInfo() { return window['go']['main']['App']['GetAboutInfo'](); }
 export function OpenPartnerSite() { return window['go']['main']['App']['OpenPartnerSite'](); }
+export function SetTrainingVideo(arg1) { return window['go']['main']['App']['SetTrainingVideo'](arg1); }
+export function ClearTrainingVideo() { return window['go']['main']['App']['ClearTrainingVideo'](); }
+export function TrainingVideoURL() { return window['go']['main']['App']['TrainingVideoURL'](); }

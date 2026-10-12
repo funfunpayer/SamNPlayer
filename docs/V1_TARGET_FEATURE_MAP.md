@@ -106,7 +106,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Emergency Stop | ✅ | End session; make it a conspicuous Stop |
 | Session timeline (phases with times) | 🔧 | From the script phases |
 | Endurance / Control / Edge Play categories | 🔧 | Only as filters over real presets |
-| **Training with a video** (Owner, 12 Oct) | 🔧 | Besides the pixel clip, any film can run on the training stage. Training drives the device, the video plays along (loop / muted option). Video picker + recent videos are shared with Player |
+| **Training with a video** (Owner, 12 Oct) | ✅ | Besides the pixel clip, any film can run on the training stage. Training drives the device, the video plays along (loop / muted option). Video picker + recent videos are shared with Player |
 
 ## Tools (`tools.png`)
 
