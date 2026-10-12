@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31"><img alt="v0.5.31" src="https://img.shields.io/badge/release-v0.5.31-d4a017?style=flat-square" /></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer/releases"><img alt="Private release list" src="https://img.shields.io/badge/private%20releases-see%20GitHub-d4a017?style=flat-square" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><img alt="Latest public" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=0d9488&label=public%20download" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
   <img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" />
@@ -36,7 +36,7 @@
 
 ---
 
-## What’s new in v0.5.31
+## Previously released: v0.5.31
 
 Shipped **24 Sep 2026** — [release notes](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31) · [CHANGELOG](CHANGELOG.md)
 
@@ -185,7 +185,7 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Latest private tag: **[v0.5.31](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.31)**  
+Last verified private GitHub release (12 Oct 2026): **[v0.5.45](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45)**; the source tree already declares **0.6.0**, which is **not proof of a published release**.  
 Public downloads: **[SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
@@ -211,7 +211,7 @@ Cross-compile Windows GUI from Linux:
 ```bash
 cd cmd/gui-wails
 GOOS=windows GOARCH=amd64 wails build -platform windows/amd64 \
-  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.5.31"
+  -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=v0.6.0"
 ```
 
 Generator extras need **Python 3.9+** and
