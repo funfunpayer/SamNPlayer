@@ -497,6 +497,11 @@ export function applyPlayerLayoutV1(root, api) {
       const h = r.height / list.length;
       list.forEach((k, i) => { const [label, key] = LANE_NAMES[k] || [k, k]; add(lanesEl, label, key, r.top + i * h, h); });
     }
+    const bands = q('#pb-chapter-bands');
+    if (bands && !bands.hidden) {
+      const r = bands.getBoundingClientRect();
+      add(bands, 'Chapters', 'chapters', r.top, r.height);
+    }
     const strip = q('#pb-scene-strip');
     if (strip && !strip.hidden) {
       const r = strip.getBoundingClientRect();
@@ -512,7 +517,7 @@ export function applyPlayerLayoutV1(root, api) {
   };
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(scheduleNames).observe(timeline);
   new MutationObserver(scheduleNames).observe(root, { attributes: true,
-    attributeFilter: ['data-pb-lanes', 'data-pb-scenes', 'data-pb-state', 'data-pb-bottom'] });
+    attributeFilter: ['data-pb-lanes', 'data-pb-scenes', 'data-pb-chapters', 'data-pb-state', 'data-pb-bottom'] });
   window.addEventListener('resize', scheduleNames);
   scheduleNames();
 

@@ -29,6 +29,10 @@ measurement history behind each entry; this file is the short version for
 - **Create: source clips grid** — several dropped videos now show as cards
   with a poster frame, name, duration and status; the loaded clip is
   highlighted and a click on another card loads it (the queue stays).
+- **Chapter bands** — with scene markers on (always in Edit), every
+  chapter is a coloured band over the scene strip from its start to its end;
+  a click seeks to the chapter start and the band under the playhead is
+  marked.
 
 - **Effects sub-tabs and presets** — Player → Inspector → Devices →
   Effects now has Effects · Curve · Limits · Advanced: Curve holds

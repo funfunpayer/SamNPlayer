@@ -152,6 +152,7 @@ export function initPlayback(root) {
           <canvas id="pb-curve" height="176" class="pb-curve" data-pb-region="curve" style="display:none"></canvas>
           <canvas id="pb-axis-lanes" class="pb-axis-lanes" data-pb-region="lanes" tabindex="0" role="group" hidden
             title="Feel channels — click a lane to show / edit it above"></canvas>
+          <div class="pb-chapter-bands" id="pb-chapter-bands" data-pb-region="chapter-bands" role="list" aria-label="Chapters" hidden></div>
           <div class="pb-scene-strip" id="pb-scene-strip" data-pb-region="scenes" hidden>
             <div class="pb-scene-thumbs" id="pb-scene-thumbs" aria-hidden="true"></div>
             <div class="pb-scene-marks" id="pb-scene-marks" role="toolbar" aria-label="Scene markers"></div>
@@ -2127,11 +2128,18 @@ export function initPlayback(root) {
       && curveCanvas.style.display !== 'none' && totalMs > 1;
     strip.hidden = !shown;
     root.dataset.pbScenes = shown ? 'on' : 'off';
-    if (!shown) { sceneStripSig = ''; return; }
+    const bands = el('#pb-chapter-bands');
+    if (!shown) {
+      sceneStripSig = '';
+      if (bands) bands.hidden = true;
+      root.dataset.pbChapters = '0';
+      return;
+    }
     const sig = [viewStartMs, viewEndMs, sceneThumbsFor, sceneThumbs ? sceneThumbs.length : 0,
-      JSON.stringify(chapterMarks)].join('|');
-    if (sig === sceneStripSig) return;
+      JSON.stringify(chapterMarks), totalMs].join('|');
+    if (sig === sceneStripSig) { syncCurrentChapterBand(); return; }
     sceneStripSig = sig;
+    renderChapterBands();
     const pct = ms => `${((ms - viewStartMs) / viewSpanMs()) * 100}%`;
     const inView = ms => ms >= viewStartMs && ms <= viewEndMs;
     const thumbsBox = el('#pb-scene-thumbs');
@@ -2164,6 +2172,53 @@ export function initPlayback(root) {
       b.addEventListener('click', () => seekTo(c.startTime));
       marks.appendChild(b);
     });
+  }
+
+  // Chapter bands (V1 target scene-map.png): one coloured band per chapter
+  // from its start to its end (an open end runs to the next chapter or the
+  // script end). Click = seek to the chapter start. Real chapters only.
+  function chapterRanges() {
+    const list = [...chapterMarks].filter(c => Number.isFinite(c.startTime))
+      .sort((a, b) => a.startTime - b.startTime);
+    return list.map((c, i) => {
+      const next = i + 1 < list.length ? list[i + 1].startTime : totalMs;
+      const end = c.endTime > c.startTime ? c.endTime : next;
+      return { name: c.name || `Chapter ${i + 1}`, start: c.startTime, end: Math.max(c.startTime, end), idx: i };
+    });
+  }
+  function renderChapterBands() {
+    const bands = el('#pb-chapter-bands');
+    if (!bands) return;
+    bands.replaceChildren();
+    const span = viewSpanMs();
+    const pctOf = ms => ((ms - viewStartMs) / span) * 100;
+    for (const r of chapterRanges()) {
+      if (r.end <= viewStartMs || r.start >= viewEndMs) continue;
+      const from = Math.max(r.start, viewStartMs), to = Math.min(r.end, viewEndMs);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `pb-chapter-band c${r.idx % 5}`;
+      b.setAttribute('role', 'listitem');
+      b.dataset.start = String(r.start);
+      b.dataset.end = String(r.end);
+      b.style.left = `${pctOf(from)}%`;
+      b.style.width = `${Math.max(0.5, pctOf(to) - pctOf(from))}%`;
+      b.textContent = r.name;
+      b.title = `${r.name} · ${fmtRuler(r.start)}–${fmtRuler(r.end)} — click to seek`;
+      b.addEventListener('click', () => seekTo(r.start));
+      bands.appendChild(b);
+    }
+    bands.hidden = bands.childElementCount === 0;
+    root.dataset.pbChapters = String(bands.childElementCount);
+    syncCurrentChapterBand();
+  }
+  function syncCurrentChapterBand() {
+    const bands = el('#pb-chapter-bands');
+    if (!bands || bands.hidden) return;
+    for (const b of bands.children) {
+      const on = currentPosMs >= Number(b.dataset.start) && currentPosMs < Number(b.dataset.end);
+      if (b.classList.contains('is-current') !== on) b.classList.toggle('is-current', on);
+    }
   }
 
   async function loadSceneThumbs() {
