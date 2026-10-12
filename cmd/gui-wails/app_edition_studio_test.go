@@ -9,4 +9,7 @@ func TestStudioBuildFlag(t *testing.T) {
 	if !NewApp().IsStudioBuild() {
 		t.Fatal("-tags studio must report the studio edition")
 	}
+	if k := guiAssetKind(); k != "studio-gui" {
+		t.Fatalf("studio build must update from the studio asset, got %q", k)
+	}
 }

@@ -3,8 +3,18 @@ package main
 import (
 	"fmt"
 
+	"github.com/funfunpayer/SamNPlayer/edition"
 	"github.com/funfunpayer/SamNPlayer/update"
 )
+
+// guiAssetKind is the release asset this build updates from: each edition
+// only ever replaces itself with the same edition.
+func guiAssetKind() string {
+	if edition.Studio() {
+		return "studio-gui"
+	}
+	return "gui"
+}
 
 // UpdateCheckResult is shared by full Releases and the additive Patch channel.
 // Kind is ""/"release" for full updates and "patch" for hotfixes.
@@ -30,7 +40,7 @@ func (a *App) CheckForUpdate() UpdateCheckResult {
 	if !update.IsNewer(update.Version, rel.TagName) {
 		return UpdateCheckResult{Available: false}
 	}
-	asset, ok := rel.AssetForThisPlatform("gui")
+	asset, ok := rel.AssetForThisPlatform(guiAssetKind())
 	if !ok {
 		return UpdateCheckResult{Available: true, Kind: "release", Release: rel, Error: "no matching binary for this platform in the release"}
 	}
@@ -50,7 +60,7 @@ func (a *App) CheckForPatch() UpdateCheckResult {
 	if p == nil {
 		return UpdateCheckResult{Available: false}
 	}
-	asset, ok := p.AssetForThisPlatform("gui")
+	asset, ok := p.AssetForThisPlatform(guiAssetKind())
 	if !ok {
 		return UpdateCheckResult{
 			Available: true,
@@ -77,7 +87,7 @@ func (a *App) ApplyUpdate() error {
 	if err != nil {
 		return err
 	}
-	asset, ok := rel.AssetForThisPlatform("gui")
+	asset, ok := rel.AssetForThisPlatform(guiAssetKind())
 	if !ok {
 		return fmt.Errorf("no matching binary for this platform in the release")
 	}
@@ -102,7 +112,7 @@ func (a *App) ApplyPatch() error {
 	if p == nil {
 		return fmt.Errorf("no applicable patch for this version")
 	}
-	asset, ok := p.AssetForThisPlatform("gui")
+	asset, ok := p.AssetForThisPlatform(guiAssetKind())
 	if !ok {
 		return fmt.Errorf("no matching binary for this platform in the patch")
 	}

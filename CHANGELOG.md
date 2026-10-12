@@ -8,6 +8,53 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+## [0.6.0] - 2026-10-12
+
+V1 workspace (Player · Training · Tools), the first V1 Player tools,
+device capabilities, and the **first release with the Studio edition**
+(`SamNPlayer-studio-…` files). Everyday / Rhythm / AI defaults unchanged.
+
+### Added
+
+- **Studio edition in the release** — every release now also ships
+  `SamNPlayer-studio-gui-…`, `-studio-cli-…` and `-studio-portable-…`
+  (AI training and learning tools, see `docs/EDITIONS.md`). Each edition
+  updates only to itself.
+- **V1 workspace** — top bar Player · Training · Tools; inside the Player
+  the views Play · Create · Edit share one video, one script and one
+  timeline. Scene Map lives in Create / Edit. Training and Tools use two
+  columns (settings | live / connect | test).
+- **Edit: undo / redo** for curve edits (Ctrl+Z / Ctrl+Y), per channel.
+- **Play / Pause on the big button**, Stop separate; resume continues
+  where it paused. Skip ±10 s buttons and a **sleep timer**.
+- **Inspector knobs** — Intensity (master level) and Response (inverse
+  smoothing); **Reduce peaks** (soft compressor on every channel).
+- **Sync with audio / Auto sync** — suggests a script offset from the
+  video's sound; nothing changes until you apply it.
+- **Sound Curve** — Audio Analysis → *Write as vibration curve* writes the
+  video's loudness as the Vibration curve (undoable, shown as a lane).
+- **Invert Curve** — Edit → *⇅ Invert* flips the shown channel, a marked
+  range or the whole script (undoable).
+- **Timeline** — lane names, Audio Level lane, scene strip with video
+  thumbnails; Audio Analysis card (BPM, waveform).
+- **Library** — local files, recent, favourites, playlists; scripts marked
+  Imported / Generated / Edited.
+- **Device capabilities (D1)** — every connection reports its channels
+  (stroke, vibration motors, suction / constrict, rotate …); Tools → Device
+  shows them as chips, channels not driven yet are marked "coming". Plan for
+  The Handy, LELO F1S V3, Lovense Max 2 and others in
+  `docs/DEVICE_SUPPORT.md`.
+- **New app icon and banner.**
+
+### Fixed
+
+- **Updater could pick the wrong edition** — assets were matched by name
+  suffix, and `SamNPlayer-studio-gui-…` ends like `SamNPlayer-gui-…`. The
+  updater now matches the exact file name for its own edition.
+- Inactive panels and hidden rows no longer show through (CSS `display`
+  overrode `hidden`).
+
+
 ### Changed
 
 - **New look: lilac SamNPlayer logo and calmer colours** — the S-N logo is

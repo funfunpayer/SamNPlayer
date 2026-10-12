@@ -15,6 +15,9 @@ func TestCustomerBuildRefusesStudioTools(t *testing.T) {
 	if a.IsStudioBuild() {
 		t.Fatal("default build must be the customer edition")
 	}
+	if k := guiAssetKind(); k != "gui" {
+		t.Fatalf("customer build must update from the customer asset, got %q", k)
+	}
 	if err := a.RunRoiModelTraining(10, "cpu"); !errors.Is(err, errStudioOnly) {
 		t.Fatalf("AI Train must be refused: %v", err)
 	}

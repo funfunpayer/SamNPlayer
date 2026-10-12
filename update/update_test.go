@@ -52,6 +52,7 @@ func TestAssetForThisPlatform(t *testing.T) {
 	rel := &Release{Assets: []Asset{
 		{Name: "SamNPlayer-gui" + suffix},
 		{Name: "SamNPlayer-cli" + suffix},
+		{Name: "SamNPlayer-studio-gui" + suffix},
 		{Name: "other-file.txt"},
 	}}
 	gui, ok := rel.AssetForThisPlatform("gui")
@@ -61,6 +62,16 @@ func TestAssetForThisPlatform(t *testing.T) {
 	cli, ok := rel.AssetForThisPlatform("cli")
 	if !ok || cli.Name != "SamNPlayer-cli"+suffix {
 		t.Fatalf("cli asset: %+v ok=%v", cli, ok)
+	}
+	studio, ok := rel.AssetForThisPlatform("studio-gui")
+	if !ok || studio.Name != "SamNPlayer-studio-gui"+suffix {
+		t.Fatalf("studio gui asset: %+v ok=%v", studio, ok)
+	}
+	// The studio asset is listed first in this order check: "gui" must
+	// still pick the customer file, not the studio one that shares the tail.
+	rel.Assets = []Asset{{Name: "SamNPlayer-studio-gui" + suffix}, {Name: "SamNPlayer-gui" + suffix}}
+	if gui, _ := rel.AssetForThisPlatform("gui"); gui.Name != "SamNPlayer-gui"+suffix {
+		t.Fatalf("gui picked %q, want the customer asset", gui.Name)
 	}
 	if _, ok := rel.AssetForThisPlatform("missing"); ok {
 		t.Fatal("expected no asset for missing kind")
