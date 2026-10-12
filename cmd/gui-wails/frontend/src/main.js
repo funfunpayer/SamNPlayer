@@ -1,5 +1,7 @@
 import './style.css';
 import './theme_flow.css'; // V1 look (ChatGPT) — loaded after style.css
+import './flow_fx.css'; // C1 Flow stage (ChatGPT #503)
+import { ICONS } from './flow_icons.js';
 import './help.js';
 import { uiError, uiInfo, uiWarn, uiLog } from './notify.js';
 import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch, GetSettings, ConnectDeviceVia, DisconnectDevice } from '../wailsjs/go/main/App';
@@ -198,6 +200,25 @@ document.getElementById('topbar-open')?.addEventListener('click', () => {
   document.getElementById('pb-choose')?.click();
 });
 document.getElementById('topbar-settings')?.addEventListener('click', () => switchTab('settings'));
+
+// C3 (ChatGPT #507): one 24 px icon set for the top bar, the Player views
+// and the Tools menu. Only the <svg> is swapped; every button keeps its own
+// text label and title, so names and tests stay the same.
+const NAV_ICONS = {
+  playback: 'player', generator: 'create', training: 'training', scenemap: 'scenemap', tools: 'tools',
+  device: 'device', log: 'log', settings: 'settings', benchmark: 'chart', 'roi-training': 'layers',
+};
+const VIEW_ICONS = { play: 'play', create: 'create', edit: 'edit' };
+function applyFlowIcons() {
+  const swap = (btn, name) => {
+    const svg = btn?.querySelector(':scope > svg');
+    if (svg && ICONS[name]) svg.outerHTML = ICONS[name];
+  };
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(b => swap(b, NAV_ICONS[b.dataset.tab]));
+  document.querySelectorAll('.ws-view-btn[data-ws-view]').forEach(b => swap(b, VIEW_ICONS[b.dataset.wsView]));
+  swap(document.getElementById('ws-scenemap'), 'scenemap');
+}
+applyFlowIcons();
 
 const playback = initPlayback(document.getElementById('tab-playback'));
 initTraining(document.getElementById('tab-training'));

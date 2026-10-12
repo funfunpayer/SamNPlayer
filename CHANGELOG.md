@@ -45,12 +45,19 @@ device capabilities, and the **first release with the Studio edition**
   The Handy, LELO F1S V3, Lovense Max 2 and others in
   `docs/DEVICE_SUPPORT.md`.
 - **New app icon and banner.**
+- **Flow look pieces from ChatGPT** — one 24 px icon set for the top bar,
+  Player views and Tools menu; an animated Flow stage in the empty Player
+  and in "Feel without film" (follows Play / Pause / Stop); live Training
+  rings; a placeholder for scene frames that could not be read.
 
 ### Fixed
 
 - **Updater could pick the wrong edition** — assets were matched by name
   suffix, and `SamNPlayer-studio-gui-…` ends like `SamNPlayer-gui-…`. The
   updater now matches the exact file name for its own edition.
+- **Broken images in the packaged app** — the logo (empty Player, About)
+  and the partner graphic pointed at source paths that are not in the
+  build. They now ship with the app.
 - Inactive panels and hidden rows no longer show through (CSS `display`
   overrode `hidden`).
 

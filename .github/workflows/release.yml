@@ -19,6 +19,9 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -37,8 +40,7 @@ jobs:
 
       - name: System deps (WebKitGTK, OpenCV, ffmpeg)
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq \
+          scripts/ci/apt-install.sh \
             libgtk-3-dev libwebkit2gtk-4.1-dev \
             libopencv-dev pkg-config ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
@@ -107,6 +109,9 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 45
     defaults:
       run:
         shell: msys2 {0}
@@ -264,6 +269,9 @@ jobs:
   publish:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 15
     steps:
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4

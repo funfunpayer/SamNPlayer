@@ -18,6 +18,11 @@ import { getSettingsCache, saveSetting } from './settings.js';
 import { applyHotkeyOMarker } from './ozone_ui.js';
 import { wireDataHelp } from './help.js';
 import { uiError, uiInfo, uiWarn } from './notify.js';
+import { mountFlowStage } from './flow_fx.js';
+
+// C4 (ChatGPT #508): shown in the scene strip for a frame ffmpeg could not
+// read. new URL(…, import.meta.url) so Vite ships the file in the build.
+const SCENE_PLACEHOLDER_URL = new URL('./assets/flow/scene-placeholder.svg', import.meta.url).href;
 
 const HEATMAP_BUCKETS = 300;
 
@@ -38,7 +43,7 @@ export function initPlayback(root) {
     <div class="pb-empty" id="pb-empty" data-pb-region="empty">
       <div class="pb-empty-inner">
         <div class="pb-brand-moment" aria-hidden="true">
-          <img class="pb-brand-mark" src="/src/assets/images/logo-universal.png" alt="" />
+          <div class="pb-flow-host pb-flow-host--empty" id="pb-flow-empty"></div>
           <p class="pb-brand-word">
             <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
           </p>
@@ -79,6 +84,7 @@ export function initPlayback(root) {
           </div>
           <p class="hint" id="pb-contact-marks-hint" style="display:none; margin:0.2rem 0 0;"></p>
           <div id="pb-novideo" class="pb-novideo">
+            <div class="pb-flow-host pb-flow-host--novideo" id="pb-flow-novideo"></div>
             <p class="pb-novideo-title">Feel without film</p>
             <p class="hint">Device and curve alone — video is optional. Play starts immediately.</p>
             <div class="pb-novideo-actions">
@@ -595,6 +601,10 @@ export function initPlayback(root) {
   wireDataHelp(root);
   const el = id => root.querySelector(id);
   const videoEl = el('#pb-video');
+  // C1 (ChatGPT #503): Flow stage when nothing is loaded and for "Feel
+  // without film"; the latter follows Play / Pause (syncPlayButton).
+  mountFlowStage(el('#pb-flow-empty'), { label: 'SamNPlayer' });
+  const flowNoVideo = mountFlowStage(el('#pb-flow-novideo'), { label: 'Playing without video' });
   const heatmapCanvas = el('#pb-heatmap');
   const trajectoryCanvas = el('#pb-trajectory');
   let scriptPath = null;
@@ -867,6 +877,7 @@ export function initPlayback(root) {
     const span = btn.querySelector('span');
     if (span) span.textContent = label;
     root.dataset.pbPaused = pausedAt != null && !playing ? 'true' : 'false';
+    flowNoVideo.setState(playing ? 'playing' : (pausedAt != null ? 'paused' : 'idle'));
   }
   function setPlayingState(isPlaying) {
     const was = playing;
@@ -2129,10 +2140,10 @@ export function initPlayback(root) {
       const slot = sceneThumbs.length > 1 ? sceneThumbs[1].atMs - sceneThumbs[0].atMs : totalMs;
       for (const t of sceneThumbs) {
         const from = t.atMs - slot / 2, to = t.atMs + slot / 2;
-        if (to < viewStartMs || from > viewEndMs || !t.dataUrl) continue;
+        if (to < viewStartMs || from > viewEndMs) continue;
         const img = document.createElement('img');
-        img.className = 'pb-scene-thumb';
-        img.src = t.dataUrl;
+        img.className = t.dataUrl ? 'pb-scene-thumb' : 'pb-scene-thumb is-placeholder';
+        img.src = t.dataUrl || SCENE_PLACEHOLDER_URL;
         img.alt = '';
         img.draggable = false;
         img.style.left = pct(from);
