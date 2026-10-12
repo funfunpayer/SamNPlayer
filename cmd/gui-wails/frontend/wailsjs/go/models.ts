@@ -1036,6 +1036,34 @@ export namespace main {
 	        this.note = source["note"];
 	    }
 	}
+	export class CreateVideoInfo {
+	    path: string;
+	    name: string;
+	    width: number;
+	    height: number;
+	    fps: number;
+	    vfr: boolean;
+	    durationSec: number;
+	    codec: string;
+	    posterUrl: string;
+
+	    static createFrom(source: any = {}) {
+	        return new CreateVideoInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	        this.fps = source["fps"];
+	        this.vfr = source["vfr"];
+	        this.durationSec = source["durationSec"];
+	        this.codec = source["codec"];
+	        this.posterUrl = source["posterUrl"];
+	    }
+	}
 	export class VideoThumb {
 	    atMs: number;
 	    dataUrl: string;

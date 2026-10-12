@@ -3730,3 +3730,16 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
   background: #04101c; border-radius: 14px;
 }
 .tr-video-empty { margin: 6px 0 0; }
+
+/* Create project header (V1 target create.png): poster + real video facts. */
+.gen-project-head[hidden] { display: none !important; }
+.gen-project-head {
+  display: flex; align-items: center; gap: 16px; margin: 0 0 14px;
+  padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.05);
+}
+.gen-project-poster { height: 72px; width: auto; max-width: 160px; border-radius: 10px; object-fit: cover; }
+.gen-project-poster[hidden] { display: none; }
+.gen-project-info { min-width: 0; }
+.gen-project-name { margin: 0 0 4px; font-size: 17px; text-transform: none; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gen-project-meta { margin: 0; color: var(--text-dim); font-size: 13px; }

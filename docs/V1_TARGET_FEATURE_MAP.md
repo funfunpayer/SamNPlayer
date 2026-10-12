@@ -67,7 +67,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Element | Status | Where / what |
 |---|---|---|
 | Steps 1–5 (Import · Detect · Build · Refine · Export) | ✅ | Generator steps; labels to align |
-| Project header (thumbnail, resolution, fps, duration) | 🔧 | Data comes from the video probe; header DOM is new |
+| Project header (thumbnail, resolution, fps, duration) | ✅ | `ProbeCreateVideo`: poster frame + resolution · fps (variable marked) · duration · codec; no invented "created" date or project name |
 | Source clips grid, Import | ✅ / 🔧 | The queue exists; render it as a grid with thumbnails (`GetVideoThumbnails`) |
 | Preview with transport | ✅ | Generator preview |
 | Curve preview with channel lanes + Audio Level | 🔧 | Reuse the Player lanes for the Generator result |

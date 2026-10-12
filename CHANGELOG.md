@@ -18,6 +18,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Create: project header** — after choosing a video, Create shows a
+  poster frame, the file name and the real resolution, frame rate
+  (variable frame rate is marked), duration and codec from ffprobe.
+
 - **Effects sub-tabs and presets** — Player → Inspector → Devices →
   Effects now has Effects · Curve · Limits · Advanced: Curve holds
   smoothing and sync mode, Limits holds Max-Speed and Reduce peaks,
