@@ -57,6 +57,10 @@ const (
 	prefPlaybackEOMin       = "playback.extended_o_min"
 	prefPlaybackEOHoldS     = "playback.extended_o_hold_seconds"
 	prefPlaybackEORestoreMs = "playback.extended_o_restore_ms"
+	// prefPlaybackEffectPresets: Player → Inspector → Effects presets, a JSON
+	// object {name: {intensity, smoothing, maxSpeed, tickMs, softStartMs,
+	// reducePeaks}} written by the GUI. Stored as text so the GUI owns the shape.
+	prefPlaybackEffectPresets = "playback.effect_presets"
 	// prefPlaybackTrajectoryOverlay: MT-Debug — zeigt die aufgezeichnete
 	// Tip/Partner-Trajektorie (falls im Skript vorhanden) als Polylinie
 	// über dem Video. Default aus (Debug-Werkzeug, nicht jedes Skript hat
@@ -115,6 +119,8 @@ type Settings struct {
 	PlaybackEOMin        float64 `json:"playbackEOMin"`
 	PlaybackEOHoldS      float64 `json:"playbackEOHoldS"`
 	PlaybackEORestoreMs  float64 `json:"playbackEORestoreMs"`
+	// PlaybackEffectPresets: see prefPlaybackEffectPresets ("" = none saved).
+	PlaybackEffectPresets string `json:"playbackEffectPresets"`
 	// PlaybackVideoPlayAutostart: siehe prefPlaybackVideoPlayAutostart.
 	// Default true - bisheriges Verhalten bleibt ohne Zutun erhalten.
 	PlaybackVideoPlayAutostart bool `json:"playbackVideoPlayAutostart"`
@@ -233,18 +239,19 @@ type Settings struct {
 func (a *App) GetSettings() Settings {
 	s := a.settings
 	return Settings{
-		UpdateCheckOnStartup: s.GetBool(prefUpdateCheckOnStartup, true),
-		LogLevel:             s.GetString(prefLogLevel, "info"),
-		PlaybackMock:         s.GetBool(prefPlaybackMock, true),
-		PlaybackSync:         s.GetString(prefPlaybackSync, "independent"),
-		PlaybackTickMs:       s.GetFloat(prefPlaybackTickMs, 50),
-		PlaybackMaxSpeed:     s.GetFloat(prefPlaybackMaxSpeed, 0.6),
-		PlaybackSmoothing:    s.GetFloat(prefPlaybackSmoothing, 0.3),
-		PlaybackSoftStartMs:  s.GetFloat(prefPlaybackSoftStartMs, 500),
-		PlaybackEOEnabled:    s.GetBool(prefPlaybackEOEnabled, true),
-		PlaybackEOMin:        s.GetFloat(prefPlaybackEOMin, 0.1),
-		PlaybackEOHoldS:      s.GetFloat(prefPlaybackEOHoldS, 10),
-		PlaybackEORestoreMs:  s.GetFloat(prefPlaybackEORestoreMs, 500),
+		UpdateCheckOnStartup:  s.GetBool(prefUpdateCheckOnStartup, true),
+		LogLevel:              s.GetString(prefLogLevel, "info"),
+		PlaybackMock:          s.GetBool(prefPlaybackMock, true),
+		PlaybackSync:          s.GetString(prefPlaybackSync, "independent"),
+		PlaybackTickMs:        s.GetFloat(prefPlaybackTickMs, 50),
+		PlaybackMaxSpeed:      s.GetFloat(prefPlaybackMaxSpeed, 0.6),
+		PlaybackSmoothing:     s.GetFloat(prefPlaybackSmoothing, 0.3),
+		PlaybackSoftStartMs:   s.GetFloat(prefPlaybackSoftStartMs, 500),
+		PlaybackEOEnabled:     s.GetBool(prefPlaybackEOEnabled, true),
+		PlaybackEOMin:         s.GetFloat(prefPlaybackEOMin, 0.1),
+		PlaybackEOHoldS:       s.GetFloat(prefPlaybackEOHoldS, 10),
+		PlaybackEORestoreMs:   s.GetFloat(prefPlaybackEORestoreMs, 500),
+		PlaybackEffectPresets: s.GetString(prefPlaybackEffectPresets, ""),
 
 		PlaybackVideoPlayAutostart: s.GetBool(prefPlaybackVideoPlayAutostart, true),
 		PlaybackHonorInverted:      s.GetBool(prefPlaybackHonorInverted, true),

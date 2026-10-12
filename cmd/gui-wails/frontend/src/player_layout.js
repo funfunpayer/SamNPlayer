@@ -9,6 +9,7 @@
 // that run without CSS still reach every control.
 
 import { SetChannelLevels, SetPeakReduce, SaveVideoSnapshot } from '../wailsjs/go/main/App';
+import { getSettingsCache, saveSetting } from './settings.js';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -20,6 +21,7 @@ const SCRIPT_KEYS = { imported: 'pb.scripts.imported', generated: 'pb.scripts.ge
 const SCRIPTS_MAX = 50;
 const INSPECTOR_KEY = 'pb.inspectorTab';
 const BOTTOM_KEY = 'pb.bottomTab';
+const FX_TAB_KEY = 'pb.effectsTab';
 
 function store(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* ignore */ } }
 function load(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
@@ -774,5 +776,171 @@ export function applyPlayerLayoutV1(root, api) {
     syncResponse();
   }
 
-  return { showInspector, showBottom, renderRecent };
+  const fxApi = wireEffectsTabsAndPresets(fx, q);
+
+  return { showInspector, showBottom, renderRecent, ...fxApi };
+}
+
+// ---- Effects sub-tabs and presets (V1 target, feature map) -----------------
+// Effects · Curve · Limits · Advanced regroup controls that already exist:
+// Curve = smoothing + sync mode, Limits = Max-Speed + Reduce peaks, Advanced =
+// tick + soft-start. The rows are moved (ids, listeners and saved settings
+// stay). A preset stores these values plus Intensity under a name in the
+// settings file (playback.effect_presets); applying one fires the controls'
+// own input/change events, so the normal save and device paths run.
+const FX_TABS = [['effects', 'Effects'], ['curve', 'Curve'], ['limits', 'Limits'], ['advanced', 'Advanced']];
+export const FX_DEFAULTS = Object.freeze({
+  intensity: 100, smoothing: 0.3, maxSpeed: 0.6, tickMs: 50, softStartMs: 500, reducePeaks: false,
+});
+const FX_FIELDS = {
+  intensity: ['#pb-knob-intensity', 'range'],
+  smoothing: ['#pb-smoothing', 'range'],
+  maxSpeed: ['#pb-maxspeed', 'range'],
+  tickMs: ['#pb-tick', 'range'],
+  softStartMs: ['#pb-softstart', 'range'],
+  reducePeaks: ['#pb-fx-reduce-peaks', 'check'],
+};
+
+function wireEffectsTabsAndPresets(fx, q) {
+  const title = fx.querySelector('.pb-effects-title');
+  const bar = document.createElement('div');
+  bar.className = 'pb-fx-tabs';
+  bar.setAttribute('role', 'tablist');
+  bar.setAttribute('aria-label', 'Effects');
+  bar.innerHTML = FX_TABS.map(([k, label]) =>
+    `<button type="button" role="tab" class="pb-fx-tab" data-fx="${k}" id="pb-fx-tab-${k}">${label}</button>`).join('');
+  const panes = {};
+  for (const [k] of FX_TABS) {
+    const p = document.createElement('div');
+    p.className = 'pb-fx-pane';
+    p.dataset.fxPane = k;
+    p.id = `pb-fx-${k}`;
+    p.setAttribute('role', 'tabpanel');
+    p.setAttribute('aria-labelledby', `pb-fx-tab-${k}`);
+    panes[k] = p;
+  }
+  // Effects pane: everything that was in the block (knobs, Sync with audio).
+  // Attach the panes first so q() (scoped to the Player root) finds the moved
+  // controls below.
+  const old = [...fx.children].filter(n => n !== title);
+  title.after(bar, ...Object.values(panes));
+  old.forEach(n => panes.effects.appendChild(n));
+  const row = sel => q(sel)?.closest('.field-row');
+  const put = (pane, ...nodes) => nodes.forEach(n => { if (n) panes[pane].appendChild(n); });
+  put('curve', row('#pb-smoothing'), row('#pb-sync'));
+  put('limits', row('#pb-maxspeed'), q('#pb-fx-reduce-peaks')?.closest('label'));
+  put('advanced', row('#pb-tick'), row('#pb-softstart'));
+
+  // Presets row (Effects pane).
+  const pr = document.createElement('div');
+  pr.className = 'pb-fx-presets';
+  pr.innerHTML = `<label for="pb-fx-preset">Preset</label>
+    <select id="pb-fx-preset" title="Saved effect settings: Intensity, Response / smoothing, Max-Speed, Reduce peaks, tick and soft-start"></select>
+    <button type="button" id="pb-fx-preset-save" title="Save the current effect settings under a name">Save preset</button>
+    <button type="button" id="pb-fx-preset-delete" title="Delete the selected preset">Delete</button>`;
+  panes.effects.prepend(pr);
+
+  function showFx(k) {
+    if (!panes[k]) k = 'effects';
+    for (const [key, p] of Object.entries(panes)) p.classList.toggle('is-active', key === k);
+    bar.querySelectorAll('.pb-fx-tab').forEach(b => {
+      const on = b.dataset.fx === k;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    fx.dataset.fxTab = k;
+    store(FX_TAB_KEY, k);
+  }
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('.pb-fx-tab');
+    if (b) showFx(b.dataset.fx);
+  });
+  bar.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const keys = FX_TABS.map(([k]) => k);
+    const i = keys.indexOf(fx.dataset.fxTab);
+    const next = keys[(i + (e.key === 'ArrowRight' ? 1 : keys.length - 1)) % keys.length];
+    showFx(next);
+    bar.querySelector(`[data-fx="${next}"]`)?.focus();
+    e.preventDefault();
+  });
+  showFx(load(FX_TAB_KEY) || 'effects');
+
+  // --- presets ---
+  const select = pr.querySelector('#pb-fx-preset');
+  let presets = {};
+  const read = () => {
+    const out = {};
+    for (const [key, [sel, kind]] of Object.entries(FX_FIELDS)) {
+      const n = q(sel);
+      if (!n) continue;
+      out[key] = kind === 'check' ? !!n.checked : Number(n.value);
+    }
+    return out;
+  };
+  const apply = values => {
+    for (const [key, [sel, kind]] of Object.entries(FX_FIELDS)) {
+      const n = q(sel);
+      if (!n || !(key in values)) continue;
+      if (kind === 'check') {
+        if (n.checked === !!values[key]) continue;
+        n.checked = !!values[key];
+      } else {
+        const v = Number(values[key]);
+        if (!Number.isFinite(v)) continue;
+        n.value = String(v);
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      n.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  };
+  const persist = () => saveSetting('playback.effect_presets', JSON.stringify(presets));
+  const render = (selected = select.value) => {
+    const names = Object.keys(presets).sort((a, b) => a.localeCompare(b));
+    select.innerHTML = '<option value="">Custom</option><option value="__default">Default</option>'
+      + names.map(() => '<option></option>').join('');
+    // Names are user text: set via textContent / value, never as HTML.
+    [...select.options].slice(2).forEach((o, i) => { o.value = names[i]; o.textContent = names[i]; });
+    select.value = [...select.options].some(o => o.value === selected) ? selected : '';
+    pr.querySelector('#pb-fx-preset-delete').disabled = !presets[select.value];
+  };
+  select.addEventListener('change', () => {
+    const v = select.value;
+    if (v === '__default') apply(FX_DEFAULTS);
+    else if (presets[v]) apply(presets[v]);
+    render(v);
+  });
+  pr.querySelector('#pb-fx-preset-save').addEventListener('click', () => {
+    const suggested = presets[select.value] ? select.value : '';
+    const name = (window.prompt('Preset name', suggested) || '').trim().slice(0, 40);
+    if (!name || name === '__default') return;
+    presets[name] = read();
+    persist();
+    render(name);
+  });
+  pr.querySelector('#pb-fx-preset-delete').addEventListener('click', () => {
+    const v = select.value;
+    if (!presets[v]) return;
+    delete presets[v];
+    persist();
+    render('');
+  });
+  // Any manual change makes the selection "Custom" again.
+  const fieldNodes = Object.values(FX_FIELDS).map(([sel]) => q(sel)).filter(Boolean);
+  fieldNodes.forEach(n => n.addEventListener('input', e => { if (e.isTrusted) render(''); }));
+  fieldNodes.forEach(n => n.addEventListener('change', e => { if (e.isTrusted) render(''); }));
+  render('');
+  getSettingsCache().then(s => {
+    try {
+      const parsed = JSON.parse(s?.playbackEffectPresets || '{}');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        presets = {};
+        for (const [k, v] of Object.entries(parsed)) if (v && typeof v === 'object') presets[k] = v;
+      }
+    } catch (_) { presets = {}; }
+    render(select.value);
+  }).catch(() => {});
+
+  return { showEffectsTab: showFx, readEffects: read, applyEffects: apply };
 }

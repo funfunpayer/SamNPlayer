@@ -1678,6 +1678,7 @@ export namespace main {
 	    playbackMaxSpeed: number;
 	    playbackSmoothing: number;
 	    playbackSoftStartMs: number;
+	    playbackEffectPresets: string;
 	    playbackEOEnabled: boolean;
 	    playbackEOMin: number;
 	    playbackEOHoldS: number;
@@ -1748,6 +1749,7 @@ export namespace main {
 	        this.playbackMaxSpeed = source["playbackMaxSpeed"];
 	        this.playbackSmoothing = source["playbackSmoothing"];
 	        this.playbackSoftStartMs = source["playbackSoftStartMs"];
+	        this.playbackEffectPresets = source["playbackEffectPresets"];
 	        this.playbackEOEnabled = source["playbackEOEnabled"];
 	        this.playbackEOMin = source["playbackEOMin"];
 	        this.playbackEOHoldS = source["playbackEOHoldS"];

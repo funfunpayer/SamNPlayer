@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Effects sub-tabs and presets** — Player → Inspector → Devices →
+  Effects now has Effects · Curve · Limits · Advanced: Curve holds
+  smoothing and sync mode, Limits holds Max-Speed and Reduce peaks,
+  Advanced holds tick and soft-start (same controls, regrouped). **Presets**
+  save Intensity, Response / smoothing, Max-Speed, Reduce peaks, tick and
+  soft-start under a name in the settings file; *Default* restores the
+  built-in values. Applying a preset works like moving the controls.
+
 ## [0.6.0] - 2026-10-12
 
 V1 workspace (Player · Training · Tools), the first V1 Player tools,

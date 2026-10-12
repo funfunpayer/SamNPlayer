@@ -35,6 +35,7 @@ export function saveSetting(key, value) {
       'playback.max_speed': 'playbackMaxSpeed',
       'playback.smoothing': 'playbackSmoothing',
       'playback.soft_start_ms': 'playbackSoftStartMs',
+      'playback.effect_presets': 'playbackEffectPresets',
       'playback.extended_o_enabled': 'playbackEOEnabled',
       'playback.extended_o_min': 'playbackEOMin',
       'playback.extended_o_hold_seconds': 'playbackEOHoldS',
