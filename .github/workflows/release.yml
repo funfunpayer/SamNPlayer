@@ -5,6 +5,9 @@ name: Release
 # Windows: windows-latest + MSYS2 MinGW OpenCV 5 (Go CSRT, no Python).
 # Portable zips ship ffmpeg (+ OpenCV DLLs on Windows) beside the GUI.
 # macOS: not in this workflow yet (docs/PLATFORMS.md).
+# Two editions (docs/EDITIONS.md): customer files "SamNPlayer-gui-…" and
+# studio files "SamNPlayer-studio-gui-…" (-tags studio). The updater matches
+# the exact name, so each edition only updates to itself.
 on:
   push:
     tags:
@@ -57,6 +60,18 @@ jobs:
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-cli-linux-amd64 ./cmd/cli
 
+      - name: Build Linux binaries (Studio edition)
+        run: |
+          set -euo pipefail
+          cd cmd/gui-wails
+          wails build -trimpath -tags "webkit2_41,opencv,studio" \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
+          mv build/bin/SamNPlayer ../../SamNPlayer-studio-gui-linux-amd64
+          cd ../..
+          go build -trimpath -tags "opencv studio" \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
+            -o SamNPlayer-studio-cli-linux-amd64 ./cmd/cli
+
       - name: Bundle portable Linux (GUI + ffmpeg)
         run: |
           set -euo pipefail
@@ -70,6 +85,10 @@ jobs:
           cp legal/THIRD_PARTY_NOTICES.md portable-linux/THIRD_PARTY_NOTICES.txt
           cp /usr/share/doc/ffmpeg/copyright portable-linux/FFMPEG_LICENSE.txt
           tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
+          # Studio: same bundle, studio GUI.
+          cp -r portable-linux portable-linux-studio
+          cp SamNPlayer-studio-gui-linux-amd64 portable-linux-studio/SamNPlayer
+          tar -C portable-linux-studio -czf SamNPlayer-studio-portable-linux-amd64.tar.gz .
 
       - name: Run tests (non-GUI packages)
         run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/... ./videox/...
@@ -82,6 +101,9 @@ jobs:
             SamNPlayer-gui-linux-amd64
             SamNPlayer-cli-linux-amd64
             SamNPlayer-portable-linux-amd64.tar.gz
+            SamNPlayer-studio-gui-linux-amd64
+            SamNPlayer-studio-cli-linux-amd64
+            SamNPlayer-studio-portable-linux-amd64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -167,6 +189,23 @@ jobs:
           mv build/bin/SamNPlayer.exe ../../SamNPlayer-gui-windows-amd64.exe
           ls -la ../../SamNPlayer-gui-windows-amd64.exe
 
+      - name: Build Windows binaries (Studio edition)
+        run: |
+          set -euo pipefail
+          export CGO_ENABLED=1
+          export PATH="/mingw64/bin:$PATH"
+          export PATH="/c/Program Files/nodejs:$PATH"
+          export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CC=gcc CXX=g++
+          go build -trimpath -tags "opencv studio" \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
+            -o SamNPlayer-studio-cli-windows-amd64.exe ./cmd/cli
+          cd cmd/gui-wails
+          "$(go env GOPATH)/bin/wails" build -trimpath -tags "opencv studio" -s \
+            -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
+          mv build/bin/SamNPlayer.exe ../../SamNPlayer-studio-gui-windows-amd64.exe
+          ls -la ../../SamNPlayer-studio-gui-windows-amd64.exe ../../SamNPlayer-studio-cli-windows-amd64.exe
+
       # Must use msys2 (job default): Git Bash cannot see /mingw64 OpenCV DLLs.
       - name: Bundle portable Windows (GUI + ffmpeg + OpenCV DLLs)
         run: |
@@ -202,6 +241,10 @@ jobs:
           test "$n" -ge 20
           # -r required: Info-ZIP treats bare "." as nothing without recurse.
           (cd portable-windows && zip -q -r ../SamNPlayer-portable-windows-amd64.zip .)
+          # Studio: same DLLs + ffmpeg, studio GUI.
+          cp -r portable-windows portable-windows-studio
+          cp SamNPlayer-studio-gui-windows-amd64.exe portable-windows-studio/SamNPlayer.exe
+          (cd portable-windows-studio && zip -q -r ../SamNPlayer-studio-portable-windows-amd64.zip .)
           # Keep CLI next to the zip for the release asset list.
           ls -la SamNPlayer-cli-windows-amd64.exe SamNPlayer-gui-windows-amd64.exe \
             SamNPlayer-portable-windows-amd64.zip
@@ -214,6 +257,9 @@ jobs:
             SamNPlayer-gui-windows-amd64.exe
             SamNPlayer-cli-windows-amd64.exe
             SamNPlayer-portable-windows-amd64.zip
+            SamNPlayer-studio-gui-windows-amd64.exe
+            SamNPlayer-studio-cli-windows-amd64.exe
+            SamNPlayer-studio-portable-windows-amd64.zip
 
   publish:
     needs: [build-linux, build-windows]
@@ -241,6 +287,12 @@ jobs:
             SamNPlayer-cli-windows-amd64.exe \
             SamNPlayer-portable-linux-amd64.tar.gz \
             SamNPlayer-portable-windows-amd64.zip \
+            SamNPlayer-studio-gui-linux-amd64 \
+            SamNPlayer-studio-cli-linux-amd64 \
+            SamNPlayer-studio-gui-windows-amd64.exe \
+            SamNPlayer-studio-cli-windows-amd64.exe \
+            SamNPlayer-studio-portable-linux-amd64.tar.gz \
+            SamNPlayer-studio-portable-windows-amd64.zip \
             > checksums.txt
           cat checksums.txt
           ls -la
@@ -255,5 +307,11 @@ jobs:
             dist/SamNPlayer-cli-windows-amd64.exe
             dist/SamNPlayer-portable-linux-amd64.tar.gz
             dist/SamNPlayer-portable-windows-amd64.zip
+            dist/SamNPlayer-studio-gui-linux-amd64
+            dist/SamNPlayer-studio-cli-linux-amd64
+            dist/SamNPlayer-studio-gui-windows-amd64.exe
+            dist/SamNPlayer-studio-cli-windows-amd64.exe
+            dist/SamNPlayer-studio-portable-linux-amd64.tar.gz
+            dist/SamNPlayer-studio-portable-windows-amd64.zip
             dist/checksums.txt
           generate_release_notes: true

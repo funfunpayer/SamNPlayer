@@ -47,7 +47,7 @@ var Version = "dev"
 //
 // Bewusst eine Konstante und keine Datei, die zur Laufzeit gelesen wird:
 // die fertige .exe soll eine einzelne Datei bleiben.
-const BaseVersion = "0.5.46"
+const BaseVersion = "0.6.0"
 
 // Describe liefert die Fassung für Anzeige und Fehlerberichte.
 func Describe() string {
@@ -75,19 +75,23 @@ type Asset struct {
 // Erwartet Namensschema wie im Release-Workflow erzeugt:
 // SamNPlayer-gui-windows-amd64.exe, SamNPlayer-gui-linux-amd64.
 // AssetForThisPlatform sucht das Release-Asset für die angegebene
-// Programm-Variante ("gui" oder "cli") und die aktuelle Plattform.
+// Programm-Variante ("gui", "cli", "studio-gui", "studio-cli") und die
+// aktuelle Plattform.
 // Wichtig: der Name muss die Variante enthalten, nicht nur OS/Arch - sonst
 // matchen die GUI- und die CLI-Datei unter Windows beide (beide enden auf
 // "-windows-amd64.exe") und es wäre Zufall/Reihenfolge-abhängig, welche
 // gewinnt. Das hätte dazu führen können, dass sich die GUI beim Update
 // versehentlich durch die CLI-Datei ersetzt.
 func (r *Release) AssetForThisPlatform(kind string) (Asset, bool) {
-	suffix := fmt.Sprintf("-%s-%s-%s", kind, runtime.GOOS, runtime.GOARCH)
+	// Exact name, not a suffix: "SamNPlayer-studio-gui-…" also ends in
+	// "-gui-…", and a customer build must never update itself to the studio
+	// edition (or the other way round).
+	name := fmt.Sprintf("SamNPlayer-%s-%s-%s", kind, runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
-		suffix += ".exe"
+		name += ".exe"
 	}
 	for _, a := range r.Assets {
-		if strings.HasSuffix(a.Name, suffix) {
+		if a.Name == name {
 			return a, true
 		}
 	}

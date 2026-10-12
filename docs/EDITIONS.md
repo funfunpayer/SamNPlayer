@@ -5,7 +5,7 @@ system, not to the build customers get. One code base, one build switch.
 
 | | Customer build (default) | Studio build (`-tags studio`) |
 |---|---|---|
-| Who | everyone (release downloads) | internal team |
+| Who | everyone (release downloads) | team and power users (release downloads, `studio-` files) |
 | Play, Create, Device, Training (device sessions) | yes | yes |
 | AI **use**: AI tip/region detection, scene proposals, contact points, Apply AI setup, AI server | yes | yes |
 | AI Train tab (labelling, dataset, YOLO/ONNX training, profile model) | — | yes |
@@ -26,7 +26,14 @@ system, not to the build customers get. One code base, one build switch.
 - Frontend: studio-only controls carry `data-studio`; `main.js` sets
   `html[data-edition]` from `IsStudioBuild()` and a CSS rule hides them in
   the customer build.
-- Releases (`release.yml`) build without the tag = customer build.
+- Releases (`release.yml`) build **both** editions from 0.6.0 on (Owner,
+  12 Oct 2026: publish the studio version). Customer files are
+  `SamNPlayer-gui-…`, `SamNPlayer-cli-…`, `SamNPlayer-portable-…`; studio
+  files carry `studio-`: `SamNPlayer-studio-gui-…`,
+  `SamNPlayer-studio-cli-…`, `SamNPlayer-studio-portable-…`.
+- The in-app updater matches the exact file name for its own edition
+  (`guiAssetKind()` → `gui` or `studio-gui`), so a customer build never
+  updates itself to the studio build and vice versa.
 
 ## Building the studio edition
 
