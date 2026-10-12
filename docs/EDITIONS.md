@@ -1,18 +1,18 @@
-# Editions — SamNPlayer Free, SamNPlayer Suite, SamNPlayer Next
+# Editions — SamNPlayer Free, SamNPlayer Suite, SamNPlayer 2.0 Next
 
-## Product lines (Owner, 12 Oct 2026)
+## Product lines (Owner, 12 Oct 2026; Next updated the same day)
 
 | Name | What it is | In the code |
 |---|---|---|
 | **SamNPlayer Free** | The software for customers. | Default build (no tag), edition name `free` |
 | **SamNPlayer Suite** | **Our internal extended version** with AI training and the batch test system. It keeps the name "Suite". | `-tags suite`, edition name `suite` |
-| **SamNPlayer Next (Studio)** | The future commercial product. Suite features are carried over into it. It gets a **licence system**. | Not built yet (`docs/FREE_TO_STUDIO_PRODUCT_PLAN_2026-10-12.md`, PR #510) |
+| **SamNPlayer 2.0 Next** | The next major version. It is **free** like today's app, with no licence system. Suite features are carried over into it. | Not built yet (`docs/FREE_TO_STUDIO_PRODUCT_PLAN_2026-10-12.md`, PR #510) |
 
 Rules:
 - **Free stays free.** Free is also our test system.
 - **Which features later move out of Free** (for example batch processing) is the Owner's decision alone.
 - **Safety stays in every edition:** emergency stop and device limits.
-- The licence system belongs to Next only, after the legal clarification noted in #510.
+- **Next costs nothing** and has no licence system (Owner, 12 Oct). It is released as **SamNPlayer 2.0 Next**. The earlier plan for a commercial "Next (Studio)" with licences is dropped.
 
 ## Free vs Suite today
 

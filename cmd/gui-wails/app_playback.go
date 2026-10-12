@@ -205,6 +205,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.StartAtMs = opts.StartAtMs
 	}
 	p.SetSpeed(opts.Speed)
+	// Strokers (The Handy …) get the script's real positions (D2).
+	p.SetStroke(script.PlaybackActions())
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
 	p.SetPeakReduce(a.peakReduce)
