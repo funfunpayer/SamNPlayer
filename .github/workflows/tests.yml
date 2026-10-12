@@ -18,6 +18,9 @@ jobs:
   go:
     name: Go
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -38,8 +41,7 @@ jobs:
       # whole video path is untested in CI.
       - name: Install ffmpeg
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          scripts/ci/apt-install.sh ffmpeg
           command -v ffmpeg
           ffmpeg -version | head -1
 
@@ -91,6 +93,9 @@ jobs:
   go-opencv:
     name: Go (OpenCV)
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -102,10 +107,9 @@ jobs:
 
       - name: Install OpenCV + ffmpeg
         run: |
-          sudo apt-get update
           # libopencv-dev: native CSRT (-tags opencv).
           # ffmpeg: videox tests must actually run (see go job comment).
-          sudo apt-get install -y libopencv-dev pkg-config ffmpeg
+          scripts/ci/apt-install.sh libopencv-dev pkg-config ffmpeg
           command -v ffmpeg
           ffmpeg -version | head -1
 
@@ -124,6 +128,9 @@ jobs:
   python:
     name: Python (Generator)
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -168,6 +175,9 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -188,12 +198,11 @@ jobs:
       # irreführender Fehler, der nichts mit dem Prüfgegenstand zu tun hat.
       - name: Generate Wails bindings
         run: |
-          sudo apt-get update
           # ffmpeg gehört inhaltlich nicht zu den Wails-Bindings, hängt hier
           # nur am ohnehin schon laufenden apt-get update/install - wird von
           # curve_editor_video_sync_test.py gebraucht, das sich sein
           # Test-Video selbst erzeugt statt eine Binärdatei mitzuführen.
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev ffmpeg
+          scripts/ci/apt-install.sh libgtk-3-dev libwebkit2gtk-4.1-dev ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
           cd cmd/gui-wails
           $(go env GOPATH)/bin/wails build -tags webkit2_41 -skipbindings=false || true
@@ -209,6 +218,9 @@ jobs:
   windows-opencv:
     name: Go (OpenCV Windows)
     runs-on: windows-latest
+    # Normal run: a few minutes. A hung step (e.g. a stalled apt mirror)
+    # fails here instead of blocking for GitHub's 6 h default.
+    timeout-minutes: 30
     defaults:
       run:
         shell: msys2 {0}
