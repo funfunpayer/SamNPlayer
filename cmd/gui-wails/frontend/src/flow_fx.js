@@ -10,6 +10,7 @@
  * Import './flow_fx.css' from the host entrypoint or the mounting module.
  */
 const STATES = new Set(['idle', 'playing', 'paused']);
+let nextInstanceId = 0;
 const SVG = `
 <svg class="flow-fx__art" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
   <defs>
@@ -70,7 +71,12 @@ export function mountFlowStage(el, opts = {}) {
   root.className = 'flow-fx';
   root.setAttribute('role', 'img');
   root.setAttribute('aria-label', opts.label || 'SamNPlayer Flow');
-  root.innerHTML = SVG; // Static, locally-owned SVG. No user content is interpolated.
+  // Scope gradient/filter IDs because Play and Create can mount at the same time.
+  const suffix = '-' + (++nextInstanceId);
+  root.innerHTML = SVG.replaceAll('flow-fx-cyan', 'flow-fx-cyan' + suffix)
+    .replaceAll('flow-fx-amber', 'flow-fx-amber' + suffix)
+    .replaceAll('flow-fx-halo', 'flow-fx-halo' + suffix)
+    .replaceAll('flow-fx-glow', 'flow-fx-glow' + suffix); // Static SVG; no user input.
   el.appendChild(root);
 
   let destroyed = false;
