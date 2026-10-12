@@ -283,7 +283,7 @@ export function initGenerator(root, playback) {
             data-help="Compares the motion signature to saved scenes first, optionally to a local AI server. Suggestion only — nothing is applied automatically.">Suggest profile</button>
           <span class="hint" id="gen-suggest-status" style="margin:0"></span>
         </div>
-        <div class="row" style="align-items:center;" data-studio>
+        <div class="row" style="align-items:center;" data-suite>
           <input type="text" id="gen-scene-label" placeholder="Name for this scene (optional)" style="flex:1;" />
           <button id="gen-label-scene" disabled
             data-help="Saves the motion signature, this name and the Style currently selected above. The AI training tab can learn a local profile model from confirmed examples.">Remember scene + style</button>
@@ -381,7 +381,7 @@ export function initGenerator(root, playback) {
                 <button type="button" class="secondary" id="gen-scene-map-marks-clear">Clear marks</button>
               </div>
               <p class="hint" id="gen-scene-map-marks-label" style="margin:4px 0 0 0;"></p>
-              <details id="gen-scene-map-learning" class="gen-adv-nested" data-studio style="margin-top:8px;">
+              <details id="gen-scene-map-learning" class="gen-adv-nested" data-suite style="margin-top:8px;">
                 <summary>Learning export &amp; teacher candidates</summary>
                 <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
                   <button type="button" class="secondary" id="gen-scene-map-export"
@@ -403,7 +403,7 @@ export function initGenerator(root, playback) {
           </div>
           </details>
 
-          <details id="gen-advanced-ai-draft" class="gen-adv-nested" data-studio>
+          <details id="gen-advanced-ai-draft" class="gen-adv-nested" data-suite>
             <summary>AI draft (experimental) — review-only after CSRT</summary>
             <p class="hint" id="gen-ai-script-hint" style="margin:8px 0 6px 0;">
               Does <b>not</b> replace Everyday Create. Export classical → draft stretch → Keep required.

@@ -1,4 +1,4 @@
-"""Edition switch: customer build hides [data-studio] controls, studio shows them.
+"""Edition switch: Free build hides [data-suite] controls, suite shows them.
 
 Run: python3 cmd/gui-wails/frontend/test/edition_switch_test.py
 """
@@ -74,14 +74,14 @@ def main():
         page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
         check("real stylesheet loaded (?real bypasses the harness stub)",
               page.evaluate("[...document.styleSheets].some(s => (s.href||'').includes('style.css'))"))
-        page.evaluate("document.documentElement.dataset.edition = 'customer'")
-        check("customer: Learn from judgments hidden", page.is_hidden("#st-model-train"))
-        check("customer: learning data hidden", page.is_hidden("#st-collect-learning"))
-        check("customer: Open AI training hidden", page.is_hidden("#st-open-ai-train"))
-        check("customer: normal settings still visible", page.is_visible("#st-show-eula"))
-        page.evaluate("document.documentElement.dataset.edition = 'studio'")
-        check("studio: Learn from judgments visible", page.is_visible("#st-model-train"))
-        check("studio: Open AI training visible", page.is_visible("#st-open-ai-train"))
+        page.evaluate("document.documentElement.dataset.edition = 'free'")
+        check("Free: Learn from judgments hidden", page.is_hidden("#st-model-train"))
+        check("Free: learning data hidden", page.is_hidden("#st-collect-learning"))
+        check("Free: Open AI training hidden", page.is_hidden("#st-open-ai-train"))
+        check("Free: normal settings still visible", page.is_visible("#st-show-eula"))
+        page.evaluate("document.documentElement.dataset.edition = 'suite'")
+        check("suite: Learn from judgments visible", page.is_visible("#st-model-train"))
+        check("suite: Open AI training visible", page.is_visible("#st-open-ai-train"))
 
         browser.close()
 

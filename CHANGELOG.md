@@ -8,6 +8,14 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Changed
+
+- **Editions renamed (Owner, 12 Oct):** **SamNPlayer Free** is the
+  customer build; **SamNPlayer Suite** is our internal build with AI
+  training and the batch test system (`-tags suite`, release files
+  `SamNPlayer-suite-…`, formerly "studio"). The future commercial product
+  is **SamNPlayer Next (Studio)**. See `docs/EDITIONS.md`.
+
 ### Added
 
 - **Effects sub-tabs and presets** — Player → Inspector → Devices →
@@ -27,13 +35,13 @@ measurement history behind each entry; this file is the short version for
 ## [0.6.0] - 2026-10-12
 
 V1 workspace (Player · Training · Tools), the first V1 Player tools,
-device capabilities, and the **first release with the Studio edition**
-(`SamNPlayer-studio-…` files). Everyday / Rhythm / AI defaults unchanged.
+device capabilities, and the **first release with the Suite edition**
+(`SamNPlayer-suite-…` files). Everyday / Rhythm / AI defaults unchanged.
 
 ### Added
 
-- **Studio edition in the release** — every release now also ships
-  `SamNPlayer-studio-gui-…`, `-studio-cli-…` and `-studio-portable-…`
+- **Suite edition in the release** — every release now also ships
+  `SamNPlayer-suite-gui-…`, `-suite-cli-…` and `-suite-portable-…`
   (AI training and learning tools, see `docs/EDITIONS.md`). Each edition
   updates only to itself.
 - **V1 workspace** — top bar Player · Training · Tools; inside the Player
@@ -69,7 +77,7 @@ device capabilities, and the **first release with the Studio edition**
 ### Fixed
 
 - **Updater could pick the wrong edition** — assets were matched by name
-  suffix, and `SamNPlayer-studio-gui-…` ends like `SamNPlayer-gui-…`. The
+  suffix, and `SamNPlayer-suite-gui-…` ends like `SamNPlayer-gui-…`. The
   updater now matches the exact file name for its own edition.
 - **Broken images in the packaged app** — the logo (empty Player, About)
   and the partner graphic pointed at source paths that are not in the
@@ -108,8 +116,8 @@ device capabilities, and the **first release with the Studio edition**
   longer shows AI training and learning tools (AI Train tab, golden-clip
   benchmark, learning-data export, candidate review, "Remember scene +
   style", AI draft/imitation export, "Learn from judgments"). AI *use*
-  (detection, scene proposals, contact points) stays. Internal studio
-  build: `-tags studio` (see `docs/EDITIONS.md`).
+  (detection, scene proposals, contact points) stays. Internal Suite
+  build: `-tags suite` (see `docs/EDITIONS.md`).
 
 - **SamNPlayer is now freeware — licence keys removed.** Owner decision:
   free for private, non-commercial use under an EULA, financed by

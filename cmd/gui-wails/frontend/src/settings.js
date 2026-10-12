@@ -126,7 +126,7 @@ export function initSettings(root) {
         <li><b>Play + Create (default)</b> — use the <b>portable</b> download: app + ffmpeg in one folder. No extra install.</li>
         <li><b>Video tools missing?</b> Settings → Install video tools (one click), or re-download portable.</li>
         <li><b>Python</b> — only for the classic Python generator path and <b>AI Train</b>. The Go Create path does not need it.</li>
-        <li data-studio><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
+        <li data-suite><b>AI Train</b> (optional) — Python + “Install dependencies” in the AI Train tab (downloads ultralytics/torch; large). Skip if you only Play/Create.</li>
       </ul>
     </details>
 
@@ -199,7 +199,7 @@ export function initSettings(root) {
     <div class="row">
       <input type="text" id="st-ai-roi-path" placeholder="(default folder)" style="flex:1;" />
       <button id="st-ai-roi-check">Check availability</button>
-      <button id="st-open-ai-train" type="button" data-studio
+      <button id="st-open-ai-train" type="button" data-suite
         data-help="Switches to the AI Train tab (label tip ROIs / train ONNX; also Train Go profile model).">Open AI training</button>
     </div>
     <div class="field-row" style="margin-top:8px">
@@ -209,7 +209,7 @@ export function initSettings(root) {
     </div>
     <p class="hint" id="st-ai-roi-status" style="margin-top:0"></p>
 
-    <div data-studio>
+    <div data-suite>
     <h3>Scene map learning</h3>
     <p class="hint">Local JSON/JSONL under the ROI dataset. Default <b>off</b>. Never uploads; never writes YOLO train folders.</p>
     <div class="checkbox-row">
@@ -293,7 +293,7 @@ export function initSettings(root) {
       <div class="row">
         <button id="st-report-summary">Show summary</button>
         <button id="st-model-info">Show model</button>
-        <button id="st-model-train" class="primary" data-studio>Learn from judgments</button>
+        <button id="st-model-train" class="primary" data-suite>Learn from judgments</button>
       </div>
       <p class="hint">Quality scoring uses thresholds set on synthetic test videos.
         With enough of your own judgments, a model can be learned instead. It is only

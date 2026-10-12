@@ -29,7 +29,7 @@ def main():
         "GetThirdPartyNotices": "async () => 'NOTICES FFmpeg GPL'",
         "GetDonateLinks": "async () => [{name:'Patreon', url:'https://www.patreon.com/x'}, {name:'PayPal', url:'https://paypal.me/x'}]",
         "OpenDonateLink": "async (u) => { window.__opened = u; }",
-        "GetAboutInfo": "async () => ({version:'v0.5.47', edition:'customer', eulaVersion:'2026-10-11', partnerName:'Sex for him', partnerUrl:''})",
+        "GetAboutInfo": "async () => ({version:'v0.5.47', edition:'free', eulaVersion:'2026-10-11', partnerName:'Sex for him', partnerUrl:''})",
         "SetSetting": "async (key, value) => { window.__calls = window.__calls || []; window.__calls.push([key, value]); }",
         "ReportExists": "async () => false",
         "GetCacheInfo": "async () => ({files:0, humanSize:'0 B', path:'/tmp', entries:0, bytes:0})",

@@ -24,7 +24,7 @@ def main():
     harness.write_text(html)
     base, shutdown = serve(app_stub({
         "GetEULA": "async () => ({version:'x', text:'', accepted:true})",
-        "IsStudioBuild": "async () => false",
+        "IsSuiteBuild": "async () => false",
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false})",
         "PickFunscriptFile": "async () => { window.__picked = (window.__picked || 0) + 1; return ''; }",
@@ -57,7 +57,7 @@ def main():
             check("rail Tools marked active",
                   page.get_attribute('#rail .tab-btn[data-tab="tools"]', "aria-selected") == "true")
             sub = page.evaluate("[...document.querySelectorAll('#tools-nav .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("customer sub-nav: Device · Log · Settings", sub == ["Device", "Log", "Settings"], str(sub))
+            check("Free sub-nav: Device · Log · Settings", sub == ["Device", "Log", "Settings"], str(sub))
 
             page.click('#tools-nav .tab-btn[data-tab="settings"]')
             check("Settings panel shown", page.is_visible("#tab-settings") and page.is_hidden("#tab-device"))
@@ -119,7 +119,7 @@ def main():
             page.focus('#tools-nav .tab-btn[data-tab="device"]')
             page.keyboard.press("ArrowRight")
             check("→ in sub-nav moves to Log", page.is_visible("#tab-log"))
-            check("studio sections stay hidden in the customer build",
+            check("suite sections stay hidden in the Free build",
                   page.is_hidden('#tools-nav .tab-btn[data-tab="benchmark"]'))
             b.close()
     finally:

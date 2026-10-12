@@ -6,17 +6,17 @@ import (
 	"github.com/funfunpayer/SamNPlayer/edition"
 )
 
-// errStudioOnly is returned by AI-training and learning bindings in the
-// customer build. The bindings stay so the Wails JS API is the same in both
-// editions; the customer GUI never shows the controls that call them.
-var errStudioOnly = errors.New("not available in this edition — AI training and learning tools are part of the internal studio build")
+// errSuiteOnly is returned by AI-training and learning bindings in the
+// Free build. The bindings stay so the Wails JS API is the same in both
+// editions; the Free GUI never shows the controls that call them.
+var errSuiteOnly = errors.New("not available in this edition — AI training and learning tools are part of the internal suite build")
 
-// IsStudioBuild tells the GUI which edition is running (see package edition).
-func (a *App) IsStudioBuild() bool { return edition.Studio() }
+// IsSuiteBuild tells the GUI which edition is running (see package edition).
+func (a *App) IsSuiteBuild() bool { return edition.Suite() }
 
-func requireStudio() error {
-	if edition.Studio() {
+func requireSuite() error {
+	if edition.Suite() {
 		return nil
 	}
-	return errStudioOnly
+	return errSuiteOnly
 }

@@ -25,7 +25,7 @@ def main():
     harness.write_text(html)
     base, shutdown = serve(app_stub({
         "GetEULA": "async () => ({version:'x', text:'', accepted:true})",
-        "IsStudioBuild": "async () => false",
+        "IsSuiteBuild": "async () => false",
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false, playbackMock:true})",
         "PickFunscriptFile": "async () => '/s/demo.samn'",

@@ -38,7 +38,7 @@ type BenchmarkClipExportResult struct {
 
 // ParseBenchmarkClipTime exposes HH:MM:SS / MM:SS / seconds parsing to the GUI.
 func (a *App) ParseBenchmarkClipTime(value string) (float64, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return 0, err
 	}
 	return videox.ParseClipPrepTime(value)
@@ -46,7 +46,7 @@ func (a *App) ParseBenchmarkClipTime(value string) (float64, error) {
 
 // PickBenchmarkClipOutput opens a save dialog for the exported short clip.
 func (a *App) PickBenchmarkClipOutput(suggestedName string) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	name := strings.TrimSpace(suggestedName)
@@ -68,7 +68,7 @@ func (a *App) PickBenchmarkClipOutput(suggestedName string) (string, error) {
 
 // SuggestBenchmarkClipOutput proposes a sibling path next to the source video.
 func (a *App) SuggestBenchmarkClipOutput(source, start, end string) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	source = strings.TrimSpace(source)
@@ -112,7 +112,7 @@ func sanitizeClipTimeTag(raw string) string {
 // (same defaults as scripts/benchmark-prep/cut_clip.py: ~1280-wide / CRF 20).
 // Synchronous with a bounded timeout. Everyday Create / CSRT untouched.
 func (a *App) ExportBenchmarkClip(req BenchmarkClipExportRequest) (BenchmarkClipExportResult, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return BenchmarkClipExportResult{}, err
 	}
 	var empty BenchmarkClipExportResult

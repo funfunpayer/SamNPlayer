@@ -66,7 +66,7 @@ func releaseRoiTrainingRun() {
 // Liefert false, wenn nichts lief. Auch beim Schließen der App aufgerufen -
 // vorher lief ein stundenlanges Training danach unsichtbar weiter.
 func (a *App) CancelRoiTraining() bool {
-	if requireStudio() != nil {
+	if requireSuite() != nil {
 		return false
 	}
 	roiTrainingMu.Lock()
@@ -111,7 +111,7 @@ func roiTrainingSamplePrefix(videoPath string) string {
 // statt ihn anzubieten und dann mit einem rohen Python-Traceback scheitern
 // zu lassen (siehe CheckAIRoiAvailable für dasselbe Muster).
 func (a *App) CheckRoiTrainingAvailable() bool {
-	if requireStudio() != nil {
+	if requireSuite() != nil {
 		return false
 	}
 	return generator.RoiTrainingAvailable()
@@ -119,7 +119,7 @@ func (a *App) CheckRoiTrainingAvailable() bool {
 
 // CheckRoiTrainingStatus liefert getrennte Flags für Python/OpenCV/ultralytics.
 func (a *App) CheckRoiTrainingStatus() generator.RoiTrainingStatus {
-	if requireStudio() != nil {
+	if requireSuite() != nil {
 		return generator.RoiTrainingStatus{}
 	}
 	return generator.GetRoiTrainingStatus()
@@ -129,7 +129,7 @@ func (a *App) CheckRoiTrainingStatus() generator.RoiTrainingStatus {
 // Events roitraining:deps:progress|done). Für Release-Builds ohne
 // Quellbaum — requirements sind im Binary eingebettet.
 func (a *App) InstallRoiTrainingDeps() error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	if _, err := claimRoiTrainingRun(); err != nil {
@@ -155,7 +155,7 @@ func (a *App) InstallRoiTrainingDeps() error {
 // WriteAIRequirementFiles schreibt die eingebetteten requirements-*.txt
 // in einen Ordner (manuelles pip install).
 func (a *App) WriteAIRequirementFiles(dir string) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	return generator.WriteAIRequirementFiles(dir)
@@ -165,7 +165,7 @@ func (a *App) WriteAIRequirementFiles(dir string) error {
 // (auto/cuda/directml/mps/cpu) inkl. aktueller Verfügbarkeit - siehe
 // generator.ListRoiTrainingDevices / train_yolo_model --list-devices.
 func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
-	if requireStudio() != nil {
+	if requireSuite() != nil {
 		return nil
 	}
 	return generator.ListRoiTrainingDevices()
@@ -175,7 +175,7 @@ func (a *App) ListRoiTrainingDevices() []generator.RoiTrainingDevice {
 // Video und hängt die Ergebnisse an den Datensatz an. sampleEvery steuert die
 // Abtastung (Standard 12); extractAudio speichert die Tonspur neben dem Datensatz.
 func (a *App) BootstrapRoiTrainingSample(videoPath string, roi, roi2 *generator.ROI, className, className2 string) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	return a.BootstrapRoiTrainingSampleEx(videoPath, roi, roi2, nil, nil, className, className2, "", "", 12, true, 0, 1.0)
@@ -192,7 +192,7 @@ func (a *App) BootstrapRoiTrainingSampleEx(
 	startSeconds float64,
 	boxScale float64,
 ) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	if roi == nil {
@@ -222,7 +222,7 @@ func (a *App) BootstrapRoiTrainingRegions(
 	startSeconds float64,
 	boxScale float64,
 ) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	runCtx, err := claimRoiTrainingRun()
@@ -268,7 +268,7 @@ func (a *App) BootstrapRoiTrainingRegions(
 
 // AddRoiStillTrainingSample adds one labeled still image (photo) to the dataset.
 func (a *App) AddRoiStillTrainingSample(imagePath string, regions []generator.RoiTrainingRegion) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	if len(regions) == 0 {
@@ -281,7 +281,7 @@ func (a *App) AddRoiStillTrainingSample(imagePath string, regions []generator.Ro
 
 // PickImageFile opens an image picker for still-image training samples.
 func (a *App) PickImageFile() (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
@@ -298,7 +298,7 @@ func (a *App) PickImageFile() (string, error) {
 // ist die KI-Erkennung im Generator-Tab also ohne weiteren Schritt nutzbar.
 // Läuft asynchron, kann bei einem echten Datensatz lange dauern.
 func (a *App) RunRoiModelTraining(epochs int, device string) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	runCtx, err := claimRoiTrainingRun()
@@ -462,7 +462,7 @@ func roiLabelPathForImage(imagePath string) (string, error) {
 // Kontrollansicht nach einem Bootstrap-Lauf. Läuft synchron: reines
 // Verzeichnislisten + Textdateien lesen, kein Unterprozess nötig.
 func (a *App) ListRoiTrainingSamples(datasetDir, prefix string) ([]RoiTrainingSample, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return nil, err
 	}
 	classNames, err := roiTrainingClassNames(datasetDir)
@@ -514,7 +514,7 @@ func (a *App) ListRoiTrainingSamples(datasetDir, prefix string) ([]RoiTrainingSa
 // LoadFirstFrame in app_generator.go, dieselbe Einschränkung), deshalb geht
 // jedes Bild für die Kontrollansicht denselben Weg über die RPC-Brücke.
 func (a *App) GetRoiTrainingSampleImage(imagePath string) (string, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return "", err
 	}
 	return fileToBase64(imagePath)
@@ -526,7 +526,7 @@ func (a *App) GetRoiTrainingSampleImage(imagePath string) (string, error) {
 // ClassName is resolved through the product taxonomy and registered in
 // classes.json so review can set any detection label (not only Face / id 0).
 func (a *App) UpdateRoiTrainingSample(datasetDir, split, name string, boxes []RoiTrainingBox) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	imagePath := filepath.Join(datasetDir, "images", split, name)
@@ -582,7 +582,7 @@ func resolveRoiTrainingBoxes(datasetDir string, boxes []RoiTrainingBox) ([]RoiTr
 // DiscardRoiTrainingSample entfernt ein Beispiel vollständig (Bild +
 // Labeldatei) - für Frames, die die Kontrollansicht als falsch verwirft.
 func (a *App) DiscardRoiTrainingSample(datasetDir, split, name string) error {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return err
 	}
 	imagePath := filepath.Join(datasetDir, "images", split, name)
@@ -620,7 +620,7 @@ type RoiDatasetSummary struct {
 // den Labeldateien je Split vorkommt - Grundlage der "Datensatz-Übersicht"
 // in der Trainings-Oberfläche (siehe docs für den vollen Ablauf).
 func (a *App) GetRoiDatasetSummary(datasetDir string) (RoiDatasetSummary, error) {
-	if err := requireStudio(); err != nil {
+	if err := requireSuite(); err != nil {
 		return RoiDatasetSummary{}, err
 	}
 	summary := RoiDatasetSummary{DatasetDir: datasetDir}

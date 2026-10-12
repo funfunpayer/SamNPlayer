@@ -1,12 +1,27 @@
-# Editions — customer build and studio build
+# Editions — SamNPlayer Free, SamNPlayer Suite, SamNPlayer Next
 
-Owner decision 11 Oct 2026: AI training and learning belong to our internal
-system, not to the build customers get. One code base, one build switch.
+## Product lines (Owner, 12 Oct 2026)
 
-| | Customer build (default) | Studio build (`-tags studio`) |
+| Name | What it is | In the code |
 |---|---|---|
-| Who | everyone (release downloads) | team and power users (release downloads, `studio-` files) |
-| Play, Create, Device, Training (device sessions) | yes | yes |
+| **SamNPlayer Free** | The software for customers. | Default build (no tag), edition name `free` |
+| **SamNPlayer Suite** | **Our internal extended version** with AI training and the batch test system. It keeps the name "Suite". | `-tags suite`, edition name `suite` |
+| **SamNPlayer Next (Studio)** | The future commercial product. Suite features are carried over into it. It gets a **licence system**. | Not built yet (`docs/FREE_TO_STUDIO_PRODUCT_PLAN_2026-10-12.md`, PR #510) |
+
+Rules:
+- **Free stays free.** Free is also our test system.
+- **Which features later move out of Free** (for example batch processing) is the Owner's decision alone.
+- **Safety stays in every edition:** emergency stop and device limits.
+- The licence system belongs to Next only, after the legal clarification noted in #510.
+
+## Free vs Suite today
+
+Owner decision 11 Oct 2026: AI training and learning belong to our internal system, not to the build customers get. One code base, one build switch.
+
+| | Free (default) | Suite (`-tags suite`) |
+|---|---|---|
+| Who | customers (release downloads) | our team (release files `SamNPlayer-suite-…`, private) |
+| Play, Create, Edit, Training (device sessions), Tools | yes | yes |
 | AI **use**: AI tip/region detection, scene proposals, contact points, Apply AI setup, AI server | yes | yes |
 | AI Train tab (labelling, dataset, YOLO/ONNX training, profile model) | — | yes |
 | Golden-clip benchmark tab | — | yes |
@@ -18,37 +33,40 @@ system, not to the build customers get. One code base, one build switch.
 
 ## How it works
 
-- Package `edition`: `Studio()` is a compile-time constant
-  (`studio_on.go` with `//go:build studio`, `studio_off.go` otherwise).
-- GUI bindings for studio tools stay in both builds (the Wails JS API is the
-  same) but return `errStudioOnly` in the customer build
-  (`cmd/gui-wails/app_edition.go`, `requireStudio()`).
-- Frontend: studio-only controls carry `data-studio`; `main.js` sets
-  `html[data-edition]` from `IsStudioBuild()` and a CSS rule hides them in
-  the customer build.
-- Releases (`release.yml`) build **both** editions from 0.6.0 on (Owner,
-  12 Oct 2026: publish the studio version). Customer files are
-  `SamNPlayer-gui-…`, `SamNPlayer-cli-…`, `SamNPlayer-portable-…`; studio
-  files carry `studio-`: `SamNPlayer-studio-gui-…`,
-  `SamNPlayer-studio-cli-…`, `SamNPlayer-studio-portable-…`.
-- The in-app updater matches the exact file name for its own edition
-  (`guiAssetKind()` → `gui` or `studio-gui`), so a customer build never
-  updates itself to the studio build and vice versa.
+- **Package `edition`:** `Suite()` is a compile-time constant. `suite_on.go` carries `//go:build suite`; `suite_off.go` is used otherwise. `Name()` is `"suite"` or `"free"`.
+- **GUI bindings:** the Suite-only bindings exist in both builds, so the Wails JS API is the same. In the Free build they return `errSuiteOnly` (`cmd/gui-wails/app_edition.go`, `requireSuite()`).
+- **Frontend:**
+  - Suite-only controls carry `data-suite`.
+  - `main.js` sets `html[data-edition]` to `free` or `suite` from `IsSuiteBuild()`.
+  - A CSS rule hides Suite-only controls in Free.
+- **Releases (`release.yml`)** build both editions:
 
-## Building the studio edition
+  | Edition | Release files |
+  |---|---|
+  | Free | `SamNPlayer-gui-…`, `SamNPlayer-cli-…`, `SamNPlayer-portable-…` |
+  | Suite | `SamNPlayer-suite-gui-…`, `SamNPlayer-suite-cli-…`, `SamNPlayer-suite-portable-…` |
+
+  `scripts/publish-public-release.sh` publishes only the Free binaries, so Suite files stay private.
+- **In-app updater:** it matches the exact file name for its own edition (`guiAssetKind()` returns `gui` or `suite-gui`). Free never updates itself to Suite, and Suite never updates itself to Free.
+
+## Building the Suite edition
 
 ```bash
 # GUI
-cd cmd/gui-wails && wails build -tags "studio opencv"      # + webkit2_41 on Linux
+cd cmd/gui-wails && wails build -tags "suite opencv"      # + webkit2_41 on Linux
 # CLI
-go build -tags "studio opencv" ./cmd/cli
+go build -tags "suite opencv" ./cmd/cli
 # tests
-go test -tags studio ./edition/ ./cmd/gui-wails/
+go test -tags suite ./edition/ ./cmd/gui-wails/
 ```
 
 ## Not yet split
 
-The generator's embedded Python files (`generator/*.py`, including the
-training scripts) are still embedded in both builds; the customer build
-just never offers or runs the training paths. Moving the training scripts
-into a studio-only embed is a follow-up.
+- The generator's embedded Python files (`generator/*.py`, including the training scripts) are still embedded in both builds.
+- The Free build never offers or runs the training paths.
+- Moving the training scripts into a Suite-only embed is a follow-up.
+
+## History
+
+- Until 12 Oct 2026 the internal build was called "studio" (`-tags studio`), and the default build was called "customer".
+- No release was tagged under those names, so no installed build looks for `studio-` files.

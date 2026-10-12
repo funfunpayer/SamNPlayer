@@ -21,10 +21,10 @@ import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
 import { ensureEULAAccepted } from './legal.js';
-import { GetDonateLinks, IsStudioBuild } from '../wailsjs/go/main/App';
+import { GetDonateLinks, IsSuiteBuild } from '../wailsjs/go/main/App';
 
 // Owner 11 Oct (#475): main tabs Play · Generator · Training · Tools.
-// Tools bundles Device, Log, Settings (+ studio Bench / AI Train) behind a
+// Tools bundles Device, Log, Settings (+ suite Bench / AI Train) behind a
 // sub-navigation; every panel and data-tab name stays the same, so
 // switchTab('device') and `.tab-btn[data-tab="log"]` keep working.
 const TOOLS_SECTIONS = new Set(['device', 'log', 'settings', 'benchmark', 'roi-training']);
@@ -330,12 +330,12 @@ initPostGenerateReview();
   render({ connected: false });
 })();
 
-// Edition switch (Owner 11 Oct): the customer build hides every [data-studio]
+// Edition switch (Owner 11 Oct): the Free build hides every [data-suite]
 // control (AI Train, benchmark, learning export, model training). The CSS
-// rule covers markup rendered later too. Default = customer until told.
-document.documentElement.dataset.edition = 'customer';
-IsStudioBuild().then(studio => {
-  if (studio) document.documentElement.dataset.edition = 'studio';
+// rule covers markup rendered later too. Default = Free until told.
+document.documentElement.dataset.edition = 'free';
+IsSuiteBuild().then(suite => {
+  if (suite) document.documentElement.dataset.edition = 'suite';
 }).catch(() => {});
 
 document.body.dataset.tab = document.querySelector('.tab-btn.active')?.dataset.tab || 'playback';

@@ -86,7 +86,7 @@ export async function renderAbout(root) {
   let info = {};
   try { info = (await GetAboutInfo()) || {}; } catch (_) { info = {}; }
   const v = q('#st-about-version');
-  if (v) v.textContent = `Version ${info.version || '?'} · ${info.edition === 'studio' ? 'Studio edition' : 'Free edition'} · EULA ${info.eulaVersion || ''}`;
+  if (v) v.textContent = `Version ${info.version || '?'} · ${info.edition === 'suite' ? 'Suite edition' : 'Free edition'} · EULA ${info.eulaVersion || ''}`;
   const name = info.partnerName || 'our partner site';
   const txt = q('#st-about-partner-text');
   const btn = q('#st-about-partner');

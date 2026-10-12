@@ -1,4 +1,4 @@
-//go:build studio
+//go:build suite
 
 package main
 

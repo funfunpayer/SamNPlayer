@@ -147,7 +147,7 @@ not needed, it stays out.
 - Optional **local AI ROI** (ONNX) — strict expected body point, Apply required
 - Local **Go profilemodel** suggestions from Create labels (suggest-only)
 - Quality Doctor + human accept/reject
-- *Studio build only:* learned quality model, AI training, golden-clip benchmark ([editions](docs/EDITIONS.md))
+- *Suite build only (internal):* learned quality model, AI training, golden-clip benchmark ([editions](docs/EDITIONS.md))
 
 ### Device & training
 - BLE, Intiface/Buttplug, and Mock transports

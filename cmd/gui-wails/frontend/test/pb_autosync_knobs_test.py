@@ -24,7 +24,7 @@ def main():
     harness.write_text(html)
     base, shutdown = serve("window.__sync = { offsetMs: 420, currentMs: 0, r: 0.41, margin: 0.12, confidence: 'high', note: 'Clear match: +420 ms.' };\n" + app_stub({
         "GetEULA": "async () => ({version:'x', text:'', accepted:true})",
-        "IsStudioBuild": "async () => false",
+        "IsSuiteBuild": "async () => false",
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false, playbackMock:true, playbackSmoothing:0.3, playbackSoftStartMs:500, playbackTickMs:50, playbackMaxSpeed:400})",
         "SetSetting": "async (k, v) => { window.__saved = Object.assign(window.__saved || {}, { [k]: v }); }",

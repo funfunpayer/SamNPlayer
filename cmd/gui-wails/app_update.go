@@ -10,8 +10,8 @@ import (
 // guiAssetKind is the release asset this build updates from: each edition
 // only ever replaces itself with the same edition.
 func guiAssetKind() string {
-	if edition.Studio() {
-		return "studio-gui"
+	if edition.Suite() {
+		return "suite-gui"
 	}
 	return "gui"
 }

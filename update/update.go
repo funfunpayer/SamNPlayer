@@ -75,7 +75,7 @@ type Asset struct {
 // Erwartet Namensschema wie im Release-Workflow erzeugt:
 // SamNPlayer-gui-windows-amd64.exe, SamNPlayer-gui-linux-amd64.
 // AssetForThisPlatform sucht das Release-Asset für die angegebene
-// Programm-Variante ("gui", "cli", "studio-gui", "studio-cli") und die
+// Programm-Variante ("gui", "cli", "suite-gui", "suite-cli") und die
 // aktuelle Plattform.
 // Wichtig: der Name muss die Variante enthalten, nicht nur OS/Arch - sonst
 // matchen die GUI- und die CLI-Datei unter Windows beide (beide enden auf
@@ -83,8 +83,8 @@ type Asset struct {
 // gewinnt. Das hätte dazu führen können, dass sich die GUI beim Update
 // versehentlich durch die CLI-Datei ersetzt.
 func (r *Release) AssetForThisPlatform(kind string) (Asset, bool) {
-	// Exact name, not a suffix: "SamNPlayer-studio-gui-…" also ends in
-	// "-gui-…", and a customer build must never update itself to the studio
+	// Exact name, not a suffix: "SamNPlayer-suite-gui-…" also ends in
+	// "-gui-…", and a Free build must never update itself to the suite
 	// edition (or the other way round).
 	name := fmt.Sprintf("SamNPlayer-%s-%s-%s", kind, runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
