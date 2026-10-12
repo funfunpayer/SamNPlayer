@@ -7,6 +7,8 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { uiError } from './notify.js';
 import { mountTrainingPixelStage } from './pixel_figure.js';
+import { createRings } from './training_rings.js';
+import './training_rings.css';
 
 const TECHNIQUE_LABELS = { stopstart: 'Stop-Start', plateau: 'Plateau' };
 const CHANNEL_LABELS = { vibration: 'Vibration', suction: 'Suction', both: 'Both' };
@@ -344,6 +346,7 @@ export function initTraining(root) {
 
     <div class="tr-col tr-col-live" data-tr-region="live">
     <div id="tr-pixel-stage" aria-label="Training pixel figure"></div>
+    <div id="tr-rings-host" style="margin:12px 0;"></div>
 
     <div class="row">
       <button id="tr-start" class="primary">▶ Start training</button>
@@ -388,6 +391,9 @@ export function initTraining(root) {
   // that finishes after done cannot call setRunningState(true) again.
   let startEpoch = 0;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
+  // C2: device-adaptive live rings (real values only; Claude wiring).
+  const ringsHost = el('#tr-rings-host');
+  const trainingRings = ringsHost ? createRings(ringsHost, ['vibration', 'suction']) : null;
   // One card: clip + meta + ring side-by-side (not a second stacked block).
   const ringSlot = el('#tr-ring-slot');
   if (ringSlot) ringSlot.innerHTML = renderDualIntensityRing();
@@ -418,6 +424,12 @@ export function initTraining(root) {
       el('#tr-arousal-status').textContent = '';
       pixelStage.setIntensity(0);
       updateIntensityMeter({ vibration: 0, suction: 0 });
+      if (trainingRings) {
+        trainingRings.update({ vibration: null, suction: null });
+        trainingRings.setPhase('Stopped');
+      }
+    } else if (trainingRings) {
+      trainingRings.setPhase('Running');
     }
   }
 
@@ -437,6 +449,9 @@ export function initTraining(root) {
   function applyLiveLevels({ vibration = 0, suction = 0 }) {
     liveLevelsActive = true;
     updateIntensityMeter({ vibration, suction });
+    if (trainingRings) {
+      trainingRings.update({ vibration, suction });
+    }
     pixelStage.setLiveLevel(Math.max(vibration || 0, suction || 0));
   }
 
@@ -996,6 +1011,7 @@ export function initTraining(root) {
   // Kanäle schwächt und die Pause verlängert, statt es nur zu behaupten.
   EventsOn('training:scriptCycle', c => {
     el('#tr-cycle-label').textContent = `${c.phaseName} (${c.repeatIndex + 1}/${c.repeatsTotal}), phase ${c.phaseIndex + 1}/${c.phasesTotal}`;
+    if (trainingRings) trainingRings.setPhase(c.phaseName || 'Running');
     const peaks = [];
     if (c.vibrationPeak > 0) peaks.push(`Vibration ${Math.round(c.vibrationPeak * 100)}%`);
     if (c.suctionPeak > 0) peaks.push(`Suction ${Math.round(c.suctionPeak * 100)}%`);
