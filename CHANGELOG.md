@@ -8,6 +8,11 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Create queue:** a file name containing `<` no longer breaks the list
+  (names are always shown as text).
+
 ### Changed
 
 - **Editions renamed (Owner, 12 Oct):** **SamNPlayer Free** is the
@@ -21,6 +26,9 @@ measurement history behind each entry; this file is the short version for
 - **Create: project header** — after choosing a video, Create shows a
   poster frame, the file name and the real resolution, frame rate
   (variable frame rate is marked), duration and codec from ffprobe.
+- **Create: source clips grid** — several dropped videos now show as cards
+  with a poster frame, name, duration and status; the loaded clip is
+  highlighted and a click on another card loads it (the queue stays).
 
 - **Effects sub-tabs and presets** — Player → Inspector → Devices →
   Effects now has Effects · Curve · Limits · Advanced: Curve holds
