@@ -10,6 +10,7 @@
 
 import { SetChannelLevels, SetPeakReduce, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
+import { mountScenePanel } from './scene_panel.js';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -446,16 +447,15 @@ export function applyPlayerLayoutV1(root, api) {
   };
   openDetails('#pb-chapter-details', 'chapters');
   openDetails('#pb-bookmark-details', 'bookmarks');
+  // Scene Map: the chapters as scenes (scene_panel.js); the Create rhythm
+  // heatmap stays one click away from its header.
+  const scenePanel = mountScenePanel(mk('scenemap'), root, api);
   const audioPanel = mk('audio');
   const card = q('#pb-audio-card');
   if (card) audioPanel.appendChild(card);
   const segs = q('#pb-audio-segments');
   if (segs) audioPanel.appendChild(segs);
   function showBottom(k) {
-    if (k === 'scenemap') {
-      document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click();
-      return;
-    }
     if (!bpanels[k]) k = 'timeline';
     for (const [key, p] of Object.entries(bpanels)) p.classList.toggle('is-active', key === k);
     bbar.querySelectorAll('[data-btab]').forEach(b => {
@@ -465,6 +465,7 @@ export function applyPlayerLayoutV1(root, api) {
     });
     root.dataset.pbBottom = k;
     store(BOTTOM_KEY, k);
+    if (k === 'scenemap' && scenePanel) scenePanel.show();
     // Canvases inside a re-shown panel redraw via their ResizeObserver.
   }
   bbar.addEventListener('click', e => {

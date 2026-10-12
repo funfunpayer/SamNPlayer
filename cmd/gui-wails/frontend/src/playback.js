@@ -702,6 +702,12 @@ export function initPlayback(root) {
   let oMarkers = []; // [{startMs, endMs, kind, intensity}], im Skript gespeichert (siehe funscript.OMarker)
   let bookmarks = []; // [{name, time}] ms — OFS metadata.bookmarks / .samn
   let chapterMarks = []; // [{name, startTime, endTime}] ms — OFS metadata.chapters / .samn
+  // Every change goes through here so views outside this module (Scene Map
+  // bottom panel) can follow via the "pb:chapters" event.
+  function setChapterMarks(next) {
+    chapterMarks = next;
+    root.dispatchEvent(new CustomEvent('pb:chapters'));
+  }
   let autoEOTriggeredForMarker = false;
   // Kurven-Editor: bearbeitet die vollen, nicht resampleten Punkte
   // (rawActions), nicht curvePoints - curvePoints ist nur eine
@@ -1264,12 +1270,12 @@ export function initPlayback(root) {
   async function persistChapterMarks(next, rollback) {
     try {
       await SaveScriptChapterMarks(next);
-      chapterMarks = next;
+      setChapterMarks(next);
       renderChapterList();
       describeScript();
       return true;
     } catch (err) {
-      chapterMarks = rollback;
+      setChapterMarks(rollback);
       renderChapterList();
       logError('Chapters: ' + err);
       return false;
@@ -2219,6 +2225,25 @@ export function initPlayback(root) {
       const on = currentPosMs >= Number(b.dataset.start) && currentPosMs < Number(b.dataset.end);
       if (b.classList.contains('is-current') !== on) b.classList.toggle('is-current', on);
     }
+  }
+
+  // Scene thumbnails on demand (Scene Map bottom panel): reuses the strip's
+  // cache, decodes once per linked video.
+  async function getSceneThumbs() {
+    const key = root.dataset.pbVideoPath || '';
+    if (!key) return [];
+    if (sceneThumbsFor === key && sceneThumbs) return sceneThumbs;
+    try {
+      const thumbs = await GetVideoThumbnails(SCENE_THUMBS);
+      if ((root.dataset.pbVideoPath || '') !== key) return [];
+      sceneThumbs = Array.isArray(thumbs) ? thumbs : null;
+      sceneThumbsFor = key;
+    } catch (err) {
+      log('Scene thumbnails unavailable: ' + err);
+      return [];
+    }
+    renderSceneStrip();
+    return sceneThumbs || [];
   }
 
   async function loadSceneThumbs() {
@@ -3679,11 +3704,11 @@ export function initPlayback(root) {
     }
     try {
       const ch = await GetScriptChapterMarks();
-      chapterMarks = Array.isArray(ch)
+      setChapterMarks(Array.isArray(ch)
         ? ch.map(normalizeChapterMark).filter(Boolean)
-        : [];
+        : []);
     } catch (err) {
-      chapterMarks = [];
+      setChapterMarks([]);
     }
     updateMarkerHint();
     renderOMarkerList();
@@ -4839,9 +4864,9 @@ export function initPlayback(root) {
     if (!scriptPath) return;
     try {
       const ch = await GetScriptChapterMarks();
-      chapterMarks = Array.isArray(ch)
+      setChapterMarks(Array.isArray(ch)
         ? ch.map(normalizeChapterMark).filter(Boolean)
-        : [];
+        : []);
       renderChapterList();
       describeScript();
     } catch (err) {
@@ -5014,6 +5039,11 @@ export function initPlayback(root) {
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,
     setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),
+    // Scene Map bottom panel (scene_panel.js): chapters are the scenes.
+    chapters: () => chapterRanges(),
+    getSceneThumbs,
+    positionMs: () => currentPosMs,
+    videoPath: () => root.dataset.pbVideoPath || '',
   };
 }
 

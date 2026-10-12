@@ -23,6 +23,12 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Player → Scene Map tab:** the script's chapters as scenes. A grid
+  shows one card per scene (video thumbnail, name, range, duration); the
+  details pane shows the selected scene's range, position (n / N),
+  Prev / Next, **Go to scene**, and the linked video's file, resolution,
+  frame rate and codec. The Create rhythm heatmap is one click away in the
+  panel header.
 - **Create: project header** — after choosing a video, Create shows a
   poster frame, the file name and the real resolution, frame rate
   (variable frame rate is marked), duration and codec from ffprobe.

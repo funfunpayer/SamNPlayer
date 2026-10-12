@@ -83,9 +83,9 @@ The target images still show the old top bar; it is reinterpreted in that style.
 |---|---|---|
 | Scene map heatmap, marks | ✅ | Generator scene map |
 | Chapter bands on the timeline | ✅ | Coloured band per chapter over the scene strip (open end → next chapter / script end); click seeks; band under the playhead marked; "Chapters" lane name |
-| Scene thumbnails grid with selection | 🔧 | Thumbnails exist (#488); grid plus selection is new |
+| Scene thumbnails grid with selection | ✅ | Player bottom tab **Scene Map**: one card per chapter (thumbnail nearest the start, name, range, duration); click / arrow keys select, double-click or Enter seeks; playing scene marked |
 | Scene tags / labels | 🔧 | Scene marks have kind / class; free tags need a small schema extension |
-| Scene details inspector (time range, chapter, notes, markers list, technical info) | 🔧 | Data exists in parts (marks, chapters, probe); notes need storage |
+| Scene details inspector (time range, chapter, notes, markers list, technical info) | ✅ / 🔧 | Built: range, duration, n / N, prev/next, Go to scene, video file / resolution / frame rate / codec (`ProbeCreateVideo`). Open: notes and a markers list (need storage) |
 | Auto Scene Detect | 🔧 | Scene-change detection exists in the generator (cuts); expose it as an action |
 | Scene Merge, Export Scene Map | ✅ / 🔧 | Export exists (learning export); merge would be new |
 
