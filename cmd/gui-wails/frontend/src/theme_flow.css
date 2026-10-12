@@ -94,7 +94,9 @@ body {
   border: 3px solid #00c8ff;
   box-shadow: 0 0 0 2px rgba(255, 138, 35, 0.55), 0 0 26px rgba(0, 200, 255, 0.55), 0 0 40px rgba(255, 138, 35, 0.25);
 }
-#tab-playback #pb-play svg { width: 30px; height: 30px; fill: #00d9f4; filter: drop-shadow(0 0 6px rgba(0, 217, 244, 0.9)); margin-left: 4px; }
+#tab-playback #pb-play svg { width: 30px; height: 30px; fill: #00d9f4; filter: drop-shadow(0 0 6px rgba(0, 217, 244, 0.9)); margin-left: 0; }
+/* Only the asymmetric Play triangle needs optical centering; Pause does not. */
+#tab-playback #pb-play .pb-play-icon { margin-left: 4px; }
 #tab-playback #pb-play span,
 #tab-playback #pb-stop span {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -565,6 +567,12 @@ body[data-ws-view="create"] #tab-generator .gen-step-panel {
 body[data-ws-view="create"] #tab-generator .gen-queue {
   border-color: rgba(255, 138, 35, .26);
   border-radius: 12px;
+}
+/* W3 shared clip: keep long filenames readable within the Create card. */
+#gen-use-player-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 body[data-ws-view="create"] #tab-generator :is(button, input, select, textarea):focus-visible {
   outline: 2px solid #8ef0ff;
