@@ -78,6 +78,7 @@ def main():
             check("and follows it back", not page.is_checked("#pb-fx-audio-sync"))
             # Reduce peaks.
             check("Reduce peaks off by default", page.evaluate("window.__peaks") is False and not page.is_checked("#pb-fx-reduce-peaks"))
+            page.click("#pb-fx-tab-limits")  # Reduce peaks lives under Effects → Limits
             page.check("#pb-fx-reduce-peaks")
             check("Reduce peaks → SetPeakReduce(true)", page.evaluate("window.__peaks") is True)
             check("Reduce peaks remembered", page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels')).reducePeaks") is True)
@@ -90,6 +91,7 @@ def main():
                 return [Math.round(n.top - c.top), Math.round(c.left - n.right)]; }""")
             check("Stroke name sits left of the curve, same top", abs(off[0]) <= 1 and off[1] >= 0, str(off))
             check("no in-canvas lane labels in the V1 layout", page.evaluate("document.querySelector('#tab-playback').dataset.pbLayout") == "v1")
+            page.click("#pb-fx-tab-effects")
             page.focus("#pb-knob-intensity")
             page.keyboard.press("ArrowLeft")
             check("knob works with the keyboard", page.text_content("#pb-knob-intensity-val") == "45%")
