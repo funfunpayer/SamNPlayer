@@ -175,6 +175,7 @@ export function createRings(el, channels) {
           specs.find((spec) => spec.id === id).name + ' output: '
           + (value === null ? 'unavailable' : text));
         view.card.dataset.available = String(value !== null);
+        view.card.dataset.active = String(value !== null && value > 0);
         view.card.style.setProperty('--flow-tr-level', value === null ? '0' : String(value));
         view.arc.style.strokeDashoffset = String(364.425 * (1 - (value ?? 0)));
         view.bars.forEach((bar, index) => {
