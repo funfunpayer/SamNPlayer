@@ -101,8 +101,16 @@ function createChannelCard(spec, index) {
   const note = document.createElement('span');
   note.className = 'flow-tr__meter-note';
   note.textContent = 'Output level';
-  card.append(heading, visual, meter, note);
-  return { card, value, center, arc: visual.querySelector('.flow-tr__arc'), bars: [...meter.children] };
+  card.append(heading, visual, meter, spark, note);
+  return {
+    card,
+    value,
+    center,
+    arc: visual.querySelector('.flow-tr__arc'),
+    bars: [...meter.children],
+    line,
+    history: [],
+  };
 }
 
 function normalValue(raw) {
