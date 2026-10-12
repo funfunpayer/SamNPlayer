@@ -303,3 +303,9 @@ SupporterEntitlement {
 - **Product:** P0 A1–A6 mit Tests; Free unverändert; Demo-Clip-Produktion ohne reale intime Medien in öffentlichem Repo.
 - **Technical:** native CPU/GPU-Baselines, Golden-Curve-Metriken, Crash/Resume, signed entitlement/renewal, Windows offline smoke.
 - **Competition:** FunGen-Vergleich ausschließlich anhand nachvollziehbarer Prüfungen, nicht bloß Feature-Liste.
+
+## 12. Studio Editor / competitive blueprint (Owner 12 Oct)
+
+**New companion specification:** [STUDIO_EDITOR_COMPETITIVE_BLUEPRINT_2026-10-12.md](STUDIO_EDITOR_COMPETITIVE_BLUEPRINT_2026-10-12.md). The Owner requires a **full-featured, frame-accurate multi-axis editor**, not just curve display: dynamic script/device lanes, true VFR/PTS timeline, selected-axis multi-point editing, selection tools, range/multi-axis transactions, undo/redo history, transforms, ghost/diff overlays, quality/repair inspector, independent device preview, compatible .funscript companion axes and lossless .samn migration. EDIT-00..08 tickets and ED-01..10 acceptance tests are defined in that document. This expands Studio scope and the competitive bar, but **must not delay the Free release or remove today's Free editing features**.
+
+**Competitive research note (2026-10-12):** FunGen currently publicly advertises frame-accurate multi-axis editing, history, transforms, Funscript Doctor, batching, AI; OpenFunscripter is GPL-3 (study UX, no proprietary code copy); MultiFunPlayer is MIT (study protocols and possible licensed import after dependency notice audit). See verified primary-source links and decision matrix in companion blueprint. “Best in market” is the owner's goal, not an unsubstantiated release claim.
