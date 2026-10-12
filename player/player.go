@@ -62,6 +62,8 @@ type Player struct {
 	// the action the device is moving to, -1 = none sent.
 	stroke     []funscript.Action
 	strokeNext int
+	// Extra axes for multi-axis devices (axes.go).
+	axes map[string]*axisTrack
 
 	// Playback speed (V1: 0.5×–2×). The clock maps real time to script
 	// time as scriptMs = anchorScriptMs + (now - anchorReal) × speed, so a
@@ -316,6 +318,9 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 		}
 		if err := p.driveStroke(f.At); err != nil {
 			return fmt.Errorf("player: Hub bei t=%dms: %w", f.At, err)
+		}
+		if err := p.driveAxes(f.At); err != nil {
+			return fmt.Errorf("player: Achsen bei t=%dms: %w", f.At, err)
 		}
 
 		if p.LogEvery > 0 && time.Since(lastLog) >= p.LogEvery {

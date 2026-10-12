@@ -19,8 +19,8 @@ import (
 //
 // This transport talks TCode over the network (the Wi-Fi firmware of the
 // ESP32 boards listens on UDP or TCP). It only writes: TCode needs no
-// replies for motion. Driven today: L0 (stroke) via SetPosition; the other
-// axes come with multi-axis output (D4).
+// replies for motion. Driven: L0 (stroke) via SetPosition, and L1 / L2 /
+// R0–R2 via SetAxis from multi-axis companion files (D4).
 
 // tcodeDigits: value precision (4 digits = 0–9999).
 const tcodeDigits = 4
@@ -165,13 +165,42 @@ func (t *TCode) SetPosition(pos float64, d time.Duration) error {
 	return t.writeLine(TCodeMove("L0", pos, d))
 }
 
-// DeviceCapabilities: stroke (L0) is driven; the extra axes of an SR6 are
-// listed by D4 output later, not guessed here.
-func (t *TCode) DeviceCapabilities() Capabilities {
-	return Capabilities{
-		Device:   "TCode device",
-		Features: []Feature{{Channel: ChStroke, Kind: KindLinear, Index: 0, Actuator: "L0", Driven: true}},
+// tcodeAxes maps SamNPlayer axis names to TCode channels (the standard
+// OSR2 / SR6 assignment). A device ignores channels it does not have.
+var tcodeAxes = []struct{ name, code string }{
+	{ChSurge, "L1"}, {ChSway, "L2"}, {ChTwist, "R0"}, {ChRoll, "R1"}, {ChPitch, "R2"},
+}
+
+func tcodeCode(axis string) string {
+	for _, a := range tcodeAxes {
+		if a.name == axis {
+			return a.code
+		}
 	}
+	return ""
+}
+
+// HasAxis: the TCode channels L1, L2, R0–R2 (SR6; an OSR2 uses R1 / R2).
+func (t *TCode) HasAxis(axis string) bool { return tcodeCode(axis) != "" }
+
+// SetAxis moves one extra axis (D4 output) to pos within d.
+func (t *TCode) SetAxis(axis string, pos float64, d time.Duration) error {
+	code := tcodeCode(axis)
+	if code == "" {
+		return fmt.Errorf("tcode: unknown axis %q", axis)
+	}
+	return t.writeLine(TCodeMove(code, pos, d))
+}
+
+// DeviceCapabilities: stroke (L0) plus the standard extra axes. Which of
+// them the hardware has cannot be read back over UDP; extra-axis commands
+// only go out when the script has that axis (companion file).
+func (t *TCode) DeviceCapabilities() Capabilities {
+	feats := []Feature{{Channel: ChStroke, Kind: KindLinear, Index: 0, Actuator: "L0", Driven: true}}
+	for i, a := range tcodeAxes {
+		feats = append(feats, Feature{Channel: a.name, Kind: KindLinear, Index: i + 1, Actuator: a.code, Driven: true})
+	}
+	return Capabilities{Device: "TCode device", Features: feats}
 }
 
 // Info reports the connection for the GUI.
@@ -183,5 +212,5 @@ func (t *TCode) Info() ConnectionInfo {
 	if err == nil {
 		addr = network + "://" + hostport
 	}
-	return ConnectionInfo{Connected: t.connected, Name: "TCode device (Stroke L0)", Address: addr}
+	return ConnectionInfo{Connected: t.connected, Name: "TCode device (L0 + extra axes)", Address: addr}
 }

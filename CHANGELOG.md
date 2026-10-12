@@ -27,6 +27,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Multi-axis output for TCode devices:** an SR6 / OSR2 connected via
+  TCode over Wi-Fi now also moves its extra axes from the companion files
+  (`.surge` → L1, `.sway` → L2, `.twist` → R0, `.roll` → R1, `.pitch` →
+  R2), in sync with the stroke. "Send stroke to the device" off stops them
+  too.
 - **TCode over Wi-Fi (D5):** Tools → Device → "TCode over Wi-Fi (OSR2 /
   SR6)" connects to a TCode device with network firmware (UDP or TCP, port
   8000 by default). The stroke (L0) follows the script within the stroke

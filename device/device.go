@@ -30,3 +30,12 @@ type LinearDevice interface {
 	// SetPosition moves to pos (0 = bottom, 1 = top) within duration.
 	SetPosition(pos float64, duration time.Duration) error
 }
+
+// MultiAxisDevice moves extra axes besides the stroke (SR6 / OSR2 over
+// TCode: surge, sway, twist, roll, pitch; docs/DEVICE_SUPPORT.md D4).
+type MultiAxisDevice interface {
+	// HasAxis reports whether the device takes this axis ("twist" …).
+	HasAxis(axis string) bool
+	// SetAxis moves axis to pos (0–1, 0.5 = centre) within duration.
+	SetAxis(axis string, pos float64, duration time.Duration) error
+}
