@@ -491,7 +491,8 @@ export function applyPlayerLayoutV1(root, api) {
 
   // ---- Lane names (mockup): coloured dot + name left of every lane ---------
   const LANE_NAMES = { general: ['Stroke', 'stroke'], vibration: ['Vibration', 'vibration'],
-    suction: ['Suction', 'suction'], audio: ['Audio Level', 'audio'] };
+    suction: ['Suction', 'suction'], audio: ['Audio Level', 'audio'],
+    surge: ['Surge', 'surge'], sway: ['Sway', 'sway'], twist: ['Twist', 'twist'], roll: ['Roll', 'roll'], pitch: ['Pitch', 'pitch'] };
   const names = document.createElement('div');
   names.className = 'pb-lane-names';
   names.dataset.pbRegion = 'lane-names';

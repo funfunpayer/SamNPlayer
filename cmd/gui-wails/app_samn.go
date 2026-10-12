@@ -181,6 +181,10 @@ func (a *App) GetScriptAxisActions(axis string) ([]funscript.Action, error) {
 		}
 		return script.Metadata.SamnAxes.Suction, nil
 	default:
+		// Multi-axis companion files beside the script (D4), read-only.
+		if name := funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))); funscript.IsCompanionAxis(name) {
+			return funscript.LoadCompanionAxis(a.loadedScriptPath(), name)
+		}
 		return nil, fmt.Errorf("unknown axis %q", axis)
 	}
 }
@@ -194,6 +198,9 @@ func (a *App) SaveScriptAxisActions(axis string, actions []funscript.Action) err
 	name := funscript.AxisName(strings.ToLower(strings.TrimSpace(axis)))
 	if name == "" {
 		name = funscript.AxisGeneral
+	}
+	if funscript.IsCompanionAxis(name) {
+		return fmt.Errorf("the %s axis is shown read-only (edit it in its own file)", name)
 	}
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)

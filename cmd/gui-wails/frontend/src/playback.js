@@ -650,13 +650,21 @@ export function initPlayback(root) {
     const cs = getComputedStyle(root);
     const tok = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
     for (const axis of Object.keys(AXIS_DEFAULTS)) AXIS_COLORS[axis] = tok(AXIS_TOKENS[axis], AXIS_DEFAULTS[axis]);
+    for (const axis of Object.keys(COMPANION_DEFAULTS)) COMPANION_COLORS[axis] = tok('--axis-' + axis, COMPANION_DEFAULTS[axis]);
     THEME.playhead = tok('--pb-playhead', '#ffffff');
     THEME.grid = tok('--pb-grid', 'rgba(255,255,255,0.10)');
     const w = parseFloat(tok('--pb-curve-width', '1.5'));
     THEME.curveWidth = Number.isFinite(w) && w > 0 ? w : 1.5;
   }
   const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
-  const LANE_AXES = ['vibration', 'suction'];
+  // Multi-axis companion files beside the script (D4: clip.twist.funscript …),
+  // shown read-only as extra lanes; the lane colours follow CSS tokens.
+  const COMPANION_AXES = ['surge', 'sway', 'twist', 'roll', 'pitch'];
+  const COMPANION_DEFAULTS = { surge: '#e5c07b', sway: '#98c379', twist: '#e06c9f', roll: '#61afef', pitch: '#d19a66' };
+  const COMPANION_COLORS = { ...COMPANION_DEFAULTS };
+  for (const a of COMPANION_AXES) AXIS_LABELS[a] = a[0].toUpperCase() + a.slice(1);
+  const LANE_AXES = ['vibration', 'suction', ...COMPANION_AXES];
+  const laneColor = axis => AXIS_COLORS[axis] || COMPANION_COLORS[axis];
   const AUDIO_STEP_MS = 50;          // GetAudioLevelEnvelope resolution
   let audioLevel = null;             // [0..1] per AUDIO_STEP_MS, current video
   let audioLevelFor = '';            // script+video key the envelope belongs to
@@ -1972,7 +1980,7 @@ export function initPlayback(root) {
   // One thin lane per channel the script carries (vibration / suction), same
   // time axis and zoom as the curve, so all axes read together at a glance.
   async function loadAxisLanes() {
-    const next = { vibration: null, suction: null };
+    const next = {};
     for (const axis of LANE_AXES) {
       try {
         const acts = await GetScriptAxisActions(axis);
@@ -1990,7 +1998,7 @@ export function initPlayback(root) {
   }
 
   function clearAxisLanes() {
-    axisLanePoints = { vibration: null, suction: null };
+    axisLanePoints = {};
     strokeGhostPoints = null;
     redrawAxisLanes();
   }
@@ -2016,7 +2024,7 @@ export function initPlayback(root) {
     }
     const active = editAxis || 'general';
     if (legend) {
-      legend.hidden = !feelLanes.length;
+      legend.hidden = !feelLanes.some(a => AXIS_COLORS[a]); // chips: editable axes only
       legend.querySelectorAll('[data-axis]').forEach(b => {
         const a = b.dataset.axis;
         b.hidden = a !== 'general' && !axisLanePoints[a];
@@ -2053,7 +2061,7 @@ export function initPlayback(root) {
         return;
       }
       const yOf = pos => top + pad + (1 - pos / 100) * (laneH - pad * 2);
-      const color = AXIS_COLORS[axis];
+      const color = laneColor(axis);
       if (axis === active) {
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         ctx.fillRect(0, top, w, laneH);
@@ -2460,6 +2468,7 @@ export function initPlayback(root) {
 
   function selectAxis(axis) {
     const sel = el('#pb-axis');
+    // Companion lanes are read-only: they have no entry in the axis picker.
     if (!sel || !AXIS_COLORS[axis] || (editAxis || 'general') === axis) return;
     sel.value = axis;
     sel.dispatchEvent(new Event('change'));
@@ -4913,7 +4922,7 @@ export function initPlayback(root) {
     selectAxis(chips[j].dataset.axis);
   });
   axisLanesCanvas.addEventListener('keydown', e => {
-    const lanes = lanesDrawn.filter(a => a !== 'audio');
+    const lanes = lanesDrawn.filter(a => AXIS_COLORS[a]);
     if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     const cur = lanes.indexOf(editAxis);
