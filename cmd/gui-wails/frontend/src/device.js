@@ -37,10 +37,13 @@ export function initDevice(root) {
         data-help="BLE = direct Bluetooth. Intiface = via Buttplug server (other devices too). Mock = UI without hardware.">
         <option value="ble">Direct via Bluetooth</option>
         <option value="intiface">Via Intiface Central</option>
+        <option value="tcode">TCode over Wi-Fi (OSR2 / SR6)</option>
         <option value="mock">Mock device (no hardware)</option>
       </select>
       <input type="text" id="dev-intiface-url" placeholder="e.g. 192.168.1.50 or empty = this machine"
              style="display:none; width:220px;" />
+      <input type="text" id="dev-tcode-addr" placeholder="e.g. 192.168.1.50 or tcp://osr.local:8000"
+             style="display:none; width:240px;" aria-label="TCode device address" />
     </div>
     <p class="hint" id="dev-transport-hint">Searches up to 20 s for “Sam Neo 2”.</p>
 
@@ -231,6 +234,7 @@ export function initDevice(root) {
     el('#dev-disconnect').disabled = !st.connected || busy;
     el('#dev-transport').disabled = st.connected || busy;
     el('#dev-intiface-url').disabled = st.connected || busy;
+    el('#dev-tcode-addr').disabled = st.connected || busy;
 
     // Sidebar + Topbar hören auf dasselbe Event (ein Poll, mehrere Anzeigen).
     window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
@@ -248,8 +252,15 @@ export function initDevice(root) {
   // Erklärung und Adressfeld to die gewählte Verbindungsart anpassen.
   el('#dev-transport').addEventListener('change', e => {
     const intiface = e.target.value === 'intiface';
+    const tcode = e.target.value === 'tcode';
     el('#dev-intiface-url').style.display = intiface ? 'inline-block' : 'none';
-    el('#dev-transport-hint').innerHTML = intiface
+    el('#dev-tcode-addr').style.display = tcode ? 'inline-block' : 'none';
+    el('#dev-transport-hint').innerHTML = tcode
+      ? 'Sends TCode to an OSR2 / SR6 (or other TCode device) running Wi-Fi firmware. '
+      + 'Enter its IP address; plain addresses use UDP port 8000, or write tcp://host:port. '
+      + 'UDP has no handshake: if the device does not move, check the address and firmware settings. '
+      + 'The stroke (L0) follows the script; extra axes come later.'
+      : intiface
       ? 'Connects via a running Buttplug server. Start Intiface Central, '
       + 'connect the device there and start the server. Benefit: no dedicated '
       + 'Bluetooth adapter, and it works with any Buttplug-supported '
@@ -268,8 +279,9 @@ export function initDevice(root) {
     el('#dev-connect').disabled = true;
     render({ connected: false, sessionActive: false });
     try {
-      const st = await ConnectDeviceVia(el('#dev-transport').value,
-                                        el('#dev-intiface-url').value.trim());
+      const transport = el('#dev-transport').value;
+      const address = transport === 'tcode' ? el('#dev-tcode-addr').value.trim() : el('#dev-intiface-url').value.trim();
+      const st = await ConnectDeviceVia(transport, address);
       searching = false;
       busy = false;
       render(st);
@@ -453,6 +465,7 @@ export function initDevice(root) {
       el('#dev-transport').dispatchEvent(new Event('change'));
     }
     if (s.intifaceUrl) el('#dev-intiface-url').value = s.intifaceUrl;
+    if (s.tcodeAddress) el('#dev-tcode-addr').value = s.tcodeAddress;
   }).catch(() => {});
 
   refresh();

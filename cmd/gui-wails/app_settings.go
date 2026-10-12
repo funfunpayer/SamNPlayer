@@ -19,6 +19,7 @@ const (
 	prefClearCacheOnExit     = "cache.clearOnExit"
 	prefDeviceTransport      = "device.transport"
 	prefIntifaceURL          = "device.intifaceUrl"
+	prefTCodeAddress         = "device.tcodeAddress"
 	prefDeviceConnectTest    = "device.connect_test"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
 	prefAIPreferredClasses   = "generator.aiPreferredClasses"
@@ -168,6 +169,7 @@ type Settings struct {
 	// laufen lässt, tippt sonst bei jedem Start dieselbe IP neu ein.
 	DeviceTransport string `json:"deviceTransport"`
 	IntifaceURL     string `json:"intifaceUrl"`
+	TCodeAddress    string `json:"tcodeAddress"`
 	// DeviceConnectTest: nach erfolgreichem Verbinden einmal kurz Vib/Sog
 	// testen. Standard aus - stört sonst bei jedem Connect.
 	DeviceConnectTest bool `json:"deviceConnectTest"`
@@ -287,6 +289,7 @@ func (a *App) GetSettings() Settings {
 		ClearCacheOnExit:   s.GetBool(prefClearCacheOnExit, false),
 		DeviceTransport:    s.GetString(prefDeviceTransport, "ble"),
 		IntifaceURL:        s.GetString(prefIntifaceURL, ""),
+		TCodeAddress:       s.GetString(prefTCodeAddress, ""),
 		DeviceConnectTest:  s.GetBool(prefDeviceConnectTest, false),
 		AIRoiModelPath:     s.GetString(prefAIRoiModelPath, ""),
 		AIPreferredClasses: s.GetString(prefAIPreferredClasses, bodyparts.PreferredClassesCSV()),
