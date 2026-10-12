@@ -49,6 +49,19 @@ The device interface (`device.Device`) has two channels: `SetVibration` and `Set
 
 5. **Generator.** Create keeps producing the stroke curve every stroker needs. Neo 2 feel channels stay as they are. Extra axes come only where the video motion supports them.
 
+## Named devices (Owner)
+
+The Owner named these devices as must-support:
+
+| Device | Channels (expected over Buttplug / Intiface) | Path |
+|---|---|---|
+| **Sam Neo 2** | vibration, suction | Own BLE plus Intiface (first-class) |
+| **The Handy** | stroke (linear) | Intiface `LinearCmd` (D2); online API optional (D5) |
+| **LELO F1S V3** | 2 × vibration (motors) | Intiface `ScalarCmd` Vibrate (D2: both motors) |
+| **Lovense Max 2** | vibration and constrict (air pump → suction) | Intiface `ScalarCmd` Vibrate + Constrict. Works today for the first motor + pump; D2 adds the rest |
+
+The expected channels follow from the public Buttplug device descriptions. The real report comes from the device on connect (D1), so the GUI never relies on this table.
+
 ## Steps (after V1 W4)
 
 | # | Step |
