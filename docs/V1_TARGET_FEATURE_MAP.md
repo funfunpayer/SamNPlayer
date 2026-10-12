@@ -116,9 +116,9 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | "4 Devices Connected", per-axis "Connected" | ⛔ | One device at a time today; multi-device is future work |
 | Audio diagnostics from the microphone (spectrum, input level, noise floor) | ⛔ | No microphone input in the app. Video-audio spectrum is possible later (🔧) |
 | BPM detection tools (BPM, confidence) | ✅ / 🔧 | BPM from audio exists; confidence / stability values need exposing |
-| Script utilities (open, validate, recent) | ✅ | Script Doctor / quality, recent files |
+| Script utilities (open, validate, recent) | ✅ | Script Doctor / quality, recent files; Tools → Home lists recent scripts and has Open script… |
 | Profile manager (Default / Intense / Relaxed …) | ✅ | Strength presets |
-| Tools status overview (green dots) | ⛔ | Only real checks: dependencies (`Check folders & dependencies`), device state, ffmpeg |
+| Tools status overview (green dots) | ✅ | **Tools → Home**: every row is a real check — device state (live), runtime dependencies (ffmpeg …, required = red when missing, optional = amber), app folders, last device diagnostics run, cache, version and edition. Rows that were never checked stay grey |
 | Performance: CPU / memory / latency | ⛔ / 🔧 | Device latency is real (diagnostics); CPU / memory are not shown |
 | Quick tools: Calibrate, Run audio analysis, Detect BPM, Validate, Export / Backup config | ✅ / 🔧 | Diagnostics, BPM and validate exist; config export / backup is new |
 | Configuration toggles (updates, logging …) | ✅ | Settings |

@@ -18,11 +18,18 @@ measurement history behind each entry; this file is the short version for
 - **Editions renamed (Owner, 12 Oct):** **SamNPlayer Free** is the
   customer build; **SamNPlayer Suite** is our internal build with AI
   training and the batch test system (`-tags suite`, release files
-  `SamNPlayer-suite-…`, formerly "studio"). The future commercial product
-  is **SamNPlayer Next (Studio)**. See `docs/EDITIONS.md`.
+  `SamNPlayer-suite-…`, formerly "studio"). The next major version is
+  **SamNPlayer 2.0 Next**, also free, with no licence system. See
+  `docs/EDITIONS.md`.
 
 ### Added
 
+- **Tools → Home:** Tools now opens on a home page with the app's real
+  status: device (live), runtime dependencies such as ffmpeg (a missing
+  required one is red, a missing optional one amber), app folders, the
+  last device diagnostics run, cache, and version / edition. "Check again"
+  re-runs the checks. Quick tools open Device, Log, Settings, the log
+  folder, a script, or the update check; recent scripts open in the Player.
 - **Player → Scene Map tab:** the script's chapters as scenes. A grid
   shows one card per scene (video thumbnail, name, range, duration); the
   details pane shows the selected scene's range, position (n / N),
