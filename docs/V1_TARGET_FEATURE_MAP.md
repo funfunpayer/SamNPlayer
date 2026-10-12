@@ -39,9 +39,9 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Idle stage with the Flow mark | 🎨 | Graphic from the #477 list |
 | Big Play ⇄ Pause / Resume, Stop separate | ✅ | #497 |
 | Loop, speed 0.5–2×, previous, volume, fullscreen | ✅ | |
-| Skip ±10 s buttons | 🔧 | Same as ←/→, just add the buttons |
+| Skip ±10 s buttons | ✅ | Same as ←/→ |
 | Next item | ✅ | `#pb-next`; currently shown only with a playlist |
-| Sleep timer | 🔧 | Small: stop after N minutes |
+| Sleep timer | ✅ | Stops after N minutes of playing |
 | Inspector: Devices · Audio · Playback · View | ✅ | |
 | "Enable Devices" toggle | ✅ | Map to connect / disconnect state |
 | "Custom Profile" dropdown | ✅ | Strength presets (`#pb-strength`) |
@@ -60,7 +60,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Timeline tabs, lane names, Audio Level lane | ✅ | |
 | Scene Markers row with thumbnails and "+" | ✅ | Off by default in Play, on in Edit |
 | **Sound Curve** (curve from the video's sound) | 🔧 | Exists as "Vibration from video audio" and the audio lane. Missing: write it **as a curve into the script** (vibration axis from the audio envelope) and show it as its own lane |
-| **Invert Curve** | 🔧 | Backend `InvertScriptAtPath` exists, but is not wired. Add "Invert curve" in Edit (range or whole script, with undo) |
+| **Invert Curve** | ✅ | Edit: "⇅ Invert" — shown channel, marked range or whole script, undoable |
 
 ## Create (`create.png`)
 
@@ -106,6 +106,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Emergency Stop | ✅ | End session; make it a conspicuous Stop |
 | Session timeline (phases with times) | 🔧 | From the script phases |
 | Endurance / Control / Edge Play categories | 🔧 | Only as filters over real presets |
+| **Training with a video** (Owner, 12 Oct) | 🔧 | Besides the pixel clip, any film can run on the training stage. Training drives the device, the video plays along (loop / muted option). Video picker + recent videos are shared with Player |
 
 ## Tools (`tools.png`)
 
@@ -129,7 +130,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 2. **Invert Curve** in Edit, with undo (backend exists), plus skip ±10 s and sleep timer.
 3. **Sound Curve:** write the audio envelope as a vibration curve (with undo) and show it as a lane.
 4. **Effects sub-tabs** (Effects · Curve · Limits · Advanced) and effect presets.
-5. **Training:** engine events for phase and time, split rings, live curve, per-channel safety caps.
+5. **Training:** engine events for phase and time, split rings, live curve, per-channel safety caps, **training with any video**.
 6. **Create:** project header, source grid, curve lanes and scene strip.
 7. **Scene Map view:** chapter bands, thumbnail grid, details inspector.
 8. **Tools home:** real status only.
