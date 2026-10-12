@@ -63,3 +63,14 @@ func TestConnectDeviceViaTCodeNeedsAddress(t *testing.T) {
 		t.Fatalf("empty address must explain itself, got %v", err)
 	}
 }
+
+func TestSetMotorLevelsClampsAndStores(t *testing.T) {
+	a := NewApp()
+	a.SetMotorLevels(map[string]float64{"vibration": 2, "vibration2": -1, "rotate": 0.3})
+	a.stateMu.RLock()
+	got := a.motorLevels
+	a.stateMu.RUnlock()
+	if got["vibration"] != 1 || got["vibration2"] != 0 || got["rotate"] != 0.3 {
+		t.Fatalf("levels %+v", got)
+	}
+}

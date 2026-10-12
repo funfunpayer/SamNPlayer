@@ -198,6 +198,7 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 		_ = a.settings.Set(prefTCodeAddress, url)
 	}
 
+	a.applyMotorLevels(dev)
 	a.maybeConnectSmokeTest(dev)
 
 	st := a.GetDeviceStatus()
@@ -399,4 +400,40 @@ func clamp01(v float64) float64 {
 		return 1
 	}
 	return v
+}
+
+// SetMotorLevels sets the output level of single motors (channel id →
+// 0–1, e.g. {"vibration": 1, "vibration2": 0.5}) on a multi-motor device,
+// also while playing. Remembered for the next connect.
+func (a *App) SetMotorLevels(levels map[string]float64) {
+	a.stateMu.Lock()
+	a.motorLevels = map[string]float64{}
+	for ch, l := range levels {
+		if !(l >= 0) {
+			l = 0
+		}
+		if l > 1 {
+			l = 1
+		}
+		a.motorLevels[ch] = l
+	}
+	dev := a.testDevice
+	a.stateMu.Unlock()
+	a.applyMotorLevels(dev)
+}
+
+func (a *App) applyMotorLevels(dev device.Device) {
+	ms, ok := dev.(device.MotorLevelSetter)
+	if !ok {
+		return
+	}
+	a.stateMu.RLock()
+	levels := make(map[string]float64, len(a.motorLevels))
+	for ch, l := range a.motorLevels {
+		levels[ch] = l
+	}
+	a.stateMu.RUnlock()
+	for ch, l := range levels {
+		ms.SetMotorLevel(ch, l)
+	}
 }

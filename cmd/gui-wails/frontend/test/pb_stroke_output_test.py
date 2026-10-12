@@ -32,6 +32,7 @@ def main():
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false})",
         "SetStrokeOutput": "async (on, lo, hi) => { window.__stroke.push([on, lo, hi]); return [lo, hi]; }",
+        "SetMotorLevels": "async (m) => { window.__motors = (window.__motors || []).concat([m]); }",
     }))
     try:
         with sync_playwright() as p:
@@ -71,9 +72,26 @@ def main():
 
             page.evaluate(f"window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}}))")
             check("vibrator: no stroke controls", hidden("#pb-stroke-ctl"))
+            check("two motors → per-motor sliders", not hidden("#pb-motor-ctl")
+                  and page.evaluate("document.querySelectorAll('#pb-motor-ctl input[data-motor]').length") == 2)
+            labels = page.evaluate("[...document.querySelectorAll('#pb-motor-ctl .pb-motor-row span:first-child')].map(e => e.textContent)")
+            check("motor names", labels == ["Vibration motor 1", "Vibration motor 2"], str(labels))
+            check("levels sent on connect (full)", page.evaluate("window.__motors[window.__motors.length - 1]") == {"vibration": 1, "vibration2": 1})
+            page.evaluate("const e = document.querySelector('#pb-motor-ctl input[data-motor=\"vibration2\"]'); e.value = '40'; e.dispatchEvent(new Event('input'))")
+            check("motor 2 at 40 % sent", page.evaluate("window.__motors[window.__motors.length - 1]") == {"vibration": 1, "vibration2": 0.4})
+            saved = page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels') || '{}')")
+            check("motor levels saved, stroke kept", saved.get("motors") == {"vibration": 100, "vibration2": 40}
+                  and saved.get("stroke", {}).get("lo") == 15, str(saved))
+            page.evaluate("const e = document.querySelector('#pb-chan-vibration-level'); e.value = '60'; e.dispatchEvent(new Event('input'))")
+            saved = page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels') || '{}')")
+            check("channel change keeps motor levels", saved.get("motors", {}).get("vibration2") == 40, str(saved))
+            page.evaluate(f"window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}}))")
+            check("reconnect restores the saved motor level",
+                  page.input_value('#pb-motor-ctl input[data-motor="vibration2"]') == "40")
             check("vibrator: vibration row (motor 2 counts as vibration), no suction row",
                   not hidden('.pb-chan-row[data-axis="vibration"]') and hidden('.pb-chan-row[data-axis="suction"]'))
             page.evaluate("window.dispatchEvent(new CustomEvent('device:status', {detail: {connected:false}}))")
+            check("disconnected: no motor sliders", hidden("#pb-motor-ctl"))
             check("disconnected: every row back",
                   not hidden('.pb-chan-row[data-axis="vibration"]') and not hidden('.pb-chan-row[data-axis="suction"]'))
             check("no page errors", errors == [], str(errors[:3]))

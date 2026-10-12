@@ -39,3 +39,10 @@ type MultiAxisDevice interface {
 	// SetAxis moves axis to pos (0–1, 0.5 = centre) within duration.
 	SetAxis(axis string, pos float64, duration time.Duration) error
 }
+
+// MotorLevelSetter scales single motors of a multi-motor device (LELO F1S
+// V3: two vibration motors) on top of the channel level. channel is the
+// feature's channel id ("vibration", "vibration2" …); 1 = full.
+type MotorLevelSetter interface {
+	SetMotorLevel(channel string, level float64)
+}

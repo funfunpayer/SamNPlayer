@@ -8,7 +8,7 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
-import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SaveVideoSnapshot } from '../wailsjs/go/main/App';
+import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SetMotorLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { mountScenePanel } from './scene_panel.js';
 
@@ -206,6 +206,13 @@ export function applyPlayerLayoutV1(root, api) {
     </div>
     <p class="hint">Safety range: the device only moves inside it; the script's full stroke is scaled into it.</p>`;
   live.querySelector('.pb-chan-row[data-axis="stroke"]')?.after(strokeCtl);
+  // Multi-motor devices (LELO F1S V3 …): one level per motor, shown only
+  // while such a device is connected (rows built from its capabilities).
+  const motorCtl = document.createElement('div');
+  motorCtl.className = 'pb-motor-ctl';
+  motorCtl.id = 'pb-motor-ctl';
+  motorCtl.hidden = true;
+  live.querySelector('.pb-chan-row[data-axis="vibration"]')?.after(motorCtl);
 
   // Effects knobs (mockup; Owner 11 Oct): Intensity = overall output of the
   // feel channels (master over the channel levels), Response = how direct the
@@ -762,6 +769,7 @@ export function applyPlayerLayoutV1(root, api) {
     try { // keep the stroke block (written by applyStroke)
       const prev = JSON.parse(load(CHAN_KEY) || '{}');
       if (prev && prev.stroke) out.stroke = prev.stroke;
+      if (prev && prev.motors) out.motors = prev.motors;
     } catch (_) { /* ignore */ }
     store(CHAN_KEY, JSON.stringify(out));
     root.dataset.pbChannels = `${vib},${suc}`;
@@ -809,6 +817,62 @@ export function applyPlayerLayoutV1(root, api) {
   strokeHi.addEventListener('input', applyStroke);
   applyStroke();
 
+  // ---- Per-motor levels (multi-motor devices) ------------------------------
+  const motorLabel = ch => {
+    const m = /^([a-z]+?)(\d*)$/.exec(ch) || [ch, ch, ''];
+    const base = m[1][0].toUpperCase() + m[1].slice(1);
+    return `${base} motor ${m[2] || '1'}`;
+  };
+  function savedMotors() {
+    try { return (JSON.parse(load(CHAN_KEY) || '{}') || {}).motors || {}; } catch (_) { return {}; }
+  }
+  function applyMotors() {
+    const levels = {};
+    motorCtl.querySelectorAll('input[data-motor]').forEach(inp => {
+      const v = Number(inp.value);
+      levels[inp.dataset.motor] = v / 100;
+      const out = motorCtl.querySelector(`[data-motor-val="${inp.dataset.motor}"]`);
+      if (out) out.textContent = `${v}%`;
+    });
+    let cur = {};
+    try { cur = JSON.parse(load(CHAN_KEY) || '{}') || {}; } catch (_) { cur = {}; }
+    cur.motors = Object.fromEntries(Object.entries(levels).map(([k, v]) => [k, Math.round(v * 100)]));
+    store(CHAN_KEY, JSON.stringify(cur));
+    SetMotorLevels(levels).catch(() => {});
+  }
+  function renderMotors(feats) {
+    const motors = (feats || []).filter(f => f.driven && f.kind === 'scalar' && /^vibration\d*$/.test(String(f.channel)));
+    motorCtl.replaceChildren();
+    motorCtl.hidden = motors.length < 2;
+    root.dataset.pbMotors = String(motors.length);
+    if (motors.length < 2) return;
+    const saved = savedMotors();
+    const title = document.createElement('p');
+    title.className = 'pb-motor-title';
+    title.textContent = 'Motors';
+    motorCtl.append(title);
+    for (const f of motors) {
+      const ch = String(f.channel);
+      const lvl = Number.isFinite(saved[ch]) ? Math.max(0, Math.min(100, saved[ch])) : 100;
+      const row = document.createElement('label');
+      row.className = 'pb-motor-row';
+      const name = document.createElement('span');
+      name.textContent = motorLabel(ch);
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = '0'; inp.max = '100'; inp.step = '5'; inp.value = String(lvl);
+      inp.dataset.motor = ch;
+      inp.setAttribute('aria-label', `${motorLabel(ch)} level`);
+      inp.addEventListener('input', applyMotors);
+      const val = document.createElement('span');
+      val.className = 'pb-motor-val';
+      val.dataset.motorVal = ch;
+      val.textContent = `${lvl}%`;
+      row.append(name, inp, val);
+      motorCtl.append(row);
+    }
+    applyMotors();
+  }
+
   // Connected device → show what it can do: the stroke controls for a
   // stroker, no rows for channels it lacks. Without a device: all rows.
   window.addEventListener('device:status', e => {
@@ -818,6 +882,7 @@ export function applyPlayerLayoutV1(root, api) {
     const stroker = !!feats && feats.some(f => f.driven && f.kind === 'linear');
     strokeCtl.hidden = !stroker;
     root.dataset.pbStroker = stroker ? 'on' : 'off';
+    renderMotors(feats);
     for (const k of chans) {
       const row = q(`.pb-chan-row[data-axis="${k}"]`);
       if (row) row.hidden = !has(k);
