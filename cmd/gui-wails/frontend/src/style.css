@@ -3784,3 +3784,44 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-chapter-band.c4 { background: rgba(86, 140, 220, 0.38); }
 .pb-chapter-band.is-current { border-color: #fff; color: #fff; }
 .pb-chapter-band:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Scene Map bottom panel (scene_panel.js, V1 target scene-map.png):
+   chapters as scenes — grid + details of the selected scene. */
+.pb-scenes { padding: var(--space-2) 0; }
+.pb-scenes-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.pb-scenes-count { font-size: var(--type-hint); color: var(--text-dim); }
+.pb-scenes-empty { margin: var(--space-3) 0; font-size: var(--type-hint); color: var(--text-dim); }
+.pb-scenes-empty[hidden], .pb-scenes-body[hidden], .pb-scene-details[hidden] { display: none; }
+.pb-scenes-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: var(--space-3); align-items: start; }
+.pb-scenes-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-2);
+  max-height: 320px; overflow-y: auto; padding: 2px;
+}
+.pb-scene-card {
+  display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 6px; min-width: 0;
+  text-align: left; background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 4px solid var(--scene-c, var(--accent)); border-radius: var(--radius-sm);
+  box-shadow: none; cursor: pointer; color: var(--text);
+}
+.pb-scene-card.c0 { --scene-c: rgb(47, 128, 237); }
+.pb-scene-card.c1 { --scene-c: rgb(242, 140, 40); }
+.pb-scene-card.c2 { --scene-c: rgb(155, 81, 224); }
+.pb-scene-card.c3 { --scene-c: rgb(39, 174, 160); }
+.pb-scene-card.c4 { --scene-c: rgb(86, 140, 220); }
+.pb-scene-card:hover { border-color: var(--border-strong); border-left-color: var(--scene-c); }
+.pb-scene-card.is-selected { border-color: var(--accent); border-left-color: var(--scene-c); background: var(--accent-soft); }
+.pb-scene-card.is-current .pb-scene-card-name::after { content: " ●"; color: var(--ok); }
+.pb-scene-card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.pb-scene-card-thumb { display: block; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--bg-alt); }
+.pb-scene-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pb-scene-card-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-scene-card-range { font-size: 11.5px; color: var(--text-dim); font-family: var(--font-mono); }
+.pb-scene-details { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-3); }
+.pb-scene-d-title { margin: 0 0 var(--space-2); font-size: 14px; overflow-wrap: anywhere; }
+.pb-scene-d-sub { margin: var(--space-3) 0 var(--space-1); font-size: var(--type-chip); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.pb-scene-d-list, .pb-scene-d-tech { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--space-2); margin: 0; font-size: 12.5px; }
+.pb-scene-d-list dt, .pb-scene-d-tech dt { color: var(--text-dim); }
+.pb-scene-d-list dd, .pb-scene-d-tech dd { margin: 0; overflow-wrap: anywhere; }
+.pb-scene-d-nav { display: flex; gap: var(--space-1); margin-top: var(--space-2); flex-wrap: wrap; }
+.pb-scene-d-nav button { flex: 1 1 auto; margin: 0; padding: 4px 8px; font-size: 12px; }
+@media (max-width: 900px) { .pb-scenes-body { grid-template-columns: 1fr; } }

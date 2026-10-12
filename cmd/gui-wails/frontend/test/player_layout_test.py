@@ -114,7 +114,9 @@ def main():
             check("curve hidden while Chapters shown", page.is_hidden("#pb-curve"))
             page.click('.pb-bottom-tab[data-btab="timeline"]')
             page.click('.pb-bottom-tab[data-btab="scenemap"]')
-            check("Scene Map bottom tab opens the Scene Map view",
+            check("Scene Map bottom tab shows the scenes panel", page.is_visible("#pb-scenes-count"))
+            page.click("#pb-scenes-heatmap")
+            check("Scene Map header link opens the Create rhythm heatmap",
                   page.get_attribute("#tab-generator", "data-view") == "scenemap")
             page.click('#rail .tab-btn[data-tab="playback"]')
             page.click("#pb-lib-editor")
