@@ -14,6 +14,7 @@ This is planned **after** the current V1 workspace work (W1–W4). It is recorde
 |---|---|---|
 | **Sam Neo 2**, own BLE | Vibration, Suction | First-class: diagnostics, battery, recipes (stroke → feel) |
 | **Intiface Central (Buttplug)** | Stroke via `LinearCmd`; every vibration motor, suction, oscillate and rotate via `ScalarCmd` / `RotateCmd` | D2: strokers (The Handy) get the script's real positions; multi-motor devices (LELO F1S V3) drive every motor |
+| **TCode over Wi-Fi** (D5) | Stroke (L0) | OSR2 / SR6 and other TCode devices with network firmware; write-only, UDP or TCP |
 | **Mock** | Vibration, Suction | Tests and demo |
 
 The device interface (`device.Device`) has two intensity channels: `SetVibration` and `SetSuction`. The **Stroke** curve drives the Neo 2 feel recipe. Devices with a linear channel also implement `device.LinearDevice` (`SetPosition`); the player sends them the script's stroke positions (D2).
@@ -80,6 +81,6 @@ The expected channels follow from the public Buttplug device descriptions. The r
 | D2 ✅ | Intiface `LinearCmd` and `RotateCmd`, plus vibrate per motor; the Player sends the stroke position to linear devices |
 | D3 (part 1 ✅) | Player UI follows capabilities. **Done:** Inspector → Devices hides rows for channels the connected device lacks; a stroker gets stroke on/off and a **safety range** (bottom / top, at least 10 % apart, positions scaled into it, live via `SetStrokeOutput`). **Open:** timeline lanes per device, per-motor levels |
 | D4 (part 1 ✅) | Multi-axis script loading: companion files `<name>.surge/.sway/.twist/.roll/.pitch.funscript` beside the script are read (inversion honoured) and shown as read-only lanes in their own colour (`funscript.LoadCompanionAxis`, `GetScriptAxisActions`). **Open:** editing them, export, sending them to a device (needs D5 TCode) |
-| D5 | TCode transport (OSR2 / SR6); optional Handy online API |
+| D5 (part 1 ✅) | **TCode over Wi-Fi** (OSR2 / SR6 Wi-Fi firmware, UDP or TCP, default port 8000): Tools → Device → "TCode over Wi-Fi"; the stroke (L0) follows the script with the D3 safety range, `DSTOP` on pause / emergency stop (`device.TCode`). **Open:** TCode over USB serial (needs a serial-port dependency — Owner decision), extra axes L1/L2/R0–R2 from companion files, optional Handy online API |
 
 Each step comes with tests, using a mock device per capability set.

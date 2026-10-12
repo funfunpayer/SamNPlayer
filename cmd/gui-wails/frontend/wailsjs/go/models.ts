@@ -1740,6 +1740,7 @@ export namespace main {
 	    clearCacheOnExit: boolean;
 	    deviceTransport: string;
 	    intifaceUrl: string;
+	    tcodeAddress: string;
 	    deviceConnectTest: boolean;
 	    aiRoiModelPath: string;
 	    aiBaseUrl: string;
@@ -1811,6 +1812,7 @@ export namespace main {
 	        this.clearCacheOnExit = source["clearCacheOnExit"];
 	        this.deviceTransport = source["deviceTransport"];
 	        this.intifaceUrl = source["intifaceUrl"];
+	        this.tcodeAddress = source["tcodeAddress"];
 	        this.deviceConnectTest = source["deviceConnectTest"];
 	        this.aiRoiModelPath = source["aiRoiModelPath"];
 	        this.aiBaseUrl = source["aiBaseUrl"];

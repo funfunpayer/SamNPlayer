@@ -24,6 +24,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **TCode over Wi-Fi (D5):** Tools → Device → "TCode over Wi-Fi (OSR2 /
+  SR6)" connects to a TCode device with network firmware (UDP or TCP, port
+  8000 by default). The stroke (L0) follows the script within the stroke
+  safety range; pause and emergency stop send `DSTOP`. USB serial is not
+  included yet.
 - **Multi-axis scripts (D4):** companion files beside a script
   (`clip.surge.funscript`, `.sway`, `.twist`, `.roll`, `.pitch`) now show as
   extra lanes in the Player, each in its own colour. They are read-only

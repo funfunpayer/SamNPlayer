@@ -76,6 +76,13 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		}
 		return st
 	}
+	if tc, ok := dev.(*device.TCode); ok {
+		info := tc.Info()
+		st.Connected = info.Connected
+		st.Name = info.Name
+		st.Address = info.Address
+		return st
+	}
 	if real, ok := dev.(*device.SamNeo2); ok {
 		info := real.Info()
 		st.Connected = info.Connected
@@ -153,6 +160,9 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 		dev = device.NewMock(true)
 	case "intiface":
 		dev = device.NewIntiface(url)
+	case "tcode":
+		// OSR2 / SR6 and other TCode devices over Wi-Fi (D5).
+		dev = device.NewTCode(url)
 	default:
 		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
 	}
@@ -183,6 +193,9 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	_ = a.settings.Set(prefDeviceTransport, transport)
 	if transport == "intiface" {
 		_ = a.settings.Set(prefIntifaceURL, url)
+	}
+	if transport == "tcode" {
+		_ = a.settings.Set(prefTCodeAddress, url)
 	}
 
 	a.maybeConnectSmokeTest(dev)
