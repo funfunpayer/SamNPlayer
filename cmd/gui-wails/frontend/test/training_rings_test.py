@@ -28,6 +28,9 @@ def test_training_rings():
             assert page.locator(".flow-tr__value").all_text_contents() == ['63%', '0%', '100%']
             assert page.locator(".flow-tr__channel[data-active='true']").count() == 2
             assert page.locator(".flow-tr__phase").inner_text() == 'Plateau'
+            assert page.locator(".flow-tr__channel[data-axis='vibration'] .flow-tr__spark-line").get_attribute('points') == ''
+            page.evaluate("window.__trainingRings.update({vibration:0.25})")
+            assert page.locator(".flow-tr__channel[data-axis='vibration'] .flow-tr__spark-line").get_attribute('points')
             page.evaluate("window.__trainingRings.update({vibration:null})")
             assert page.locator(".flow-tr__value").all_text_contents() == ['—', '0%', '100%']
             page.evaluate("window.__trainingRings.setPhase('Paused')")
