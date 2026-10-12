@@ -50,13 +50,15 @@ type Intiface struct {
 	// einen ScalarCmd ab, dessen ActuatorType nicht zum Feature passt.
 	constrictActuator string
 	// features: every channel the adopted device lists (D1), driven or not.
-	features   []Feature
-	deviceName string
-	connected  bool
-	hasBattery bool
-	batteryPct int
-	batteryOK  bool
-	batteryAt  time.Time
+	features []Feature
+	// motorLevels: per-motor output level (channel id → 0–1), default 1.
+	motorLevels map[string]float64
+	deviceName  string
+	connected   bool
+	hasBattery  bool
+	batteryPct  int
+	batteryOK   bool
+	batteryAt   time.Time
 
 	stopPing chan struct{}
 	// batteryCh bekommt BatteryLevelReading-Werte von readLoop (je
@@ -486,9 +488,28 @@ func (i *Intiface) scalarsFor(curve string, value float64) []any {
 		if (curve == ChSuction) != isSuction {
 			continue
 		}
-		out = append(out, map[string]any{"Index": f.Index, "Scalar": value, "ActuatorType": f.Actuator})
+		out = append(out, map[string]any{"Index": f.Index, "Scalar": value * i.motorLevelLocked(f.Channel), "ActuatorType": f.Actuator})
 	}
 	return out
+}
+
+// motorLevelLocked: the per-motor level of channel (1 when unset). Caller holds i.mu.
+func (i *Intiface) motorLevelLocked(channel string) float64 {
+	if l, ok := i.motorLevels[channel]; ok {
+		return l
+	}
+	return 1
+}
+
+// SetMotorLevel sets one motor's level (0–1), also while playing; it takes
+// effect with the next command.
+func (i *Intiface) SetMotorLevel(channel string, level float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if i.motorLevels == nil {
+		i.motorLevels = map[string]float64{}
+	}
+	i.motorLevels[channel] = clampUnit(level)
 }
 
 // SetVibration drives every vibration motor (LELO F1S V3: both), other
@@ -507,7 +528,7 @@ func (i *Intiface) SetVibration(intensity float64) error {
 		var rotations []any
 		for _, f := range i.features {
 			if f.Kind == KindRotate && f.Driven {
-				rotations = append(rotations, map[string]any{"Index": f.Index, "Speed": v, "Clockwise": true})
+				rotations = append(rotations, map[string]any{"Index": f.Index, "Speed": v * i.motorLevelLocked(f.Channel), "Clockwise": true})
 			}
 		}
 		if len(rotations) == 0 {

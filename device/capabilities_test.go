@@ -177,3 +177,43 @@ func (bareDevice) Disconnect() error             { return nil }
 func (bareDevice) SetVibration(float64) error    { return nil }
 func (bareDevice) SetSuction(float64) error      { return nil }
 func (bareDevice) Stop() error                   { return nil }
+
+// Per-motor levels scale single motors (LELO F1S V3: motor 2 at 50 %).
+func TestIntifaceMotorLevels(t *testing.T) {
+	fake := &fakeButtplug{deviceMessages: map[string]any{
+		"ScalarCmd": []any{
+			map[string]any{"ActuatorType": "Vibrate"},
+			map[string]any{"ActuatorType": "Vibrate"},
+		},
+		"RotateCmd":     []any{map[string]any{"StepCount": 20}},
+		"StopDeviceCmd": map[string]any{},
+	}}
+	url, server := startFake(t, fake)
+	defer server.Close()
+	dev := NewIntiface(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dev.Connect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer dev.Disconnect()
+	var ms MotorLevelSetter = dev
+	ms.SetMotorLevel("vibration2", 0.5)
+	ms.SetMotorLevel("rotate", 2) // clamped to 1
+	if err := dev.SetVibration(0.8); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	sc := fake.commands("ScalarCmd")
+	if len(sc) != 1 {
+		t.Fatalf("want 1 ScalarCmd, got %d", len(sc))
+	}
+	v := sc[0]["Scalars"].([]any)
+	if v[0].(map[string]any)["Scalar"].(float64) != 0.8 || v[1].(map[string]any)["Scalar"].(float64) != 0.4 {
+		t.Fatalf("motor 1 full, motor 2 at half: %+v", v)
+	}
+	r := fake.commands("RotateCmd")[0]["Rotations"].([]any)[0].(map[string]any)
+	if r["Speed"].(float64) != 0.8 {
+		t.Fatalf("rotation level clamped to 1: %+v", r)
+	}
+}

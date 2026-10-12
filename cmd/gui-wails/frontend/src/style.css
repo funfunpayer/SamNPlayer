@@ -3871,3 +3871,10 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-lane-name[data-lane="twist"] { --lane-c: var(--axis-twist); }
 .pb-lane-name[data-lane="roll"] { --lane-c: var(--axis-roll); }
 .pb-lane-name[data-lane="pitch"] { --lane-c: var(--axis-pitch); }
+
+/* Per-motor levels for multi-motor devices (player_layout.js). */
+.pb-motor-ctl { margin: 2px 0 8px 22px; padding: 6px 10px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); font-size: 12.5px; }
+.pb-motor-ctl[hidden] { display: none; }
+.pb-motor-title { margin: 0 0 4px; color: var(--text-dim); font-size: var(--type-chip); text-transform: uppercase; letter-spacing: 0.06em; }
+.pb-motor-row { display: grid; grid-template-columns: minmax(7em, auto) minmax(0, 1fr) 3.5em; gap: 8px; align-items: center; }
+.pb-motor-val { text-align: right; font-family: var(--font-mono); }

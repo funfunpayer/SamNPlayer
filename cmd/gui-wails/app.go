@@ -46,6 +46,9 @@ type App struct {
 	// Guarded by stateMu; applied to every new and the running player.
 	vibCut, sucCut float64
 	peakReduce     bool
+	// Per-motor levels (channel id → 0–1) for multi-motor devices; applied
+	// to the connected device and again after every connect.
+	motorLevels map[string]float64
 	// Stroke output for strokers (D3), zero value = on, full range.
 	strokeOff             bool
 	strokeLo, strokeHiCut float64

@@ -27,6 +27,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Per-motor levels:** with a multi-motor device connected (LELO F1S
+  V3: two motors), Player → Inspector → Devices shows one level per motor.
+  It applies live, is saved, and is restored on the next connect.
 - **Multi-axis output for TCode devices:** an SR6 / OSR2 connected via
   TCode over Wi-Fi now also moves its extra axes from the companion files
   (`.surge` → L1, `.sway` → L2, `.twist` → R0, `.roll` → R1, `.pitch` →
