@@ -207,6 +207,8 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 	p.SetSpeed(opts.Speed)
 	// Strokers (The Handy …) get the script's real positions (D2).
 	p.SetStroke(script.PlaybackActions())
+	// Multi-axis devices (SR6 over TCode) also get the companion files (D4).
+	p.SetAxes(companionAxesFor(a.loadedScriptPath()))
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
 	p.SetPeakReduce(a.peakReduce)
@@ -756,4 +758,24 @@ func (a *App) BakeScriptOffset() (BakeOffsetResult, error) {
 	a.SetScriptOffset(0)
 	logging.Info("playback: script offset baked into file", "ms", offset, "dropped", res.Dropped)
 	return res, nil
+}
+
+// companionAxesFor loads the multi-axis companion files beside the script
+// (clip.twist.funscript …). Unreadable files are skipped with a log line.
+func companionAxesFor(scriptPath string) map[string][]funscript.Action {
+	out := map[string][]funscript.Action{}
+	if scriptPath == "" {
+		return out
+	}
+	for _, axis := range funscript.CompanionAxes {
+		acts, err := funscript.LoadCompanionAxis(scriptPath, axis)
+		if err != nil {
+			logging.Warn("playback: companion axis skipped", "axis", axis, "error", err)
+			continue
+		}
+		if len(acts) > 0 {
+			out[string(axis)] = acts
+		}
+	}
+	return out
 }

@@ -146,3 +146,43 @@ func TestTCodeTCPConnectFails(t *testing.T) {
 		t.Fatalf("want a clear connect error, got %v", err)
 	}
 }
+
+func TestTCodeExtraAxes(t *testing.T) {
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pc.Close()
+	dev := NewTCode(pc.LocalAddr().String())
+	if err := dev.Connect(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer dev.Disconnect()
+	var md MultiAxisDevice = dev
+	if !md.HasAxis(ChTwist) || md.HasAxis("banana") {
+		t.Fatal("HasAxis follows the TCode channel table")
+	}
+	if err := md.SetAxis(ChTwist, 0.75, 200*time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	if err := md.SetAxis(ChSurge, 0.5, 100*time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	if err := md.SetAxis("banana", 0.5, time.Millisecond); err == nil {
+		t.Fatal("unknown axis must fail")
+	}
+	buf := make([]byte, 64)
+	for _, want := range []string{"R07500I200\n", "L15000I100\n"} {
+		_ = pc.SetReadDeadline(time.Now().Add(2 * time.Second))
+		n, _, err := pc.ReadFrom(buf)
+		if err != nil || string(buf[:n]) != want {
+			t.Fatalf("datagram %q (%v), want %q", buf[:n], err, want)
+		}
+	}
+	caps := CapabilitiesOf(dev)
+	for _, ch := range []string{ChStroke, ChSurge, ChSway, ChTwist, ChRoll, ChPitch} {
+		if !caps.Has(ch) {
+			t.Fatalf("capabilities lack %s: %+v", ch, caps)
+		}
+	}
+}

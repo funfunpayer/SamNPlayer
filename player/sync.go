@@ -69,6 +69,7 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 				return err
 			}
 			p.resetStroke()
+			p.resetAxes()
 		}
 		quiet = true
 		return nil
@@ -130,6 +131,9 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 				return err
 			}
 			if err := p.driveStroke(posMs); err != nil {
+				return err
+			}
+			if err := p.driveAxes(posMs); err != nil {
 				return err
 			}
 			firstFrame, quiet = false, false
