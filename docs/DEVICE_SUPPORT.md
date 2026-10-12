@@ -79,7 +79,7 @@ The expected channels follow from the public Buttplug device descriptions. The r
 | D1 ✅ | Capability model in Go (`device.Capabilities`); Neo 2, Mock and Intiface report theirs; the GUI receives them on connect |
 | D2 ✅ | Intiface `LinearCmd` and `RotateCmd`, plus vibrate per motor; the Player sends the stroke position to linear devices |
 | D3 (part 1 ✅) | Player UI follows capabilities. **Done:** Inspector → Devices hides rows for channels the connected device lacks; a stroker gets stroke on/off and a **safety range** (bottom / top, at least 10 % apart, positions scaled into it, live via `SetStrokeOutput`). **Open:** timeline lanes per device, per-motor levels |
-| D4 | Multi-axis script loading (companion axis files) and export |
+| D4 (part 1 ✅) | Multi-axis script loading: companion files `<name>.surge/.sway/.twist/.roll/.pitch.funscript` beside the script are read (inversion honoured) and shown as read-only lanes in their own colour (`funscript.LoadCompanionAxis`, `GetScriptAxisActions`). **Open:** editing them, export, sending them to a device (needs D5 TCode) |
 | D5 | TCode transport (OSR2 / SR6); optional Handy online API |
 
 Each step comes with tests, using a mock device per capability set.

@@ -3861,3 +3861,13 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-stroke-range input[type="range"] { width: 90px; }
 .pb-stroke-range-val { font-family: var(--font-mono); }
 .pb-stroke-ctl .hint { margin: 6px 0 0; }
+
+/* D4: multi-axis companion lanes (clip.twist.funscript …), read-only. */
+#tab-playback {
+  --axis-surge: #e5c07b; --axis-sway: #98c379; --axis-twist: #e06c9f; --axis-roll: #61afef; --axis-pitch: #d19a66;
+}
+.pb-lane-name[data-lane="surge"] { --lane-c: var(--axis-surge); }
+.pb-lane-name[data-lane="sway"] { --lane-c: var(--axis-sway); }
+.pb-lane-name[data-lane="twist"] { --lane-c: var(--axis-twist); }
+.pb-lane-name[data-lane="roll"] { --lane-c: var(--axis-roll); }
+.pb-lane-name[data-lane="pitch"] { --lane-c: var(--axis-pitch); }

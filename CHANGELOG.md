@@ -24,6 +24,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Multi-axis scripts (D4):** companion files beside a script
+  (`clip.surge.funscript`, `.sway`, `.twist`, `.roll`, `.pitch`) now show as
+  extra lanes in the Player, each in its own colour. They are read-only
+  for now; editing, export and device output come later.
 - **Stroke safety range (D3):** with a stroker connected, Player →
   Inspector → Devices shows "Send stroke to the device" and a bottom / top
   range; the device only moves inside it (the script's stroke is scaled
