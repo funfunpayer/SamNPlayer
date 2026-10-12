@@ -42,6 +42,9 @@ type DeviceStatus struct {
 	CapSuction   bool `json:"capSuction"`
 	CapBattery   bool `json:"capBattery"`
 	CapRaw       bool `json:"capRaw"`
+	// Capabilities: every channel of the connected device, driven or not
+	// (docs/DEVICE_SUPPORT.md D1). Empty while nothing is connected.
+	Capabilities device.Capabilities `json:"capabilities"`
 }
 
 // GetDeviceStatus liefert den aktuellen Verbindungszustand der Testverbindung.
@@ -58,6 +61,7 @@ func (a *App) GetDeviceStatus() DeviceStatus {
 		return st
 	}
 	st.Connected = true
+	st.Capabilities = device.CapabilitiesOf(dev)
 	if intiface, ok := dev.(*device.Intiface); ok {
 		info := intiface.Info()
 		st.Connected = info.Connected

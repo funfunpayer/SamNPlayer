@@ -3495,6 +3495,8 @@ details.pb-in-bottom > summary { display: none; }
 details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 
 .pb-chan-rows { display: grid; gap: 10px; margin: 4px 0 14px; }
+/* D1: channels the device has but SamNPlayer does not drive yet. */
+.dev-cap-off { opacity: 0.6; border-style: dashed; }
 /* W4: Training and Tools in the V1 shell — full width, two columns, no
    info column (the top bar shows the device; the mockup has none). */
 body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { display: none; }

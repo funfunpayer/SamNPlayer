@@ -1,5 +1,42 @@
 export namespace device {
 
+	export class Feature {
+	    channel: string;
+	    kind: string;
+	    index: number;
+	    actuator?: string;
+	    driven: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new Feature(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.channel = source["channel"];
+	        this.kind = source["kind"];
+	        this.index = source["index"];
+	        this.actuator = source["actuator"];
+	        this.driven = source["driven"];
+	    }
+	}
+	export class Capabilities {
+	    device: string;
+	    features: Feature[];
+	    battery: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new Capabilities(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.device = source["device"];
+	        this.features = (source["features"] || []).map((f: any) => new Feature(f));
+	        this.battery = source["battery"];
+	    }
+	}
+
 	export class DiagnosticsEntry {
 	    timeOffsetMs: number;
 	    phase: string;
@@ -1020,6 +1057,7 @@ export namespace main {
 	    address: string;
 	    rssi: number;
 	    sessionActive: boolean;
+	    capabilities?: device.Capabilities;
 
 	    static createFrom(source: any = {}) {
 	        return new DeviceStatus(source);
@@ -1033,6 +1071,7 @@ export namespace main {
 	        this.address = source["address"];
 	        this.rssi = source["rssi"];
 	        this.sessionActive = source["sessionActive"];
+	        this.capabilities = source["capabilities"] ? new device.Capabilities(source["capabilities"]) : undefined;
 	    }
 	}
 	export class RuntimeDepInfo {

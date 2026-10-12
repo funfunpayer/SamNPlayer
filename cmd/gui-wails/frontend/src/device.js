@@ -143,8 +143,20 @@ export function initDevice(root) {
       mock: 'Mock',
     }[st.transport] || (st.mock ? 'Mock' : '');
     if (transportLabel) chips.push(transportLabel);
-    if (st.capVibration) chips.push('Vibration');
-    if (st.capSuction) chips.push('Suction');
+    // D1: every channel the device has; not-driven ones are marked.
+    const feats = (st.capabilities && Array.isArray(st.capabilities.features)) ? st.capabilities.features : null;
+    if (feats && feats.length) {
+      for (const f of feats) {
+        const name = String(f.channel || '').replace(/^./, c => c.toUpperCase());
+        chips.push(f.driven
+          ? { text: name, channel: f.channel }
+          : { text: `${name} · coming`, channel: f.channel, off: true,
+            title: 'The device has this channel; SamNPlayer does not drive it yet (docs/DEVICE_SUPPORT.md).' });
+      }
+    } else {
+      if (st.capVibration) chips.push('Vibration');
+      if (st.capSuction) chips.push('Suction');
+    }
     if (st.capBattery) {
       chips.push(st.batteryOk ? `Battery ${st.batteryPct}%` : 'Battery');
     }
@@ -155,7 +167,10 @@ export function initDevice(root) {
       return;
     }
     box.hidden = false;
-    box.innerHTML = chips.map(c => `<span class="dev-cap">${c}</span>`).join('');
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    box.innerHTML = chips.map(c => (typeof c === 'string'
+      ? `<span class="dev-cap">${esc(c)}</span>`
+      : `<span class="dev-cap${c.off ? ' dev-cap-off' : ''}" data-channel="${esc(c.channel)}"${c.title ? ` title="${esc(c.title)}"` : ''}>${esc(c.text)}</span>`)).join('');
   }
 
   function render(st) {
