@@ -3556,6 +3556,7 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-lane-name[data-lane="suction"] { --lane-c: var(--axis-suction, #ad66f2); }
 .pb-lane-name[data-lane="audio"] { --lane-c: var(--axis-audio, #93aec4); }
 .pb-lane-name[data-lane="scenes"] { --lane-c: var(--accent, #00d9f4); }
+.pb-lane-name[data-lane="chapters"] { --lane-c: #9b51e0; }
 .pb-effects-check { margin: 10px 0 0; }
 /* S8b Auto sync (audio) inside the offset row. */
 .pb-autosync { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
@@ -3766,3 +3767,20 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 }
 .gen-clip-name { font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gen-clip-meta { margin: 0; font-size: 11.5px; }
+
+/* Chapter bands over the scene strip (V1 target scene-map.png). */
+.pb-chapter-bands[hidden] { display: none !important; }
+.pb-chapter-bands { position: relative; height: 26px; margin: 4px 30px 2px 0; } /* same scale as the scene strip */
+.pb-chapter-band {
+  position: absolute; top: 0; bottom: 0; margin: 0; padding: 0 8px; min-width: 0;
+  border-radius: 7px; border: 1px solid transparent; box-shadow: none;
+  font-size: 11.5px; line-height: 24px; text-align: left; color: #e9f4ff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.pb-chapter-band.c0 { background: rgba(47, 128, 237, 0.45); }
+.pb-chapter-band.c1 { background: rgba(242, 140, 40, 0.45); }
+.pb-chapter-band.c2 { background: rgba(155, 81, 224, 0.45); }
+.pb-chapter-band.c3 { background: rgba(39, 174, 160, 0.45); }
+.pb-chapter-band.c4 { background: rgba(86, 140, 220, 0.38); }
+.pb-chapter-band.is-current { border-color: #fff; color: #fff; }
+.pb-chapter-band:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

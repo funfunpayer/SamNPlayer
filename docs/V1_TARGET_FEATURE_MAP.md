@@ -70,8 +70,8 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Project header (thumbnail, resolution, fps, duration) | ✅ | `ProbeCreateVideo`: poster frame + resolution · fps (variable marked) · duration · codec; no invented "created" date or project name |
 | Source clips grid, Import | ✅ | The generate queue is a grid of clip cards: poster, name, duration, status; loaded clip highlighted; click loads a clip and keeps the queue |
 | Preview with transport | ✅ | Generator preview |
-| Curve preview with channel lanes + Audio Level | 🔧 | Reuse the Player lanes for the Generator result |
-| Scene markers row in Create | 🔧 | Same strip as Edit |
+| Curve preview with channel lanes + Audio Level | ✅ | A Create result opens in **Edit** with all lanes, Audio Level and scenes (no duplicate lane view in Create) |
+| Scene markers row in Create | ✅ | Same as above: the result opens in Edit with the scene strip |
 | Right side: Generation Preset, Motion Detection, Curve Generation, Audio Assist (BPM), Export | ✅ | These exist as steps / Advanced; regroup them into cards (🎨 + small 🔧) |
 | Tabs Generator · Templates · Presets · Batch | 🔧 | Batch = queue ✅; Presets = motion profiles ✅; Templates: only if real |
 | "Generate Curves" button | ✅ | Create button |
@@ -82,7 +82,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Element | Status | Where / what |
 |---|---|---|
 | Scene map heatmap, marks | ✅ | Generator scene map |
-| Chapter bands on the timeline | 🔧 | Chapters exist; draw them as coloured bands |
+| Chapter bands on the timeline | ✅ | Coloured band per chapter over the scene strip (open end → next chapter / script end); click seeks; band under the playhead marked; "Chapters" lane name |
 | Scene thumbnails grid with selection | 🔧 | Thumbnails exist (#488); grid plus selection is new |
 | Scene tags / labels | 🔧 | Scene marks have kind / class; free tags need a small schema extension |
 | Scene details inspector (time range, chapter, notes, markers list, technical info) | 🔧 | Data exists in parts (marks, chapters, probe); notes need storage |
