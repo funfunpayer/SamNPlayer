@@ -11,6 +11,8 @@ export function initDevice(root) {
   root.innerHTML = `
     <h2>Device</h2>
 
+    <div class="dev-layout" data-dev-region="layout">
+    <div class="dev-col dev-col-connect" data-dev-region="connect">
     <div id="dev-status" class="row">
       <div class="dev-visual" aria-hidden="true">
         <div class="dev-shell">
@@ -42,6 +44,8 @@ export function initDevice(root) {
     </div>
     <p class="hint" id="dev-transport-hint">Searches up to 20 s for “Sam Neo 2”.</p>
 
+    </div>
+    <div class="dev-col dev-col-test" data-dev-region="test">
     <fieldset id="dev-test" disabled style="margin-top:16px; border:1px solid var(--border);
               border-radius:4px; padding:12px;">
       <legend style="padding:0 6px;">Function test</legend>
@@ -49,13 +53,13 @@ export function initDevice(root) {
       <div class="row" style="align-items:center;">
         <label style="width:110px;" data-help="11 internal levels (0–10). Values between levels have no effect.">Vibration</label>
         <input type="range" id="dev-vib" min="0" max="100" value="0" style="flex:1;">
-        <span id="dev-vib-val" style="width:70px; text-align:right;">0 % (level 0)</span>
+        <span id="dev-vib-val" class="dev-level-val">0 % (level 0)</span>
       </div>
 
       <div class="row" style="align-items:center;">
         <label style="width:110px;" data-help="6 internal levels (0–5). Values between levels have no effect.">Suction</label>
         <input type="range" id="dev-suc" min="0" max="100" value="0" style="flex:1;">
-        <span id="dev-suc-val" style="width:70px; text-align:right;">0 % (level 0)</span>
+        <span id="dev-suc-val" class="dev-level-val">0 % (level 0)</span>
       </div>
 
       <div class="row" style="margin-top:10px;">
@@ -95,6 +99,8 @@ export function initDevice(root) {
     </details>
 
     <div id="dev-log" class="hint" style="margin-top:12px; white-space:pre-wrap;"></div>
+    </div>
+    </div>
   `;
 
   wireDataHelp(root);

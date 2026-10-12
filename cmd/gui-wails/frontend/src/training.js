@@ -233,6 +233,8 @@ export function initTraining(root) {
       (Settings → log folder) so drive can be tuned later.
     </p>
 
+    <div class="tr-layout" data-tr-region="layout">
+    <div class="tr-col tr-col-settings" data-tr-region="settings">
     <div class="field-row"><label>Device</label>
       <span class="checkbox-row" style="margin:0"><input type="checkbox" id="tr-mock" /> <label for="tr-mock" style="width:auto">Mock (test without device)</label></span>
     </div>
@@ -338,7 +340,9 @@ export function initTraining(root) {
         <span class="hint" id="tr-progression-val" style="margin:0; min-width:2.5em;">0.15</span>
       </div>
     </div>
+    </div>
 
+    <div class="tr-col tr-col-live" data-tr-region="live">
     <div id="tr-pixel-stage" aria-label="Training pixel figure"></div>
 
     <div class="row">
@@ -371,6 +375,8 @@ export function initTraining(root) {
       one line per past session, newest first.</p>
     <div id="tr-history-suggestion" class="hint" style="display:none;"></div>
     <div id="tr-history" class="hint">Loading…</div>
+    </div>
+    </div>
   `;
 
   const el = id => root.querySelector(id);

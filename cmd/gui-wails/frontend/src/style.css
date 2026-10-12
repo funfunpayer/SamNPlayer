@@ -3495,6 +3495,20 @@ details.pb-in-bottom > summary { display: none; }
 details.pb-in-bottom { border: 0; background: transparent; padding: 0; }
 
 .pb-chan-rows { display: grid; gap: 10px; margin: 4px 0 14px; }
+/* W4: Training and Tools in the V1 shell — full width, two columns, no
+   info column (the top bar shows the device; the mockup has none). */
+body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { display: none; }
+#tab-training.tab-panel, #tab-device.tab-panel, #tab-log.tab-panel { max-width: 1440px; }
+#tab-settings.tab-panel { max-width: 1080px; } /* text page: readable line length */
+.tools-nav { margin-left: 28px; margin-top: 14px; }
+.tr-layout, .dev-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr); gap: 32px; align-items: start; }
+.tr-col, .dev-col { min-width: 0; }
+.tr-col-live { position: sticky; top: 12px; }
+.dev-level-val { min-width: 7.5em; text-align: right; white-space: nowrap; }
+@media (max-width: 1180px) {
+  .tr-layout, .dev-layout { grid-template-columns: minmax(0, 1fr); }
+  .tr-col-live { position: static; }
+}
 /* Player workspace view switch (V1 W1): Play · Create · Edit + Scene Map
    inside Create. Structure only; the look lives in theme_flow.css. */
 .ws-view[hidden] { display: none !important; }
