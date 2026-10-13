@@ -17,14 +17,14 @@ function make(tag, cls, text) {
   return e;
 }
 
-// Step bar: number + name + what the step does (target: "Import Clip /
-// Add video or audio" …). Names stay ours — they match what each step does.
+// Step bar: number + name + what the step does (aligned with visual target
+// docs/visual-target/create.png: Import Clip / Add video or audio …).
 const STEP_TEXT = {
-  1: ['Video', 'Add a clip'],
-  2: ['Tip & contact', 'Find the motion'],
-  3: ['Feel', 'Shape the curves'],
-  4: ['Create', 'Build the script'],
-  5: ['Review', 'Refine and play'],
+  1: ['Import Clip', 'Add video or audio'],
+  2: ['Detect Motion', 'Analyze movement'],
+  3: ['Build Curves', 'Generate channels'],
+  4: ['Refine', 'Adjust and preview'],
+  5: ['Export', 'Save or apply'],
 };
 
 export function applyCreateLayoutV1(root, { playback } = {}) {
