@@ -1,8 +1,8 @@
 // V1 Create layout (target docs/visual-target/create.png): a three-column
 // workspace instead of one long scrolling wizard.
 //   left   — Project: source clips, recent videos, generated scripts, analysis
-//   centre — project header, step bar, preview + source clips, step tools
-//   right  — the settings (Feel) and, after a result, nothing invented
+//   centre — project header, step bar, preview + source clips
+//   right  — the settings (Feel), step tools (Tip & contact / Create / Review)
 // Existing elements are moved, not re-created: IDs, listeners and tests stay.
 // The Scene Map view (#tab-generator[data-view="scenemap"]) keeps its own
 // rules; the grid only applies to the plain Create view.
@@ -94,7 +94,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
   q('#gl-nav-scenemap').addEventListener('click', () => document.getElementById('ws-scenemap')?.click());
 
-  // ---- Centre: preview + source clips side by side -------------------------
+  // ---- Centre: preview + source clips side by side ---------------------
   const stage = make('div', 'gl-stage');
   const preview = make('section', 'gl-preview card');
   preview.setAttribute('aria-label', 'Preview');
@@ -122,6 +122,19 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   clips.append(clipsHead, single);
   if (video) clips.append(video);
   stage.append(preview, clips);
+
+  // Step tools (Tip & contact, Create, Review) join the Feel settings on the
+  // right, so the centre stays the project header + step bar + preview next
+  // to Source clips. Closer to the visual target.
+  const tools = make('div', 'gl-tools');
+  tools.setAttribute('aria-label', 'Step tools');
+  const region = q('#gen-step-region');
+  const run = q('#gen-step-run');
+  const result = q('#gen-step-result');
+  if (region) tools.append(region);
+  if (run) tools.append(run);
+  if (result) tools.append(result);
+
   const steps = q('#gen-steps');
   const prompt = q('#gen-step-prompt');
   (prompt || steps)?.after(stage);
@@ -135,6 +148,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   side.append(sideEmpty);
   const motion = q('#gen-step-motion');
   if (motion) side.append(motion);
+  // Step tools join Feel on the right.
+  if (tools.children.length) side.append(tools);
   // Create / Cancel and the progress live at the bottom of the settings, like
   // the target's "Generate" button; they stay disabled until a clip is ready.
   const runCard = make('section', 'gl-run card');

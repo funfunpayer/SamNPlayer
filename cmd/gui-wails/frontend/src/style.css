@@ -3984,7 +3984,7 @@ body[data-tab="generator"] #sidebar { display: none; }
 #tab-generator#tab-generator[data-view="scenemap"] > .gl-stage { display: grid !important; }
 #tab-generator#tab-generator[data-view="scenemap"] > .gl-stage > :not([hidden]),
 #tab-generator#tab-generator[data-view="scenemap"] > .gl-stage #gen-step-video { display: block !important; }
-#tab-generator[data-view="scenemap"] > .gl-nav, #tab-generator[data-view="scenemap"] > .gl-side { display: none !important; }
+#tab-generator[data-view="scenemap"] > .gl-nav { display: none !important; }
 .gl-run { padding: 12px; }
 .gl-run .gl-run-row { display: flex; gap: 8px; margin: 0; }
 .gl-run #gen-generate { flex: 1 1 auto; min-height: 48px; font-size: 16px; font-weight: 700; border-radius: 14px; }
@@ -3995,3 +3995,6 @@ body[data-tab="generator"] #sidebar { display: none; }
 .gl-side * { max-width: 100%; }
 #tab-generator[data-gen-layout="v1"]:not([data-view]) > .create-head.gl-hidden-head { display: none; }
 .gl-nav .handbook-open-btn.gl-nav-item { margin-top: 10px; }
+/* Step tools (Tip & contact, Create, Review) below Feel in the settings column. */
+.gl-side .gl-tools { display: grid; gap: 12px; }
+.gl-side .gl-tools .gen-step-panel { margin: 0; }

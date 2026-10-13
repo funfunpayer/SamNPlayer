@@ -66,6 +66,7 @@ def main():
                   and page.text_content(".gl-single-clip .gen-clip-name") == "first clip.mp4")
             check("Source clips (1)", page.text_content(".gl-clips .gl-card-title") == "Source clips (1)")
             check("Feel settings shown, placeholder gone", page.is_visible("#gen-step-motion") and page.is_hidden(".gl-side-empty"))
+            check("step tools live in the right settings column", page.evaluate("!!document.querySelector('.gl-side .gl-tools #gen-step-region')"))
             check("workspace stays in view (no jump to step 2)", page.evaluate("document.querySelector('#gen-steps').getBoundingClientRect().top") >= 0)
 
             page.click("#gl-nav-recent .gl-nav-link >> text=older clip.mp4")
@@ -74,7 +75,7 @@ def main():
 
             page.click("#gl-nav-scenemap")
             page.wait_for_timeout(300)
-            check("Scene Map view: Project / settings columns hidden", page.is_hidden(".gl-nav") and page.is_hidden(".gl-side"))
+            check("Scene Map view: Project column and Feel settings hidden", page.is_hidden(".gl-nav") and page.is_hidden("#gen-step-motion") and page.is_hidden(".gl-run"))
             check("Scene Map view: video chooser still there", page.is_visible("#gen-choose"))
             check("no page errors", errors == [], str(errors[:3]))
             b.close()
