@@ -94,7 +94,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
   q('#gl-nav-scenemap').addEventListener('click', () => document.getElementById('ws-scenemap')?.click());
 
-  // ---- Centre: preview + source clips side by side -------------------------
+  // ---- Centre: preview + source clips side by side, tools integrated -----
+  const centre = make('div', 'gl-centre');
   const stage = make('div', 'gl-stage');
   const preview = make('section', 'gl-preview card');
   preview.setAttribute('aria-label', 'Preview');
@@ -122,13 +123,10 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   clips.append(clipsHead, single);
   if (video) clips.append(video);
   stage.append(preview, clips);
-  const steps = q('#gen-steps');
-  const prompt = q('#gen-step-prompt');
-  (prompt || steps)?.after(stage);
 
-  // ---- Centre tools: remaining step panels (Tip & contact, Create, Review)
-  // sit in a dedicated tools area under the stage so the workspace stays
-  // compact and the tools belong to the centre column, not a long scroll.
+  // Step tools (Tip & contact, Create, Review) now live inside the centre
+  // column under the stage, so they belong to the workspace instead of
+  // sitting as a separate block that forces a long page scroll.
   const tools = make('div', 'gl-tools');
   tools.setAttribute('aria-label', 'Step tools');
   const region = q('#gen-step-region');
@@ -137,7 +135,11 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   if (region) tools.append(region);
   if (run) tools.append(run);
   if (result) tools.append(result);
-  stage.after(tools);
+
+  centre.append(stage, tools);
+  const steps = q('#gen-steps');
+  const prompt = q('#gen-step-prompt');
+  (prompt || steps)?.after(centre);
 
   // ---- Right: settings column ---------------------------------------------
   const side = make('aside', 'gl-side');
