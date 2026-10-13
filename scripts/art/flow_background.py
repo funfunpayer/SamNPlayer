@@ -1,86 +1,111 @@
-"""Generates the Flow background ribbons (visual target docs/visual-target/*.png):
+"""Generates the Flow background ribbons (visual targets docs/visual-target/*.png):
 silky blue / orange light waves in the top-right and bottom-left corners.
 
 Run:  python3 scripts/art/flow_background.py
 Writes cmd/gui-wails/frontend/src/assets/flow/bg-top.svg and bg-bottom.svg.
-Deterministic (fixed seed), so re-running gives the same files.
+Deterministic (fixed seeds), so re-running gives the same files.
+
+A ribbon is many thin strands around one path (two joined cubic Béziers),
+pinched where the light is brightest and fanned out towards the ends, over a
+blurred glow and a white-hot core — the "silk" look of the mockups.
 """
 import pathlib
 import random
 
 OUT = pathlib.Path(__file__).resolve().parents[2] / "cmd/gui-wails/frontend/src/assets/flow"
 
-
-def band(rng, gid, pts, n, spread, width, opacity, wobble):
-    """n thin strands around one cubic path (pts: start, c1, c2, end, c3, c4,
-    end2 — two joined cubics) plus a blurred glow under them."""
-    def path(off, w):
-        q = [(x + off[0] * k + rng.uniform(-w, w), y + off[1] * k + rng.uniform(-w, w))
-             for k, (x, y) in zip((0.2, 0.9, 1.2, 1.0, 1.1, 0.8, 0.4), pts)]
-        f = lambda p: f"{p[0]:.1f} {p[1]:.1f}"
-        return f"M{f(q[0])} C{f(q[1])} {f(q[2])} {f(q[3])} C{f(q[4])} {f(q[5])} {f(q[6])}"
-    out = [f'<path d="{path((0, 0), 0)}" stroke="url(#{gid})" stroke-width="{width * 9:.0f}" '
-           f'opacity="{opacity * 0.55:.2f}" filter="url(#glow)"/>']
-    for i in range(n):
-        t = (i / max(1, n - 1)) - 0.5
-        off = (t * spread * 0.35, t * spread)
-        sw = rng.uniform(0.35, 1.0) * width / 4
-        op = opacity * (1 - abs(t) * 1.3) * rng.uniform(0.5, 1.0)
-        if op <= 0.03:
-            continue
-        out.append(f'<path d="{path(off, wobble)}" stroke="url(#{gid})" stroke-width="{sw:.2f}" opacity="{op:.2f}"/>')
-    # hot core
-    out.append(f'<path d="{path((0, 0), 0)}" stroke="url(#{gid}h)" stroke-width="{width / 3:.1f}" '
-               f'opacity="{opacity:.2f}" filter="url(#soft)"/>')
-    return out
+BLUE = ("#0636ff", "#1677ff", "#3fd0ff", "#e9fbff")
+ORANGE = ("#ff2a00", "#ff6410", "#ffa030", "#fff0d0")
 
 
 def grad(gid, x1, x2, stops):
-    s = "".join(f'<stop offset="{o}" stop-color="{c}" stop-opacity="{a}"/>' for o, c, a in stops)
-    return f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{x1}" y1="0" x2="{x2}" y2="0">{s}</linearGradient>'
+    s = "".join(f'<stop offset="{o:.2f}" stop-color="{c}" stop-opacity="{a}"/>' for o, c, a in stops)
+    return (f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{x1}" y1="0" x2="{x2}" y2="0">'
+            f"{s}</linearGradient>")
 
 
-def svg(w, h, defs, body):
+def ribbon(rng, gid, colors, pts, x1, x2, peak, *, n=44, spread=(30, 12, 2, 6, 18, 34, 46),
+           width=1.0, opacity=1.0, glow=1.0):
+    """pts: 7 points (start, c1, c2, mid, c3, c4, end). spread: fan-out per
+    point (pixels, perpendicular-ish = vertical). peak: 0–1 where along x1..x2
+    the light is brightest."""
+    deep, mid, light, hot = colors
+    a, b = max(0.0, peak - 0.42), min(1.0, peak + 0.42)
+    defs = [
+        grad(gid, x1, x2, [(0, deep, 0), (a, deep, 0.35), (peak - 0.08, mid, 1), (peak + 0.06, light, 1),
+                           (b, mid, 0.5), (1, deep, 0)]),
+        grad(gid + "h", x1, x2, [(max(0, peak - 0.25), hot, 0), (peak, hot, 1), (min(1, peak + 0.22), hot, 0)]),
+    ]
+
+    def path(t, jitter):
+        q = []
+        for (x, y), s in zip(pts, spread):
+            q.append((x + rng.uniform(-jitter, jitter), y + t * s + rng.uniform(-jitter, jitter) * s / 20))
+        f = lambda p: f"{p[0]:.1f} {p[1]:.1f}"
+        return f"M{f(q[0])} C{f(q[1])} {f(q[2])} {f(q[3])} C{f(q[4])} {f(q[5])} {f(q[6])}"
+
+    body = [f'<path d="{path(0, 0)}" stroke="url(#{gid})" stroke-width="{26 * width:.0f}" '
+            f'opacity="{0.55 * glow * opacity:.2f}" filter="url(#glow)"/>']
+    for i in range(n):
+        t = (i / (n - 1)) * 2 - 1           # −1 … 1 across the ribbon
+        op = opacity * (1 - 0.75 * abs(t)) * rng.uniform(0.55, 1.0)
+        sw = width * rng.uniform(0.35, 1.1)
+        body.append(f'<path d="{path(t, 1.5)}" stroke="url(#{gid})" stroke-width="{sw:.2f}" opacity="{op:.2f}"/>')
+    body.append(f'<path d="{path(0, 0)}" stroke="url(#{gid}h)" stroke-width="{3.2 * width:.1f}" '
+                f'opacity="{opacity:.2f}" filter="url(#soft)"/>')
+    body.append(f'<path d="{path(0, 0)}" stroke="url(#{gid}h)" stroke-width="{1.1 * width:.1f}" opacity="{opacity:.2f}"/>')
+    return defs, body
+
+
+def svg(w, h, parts):
+    defs = [f'<filter id="glow" filterUnits="userSpaceOnUse" x="-100" y="-100" width="{w + 200}" height="{h + 200}">'
+            '<feGaussianBlur stdDeviation="9"/></filter>',
+            f'<filter id="soft" filterUnits="userSpaceOnUse" x="-100" y="-100" width="{w + 200}" height="{h + 200}">'
+            '<feGaussianBlur stdDeviation="2.2"/></filter>']
+    body = []
+    for d, b in parts:
+        defs += d
+        body += b
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
-            f'<defs><filter id="glow" filterUnits="userSpaceOnUse" x="-100" y="-100" width="{w + 200}" height="{h + 200}"><feGaussianBlur stdDeviation="14"/></filter>'
-            f'<filter id="soft" filterUnits="userSpaceOnUse" x="-100" y="-100" width="{w + 200}" height="{h + 200}"><feGaussianBlur stdDeviation="1.6"/></filter>'
-            + "".join(defs) + '</defs><g fill="none" stroke-linecap="round">' + "".join(body) + "</g></svg>\n")
+            f'<defs>{"".join(defs)}</defs><g fill="none" stroke-linecap="round">{"".join(body)}</g></svg>\n')
 
 
-def blue(gid, x1, x2, fade_in=0.0, fade_out=1.0):
-    return [grad(gid, x1, x2, [(fade_in, "#0a3cff", 0), ((fade_in + fade_out) / 2 - .1, "#1a8cff", 1),
-                               ((fade_in + fade_out) / 2 + .1, "#36c8ff", 1), (fade_out, "#0a50ff", 0)]),
-            grad(gid + "h", x1, x2, [(fade_in, "#bff0ff", 0), ((fade_in + fade_out) / 2, "#e8fbff", .9), (fade_out, "#7fd8ff", 0)])]
+def top():
+    """Top-right corner, 700 × 120 (anchored right / top)."""
+    r = random.Random(7)
+    return svg(700, 120, [
+        # faint upper sheet
+        ribbon(r, "t3", BLUE, [(120, -10), (240, -8), (300, 20), (380, 30), (470, 40), (580, 10), (720, -5)],
+               120, 720, 0.45, n=26, spread=(10, 8, 6, 8, 12, 16, 20), width=0.7, opacity=0.45, glow=0.6),
+        # main blue: dives from the top edge, bright where it bends
+        ribbon(r, "t1", BLUE, [(140, -12), (260, 6), (320, 58), (380, 74), (440, 88), (560, 58), (720, 32)],
+               140, 720, 0.38, n=56, spread=(60, 34, 6, 3, 10, 26, 40), width=1.25, glow=1.7),
+        # orange: low and long, brightest just right of the blue bend
+        ribbon(r, "t2", ORANGE, [(110, 96), (240, 92), (330, 76), (420, 76), (500, 76), (590, 54), (720, 48)],
+               110, 720, 0.55, spread=(20, 12, 3, 4, 10, 18, 26)),
+        # faint lower blue echo
+        ribbon(r, "t4", BLUE, [(300, 118), (420, 110), (500, 96), (580, 92), (640, 90), (690, 80), (720, 76)],
+               300, 720, 0.6, n=18, spread=(8, 6, 4, 6, 8, 10, 12), width=0.6, opacity=0.4, glow=0.5),
+    ])
 
 
-def orange(gid, x1, x2, fade_in=0.0, fade_out=1.0):
-    return [grad(gid, x1, x2, [(fade_in, "#ff3d00", 0), ((fade_in + fade_out) / 2 - .1, "#ff6a10", 1),
-                               ((fade_in + fade_out) / 2 + .1, "#ff9a2a", 1), (fade_out, "#ff4a00", 0)]),
-            grad(gid + "h", x1, x2, [(fade_in, "#ffe0b0", 0), ((fade_in + fade_out) / 2, "#fff1d6", .9), (fade_out, "#ffb060", 0)])]
-
-
-def top(rng):
-    w, h = 900, 170
-    defs = blue("b", 120, 900, 0, 1) + orange("o", 300, 900, 0, 1) + blue("b2", 400, 900, 0, 1)
-    body = []
-    body += band(rng, "b", [(120, -20), (330, -5), (430, 70), (560, 82), (680, 92), (800, 60), (930, 40)], 34, 46, 5, .95, 2.5)
-    body += band(rng, "o", [(300, 140), (420, 120), (500, 96), (600, 92), (700, 88), (800, 55), (930, 30)], 30, 36, 5, .95, 2.5)
-    body += band(rng, "b2", [(420, 165), (560, 150), (640, 120), (760, 118), (820, 116), (880, 100), (930, 95)], 14, 22, 3, .45, 3)
-    return svg(w, h, defs, body)
-
-
-def bottom(rng):
-    w, h = 620, 260
-    defs = blue("b", -20, 520, 0, 1) + orange("o", 40, 620, 0, 1) + blue("b2", -20, 300, 0, 1)
-    body = []
-    body += band(rng, "b", [(-30, 120), (60, 90), (130, 150), (220, 200), (300, 245), (380, 250), (460, 290)], 34, 50, 5, .95, 2.5)
-    body += band(rng, "o", [(60, 290), (160, 250), (240, 230), (330, 236), (420, 242), (520, 250), (650, 270)], 30, 40, 5, .95, 2.5)
-    body += band(rng, "b2", [(-30, 60), (40, 40), (100, 90), (160, 140), (200, 170), (240, 200), (290, 270)], 12, 26, 3, .4, 3)
-    return svg(w, h, defs, body)
+def bottom():
+    """Bottom-left corner, 600 × 160 (anchored left / bottom)."""
+    r = random.Random(11)
+    return svg(600, 160, [
+        ribbon(r, "b3", BLUE, [(-20, 20), (40, 10), (90, 40), (140, 80), (180, 110), (220, 140), (280, 170)],
+               -20, 280, 0.3, n=24, spread=(14, 12, 10, 8, 8, 10, 12), width=0.7, opacity=0.45, glow=0.6),
+        ribbon(r, "b1", BLUE, [(-20, 66), (50, 52), (110, 80), (160, 112), (200, 136), (250, 156), (320, 172)],
+               -20, 320, 0.35, n=56, spread=(44, 26, 8, 3, 6, 12, 18), width=1.2, glow=1.6),
+        ribbon(r, "b2", ORANGE, [(110, 172), (170, 150), (220, 118), (280, 104), (340, 92), (420, 100), (520, 118)],
+               110, 520, 0.38, spread=(24, 12, 4, 6, 14, 22, 30)),
+        ribbon(r, "b4", BLUE, [(200, 170), (300, 150), (360, 140), (430, 140), (480, 142), (540, 150), (620, 158)],
+               200, 620, 0.4, n=16, spread=(6, 6, 6, 8, 8, 10, 10), width=0.6, opacity=0.35, glow=0.4),
+    ])
 
 
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "bg-top.svg").write_text(top(random.Random(7)))
-    (OUT / "bg-bottom.svg").write_text(bottom(random.Random(11)))
+    (OUT / "bg-top.svg").write_text(top())
+    (OUT / "bg-bottom.svg").write_text(bottom())
     print("wrote", OUT / "bg-top.svg", OUT / "bg-bottom.svg")
