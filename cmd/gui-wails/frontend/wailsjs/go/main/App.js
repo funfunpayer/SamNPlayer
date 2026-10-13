@@ -12,6 +12,7 @@ export function SetChannelLevels(arg1, arg2) { return window['go']['main']['App'
 export function SetPeakReduce(arg1) { return window['go']['main']['App']['SetPeakReduce'](arg1); }
 export function SetStrokeOutput(arg1, arg2, arg3) { return window['go']['main']['App']['SetStrokeOutput'](arg1, arg2, arg3); }
 export function SetMotorLevels(arg1) { return window['go']['main']['App']['SetMotorLevels'](arg1); }
+export function CreateScriptAxis(arg1) { return window['go']['main']['App']['CreateScriptAxis'](arg1); }
 export function SetPlaybackSpeed(arg1) { return window['go']['main']['App']['SetPlaybackSpeed'](arg1); }
 export function SuggestROICandidates(arg1) { return window['go']['main']['App']['SuggestROICandidates'](arg1); }
 export function ListAIDetections(arg1, arg2) { return window['go']['main']['App']['ListAIDetections'](arg1, arg2); }

@@ -84,3 +84,27 @@ func TestSaveCompanionAxisKeepsFieldsAndInversion(t *testing.T) {
 		t.Fatal("only companion axes")
 	}
 }
+
+func TestCreateCompanionAxis(t *testing.T) {
+	dir := t.TempDir()
+	main := filepath.Join(dir, "clip.funscript")
+	path, err := CreateCompanionAxis(main, "twist", 90000)
+	if err != nil || filepath.Base(path) != "clip.twist.funscript" {
+		t.Fatalf("create: %q %v", path, err)
+	}
+	acts, err := LoadCompanionAxis(main, "twist")
+	if err != nil || len(acts) != 2 || acts[0].Pos != 50 || acts[1].At != 90000 {
+		t.Fatalf("seed: %+v %v", acts, err)
+	}
+	if _, err := CreateCompanionAxis(main, "twist", 90000); err == nil {
+		t.Fatal("an existing file is never overwritten")
+	}
+	if _, err := CreateCompanionAxis(main, "general", 1); err == nil {
+		t.Fatal("only companion axes")
+	}
+	if p, err := CreateCompanionAxis(main, "roll", 10); err != nil {
+		t.Fatal(err)
+	} else if acts, _ := LoadCompanionAxis(main, "roll"); acts[1].At != 1000 {
+		t.Fatalf("short scripts get a 1 s axis: %s %+v", p, acts)
+	}
+}

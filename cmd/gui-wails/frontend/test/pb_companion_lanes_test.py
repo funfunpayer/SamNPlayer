@@ -59,6 +59,7 @@ def main():
                          "durationMs: 100000, videoPath: '', hasVideo: false })",
         "GetScriptCurve": "async () => STROKE.slice()",
         "GetScriptAxisActions": "async (axis) => { window.__calls.push(axis); return window.__axes[axis || 'general'] || null; }",
+        "CreateScriptAxis": "async (axis) => { window.__created = axis; window.__axes[axis] = [{at:0,pos:50},{at:99500,pos:50}]; return '/tmp/clip.' + axis + '.funscript'; }",
         "GetHeatmap": "async n => Array.from({ length: n }, (_, i) => ({ atMs: i * 1000, intensity: 0.5 }))",
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
@@ -107,6 +108,14 @@ def main():
             page.click("#pb-choose")
             page.wait_for_function("!document.querySelector('#pb-axis option[value=\"pitch\"]')", timeout=5000)
             check("missing file removes its picker entry", page.input_value("#pb-axis") == "general")
+            add_opts = page.evaluate("[...document.querySelectorAll('#pb-axis-add option')].map(o => o.value)")
+            check("+ Axis offers the axes without a file", add_opts == ["", "surge", "sway", "roll", "pitch"], str(add_opts))
+            page.evaluate("const s = document.querySelector('#pb-axis-add'); s.value = 'roll'; s.dispatchEvent(new Event('change'))")
+            page.wait_for_function("document.querySelector('#pb-axis').value === 'roll'", timeout=5000)
+            check("new axis created and selected for editing", page.evaluate("window.__created") == "roll"
+                  and page.input_value("#pb-axis") == "roll")
+            add_opts = page.evaluate("[...document.querySelectorAll('#pb-axis-add option')].map(o => o.value)")
+            check("+ Axis no longer offers it", "roll" not in add_opts, str(add_opts))
             check("no page errors", errors == [], str(errors[:3]))
             browser.close()
     finally:
