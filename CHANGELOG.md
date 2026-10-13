@@ -27,6 +27,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **TCode over USB:** Tools → Device → "TCode over USB (OSR2 / SR6)" lists
+  this computer's serial ports and connects at 115200 baud. Stroke, extra
+  axes, the safety range and the emergency stop work as over Wi-Fi. New
+  component: `go.bug.st/serial` (BSD 3-Clause, see Third-party notices).
 - **Add an axis in Edit:** "+ Axis…" next to the axis picker starts a new
   companion file (for example `clip.twist.funscript`), centred over the
   script's length, and selects it for editing. Existing files are never

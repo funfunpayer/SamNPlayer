@@ -50,9 +50,13 @@ func TCodeMove(axis string, pos float64, d time.Duration) string {
 	return fmt.Sprintf("%s%sI%d", axis, TCodeValue(pos), ms)
 }
 
-// TCode is a network TCode device (udp://host:port or tcp://host:port).
+// TCode is a TCode device over the network (udp://host:port or
+// tcp://host:port) or over USB serial (NewTCodeSerial).
 type TCode struct {
 	address string // as given, for display
+	// serialPort: set for a USB-serial device (COM3, /dev/ttyUSB0 …).
+	serialPort string
+	openSerial func(port string) (io.WriteCloser, error)
 
 	mu        sync.Mutex
 	conn      io.WriteCloser
@@ -99,6 +103,20 @@ func ParseTCodeAddress(address string) (network, hostport string, err error) {
 // Connect opens the socket. UDP has no handshake, so a wrong address only
 // shows when the device does not move; TCP fails here.
 func (t *TCode) Connect(ctx context.Context) error {
+	if t.openSerial != nil { // USB serial (NewTCodeSerial)
+		conn, err := t.openSerial(t.serialPort)
+		if err != nil {
+			if t.serialPort == "" {
+				return fmt.Errorf("tcode: no serial port chosen — pick the device's port (COM…, /dev/tty…)")
+			}
+			return fmt.Errorf("tcode: cannot open %s — check the cable and that no other program (e.g. MultiFunPlayer) uses the port: %w", t.serialPort, err)
+		}
+		t.mu.Lock()
+		t.conn = conn
+		t.connected = true
+		t.mu.Unlock()
+		return nil
+	}
 	network, hostport, err := ParseTCodeAddress(t.address)
 	if err != nil {
 		return err
@@ -207,9 +225,10 @@ func (t *TCode) DeviceCapabilities() Capabilities {
 func (t *TCode) Info() ConnectionInfo {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	network, hostport, err := ParseTCodeAddress(t.address)
 	addr := t.address
-	if err == nil {
+	if t.openSerial != nil {
+		addr = "serial://" + t.serialPort
+	} else if network, hostport, err := ParseTCodeAddress(t.address); err == nil {
 		addr = network + "://" + hostport
 	}
 	return ConnectionInfo{Connected: t.connected, Name: "TCode device (L0 + extra axes)", Address: addr}

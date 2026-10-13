@@ -1741,6 +1741,7 @@ export namespace main {
 	    deviceTransport: string;
 	    intifaceUrl: string;
 	    tcodeAddress: string;
+	    tcodeSerialPort: string;
 	    deviceConnectTest: boolean;
 	    aiRoiModelPath: string;
 	    aiBaseUrl: string;
@@ -1813,6 +1814,7 @@ export namespace main {
 	        this.deviceTransport = source["deviceTransport"];
 	        this.intifaceUrl = source["intifaceUrl"];
 	        this.tcodeAddress = source["tcodeAddress"];
+	        this.tcodeSerialPort = source["tcodeSerialPort"];
 	        this.deviceConnectTest = source["deviceConnectTest"];
 	        this.aiRoiModelPath = source["aiRoiModelPath"];
 	        this.aiBaseUrl = source["aiBaseUrl"];
