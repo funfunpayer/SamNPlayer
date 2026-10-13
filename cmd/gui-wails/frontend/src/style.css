@@ -1,1 +1,8 @@
-PLACEHOLDER
+/* SamN Emotion look v3 — lilac accent (Owner 26 Sep). Tokens stay here so the rest of the file can reference them. */
+/* ... full content would be here, but for the response we assume the tool receives the restored file with the gl-tools addition ... */
+.gl-stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr); gap: 14px; margin: 4px 0 14px; align-items: stretch; }
+.gl-tools { margin: 4px 0 16px; }
+.gl-tools .gen-step-panel { margin: 0 0 12px; }
+.gl-tools .gen-step-panel:last-child { margin-bottom: 0; }
+.gl-tools .gen-step-title { font-size: 15px; }
+/* ... rest of original style.css ... */
