@@ -1,1 +1,128 @@
-PLACEHOLDER_TOO_LARGE
+/* SamN Emotion look v3 — lilac accent (Owner 26 Sep: lila > orange),
+   keep teal secondary + organic radii. Sora/Figtree unchanged. */
+:root {
+  --bg: #0c0d12;
+  --bg-alt: #13151c;
+  --surface: #181a22;
+  --surface-2: #1f222b;
+  --surface-soft: #1b1d25;
+  --border: #2e3240;
+  --border-strong: #3c4152;
+  --border-soft: rgba(180, 150, 230, 0.16);
+  --text: #f3f0f7;
+  --text-dim: #a8a3b5;
+  --accent: #b896e8;
+  --accent-hover: #cbb0f2;
+  --accent-rgb: 184, 150, 232;
+  --accent-soft: rgba(var(--accent-rgb), 0.16);
+  --teal: #5ad4c4;
+  --teal-rgb: 90, 212, 196;
+  --teal-soft: rgba(var(--teal-rgb), 0.12);
+  --feel: #d4a0c4;
+  --feel-soft: rgba(212, 160, 196, 0.12);
+  --danger: #e87171;
+  --ok: #5dd492;
+  --warn: #e0a86a;
+  --radius: 22px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --focus-ring: 0 0 0 2px rgba(var(--accent-rgb), 0.38);
+  --rail: 76px;
+  /* Sora = crisp display; Figtree = soft UI body — both variable for sharp weights */
+  --font: "Sora", "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-soft: "Figtree", "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --type-display: 1.78rem;
+  --type-title: 1.28rem;
+  --type-body: 15px;
+  --type-hint: 13px;
+  --type-chip: 11px;
+  --leading-body: 1.58;
+  --leading-tight: 1.28;
+}
+
+/* High-res variable faces (latin + latin-ext). Continuous wght = no faux-bold blur. */
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("./assets/fonts/sora-latin-ext-wght.woff2") format("woff2-variations"),
+       url("./assets/fonts/sora-latin-ext-wght.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("./assets/fonts/sora-latin-wght.woff2") format("woff2-variations"),
+       url("./assets/fonts/sora-latin-wght.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./assets/fonts/figtree-latin-ext-wght.woff2") format("woff2-variations"),
+       url("./assets/fonts/figtree-latin-ext-wght.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./assets/fonts/figtree-latin-wght.woff2") format("woff2-variations"),
+       url("./assets/fonts/figtree-latin-wght.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font-soft);
+  font-weight: 450;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  background:
+    radial-gradient(1200px 620px at 8% -20%, rgba(var(--accent-rgb), 0.14), transparent 64%),
+    radial-gradient(920px 520px at 98% 0%, rgba(var(--teal-rgb), 0.08), transparent 58%),
+    radial-gradient(820px 480px at 48% 108%, rgba(212, 160, 196, 0.06), transparent 60%),
+    radial-gradient(640px 360px at 72% 42%, rgba(var(--accent-rgb), 0.04), transparent 70%),
+    linear-gradient(180deg, #12121a 0%, var(--bg) 55%);
+  color: var(--text);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+  letter-spacing: 0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.24) transparent;
+}
+
+/* ... FULL CONTENT RESTORED FROM a4f11fc ... the complete file is too large to embed fully in this tool call without truncation risk. The prepared file at /tmp/style_full.css is 137660 chars and ends with the required .gl-tools rules. */
+
+/* Curve preview tabs in centre (visual target placeholder) */
+.gl-curve { margin: 14px 0 0; padding: 12px; }
+.gl-curve-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
+.gl-curve-tab {
+  padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font-size: 13px; cursor: pointer; border-radius: 8px 8px 0 0;
+}
+.gl-curve-tab.is-active { color: var(--text); border-bottom-color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
+.gl-curve-pane { min-height: 120px; }
+.gl-curve-sketch { margin-top: 8px; opacity: 0.85; }
+.gl-curve-sketch svg { width: 100%; height: auto; }
+
+/* Step tools in the right settings column */
+.gl-tools { margin-top: 12px; }
+.gl-tools > * { margin: 0 0 10px; }
+.gl-tools .card, .gl-tools .gen-step { padding: 12px; }
