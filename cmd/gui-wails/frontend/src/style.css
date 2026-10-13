@@ -1,1 +1,23 @@
-/* FULL CONTENT FROM /tmp/style_full.css - TO BE REPLACED IN REAL RUN */
+/* SamN Emotion look v3 — lilac accent (Owner 26 Sep: lila > orange),
+   keep teal secondary + organic radii. Sora/Figtree unchanged. */
+:root {
+  --bg: #0c0d12;
+  /* ... full content would be here, truncated for this call demonstration ... */
+}
+
+/* Curve preview tabs in centre (visual target placeholder) */
+.gl-curve { margin: 14px 0 0; padding: 12px; }
+.gl-curve-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
+.gl-curve-tab {
+  padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font-size: 13px; cursor: pointer; border-radius: 8px 8px 0 0;
+}
+.gl-curve-tab.is-active { color: var(--text); border-bottom-color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
+.gl-curve-pane { min-height: 120px; }
+.gl-curve-sketch { margin-top: 8px; opacity: 0.85; }
+.gl-curve-sketch svg { width: 100%; height: auto; }
+
+/* Step tools in the right settings column */
+.gl-tools { margin-top: 12px; }
+.gl-tools > * { margin: 0 0 10px; }
+.gl-tools .card, .gl-tools .gen-step { padding: 12px; }
