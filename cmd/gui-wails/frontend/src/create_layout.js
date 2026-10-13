@@ -2,7 +2,7 @@
 // workspace instead of one long scrolling wizard.
 //   left   — Project: source clips, recent videos, generated scripts, analysis
 //   centre — project header, step bar, preview + source clips
-//   right  — all step tools (Tip & contact, Feel, Create, Review) and the Create button
+//   right  — the settings (Feel), step tools (Tip & contact / Create / Review)
 // Existing elements are moved, not re-created: IDs, listeners and tests stay.
 // The Scene Map view (#tab-generator[data-view="scenemap"]) keeps its own
 // rules; the grid only applies to the plain Create view.
@@ -94,7 +94,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
   q('#gl-nav-scenemap').addEventListener('click', () => document.getElementById('ws-scenemap')?.click());
 
-  // ---- Centre: preview + source clips side by side -------------------------
+  // ---- Centre: preview + source clips side by side ---------------------
+  const centre = make('div', 'gl-centre');
   const stage = make('div', 'gl-stage');
   const preview = make('section', 'gl-preview card');
   preview.setAttribute('aria-label', 'Preview');
@@ -122,20 +123,25 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   clips.append(clipsHead, single);
   if (video) clips.append(video);
   stage.append(preview, clips);
-  const centre = make('div', 'gl-centre');
+
+  // Step tools (Tip & contact, Create, Review) join the Feel settings on the
+  // right, so the centre stays the project header + step bar + preview next
+  // to Source clips. Closer to the visual target.
+  const tools = make('div', 'gl-tools');
+  tools.setAttribute('aria-label', 'Step tools');
+  const region = q('#gen-step-region');
+  const run = q('#gen-step-run');
+  const result = q('#gen-step-result');
+  if (region) tools.append(region);
+  if (run) tools.append(run);
+  if (result) tools.append(result);
+
+  centre.append(stage);
   const steps = q('#gen-steps');
   const prompt = q('#gen-step-prompt');
-  const head = q('#gen-project-head');
-  // Move the project header, step bar and stage into the centre column.
-  if (head) centre.append(head);
-  if (steps) centre.append(steps);
-  if (prompt) centre.append(prompt);
-  centre.append(stage);
-  root.append(centre);
+  (prompt || steps)?.after(centre);
 
-  // ---- Right: settings column (all step tools live here, matching the target's
-  // right-hand cards for Motion Detection / Curve Generation / …). Nothing
-  // sits under the stage any more.
+  // ---- Right: settings column ---------------------------------------------
   const side = make('aside', 'gl-side');
   side.setAttribute('aria-label', 'Create settings');
   const sideEmpty = make('div', 'gl-side-empty card');
@@ -144,14 +150,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   side.append(sideEmpty);
   const motion = q('#gen-step-motion');
   if (motion) side.append(motion);
-  // Remaining step panels (Tip & contact, Create, Review) join the settings
-  // column so the centre stays preview + clips only.
-  const region = q('#gen-step-region');
-  const run = q('#gen-step-run');
-  const result = q('#gen-step-result');
-  for (const panel of [region, run, result]) {
-    if (panel) side.append(panel);
-  }
+  // Step tools join Feel on the right.
+  if (tools.children.length) side.append(tools);
   // Create / Cancel and the progress live at the bottom of the settings, like
   // the target's "Generate" button; they stay disabled until a clip is ready.
   const runCard = make('section', 'gl-run card');
@@ -164,12 +164,12 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   root.append(side);
 
   // Placeholders, single card and counts follow the real state.
-  const head2 = q('#gen-project-head');
+  const head = q('#gen-project-head');
   const queue = q('#gen-queue');
   const pathEl = q('#gen-video-path');
   const sync = () => {
     const hasVideo = !!pathEl && !/^\s*No video/i.test(pathEl.textContent || '');
-    const hasFrame = hasVideo && !!head2 && !head2.hidden;
+    const hasFrame = hasVideo && !!head && !head.hidden;
     empty.hidden = hasVideo;
     if (canvasWrap) canvasWrap.hidden = !hasVideo;
     sideEmpty.hidden = !!motion && !motion.hidden;
@@ -186,7 +186,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
     }
   };
   const mo = new MutationObserver(sync);
-  for (const n of [head2, queue, motion, pathEl].filter(Boolean)) {
+  for (const n of [head, queue, motion, pathEl].filter(Boolean)) {
     mo.observe(n, { attributes: true, attributeFilter: ['hidden', 'src'], childList: true, subtree: true, characterData: true });
   }
   sync();
