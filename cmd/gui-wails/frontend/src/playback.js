@@ -1893,7 +1893,7 @@ export function initPlayback(root) {
       }
     }
 
-    const axisColor = AXIS_COLORS[editAxis] || AXIS_COLORS.general;
+    const axisColor = laneColor(editAxis) || AXIS_COLORS.general;
     // Showing a feel channel: keep the stroke as a faint ghost for timing.
     if (strokeGhostPoints && strokeGhostPoints.length >= 2) {
       ctx.strokeStyle = AXIS_COLORS.general;
@@ -1991,11 +1991,35 @@ export function initPlayback(root) {
       }
     }
     axisLanePoints = next;
+    syncCompanionOptions();
     strokeGhostPoints = null;
     if (editAxis && editAxis !== 'general' && axisLanePoints[editAxis]) {
       try { strokeGhostPoints = await GetScriptCurve(CURVE_MAX_POINTS); } catch (err) { strokeGhostPoints = null; }
     }
   }
+
+  // Companion axes that exist beside the script become editable: they get
+  // an entry in the axis picker (lane click / ↑↓ / Edit then work as for
+  // vibration and suction). A missing file removes the entry again.
+  function syncCompanionOptions() {
+    const sel = el('#pb-axis');
+    if (!sel) return;
+    for (const axis of COMPANION_AXES) {
+      let opt = sel.querySelector(`option[value="${axis}"]`);
+      const have = !!axisLanePoints[axis];
+      if (have && !opt) {
+        opt = document.createElement('option');
+        opt.value = axis;
+        opt.textContent = AXIS_LABELS[axis];
+        sel.appendChild(opt);
+      } else if (!have && opt) {
+        if (sel.value === axis) { sel.value = 'general'; editAxis = 'general'; }
+        opt.remove();
+      }
+    }
+  }
+  const isEditableAxis = axis => !!AXIS_COLORS[axis]
+    || (COMPANION_AXES.includes(axis) && !!el(`#pb-axis option[value="${axis}"]`));
 
   function clearAxisLanes() {
     axisLanePoints = {};
@@ -2468,8 +2492,7 @@ export function initPlayback(root) {
 
   function selectAxis(axis) {
     const sel = el('#pb-axis');
-    // Companion lanes are read-only: they have no entry in the axis picker.
-    if (!sel || !AXIS_COLORS[axis] || (editAxis || 'general') === axis) return;
+    if (!sel || !isEditableAxis(axis) || (editAxis || 'general') === axis) return;
     sel.value = axis;
     sel.dispatchEvent(new Event('change'));
   }
@@ -4922,7 +4945,7 @@ export function initPlayback(root) {
     selectAxis(chips[j].dataset.axis);
   });
   axisLanesCanvas.addEventListener('keydown', e => {
-    const lanes = lanesDrawn.filter(a => AXIS_COLORS[a]);
+    const lanes = lanesDrawn.filter(isEditableAxis);
     if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     const cur = lanes.indexOf(editAxis);

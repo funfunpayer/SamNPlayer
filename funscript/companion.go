@@ -1,8 +1,11 @@
 package funscript
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -63,4 +66,45 @@ func CompanionAxesFound(mainPath string) []AxisName {
 		}
 	}
 	return out
+}
+
+// SaveCompanionAxis writes actions to an existing companion file (Edit view,
+// D4). Other fields of the file stay as they are; a file marked "inverted"
+// gets 100−pos written back, so it plays exactly as edited.
+func SaveCompanionAxis(mainPath string, axis AxisName, actions []Action) error {
+	if !IsCompanionAxis(axis) {
+		return fmt.Errorf("funscript: %q is not a companion axis", axis)
+	}
+	path := CompanionPath(mainPath, axis)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("funscript: %s file not found beside the script: %w", axis, err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return fmt.Errorf("funscript: ungültiges JSON: %w", err)
+	}
+	cleaned, err := SanitizeActions(actions)
+	if err != nil {
+		return err
+	}
+	var inverted bool
+	if raw, ok := doc["inverted"]; ok {
+		_ = json.Unmarshal(raw, &inverted)
+	}
+	if inverted {
+		for i := range cleaned {
+			cleaned[i].Pos = 100 - cleaned[i].Pos
+		}
+	}
+	actionsJSON, err := json.Marshal(cleaned)
+	if err != nil {
+		return err
+	}
+	doc["actions"] = actionsJSON
+	out, err := json.Marshal(doc)
+	if err != nil {
+		return err
+	}
+	return writeFileAtomic(path, out, 0o644)
 }

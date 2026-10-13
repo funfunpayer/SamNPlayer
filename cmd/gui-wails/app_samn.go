@@ -200,7 +200,8 @@ func (a *App) SaveScriptAxisActions(axis string, actions []funscript.Action) err
 		name = funscript.AxisGeneral
 	}
 	if funscript.IsCompanionAxis(name) {
-		return fmt.Errorf("the %s axis is shown read-only (edit it in its own file)", name)
+		// Multi-axis companion file beside the script (D4).
+		return funscript.SaveCompanionAxis(path, name, actions)
 	}
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)

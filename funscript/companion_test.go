@@ -3,6 +3,7 @@ package funscript
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,5 +54,33 @@ func TestLoadCompanionAxis(t *testing.T) {
 	found := CompanionAxesFound(main)
 	if len(found) != 2 || found[0] != "twist" || found[1] != "roll" {
 		t.Fatalf("found %v, want [twist roll] in display order", found)
+	}
+}
+
+func TestSaveCompanionAxisKeepsFieldsAndInversion(t *testing.T) {
+	dir := t.TempDir()
+	main := filepath.Join(dir, "clip.funscript")
+	roll := filepath.Join(dir, "clip.roll.funscript")
+	if err := os.WriteFile(roll, []byte(`{"version":"1.0","inverted":true,"range":90,"actions":[{"at":0,"pos":10},{"at":100,"pos":90}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveCompanionAxis(main, "roll", []Action{{At: 0, Pos: 30}, {At: 200, Pos: 70}}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadCompanionAxis(main, "roll")
+	if err != nil || len(got) != 2 || got[0].Pos != 30 || got[1].At != 200 || got[1].Pos != 70 {
+		t.Fatalf("round trip as edited: %+v %v", got, err)
+	}
+	raw, _ := os.ReadFile(roll)
+	for _, want := range []string{`"range":90`, `"version":"1.0"`, `"inverted":true`, `"pos":70`} {
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("file lost %s: %s", want, raw)
+		}
+	}
+	if err := SaveCompanionAxis(main, "pitch", []Action{{At: 0, Pos: 1}, {At: 9, Pos: 2}}); err == nil {
+		t.Fatal("missing companion file must fail")
+	}
+	if err := SaveCompanionAxis(main, "general", nil); err == nil {
+		t.Fatal("only companion axes")
 	}
 }
