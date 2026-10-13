@@ -163,6 +163,9 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	case "tcode":
 		// OSR2 / SR6 and other TCode devices over Wi-Fi (D5).
 		dev = device.NewTCode(url)
+	case "tcode-serial":
+		// The same over a USB cable; url is the port (COM3, /dev/ttyUSB0).
+		dev = device.NewTCodeSerial(url)
 	default:
 		dev = device.NewSamNeo2(device.SamNeo2Protocol{})
 	}
@@ -196,6 +199,9 @@ func (a *App) ConnectDeviceVia(transport, url string) (DeviceStatus, error) {
 	}
 	if transport == "tcode" {
 		_ = a.settings.Set(prefTCodeAddress, url)
+	}
+	if transport == "tcode-serial" {
+		_ = a.settings.Set(prefTCodeSerialPort, url)
 	}
 
 	a.applyMotorLevels(dev)
@@ -436,4 +442,14 @@ func (a *App) applyMotorLevels(dev device.Device) {
 	for ch, l := range levels {
 		ms.SetMotorLevel(ch, l)
 	}
+}
+
+// ListSerialPorts lists the serial ports for "TCode over USB" (Tools →
+// Device). An error from the OS is returned as is.
+func (a *App) ListSerialPorts() ([]string, error) {
+	ports, err := device.SerialPorts()
+	if ports == nil {
+		ports = []string{}
+	}
+	return ports, err
 }

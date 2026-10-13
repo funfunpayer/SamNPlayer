@@ -74,3 +74,13 @@ func TestSetMotorLevelsClampsAndStores(t *testing.T) {
 		t.Fatalf("levels %+v", got)
 	}
 }
+
+func TestConnectDeviceViaTCodeSerialNeedsPort(t *testing.T) {
+	a := NewApp()
+	if _, err := a.ConnectDeviceVia("tcode-serial", ""); err == nil || !strings.Contains(err.Error(), "serial port") {
+		t.Fatalf("empty port must explain itself, got %v", err)
+	}
+	if _, err := a.ListSerialPorts(); err != nil {
+		t.Logf("port listing unavailable here: %v", err)
+	}
+}

@@ -3,8 +3,11 @@ package device
 import (
 	"bufio"
 	"context"
+	"errors"
+	"io"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -184,5 +187,52 @@ func TestTCodeExtraAxes(t *testing.T) {
 		if !caps.Has(ch) {
 			t.Fatalf("capabilities lack %s: %+v", ch, caps)
 		}
+	}
+}
+
+type fakeSerial struct {
+	mu     sync.Mutex
+	buf    strings.Builder
+	closed bool
+}
+
+func (f *fakeSerial) Write(p []byte) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.buf.Write(p)
+}
+func (f *fakeSerial) Close() error { f.mu.Lock(); f.closed = true; f.mu.Unlock(); return nil }
+
+func TestTCodeSerial(t *testing.T) {
+	fake := &fakeSerial{}
+	dev := NewTCodeSerial(" COM7 ")
+	var opened string
+	dev.openSerial = func(port string) (io.WriteCloser, error) { opened = port; return fake, nil }
+	if err := dev.Connect(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if opened != "COM7" {
+		t.Fatalf("opened %q", opened)
+	}
+	if info := dev.Info(); !info.Connected || info.Address != "serial://COM7" {
+		t.Fatalf("info %+v", info)
+	}
+	_ = dev.SetPosition(0.5, 100*time.Millisecond)
+	_ = dev.SetAxis(ChRoll, 0.25, 50*time.Millisecond)
+	_ = dev.Disconnect()
+	fake.mu.Lock()
+	got, closed := fake.buf.String(), fake.closed
+	fake.mu.Unlock()
+	if got != "L05000I100\nR12500I50\nDSTOP\n" || !closed {
+		t.Fatalf("serial bytes %q closed=%v", got, closed)
+	}
+
+	bad := NewTCodeSerial("COM9")
+	bad.openSerial = func(string) (io.WriteCloser, error) { return nil, errors.New("access denied") }
+	if err := bad.Connect(context.Background()); err == nil || !strings.Contains(err.Error(), "COM9") {
+		t.Fatalf("clear open error, got %v", err)
+	}
+	if _, err := openTCodeSerial(""); err == nil {
+		t.Fatal("empty port must fail")
 	}
 }

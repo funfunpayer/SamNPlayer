@@ -20,6 +20,7 @@ const (
 	prefDeviceTransport      = "device.transport"
 	prefIntifaceURL          = "device.intifaceUrl"
 	prefTCodeAddress         = "device.tcodeAddress"
+	prefTCodeSerialPort      = "device.tcodeSerialPort"
 	prefDeviceConnectTest    = "device.connect_test"
 	prefAIRoiModelPath       = "generator.aiRoiModelPath"
 	prefAIPreferredClasses   = "generator.aiPreferredClasses"
@@ -170,6 +171,7 @@ type Settings struct {
 	DeviceTransport string `json:"deviceTransport"`
 	IntifaceURL     string `json:"intifaceUrl"`
 	TCodeAddress    string `json:"tcodeAddress"`
+	TCodeSerialPort string `json:"tcodeSerialPort"`
 	// DeviceConnectTest: nach erfolgreichem Verbinden einmal kurz Vib/Sog
 	// testen. Standard aus - stört sonst bei jedem Connect.
 	DeviceConnectTest bool `json:"deviceConnectTest"`
@@ -290,6 +292,7 @@ func (a *App) GetSettings() Settings {
 		DeviceTransport:    s.GetString(prefDeviceTransport, "ble"),
 		IntifaceURL:        s.GetString(prefIntifaceURL, ""),
 		TCodeAddress:       s.GetString(prefTCodeAddress, ""),
+		TCodeSerialPort:    s.GetString(prefTCodeSerialPort, ""),
 		DeviceConnectTest:  s.GetBool(prefDeviceConnectTest, false),
 		AIRoiModelPath:     s.GetString(prefAIRoiModelPath, ""),
 		AIPreferredClasses: s.GetString(prefAIPreferredClasses, bodyparts.PreferredClassesCSV()),
