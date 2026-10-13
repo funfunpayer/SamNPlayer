@@ -147,6 +147,9 @@ func normalizeEditAxis(axis string) string {
 	case funscript.AxisSuction:
 		return string(funscript.AxisSuction)
 	default:
+		if name := funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))); funscript.IsCompanionAxis(name) {
+			return string(name)
+		}
 		return string(funscript.AxisGeneral)
 	}
 }

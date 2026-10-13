@@ -1,5 +1,6 @@
-"""D4: multi-axis companion files (clip.twist.funscript …) show as read-only
-lanes in their own colour; clicking them does not switch the edited axis.
+"""D4: multi-axis companion files (clip.twist.funscript …) show as lanes in
+their own colour and are editable: present files get an entry in the axis
+picker, a lane click selects them, the main curve then shows that axis.
 
 Run: python3 cmd/gui-wails/frontend/test/pb_companion_lanes_test.py
 """
@@ -90,8 +91,22 @@ def main():
             check("lane label names the axes", "Twist" in label and "Pitch" in label, label)
             box = page.locator("#pb-axis-lanes").bounding_box()
             page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.25)
-            page.wait_for_timeout(200)
-            check("clicking a companion lane keeps the stroke axis", page.input_value("#pb-axis") in ("general", ""))
+            page.wait_for_function("document.querySelector('#pb-axis').value === 'twist'", timeout=3000)
+            check("clicking the twist lane selects it for editing", page.input_value("#pb-axis") == "twist")
+            opts = page.evaluate("[...document.querySelectorAll('#pb-axis option')].map(o => o.value)")
+            check("axis picker lists present companion files only",
+                  "twist" in opts and "pitch" in opts and "surge" not in opts and "roll" not in opts, str(opts))
+            page.wait_for_timeout(300)
+            check("main curve in the twist colour", page.evaluate(PIXELS_OF, ["#pb-curve", TW]) > 200)
+            page.focus("#pb-axis-lanes")
+            page.keyboard.press("ArrowDown")
+            page.wait_for_function("document.querySelector('#pb-axis').value === 'pitch'", timeout=3000)
+            check("↓ on the lanes moves to pitch", page.input_value("#pb-axis") == "pitch")
+            # Pitch file gone (reload) → its picker entry goes, the selection falls back.
+            page.evaluate("window.__axes.pitch = null")
+            page.click("#pb-choose")
+            page.wait_for_function("!document.querySelector('#pb-axis option[value=\"pitch\"]')", timeout=5000)
+            check("missing file removes its picker entry", page.input_value("#pb-axis") == "general")
             check("no page errors", errors == [], str(errors[:3]))
             browser.close()
     finally:

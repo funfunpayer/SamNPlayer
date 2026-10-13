@@ -31,8 +31,18 @@ func TestGetScriptAxisActionsReadsCompanionFiles(t *testing.T) {
 	if err != nil || surge != nil {
 		t.Fatalf("no surge file → nil, nil; got %+v, %v", surge, err)
 	}
-	if err := a.SaveScriptAxisActions("twist", []funscript.Action{{At: 0, Pos: 1}, {At: 10, Pos: 2}}); err == nil {
-		t.Fatal("companion axes are read-only")
+	if err := a.SaveScriptAxisActions("twist", []funscript.Action{{At: 0, Pos: 10}, {At: 500, Pos: 90}}); err != nil {
+		t.Fatalf("companion axes are editable: %v", err)
+	}
+	twist, _ = a.GetScriptAxisActions("twist")
+	if len(twist) != 2 || twist[1].At != 500 || twist[1].Pos != 90 {
+		t.Fatalf("saved twist %+v", twist)
+	}
+	if err := a.EditScaleRange("twist", 0, 1000, 0.5, false); err != nil {
+		t.Fatalf("range edits work on companion axes: %v", err)
+	}
+	if err := a.SaveScriptAxisActions("surge", []funscript.Action{{At: 0, Pos: 1}, {At: 10, Pos: 2}}); err == nil {
+		t.Fatal("no surge file → nothing to save into")
 	}
 	if _, err := a.GetScriptAxisActions("banana"); err == nil {
 		t.Fatal("unknown axis still errors")

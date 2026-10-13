@@ -27,6 +27,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Edit multi-axis companion files:** the extra axes beside a script
+  (`.twist`, `.roll` …) are now editable in Edit: they appear in the axis
+  picker and a click on their lane selects them. Point edits, range tools
+  and undo save back into that file. Other fields and the `inverted` flag
+  are kept.
 - **Per-motor levels:** with a multi-motor device connected (LELO F1S
   V3: two motors), Player → Inspector → Devices shows one level per motor.
   It applies live, is saved, and is restored on the next connect.
@@ -42,8 +47,7 @@ measurement history behind each entry; this file is the short version for
   included yet.
 - **Multi-axis scripts (D4):** companion files beside a script
   (`clip.surge.funscript`, `.sway`, `.twist`, `.roll`, `.pitch`) now show as
-  extra lanes in the Player, each in its own colour. They are read-only
-  for now; editing, export and device output come later.
+  extra lanes in the Player, each in its own colour.
 - **Stroke safety range (D3):** with a stroker connected, Player →
   Inspector → Devices shows "Send stroke to the device" and a bottom / top
   range; the device only moves inside it (the script's stroke is scaled
