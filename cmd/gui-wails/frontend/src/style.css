@@ -3878,3 +3878,120 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 .pb-motor-title { margin: 0 0 4px; color: var(--text-dim); font-size: var(--type-chip); text-transform: uppercase; letter-spacing: 0.06em; }
 .pb-motor-row { display: grid; grid-template-columns: minmax(7em, auto) minmax(0, 1fr) 3.5em; gap: 8px; align-items: center; }
 .pb-motor-val { text-align: right; font-family: var(--font-mono); }
+
+/* ===== V1 Create layout (create_layout.js, target visual-target/create.png):
+   Project · centre workspace · settings. Plain Create view only — the Scene
+   Map view ([data-view]) keeps its own stacked rules. ===== */
+body[data-tab="generator"] #sidebar { display: none; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) {
+  max-width: none;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 340px;
+  column-gap: 18px;
+  align-items: start;
+}
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > * { grid-column: 2; min-width: 0; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > .gl-nav { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > .gl-side { grid-column: 3; grid-row: 1 / span 40; position: sticky; top: 0; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > .create-head { margin-bottom: 10px; padding-bottom: 8px; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > .create-head .create-lede { margin: 2px 0 0; }
+
+/* Left: Project */
+.gl-nav {
+  padding: 12px 10px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  background: rgba(var(--accent-rgb), 0.03);
+}
+.gl-nav-title { margin: 6px 4px 6px; font-size: 13px; font-weight: 700; color: var(--text); }
+.gl-nav-sub { margin: 12px 4px 4px; font-size: var(--type-chip); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.gl-nav-item {
+  display: block; width: 100%; margin: 2px 0; padding: 9px 12px; text-align: left; font-size: 14px;
+  background: transparent; border: 1px solid transparent; border-radius: 10px; box-shadow: none; color: var(--text);
+}
+.gl-nav-item:hover { background: rgba(var(--accent-rgb), 0.08); }
+.gl-nav-item.is-active { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.5); }
+.gl-nav-list { list-style: none; margin: 0; padding: 0; }
+.gl-nav-link {
+  display: block; width: 100%; margin: 0; padding: 5px 12px; text-align: left; font-size: 12.5px;
+  background: transparent; border: 0; box-shadow: none; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 8px;
+}
+.gl-nav-link:hover { color: var(--text); background: rgba(var(--accent-rgb), 0.06); }
+.gl-nav-empty { padding: 3px 12px; font-size: 12px; color: var(--text-dim); opacity: 0.7; }
+.gl-nav-drop {
+  margin: 16px 2px 2px; padding: 16px 10px; text-align: center; font-size: 12.5px; color: var(--text-dim);
+  border: 1px dashed var(--border-strong); border-radius: 12px;
+}
+.gl-nav-drop span { opacity: 0.75; }
+
+/* Centre: project header, step bar, stage */
+#tab-generator[data-gen-layout="v1"] .gen-project-head { margin-bottom: 12px; }
+#tab-generator[data-gen-layout="v1"] .gen-steps { margin: 0 0 10px; }
+#tab-generator[data-gen-layout="v1"] .gen-steps-list {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 0; border: 0;
+}
+#tab-generator[data-gen-layout="v1"] .gen-step-item {
+  gap: 10px; padding: 10px 12px; opacity: 1; border: 1px solid var(--border-soft); border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02); min-width: 0;
+}
+#tab-generator[data-gen-layout="v1"] .gen-step-item::after { display: none; }
+#tab-generator[data-gen-layout="v1"] .gen-step-num {
+  flex: 0 0 auto; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid var(--border-strong); font-weight: 700; color: var(--text-dim);
+}
+#tab-generator[data-gen-layout="v1"] .gen-step-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+#tab-generator[data-gen-layout="v1"] .gen-step-text b { font-size: 13.5px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tab-generator[data-gen-layout="v1"] .gen-step-text small { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tab-generator[data-gen-layout="v1"] .gen-step-item.is-done .gen-step-num { border-color: var(--teal); color: var(--teal); }
+#tab-generator[data-gen-layout="v1"] .gen-step-item.is-current {
+  border-color: rgba(var(--accent-rgb), 0.7); background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.18);
+}
+#tab-generator[data-gen-layout="v1"] .gen-step-item.is-current .gen-step-num { border-color: var(--accent); background: var(--accent); color: #0b0d12; }
+
+.gl-stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr); gap: 14px; margin: 4px 0 14px; align-items: stretch; }
+.gl-preview { display: flex; align-items: center; justify-content: center; min-height: 260px; padding: 10px; overflow: hidden; }
+.gl-preview #roi-canvas-wrap { margin: 0; max-width: 100%; }
+.gl-preview #roi-canvas-wrap[hidden] { display: none; }
+.gl-preview #roi-canvas { max-width: 100%; height: auto; }
+.gl-preview-empty { margin: 0; color: var(--text-dim); text-align: center; }
+.gl-preview-empty[hidden] { display: none; }
+.gl-clips { padding: 12px; min-width: 0; }
+.gl-card-title { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+.gl-single-clip { display: flex; flex-direction: column; gap: 4px; padding: 6px; margin-bottom: 10px;
+  border: 1px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 1px var(--accent) inset; max-width: 220px; }
+.gl-single-clip[hidden] { display: none; }
+.gl-clips #gen-step-video { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.gl-clips #gen-step-video .gen-step-title { display: none; }
+.gl-clips #gen-step-video .row { flex-wrap: wrap; gap: 8px; }
+
+/* Right: settings */
+.gl-side > * + * { margin-top: 12px; }
+.gl-side #gen-step-motion { margin: 0; }
+.gl-side-empty[hidden] { display: none; }
+.gl-side-title { margin: 0 0 6px; font-weight: 700; }
+
+@media (max-width: 1280px) {
+  #tab-generator[data-gen-layout="v1"]:not([data-view]) { grid-template-columns: 190px minmax(0, 1fr); }
+  #tab-generator[data-gen-layout="v1"]:not([data-view]) > .gl-side { grid-column: 2; grid-row: auto; position: static; }
+}
+@media (max-width: 960px) {
+  #tab-generator[data-gen-layout="v1"]:not([data-view]) { display: block; }
+  .gl-stage { grid-template-columns: 1fr; }
+}
+
+/* Scene Map view keeps the stacked look: show the stage (preview + video
+   chooser), hide the Create-only columns. */
+#tab-generator#tab-generator[data-view="scenemap"] > .gl-stage { display: grid !important; }
+#tab-generator#tab-generator[data-view="scenemap"] > .gl-stage > :not([hidden]),
+#tab-generator#tab-generator[data-view="scenemap"] > .gl-stage #gen-step-video { display: block !important; }
+#tab-generator[data-view="scenemap"] > .gl-nav, #tab-generator[data-view="scenemap"] > .gl-side { display: none !important; }
+.gl-run { padding: 12px; }
+.gl-run .gl-run-row { display: flex; gap: 8px; margin: 0; }
+.gl-run #gen-generate { flex: 1 1 auto; min-height: 48px; font-size: 16px; font-weight: 700; border-radius: 14px; }
+.gl-run #gen-cancel { flex: 0 0 auto; }
+.gl-side #gen-step-motion select { max-width: 100%; min-width: 0; }
+.gl-side #gen-step-motion .row, .gl-side #gen-step-motion .field-row { flex-wrap: wrap; }
+.gl-side { min-width: 0; }
+.gl-side * { max-width: 100%; }
+#tab-generator[data-gen-layout="v1"]:not([data-view]) > .create-head.gl-hidden-head { display: none; }
+.gl-nav .handbook-open-btn.gl-nav-item { margin-top: 10px; }

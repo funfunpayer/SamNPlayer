@@ -42,8 +42,8 @@ def main():
             page.wait_for_function("window.__ready === true")
             page.evaluate("localStorage.removeItem('pb.toolsCollapsed')")
             check("info sidebar hidden on the Play tab", page.is_hidden("#sidebar"))
-            page.evaluate("document.body.dataset.tab = 'generator'")
-            check("info sidebar visible on other tabs", page.is_visible("#sidebar"))
+            page.evaluate("document.body.dataset.tab = 'log'")
+            check("Play rule does not hide the info sidebar elsewhere", page.is_visible("#sidebar"))
             page.evaluate("document.body.dataset.tab = 'playback'")
 
             page.evaluate("document.querySelector('#pb-loaded').hidden = false")

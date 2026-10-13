@@ -8,6 +8,7 @@ import { CurrentVersion, CheckForUpdate, CheckForPatch, ApplyUpdate, ApplyPatch,
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 import { initPlayback } from './playback.js';
 import { applyPlayerLayoutV1 } from './player_layout.js';
+import { applyCreateLayoutV1 } from './create_layout.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -240,6 +241,8 @@ enhanceGeneratorPreview(document.getElementById('tab-generator'));
 enhancePlaybackOZone(document.getElementById('tab-playback'));
 // V1.0 Player shell: Library · video/timeline · Inspector (docs/V1_PLAN.md S3).
 applyPlayerLayoutV1(document.getElementById('tab-playback'), playback);
+// V1 Create layout: Project · preview + clips · settings (create_layout.js).
+applyCreateLayoutV1(document.getElementById('tab-generator'), { playback });
 // Workspace view (Play / Edit remembered) once the Player layout exists.
 syncWorkspace(document.body.dataset.tab || 'playback');
 initPostGenerateReview();

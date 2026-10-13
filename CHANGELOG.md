@@ -18,6 +18,15 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Create layout (visual target `docs/visual-target/create.png`):** Create
+  is now a three-column workspace instead of one long page. On the left is
+  a Project column: source clips, recent videos, generated scripts, Scene
+  map and the handbook. In the middle sit the project header, a step bar
+  with sub-labels, and the preview next to the source-clip card. On the
+  right are the Feel settings with a large **Create Emotion Script** button
+  and its progress. Every list shows real data; nothing is a placeholder
+  control. Choosing a recent video in the Project column loads it.
+
 - **Editions renamed (Owner, 12 Oct):** **SamNPlayer Free** is the
   customer build; **SamNPlayer Suite** is our internal build with AI
   training and the batch test system (`-tags suite`, release files
