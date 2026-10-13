@@ -68,3 +68,28 @@ func TestCompanionAxesForPlayback(t *testing.T) {
 		t.Fatal("no script → no axes")
 	}
 }
+
+func TestCreateScriptAxis(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "clip.funscript")
+	if err := os.WriteFile(path, []byte(`{"actions":[{"at":0,"pos":0},{"at":42000,"pos":100}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{}
+	if _, err := a.CreateScriptAxis("twist"); err == nil {
+		t.Fatal("no script loaded → error")
+	}
+	if _, err := a.LoadFunscript(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.CreateScriptAxis("Pitch"); err != nil {
+		t.Fatal(err)
+	}
+	acts, err := a.GetScriptAxisActions("pitch")
+	if err != nil || len(acts) != 2 || acts[1].At != 42000 || acts[1].Pos != 50 {
+		t.Fatalf("pitch seeded over the script: %+v %v", acts, err)
+	}
+	if _, err := a.CreateScriptAxis("pitch"); err == nil {
+		t.Fatal("second create must fail")
+	}
+}

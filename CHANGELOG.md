@@ -27,6 +27,10 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Add an axis in Edit:** "+ Axis…" next to the axis picker starts a new
+  companion file (for example `clip.twist.funscript`), centred over the
+  script's length, and selects it for editing. Existing files are never
+  overwritten.
 - **Edit multi-axis companion files:** the extra axes beside a script
   (`.twist`, `.roll` …) are now editable in Edit: they appear in the axis
   picker and a click on their lane selects them. Point edits, range tools

@@ -320,3 +320,19 @@ func scriptFileFilters() []runtime.FileFilter {
 		{DisplayName: "Other apps (*.funscript)", Pattern: "*.funscript"},
 	}
 }
+
+// CreateScriptAxis starts a new multi-axis companion file (surge, sway,
+// twist, roll, pitch) beside the loaded script, centred at 50 over the
+// script's length, and returns its path. Edit then shapes it like any axis.
+func (a *App) CreateScriptAxis(axis string) (string, error) {
+	path := a.loadedScriptPath()
+	script := a.loadedScript()
+	if path == "" || script == nil {
+		return "", fmt.Errorf("no script loaded")
+	}
+	var end int64
+	if n := len(script.Actions); n > 0 {
+		end = script.Actions[n-1].At
+	}
+	return funscript.CreateCompanionAxis(path, funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))), end)
+}

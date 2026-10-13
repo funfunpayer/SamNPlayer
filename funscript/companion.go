@@ -108,3 +108,37 @@ func SaveCompanionAxis(mainPath string, axis AxisName, actions []Action) error {
 	}
 	return writeFileAtomic(path, out, 0o644)
 }
+
+// CreateCompanionAxis starts a new companion file for axis beside the main
+// script (Edit → "Add axis"): two points at the centre (50), from 0 to
+// endMs, so the axis can be shaped right away. An existing file is never
+// overwritten.
+func CreateCompanionAxis(mainPath string, axis AxisName, endMs int64) (string, error) {
+	if !IsCompanionAxis(axis) {
+		return "", fmt.Errorf("funscript: %q is not a companion axis", axis)
+	}
+	if mainPath == "" {
+		return "", fmt.Errorf("funscript: no script loaded")
+	}
+	path := CompanionPath(mainPath, axis)
+	if _, err := os.Stat(path); err == nil {
+		return "", fmt.Errorf("funscript: %s already exists", filepath.Base(path))
+	}
+	if endMs < 1000 {
+		endMs = 1000
+	}
+	doc := map[string]any{
+		"version":  "1.0",
+		"inverted": false,
+		"range":    100,
+		"actions":  []Action{{At: 0, Pos: 50}, {At: endMs, Pos: 50}},
+	}
+	data, err := json.Marshal(doc)
+	if err != nil {
+		return "", err
+	}
+	if err := writeFileAtomic(path, data, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}

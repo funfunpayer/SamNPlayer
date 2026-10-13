@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
+  GetScriptAxisActions, SaveScriptAxisActions, CreateScriptAxis, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -228,6 +228,8 @@ export function initPlayback(root) {
             <option value="vibration">Vibration</option>
             <option value="suction">Suction</option>
           </select>
+          <select id="pb-axis-add" style="width:auto;" title="Start a new multi-axis file beside the script (name.twist.funscript …), centred, to shape in Edit"
+            aria-label="Add axis"><option value="">+ Axis…</option></select>
           <label style="width:auto;" data-help="Recipe derives Neo 2 from general. Axes plays explicit vibration/suction curves.">Drive</label>
           <select id="pb-playback-source" style="width:auto;">
             <option value="recipe">Recipe</option>
@@ -2016,6 +2018,16 @@ export function initPlayback(root) {
         if (sel.value === axis) { sel.value = 'general'; editAxis = 'general'; }
         opt.remove();
       }
+    }
+    // "+ Axis…" offers the companion axes that have no file yet.
+    const add = el('#pb-axis-add');
+    if (add) {
+      add.replaceChildren(new Option('+ Axis…', ''));
+      for (const axis of COMPANION_AXES) {
+        if (!axisLanePoints[axis]) add.appendChild(new Option(AXIS_LABELS[axis], axis));
+      }
+      add.hidden = add.options.length < 2;
+      add.value = '';
     }
   }
   const isEditableAxis = axis => !!AXIS_COLORS[axis]
@@ -4960,6 +4972,26 @@ export function initPlayback(root) {
     const i = Math.floor(((e.clientY - rect.top) / Math.max(1, rect.height)) * lanes.length);
     const lane = lanes[Math.max(0, Math.min(lanes.length - 1, i))];
     if (lane && lane !== 'audio') selectAxis(lane);
+  });
+  el('#pb-axis-add')?.addEventListener('change', async e => {
+    const axis = e.target.value;
+    if (!axis) return;
+    e.target.disabled = true;
+    try {
+      const path = await CreateScriptAxis(axis);
+      log('New axis file: ' + String(path).split(/[\\/]/).pop());
+      await drawCurve(); // reloads the lanes and the axis picker
+      const sel = el('#pb-axis');
+      if (sel && sel.querySelector(`option[value="${axis}"]`)) {
+        sel.value = axis;
+        sel.dispatchEvent(new Event('change'));
+      }
+    } catch (err) {
+      logError('Add axis: ' + err);
+    } finally {
+      e.target.disabled = false;
+      e.target.value = '';
+    }
   });
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {
