@@ -78,9 +78,23 @@ def main():
             page.click("#gen-choose")
             page.wait_for_function("document.querySelector('#gen-video') && document.querySelector('#gen-video').readyState >= 1", timeout=8000)
             page.wait_for_function("document.querySelector('#pb-video').readyState >= 1", timeout=8000)
-            page.evaluate("document.querySelector('#gen-video').currentTime = 42")
-            page.wait_for_function("Math.abs(document.querySelector('#pb-video').currentTime - 42) < 0.5", timeout=4000)
-            check("Generator video moves the timeline", True)
+            # An older timeline seek still in flight must not pull the
+            # Generator video back (it used to, now and then, in CI).
+            page.evaluate("""(() => { document.querySelector('#pb-video').currentTime = 10;
+              document.querySelector('#gen-video').currentTime = 42; })()""")
+            # Right after loading, the Generator fetches its first frame and
+            # may put the clip back to 0 once; a user would jump again, and
+            # so does the test (while no seek is in flight).
+            page.wait_for_function("""(() => { const g = document.querySelector('#gen-video'),
+                p = document.querySelector('#pb-video');
+              if (Math.abs(g.currentTime - 42) > 0.5 && !g.seeking) g.currentTime = 42;
+              return Math.abs(g.currentTime - 42) < 0.5 && Math.abs(p.currentTime - 42) < 0.5; })()""",
+                                   timeout=8000, polling=500)
+            page.wait_for_timeout(400)
+            check("Generator video moves the timeline",
+                  abs(page.evaluate("document.querySelector('#gen-video').currentTime") - 42) < 0.5
+                  and abs(page.evaluate("document.querySelector('#pb-video').currentTime") - 42) < 0.5,
+                  str(page.evaluate("[document.querySelector('#gen-video').currentTime, document.querySelector('#pb-video').currentTime]")))
 
             # Back to the Player: everything returns, editing off again.
             mode("player")

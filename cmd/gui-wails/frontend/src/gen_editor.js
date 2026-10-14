@@ -106,7 +106,8 @@ export function attachGeneratorEditor(genRoot, pbRoot, api) {
   }
   if (genVideo && pbVideo) {
     pbVideo.addEventListener('seeked', () => {
-      if (!borrowed || syncing || !genVideo.paused) return;
+      // A Generator jump still in flight wins over an older timeline seek.
+      if (!borrowed || syncing || !genVideo.paused || genVideo.seeking) return;
       if (Math.abs(genVideo.currentTime - pbVideo.currentTime) > 0.25) {
         syncing = true;
         genVideo.currentTime = pbVideo.currentTime;
