@@ -117,6 +117,8 @@ STUBS = {
     "IsSuiteBuild": "async () => false",
     "CurrentVersion": "async () => 'v0.7.0'",
     "PickFunscriptFile": "async () => '/demo/Demo clip.funscript'",
+    "PickMediaFile": "async () => window.__pickMedia || '/demo/Demo clip.funscript'",
+    "FindScriptForVideo": "async (v) => ({videoPath: v, scriptPath: '', found: false})",
     "LoadFunscript": ("async (p) => ({path: p, actionCount: window.__stroke.length, durationMs: %d,"
                       " videoPath: '/demo/Demo clip.mp4', hasVideo: true})" % DURATION_MS),
     "VideoFileURL": "async () => window.__media",
@@ -196,6 +198,16 @@ def main():
                 page.add_init_script("try{localStorage.clear()}catch(e){}")
                 page.goto(f"{base}/test/_shots_harness.html")
                 page.wait_for_timeout(1000)
+
+                # Player — empty: Open… / drop in the middle.
+                shoot(page, out, "player-open")
+                # A video without a script: the Player offers to create one.
+                page.evaluate("window.__pickMedia = '/demo/New clip.mp4'")
+                page.click("#pb-choose-empty")
+                page.wait_for_function("!document.querySelector('#pb-noscript-img').hidden", timeout=8000)
+                page.wait_for_timeout(500)
+                shoot(page, out, "player-new-video")
+                page.evaluate("window.__pickMedia = ''")
 
                 # Player — Play view with a script, video, lanes.
                 page.click("#pb-choose")

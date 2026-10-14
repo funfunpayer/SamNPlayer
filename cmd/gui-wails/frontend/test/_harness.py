@@ -51,6 +51,10 @@ def app_stub(overrides=None):
             "'generate:autoroi', {x:40,y:40,w:120,h:120,engine: engine || 'auto',"
             "videoPath: path, seq: 1}), 0); }"
         )
+    # Open… takes a video or a script (PickMediaFile); tests that stub the
+    # script picker get the same answer from it.
+    if "PickMediaFile" not in overrides and "PickFunscriptFile" in overrides:
+        overrides["PickMediaFile"] = overrides["PickFunscriptFile"]
     lines = ["window.__calls = window.__calls || [];"]
     for name in names:
         lines.append(f"export const {name} = {overrides.get(name, 'async () => ({})')};")

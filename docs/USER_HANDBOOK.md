@@ -25,6 +25,28 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 
 ---
 
+## 1b. Open a video or a script
+
+The empty Player has one big **Open…** in the middle (also in the header,
+the folder in the top bar and **Ctrl+O**). It takes a video or a script.
+You can also drop either onto the window.
+
+- **A script:** it opens in the Player. Its video, with the same name beside
+  it, comes along.
+- **A video with a script beside it** (same name, `.samn` first, then
+  `.funscript`): that script opens with this video.
+- **A video without a script:** the Player shows the video and asks:
+  - **Create script** opens the Generator with this video;
+  - **Choose script…** opens a script you pick, with this video;
+  - **Open other…** picks again.
+
+  Tick **Always create right away when a video has no script** to skip the
+  question: the Generator then starts Create on its own once it is ready.
+  Over a loaded script the question also offers **Back to the script**.
+- **In the Generator**, a video goes straight into the Generator. So do
+  several videos dropped at once, as a Create queue.
+- **A video and a script dropped together:** that script, with that video.
+
 ## 2. Everyday Create (recommended path)
 
 Layout: **Project** on the left (source clips, recent videos, generated

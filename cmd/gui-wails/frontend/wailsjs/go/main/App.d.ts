@@ -348,6 +348,8 @@ export function SaveScriptBookmarks(arg1:Array<funscript.Bookmark>):Promise<void
 export function GetScriptChapterMarks():Promise<Array<funscript.ChapterMark>>;
 export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promise<void>;
 export function OptimizeLoadedFor(arg1:string):Promise<any>;
+export function PickMediaFile():Promise<string>;
+export function FindScriptForVideo(arg1:string):Promise<any>;
 export function SuggestChapterScenes():Promise<Array<any>>;
 export function SaveChapterScenes(arg1:Array<any>):Promise<void>;
 export function BakeSoundVibration(arg1:string):Promise<any>;

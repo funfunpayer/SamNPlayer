@@ -3316,9 +3316,12 @@ button.primary:hover:not(:disabled) {
   transition: opacity .2s ease;
 }
 #tab-playback[data-pb-tools="folded"] .pb-tools { border-left: 0; padding-left: 0; }
-/* Empty state: airy, one primary action — the header button; the centre
-   duplicate is hidden (it stays in the DOM for keyboard/tests). */
-#tab-playback[data-pb-state="empty"] #pb-choose-empty { display: none; }
+/* Empty state (video first, Owner 14 Oct): the one big action is Open… in
+   the middle; the header Open… stays, quiet, for the keyboard and later. */
+#tab-playback[data-pb-state="empty"] #pb-choose {
+  background: transparent; color: var(--text-dim); box-shadow: none;
+  border: 1px solid var(--border-soft);
+}
 #tab-playback #pb-empty {
   background: transparent; border: 0; box-shadow: none;
   min-height: 40vh; display: grid; place-items: center;
@@ -4358,3 +4361,46 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 .pb-scene-feel-sug.hint { color: var(--text-dim); }
 .pb-scene-card-feel { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #ffb15b; background: rgba(255, 138, 35, .14); }
 .pb-scenes-apply[hidden] { display: none; }
+
+/* Video first (open_media.js): the empty Player is the place to open or
+   drop a video / script; a video without a script asks to create one. */
+.pb-empty .pb-empty-inner, .pb-noscript {
+  border: 1.5px dashed rgba(var(--accent-rgb), 0.28);
+  border-radius: 22px;
+  margin: 18px;
+}
+.pb-open-big { min-width: 200px; padding: 12px 26px; font-size: 1.02rem; }
+.pb-noscript {
+  text-align: center;
+  max-width: 560px;
+  padding: 24px 24px 18px;
+}
+.pb-noscript[hidden] { display: none; }
+.pb-noscript-frame {
+  aspect-ratio: 16 / 9;
+  max-width: 420px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+}
+.pb-noscript-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pb-noscript-name {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.pb-noscript .hint { margin: 0 0 16px; color: var(--text-dim); }
+.pb-noscript-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 12px; }
+.pb-noscript-auto { justify-content: center; font-size: 0.88rem; color: var(--text-dim); }
+/* The video bar names the video; it is no longer dressed as a drop-down. */
+.pb-videobar .pb-vb-select {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: 600;
+}
+.pb-videobar .pb-vb-select:hover { border-color: rgba(var(--accent-rgb), 0.35); }

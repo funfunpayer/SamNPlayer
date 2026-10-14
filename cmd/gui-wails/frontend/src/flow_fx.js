@@ -44,7 +44,9 @@ const SVG = `
     <path class="flow-fx__trail flow-fx__trail--detail" d="M183 309 C271 320 320 280 372 239 S519 164 609 180"
       fill="none" stroke="#c9fbff" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
   </g>
-  <g class="flow-fx__mark" transform="translate(400 222)">
+  <!-- The float animation sets a CSS transform, which would replace a
+       transform attribute on the same group: position on the outer group. -->
+  <g transform="translate(400 222)"><g class="flow-fx__mark">
     <path d="M-56 -75 Q-63 -81 -66 -72 L-66 76 Q-65 86 -54 80 L85 8 Q97 1 85 -8 Z"
       fill="#04a6d4" opacity=".23" filter="url(#flow-fx-glow)"/>
     <path d="M-52 -71 Q-59 -76 -59 -66 L-59 66 Q-58 77 -47 72 L73 8 Q86 0 73 -8 Z"
@@ -52,7 +54,7 @@ const SVG = `
     <path d="M-36 -43 L-36 43 L46 0 Z" fill="#051d32" opacity=".67"/>
     <path d="M-49 -57 L62 0" stroke="#d0fdff" opacity=".55" stroke-width="2" stroke-linecap="round"/>
     <path d="M-47 61 L63 1" stroke="#006c94" opacity=".6" stroke-width="3" stroke-linecap="round"/>
-  </g>
+  </g></g>
 </svg>`;
 
 function visibilityEnabled(root, inViewport, reducedMotion) {

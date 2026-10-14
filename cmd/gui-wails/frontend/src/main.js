@@ -13,6 +13,7 @@ import { applyTrainingLayoutV1 } from './training_layout.js';
 import { applyTrainingDevice } from './training_device.js';
 import { initModeSwitch } from './mode_switch.js';
 import { attachGeneratorEditor } from './gen_editor.js';
+import { initOpenMedia } from './open_media.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -217,10 +218,19 @@ document.getElementById('ws-scenemap')?.addEventListener('click', () => {
 window.addEventListener('app:rhythm', () => switchTab('rhythm'));
 // Other modules ask for a view (e.g. a Generator result opens in Edit).
 window.addEventListener('ws:set', e => setWorkspaceView(e.detail && e.detail.view));
-// Top bar (V1): folder = open an Emotion Script in the Player; gear = Settings.
+// Top bar (V1): folder = open a video or a script (the Generator keeps its
+// mode: a video goes into it); gear = Settings.
+const inEditorModes = () => ['player', 'editor', 'generator'].includes(document.body.dataset.mode);
 document.getElementById('topbar-open')?.addEventListener('click', () => {
-  switchTab('playback');
-  document.getElementById('pb-choose')?.click();
+  if (!inEditorModes()) switchTab('playback');
+  openMedia?.pickAndOpen();
+});
+// Ctrl+O / Cmd+O: the same.
+window.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'o') return;
+  e.preventDefault();
+  if (!inEditorModes()) switchTab('playback');
+  openMedia?.pickAndOpen();
 });
 document.getElementById('topbar-settings')?.addEventListener('click', () => switchTab('settings'));
 
@@ -268,6 +278,8 @@ applyCreateLayoutV1(document.getElementById('tab-generator'), { playback });
 // The Generator borrows the Player's timeline and edit tools (Generator with
 // editor) — after both layouts exist.
 attachGeneratorEditor(document.getElementById('tab-generator'), document.getElementById('tab-playback'), playback);
+// Video first: Open… / drop a video → its script, or "Create script".
+const openMedia = initOpenMedia(document.getElementById('tab-playback'), playback);
 // Workspace view (Play / Edit remembered) once the Player layout exists.
 syncWorkspace(document.body.dataset.tab || 'playback');
 initPostGenerateReview();
@@ -482,6 +494,16 @@ EventsOn('files:dropped', data => {
   const overlay = document.getElementById('drop-overlay');
   if (overlay) overlay.classList.remove('visible');
 
+  // One video outside the Generator: the Player looks for its script and
+  // offers to create one (open_media.js). In the Generator, or several
+  // videos at once (a Create queue): the Generator, as before.
+  if (data.videos && data.videos.length === 1 && document.body.dataset.mode !== 'generator' && openMedia) {
+    if (!inEditorModes()) switchTab('playback');
+    // Video + script dropped together: that script, with that video.
+    if (data.scripts && data.scripts.length) openMedia.openPair(data.videos[0], data.scripts[0]);
+    else openMedia.openPath(data.videos[0]);
+    return;
+  }
   if (data.videos && data.videos.length) {
     switchTab('generator');
     // Multi-drop → Create queue (DeepFunGen UX). First video loads; paths[]
