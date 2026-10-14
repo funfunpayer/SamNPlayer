@@ -148,17 +148,21 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   side.append(sideEmpty);
   const motion = q('#gen-step-motion');
   if (motion) side.append(motion);
-  // Step tools join Feel on the right.
-  if (tools.children.length) side.append(tools);
-  // Create / Cancel and the progress live at the bottom of the settings, like
-  // the target's "Generate" button; they stay disabled until a clip is ready.
+  // Create / Cancel and the progress sit right under Feel, like the target's
+  // "Generate" button; they stay disabled until a clip is ready.
   const runCard = make('section', 'gl-run card');
   runCard.setAttribute('aria-label', 'Create');
-  const genRow = q('#gen-generate')?.parentElement;
-  const progress = q('#gen-progress-wrap');
+  // The step tools are already in the (not yet attached) tools box, so look
+  // there too — root.querySelector no longer reaches them.
+  const find = sel => q(sel) || tools.querySelector(sel);
+  const genRow = find('#gen-generate')?.parentElement;
+  const progress = find('#gen-progress-wrap');
   if (genRow) { genRow.classList.add('gl-run-row'); runCard.append(genRow); }
   if (progress) runCard.append(progress);
   side.append(runCard);
+  // Step tools (Tip & contact, Create, Review) follow below the button, so
+  // their length never pushes the button out of view.
+  if (tools.children.length) side.append(tools);
   root.append(side);
 
   // Placeholders, single card and counts follow the real state.

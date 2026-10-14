@@ -67,6 +67,7 @@ def main():
                   and page.text_content(".gl-single-clip .gen-clip-name") == "first clip.mp4")
             check("Source clips (1)", page.text_content(".gl-clips .gl-card-title") == "Source clips (1)")
             check("Feel settings shown, placeholder gone", page.is_visible("#gen-step-motion") and page.is_hidden(".gl-side-empty"))
+            check("Create button sits in the run card", page.evaluate("!!document.querySelector('.gl-side .gl-run #gen-generate')"))
             check("step tools live in the right settings column", page.evaluate("!!document.querySelector('.gl-side .gl-tools #gen-step-region')"))
             check("workspace stays in view (no jump to step 2)", page.evaluate("document.querySelector('#gen-steps').getBoundingClientRect().top") >= 0)
 
