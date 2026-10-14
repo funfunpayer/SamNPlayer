@@ -22,7 +22,8 @@ measurement history behind each entry; this file is the short version for
   is now a three-column workspace instead of one long page. On the left is
   a Project column: source clips, recent videos, generated scripts, Scene
   map and the handbook. In the middle sit the project header, a step bar
-  with sub-labels and the preview next to the source-clip card. On the right
+  with the target's step names (Import Clip, Detect Motion, Build Curves,
+  Refine, Export) and the preview next to the source-clip card. On the right
   are the Feel settings together with the step tools (Tip & contact, Create,
   Review) and a large **Create Emotion Script** button with its progress.
   Every list shows real data; nothing is a placeholder control. Choosing a
