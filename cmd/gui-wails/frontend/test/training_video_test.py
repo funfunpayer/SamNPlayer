@@ -1,5 +1,5 @@
-"""Training with any video (Owner, 12 Oct): the stage switches between the
-pixel clip and a film; the film plays while the session runs and pauses when
+"""Training stage (Owner, 12/14 Oct): the stage switches between the
+pixel clip, the live rings, live waves and a film; the film plays while the session runs and pauses when
 it ends; Loop / Muted and the choice are remembered; recent videos are shared
 with the Player; the Player video is never touched.
 
@@ -103,6 +103,30 @@ def main():
             page.click("#tr-stage-pixel")
             check("back to pixel clip clears the training film", page.evaluate("window.__cleared") == 1
                   and page.is_visible("#tr-pixel-stage") and not page.is_visible("#tr-video-view"))
+            # Rings: the live rings become the stage; the clip and the film hide.
+            page.click("#tr-stage-rings")
+            check("Rings mode: rings are the stage", page.evaluate(
+                "document.querySelector('#tr-rings-host').classList.contains('tr-rings-stage')")
+                and not page.is_visible("#tr-pixel-stage") and not page.is_visible("#tr-video-view"))
+            # Waves: real levels from training:levels, last minute.
+            page.click("#tr-stage-waves")
+            check("Waves mode: waves shown, rings back to compact", page.is_visible("#tr-waves-canvas")
+                  and not page.evaluate("document.querySelector('#tr-rings-host').classList.contains('tr-rings-stage')"))
+            check("Waves: hint before the training runs", page.is_visible("#tr-waves-empty"))
+            page.click("#tr-start")
+            page.wait_for_timeout(200)
+            for i in range(6):
+                page.evaluate(f"window.__triggerEvent('training:levels', {{vibration: {0.2 + i * 0.1}, suction: {0.5}}})")
+                page.wait_for_timeout(60)
+            page.wait_for_function("document.querySelector('#tr-waves-empty').hidden", timeout=3000)
+            lit = page.evaluate("""(() => { const c = document.querySelector('#tr-waves-canvas');
+                const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0;
+                for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n; })()""")
+            check("Waves: real levels drawn", lit > 200, str(lit))
+            page.click("#tr-stop")
+            page.reload()
+            page.wait_for_function("window.__ready === true")
+            check("after reload: Waves mode remembered", page.get_attribute("#tr-stage-waves", "aria-checked") == "true")
             check("no page errors", not errors, "; ".join(errors))
             b.close()
     finally:

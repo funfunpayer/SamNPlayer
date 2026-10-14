@@ -18,6 +18,17 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Player modes, step 4 — Training (#533):** the stage sits large on the
+  left with the settings beside it on the right. The stage switch offers
+  **Clip · Rings · Waves · Video**:
+  - **Clip** is our fixed training clip.
+  - **Rings** makes the live rings the stage.
+  - **Waves** draws the real live levels (vibration and suction, as sent to
+    the device) as glowing curves over the last minute.
+  - **Video** plays your own film along.
+
+  The choice is remembered.
+
 - **Player modes, step 3 — calm curves, a real Editor (#533):** the curve and
   the lanes are drawn as smooth waves with a soft glow and a faint fill,
   in their channel colour. Dots show only while editing or when zoomed in
