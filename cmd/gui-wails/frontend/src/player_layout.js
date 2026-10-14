@@ -11,6 +11,7 @@
 import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SetMotorLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { mountScenePanel } from './scene_panel.js';
+import { mountFeelCard } from './feel_card.js';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -295,6 +296,8 @@ export function applyPlayerLayoutV1(root, api) {
   };
   // Devices: script → device mapping.
   ['#pb-axis-row', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  // Sam Neo 2 feel of the loaded script (scene / mix / follow).
+  mountFeelCard(panels.devices, root, { onSaved: () => api?.refreshVisuals?.() });
   // Optimize for a device is an Editor tool: it sits with the edit tools
   // (View), which is the tab the Editor opens.
   const optimize = document.createElement('div');

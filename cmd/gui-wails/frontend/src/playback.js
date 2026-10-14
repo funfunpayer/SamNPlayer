@@ -3779,6 +3779,7 @@ export function initPlayback(root) {
       throw err;
     }
     scriptPath = info.path;
+    root.dataset.pbScript = info.path || '';
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
     // Library "Recent" / "Scripts" (player_layout.js) listen for successful
@@ -5223,6 +5224,8 @@ export function initPlayback(root) {
       if (opts && opts.review) window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }));
     }),
     seekMs: (atMs) => seekTo(atMs),
+    // Re-read the loaded script's curves (after a recipe change).
+    refreshVisuals: () => refreshScriptVisuals(),
     attachVideoPath: (path) => attachVideoPath(path),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,

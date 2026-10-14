@@ -77,6 +77,13 @@ type DeviceRecipe struct {
 	ContactVibrationSpan  float64 `json:"contact_vibration_span,omitempty"`
 	ContactVibrationCurve string  `json:"contact_vibration_curve,omitempty"`
 
+	// Scene feel (feel_scene.go, Owner 14 Oct): scene-aware suction, vibration
+	// following suction, and a vibration ↔ suction balance (−1 … 1).
+	// Omitted = the old mapping.
+	SceneFeel               string  `json:"scene_feel,omitempty"`
+	VibrationFollowsSuction bool    `json:"vibration_follows_suction,omitempty"`
+	FeelBalance             float64 `json:"feel_balance,omitempty"`
+
 	// PlaybackSource: "recipe" (default) derives vibe/suction from general
 	// actions; "axes" drives Neo 2 from metadata.samn_axes. See docs/MULTI_AXIS.md.
 	PlaybackSource string `json:"playback_source,omitempty"`

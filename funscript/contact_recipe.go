@@ -11,6 +11,31 @@ import (
 // SaveOMarkers: nur metadata.device_recipe wird aktualisiert, übrige
 // Metadata und Actions bleiben erhalten.
 func SaveContactRecipe(path string, enabled bool, span float64, curve string) error {
+	return updateDeviceRecipe(path, func(recipe *DeviceRecipe) {
+		recipe.ContactVibration = enabled
+		if enabled {
+			recipe.ContactVibrationSpan = EffectiveContactSpan(span)
+			recipe.ContactVibrationCurve = NormalizeContactCurve(curve)
+		} else {
+			recipe.ContactVibrationSpan = 0
+			recipe.ContactVibrationCurve = ""
+		}
+	})
+}
+
+// SaveFeelRecipe writes the scene feel, vibration-follows-suction and the
+// balance into metadata.device_recipe of a .funscript (feel_scene.go).
+func SaveFeelRecipe(path, sceneFeel string, followSuction bool, balance float64) error {
+	return updateDeviceRecipe(path, func(r *DeviceRecipe) {
+		r.SceneFeel = NormalizeSceneFeel(sceneFeel)
+		r.VibrationFollowsSuction = followSuction
+		r.FeelBalance = ClampBalance(balance)
+	})
+}
+
+// updateDeviceRecipe reads a .funscript, lets change edit its device_recipe
+// (Sync filled from the profile family when missing) and writes it back.
+func updateDeviceRecipe(path string, change func(*DeviceRecipe)) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("funscript: Datei konnte nicht gelesen werden: %w", err)
@@ -44,14 +69,7 @@ func SaveContactRecipe(path string, enabled bool, span float64, curve string) er
 	if recipe.Sync == "" {
 		recipe.Sync = DefaultSyncForProfile(profile)
 	}
-	recipe.ContactVibration = enabled
-	if enabled {
-		recipe.ContactVibrationSpan = EffectiveContactSpan(span)
-		recipe.ContactVibrationCurve = NormalizeContactCurve(curve)
-	} else {
-		recipe.ContactVibrationSpan = 0
-		recipe.ContactVibrationCurve = ""
-	}
+	change(&recipe)
 
 	recipeJSON, err := json.Marshal(recipe)
 	if err != nil {

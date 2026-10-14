@@ -239,6 +239,15 @@ def main():
                 page.wait_for_timeout(800)
                 page.click('#gen-choose')
                 page.wait_for_timeout(2500)
+                # How it feels for a Sam Neo 2 (chosen; the demo connects a stroker),
+                # with the feel open (Oral, mix).
+                page.evaluate("""() => {
+                  const dev = document.querySelector('#gen-device-target');
+                  if (dev) { dev.value = 'neo2'; dev.dispatchEvent(new Event('change')); }
+                  const d = document.querySelector('#gen-neo-feel'); if (d) d.open = true;
+                  const s = document.querySelector('#gen-scene-feel'); if (s) { s.value = 'oral'; s.dispatchEvent(new Event('change')); }
+                  const b = document.querySelector('#gen-feel-balance'); if (b) { b.value = '30'; b.dispatchEvent(new Event('change')); }
+                }""")
                 page.evaluate("window.scrollTo(0, 0); document.querySelectorAll('main, .app-main, #content, .tab-panel').forEach(e => e.scrollTop = 0)")
                 page.wait_for_timeout(300)
                 shoot(page, out, "create")

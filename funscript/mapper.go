@@ -124,6 +124,15 @@ type MapOptions struct {
 	// TrackingGaps: Tracker-Verlustfenster — Vibration aus, Sog unverändert.
 	TrackingGaps []TrackingGap
 
+	// SceneFeel (feel_scene.go): how suction follows the stroke for a scene
+	// (oral / intercourse / breast / hand). Empty = the old mapping
+	// (suction = position). Applies to the default (independent) sync.
+	SceneFeel string
+	// VibrationFollowsSuction: vibration takes the same pattern as suction.
+	VibrationFollowsSuction bool
+	// Balance −1 … 1: >0 more suction, <0 more vibration (BalanceScales).
+	Balance float64
+
 	// UseExplicitAxes: when true, vibe/suction come from VibrationAxis /
 	// SuctionAxis (0-100) instead of Sync mapping on general actions.
 	// See docs/MULTI_AXIS.md. Recipe Sync still influences floors/smoothing.
@@ -357,6 +366,9 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				}
 			default:
 				vib, suc = intensity, posSignal
+				if ss, ok := SceneSuction(opts.SceneFeel, posSignal, intensity); ok {
+					suc = ss
+				}
 				if contactEnabled || spatialOn {
 					if cv := contactVibAt(pos, t); cv > 0 {
 						// Contact envelope owns vibe (depth and/or spatial marks).
@@ -381,6 +393,15 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 			// as the intended script-space floor (the clamp), not a second runtime remap.
 			if opts.Sync != SyncVibrationOnly && opts.Sync != SyncSuctionPosition {
 				suc = liftFloor(suc, opts.MinSuction)
+			}
+			// Scene feel extras (additive; off = old mapping).
+			if opts.VibrationFollowsSuction && opts.Sync != SyncSuctionOnly && opts.Sync != SyncVibrationOnly {
+				vib = suc
+			}
+			if opts.Balance != 0 {
+				vs, ss := BalanceScales(opts.Balance)
+				vib *= vs
+				suc *= ss
 			}
 		}
 		if opts.Smoothing > 0 && len(frames) > 0 {
@@ -426,6 +447,9 @@ func MapOptionsFromScript(s *Script) MapOptions {
 		opts.ContactVibration = dr.ContactVibration
 		opts.ContactVibrationSpan = dr.ContactVibrationSpan
 		opts.ContactVibrationCurve = dr.ContactVibrationCurve
+		opts.SceneFeel = NormalizeSceneFeel(dr.SceneFeel)
+		opts.VibrationFollowsSuction = dr.VibrationFollowsSuction
+		opts.Balance = dr.FeelBalance
 		if NormalizePlaybackSource(dr.PlaybackSource) == PlaybackSourceAxes && s.Metadata.SamnAxes != nil {
 			opts.UseExplicitAxes = true
 			opts.VibrationAxis = s.Metadata.SamnAxes.Vibration

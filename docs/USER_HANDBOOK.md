@@ -127,6 +127,7 @@ it helps you, Settings → *Support SamNPlayer* has the donation links.
 | Play / Stop | Device + curve (default). Video ▶ can also start device (toggle). |
 | Edit curve | Drag dots; click empty = add; double-click = delete (≥2 remain). |
 | Optimize for (Editor, Generator) | *Any device*: fill/heal gaps · *Sam Neo 2*: fill/heal gaps → contact on → bake vibe/suction → `.samn` |
+| Sam Neo 2 feel (Generator *How it feels*, Inspector → Devices) | Scene: Classic / Oral / Intercourse / Breast / Hand · Mix vibration ↔ suction · Vibration follows suction — see `docs/FEEL_SCENES.md` |
 | Load / Save project | `.snp.json` — script, video, offset, seek, loop |
 | Scale selection | Soften/boost marked range on the active Curve axis (factor slider; optional Soft edges) |
 | Heatmap / markers | Seek, loop, Extended-O, O-markers |

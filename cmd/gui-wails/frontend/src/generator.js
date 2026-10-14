@@ -1,4 +1,5 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo, OptimizeLoadedFor } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo, OptimizeLoadedFor, SaveFeelSettings } from '../wailsjs/go/main/App';
+import { initGenFeel } from './gen_feel.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -237,10 +238,9 @@ export function initGenerator(root, playback) {
           <option value="autotune">Autotune</option>
         </select>
       </div>
-      <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;">
-        Everyday: auto tip → Create (no motion-path marking). Contact vibration (below) adds feel — on by default.
-        Optional contact marks in Step 2 are touch points only. Use Advanced → Scene map → <b>Ignore (black)</b>
-        only when detections latch onto the wrong part (knees etc.).
+      <p class="hint" id="gen-profile-hint" style="margin:0 0 10px 0;"
+        data-help="Everyday: auto tip → Create (no motion-path marking). Contact vibration adds feel — on by default. Optional contact marks in Step 2 are touch points only. Use the rhythm heatmap → Ignore (black) only when detections latch onto the wrong part (knees etc.).">
+        Everyday: auto tip → Create. Contact marks (Step 2) are optional touch points.
       </p>
       <div id="gen-contact-vibration-wrap">
         <div class="checkbox-row" id="gen-contact-vibration-row">
@@ -667,6 +667,12 @@ export function initGenerator(root, playback) {
   let aiTargetRequestSeq = 0;
   let sceneProposalPath = ''; // loaded .scene.json path (empty = none)
   let sceneProposal = null; // SceneProposalLoad | null (Found view for current seek)
+  // How it feels follows the device; the Sam Neo 2 feel (scene, mix, follow)
+  // is written into the new script after Create (gen_feel.js).
+  const genFeel = initGenFeel(root, {
+    sceneType: () => (sceneProposal && sceneProposal.found
+      ? ((sceneProposal.proposal || {}).scene_type || (sceneProposal.proposal || {}).sceneType || '') : ''),
+  });
   let extraTargets = []; // extra contact anchors (follow by default when tip path on)
   let maskRois = []; // soft-exclude boxes
   let roi2Mode = false; // Knopf „2. Region“ aktiv
@@ -4355,6 +4361,13 @@ export function initGenerator(root, playback) {
             await playback.loadScriptPath(res.path, { review: true });
           }
           el('#gen-status').textContent += ` — ${(res && res.message) || 'optimized'}.`;
+        }
+        // Sam Neo 2 feel (scene / mix / follow) — only when it changes something.
+        const feel = genFeel && genFeel.settings();
+        if (feel) {
+          await SaveFeelSettings(feel.sceneFeel, feel.follow, feel.balance);
+          await playback.loadScriptPath(lastOutputPath, { review: true });
+          el('#gen-status').textContent += ` — feel: ${feel.sceneFeel || 'classic'}${feel.follow ? ', vibration follows suction' : ''}${feel.balance ? `, mix ${feel.balance > 0 ? 'suction' : 'vibration'} ${Math.round(Math.abs(feel.balance) * 100)}%` : ''}.`;
         }
         await loadGenCurveFromPlay();
       } catch (err) {

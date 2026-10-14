@@ -45,6 +45,8 @@ def main():
         "StopTraining": "async () => { window.__triggerEvent('training:done'); }",
         "PauseTraining": "async () => { window.__trPaused = (window.__trPaused || 0) + 1; }",
         "ResumeTraining": "async () => { window.__trResumed = (window.__trResumed || 0) + 1; }",
+        "GetFeelSettings": "async () => ({ sceneFeel: '', vibrationFollowsSuction: false, balance: 0, sceneFeels: ['oral','intercourse','breast','hand'] })",
+        "SaveFeelSettings": "async (s, f, b) => { window.__feel = [s, f, b]; }",
     })
     base, shutdown = serve(cg.data_js("/test/_smoke_media/clip.webm") + app_stub(stubs))
     try:
@@ -80,6 +82,16 @@ def main():
             for t in insp:
                 page.click(f'[data-pb-region="inspector-tabs"] [data-insp="{t}"]')
             check("Player: every inspector tab opens", len(insp) >= 3, str(insp))
+            # Sam Neo 2 feel card: hidden for the stroker the demo connects,
+            # shown and saving for a Sam Neo 2.
+            page.click('[data-pb-region="inspector-tabs"] [data-insp="devices"]')
+            page.wait_for_timeout(300)
+            check("Stroker connected: Neo 2 feel card hidden", page.is_hidden("#pb-feel-card"))
+            page.evaluate("window.dispatchEvent(new CustomEvent('device:status', {detail: {connected: true, capabilities: {device: 'Sam Neo 2', features: [{channel: 'vibration'}, {channel: 'suction'}]}}}))")
+            check("Sam Neo 2: feel card shown", page.is_visible("#pb-feel-card"))
+            page.select_option("#pb-scene-feel", "oral")
+            page.wait_for_function("window.__feel && window.__feel[0] === 'oral'", timeout=3000)
+            check("feel card saves the scene", True)
             page.click("#pb-lib-toggle")
             page.click("#pb-lib-toggle")
             check("Player: Library folds and returns", page.is_visible("#pb-lib-local"))
