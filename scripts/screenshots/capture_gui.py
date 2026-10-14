@@ -97,6 +97,7 @@ STUBS = {
     "LoadFunscript": ("async (p) => ({path: p, actionCount: window.__stroke.length, durationMs: %d,"
                       " videoPath: '/demo/Demo clip.mp4', hasVideo: true})" % DURATION_MS),
     "VideoFileURL": "async () => window.__media",
+    "SetGeneratorVideo": "async () => window.__media",
     "GetScriptCurve": "async () => window.__stroke.map(a => ({atMs: a.at, pos: a.pos}))",
     "GetScriptAxisActions": "async (axis) => (window.__axes[axis || 'general'] || null)",
     "GetHeatmap": ("async n => Array.from({length: n}, (_, i) => ({atMs: i * %d / n,"
