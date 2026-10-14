@@ -4311,5 +4311,5 @@ body[data-mode="scenemap"] #tab-playback .pb-scenes-grid { grid-template-columns
 /* Optimize for a device (Owner 14 Oct): an Editor tool — shown in the
    Editor mode, not in the plain Player. */
 .pb-optimize { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-body:not([data-mode="editor"]) #pb-optimize-wrap { display: none; }
+body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 .gen-optimize-row select { min-width: 0; flex: 1 1 auto; }

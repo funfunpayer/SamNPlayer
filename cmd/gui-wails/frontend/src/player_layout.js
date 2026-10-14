@@ -294,7 +294,19 @@ export function applyPlayerLayoutV1(root, api) {
     return n;
   };
   // Devices: script → device mapping.
-  ['#pb-axis-row', '#pb-optimize-neo2-status', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  ['#pb-axis-row', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  // Optimize for a device is an Editor tool: it sits with the edit tools
+  // (View), which is the tab the Editor opens.
+  const optimize = document.createElement('div');
+  optimize.className = 'pb-card pb-optimize-card';
+  optimize.id = 'pb-optimize-card';
+  // (Taken from the moved axis row too: once in a not-yet-attached panel,
+  // root.querySelector no longer finds it.)
+  for (const sel of ['#pb-optimize-wrap', '#pb-optimize-neo2-status']) {
+    const n = q(sel) || panels.devices.querySelector(sel);
+    if (n) optimize.append(n);
+  }
+  panels.view.append(optimize);
   // Audio: audio vibration + BPM card.
   const bpmCard = document.createElement('div');
   bpmCard.className = 'pb-card';
