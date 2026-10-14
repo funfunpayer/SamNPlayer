@@ -10,6 +10,8 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Scripts with corrupt times:** actions before 0 or after 48 h are dropped on load. One script in the wild starts at −922 337 203 565 470 ms, and that ran SamNPlayer out of memory. Found by running FredTungsten's public script collection (758 scripts) through every step.
+- **Strokers — soft seek (idea from ScriptPlayer):** after a start, a pause or a jump in the video, the first move eases in, at no more than one full stroke per 0.5 s. Before, the device slammed to the new position in as little as 20 ms. Later moves follow the script as before.
 - **Empty Player / Create stage:** the SamNPlayer play mark sits in the middle of the flow art again. Its float animation had moved it to the top-left corner, so only a corner of it showed.
 - **Player:** a jump while the video is still loading reaches the video once it has loaded. Before, only the curve moved.
 - **Player timeline:** the scene strip and the chapter bands are now as wide

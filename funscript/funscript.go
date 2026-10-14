@@ -78,6 +78,8 @@ type Script struct {
 	// Review "Invert" bakes 100−pos into actions and clears this flag so
 	// playback does not flip twice.
 	Inverted bool `json:"inverted,omitempty"`
+	// Dropped counts actions Parse left out (corrupt times); not saved.
+	Dropped  int `json:"-"`
 	Metadata struct {
 		Duration        MetaDuration  `json:"duration"`
 		Creator         string        `json:"creator"`
@@ -155,6 +157,9 @@ type AudioSegmentHint struct {
 	Reason     string `json:"reason,omitempty"`
 }
 
+// MaxActionMs: action times above this (48 h) are treated as corrupt.
+const MaxActionMs = 48 * 3600 * 1000
+
 func Load(path string) (*Script, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -170,6 +175,21 @@ func Parse(data []byte) (*Script, error) {
 	}
 	if len(s.Actions) == 0 {
 		return nil, fmt.Errorf("funscript: keine actions im Skript gefunden")
+	}
+	// A script runs from 0 on and lasts hours at most. Times outside that are
+	// corrupt (one file in the wild starts at −922 337 203 565 470 ms) and
+	// would make every later step span thousands of years: they are dropped.
+	kept := s.Actions[:0]
+	for _, a := range s.Actions {
+		if a.At >= 0 && a.At <= MaxActionMs {
+			kept = append(kept, a)
+		}
+	}
+	if s.Dropped = len(s.Actions) - len(kept); s.Dropped > 0 {
+		s.Actions = kept
+		if len(s.Actions) == 0 {
+			return nil, fmt.Errorf("funscript: keine gültigen actions (alle Zeiten außerhalb 0–%d ms)", MaxActionMs)
+		}
 	}
 	for i := range s.Actions {
 		if s.Actions[i].Pos < 0 {

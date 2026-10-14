@@ -86,9 +86,44 @@ func TestDriveStrokeHonoursSpeedAndMinimum(t *testing.T) {
 		t.Fatalf("2× speed halves the move time: %+v", m)
 	}
 	p.SetSpeed(1)
+	_ = p.driveStroke(900) // same target, nothing sent; playback moves on (no jump)
 	_ = p.driveStroke(1995)
 	if m := dev.snapshotMoves(); len(m) != 2 || m[1].dur != minStrokeMove {
 		t.Fatalf("a very late position still gets the minimum move time: %+v", m)
+	}
+}
+
+// Soft seek: after a start, a pause or a jump the first move eases in
+// (at most a full stroke per softSeekFullStroke); later moves follow the script.
+func TestDriveStrokeSoftSeek(t *testing.T) {
+	dev := &linearDev{linear: true}
+	p := New(dev)
+	p.SetStroke([]funscript.Action{{At: 0, Pos: 0}, {At: 100, Pos: 100}, {At: 200, Pos: 0}, {At: 5000, Pos: 100}, {At: 5050, Pos: 0}})
+	_ = p.driveStroke(50) // start: unknown position, 50 ms to a full stroke
+	m := dev.snapshotMoves()
+	if len(m) != 1 || m[0].dur != softSeekFullStroke {
+		t.Fatalf("first move eases in over a full-stroke time: %+v", m)
+	}
+	_ = p.driveStroke(150) // playing on: the script's own time
+	m = dev.snapshotMoves()
+	if len(m) != 2 || m[1].dur != 50*time.Millisecond {
+		t.Fatalf("later moves follow the script: %+v", m)
+	}
+	_ = p.driveStroke(5020) // jump forward to 5050 (0 %): the device is already at 0 %
+	m = dev.snapshotMoves()
+	if len(m) != 3 || m[2].dur != 30*time.Millisecond {
+		t.Fatalf("a jump to where the device already is needs no easing: %+v", m)
+	}
+	_ = p.driveStroke(4700) // jump back: target 5000 (100 %) in 300 ms, from 0 %
+	m = dev.snapshotMoves()
+	if len(m) != 4 || m[3].dur != softSeekFullStroke {
+		t.Fatalf("a jump back eases in over a full-stroke time: %+v", m)
+	}
+	p.resetStroke() // pause, then resume: same target, the device is there
+	_ = p.driveStroke(4750)
+	m = dev.snapshotMoves()
+	if len(m) != 5 || m[4].dur != 250*time.Millisecond {
+		t.Fatalf("resume where the device already is: the script's time: %+v", m)
 	}
 }
 

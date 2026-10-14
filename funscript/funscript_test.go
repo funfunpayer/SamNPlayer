@@ -64,3 +64,17 @@ func checkPtr[T comparable](t *testing.T, field string, got, want *T) {
 		t.Errorf("%s = %v, erwartet %v", field, *got, *want)
 	}
 }
+
+func TestParseDropsCorruptTimes(t *testing.T) {
+	s, err := Parse([]byte(`{"actions":[{"at":-922337203565470,"pos":0},{"at":-922337203565470,"pos":99},
+		{"at":0,"pos":10},{"at":500,"pos":90},{"at":9999999999999,"pos":50}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Actions) != 2 || s.Actions[0].At != 0 || s.Actions[1].At != 500 || s.Dropped != 3 {
+		t.Fatalf("corrupt times dropped: %+v dropped=%d", s.Actions, s.Dropped)
+	}
+	if _, err := Parse([]byte(`{"actions":[{"at":-5,"pos":0}]}`)); err == nil {
+		t.Fatal("only corrupt times: error expected")
+	}
+}
