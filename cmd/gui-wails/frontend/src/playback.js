@@ -1807,13 +1807,11 @@ export function initPlayback(root) {
   // zeigt, der so nie im Skript stünde. Die Punkte selbst (und die
   // Editor-Trefferpunkte) bleiben exakt to ihrer echten Position - nur
   // die verbindende Linie wird weich, die Daten ändern sich nicht.
-  function drawSmoothCurve(ctx, points, xOf, yOf) {
-    if (points.length < 2) return;
+  function smoothCurvePath(ctx, points, xOf, yOf) {
     ctx.beginPath();
     ctx.moveTo(xOf(points[0].atMs), yOf(points[0].pos));
     if (points.length === 2) {
       ctx.lineTo(xOf(points[1].atMs), yOf(points[1].pos));
-      ctx.stroke();
       return;
     }
     for (let i = 0; i < points.length - 1; i++) {
@@ -1830,7 +1828,56 @@ export function initPlayback(root) {
         xOf(cp2Ms), yOf(cp2Pos),
         xOf(p2.atMs), yOf(p2.pos));
     }
+  }
+
+  function drawSmoothCurve(ctx, points, xOf, yOf) {
+    if (points.length < 2) return;
+    smoothCurvePath(ctx, points, xOf, yOf);
     ctx.stroke();
+  }
+
+  // Calm look (Owner 14 Oct): a soft glow in the curve's colour and a faint
+  // fill to the baseline — the wave reads as one shape, not a zig-zag.
+  function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY } = {}) {
+    if (points.length < 2) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (fill > 0 && baseY != null) {
+      smoothCurvePath(ctx, points, xOf, yOf);
+      ctx.lineTo(xOf(points[points.length - 1].atMs), baseY);
+      ctx.lineTo(xOf(points[0].atMs), baseY);
+      ctx.closePath();
+      const top = Math.min(yOf(100), baseY);
+      const g = ctx.createLinearGradient(0, top, 0, baseY);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'transparent');
+      ctx.save();
+      ctx.globalAlpha = fill;
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width * dpr;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = glow * dpr;
+    smoothCurvePath(ctx, points, xOf, yOf);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Dots are readable when the visible ones sit at least DOT_MIN_GAP CSS px
+  // apart on average.
+  const DOT_MIN_GAP = 14;
+  function dotsReadable(dots, xOf, w) {
+    let n = 0;
+    for (const d of dots) {
+      const x = xOf(d.atMs);
+      if (x >= 0 && x <= w) n++;
+    }
+    return n > 0 && (w / (window.devicePixelRatio || 1)) / n >= DOT_MIN_GAP;
   }
 
   function findNearestActionIndex(mx, my) {
@@ -1906,11 +1953,9 @@ export function initPlayback(root) {
       ctx.globalAlpha = 1;
     }
 
-    // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour.
-    ctx.strokeStyle = axisColor;
-    ctx.lineWidth = THEME.curveWidth * (window.devicePixelRatio || 1);
-    ctx.lineJoin = 'round';
-    drawSmoothCurve(ctx, points, xOf, yOf);
+    // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour,
+    // with a glow and a faint fill to 0.
+    drawGlowCurve(ctx, points, xOf, yOf, axisColor, { width: THEME.curveWidth, baseY: yOf(0) });
 
     // Zweite Spur: Contact vibration (0–1 → 0–100), aus demselben
     // Abstandssignal wie die Playback — liegt unter der Positionsspur.
@@ -1928,9 +1973,10 @@ export function initPlayback(root) {
       ctx.globalAlpha = 1;
     }
 
-    // Keyframe dots — always on (FunGen2-style); brighter / larger when editing.
+    // Keyframe dots: always when editing; otherwise only when they are far
+    // enough apart to read (zoomed in) — a dense script stays a calm wave.
     const dots = (editMode && rawActions) ? rawActions : keyframeDots;
-    if (dots && dots.length) {
+    if (dots && dots.length && (editMode || dotsReadable(dots, xOf, w))) {
       const step = dots.length > DOT_MAX_DRAW
         ? Math.ceil(dots.length / DOT_MAX_DRAW) : 1;
       for (let i = 0; i < dots.length; i += step) {
@@ -2107,21 +2153,9 @@ export function initPlayback(root) {
         ctx.fillRect(0, Math.round(top), w, Math.max(1, Math.round(dpr)));
       }
       const pts = axisLanePoints[axis];
-      ctx.beginPath();
-      ctx.moveTo(xOf(pts[0].atMs), yOf(0));
-      for (const p of pts) ctx.lineTo(xOf(p.atMs), yOf(p.pos));
-      ctx.lineTo(xOf(pts[pts.length - 1].atMs), yOf(0));
-      ctx.closePath();
-      ctx.globalAlpha = 0.22;
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      pts.forEach((p, k) => (k ? ctx.lineTo(xOf(p.atMs), yOf(p.pos)) : ctx.moveTo(xOf(p.atMs), yOf(p.pos))));
-      ctx.strokeStyle = color;
-      ctx.lineWidth = (axis === active ? 1.6 : 1.1) * dpr;
-      ctx.lineJoin = 'round';
-      ctx.stroke();
+      drawGlowCurve(ctx, pts, xOf, yOf, color, {
+        width: axis === active ? 1.6 : 1.15, glow: axis === active ? 7 : 4, fill: 0.2, baseY: yOf(0),
+      });
       if (inCanvasNames) {
         ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
         ctx.textBaseline = 'top';

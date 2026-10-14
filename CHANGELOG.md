@@ -18,6 +18,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Player modes, step 3 — calm curves, a real Editor (#533):** the curve and
+  the lanes are drawn as smooth waves with a soft glow and a faint fill,
+  in their channel colour. Dots show only while editing or when zoomed in
+  far enough to read them, so a dense script no longer looks like a
+  zig-zag full of dots. In Edit, editing switches back on by itself when
+  playback stops.
+
 - **Player modes, step 2 — Generator video (#533):** the clip to create
   from plays in a real video with play/pause, ±5 s and a seek bar, like the
   Player. Pausing shows the tip box over the video at exactly that frame;
