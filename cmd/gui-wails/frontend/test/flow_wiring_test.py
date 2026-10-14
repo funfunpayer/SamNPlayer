@@ -72,7 +72,7 @@ def check_icons(check, base):
         check("Scene Map button uses the Flow icon",
               page.evaluate("!!document.querySelector('#ws-scenemap > svg[stroke-width=\"1.6\"]')"))
         labels = page.evaluate("[...document.querySelectorAll('#rail .tab-btn:not([hidden]) > span')].map(s => s.textContent)")
-        check("top bar labels kept", labels == ["Player", "Training", "Tools"], str(labels))
+        check("top bar labels: the modes + Tools", labels == ["Player", "Generator", "Training", "Scene Map", "Tools"], str(labels))
         check("icons stay decorative",
               page.evaluate("[...document.querySelectorAll('#rail svg, #ws-view svg')].every(s => s.getAttribute('aria-hidden') === 'true')"))
         check("no page errors", not errors, "; ".join(errors))
