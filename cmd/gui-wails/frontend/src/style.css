@@ -3950,7 +3950,7 @@ body[data-tab="generator"] #sidebar { display: none; }
 #tab-generator[data-gen-layout="v1"] .gen-step-item.is-current .gen-step-num { border-color: var(--accent); background: var(--accent); color: #0b0d12; }
 
 .gl-stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr); gap: 14px; margin: 4px 0 14px; align-items: stretch; }
-.gl-preview { display: flex; align-items: center; justify-content: center; min-height: 260px; padding: 10px; overflow: hidden; }
+.gl-preview { display: flex; flex-direction: column; justify-content: center; min-height: 260px; padding: 10px; overflow: hidden; }
 .gl-preview #roi-canvas-wrap { margin: 0; max-width: 100%; }
 .gl-preview #roi-canvas-wrap[hidden] { display: none; }
 .gl-preview #roi-canvas { max-width: 100%; height: auto; }
@@ -3999,3 +3999,18 @@ body[data-tab="generator"] #sidebar { display: none; }
 /* Step tools (Tip & contact, Create, Review) below Feel in the settings column. */
 .gl-side .gl-tools { display: grid; gap: 12px; }
 .gl-side .gl-tools .gen-step-panel { margin: 0; }
+
+/* Generator video (gen_video.js): a real video with transport; the tip
+   canvas covers it when paused (same frame) and hides while it plays. */
+.gl-video { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; }
+.gl-video[hidden], .gl-vt[hidden] { display: none !important; }
+.gl-video video { display: block; width: 100%; height: auto; }
+.gl-video[data-state="none"] video { display: none; }
+.gl-video:not([data-state="none"]) #roi-canvas-wrap { position: absolute; inset: 0; display: block; }
+.gl-video:not([data-state="none"]) #roi-canvas { width: 100%; height: 100%; border: 0; border-radius: 0; }
+.gl-video[data-state="playing"] #roi-canvas-wrap { visibility: hidden; }
+.gl-vt { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.gl-vt input[type="range"] { flex: 1 1 auto; min-width: 80px; accent-color: var(--accent); }
+.gl-vt-btn { min-width: 44px; padding: 6px 10px; border-radius: 10px; }
+.gl-vt-play { min-width: 52px; border-radius: 999px; font-weight: 700; }
+.gl-vt-time { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); white-space: nowrap; }

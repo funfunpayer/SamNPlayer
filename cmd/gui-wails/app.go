@@ -39,7 +39,10 @@ type App struct {
 	// Training stage film (app_training_video.go); separate from videoPath.
 	trainingVideoPath  string
 	trainingVideoEpoch uint64
-	sessionActive      bool // true solange eine Wiedergabe ODER ein Training läuft
+	// Generator clip (app_generator_video.go); separate from videoPath.
+	generatorVideoPath  string
+	generatorVideoEpoch uint64
+	sessionActive       bool // true solange eine Wiedergabe ODER ein Training läuft
 
 	activePlayer *player.Player
 	// Per-channel output cut (V1 Inspector → Devices); zero value = full.
@@ -391,6 +394,7 @@ func (a *App) ensureVideoServer() (int, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/video", a.servePlaybackVideo)
 	mux.HandleFunc("/training-video", a.serveTrainingVideo)
+	mux.HandleFunc("/generator-video", a.serveGeneratorVideo)
 	srv := &http.Server{Handler: mux}
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

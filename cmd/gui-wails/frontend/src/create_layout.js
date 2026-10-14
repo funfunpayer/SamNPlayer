@@ -7,6 +7,7 @@
 // The Scene Map view (#tab-generator[data-view="scenemap"]) keeps its own
 // rules; the grid only applies to the plain Create view.
 import { readRecentVideos, readScripts } from './player_layout.js';
+import { attachGeneratorVideo } from './gen_video.js';
 
 function baseName(p) { return String(p || '').split(/[\\/]/).pop(); }
 
@@ -93,7 +94,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   window.addEventListener('gen:video', () => setTimeout(renderNav, 0)); // after the recent list updates
   window.addEventListener('ws:view', e => { if (e.detail?.view === 'create') renderNav(); });
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
-  q('#gl-nav-scenemap').addEventListener('click', () => document.getElementById('ws-scenemap')?.click());
+  q('#gl-nav-scenemap').addEventListener('click', () => document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click());
 
   // ---- Centre: preview + source clips side by side ---------------------
   const stage = make('div', 'gl-stage');
@@ -102,7 +103,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   const empty = make('p', 'gl-preview-empty', 'Choose a video — its frame appears here.');
   const canvasWrap = q('#roi-canvas-wrap');
   preview.append(empty);
-  if (canvasWrap) preview.append(canvasWrap);
+  // A real video with transport; the tip canvas sits over it when paused.
+  attachGeneratorVideo(root, preview, canvasWrap);
   const clips = make('section', 'gl-clips card');
   clips.setAttribute('aria-label', 'Source clips');
   const clipsHead = make('div', 'gl-clips-head');
@@ -175,6 +177,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
     const hasFrame = hasVideo && !!head && !head.hidden;
     empty.hidden = hasVideo;
     if (canvasWrap) canvasWrap.hidden = !hasVideo;
+    preview.querySelector('.gl-video').hidden = !hasVideo;
+    preview.querySelector('.gl-vt').hidden = !hasVideo;
     sideEmpty.hidden = !!motion && !motion.hidden;
     const many = !!queue && !queue.hidden;
     const n = many ? q("#gen-queue-list").children.length : (hasVideo ? 1 : 0);

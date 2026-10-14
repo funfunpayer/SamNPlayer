@@ -18,6 +18,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Player modes, step 2 — Generator video (#533):** the clip to create
+  from plays in a real video with play/pause, ±5 s and a seek bar, like the
+  Player. Pausing shows the tip box over the video at exactly that frame;
+  playing hides it. The old Time / Frame / +1s / +5s controls move the video
+  too. The clip has its own local URL (`SetGeneratorVideo`), so the Player's
+  linked video never changes.
+
 - **Player modes, step 1 (#533):** the top bar now holds the modes
   **Player · Generator · Training · Scene Map** plus **Tools**. Generator and
   Scene Map are top tabs instead of sub-buttons. Edit is a Play · Edit toggle

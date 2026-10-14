@@ -212,6 +212,10 @@ export function OpenDonateLink(arg1) { return window['go']['main']['App']['OpenD
 export function IsSuiteBuild() { return window['go']['main']['App']['IsSuiteBuild'](); }
 export function GetAboutInfo() { return window['go']['main']['App']['GetAboutInfo'](); }
 export function OpenPartnerSite() { return window['go']['main']['App']['OpenPartnerSite'](); }
+export function SetGeneratorVideo(arg1) { return window['go']['main']['App']['SetGeneratorVideo'](arg1); }
+
+export function GeneratorVideoURL() { return window['go']['main']['App']['GeneratorVideoURL'](); }
+
 export function SetTrainingVideo(arg1) { return window['go']['main']['App']['SetTrainingVideo'](arg1); }
 export function ClearTrainingVideo() { return window['go']['main']['App']['ClearTrainingVideo'](); }
 export function TrainingVideoURL() { return window['go']['main']['App']['TrainingVideoURL'](); }
