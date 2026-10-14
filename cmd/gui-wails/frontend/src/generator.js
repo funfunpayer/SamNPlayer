@@ -1258,7 +1258,9 @@ export function initGenerator(root, playback) {
     if (!btn || roi2Mode) return;
     btn.style.outline = '2px solid #f2b03d';
     btn.style.background = 'rgba(242,176,61,0.12)';
-    if (scroll) {
+    // The V1 Create layout keeps the workspace in view; only the old long
+    // wizard needs to scroll the button into sight.
+    if (scroll && root.dataset.genLayout !== 'v1') {
       try { btn.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_) {}
     }
   }
@@ -3448,6 +3450,12 @@ export function initGenerator(root, playback) {
       el('#gen-project-meta').textContent = 'Video details not readable — ' + (err?.message || err);
     }
   }
+
+  // Create layout (create_layout.js): "Recent videos" in the Project list.
+  window.addEventListener('gen:load-video', e => {
+    const p = e.detail && e.detail.path;
+    if (p && !generating) loadVideo(p, 0, null, { keepQueue: true });
+  });
 
   async function loadVideo(path, extraCount = 0, remainingPaths = null, opts = {}) {
     cancelActiveAITargetRequest();

@@ -27,6 +27,12 @@ Related engineering docs: `EVERYDAY_GENERATE.md`, `AI_SCRIPT_WRITER.md`, `CONTEN
 
 ## 2. Everyday Create (recommended path)
 
+Layout: **Project** on the left (source clips, recent videos, generated
+scripts, Scene map, handbook). **Preview and source clips** in the middle,
+under the step bar. **Feel**, the **Create Emotion Script** button and the
+step tools (Tip & contact, Create, Review) on the right. Curves are not
+edited in Create: the result opens in **Edit**.
+
 1. Open **Create** → choose a video.  
 2. **Find tip area** (or paint the box). Optional: *Smarter tip find* if an AI ROI model is set in Settings.  
 3. Leave **Contact vibration** on (default). Feel shows a live vib probe for
