@@ -10,14 +10,16 @@
 import { PickVideoFile, SetTrainingVideo, ClearTrainingVideo } from '../wailsjs/go/main/App';
 import { readRecentVideos, pushRecentVideo } from './player_layout.js';
 import { uiError } from './notify.js';
+import { createWaves } from './training_waves.js';
 
-const KEY = 'tr.stage'; // {mode: 'pixel'|'video', path, loop, muted}
+const KEY = 'tr.stage'; // {mode: 'pixel'|'rings'|'waves'|'video', path, loop, muted}
+const MODES = ['pixel', 'rings', 'waves', 'video'];
 const IDLE_ART = new URL('./assets/flow/training-idle.svg', import.meta.url).href;
 
 function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
-    return { mode: s.mode === 'video' ? 'video' : 'pixel', path: typeof s.path === 'string' ? s.path : '',
+    return { mode: MODES.includes(s.mode) ? s.mode : 'pixel', path: typeof s.path === 'string' ? s.path : '',
       loop: s.loop !== false, muted: s.muted !== false };
   } catch (_) {
     return { mode: 'pixel', path: '', loop: true, muted: true };
@@ -30,8 +32,8 @@ const baseName = p => String(p || '').split(/[\\/]/).pop();
  * Mount the stage switch above `stageHost` (the pixel stage element).
  * @returns {{setRunning(running: boolean): void, mode(): string}}
  */
-export function mountTrainingVideo(stageHost) {
-  if (!stageHost) return { setRunning() {}, mode: () => 'pixel' };
+export function mountTrainingVideo(stageHost, { ringsHost = null } = {}) {
+  if (!stageHost) return { setRunning() {}, pushLevels() {}, mode: () => 'pixel' };
   const state = loadState();
   let running = false;
 
@@ -40,8 +42,10 @@ export function mountTrainingVideo(stageHost) {
   bar.dataset.trRegion = 'stage-switch';
   bar.innerHTML = `
     <div class="tr-stage-mode" role="radiogroup" aria-label="Training stage">
-      <button type="button" role="radio" class="tr-stage-btn" data-mode="pixel" id="tr-stage-pixel">Pixel clip</button>
-      <button type="button" role="radio" class="tr-stage-btn" data-mode="video" id="tr-stage-video">Video</button>
+      <button type="button" role="radio" class="tr-stage-btn" data-mode="pixel" id="tr-stage-pixel" title="Our fixed training clip">Clip</button>
+      <button type="button" role="radio" class="tr-stage-btn" data-mode="rings" id="tr-stage-rings" title="Large live rings: vibration and suction">Rings</button>
+      <button type="button" role="radio" class="tr-stage-btn" data-mode="waves" id="tr-stage-waves" title="Live training curves over the last minute">Waves</button>
+      <button type="button" role="radio" class="tr-stage-btn" data-mode="video" id="tr-stage-video" title="Your own video plays along">Video</button>
     </div>
     <div class="tr-stage-video-ctl" id="tr-stage-video-ctl">
       <button type="button" id="tr-video-choose">Choose video…</button>
@@ -55,7 +59,10 @@ export function mountTrainingVideo(stageHost) {
   view.id = 'tr-video-view';
   view.innerHTML = `<video id="tr-video" playsinline preload="metadata" poster="${IDLE_ART}"></video>
     <p class="hint tr-video-empty" id="tr-video-empty">Choose a video — it plays along while the training runs. The device follows the training, not the film.</p>`;
-  stageHost.before(bar, view);
+  const wavesHost = document.createElement('div');
+  wavesHost.id = 'tr-waves-host';
+  stageHost.before(bar, view, wavesHost);
+  const waves = createWaves(wavesHost);
 
   const q = sel => bar.querySelector(sel) || view.querySelector(sel);
   const video = q('#tr-video');
@@ -86,7 +93,12 @@ export function mountTrainingVideo(stageHost) {
     }
     ctl.hidden = !isVideo;
     view.hidden = !isVideo;
-    stageHost.hidden = isVideo;
+    stageHost.hidden = state.mode !== 'pixel';
+    wavesHost.hidden = state.mode !== 'waves';
+    if (state.mode === 'waves') waves.redraw();
+    // Rings: the live rings become the stage (large); otherwise they stay
+    // where they are, compact, below the stage.
+    if (ringsHost) ringsHost.classList.toggle('tr-rings-stage', state.mode === 'rings');
     video.loop = state.loop;
     video.muted = state.muted;
     q('#tr-video-name').textContent = state.path ? baseName(state.path) : '';
@@ -115,7 +127,7 @@ export function mountTrainingVideo(stageHost) {
     const b = e.target.closest('.tr-stage-btn');
     if (!b || b.dataset.mode === state.mode) return;
     state.mode = b.dataset.mode;
-    if (state.mode === 'pixel') ClearTrainingVideo().catch(() => {});
+    if (state.mode !== 'video') ClearTrainingVideo().catch(() => {});
     else if (state.path && !video.src) useVideo(state.path);
     apply();
   });
@@ -143,10 +155,13 @@ export function mountTrainingVideo(stageHost) {
     // Called by training.js when a session starts / ends.
     setRunning(isRunning) {
       running = isRunning;
+      if (isRunning) waves.reset();
       if (state.mode !== 'video' || !video.src) return;
       if (isRunning) video.play().catch(() => {});
       else video.pause();
     },
+    // Real live levels (training:levels) for the Waves stage.
+    pushLevels(levels) { waves.push(levels); },
     mode: () => state.mode,
   };
 }

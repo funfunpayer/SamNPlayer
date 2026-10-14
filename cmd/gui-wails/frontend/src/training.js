@@ -393,9 +393,9 @@ export function initTraining(root) {
   let startEpoch = 0;
   const pixelStage = mountTrainingPixelStage(el('#tr-pixel-stage'));
   // Stage switch: pixel clip or any film that plays along (training_video.js).
-  const trainingVideo = mountTrainingVideo(el('#tr-pixel-stage'));
   // C2: device-adaptive live rings (real values only; Claude wiring).
   const ringsHost = el('#tr-rings-host');
+  const trainingVideo = mountTrainingVideo(el('#tr-pixel-stage'), { ringsHost });
   const trainingRings = ringsHost ? createRings(ringsHost, ['vibration', 'suction']) : null;
   // One card: clip + meta + ring side-by-side (not a second stacked block).
   const ringSlot = el('#tr-ring-slot');
@@ -457,6 +457,7 @@ export function initTraining(root) {
       trainingRings.update({ vibration, suction });
     }
     pixelStage.setLiveLevel(Math.max(vibration || 0, suction || 0));
+    trainingVideo.pushLevels({ vibration, suction });
   }
 
 
