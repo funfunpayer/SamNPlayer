@@ -1,6 +1,7 @@
 package sam
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/funfunpayer/SamNPlayer/funscript"
@@ -181,7 +182,7 @@ func TestRoundtripPreservesProfileAndDeviceRecipe(t *testing.T) {
 	if dr == nil {
 		t.Fatal("DeviceRecipe ist nach dem Roundtrip nil")
 	}
-	if *dr != *original.Metadata.DeviceRecipe {
+	if !reflect.DeepEqual(*dr, *original.Metadata.DeviceRecipe) {
 		t.Errorf("DeviceRecipe nach Roundtrip verändert: %+v vs %+v", *dr, *original.Metadata.DeviceRecipe)
 	}
 	if !dr.ContactVibration {

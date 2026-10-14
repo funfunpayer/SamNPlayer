@@ -267,6 +267,10 @@ func (d *Document) BakeNeoAxes() error {
 	opts.ContactVibration = d.Recipe.ContactVibration
 	opts.ContactVibrationSpan = d.Recipe.ContactVibrationSpan
 	opts.ContactVibrationCurve = d.Recipe.ContactVibrationCurve
+	opts.SceneFeel = funscript.NormalizeSceneFeel(d.Recipe.SceneFeel)
+	opts.SceneRanges = funscript.NormalizeSceneRanges(d.Recipe.SceneRanges)
+	opts.VibrationFollowsSuction = d.Recipe.VibrationFollowsSuction
+	opts.Balance = d.Recipe.FeelBalance
 	opts.TrackingGaps = d.TrackingGaps
 	opts.ContactVibrationEnvelope = -1
 
@@ -306,6 +310,18 @@ func (d *Document) ApplyContactRecipe(enabled bool, span float64, curve string) 
 		d.Recipe.ContactVibrationSpan = 0
 		d.Recipe.ContactVibrationCurve = ""
 	}
+}
+
+// ApplyFeelRecipe sets the scene feel (oral / intercourse / breast / hand,
+// or "" for the old mapping), vibration-follows-suction and the balance.
+// When playbackSource is axes, call BakeNeoAxes afterwards.
+func (d *Document) ApplyFeelRecipe(sceneFeel string, followSuction bool, balance float64) {
+	if d.Recipe.Sync == "" {
+		d.Recipe.Sync = funscript.DefaultSyncForProfile(d.Profile)
+	}
+	d.Recipe.SceneFeel = funscript.NormalizeSceneFeel(sceneFeel)
+	d.Recipe.VibrationFollowsSuction = followSuction
+	d.Recipe.FeelBalance = funscript.ClampBalance(balance)
 }
 
 // DefaultStrengthPresets soft/normal/strong for new Tf/Tj documents.

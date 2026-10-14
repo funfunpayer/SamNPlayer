@@ -130,6 +130,9 @@ STUBS = {
     "GetHeatmap": ("async n => Array.from({length: n}, (_, i) => ({atMs: i * %d / n,"
                    " intensity: 0.25 + 0.7 * Math.sin(Math.PI * i / n) * (0.6 + 0.4 * Math.sin(i / 3))}))" % DURATION_MS),
     "GetMarker": "async () => null",
+    "SuggestChapterScenes": ("async () => window.__chapters.map((c, i, all) => ({ index: i, name: c.name, startMs: c.startTime, "
+                             "endMs: (all[i + 1] || {}).startTime || %d, feel: i === 2 ? 'oral' : '', hasFeel: i === 2, "
+                             "suggested: ['', 'intercourse', 'oral', 'intercourse'][i], source: 'scene detection', confidence: [0, 0.74, 0.86, 0.61][i] }))" % DURATION_MS),
     "GetScriptChapterMarks": "async () => window.__chapters.slice()",
     "GetVideoThumbnails": ("async (n) => Array.from({length: n}, (_, i) => ({atMs: Math.round((i + 0.5) * %d / n),"
                            " dataUrl: window.__thumb(i)}))" % DURATION_MS),
@@ -239,10 +242,24 @@ def main():
                 page.wait_for_timeout(800)
                 page.click('#gen-choose')
                 page.wait_for_timeout(2500)
+                # How it feels for a Sam Neo 2 (chosen; the demo connects a stroker),
+                # with the feel open (Oral, mix).
+                page.evaluate("""() => {
+                  const dev = document.querySelector('#gen-device-target');
+                  if (dev) { dev.value = 'neo2'; dev.dispatchEvent(new Event('change')); }
+                  const d = document.querySelector('#gen-neo-feel'); if (d) d.open = true;
+                  const s = document.querySelector('#gen-scene-feel'); if (s) { s.value = 'oral'; s.dispatchEvent(new Event('change')); }
+                  const b = document.querySelector('#gen-feel-balance'); if (b) { b.value = '30'; b.dispatchEvent(new Event('change')); }
+                }""")
                 page.evaluate("window.scrollTo(0, 0); document.querySelectorAll('main, .app-main, #content, .tab-panel').forEach(e => e.scrollTop = 0)")
                 page.wait_for_timeout(300)
                 shoot(page, out, "create")
                 page.screenshot(path=str(out / "gui-create-full.png"), full_page=True)
+                # Generator with editor: the timeline under the Generator video.
+                if page.locator(".gl-editor").count():
+                    page.locator(".gl-editor").scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
+                    page.screenshot(path=str(out / "gui-create-editor.png"))
 
                 # Training — on the neutral "Rings" stage with a running
                 # session (synthetic levels via training:levels). The bundled pixel

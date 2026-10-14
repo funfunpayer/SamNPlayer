@@ -11,6 +11,7 @@
 import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SetMotorLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { mountScenePanel } from './scene_panel.js';
+import { mountFeelCard, mountSoundVibCard } from './feel_card.js';
 
 const RECENT_KEY = 'pb.recent';
 const CHAN_KEY = 'pb.chanLevels';
@@ -115,7 +116,8 @@ const ICONS = {
 export function applyPlayerLayoutV1(root, api) {
   if (!root || root.dataset.pbLayout === 'v1') return;
   root.dataset.pbLayout = 'v1';
-  const q = sel => root.querySelector(sel);
+  // IDs also outside root: the Generator borrows parts (gen_editor.js).
+  const q = sel => root.querySelector(sel) || (sel[0] === '#' ? document.querySelector(sel) : null);
 
   // ---- Shell: library column + main column -------------------------------
   const main = document.createElement('div');
@@ -295,6 +297,10 @@ export function applyPlayerLayoutV1(root, api) {
   };
   // Devices: script → device mapping.
   ['#pb-axis-row', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  // Sam Neo 2 feel of the loaded script (scene / mix / follow).
+  mountFeelCard(panels.devices, root, { onSaved: () => api?.refreshVisuals?.() });
+  // Vibrators: vibration from the video's sound into the script.
+  mountSoundVibCard(panels.devices, root, { onSaved: () => api?.refreshVisuals?.() });
   // Optimize for a device is an Editor tool: it sits with the edit tools
   // (View), which is the tab the Editor opens.
   const optimize = document.createElement('div');

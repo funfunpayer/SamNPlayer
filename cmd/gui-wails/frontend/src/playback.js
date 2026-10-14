@@ -609,7 +609,9 @@ export function initPlayback(root) {
   `;
 
   wireDataHelp(root);
-  const el = id => root.querySelector(id);
+  // IDs are unique: when the Generator borrows parts of the Player
+  // (gen_editor.js), they are found there too.
+  const el = id => root.querySelector(id) || (id[0] === '#' ? document.querySelector(id) : null);
   const videoEl = el('#pb-video');
   // C1 (ChatGPT #503): Flow stage when nothing is loaded and for "Feel
   // without film"; the latter follows Play / Pause (syncPlayButton).
@@ -3472,6 +3474,12 @@ export function initPlayback(root) {
     }
     currentPosMs = t;
     if (!videoPath || !videoEl.duration) {
+      // Video still loading: jump there once its length is known.
+      if (videoPath) {
+        videoEl.addEventListener('loadedmetadata', () => {
+          if (currentPosMs === t && videoEl.duration) videoEl.currentTime = Math.min(videoEl.duration, t / 1000);
+        }, { once: true });
+      }
       redrawHeatmap();
       redrawCurve();
       redrawTrajectory();
@@ -3779,6 +3787,7 @@ export function initPlayback(root) {
       throw err;
     }
     scriptPath = info.path;
+    root.dataset.pbScript = info.path || '';
     totalMs = Math.max(info.durationMs, 1);
     resetViewWindow();
     // Library "Recent" / "Scripts" (player_layout.js) listen for successful
@@ -5218,11 +5227,16 @@ export function initPlayback(root) {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
     // A Generator result (opts.review) opens in the workspace Edit view.
+    // In the Generator (it has the editor, gen_editor.js) a result stays
+    // there and is edited in place.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => {
+      if (document.body.dataset.mode === 'generator') return;
       switchToPlaybackTab();
       if (opts && opts.review) window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }));
     }),
     seekMs: (atMs) => seekTo(atMs),
+    // Re-read the loaded script's curves (after a recipe change).
+    refreshVisuals: () => refreshScriptVisuals(),
     attachVideoPath: (path) => attachVideoPath(path),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,

@@ -3,7 +3,10 @@
 // duration per scene, and a details pane for the selected scene (range,
 // n / N, prev/next, go to, the linked video's technical data).
 // Real data only: no tags or notes (there is no storage for them yet).
-import { ProbeCreateVideo } from '../wailsjs/go/main/App';
+import { ProbeCreateVideo, SuggestChapterScenes, SaveChapterScenes } from '../wailsjs/go/main/App';
+
+const FEELS = [['', 'Classic'], ['oral', 'Oral'], ['intercourse', 'Intercourse'], ['breast', 'Breast'], ['hand', 'Hand']];
+const FEEL_NAME = Object.fromEntries(FEELS);
 
 function fmtMs(ms) {
   const t = Math.max(0, Math.round(ms / 1000));
@@ -49,7 +52,14 @@ export function mountScenePanel(panel, root, api) {
   heat.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('app:rhythm'));
   });
-  head.append(count, heat);
+  // Step 4: a scene feel per chapter, suggested by the scene detection or
+  // the contact mark — applied only when you say so.
+  const applyAll = make('button', 'pb-scenes-apply', 'Apply suggestions');
+  applyAll.type = 'button';
+  applyAll.id = 'pb-scenes-apply';
+  applyAll.title = 'Give every scene its suggested Sam Neo 2 feel';
+  applyAll.hidden = true;
+  head.append(count, applyAll, heat);
 
   const body = make('div', 'pb-scenes-body');
   const grid = make('div', 'pb-scenes-grid');
@@ -65,6 +75,39 @@ export function mountScenePanel(panel, root, api) {
   panel.append(head, empty, body);
 
   let selected = 0;
+  let feels = []; // ChapterScene[] from SuggestChapterScenes (same order as chapters)
+  let feelsBusy = false;
+  let feelsSig = null; // chapters the feels were fetched for
+  const sigOf = scenes => scenes.map(c => `${c.start}-${c.end}`).join(',');
+  async function refreshFeels() {
+    feelsSig = sigOf(api.chapters());
+    try {
+      const r = await SuggestChapterScenes();
+      feels = Array.isArray(r) ? r : [];
+    } catch (_) {
+      feels = [];
+    }
+    render();
+  }
+  const feelOf = i => (feels[i] && feels[i].hasFeel ? feels[i].feel : null); // null = not set
+  async function saveFeels(change) {
+    if (feelsBusy) return;
+    feelsBusy = true;
+    try {
+      const next = feels.map((f, i) => ({ f, feel: change(i, feelOf(i), f) }))
+        .filter(x => x.feel != null)
+        .map(x => ({ start_ms: x.f.startMs, end_ms: x.f.endMs, feel: x.feel }));
+      await SaveChapterScenes(next);
+      await refreshFeels();
+      api.refreshVisuals?.();
+    } catch (err) {
+      const st = details.querySelector('#pb-scene-feel-status');
+      if (st) st.textContent = 'Could not save: ' + err;
+    } finally {
+      feelsBusy = false;
+    }
+  }
+  applyAll.addEventListener('click', () => saveFeels((i, cur, f) => (f.suggested ? f.suggested : cur)));
   let thumbs = [];
   let thumbsFor = '';
   let info = null;
@@ -130,6 +173,37 @@ export function mountScenePanel(panel, root, api) {
     nav.append(prev, go, next);
     details.append(nav);
 
+    // Sam Neo 2 feel for this scene: saved value, suggestion, Use.
+    const fs = feels[selected];
+    if (fs) {
+      details.append(make('h5', 'pb-scene-d-sub', 'Sam Neo 2 feel'));
+      const frow = make('div', 'pb-scene-feel');
+      const sel = make('select');
+      sel.id = 'pb-scene-feel-sel';
+      sel.setAttribute('aria-label', 'Scene feel');
+      for (const [v, label] of FEELS) sel.append(new Option(label, v));
+      sel.value = fs.hasFeel ? fs.feel : '';
+      sel.addEventListener('change', () => saveFeels((i, cur) => (i === selected ? sel.value : cur)));
+      frow.append(sel);
+      if (fs.suggested) {
+        const sug = make('span', 'pb-scene-feel-sug',
+          `Suggested: ${FEEL_NAME[fs.suggested]} · ${fs.source} ${Math.round((fs.confidence || 0) * 100)}%`);
+        sug.id = 'pb-scene-feel-sug';
+        const use = make('button', 'pb-scene-feel-use', 'Use');
+        use.type = 'button';
+        use.id = 'pb-scene-feel-use';
+        use.disabled = fs.hasFeel && fs.feel === fs.suggested;
+        use.addEventListener('click', () => saveFeels((i, cur) => (i === selected ? fs.suggested : cur)));
+        frow.append(sug, use);
+      } else {
+        frow.append(make('span', 'pb-scene-feel-sug hint', 'No suggestion — no scene detection for this part.'));
+      }
+      details.append(frow);
+      const st = make('p', 'hint');
+      st.id = 'pb-scene-feel-status';
+      details.append(st);
+    }
+
     const tech = make('dl', 'pb-scene-d-tech');
     tech.id = 'pb-scene-d-tech';
     const trow = (k, v) => tech.append(make('dt', '', k), make('dd', '', v));
@@ -173,13 +247,19 @@ export function mountScenePanel(panel, root, api) {
       } else {
         fig.classList.add('is-empty');
       }
+      const f = feelOf(i);
+      const name = make('span', 'pb-scene-card-name', s.name);
+      if (f != null) name.append(make('b', 'pb-scene-card-feel', FEEL_NAME[f] || f));
       card.append(fig,
-        make('span', 'pb-scene-card-name', s.name),
+        name,
         make('span', 'pb-scene-card-range', `${fmtMs(s.start)} – ${fmtMs(s.end)} · ${fmtMs(s.end - s.start)}`));
       card.addEventListener('click', () => select(i));
       card.addEventListener('dblclick', async () => { await api.seekMs(s.start); markCurrent(); });
       grid.append(card);
     });
+    // Feels follow the chapters by position; refetch once when they change.
+    if (feelsSig !== sigOf(scenes) && !feelsBusy) refreshFeels();
+    applyAll.hidden = !feels.some((f, i) => f.suggested && feelOf(i) !== f.suggested);
     renderDetails(scenes);
   }
 
@@ -214,6 +294,6 @@ export function mountScenePanel(panel, root, api) {
     .observe(root, { attributes: true, attributeFilter: ['data-pb-video-path'] });
 
   return {
-    show() { render(); refreshVideo(); },
+    show() { render(); refreshVideo(); refreshFeels(); },
   };
 }

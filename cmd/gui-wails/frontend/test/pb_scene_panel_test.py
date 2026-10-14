@@ -38,6 +38,12 @@ def main():
         "GetScriptCurve": "async () => %s" % json.dumps([{"atMs": a["at"], "pos": a["pos"]} for a in acts]),
         "GetScriptAxisActions": "async (axis) => (!axis || axis === 'general') ? %s : null" % json.dumps(acts),
         "GetHeatmap": "async n => Array.from({ length: n }, (_, i) => ({ atMs: i * 1000, intensity: 0.5 }))",
+        # Step 4: suggested scene feels per chapter (saved state in window.__saved).
+        "SuggestChapterScenes": ("async () => window.__chapters.map((c, i) => { const s = (window.__saved || []).find(r => r.start_ms === c.startTime); "
+                                 "return { index: i, name: c.name, startMs: c.startTime, endMs: c.endTime || 0, "
+                                 "feel: s ? s.feel : '', hasFeel: !!s, suggested: ['oral', 'intercourse', ''][i] || '', "
+                                 "source: 'scene detection', confidence: 0.8 }; })"),
+        "SaveChapterScenes": "async (r) => { window.__saved = r; window.__saves = (window.__saves || 0) + 1; }",
         "GetMarker": "async () => null",
         "VideoFileURL": "async () => ''",
         "GetScriptChapterMarks": "async () => window.__chapters.slice()",
@@ -90,6 +96,27 @@ def main():
             page.focus('.pb-scene-card[data-scene="2"]')
             page.keyboard.press("ArrowLeft")
             check("arrow keys move the selection", page.text_content("#pb-scene-d-pos") == "2 / 3")
+
+            # Step 4: the suggested feel per scene — applied only on request.
+            page.click('.pb-scene-card[data-scene="0"]')
+            page.wait_for_function("document.querySelector('#pb-scene-feel-sug')", timeout=3000)
+            check("scene shows its suggested feel", "Suggested: Oral" in page.text_content("#pb-scene-feel-sug"))
+            check("nothing applied yet: Classic", page.input_value("#pb-scene-feel-sel") == "" and page.evaluate("window.__saves") is None)
+            page.click("#pb-scene-feel-use")
+            page.wait_for_function("window.__saves === 1", timeout=3000)
+            check("Use saves this scene's feel", page.evaluate("window.__saved") == [{"start_ms": 0, "end_ms": 30000, "feel": "oral"}] or
+                  page.evaluate("window.__saved[0].feel") == "oral", str(page.evaluate("window.__saved")))
+            page.wait_for_function("document.querySelector('#pb-scene-feel-sel').value === 'oral'", timeout=3000)
+            check("card shows the feel", "Oral" in page.text_content('.pb-scene-card[data-scene="0"] .pb-scene-card-feel'))
+            check("Apply suggestions offered for the rest", page.is_visible("#pb-scenes-apply"))
+            page.click("#pb-scenes-apply")
+            page.wait_for_function("window.__saves === 2", timeout=3000)
+            check("Apply suggestions keeps scene 1 and adds scene 2",
+                  sorted(r["feel"] for r in page.evaluate("window.__saved")) == ["intercourse", "oral"], str(page.evaluate("window.__saved")))
+            page.wait_for_function("document.querySelector('#pb-scenes-apply').hidden", timeout=3000)
+            check("nothing left to apply", True)
+            page.click('.pb-scene-card[data-scene="2"]')
+            check("no suggestion: says so", "No suggestion" in page.text_content(".pb-scene-feel"))
 
             # A chapter added elsewhere shows up without a reload.
             page.evaluate("window.__chapters = window.__chapters.concat([{name:'Outro', startTime:95000, endTime:0}]);"
