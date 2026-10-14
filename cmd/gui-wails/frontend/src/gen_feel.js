@@ -59,6 +59,14 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
       </span>
     </div>
     <p class="hint gen-device-hint" id="gen-device-hint"></p>
+    <div class="field-row gen-sound-vib" id="gen-sound-vib">
+      <label for="gen-vib-source" data-help="For vibrators: where the vibration comes from. Contact: the script's own vibration (deep strokes). Sound + contact: the louder of the video's sound and contact. Sound only: the video's loudness. Written into the script after Create.">Vibration</label>
+      <select id="gen-vib-source">
+        <option value="">Contact (as created)</option>
+        <option value="sound+contact">Sound + contact</option>
+        <option value="sound">Sound only</option>
+      </select>
+    </div>
     <details class="gen-neo-feel" id="gen-neo-feel">
       <summary class="gen-neo-feel-title">Sam Neo 2 feel · <span id="gen-neo-feel-sum"></span></summary>
       <div class="field-row">
@@ -91,6 +99,7 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
   const sceneSel = q('#gen-scene-feel');
   const balance = q('#gen-feel-balance');
   const follow = q('#gen-vib-follow');
+  const vibSource = q('#gen-vib-source');
   const showAll = q('#gen-show-all-feel');
   const hint = q('#gen-device-hint');
   const autoNote = q('#gen-scene-auto');
@@ -102,12 +111,13 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
     if (typeof s.scene === 'string' && [...sceneSel.options].some(o => o.value === s.scene)) sceneSel.value = s.scene;
     if (Number.isFinite(s.balance)) balance.value = String(s.balance);
     follow.checked = !!s.follow;
+    if (typeof s.vibSource === 'string' && [...vibSource.options].some(o => o.value === s.vibSource)) vibSource.value = s.vibSource;
     showAll.checked = !!s.showAll;
   } catch (_) { /* ignore */ }
   const store = () => {
     try {
       localStorage.setItem(KEY, JSON.stringify({ device: deviceSel.value, scene: sceneSel.value,
-        balance: Number(balance.value), follow: follow.checked, showAll: showAll.checked }));
+        balance: Number(balance.value), follow: follow.checked, showAll: showAll.checked, vibSource: vibSource.value }));
     } catch (_) { /* ignore */ }
   };
 
@@ -121,7 +131,7 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
     root.dataset.genShowAll = showAll.checked ? '1' : '';
     // A short note only where settings are hidden; the Sam Neo 2 shows all.
     hint.textContent = {
-      vibrator: 'Vibrator: contact vibration (the video\'s sound can drive it too: Player → Audio). Suction feel hidden.',
+      vibrator: 'Vibrator: contact vibration, or the video\'s sound (Vibration below). Suction feel hidden.',
       stroker: 'Stroker: the stroke is all it needs — vibration and suction settings hidden.',
     }[k] || '';
     hint.hidden = !hint.textContent || showAll.checked;
@@ -136,7 +146,7 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
       follow.checked ? 'vibration follows suction' : '',
     ].filter(Boolean).join(' · ');
   }
-  for (const n of [deviceSel, sceneSel, balance, follow, showAll]) {
+  for (const n of [deviceSel, sceneSel, balance, follow, showAll, vibSource]) {
     n.addEventListener('change', () => { store(); sync(); });
   }
   q('#gen-region-class2')?.addEventListener('change', sync);
@@ -146,6 +156,11 @@ export function initGenFeel(root, { sceneType = () => '' } = {}) {
 
   return {
     sync,
+    // Vibration from the video's sound for a vibrator ("sound" /
+    // "sound+contact"), or '' (keep the script's contact vibration).
+    soundVibration() {
+      return kind() === 'vibrator' ? vibSource.value : '';
+    },
     // The feel to write after Create, or null when nothing changes the old
     // mapping (or the device has no suction / vibration feel).
     settings() {

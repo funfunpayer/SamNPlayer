@@ -83,10 +83,38 @@ device feels the change.
 *Show all* brings the hidden settings back. The feel is written only for a
 Sam Neo 2, and only when it differs from Classic.
 
+## Vibration from the video's sound (vibrators)
+
+For a vibrator or another toy without suction, the vibration lane can come
+from the video's loudness. It is written into the script, so it plays the
+same everywhere and can be edited like any other lane.
+
+**Sources:**
+
+- *Contact (as created)*: the script's own vibration on deep strokes; nothing
+  is written.
+- *Sound + contact*: whichever is stronger at each moment, the video's
+  loudness or the script's own vibration.
+- *Sound only*: the video's loudness.
+
+**Where to set it:**
+
+- Generator → *For device: Vibrator* → *Vibration*. It is written right after
+  Create.
+- Inspector → Devices → *Vibration from sound* → *Write into script*.
+
+Code: `cmd/gui-wails/app_sound_vibration.go` (`BakeSoundVibration`).
+
+**How the loudness becomes a curve:** the decoder is the same one the
+Player's live *Audio vibration* uses (`generator.AudioVibrationEnvelope`). It
+measures loudness in 50 ms steps and normalises it in dB. Silence is gated
+out, and beats are kept punchy without dropping to zero between them.
+
+**Suction is kept:** when the script has no explicit suction lane yet, its
+mapped suction is written first.
+
 ## Next
 
-- Vibration from the video's sound written into the script for vibrators
-  (today it is a Player setting).
-- Scene per chapter: Auto picks the scene for each chapter from motion
-  (classic) and the scene detection (AI). These are suggestions; you confirm
-  them first.
+- **Scene per chapter:** Auto picks the scene for each chapter from motion
+  (classic) and from the scene detection (AI). These are suggestions; you
+  confirm them first.

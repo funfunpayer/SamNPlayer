@@ -47,6 +47,7 @@ def main():
         "ResumeTraining": "async () => { window.__trResumed = (window.__trResumed || 0) + 1; }",
         "GetFeelSettings": "async () => ({ sceneFeel: '', vibrationFollowsSuction: false, balance: 0, sceneFeels: ['oral','intercourse','breast','hand'] })",
         "SaveFeelSettings": "async (s, f, b) => { window.__feel = [s, f, b]; }",
+        "BakeSoundVibration": "async (m) => { window.__sound = m; return { points: 5, message: 'Vibration from the video\\'s sound written (5 points).' }; }",
     })
     base, shutdown = serve(cg.data_js("/test/_smoke_media/clip.webm") + app_stub(stubs))
     try:
@@ -92,6 +93,12 @@ def main():
             page.select_option("#pb-scene-feel", "oral")
             page.wait_for_function("window.__feel && window.__feel[0] === 'oral'", timeout=3000)
             check("feel card saves the scene", True)
+            check("Sam Neo 2: no sound-vibration card", page.is_hidden("#pb-sound-vib-card"))
+            page.evaluate("window.dispatchEvent(new CustomEvent('device:status', {detail: {connected: true, capabilities: {device: 'Lush', features: [{channel: 'vibration'}]}}}))")
+            check("vibrator: sound-vibration card, no Neo 2 feel", page.is_visible("#pb-sound-vib-card") and page.is_hidden("#pb-feel-card"))
+            page.click("#pb-vib-source-apply")
+            page.wait_for_function("window.__sound === 'sound+contact'", timeout=3000)
+            check("vibrator: writes vibration from sound", "written" in page.text_content("#pb-vib-source-status"))
             page.click("#pb-lib-toggle")
             page.click("#pb-lib-toggle")
             check("Player: Library folds and returns", page.is_visible("#pb-lib-local"))

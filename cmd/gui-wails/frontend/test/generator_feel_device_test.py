@@ -54,6 +54,7 @@ def main():
         ),
         "ImproveGeneratedScript": "async (req) => ({ path: req.path, gapsFilled: 0, pointsAdded: 0, message: 'ok' })",
         "SaveFeelSettings": "async (scene, follow, balance) => { window.__feel = (window.__feel || []).concat([[scene, follow, balance]]); }",
+        "BakeSoundVibration": "async (mode) => { window.__sound = (window.__sound || []).concat([mode]); return { points: 10, message: 'Vibration from sound written (10 points).' }; }",
         "GetScriptChapterMarks": "async () => []",
     }))
     harness = FRONTEND / "test" / "_generator_feel_device_harness.html"
@@ -90,9 +91,18 @@ def main():
             status(VIBRATOR)
             check("vibrator: contact shown, suction feel hidden",
                   shown("#gen-contact-vibration-wrap") and not shown("#gen-neo-feel"))
+            check("vibrator: vibration source shown", shown("#gen-sound-vib"))
+            page.select_option("#gen-vib-source", "sound+contact")
+            page.click("#gen-generate")
+            page.wait_for_function("(window.__sound || []).length === 1", timeout=5000)
+            check("vibrator: sound vibration written after Create", page.evaluate("window.__sound[0]") == "sound+contact")
+            check("vibrator: no suction feel written", page.evaluate("window.__feel") is None)
+            n_loads = page.evaluate("window.__playLoads.length")
+            page.wait_for_function("!document.querySelector('#gen-generate').disabled", timeout=5000)
 
             status(NEO2)
             check("Sam Neo 2 connected: all shown", shown("#gen-contact-vibration-wrap") and shown("#gen-neo-feel"))
+            check("Sam Neo 2: vibration source hidden (suction feel instead)", not shown("#gen-sound-vib"))
             check("scene choices", page.evaluate("[...document.querySelectorAll('#gen-scene-feel option')].map(o => o.value)")
                   == ["auto", "", "oral", "intercourse", "breast", "hand"])
 
@@ -104,9 +114,9 @@ def main():
             page.evaluate("document.querySelector('#gen-neo-feel').open = true")
             page.select_option("#gen-scene-feel", "")
             page.click("#gen-generate")
-            page.wait_for_function("window.__playLoads.length >= 1", timeout=5000)
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(800)
             check("Classic: feel not written (old mapping)", page.evaluate("window.__feel") is None)
+            check("Sam Neo 2: no sound vibration written", len(page.evaluate("window.__sound")) == 1)
 
             # Oral, mix toward suction, vibration follows → written after Create.
             page.evaluate("document.querySelector('#gen-neo-feel').open = true")

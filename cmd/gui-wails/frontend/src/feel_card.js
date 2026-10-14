@@ -4,7 +4,7 @@
 // written into the script with SaveFeelSettings. Shown for the Sam Neo 2 or
 // when no device is connected; a stroker or a vibrator without suction does
 // not get it.
-import { GetFeelSettings, SaveFeelSettings } from '../wailsjs/go/main/App';
+import { GetFeelSettings, SaveFeelSettings, BakeSoundVibration } from '../wailsjs/go/main/App';
 import { deviceKind } from './gen_feel.js';
 
 export function mountFeelCard(host, root, { onSaved } = {}) {
@@ -78,4 +78,46 @@ export function mountFeelCard(host, root, { onSaved } = {}) {
   window.addEventListener('device:status', e => { kind = deviceKind(e.detail); sync(); });
   sync();
   return { load };
+}
+
+// Vibration from the video's sound for a vibrator / other toy: writes the
+// loaded script's vibration lane from the sound (or sound + contact).
+// Shown when a vibrator (no stroke, not a Sam Neo 2) is connected.
+export function mountSoundVibCard(host, root, { onSaved } = {}) {
+  if (!host) return null;
+  const card = document.createElement('div');
+  card.className = 'pb-card pb-sound-vib-card';
+  card.id = 'pb-sound-vib-card';
+  card.innerHTML = `
+    <p class="pb-card-title">Vibration from sound</p>
+    <div class="field-row">
+      <select id="pb-vib-source" aria-label="Vibration source">
+        <option value="sound+contact">Sound + contact</option>
+        <option value="sound">Sound only</option>
+      </select>
+      <button type="button" id="pb-vib-source-apply" data-help="Writes the vibration lane of this script from the video's loudness (and, with contact, the script's own vibration where it is stronger). It replaces the current vibration lane.">Write into script</button>
+    </div>
+    <p class="hint" id="pb-vib-source-status" aria-live="polite"></p>`;
+  host.append(card);
+  const status = card.querySelector('#pb-vib-source-status');
+  const btn = card.querySelector('#pb-vib-source-apply');
+  let kind = null;
+  const sync = () => { card.hidden = root.dataset.pbState !== 'loaded' || kind !== 'vibrator'; };
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    status.textContent = 'Reading the sound…';
+    try {
+      const r = await BakeSoundVibration(card.querySelector('#pb-vib-source').value);
+      status.textContent = (r && r.message) || 'Written.';
+      onSaved?.();
+    } catch (err) {
+      status.textContent = 'Could not write: ' + err;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-pb-state'] });
+  window.addEventListener('device:status', e => { kind = deviceKind(e.detail); sync(); });
+  sync();
+  return { sync };
 }

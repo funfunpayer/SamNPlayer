@@ -4344,3 +4344,10 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 .gl-edit-tools[hidden] { display: none; }
 .gl-edit-tools .pb-insp-panel { display: block !important; }
 .gl-edit-tools .pb-feel-card { margin-top: 10px; }
+/* Vibration source: vibrators only (or Show all). */
+.gen-sound-vib { margin: 0 0 8px; }
+.gen-sound-vib select { min-width: 0; flex: 1 1 auto; }
+[data-gen-device="neo2"]:not([data-gen-show-all="1"]) #gen-sound-vib,
+[data-gen-device="stroker"]:not([data-gen-show-all="1"]) #gen-sound-vib { display: none; }
+.pb-sound-vib-card[hidden] { display: none; }
+.pb-sound-vib-card .field-row select { min-width: 0; flex: 1 1 auto; }

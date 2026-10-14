@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo, OptimizeLoadedFor, SaveFeelSettings } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo, OptimizeLoadedFor, SaveFeelSettings, BakeSoundVibration } from '../wailsjs/go/main/App';
 import { initGenFeel } from './gen_feel.js';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
@@ -4361,6 +4361,13 @@ export function initGenerator(root, playback) {
             await playback.loadScriptPath(res.path, { review: true });
           }
           el('#gen-status').textContent += ` — ${(res && res.message) || 'optimized'}.`;
+        }
+        // Vibrator: vibration from the video's sound, written into the script.
+        const soundVib = genFeel && genFeel.soundVibration();
+        if (soundVib) {
+          const r = await BakeSoundVibration(soundVib);
+          await playback.loadScriptPath(lastOutputPath, { review: true });
+          el('#gen-status').textContent += ` — ${(r && r.message) || 'vibration from sound written'}`;
         }
         // Sam Neo 2 feel (scene / mix / follow) — only when it changes something.
         const feel = genFeel && genFeel.settings();
