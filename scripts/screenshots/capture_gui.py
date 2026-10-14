@@ -219,15 +219,14 @@ def main():
                 page.wait_for_timeout(1000)
                 shoot(page, out, "edit-multiaxis")
 
-                # Scene Map bottom tab.
-                page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
+                # Scene Map mode: the Player's scene view.
+                page.click('#mode-pill'); page.click('#mode-deck [data-mode="scenemap"]')
                 page.wait_for_timeout(600)
-                page.click('.pb-bottom-tab[data-btab="scenemap"]')
                 page.wait_for_function("document.querySelectorAll('.pb-scene-card').length === 4", timeout=8000)
                 page.click('.pb-scene-card[data-scene="2"]')
                 page.wait_for_timeout(800)
                 shoot(page, out, "scene-map")
-                page.click('.pb-bottom-tab[data-btab="timeline"]')
+                page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
 
                 # Inspector → Devices with a TCode stroker (stroke range).
                 page.evaluate("window.dispatchEvent(new CustomEvent('device:status', {detail: {connected: true,"

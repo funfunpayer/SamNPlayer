@@ -1838,13 +1838,13 @@ export function initPlayback(root) {
 
   // Calm look (Owner 14 Oct): a soft glow in the curve's colour and a faint
   // fill to the baseline — the wave reads as one shape, not a zig-zag.
-  function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY } = {}) {
+  function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY, dense = 'strokes' } = {}) {
     if (points.length < 2) return;
     const dpr = window.devicePixelRatio || 1;
     // Dense strokes (a fast script zoomed out) would melt into a zigzag
-    // block: below a few CSS px per point the lane shows the stroke's envelope
-    // instead — the upper and lower edge of the strokes as two calm glowing
-    // lines with a soft band between. Zooming in brings the real wave back.
+    // block. A stroke curve (dense: 'speed', Owner's choice 14 Oct) then shows
+    // a calm glowing wave of the stroke tempo, labelled; other curves are
+    // drawn as a fine line. Zooming in brings the real wave back.
     const w = ctx.canvas.width;
     let visible = 0;
     for (const p of points) { const x = xOf(p.atMs); if (x >= 0 && x <= w) visible++; }
@@ -1853,18 +1853,13 @@ export function initPlayback(root) {
     // can be picked.
     const envelopeBelowPx = editMode ? 4 : DOT_MIN_GAP;
     if (visible > 2 && w / dpr / visible < envelopeBelowPx) {
-      const style = denseCurveStyle();
       // A bin must hold at least a whole stroke (up and down).
       const binPx = Math.max(4 * dpr, 2.5 * (w / visible));
-      if (style === 'envelope') {
-        drawEnvelope(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx });
-        return;
-      }
-      if (style === 'speed') {
+      if (dense === 'speed') {
         drawSpeedWave(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx, baseY });
-        return;
+        return 'speed';
       }
-      // 'strokes': the real strokes as a fine line, no glow, no fill.
+      // Otherwise the real points as a fine line, no glow, no fill.
       width = 1; glow = 0; fill = 0;
     }
     if (fill > 0 && baseY != null) {
@@ -1892,46 +1887,6 @@ export function initPlayback(root) {
     smoothCurvePath(ctx, points, xOf, yOf);
     ctx.stroke();
     ctx.restore();
-  }
-
-  // Envelope of dense points: min / max position per bin (a few strokes), lightly
-  // smoothed, drawn as two glowing edges with a soft band between.
-  function strokeEnvelope(points, xOf, binPx, w) {
-    const bins = [];
-    let cur = null;
-    for (const p of points) {
-      const x = xOf(p.atMs);
-      if (x < -binPx || x > w + binPx) continue;
-      const b = Math.floor(x / binPx);
-      if (!cur || cur.b !== b) {
-        cur = { b, t: 0, n: 0, lo: p.pos, hi: p.pos };
-        bins.push(cur);
-      }
-      cur.t += p.atMs; cur.n++;
-      if (p.pos < cur.lo) cur.lo = p.pos;
-      if (p.pos > cur.hi) cur.hi = p.pos;
-    }
-    // Rolling max / min over ±2 bins (a bin can catch only one side of a
-    // stroke), then a light average so the edges run calm.
-    const roll = (k, pick) => bins.map((_, i) => pick(...bins.slice(Math.max(0, i - 2), i + 3).map(b => b[k])));
-    const soft = arr => arr.map((v, i) => (v * 2 + (arr[i - 1] ?? v) + (arr[i + 1] ?? v)) / 4);
-    const hi = soft(roll('hi', Math.max)), lo = soft(roll('lo', Math.min));
-    // Even x per bin centre (pixel space): uneven times would make a spline
-    // swing back in time and draw loops.
-    return {
-      upper: bins.map((b, i) => [(b.b + 0.5) * binPx, hi[i]]),
-      lower: bins.map((b, i) => [(b.b + 0.5) * binPx, lo[i]]),
-    };
-  }
-
-  // Dense curve style (Owner chooses): 'strokes' fine real strokes,
-  // 'envelope' upper / lower edge, 'speed' a calm wave of the stroke speed.
-  function denseCurveStyle() {
-    try {
-      const v = localStorage.getItem('pb.denseCurve');
-      if (v === 'strokes' || v === 'envelope' || v === 'speed') return v;
-    } catch (_) { /* ignore */ }
-    return 'strokes';
   }
 
   // Stroke speed per bin (position units per second, from consecutive
@@ -1969,6 +1924,14 @@ export function initPlayback(root) {
     midpointPath(ctx, pts, yOf);
     ctx.stroke();
     ctx.restore();
+    // Say what the wave is: tempo, not position.
+    ctx.save();
+    ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.85;
+    ctx.fillText('TEMPO · zoom in for strokes', 8 * dpr, yOf(100) + 4 * dpr);
+    ctx.restore();
   }
 
   // Calm path through [x, pos] points: quadratic curves via the midpoints.
@@ -1981,34 +1944,6 @@ export function initPlayback(root) {
     }
     const last = pts[pts.length - 1];
     ctx.lineTo(last[0], yOf(last[1]));
-  }
-
-  function drawEnvelope(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx }) {
-    const { upper, lower } = strokeEnvelope(points, xOf, binPx, w);
-    if (upper.length < 2) return;
-    ctx.save();
-    ctx.beginPath();
-    upper.forEach(([x, v], i) => (i ? ctx.lineTo(x, yOf(v)) : ctx.moveTo(x, yOf(v))));
-    for (let i = lower.length - 1; i >= 0; i--) ctx.lineTo(lower[i][0], yOf(lower[i][1]));
-    ctx.closePath();
-    const g = ctx.createLinearGradient(0, yOf(100), 0, yOf(0));
-    g.addColorStop(0, color); g.addColorStop(0.5, 'transparent'); g.addColorStop(1, color);
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.restore();
-    for (const edge of [upper, lower]) {
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width * dpr;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.shadowColor = color;
-      ctx.shadowBlur = glow * dpr;
-      midpointPath(ctx, edge, yOf);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   // Dots are readable when the visible ones sit at least DOT_MIN_GAP CSS px
@@ -2098,7 +2033,9 @@ export function initPlayback(root) {
 
     // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour,
     // with a glow and a faint fill to 0.
-    drawGlowCurve(ctx, points, xOf, yOf, axisColor, { width: THEME.curveWidth, baseY: yOf(0) });
+    const tempoView = drawGlowCurve(ctx, points, xOf, yOf, axisColor, {
+      width: THEME.curveWidth, baseY: yOf(0), dense: !editAxis || editAxis === 'general' ? 'speed' : 'strokes',
+    }) === 'speed';
 
     // Zweite Spur: Contact vibration (0–1 → 0–100), aus demselben
     // Abstandssignal wie die Playback — liegt unter der Positionsspur.
@@ -2150,7 +2087,8 @@ export function initPlayback(root) {
         ctx.lineTo(x, h);
         ctx.stroke();
       }
-      const livePos = interpPosAt(points, currentPosMs);
+      // The tempo view shows speed, not position: no position dot on it.
+      const livePos = tempoView ? null : interpPosAt(points, currentPosMs);
       if (livePos != null && currentPosMs > 0) {
         ctx.beginPath();
         ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
@@ -2298,6 +2236,7 @@ export function initPlayback(root) {
       const pts = axisLanePoints[axis];
       drawGlowCurve(ctx, pts, xOf, yOf, color, {
         width: axis === active ? 1.6 : 1.15, glow: axis === active ? 7 : 4, fill: 0.2, baseY: yOf(0),
+        dense: axis === 'general' ? 'speed' : 'strokes',
       });
       if (inCanvasNames) {
         ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
@@ -2351,7 +2290,7 @@ export function initPlayback(root) {
     const strip = el('#pb-scene-strip');
     if (!strip) return;
     // Owner: scene markers are on in Create / Edit, opt-in in Play.
-    const shown = (scenesOn || root.dataset.wsView === 'edit') && !!scriptPath
+    const shown = (scenesOn || root.dataset.wsView === 'edit' || root.dataset.wsView === 'scenemap') && !!scriptPath
       && curveCanvas.style.display !== 'none' && totalMs > 1;
     strip.hidden = !shown;
     root.dataset.pbScenes = shown ? 'on' : 'off';
@@ -2469,7 +2408,7 @@ export function initPlayback(root) {
 
   async function loadSceneThumbs() {
     const key = root.dataset.pbVideoPath || '';
-    if ((!scenesOn && root.dataset.wsView !== 'edit') || !key) {
+    if ((!scenesOn && root.dataset.wsView !== 'edit' && root.dataset.wsView !== 'scenemap') || !key) {
       if (!key) { sceneThumbs = null; sceneThumbsFor = ''; }
       renderSceneStrip();
       return;

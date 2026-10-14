@@ -94,7 +94,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   window.addEventListener('gen:video', () => setTimeout(renderNav, 0)); // after the recent list updates
   window.addEventListener('ws:view', e => { if (e.detail?.view === 'create') renderNav(); });
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
-  q('#gl-nav-scenemap').addEventListener('click', () => document.querySelector('.tab-btn[data-tab="scenemap"]')?.click());
+  q('#gl-nav-scenemap').addEventListener('click', () => window.dispatchEvent(new CustomEvent('app:rhythm')));
 
   // ---- Centre: preview + source clips side by side ---------------------
   const stage = make('div', 'gl-stage');

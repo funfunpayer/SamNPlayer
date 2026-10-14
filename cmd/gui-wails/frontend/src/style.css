@@ -4292,3 +4292,19 @@ body.has-mode-switch #ws-view { display: none !important; }
 }
 #mode-deck .mode-card > span:not(.mode-card-ring) { text-transform: none; letter-spacing: .01em; }
 #mode-deck .mode-card::before, #mode-deck .mode-card::after { display: none; }
+/* Scene Map mode (Owner: A): the Player with video, transport and the scene
+   grid + details. The side panels stay; each can be slid away. */
+body[data-mode="scenemap"] #tab-playback .pb-scenes-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* Library slides away to the left (player_layout.js, #pb-lib-toggle). */
+#tab-playback[data-pb-layout="v1"] { transition: grid-template-columns .25s ease; }
+#tab-playback[data-pb-layout="v1"].pb-lib-collapsed { grid-template-columns: 48px minmax(0, 1fr); }
+.pb-library .pb-lib-title:first-of-type { display: flex; align-items: center; justify-content: space-between; }
+.pb-lib-toggle {
+  width: 28px; height: 28px; min-height: 0; padding: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; font-size: 14px; line-height: 1;
+  color: #cfe6f5; background: rgba(4, 14, 28, .6); border: 1px solid rgba(110, 190, 240, .22);
+}
+.pb-lib-toggle:hover { color: #fff; border-color: rgba(63, 208, 255, .65); box-shadow: 0 0 10px rgba(63, 208, 255, .4); }
+.pb-lib-collapsed .pb-library { overflow: hidden; padding-left: 0; padding-right: 0; }
+.pb-lib-collapsed .pb-library > :not(.pb-lib-title:first-of-type) { display: none !important; }
+.pb-lib-collapsed .pb-library .pb-lib-title:first-of-type { font-size: 0; justify-content: center; margin: 8px 0; }

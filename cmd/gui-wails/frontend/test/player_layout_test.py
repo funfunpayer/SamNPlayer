@@ -124,6 +124,13 @@ def main():
                   and page.evaluate(f"{root}.dataset.pbInspector") == "view")
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
+            # The Library slides away to the left and comes back.
+            page.click("#pb-lib-toggle")
+            check("Library collapses", page.evaluate(f"{root}.classList.contains('pb-lib-collapsed')")
+                  and page.is_hidden("#pb-lib-local") and page.is_visible("#pb-lib-toggle"))
+            page.click("#pb-lib-toggle")
+            check("Library comes back", page.is_visible("#pb-lib-local")
+                  and page.evaluate("localStorage.getItem('pb.libCollapsed')") == "0")
             # Video bar above the video.
             page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             check("video bar present", page.is_visible("[data-pb-region='videobar']"))

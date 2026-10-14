@@ -102,19 +102,24 @@ def main():
             check("mode hook: generator", page.evaluate("document.body.dataset.mode") == "generator")
             check("Play · Edit toggle hidden in Generator", page.is_hidden("#ws-view"))
             check("old route switchTab('generator') = Create view", page.evaluate("document.body.dataset.wsView") == "create")
-            # Scene Map mode: focused view on the Generator's scene map (same IDs).
+            # Scene Map mode (Owner: A): the Player's scene view.
             page.click('#mode-pill'); page.click('#mode-deck [data-tab="scenemap"]')
-            check("Scene Map shows the Generator panel in scene-map view",
-                  page.is_visible("#tab-generator")
-                  and page.get_attribute("#tab-generator", "data-view") == "scenemap")
-            check("scene map controls visible", page.is_visible("#gen-scene-map"))
-            check("video chooser visible in Scene Map", page.is_visible("#gen-choose"))
-            check("other Generator steps hidden in Scene Map", page.is_hidden("#gen-steps"))
-            check("Scene Map mode current", page.get_attribute('#mode-deck .tab-btn[data-tab="scenemap"]', "aria-selected") == "true")
+            check("Scene Map shows the Player panel", page.is_visible("#tab-playback") and page.is_hidden("#tab-generator"))
+            check("Scene Map opens the scene grid (shown once a script is loaded)",
+                  page.get_attribute("#tab-playback", "data-pb-bottom") == "scenemap", str(page.get_attribute("#tab-playback", "data-pb-bottom")))
+            check("Scene Map mode current", page.get_attribute('#mode-deck .tab-btn[data-tab="scenemap"]', "aria-selected") == "true"
+                  and page.text_content("#mode-pill-name") == "Scene Map")
             check("mode hook: scenemap", page.evaluate("document.body.dataset.mode") == "scenemap")
+            page.evaluate("document.querySelector('#pb-scenes-heatmap').click()")
+            check("rhythm heatmap link opens the Generator's scene map",
+                  page.is_visible("#tab-generator") and page.get_attribute("#tab-generator", "data-view") == "scenemap"
+                  and page.is_visible("#gen-scene-map") and page.is_hidden("#gen-steps"))
+            check("rhythm heatmap counts as Generator", page.evaluate("document.body.dataset.mode") == "generator")
             page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
-            check("Generator tab leaves scene-map view",
+            check("Generator leaves the rhythm view",
                   page.get_attribute("#tab-generator", "data-view") is None and page.is_visible("#gen-steps"))
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
+            check("Player leaves the scene grid", page.get_attribute("#tab-playback", "data-pb-bottom") != "scenemap")
             # Edit: a toggle inside the Player, remembered.
             page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             page.click('#mode-pill'); page.click('#mode-deck [data-mode="editor"]')

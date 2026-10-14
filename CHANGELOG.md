@@ -20,7 +20,9 @@ measurement history behind each entry; this file is the short version for
 
 - **Mode switch (#533):** the top bar has one glowing **Mode** pill (current mode, turning light border) instead of five tabs. It opens the **Mode deck**: large glass cards for Player, Editor, Generator, Training and Scene Map (keys 1–5, arrows, Esc; `M` opens it). Tools stays its own button. The Play · Edit toggle is gone — Editor is a mode.
 - **Training follows the device:** the stage shows a ring only for the channels the connected device has, the Channel select offers only those, and a device with neither vibration nor suction (a stroker) cannot start a training that would do nothing (Mock still can).
-- **Player curve, dense scripts:** when strokes sit closer than they can be read, the curve is drawn as fine real strokes without glow and fill (other styles, `pb.denseCurve`: `envelope`, `speed`, are previews for the Owner's choice).
+- **Player curve, dense scripts (Owner's choice C):** when strokes sit closer than they can be read, the stroke curve shows a calm glowing **tempo wave** (stroke speed, labelled "TEMPO · zoom in for strokes", no position dot); zooming in brings the real strokes back. Other curves are drawn as a fine line.
+- **Scene Map mode = the Player's scene view (Owner's choice A):** video, transport and the scene grid with details; the Generator's rhythm heatmap is one click away ("Rhythm heatmap (Generator)…").
+- **Side panels slide away:** the Library folds to the left (⟨), the Inspector to the right (⟩) — both stay, nothing is hidden for you.
 - **Training layout as in the visual target (#533):**
   - **Left:** Training nav with programs, my programs, ＋ New program and History.
   - **Centre:** program and phase stepper, the stage (Clip / Rings / Video), the session bar (session time, start / interrupt / end, phase "Step n of m", time left), live training curves and the session timeline.

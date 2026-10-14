@@ -153,6 +153,23 @@ export function applyPlayerLayoutV1(root, api) {
   `;
   root.prepend(lib);
   lib.after(main);
+  // The Library slides away to the left (the Inspector has its own ⟩ to the
+  // right) — a bigger video and scene view without losing either panel.
+  const libToggle = document.createElement('button');
+  libToggle.type = 'button';
+  libToggle.id = 'pb-lib-toggle';
+  libToggle.className = 'pb-lib-toggle';
+  lib.querySelector('.pb-lib-title').append(libToggle);
+  function setLibCollapsed(on) {
+    root.classList.toggle('pb-lib-collapsed', on);
+    libToggle.textContent = on ? '⟩' : '⟨';
+    libToggle.title = on ? 'Show the Library' : 'Hide the Library — more room';
+    libToggle.setAttribute('aria-label', libToggle.title);
+    libToggle.setAttribute('aria-expanded', on ? 'false' : 'true');
+    store('pb.libCollapsed', on ? '1' : '0');
+  }
+  libToggle.addEventListener('click', () => setLibCollapsed(!root.classList.contains('pb-lib-collapsed')));
+  setLibCollapsed(load('pb.libCollapsed') === '1');
 
   // ---- Inspector (right): tabs Devices · Audio · Playback · View ----------
   const tools = q('#pb-tools');
@@ -576,7 +593,15 @@ export function applyPlayerLayoutV1(root, api) {
     box.dispatchEvent(new Event('change'));
     return true;
   };
+  let beforeScenes = null; // bottom tab to restore when leaving Scene Map
   function applyWorkspaceView(view) {
+    if (view === 'scenemap') {
+      if (beforeScenes == null) beforeScenes = root.dataset.pbBottom === 'scenemap' ? 'timeline' : (root.dataset.pbBottom || 'timeline');
+      if (editTurnedOn) { setCurveEdit(false); editTurnedOn = false; }
+      showBottom('scenemap');
+      return;
+    }
+    if (beforeScenes != null) { showBottom(beforeScenes); beforeScenes = null; }
     if (view === 'edit') {
       showInspector('view');
       showBottom('timeline');
