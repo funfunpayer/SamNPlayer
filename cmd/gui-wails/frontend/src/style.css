@@ -4066,7 +4066,10 @@ body[data-tab="generator"] #sidebar { display: none; }
 .trl-step.is-done .trl-step-num { border-color: var(--accent); color: var(--accent); }
 .trl-stage { padding: 12px; }
 .trl-stage #tr-rings-host { margin: 8px 0 0 !important; }
-.trl-session { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: 'time phase left' 'ctl ctl ctl'; gap: 14px 18px; align-items: center; }
+.trl-session { display: grid; grid-template-columns: minmax(0, 1.1fr) auto minmax(0, .9fr) minmax(0, .8fr); grid-template-areas: 'time ctl phase left'; gap: 14px 22px; align-items: center; }
+@media (max-width: 1500px) {
+  .trl-session { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: 'time phase left' 'ctl ctl ctl'; }
+}
 .trl-sess-time { grid-area: time; } .trl-sess-phase { grid-area: phase; } .trl-sess-left { grid-area: left; }
 .trl-sess-ctl { grid-area: ctl; display: flex; justify-content: center; }
 .trl-session .trl-big { font-size: 20px; white-space: nowrap; }
@@ -4076,7 +4079,16 @@ body[data-tab="generator"] #sidebar { display: none; }
 .trl-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #1a8cff, #36c8ff); border-radius: inherit; }
 .trl-progress.is-warm i { background: linear-gradient(90deg, #ff6410, #ffa030); }
 .trl-ctl-row { margin: 0; justify-content: center; gap: 8px; flex-wrap: wrap; }
-#tab-training[data-tr-layout="v1"] #tr-start { min-height: 48px; border-radius: 999px; padding: 0 22px; font-weight: 700; }
+/* Transport: End · Play/Pause (the app symbol, theme_flow.css .flow-play) · Interrupt. */
+.trl-transport { display: flex; align-items: flex-start; gap: 22px; }
+.trl-tplay { --fp-size: 76px; display: grid; place-items: center; padding: 6px; }
+.trl-tplay .flow-play { --fp-size: 76px; }
+.trl-tplay .is-hidden { display: none; }
+#trl-play .fp-play { display: none; }
+#tab-training[data-tr-paused="1"] #trl-play .fp-play { display: block; }
+#tab-training[data-tr-paused="1"] #trl-play .fp-pause { display: none; }
+.trl-tbtn { display: grid; justify-items: center; gap: 6px; padding-top: 18px; }
+.trl-cap { font-size: 11.5px; color: var(--text-dim); letter-spacing: .02em; }
 .trl-curves { padding: 12px 14px; }
 .trl-curves .tr-waves { margin: 0; border: 0; background: transparent; padding: 0; }
 .trl-curves .tr-waves-canvas { height: 180px; }
@@ -4134,8 +4146,9 @@ body[data-tab="generator"] #sidebar { display: none; }
 .trl-settings .field-row > label { flex: 0 0 42%; width: auto; }
 .trl-settings .field-row select, .trl-settings .field-row input[type="text"] { min-width: 0; max-width: 100%; flex: 1 1 auto; }
 .trl-settings details { margin-bottom: 10px; }
-/* V1 stage (target training.png): the two rings sit directly on flowing
-   blue / orange light ribbons — no inner cards, larger rings, one value each. */
+/* V1 stage (target training.png): the rings on flowing blue / orange light
+   ribbons; the channel cards (name, value, output level) stay as glass, so
+   the ribbons shine through. */
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr {
   background: url("./assets/flow/stage-ribbons.svg") center / 100% 100% no-repeat,
               radial-gradient(ellipse at 50% 50%, rgba(10, 40, 70, .55), rgba(3, 10, 22, .9) 75%);
@@ -4143,20 +4156,15 @@ body[data-tab="generator"] #sidebar { display: none; }
   min-height: 340px;
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel {
-  background: none; border: 0; padding: 4px 0 0;
+  background: linear-gradient(155deg, rgba(10, 28, 48, .55), rgba(4, 14, 28, .35));
+  border-color: rgba(140, 200, 235, .16);
+  backdrop-filter: blur(1.5px);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .05);
 }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__heading { justify-content: center; }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__name {
-  font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #cfe6f5;
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__value,
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter,
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter-note,
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__spark { display: none; }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual { width: min(100%, 250px); }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual { width: min(100%, 230px); }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::before {
   content: ""; position: absolute; inset: 14%; border-radius: 50%;
   background: radial-gradient(circle, rgba(3, 12, 26, .95) 55%, rgba(3, 12, 26, .6) 70%, transparent 72%);
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__ring { position: relative; }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center { font-size: 46px; z-index: 1; }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center { font-size: 44px; z-index: 1; }

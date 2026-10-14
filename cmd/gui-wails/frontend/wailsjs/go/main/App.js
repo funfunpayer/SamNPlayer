@@ -7,6 +7,8 @@ export function ApplyUpdate() { return window['go']['main']['App']['ApplyUpdate'
 export function AutoDetectROI(arg1, arg2) { return window['go']['main']['App']['AutoDetectROI'](arg1, arg2); }
 export function DetectExpectedTipROI(arg1, arg2, arg3, arg4) { return window['go']['main']['App']['DetectExpectedTipROI'](arg1, arg2, arg3, arg4); }
 export function GetAudioLevelEnvelope() { return window['go']['main']['App']['GetAudioLevelEnvelope'](); }
+export function PauseTraining() { return window['go']['main']['App']['PauseTraining'](); }
+export function ResumeTraining() { return window['go']['main']['App']['ResumeTraining'](); }
 export function SaveVideoSnapshot(arg1) { return window['go']['main']['App']['SaveVideoSnapshot'](arg1); }
 export function SetChannelLevels(arg1, arg2) { return window['go']['main']['App']['SetChannelLevels'](arg1, arg2); }
 export function SetPeakReduce(arg1) { return window['go']['main']['App']['SetPeakReduce'](arg1); }

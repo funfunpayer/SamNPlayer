@@ -27,6 +27,9 @@ measurement history behind each entry; this file is the short version for
   - **Session timeline:** with a program, each phase is coloured by its planned strength (calm cyan → orange → red) and shows a small curve of its planned levels.
   - **Stage:** the rings sit large on flowing blue / orange light ribbons (`assets/flow/stage-ribbons.svg`, from `scripts/art/flow_background.py`).
   - The layout uses the full window width.
+  - **Transport in the middle, like the Player:** End · Play/Pause · Interrupt. Play/Pause is a real pause: both channels go to 0 at once and the session clock stands still (ramps, holds and rests wait); Resume restores the levels and continues where it stopped. The live curves and clocks skip the paused time.
+- **Play button = the app symbol:** in the Player and in Training the big Play/Pause is a cyan play triangle in a slowly turning ring of blue and orange light (faster while playing; still with reduced motion). The other transport buttons are round glass buttons.
+- **Player curves:** dense strokes (a fast script zoomed out) are drawn as a fine line without the glow and fill, instead of a solid block.
 
 - **Player modes, step 4 — Training (#533):** the stage sits large on the
   left with the settings beside it on the right. The stage switch offers

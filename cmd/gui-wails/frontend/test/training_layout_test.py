@@ -33,6 +33,8 @@ def main():
         "TrainingHistory": "async () => []",
         "StartTraining": "async () => {}",
         "StopTraining": "async () => { window.__stopped++; window.__triggerEvent('training:done'); }",
+        "PauseTraining": "async () => { window.__paused = (window.__paused || 0) + 1; }",
+        "ResumeTraining": "async () => { window.__resumed = (window.__resumed || 0) + 1; }",
     }))
     try:
         with sync_playwright() as p:
@@ -81,8 +83,14 @@ def main():
                   page.evaluate("document.querySelectorAll('#trl-tl-phases svg.trl-tl-mini path').length") == 6)
             check("live curves show the planned target", page.is_visible(".trl-curves .tr-waves-target"))
 
+            check("transport: End · Start · Interrupt, Start in the middle",
+                  page.evaluate("[...document.querySelectorAll('.trl-transport button')].filter(b => b.offsetParent).map(b => b.id).join(',')")
+                  == "tr-stop,tr-start,tr-pause")
+            check("Start is the app-symbol play button", page.evaluate("document.querySelector('#tr-start').classList.contains('flow-play')"))
             page.click("#tr-start")
             page.wait_for_function("document.querySelector('#tab-training').dataset.trRunning === '1'", timeout=3000)
+            check("running: the big button pauses", page.is_visible("#trl-play") and page.is_hidden("#tr-start")
+                  and page.get_attribute("#trl-play", "aria-label") == "Pause training")
             page.wait_for_function("document.querySelector('#trl-elapsed').textContent !== '0:00'", timeout=4000)
             check("clock runs while training", True)
             check("first phase is current", page.text_content("#trl-phase-name") == "Warm up"
@@ -91,6 +99,18 @@ def main():
             el, left = page.evaluate("[document.querySelector('#trl-elapsed').textContent, document.querySelector('#trl-left').textContent]")
             secs = lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1])
             check("time left counts down", 0 < secs(el) and abs(secs(left) - (600 - secs(el))) <= 1, f"{el} / {left}")
+            page.click("#trl-play")
+            page.wait_for_function("document.querySelector('#tab-training').dataset.trPaused === '1'", timeout=3000)
+            frozen = page.text_content("#trl-elapsed")
+            page.wait_for_timeout(1300)
+            check("pause: PauseTraining called, clock stands still",
+                  page.evaluate("window.__paused") == 1 and page.text_content("#trl-elapsed") == frozen, frozen)
+            check("pause: shown in the phase line", page.text_content("#trl-phase-step").startswith("Paused"))
+            check("pause: the big button resumes", page.get_attribute("#trl-play", "aria-label") == "Resume training")
+            page.click("#trl-play")
+            page.wait_for_function("document.querySelector('#tab-training').dataset.trPaused === ''", timeout=3000)
+            page.wait_for_function(f"document.querySelector('#trl-elapsed').textContent !== '{frozen}'", timeout=4000)
+            check("resume: ResumeTraining called, clock runs on", page.evaluate("window.__resumed") == 1)
             page.click("#trl-stop")
             page.wait_for_function("window.__stopped === 1", timeout=3000)
             check("Stop session ends the training", True)

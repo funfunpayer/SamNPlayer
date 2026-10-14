@@ -7,7 +7,7 @@
 // stay). New parts only show real data: the planned phases and total come
 // from TrainingScriptPreview (tr:plan) or the Custom timings, the clock runs
 // while the training runs, recent sessions are the training history.
-import { ListTrainingScripts } from '../wailsjs/go/main/App';
+import { ListTrainingScripts, PauseTraining, ResumeTraining } from '../wailsjs/go/main/App';
 
 function make(tag, cls, text) {
   const e = document.createElement(tag);
@@ -21,6 +21,11 @@ function card(cls, title) {
   if (title) c.append(make('p', 'trl-card-title', title));
   return c;
 }
+
+const PLAY_ICON = '<svg class="fp-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>';
+const PAUSE_ICON = '<svg class="fp-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5.5" width="4" height="13" rx="1.4"/><rect x="13.5" y="5.5" width="4" height="13" rx="1.4"/></svg>';
+const STOP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></svg>';
+const SKIP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 6.2c-.7-.45-1.6.05-1.6.9v9.8c0 .85.9 1.35 1.6.9l7.4-4.9c.65-.42.65-1.38 0-1.8z"/><rect x="15.8" y="5.8" width="3.2" height="12.4" rx="1.2"/></svg>';
 
 export function fmtClock(ms) {
   const s = Math.max(0, Math.round((ms || 0) / 1000));
@@ -200,8 +205,44 @@ export function applyTrainingLayoutV1(root) {
     <div class="trl-sess-left"><p class="trl-label">Time left</p>
       <p class="trl-big" id="trl-left">–</p>
       <div class="trl-progress is-warm"><i id="trl-left-fill"></i></div></div>`;
-  const startRow = q('#tr-start')?.parentElement;
-  if (startRow) { startRow.classList.add('trl-ctl-row'); bar.querySelector('#trl-sess-ctl').append(startRow); }
+  // Transport in the middle, like the Player: End · Play/Pause · Interrupt.
+  // Idle, the big button is the real Start (#tr-start); while a session runs
+  // it pauses and resumes it (PauseTraining / ResumeTraining: both channels
+  // to 0, the session clock stands still).
+  const startBtn = q('#tr-start');
+  const interruptBtn = q('#tr-pause');
+  const endBtn = q('#tr-stop');
+  const startRow = startBtn?.parentElement;
+  const playBtn = make('button', 'flow-play is-hidden');
+  playBtn.type = 'button';
+  playBtn.id = 'trl-play';
+  playBtn.innerHTML = PLAY_ICON + PAUSE_ICON;
+  if (startRow) {
+    startRow.classList.add('trl-ctl-row', 'trl-transport');
+    const roundBtn = (btn, icon, caption, title) => {
+      btn.classList.remove('primary');
+      btn.classList.add('flow-round');
+      btn.title = title;
+      btn.setAttribute('aria-label', title);
+      btn.innerHTML = icon;
+      const wrap = make('div', 'trl-tbtn');
+      btn.replaceWith(wrap);
+      wrap.append(btn, make('span', 'trl-cap', caption));
+      return wrap;
+    };
+    const endWrap = endBtn ? roundBtn(endBtn, STOP_ICON, 'End', 'End session') : null;
+    const intWrap = interruptBtn ? roundBtn(interruptBtn, SKIP_ICON, 'Interrupt',
+      'Interrupt now (Esc): the cycle ends, the rest begins') : null;
+    startBtn.classList.remove('primary');
+    startBtn.classList.add('flow-play');
+    startBtn.title = 'Start training';
+    startBtn.setAttribute('aria-label', 'Start training');
+    startBtn.innerHTML = PLAY_ICON;
+    const centre = make('div', 'trl-tplay');
+    centre.append(startBtn, playBtn);
+    startRow.replaceChildren(...[endWrap, centre, intWrap].filter(Boolean));
+    bar.querySelector('#trl-sess-ctl').append(startRow);
+  }
 
   // Live training curves (the waves, always visible here, like the target).
   const curves = card('trl-curves');
@@ -294,6 +335,13 @@ export function applyTrainingLayoutV1(root) {
   let scriptPlan = window.__trPlan || null; // from tr:plan (script preview)
   let startedAt = 0;
   let timer = 0;
+  let pausedAt = 0;    // performance.now() when paused, 0 = not paused
+  let pausedTotal = 0; // ms spent paused this session (the clock stood still)
+  const elapsedNow = () => {
+    if (!startedAt) return 0;
+    const now = pausedAt || performance.now();
+    return now - startedAt - pausedTotal;
+  };
   const plan = () => (scriptSel && scriptSel.value ? scriptPlan : customPlan(root)) || { phases: [], totalMs: 0 };
 
   function renderPlan() {
@@ -339,7 +387,7 @@ export function applyTrainingLayoutV1(root) {
   function tick() {
     const p = plan();
     const running = startedAt > 0;
-    const elapsed = running ? performance.now() - startedAt : 0;
+    const elapsed = elapsedNow();
     q('#trl-elapsed').textContent = fmtClock(elapsed);
     const frac = p.totalMs ? Math.min(1, elapsed / p.totalMs) : 0;
     q('#trl-progress-fill').style.width = `${frac * 100}%`;
@@ -352,7 +400,8 @@ export function applyTrainingLayoutV1(root) {
     if (running) p.phases.forEach((ph, i) => { if (elapsed >= ph.atMs) cur = i; });
     const name = cur >= 0 ? p.phases[cur].name : (running ? 'Starting' : 'Ready');
     q('#trl-phase-name').textContent = name;
-    q('#trl-phase-step').textContent = cur >= 0 ? `Step ${cur + 1} of ${p.phases.length}` : (p.phases.length ? `${p.phases.length} steps` : '');
+    const step = cur >= 0 ? `Step ${cur + 1} of ${p.phases.length}` : (p.phases.length ? `${p.phases.length} steps` : '');
+    q('#trl-phase-step').textContent = pausedAt ? `Paused${step ? ' · ' + step : ''}` : step;
     root.querySelectorAll('.trl-step, .trl-tl-phase, .trl-tl-seg').forEach(n => {
       const i = Number(n.dataset.index);
       n.classList.toggle('is-current', i === cur);
@@ -373,18 +422,50 @@ export function applyTrainingLayoutV1(root) {
   scriptSel?.addEventListener('change', () => { syncNav(); syncMode(); renderPlan(); });
 
   // Running = the Start button is locked (training.js owns that state).
-  const startBtn = q('#tr-start');
+  function setPaused(paused) {
+    if (paused && !pausedAt) pausedAt = performance.now();
+    if (!paused && pausedAt) { pausedTotal += performance.now() - pausedAt; pausedAt = 0; }
+    syncTransport();
+    window.dispatchEvent(new CustomEvent('tr:paused', { detail: { paused: !!pausedAt } }));
+    tick();
+  }
+  function syncTransport() {
+    const running = startedAt > 0;
+    startBtn?.classList.toggle('is-hidden', running);
+    playBtn.classList.toggle('is-hidden', !running);
+    playBtn.classList.toggle('is-playing', running && !pausedAt);
+    const label = pausedAt ? 'Resume training' : 'Pause training';
+    playBtn.title = label;
+    playBtn.setAttribute('aria-label', label);
+    root.dataset.trPaused = pausedAt ? '1' : '';
+  }
+  playBtn.addEventListener('click', async () => {
+    if (!startedAt || playBtn.disabled) return;
+    playBtn.disabled = true;
+    try {
+      if (pausedAt) { await ResumeTraining(); setPaused(false); }
+      else { await PauseTraining(); setPaused(true); }
+    } catch (_) {
+      // The session ended meanwhile; the running state follows #tr-start.
+    } finally {
+      playBtn.disabled = false;
+    }
+  });
   const syncRunning = () => {
     const running = !!startBtn && startBtn.disabled;
     if (running && !startedAt) {
       startedAt = performance.now();
+      pausedAt = 0;
+      pausedTotal = 0;
       clearInterval(timer);
       timer = setInterval(tick, 250);
     } else if (!running && startedAt) {
       startedAt = 0;
+      if (pausedAt) { pausedAt = 0; window.dispatchEvent(new CustomEvent('tr:paused', { detail: { paused: false } })); }
       clearInterval(timer);
     }
     root.dataset.trRunning = running ? '1' : '';
+    syncTransport();
     tick();
   };
   if (startBtn) new MutationObserver(syncRunning).observe(startBtn, { attributes: true, attributeFilter: ['disabled'] });

@@ -74,6 +74,14 @@ export function createWaves(host) {
   const targetKey = host.querySelector('.tr-waves-target');
   let points = []; // {t (ms since session start), vibration, suction}
   let t0 = 0;
+  // Paused time does not count (the session clock stands still), so the
+  // live curve stays aligned with the planned target.
+  let pausedAt = 0, pausedTotal = 0;
+  window.addEventListener('tr:paused', e => {
+    const now = performance.now();
+    if (e.detail?.paused && !pausedAt) pausedAt = now;
+    else if (!e.detail?.paused && pausedAt) { pausedTotal += now - pausedAt; pausedAt = 0; }
+  });
   let plan = null; // {totalMs, vibration:[{atMs,level}], suction:[...]}
   let raf = 0;
 
@@ -172,9 +180,9 @@ export function createWaves(host) {
     // Real levels (0–1) from training:levels; a missing channel stays a gap.
     push({ vibration, suction } = {}) {
       const now = performance.now();
-      if (!points.length) t0 = now;
+      if (!points.length) { t0 = now; pausedTotal = 0; }
       points.push({
-        t: now - t0,
+        t: (pausedAt || now) - t0 - pausedTotal,
         vibration: Number.isFinite(vibration) ? vibration : undefined,
         suction: Number.isFinite(suction) ? suction : undefined,
       });
