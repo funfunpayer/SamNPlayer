@@ -313,7 +313,7 @@ Tab **Play**
 | Transport | Play / Stop / Extended-O · Progress · Vib/Suc live |
 | Video | optional · Fullscreen · Make playable (ffmpeg) · 0–100 gauge · Contact marks |
 | Kurve | Edit curve (dots): ziehen / klick = neu / Doppelklick = löschen (≥2) |
-| Neo 2 | Optimize for Neo 2 · Bake feel · Strength · Recipe/Axes |
+| Neo 2 | Optimize for (Any device / Sam Neo 2, im Editor) · Bake feel · Strength · Recipe/Axes |
 | Fein | Offset · Loop · Scale range ×0.8 · Speed-cap · Delete range · Heatmap PNG |
 | Projekt | Save/Load `.snp.json` |
 | Marken | Bookmarks · Chapters · O-markers |
@@ -321,7 +321,7 @@ Tab **Play**
 **Tastatur:** Space · ←/→ · ,/. · 1–9 · +/− Offset · L Loop · E Extended-O · O Marker
 
 ### Tipps
-- Importierte Funscripts → **Optimize for Neo 2** (Fill/Heal → Contact on → bake).  
+- Importierte Funscripts → im Editor **Optimize for** wählen: *Any device* (nur Lücken füllen) oder *Sam Neo 2* (Fill/Heal → Contact on → bake). Im Generator gibt es dasselbe als „Optimize for“ über dem Create-Knopf.  
 - Ersetzt kein Tracking, das nie da war.
 
 ---

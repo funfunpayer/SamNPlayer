@@ -4308,3 +4308,8 @@ body[data-mode="scenemap"] #tab-playback .pb-scenes-grid { grid-template-columns
 .pb-lib-collapsed .pb-library { overflow: hidden; padding-left: 0; padding-right: 0; }
 .pb-lib-collapsed .pb-library > :not(.pb-lib-title:first-of-type) { display: none !important; }
 .pb-lib-collapsed .pb-library .pb-lib-title:first-of-type { font-size: 0; justify-content: center; margin: 8px 0; }
+/* Optimize for a device (Owner 14 Oct): an Editor tool — shown in the
+   Editor mode, not in the plain Player. */
+.pb-optimize { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body:not([data-mode="editor"]) #pb-optimize-wrap { display: none; }
+.gen-optimize-row select { min-width: 0; flex: 1 1 auto; }

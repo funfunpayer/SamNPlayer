@@ -4,7 +4,7 @@ import {
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, CreateScriptAxis, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
-  OptimizeLoadedForNeo2,
+  OptimizeLoadedFor,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
   EditCapSpeedRange, EditDeleteRange, EditScaleRange, SnapTimeMs,
   ScriptChapters, ScriptQuality, EstimateAudioSyncOffset,
@@ -239,9 +239,16 @@ export function initPlayback(root) {
           <select id="pb-strength" style="width:auto;">
             <option value="">—</option>
           </select>
-          <button type="button" id="pb-optimize-neo2" class="primary"
-            title="Imported file → polish, Contact on, bake Neo 2 feel, save as Emotion Script."
-            data-help="One click for files from other apps: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save as Emotion Script. Then edit each curve if you want.">Optimize for Neo 2</button>
+          <span class="pb-optimize" id="pb-optimize-wrap">
+            <label for="pb-optimize-target" style="width:auto;"
+              data-help="Any device: fill and heal gaps, the stroke stays usable everywhere. Sam Neo 2: also contact vibration and baked vibration + suction, saved as Emotion Script.">Optimize for</label>
+            <select id="pb-optimize-target" style="width:auto;">
+              <option value="general">Any device</option>
+              <option value="neo2" selected>Sam Neo 2</option>
+            </select>
+            <button type="button" id="pb-optimize-neo2" class="primary"
+              title="Optimize the loaded script for the chosen device">Optimize</button>
+          </span>
           <button type="button" id="pb-save-samn" title="Save Emotion Script">Save Emotion Script</button>
         </div>
         <details class="pb-tools-details" id="pb-export-bake-details" style="display:none;">
@@ -5164,21 +5171,22 @@ export function initPlayback(root) {
     el('#pb-optimize-neo2').addEventListener('click', async () => {
       const status = el('#pb-optimize-neo2-status');
       const btn = el('#pb-optimize-neo2');
+      const target = el('#pb-optimize-target')?.value || 'neo2';
       btn.disabled = true;
       if (status) {
         status.style.display = 'block';
-        status.textContent = 'Optimizing for Neo 2 (fill gaps → contact → bake)…';
+        status.textContent = target === 'neo2' ? 'Optimizing for Sam Neo 2 (fill gaps → contact → bake)…' : 'Optimizing for any device (fill gaps)…';
       }
       try {
-        const res = await OptimizeLoadedForNeo2(true);
-        if (status) status.textContent = res.message || 'Neo 2 ready';
-        log(res.message || 'Optimized for Neo 2');
+        const res = await OptimizeLoadedFor(target);
+        if (status) status.textContent = res.message || 'Optimized';
+        log(res.message || 'Optimized');
         if (res.path) {
           await loadScript(res.path, 0, { keepPlaylist: true, review: true });
         }
       } catch (err) {
         if (status) status.textContent = 'Optimize failed: ' + err;
-        logError('Optimize for Neo 2: ' + err);
+        logError('Optimize: ' + err);
       } finally {
         btn.disabled = false;
       }

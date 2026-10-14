@@ -1,4 +1,4 @@
-import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo } from '../wailsjs/go/main/App';
+import { SubmitFeedback, PickVideoFile, PickContactPointsFile, PickSceneProposalsFile, LoadFirstFrame, LoadFrameAt, GenerateScript, PreviewPostprocess, PreviewContactVibration, CancelGenerate, CancelROIDetection, CancelContactPoints, CheckGeneratorDependencies, ScriptExistsForVideo, AutoDetectROI, DetectExpectedTipROI, SuggestROICandidates, ListAIDetections, CheckAIRoiAvailable, CheckAudioCheckAvailable, SuggestProfile, SuggestPipeline, LabelSceneWithProfile, ImproveGeneratedScript, GetScriptCurve, ScanSceneMap, SceneMapAvailable, LoadSceneMapForVideo, LoadSceneProposalAt, LoadSceneProposalsBesideVideo, ExportSceneMapLearning, SuggestExcludePriors, ReviewAutoContactCandidate, ImportContactCandidatesForVideo, GenerateContactPointsForVideo, AIScriptWriterStatus, DraftAIScript, ExportAIScriptImitation, KeepAIScriptDraft, GetScriptChapterMarks, SaveScriptChapterMarks, ProbeCreateVideo, OptimizeLoadedFor } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import {
   CONTACT_CLASS_ORDER, TIP_CLASS_ORDER,
@@ -511,6 +511,14 @@ export function initGenerator(root, playback) {
         </div>
       </details>
 
+      <div class="field-row gen-optimize-row">
+        <label for="gen-optimize-target" data-help="After Create, optimize the new script: for any device (fill gaps only) or for Sam Neo 2 (adds contact vibration and baked vibration / suction).">Optimize for</label>
+        <select id="gen-optimize-target">
+          <option value="">Off — keep as created</option>
+          <option value="general">Any device</option>
+          <option value="neo2">Sam Neo 2</option>
+        </select>
+      </div>
       <div class="row">
         <button id="gen-generate" class="primary" disabled>Create Emotion Script</button>
         <button id="gen-cancel" type="button" disabled>Cancel</button>
@@ -4338,6 +4346,16 @@ export function initGenerator(root, playback) {
       el('#gen-status').textContent += ' — loaded in Play (dots + Edit curve).';
       try {
         await playback.loadScriptPath(path, { review: true });
+        // Optimize for (Owner 14 Oct): the device the new script is meant for.
+        const target = el('#gen-optimize-target')?.value || '';
+        if (target) {
+          const res = await OptimizeLoadedFor(target);
+          if (res && res.path && res.path !== path) {
+            lastOutputPath = res.path;
+            await playback.loadScriptPath(res.path, { review: true });
+          }
+          el('#gen-status').textContent += ` — ${(res && res.message) || 'optimized'}.`;
+        }
         await loadGenCurveFromPlay();
       } catch (err) {
         console.warn('post-generate Play/overlay:', err);
@@ -4361,6 +4379,12 @@ export function initGenerator(root, playback) {
   el('#gen-choose').addEventListener('click', chooseVideo);
   el('#gen-check-deps').addEventListener('click', checkDeps);
   el('#gen-generate').addEventListener('click', generate);
+  // Optimize for: remembered per viewer.
+  {
+    const sel = el('#gen-optimize-target');
+    try { const v = localStorage.getItem('gen.optimizeTarget'); if (v != null && [...sel.options].some(o => o.value === v)) sel.value = v; } catch (_) { /* ignore */ }
+    sel.addEventListener('change', () => { try { localStorage.setItem('gen.optimizeTarget', sel.value); } catch (_) { /* ignore */ } });
+  }
   el('#gen-scene-map')?.addEventListener('click', runSceneMapScan);
   el('#gen-scene-map-win')?.addEventListener('input', () => {
     sceneMapWinIdx = parseInt(el('#gen-scene-map-win').value, 10) || 0;
