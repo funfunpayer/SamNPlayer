@@ -71,6 +71,12 @@ def main():
             page.evaluate("document.querySelector('#pb-curve-edit-row').style.display = 'flex'")
             page.wait_for_function("document.querySelector('#pb-curve-edit').checked", timeout=3000)
             check("result in Edit: editing on once the curve shows", True)
+            # Playing locks editing off; in Edit it comes back when playback stops.
+            page.evaluate("const b = document.querySelector('#pb-curve-edit'); b.disabled = true; b.checked = false; b.dispatchEvent(new Event('change'))")
+            page.wait_for_timeout(100)
+            page.evaluate("document.querySelector('#pb-curve-edit').disabled = false")
+            page.wait_for_function("document.querySelector('#pb-curve-edit').checked", timeout=3000)
+            check("Edit: editing back on after playback stops", True)
             check("no page errors", errors == [], str(errors[:3]))
             b.close()
     finally:

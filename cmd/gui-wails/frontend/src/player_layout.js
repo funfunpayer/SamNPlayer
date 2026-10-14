@@ -595,6 +595,15 @@ export function applyPlayerLayoutV1(root, api) {
       if (root.dataset.wsView === 'edit' && editRow.style.display !== 'none' && setCurveEdit(true)) editTurnedOn = true;
     }).observe(editRow, { attributes: true, attributeFilter: ['style'] });
   }
+  // Playing turns editing off (and locks the box); in Edit it comes back on
+  // as soon as playback stops — the Editor stays an editor.
+  const editBox = q('#pb-curve-edit');
+  if (editBox) {
+    new MutationObserver(() => {
+      if (!editBox.disabled && root.dataset.wsView === 'edit' && root.dataset.pbState === 'loaded'
+        && setCurveEdit(true)) editTurnedOn = true;
+    }).observe(editBox, { attributes: true, attributeFilter: ['disabled'] });
+  }
   q('#pb-lib-bpm').addEventListener('click', () => {
     showInspector('audio');
     q('#pb-bpm-auto')?.focus();
