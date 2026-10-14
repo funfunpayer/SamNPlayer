@@ -23,14 +23,15 @@ const (
 var SceneFeels = []string{SceneFeelOral, SceneFeelIntercourse, SceneFeelBreast, SceneFeelHand}
 
 // NormalizeSceneFeel maps names (also the AI scene types blowjob / titjob /
-// handjob / penetration) to a scene feel; unknown → none.
+// handjob / penetration, and contact-mark classes mouth / nipples) to a
+// scene feel; unknown → none.
 func NormalizeSceneFeel(name string) string {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "oral", "blowjob", "bj":
+	case "oral", "blowjob", "bj", "mouth", "lips":
 		return SceneFeelOral
 	case "intercourse", "penetration", "sex":
 		return SceneFeelIntercourse
-	case "breast", "titjob", "tj", "boobjob":
+	case "breast", "titjob", "tj", "boobjob", "nipple", "nipples":
 		return SceneFeelBreast
 	case "hand", "handjob", "hj":
 		return SceneFeelHand
@@ -63,62 +64,39 @@ func SceneSuction(feel string, depth, intensity float64) (float64, bool) {
 	return clamp01(s.Floor + s.Range*(s.DepthW*clamp01(depth)+s.SpeedW*clamp01(intensity))), true
 }
 
-// BalanceScales turns a balance (−1 … 1; >0 more suction, <0 more
-// vibration) into channel scales: the favoured channel stays at 1, the other
-// is reduced down to 0 at the ends.
-func BalanceScales(balance float64) (vib, suc float64) {
-	balance = ClampBalance(balance)
-	vib, suc = 1, 1
-	if balance > 0 {
-		vib = 1 - balance
-	} else if balance < 0 {
-		suc = 1 + balance
+// BalanceScales turns a balance (−1 … 1; >0 more suction) into multipliers
+// for the two channels. The favoured channel stays at 1; the other is reduced.
+func BalanceScales(balance float64) (vibScale, sucScale float64) {
+	b := ClampBalance(balance)
+	if b > 0 {
+		return 1 - b, 1
 	}
-	return vib, suc
+	if b < 0 {
+		return 1, 1 + b
+	}
+	return 1, 1
 }
 
-// ClampBalance keeps a balance in −1 … 1 (NaN → 0).
+// ClampBalance keeps balance in [−1, 1]; NaN becomes 0.
 func ClampBalance(b float64) float64 {
-	if b != b {
+	if b != b { // NaN
 		return 0
-	}
-	if b > 1 {
-		return 1
 	}
 	if b < -1 {
 		return -1
 	}
+	if b > 1 {
+		return 1
+	}
 	return b
 }
 
-// SceneFeelRange gives one part of the script its own scene feel (a chapter
-// as a scene, Owner 14 Oct step 4). Feel "" inside a range = Classic there.
-type SceneFeelRange struct {
-	StartMs int64  `json:"start_ms"`
-	EndMs   int64  `json:"end_ms"`
-	Feel    string `json:"feel"`
-}
-
-// sceneFeelAt: the range covering t decides; outside every range the
-// script-wide SceneFeel applies.
-func sceneFeelAt(opts MapOptions, t int64) string {
-	for _, r := range opts.SceneRanges {
-		if t >= r.StartMs && t < r.EndMs {
-			return r.Feel
-		}
+func clamp01(v float64) float64 {
+	if v < 0 {
+		return 0
 	}
-	return opts.SceneFeel
-}
-
-// NormalizeSceneRanges drops empty ranges and normalises feels.
-func NormalizeSceneRanges(in []SceneFeelRange) []SceneFeelRange {
-	var out []SceneFeelRange
-	for _, r := range in {
-		if r.EndMs <= r.StartMs {
-			continue
-		}
-		r.Feel = NormalizeSceneFeel(r.Feel)
-		out = append(out, r)
+	if v > 1 {
+		return 1
 	}
-	return out
+	return v
 }

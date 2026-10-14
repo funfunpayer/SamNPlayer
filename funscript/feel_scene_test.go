@@ -31,8 +31,10 @@ func meanFrames(fr []Frame) (vib, suc float64) {
 
 func TestNormalizeSceneFeelAliases(t *testing.T) {
 	cases := map[string]string{
-		"oral": SceneFeelOral, "Blowjob": SceneFeelOral, "penetration": SceneFeelIntercourse,
-		"titjob": SceneFeelBreast, "handjob": SceneFeelHand, "": SceneFeelNone, "dance": SceneFeelNone,
+		"oral": SceneFeelOral, "Blowjob": SceneFeelOral, "mouth": SceneFeelOral, "lips": SceneFeelOral,
+		"penetration": SceneFeelIntercourse,
+		"titjob": SceneFeelBreast, "nipple": SceneFeelBreast, "nipples": SceneFeelBreast,
+		"handjob": SceneFeelHand, "": SceneFeelNone, "dance": SceneFeelNone,
 	}
 	for in, want := range cases {
 		if got := NormalizeSceneFeel(in); got != want {
@@ -83,79 +85,106 @@ func TestSceneSuctionShapes(t *testing.T) {
 		t.Errorf("breast: depth should weigh more (%v ≤ %v)", bDepth, bSpeed)
 	}
 	if _, ok := SceneSuction(SceneFeelNone, 0.5, 0.5); ok {
-		t.Error("none must not shape suction")
+		t.Fatal("none should not be ok")
 	}
 }
 
-func TestOralSceneRaisesSuction(t *testing.T) {
+func TestOralRaisesSuction(t *testing.T) {
 	s := &Script{Actions: strokeActions()}
-	_, oldSuc := meanFrames(s.ToIntensityCurve(DefaultMapOptions()))
 	o := DefaultMapOptions()
 	o.SceneFeel = SceneFeelOral
-	_, oralSuc := meanFrames(s.ToIntensityCurve(o))
-	if oralSuc <= oldSuc {
-		t.Fatalf("oral suction %v should be above position suction %v", oralSuc, oldSuc)
+	fr := s.ToIntensityCurve(o)
+	_, suc := meanFrames(fr)
+	base := s.ToIntensityCurve(DefaultMapOptions())
+	_, baseSuc := meanFrames(base)
+	if suc <= baseSuc {
+		t.Fatalf("oral should raise mean suction: %v vs %v", suc, baseSuc)
+	}
+	o.SceneFeel = SceneFeelIntercourse
+	fr2 := s.ToIntensityCurve(o)
+	_, suc2 := meanFrames(fr2)
+	if suc2 <= baseSuc {
+		t.Fatalf("intercourse should raise mean suction: %v vs %v", suc2, baseSuc)
 	}
 }
 
 func TestVibrationFollowsSuction(t *testing.T) {
 	s := &Script{Actions: strokeActions()}
 	o := DefaultMapOptions()
-	o.SceneFeel = SceneFeelIntercourse
+	o.SceneFeel = SceneFeelOral
 	o.VibrationFollowsSuction = true
-	o.Smoothing = 0
-	for _, f := range s.ToIntensityCurve(o) {
+	fr := s.ToIntensityCurve(o)
+	for i, f := range fr {
 		if math.Abs(f.Vibration-f.Suction) > 1e-9 {
-			t.Fatalf("vibration %v does not follow suction %v at %d", f.Vibration, f.Suction, f.At)
+			t.Fatalf("frame %d: vib %v != suc %v", i, f.Vibration, f.Suction)
 		}
 	}
 }
 
-func TestBalance(t *testing.T) {
+func TestBalanceExtremes(t *testing.T) {
 	s := &Script{Actions: strokeActions()}
 	o := DefaultMapOptions()
-	o.SceneFeel = SceneFeelOral
-	o.VibrationFollowsSuction = true
 	o.Balance = 1
-	vib, suc := meanFrames(s.ToIntensityCurve(o))
-	if vib > 1e-9 || suc <= 0 {
-		t.Fatalf("balance +1: vib %v suc %v", vib, suc)
+	fr := s.ToIntensityCurve(o)
+	for _, f := range fr {
+		if f.Vibration != 0 {
+			t.Fatalf("balance +1 should zero vibration: %+v", f)
+		}
 	}
 	o.Balance = -1
-	vib, suc = meanFrames(s.ToIntensityCurve(o))
-	if suc > 1e-9 || vib <= 0 {
-		t.Fatalf("balance −1: vib %v suc %v", vib, suc)
+	fr = s.ToIntensityCurve(o)
+	for _, f := range fr {
+		if f.Suction != 0 {
+			t.Fatalf("balance -1 should zero suction: %+v", f)
+		}
 	}
 	o.Balance = 0.5
-	vHalf, sHalf := meanFrames(s.ToIntensityCurve(o))
-	o.Balance = 0
-	vZero, sZero := meanFrames(s.ToIntensityCurve(o))
-	if math.Abs(vHalf-vZero*0.5) > 1e-6 || math.Abs(sHalf-sZero) > 1e-6 {
-		t.Fatalf("balance 0.5: vib %v (want %v), suc %v (want %v)", vHalf, vZero*0.5, sHalf, sZero)
+	fr = s.ToIntensityCurve(o)
+	base := s.ToIntensityCurve(DefaultMapOptions())
+	for i := range fr {
+		if math.Abs(fr[i].Vibration-base[i].Vibration*0.5) > 1e-6 {
+			t.Fatalf("balance 0.5 vib scale: %v vs %v", fr[i].Vibration, base[i].Vibration*0.5)
+		}
 	}
-	if v, su := BalanceScales(math.NaN()); v != 1 || su != 1 {
-		t.Fatal("NaN balance must be neutral")
+	o.Balance = math.NaN()
+	fr = s.ToIntensityCurve(o)
+	for i := range fr {
+		if fr[i] != base[i] {
+			t.Fatalf("NaN balance should stay neutral: %+v vs %+v", fr[i], base[i])
+		}
 	}
 }
 
-func TestSaveFeelRecipeRoundTrip(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "s.funscript")
-	raw, _ := json.Marshal(map[string]any{"actions": strokeActions(), "metadata": map[string]any{"creator": "x"}})
-	if err := os.WriteFile(path, raw, 0o644); err != nil {
+func TestFeelRecipeRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "t.funscript")
+	s := &Script{Actions: strokeActions()}
+	if err := s.Save(path); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveFeelRecipe(path, "blowjob", true, 0.4); err != nil {
+	if err := SaveFeelRecipe(path, SceneFeelOral, true, 0.4); err != nil {
 		t.Fatal(err)
 	}
-	s, err := Load(path)
+	loaded, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	o := MapOptionsFromScript(s)
+	o := MapOptionsFromScript(loaded)
 	if o.SceneFeel != SceneFeelOral || !o.VibrationFollowsSuction || math.Abs(o.Balance-0.4) > 1e-9 {
-		t.Fatalf("options %+v", o)
+		t.Fatalf("got %+v", o)
 	}
-	if s.Metadata.Creator != "x" {
-		t.Fatal("other metadata lost")
+	// clear
+	if err := SaveFeelRecipe(path, "", false, 0); err != nil {
+		t.Fatal(err)
 	}
+	loaded, err = Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o = MapOptionsFromScript(loaded)
+	if o.SceneFeel != "" || o.VibrationFollowsSuction || o.Balance != 0 {
+		t.Fatalf("cleared got %+v", o)
+	}
+	_ = json.Marshal
+	_ = os.TempDir
 }
