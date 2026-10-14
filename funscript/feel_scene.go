@@ -64,39 +64,30 @@ func SceneSuction(feel string, depth, intensity float64) (float64, bool) {
 	return clamp01(s.Floor + s.Range*(s.DepthW*clamp01(depth)+s.SpeedW*clamp01(intensity))), true
 }
 
-// BalanceScales turns a balance (−1 … 1; >0 more suction) into multipliers
-// for the two channels. The favoured channel stays at 1; the other is reduced.
-func BalanceScales(balance float64) (vibScale, sucScale float64) {
-	b := ClampBalance(balance)
-	if b > 0 {
-		return 1 - b, 1
+// BalanceScales turns a balance (−1 … 1; >0 more suction, <0 more
+// vibration) into channel scales: the favoured channel stays at 1, the other
+// is reduced down to 0 at the ends.
+func BalanceScales(balance float64) (vib, suc float64) {
+	balance = ClampBalance(balance)
+	vib, suc = 1, 1
+	if balance > 0 {
+		vib = 1 - balance
+	} else if balance < 0 {
+		suc = 1 + balance
 	}
-	if b < 0 {
-		return 1, 1 + b
-	}
-	return 1, 1
+	return vib, suc
 }
 
-// ClampBalance keeps balance in [−1, 1]; NaN becomes 0.
+// ClampBalance keeps a balance in −1 … 1 (NaN → 0).
 func ClampBalance(b float64) float64 {
-	if b != b { // NaN
+	if b != b {
 		return 0
-	}
-	if b < -1 {
-		return -1
 	}
 	if b > 1 {
 		return 1
 	}
+	if b < -1 {
+		return -1
+	}
 	return b
-}
-
-func clamp01(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
 }
