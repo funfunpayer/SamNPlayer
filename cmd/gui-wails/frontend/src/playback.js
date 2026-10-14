@@ -35,7 +35,7 @@ export function initPlayback(root) {
         <span class="path-label" id="pb-script-path">No Emotion Script selected</span>
       </div>
       <div class="pb-head-actions">
-        <button id="pb-choose" class="primary" type="button">Choose Emotion Script…</button>
+        <button id="pb-choose" class="primary" type="button" title="Open a video or a script (Ctrl+O)">Open…</button>
         <button id="pb-queue-add" type="button" title="Add another Emotion Script to the list" hidden>Add to list</button>
       </div>
     </div>
@@ -50,8 +50,8 @@ export function initPlayback(root) {
         </div>
         <p class="pb-empty-kicker">Play</p>
         <p class="pb-empty-title">Ready when you are</p>
-        <p class="hint">Open an Emotion Script — with a film or without. Feel still reaches the device. Add more for a quiet list. Other apps’ files are welcome too.</p>
-        <button type="button" id="pb-choose-empty" class="primary">Choose Emotion Script…</button>
+        <p class="hint">Open a video or a script — or drop one here. A video finds its script by itself; without one, SamNPlayer creates it. Other apps’ files are welcome too.</p>
+        <button type="button" id="pb-choose-empty" class="primary pb-open-big">Open…</button>
       </div>
     </div>
 
@@ -3619,6 +3619,11 @@ export function initPlayback(root) {
     const path = await PickFunscriptFile();
     restoreKeyboardFocus();
     if (!path) return;
+    await openScriptPath(path);
+  }
+
+  // One script opened by hand (picker, Open…): a fresh one-item list.
+  async function openScriptPath(path) {
     replacePlaylist([path], 0);
     try {
       await loadScript(path, { keepPlaylist: true });
@@ -4585,8 +4590,11 @@ export function initPlayback(root) {
       uiError('Delete: ' + err, el('#pb-ofs-status'));
     }
   });
-  el('#pb-choose').addEventListener('click', chooseScript);
-  el('#pb-choose-empty').addEventListener('click', chooseScript);
+  // #pb-choose / #pb-choose-empty open a video or a script (open_media.js
+  // takes them over and sets data-open-media); on their own they pick a script.
+  for (const id of ['#pb-choose', '#pb-choose-empty']) {
+    el(id).addEventListener('click', () => { if (!root.dataset.openMedia) chooseScript(); });
+  }
   el('#pb-queue-add').addEventListener('click', queueAddScript);
   el('#pb-next').addEventListener('click', () => playNextInPlaylist());
 
@@ -5238,6 +5246,7 @@ export function initPlayback(root) {
     // Re-read the loaded script's curves (after a recipe change).
     refreshVisuals: () => refreshScriptVisuals(),
     attachVideoPath: (path) => attachVideoPath(path),
+    openScriptPath: (path) => openScriptPath(path).then(() => { if (document.body.dataset.mode !== 'generator') switchToPlaybackTab(); }),
     nextPlaylistIndexAfterAdvance,
     getPlaylistIndex: () => playlistIndex,
     setPlaylistForTest: (paths, startIndex = 0) => replacePlaylist(paths, startIndex),

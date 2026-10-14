@@ -93,6 +93,8 @@ export function SetActiveStrength(arg1) { return window['go']['main']['App']['Se
 export function ExportLoadedFunscript(arg1) { return window['go']['main']['App']['ExportLoadedFunscript'](arg1); }
 export function SaveLoadedAsSamn() { return window['go']['main']['App']['SaveLoadedAsSamn'](); }
 export function OptimizeLoadedFor(arg1) { return window['go']['main']['App']['OptimizeLoadedFor'](arg1); }
+export function PickMediaFile() { return window['go']['main']['App']['PickMediaFile'](); }
+export function FindScriptForVideo(arg1) { return window['go']['main']['App']['FindScriptForVideo'](arg1); }
 export function SuggestChapterScenes() { return window['go']['main']['App']['SuggestChapterScenes'](); }
 export function SaveChapterScenes(arg1) { return window['go']['main']['App']['SaveChapterScenes'](arg1); }
 export function BakeSoundVibration(arg1) { return window['go']['main']['App']['BakeSoundVibration'](arg1); }

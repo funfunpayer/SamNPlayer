@@ -309,7 +309,7 @@ Tab **Play**
 
 | Bereich | Funktionen |
 |---------|------------|
-| Laden | Choose Emotion Script… · Playlist Add / Auto-advance / Shuffle / Repeat |
+| Laden | Open… (Video oder Script; Video ohne Script → „Create script“) · Playlist Add / Auto-advance / Shuffle / Repeat |
 | Transport | Play / Stop / Extended-O · Progress · Vib/Suc live |
 | Video | optional · Fullscreen · Make playable (ffmpeg) · 0–100 gauge · Contact marks |
 | Kurve | Edit curve (dots): ziehen / klick = neu / Doppelklick = löschen (≥2) |

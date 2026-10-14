@@ -58,6 +58,15 @@ single strokes.
   <img src="docs/media/gui-player.png" alt="Player mode — video, transport, multi-channel timeline, Inspector" width="900" />
 </p>
 
+**Open a video or a script** with the big *Open…* in the empty Player, with
+Ctrl+O, or by dropping it onto the window. A video brings its script along
+when one with the same name lies beside it. If there is none, the Player
+offers to create one: *Create script* opens the Generator with that video.
+
+<p align="center">
+  <img src="docs/media/gui-player-new-video.png" alt="A video without a script — Create script, Choose script, Open other" width="700" />
+</p>
+
 ### Editor
 
 The Player with editing on: drag, add or delete points on any channel,

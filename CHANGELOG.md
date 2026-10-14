@@ -10,6 +10,8 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Empty Player / Create stage:** the SamNPlayer play mark sits in the middle of the flow art again. Its float animation had moved it to the top-left corner, so only a corner of it showed.
+- **Player:** a jump while the video is still loading reaches the video once it has loaded. Before, only the curve moved.
 - **Player timeline:** the scene strip and the chapter bands are now as wide
   as the curve (they were 30 px narrower), so markers, bands and the curve
   share one time scale; the "+" sits inside the strip.
@@ -18,6 +20,7 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Video first — Open a video or a script (Owner 14 Oct):** the empty Player has one big **Open…** in the middle (also the header, the top-bar folder and **Ctrl+O**), and a drop works the same. A video opens its script by itself (same name beside it, `.samn` before `.funscript`). Without one, the Player shows a still of the video with **Create script** (Generator, same video), **Choose script…** and **Open other…**. **Always create right away** starts Create without asking. Over a loaded script the question offers **Back to the script**. In the Generator a video goes straight in, as before. Several videos still make a Create queue. A video and a script dropped together open that script with that video. The video bar names the video instead of looking like a drop-down. `PickMediaFile`, `FindScriptForVideo`.
 - **A Sam Neo 2 feel per scene (chapter), suggested:** in Scene Map mode every scene shows a suggested feel from the scene detection (overlap × confidence) or the contact mark; *Use* / *Apply suggestions* / the select save it (`scene_ranges` in the recipe; Emotion Scripts re-baked). Nothing is applied by itself. `SuggestChapterScenes`, `SaveChapterScenes`.
 - **Vibration from the video's sound, written into the script (vibrators):** Generator → *For device: Vibrator* → *Vibration*: Contact / Sound + contact / Sound only, written right after Create; Inspector → Devices → *Vibration from sound* → *Write into script*. Suction is kept. `BakeSoundVibration`.
 - **Generator with editor (Owner 14 Oct):** in Generator mode the Player's timeline (lanes, points, zoom, chapters, bookmarks, scene map, audio) sits under the Generator video, and the edit tools (Edit curve, Undo / Redo, Optimize for, Sam Neo 2 feel) join the settings column. A new script stays in the Generator and is edited right there, with editing on. The Generator video moves the timeline's playhead and the other way round. The parts are borrowed from the Player (same controls) and go back when another mode opens.

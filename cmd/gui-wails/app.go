@@ -189,7 +189,7 @@ func (a *App) PickSceneProposalsFile() (string, error) {
 func findMatchingVideo(scriptPath string) (string, bool) {
 	dir := filepath.Dir(scriptPath)
 	base := strings.TrimSuffix(filepath.Base(scriptPath), filepath.Ext(scriptPath))
-	for _, ext := range []string{".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".webm", ".ts", ".m2ts", ".flv", ".mpg", ".mpeg", ".3gp", ".ogv"} {
+	for _, ext := range videoExts {
 		candidate := filepath.Join(dir, base+ext)
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 			return candidate, true

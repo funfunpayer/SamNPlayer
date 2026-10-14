@@ -149,7 +149,7 @@ export function applyPlayerLayoutV1(root, api) {
     <button type="button" class="pb-lib-item" id="pb-lib-bpm">${ICONS.bpm}<span>BPM Detection</span></button>
     <p class="pb-lib-title">Quick Access</p>
     <div class="pb-lib-drop" id="pb-lib-drop">${ICONS.drop}<span>Drag files here</span>
-      <small>Video → Generator · Script → Player</small></div>
+      <small>Video or script → Player</small></div>
   `;
   root.prepend(lib);
   lib.after(main);

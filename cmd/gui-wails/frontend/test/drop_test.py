@@ -5,9 +5,11 @@ Geprüft wird die Weiche, nicht die Webview: Go liefert die echten Dateipfade
 Generator nichts anfangen kann), und das Frontend entscheidet daraus, welcher
 Tab zuständig ist.
 
-Der eigentliche Nutzen ist genau diese Weiche - ein Video soll im Generator
-landen, ein Skript in der Wiedergabe, ohne dass man vorher den richtigen Tab
-sucht. Geht sie kaputt, landet die Datei still im falschen Tab.
+Der eigentliche Nutzen ist genau diese Weiche (Video first, Owner 14 Oct):
+ein Video sucht im Player sein Skript; ohne Skript bietet der leere Player
+"Create script" an, das den Generator mit demselben Video öffnet. Im
+Generator und bei mehreren Videos (Create-Queue) landet ein Video direkt im
+Generator, ein Skript in der Wiedergabe.
 
 Ausführen:  python3 cmd/gui-wails/frontend/test/drop_test.py
 """
@@ -61,6 +63,10 @@ def main():
         "GetHeatmap": "async () => []",
         "GetScriptCurve": "async () => []",
         "GetMarker": "async () => null",
+        "FindScriptForVideo": "async v => (window.__calls.push(['find', v]), v === '/v/has.mp4'"
+                              " ? { videoPath: v, scriptPath: '/v/has.samn', found: true }"
+                              " : { videoPath: v, scriptPath: '', found: false })",
+        "LoadFrameAt": "async () => ({ width: 2, height: 2, pngBase64: '' })",
     }))
     harness = None
 
@@ -81,11 +87,19 @@ def main():
         active = lambda: page.evaluate("document.body.dataset.tab || document.querySelector('.tab-btn.active').dataset.tab")
         check("Start im Wiedergabe-Tab", active() == "playback", str(active()))
 
-        # --- Video: muss in den Generator führen --------------------------
+        # --- Video ohne Skript: der Player fragt ---------------------------
         page.evaluate("""window.__triggerEvent('files:dropped',
             { videos: ['/videos/clip.mp4'], scripts: [], ignored: 0 })""")
+        page.wait_for_function("!document.querySelector('#pb-noscript').hidden", timeout=5000)
+        check("Video ohne Skript bleibt im Player", active() == "playback", str(active()))
+        check("Skript wird neben dem Video gesucht",
+              page.evaluate("window.__calls.some(c => c[0] === 'find' && c[1] === '/videos/clip.mp4')"))
+        check("leerer Player nennt das Video",
+              page.text_content("#pb-noscript-name") == "clip.mp4", page.text_content("#pb-noscript-name"))
+        check("noch nichts an den Generator geschickt", page.evaluate("window.__dropped.length") == 0)
+        page.click("#pb-noscript-create")
         page.wait_for_function("window.__dropped.length > 0")
-        check("Video wechselt in den Generator-Tab", active() == "generator", str(active()))
+        check("Create script öffnet den Generator", active() == "generator", str(active()))
         dropped = page.evaluate("window.__dropped[0]")
         check("Videopfad kommt unverändert an",
               dropped[0] == "video"
@@ -93,26 +107,47 @@ def main():
               and dropped[1].get("extraCount") == 0
               and dropped[1].get("paths") == ["/videos/clip.mp4"],
               str(dropped))
+        check("Frage ist danach weg", page.evaluate("document.querySelector('#pb-noscript').hidden"))
+
+        # --- Im Generator: ein Video bleibt dort --------------------------
+        page.evaluate("""window.__triggerEvent('files:dropped',
+            { videos: ['/videos/other.mp4'], scripts: [], ignored: 0 })""")
+        page.wait_for_function("window.__dropped.length > 1")
+        check("im Generator geht ein Video direkt in den Generator",
+              active() == "generator" and page.evaluate("window.__dropped[1][1].path") == "/videos/other.mp4",
+              str(page.evaluate("window.__dropped")))
 
         # --- Skript: muss in die Wiedergabe führen ------------------------
         page.evaluate("""window.__triggerEvent('files:dropped',
             { videos: [], scripts: ['/skripte/a.funscript'], ignored: 0 })""")
-        page.wait_for_function("window.__dropped.length > 1")
+        page.wait_for_function("window.__dropped.length > 2")
         check("Skript wechselt in den Wiedergabe-Tab", active() == "playback", str(active()))
-        dropped = page.evaluate("window.__dropped[1]")
+        dropped = page.evaluate("window.__dropped[2]")
         check("Skriptpfad kommt unverändert an",
               dropped[0] == "script"
               and dropped[1]["path"] == "/skripte/a.funscript"
               and dropped[1].get("paths") == ["/skripte/a.funscript"],
               str(dropped))
 
-        # --- Beides zugleich: Video hat Vorrang ---------------------------
+        # --- Video mit Skript daneben: das Skript wird geöffnet -------------
+        page.evaluate("window.__calls.length = 0")
+        page.evaluate("""window.__triggerEvent('files:dropped',
+            { videos: ['/v/has.mp4'], scripts: [], ignored: 0 })""")
+        page.wait_for_function("window.__calls.some(c => c[0] === 'find' && c[1] === '/v/has.mp4')")
+        page.wait_for_timeout(300)
+        check("Video mit Skript: keine Frage, kein Generator",
+              page.evaluate("document.querySelector('#pb-noscript').hidden")
+              and page.evaluate("window.__dropped.length") == 3 and active() == "playback",
+              str(page.evaluate("window.__dropped")))
+
+        # --- Beides zugleich: das Skript mit diesem Video ------------------
         page.evaluate("""window.__triggerEvent('files:dropped',
             { videos: ['/v/b.mp4'], scripts: ['/s/b.funscript'], ignored: 0 })""")
-        page.wait_for_function("window.__dropped.length > 2")
-        check("bei Video und Skript gewinnt das Video",
-              page.evaluate("window.__dropped[2][0]") == "video"
-              and page.evaluate("window.__dropped.length") == 3,
+        page.wait_for_timeout(300)
+        check("Video und Skript zusammen: kein Generator, keine Frage",
+              page.evaluate("window.__dropped.length") == 3
+              and page.evaluate("document.querySelector('#pb-noscript').hidden")
+              and active() == "playback",
               str(page.evaluate("window.__dropped")))
 
         # --- Mehrere Videos: Queue (DeepFunGen UX), nicht still ignorieren ----
