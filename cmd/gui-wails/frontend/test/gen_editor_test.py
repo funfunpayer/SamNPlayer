@@ -77,6 +77,7 @@ def main():
             # Generator video → timeline playhead.
             page.click("#gen-choose")
             page.wait_for_function("document.querySelector('#gen-video') && document.querySelector('#gen-video').readyState >= 1", timeout=8000)
+            page.wait_for_function("document.querySelector('#pb-video').readyState >= 1", timeout=8000)
             page.evaluate("document.querySelector('#gen-video').currentTime = 42")
             page.wait_for_function("Math.abs(document.querySelector('#pb-video').currentTime - 42) < 0.5", timeout=4000)
             check("Generator video moves the timeline", True)
