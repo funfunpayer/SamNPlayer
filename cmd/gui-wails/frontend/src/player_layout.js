@@ -116,7 +116,8 @@ const ICONS = {
 export function applyPlayerLayoutV1(root, api) {
   if (!root || root.dataset.pbLayout === 'v1') return;
   root.dataset.pbLayout = 'v1';
-  const q = sel => root.querySelector(sel);
+  // IDs also outside root: the Generator borrows parts (gen_editor.js).
+  const q = sel => root.querySelector(sel) || (sel[0] === '#' ? document.querySelector(sel) : null);
 
   // ---- Shell: library column + main column -------------------------------
   const main = document.createElement('div');

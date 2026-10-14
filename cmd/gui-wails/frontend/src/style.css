@@ -4335,3 +4335,12 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 .pb-mix-end { font-size: 11.5px; color: var(--text-dim); }
 .gen-mix-row, .pb-mix-row { flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .gen-mix-row > label, .pb-mix-row > label { flex: 0 0 100%; width: auto; }
+/* Generator with editor (gen_editor.js): the Player's timeline under the
+   Generator video, its edit tools in the settings column. */
+.gl-editor { margin-top: 14px; }
+.gl-editor-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.gl-editor[data-empty="1"] > [data-pb-region="bottom"] { display: none; }
+.gl-editor:not([data-empty="1"]) .gl-editor-empty { display: none; }
+.gl-edit-tools[hidden] { display: none; }
+.gl-edit-tools .pb-insp-panel { display: block !important; }
+.gl-edit-tools .pb-feel-card { margin-top: 10px; }

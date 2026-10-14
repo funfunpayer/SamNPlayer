@@ -252,6 +252,11 @@ def main():
                 page.wait_for_timeout(300)
                 shoot(page, out, "create")
                 page.screenshot(path=str(out / "gui-create-full.png"), full_page=True)
+                # Generator with editor: the timeline under the Generator video.
+                if page.locator(".gl-editor").count():
+                    page.locator(".gl-editor").scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
+                    page.screenshot(path=str(out / "gui-create-editor.png"))
 
                 # Training — on the neutral "Rings" stage with a running
                 # session (synthetic levels via training:levels). The bundled pixel

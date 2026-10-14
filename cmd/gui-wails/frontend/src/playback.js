@@ -609,7 +609,9 @@ export function initPlayback(root) {
   `;
 
   wireDataHelp(root);
-  const el = id => root.querySelector(id);
+  // IDs are unique: when the Generator borrows parts of the Player
+  // (gen_editor.js), they are found there too.
+  const el = id => root.querySelector(id) || (id[0] === '#' ? document.querySelector(id) : null);
   const videoEl = el('#pb-video');
   // C1 (ChatGPT #503): Flow stage when nothing is loaded and for "Feel
   // without film"; the latter follows Play / Pause (syncPlayButton).
@@ -5219,7 +5221,10 @@ export function initPlayback(root) {
     // Von generator.js genutzt, um ein Ergebnis direkt zu übernehmen.
     // opts.review: open Play with dots visible; Edit curve stays off until checked.
     // A Generator result (opts.review) opens in the workspace Edit view.
+    // In the Generator (it has the editor, gen_editor.js) a result stays
+    // there and is edited in place.
     loadScriptPath: (path, opts = {}) => loadScript(path, 0, opts || {}).then(() => {
+      if (document.body.dataset.mode === 'generator') return;
       switchToPlaybackTab();
       if (opts && opts.review) window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }));
     }),

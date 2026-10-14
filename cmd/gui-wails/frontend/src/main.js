@@ -12,6 +12,7 @@ import { applyCreateLayoutV1 } from './create_layout.js';
 import { applyTrainingLayoutV1 } from './training_layout.js';
 import { applyTrainingDevice } from './training_device.js';
 import { initModeSwitch } from './mode_switch.js';
+import { attachGeneratorEditor } from './gen_editor.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -264,6 +265,9 @@ enhancePlaybackOZone(document.getElementById('tab-playback'));
 applyPlayerLayoutV1(document.getElementById('tab-playback'), playback);
 // V1 Create layout: Project · preview + clips · settings (create_layout.js).
 applyCreateLayoutV1(document.getElementById('tab-generator'), { playback });
+// The Generator borrows the Player's timeline and edit tools (Generator with
+// editor) — after both layouts exist.
+attachGeneratorEditor(document.getElementById('tab-generator'), document.getElementById('tab-playback'), playback);
 // Workspace view (Play / Edit remembered) once the Player layout exists.
 syncWorkspace(document.body.dataset.tab || 'playback');
 initPostGenerateReview();
