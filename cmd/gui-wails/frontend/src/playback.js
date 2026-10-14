@@ -3474,6 +3474,12 @@ export function initPlayback(root) {
     }
     currentPosMs = t;
     if (!videoPath || !videoEl.duration) {
+      // Video still loading: jump there once its length is known.
+      if (videoPath) {
+        videoEl.addEventListener('loadedmetadata', () => {
+          if (currentPosMs === t && videoEl.duration) videoEl.currentTime = Math.min(videoEl.duration, t / 1000);
+        }, { once: true });
+      }
       redrawHeatmap();
       redrawCurve();
       redrawTrajectory();
