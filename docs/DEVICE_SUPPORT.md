@@ -13,10 +13,21 @@ This is planned **after** the current V1 workspace work (W1–W4). It is recorde
 | Device / path | Channels used | Notes |
 |---|---|---|
 | **Sam Neo 2**, own BLE | Vibration, Suction | First-class: diagnostics, battery, recipes (stroke → feel) |
-| **Intiface Central (Buttplug)** | Vibration, Suction via `ScalarCmd` | Any Buttplug device connects, but only these two channels are driven. Linear (stroke) and rotation commands are not implemented yet. |
+| **Intiface Central (Buttplug)** | Stroke via `LinearCmd`; every vibration motor, suction, oscillate and rotate via `ScalarCmd` / `RotateCmd` | D2: strokers (The Handy) get the script's real positions; multi-motor devices (LELO F1S V3) drive every motor |
+| **TCode** (D5): Wi-Fi or USB | Stroke (L0) + extra axes L1/L2/R0–R2 | OSR2 / SR6 and other TCode devices; network firmware (UDP / TCP) or USB serial at 115200 baud; write-only |
 | **Mock** | Vibration, Suction | Tests and demo |
 
-The device interface (`device.Device`) has two channels: `SetVibration` and `SetSuction`. The **Stroke** curve drives the Neo 2 feel recipe; it is not sent as a position.
+The device interface (`device.Device`) has two intensity channels: `SetVibration` and `SetSuction`. The **Stroke** curve drives the Neo 2 feel recipe. Devices with a linear channel also implement `device.LinearDevice` (`SetPosition`); the player sends them the script's stroke positions (D2).
+
+### How D2 drives a Buttplug device
+
+| Feature | Follows |
+|---|---|
+| Every `Vibrate` motor | Vibration curve (one `ScalarCmd` for all motors) |
+| First `Constrict` / `Inflate` (or `Oscillate` when there is no Constrict) | Suction curve |
+| Other `Oscillate`, `Rotate` scalars, every `RotateCmd` (clockwise) | Vibration curve as intensity / speed |
+| First `LinearCmd` | Stroke positions: at each playback position the **next** action is sent as "move to pos within the time until it is due", once per action. Playback speed shortens the move time; pause stops the device; a seek resends |
+| Scalar `Position` | Listed, not driven |
 
 ## Direction: device-aware channels
 
@@ -56,9 +67,9 @@ The Owner named these devices as must-support:
 | Device | Channels (expected over Buttplug / Intiface) | Path |
 |---|---|---|
 | **Sam Neo 2** | vibration, suction | Own BLE plus Intiface (first-class) |
-| **The Handy** | stroke (linear) | Intiface `LinearCmd` (D2); online API optional (D5) |
-| **LELO F1S V3** | 2 × vibration (motors) | Intiface `ScalarCmd` Vibrate (D2: both motors) |
-| **Lovense Max 2** | vibration and constrict (air pump → suction) | Intiface `ScalarCmd` Vibrate + Constrict. Works today for the first motor + pump; D2 adds the rest |
+| **The Handy** | stroke (linear) | Intiface `LinearCmd` ✅ (D2); online API optional (D5) |
+| **LELO F1S V3** | 2 × vibration (motors) | Intiface `ScalarCmd` Vibrate, both motors ✅ (D2) |
+| **Lovense Max 2** | vibration and constrict (air pump → suction) | Intiface `ScalarCmd` Vibrate + Constrict ✅ |
 
 The expected channels follow from the public Buttplug device descriptions. The real report comes from the device on connect (D1), so the GUI never relies on this table.
 
@@ -67,9 +78,9 @@ The expected channels follow from the public Buttplug device descriptions. The r
 | # | Step |
 |---|---|
 | D1 ✅ | Capability model in Go (`device.Capabilities`); Neo 2, Mock and Intiface report theirs; the GUI receives them on connect |
-| D2 | Intiface `LinearCmd` and `RotateCmd`, plus vibrate per motor; the Player sends the stroke position to linear devices |
-| D3 | Player UI follows capabilities: channel rows and lanes per connected device; per-channel level and Reduce peaks for every channel |
-| D4 | Multi-axis script loading (companion axis files) and export |
-| D5 | TCode transport (OSR2 / SR6); optional Handy online API |
+| D2 ✅ | Intiface `LinearCmd` and `RotateCmd`, plus vibrate per motor; the Player sends the stroke position to linear devices |
+| D3 (part 1 ✅) | Player UI follows capabilities. **Done:** Inspector → Devices hides rows for channels the connected device lacks; a stroker gets stroke on/off and a **safety range** (bottom / top, at least 10 % apart, positions scaled into it, live via `SetStrokeOutput`). **Per-motor levels ✅:** a device with two or more vibration motors (LELO F1S V3) gets one level slider per motor (`SetMotorLevels`, `device.MotorLevelSetter`; saved, re-applied on connect). **Open:** timeline lanes per device |
+| D4 (part 1 ✅) | Multi-axis script loading: companion files `<name>.surge/.sway/.twist/.roll/.pitch.funscript` beside the script are read (inversion honoured) and shown as read-only lanes in their own colour (`funscript.LoadCompanionAxis`, `GetScriptAxisActions`). **Output ✅:** a TCode device (SR6 / OSR2) gets them as L1 / L2 / R0–R2 moves (`device.MultiAxisDevice`, `Player.SetAxes`; next action per axis, once; stroke off switches them off; the stroke safety range does not scale them). **Editing ✅:** present companion files get an entry in the Edit axis picker; lane click, ↑↓, point editing, range tools and undo save back into that file (`funscript.SaveCompanionAxis`, keeps other fields and the inverted flag). **New axis ✅:** Edit → "+ Axis…" starts a missing companion file centred at 50 over the script (`CreateScriptAxis`; never overwrites). **Open:** export |
+| D5 (part 1 ✅) | **TCode over Wi-Fi** (OSR2 / SR6 Wi-Fi firmware, UDP or TCP, default port 8000): Tools → Device → "TCode over Wi-Fi"; the stroke (L0) follows the script with the D3 safety range, `DSTOP` on pause / emergency stop (`device.TCode`). **USB ✅** (Owner, 13 Oct): "TCode over USB" opens the serial port at 115200 baud (`device.NewTCodeSerial`, `go.bug.st/serial`, BSD-3); Tools → Device lists the real ports. **Open:** optional Handy online API. Extra axes ✅ (see D4) |
 
 Each step comes with tests, using a mock device per capability set.

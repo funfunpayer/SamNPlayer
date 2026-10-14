@@ -205,9 +205,14 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.StartAtMs = opts.StartAtMs
 	}
 	p.SetSpeed(opts.Speed)
+	// Strokers (The Handy …) get the script's real positions (D2).
+	p.SetStroke(script.PlaybackActions())
+	// Multi-axis devices (SR6 over TCode) also get the companion files (D4).
+	p.SetAxes(companionAxesFor(a.loadedScriptPath()))
 	a.stateMu.RLock()
 	p.SetChannelLevels(1-a.vibCut, 1-a.sucCut)
 	p.SetPeakReduce(a.peakReduce)
+	p.SetStrokeOutput(!a.strokeOff, a.strokeLo, 1-a.strokeHiCut)
 	a.stateMu.RUnlock()
 	p.OnLog = func(line string) { eventsEmit(a.ctx, "playback:log", line) }
 	p.OnFrame = func(f funscript.Frame) {
@@ -371,6 +376,23 @@ func (a *App) SetPeakReduce(on bool) {
 	if p != nil {
 		p.SetPeakReduce(on)
 	}
+}
+
+// SetStrokeOutput sets the stroke output for strokers (The Handy …) for the
+// running and every following playback: on/off and the safety range the
+// device may move in (0–1, at least player.MinStrokeSpan wide). Returns the
+// range actually used. Script files are not changed.
+func (a *App) SetStrokeOutput(on bool, lo, hi float64) []float64 {
+	lo, hi = player.ClampStrokeRange(lo, hi)
+	a.stateMu.Lock()
+	a.strokeOff = !on
+	a.strokeLo, a.strokeHiCut = lo, 1-hi
+	p := a.activePlayer
+	a.stateMu.Unlock()
+	if p != nil {
+		p.SetStrokeOutput(on, lo, hi)
+	}
+	return []float64{lo, hi}
 }
 
 // SetPlaybackSpeed changes the speed of a running playback (0.5–2×) and
@@ -736,4 +758,24 @@ func (a *App) BakeScriptOffset() (BakeOffsetResult, error) {
 	a.SetScriptOffset(0)
 	logging.Info("playback: script offset baked into file", "ms", offset, "dropped", res.Dropped)
 	return res, nil
+}
+
+// companionAxesFor loads the multi-axis companion files beside the script
+// (clip.twist.funscript …). Unreadable files are skipped with a log line.
+func companionAxesFor(scriptPath string) map[string][]funscript.Action {
+	out := map[string][]funscript.Action{}
+	if scriptPath == "" {
+		return out
+	}
+	for _, axis := range funscript.CompanionAxes {
+		acts, err := funscript.LoadCompanionAxis(scriptPath, axis)
+		if err != nil {
+			logging.Warn("playback: companion axis skipped", "axis", axis, "error", err)
+			continue
+		}
+		if len(acts) > 0 {
+			out[string(axis)] = acts
+		}
+	}
+	return out
 }

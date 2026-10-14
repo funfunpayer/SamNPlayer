@@ -1,7 +1,7 @@
 """Main tabs (Owner 11 Oct): Player · Training · Tools. The Player is the
 workspace with the view switch Play · Create · Edit (Create = Generator,
 Scene Map inside Create); data-tab "generator" / "scenemap" stay as routes.
-Tools bundles Device / Log / Settings behind a sub-navigation; old entry
+Tools bundles Home / Device / Log / Settings behind a sub-navigation; old entry
 points (switchTab('device'), .tab-btn[data-tab="log"].click()) still work.
 
 Run: python3 cmd/gui-wails/frontend/test/tools_nav_test.py
@@ -50,14 +50,14 @@ def main():
             check("Scene Map button only in Create", page.is_hidden("#ws-scenemap"))
 
             page.click('#rail .tab-btn[data-tab="tools"]')
-            check("Tools opens Device first", page.is_visible("#tab-device"))
+            check("Tools opens Home first", page.is_visible("#tab-tools-home") and page.is_hidden("#tab-device"))
             check("view switch hidden outside the Player", page.is_hidden("#ws-view"))
             check("Player panel hidden on Tools", page.is_hidden("#tab-playback"))
             check("sub-nav visible in Tools", page.is_visible("#tools-nav"))
             check("rail Tools marked active",
                   page.get_attribute('#rail .tab-btn[data-tab="tools"]', "aria-selected") == "true")
             sub = page.evaluate("[...document.querySelectorAll('#tools-nav .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("Free sub-nav: Device · Log · Settings", sub == ["Device", "Log", "Settings"], str(sub))
+            check("Free sub-nav: Home · Device · Log · Settings", sub == ["Home", "Device", "Log", "Settings"], str(sub))
 
             page.click('#tools-nav .tab-btn[data-tab="settings"]')
             check("Settings panel shown", page.is_visible("#tab-settings") and page.is_hidden("#tab-device"))

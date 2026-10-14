@@ -181,6 +181,10 @@ func (a *App) GetScriptAxisActions(axis string) ([]funscript.Action, error) {
 		}
 		return script.Metadata.SamnAxes.Suction, nil
 	default:
+		// Multi-axis companion files beside the script (D4), read-only.
+		if name := funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))); funscript.IsCompanionAxis(name) {
+			return funscript.LoadCompanionAxis(a.loadedScriptPath(), name)
+		}
 		return nil, fmt.Errorf("unknown axis %q", axis)
 	}
 }
@@ -194,6 +198,10 @@ func (a *App) SaveScriptAxisActions(axis string, actions []funscript.Action) err
 	name := funscript.AxisName(strings.ToLower(strings.TrimSpace(axis)))
 	if name == "" {
 		name = funscript.AxisGeneral
+	}
+	if funscript.IsCompanionAxis(name) {
+		// Multi-axis companion file beside the script (D4).
+		return funscript.SaveCompanionAxis(path, name, actions)
 	}
 	if samn.IsSamnPath(path) {
 		doc, err := samn.Load(path)
@@ -311,4 +319,20 @@ func scriptFileFilters() []runtime.FileFilter {
 		{DisplayName: "Emotion Script + other apps", Pattern: "*.samn;*.funscript"},
 		{DisplayName: "Other apps (*.funscript)", Pattern: "*.funscript"},
 	}
+}
+
+// CreateScriptAxis starts a new multi-axis companion file (surge, sway,
+// twist, roll, pitch) beside the loaded script, centred at 50 over the
+// script's length, and returns its path. Edit then shapes it like any axis.
+func (a *App) CreateScriptAxis(axis string) (string, error) {
+	path := a.loadedScriptPath()
+	script := a.loadedScript()
+	if path == "" || script == nil {
+		return "", fmt.Errorf("no script loaded")
+	}
+	var end int64
+	if n := len(script.Actions); n > 0 {
+		end = script.Actions[n-1].At
+	}
+	return funscript.CreateCompanionAxis(path, funscript.AxisName(strings.ToLower(strings.TrimSpace(axis))), end)
 }

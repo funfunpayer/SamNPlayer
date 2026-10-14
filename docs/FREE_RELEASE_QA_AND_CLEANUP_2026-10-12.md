@@ -1,40 +1,49 @@
 # SamNPlayer Free — Release-Abnahme und GitHub-Aufräumplan
 
-**Status: 12. Oktober 2026, gegen 18 Uhr UTC; Prüfstand, keine Release-Freigabe.** Dieses Dokument beschreibt ausschließlich den aktuellen Free-Abschluss; der Next Level 2.0-Fahrplan ist ein eigenes Projekt.
+**Aktualisiert: 14. Oktober 2026. Prüfstand, keine Release-Freigabe.**
+Dieses Dokument beschreibt den aktuellen Free-Abschluss. Die Entwicklung von
+SamNPlayer 2.0 Next ist ein eigenes Projekt und blockiert die Free-Veröffentlichung nicht.
 
 ## Bestätigter Stand
 
-- `main` bei Prüfung: `29de9a121710ca3c0001f4da30078d33d72c1ce3`; `VERSION` enthält **0.6.0**.
-- Letztes über GitHub-API gefundenes Release **im privaten SamNPlayer-Repo**: **v0.5.45**, veröffentlicht 2.10.2026. Die API-Liste für Releases in `SamNPlayer-site` war bei Prüfung leer. Daraus lässt sich kein neuer öffentlicher 0.6.0-Download belegen.
-- GUI-Integrations-PR #509 ist gemergt. CSS-Polish **#489** ist noch **Draft/offen** und war mergeable=clean, aber nicht visuell/native abgenommen.
-- **#520 Tools Home + Devices D2** ist offen, CI am jüngsten Commit lief bei Prüfung noch.
-- Historischer Roadmap-PR **#510** enthält mittlerweile sachlich überholte kostenpflichtige Studio-/Entitlement-Abschnitte; **nicht unverändert nach main mergen**.
-- Sieben-Tage-Preview #515 ist auf Owner-Wunsch ohne Merge geschlossen. Free und das geplante Next Level 2.0 sollen **spendenfinanzierte Freeware** bleiben. Suite ist die interne Testedition.
+- Geprüftes `main`: `800b2337af889701be48f5e21a4c1eefc51e4a8d`; `VERSION=0.6.0`.
+- Die GitHub-Release-Abfrage vom 14.10.2026 liefert **v0.5.45** (veröffentlicht 2.10.2026) als jüngstes privates Release, mit GUI-/CLI-/Portable-Artefakten und Prüfsummen. Die Release-Liste von `SamNPlayer-site` ist leer. Ein öffentlicher Download oder veröffentlichtes 0.6.0-Release ist damit nicht belegt.
+- #509 sowie **#520** sind gemergt. #520 ist seit 12.10.2026 integriert; ein erneuter Merge ist kein offenes Gate.
+- `main` enthält inzwischen #524–#529 und #531: TCode über WLAN/USB, Companion-Achsen, achsenspezifische Bearbeitung und neue Achsendateien sowie Pegel je Motor. Integration in den Quellstand ersetzt keine Hardware-Abnahme.
+- **#489** ist weiterhin Draft/offen und aktuell konfliktbehaftet. Nur noch benötigte CSS-Änderungen gegen den aktuellen Stand abgleichen; keinen alten Gesamtstand übernehmen.
+- **#532** ist offen, Head `6e2aa3a`. Claude meldet dort vollständige Frontend-Suite und Vite-Build lokal erfolgreich sowie aktualisierte Layout-/Theme-Tests und Handbuchtext. Dies ist ein berichtetes Testergebnis, keine in diesem Dokument unabhängig wiederholte native Abnahme. Keine interaktive Kurvenbearbeitung oder funktionslose Curve-Preview-Tabs in Create behaupten; Ergebnisse öffnen in Edit.
+- **#510 wurde am 13.10.2026 ohne Merge geschlossen** und ist historisch/superseded. Die fünf Konzeptdokumente bleiben in seiner PR-Historie erhalten.
+- #515 wurde ohne Merge geschlossen: keine Sieben-Tage-Preview. Free und SamNPlayer 2.0 Next bleiben kostenlose, durch freiwillige Spenden unterstützte Software; Suite ist die interne Edition. EULA und proprietäre Quellcode-Lizenz werden durch dieses Cleanup nicht geändert.
 
 ## QA-Gates vor Tag/Veröffentlichung
 
 | Gate | Test/Prüfung | Verantwortlich | Beleg zur Freigabe |
 |---|---|---|---|
-| G1 | #520 auf Geräte-/Tools-API und CI prüfen, erst nach grünem Build und Review mergen | Claude | commit SHA, vollständiges CI-Ergebnis, Geräte-Mocktests |
-| G2 | #489 gegen tatsächlich gemergten #509-HTML/JS/States prüfen; CSS isoliert testen | ChatGPT CSS + Claude | diff, keine Logik- oder DOM-Regression |
+| G1 | Bereits integrierte Geräte-/Tools-Änderungen am tatsächlichen Release-Kandidaten prüfen; #520 nicht erneut als offenen Merge führen | Claude | Kandidaten-SHA, vollständiges CI-Ergebnis, Geräte-Mocktests |
+| G2 | #489-Konflikte und verbliebene CSS-Lücken gegen aktuelles main und #532 auflösen; Create-Layout/Test-/Handbuchstand von #532 bei Integration erhalten | ChatGPT CSS + Claude | geprüfter Diff, Theme-Tests, keine Logik- oder DOM-Regression |
 | G3 | Native Wails Windows 11: Play/Create/Edit/Training/Tools, 1366×768 und 1920×1080; Fokus, Kontrast, Disabled, Reduced Motion, Empty, Play/Pause/Resume/Stop | Claude + Owner | reale Captures aus Build + Testprotokoll |
-| G4 | Video→ROI→klassischer Generator→.samn/.funscript→Edit→Play→Export/Import; fehlendes Modell, Audio, Video, ffmpeg; Undo, Cancel, Resume | Claude | reproduzierbare Testmatrix und Logs ohne private Videos |
-| G5 | Neo2, Intiface und D2-Stroker entsprechend *tatsächlich* vorhandenem Code testen; No-Device/Disconnect/Emergency Stop/Cap-Limits | Claude + Owner | Mocktests und beaufsichtigter Hardware-Smoke |
+| G4 | Video→ROI→klassischer Generator→.samn/.funscript→Edit→Play→Export/Import; fehlendes Modell, Audio, Video, ffmpeg; Undo, Cancel, Resume; Create mit mehreren Clips/lange Dateinamen/Expert-Zuständen | Claude | reproduzierbare Testmatrix und Logs ohne private Videos |
+| G5 | Neo2, Intiface, TCode WLAN/USB und Companion-Achsen am Kandidaten prüfen: No-Device/Disconnect/Pause/Stop/Emergency Stop/jeweilige Limits; Hardware-Abdeckung ausdrücklich ausweisen | Claude + Owner | Mocktests und beaufsichtigter Hardware-Smoke; ungetestete Geräte benennen |
 | G6 | Free/Suite sauber getrennt: Build-Tags, nur Free im öffentlichen Publish, Edition-sicherer Updater, EULA, Notices, Donate-Link | Claude | Free-/Suite-Build-Report und geprüfte Release-Artefakte |
-| G7 | Free-Dokumente, Handbuch, Changelog, README, Versions- und Taghinweise abgleichen; alte Paid-Studio-Behauptungen entfernen | ChatGPT Docs + Claude | einheitliche sichtbare Editionen- und Releaseinformationen |
-| G8 | Öffentliche Website aktualisieren: reale Screenshots, bestätigte Downloads, aktuelle Features, bekannte Einschränkungen und Donate | ChatGPT Website + Owner | separater SamNPlayer-site-PR, Links nach Tagprüfung |
-| G9 | Tag, Artefakte/Hashes und Update-Smoketest; erst danach Veröffentlichung | Claude + Owner | bestätigter Release-Tag, herunterladbare Free-Binaries, Website-Link |
+| G7 | Handbuch, Changelog, README und Editions-/Versionshinweise auf denselben Kandidaten beziehen; #521 enthält die Bereinigung aus #530 | ChatGPT Docs + Claude | konsistente Dokumentation; keine Behauptung, dass Quellversion oder Doku-Merge eine Veröffentlichung beweisen |
+| G8 | Öffentliche Website: reale Screenshots, bestätigte Downloads, aktuelle Features, bekannte Einschränkungen und Donate | ChatGPT Website + Owner | separater SamNPlayer-site-PR, verifizierte öffentliche Links |
+| G9 | Nach QA-/Owner-Freigabe Tag, Artefakte/Hashes, öffentliche Free-Downloads und Update-Smoketest prüfen | Claude + Owner | bestätigter Release-Tag, herunterladbare Free-Binaries, Website-Link |
 
 ## Priorisiertes Repository-Cleanup
 
-1. **Erst Integrationen und QA:** #520 und #489 nicht aus reiner Mergeability mergen. Funktionierende React/Wails/Go-Wege nicht für kosmetisches Cleanup unterbrechen.
-2. **Dokumentation isoliert korrigieren:** `docs/EDITIONS.md` und README sind im aktuellen Branch auf Free + Suite + Next 2.0 als Spenden-Freeware korrigiert. Diese Korrektur umfasst noch **keine** neue Veröffentlichung.
-3. **#510 behandeln:** historisches Konzept in Next-Level-Archiv überführen beziehungsweise in einer neuen bereinigten Fassung verlinken; ursprüngliche paid-Studio-PR nach Owner/Claude-Abgleich als ersetzt schließen, nicht in main mergen.
-4. **Branch-/PR-Aufräumen:** #509 hatte C1–C4 bereits integriert. Verwaiste GUI-PRs nur mit nachgewiesenem Supersession-Link schließen. Kein unkontrolliertes Löschen von History, Migrationsskripten, Tests, Drittanbieter-Nachweisen oder vorhandener Nutzerfunktion.
-5. **Öffentliches Release:** `SamNPlayer-site` zeigt nur verifizierte Free-Downloads. Interne Suite-Dateien, geheimen Code, Datensätze/Modelle und Benchmarks nicht versehentlich publizieren.
+1. **Integration und QA:** #489 nicht unverändert mergen; #532 und den tatsächlichen Release-Kandidaten prüfen. Mergeability allein ist keine Freigabe.
+2. **Dokumentation zusammenführen:** #521 integriert die README-Korrekturen und den vollständigen historischen Supersession-Abschnitt aus #530. #530 wird danach als durch #521 ersetzt geschlossen; kein zweiter Editions-Patch erforderlich.
+3. **#510 ist erledigt:** geschlossen ohne Merge. Historische Konzepte behalten; technische Vorschläge nur einzeln geprüft in eine Next-Roadmap übernehmen. Keine erneute Archivmigration oder Löschung voraussetzen.
+4. **Weitere PRs/Branches:** nur mit nachgewiesenem Supersession-Link schließen. Keine unkontrollierte Löschung von History, Tests, Migrationsskripten, Drittanbieter-Nachweisen oder Nutzerfunktionen.
+5. **Öffentliches Release:** ausschließlich verifizierte Free-Downloads; interne Suite-Dateien, Quellcode, Datensätze/Modelle und Benchmarks nicht versehentlich veröffentlichen.
 
 ## Definition of Done
 
-**Free ist fertig**, wenn alle G1–G9 abgenommen sind. `VERSION=0.6.0`, ein grüner einzelner Workflow oder fertige Zielbilder alleine sind keine Release-Bestätigung. Der Nutzer erhält eine verlässlich benutzbare Anwendung; neues Next-Level-Experimentieren blockiert die Free-Veröffentlichung nicht.
+**Free ist freigegeben**, wenn G1–G9 mit Belegen abgenommen sind.
+`VERSION=0.6.0`, ein einzelner grüner Workflow, ein Dokumentationsmerge oder
+Zielbilder alleine sind keine Release-Bestätigung.
 
-**Wichtiger Schnitt:** Spendenbutton bleibt in Free; keine 7-Tage-Sperren, keine versteckte Paywall, keine €40-Entitlement-Implementierung. Spätere Community-Vereinfachung (weniger KI, ohne Batch) ist eine *separate* Owner-freigegebene Änderung nach diesem Release, mit verlustfreier Datenmigration und ehrlichen Release-Notes.
+Spenden bleiben freiwillig: keine Paywall, keine Lizenzschlüssel, kein
+EUR-40-Entitlement und keine zeitliche Funktionssperre. Spätere Änderungen am
+Free-Funktionsumfang sind kein Bestandteil dieser Bereinigung und benötigen
+einen eigenen geprüften Owner-Auftrag einschließlich Migration und Regressionstests.

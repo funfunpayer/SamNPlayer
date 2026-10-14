@@ -10,6 +10,9 @@ measurement history behind each entry; this file is the short version for
 
 ### Fixed
 
+- **Player timeline:** the scene strip and the chapter bands are now as wide
+  as the curve (they were 30 px narrower), so markers, bands and the curve
+  share one time scale; the "+" sits inside the strip.
 - **Create queue:** a file name containing `<` no longer breaks the list
   (names are always shown as text).
 
@@ -18,11 +21,58 @@ measurement history behind each entry; this file is the short version for
 - **Editions renamed (Owner, 12 Oct):** **SamNPlayer Free** is the
   customer build; **SamNPlayer Suite** is our internal build with AI
   training and the batch test system (`-tags suite`, release files
-  `SamNPlayer-suite-…`, formerly "studio"). The future commercial product
-  is **SamNPlayer Next (Studio)**. See `docs/EDITIONS.md`.
+  `SamNPlayer-suite-…`, formerly "studio"). The next major version is
+  **SamNPlayer 2.0 Next**, also free, with no licence system. See
+  `docs/EDITIONS.md`.
 
 ### Added
 
+- **TCode over USB:** Tools → Device → "TCode over USB (OSR2 / SR6)" lists
+  this computer's serial ports and connects at 115200 baud. Stroke, extra
+  axes, the safety range and the emergency stop work as over Wi-Fi. New
+  component: `go.bug.st/serial` (BSD 3-Clause, see Third-party notices).
+- **Add an axis in Edit:** "+ Axis…" next to the axis picker starts a new
+  companion file (for example `clip.twist.funscript`), centred over the
+  script's length, and selects it for editing. Existing files are never
+  overwritten.
+- **Edit multi-axis companion files:** the extra axes beside a script
+  (`.twist`, `.roll` …) are now editable in Edit: they appear in the axis
+  picker and a click on their lane selects them. Point edits, range tools
+  and undo save back into that file. Other fields and the `inverted` flag
+  are kept.
+- **Per-motor levels:** with a multi-motor device connected (LELO F1S
+  V3: two motors), Player → Inspector → Devices shows one level per motor.
+  It applies live, is saved, and is restored on the next connect.
+- **Multi-axis output for TCode devices:** an SR6 / OSR2 connected via
+  TCode over Wi-Fi now also moves its extra axes from the companion files
+  (`.surge` → L1, `.sway` → L2, `.twist` → R0, `.roll` → R1, `.pitch` →
+  R2), in sync with the stroke. "Send stroke to the device" off stops them
+  too.
+- **TCode over Wi-Fi (D5):** Tools → Device → "TCode over Wi-Fi (OSR2 /
+  SR6)" connects to a TCode device with network firmware (UDP or TCP, port
+  8000 by default). The stroke (L0) follows the script within the stroke
+  safety range; pause and emergency stop send `DSTOP`. USB serial is not
+  included yet.
+- **Multi-axis scripts (D4):** companion files beside a script
+  (`clip.surge.funscript`, `.sway`, `.twist`, `.roll`, `.pitch`) now show as
+  extra lanes in the Player, each in its own colour.
+- **Stroke safety range (D3):** with a stroker connected, Player →
+  Inspector → Devices shows "Send stroke to the device" and a bottom / top
+  range; the device only moves inside it (the script's stroke is scaled
+  into it), also while playing. Rows for channels the connected device does
+  not have are hidden.
+- **Strokers and multi-motor devices (D2):** over Intiface, a stroker such
+  as The Handy now gets the script's real stroke positions (`LinearCmd`,
+  in sync with the video, honouring speed, stopping on pause). Every
+  vibration motor is driven (LELO F1S V3: both), rotating devices follow
+  the vibration curve (`RotateCmd`). Tested against a Buttplug test server;
+  hardware test pending.
+- **Tools → Home:** Tools now opens on a home page with the app's real
+  status: device (live), runtime dependencies such as ffmpeg (a missing
+  required one is red, a missing optional one amber), app folders, the
+  last device diagnostics run, cache, and version / edition. "Check again"
+  re-runs the checks. Quick tools open Device, Log, Settings, the log
+  folder, a script, or the update check; recent scripts open in the Player.
 - **Player → Scene Map tab:** the script's chapters as scenes. A grid
   shows one card per scene (video thumbnail, name, range, duration); the
   details pane shows the selected scene's range, position (n / N),

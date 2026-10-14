@@ -26,6 +26,10 @@ export function SaveVideoSnapshot(arg1:number):Promise<string>;
 export function SetChannelLevels(arg1:number,arg2:number):Promise<void>;
 
 export function SetPeakReduce(arg1:boolean):Promise<void>;
+export function SetStrokeOutput(arg1:boolean,arg2:number,arg3:number):Promise<Array<number>>;
+export function SetMotorLevels(arg1:Record<string, number>):Promise<void>;
+export function CreateScriptAxis(arg1:string):Promise<string>;
+export function ListSerialPorts():Promise<Array<string>>;
 export function SetPlaybackSpeed(arg1:number):Promise<number>;
 export function SuggestROICandidates(arg1:string):Promise<void>;
 export function ListAIDetections(arg1:string,arg2:number):Promise<void>;

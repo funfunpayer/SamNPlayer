@@ -63,6 +63,14 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 		if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
 			return err
 		}
+		if p.linearDevice() != nil {
+			// A stroker halts where it is; the next position resends.
+			if err := p.Device.Stop(); err != nil {
+				return err
+			}
+			p.resetStroke()
+			p.resetAxes()
+		}
 		quiet = true
 		return nil
 	}
@@ -120,6 +128,12 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 					continue
 				}
 			} else if err := p.setOutput(f); err != nil {
+				return err
+			}
+			if err := p.driveStroke(posMs); err != nil {
+				return err
+			}
+			if err := p.driveAxes(posMs); err != nil {
 				return err
 			}
 			firstFrame, quiet = false, false

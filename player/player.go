@@ -58,6 +58,13 @@ type Player struct {
 
 	lastSyncPosMs int64
 
+	// Stroke output for linear devices (stroke.go). strokeNext: index of
+	// the action the device is moving to, -1 = none sent.
+	stroke     []funscript.Action
+	strokeNext int
+	// Extra axes for multi-axis devices (axes.go).
+	axes map[string]*axisTrack
+
 	// Playback speed (V1: 0.5×–2×). The clock maps real time to script
 	// time as scriptMs = anchorScriptMs + (now - anchorReal) × speed, so a
 	// speed change mid-play re-anchors at the current script position and
@@ -84,6 +91,12 @@ type Player struct {
 	sucCut float64
 	// peakReduce: soft limiter on vibration / suction (Effects → Reduce peaks).
 	peakReduce bool
+	// Stroke output settings (stroke.go), zero value = on, full range:
+	// strokeOff switches positions off; the device moves only between
+	// strokeLo and 1 - strokeHiCut (safety range, Inspector → Devices).
+	strokeOff   bool
+	strokeLo    float64
+	strokeHiCut float64
 }
 
 // Reduce peaks: values up to PeakKnee pass unchanged, everything above is
@@ -119,6 +132,7 @@ func New(dev device.Device) *Player {
 	return &Player{
 		Device:      dev,
 		extendedOCh: make(chan ExtendedOOptions, 1),
+		strokeNext:  -1,
 	}
 }
 
@@ -301,6 +315,12 @@ func (p *Player) Play(ctx context.Context, frames []funscript.Frame) error {
 
 		if err := p.setOutput(f); err != nil {
 			return fmt.Errorf("player: Ausgabe bei t=%dms: %w", f.At, err)
+		}
+		if err := p.driveStroke(f.At); err != nil {
+			return fmt.Errorf("player: Hub bei t=%dms: %w", f.At, err)
+		}
+		if err := p.driveAxes(f.At); err != nil {
+			return fmt.Errorf("player: Achsen bei t=%dms: %w", f.At, err)
 		}
 
 		if p.LogEvery > 0 && time.Since(lastLog) >= p.LogEvery {

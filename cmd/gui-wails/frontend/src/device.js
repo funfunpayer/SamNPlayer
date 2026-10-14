@@ -1,4 +1,4 @@
-import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory } from '../wailsjs/go/main/App';
+import { GetDeviceStatus, ConnectDevice, DisconnectDevice, TestVibration, TestSuction, TestStop, TestRawValue, ConnectDeviceVia, GetSettings, RunDeviceDiagnostics, GetDiagnosticsHistory, ListSerialPorts } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { wireDataHelp } from './help.js';
 import { uiError } from './notify.js';
@@ -37,10 +37,18 @@ export function initDevice(root) {
         data-help="BLE = direct Bluetooth. Intiface = via Buttplug server (other devices too). Mock = UI without hardware.">
         <option value="ble">Direct via Bluetooth</option>
         <option value="intiface">Via Intiface Central</option>
+        <option value="tcode">TCode over Wi-Fi (OSR2 / SR6)</option>
+        <option value="tcode-serial">TCode over USB (OSR2 / SR6)</option>
         <option value="mock">Mock device (no hardware)</option>
       </select>
       <input type="text" id="dev-intiface-url" placeholder="e.g. 192.168.1.50 or empty = this machine"
              style="display:none; width:220px;" />
+      <input type="text" id="dev-tcode-addr" placeholder="e.g. 192.168.1.50 or tcp://osr.local:8000"
+             style="display:none; width:240px;" aria-label="TCode device address" />
+      <span id="dev-serial-wrap" style="display:none;">
+        <select id="dev-serial-port" aria-label="Serial port" style="width:auto;"></select>
+        <button type="button" id="dev-serial-refresh" title="Look for serial ports again">Refresh</button>
+      </span>
     </div>
     <p class="hint" id="dev-transport-hint">Searches up to 20 s for “Sam Neo 2”.</p>
 
@@ -231,6 +239,9 @@ export function initDevice(root) {
     el('#dev-disconnect').disabled = !st.connected || busy;
     el('#dev-transport').disabled = st.connected || busy;
     el('#dev-intiface-url').disabled = st.connected || busy;
+    el('#dev-tcode-addr').disabled = st.connected || busy;
+    el('#dev-serial-port').disabled = st.connected || busy;
+    el('#dev-serial-refresh').disabled = st.connected || busy;
 
     // Sidebar + Topbar hören auf dasselbe Event (ein Poll, mehrere Anzeigen).
     window.dispatchEvent(new CustomEvent('device:status', { detail: st }));
@@ -245,11 +256,42 @@ export function initDevice(root) {
     }
   }
 
+  // TCode over USB: the computer's serial ports (real list, never guessed).
+  let wantedPort = '';
+  async function loadSerialPorts() {
+    const sel = el('#dev-serial-port');
+    const keep = sel.value || wantedPort;
+    let ports = [];
+    try { ports = await ListSerialPorts(); } catch (err) { log('Serial ports: ' + err); }
+    sel.replaceChildren();
+    if (!ports || !ports.length) {
+      sel.appendChild(new Option('No serial port found', ''));
+    } else {
+      for (const p of ports) sel.appendChild(new Option(p, p));
+      if (ports.includes(keep)) sel.value = keep;
+    }
+  }
+  el('#dev-serial-refresh').addEventListener('click', loadSerialPorts);
+
   // Erklärung und Adressfeld to die gewählte Verbindungsart anpassen.
   el('#dev-transport').addEventListener('change', e => {
     const intiface = e.target.value === 'intiface';
+    const tcode = e.target.value === 'tcode';
+    const serial = e.target.value === 'tcode-serial';
     el('#dev-intiface-url').style.display = intiface ? 'inline-block' : 'none';
-    el('#dev-transport-hint').innerHTML = intiface
+    el('#dev-tcode-addr').style.display = tcode ? 'inline-block' : 'none';
+    el('#dev-serial-wrap').style.display = serial ? 'inline-flex' : 'none';
+    if (serial) loadSerialPorts();
+    el('#dev-transport-hint').innerHTML = serial
+      ? 'Sends TCode to an OSR2 / SR6 (or other TCode device) over its USB cable at 115200 baud. '
+      + 'Choose its port (COM… on Windows, /dev/tty… on Linux / macOS). Close other programs that '
+      + 'use the port (e.g. MultiFunPlayer) first. The stroke and any extra-axis files follow the script.'
+      : tcode
+      ? 'Sends TCode to an OSR2 / SR6 (or other TCode device) running Wi-Fi firmware. '
+      + 'Enter its IP address; plain addresses use UDP port 8000, or write tcp://host:port. '
+      + 'UDP has no handshake: if the device does not move, check the address and firmware settings. '
+      + 'The stroke (L0) follows the script; extra axes come later.'
+      : intiface
       ? 'Connects via a running Buttplug server. Start Intiface Central, '
       + 'connect the device there and start the server. Benefit: no dedicated '
       + 'Bluetooth adapter, and it works with any Buttplug-supported '
@@ -268,8 +310,11 @@ export function initDevice(root) {
     el('#dev-connect').disabled = true;
     render({ connected: false, sessionActive: false });
     try {
-      const st = await ConnectDeviceVia(el('#dev-transport').value,
-                                        el('#dev-intiface-url').value.trim());
+      const transport = el('#dev-transport').value;
+      const address = transport === 'tcode' ? el('#dev-tcode-addr').value.trim()
+        : transport === 'tcode-serial' ? el('#dev-serial-port').value
+        : el('#dev-intiface-url').value.trim();
+      const st = await ConnectDeviceVia(transport, address);
       searching = false;
       busy = false;
       render(st);
@@ -448,11 +493,13 @@ export function initDevice(root) {
 
   // Zuletzt benutzte Verbindungsart und Adresse wiederherstellen.
   GetSettings().then(s => {
+    if (s.tcodeSerialPort) wantedPort = s.tcodeSerialPort;
     if (s.deviceTransport) {
       el('#dev-transport').value = s.deviceTransport;
       el('#dev-transport').dispatchEvent(new Event('change'));
     }
     if (s.intifaceUrl) el('#dev-intiface-url').value = s.intifaceUrl;
+    if (s.tcodeAddress) el('#dev-tcode-addr').value = s.tcodeAddress;
   }).catch(() => {});
 
   refresh();

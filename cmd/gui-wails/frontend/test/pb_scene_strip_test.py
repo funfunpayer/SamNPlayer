@@ -67,6 +67,12 @@ def main():
             check("unreadable frame shows the Flow placeholder",
                   page.evaluate("[...document.querySelectorAll('.pb-scene-thumb.is-placeholder')].map(i => i.src.endsWith('/scene-placeholder.svg'))") == [True])
             check("toggle remembered", page.evaluate("localStorage.getItem('pb.scenes')") == "1")
+            widths = page.evaluate("['#pb-curve', '#pb-scene-strip'].map(s => Math.round(document.querySelector(s).getBoundingClientRect().width))")
+            check("strip as wide as the curve (same time scale)", widths[0] == widths[1] and widths[0] > 0, str(widths))
+            check("+ sits inside the strip", page.evaluate(
+                "(() => { const s = document.querySelector('#pb-scene-strip').getBoundingClientRect();"
+                " const b = document.querySelector('#pb-scene-add').getBoundingClientRect();"
+                " return b.left >= s.left && b.right <= s.right; })()"))
             marks = page.query_selector_all(".pb-scene-mark")
             check("one diamond per chapter", len(marks) == 1)
             left = page.evaluate("document.querySelector('.pb-scene-mark').style.left")

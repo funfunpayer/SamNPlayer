@@ -1,20 +1,28 @@
-# Editions — SamNPlayer Free, SamNPlayer Suite, SamNPlayer Next
+# Editions — SamNPlayer Free, SamNPlayer Suite, SamNPlayer 2.0 Next
 
-## Product lines (Owner, 12 Oct 2026)
+## Product lines (Owner, 12 Oct 2026; Next updated the same day)
 
 | Name | What it is | In the code |
 |---|---|---|
 | **SamNPlayer Free** | The software for customers. | Default build (no tag), edition name `free` |
 | **SamNPlayer Suite** | **Our internal extended version** with AI training and the batch test system. It keeps the name "Suite". | `-tags suite`, edition name `suite` |
-| **SamNPlayer Next Level 2.0** | Future donation-supported freeware, developed as a separate software generation using proven parts of SamNPlayer. **No paid unlock or licence-key plan.** | Separate public [project and roadmap](https://github.com/funfunpayer/SamNPlayer-Next-Level); not yet released |
+| **SamNPlayer 2.0 Next** | The next major version. It is **free** like today's app, with no licence-key system. Suite features are carried over into it. | Not built yet. Product decision: [PR #520](https://github.com/funfunpayer/SamNPlayer/pull/520); [PR #510](https://github.com/funfunpayer/SamNPlayer/pull/510) is historical and superseded. |
 
 Rules:
 - **Free stays free.** Free is also our test system.
 - **Which features later move out of Free** (for example batch processing) is the Owner's decision alone.
 - **Safety stays in every edition:** emergency stop and device limits.
-- **Both Free and Next Level 2.0 are free and supported by voluntary donations.** There is no paid Studio product, €40 unlock, compulsory subscription or timed trial planned. The historical paid-Studio proposal in PR #510 is superseded.
-- The previously proposed seven-day feature preview was cancelled; PR #515 was closed without merge.
-- Later Free scope reductions (smaller AI surface and removal of permanent batch) require their own reviewed change, migration documentation and regression tests; they are **not part of the current Free release**.
+- **Next costs nothing** and has no paid unlock or licence-key system (Owner, 12 Oct). Its planned release name is **SamNPlayer 2.0 Next**. The earlier plan for a commercial "Next (Studio)" with licences is dropped.
+- The seven-day feature-preview proposal was cancelled; [PR #515](https://github.com/funfunpayer/SamNPlayer/pull/515) was closed without merge. No timed feature expiry is planned.
+- Any later Free scope reduction requires a separate Owner decision, reviewed change, migration documentation and regression tests; it is **not part of the current Free release**.
+
+## Historical paid-Studio proposal (superseded 13 Oct 2026)
+
+- **Free and SamNPlayer 2.0 Next are free and supported by voluntary donations.** No paid unlock, licence-key plan, guaranteed access for contributions above EUR 40, paid upgrade or expiring premium preview is planned.
+- [PR #510](https://github.com/funfunpayer/SamNPlayer/pull/510) was closed without merge on Owner instruction. Its commercial proposal, including the section 11 Owner Addendum, is superseded by the later decision recorded in [PR #520](https://github.com/funfunpayer/SamNPlayer/pull/520). The five original concept documents and discussion remain in the PR history.
+- Technical ideas (editor/axis schemas, undo, format compatibility, device safety, optional local AI, benchmarks and batch recovery) may be extracted into a separately reviewed Next roadmap as proposals, not release or feature commitments.
+- This documentation cleanup does not remove current Free features, change the EULA or source licence, or approve a release. Later Free scope changes require a separate Owner decision and reviewed migration.
+- [PR #521](https://github.com/funfunpayer/SamNPlayer/pull/521) consolidates the Free release documentation and the supersession record from [PR #530](https://github.com/funfunpayer/SamNPlayer/pull/530); its QA and release gates require their own evidence.
 
 ## Free vs Suite today
 

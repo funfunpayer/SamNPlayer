@@ -59,12 +59,15 @@ func (f *fakeButtplug) names() []string {
 	return out
 }
 
-func (f *fakeButtplug) scalarCommands() []map[string]any {
+func (f *fakeButtplug) scalarCommands() []map[string]any { return f.commands("ScalarCmd") }
+
+// commands returns the bodies of every received message of that name.
+func (f *fakeButtplug) commands(name string) []map[string]any {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var out []map[string]any
 	for _, message := range f.received {
-		raw, ok := message["ScalarCmd"]
+		raw, ok := message[name]
 		if !ok {
 			continue
 		}
@@ -136,7 +139,7 @@ func (f *fakeButtplug) handler() http.HandlerFunc {
 						_ = conn.WriteJSON([]any{map[string]any{"BatteryLevelReading": map[string]any{
 							"Id": id, "DeviceIndex": body["DeviceIndex"], "BatteryLevel": 0.73,
 						}}})
-					case "StartScanning", "StopScanning", "Ping", "ScalarCmd", "StopDeviceCmd":
+					case "StartScanning", "StopScanning", "Ping", "ScalarCmd", "LinearCmd", "RotateCmd", "StopDeviceCmd":
 						_ = conn.WriteJSON([]any{map[string]any{"Ok": map[string]any{"Id": id}}})
 					}
 				}

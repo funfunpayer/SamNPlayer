@@ -63,6 +63,8 @@ def main():
             names = page.evaluate(f"{bands}.map(b => b.textContent)")
             check("one band per chapter in time order, names as text", names == ["Intro", "Build <b>up</b>", "Peak"], str(names))
             check("no HTML from a chapter name", page.evaluate("!document.querySelector('#pb-chapter-bands b')"))
+            bw = page.evaluate("['#pb-curve', '#pb-chapter-bands'].map(s => Math.round(document.querySelector(s).getBoundingClientRect().width))")
+            check("bands as wide as the curve (same time scale)", bw[0] == bw[1] and bw[0] > 0, str(bw))
             ranges = page.evaluate(f"{bands}.map(b => [+b.dataset.start, +b.dataset.end])")
             check("open ends run to the next chapter / script end",
                   ranges == [[0, 30000], [30000, 70000], [70000, 100000]], str(ranges))

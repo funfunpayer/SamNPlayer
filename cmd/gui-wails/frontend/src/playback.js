@@ -2,7 +2,7 @@ import {
   PickFunscriptFile, LoadFunscript, StartPlayback, StopPlayback,
   TriggerExtendedO, EstimatePlaybackAudioBPM, BakeScriptOffset, VideoFileURL, GetHeatmap, GetScriptCurve, GetVibrationCurvePreview, AnalyzeScript, SetScriptOffset, GetScriptOffset, GetMarker, SaveMarker,
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
-  GetScriptAxisActions, SaveScriptAxisActions, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
+  GetScriptAxisActions, SaveScriptAxisActions, CreateScriptAxis, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
   OptimizeLoadedForNeo2,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
@@ -228,6 +228,8 @@ export function initPlayback(root) {
             <option value="vibration">Vibration</option>
             <option value="suction">Suction</option>
           </select>
+          <select id="pb-axis-add" style="width:auto;" title="Start a new multi-axis file beside the script (name.twist.funscript …), centred, to shape in Edit"
+            aria-label="Add axis"><option value="">+ Axis…</option></select>
           <label style="width:auto;" data-help="Recipe derives Neo 2 from general. Axes plays explicit vibration/suction curves.">Drive</label>
           <select id="pb-playback-source" style="width:auto;">
             <option value="recipe">Recipe</option>
@@ -650,13 +652,21 @@ export function initPlayback(root) {
     const cs = getComputedStyle(root);
     const tok = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
     for (const axis of Object.keys(AXIS_DEFAULTS)) AXIS_COLORS[axis] = tok(AXIS_TOKENS[axis], AXIS_DEFAULTS[axis]);
+    for (const axis of Object.keys(COMPANION_DEFAULTS)) COMPANION_COLORS[axis] = tok('--axis-' + axis, COMPANION_DEFAULTS[axis]);
     THEME.playhead = tok('--pb-playhead', '#ffffff');
     THEME.grid = tok('--pb-grid', 'rgba(255,255,255,0.10)');
     const w = parseFloat(tok('--pb-curve-width', '1.5'));
     THEME.curveWidth = Number.isFinite(w) && w > 0 ? w : 1.5;
   }
   const AXIS_LABELS = { general: 'Stroke', vibration: 'Vibration', suction: 'Suction' };
-  const LANE_AXES = ['vibration', 'suction'];
+  // Multi-axis companion files beside the script (D4: clip.twist.funscript …),
+  // shown read-only as extra lanes; the lane colours follow CSS tokens.
+  const COMPANION_AXES = ['surge', 'sway', 'twist', 'roll', 'pitch'];
+  const COMPANION_DEFAULTS = { surge: '#e5c07b', sway: '#98c379', twist: '#e06c9f', roll: '#61afef', pitch: '#d19a66' };
+  const COMPANION_COLORS = { ...COMPANION_DEFAULTS };
+  for (const a of COMPANION_AXES) AXIS_LABELS[a] = a[0].toUpperCase() + a.slice(1);
+  const LANE_AXES = ['vibration', 'suction', ...COMPANION_AXES];
+  const laneColor = axis => AXIS_COLORS[axis] || COMPANION_COLORS[axis];
   const AUDIO_STEP_MS = 50;          // GetAudioLevelEnvelope resolution
   let audioLevel = null;             // [0..1] per AUDIO_STEP_MS, current video
   let audioLevelFor = '';            // script+video key the envelope belongs to
@@ -1885,7 +1895,7 @@ export function initPlayback(root) {
       }
     }
 
-    const axisColor = AXIS_COLORS[editAxis] || AXIS_COLORS.general;
+    const axisColor = laneColor(editAxis) || AXIS_COLORS.general;
     // Showing a feel channel: keep the stroke as a faint ghost for timing.
     if (strokeGhostPoints && strokeGhostPoints.length >= 2) {
       ctx.strokeStyle = AXIS_COLORS.general;
@@ -1972,7 +1982,7 @@ export function initPlayback(root) {
   // One thin lane per channel the script carries (vibration / suction), same
   // time axis and zoom as the curve, so all axes read together at a glance.
   async function loadAxisLanes() {
-    const next = { vibration: null, suction: null };
+    const next = {};
     for (const axis of LANE_AXES) {
       try {
         const acts = await GetScriptAxisActions(axis);
@@ -1983,14 +1993,48 @@ export function initPlayback(root) {
       }
     }
     axisLanePoints = next;
+    syncCompanionOptions();
     strokeGhostPoints = null;
     if (editAxis && editAxis !== 'general' && axisLanePoints[editAxis]) {
       try { strokeGhostPoints = await GetScriptCurve(CURVE_MAX_POINTS); } catch (err) { strokeGhostPoints = null; }
     }
   }
 
+  // Companion axes that exist beside the script become editable: they get
+  // an entry in the axis picker (lane click / ↑↓ / Edit then work as for
+  // vibration and suction). A missing file removes the entry again.
+  function syncCompanionOptions() {
+    const sel = el('#pb-axis');
+    if (!sel) return;
+    for (const axis of COMPANION_AXES) {
+      let opt = sel.querySelector(`option[value="${axis}"]`);
+      const have = !!axisLanePoints[axis];
+      if (have && !opt) {
+        opt = document.createElement('option');
+        opt.value = axis;
+        opt.textContent = AXIS_LABELS[axis];
+        sel.appendChild(opt);
+      } else if (!have && opt) {
+        if (sel.value === axis) { sel.value = 'general'; editAxis = 'general'; }
+        opt.remove();
+      }
+    }
+    // "+ Axis…" offers the companion axes that have no file yet.
+    const add = el('#pb-axis-add');
+    if (add) {
+      add.replaceChildren(new Option('+ Axis…', ''));
+      for (const axis of COMPANION_AXES) {
+        if (!axisLanePoints[axis]) add.appendChild(new Option(AXIS_LABELS[axis], axis));
+      }
+      add.hidden = add.options.length < 2;
+      add.value = '';
+    }
+  }
+  const isEditableAxis = axis => !!AXIS_COLORS[axis]
+    || (COMPANION_AXES.includes(axis) && !!el(`#pb-axis option[value="${axis}"]`));
+
   function clearAxisLanes() {
-    axisLanePoints = { vibration: null, suction: null };
+    axisLanePoints = {};
     strokeGhostPoints = null;
     redrawAxisLanes();
   }
@@ -2016,7 +2060,7 @@ export function initPlayback(root) {
     }
     const active = editAxis || 'general';
     if (legend) {
-      legend.hidden = !feelLanes.length;
+      legend.hidden = !feelLanes.some(a => AXIS_COLORS[a]); // chips: editable axes only
       legend.querySelectorAll('[data-axis]').forEach(b => {
         const a = b.dataset.axis;
         b.hidden = a !== 'general' && !axisLanePoints[a];
@@ -2053,7 +2097,7 @@ export function initPlayback(root) {
         return;
       }
       const yOf = pos => top + pad + (1 - pos / 100) * (laneH - pad * 2);
-      const color = AXIS_COLORS[axis];
+      const color = laneColor(axis);
       if (axis === active) {
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         ctx.fillRect(0, top, w, laneH);
@@ -2460,7 +2504,7 @@ export function initPlayback(root) {
 
   function selectAxis(axis) {
     const sel = el('#pb-axis');
-    if (!sel || !AXIS_COLORS[axis] || (editAxis || 'general') === axis) return;
+    if (!sel || !isEditableAxis(axis) || (editAxis || 'general') === axis) return;
     sel.value = axis;
     sel.dispatchEvent(new Event('change'));
   }
@@ -4913,7 +4957,7 @@ export function initPlayback(root) {
     selectAxis(chips[j].dataset.axis);
   });
   axisLanesCanvas.addEventListener('keydown', e => {
-    const lanes = lanesDrawn.filter(a => a !== 'audio');
+    const lanes = lanesDrawn.filter(isEditableAxis);
     if (!lanes.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     const cur = lanes.indexOf(editAxis);
@@ -4928,6 +4972,26 @@ export function initPlayback(root) {
     const i = Math.floor(((e.clientY - rect.top) / Math.max(1, rect.height)) * lanes.length);
     const lane = lanes[Math.max(0, Math.min(lanes.length - 1, i))];
     if (lane && lane !== 'audio') selectAxis(lane);
+  });
+  el('#pb-axis-add')?.addEventListener('change', async e => {
+    const axis = e.target.value;
+    if (!axis) return;
+    e.target.disabled = true;
+    try {
+      const path = await CreateScriptAxis(axis);
+      log('New axis file: ' + String(path).split(/[\\/]/).pop());
+      await drawCurve(); // reloads the lanes and the axis picker
+      const sel = el('#pb-axis');
+      if (sel && sel.querySelector(`option[value="${axis}"]`)) {
+        sel.value = axis;
+        sel.dispatchEvent(new Event('change'));
+      }
+    } catch (err) {
+      logError('Add axis: ' + err);
+    } finally {
+      e.target.disabled = false;
+      e.target.value = '';
+    }
   });
   if (el('#pb-axis')) {
     el('#pb-axis').addEventListener('change', async () => {

@@ -30,10 +30,9 @@ import (
 // Protokollbeschreibung, nicht durch Übernahme fremden Codes. Nachrichten
 // sind JSON-Objekte, jede in ein Array verpackt, mit fortlaufender Id.
 //
-// Bewusst nicht umgesetzt: Geräteauswahl per Index, Linear- und
-// Rotationsbefehle. Sensoren nur für den Akku (BatteryLevelCmd), wenn das
-// Gerät ihn meldet. Wir brauchen genau zwei Steuerkanäle auf dem ersten
-// gefundenen Gerät - alles andere wäre Vorrat ohne Nutzung.
+// Driven (D2): every vibration motor, suction, rotation and the stroke
+// position (LinearCmd) of the first device found. Not done: choosing a
+// device by index. Sensors: battery only (BatteryLevelCmd), if listed.
 type Intiface struct {
 	url string
 
@@ -51,13 +50,15 @@ type Intiface struct {
 	// einen ScalarCmd ab, dessen ActuatorType nicht zum Feature passt.
 	constrictActuator string
 	// features: every channel the adopted device lists (D1), driven or not.
-	features   []Feature
-	deviceName string
-	connected  bool
-	hasBattery bool
-	batteryPct int
-	batteryOK  bool
-	batteryAt  time.Time
+	features []Feature
+	// motorLevels: per-motor output level (channel id → 0–1), default 1.
+	motorLevels map[string]float64
+	deviceName  string
+	connected   bool
+	hasBattery  bool
+	batteryPct  int
+	batteryOK   bool
+	batteryAt   time.Time
 
 	stopPing chan struct{}
 	// batteryCh bekommt BatteryLevelReading-Werte von readLoop (je
@@ -223,13 +224,13 @@ func (i *Intiface) adoptDevice(body map[string]any) {
 			}
 		}
 	}
-	features := buttplugFeatures(messages, i.vibrateIdx, i.constrictIdx)
+	features := buttplugFeatures(messages, i.constrictIdx)
 	if len(features) == 0 {
 		logging.Warn("intiface: device skipped (no usable channels)", "device", name)
 		return
 	}
-	// Strokers (e.g. The Handy: LinearCmd only) are adopted too, so the GUI
-	// can show their channels; driving linear / rotate comes with D2.
+	// Strokers (e.g. The Handy: LinearCmd only) are adopted too; the player
+	// sends them the stroke positions (SetPosition, D2).
 	i.features = features
 	// Akku nur anbieten, wenn Buttplug BatteryLevelCmd listet.
 	if _, ok := messages["BatteryLevelCmd"]; ok {
@@ -429,65 +430,158 @@ func (i *Intiface) pingLoop(stop chan struct{}) {
 	}
 }
 
-func (i *Intiface) scalar(index int, value float64) error {
+// command sends one message built by build (called under i.mu, so it sees
+// the current device index); on a dead socket it reconnects once and
+// retries. build returning nil = nothing to send on this device.
+func (i *Intiface) command(build func() map[string]any) error {
 	i.mu.Lock()
 	if err := i.ensureConnectedLocked(); err != nil {
 		i.mu.Unlock()
 		return err
 	}
-	if index < 0 {
+	msg := build()
+	if msg == nil {
 		i.mu.Unlock()
-		return nil // Kanal auf diesem Gerät nicht vorhanden
+		return nil
 	}
-	if value < 0 {
-		value = 0
+	_, err := i.send(msg)
+	i.mu.Unlock()
+	if err == nil {
+		return nil
 	}
-	if value > 1 {
-		value = 1
-	}
-	actuator := "Vibrate"
-	if index == i.constrictIdx {
-		actuator = i.constrictActuator
-		if actuator == "" {
-			actuator = "Constrict"
-		}
-	}
-	_, err := i.send(map[string]any{"ScalarCmd": map[string]any{
-		"DeviceIndex": i.deviceIdx,
-		"Scalars": []any{map[string]any{
-			"Index": index, "Scalar": value, "ActuatorType": actuator,
-		}},
-	}})
-	if err != nil {
-		// Dead socket — one-shot reconnect + single retry.
-		i.mu.Unlock()
-		if ok, _ := i.TryReconnectOnce(context.Background()); !ok {
-			return err
-		}
-		i.mu.Lock()
-		if !i.connected || i.conn == nil {
-			i.mu.Unlock()
-			return err
-		}
-		_, err = i.send(map[string]any{"ScalarCmd": map[string]any{
-			"DeviceIndex": i.deviceIdx,
-			"Scalars": []any{map[string]any{
-				"Index": index, "Scalar": value, "ActuatorType": actuator,
-			}},
-		}})
-		i.mu.Unlock()
+	// Dead socket — one-shot reconnect + single retry.
+	if ok, _ := i.TryReconnectOnce(context.Background()); !ok {
 		return err
 	}
-	i.mu.Unlock()
-	return nil
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if !i.connected || i.conn == nil {
+		return err
+	}
+	if msg = build(); msg == nil {
+		return nil
+	}
+	_, err = i.send(msg)
+	return err
 }
 
+func clampUnit(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+// scalarsFor lists the ScalarCmd entries for one curve: "vibration" drives
+// every driven scalar except suction, "suction" the suction feature only.
+// Caller holds i.mu.
+func (i *Intiface) scalarsFor(curve string, value float64) []any {
+	var out []any
+	for _, f := range i.features {
+		if f.Kind != KindScalar || !f.Driven {
+			continue
+		}
+		isSuction := f.Index == i.constrictIdx
+		if (curve == ChSuction) != isSuction {
+			continue
+		}
+		out = append(out, map[string]any{"Index": f.Index, "Scalar": value * i.motorLevelLocked(f.Channel), "ActuatorType": f.Actuator})
+	}
+	return out
+}
+
+// motorLevelLocked: the per-motor level of channel (1 when unset). Caller holds i.mu.
+func (i *Intiface) motorLevelLocked(channel string) float64 {
+	if l, ok := i.motorLevels[channel]; ok {
+		return l
+	}
+	return 1
+}
+
+// SetMotorLevel sets one motor's level (0–1), also while playing; it takes
+// effect with the next command.
+func (i *Intiface) SetMotorLevel(channel string, level float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if i.motorLevels == nil {
+		i.motorLevels = map[string]float64{}
+	}
+	i.motorLevels[channel] = clampUnit(level)
+}
+
+// SetVibration drives every vibration motor (LELO F1S V3: both), other
+// intensity scalars (Oscillate, Rotate) and rotating features (RotateCmd).
 func (i *Intiface) SetVibration(intensity float64) error {
-	return i.scalar(i.vibrateIdx, intensity)
+	v := clampUnit(intensity)
+	if err := i.command(func() map[string]any {
+		if scalars := i.scalarsFor(ChVibration, v); len(scalars) > 0 {
+			return map[string]any{"ScalarCmd": map[string]any{"DeviceIndex": i.deviceIdx, "Scalars": scalars}}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return i.command(func() map[string]any {
+		var rotations []any
+		for _, f := range i.features {
+			if f.Kind == KindRotate && f.Driven {
+				rotations = append(rotations, map[string]any{"Index": f.Index, "Speed": v * i.motorLevelLocked(f.Channel), "Clockwise": true})
+			}
+		}
+		if len(rotations) == 0 {
+			return nil
+		}
+		return map[string]any{"RotateCmd": map[string]any{"DeviceIndex": i.deviceIdx, "Rotations": rotations}}
+	})
 }
 
 func (i *Intiface) SetSuction(intensity float64) error {
-	return i.scalar(i.constrictIdx, intensity)
+	v := clampUnit(intensity)
+	return i.command(func() map[string]any {
+		if scalars := i.scalarsFor(ChSuction, v); len(scalars) > 0 {
+			return map[string]any{"ScalarCmd": map[string]any{"DeviceIndex": i.deviceIdx, "Scalars": scalars}}
+		}
+		return nil
+	})
+}
+
+// linearIndexLocked: the driven LinearCmd feature, -1 if none.
+func (i *Intiface) linearIndexLocked() int {
+	for _, f := range i.features {
+		if f.Kind == KindLinear && f.Driven {
+			return f.Index
+		}
+	}
+	return -1
+}
+
+// HasLinear reports a driven linear channel (The Handy and other strokers).
+func (i *Intiface) HasLinear() bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.linearIndexLocked() >= 0
+}
+
+// SetPosition sends a LinearCmd: move to pos (0–1) within duration.
+func (i *Intiface) SetPosition(pos float64, duration time.Duration) error {
+	p := clampUnit(pos)
+	ms := duration.Milliseconds()
+	if ms < 1 {
+		ms = 1
+	}
+	return i.command(func() map[string]any {
+		idx := i.linearIndexLocked()
+		if idx < 0 {
+			return nil
+		}
+		return map[string]any{"LinearCmd": map[string]any{
+			"DeviceIndex": i.deviceIdx,
+			"Vectors":     []any{map[string]any{"Index": idx, "Duration": ms, "Position": p}},
+		}}
+	})
 }
 
 func (i *Intiface) Stop() error {

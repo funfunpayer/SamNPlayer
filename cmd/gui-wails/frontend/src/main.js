@@ -21,14 +21,16 @@ import { enhanceGeneratorPreview } from './roi_help.js';
 import { enhancePlaybackOZone } from './ozone_ui.js';
 import { initPostGenerateReview } from './postgen.js';
 import { ensureEULAAccepted } from './legal.js';
+import { initToolsHome } from './tools_home.js';
 import { GetDonateLinks, IsSuiteBuild } from '../wailsjs/go/main/App';
 
 // Owner 11 Oct (#475): main tabs Play · Generator · Training · Tools.
 // Tools bundles Device, Log, Settings (+ suite Bench / AI Train) behind a
 // sub-navigation; every panel and data-tab name stays the same, so
 // switchTab('device') and `.tab-btn[data-tab="log"]` keep working.
-const TOOLS_SECTIONS = new Set(['device', 'log', 'settings', 'benchmark', 'roi-training']);
-let lastToolsSection = 'device';
+const TOOLS_SECTIONS = new Set(['tools-home', 'device', 'log', 'settings', 'benchmark', 'roi-training']);
+let lastToolsSection = 'tools-home';
+let toolsHome = null; // Tools → Home (tools_home.js), re-checks on every visit
 
 // Scene Map (Owner 11 Oct, V1): its own top tab, showing the Generator's
 // scene-map section for the Generator video in a focused view. The code
@@ -119,6 +121,7 @@ function switchTab(name) {
     else p.setAttribute('hidden', '');
   });
   syncWorkspace(name);
+  if (name === 'tools-home' && toolsHome) toolsHome.show();
 }
 
 function initTabA11y() {
@@ -206,7 +209,7 @@ document.getElementById('topbar-settings')?.addEventListener('click', () => swit
 // text label and title, so names and tests stay the same.
 const NAV_ICONS = {
   playback: 'player', generator: 'create', training: 'training', scenemap: 'scenemap', tools: 'tools',
-  device: 'device', log: 'log', settings: 'settings', benchmark: 'chart', 'roi-training': 'layers',
+  'tools-home': 'status', device: 'device', log: 'log', settings: 'settings', benchmark: 'chart', 'roi-training': 'layers',
 };
 const VIEW_ICONS = { play: 'play', create: 'create', edit: 'edit' };
 function applyFlowIcons() {
@@ -225,6 +228,10 @@ initTraining(document.getElementById('tab-training'));
 initGenerator(document.getElementById('tab-generator'), playback);
 initBenchmark(document.getElementById('tab-benchmark'));
 initRoiTraining(document.getElementById('tab-roi-training'));
+toolsHome = initToolsHome(document.getElementById('tab-tools-home'), {
+  go: name => switchTab(name),
+  loadScriptPath: path => playback.loadScriptPath(path),
+});
 initDevice(document.getElementById('tab-device'));
 initLog(document.getElementById('tab-log'));
 initSettings(document.getElementById('tab-settings'));

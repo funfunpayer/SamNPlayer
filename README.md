@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/funfunpayer/SamNPlayer/releases"><img alt="Private release list" src="https://img.shields.io/badge/private%20releases-see%20GitHub-d4a017?style=flat-square" /></a>
-  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><img alt="Latest public" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer?style=flat-square&color=0d9488&label=public%20download" /></a>
+  <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><img alt="Latest public" src="https://img.shields.io/github/v/release/funfunpayer/SamNPlayer-site?style=flat-square&color=0d9488&label=public%20download" /></a>
   <a href="https://github.com/funfunpayer/SamNPlayer/actions/workflows/tests.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/funfunpayer/SamNPlayer/tests.yml?branch=main&style=flat-square&label=CI" /></a>
   <img alt="License" src="https://img.shields.io/badge/license-Proprietary-334155?style=flat-square" />
   <img alt="No Electron" src="https://img.shields.io/badge/GUI-~13%20MB%20native-0d9488?style=flat-square" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="https://github.com/funfunpayer/SamNPlayer-site/releases/latest"><strong>Download</strong></a>
   ·
-  <a href="#whats-new-in-v0531">What’s new</a>
+  <a href="#previously-released-v0531">Earlier release</a>
   ·
   <a href="#why-samnplayer">Why this app</a>
   ·
@@ -164,11 +164,14 @@ not needed, it stays out.
 
 ## Download
 
-Ready-to-run **Windows** and **Linux** binaries (GUI + CLI) are published on the
-**public** showcase ([SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases))
-with `checksums.txt`. Private-repo releases are not anonymously downloadable —
-after each tag run `./scripts/publish-public-release.sh vX.Y.Z` (and
-`./scripts/sync-public-site.sh` when screenshots/landing change).
+The **public** download destination is
+[SamNPlayer-site releases](https://github.com/funfunpayer/SamNPlayer-site/releases).
+On **14 Oct 2026**, its GitHub release list returned no entries; this check did
+not verify an available public download. Private-repo releases are not
+anonymously downloadable. After release approval, tagging and artifact checks,
+`./scripts/publish-public-release.sh vX.Y.Z` publishes the Free binaries and
+`checksums.txt`; run `./scripts/sync-public-site.sh` when screenshots/landing change.
+Suite artifacts remain private.
 
 Prefer the **portable** archives (`SamNPlayer-portable-*-amd64`) — they
 include `ffmpeg` / `ffprobe` next to the GUI so you do not need a system
@@ -185,8 +188,8 @@ Platform fence: [`docs/PLATFORMS.md`](docs/PLATFORMS.md) · Competitive bar:
 [`docs/COMPETITIVE.md`](docs/COMPETITIVE.md) · Lean self-build:
 [`docs/SELF_BUILD.md`](docs/SELF_BUILD.md).
 
-Last verified private GitHub release (12 Oct 2026): **[v0.5.45](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45)**; the source tree already declares **0.6.0**, which is **not proof of a published release**.  
-Public downloads: **[SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site/releases/latest)**  
+Last verified private GitHub release (**14 Oct 2026**): **[v0.5.45](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45)**, published 2 Oct 2026. The source tree declares **0.6.0**; this does **not** establish a published 0.6.0 release or release approval.  
+Public release destination (availability unverified; see above): **[SamNPlayer-site](https://github.com/funfunpayer/SamNPlayer-site/releases)**  
 Source version file: [`VERSION`](VERSION) (`update.BaseVersion`).
 
 **Bluetooth on Windows 11:** Intiface recommends an external dongle with an
@@ -206,7 +209,7 @@ go build ./cmd/cli                                 # CLI
 cd cmd/gui-wails && wails build -tags webkit2_41   # GUI (Linux / WebKitGTK 4.1)
 ```
 
-Cross-compile Windows GUI from Linux:
+Cross-compile Windows GUI from Linux (source-version example, not a release tag):
 
 ```bash
 cd cmd/gui-wails

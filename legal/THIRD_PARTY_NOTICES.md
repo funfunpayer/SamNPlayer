@@ -16,6 +16,8 @@ under these licences.
 | leaanthony/go-ansi-parser, slicer, u | Wails dependencies | MIT | https://github.com/leaanthony |
 | rivo/uniseg | Wails dependency | MIT | https://github.com/rivo/uniseg |
 | gorilla/websocket | Intiface connection | BSD 2-Clause | https://github.com/gorilla/websocket |
+| go.bug.st/serial | TCode over USB (OSR2 / SR6) | BSD 3-Clause | https://github.com/bugst/go-serial |
+| creack/goselect | go.bug.st/serial dependency | MIT | https://github.com/creack/goselect |
 | godbus/dbus | Linux desktop integration (Bluetooth) | BSD 2-Clause | https://github.com/godbus/dbus |
 | pkg/errors | dependency | BSD 2-Clause | https://github.com/pkg/errors |
 | tinygo.org/x/bluetooth | Bluetooth LE devices | BSD 3-Clause | https://github.com/tinygo-org/bluetooth |
