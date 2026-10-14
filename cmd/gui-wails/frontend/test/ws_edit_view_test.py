@@ -50,7 +50,7 @@ def main():
             check("Play: curve editing off", not page.is_checked("#pb-curve-edit"))
             check("Play: scene strip off by default", page.is_hidden("#pb-scene-strip"))
 
-            page.click('#ws-view [data-ws-view="edit"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="editor"]')
             page.wait_for_function("document.querySelector('#pb-curve-edit').checked", timeout=3000)
             check("Edit: curve editing on", True)
             check("Edit: Inspector on View", page.evaluate("document.querySelector('#tab-playback').dataset.pbInspector") == "view")
@@ -58,13 +58,13 @@ def main():
             check("Edit: scene strip on (markers)", page.evaluate("document.querySelectorAll('.pb-scene-mark').length") == 1)
             check("Play preference for scenes untouched", page.evaluate("localStorage.getItem('pb.scenes')") is None)
 
-            page.click('#ws-view [data-ws-view="play"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
             page.wait_for_function("!document.querySelector('#pb-curve-edit').checked", timeout=3000)
             check("back to Play: editing off again", True)
             check("back to Play: scene strip off again", page.is_hidden("#pb-scene-strip"))
 
             # Generator result (review) → Edit view, editing on after the curve is drawn.
-            page.click('#rail .tab-btn[data-tab="generator"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
             page.evaluate("window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }))")
             page.wait_for_function("document.body.dataset.wsView === 'edit'", timeout=3000)
             page.evaluate("document.querySelector('#pb-curve-edit').checked = false; document.querySelector('#pb-curve-edit-row').style.display = 'none'")

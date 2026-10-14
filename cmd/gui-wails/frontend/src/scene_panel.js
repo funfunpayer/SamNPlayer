@@ -47,7 +47,7 @@ export function mountScenePanel(panel, root, api) {
   heat.id = 'pb-scenes-heatmap';
   heat.title = 'Open the Create scene map (rhythm heatmap of the video)';
   heat.addEventListener('click', () => {
-    document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click();
+    document.querySelector('.tab-btn[data-tab="scenemap"]')?.click();
   });
   head.append(count, heat);
 

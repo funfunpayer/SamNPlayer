@@ -205,15 +205,22 @@ def main():
                 page.wait_for_timeout(800)
                 shoot(page, out, "player")
 
+                # Mode deck — the Mode pill opened over the Player.
+                page.click("#mode-pill")
+                page.wait_for_timeout(700)
+                page.screenshot(path=str(out / "gui-modes.png"))
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(200)
+
                 # Edit — lanes incl. multi-axis companion files, twist selected.
-                page.click('#ws-view [data-ws-view="edit"]')
+                page.click('#mode-pill'); page.click('#mode-deck [data-mode="editor"]')
                 page.wait_for_timeout(1200)
                 page.evaluate("const s = document.querySelector('#pb-axis'); if (s && s.querySelector('option[value=twist]')) { s.value = 'twist'; s.dispatchEvent(new Event('change')); }")
                 page.wait_for_timeout(1000)
                 shoot(page, out, "edit-multiaxis")
 
                 # Scene Map bottom tab.
-                page.click('#ws-view [data-ws-view="play"]')
+                page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
                 page.wait_for_timeout(600)
                 page.click('.pb-bottom-tab[data-btab="scenemap"]')
                 page.wait_for_function("document.querySelectorAll('.pb-scene-card').length === 4", timeout=8000)
@@ -229,7 +236,7 @@ def main():
                 page.wait_for_timeout(600)
 
                 # Create — with a clip chosen.
-                page.click('#rail .tab-btn[data-tab="generator"]')
+                page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
                 page.wait_for_timeout(800)
                 page.click('#gen-choose')
                 page.wait_for_timeout(2500)
@@ -242,7 +249,7 @@ def main():
                 # session (synthetic levels via training:levels). The bundled pixel
                 # clip is adult content and must never appear in screenshots:
                 # switch the stage, hide the pixel host and check it is gone.
-                page.click('#rail .tab-btn[data-tab="training"]')
+                page.click('#mode-pill'); page.click('#mode-deck [data-tab="training"]')
                 page.wait_for_timeout(800)
                 page.click('#tr-stage-rings')
                 page.wait_for_timeout(300)

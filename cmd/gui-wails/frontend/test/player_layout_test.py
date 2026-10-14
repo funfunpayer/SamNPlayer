@@ -118,14 +118,14 @@ def main():
             page.click("#pb-scenes-heatmap")
             check("Scene Map header link opens the Create rhythm heatmap",
                   page.get_attribute("#tab-generator", "data-view") == "scenemap")
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             page.click("#pb-lib-editor")
             check("Library → Editor turns on curve editing", page.is_checked("#pb-curve-edit")
                   and page.evaluate(f"{root}.dataset.pbInspector") == "view")
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
             # Video bar above the video.
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             check("video bar present", page.is_visible("[data-pb-region='videobar']"))
             check("no video → placeholder text", page.text_content("#pb-vb-name") == "Select a video file…")
             check("snapshot disabled without a video", page.is_disabled("#pb-vb-snapshot"))

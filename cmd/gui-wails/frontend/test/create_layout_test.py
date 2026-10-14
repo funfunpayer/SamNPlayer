@@ -46,7 +46,7 @@ def main():
             page.add_init_script("try{localStorage.clear(); localStorage.setItem('pb.recentVideos', JSON.stringify(['/v/older clip.mp4']))}catch(e){}")
             page.goto(f"{base}/test/_create_layout_harness.html")
             page.wait_for_timeout(800)
-            page.click('#rail .tab-btn[data-tab="generator"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
             page.wait_for_timeout(300)
             gen = "#tab-generator"
             check("layout v1 applied", page.get_attribute(gen, "data-gen-layout") == "v1")

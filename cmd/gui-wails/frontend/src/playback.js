@@ -1841,17 +1841,31 @@ export function initPlayback(root) {
   function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY } = {}) {
     if (points.length < 2) return;
     const dpr = window.devicePixelRatio || 1;
-    // Dense strokes (a fast script zoomed out) would melt into a solid,
-    // over-glowing block: draw them as a fine line with a faint fill.
-    let visible = 0;
+    // Dense strokes (a fast script zoomed out) would melt into a zigzag
+    // block: below a few CSS px per point the lane shows the stroke's envelope
+    // instead — the upper and lower edge of the strokes as two calm glowing
+    // lines with a soft band between. Zooming in brings the real wave back.
     const w = ctx.canvas.width;
+    let visible = 0;
     for (const p of points) { const x = xOf(p.atMs); if (x >= 0 && x <= w) visible++; }
-    const gap = visible ? w / dpr / visible : Infinity;
-    if (gap < 8) {
-      const f = Math.max(0, (gap - 2) / 6); // 0 when very dense … 1 at 8 px
-      width = Math.max(1, width * (0.6 + 0.4 * f));
-      glow = glow * (0.2 + 0.5 * f);
-      fill = gap < 5 ? 0 : fill * 0.5 * f;
+    // Playing: the wave shows once single strokes are readable (the same
+    // gap as for the dots); editing keeps the strokes down to 4 px so they
+    // can be picked.
+    const envelopeBelowPx = editMode ? 4 : DOT_MIN_GAP;
+    if (visible > 2 && w / dpr / visible < envelopeBelowPx) {
+      const style = denseCurveStyle();
+      // A bin must hold at least a whole stroke (up and down).
+      const binPx = Math.max(4 * dpr, 2.5 * (w / visible));
+      if (style === 'envelope') {
+        drawEnvelope(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx });
+        return;
+      }
+      if (style === 'speed') {
+        drawSpeedWave(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx, baseY });
+        return;
+      }
+      // 'strokes': the real strokes as a fine line, no glow, no fill.
+      width = 1; glow = 0; fill = 0;
     }
     if (fill > 0 && baseY != null) {
       smoothCurvePath(ctx, points, xOf, yOf);
@@ -1878,6 +1892,123 @@ export function initPlayback(root) {
     smoothCurvePath(ctx, points, xOf, yOf);
     ctx.stroke();
     ctx.restore();
+  }
+
+  // Envelope of dense points: min / max position per bin (a few strokes), lightly
+  // smoothed, drawn as two glowing edges with a soft band between.
+  function strokeEnvelope(points, xOf, binPx, w) {
+    const bins = [];
+    let cur = null;
+    for (const p of points) {
+      const x = xOf(p.atMs);
+      if (x < -binPx || x > w + binPx) continue;
+      const b = Math.floor(x / binPx);
+      if (!cur || cur.b !== b) {
+        cur = { b, t: 0, n: 0, lo: p.pos, hi: p.pos };
+        bins.push(cur);
+      }
+      cur.t += p.atMs; cur.n++;
+      if (p.pos < cur.lo) cur.lo = p.pos;
+      if (p.pos > cur.hi) cur.hi = p.pos;
+    }
+    // Rolling max / min over ±2 bins (a bin can catch only one side of a
+    // stroke), then a light average so the edges run calm.
+    const roll = (k, pick) => bins.map((_, i) => pick(...bins.slice(Math.max(0, i - 2), i + 3).map(b => b[k])));
+    const soft = arr => arr.map((v, i) => (v * 2 + (arr[i - 1] ?? v) + (arr[i + 1] ?? v)) / 4);
+    const hi = soft(roll('hi', Math.max)), lo = soft(roll('lo', Math.min));
+    // Even x per bin centre (pixel space): uneven times would make a spline
+    // swing back in time and draw loops.
+    return {
+      upper: bins.map((b, i) => [(b.b + 0.5) * binPx, hi[i]]),
+      lower: bins.map((b, i) => [(b.b + 0.5) * binPx, lo[i]]),
+    };
+  }
+
+  // Dense curve style (Owner chooses): 'strokes' fine real strokes,
+  // 'envelope' upper / lower edge, 'speed' a calm wave of the stroke speed.
+  function denseCurveStyle() {
+    try {
+      const v = localStorage.getItem('pb.denseCurve');
+      if (v === 'strokes' || v === 'envelope' || v === 'speed') return v;
+    } catch (_) { /* ignore */ }
+    return 'strokes';
+  }
+
+  // Stroke speed per bin (position units per second, from consecutive
+  // points), shown 0 – 600 u/s as 0 – 100 % — a calm wave of how fast it goes.
+  const SPEED_FULL = 600;
+  function drawSpeedWave(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx, baseY }) {
+    const bins = new Map();
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const x = xOf(b.atMs);
+      if (x < -binPx || x > w + binPx || b.atMs <= a.atMs) continue;
+      const k = Math.floor(x / binPx);
+      const e = bins.get(k) || { d: 0, t: 0 };
+      e.d += Math.abs(b.pos - a.pos);
+      e.t += b.atMs - a.atMs;
+      bins.set(k, e);
+    }
+    const keys = [...bins.keys()].sort((p, q) => p - q);
+    let pts = keys.map(k => [(k + 0.5) * binPx, Math.min(100, (bins.get(k).d / Math.max(1, bins.get(k).t)) * 1000 / SPEED_FULL * 100)]);
+    for (let n = 0; n < 2; n++) pts = pts.map((p, i) => [p[0], (p[1] * 2 + (pts[i - 1] || p)[1] + (pts[i + 1] || p)[1]) / 4]);
+    if (pts.length < 2) return;
+    const bottom = baseY != null ? baseY : yOf(0);
+    ctx.save();
+    midpointPath(ctx, pts, yOf);
+    ctx.lineTo(pts[pts.length - 1][0], bottom);
+    ctx.lineTo(pts[0][0], bottom);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, yOf(100), 0, bottom);
+    g.addColorStop(0, color); g.addColorStop(1, 'transparent');
+    ctx.globalAlpha = 0.22; ctx.fillStyle = g; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.6, width) * dpr; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowColor = color; ctx.shadowBlur = Math.max(8, glow) * dpr;
+    midpointPath(ctx, pts, yOf);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Calm path through [x, pos] points: quadratic curves via the midpoints.
+  function midpointPath(ctx, pts, yOf) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], yOf(pts[0][1]));
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (yOf(pts[i][1]) + yOf(pts[i + 1][1])) / 2;
+      ctx.quadraticCurveTo(pts[i][0], yOf(pts[i][1]), mx, my);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last[0], yOf(last[1]));
+  }
+
+  function drawEnvelope(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx }) {
+    const { upper, lower } = strokeEnvelope(points, xOf, binPx, w);
+    if (upper.length < 2) return;
+    ctx.save();
+    ctx.beginPath();
+    upper.forEach(([x, v], i) => (i ? ctx.lineTo(x, yOf(v)) : ctx.moveTo(x, yOf(v))));
+    for (let i = lower.length - 1; i >= 0; i--) ctx.lineTo(lower[i][0], yOf(lower[i][1]));
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, yOf(100), 0, yOf(0));
+    g.addColorStop(0, color); g.addColorStop(0.5, 'transparent'); g.addColorStop(1, color);
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.restore();
+    for (const edge of [upper, lower]) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width * dpr;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glow * dpr;
+      midpointPath(ctx, edge, yOf);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // Dots are readable when the visible ones sit at least DOT_MIN_GAP CSS px

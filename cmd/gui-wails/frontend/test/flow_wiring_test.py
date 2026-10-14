@@ -67,14 +67,18 @@ def check_icons(check, base):
         flow = "(sel) => [...document.querySelectorAll(sel)].map(b => !!b.querySelector(':scope > svg[stroke-width=\"1.6\"]'))"
         rail = page.evaluate(f"({flow})('#rail .tab-btn[data-tab]')")
         check("top bar uses Flow icons", rail and all(rail), str(rail))
+        cards = page.evaluate("[...document.querySelectorAll('#mode-deck .mode-card')].map(c => !!c.querySelector('.mode-card-ring > svg[stroke-width=\"1.6\"]'))")
+        check("mode cards use Flow icons", len(cards) == 5 and all(cards), str(cards))
         tools = page.evaluate(f"({flow})('#tools-nav .tab-btn[data-tab]')")
         check("Tools menu uses Flow icons", tools and all(tools), str(tools))
         check("Scene Map button uses the Flow icon",
               page.evaluate("!!document.querySelector('#ws-scenemap > svg[stroke-width=\"1.6\"]')"))
         labels = page.evaluate("[...document.querySelectorAll('#rail .tab-btn:not([hidden]) > span')].map(s => s.textContent)")
-        check("top bar labels: the modes + Tools", labels == ["Player", "Generator", "Training", "Scene Map", "Tools"], str(labels))
+        check("top bar: Mode pill + Tools", labels == ["Tools"] and page.is_visible("#mode-pill"), str(labels))
+        modes = page.evaluate("[...document.querySelectorAll('#mode-deck .mode-card > span:not(.mode-card-ring)')].map(s => s.textContent)")
+        check("mode deck: the five modes", modes == ["Player", "Editor", "Generator", "Training", "Scene Map"], str(modes))
         check("icons stay decorative",
-              page.evaluate("[...document.querySelectorAll('#rail svg, #ws-view svg')].every(s => s.getAttribute('aria-hidden') === 'true')"))
+              page.evaluate("[...document.querySelectorAll('#rail svg, #ws-view svg, #mode-deck svg')].every(s => s.getAttribute('aria-hidden') === 'true')"))
         check("no page errors", not errors, "; ".join(errors))
         b.close()
 

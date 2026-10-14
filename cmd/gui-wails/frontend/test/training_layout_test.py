@@ -45,7 +45,7 @@ def main():
             page.add_init_script("try{localStorage.clear(); localStorage.setItem('tr.stage', JSON.stringify({mode:'rings'}))}catch(e){}")
             page.goto(f"{base}/test/_training_layout_harness.html")
             page.wait_for_timeout(800)
-            page.click('#rail .tab-btn[data-tab="training"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="training"]')
             page.wait_for_timeout(300)
             t = "#tab-training"
             check("layout v1 applied", page.get_attribute(t, "data-tr-layout") == "v1")

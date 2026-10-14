@@ -55,7 +55,7 @@ def main():
             page.add_init_script("try{localStorage.clear()}catch(e){}")
             page.goto(f"{base}/test/_gen_video_harness.html")
             page.wait_for_timeout(800)
-            page.click('#rail .tab-btn[data-tab="generator"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
             check("no video yet: video and transport hidden",
                   page.is_hidden(".gl-video") and page.is_hidden(".gl-vt"))
             page.click("#gen-choose")
