@@ -130,6 +130,9 @@ STUBS = {
     "GetHeatmap": ("async n => Array.from({length: n}, (_, i) => ({atMs: i * %d / n,"
                    " intensity: 0.25 + 0.7 * Math.sin(Math.PI * i / n) * (0.6 + 0.4 * Math.sin(i / 3))}))" % DURATION_MS),
     "GetMarker": "async () => null",
+    "SuggestChapterScenes": ("async () => window.__chapters.map((c, i, all) => ({ index: i, name: c.name, startMs: c.startTime, "
+                             "endMs: (all[i + 1] || {}).startTime || %d, feel: i === 2 ? 'oral' : '', hasFeel: i === 2, "
+                             "suggested: ['', 'intercourse', 'oral', 'intercourse'][i], source: 'scene detection', confidence: [0, 0.74, 0.86, 0.61][i] }))" % DURATION_MS),
     "GetScriptChapterMarks": "async () => window.__chapters.slice()",
     "GetVideoThumbnails": ("async (n) => Array.from({length: n}, (_, i) => ({atMs: Math.round((i + 0.5) * %d / n),"
                            " dataUrl: window.__thumb(i)}))" % DURATION_MS),

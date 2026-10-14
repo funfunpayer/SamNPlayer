@@ -83,6 +83,8 @@ type DeviceRecipe struct {
 	SceneFeel               string  `json:"scene_feel,omitempty"`
 	VibrationFollowsSuction bool    `json:"vibration_follows_suction,omitempty"`
 	FeelBalance             float64 `json:"feel_balance,omitempty"`
+	// SceneRanges: a scene feel per part of the script (chapters).
+	SceneRanges []SceneFeelRange `json:"scene_ranges,omitempty"`
 
 	// PlaybackSource: "recipe" (default) derives vibe/suction from general
 	// actions; "axes" drives Neo 2 from metadata.samn_axes. See docs/MULTI_AXIS.md.

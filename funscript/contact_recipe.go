@@ -88,3 +88,11 @@ func updateDeviceRecipe(path string, change func(*DeviceRecipe)) error {
 	}
 	return writeFileAtomic(path, out, 0o644)
 }
+
+// SaveSceneRanges writes per-part scene feels (chapters) into
+// metadata.device_recipe of a .funscript.
+func SaveSceneRanges(path string, ranges []SceneFeelRange) error {
+	return updateDeviceRecipe(path, func(r *DeviceRecipe) {
+		r.SceneRanges = NormalizeSceneRanges(ranges)
+	})
+}

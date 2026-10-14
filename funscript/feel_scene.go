@@ -90,3 +90,35 @@ func ClampBalance(b float64) float64 {
 	}
 	return b
 }
+
+// SceneFeelRange gives one part of the script its own scene feel (a chapter
+// as a scene, Owner 14 Oct step 4). Feel "" inside a range = Classic there.
+type SceneFeelRange struct {
+	StartMs int64  `json:"start_ms"`
+	EndMs   int64  `json:"end_ms"`
+	Feel    string `json:"feel"`
+}
+
+// sceneFeelAt: the range covering t decides; outside every range the
+// script-wide SceneFeel applies.
+func sceneFeelAt(opts MapOptions, t int64) string {
+	for _, r := range opts.SceneRanges {
+		if t >= r.StartMs && t < r.EndMs {
+			return r.Feel
+		}
+	}
+	return opts.SceneFeel
+}
+
+// NormalizeSceneRanges drops empty ranges and normalises feels.
+func NormalizeSceneRanges(in []SceneFeelRange) []SceneFeelRange {
+	var out []SceneFeelRange
+	for _, r := range in {
+		if r.EndMs <= r.StartMs {
+			continue
+		}
+		r.Feel = NormalizeSceneFeel(r.Feel)
+		out = append(out, r)
+	}
+	return out
+}

@@ -4351,3 +4351,10 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 [data-gen-device="stroker"]:not([data-gen-show-all="1"]) #gen-sound-vib { display: none; }
 .pb-sound-vib-card[hidden] { display: none; }
 .pb-sound-vib-card .field-row select { min-width: 0; flex: 1 1 auto; }
+/* Scene feel per chapter (scene_panel.js, step 4). */
+.pb-scene-feel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pb-scene-feel select { min-width: 0; }
+.pb-scene-feel-sug { font-size: 12px; color: #ffb15b; }
+.pb-scene-feel-sug.hint { color: var(--text-dim); }
+.pb-scene-card-feel { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #ffb15b; background: rgba(255, 138, 35, .14); }
+.pb-scenes-apply[hidden] { display: none; }

@@ -128,6 +128,8 @@ type MapOptions struct {
 	// (oral / intercourse / breast / hand). Empty = the old mapping
 	// (suction = position). Applies to the default (independent) sync.
 	SceneFeel string
+	// SceneRanges: per-part scene feels (chapters); they win over SceneFeel.
+	SceneRanges []SceneFeelRange
 	// VibrationFollowsSuction: vibration takes the same pattern as suction.
 	VibrationFollowsSuction bool
 	// Balance −1 … 1: >0 more suction, <0 more vibration (BalanceScales).
@@ -366,7 +368,7 @@ func (s *Script) ToIntensityCurve(opts MapOptions) []Frame {
 				}
 			default:
 				vib, suc = intensity, posSignal
-				if ss, ok := SceneSuction(opts.SceneFeel, posSignal, intensity); ok {
+				if ss, ok := SceneSuction(sceneFeelAt(opts, t), posSignal, intensity); ok {
 					suc = ss
 				}
 				if contactEnabled || spatialOn {
@@ -448,6 +450,7 @@ func MapOptionsFromScript(s *Script) MapOptions {
 		opts.ContactVibrationSpan = dr.ContactVibrationSpan
 		opts.ContactVibrationCurve = dr.ContactVibrationCurve
 		opts.SceneFeel = NormalizeSceneFeel(dr.SceneFeel)
+		opts.SceneRanges = NormalizeSceneRanges(dr.SceneRanges)
 		opts.VibrationFollowsSuction = dr.VibrationFollowsSuction
 		opts.Balance = dr.FeelBalance
 		if NormalizePlaybackSource(dr.PlaybackSource) == PlaybackSourceAxes && s.Metadata.SamnAxes != nil {

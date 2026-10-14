@@ -113,8 +113,26 @@ out, and beats are kept punchy without dropping to zero between them.
 **Suction is kept:** when the script has no explicit suction lane yet, its
 mapped suction is written first.
 
-## Next
+## A scene feel per chapter (suggested, you confirm)
 
-- **Scene per chapter:** Auto picks the scene for each chapter from motion
-  (classic) and from the scene detection (AI). These are suggestions; you
-  confirm them first.
+The script's chapters are its scenes. Each scene can get its own feel. For
+example, the intro can stay *Classic*, the oral part can be *Oral*, and the
+finale can be *Intercourse*. Ranges are stored in `scene_ranges`; outside
+every range the script-wide scene feel applies.
+
+**Suggestions** (`SuggestChapterScenes`), strongest source first:
+
+1. **Scene detection** (`<clip>.scene.json` beside the video, local AI
+   `scene_roles.py`): the scene types that overlap the chapter. Each type
+   counts by overlap × confidence; the result is shown as a percentage.
+2. **Contact mark:** *mouth* → Oral, *nipple / breast* → Breast. The mark
+   covers the whole script, so its confidence is shown as 50 %.
+
+**Nothing is applied by itself.** In Scene Map mode, each scene's details
+show its suggestion:
+
+- *Use* applies it to that scene.
+- *Apply suggestions* applies all of them at once.
+- The select picks any feel by hand.
+
+A scene with a saved feel shows it on its card.

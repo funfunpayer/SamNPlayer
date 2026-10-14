@@ -268,6 +268,7 @@ func (d *Document) BakeNeoAxes() error {
 	opts.ContactVibrationSpan = d.Recipe.ContactVibrationSpan
 	opts.ContactVibrationCurve = d.Recipe.ContactVibrationCurve
 	opts.SceneFeel = funscript.NormalizeSceneFeel(d.Recipe.SceneFeel)
+	opts.SceneRanges = funscript.NormalizeSceneRanges(d.Recipe.SceneRanges)
 	opts.VibrationFollowsSuction = d.Recipe.VibrationFollowsSuction
 	opts.Balance = d.Recipe.FeelBalance
 	opts.TrackingGaps = d.TrackingGaps
