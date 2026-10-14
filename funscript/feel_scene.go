@@ -23,14 +23,15 @@ const (
 var SceneFeels = []string{SceneFeelOral, SceneFeelIntercourse, SceneFeelBreast, SceneFeelHand}
 
 // NormalizeSceneFeel maps names (also the AI scene types blowjob / titjob /
-// handjob / penetration) to a scene feel; unknown → none.
+// handjob / penetration, and contact-mark classes mouth / nipples) to a
+// scene feel; unknown → none.
 func NormalizeSceneFeel(name string) string {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "oral", "blowjob", "bj":
+	case "oral", "blowjob", "bj", "mouth", "lips":
 		return SceneFeelOral
 	case "intercourse", "penetration", "sex":
 		return SceneFeelIntercourse
-	case "breast", "titjob", "tj", "boobjob":
+	case "breast", "titjob", "tj", "boobjob", "nipple", "nipples":
 		return SceneFeelBreast
 	case "hand", "handjob", "hj":
 		return SceneFeelHand
