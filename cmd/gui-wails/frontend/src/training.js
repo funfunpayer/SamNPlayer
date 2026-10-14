@@ -618,8 +618,12 @@ export function initTraining(root) {
     currentPhaseMarkers = preview.phaseMarkers || [];
     currentTotalMs = preview.totalMs || 0;
     // Training layout (training_layout.js): phase stepper, session bar and
-    // timeline use the same planned phases and total.
-    window.__trPlan = { phases: currentPhaseMarkers, totalMs: currentTotalMs };
+    // timeline use the same planned phases and total; the live curves draw
+    // the planned curves as their target.
+    window.__trPlan = {
+      phases: currentPhaseMarkers, totalMs: currentTotalMs,
+      vibration: preview.vibration || [], suction: preview.suction || [],
+    };
     window.dispatchEvent(new CustomEvent('tr:plan', { detail: window.__trPlan }));
     previewBox.innerHTML = renderScriptCurveSvg(preview);
     previewBox.style.display = '';

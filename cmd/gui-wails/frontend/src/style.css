@@ -4087,11 +4087,26 @@ body[data-tab="generator"] #sidebar { display: none; }
 .trl-tl-seg.is-current { background: linear-gradient(90deg, #ff6410, #ffa030); }
 .trl-tl-head-mark { position: absolute; top: -5px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #ffb24a; border: 3px solid #03141f; box-shadow: 0 0 10px rgba(255, 160, 48, .7); }
 .trl-tl-head-mark[hidden] { display: none; }
-.trl-tl-phases { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.trl-tl-phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .trl-tl-phase { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 10px; border-radius: 12px; border: 1px solid rgba(90, 170, 255, .16); background: rgba(4, 14, 28, .45); }
 .trl-tl-phase .trl-step-num { grid-row: span 2; }
 .trl-tl-phase small { color: var(--text-dim); }
 .trl-tl-phase.is-current { border-color: var(--accent); box-shadow: 0 0 14px rgba(var(--accent-rgb), .35); }
+.tr-waves-target { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
+.tr-waves-target[hidden] { display: none; }
+.tr-waves-target b { width: 16px; border-top: 2px dashed rgba(200, 220, 245, .6); display: inline-block; }
+/* Script plans colour each phase by its planned strength (--seg). */
+.trl-tl-seg[data-heat] { background: var(--seg); opacity: .55; box-shadow: 0 0 8px var(--seg); }
+.trl-tl-seg[data-heat].is-done, .trl-tl-seg[data-heat].is-current { opacity: 1; }
+.trl-tl-phase[data-heat] { grid-template-columns: auto 1fr; border-color: color-mix(in srgb, var(--seg) 35%, transparent); }
+.trl-tl-phase[data-heat] .trl-step-num { border-color: var(--seg); color: var(--seg); }
+.trl-tl-phase.is-current[data-heat] { border-color: var(--seg); box-shadow: 0 0 14px color-mix(in srgb, var(--seg) 45%, transparent); }
+.trl-tl-mini { grid-column: 1 / -1; width: 100%; height: 28px; margin-top: 6px; filter: drop-shadow(0 0 3px rgba(80, 180, 255, .45)); }
+/* The V1 training grid uses the full window width, like the other modes. */
+#tab-training.tab-panel[data-tr-layout="v1"] { max-width: none; }
+/* The live curves show the planned script as their dashed target, so the
+   small preview chart in the settings is not needed in V1. */
+#tab-training[data-tr-layout="v1"] #tr-script-preview { display: none !important; }
 .trl-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .trl-settings .field-row { gap: 8px; }
 .trl-mode[hidden] { display: none; }
@@ -4119,3 +4134,29 @@ body[data-tab="generator"] #sidebar { display: none; }
 .trl-settings .field-row > label { flex: 0 0 42%; width: auto; }
 .trl-settings .field-row select, .trl-settings .field-row input[type="text"] { min-width: 0; max-width: 100%; flex: 1 1 auto; }
 .trl-settings details { margin-bottom: 10px; }
+/* V1 stage (target training.png): the two rings sit directly on flowing
+   blue / orange light ribbons — no inner cards, larger rings, one value each. */
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr {
+  background: url("./assets/flow/stage-ribbons.svg") center / 100% 100% no-repeat,
+              radial-gradient(ellipse at 50% 50%, rgba(10, 40, 70, .55), rgba(3, 10, 22, .9) 75%);
+  border-color: rgba(90, 170, 255, .14);
+  min-height: 340px;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel {
+  background: none; border: 0; padding: 4px 0 0;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__heading { justify-content: center; }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__name {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #cfe6f5;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__value,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter-note,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__spark { display: none; }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual { width: min(100%, 250px); }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::before {
+  content: ""; position: absolute; inset: 14%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(3, 12, 26, .95) 55%, rgba(3, 12, 26, .6) 70%, transparent 72%);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__ring { position: relative; }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center { font-size: 46px; z-index: 1; }

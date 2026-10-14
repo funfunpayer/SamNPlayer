@@ -31,6 +31,70 @@ export function fmtClock(ms) {
 
 const num = (root, sel) => parseFloat(root.querySelector(sel)?.value) || 0;
 
+// Planned curve points inside [from, to] (plus the edges, interpolated).
+function slice(points, from, to) {
+  const out = [];
+  const at = ms => {
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      if (ms <= b.atMs) {
+        const f = b.atMs > a.atMs ? (ms - a.atMs) / (b.atMs - a.atMs) : 0;
+        return a.level + (b.level - a.level) * Math.max(0, Math.min(1, f));
+      }
+    }
+    return points.length ? points[points.length - 1].level : 0;
+  };
+  out.push({ atMs: from, level: at(from) });
+  for (const p of points) if (p.atMs > from && p.atMs < to) out.push(p);
+  out.push({ atMs: to, level: at(to) });
+  return out;
+}
+
+// Colour of a phase from its planned strength (mean of the stronger
+// channel): calm cyan → orange → red, like the target's timeline.
+const HEAT = [[54, 200, 255], [255, 138, 35], [255, 59, 92]];
+export function heatColor(level) {
+  // Most plans run between ~25% and ~80%: spread that range over the colours.
+  const v = Math.max(0, Math.min(1, (level - 0.25) / 0.55)) * (HEAT.length - 1);
+  const i = Math.min(HEAT.length - 2, Math.floor(v)), f = v - i;
+  const c = HEAT[i].map((a, k) => Math.round(a + (HEAT[i + 1][k] - a) * f));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
+
+// Mean planned level of the stronger channel inside a phase.
+export function phaseStrength(plan, from, to) {
+  let best = 0;
+  for (const key of ['vibration', 'suction']) {
+    const pts = plan[key] || [];
+    if (pts.length < 2 || to <= from) continue;
+    const s = slice(pts, from, to);
+    let area = 0;
+    for (let i = 1; i < s.length; i++) area += (s[i].atMs - s[i - 1].atMs) * (s[i].level + s[i - 1].level) / 2;
+    best = Math.max(best, area / (to - from));
+  }
+  return best;
+}
+
+// A small curve of the planned levels inside one phase (SVG, both channels).
+function miniCurve(plan, from, to) {
+  const W = 100, H = 28;
+  const paths = [['suction', '#ff8a23'], ['vibration', '#36c8ff']].map(([key, color]) => {
+    const pts = plan[key] || [];
+    if (pts.length < 2 || to <= from) return '';
+    const d = slice(pts, from, to).map((p, i) =>
+      `${i ? 'L' : 'M'}${(((p.atMs - from) / (to - from)) * W).toFixed(1)},${(H - 2 - p.level * (H - 4)).toFixed(1)}`).join('');
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+  }).join('');
+  if (!paths) return null;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('class', 'trl-tl-mini');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = paths;
+  return svg;
+}
+
 // Planned phases for the Custom form: one step per cycle (ramp + hold + rest).
 export function customPlan(root) {
   const cycles = Math.max(1, Math.round(num(root, '#tr-cycles')));
@@ -256,6 +320,17 @@ export function applyTrainingLayoutV1(root) {
       tile.dataset.index = String(i);
       tile.append(make('span', 'trl-step-num', String(i + 1)), make('b', '', ph.name),
         make('small', '', `${fmtClock(ph.atMs)} – ${fmtClock(end)}`));
+      // A script plan carries its curves: colour by planned strength and a
+      // small curve of the phase. The Custom form has no curves, so no colour.
+      if (p.vibration?.length || p.suction?.length) {
+        const color = heatColor(phaseStrength(p, ph.atMs, end));
+        seg.style.setProperty('--seg', color);
+        tile.style.setProperty('--seg', color);
+        tile.dataset.heat = '1';
+        seg.dataset.heat = '1';
+        const mini = miniCurve(p, ph.atMs, end);
+        if (mini) tile.append(mini);
+      }
       tl.append(tile);
     });
     tick();

@@ -62,6 +62,28 @@ def frame_png_b64():
     return base64.b64encode(out).decode()
 
 
+def training_preview():
+    """A 30-minute four-phase training plan, shaped like a real script preview."""
+    total = 30 * 60000
+    def vib(t):
+        p = t / total
+        base = 0.25 + 0.5 * min(1, p / 0.5) if p < 0.83 else 0.75 - 1.6 * (p - 0.83)
+        return max(0.05, min(1, base + 0.12 * math.sin(t / 47000)))
+    def suc(t):
+        p = t / total
+        base = 0.15 + 0.55 * min(1, p / 0.6) if p < 0.83 else 0.7 - 1.8 * (p - 0.83)
+        return max(0.05, min(1, base + 0.1 * math.sin(t / 61000 + 1.3)))
+    pts = range(0, total + 1, 15000)
+    return {
+        "totalMs": total,
+        "vibration": [{"atMs": t, "level": round(vib(t), 3)} for t in pts],
+        "suction": [{"atMs": t, "level": round(suc(t), 3)} for t in pts],
+        "phaseMarkers": [{"atMs": 0, "name": "Warm up"}, {"atMs": 300000, "name": "Build"},
+                         {"atMs": 900000, "name": "Peak"}, {"atMs": 1500000, "name": "Cool down"}],
+        "hasRandomJitter": False,
+    }
+
+
 def data_js(media_url):
     stroke = stroke_actions()
     vib = axis(lambda p: 45 + 35 * math.sin(p * 9) * math.sin(p * math.pi))
@@ -79,6 +101,7 @@ def data_js(media_url):
         f"window.__axes = {{ general: window.__stroke, vibration: {json.dumps(vib)}, suction: {json.dumps(suc)},"
         f" twist: {json.dumps(twist)}, roll: {json.dumps(roll)} }};\n"
         f"window.__chapters = {json.dumps(chapters)};\n"
+        f"window.__trPreview = {json.dumps(training_preview())};\n"
         f"window.__media = {json.dumps(media_url)};\n"
         f"window.__frame = {json.dumps(frame_png_b64())};\n"
         "window.__thumb = (i) => { const c = document.createElement('canvas'); c.width = 160; c.height = 90;"
@@ -99,6 +122,8 @@ STUBS = {
     "VideoFileURL": "async () => window.__media",
     "StartTraining": "async () => {}",
     "TrainingHistory": "async () => []",
+    "ListTrainingScripts": "async () => [{name: 'Intensity Flow', description: 'Warm up, build, peak and cool down.', custom: false}]",
+    "TrainingScriptPreview": "async () => window.__trPreview",
     "SetGeneratorVideo": "async () => window.__media",
     "GetScriptCurve": "async () => window.__stroke.map(a => ({atMs: a.at, pos: a.pos}))",
     "GetScriptAxisActions": "async (axis) => (window.__axes[axis || 'general'] || null)",
@@ -221,15 +246,27 @@ def main():
                 page.wait_for_timeout(800)
                 page.click('#tr-stage-rings')
                 page.wait_for_timeout(300)
+                page.select_option('#tr-script', 'Intensity Flow')
+                page.wait_for_function("window.__trPlan && window.__trPlan.totalMs > 0", timeout=4000)
+                # A clock that runs 1 s per step, so the session shows 8:24 of
+                # its 30 minutes; the levels follow the planned curve with a
+                # little live variation (synthetic, nothing reaches a device).
+                page.evaluate("""() => { const real = performance.now.bind(performance);
+                  window.__clockOffset = 0; performance.now = () => real() + window.__clockOffset; }""")
                 page.click('#tr-start')
                 page.wait_for_timeout(300)
                 page.evaluate("""async () => {
-                  for (let i = 0; i < 160; i++) {
-                    const t = i / 18;
+                  const plan = window.__trPreview;
+                  const at = (pts, ms) => { for (let i = 1; i < pts.length; i++) if (ms <= pts[i].atMs) {
+                    const a = pts[i - 1], b = pts[i], f = (ms - a.atMs) / (b.atMs - a.atMs);
+                    return a.level + (b.level - a.level) * f; } return 0; };
+                  for (let s = 0; s <= 504; s++) {
+                    const ms = s * 1000;
+                    window.__clockOffset = ms;
                     window.__triggerEvent('training:levels', {
-                      vibration: 0.5 + 0.3 * Math.sin(t) + 0.08 * Math.sin(t * 3.1),
-                      suction: 0.45 + 0.25 * Math.sin(t * 0.7 + 1) + 0.06 * Math.sin(t * 4.3) });
-                    await new Promise(r => setTimeout(r, 18));
+                      vibration: Math.max(0, Math.min(1, at(plan.vibration, ms) + 0.06 * Math.sin(s / 9.1) + 0.015 * Math.sin(s / 4.7))),
+                      suction: Math.max(0, Math.min(1, at(plan.suction, ms) + 0.05 * Math.sin(s / 11.3 + 1) + 0.012 * Math.sin(s / 5.9))) });
+                    await new Promise(r => requestAnimationFrame(r));
                   }
                 }""")
                 page.wait_for_timeout(600)

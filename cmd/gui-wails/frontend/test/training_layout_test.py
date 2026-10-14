@@ -29,7 +29,7 @@ def main():
         "CurrentVersion": "async () => 'test'",
         "GetSettings": "async () => ({updateCheckOnStartup:false})",
         "ListTrainingScripts": "async () => [{name:'plateau', description:'Plateau'}, {name:'my-own', description:'Mine', custom:true}]",
-        "TrainingScriptPreview": "async () => ({totalMs: 600000, phaseMarkers: [{name:'Warm up', atMs:0}, {name:'Build', atMs:120000}, {name:'Peak', atMs:360000}], vibration: [], suction: []})",
+        "TrainingScriptPreview": "async () => ({totalMs: 600000, phaseMarkers: [{name:'Warm up', atMs:0}, {name:'Build', atMs:120000}, {name:'Peak', atMs:360000}], vibration: [{atMs:0, level:0.2}, {atMs:300000, level:0.8}, {atMs:600000, level:0.3}], suction: [{atMs:0, level:0.1}, {atMs:600000, level:0.5}]})",
         "TrainingHistory": "async () => []",
         "StartTraining": "async () => {}",
         "StopTraining": "async () => { window.__stopped++; window.__triggerEvent('training:done'); }",
@@ -56,6 +56,8 @@ def main():
             page.wait_for_function("document.querySelectorAll('#trl-programs .trl-nav-link').length >= 2", timeout=3000)
             check("built-in programs listed", "Custom" in page.text_content("#trl-programs"))
             check("my programs listed", "my-own" in page.text_content("#trl-my-programs"))
+            check("Custom: no target, no phase colours", page.is_hidden(".trl-curves .tr-waves-target")
+                  and page.evaluate("document.querySelectorAll('#trl-tl-phases [data-heat]').length") == 0)
             check("Custom active at start", page.evaluate("document.querySelector('#trl-programs .trl-nav-link.is-active')?.dataset.value") == "")
 
             steps = page.evaluate("document.querySelectorAll('#trl-stepper .trl-step').length")
@@ -73,6 +75,11 @@ def main():
             check("timeline tiles with times", "2:00 – 6:00" in page.text_content("#trl-tl-phases"))
             check("session mode hidden for a script", page.is_hidden(".trl-mode"))
             check("program select follows the nav", page.input_value("#tr-script") == "plateau")
+            check("script plan: phases coloured by planned strength",
+                  page.evaluate("[...document.querySelectorAll('#trl-tl-phases .trl-tl-phase')].every(t => t.dataset.heat === '1' && t.style.getPropertyValue('--seg'))"))
+            check("script plan: a small planned curve per phase",
+                  page.evaluate("document.querySelectorAll('#trl-tl-phases svg.trl-tl-mini path').length") == 6)
+            check("live curves show the planned target", page.is_visible(".trl-curves .tr-waves-target"))
 
             page.click("#tr-start")
             page.wait_for_function("document.querySelector('#tab-training').dataset.trRunning === '1'", timeout=3000)
