@@ -597,7 +597,12 @@ export function initTraining(root) {
   async function refreshScriptPreview() {
     const name = el('#tr-script').value;
     const previewBox = el('#tr-script-preview');
-    if (!name) { previewBox.style.display = 'none'; return; }
+    if (!name) {
+      previewBox.style.display = 'none';
+      window.__trPlan = null;
+      window.dispatchEvent(new CustomEvent('tr:plan', { detail: null }));
+      return;
+    }
     const factor = combinedIntensityFactor();
     const cacheKey = `${name}@${factor.toFixed(3)}`;
     if (!scriptPreviews[cacheKey]) {
@@ -612,6 +617,10 @@ export function initTraining(root) {
     const preview = scriptPreviews[cacheKey];
     currentPhaseMarkers = preview.phaseMarkers || [];
     currentTotalMs = preview.totalMs || 0;
+    // Training layout (training_layout.js): phase stepper, session bar and
+    // timeline use the same planned phases and total.
+    window.__trPlan = { phases: currentPhaseMarkers, totalMs: currentTotalMs };
+    window.dispatchEvent(new CustomEvent('tr:plan', { detail: window.__trPlan }));
     previewBox.innerHTML = renderScriptCurveSvg(preview);
     previewBox.style.display = '';
     el('#tr-script-jitter-note').style.display = preview.hasRandomJitter ? '' : 'none';

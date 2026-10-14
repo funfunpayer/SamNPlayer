@@ -97,6 +97,8 @@ STUBS = {
     "LoadFunscript": ("async (p) => ({path: p, actionCount: window.__stroke.length, durationMs: %d,"
                       " videoPath: '/demo/Demo clip.mp4', hasVideo: true})" % DURATION_MS),
     "VideoFileURL": "async () => window.__media",
+    "StartTraining": "async () => {}",
+    "TrainingHistory": "async () => []",
     "SetGeneratorVideo": "async () => window.__media",
     "GetScriptCurve": "async () => window.__stroke.map(a => ({atMs: a.at, pos: a.pos}))",
     "GetScriptAxisActions": "async (axis) => (window.__axes[axis || 'general'] || null)",
@@ -211,13 +213,26 @@ def main():
                 shoot(page, out, "create")
                 page.screenshot(path=str(out / "gui-create-full.png"), full_page=True)
 
-                # Training — on the neutral "Video" stage. The bundled pixel
+                # Training — on the neutral "Rings" stage with a running
+                # session (synthetic levels via training:levels). The bundled pixel
                 # clip is adult content and must never appear in screenshots:
                 # switch the stage, hide the pixel host and check it is gone.
                 page.click('#rail .tab-btn[data-tab="training"]')
                 page.wait_for_timeout(800)
-                page.click('#tr-stage-video')
-                page.wait_for_timeout(500)
+                page.click('#tr-stage-rings')
+                page.wait_for_timeout(300)
+                page.click('#tr-start')
+                page.wait_for_timeout(300)
+                page.evaluate("""async () => {
+                  for (let i = 0; i < 160; i++) {
+                    const t = i / 18;
+                    window.__triggerEvent('training:levels', {
+                      vibration: 0.5 + 0.3 * Math.sin(t) + 0.08 * Math.sin(t * 3.1),
+                      suction: 0.45 + 0.25 * Math.sin(t * 0.7 + 1) + 0.06 * Math.sin(t * 4.3) });
+                    await new Promise(r => setTimeout(r, 18));
+                  }
+                }""")
+                page.wait_for_timeout(600)
                 page.evaluate("document.querySelectorAll('#tr-pixel-stage > :not(.tr-stage-bar):not(.tr-video-view)')"
                               ".forEach(e => { if (!e.querySelector('#tr-video')) e.style.visibility = 'hidden'; })")
                 visible_pixel = page.evaluate(
@@ -227,6 +242,9 @@ def main():
                     print("skipped gui-training.png: pixel clip still visible")
                 else:
                     shoot(page, out, "training")
+                    page.evaluate("document.querySelectorAll('.stage-main, #tab-training').forEach(e => e.scrollTop = e.scrollHeight)")
+                    page.wait_for_timeout(300)
+                    page.screenshot(path=str(out / "gui-training-lower.png"))
 
                 # Tools → Home, Tools → Device.
                 page.click('#rail .tab-btn[data-tab="tools"]')

@@ -5,12 +5,11 @@
 // short hint, and after the session ends the last minute stays visible.
 
 const WINDOW_MS = 60000;
+// Same colours as the live rings (training_rings.css): vibration cyan,
+// suction orange.
+const VIB = '#36c8ff';
+const SUC = '#ff8a23';
 const MAX_POINTS = 1500;
-
-function cssVar(name, fallback) {
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || fallback;
-}
 
 export function createWaves(host) {
   host.classList.add('tr-waves');
@@ -67,8 +66,8 @@ export function createWaves(host) {
       path(); ctx.stroke();
       ctx.restore();
     };
-    line('suction', cssVar('--axis-suction', '#1a8cff'));
-    line('vibration', cssVar('--axis-vibration', '#ff8a23'));
+    line('suction', SUC);
+    line('vibration', VIB);
   }
   const schedule = () => { if (!raf) raf = requestAnimationFrame(draw); };
 

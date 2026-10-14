@@ -93,12 +93,15 @@ export function mountTrainingVideo(stageHost, { ringsHost = null } = {}) {
     }
     ctl.hidden = !isVideo;
     view.hidden = !isVideo;
+    // V1 layout pins the waves below the session bar (always visible); the
+    // Waves stage then shows the rings.
+    const pinned = wavesHost.dataset.pinned === '1';
     stageHost.hidden = state.mode !== 'pixel';
-    wavesHost.hidden = state.mode !== 'waves';
+    wavesHost.hidden = !pinned && state.mode !== 'waves';
     if (state.mode === 'waves') waves.redraw();
     // Rings: the live rings become the stage (large); otherwise they stay
     // where they are, compact, below the stage.
-    if (ringsHost) ringsHost.classList.toggle('tr-rings-stage', state.mode === 'rings');
+    if (ringsHost) ringsHost.classList.toggle('tr-rings-stage', state.mode === 'rings' || (pinned && state.mode === 'waves'));
     video.loop = state.loop;
     video.muted = state.muted;
     q('#tr-video-name').textContent = state.path ? baseName(state.path) : '';
