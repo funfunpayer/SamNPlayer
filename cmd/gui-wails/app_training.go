@@ -509,6 +509,37 @@ func (a *App) StopTrainingCycle() error {
 	return nil
 }
 
+// PauseTraining holds the running session (Play/Pause in the Training
+// transport): both channels go to 0 and the session clock stands still.
+func (a *App) PauseTraining() error {
+	return a.setTrainingPaused(true)
+}
+
+// ResumeTraining continues a paused session where it stopped.
+func (a *App) ResumeTraining() error {
+	return a.setTrainingPaused(false)
+}
+
+func (a *App) setTrainingPaused(paused bool) error {
+	a.stateMu.RLock()
+	control := a.trainingControl
+	a.stateMu.RUnlock()
+	if control == nil {
+		return fmt.Errorf("no training is running")
+	}
+	if paused {
+		control.Pause()
+		logging.Info("training: paused")
+	} else {
+		control.Resume()
+		logging.Info("training: resumed")
+	}
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "training:paused", map[string]bool{"paused": paused})
+	}
+	return nil
+}
+
 // ReportArousal nimmt eine Rückmeldung auf der Skala 1-10 entgegen. Sie
 // wirkt auf den nächsten Zyklus: hohe Werte führen zu kürzeren, sanfteren
 // Zyklen mit längerer Pause. Damit wird aus dem gesteuerten Ablauf ein

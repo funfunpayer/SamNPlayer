@@ -9,6 +9,7 @@ import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.
 import { initPlayback } from './playback.js';
 import { applyPlayerLayoutV1 } from './player_layout.js';
 import { applyCreateLayoutV1 } from './create_layout.js';
+import { applyTrainingLayoutV1 } from './training_layout.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -234,6 +235,7 @@ applyFlowIcons();
 
 const playback = initPlayback(document.getElementById('tab-playback'));
 initTraining(document.getElementById('tab-training'));
+applyTrainingLayoutV1(document.getElementById('tab-training'));
 initGenerator(document.getElementById('tab-generator'), playback);
 initBenchmark(document.getElementById('tab-benchmark'));
 initRoiTraining(document.getElementById('tab-roi-training'));

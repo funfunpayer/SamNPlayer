@@ -73,6 +73,12 @@ type TrainingControl struct {
 	arousal       int  // zuletzt gemeldeter Wert, 0 = nichts gemeldet
 	// onLevel is optional live intensity for the GUI ring/clip (per write).
 	onLevel func(vibration, suction float64)
+	// Pause (Owner 14 Oct: Play/Pause in the middle, like the Player):
+	// while paused both channels are held at 0 and the session clock stands
+	// still; Resume restores the levels and continues where it stopped.
+	paused   bool
+	resumeCh chan struct{} // closed on Resume; nil while not paused
+	out      *levelMirror  // the session's output gate (set by mirrorLevels)
 }
 
 // ArousalTarget ist der Zielbereich der Skala 1-10: nahe an der Grenze, aber
@@ -184,6 +190,71 @@ func (c *TrainingControl) StopCycle() {
 	c.mu.Unlock()
 }
 
+// Pause holds the session: both channels go to 0 at once and every ramp,
+// hold and rest stands still until Resume. Pausing twice is a no-op.
+func (c *TrainingControl) Pause() {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	if c.paused {
+		c.mu.Unlock()
+		return
+	}
+	c.paused = true
+	c.resumeCh = make(chan struct{})
+	out := c.out
+	c.mu.Unlock()
+	if out != nil {
+		out.hold()
+	}
+}
+
+// Resume continues a paused session: the channels get back their last
+// levels (time stood still, so these are the levels at the pause) and the
+// clock runs on. Resuming a running session is a no-op.
+func (c *TrainingControl) Resume() {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	if !c.paused {
+		c.mu.Unlock()
+		return
+	}
+	c.paused = false
+	close(c.resumeCh)
+	c.resumeCh = nil
+	out := c.out
+	c.mu.Unlock()
+	if out != nil {
+		out.release()
+	}
+}
+
+// Paused reports whether the session is paused.
+func (c *TrainingControl) Paused() bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.paused
+}
+
+// pauseGate returns the channel to wait on while paused, or nil.
+func (c *TrainingControl) pauseGate() <-chan struct{} {
+	if c == nil {
+		return nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.paused {
+		return nil
+	}
+	return c.resumeCh
+}
+
 // requested ist absichtlich zustandslos-lesend (kein Channel-Receive mehr):
 // ein Multi-Phasen-Zyklus lässt Vibration und Sog in zwei eigenen
 // Goroutinen laufen (runPhaseRepeat), die beide currently() abfragen -
@@ -247,24 +318,56 @@ type trainingDevice interface {
 // levelMirror tracks last vibration/suction and fires TrainingControl.onLevel
 // after each successful write so the GUI can drive a live meter (not just
 // completed-cycle peak summaries).
+//
+// It is also the output gate for Pause: while held, writes only update the
+// remembered levels and the device stays at 0. The lock is held across the
+// device write, so no write can slip in after hold() zeroed the channels.
 type levelMirror struct {
 	inner   trainingDevice
 	control *TrainingControl
 	mu      sync.Mutex
 	vib     float64
 	suc     float64
+	held    bool
 }
 
 func mirrorLevels(dev trainingDevice, control *TrainingControl) trainingDevice {
 	if control == nil {
 		return dev
 	}
-	return &levelMirror{inner: dev, control: control}
+	m := &levelMirror{inner: dev, control: control}
+	control.mu.Lock()
+	control.out = m
+	control.mu.Unlock()
+	return m
+}
+
+// hold zeros both channels and keeps them there until release.
+func (m *levelMirror) hold() {
+	m.mu.Lock()
+	m.held = true
+	_ = m.inner.SetVibration(0)
+	_ = m.inner.SetSuction(0)
+	m.mu.Unlock()
+	m.notify()
+}
+
+// release gives the channels back their remembered levels.
+func (m *levelMirror) release() {
+	m.mu.Lock()
+	m.held = false
+	_ = m.inner.SetVibration(m.vib)
+	_ = m.inner.SetSuction(m.suc)
+	m.mu.Unlock()
+	m.notify()
 }
 
 func (m *levelMirror) notify() {
 	m.mu.Lock()
 	vib, suc := m.vib, m.suc
+	if m.held {
+		vib, suc = 0, 0 // report what the device really does
+	}
 	m.mu.Unlock()
 	m.control.mu.Lock()
 	fn := m.control.onLevel
@@ -275,10 +378,13 @@ func (m *levelMirror) notify() {
 }
 
 func (m *levelMirror) SetVibration(v float64) error {
-	if err := m.inner.SetVibration(v); err != nil {
-		return err
-	}
 	m.mu.Lock()
+	if !m.held {
+		if err := m.inner.SetVibration(v); err != nil {
+			m.mu.Unlock()
+			return err
+		}
+	}
 	m.vib = v
 	m.mu.Unlock()
 	m.notify()
@@ -286,10 +392,13 @@ func (m *levelMirror) SetVibration(v float64) error {
 }
 
 func (m *levelMirror) SetSuction(v float64) error {
-	if err := m.inner.SetSuction(v); err != nil {
-		return err
-	}
 	m.mu.Lock()
+	if !m.held {
+		if err := m.inner.SetSuction(v); err != nil {
+			m.mu.Unlock()
+			return err
+		}
+	}
 	m.suc = v
 	m.mu.Unlock()
 	m.notify()
@@ -372,7 +481,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 				return err
 			}
 			level = 0
-			if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
+			if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond, control); err != nil {
 				return err
 			}
 		} else {
@@ -396,7 +505,7 @@ func RunTrainingWithControl(ctx context.Context, dev trainingDevice, opts Traini
 				level = 0
 			}
 			if stoppedDown || opts.Technique != TechniquePlateau {
-				if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond); err != nil {
+				if err := waitOrDone(ctx, time.Duration(restMs)*time.Millisecond, control); err != nil {
 					return err
 				}
 			}
@@ -464,7 +573,7 @@ func rampChannel(ctx context.Context, dev trainingDevice, channel TrainingChanne
 		if err := setChannel(dev, channel, v); err != nil {
 			return false, err
 		}
-		if err := waitOrDone(ctx, stepDur); err != nil {
+		if err := waitOrDone(ctx, stepDur, control); err != nil {
 			return false, err
 		}
 	}
@@ -484,29 +593,46 @@ func rampChannel(ctx context.Context, dev trainingDevice, channel TrainingChanne
 // noch bemerkt wird (gefunden über TestContextCancelDuringHoldStopsImmediately).
 func waitInterruptible(ctx context.Context, d time.Duration, control *TrainingControl) (bool, error) {
 	const tick = 50 * time.Millisecond
-	deadline := time.Now().Add(d)
-	for time.Now().Before(deadline) {
+	for remaining := d; remaining > 0; remaining -= tick {
 		if control.requested() {
 			return true, nil
 		}
-		remaining := time.Until(deadline)
-		if remaining > tick {
-			remaining = tick
+		step := remaining
+		if step > tick {
+			step = tick
 		}
-		if err := waitOrDone(ctx, remaining); err != nil {
+		if err := waitOrDone(ctx, step, control); err != nil {
 			return false, err
 		}
 	}
 	return control.requested(), nil
 }
 
-func waitOrDone(ctx context.Context, d time.Duration) error {
-	select {
-	case <-time.After(d):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+// waitOrDone waits d of session time: time spent paused does not count
+// (the session clock stands still), ctx cancels at once, also while paused.
+func waitOrDone(ctx context.Context, d time.Duration, control *TrainingControl) error {
+	const tick = 50 * time.Millisecond
+	for d > 0 {
+		if gate := control.pauseGate(); gate != nil {
+			select {
+			case <-gate:
+				continue
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		step := d
+		if control != nil && step > tick {
+			step = tick // check for a pause regularly
+		}
+		select {
+		case <-time.After(step):
+			d -= step
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
+	return nil
 }
 
 func clamp01(v float64) float64 {
@@ -960,11 +1086,11 @@ func RunTrainingScript(ctx context.Context, dev trainingDevice, script TrainingS
 						return err
 					}
 					lastVib, lastSuc = 0, 0
-					if err := waitOrDone(ctx, rest); err != nil {
+					if err := waitOrDone(ctx, rest, control); err != nil {
 						return err
 					}
 				}
-			} else if err := waitOrDone(ctx, rest); err != nil {
+			} else if err := waitOrDone(ctx, rest, control); err != nil {
 				return err
 			}
 

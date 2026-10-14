@@ -91,15 +91,11 @@ body {
   box-shadow: var(--flow-card-shadow);
   justify-content: center;
 }
-/* Round glowing Play button. */
-#tab-playback #pb-play {
-  width: 64px; height: 64px; padding: 0; border-radius: 50%;
-  display: inline-grid; place-items: center;
-  background: radial-gradient(circle at 50% 45%, rgba(0, 120, 255, 0.35), rgba(3, 12, 26, 0.95) 70%);
-  border: 3px solid #00c8ff;
-  box-shadow: 0 0 0 2px rgba(255, 138, 35, 0.55), 0 0 26px rgba(0, 200, 255, 0.55), 0 0 40px rgba(255, 138, 35, 0.25);
-}
-#tab-playback #pb-play svg { width: 30px; height: 30px; fill: #00d9f4; filter: drop-shadow(0 0 6px rgba(0, 217, 244, 0.9)); margin-left: 4px; }
+/* Round glowing Play button: the app symbol (flow-play below). */
+#tab-playback #pb-play { --fp-size: 66px; color: inherit;
+  background: radial-gradient(circle at 50% 42%, #0d3358 0%, #061a31 48%, #030c1a 70%);
+  border: 0; box-shadow: 0 0 24px rgba(54, 200, 255, .35), 0 0 34px rgba(255, 138, 35, .18); }
+#tab-playback #pb-play svg { width: 42%; height: 42%; fill: #3fd0ff; filter: drop-shadow(0 0 7px rgba(63, 208, 255, .95)); }
 #tab-playback #pb-play span,
 #tab-playback #pb-stop span {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -175,9 +171,22 @@ body {
   #topbar { height: 74px; }
 }
 
-/* S5 transport look (mockup: loop · speed | prev · PLAY · next | volume · fullscreen). */
-#tab-playback .pb-t-icon { border-color: transparent; color: #d6e6f5; }
-#tab-playback .pb-t-icon:hover { color: #fff; background: rgba(0, 180, 255, 0.10); }
+/* S5 transport look (mockup: loop · speed | prev · PLAY · next | volume · fullscreen):
+   every transport button is a round glass button (flow-round below). */
+#tab-playback .pb-transport .pb-t-icon, #tab-playback #pb-stop {
+  width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; color: #d6e6f5;
+  background: radial-gradient(circle at 50% 35%, rgba(40, 110, 170, .28), rgba(4, 14, 28, .82) 72%);
+  border: 1px solid rgba(110, 190, 240, .22);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 4px 14px rgba(0, 0, 0, .25);
+  transition: color .15s, border-color .15s, box-shadow .15s;
+}
+#tab-playback .pb-transport .pb-t-icon:hover, #tab-playback #pb-stop:not(:disabled):hover {
+  color: #fff; border-color: rgba(63, 208, 255, .65);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 14px rgba(63, 208, 255, .45);
+}
+#tab-playback .pb-transport .pb-t-icon[aria-pressed="true"] { color: #3fd0ff; border-color: rgba(63, 208, 255, .7); }
+#tab-playback .pb-transport .pb-t-icon svg { filter: drop-shadow(0 0 3px rgba(150, 220, 255, .35)); }
 #tab-playback #pb-prev svg, #tab-playback #pb-next svg { width: 24px; height: 24px; }
 #tab-playback .pb-speed {
   background: rgba(4, 14, 28, 0.7); border: 1px solid var(--flow-card-border); color: #e6f1fb;
@@ -239,3 +248,66 @@ body {
 .topbar-brand-block .brand-wordmark,
 .topbar-brand-block .brand-wordmark span { text-shadow: none; }
 .topbar-brand-block .brand-wordmark { filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.25)); }
+
+/* ---- Shared transport controls (Player and Training) ----------------------
+   flow-play: the big Play / Pause, drawn like the app symbol — a cyan play
+   triangle in a ring of blue and orange light that slowly turns (faster
+   while playing). flow-round: the round glass buttons around it. */
+.flow-play {
+  --fp-size: 72px;
+  position: relative; isolation: isolate;
+  width: var(--fp-size); height: var(--fp-size); min-height: 0; padding: 0;
+  border-radius: 50%; border: 0; display: inline-grid; place-items: center;
+  background: radial-gradient(circle at 50% 42%, #0d3358 0%, #061a31 48%, #030c1a 70%);
+  box-shadow: 0 0 24px rgba(54, 200, 255, .35), 0 0 34px rgba(255, 138, 35, .18);
+  cursor: pointer; transition: transform .15s ease, box-shadow .2s ease;
+}
+.flow-play::before, .flow-play::after {
+  content: ""; position: absolute; border-radius: 50%; z-index: -1; pointer-events: none;
+}
+/* The ring: blue → white-hot cyan → orange → white-hot orange. */
+.flow-play::before {
+  inset: -5px;
+  background: conic-gradient(from 210deg, #0636ff, #1677ff 10%, #3fd0ff 22%, #e9fbff 28%, #3fd0ff 34%,
+    #1677ff 46%, #ff2a00 56%, #ff6410 64%, #ffa030 74%, #fff0d0 79%, #ff6410 86%, #0636ff 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  filter: drop-shadow(0 0 5px rgba(63, 208, 255, .7));
+  animation: flow-play-turn 7s linear infinite;
+}
+/* Soft light swirl around the ring. */
+.flow-play::after {
+  inset: -14px;
+  background: conic-gradient(from 30deg, transparent, rgba(63, 208, 255, .55) 12%, transparent 30%,
+    rgba(255, 138, 35, .5) 55%, transparent 72%, rgba(22, 119, 255, .45) 88%, transparent);
+  filter: blur(9px); opacity: .85;
+  animation: flow-play-turn 11s linear infinite reverse;
+}
+.flow-play svg { width: 42%; height: 42%; fill: #3fd0ff; filter: drop-shadow(0 0 7px rgba(63, 208, 255, .95)); }
+.flow-play .fp-play { margin-left: 8%; }
+.flow-play:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 30px rgba(54, 200, 255, .5), 0 0 44px rgba(255, 138, 35, .28); }
+.flow-play:active:not(:disabled) { transform: scale(.97); }
+.flow-play:disabled { cursor: default; opacity: .55; }
+.flow-play:disabled::before, .flow-play:disabled::after { animation-play-state: paused; }
+/* Playing (the button would pause): the light runs faster and breathes. */
+.flow-play.is-playing::before { animation-duration: 2.6s; }
+.flow-play.is-playing::after { animation: flow-play-turn 4s linear infinite reverse, flow-play-breathe 2.2s ease-in-out infinite; }
+#tab-playback #pb-play[data-state="pause"]::before { animation-duration: 2.6s; }
+#tab-playback #pb-play[data-state="pause"]::after { animation: flow-play-turn 4s linear infinite reverse, flow-play-breathe 2.2s ease-in-out infinite; }
+@keyframes flow-play-turn { to { transform: rotate(360deg); } }
+@keyframes flow-play-breathe { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .flow-play::before, .flow-play::after,
+  #tab-playback #pb-play[data-state="pause"]::before, #tab-playback #pb-play[data-state="pause"]::after { animation: none; }
+}
+.flow-round {
+  width: 48px; height: 48px; min-height: 0; padding: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; color: #d6e6f5;
+  background: radial-gradient(circle at 50% 35%, rgba(40, 110, 170, .28), rgba(4, 14, 28, .82) 72%);
+  border: 1px solid rgba(110, 190, 240, .22);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 4px 14px rgba(0, 0, 0, .25);
+  transition: color .15s, border-color .15s, box-shadow .15s;
+}
+.flow-round svg { width: 20px; height: 20px; fill: currentColor; filter: drop-shadow(0 0 3px rgba(150, 220, 255, .35)); }
+.flow-round:hover:not(:disabled) { color: #fff; border-color: rgba(63, 208, 255, .65); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 14px rgba(63, 208, 255, .45); }
+.flow-round:disabled { opacity: .4; cursor: default; }

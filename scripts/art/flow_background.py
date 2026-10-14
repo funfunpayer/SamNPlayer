@@ -2,7 +2,8 @@
 silky blue / orange light waves in the top-right and bottom-left corners.
 
 Run:  python3 scripts/art/flow_background.py
-Writes cmd/gui-wails/frontend/src/assets/flow/bg-top.svg and bg-bottom.svg.
+Writes cmd/gui-wails/frontend/src/assets/flow/bg-top.svg, bg-bottom.svg and
+stage-ribbons.svg (behind the training rings).
 Deterministic (fixed seeds), so re-running gives the same files.
 
 A ribbon is many thin strands around one path (two joined cubic Béziers),
@@ -104,8 +105,26 @@ def bottom():
     ])
 
 
+def stage():
+    """Training stage, 1000 × 360: a blue wave from the left through the
+    vibration ring and an orange one from the right through the suction ring
+    (visual target training.png). Stretched to the stage behind the rings."""
+    r = random.Random(23)
+    return svg(1000, 360, [
+        ribbon(r, "s3", BLUE, [(-20, 120), (90, 60), (200, 230), (320, 170), (420, 110), (500, 230), (600, 200)],
+               -20, 600, 0.5, n=22, spread=(18, 14, 10, 8, 10, 14, 18), width=0.7, opacity=0.4, glow=0.5),
+        ribbon(r, "s1", BLUE, [(-20, 250), (110, 300), (190, 110), (320, 180), (430, 250), (520, 130), (640, 170)],
+               -20, 640, 0.48, n=56, spread=(60, 40, 18, 4, 16, 30, 44), width=1.2, glow=1.5),
+        ribbon(r, "s4", ORANGE, [(400, 210), (500, 110), (580, 250), (680, 180), (800, 120), (900, 250), (1020, 150)],
+               400, 1020, 0.5, n=22, spread=(18, 14, 10, 8, 10, 14, 18), width=0.7, opacity=0.4, glow=0.5),
+        ribbon(r, "s2", ORANGE, [(360, 180), (480, 240), (570, 120), (680, 180), (790, 250), (890, 80), (1020, 120)],
+               360, 1020, 0.52, n=56, spread=(44, 30, 16, 4, 18, 40, 60), width=1.2, glow=1.5),
+    ])
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "bg-top.svg").write_text(top())
     (OUT / "bg-bottom.svg").write_text(bottom())
-    print("wrote", OUT / "bg-top.svg", OUT / "bg-bottom.svg")
+    (OUT / "stage-ribbons.svg").write_text(stage())
+    print("wrote", OUT / "bg-top.svg", OUT / "bg-bottom.svg", OUT / "stage-ribbons.svg")

@@ -112,8 +112,8 @@ export function initPlayback(root) {
             <button id="pb-back10" class="pb-t-icon" type="button" title="Back 10 s" aria-label="Back 10 seconds">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.2 4.5v3.6h3.6"/><text x="12" y="15.2" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor" stroke="none">10</text></svg>
             </button>
-            <button id="pb-play" class="primary pb-btn-icon" type="button" title="Play (Space)" aria-label="Play" data-state="play">
-              <svg class="pb-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
+            <button id="pb-play" class="primary pb-btn-icon flow-play" type="button" title="Play (Space)" aria-label="Play" data-state="play">
+              <svg class="pb-play-icon fp-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
               <svg class="pb-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5.5" width="4" height="13" rx="1.4"/><rect x="13.5" y="5.5" width="4" height="13" rx="1.4"/></svg>
               <span>Play</span>
             </button>
@@ -1841,6 +1841,18 @@ export function initPlayback(root) {
   function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY } = {}) {
     if (points.length < 2) return;
     const dpr = window.devicePixelRatio || 1;
+    // Dense strokes (a fast script zoomed out) would melt into a solid,
+    // over-glowing block: draw them as a fine line with a faint fill.
+    let visible = 0;
+    const w = ctx.canvas.width;
+    for (const p of points) { const x = xOf(p.atMs); if (x >= 0 && x <= w) visible++; }
+    const gap = visible ? w / dpr / visible : Infinity;
+    if (gap < 8) {
+      const f = Math.max(0, (gap - 2) / 6); // 0 when very dense … 1 at 8 px
+      width = Math.max(1, width * (0.6 + 0.4 * f));
+      glow = glow * (0.2 + 0.5 * f);
+      fill = gap < 5 ? 0 : fill * 0.5 * f;
+    }
     if (fill > 0 && baseY != null) {
       smoothCurvePath(ctx, points, xOf, yOf);
       ctx.lineTo(xOf(points[points.length - 1].atMs), baseY);

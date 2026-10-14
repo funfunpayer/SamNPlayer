@@ -18,6 +18,19 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Training layout as in the visual target (#533):**
+  - **Left:** Training nav with programs, my programs, ＋ New program and History.
+  - **Centre:** program and phase stepper, the stage (Clip / Rings / Video), the session bar (session time, start / interrupt / end, phase "Step n of m", time left), live training curves and the session timeline.
+  - **Right:** session settings, session mode (Stop-Start / Plateau), safety (Stop session, Esc), feedback, recent sessions (the real history) and the session log.
+  - Phases and total come from the program preview, or from the Custom cycles and timings. Nothing is invented.
+  - **Live training curves:** smooth, glowing vibration and suction curves with a 0 / 50 / 100 % axis. With a program, the x axis spans the whole session and the planned curve is drawn dashed as the target, with a playhead at now. Custom shows the last minute.
+  - **Session timeline:** with a program, each phase is coloured by its planned strength (calm cyan → orange → red) and shows a small curve of its planned levels.
+  - **Stage:** the rings sit large on flowing blue / orange light ribbons (`assets/flow/stage-ribbons.svg`, from `scripts/art/flow_background.py`).
+  - The layout uses the full window width.
+  - **Transport in the middle, like the Player:** End · Play/Pause · Interrupt. Play/Pause is a real pause: both channels go to 0 at once and the session clock stands still (ramps, holds and rests wait); Resume restores the levels and continues where it stopped. The live curves and clocks skip the paused time.
+- **Play button = the app symbol:** in the Player and in Training the big Play/Pause is a cyan play triangle in a slowly turning ring of blue and orange light (faster while playing; still with reduced motion). The other transport buttons are round glass buttons.
+- **Player curves:** dense strokes (a fast script zoomed out) are drawn as a fine line without the glow and fill, instead of a solid block.
+
 - **Player modes, step 4 — Training (#533):** the stage sits large on the
   left with the settings beside it on the right. The stage switch offers
   **Clip · Rings · Waves · Video**:
