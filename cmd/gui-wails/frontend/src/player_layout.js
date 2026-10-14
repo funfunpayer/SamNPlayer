@@ -142,9 +142,7 @@ export function applyPlayerLayoutV1(root, api) {
     ${[['imported', 'Imported', ICONS.drop], ['generated', 'Generated', ICONS.spark], ['edited', 'Edited', ICONS.edit]].map(([k, label, ic]) =>
     `<button type="button" class="pb-lib-item" id="pb-lib-${k}-btn" aria-expanded="false" aria-controls="pb-lib-${k}">${ic}<span>${label}</span><b class="pb-lib-count" id="pb-lib-${k}-count"></b></button>
     <ol class="pb-lib-recent" id="pb-lib-${k}" hidden></ol>`).join('')}
-    <p class="pb-lib-title">Tools</p>
-    <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
-    <button type="button" class="pb-lib-item" id="pb-lib-scenemap">${ICONS.map}<span>Scene Map</span></button>
+    <p class="pb-lib-title">Analysis</p>
     <button type="button" class="pb-lib-item" id="pb-lib-audio">${ICONS.wave}<span>Audio Analysis</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-bpm">${ICONS.bpm}<span>BPM Detection</span></button>
     <p class="pb-lib-title">Quick Access</p>
@@ -564,22 +562,7 @@ export function applyPlayerLayoutV1(root, api) {
 
   // ---- Library actions ----------------------------------------------------
   q('#pb-lib-local').addEventListener('click', () => q('#pb-choose')?.click());
-  q('#pb-lib-scenemap').addEventListener('click', () => showBottom('scenemap'));
-  // Editor: curve edit mode of the loaded script (existing #pb-curve-edit).
-  q('#pb-lib-editor').addEventListener('click', () => {
-    const box = q('#pb-curve-edit');
-    if (root.dataset.pbState !== 'loaded' || !box || box.disabled) {
-      q('#pb-choose')?.focus();
-      return;
-    }
-    showInspector('view');
-    showBottom('timeline');
-    if (!box.checked) {
-      box.checked = true;
-      box.dispatchEvent(new Event('change'));
-    }
-    q('#pb-curve')?.scrollIntoView({ block: 'nearest' });
-  });
+  // Editor and Scene Map are modes (the Mode pill), not Library items.
   q('#pb-lib-audio').addEventListener('click', () => showBottom('audio'));
 
   // ---- Workspace Edit view (main.js sets data-ws-view): curve editing on,
