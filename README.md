@@ -222,6 +222,26 @@ There is no AI-only path that writes a script on its own. Details:
 
 ---
 
+## In numbers
+
+About **122 000 lines** of code and tests, plus 16 000 lines of docs
+(non-blank lines, without generated or third-party files; counted
+14 Oct 2026 with `python3 scripts/count_lines.py`).
+
+| Language | Files | Code | Tests |
+|---|---:|---:|---:|
+| Go — app, devices, player, Generator core | 443 | 38 148 | 22 395 |
+| JavaScript — interface | 40 | 20 638 | — |
+| Python — AI and tracking helpers; interface tests | 243 | 19 077 | 15 127 |
+| CSS / HTML | 19 | 6 448 | — |
+| Shell / PowerShell | 6 | 609 | — |
+| **Total** | **751** | **84 920** | **37 522** |
+
+The interface is tested in a real browser (Playwright); those tests are
+the Python test lines.
+
+---
+
 ## Docs
 
 | Doc | What it is |

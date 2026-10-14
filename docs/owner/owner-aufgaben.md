@@ -86,9 +86,15 @@ Free- und Suite-Edition, mit ffmpeg.
    prüft das als Erstes und bricht sonst ab.
 3. Unter **Actions → Release** den Lauf beobachten (etwa 10 bis 20 Minuten).
 4. Unter **Releases** sind dann die ZIP-Dateien zu finden. Die Release-Notes
-   aus der Release-PR einfügen, falls sie noch fehlen.
-5. Optional: eine der ZIPs auf deinem Windows-Rechner entpacken, starten und
-   den Hardware-Test unten machen.
+   aus [`docs/RELEASE_0_7_0.md`](../RELEASE_0_7_0.md) (der eingerückte Block
+   oben) einfügen, falls sie noch fehlen. Die `SamNPlayer-suite-…`-Dateien
+   sind die interne Edition: nicht öffentlich verlinken.
+5. **Durchklicken (etwa 15 Minuten):** die Portable-ZIP auf deinem
+   Windows-Rechner entpacken, starten und die Checkliste in
+   [`docs/RELEASE_0_7_0.md`](../RELEASE_0_7_0.md) („After the tag“) abarbeiten:
+   Start, Video öffnen, Generator, Player, Scene Map und Training. Mit Gerät
+   zusätzlich Sam Neo 2 und Stroker/TCode (Hardware-Test unten). Wenn etwas
+   hakt, schick Claude das Log; der Tag lässt sich zurücknehmen (siehe unten).
 
 **Falls etwas schiefgeht:** Den Tag löschen (`git push origin :v0.7.0` und
 `git tag -d v0.7.0`), Claude den Fehler aus dem Actions-Log geben, den Fix

@@ -1,6 +1,7 @@
 package player
 
 import (
+	"math"
 	"sort"
 	"time"
 
@@ -19,6 +20,17 @@ import (
 // position never asks the device for an impossible jump.
 const minStrokeMove = 20 * time.Millisecond
 
+// Soft seek (as in ScriptPlayer): after a start, a pause or a jump in the
+// video the device may be far from the next target, and the time until it
+// is due can be tiny. That first move then takes at least softSeekFullStroke
+// for a full stroke (proportionally less for a shorter way), instead of a
+// slam. Later moves follow the script again.
+const (
+	softSeekFullStroke = 500 * time.Millisecond
+	// A position this far from the last one (or any step back) is a jump.
+	softSeekJumpMs = 1500
+)
+
 // SetStroke gives the player the stroke actions (0–100, inversion already
 // applied — funscript.Script.PlaybackActions). Without them, or on a device
 // that cannot move linearly, nothing changes.
@@ -28,6 +40,8 @@ func (p *Player) SetStroke(actions []funscript.Action) {
 	sort.SliceStable(cp, func(i, j int) bool { return cp[i].At < cp[j].At })
 	p.stroke = cp
 	p.strokeNext = -1
+	p.strokeSoft = true
+	p.strokeLastPos = -1
 }
 
 // MinStrokeSpan: the safety range is never narrower than this (0–1), so a
@@ -106,6 +120,10 @@ func (p *Player) driveStroke(posMs int64) error {
 		p.strokeNext = -1 // switched back on → the next position sends
 		return nil
 	}
+	if p.strokeLastAt >= 0 && (posMs < p.strokeLastAt-250 || posMs > p.strokeLastAt+softSeekJumpMs) {
+		p.strokeSoft = true
+	}
+	p.strokeLastAt = posMs
 	next := sort.Search(len(p.stroke), func(i int) bool { return p.stroke[i].At > posMs })
 	if next >= len(p.stroke) {
 		return nil // past the last action: hold
@@ -120,9 +138,20 @@ func (p *Player) driveStroke(posMs int64) error {
 		dur = minStrokeMove
 	}
 	pos := lo + float64(a.Pos)/100*(hi-lo)
+	if p.strokeSoft {
+		way := 1.0 // unknown start: assume the whole range
+		if p.strokeLastPos >= 0 {
+			way = math.Abs(pos - p.strokeLastPos)
+		}
+		if soft := time.Duration(way * float64(softSeekFullStroke)); dur < soft {
+			dur = soft
+		}
+	}
 	if err := ld.SetPosition(pos, dur); err != nil {
 		return err
 	}
+	p.strokeSoft = false
+	p.strokeLastPos = pos
 	p.strokeNext = next
 	return nil
 }
@@ -134,4 +163,5 @@ func (p *Player) resetStroke() {
 		logging.Debug("player: stroke target reset")
 	}
 	p.strokeNext = -1
+	p.strokeSoft = true // the next move eases in (soft seek)
 }

@@ -26,7 +26,7 @@ The device interface (`device.Device`) has two intensity channels: `SetVibration
 | Every `Vibrate` motor | Vibration curve (one `ScalarCmd` for all motors) |
 | First `Constrict` / `Inflate` (or `Oscillate` when there is no Constrict) | Suction curve |
 | Other `Oscillate`, `Rotate` scalars, every `RotateCmd` (clockwise) | Vibration curve as intensity / speed |
-| First `LinearCmd` | Stroke positions: at each playback position the **next** action is sent as "move to pos within the time until it is due", once per action. Playback speed shortens the move time; pause stops the device; a seek resends |
+| First `LinearCmd` | Stroke positions: at each playback position the **next** action is sent as "move to pos within the time until it is due", once per action. Playback speed shortens the move time; pause stops the device; a seek resends. **Soft seek:** after a start, a pause or a jump the first move takes at least 0.5 s per full stroke (proportionally less for a shorter way), so the device eases to the new place instead of slamming there |
 | Scalar `Position` | Listed, not driven |
 
 ## Direction: device-aware channels

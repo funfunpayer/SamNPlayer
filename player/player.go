@@ -62,6 +62,12 @@ type Player struct {
 	// the action the device is moving to, -1 = none sent.
 	stroke     []funscript.Action
 	strokeNext int
+	// Soft seek (stroke.go): strokeSoft eases the next move in; strokeLastPos
+	// is the last position sent (−1 unknown), strokeLastAt the last position
+	// driven (ms, −1 none) to spot jumps.
+	strokeSoft    bool
+	strokeLastPos float64
+	strokeLastAt  int64
 	// Extra axes for multi-axis devices (axes.go).
 	axes map[string]*axisTrack
 
@@ -130,9 +136,12 @@ func (p *Player) PeakReduce() bool {
 
 func New(dev device.Device) *Player {
 	return &Player{
-		Device:      dev,
-		extendedOCh: make(chan ExtendedOOptions, 1),
-		strokeNext:  -1,
+		Device:        dev,
+		extendedOCh:   make(chan ExtendedOOptions, 1),
+		strokeNext:    -1,
+		strokeSoft:    true,
+		strokeLastPos: -1,
+		strokeLastAt:  -1,
 	}
 }
 

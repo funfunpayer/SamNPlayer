@@ -1,10 +1,33 @@
 # SamNPlayer Free — Release-Abnahme und GitHub-Aufräumplan
 
-**Aktualisiert: 14. Oktober 2026. Prüfstand, keine Release-Freigabe.**
+**Aktualisiert: 14. Oktober 2026 (Release-PR v0.7.0). Prüfstand, keine Release-Freigabe.**
 Dieses Dokument beschreibt den aktuellen Free-Abschluss. Die Entwicklung von
 SamNPlayer 2.0 Next ist ein eigenes Projekt und blockiert die Free-Veröffentlichung nicht.
 
-## Bestätigter Stand
+## Stand für v0.7.0 (14.10.2026, Release-PR)
+
+Kandidat: `main` nach #542 und der Release-PR, `VERSION=0.7.0`. Das letzte
+veröffentlichte Release ist weiterhin **v0.5.45**. 0.5.46 und 0.6.0 wurden
+nie getaggt; v0.7.0 trägt beide mit.
+
+| Gate | Stand | Beleg / was fehlt |
+|---|---|---|
+| G1 | erfüllt (automatisch) | CI grün auf #540–#542: Go, Go OpenCV Linux/Windows, Python, Frontend (148 Playwright-Suites). Zusätzlich 758 öffentliche Community-Scripts durch Laden, Kurve, Heatmap, Kapitel, Neo-2-Frames (alle Szenen-Gefühle) und *Optimize for* (Allgemein und Neo 2): 758/758 ohne Befund, nachdem der Fix für kaputte Zeitstempel (#542) drin war. |
+| G2 | erledigt | #489 ist geschlossen (nicht gemergt); #532 ist gemergt. |
+| G3 | **offen, Owner** | Nativer Windows-11-Lauf mit dem Build. In der Cloud gibt es nur Browser-Captures (`docs/media/`, Testbild statt echter Videos). |
+| G4 | teilweise | Video→Generator→Edit→Play nur in Browser-Tests mit Stubs. Ein echter Durchlauf mit einem Video steht in der Checkliste `docs/RELEASE_0_7_0.md`. |
+| G5 | **offen, Owner** | Mocktests für Neo 2, Intiface, TCode und Stroker-Soft-Seek sind grün. Hardware ist nicht getestet: Checkliste Punkte 7–8. |
+| G6 | geprüft | `release.yml` baut Free und Suite; der Updater wählt die eigene Edition. Suite-Dateien nur im privaten Release, nicht öffentlich verlinken (steht in den Release-Notes). |
+| G7 | erledigt | README (inkl. „In numbers“), Handbuch, CHANGELOG `[0.7.0]` und Roadmap beziehen sich auf denselben Kandidaten. |
+| G8 | offen | Website ist ein eigener PR (SamNPlayer-site). |
+| G9 | nach dem Tag | Tag, Artefakte/Hashes, Update-Smoketest. |
+
+Nur ein Tag baut herunterladbare Dateien. Deshalb ist das private Release
+v0.7.0 der Prüfkandidat für G3, G4 und G5. Öffentlich verlinkt (G8) wird erst,
+wenn diese Prüfungen bestanden sind. Geht etwas schief, werden Tag und
+Release zurückgenommen (`docs/owner/owner-aufgaben.md`, Teil 2).
+
+## Bestätigter Stand (12.–14.10.2026, vor v0.7.0)
 
 - Geprüftes `main`: `800b2337af889701be48f5e21a4c1eefc51e4a8d`; `VERSION=0.6.0`.
 - Die GitHub-Release-Abfrage vom 14.10.2026 liefert **v0.5.45** (veröffentlicht 2.10.2026) als jüngstes privates Release, mit GUI-/CLI-/Portable-Artefakten und Prüfsummen. Die Release-Liste von `SamNPlayer-site` ist leer. Ein öffentlicher Download oder veröffentlichtes 0.6.0-Release ist damit nicht belegt.
@@ -40,7 +63,7 @@ SamNPlayer 2.0 Next ist ein eigenes Projekt und blockiert die Free-Veröffentlic
 ## Definition of Done
 
 **Free ist freigegeben**, wenn G1–G9 mit Belegen abgenommen sind.
-`VERSION=0.6.0`, ein einzelner grüner Workflow, ein Dokumentationsmerge oder
+`VERSION=0.7.0`, ein einzelner grüner Workflow, ein Dokumentationsmerge oder
 Zielbilder alleine sind keine Release-Bestätigung.
 
 Spenden bleiben freiwillig: keine Paywall, keine Lizenzschlüssel, kein
