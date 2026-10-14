@@ -201,7 +201,7 @@ def main():
                 page.wait_for_timeout(600)
 
                 # Create — with a clip chosen.
-                page.click('#ws-view [data-ws-view="create"]')
+                page.click('#rail .tab-btn[data-tab="generator"]')
                 page.wait_for_timeout(800)
                 page.click('#gen-choose')
                 page.wait_for_timeout(2500)

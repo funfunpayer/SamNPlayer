@@ -37,9 +37,10 @@ def main():
             page.goto(f"{base}/test/_tools_nav_harness.html")
             page.wait_for_timeout(800)
             rail = page.evaluate("[...document.querySelectorAll('#rail .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("top tabs: Player · Training · Tools", rail == ["Player", "Training", "Tools"], str(rail))
-            views = page.evaluate("[...document.querySelectorAll('#ws-view [data-ws-view]')].map(b => b.textContent.trim())")
-            check("workspace views Play · Create · Edit", views == ["Play", "Create", "Edit"], str(views))
+            check("top tabs: Player · Generator · Training · Scene Map · Tools", rail == ["Player", "Generator", "Training", "Scene Map", "Tools"], str(rail))
+            views = page.evaluate("[...document.querySelectorAll('#ws-view [data-ws-view]')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
+            check("Player toggle Play · Edit", views == ["Play", "Edit"], str(views))
+            check("mode hook: player", page.evaluate("document.body.dataset.mode") == "player")
             check("Play view active at start", page.get_attribute('#ws-view [data-ws-view="play"]', "aria-selected") == "true"
                   and page.evaluate("document.body.dataset.wsView") == "play")
             check("tabs live in the top bar", page.evaluate("!!document.querySelector('#topbar #rail')"))
@@ -47,7 +48,7 @@ def main():
                   page.get_attribute("#brand-tagline", "aria-label") == "Generate · Play · Train"
                   and " ".join(page.text_content("#brand-tagline").split()) == "Generate Play Train")
             check("tools sub-nav hidden on Play", page.is_hidden("#tools-nav"))
-            check("Scene Map button only in Create", page.is_hidden("#ws-scenemap"))
+            check("no Scene Map sub-button (top tab now)", page.is_hidden("#ws-scenemap"))
 
             page.click('#rail .tab-btn[data-tab="tools"]')
             check("Tools opens Home first", page.is_visible("#tab-tools-home") and page.is_hidden("#tab-device"))
@@ -75,28 +76,32 @@ def main():
             page.click("#topbar-device")
             check("top-bar device button opens Tools → Device", page.is_visible("#tab-device"))
 
-            # Create = Generator panel; Player stays the active top tab.
-            page.click('#rail .tab-btn[data-tab="playback"]')
-            page.click('#ws-view [data-ws-view="create"]')
-            check("Create shows the Generator panel", page.is_visible("#tab-generator") and page.is_visible("#gen-steps"))
-            check("Player panel hidden in Create (no grid override)", page.is_hidden("#tab-playback"))
-            check("Player top tab stays active in Create",
-                  page.get_attribute('#rail .tab-btn[data-tab="playback"]', "aria-selected") == "true")
-            check("old route switchTab('generator') = Create", page.evaluate("document.body.dataset.wsView") == "create")
-            # Scene Map: focused view on the Generator's scene map (same IDs).
-            page.click("#ws-scenemap")
+            # Generator mode: its own top tab, the Generator panel.
+            page.click('#rail .tab-btn[data-tab="generator"]')
+            check("Generator shows the Generator panel", page.is_visible("#tab-generator") and page.is_visible("#gen-steps"))
+            check("Player panel hidden in Generator (no grid override)", page.is_hidden("#tab-playback"))
+            check("Generator top tab active",
+                  page.get_attribute('#rail .tab-btn[data-tab="generator"]', "aria-selected") == "true")
+            check("mode hook: generator", page.evaluate("document.body.dataset.mode") == "generator")
+            check("Play · Edit toggle hidden in Generator", page.is_hidden("#ws-view"))
+            check("old route switchTab('generator') = Create view", page.evaluate("document.body.dataset.wsView") == "create")
+            # Scene Map mode: focused view on the Generator's scene map (same IDs).
+            page.click('#rail .tab-btn[data-tab="scenemap"]')
             check("Scene Map shows the Generator panel in scene-map view",
                   page.is_visible("#tab-generator")
                   and page.get_attribute("#tab-generator", "data-view") == "scenemap")
             check("scene map controls visible", page.is_visible("#gen-scene-map"))
             check("video chooser visible in Scene Map", page.is_visible("#gen-choose"))
             check("other Generator steps hidden in Scene Map", page.is_hidden("#gen-steps"))
-            check("Scene Map button pressed", page.get_attribute("#ws-scenemap", "aria-pressed") == "true")
-            page.click("#ws-scenemap")
-            check("Scene Map button again leaves scene-map view",
+            check("Scene Map top tab active", page.get_attribute('#rail .tab-btn[data-tab="scenemap"]', "aria-selected") == "true")
+            check("mode hook: scenemap", page.evaluate("document.body.dataset.mode") == "scenemap")
+            page.click('#rail .tab-btn[data-tab="generator"]')
+            check("Generator tab leaves scene-map view",
                   page.get_attribute("#tab-generator", "data-view") is None and page.is_visible("#gen-steps"))
-            # Edit view: Player panel, remembered.
+            # Edit: a toggle inside the Player, remembered.
+            page.click('#rail .tab-btn[data-tab="playback"]')
             page.click('#ws-view [data-ws-view="edit"]')
+            check("mode hook: editor", page.evaluate("document.body.dataset.mode") == "editor")
             check("Edit shows the Player panel", page.is_visible("#tab-playback")
                   and page.get_attribute("#tab-playback", "data-ws-view") == "edit")
             check("Edit remembered", page.evaluate("localStorage.getItem('ws.view')") == "edit")
@@ -105,7 +110,7 @@ def main():
             check("Player reopens in Edit", page.evaluate("document.body.dataset.wsView") == "edit")
             page.focus('#ws-view [data-ws-view="edit"]')
             page.keyboard.press("ArrowLeft")
-            check("← in the view switch → Create", page.is_visible("#tab-generator"))
+            check("← in the toggle → Play", page.evaluate("document.body.dataset.wsView") == "play" and page.is_visible("#tab-playback"))
             page.click('#ws-view [data-ws-view="play"]')
             # Top-bar actions.
             page.click("#topbar-settings")

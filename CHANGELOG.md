@@ -18,6 +18,14 @@ measurement history behind each entry; this file is the short version for
 
 ### Changed
 
+- **Player modes, step 1 (#533):** the top bar now holds the modes
+  **Player · Generator · Training · Scene Map** plus **Tools**. Generator and
+  Scene Map are top tabs instead of sub-buttons. Edit is a Play · Edit toggle
+  inside the Player. The Player tab has a filled play triangle, as in the
+  visual targets. `body[data-mode]` (player / editor / generator / training /
+  scenemap / tools) is the style hook for the look lane. The old routes
+  (`switchTab('generator')`, `ws:set` → create) keep working.
+
 - **Create layout (visual target `docs/visual-target/create.png`):** Create
   is now a three-column workspace instead of one long page. On the left is
   a Project column: source clips, recent videos, generated scripts, Scene

@@ -64,7 +64,7 @@ def main():
             check("back to Play: scene strip off again", page.is_hidden("#pb-scene-strip"))
 
             # Generator result (review) → Edit view, editing on after the curve is drawn.
-            page.click('#ws-view [data-ws-view="create"]')
+            page.click('#rail .tab-btn[data-tab="generator"]')
             page.evaluate("window.dispatchEvent(new CustomEvent('ws:set', { detail: { view: 'edit' } }))")
             page.wait_for_function("document.body.dataset.wsView === 'edit'", timeout=3000)
             page.evaluate("document.querySelector('#pb-curve-edit').checked = false; document.querySelector('#pb-curve-edit-row').style.display = 'none'")

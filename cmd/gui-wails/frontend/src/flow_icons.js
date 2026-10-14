@@ -13,7 +13,8 @@
 
 const paths = Object.freeze({
   // Global shell / workspace
-  player: '<path d="m9 6 10 6-10 6V6Z"/><rect x="2.5" y="3" width="19" height="18" rx="3"/>',
+  // Filled play triangle (visual target: the Player tab).
+  player: '<path d="M7 4.6v14.8c0 .8.9 1.3 1.6.9l12-7.4a1 1 0 0 0 0-1.8l-12-7.4C7.9 3.3 7 3.8 7 4.6Z" fill="currentColor"/>',
   play: '<path d="m8 5 12 7-12 7V5Z"/>',
   pause: '<path d="M8 5v14M16 5v14"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',

@@ -49,11 +49,11 @@ function setSceneMapView(on) {
   }
 }
 
-// Player workspace (Owner 11 Oct, V1 W1): one top tab "Player" with the view
-// switch Play · Create · Edit. Create is the Generator panel (same IDs, same
-// generator.js), Scene Map lives inside Create. The old data-tab values
-// "generator" / "scenemap" stay as routes, so switchTab() calls and
-// `.tab-btn[data-tab=…]` clicks elsewhere keep working.
+// Player modes (Owner 14 Oct, #533): one Player view; the top bar picks the
+// mode — Player · Generator · Training · Scene Map — and Tools stays its own
+// page. Edit is a toggle inside the Player (Play · Edit). Generator is the
+// Generator panel (same IDs, same generator.js); Scene Map is its focused
+// view. body[data-mode] is the style hook for the look lane.
 const WORKSPACE_TABS = new Set(['playback', 'generator', 'scenemap']);
 const WS_VIEWS = ['play', 'create', 'edit'];
 let playView = 'play'; // last of play / edit, restored when Player opens
@@ -73,11 +73,20 @@ function setWorkspaceView(view) {
   switchTab('playback');
 }
 
+function modeOf(name, view) {
+  if (name === 'playback') return view === 'edit' ? 'editor' : 'player';
+  if (name === 'generator' || name === 'scenemap' || name === 'training') return name;
+  return 'tools';
+}
+
 function syncWorkspace(name) {
   const inWs = WORKSPACE_TABS.has(name);
   const view = !inWs ? '' : name === 'playback' ? playView : 'create';
+  document.body.dataset.mode = modeOf(name, view);
+  // Play · Edit toggle: only in the Player; Generator and Scene Map have
+  // their own top tabs now.
   const nav = document.getElementById('ws-view');
-  if (nav) nav.hidden = !inWs;
+  if (nav) nav.hidden = name !== 'playback';
   document.body.dataset.wsView = view;
   const pb = document.getElementById('tab-playback');
   if (pb) pb.dataset.wsView = view || 'none';
@@ -89,7 +98,7 @@ function syncWorkspace(name) {
   });
   const sm = document.getElementById('ws-scenemap');
   if (sm) {
-    sm.hidden = view !== 'create';
+    sm.hidden = true; // Scene Map is a top tab now
     sm.setAttribute('aria-pressed', name === 'scenemap' ? 'true' : 'false');
   }
   if (inWs) window.dispatchEvent(new CustomEvent('ws:view', { detail: { view } }));
@@ -107,8 +116,7 @@ function switchTab(name) {
   document.body.dataset.tab = name;
   document.body.dataset.tabGroup = inTools ? 'tools' : inWs ? 'player' : name;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools')
-      || (inWs && b.dataset.tab === 'playback');
+    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools');
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
@@ -182,7 +190,7 @@ document.querySelectorAll('#ws-view [data-ws-view]').forEach(b => {
   b.addEventListener('click', () => setWorkspaceView(b.dataset.wsView));
 });
 document.getElementById('ws-view')?.addEventListener('keydown', e => {
-  const btns = [...document.querySelectorAll('#ws-view [data-ws-view]')];
+  const btns = [...document.querySelectorAll('#ws-view [data-ws-view]')].filter(b => !b.hidden);
   const i = btns.indexOf(document.activeElement);
   if (i < 0) return;
   let j = -1;
