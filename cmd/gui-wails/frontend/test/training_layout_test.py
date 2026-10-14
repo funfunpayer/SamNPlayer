@@ -80,7 +80,10 @@ def main():
             check("clock runs while training", True)
             check("first phase is current", page.text_content("#trl-phase-name") == "Warm up"
                   and page.evaluate("document.querySelector('#trl-stepper .trl-step.is-current')?.dataset.index") == "0")
-            check("time left counts down", page.text_content("#trl-left") in ("9:59", "9:58", "9:57"))
+            # Read both clocks in one step: under CI load the elapsed time can be several seconds.
+            el, left = page.evaluate("[document.querySelector('#trl-elapsed').textContent, document.querySelector('#trl-left').textContent]")
+            secs = lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1])
+            check("time left counts down", 0 < secs(el) and abs(secs(left) - (600 - secs(el))) <= 1, f"{el} / {left}")
             page.click("#trl-stop")
             page.wait_for_function("window.__stopped === 1", timeout=3000)
             check("Stop session ends the training", True)
