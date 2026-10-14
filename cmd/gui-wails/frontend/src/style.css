@@ -3939,8 +3939,8 @@ body[data-tab="generator"] #sidebar { display: none; }
   border: 2px solid var(--border-strong); font-weight: 700; color: var(--text-dim);
 }
 #tab-generator[data-gen-layout="v1"] .gen-step-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-#tab-generator[data-gen-layout="v1"] .gen-step-text b { font-size: 13.5px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#tab-generator[data-gen-layout="v1"] .gen-step-text small { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tab-generator[data-gen-layout="v1"] .gen-step-text b { font-size: 13.5px; color: var(--text); font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+#tab-generator[data-gen-layout="v1"] .gen-step-text small { font-size: 11.5px; color: var(--text-dim); white-space: normal; }
 #tab-generator[data-gen-layout="v1"] .gen-step-item.is-done .gen-step-num { border-color: var(--teal); color: var(--teal); }
 #tab-generator[data-gen-layout="v1"] .gen-step-item.is-current {
   border-color: rgba(var(--accent-rgb), 0.7); background: rgba(var(--accent-rgb), 0.12);

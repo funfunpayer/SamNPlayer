@@ -19,7 +19,11 @@ PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAh
 
 def main():
     check = Checker()
-    html = (HERE.parent / "index.html").read_text().replace('href="/src/style.css"', 'href="/src/style.css?real"')
+    # The app imports these stylesheets from JS (the harness stubs those
+    # imports), so link them for real, in app order — the Flow theme too.
+    links = "".join(f'<link rel="stylesheet" href="/src/{css}?real" />'
+                    for css in ("style.css", "theme_flow.css", "flow_fx.css", "training_rings.css"))
+    html = (HERE.parent / "index.html").read_text().replace('<link rel="stylesheet" href="/src/style.css" />', links)
     harness = HERE / "_create_layout_harness.html"
     harness.write_text(html)
     base, shutdown = serve("window.__picked = [];\n" + app_stub({
@@ -50,7 +54,7 @@ def main():
             check("page title gives way to the project header", page.is_hidden(".create-head"))
             check("handbook in the Project column", page.evaluate("!!document.querySelector('.gl-nav #gen-open-handbook')"))
             subs = page.evaluate("[...document.querySelectorAll('.gen-step-item small')].map(e => e.textContent)")
-            check("step bar has sub-labels", subs == ["Add video or audio", "Analyze movement", "Generate channels", "Adjust and preview", "Save or apply"], str(subs))
+            check("step bar has sub-labels", subs == ["Add a clip", "Find the motion", "Shape the curves", "Build the script", "Refine and play"], str(subs))
             check("preview empty state before a video", page.is_visible(".gl-preview-empty") and page.is_hidden("#roi-canvas-wrap"))
             check("chooser lives in the Source clips card", page.evaluate("!!document.querySelector('.gl-clips #gen-choose')"))
             check("Create button in the settings column, disabled", page.evaluate("!!document.querySelector('.gl-side #gen-generate')")
@@ -69,6 +73,18 @@ def main():
             check("Feel settings shown, placeholder gone", page.is_visible("#gen-step-motion") and page.is_hidden(".gl-side-empty"))
             check("Create button sits in the run card", page.evaluate("!!document.querySelector('.gl-side .gl-run #gen-generate')"))
             check("step tools live in the right settings column", page.evaluate("!!document.querySelector('.gl-side .gl-tools #gen-step-region')"))
+            tile = page.evaluate("(() => { const t = document.querySelector('.gen-step-item.is-current'); return t ? [t.dataset.step, t.querySelector('b').textContent] : null })()")
+            prompt = page.text_content("#gen-step-prompt") or ""
+            check("current tile matches the step prompt",
+                  tile is not None and (not prompt.startswith("Step ") or prompt.startswith(f"Step {tile[0]}:"))
+                  and (tile[0] != "4" or tile[1] == "Create"), f"{tile} / {prompt[:40]}")
+            for w, h in ((1366, 768), (1920, 1080)):
+                page.set_viewport_size({"width": w, "height": h})
+                page.wait_for_timeout(200)
+                check(f"{w}px: no horizontal overflow", page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1"))
+                check(f"{w}px: step titles not cut off", page.evaluate("[...document.querySelectorAll('.gen-step-text b')].every(b => b.scrollWidth <= b.clientWidth + 1)"))
+                check(f"{w}px: Create button in view", page.evaluate("(() => { const r = document.querySelector('#gen-generate').getBoundingClientRect(); return r.height > 0 && r.bottom <= innerHeight && r.right <= innerWidth })()"))
+            page.set_viewport_size({"width": 1600, "height": 960})
             check("workspace stays in view (no jump to step 2)", page.evaluate("document.querySelector('#gen-steps').getBoundingClientRect().top") >= 0)
 
             page.click("#gl-nav-recent .gl-nav-link >> text=older clip.mp4")

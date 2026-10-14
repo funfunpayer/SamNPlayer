@@ -4,7 +4,11 @@
 const SECTIONS = [
   {
     title: 'Everyday Create (recommended)',
-    body: `1. Open Generator → choose a video.
+    body: `Layout: Project on the left (clips, recent videos, generated scripts, Scene map).
+Preview and source clips in the middle; Feel, the Create button and the step tools on the right.
+Curves are not edited here — the result opens in Edit.
+
+1. Open Generator → choose a video.
 2. Find tip area (or paint the box). Optional: Smarter tip find if an AI ROI model is set in Settings.
 3. Leave Contact vibration on (Feel: Sensitivity / Curve show a live vib probe with active%/peak badges).
    Optionally mark nipples/mouth for feel later.
