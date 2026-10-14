@@ -1,4 +1,4 @@
-"""Play: Optimize for Neo 2 on an imported community funscript.
+"""Editor: Optimize for a device (any device / Sam Neo 2) on an imported community funscript.
 
 Run: python3 cmd/gui-wails/frontend/test/playback_optimize_neo2_test.py
 """
@@ -40,10 +40,11 @@ def main():
         "GetScriptOffset": "async () => 0",
         "GetStrengthPresets": "async () => ({ presets: [], active: '' })",
         "AnalyzeScript": "async () => ({})",
-        "OptimizeLoadedForNeo2": (
-            "async (fill) => { window.__calls.push(['OptimizeLoadedForNeo2', fill]); "
-            "return { path: '/tmp/imported.samn', message: 'Neo 2 ready · axes baked', "
-            "baked: true, contactOn: true, gapsFilled: 1, pointsAdded: 3, hasNeoAxes: true }; }"
+        "OptimizeLoadedFor": (
+            "async (target) => { window.__calls.push(['OptimizeLoadedFor', target]); "
+            "return target === 'neo2' ? { path: '/tmp/imported.samn', message: 'Neo 2 ready · axes baked', "
+            "baked: true, contactOn: true, gapsFilled: 1, pointsAdded: 3, hasNeoAxes: true } "
+            ": { path: '/tmp/imported.funscript', message: 'Ready for any device · filled 1 gap(s) (+3 pts)', gapsFilled: 1, pointsAdded: 3 }; }"
         ),
         "BakeNeoAxesOnLoaded": "async () => '/tmp/imported.samn'",
         "SaveLoadedAsSamn": "async () => '/tmp/imported.samn'",
@@ -65,23 +66,31 @@ def main():
             "!document.querySelector('#pb-axis-row').hidden && "
             "document.querySelector('#pb-axis-row').style.display !== 'none'",
             timeout=5000)
-        check("Optimize for Neo 2 button visible",
-              page.locator("#pb-optimize-neo2").count() == 1)
+        check("Optimize button and device choice present",
+              page.locator("#pb-optimize-neo2").count() == 1 and page.locator("#pb-optimize-target").count() == 1)
+        check("Sam Neo 2 is the default target", page.input_value("#pb-optimize-target") == "neo2")
 
         page.click("#pb-optimize-neo2")
         page.wait_for_function(
-            "() => (window.__calls || []).some(c => c[0] === 'OptimizeLoadedForNeo2')",
+            "() => (window.__calls || []).some(c => c[0] === 'OptimizeLoadedFor')",
             timeout=5000)
         calls = page.evaluate(
-            "() => (window.__calls || []).filter(c => c[0] === 'OptimizeLoadedForNeo2')")
-        check("OptimizeLoadedForNeo2 called with fillGaps",
-              calls and calls[0][1] is True, str(calls))
+            "() => (window.__calls || []).filter(c => c[0] === 'OptimizeLoadedFor')")
+        check("OptimizeLoadedFor called with neo2", calls and calls[0][1] == "neo2", str(calls))
         page.wait_for_function(
             "document.querySelector('#pb-optimize-neo2-status') && "
-            "document.querySelector('#pb-optimize-neo2-status').textContent.includes('Neo 2')",
+            "document.querySelector('#pb-optimize-neo2-status').textContent.includes('Neo 2 ready')",
             timeout=5000)
         check("Status shows Neo 2 ready",
               "Neo 2" in page.locator("#pb-optimize-neo2-status").inner_text())
+
+        page.select_option("#pb-optimize-target", "general")
+        page.click("#pb-optimize-neo2")
+        page.wait_for_function(
+            "document.querySelector('#pb-optimize-neo2-status').textContent.includes('any device')",
+            timeout=5000)
+        calls = page.evaluate("() => (window.__calls || []).filter(c => c[0] === 'OptimizeLoadedFor').map(c => c[1])")
+        check("Any device → OptimizeLoadedFor('general')", calls[-1] == "general", str(calls))
 
         browser.close()
 

@@ -37,12 +37,28 @@ def main():
             page.goto(f"{base}/test/_tools_nav_harness.html")
             page.wait_for_timeout(800)
             rail = page.evaluate("[...document.querySelectorAll('#rail .tab-btn')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("top tabs: Player · Generator · Training · Scene Map · Tools", rail == ["Player", "Generator", "Training", "Scene Map", "Tools"], str(rail))
-            views = page.evaluate("[...document.querySelectorAll('#ws-view [data-ws-view]')].filter(b => b.offsetParent).map(b => b.textContent.trim())")
-            check("Player toggle Play · Edit", views == ["Play", "Edit"], str(views))
+            check("top bar: Mode pill + Tools", rail == ["Tools"] and page.is_visible("#mode-pill"), str(rail))
+            check("Mode pill names the mode", page.text_content("#mode-pill-name") == "Player")
+            check("Play · Edit toggle gone (Editor is a mode)", page.is_hidden("#ws-view"))
+            check("deck closed at start", page.is_hidden("#mode-deck"))
+            page.click("#mode-pill")
+            check("pill opens the deck", page.is_visible("#mode-deck") and page.get_attribute("#mode-pill", "aria-expanded") == "true")
+            cards = page.evaluate("[...document.querySelectorAll('#mode-deck .mode-card')].filter(b => b.offsetParent).map(b => b.dataset.mode)")
+            check("deck: Player · Editor · Generator · Training · Scene Map",
+                  cards == ["player", "editor", "generator", "training", "scenemap"], str(cards))
+            check("current mode marked", page.get_attribute('#mode-deck [data-mode="player"]', "aria-current") == "true")
+            page.keyboard.press("Escape")
+            check("Esc closes the deck", page.is_hidden("#mode-deck") and page.get_attribute("#mode-pill", "aria-expanded") == "false")
+            page.keyboard.press("m")
+            check("M opens the deck", page.is_visible("#mode-deck"))
+            page.keyboard.press("4")
+            check("key 4 = Training", page.is_visible("#tab-training") and page.is_hidden("#mode-deck")
+                  and page.text_content("#mode-pill-name") == "Training")
+            page.click("#mode-pill"); page.click(".mode-deck-backdrop", position={"x": 5, "y": 700})
+            check("click outside closes the deck", page.is_hidden("#mode-deck"))
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
             check("mode hook: player", page.evaluate("document.body.dataset.mode") == "player")
-            check("Play view active at start", page.get_attribute('#ws-view [data-ws-view="play"]', "aria-selected") == "true"
-                  and page.evaluate("document.body.dataset.wsView") == "play")
+            check("Play view", page.evaluate("document.body.dataset.wsView") == "play")
             check("tabs live in the top bar", page.evaluate("!!document.querySelector('#topbar #rail')"))
             check("tagline is Generate · Play · Train",
                   page.get_attribute("#brand-tagline", "aria-label") == "Generate · Play · Train"
@@ -62,56 +78,60 @@ def main():
 
             page.click('#tools-nav .tab-btn[data-tab="settings"]')
             check("Settings panel shown", page.is_visible("#tab-settings") and page.is_hidden("#tab-device"))
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             check("back on Play hides sub-nav", page.is_hidden("#tools-nav") and page.is_visible("#tab-playback"))
             page.click('#rail .tab-btn[data-tab="tools"]')
             check("Tools remembers the last section (Settings)", page.is_visible("#tab-settings"))
 
             # Old entry points keep working.
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             page.evaluate("""document.querySelector('.tab-btn[data-tab="log"]').click()""")
             check(".tab-btn[data-tab=log].click() opens Log inside Tools",
                   page.is_visible("#tab-log") and page.is_visible("#tools-nav"))
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             page.click("#topbar-device")
             check("top-bar device button opens Tools → Device", page.is_visible("#tab-device"))
 
             # Generator mode: its own top tab, the Generator panel.
-            page.click('#rail .tab-btn[data-tab="generator"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
             check("Generator shows the Generator panel", page.is_visible("#tab-generator") and page.is_visible("#gen-steps"))
             check("Player panel hidden in Generator (no grid override)", page.is_hidden("#tab-playback"))
-            check("Generator top tab active",
-                  page.get_attribute('#rail .tab-btn[data-tab="generator"]', "aria-selected") == "true")
+            check("Generator mode current",
+                  page.get_attribute('#mode-deck .tab-btn[data-tab="generator"]', "aria-selected") == "true"
+                  and page.text_content("#mode-pill-name") == "Generator")
             check("mode hook: generator", page.evaluate("document.body.dataset.mode") == "generator")
             check("Play · Edit toggle hidden in Generator", page.is_hidden("#ws-view"))
             check("old route switchTab('generator') = Create view", page.evaluate("document.body.dataset.wsView") == "create")
-            # Scene Map mode: focused view on the Generator's scene map (same IDs).
-            page.click('#rail .tab-btn[data-tab="scenemap"]')
-            check("Scene Map shows the Generator panel in scene-map view",
-                  page.is_visible("#tab-generator")
-                  and page.get_attribute("#tab-generator", "data-view") == "scenemap")
-            check("scene map controls visible", page.is_visible("#gen-scene-map"))
-            check("video chooser visible in Scene Map", page.is_visible("#gen-choose"))
-            check("other Generator steps hidden in Scene Map", page.is_hidden("#gen-steps"))
-            check("Scene Map top tab active", page.get_attribute('#rail .tab-btn[data-tab="scenemap"]', "aria-selected") == "true")
+            # Scene Map mode (Owner: A): the Player's scene view.
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="scenemap"]')
+            check("Scene Map shows the Player panel", page.is_visible("#tab-playback") and page.is_hidden("#tab-generator"))
+            check("Scene Map opens the scene grid (shown once a script is loaded)",
+                  page.get_attribute("#tab-playback", "data-pb-bottom") == "scenemap", str(page.get_attribute("#tab-playback", "data-pb-bottom")))
+            check("Scene Map mode current", page.get_attribute('#mode-deck .tab-btn[data-tab="scenemap"]', "aria-selected") == "true"
+                  and page.text_content("#mode-pill-name") == "Scene Map")
             check("mode hook: scenemap", page.evaluate("document.body.dataset.mode") == "scenemap")
-            page.click('#rail .tab-btn[data-tab="generator"]')
-            check("Generator tab leaves scene-map view",
+            page.evaluate("document.querySelector('#pb-scenes-heatmap').click()")
+            check("rhythm heatmap link opens the Generator's scene map",
+                  page.is_visible("#tab-generator") and page.get_attribute("#tab-generator", "data-view") == "scenemap"
+                  and page.is_visible("#gen-scene-map") and page.is_hidden("#gen-steps"))
+            check("rhythm heatmap counts as Generator", page.evaluate("document.body.dataset.mode") == "generator")
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
+            check("Generator leaves the rhythm view",
                   page.get_attribute("#tab-generator", "data-view") is None and page.is_visible("#gen-steps"))
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="player"]')
+            check("Player leaves the scene grid", page.get_attribute("#tab-playback", "data-pb-bottom") != "scenemap")
             # Edit: a toggle inside the Player, remembered.
-            page.click('#rail .tab-btn[data-tab="playback"]')
-            page.click('#ws-view [data-ws-view="edit"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-mode="editor"]')
             check("mode hook: editor", page.evaluate("document.body.dataset.mode") == "editor")
             check("Edit shows the Player panel", page.is_visible("#tab-playback")
                   and page.get_attribute("#tab-playback", "data-ws-view") == "edit")
             check("Edit remembered", page.evaluate("localStorage.getItem('ws.view')") == "edit")
-            page.click('#rail .tab-btn[data-tab="training"]')
-            page.click('#rail .tab-btn[data-tab="playback"]')
-            check("Player reopens in Edit", page.evaluate("document.body.dataset.wsView") == "edit")
-            page.focus('#ws-view [data-ws-view="edit"]')
-            page.keyboard.press("ArrowLeft")
-            check("← in the toggle → Play", page.evaluate("document.body.dataset.wsView") == "play" and page.is_visible("#tab-playback"))
-            page.click('#ws-view [data-ws-view="play"]')
+            check("pill shows Editor", page.text_content("#mode-pill-name") == "Editor")
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="training"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
+            check("Player card opens the Play view", page.evaluate("document.body.dataset.wsView") == "play"
+                  and page.text_content("#mode-pill-name") == "Player")
             # Top-bar actions.
             page.click("#topbar-settings")
             check("gear opens Tools → Settings", page.is_visible("#tab-settings"))

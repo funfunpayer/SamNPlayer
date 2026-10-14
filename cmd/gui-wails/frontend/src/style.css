@@ -4168,3 +4168,148 @@ body[data-tab="generator"] #sidebar { display: none; }
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__ring { position: relative; }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center { font-size: 44px; z-index: 1; }
+/* Training follows the device (training_device.js). */
+.flow-tr__channel[hidden] { display: none; }
+.trl-device-note { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: #ffb15b; text-align: center; }
+.trl-device-note[hidden] { display: none; }
+.trl-device-note.is-flash { animation: trl-note-flash .9s ease; }
+@keyframes trl-note-flash { 30% { color: #fff; text-shadow: 0 0 10px rgba(255, 160, 48, .9); } }
+#tab-training[data-tr-blocked="1"] #tr-start { opacity: .45; cursor: not-allowed; }
+
+/* ---- Mode switch (mode_switch.js) -----------------------------------------
+   One glowing Mode pill in the top bar (current mode, turning light border)
+   that opens the Mode deck: large glass cards over the silk ribbons. */
+@property --mode-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+body.has-mode-switch #ws-view { display: none !important; }
+#topbar #rail.has-mode-switch { gap: 18px; }
+.mode-pill {
+  --h1: #00d9f4; --h2: #1677ff;
+  position: relative; isolation: isolate;
+  display: inline-flex; align-items: center; gap: 12px;
+  height: 58px; min-width: 230px; padding: 0 18px 0 8px; margin: 0;
+  border-radius: 999px; border: 0; color: #fff; cursor: pointer;
+  background: linear-gradient(180deg, rgba(0, 90, 190, .42), rgba(3, 16, 36, .88));
+  box-shadow: 0 0 26px color-mix(in srgb, var(--h1) 40%, transparent), inset 0 0 16px color-mix(in srgb, var(--h1) 18%, transparent);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+/* Turning light border: blue → white-hot → orange, like the play symbol. */
+.mode-pill::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.6px; z-index: -1;
+  background: conic-gradient(from var(--mode-a), #0636ff, #3fd0ff 18%, #e9fbff 24%, #3fd0ff 30%, #1677ff 45%,
+    #ff6410 62%, #ffa030 72%, #fff0d0 76%, #ff6410 82%, #0636ff);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: mode-pill-turn 9s linear infinite;
+}
+.mode-pill:hover { transform: translateY(-1px); box-shadow: 0 0 34px color-mix(in srgb, var(--h1) 55%, transparent), inset 0 0 18px color-mix(in srgb, var(--h1) 24%, transparent); }
+.mode-pill[aria-expanded="true"]::before { animation-duration: 3s; }
+.mode-pill.is-dim { background: rgba(4, 14, 28, .7); box-shadow: none; }
+.mode-pill.is-dim .mode-pill-text b { color: #c8d8ea; }
+.mode-pill-orb {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--h1) 35%, #06203d), #030c1a 72%);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--h1) 70%, transparent), 0 0 16px color-mix(in srgb, var(--h1) 55%, transparent);
+}
+.mode-pill-orb svg { width: 22px; height: 22px; color: var(--h1); filter: drop-shadow(0 0 5px var(--h1)); }
+.mode-pill-text { display: grid; text-align: left; line-height: 1.1; }
+.mode-pill-text small { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: #9fc3dd; }
+.mode-pill-text b { font-size: 17px; font-weight: 650; letter-spacing: .01em; }
+.mode-pill-chev { width: 18px; height: 18px; margin-left: auto; fill: none; stroke: #cfe6f5; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+.mode-pill[aria-expanded="true"] .mode-pill-chev { transform: rotate(180deg); }
+[data-hue="cyan"] { --h1: #00d9f4; --h2: #1677ff; }
+[data-hue="violet"] { --h1: #b07cff; --h2: #6a3cff; }
+[data-hue="orange"] { --h1: #ff9a2e; --h2: #ff5a10; }
+[data-hue="flow"] { --h1: #3fd0ff; --h2: #ff8a23; }
+[data-hue="teal"] { --h1: #2fe0c0; --h2: #0aa4b8; }
+
+.mode-deck { position: fixed; inset: 0; z-index: 1000; }
+.mode-deck[hidden] { display: none; }
+.mode-deck-backdrop {
+  position: absolute; inset: 0; background: rgba(2, 8, 18, .55);
+  backdrop-filter: blur(6px); opacity: 0; transition: opacity .2s ease;
+}
+.mode-deck.is-open .mode-deck-backdrop { opacity: 1; }
+.mode-deck-panel {
+  position: absolute; top: var(--deck-top, 96px); left: 50%;
+  width: min(1000px, calc(100vw - 32px)); padding: 16px 18px 18px;
+  transform: translate(-50%, -8px) scale(.97); opacity: 0;
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .2s ease;
+  border-radius: 24px; border: 1px solid rgba(110, 190, 240, .22);
+  background: url("./assets/flow/stage-ribbons.svg") center / 120% 160% no-repeat,
+              linear-gradient(160deg, rgba(10, 30, 56, .94), rgba(3, 10, 22, .96));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 40px rgba(0, 150, 255, .18), inset 0 1px rgba(255, 255, 255, .06);
+}
+.mode-deck.is-open .mode-deck-panel { transform: translate(-50%, 0) scale(1); opacity: 1; }
+.mode-deck-title { margin: 0 4px 12px; display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: #9fc3dd; }
+.mode-deck-title span { letter-spacing: .08em; color: #6f8ea8; }
+.mode-deck-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+#mode-deck .mode-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  height: auto; min-height: 0; padding: 20px 12px 16px; margin: 0;
+  border-radius: 18px; color: #e6f1fb; text-align: center; cursor: pointer;
+  background: linear-gradient(170deg, rgba(14, 40, 70, .72), rgba(4, 14, 28, .72));
+  border: 1px solid rgba(140, 200, 235, .16);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .05);
+  backdrop-filter: blur(2px);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.mode-deck.is-open .mode-card { animation: mode-card-in .42s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms + 60ms); }
+#mode-deck .mode-card:hover, #mode-deck .mode-card:focus-visible {
+  transform: translateY(-4px); outline: none;
+  border-color: color-mix(in srgb, var(--h1) 70%, transparent);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .35), 0 0 22px color-mix(in srgb, var(--h1) 40%, transparent);
+}
+#mode-deck .mode-card.is-current {
+  border-color: var(--h1);
+  background: linear-gradient(170deg, color-mix(in srgb, var(--h2) 30%, rgba(8, 26, 48, .9)), rgba(4, 14, 28, .85));
+  box-shadow: 0 0 26px color-mix(in srgb, var(--h1) 45%, transparent), inset 0 0 18px color-mix(in srgb, var(--h1) 18%, transparent);
+}
+#mode-deck .mode-card > span:not(.mode-card-ring) { font-size: 16px; font-weight: 650; }
+.mode-card-ring {
+  position: relative; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; isolation: isolate;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--h1) 28%, #06203d), #030c1a 70%);
+}
+.mode-card-ring::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 50%; z-index: -1;
+  background: conic-gradient(from 200deg, var(--h2), var(--h1), #fff 12%, var(--h1) 22%, transparent 45%, var(--h2) 70%, var(--h1));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  filter: drop-shadow(0 0 6px var(--h1));
+}
+#mode-deck .mode-card:hover .mode-card-ring::before, #mode-deck .mode-card.is-current .mode-card-ring::before { animation: mode-ring-turn 4s linear infinite; }
+.mode-card-ring svg { width: 30px; height: 30px; color: var(--h1); filter: drop-shadow(0 0 6px var(--h1)); }
+.mode-card-desc { font-size: 12px; line-height: 1.35; color: #9fb8cc; max-width: 17ch; }
+#mode-deck .mode-card kbd {
+  position: absolute; top: 10px; right: 10px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px;
+  font: 600 11px/20px var(--font, system-ui); color: #9fc3dd; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1);
+}
+@keyframes mode-pill-turn { to { --mode-a: 360deg; } }
+@keyframes mode-ring-turn { to { transform: rotate(360deg); } }
+@keyframes mode-card-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mode-pill::before, .mode-deck.is-open .mode-card, #mode-deck .mode-card .mode-card-ring::before { animation: none !important; }
+  .mode-deck-panel, .mode-deck-backdrop { transition: none; }
+}
+#mode-deck .mode-card > span:not(.mode-card-ring) { text-transform: none; letter-spacing: .01em; }
+#mode-deck .mode-card::before, #mode-deck .mode-card::after { display: none; }
+/* Scene Map mode (Owner: A): the Player with video, transport and the scene
+   grid + details. The side panels stay; each can be slid away. */
+body[data-mode="scenemap"] #tab-playback .pb-scenes-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* Library slides away to the left (player_layout.js, #pb-lib-toggle). */
+#tab-playback[data-pb-layout="v1"] { transition: grid-template-columns .25s ease; }
+#tab-playback[data-pb-layout="v1"].pb-lib-collapsed { grid-template-columns: 48px minmax(0, 1fr); }
+.pb-library .pb-lib-title:first-of-type { display: flex; align-items: center; justify-content: space-between; }
+.pb-lib-toggle {
+  width: 28px; height: 28px; min-height: 0; padding: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; font-size: 14px; line-height: 1;
+  color: #cfe6f5; background: rgba(4, 14, 28, .6); border: 1px solid rgba(110, 190, 240, .22);
+}
+.pb-lib-toggle:hover { color: #fff; border-color: rgba(63, 208, 255, .65); box-shadow: 0 0 10px rgba(63, 208, 255, .4); }
+.pb-lib-collapsed .pb-library { overflow: hidden; padding-left: 0; padding-right: 0; }
+.pb-lib-collapsed .pb-library > :not(.pb-lib-title:first-of-type) { display: none !important; }
+.pb-lib-collapsed .pb-library .pb-lib-title:first-of-type { font-size: 0; justify-content: center; margin: 8px 0; }
+/* Optimize for a device (Owner 14 Oct): an Editor tool — shown in the
+   Editor mode, not in the plain Player. */
+.pb-optimize { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
+.gen-optimize-row select { min-width: 0; flex: 1 1 auto; }

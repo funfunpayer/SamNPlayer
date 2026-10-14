@@ -55,7 +55,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
     <p class="gl-nav-sub">Generated scripts</p>
     <ul class="gl-nav-list" id="gl-nav-generated"></ul>
     <p class="gl-nav-title">Analysis</p>
-    <button type="button" class="gl-nav-item" id="gl-nav-scenemap">Scene map</button>
+    <button type="button" class="gl-nav-item" id="gl-nav-scenemap" title="Rhythm heatmap of the video (scene marks for the Generator)">Rhythm heatmap</button>
     <div class="gl-nav-drop">Drag videos here<br><span>or use Choose video…</span></div>`;
   root.prepend(nav);
 
@@ -94,7 +94,7 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   window.addEventListener('gen:video', () => setTimeout(renderNav, 0)); // after the recent list updates
   window.addEventListener('ws:view', e => { if (e.detail?.view === 'create') renderNav(); });
   q('#gl-nav-clips').addEventListener('click', () => q('.gl-clips')?.scrollIntoView({ block: 'nearest' }));
-  q('#gl-nav-scenemap').addEventListener('click', () => document.querySelector('#rail .tab-btn[data-tab="scenemap"]')?.click());
+  q('#gl-nav-scenemap').addEventListener('click', () => window.dispatchEvent(new CustomEvent('app:rhythm')));
 
   // ---- Centre: preview + source clips side by side ---------------------
   const stage = make('div', 'gl-stage');
@@ -160,6 +160,8 @@ export function applyCreateLayoutV1(root, { playback } = {}) {
   const find = sel => q(sel) || tools.querySelector(sel);
   const genRow = find('#gen-generate')?.parentElement;
   const progress = find('#gen-progress-wrap');
+  const optimizeRow = find('#gen-optimize-target')?.closest('.field-row');
+  if (optimizeRow) runCard.append(optimizeRow);
   if (genRow) { genRow.classList.add('gl-run-row'); runCard.append(genRow); }
   if (progress) runCard.append(progress);
   side.append(runCard);

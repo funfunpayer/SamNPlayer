@@ -34,7 +34,7 @@ def main():
             page.add_init_script("try{localStorage.clear()}catch(e){}")
             page.goto(f"{base}/test/_ws_shared_video_harness.html")
             page.wait_for_timeout(800)
-            page.click('#rail .tab-btn[data-tab="generator"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="generator"]')
             check("no Play video → no offer", page.is_hidden("#gen-use-player-row"))
             # Play links a video (as after a real link: root carries the path).
             page.evaluate("document.querySelector('#tab-playback').dataset.pbVideoPath = '/v/Beach clip.mp4'")

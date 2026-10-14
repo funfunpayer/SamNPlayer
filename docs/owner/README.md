@@ -11,6 +11,7 @@ Kurz-Einstieg: [`../ANLEITUNG.md`](../ANLEITUNG.md) · In-App FAQ (EN): [`../USE
 
 | Doc | Inhalt |
 |-----|--------|
+| [`owner-aufgaben.md`](owner-aufgaben.md) | **Was nur du machen kannst:** alte Branches löschen, Release-Tag pushen, Hardware-Test |
 | [`anleitung-funktionen.md`](anleitung-funktionen.md) | GUI-Funktionen Create / Play / Bench / Mark / Repair / AI Train / Settings |
 | [`zusammenhang-und-testen.md`](zusammenhang-und-testen.md) | Architektur-Zusammenhang + Owner-Testpfade |
 | [`roadmap.md`](roadmap.md) | Roadmap + Meilensteine (kurz; Baseline v0.5.40) |

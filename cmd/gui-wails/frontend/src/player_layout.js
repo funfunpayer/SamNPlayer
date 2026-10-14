@@ -142,9 +142,7 @@ export function applyPlayerLayoutV1(root, api) {
     ${[['imported', 'Imported', ICONS.drop], ['generated', 'Generated', ICONS.spark], ['edited', 'Edited', ICONS.edit]].map(([k, label, ic]) =>
     `<button type="button" class="pb-lib-item" id="pb-lib-${k}-btn" aria-expanded="false" aria-controls="pb-lib-${k}">${ic}<span>${label}</span><b class="pb-lib-count" id="pb-lib-${k}-count"></b></button>
     <ol class="pb-lib-recent" id="pb-lib-${k}" hidden></ol>`).join('')}
-    <p class="pb-lib-title">Tools</p>
-    <button type="button" class="pb-lib-item" id="pb-lib-editor" title="Edit the curve of the loaded script (drag / add / delete dots)">${ICONS.edit}<span>Editor</span></button>
-    <button type="button" class="pb-lib-item" id="pb-lib-scenemap">${ICONS.map}<span>Scene Map</span></button>
+    <p class="pb-lib-title">Analysis</p>
     <button type="button" class="pb-lib-item" id="pb-lib-audio">${ICONS.wave}<span>Audio Analysis</span></button>
     <button type="button" class="pb-lib-item" id="pb-lib-bpm">${ICONS.bpm}<span>BPM Detection</span></button>
     <p class="pb-lib-title">Quick Access</p>
@@ -153,6 +151,23 @@ export function applyPlayerLayoutV1(root, api) {
   `;
   root.prepend(lib);
   lib.after(main);
+  // The Library slides away to the left (the Inspector has its own ⟩ to the
+  // right) — a bigger video and scene view without losing either panel.
+  const libToggle = document.createElement('button');
+  libToggle.type = 'button';
+  libToggle.id = 'pb-lib-toggle';
+  libToggle.className = 'pb-lib-toggle';
+  lib.querySelector('.pb-lib-title').append(libToggle);
+  function setLibCollapsed(on) {
+    root.classList.toggle('pb-lib-collapsed', on);
+    libToggle.textContent = on ? '⟩' : '⟨';
+    libToggle.title = on ? 'Show the Library' : 'Hide the Library — more room';
+    libToggle.setAttribute('aria-label', libToggle.title);
+    libToggle.setAttribute('aria-expanded', on ? 'false' : 'true');
+    store('pb.libCollapsed', on ? '1' : '0');
+  }
+  libToggle.addEventListener('click', () => setLibCollapsed(!root.classList.contains('pb-lib-collapsed')));
+  setLibCollapsed(load('pb.libCollapsed') === '1');
 
   // ---- Inspector (right): tabs Devices · Audio · Playback · View ----------
   const tools = q('#pb-tools');
@@ -279,7 +294,19 @@ export function applyPlayerLayoutV1(root, api) {
     return n;
   };
   // Devices: script → device mapping.
-  ['#pb-axis-row', '#pb-optimize-neo2-status', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  ['#pb-axis-row', '#pb-export-bake-details', '#pb-contact-block'].forEach(s => move(s, 'devices'));
+  // Optimize for a device is an Editor tool: it sits with the edit tools
+  // (View), which is the tab the Editor opens.
+  const optimize = document.createElement('div');
+  optimize.className = 'pb-card pb-optimize-card';
+  optimize.id = 'pb-optimize-card';
+  // (Taken from the moved axis row too: once in a not-yet-attached panel,
+  // root.querySelector no longer finds it.)
+  for (const sel of ['#pb-optimize-wrap', '#pb-optimize-neo2-status']) {
+    const n = q(sel) || panels.devices.querySelector(sel);
+    if (n) optimize.append(n);
+  }
+  panels.view.append(optimize);
   // Audio: audio vibration + BPM card.
   const bpmCard = document.createElement('div');
   bpmCard.className = 'pb-card';
@@ -547,22 +574,7 @@ export function applyPlayerLayoutV1(root, api) {
 
   // ---- Library actions ----------------------------------------------------
   q('#pb-lib-local').addEventListener('click', () => q('#pb-choose')?.click());
-  q('#pb-lib-scenemap').addEventListener('click', () => showBottom('scenemap'));
-  // Editor: curve edit mode of the loaded script (existing #pb-curve-edit).
-  q('#pb-lib-editor').addEventListener('click', () => {
-    const box = q('#pb-curve-edit');
-    if (root.dataset.pbState !== 'loaded' || !box || box.disabled) {
-      q('#pb-choose')?.focus();
-      return;
-    }
-    showInspector('view');
-    showBottom('timeline');
-    if (!box.checked) {
-      box.checked = true;
-      box.dispatchEvent(new Event('change'));
-    }
-    q('#pb-curve')?.scrollIntoView({ block: 'nearest' });
-  });
+  // Editor and Scene Map are modes (the Mode pill), not Library items.
   q('#pb-lib-audio').addEventListener('click', () => showBottom('audio'));
 
   // ---- Workspace Edit view (main.js sets data-ws-view): curve editing on,
@@ -576,7 +588,15 @@ export function applyPlayerLayoutV1(root, api) {
     box.dispatchEvent(new Event('change'));
     return true;
   };
+  let beforeScenes = null; // bottom tab to restore when leaving Scene Map
   function applyWorkspaceView(view) {
+    if (view === 'scenemap') {
+      if (beforeScenes == null) beforeScenes = root.dataset.pbBottom === 'scenemap' ? 'timeline' : (root.dataset.pbBottom || 'timeline');
+      if (editTurnedOn) { setCurveEdit(false); editTurnedOn = false; }
+      showBottom('scenemap');
+      return;
+    }
+    if (beforeScenes != null) { showBottom(beforeScenes); beforeScenes = null; }
     if (view === 'edit') {
       showInspector('view');
       showBottom('timeline');

@@ -37,7 +37,7 @@ Audio never invents 0–100 actions. Everyday Create stays Go CSRT.`,
   },
   {
     title: 'Is everything in the GUI?',
-    body: `Almost for everyday use. Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2 — yes.
+    body: `Almost for everyday use. Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for (any device / Sam Neo 2) — yes.
 
 Still CLI / advanced / not Everyday GUI:
 • Whole-frame 4-zone stroke mode (CLI only — removed from Create GUI)
@@ -66,7 +66,7 @@ Cloud “ChatGPT writes positions” is out of product. Everyday Create stays CS
     body: `Play / Stop — device + curve (default). Video ▶ can also start device (toggle).
 Edit curve — drag dots; click empty = add; double-click = delete (≥2 remain).
 Bake & share (details) — Bake feel channels / Share for other apps
-Optimize for Neo 2 — import path: fill/heal gaps → contact on → bake vibe/suction → .samn
+Optimize for (Editor; also after Create in the Generator) — Any device: fill/heal gaps only · Sam Neo 2: fill/heal gaps → contact on → bake vibe/suction → .samn
 Script check & analysis (details) — summary + Check script (Script Doctor)
 Load / Save project — .snp.json
 Curve edit (details) — Cap / Speed-cap / Scale / Delete / Speed HL / FPS-Snap / BPM (opens when you mark a heatmap range)

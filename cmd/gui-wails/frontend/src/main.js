@@ -10,6 +10,8 @@ import { initPlayback } from './playback.js';
 import { applyPlayerLayoutV1 } from './player_layout.js';
 import { applyCreateLayoutV1 } from './create_layout.js';
 import { applyTrainingLayoutV1 } from './training_layout.js';
+import { applyTrainingDevice } from './training_device.js';
+import { initModeSwitch } from './mode_switch.js';
 import { initTraining } from './training.js';
 import { initGenerator } from './generator.js';
 import { initBenchmark } from './benchmark.js';
@@ -55,7 +57,10 @@ function setSceneMapView(on) {
 // page. Edit is a toggle inside the Player (Play · Edit). Generator is the
 // Generator panel (same IDs, same generator.js); Scene Map is its focused
 // view. body[data-mode] is the style hook for the look lane.
-const WORKSPACE_TABS = new Set(['playback', 'generator', 'scenemap']);
+// 'scenemap' is the Player's scene view (video, chapter bands, scene grid,
+// details — Owner chose A on 14 Oct); 'rhythm' is the Generator's rhythm
+// heatmap (the old Scene Map view), one click away from the scene view.
+const WORKSPACE_TABS = new Set(['playback', 'generator', 'scenemap', 'rhythm']);
 const WS_VIEWS = ['play', 'create', 'edit'];
 let playView = 'play'; // last of play / edit, restored when Player opens
 try {
@@ -76,13 +81,14 @@ function setWorkspaceView(view) {
 
 function modeOf(name, view) {
   if (name === 'playback') return view === 'edit' ? 'editor' : 'player';
+  if (name === 'rhythm') return 'generator';
   if (name === 'generator' || name === 'scenemap' || name === 'training') return name;
   return 'tools';
 }
 
 function syncWorkspace(name) {
   const inWs = WORKSPACE_TABS.has(name);
-  const view = !inWs ? '' : name === 'playback' ? playView : 'create';
+  const view = !inWs ? '' : name === 'playback' ? playView : name === 'scenemap' ? 'scenemap' : 'create';
   document.body.dataset.mode = modeOf(name, view);
   // Play · Edit toggle: only in the Player; Generator and Scene Map have
   // their own top tabs now.
@@ -100,24 +106,25 @@ function syncWorkspace(name) {
   const sm = document.getElementById('ws-scenemap');
   if (sm) {
     sm.hidden = true; // Scene Map is a top tab now
-    sm.setAttribute('aria-pressed', name === 'scenemap' ? 'true' : 'false');
+    sm.setAttribute('aria-pressed', name === 'rhythm' ? 'true' : 'false');
   }
   if (inWs) window.dispatchEvent(new CustomEvent('ws:view', { detail: { view } }));
 }
 
 function switchTab(name) {
   if (name === 'tools') name = lastToolsSection;
-  const sceneMap = name === 'scenemap';
-  setSceneMapView(sceneMap);
-  const panelName = sceneMap ? 'generator' : name;
+  const rhythm = name === 'rhythm';
+  setSceneMapView(rhythm);
+  const panelName = rhythm ? 'generator' : name === 'scenemap' ? 'playback' : name;
   const inTools = TOOLS_SECTIONS.has(name);
   if (inTools) lastToolsSection = name;
   const inWs = WORKSPACE_TABS.has(name);
   // Layout hooks: CSS can adapt per tab (Play hides the info column) / group.
-  document.body.dataset.tab = name;
+  // Scene Map is the Player panel: the Player's layout hooks apply.
+  document.body.dataset.tab = name === 'scenemap' ? 'playback' : name;
   document.body.dataset.tabGroup = inTools ? 'tools' : inWs ? 'player' : name;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools');
+    const on = b.dataset.tab === name || (inTools && b.dataset.tab === 'tools') || (rhythm && b.dataset.tab === 'generator');
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
@@ -141,7 +148,7 @@ function initTabA11y() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     const name = btn.dataset.tab;
     btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-controls', name === 'tools' ? 'tools-nav' : name === 'scenemap' ? 'tab-generator' : 'tab-' + name);
+    btn.setAttribute('aria-controls', name === 'tools' ? 'tools-nav' : name === 'scenemap' ? 'tab-playback' : 'tab-' + name);
     btn.id = btn.id || 'tabbtn-' + name;
     const on = btn.classList.contains('active');
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -203,8 +210,10 @@ document.getElementById('ws-view')?.addEventListener('keydown', e => {
   setWorkspaceView(btns[j].dataset.wsView);
 });
 document.getElementById('ws-scenemap')?.addEventListener('click', () => {
-  switchTab(document.body.dataset.tab === 'scenemap' ? 'generator' : 'scenemap');
+  switchTab(document.body.dataset.tab === 'rhythm' ? 'generator' : 'rhythm');
 });
+// The Generator's rhythm heatmap (Scene Map header link, Generator nav).
+window.addEventListener('app:rhythm', () => switchTab('rhythm'));
 // Other modules ask for a view (e.g. a Generator result opens in Edit).
 window.addEventListener('ws:set', e => setWorkspaceView(e.detail && e.detail.view));
 // Top bar (V1): folder = open an Emotion Script in the Player; gear = Settings.
@@ -232,10 +241,12 @@ function applyFlowIcons() {
   swap(document.getElementById('ws-scenemap'), 'scenemap');
 }
 applyFlowIcons();
+initModeSwitch();
 
 const playback = initPlayback(document.getElementById('tab-playback'));
 initTraining(document.getElementById('tab-training'));
 applyTrainingLayoutV1(document.getElementById('tab-training'));
+applyTrainingDevice(document.getElementById('tab-training'));
 initGenerator(document.getElementById('tab-generator'), playback);
 initBenchmark(document.getElementById('tab-benchmark'));
 initRoiTraining(document.getElementById('tab-roi-training'));

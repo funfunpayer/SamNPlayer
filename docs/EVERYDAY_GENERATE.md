@@ -64,7 +64,7 @@ Advanced — never Everyday; Hybrid = assist/verify on the Go CSRT spine only.
 - **Fix contact area (static)** (Step 2, when Contact vib on) — keep the gold contact box fixed; off = track it (better with camera motion).
 Removed from Everyday Advanced: AI second opinion (no curve effect), audio
 check row (moved to Review), Flow downscale (Flow is CLI-only), **4-zone stroke mode**. Scene memory
-collapsed under Power-user. Imported scripts → Play **Optimize for Neo 2**
+collapsed under Power-user. Imported scripts → Editor **Optimize for** (any device / Sam Neo 2)
 (`docs/CONTENT_SOURCES.md`).
 
 AI checkbox = **region proposal only** (ONNX). Never writes the 0–100 curve

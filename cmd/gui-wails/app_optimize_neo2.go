@@ -86,3 +86,54 @@ func (a *App) loadedVideoPath() string {
 	defer a.stateMu.RUnlock()
 	return a.videoPath
 }
+
+// Optimize targets (Owner 14 Oct): a script is optimized for any device
+// (general) or for one device. "general" only polishes the stroke (fill /
+// heal gaps) and keeps the file usable everywhere; "neo2" adds the Sam Neo 2
+// feel layer (contact vibration + baked vibration / suction). Device
+// profiles for strokers etc. join this list when they exist — no target is
+// offered that does not do something real.
+const (
+	OptimizeTargetGeneral = "general"
+	OptimizeTargetNeo2    = "neo2"
+)
+
+// OptimizeLoadedFor optimizes the loaded script for target ("general" or
+// "neo2").
+func (a *App) OptimizeLoadedFor(target string) (OptimizeNeo2Result, error) {
+	switch target {
+	case OptimizeTargetNeo2:
+		return a.OptimizeLoadedForNeo2(true)
+	case OptimizeTargetGeneral, "":
+		out := OptimizeNeo2Result{}
+		path := a.loadedScriptPath()
+		if path == "" {
+			return out, fmt.Errorf("no script loaded")
+		}
+		imp, err := a.ImproveGeneratedScript(ImproveScriptRequest{
+			Path:             path,
+			VideoPath:        a.loadedVideoPath(),
+			FillGaps:         true,
+			HealTrackingGaps: true,
+		})
+		if err != nil {
+			return out, fmt.Errorf("fill gaps: %w", err)
+		}
+		out.PointsAdded = imp.PointsAdded
+		out.GapsFilled = imp.GapsFilled
+		out.Path = imp.Path
+		if out.Path == "" {
+			out.Path = a.loadedScriptPath()
+		}
+		parts := []string{"Ready for any device"}
+		if out.GapsFilled > 0 {
+			parts = append(parts, fmt.Sprintf("filled %d gap(s) (+%d pts)", out.GapsFilled, out.PointsAdded))
+		} else {
+			parts = append(parts, "no gaps to fill")
+		}
+		out.Message = strings.Join(parts, " · ")
+		return out, nil
+	default:
+		return OptimizeNeo2Result{}, fmt.Errorf("unknown optimize target %q", target)
+	}
+}

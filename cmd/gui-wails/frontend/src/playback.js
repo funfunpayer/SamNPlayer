@@ -4,7 +4,7 @@ import {
   ReportVideoPosition, ReportVideoSyncIdle, GetOMarkers, SaveOMarkers, GetSpeedHighlights,
   GetScriptAxisActions, SaveScriptAxisActions, CreateScriptAxis, SetPlaybackSource, GetAudioLevelEnvelope, SetPlaybackSpeed,
   GetStrengthPresets, SetActiveStrength, ExportLoadedFunscript, SaveLoadedAsSamn, BakeNeoAxesOnLoaded,
-  OptimizeLoadedForNeo2,
+  OptimizeLoadedFor,
   ExportScriptHeatmapPNG, SavePlaybackProject, LoadPlaybackProject, PickPlaybackProject,
   EditCapSpeedRange, EditDeleteRange, EditScaleRange, SnapTimeMs,
   ScriptChapters, ScriptQuality, EstimateAudioSyncOffset,
@@ -239,9 +239,16 @@ export function initPlayback(root) {
           <select id="pb-strength" style="width:auto;">
             <option value="">—</option>
           </select>
-          <button type="button" id="pb-optimize-neo2" class="primary"
-            title="Imported file → polish, Contact on, bake Neo 2 feel, save as Emotion Script."
-            data-help="One click for files from other apps: polish gaps, enable Contact vibration, bake vibe+suction for Sam Neo 2, save as Emotion Script. Then edit each curve if you want.">Optimize for Neo 2</button>
+          <span class="pb-optimize" id="pb-optimize-wrap">
+            <label for="pb-optimize-target" style="width:auto;"
+              data-help="Any device: fill and heal gaps, the stroke stays usable everywhere. Sam Neo 2: also contact vibration and baked vibration + suction, saved as Emotion Script.">Optimize for</label>
+            <select id="pb-optimize-target" style="width:auto;">
+              <option value="general">Any device</option>
+              <option value="neo2" selected>Sam Neo 2</option>
+            </select>
+            <button type="button" id="pb-optimize-neo2" class="primary"
+              title="Optimize the loaded script for the chosen device">Optimize</button>
+          </span>
           <button type="button" id="pb-save-samn" title="Save Emotion Script">Save Emotion Script</button>
         </div>
         <details class="pb-tools-details" id="pb-export-bake-details" style="display:none;">
@@ -1838,20 +1845,29 @@ export function initPlayback(root) {
 
   // Calm look (Owner 14 Oct): a soft glow in the curve's colour and a faint
   // fill to the baseline — the wave reads as one shape, not a zig-zag.
-  function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY } = {}) {
+  function drawGlowCurve(ctx, points, xOf, yOf, color, { width = 1.5, glow = 8, fill = 0.16, baseY, dense = 'strokes' } = {}) {
     if (points.length < 2) return;
     const dpr = window.devicePixelRatio || 1;
-    // Dense strokes (a fast script zoomed out) would melt into a solid,
-    // over-glowing block: draw them as a fine line with a faint fill.
-    let visible = 0;
+    // Dense strokes (a fast script zoomed out) would melt into a zigzag
+    // block. A stroke curve (dense: 'speed', Owner's choice 14 Oct) then shows
+    // a calm glowing wave of the stroke tempo, labelled; other curves are
+    // drawn as a fine line. Zooming in brings the real wave back.
     const w = ctx.canvas.width;
+    let visible = 0;
     for (const p of points) { const x = xOf(p.atMs); if (x >= 0 && x <= w) visible++; }
-    const gap = visible ? w / dpr / visible : Infinity;
-    if (gap < 8) {
-      const f = Math.max(0, (gap - 2) / 6); // 0 when very dense … 1 at 8 px
-      width = Math.max(1, width * (0.6 + 0.4 * f));
-      glow = glow * (0.2 + 0.5 * f);
-      fill = gap < 5 ? 0 : fill * 0.5 * f;
+    // Playing: the wave shows once single strokes are readable (the same
+    // gap as for the dots); editing keeps the strokes down to 4 px so they
+    // can be picked.
+    const envelopeBelowPx = editMode ? 4 : DOT_MIN_GAP;
+    if (visible > 2 && w / dpr / visible < envelopeBelowPx) {
+      // A bin must hold at least a whole stroke (up and down).
+      const binPx = Math.max(4 * dpr, 2.5 * (w / visible));
+      if (dense === 'speed') {
+        drawSpeedWave(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx, baseY });
+        return 'speed';
+      }
+      // Otherwise the real points as a fine line, no glow, no fill.
+      width = 1; glow = 0; fill = 0;
     }
     if (fill > 0 && baseY != null) {
       smoothCurvePath(ctx, points, xOf, yOf);
@@ -1878,6 +1894,63 @@ export function initPlayback(root) {
     smoothCurvePath(ctx, points, xOf, yOf);
     ctx.stroke();
     ctx.restore();
+  }
+
+  // Stroke speed per bin (position units per second, from consecutive
+  // points), shown 0 – 600 u/s as 0 – 100 % — a calm wave of how fast it goes.
+  const SPEED_FULL = 600;
+  function drawSpeedWave(ctx, points, xOf, yOf, color, { width, glow, dpr, w, binPx, baseY }) {
+    const bins = new Map();
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const x = xOf(b.atMs);
+      if (x < -binPx || x > w + binPx || b.atMs <= a.atMs) continue;
+      const k = Math.floor(x / binPx);
+      const e = bins.get(k) || { d: 0, t: 0 };
+      e.d += Math.abs(b.pos - a.pos);
+      e.t += b.atMs - a.atMs;
+      bins.set(k, e);
+    }
+    const keys = [...bins.keys()].sort((p, q) => p - q);
+    let pts = keys.map(k => [(k + 0.5) * binPx, Math.min(100, (bins.get(k).d / Math.max(1, bins.get(k).t)) * 1000 / SPEED_FULL * 100)]);
+    for (let n = 0; n < 2; n++) pts = pts.map((p, i) => [p[0], (p[1] * 2 + (pts[i - 1] || p)[1] + (pts[i + 1] || p)[1]) / 4]);
+    if (pts.length < 2) return;
+    const bottom = baseY != null ? baseY : yOf(0);
+    ctx.save();
+    midpointPath(ctx, pts, yOf);
+    ctx.lineTo(pts[pts.length - 1][0], bottom);
+    ctx.lineTo(pts[0][0], bottom);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, yOf(100), 0, bottom);
+    g.addColorStop(0, color); g.addColorStop(1, 'transparent');
+    ctx.globalAlpha = 0.22; ctx.fillStyle = g; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.6, width) * dpr; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowColor = color; ctx.shadowBlur = Math.max(8, glow) * dpr;
+    midpointPath(ctx, pts, yOf);
+    ctx.stroke();
+    ctx.restore();
+    // Say what the wave is: tempo, not position.
+    ctx.save();
+    ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.85;
+    ctx.fillText('TEMPO · zoom in for strokes', 8 * dpr, yOf(100) + 4 * dpr);
+    ctx.restore();
+  }
+
+  // Calm path through [x, pos] points: quadratic curves via the midpoints.
+  function midpointPath(ctx, pts, yOf) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], yOf(pts[0][1]));
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (yOf(pts[i][1]) + yOf(pts[i + 1][1])) / 2;
+      ctx.quadraticCurveTo(pts[i][0], yOf(pts[i][1]), mx, my);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last[0], yOf(last[1]));
   }
 
   // Dots are readable when the visible ones sit at least DOT_MIN_GAP CSS px
@@ -1967,7 +2040,9 @@ export function initPlayback(root) {
 
     // Soft curve (Catmull-Rom) — FunGen-like “schwingen”, in the axis colour,
     // with a glow and a faint fill to 0.
-    drawGlowCurve(ctx, points, xOf, yOf, axisColor, { width: THEME.curveWidth, baseY: yOf(0) });
+    const tempoView = drawGlowCurve(ctx, points, xOf, yOf, axisColor, {
+      width: THEME.curveWidth, baseY: yOf(0), dense: !editAxis || editAxis === 'general' ? 'speed' : 'strokes',
+    }) === 'speed';
 
     // Zweite Spur: Contact vibration (0–1 → 0–100), aus demselben
     // Abstandssignal wie die Playback — liegt unter der Positionsspur.
@@ -2019,7 +2094,8 @@ export function initPlayback(root) {
         ctx.lineTo(x, h);
         ctx.stroke();
       }
-      const livePos = interpPosAt(points, currentPosMs);
+      // The tempo view shows speed, not position: no position dot on it.
+      const livePos = tempoView ? null : interpPosAt(points, currentPosMs);
       if (livePos != null && currentPosMs > 0) {
         ctx.beginPath();
         ctx.arc(x, yOf(livePos), 5, 0, Math.PI * 2);
@@ -2167,6 +2243,7 @@ export function initPlayback(root) {
       const pts = axisLanePoints[axis];
       drawGlowCurve(ctx, pts, xOf, yOf, color, {
         width: axis === active ? 1.6 : 1.15, glow: axis === active ? 7 : 4, fill: 0.2, baseY: yOf(0),
+        dense: axis === 'general' ? 'speed' : 'strokes',
       });
       if (inCanvasNames) {
         ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
@@ -2220,7 +2297,7 @@ export function initPlayback(root) {
     const strip = el('#pb-scene-strip');
     if (!strip) return;
     // Owner: scene markers are on in Create / Edit, opt-in in Play.
-    const shown = (scenesOn || root.dataset.wsView === 'edit') && !!scriptPath
+    const shown = (scenesOn || root.dataset.wsView === 'edit' || root.dataset.wsView === 'scenemap') && !!scriptPath
       && curveCanvas.style.display !== 'none' && totalMs > 1;
     strip.hidden = !shown;
     root.dataset.pbScenes = shown ? 'on' : 'off';
@@ -2338,7 +2415,7 @@ export function initPlayback(root) {
 
   async function loadSceneThumbs() {
     const key = root.dataset.pbVideoPath || '';
-    if ((!scenesOn && root.dataset.wsView !== 'edit') || !key) {
+    if ((!scenesOn && root.dataset.wsView !== 'edit' && root.dataset.wsView !== 'scenemap') || !key) {
       if (!key) { sceneThumbs = null; sceneThumbsFor = ''; }
       renderSceneStrip();
       return;
@@ -5094,21 +5171,22 @@ export function initPlayback(root) {
     el('#pb-optimize-neo2').addEventListener('click', async () => {
       const status = el('#pb-optimize-neo2-status');
       const btn = el('#pb-optimize-neo2');
+      const target = el('#pb-optimize-target')?.value || 'neo2';
       btn.disabled = true;
       if (status) {
         status.style.display = 'block';
-        status.textContent = 'Optimizing for Neo 2 (fill gaps → contact → bake)…';
+        status.textContent = target === 'neo2' ? 'Optimizing for Sam Neo 2 (fill gaps → contact → bake)…' : 'Optimizing for any device (fill gaps)…';
       }
       try {
-        const res = await OptimizeLoadedForNeo2(true);
-        if (status) status.textContent = res.message || 'Neo 2 ready';
-        log(res.message || 'Optimized for Neo 2');
+        const res = await OptimizeLoadedFor(target);
+        if (status) status.textContent = res.message || 'Optimized';
+        log(res.message || 'Optimized');
         if (res.path) {
           await loadScript(res.path, 0, { keepPlaylist: true, review: true });
         }
       } catch (err) {
         if (status) status.textContent = 'Optimize failed: ' + err;
-        logError('Optimize for Neo 2: ' + err);
+        logError('Optimize: ' + err);
       } finally {
         btn.disabled = false;
       }

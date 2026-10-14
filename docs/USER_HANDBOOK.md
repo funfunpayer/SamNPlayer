@@ -54,7 +54,7 @@ Auto after Generate: fill gaps + heal known tracker-loss windows (linear bridge 
 ## 3. FAQ
 
 ### Is everything in the GUI?
-**Almost for everyday use.** Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for Neo 2, **in-app handbook** — yes.
+**Almost for everyday use.** Create, Play, Device, Training, Settings, Scene map (Advanced), learning export, classical AI-training export, Load project / Scale range, Optimize for (any device / Sam Neo 2), **in-app handbook** — yes.
 
 Still **CLI / advanced / not Everyday GUI:**
 - Whole-frame **4-zone** stroke mode (CLI-only — weaker on measured clips; not in Create GUI)
@@ -62,7 +62,7 @@ Still **CLI / advanced / not Everyday GUI:**
 - ONNX vision AI **draft script** writer (S2+ model inference — not shipped; imitation draft is available after **Export classical run**)
 
 ### Why is Create better than importing a random Funscript?
-Create tracks the tip in *your* video. Import + **Optimize for Neo 2** polishes foreign scripts (fill gaps → contact → bake) but cannot invent missing tracking.
+Create tracks the tip in *your* video. Import + **Optimize for** (Editor) polishes foreign scripts — *Any device* fills gaps, *Sam Neo 2* also adds contact and bakes vibration / suction — but cannot invent missing tracking.
 
 ### What is Heal tracking gaps vs Fill gaps?
 | Control | Does |
@@ -126,7 +126,7 @@ it helps you, Settings → *Support SamNPlayer* has the donation links.
 |---------|-----|
 | Play / Stop | Device + curve (default). Video ▶ can also start device (toggle). |
 | Edit curve | Drag dots; click empty = add; double-click = delete (≥2 remain). |
-| Optimize for Neo 2 | Import path: fill/heal gaps → contact on → bake vibe/suction → `.samn` |
+| Optimize for (Editor, Generator) | *Any device*: fill/heal gaps · *Sam Neo 2*: fill/heal gaps → contact on → bake vibe/suction → `.samn` |
 | Load / Save project | `.snp.json` — script, video, offset, seek, loop |
 | Scale selection | Soften/boost marked range on the active Curve axis (factor slider; optional Soft edges) |
 | Heatmap / markers | Seek, loop, Extended-O, O-markers |

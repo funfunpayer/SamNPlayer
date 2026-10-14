@@ -118,14 +118,23 @@ def main():
             page.click("#pb-scenes-heatmap")
             check("Scene Map header link opens the Create rhythm heatmap",
                   page.get_attribute("#tab-generator", "data-view") == "scenemap")
-            page.click('#rail .tab-btn[data-tab="playback"]')
-            page.click("#pb-lib-editor")
-            check("Library → Editor turns on curve editing", page.is_checked("#pb-curve-edit")
-                  and page.evaluate(f"{root}.dataset.pbInspector") == "view")
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
+            check("Library has no Editor / Scene Map items (they are modes)",
+                  page.locator("#pb-lib-editor, #pb-lib-scenemap").count() == 0)
+            libtitles = page.evaluate("[...document.querySelectorAll('.pb-lib-title')].map(t => t.firstChild.textContent.trim())")
+            check("Library sections: Library · Scripts · Analysis · Quick Access",
+                  libtitles == ["Library", "Scripts", "Analysis", "Quick Access"], str(libtitles))
             page.click("#pb-lib-bpm")
             check("Library → BPM Detection opens Inspector Audio", page.evaluate(f"{root}.dataset.pbInspector") == "audio")
+            # The Library slides away to the left and comes back.
+            page.click("#pb-lib-toggle")
+            check("Library collapses", page.evaluate(f"{root}.classList.contains('pb-lib-collapsed')")
+                  and page.is_hidden("#pb-lib-local") and page.is_visible("#pb-lib-toggle"))
+            page.click("#pb-lib-toggle")
+            check("Library comes back", page.is_visible("#pb-lib-local")
+                  and page.evaluate("localStorage.getItem('pb.libCollapsed')") == "0")
             # Video bar above the video.
-            page.click('#rail .tab-btn[data-tab="playback"]')
+            page.click('#mode-pill'); page.click('#mode-deck [data-tab="playback"]')
             check("video bar present", page.is_visible("[data-pb-region='videobar']"))
             check("no video → placeholder text", page.text_content("#pb-vb-name") == "Select a video file…")
             check("snapshot disabled without a video", page.is_disabled("#pb-vb-snapshot"))
