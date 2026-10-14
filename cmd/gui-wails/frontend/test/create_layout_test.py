@@ -50,6 +50,7 @@ def main():
             page.wait_for_timeout(300)
             gen = "#tab-generator"
             check("layout v1 applied", page.get_attribute(gen, "data-gen-layout") == "v1")
+            check("Optimize for sits in the Create card", page.evaluate("!!document.querySelector('.gl-run #gen-optimize-target')"))
             check("three columns", page.evaluate(f"getComputedStyle(document.querySelector('{gen}')).gridTemplateColumns.split(' ').length") == 3)
             check("page title gives way to the project header", page.is_hidden(".create-head"))
             check("handbook in the Project column", page.evaluate("!!document.querySelector('.gl-nav #gen-open-handbook')"))
