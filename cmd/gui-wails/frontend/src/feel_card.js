@@ -4,7 +4,7 @@
 // written into the script with SaveFeelSettings. Shown for the Sam Neo 2 or
 // when no device is connected; a stroker or a vibrator without suction does
 // not get it.
-import { GetFeelSettings, SaveFeelSettings, BakeSoundVibration } from '../wailsjs/go/main/App';
+import { GetFeelSettings, SaveFeelSettings, BakeSoundVibration, SuggestChapterFeels } from '../wailsjs/go/main/App';
 import { deviceKind } from './gen_feel.js';
 
 export function mountFeelCard(host, root, { onSaved } = {}) {
@@ -34,12 +34,31 @@ export function mountFeelCard(host, root, { onSaved } = {}) {
       <input type="checkbox" id="pb-vib-follow" />
       <label for="pb-vib-follow">Vibration follows suction</label>
     </div>
+    <button type="button" class="secondary" id="pb-suggest-chapters" style="margin-top:8px;">Suggest scenes for chapters</button>
     <p class="hint" id="pb-feel-status" aria-live="polite"></p>`;
   host.append(card);
   const scene = card.querySelector('#pb-scene-feel');
   const balance = card.querySelector('#pb-feel-balance');
   const follow = card.querySelector('#pb-vib-follow');
   const status = card.querySelector('#pb-feel-status');
+  const suggestBtn = card.querySelector('#pb-suggest-chapters');
+  if (suggestBtn) {
+    suggestBtn.addEventListener('click', async () => {
+      status.textContent = 'Looking at chapters…';
+      try {
+        const sugs = await SuggestChapterFeels();
+        if (!sugs || !sugs.length) {
+          status.textContent = 'No chapters to suggest for.';
+          return;
+        }
+        const lines = sugs.map(s => `${s.name || 'chapter'} (${Math.round(s.startMs/1000)}s): ${s.feel || 'Classic'} (${s.source})`).join('; ');
+        status.textContent = lines;
+      } catch (e) {
+        status.textContent = String(e);
+      }
+    });
+  }
+
   let kind = null;
 
   async function load() {

@@ -113,8 +113,22 @@ out, and beats are kept punchy without dropping to zero between them.
 **Suction is kept:** when the script has no explicit suction lane yet, its
 mapped suction is written first.
 
+## Scene per chapter (suggestions)
+
+`App.SuggestChapterFeels` (and `funscript.SuggestChapterFeels`) proposes a
+scene feel for each chapter of the loaded script:
+
+1. **AI** (preferred): the scene detection (`<video>.scene.json` proposals)
+   at the chapter midpoint.
+2. **Contact mark** (classic): the marked partner / tip class (mouth → Oral,
+   breast → Breast, …).
+3. **Otherwise Classic** (no strong signal).
+
+Nothing is written. The user confirms a suggestion before it is applied
+(global feel or, later, per-chapter). Motion chapters are used when the
+script has no stored chapters yet.
+
 ## Next
 
-- **Scene per chapter:** Auto picks the scene for each chapter from motion
-  (classic) and from the scene detection (AI). These are suggestions; you
-  confirm them first.
+- Apply confirmed per-chapter feels (time-varying suction shape in the mapper).
+- UI list of suggestions in Generator / Inspector with one-click apply.
