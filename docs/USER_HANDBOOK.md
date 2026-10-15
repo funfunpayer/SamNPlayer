@@ -59,6 +59,26 @@ in the video bar, e.g. *Clip (Soft)* or *Clip - by Someone*. Choosing one
 loads it with the same video. *Clip 2* counts as another clip, not as a
 variant. Axis files such as *Clip.twist.funscript* are not variants either.
 
+## 1c. Strokers: smoother motion
+
+With a stroker connected (The Handy, OSR2 / SR6 …), Inspector → Devices
+shows the stroke row with the safety range and four more choices. They work
+while playing and never change your script:
+
+- **Motion:** *As scripted*, *Smooth* or *Rounder*. A stroker moves in straight
+  lines between the points it gets. *Smooth* sends extra points along a soft
+  curve through the script's points; *Rounder* rounds the corners a little
+  more.
+- **Speed limit:** *Fast* (600/s), *Medium* (400/s) or *Gentle* (250/s). A
+  stroke that is too fast stops short instead of slamming.
+- **Fill long pauses:** a gentle wave while the script pauses for 4 s or
+  more.
+- **Move home on pause:** on pause the stroker moves slowly to the bottom of
+  its range.
+
+After a jump in the video the stroker always eases to the new place
+(soft seek).
+
 ## 2. Everyday Create (recommended path)
 
 Layout: **Project** on the left (source clips, recent videos, generated

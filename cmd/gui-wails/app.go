@@ -55,9 +55,14 @@ type App struct {
 	// Stroke output for strokers (D3), zero value = on, full range.
 	strokeOff             bool
 	strokeLo, strokeHiCut float64
-	activeDevice          device.Device
-	playCancel            context.CancelFunc
-	videoPositionCh       chan int64
+	// Stroke filter (v0.8, app_stroke_filter.go): loaded from the settings
+	// on first use (strokeFilterLoaded).
+	strokeFilter       funscript.StrokeFilter
+	strokeHome         bool
+	strokeFilterLoaded bool
+	activeDevice       device.Device
+	playCancel         context.CancelFunc
+	videoPositionCh    chan int64
 
 	// Dauerhafte Verbindung aus dem Geräte-Tab, bewusst getrennt von
 	// activeDevice: activeDevice gehört einer laufenden Session und wird mit

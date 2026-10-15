@@ -10,6 +10,13 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Stroker motion filter (v0.8, seen in MultiFunPlayer, ScriptPlayer and UwU Player):** Inspector → Devices → stroke row. It works live while playing and never changes the script file.
+  - **Motion:** *Smooth* (PCHIP, no overshoot) or *Rounder* (MAKIMA). It adds points every 100 ms along a curve through the script's own points; the stroker gets them instead of straight lines.
+  - **Speed limit:** 600 / 400 / 250 units per second. A too fast stroke stops short instead of slamming.
+  - **Fill long pauses:** a gentle wave (±12 around the pause's level) in script pauses of 4 s or more.
+  - **Move home on pause:** the stroker goes slowly (1.2 s) to the bottom of its range instead of halting mid-stroke.
+  - **Saved:** in the settings; a change applies at once to a running playback.
+  - **API:** `funscript.ApplyStrokeFilter`, `GetStrokeFilter`, `SetStrokeFilter`, `Player.SetStrokeHome`.
 - **Script folders and variants (v0.8, seen in ScriptPlayer, ScriptPlayer+, BetterPlayer and MultiFunPlayer):**
   - **Settings → Play → Script folders:** a video's script is also searched for in these folders, with their subfolders. The search goes at most 6 levels deep and looks at no more than 50 000 files.
   - **Tolerant names:** brackets, years, release tags such as 1080p or x265, separators and case do not matter.

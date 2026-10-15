@@ -4413,3 +4413,9 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 /* Script variant choice in the video bar (open_media.js) */
 .pb-videobar .pb-variant { max-width: 220px; padding: 6px 8px; font-size: 0.86rem; }
 .pb-variant[hidden] { display: none; }
+
+/* Stroke filter (Inspector → Devices → stroke row, v0.8) */
+.pb-stroke-filter { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; }
+.pb-stroke-filter select { min-width: 0; }
+.pb-stroke-filter .pb-stroke-check, .pb-stroke-filter .hint { grid-column: 1 / -1; }
+.pb-stroke-filter .pb-stroke-check { display: flex; gap: 8px; align-items: center; }

@@ -237,3 +237,30 @@ func TestClampStrokeRange(t *testing.T) {
 		}
 	}
 }
+
+// Home on pause (v0.8): the stroker moves slowly to the bottom of its range.
+func TestSyncStrokeHomeOnPause(t *testing.T) {
+	dev := &linearDev{linear: true}
+	p := New(dev)
+	p.SetStroke(strokeActions)
+	p.SetStrokeOutput(true, 0.2, 0.8)
+	p.SetStrokeHome(true)
+	frames := []funscript.Frame{{At: 0, Vibration: 0.5}, {At: 5000, Vibration: 0.5}}
+	positions := make(chan int64, 4)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- p.Sync(ctx, frames, positions) }()
+	positions <- 200
+	time.Sleep(50 * time.Millisecond)
+	positions <- SyncIdleSentinel
+	time.Sleep(50 * time.Millisecond)
+	m := dev.snapshotMoves()
+	if len(m) != 2 || m[1].pos != 0.2 || m[1].dur != strokeHomeMs {
+		t.Fatalf("pause moves home to the range bottom, slowly: %+v", m)
+	}
+	close(positions)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}

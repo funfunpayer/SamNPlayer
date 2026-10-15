@@ -8,7 +8,7 @@
 // switched with classes; the real stylesheet hides inactive ones, so tests
 // that run without CSS still reach every control.
 
-import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SetMotorLevels, SaveVideoSnapshot } from '../wailsjs/go/main/App';
+import { SetChannelLevels, SetPeakReduce, SetStrokeOutput, SetMotorLevels, SaveVideoSnapshot, GetStrokeFilter, SetStrokeFilter } from '../wailsjs/go/main/App';
 import { getSettingsCache, saveSetting } from './settings.js';
 import { mountScenePanel } from './scene_panel.js';
 import { mountFeelCard, mountSoundVibCard } from './feel_card.js';
@@ -221,7 +221,25 @@ export function applyPlayerLayoutV1(root, api) {
       <label>Top <input type="range" id="pb-stroke-hi" min="10" max="100" step="5" value="100" aria-label="Stroke range top" /></label>
       <span class="pb-stroke-range-val" id="pb-stroke-range-val">0–100 %</span>
     </div>
-    <p class="hint">Safety range: the device only moves inside it; the script's full stroke is scaled into it.</p>`;
+    <p class="hint">Safety range: the device only moves inside it; the script's full stroke is scaled into it.</p>
+    <div class="pb-stroke-filter" id="pb-stroke-filter">
+      <label for="pb-stroke-smooth" data-help="The device moves in straight lines between the points it gets. Smooth sends extra points along a soft curve through the script's points; Rounder rounds corners a little more. The script file is not changed.">Motion</label>
+      <select id="pb-stroke-smooth">
+        <option value="">As scripted</option>
+        <option value="pchip">Smooth</option>
+        <option value="makima">Rounder</option>
+      </select>
+      <label for="pb-stroke-speed" data-help="No move faster than this; a too fast stroke stops short instead of slamming. In script units (0–100) per second.">Speed limit</label>
+      <select id="pb-stroke-speed">
+        <option value="0">Off</option>
+        <option value="600">Fast (600/s)</option>
+        <option value="400">Medium (400/s)</option>
+        <option value="250">Gentle (250/s)</option>
+      </select>
+      <label class="pb-stroke-check"><input type="checkbox" id="pb-stroke-idle" /> Fill long pauses (gentle wave)</label>
+      <label class="pb-stroke-check"><input type="checkbox" id="pb-stroke-home" /> Move home on pause</label>
+      <p class="hint" id="pb-stroke-filter-status" aria-live="polite"></p>
+    </div>`;
   live.querySelector('.pb-chan-row[data-axis="stroke"]')?.after(strokeCtl);
   // Multi-motor devices (LELO F1S V3 …): one level per motor, shown only
   // while such a device is connected (rows built from its capabilities).
@@ -851,6 +869,34 @@ export function applyPlayerLayoutV1(root, api) {
   strokeLo.addEventListener('input', applyStroke);
   strokeHi.addEventListener('input', applyStroke);
   applyStroke();
+
+  // ---- Stroke filter (v0.8): smooth, speed limit, filled pauses, home ------
+  const fSmooth = q('#pb-stroke-smooth'), fSpeed = q('#pb-stroke-speed');
+  const fIdle = q('#pb-stroke-idle'), fHome = q('#pb-stroke-home');
+  const fStatus = q('#pb-stroke-filter-status');
+  function showFilter(f) {
+    if (!f || typeof f !== 'object') return;
+    fSmooth.value = f.smooth || '';
+    const sp = String(Math.round(Number(f.maxSpeed) || 0));
+    if (![...fSpeed.options].some(o => o.value === sp)) fSpeed.add(new Option(`${sp}/s`, sp));
+    fSpeed.value = sp;
+    fIdle.checked = !!f.idleFill;
+    fHome.checked = !!f.homeOnPause;
+    root.dataset.pbStrokeFilter = [f.smooth || 'raw', sp, f.idleFill ? 'fill' : '', f.homeOnPause ? 'home' : ''].filter(Boolean).join(',');
+  }
+  async function applyFilter() {
+    try {
+      showFilter(await SetStrokeFilter({
+        smooth: fSmooth.value, maxSpeed: Number(fSpeed.value) || 0,
+        idleFill: fIdle.checked, homeOnPause: fHome.checked,
+      }));
+      fStatus.textContent = '';
+    } catch (err) {
+      fStatus.textContent = 'Could not apply: ' + err;
+    }
+  }
+  for (const c of [fSmooth, fSpeed, fIdle, fHome]) c.addEventListener('change', applyFilter);
+  Promise.resolve().then(() => GetStrokeFilter()).then(showFilter).catch(() => {});
 
   // ---- Per-motor levels (multi-motor devices) ------------------------------
   const motorLabel = ch => {

@@ -96,6 +96,8 @@ export function OptimizeLoadedFor(arg1) { return window['go']['main']['App']['Op
 export function PickMediaFile() { return window['go']['main']['App']['PickMediaFile'](); }
 export function FindScriptForVideo(arg1) { return window['go']['main']['App']['FindScriptForVideo'](arg1); }
 export function GetScriptFolders() { return window['go']['main']['App']['GetScriptFolders'](); }
+export function GetStrokeFilter() { return window['go']['main']['App']['GetStrokeFilter'](); }
+export function SetStrokeFilter(arg1) { return window['go']['main']['App']['SetStrokeFilter'](arg1); }
 export function AddScriptFolder() { return window['go']['main']['App']['AddScriptFolder'](); }
 export function RemoveScriptFolder(arg1) { return window['go']['main']['App']['RemoveScriptFolder'](arg1); }
 export function SuggestChapterScenes() { return window['go']['main']['App']['SuggestChapterScenes'](); }
