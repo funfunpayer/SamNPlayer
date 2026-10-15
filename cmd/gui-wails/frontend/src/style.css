@@ -3694,8 +3694,8 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 /* C1 Flow stage hosts (ChatGPT #503) in the empty Player and "Feel without
    film". The stage is decorative; the text and buttons stay as before. */
 .pb-flow-host { width: 100%; pointer-events: none; }
-.pb-flow-host--empty { width: min(420px, 80%); aspect-ratio: 16 / 9; }
-.pb-flow-host--novideo { width: min(360px, 70%); aspect-ratio: 16 / 9; margin: 0 auto 8px; }
+.pb-flow-host--empty { width: min(520px, 92%); aspect-ratio: 16 / 9; margin: 0 auto 4px; }
+.pb-flow-host--novideo { width: min(400px, 78%); aspect-ratio: 16 / 9; margin: 0 auto 8px; }
 .pb-flow-host .flow-fx { min-height: 0; }
 /* C4 placeholder for a scene frame ffmpeg could not read. */
 .pb-scene-thumb.is-placeholder { object-fit: cover; opacity: .7; }
