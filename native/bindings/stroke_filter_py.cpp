@@ -5,25 +5,19 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(stroke_filter_native, m) {
-    m.doc() = "SamNPlayer stroke filter (parity with funscript.ApplyStrokeFilter)";
-
     py::class_<samn::Action>(m, "Action")
         .def(py::init<>())
-        .def(py::init<int64_t, int>())
+        .def(py::init([](int64_t at, int pos) { return samn::Action{at, pos}; }))
         .def_readwrite("at", &samn::Action::at)
-        .def_readwrite("pos", &samn::Action::pos)
-        .def("__repr__", [](const samn::Action& a) {
-            return "<Action at=" + std::to_string(a.at) + " pos=" + std::to_string(a.pos) + ">";
-        });
+        .def_readwrite("pos", &samn::Action::pos);
 
     py::class_<samn::StrokeFilter>(m, "StrokeFilter")
         .def(py::init<>())
         .def_readwrite("smooth", &samn::StrokeFilter::smooth)
-        .def_readwrite("step_ms", &samn::StrokeFilter::step_ms)
-        .def_readwrite("max_speed", &samn::StrokeFilter::max_speed)
-        .def_readwrite("idle_fill_ms", &samn::StrokeFilter::idle_fill_ms);
+        .def_readwrite("stepMs", &samn::StrokeFilter::stepMs)
+        .def_readwrite("maxSpeed", &samn::StrokeFilter::maxSpeed)
+        .def_readwrite("idleFillMs", &samn::StrokeFilter::idleFillMs);
 
-    m.def("apply_stroke_filter", &samn::apply_stroke_filter,
-          "Apply stroke filter (parity with Go funscript.ApplyStrokeFilter)",
-          py::arg("actions"), py::arg("filter"));
+    m.def("apply_stroke_filter", &samn::ApplyStrokeFilter);
+    m.def("active", &samn::Active);
 }
