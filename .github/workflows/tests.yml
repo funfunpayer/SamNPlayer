@@ -172,31 +172,6 @@ jobs:
       - name: Benchmark clip prep
         run: python3 scripts/benchmark-prep/cut_clip_test.py
 
-  native:
-    name: Native (C++ pybind11)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install build dependencies
-        run: |
-          scripts/ci/apt-install.sh cmake g++ python3-dev
-          pip install pybind11
-
-      - name: Build beatbar_native
-        working-directory: native
-        run: |
-          mkdir -p build && cd build
-          cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
-          make -j$(nproc)
-
-      - name: Parity tests (vs Go beatbar)
-        run: PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
-
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -331,3 +306,30 @@ jobs:
           ls -la build/bin/SamNPlayer.exe
           bash ../../scripts/collect-mingw-opencv-dlls.sh build/bin/SamNPlayer.exe /tmp/gui-dlls
           ls /tmp/gui-dlls/libopencv_tracking*.dll
+
+  native:
+    name: Native (C++ / pybind11, Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: scripts/ci/apt-install.sh build-essential cmake python3-dev
+
+      - name: Install pybind11
+        run: pip install pybind11
+
+      - name: Build native module
+        working-directory: native
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
+          make -j$(nproc)
+
+      - name: Beat-bar parity tests
+        run: PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
