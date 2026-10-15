@@ -60,6 +60,10 @@ export function mountFlowStage(el, opts = {}) {
   mark.src = LOGO_URL;
   mark.alt = '';
   mark.draggable = false;
+  // Intrinsic size so harnesses that load style.css without flow_fx.css
+  // (e.g. pb_axis_lanes_test) do not grow #pb-novideo by the full PNG.
+  mark.width = 168;
+  mark.height = 168;
 
   root.append(silkAura, silk, glow, mark);
   el.appendChild(root);

@@ -96,6 +96,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 
 | Lane | Owner | Branch / PR | Goal | Status |
 |------|-------|-------------|------|--------|
+| FlowSilk | Cursor | [#550](https://github.com/funfunpayer/SamNPlayer/pull/550) `cursor/flow-silk-glow-2c42` | Owner 15 Oct: Training rings closer to mockup; **Player empty = real Play + Open…** centered (no silk/wordmark clutter); soft circular transport Play. Visual QA in preview. | **IN REVIEW** — Owner smoke; merge when Frontend CI green |
 | Docs521 | ChatGPT | [#521](https://github.com/funfunpayer/SamNPlayer/pull/521) | Owner 14 Oct: reconcile README, editions and release gates with main; preserve #530 supersession record; close redundant #530 after verification | **IN REVIEW** — docs only; release/native QA remain open; Claude integration review |
 | Rel | Cursor | [#208](https://github.com/funfunpayer/SamNPlayer/pull/208) + tag `v0.5.25` | Contact marks UI + bump **v0.5.25** + Release | **DONE** — portable live |
 | Z4→1 | Cursor | [#209](https://github.com/funfunpayer/SamNPlayer/pull/209) merged | **4-Zone out of Generate GUI** (Advanced too); CSRT 1-Zone only; backend/CLI stay | **DONE** (`3421b97`) |

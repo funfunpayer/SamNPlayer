@@ -8,6 +8,11 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+- **Player empty home (Flow):** one real circular Play control with **Open…**
+  underneath, centered in the Player stage — opens a video or script. Decorative
+  silk/brand empty card removed. Training rings kept closer to the mockup gauges
+  with a silk bridge; transport Play stays the soft circular symbol.
+
 ### Added
 
 - **Script folders and variants (v0.8, seen in ScriptPlayer, ScriptPlayer+, BetterPlayer and MultiFunPlayer):**
