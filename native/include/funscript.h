@@ -29,4 +29,14 @@ Script Parse(const std::string& json_str);
 // Full metadata is not preserved; this is the hot-path subset for M1.
 std::string Write(const Script& s);
 
+// Speed-Highlights: intensity = 500 * |Δpos| / |Δt_ms|.
+// DefaultMaxIntensity = 400.0 when max_intensity <= 0.
+struct SpeedSegment {
+    int64_t from_ms = 0;
+    int64_t to_ms = 0;
+    double intensity = 0.0;
+};
+
+std::vector<SpeedSegment> SpeedHighlights(const std::vector<Action>& actions, double max_intensity = 0.0);
+
 }  // namespace samn
