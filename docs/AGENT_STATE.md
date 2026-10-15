@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026, Grok (M2 orchestration skeleton), branch `claude/keen-davinci-t2ysrs`.
+**Last update:** 15 Oct 2026, Grok (MEDIA-01 unknown-codec stub test), branch `claude/keen-davinci-t2ysrs`.
 
 ## Who works how
 
@@ -51,6 +51,7 @@ is the short, current state.
 - **M1:** `native/` C++ library with CMake + pybind11. Beat-bar, stroke filter, funscript core (parse/write + full metadata) ported. Linux + Windows CI green on parity tests. Next: more ports only if profile shows need.
 - **M0, generator profile:** harness added (`scripts/profile-generator.sh` + `docs/owner/generator-profile-2026-10.md`). Needs a real OpenCV run on a clip to fill the top sinks.
 - **M2 start:** `app/generator_orch.py` — Python orchestration skeleton that calls the already-ported native modules (funscript, stroke filter). Tracking loop still pending the C++ OpenCV port.
+- **MEDIA-01:** lean MP4 probe leaves unknown codec empty / raw fourcc (not defaulted to h264). Stub test `TestProbeISOBMFFUnknownCodec` locks it: unknown sample entry → not LikelyPlayable, proxy offered.
 
 ## Open, in order
 
