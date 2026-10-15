@@ -61,7 +61,9 @@ is the short, current state.
   - BeatStrokes fully ported (one stroke per beat, speed limit, hold on long gaps). Parity tests (`native/tests/test_beat_strokes_parity.py`) mirror the Go cases.
   - Funscript core parse/write ported (a duration like "10:31" was read as 10 ms because `std::stod` stops at the colon; fixed by Claude) (actions with float rounding/clamp/corrupt drop, inverted, duration OFS rules). Parity tests (`native/tests/test_funscript_parity.py`). nlohmann/json fetched via CMake.
   - Linux and Windows CI jobs (in `tests.yml`) build all modules and run all parity tests. In CI `SAMN_NATIVE_REQUIRED=1` makes a missing module fail instead of "SKIP" with exit 0.
+  - `ShiftActions` ported too (Grok), with parity tests.
   - Next: more pure functions if needed; Profile (M0) still required before claiming speed.
+- **M2 (started by Grok):** `app/generator_orch.py` is a skeleton only — not wired into the app yet.
 - **M0, generator profile:** first result in
   [`owner/generator-profile-2026-10.md`](owner/generator-profile-2026-10.md)
   (tool: `scripts/profile_generate`). On a synthetic 1080p clip, 99 % of the
@@ -73,17 +75,16 @@ is the short, current state.
 
 ## Open, in order
 
-1. **Before tagging v0.7.0:** Suite files must not go public (D14), per
-   `docs/next/HANDOFF_2026-10-15.md` task 1. Then the **Owner** pushes the
-   tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
-2. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
-3. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
+1. **Before tagging v0.7.0:** Suite files must not go public (D14) — **done in this branch** (`release.yml` builds Suite as compile check only, excludes from artifacts/checksums/release, guard step fails on any `suite` name). Then the **Owner** pushes the tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
+2. **MEDIA-01 (done):** lean MP4 probe leaves unknown/empty codec empty (no h264 default); empty or unknown is not playable so the proxy is offered. Covered by `TestProbeISOBMFFUnknownCodec`.
+3. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
+4. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
    plus a shortcut sheet, device wizard. New code for these goes in Python
    where the migration has reached that part.
-4. Beat bar: an audio onset fallback for Hero rounds without a visible bar;
+5. Beat bar: an audio onset fallback for Hero rounds without a visible bar;
    a beat-bar overlay in the Editor.
-5. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
-6. Sentry for **development builds only**: needs a project and DSN from the
+6. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
+7. Sentry for **development builds only**: needs a project and DSN from the
    Owner (org `funfun-0q`, region de.sentry.io). It must never be in the
    shipped app.
 

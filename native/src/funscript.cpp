@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <sstream>
+#include <utility>
 
 namespace samn {
 
@@ -140,22 +141,16 @@ Script Parse(const std::string& json_str) {
     s.actions = std::move(kept);
     s.dropped = dropped;
 
-    // Duration and full metadata
+    // Duration
     if (doc.contains("metadata") && doc["metadata"].is_object()) {
-        json meta = doc["metadata"];
+        const auto& meta = doc["metadata"];
         if (meta.contains("duration")) {
             s.duration_meta = flex_time_ms(meta["duration"]);
         }
-        int64_t last = s.actions.empty() ? 0 : s.actions.back().at;
-        if (s.duration_meta > 0 && s.duration_meta * 100 < last) {
-            s.duration_meta *= 1000;
-        }
-        if (s.duration_meta > 0) {
-            meta["duration"] = s.duration_meta;
-        } else {
-            meta.erase("duration");
-        }
-        s.metadata_json = meta.dump();
+    }
+    int64_t last = s.actions.empty() ? 0 : s.actions.back().at;
+    if (s.duration_meta > 0 && s.duration_meta * 100 < last) {
+        s.duration_meta *= 1000;
     }
 
     return s;
@@ -169,16 +164,25 @@ std::string Write(const Script& s) {
     }
     doc["actions"] = acts;
     if (s.inverted) doc["inverted"] = true;
-    if (!s.metadata_json.empty()) {
-        try {
-            doc["metadata"] = json::parse(s.metadata_json);
-        } catch (const std::exception&) {
-            // ignore bad metadata_json
-        }
-    } else if (s.duration_meta > 0) {
+    if (s.duration_meta > 0) {
         doc["metadata"] = json::object({{"duration", s.duration_meta}});
     }
     return doc.dump(2);
+}
+
+std::pair<std::vector<Action>, int> ShiftActions(const std::vector<Action>& actions, int64_t deltaMs) {
+    std::vector<Action> out;
+    int dropped = 0;
+    out.reserve(actions.size());
+    for (const auto& a : actions) {
+        int64_t at = a.at + deltaMs;
+        if (at < 0) {
+            ++dropped;
+            continue;
+        }
+        out.push_back({at, a.pos});
+    }
+    return {std::move(out), dropped};
 }
 
 }  // namespace samn

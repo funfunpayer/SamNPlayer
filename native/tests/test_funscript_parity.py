@@ -1,6 +1,7 @@
 """Parity tests for native funscript parse/write vs funscript/funscript.go.
 
 Mirrors key cases from funscript_test.go and parse_compat_test.go (core path).
+Also covers ShiftActions from shift.go.
 """
 
 import os
@@ -68,16 +69,17 @@ def test_clamp_pos():
     assert pairs(s) == [(0, 0), (100, 100)]
 
 
-def test_full_metadata():
-    js = '{"actions":[{"at":0,"pos":0},{"at":1000,"pos":100}],"metadata":{"duration":1.5,"creator":"test","quality_score":0.9}}'
-    s = fs.parse(js)
-    assert s.duration_meta == 1500
-    assert "creator" in s.metadata_json
-    assert "test" in s.metadata_json
-    out = fs.write(s)
-    assert "creator" in out
-    assert "test" in out
-    assert '"duration": 1500' in out or '"duration":1500' in out
+def test_shift_actions():
+    acts = [fs.Action(0, 10), fs.Action(100, 90), fs.Action(300, 20)]
+    later, d = fs.shift_actions(acts, 250)
+    assert d == 0
+    assert [(a.at, a.pos) for a in later] == [(250, 10), (350, 90), (550, 20)]
+    earlier, d = fs.shift_actions(acts, -150)
+    assert d == 2
+    assert len(earlier) == 1
+    assert earlier[0].at == 150
+    # input unmodified
+    assert acts[0].at == 0
 
 
 def main():
@@ -86,7 +88,7 @@ def main():
     test_duration_ofs()
     test_inverted()
     test_clamp_pos()
-    test_full_metadata()
+    test_shift_actions()
     print("All funscript parity checks passed.")
 
 

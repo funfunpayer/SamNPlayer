@@ -7,13 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # pybind11
 find_package(pybind11 REQUIRED)
 
-# nlohmann/json (header-only) for funscript parse/write
+# nlohmann/json for funscript parse/write (header-only)
 include(FetchContent)
 FetchContent_Declare(
   nlohmann_json
   GIT_REPOSITORY https://github.com/nlohmann/json.git
   GIT_TAG v3.11.3
-  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
@@ -29,7 +28,7 @@ target_include_directories(stroke_filter_native PRIVATE include)
 pybind11_add_module(beat_strokes_native src/beat_strokes.cpp bindings/beat_strokes_py.cpp)
 target_include_directories(beat_strokes_native PRIVATE include)
 
-# Funscript core parse/write
+# Funscript core parse/write + ShiftActions
 pybind11_add_module(funscript_native src/funscript.cpp bindings/funscript_py.cpp)
 target_include_directories(funscript_native PRIVATE include)
 target_link_libraries(funscript_native PRIVATE nlohmann_json::nlohmann_json)
