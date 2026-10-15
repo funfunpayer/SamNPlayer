@@ -35,8 +35,11 @@ def check_playback(check, base):
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.goto(f"{base}/test/_flow_wiring_harness.html")
             page.wait_for_function("window.__ready === true")
-            check("empty Player is a real Play button",
-                  page.evaluate("!!document.querySelector('#pb-empty #pb-choose-empty.flow-play')"))
+            check("empty Player is a real Play + Open control",
+                  page.evaluate("""(() => {
+                    const b = document.querySelector('#pb-empty #pb-choose-empty.pb-empty-cta');
+                    return !!b && !!b.querySelector('.flow-play') && /Open/.test(b.textContent || '');
+                  })()"""))
             check("empty Player has no decorative Flow stage",
                   page.evaluate("!document.querySelector('#pb-empty .flow-fx')"))
             check("no /src/ image path left in the Player markup",

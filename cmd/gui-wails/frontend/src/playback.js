@@ -42,9 +42,12 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty" data-pb-region="empty">
       <div class="pb-empty-inner">
-        <button type="button" id="pb-choose-empty" class="flow-play pb-empty-play"
-          title="Open a video or a script (Ctrl+O)" aria-label="Play — open a video or script">
-          <svg class="fp-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
+        <button type="button" id="pb-choose-empty" class="pb-empty-cta"
+          title="Open a video or a script (Ctrl+O)" aria-label="Open a video or a script">
+          <span class="flow-play pb-empty-play" aria-hidden="true">
+            <svg class="fp-play" viewBox="0 0 24 24"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
+          </span>
+          <span class="pb-empty-open">Open…</span>
         </button>
       </div>
     </div>

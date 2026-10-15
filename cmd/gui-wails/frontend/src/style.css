@@ -931,7 +931,32 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   text-align: center;
   display: grid;
   place-items: center;
-  padding: 48px 24px;
+  justify-items: center;
+  width: 100%;
+  padding: 24px;
+}
+.pb-empty-cta {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  min-height: 0;
+}
+.pb-empty-cta:hover .pb-empty-play { transform: scale(1.05); }
+.pb-empty-cta:active .pb-empty-play { transform: scale(.97); }
+.pb-empty-open {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--text, #e8f4ff);
+  text-shadow: 0 0 18px rgba(63, 208, 255, .35);
 }
 .pb-empty-kicker {
   margin: 0 0 6px;
@@ -3289,21 +3314,35 @@ button.primary:hover:not(:disabled) {
   transition: opacity .2s ease;
 }
 #tab-playback[data-pb-tools="folded"] .pb-tools { border-left: 0; padding-left: 0; }
-/* Empty state: one real Play button (opens media). Header Open… stays quiet. */
+/* Empty state: Play + Open… centered in the Player stage. Header Open… stays quiet. */
 #tab-playback[data-pb-state="empty"] #pb-choose {
   background: transparent; color: var(--text-dim); box-shadow: none;
   border: 1px solid var(--border-soft);
 }
+#tab-playback[data-pb-layout="v1"][data-pb-state="empty"] .pb-main-col {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 130px);
+}
 #tab-playback #pb-empty {
   background: transparent; border: 0; box-shadow: none;
-  min-height: 48vh; display: grid; place-items: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: min(56vh, 520px);
+  display: grid;
+  place-items: center;
+  justify-items: center;
 }
 #tab-playback .pb-empty-play {
-  --fp-size: 120px;
+  --fp-size: 128px;
+  display: inline-grid;
+  place-items: center;
+  transition: transform .15s ease;
 }
-#tab-playback .pb-empty-play:focus-visible {
+#tab-playback .pb-empty-cta:focus-visible {
   outline: 2px solid rgba(63, 208, 255, .85);
-  outline-offset: 6px;
+  outline-offset: 8px;
+  border-radius: 16px;
 }
 @media (max-height: 860px) {
   #tab-playback .pb-keys-hint { display: none; }
