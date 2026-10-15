@@ -352,7 +352,9 @@ jobs:
           mkdir build
           cd build
           $pybindDir = python -m pybind11 --cmakedir
-          cmake .. -Dpybind11_DIR="$pybindDir" -G "Visual Studio 17 2022" -A x64
+          # No fixed generator: the runner image updates Visual Studio (a pinned
+          # "Visual Studio 17 2022" failed once it moved on).
+          cmake .. -Dpybind11_DIR="$pybindDir" -A x64
           cmake --build . --config Release
       - name: Parity tests
         shell: pwsh
