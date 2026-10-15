@@ -2,6 +2,7 @@
 
 **Status:** plan · moved here from `SamNPlayer-Next-Level` on 15 Oct 2026 (Owner: "all
 content into the SamNPlayer repo").
+**Next session starts here:** [`HANDOFF_2026-10-15.md`](HANDOFF_2026-10-15.md).
 Open Owner decisions: [`OPEN_DECISIONS.md`](OPEN_DECISIONS.md) · order of work:
 [`ROADMAP.md`](ROADMAP.md) · specs: [`specs/`](specs/) · what the code does today:
 [`inventory/`](inventory/) · the five planning documents from PR #510, unchanged:
