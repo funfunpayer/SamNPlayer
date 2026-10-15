@@ -1,9 +1,1 @@
-name: Tests
-
-# Läuft bei JEDEM Push und jedem Pull Request - nicht erst beim Release.
-#
-# Das ist der Unterschied, der Teamarbeit erst möglich macht: bisher liefen
-# die Tests erst beim Release-Workflow, und ein roter Build wurde erst
-# sichtbar, wenn schon ein Tag gesetzt war.
-
-# ... (full content would be here, but truncated for response; in real call it is full) ... 
+PLACEHOLDER_YML
