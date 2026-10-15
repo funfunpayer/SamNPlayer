@@ -264,3 +264,53 @@ func TestSyncStrokeHomeOnPause(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Pause during soft-start must still home the stroker (goQuiet no-ops while
+// firstFrame is set; the soft-start idle path must do Stop + home itself).
+func TestSyncStrokeHomeOnPauseDuringSoftStart(t *testing.T) {
+	old := syncStaleAfter
+	syncStaleAfter = 5 * time.Second
+	defer func() { syncStaleAfter = old }()
+
+	dev := &linearDev{linear: true}
+	p := New(dev)
+	p.SoftStartMs = 400
+	p.SetStroke(strokeActions)
+	p.SetStrokeOutput(true, 0.2, 0.8)
+	p.SetStrokeHome(true)
+	frames := []funscript.Frame{{At: 0, Vibration: 0.5}, {At: 10000, Vibration: 0.5}}
+	positions := make(chan int64, 4)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- p.Sync(ctx, frames, positions) }()
+
+	positions <- 200
+	time.Sleep(80 * time.Millisecond) // soft-start still in flight
+	positions <- SyncIdleSentinel
+	deadline := time.Now().Add(200 * time.Millisecond)
+	var home *move
+	for time.Now().Before(deadline) {
+		for _, m := range dev.snapshotMoves() {
+			if m.dur == strokeHomeMs && m.pos == 0.2 {
+				cp := m
+				home = &cp
+			}
+		}
+		if home != nil {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if home == nil {
+		t.Fatalf("idle during soft-start must move home: %+v stops=%d", dev.snapshotMoves(), func() int {
+			dev.mu.Lock()
+			defer dev.mu.Unlock()
+			return dev.stops
+		}())
+	}
+	close(positions)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}

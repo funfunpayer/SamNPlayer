@@ -8,6 +8,12 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Fixed
+
+- **Stroke filter settings:** `SetStrokeFilter` writes all four prefs in one save (`SetMany`), so a failed mid-loop save cannot leave a half-updated settings file.
+- **Move home on pause during soft-start:** pausing in the soft-start ramp now Stop + homes the stroker (the normal quiet path no-ops while `firstFrame` is still set).
+- **Stroke filter input:** unsorted / duplicate action times are sorted and deduped before smooth/speed/idle fill.
+
 ### Added
 
 - **Stroker motion filter (v0.8, seen in MultiFunPlayer, ScriptPlayer and UwU Player):** Inspector → Devices → stroke row. It works live while playing and never changes the script file.

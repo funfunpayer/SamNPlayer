@@ -874,29 +874,31 @@ export function applyPlayerLayoutV1(root, api) {
   const fSmooth = q('#pb-stroke-smooth'), fSpeed = q('#pb-stroke-speed');
   const fIdle = q('#pb-stroke-idle'), fHome = q('#pb-stroke-home');
   const fStatus = q('#pb-stroke-filter-status');
-  function showFilter(f) {
-    if (!f || typeof f !== 'object') return;
-    fSmooth.value = f.smooth || '';
-    const sp = String(Math.round(Number(f.maxSpeed) || 0));
-    if (![...fSpeed.options].some(o => o.value === sp)) fSpeed.add(new Option(`${sp}/s`, sp));
-    fSpeed.value = sp;
-    fIdle.checked = !!f.idleFill;
-    fHome.checked = !!f.homeOnPause;
-    root.dataset.pbStrokeFilter = [f.smooth || 'raw', sp, f.idleFill ? 'fill' : '', f.homeOnPause ? 'home' : ''].filter(Boolean).join(',');
-  }
-  async function applyFilter() {
-    try {
-      showFilter(await SetStrokeFilter({
-        smooth: fSmooth.value, maxSpeed: Number(fSpeed.value) || 0,
-        idleFill: fIdle.checked, homeOnPause: fHome.checked,
-      }));
-      fStatus.textContent = '';
-    } catch (err) {
-      fStatus.textContent = 'Could not apply: ' + err;
+  if (fSmooth && fSpeed && fIdle && fHome) {
+    function showFilter(f) {
+      if (!f || typeof f !== 'object') return;
+      fSmooth.value = f.smooth || '';
+      const sp = String(Math.round(Number(f.maxSpeed) || 0));
+      if (![...fSpeed.options].some(o => o.value === sp)) fSpeed.add(new Option(`${sp}/s`, sp));
+      fSpeed.value = sp;
+      fIdle.checked = !!f.idleFill;
+      fHome.checked = !!f.homeOnPause;
+      root.dataset.pbStrokeFilter = [f.smooth || 'raw', sp, f.idleFill ? 'fill' : '', f.homeOnPause ? 'home' : ''].filter(Boolean).join(',');
     }
+    async function applyFilter() {
+      try {
+        showFilter(await SetStrokeFilter({
+          smooth: fSmooth.value, maxSpeed: Number(fSpeed.value) || 0,
+          idleFill: fIdle.checked, homeOnPause: fHome.checked,
+        }));
+        if (fStatus) fStatus.textContent = '';
+      } catch (err) {
+        if (fStatus) fStatus.textContent = 'Could not apply: ' + err;
+      }
+    }
+    for (const c of [fSmooth, fSpeed, fIdle, fHome]) c.addEventListener('change', applyFilter);
+    Promise.resolve().then(() => GetStrokeFilter()).then(showFilter).catch(() => {});
   }
-  for (const c of [fSmooth, fSpeed, fIdle, fHome]) c.addEventListener('change', applyFilter);
-  Promise.resolve().then(() => GetStrokeFilter()).then(showFilter).catch(() => {});
 
   // ---- Per-motor levels (multi-motor devices) ------------------------------
   const motorLabel = ch => {
