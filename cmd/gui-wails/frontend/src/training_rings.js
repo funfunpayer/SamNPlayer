@@ -68,8 +68,10 @@ function createChannelCard(spec, index) {
 
   const visual = document.createElement('div');
   visual.className = 'flow-tr__visual';
+  // shell = decorative full glow ring (not a reading). arc = real level.
   visual.innerHTML = `<svg class="flow-tr__ring" viewBox="0 0 160 160" aria-hidden="true" focusable="false">
     <circle class="flow-tr__track" cx="80" cy="80" r="58"/>
+    <circle class="flow-tr__shell" cx="80" cy="80" r="58"/>
     <circle class="flow-tr__halo" cx="80" cy="80" r="58"/>
     <circle class="flow-tr__arc" cx="80" cy="80" r="58"
       stroke-dasharray="364.425" stroke-dashoffset="364.425" transform="rotate(-90 80 80)"/>
@@ -77,8 +79,22 @@ function createChannelCard(spec, index) {
   </svg>`;
   const center = document.createElement('div');
   center.className = 'flow-tr__center';
-  center.textContent = '—';
   center.setAttribute('aria-hidden', 'true');
+  const centerName = document.createElement('span');
+  centerName.className = 'flow-tr__center-name';
+  centerName.textContent = spec.name;
+  const centerPct = document.createElement('span');
+  centerPct.className = 'flow-tr__center-pct';
+  centerPct.textContent = '—';
+  const wave = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  wave.classList.add('flow-tr__wave');
+  wave.setAttribute('viewBox', '0 0 40 12');
+  wave.setAttribute('aria-hidden', 'true');
+  const wavePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  wavePath.setAttribute('d', 'M1 6 C5 1 9 11 13 6 S21 1 25 6 33 11 39 6');
+  wavePath.setAttribute('fill', 'none');
+  wave.append(wavePath);
+  center.append(centerName, centerPct, wave);
   visual.append(center);
 
   const meter = document.createElement('div');
@@ -105,7 +121,7 @@ function createChannelCard(spec, index) {
   return {
     card,
     value,
-    center,
+    center: centerPct,
     arc: visual.querySelector('.flow-tr__arc'),
     bars: [...meter.children],
     line,
@@ -140,6 +156,11 @@ export function createRings(el, channels) {
   header.append(title, phase);
   const grid = document.createElement('div');
   grid.className = 'flow-tr__grid';
+  // Decorative silk bridge between gauges (visual-target/training.png). Not data.
+  const silk = document.createElement('div');
+  silk.className = 'flow-tr__silk';
+  silk.setAttribute('aria-hidden', 'true');
+  grid.append(silk);
   const views = new Map();
   for (const [index, spec] of specs.entries()) {
     const view = createChannelCard(spec, index);

@@ -393,25 +393,123 @@ body[data-mode="training"] .tr-stage > *,
   }
 }
 
-/* Training rings — keep original stage-ribbons look; only brighten arcs a little
-   and hide the dense OUTPUT LEVEL chrome so gauges read like the mockup. */
+/* Training rings stage → visual-target/training.png:
+   two floating glowing gauges with silk infinity between them. */
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr {
+  position: relative;
+  overflow: hidden;
+  min-height: 380px;
+  padding: clamp(16px, 2vw, 28px) clamp(12px, 2vw, 24px) clamp(20px, 2.4vw, 32px);
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(10, 42, 72, .45), rgba(2, 8, 18, .92) 70%);
+  border-color: rgba(90, 190, 255, .16);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 2vw, 28px);
+  align-items: center;
+  min-height: 300px;
+  z-index: 1;
+}
+/* Silk infinity bridge behind the two gauges */
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__silk {
+  display: block;
+  position: absolute;
+  inset: 8% 4%;
+  z-index: 0;
+  background:
+    url("./assets/flow/stage-ribbons.svg") 50% 48% / 130% 120% no-repeat;
+  opacity: .95;
+  filter: saturate(1.15) brightness(1.08);
+  animation: silk-bridge-drift 28s ease-in-out infinite alternate;
+}
+@keyframes silk-bridge-drift {
+  0%   { transform: translate(-1.5%, 0) scale(1); opacity: .88; }
+  100% { transform: translate(1.5%, 1%) scale(1.04); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__silk { animation: none; }
+}
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel {
-  background: linear-gradient(155deg, rgba(10, 28, 48, .38), rgba(4, 14, 28, .18));
-  border-color: rgba(140, 200, 235, .12);
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 8px 4px;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__heading {
+  display: none;
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter,
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter-note,
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__spark {
   display: none;
 }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual {
+  width: min(100%, 268px);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  z-index: 0;
+  background: radial-gradient(circle, rgba(2, 10, 22, .92) 50%, rgba(2, 10, 22, .45) 68%, transparent 72%);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--flow-tr-accent) 35%, transparent),
+    inset 0 0 24px rgba(0, 0, 0, .35);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__shell {
+  stroke-width: 10;
+  opacity: .55;
+  filter: drop-shadow(0 0 10px var(--flow-tr-accent)) drop-shadow(0 0 22px var(--flow-tr-accent));
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel[data-available="true"] .flow-tr__shell {
+  opacity: .22;
+}
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__arc {
-  filter: drop-shadow(0 0 7px var(--flow-tr-accent)) drop-shadow(0 0 16px var(--flow-tr-accent));
+  stroke-width: 9;
+  filter: drop-shadow(0 0 8px var(--flow-tr-accent)) drop-shadow(0 0 20px var(--flow-tr-accent));
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__halo {
-  opacity: calc(.06 + var(--flow-tr-level) * .3);
+  stroke-width: 24;
+  opacity: calc(.08 + var(--flow-tr-level) * .38);
+  filter: blur(14px);
 }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center {
-  text-shadow: 0 0 18px rgba(13, 210, 241, .35);
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__track {
+  stroke: rgba(160, 210, 240, .1);
+  stroke-width: 10;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center-name,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__wave {
+  display: block;
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center-pct {
+  font-size: clamp(40px, 4.4vw, 56px);
+  font-weight: 800;
+  color: #f4fbff;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--flow-tr-accent) 55%, transparent);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel[data-axis="suction"] .flow-tr__center-pct {
+  text-shadow: 0 0 22px rgba(255, 152, 46, .55);
+}
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__wave {
+  width: 44px;
+  height: 14px;
+  margin-top: 2px;
+}
+@media (max-width: 900px) {
+  #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__grid {
+    grid-template-columns: 1fr;
+  }
+  #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__silk {
+    inset: 4% 8%;
+    opacity: .7;
+  }
 }
 
 body[data-mode="training"] .tr-ring {
