@@ -172,6 +172,31 @@ jobs:
       - name: Benchmark clip prep
         run: python3 scripts/benchmark-prep/cut_clip_test.py
 
+  native:
+    name: Native (C++ pybind11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          scripts/ci/apt-install.sh cmake g++ python3-dev
+          pip install pybind11
+
+      - name: Build beatbar_native
+        working-directory: native
+        run: |
+          mkdir -p build && cd build
+          cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
+          make -j$(nproc)
+
+      - name: Parity tests (vs Go beatbar)
+        run: PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
