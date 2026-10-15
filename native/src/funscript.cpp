@@ -137,16 +137,22 @@ Script Parse(const std::string& json_str) {
     s.actions = std::move(kept);
     s.dropped = dropped;
 
-    // Duration
+    // Duration and full metadata
     if (doc.contains("metadata") && doc["metadata"].is_object()) {
-        const auto& meta = doc["metadata"];
+        json meta = doc["metadata"];
         if (meta.contains("duration")) {
             s.duration_meta = flex_time_ms(meta["duration"]);
         }
-    }
-    int64_t last = s.actions.empty() ? 0 : s.actions.back().at;
-    if (s.duration_meta > 0 && s.duration_meta * 100 < last) {
-        s.duration_meta *= 1000;
+        int64_t last = s.actions.empty() ? 0 : s.actions.back().at;
+        if (s.duration_meta > 0 && s.duration_meta * 100 < last) {
+            s.duration_meta *= 1000;
+        }
+        if (s.duration_meta > 0) {
+            meta["duration"] = s.duration_meta;
+        } else {
+            meta.erase("duration");
+        }
+        s.metadata_json = meta.dump();
     }
 
     return s;
@@ -160,7 +166,13 @@ std::string Write(const Script& s) {
     }
     doc["actions"] = acts;
     if (s.inverted) doc["inverted"] = true;
-    if (s.duration_meta > 0) {
+    if (!s.metadata_json.empty()) {
+        try {
+            doc["metadata"] = json::parse(s.metadata_json);
+        } catch (const std::exception&) {
+            // ignore bad metadata_json
+        }
+    } else if (s.duration_meta > 0) {
         doc["metadata"] = json::object({{"duration", s.duration_meta}});
     }
     return doc.dump(2);

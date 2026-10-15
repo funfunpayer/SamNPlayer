@@ -16,6 +16,7 @@ struct Script {
     bool inverted = false;
     int dropped = 0;
     int64_t duration_meta = 0;  // ms, after OFS scaling rules
+    std::string metadata_json;  // full metadata object (duration adjusted), empty if none
 };
 
 // MaxActionMs: action times above this (48 h) are treated as corrupt.
@@ -23,20 +24,10 @@ constexpr int64_t MaxActionMs = 48LL * 3600 * 1000;
 
 // Parse a funscript JSON string. Throws std::runtime_error on hard failures
 // (invalid JSON, no actions, all times corrupt). Soft drops corrupt times.
+// Preserves full metadata (with duration OFS rules applied).
 Script Parse(const std::string& json_str);
 
-// Write a minimal funscript JSON (actions + inverted + duration if set).
-// Full metadata is not preserved; this is the hot-path subset for M1.
+// Write a funscript JSON (actions + inverted + full metadata if present).
 std::string Write(const Script& s);
-
-// Speed-Highlights: intensity = 500 * |Δpos| / |Δt_ms|.
-// DefaultMaxIntensity = 400.0 when max_intensity <= 0.
-struct SpeedSegment {
-    int64_t from_ms = 0;
-    int64_t to_ms = 0;
-    double intensity = 0.0;
-};
-
-std::vector<SpeedSegment> SpeedHighlights(const std::vector<Action>& actions, double max_intensity = 0.0);
 
 }  // namespace samn
