@@ -8,6 +8,8 @@ name: Release
 # Two editions (docs/EDITIONS.md): Free files "SamNPlayer-gui-…" and
 # suite files "SamNPlayer-suite-gui-…" (-tags suite). The updater matches
 # the exact name, so each edition only updates to itself.
+# Suite builds are kept as a compile check; they are never published
+# (Owner decision D14, before v0.7.0).
 on:
   push:
     tags:
@@ -87,7 +89,7 @@ jobs:
           cp legal/THIRD_PARTY_NOTICES.md portable-linux/THIRD_PARTY_NOTICES.txt
           cp /usr/share/doc/ffmpeg/copyright portable-linux/FFMPEG_LICENSE.txt
           tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
-          # Suite: same bundle, suite GUI.
+          # Suite: same bundle, suite GUI. Built for compile check only; not published.
           cp -r portable-linux portable-linux-suite
           cp SamNPlayer-suite-gui-linux-amd64 portable-linux-suite/SamNPlayer
           tar -C portable-linux-suite -czf SamNPlayer-suite-portable-linux-amd64.tar.gz .
@@ -103,9 +105,6 @@ jobs:
             SamNPlayer-gui-linux-amd64
             SamNPlayer-cli-linux-amd64
             SamNPlayer-portable-linux-amd64.tar.gz
-            SamNPlayer-suite-gui-linux-amd64
-            SamNPlayer-suite-cli-linux-amd64
-            SamNPlayer-suite-portable-linux-amd64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -246,7 +245,7 @@ jobs:
           test "$n" -ge 20
           # -r required: Info-ZIP treats bare "." as nothing without recurse.
           (cd portable-windows && zip -q -r ../SamNPlayer-portable-windows-amd64.zip .)
-          # Suite: same DLLs + ffmpeg, suite GUI.
+          # Suite: same DLLs + ffmpeg, suite GUI. Built for compile check only; not published.
           cp -r portable-windows portable-windows-suite
           cp SamNPlayer-suite-gui-windows-amd64.exe portable-windows-suite/SamNPlayer.exe
           (cd portable-windows-suite && zip -q -r ../SamNPlayer-suite-portable-windows-amd64.zip .)
@@ -262,9 +261,6 @@ jobs:
             SamNPlayer-gui-windows-amd64.exe
             SamNPlayer-cli-windows-amd64.exe
             SamNPlayer-portable-windows-amd64.zip
-            SamNPlayer-suite-gui-windows-amd64.exe
-            SamNPlayer-suite-cli-windows-amd64.exe
-            SamNPlayer-suite-portable-windows-amd64.zip
 
   publish:
     needs: [build-linux, build-windows]
@@ -295,15 +291,20 @@ jobs:
             SamNPlayer-cli-windows-amd64.exe \
             SamNPlayer-portable-linux-amd64.tar.gz \
             SamNPlayer-portable-windows-amd64.zip \
-            SamNPlayer-suite-gui-linux-amd64 \
-            SamNPlayer-suite-cli-linux-amd64 \
-            SamNPlayer-suite-gui-windows-amd64.exe \
-            SamNPlayer-suite-cli-windows-amd64.exe \
-            SamNPlayer-suite-portable-linux-amd64.tar.gz \
-            SamNPlayer-suite-portable-windows-amd64.zip \
             > checksums.txt
           cat checksums.txt
           ls -la
+
+      - name: Guard: no Suite files in publish set
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          if find . -iname '*suite*' | grep -q .; then
+            echo "ERROR: Suite files found in publish directory (must stay private, D14)"
+            find . -iname '*suite*'
+            exit 1
+          fi
+          echo "OK: no Suite files in publish set"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -315,11 +316,5 @@ jobs:
             dist/SamNPlayer-cli-windows-amd64.exe
             dist/SamNPlayer-portable-linux-amd64.tar.gz
             dist/SamNPlayer-portable-windows-amd64.zip
-            dist/SamNPlayer-suite-gui-linux-amd64
-            dist/SamNPlayer-suite-cli-linux-amd64
-            dist/SamNPlayer-suite-gui-windows-amd64.exe
-            dist/SamNPlayer-suite-cli-windows-amd64.exe
-            dist/SamNPlayer-suite-portable-linux-amd64.tar.gz
-            dist/SamNPlayer-suite-portable-windows-amd64.zip
             dist/checksums.txt
           generate_release_notes: true
