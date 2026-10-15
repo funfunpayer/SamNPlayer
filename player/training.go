@@ -706,12 +706,22 @@ type TrainingPhase struct {
 	RestMs       int           `json:"restMs"`
 }
 
+// Training categories for the Training tab filter (V1_TARGET_FEATURE_MAP).
+const (
+	TrainingCategoryControl   = "control"   // Semans stop-start, arousal control
+	TrainingCategoryEndurance = "endurance" // longer builds, warm-up → peak
+	TrainingCategoryEdge      = "edge"      // plateau / edging
+	TrainingCategoryBody      = "body"      // breathing pace, pelvic-floor patterns
+)
+
 // TrainingScript is an ordered list of phases plus the same
 // cross-session progression legacy sessions have, applied once across
 // the script's total repeats rather than per phase.
 type TrainingScript struct {
 	Name                string          `json:"name"`
 	Description         string          `json:"description"`
+	Category            string          `json:"category,omitempty"` // control | endurance | edge | body
+	Level               int             `json:"level,omitempty"`    // 1–3 program difficulty (0 = unset)
 	Phases              []TrainingPhase `json:"phases"`
 	ProgressionPerCycle float64         `json:"progressionPerCycle"`
 }
@@ -1179,7 +1189,9 @@ func BuiltinTrainingScripts() []TrainingScript {
 	)
 	return []TrainingScript{
 		{
-			Name: "stop-start",
+			Name:     "stop-start",
+			Category: TrainingCategoryControl,
+			Level:    1,
 			Description: "Classic Stop-Start (Semans): ramp to peak, hold, fully to 0, rest, with a lighter " +
 				"suction layer riding along. Same method as Custom → Technique Stop-start; Vibration. Fine-tune timings under Custom.",
 			Phases: []TrainingPhase{
@@ -1194,7 +1206,9 @@ func BuiltinTrainingScripts() []TrainingScript {
 			ProgressionPerCycle: 0.15,
 		},
 		{
-			Name: "plateau",
+			Name:     "plateau",
+			Category: TrainingCategoryEdge,
+			Level:    1,
 			Description: "Classic Plateau/edging: ramp to peak, hold, down to a high floor (not 0), rest, with a lighter " +
 				"suction layer that (unlike vibration) fully releases each cycle. Same method as Custom → Technique Plateau; Vibration. Fine-tune under Custom.",
 			Phases: []TrainingPhase{
@@ -1216,6 +1230,8 @@ func BuiltinTrainingScripts() []TrainingScript {
 		},
 		{
 			Name:        "vibration-wave-suction-focus",
+			Category:    TrainingCategoryEndurance,
+			Level:       2,
 			Description: "Light vibration ramps up then back down, then a suction-focused phase carries a light constant vibration alongside it.",
 			Phases: []TrainingPhase{
 				{
@@ -1236,6 +1252,8 @@ func BuiltinTrainingScripts() []TrainingScript {
 		},
 		{
 			Name:        "tissue-massage",
+			Category:    TrainingCategoryBody,
+			Level:       1,
 			Description: "Suction-only, cupping-inspired: fast pumping, a long static hold, then a slow gliding sweep. Vibration stays off.",
 			Phases: []TrainingPhase{
 				{
@@ -1270,6 +1288,8 @@ func BuiltinTrainingScripts() []TrainingScript {
 		},
 		{
 			Name:        "vibration-massage",
+			Category:    TrainingCategoryEndurance,
+			Level:       1,
 			Description: "Vibration-led: a gentle escalating warm-up, then a wave rhythm with no hard hold, with a light suction layer under both.",
 			Phases: []TrainingPhase{
 				{
@@ -1290,7 +1310,9 @@ func BuiltinTrainingScripts() []TrainingScript {
 			ProgressionPerCycle: 0.2,
 		},
 		{
-			Name: "variable",
+			Name:     "variable",
+			Category: TrainingCategoryControl,
+			Level:    2,
 			Description: "Wave rhythm with randomized peak per repeat - reduces sensory adaptation instead of a fully predictable " +
 				"rhythm - with a light, steadier suction layer alongside.",
 			Phases: []TrainingPhase{
@@ -1313,6 +1335,8 @@ func BuiltinTrainingScripts() []TrainingScript {
 			// both channels into every repeat, so each phase's rhythm
 			// stays sharp and readable instead of blurring together.
 			Name:        "pulse-rhythm",
+			Category:    TrainingCategoryEdge,
+			Level:       2,
 			Description: "Sharp on/off pulses (near-instant ramps): a fast vibration pulse phase, then a fast suction pulse phase - punchier and more staccato than the wave-based scripts above.",
 			Phases: []TrainingPhase{
 				{
@@ -1326,6 +1350,122 @@ func BuiltinTrainingScripts() []TrainingScript {
 					Suction:      curve(ChannelSuction, 0, 0.65, 0, 100, 150, 100),
 					RepeatCycles: 6,
 					RestMs:       200,
+				},
+			},
+		},
+		{
+			// Level program: Warm Up → Build → Peak → Cool Down (V1 stepper labels).
+			Name:     "endurance-ladder",
+			Category: TrainingCategoryEndurance,
+			Level:    2,
+			Description: "Level 2 endurance ladder: Warm Up, Build, Peak, then Cool Down. " +
+				"Longer rests between builds; light suction rides along. Not a game sync — device patterns only.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Warm Up",
+					Vibration:    curve(ChannelVibration, 0.1, 0.4, 0.15, 5000, 2000, 4000),
+					Suction:      curve(ChannelSuction, 0.05, 0.2, 0.08, 5000, 2000, 4000),
+					RepeatCycles: 3,
+					RestMs:       3000,
+				},
+				{
+					Name:         "Build",
+					Vibration:    curve(ChannelVibration, 0.2, 0.65, 0.25, 6000, 2500, 5000),
+					Suction:      curve(ChannelSuction, 0.1, 0.3, 0.12, 6000, 2500, 5000),
+					RepeatCycles: 4,
+					RestMs:       4000,
+				},
+				{
+					Name:         "Peak",
+					Vibration:    curve(ChannelVibration, 0.3, 0.85, 0.3, 5000, 3000, 5000),
+					Suction:      curve(ChannelSuction, 0.12, 0.35, 0.15, 5000, 3000, 5000),
+					RepeatCycles: 3,
+					RestMs:       5000,
+				},
+				{
+					Name:         "Cool Down",
+					Vibration:    curve(ChannelVibration, 0.25, 0.4, 0, 4000, 1500, 6000),
+					Suction:      curve(ChannelSuction, 0.1, 0.2, 0, 4000, 1500, 6000),
+					RepeatCycles: 2,
+					RestMs:       2000,
+				},
+			},
+			ProgressionPerCycle: 0.1,
+		},
+		{
+			Name:     "edge-ladder",
+			Category: TrainingCategoryEdge,
+			Level:    3,
+			Description: "Level 3 edge ladder: longer plateau holds near the peak, then a short release. " +
+				"Use Interrupt when you need to stop a cycle. Harder than classic Plateau.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Approach",
+					Vibration:    curve(ChannelVibration, 0.15, 0.6, 0.35, 7000, 2000, 4000),
+					Suction:      curve(ChannelSuction, 0.08, 0.25, 0, 7000, 2000, 4000),
+					RepeatCycles: 2,
+					RestMs:       4000,
+				},
+				{
+					Name: "Surf",
+					Vibration: fromCurrent(curve(ChannelVibration, 0.35, 0.9, 0.9*plateauFrac,
+						5000, 8000, 4000)),
+					Suction:      curve(ChannelSuction, 0.1, 0.3, 0, 5000, 2000, 4000),
+					RepeatCycles: 4,
+					RestMs:       6000,
+				},
+				{
+					Name:         "Release",
+					Vibration:    curve(ChannelVibration, 0.4, 0.55, 0, 3000, 1000, 5000),
+					Suction:      curve(ChannelSuction, 0.1, 0.2, 0, 3000, 1000, 5000),
+					RepeatCycles: 1,
+					RestMs:       0,
+				},
+			},
+			ProgressionPerCycle: 0.08,
+		},
+		{
+			// Guided breathing pace (~6 breaths/min ≈ 10 s cycle): soft vib wave
+			// + light suction. Device pattern only — not medical advice / no sensor.
+			Name:     "breathing-pace",
+			Category: TrainingCategoryBody,
+			Level:    1,
+			Description: "Breathing pace (about 6 breaths per minute): soft vibration rise on the in-breath, " +
+				"ease on the out-breath, light suction alongside. Follow your own breathing; this is a device " +
+				"pattern, not medical advice and not biofeedback.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Breathe with the wave",
+					Vibration:    curve(ChannelVibration, 0.05, 0.45, 0.05, 4500, 500, 4500),
+					Suction:      curve(ChannelSuction, 0.05, 0.2, 0.05, 4500, 500, 4500),
+					RepeatCycles: 10,
+					RestMs:       500,
+				},
+			},
+		},
+		{
+			// Pelvic-floor style squeeze/release via short suction (+ light vib).
+			// Disclaimer in description — no EMG / no clinical claim.
+			Name:     "pelvic-floor",
+			Category: TrainingCategoryBody,
+			Level:    1,
+			Description: "Pelvic-floor style squeeze and release: short suction holds with a light vibration " +
+				"tick. Contract with the hold, relax on rest. Device cues only — not a medical Kegel trainer " +
+				"and not biofeedback.",
+			Phases: []TrainingPhase{
+				{
+					Name:         "Squeeze",
+					Suction:      curve(ChannelSuction, 0, 0.55, 0, 300, 2500, 400),
+					Vibration:    curve(ChannelVibration, 0, 0.25, 0, 300, 2500, 400),
+					RepeatCycles: 8,
+					RestMs:       3000,
+				},
+				{
+					Name:         "Quick pulses",
+					Suction:      curve(ChannelSuction, 0, 0.45, 0, 150, 200, 150),
+					Vibration:    curve(ChannelVibration, 0, 0.2, 0, 150, 200, 150),
+					RepeatCycles: 10,
+					RestMs:       800,
 				},
 			},
 		},

@@ -105,7 +105,7 @@ func (a *App) SaveTrainingScript(script player.TrainingScript) (TrainingScriptIn
 	if err := os.WriteFile(scriptPath, b, 0644); err != nil {
 		return TrainingScriptInfo{}, err
 	}
-	return TrainingScriptInfo{Name: script.Name, Description: script.Description, Custom: true}, nil
+	return trainingScriptInfoFrom(script, true), nil
 }
 
 // listCustomTrainingScripts reads every saved custom script (full

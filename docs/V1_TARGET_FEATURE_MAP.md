@@ -97,7 +97,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | My Programs (own scripts) | ✅ | Script editor / `SaveTrainingScript` |
 | History | ✅ | `TrainingHistory`, CSV export |
 | Vibration and suction rings | ✅ | One combined ring today; split into two rings (🎨 + small 🔧) |
-| Phase stepper (Warm Up · Build · Peak · Cool Down) | 🔧 | Multi-phase presets exist; expose the current phase from the engine |
+| Phase stepper (Warm Up · Build · Peak · Cool Down) | ✅ / 🔧 | Stepper shows real phase names from the plan; `endurance-ladder` uses Warm Up · Build · Peak · Cool Down. Skip-phase still open |
 | Session time / time left | 🔧 | Engine knows cycles and timing; send it as an event |
 | Play / Pause / skip | ✅ / 🔧 | Start, Interrupt and End exist; skip phase is new |
 | Live training curves | 🔧 | Preview curve exists; a live plot of real output is new |
@@ -105,7 +105,7 @@ The target images still show the old top bar; it is reinterpreted in that style.
 | Safety: Max Vibration / Max Suction, Auto Cool Down, Pause on Limit | 🔧 | The session ceiling exists; per-channel caps are real core work |
 | Emergency Stop | ✅ | End session; make it a conspicuous Stop |
 | Session timeline (phases with times) | 🔧 | From the script phases |
-| Endurance / Control / Edge Play categories | 🔧 | Only as filters over real presets |
+| Endurance / Control / Edge Play categories | ✅ | Filters over real presets (+ Body: breathing / pelvic-floor cues). Session recap card after each run |
 | **Training with a video** (Owner, 12 Oct) | ✅ | Besides the pixel clip, any film can run on the training stage. Training drives the device, the video plays along (loop / muted option). Video picker + recent videos are shared with Player |
 
 ## Tools (`tools.png`)

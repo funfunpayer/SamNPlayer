@@ -198,7 +198,7 @@ Keyboard: Space · ←/→ · ,/. · 1–9 · +/− offset · L loop · E Extend
 | Tab | Use |
 |-----|-----|
 | **Device** | Connect Sam Neo 2 / Handy / etc. Optional short connect-test pulse in Settings. **Intiface:** start Intiface Central → Via Intiface Central (empty = this machine). After one socket drop, SamNPlayer tries **one** auto-reconnect; then tap Connect again. |
-| **Training** | Practice patterns without video (technique, channel, cycles, ramp/hold/rest). |
+| **Training** | Practice patterns without video (technique, channel, cycles, ramp/hold/rest). Filter by **Control / Endurance / Edge Play / Body**; level programs include Warm Up → Cool Down. Breathing and pelvic-floor cues are device patterns only (not medical). After a run, **Last session** shows a short recap. |
 | **AI Train** | Label tip ROIs / train ONNX; **Train Go profile model** — helpers only, not the stroke writer. |
 
 ---

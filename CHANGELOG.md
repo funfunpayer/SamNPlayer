@@ -16,6 +16,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Training categories, levels and session recap:**
+  - Built-ins tagged **Control / Endurance / Edge Play / Body** with level 1–3.
+  - New programs: `endurance-ladder` (Warm Up → Build → Peak → Cool Down), `edge-ladder` (L3), `breathing-pace`, `pelvic-floor` (device cues only — not medical / not biofeedback).
+  - Training nav: category filter chips; Last session recap after each run.
+  - `ListTrainingScripts` returns `category`, `level`, `phaseNames`.
 - **Stroker motion filter (v0.8, seen in MultiFunPlayer, ScriptPlayer and UwU Player):** Inspector → Devices → stroke row. It works live while playing and never changes the script file.
   - **Motion:** *Smooth* (PCHIP, no overshoot) or *Rounder* (MAKIMA). It adds points every 100 ms along a curve through the script's own points; the stroker gets them instead of straight lines.
   - **Speed limit:** 600 / 400 / 250 units per second. A too fast stroke stops short instead of slamming.

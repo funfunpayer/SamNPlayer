@@ -96,10 +96,25 @@ type TrainingRequest struct {
 type TrainingScriptInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Category    string `json:"category,omitempty"` // control | endurance | edge | body
+	Level       int    `json:"level,omitempty"`    // 1–3
+	// PhaseNames are the phase titles for the stepper (Warm Up · Build · …).
+	PhaseNames []string `json:"phaseNames,omitempty"`
 	// Custom marks a user-saved script (cmd/gui-wails/app_training_scripts.go)
 	// as opposed to one of player.BuiltinTrainingScripts() - the GUI only
 	// offers "edit"/"delete" for these.
 	Custom bool `json:"custom"`
+}
+
+func trainingScriptInfoFrom(s player.TrainingScript, custom bool) TrainingScriptInfo {
+	names := make([]string, 0, len(s.Phases))
+	for _, p := range s.Phases {
+		names = append(names, p.Name)
+	}
+	return TrainingScriptInfo{
+		Name: s.Name, Description: s.Description, Category: s.Category,
+		Level: s.Level, PhaseNames: names, Custom: custom,
+	}
 }
 
 // ListTrainingScripts füllt das Preset-Dropdown im Trainings-Tab: erst
@@ -111,7 +126,7 @@ func (a *App) ListTrainingScripts() []TrainingScriptInfo {
 	scripts := player.BuiltinTrainingScripts()
 	out := make([]TrainingScriptInfo, len(scripts))
 	for i, s := range scripts {
-		out[i] = TrainingScriptInfo{Name: s.Name, Description: s.Description}
+		out[i] = trainingScriptInfoFrom(s, false)
 	}
 	custom, err := listCustomTrainingScripts()
 	if err != nil {
@@ -119,7 +134,7 @@ func (a *App) ListTrainingScripts() []TrainingScriptInfo {
 		return out
 	}
 	for _, s := range custom {
-		out = append(out, TrainingScriptInfo{Name: s.Name, Description: s.Description, Custom: true})
+		out = append(out, trainingScriptInfoFrom(s, true))
 	}
 	return out
 }

@@ -22,11 +22,28 @@ const PRESET_LABELS = {
   'tissue-massage': 'Tissue massage (suction)',
   'vibration-massage': 'Vibration massage',
   variable: 'Variable / randomized wave',
+  'pulse-rhythm': 'Pulse rhythm',
+  'endurance-ladder': 'Endurance ladder (L2)',
+  'edge-ladder': 'Edge ladder (L3)',
+  'breathing-pace': 'Breathing pace',
+  'pelvic-floor': 'Pelvic floor cues',
+};
+
+const CATEGORY_LABELS = {
+  control: 'Control', endurance: 'Endurance', edge: 'Edge Play', body: 'Body',
 };
 
 function presetLabel(name) {
   if (PRESET_LABELS[name]) return PRESET_LABELS[name];
   return String(name || '').replace(/-/g, ' ');
+}
+
+function formatScriptOption(s) {
+  const base = (s.custom ? '★ ' : '') + presetLabel(s.name);
+  const bits = [];
+  if (s.category && CATEGORY_LABELS[s.category]) bits.push(CATEGORY_LABELS[s.category]);
+  if (s.level > 0) bits.push('L' + s.level);
+  return bits.length ? `${base} · ${bits.join(' · ')}` : base;
 }
 
 function clamp01(v) { return Math.max(0, Math.min(1, v || 0)); }
@@ -559,10 +576,13 @@ export function initTraining(root) {
       for (const s of scripts) {
         const opt = document.createElement('option');
         opt.value = s.name;
-        opt.textContent = (s.custom ? '★ ' : '') + presetLabel(s.name);
-        opt.title = s.description;
+        opt.textContent = formatScriptOption(s);
+        opt.title = s.description || '';
+        if (s.category) opt.dataset.category = s.category;
+        if (s.level) opt.dataset.level = String(s.level);
         select.appendChild(opt);
       }
+      window.dispatchEvent(new CustomEvent('tr:scripts', { detail: { scripts } }));
       renderEditorLoadOptions(scripts.filter(s => s.custom));
     } catch (err) {
       log('Could not load preset scripts: ' + err);
@@ -984,7 +1004,11 @@ export function initTraining(root) {
     cancelPendingLevels();
     setRunningState(false);
     log('Training finished.');
-    refreshHistory();
+    refreshHistory().then(() => {
+      window.dispatchEvent(new CustomEvent('tr:session-recap', {
+        detail: { session: lastHistory[0] || null },
+      }));
+    });
   });
   // Live channel levels (~50ms from ramp writes) — drives ring + clip, not
   // completed-cycle peak summaries (those stay for labels/log only).
