@@ -311,3 +311,105 @@ body {
 .flow-round svg { width: 20px; height: 20px; fill: currentColor; filter: drop-shadow(0 0 3px rgba(150, 220, 255, .35)); }
 .flow-round:hover:not(:disabled) { color: #fff; border-color: rgba(63, 208, 255, .65); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 14px rgba(63, 208, 255, .45); }
 .flow-round:disabled { opacity: .4; cursor: default; }
+
+/* ==========================================================================
+   Silk waves + subtle animation + stronger glow (Grok, 15 Oct 2026)
+   Additive only. No functional changes. Respects prefers-reduced-motion.
+   Easy to revert: delete everything from this comment downward.
+   ========================================================================== */
+
+/* Silk layers in Training stage and Player video area */
+body[data-mode="training"] .tr-stage,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-mode="training"] .tr-stage::before,
+body[data-mode="training"] .tr-stage::after,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage::before,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+
+body[data-mode="training"] .tr-stage::before,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage::before {
+  background: url("./assets/flow/bg-top.svg") 65% 15% / 75% auto no-repeat;
+  opacity: 0.62;
+  animation: silk-drift-1 28s ease-in-out infinite alternate;
+}
+
+body[data-mode="training"] .tr-stage::after,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage::after {
+  background: url("./assets/flow/bg-bottom.svg") 15% 85% / 68% auto no-repeat;
+  opacity: 0.48;
+  animation: silk-drift-2 36s ease-in-out infinite alternate-reverse;
+}
+
+body[data-mode="training"] .tr-stage > *,
+#tab-playback[data-pb-layout="v1"] #pb-video-stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes silk-drift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-3.5%, 2.5%) scale(1.06); }
+}
+@keyframes silk-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(4%, -3%) scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-mode="training"] .tr-stage::before,
+  body[data-mode="training"] .tr-stage::after,
+  #tab-playback[data-pb-layout="v1"] #pb-video-stage::before,
+  #tab-playback[data-pb-layout="v1"] #pb-video-stage::after {
+    animation: none;
+  }
+}
+
+/* Stronger glow */
+.flow-play {
+  box-shadow:
+    0 0 28px rgba(54, 200, 255, 0.6),
+    0 0 48px rgba(255, 138, 35, 0.32),
+    0 0 12px rgba(0, 217, 244, 0.4);
+}
+.flow-play::before {
+  filter: drop-shadow(0 0 10px rgba(63, 208, 255, 0.95));
+}
+.flow-play.is-playing,
+#tab-playback #pb-play[data-state="pause"] {
+  box-shadow:
+    0 0 36px rgba(54, 200, 255, 0.75),
+    0 0 60px rgba(255, 138, 35, 0.4);
+}
+
+body[data-mode="training"] .tr-ring {
+  filter: drop-shadow(0 0 14px currentColor);
+}
+
+.pb-lane-stroke,
+.pb-lane-vibration,
+.pb-lane-suction,
+.pb-curve path,
+.pb-lane path {
+  filter: drop-shadow(0 0 5px var(--c, currentColor));
+}
+.pb-curve path,
+.pb-lane path {
+  stroke-width: 2.4px;
+}
+
+.pb-card,
+body[data-mode="training"] .tr-card {
+  box-shadow: var(--flow-card-shadow), 0 0 18px rgba(0, 217, 244, 0.1);
+}
