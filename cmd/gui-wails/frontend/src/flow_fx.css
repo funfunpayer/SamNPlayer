@@ -9,39 +9,49 @@
   overflow: hidden;
   pointer-events: none;
   isolation: isolate;
-  background: radial-gradient(ellipse at 50% 48%, rgba(8, 44, 68, .38), transparent 68%);
+  background: radial-gradient(ellipse at 50% 48%, rgba(8, 44, 68, .42), transparent 68%);
 }
+/* Dual-layer silk: soft bloom under sharper filaments so small hosts still read “lush”. */
 .flow-fx__silk {
   position: absolute;
-  inset: -18% -22%;
+  inset: -28% -36%;
   z-index: 0;
-  background: var(--flow-fx-silk) 50% 48% / 118% 118% no-repeat;
-  opacity: .92;
-  filter: saturate(1.12) brightness(1.06);
+  background: var(--flow-fx-silk) 50% 46% / 175% 175% no-repeat;
+  opacity: .98;
+  filter: saturate(1.28) brightness(1.12) contrast(1.05);
   transform-origin: center;
+}
+.flow-fx__silk::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  background: var(--flow-fx-silk) 50% 48% / 195% 195% no-repeat;
+  filter: blur(10px) saturate(1.35) brightness(1.15);
+  opacity: .72;
+  transform: scale(1.04);
 }
 .flow-fx__glow {
   position: absolute;
-  width: min(70%, 340px);
+  width: min(78%, 360px);
   aspect-ratio: 1;
   z-index: 0;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 35% 40%, rgba(63, 208, 255, .35), transparent 55%),
-    radial-gradient(circle at 70% 60%, rgba(255, 138, 35, .28), transparent 55%);
-  filter: blur(18px);
-  opacity: .85;
+    radial-gradient(circle at 32% 40%, rgba(63, 208, 255, .42), transparent 55%),
+    radial-gradient(circle at 72% 58%, rgba(255, 138, 35, .34), transparent 55%);
+  filter: blur(20px);
+  opacity: .9;
 }
 .flow-fx__mark {
   position: relative;
   z-index: 1;
-  width: min(46%, 168px);
+  width: min(48%, 176px);
   height: auto;
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 22%;
   display: block;
-  filter: drop-shadow(0 0 16px rgba(6, 208, 242, .45)) drop-shadow(0 0 28px rgba(255, 138, 35, .22));
+  filter: drop-shadow(0 0 18px rgba(6, 208, 242, .5)) drop-shadow(0 0 32px rgba(255, 138, 35, .28));
 }
 .flow-fx[data-state="paused"] .flow-fx__silk { opacity: .52; }
 .flow-fx[data-state="paused"] .flow-fx__glow { opacity: .45; }
