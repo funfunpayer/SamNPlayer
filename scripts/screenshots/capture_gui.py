@@ -118,7 +118,11 @@ STUBS = {
     "CurrentVersion": "async () => 'v0.7.0'",
     "PickFunscriptFile": "async () => '/demo/Demo clip.funscript'",
     "PickMediaFile": "async () => window.__pickMedia || '/demo/Demo clip.funscript'",
-    "FindScriptForVideo": "async (v) => ({videoPath: v, scriptPath: '', found: false})",
+    "FindScriptForVideo": ("async (v) => (v === '/demo/Demo clip.mp4' ? {videoPath: v, scriptPath: '/demo/Demo clip.funscript', found: true,"
+                           " variants: [{path: '/demo/Demo clip.funscript', label: '', beside: true},"
+                           " {path: '/scripts/Demo clip (Soft).funscript', label: 'soft', beside: false}]}"
+                           " : {videoPath: v, scriptPath: '', found: false, variants: []})"),
+    "GetScriptFolders": "async () => ['D:/Scripts', 'D:/Downloads/EroScripts']",
     "LoadFunscript": ("async (p) => ({path: p, actionCount: window.__stroke.length, durationMs: %d,"
                       " videoPath: '/demo/Demo clip.mp4', hasVideo: true})" % DURATION_MS),
     "VideoFileURL": "async () => window.__media",
