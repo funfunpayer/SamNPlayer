@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026 (night), Grok, branch `claude/keen-davinci-t2ysrs` — stroke filter ported to native/.
+**Last update:** 15 Oct 2026, Grok, branch `claude/keen-davinci-t2ysrs`.
 
 ## Who works how
 
@@ -48,7 +48,11 @@ is the short, current state.
 
 ## In progress
 
-- **M1:** `native/` C++ library with CMake + pybind11. Beat-bar and stroke filter (PCHIP/MAKIMA, speed limit, idle fill) ported with parity tests. Linux and Windows CI jobs build the modules and run both parity suites. Next: funscript parse/write hot paths, then M0 profile before claiming speed.
+- **M1:** `native/` C++ library with CMake + pybind11.
+  - Beat-bar pure functions fully ported (FindBeatBar, BeatTimes, peaks, target, tracker). Parity tests (`native/tests/test_beatbar_parity.py`) mirror the Go synthetic cases.
+  - Stroke filter fully ported (PCHIP/Makima smooth, max speed, idle fill). Parity tests (`native/tests/test_stroke_filter_parity.py`) mirror key Go cases.
+  - Linux and Windows CI jobs build the modules and run both parity tests.
+  - Next: funscript parse & write hot paths, then more pure functions. Profile (M0) still needed before claiming speed.
 - **M0, generator profile:** measure where Generate spends its time
   (CSRT tracking, frame decode, post-processing), with OpenCV built locally
   (`-tags opencv`, `libopencv-dev`). Result goes to
@@ -56,7 +60,9 @@ is the short, current state.
 
 ## Open, in order
 
-1. **Before tagging v0.7.0:** Suite files must not go public (D14) — done in this branch. Then the **Owner** pushes the tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
+1. **Before tagging v0.7.0:** Suite files must not go public (D14), per
+   `docs/next/HANDOFF_2026-10-15.md` task 1. Then the **Owner** pushes the
+   tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
 2. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
 3. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
    plus a shortcut sheet, device wizard. New code for these goes in Python

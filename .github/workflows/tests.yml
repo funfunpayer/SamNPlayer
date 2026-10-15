@@ -248,10 +248,10 @@ jobs:
           cd build
           cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
           make -j$(nproc)
-      - name: Beat-bar parity tests
-        run: PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
-      - name: Stroke filter parity tests
-        run: PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
+      - name: Parity tests
+        run: |
+          PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
+          PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
 
   native-windows:
     name: Native (C++ / pybind11, Windows)
@@ -273,13 +273,9 @@ jobs:
           $pybindDir = python -m pybind11 --cmakedir
           cmake .. -Dpybind11_DIR="$pybindDir" -G "Visual Studio 17 2022" -A x64
           cmake --build . --config Release
-      - name: Beat-bar parity tests
+      - name: Parity tests
         shell: pwsh
         run: |
           $env:PYTHONPATH = "native/build/Release"
           python native/tests/test_beatbar_parity.py
-      - name: Stroke filter parity tests
-        shell: pwsh
-        run: |
-          $env:PYTHONPATH = "native/build/Release"
           python native/tests/test_stroke_filter_parity.py
