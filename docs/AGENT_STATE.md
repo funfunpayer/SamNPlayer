@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026, Claude, branch `claude/keen-davinci-t2ysrs`.
+**Last update:** 15 Oct 2026, Grok, branch `claude/keen-davinci-t2ysrs`.
 
 ## Who works how
 
@@ -48,11 +48,11 @@ is the short, current state.
 
 ## In progress
 
+- **M1 start:** `native/` C++ library with CMake + pybind11 skeleton; beat-bar pure functions ported (partial). Profile (M0) still needed before claiming speed. Parity tests next.
 - **M0, generator profile:** measure where Generate spends its time
   (CSRT tracking, frame decode, post-processing), with OpenCV built locally
   (`-tags opencv`, `libopencv-dev`). Result goes to
-  `docs/owner/generator-profile-2026-10.md`. Then M1 (`native/`, C++ with
-  pybind11).
+  `docs/owner/generator-profile-2026-10.md`.
 
 ## Open, in order
 
