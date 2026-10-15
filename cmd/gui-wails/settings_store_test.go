@@ -79,9 +79,9 @@ func TestSettingsStoreSetManyOneWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := s.SetMany(map[string]any{
-		"playback.stroke_smooth":     "pchip",
-		"playback.stroke_max_speed":  400.0,
-		"playback.stroke_idle_fill":  true,
+		"playback.stroke_smooth":        "pchip",
+		"playback.stroke_max_speed":     400.0,
+		"playback.stroke_idle_fill":     true,
 		"playback.stroke_home_on_pause": true,
 	}); err != nil {
 		t.Fatal(err)
