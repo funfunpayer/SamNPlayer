@@ -1,6 +1,7 @@
 """ChatGPT C1/C3/C4 wiring: Flow icons in the top bar, Player views and Tools
-menu (labels kept); Flow stage in the empty Player and in "Feel without
-film", following Play / Pause / Stop; images via build-safe URLs.
+menu (labels kept); empty Player is a real .flow-play open button; Flow
+stage lives in "Feel without film" and follows Play / Pause / Stop;
+images via build-safe URLs.
 
 Run: python3 cmd/gui-wails/frontend/test/flow_wiring_test.py
 """
@@ -34,8 +35,10 @@ def check_playback(check, base):
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.goto(f"{base}/test/_flow_wiring_harness.html")
             page.wait_for_function("window.__ready === true")
-            check("empty Player shows the Flow stage",
-                  page.evaluate("!!document.querySelector('#pb-empty #pb-flow-empty .flow-fx svg')"))
+            check("empty Player is a real Play button",
+                  page.evaluate("!!document.querySelector('#pb-empty #pb-choose-empty.flow-play')"))
+            check("empty Player has no decorative Flow stage",
+                  page.evaluate("!document.querySelector('#pb-empty .flow-fx')"))
             check("no /src/ image path left in the Player markup",
                   page.evaluate("![...document.querySelectorAll('#root img')].some(i => i.getAttribute('src')?.startsWith('/src/'))"))
             page.click("#pb-choose")
