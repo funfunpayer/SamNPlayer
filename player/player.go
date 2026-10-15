@@ -101,6 +101,7 @@ type Player struct {
 	// strokeOff switches positions off; the device moves only between
 	// strokeLo and 1 - strokeHiCut (safety range, Inspector → Devices).
 	strokeOff   bool
+	strokeHome  bool // move home on pause (SetStrokeHome)
 	strokeLo    float64
 	strokeHiCut float64
 }

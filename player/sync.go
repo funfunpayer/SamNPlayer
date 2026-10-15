@@ -68,6 +68,7 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			if err := p.Device.Stop(); err != nil {
 				return err
 			}
+			p.homeStroke()
 			p.resetStroke()
 			p.resetAxes()
 		}

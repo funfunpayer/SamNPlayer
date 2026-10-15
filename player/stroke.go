@@ -44,6 +44,36 @@ func (p *Player) SetStroke(actions []funscript.Action) {
 	p.strokeLastPos = -1
 }
 
+// SetStrokeHome: on a pause or a stop of the position stream the stroker
+// moves slowly (strokeHomeMs) to the bottom of its range instead of halting
+// where it is (v0.8, as MultiFunPlayer's auto-home).
+func (p *Player) SetStrokeHome(on bool) {
+	p.intensityMu.Lock()
+	p.strokeHome = on
+	p.intensityMu.Unlock()
+}
+
+// strokeHomeMs: how long the move home takes (a calm full stroke).
+const strokeHomeMs = 1200 * time.Millisecond
+
+// homeStroke sends the stroker to the bottom of its range, slowly.
+func (p *Player) homeStroke() {
+	ld := p.linearDevice()
+	if ld == nil {
+		return
+	}
+	p.intensityMu.Lock()
+	on := p.strokeHome && !p.strokeOff
+	lo := p.strokeLo
+	p.intensityMu.Unlock()
+	if !on {
+		return
+	}
+	if err := ld.SetPosition(lo, strokeHomeMs); err == nil {
+		p.strokeLastPos = lo
+	}
+}
+
 // MinStrokeSpan: the safety range is never narrower than this (0–1), so a
 // stray setting cannot pin the device to one point.
 const MinStrokeSpan = 0.1

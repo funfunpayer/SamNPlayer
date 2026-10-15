@@ -33,6 +33,11 @@ def main():
         "GetSettings": "async () => ({updateCheckOnStartup:false})",
         "SetStrokeOutput": "async (on, lo, hi) => { window.__stroke.push([on, lo, hi]); return [lo, hi]; }",
         "SetMotorLevels": "async (m) => { window.__motors = (window.__motors || []).concat([m]); }",
+        # The top bar polls the device status; answer with what the test set
+        # last, so a poll between an event and a check cannot undo it.
+        "GetDeviceStatus": "async () => (window.__devStatus || {connected: false})",
+        "GetStrokeFilter": "async () => ({smooth: 'makima', maxSpeed: 400, idleFill: false, homeOnPause: true})",
+        "SetStrokeFilter": "async (f) => { window.__filter = (window.__filter || []).concat([f]); return f; }",
     }))
     try:
         with sync_playwright() as p:
@@ -49,7 +54,7 @@ def main():
             check("stroke controls hidden without a stroker", hidden("#pb-stroke-ctl"))
             check("initial output sent: on, full range", page.evaluate("window.__stroke[0]") == [True, 0, 1])
 
-            page.evaluate(f"window.dispatchEvent(new CustomEvent('device:status', {{detail: {HANDY}}}))")
+            page.evaluate(f"(window.__devStatus = {HANDY}, window.dispatchEvent(new CustomEvent('device:status', {{detail: {HANDY}}})))")
             check("stroker shows the stroke controls", not hidden("#pb-stroke-ctl"))
             check("stroker without motors hides vibration / suction rows",
                   hidden('.pb-chan-row[data-axis="vibration"]') and hidden('.pb-chan-row[data-axis="suction"]'))
@@ -70,7 +75,23 @@ def main():
             saved = page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels') || '{}')")
             check("channel change keeps stroke settings", saved.get("stroke", {}).get("lo") == 15, str(saved))
 
-            page.evaluate(f"window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}}))")
+            # Stroke filter (v0.8): saved values shown, changes sent at once.
+            check("filter: saved values shown",
+                  page.evaluate("[document.querySelector('#pb-stroke-smooth').value, document.querySelector('#pb-stroke-speed').value,"
+                                " document.querySelector('#pb-stroke-idle').checked, document.querySelector('#pb-stroke-home').checked]")
+                  == ["makima", "400", False, True])
+            page.evaluate("const e = document.querySelector('#pb-stroke-smooth'); e.value = 'pchip'; e.dispatchEvent(new Event('change'))")
+            page.wait_for_function("(window.__filter || []).length >= 1")
+            check("filter: change sent", page.evaluate("window.__filter[window.__filter.length - 1]")
+                  == {"smooth": "pchip", "maxSpeed": 400, "idleFill": False, "homeOnPause": True},
+                  str(page.evaluate("window.__filter")))
+            page.evaluate("const e = document.querySelector('#pb-stroke-idle'); e.checked = true; e.dispatchEvent(new Event('change'))")
+            page.evaluate("const e = document.querySelector('#pb-stroke-speed'); e.value = '0'; e.dispatchEvent(new Event('change'))")
+            page.wait_for_function("(window.__filter || []).length >= 3")
+            last = page.evaluate("window.__filter[window.__filter.length - 1]")
+            check("filter: speed limit off, pauses filled", last["maxSpeed"] == 0 and last["idleFill"] is True, str(last))
+
+            page.evaluate(f"(window.__devStatus = {LELO}, window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}})))")
             check("vibrator: no stroke controls", hidden("#pb-stroke-ctl"))
             check("two motors → per-motor sliders", not hidden("#pb-motor-ctl")
                   and page.evaluate("document.querySelectorAll('#pb-motor-ctl input[data-motor]').length") == 2)
@@ -85,12 +106,12 @@ def main():
             page.evaluate("const e = document.querySelector('#pb-chan-vibration-level'); e.value = '60'; e.dispatchEvent(new Event('input'))")
             saved = page.evaluate("JSON.parse(localStorage.getItem('pb.chanLevels') || '{}')")
             check("channel change keeps motor levels", saved.get("motors", {}).get("vibration2") == 40, str(saved))
-            page.evaluate(f"window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}}))")
+            page.evaluate(f"(window.__devStatus = {LELO}, window.dispatchEvent(new CustomEvent('device:status', {{detail: {LELO}}})))")
             check("reconnect restores the saved motor level",
                   page.input_value('#pb-motor-ctl input[data-motor="vibration2"]') == "40")
             check("vibrator: vibration row (motor 2 counts as vibration), no suction row",
                   not hidden('.pb-chan-row[data-axis="vibration"]') and hidden('.pb-chan-row[data-axis="suction"]'))
-            page.evaluate("window.dispatchEvent(new CustomEvent('device:status', {detail: {connected:false}}))")
+            page.evaluate("(window.__devStatus = {connected:false}, window.dispatchEvent(new CustomEvent('device:status', {detail: {connected:false}})))")
             check("disconnected: no motor sliders", hidden("#pb-motor-ctl"))
             check("disconnected: every row back",
                   not hidden('.pb-chan-row[data-axis="vibration"]') and not hidden('.pb-chan-row[data-axis="suction"]'))

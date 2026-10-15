@@ -351,6 +351,8 @@ export function OptimizeLoadedFor(arg1:string):Promise<any>;
 export function PickMediaFile():Promise<string>;
 export function FindScriptForVideo(arg1:string):Promise<any>;
 export function GetScriptFolders():Promise<Array<string>>;
+export function GetStrokeFilter():Promise<any>;
+export function SetStrokeFilter(arg1:any):Promise<any>;
 export function AddScriptFolder():Promise<Array<string>>;
 export function RemoveScriptFolder(arg1:string):Promise<Array<string>>;
 export function SuggestChapterScenes():Promise<Array<any>>;
