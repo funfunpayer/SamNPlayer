@@ -1,5 +1,7 @@
 # Next steps
 
+> **15 Oct 2026 — open work for 2.0 Next:** [`next/HANDOFF_2026-10-15.md`](next/HANDOFF_2026-10-15.md) lists the next tasks in order (first: keep Suite files out of the public release before tagging v0.7.0). Plan: [`next/MASTER_PLAN.md`](next/MASTER_PLAN.md).
+
 ## Status at a glance · September 18, 2026 (v0.5.x)
 
 Operational checklist. Measurement history stays below; **what's open now**:
