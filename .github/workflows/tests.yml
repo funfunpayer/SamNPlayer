@@ -27,19 +27,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Install ffmpeg
         run: |
           scripts/ci/apt-install.sh ffmpeg
           command -v ffmpeg
           ffmpeg -version | head -1
-
       - name: Build frontend
         working-directory: cmd/gui-wails/frontend
         run: |
           npm install
           npm run build
-
       - name: Check formatting
         run: |
           unformatted=$(gofmt -l .)
@@ -48,16 +45,12 @@ jobs:
             echo "$unformatted"
             exit 1
           fi
-
       - name: go vet
         run: go vet ./...
-
       - name: Tests with race detector
         run: go test -race ./...
-
       - name: Tests, suite edition
         run: go test -race -tags suite ./edition/ ./cmd/gui-wails/
-
       - name: Build without OpenCV (CGO on)
         run: |
           go build ./generator/ ./cmd/cli/
@@ -76,22 +69,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Install OpenCV + ffmpeg
         run: |
           scripts/ci/apt-install.sh libopencv-dev pkg-config ffmpeg
           command -v ffmpeg
           ffmpeg -version | head -1
-
       - name: Build frontend
         working-directory: cmd/gui-wails/frontend
         run: |
           npm install
           npm run build
-
       - name: go vet (-tags opencv)
         run: go vet -tags opencv ./...
-
       - name: Tests with race detector (-tags opencv)
         run: go test -tags opencv -race ./...
 
@@ -104,10 +93,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Dependencies
         run: pip install opencv-contrib-python scipy numpy
-
       - name: Fast tests
         working-directory: generator
         run: |
@@ -121,7 +108,6 @@ jobs:
             echo "== $t"
             python3 "$t"
           done
-
       - name: Video-based tests
         working-directory: generator
         run: |
@@ -133,7 +119,6 @@ jobs:
             echo "== $t"
             python3 "$t"
           done
-
       - name: Benchmark clip prep
         run: python3 scripts/benchmark-prep/cut_clip_test.py
 
@@ -149,19 +134,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Playwright
         run: |
           pip install playwright
           playwright install --with-deps chromium
-
       - name: Generate Wails bindings
         run: |
           scripts/ci/apt-install.sh libgtk-3-dev libwebkit2gtk-4.1-dev ffmpeg
           go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
           cd cmd/gui-wails
           $(go env GOPATH)/bin/wails build -tags webkit2_41 -skipbindings=false || true
-
       - name: Tests
         run: |
           for t in cmd/gui-wails/frontend/test/*_test.py; do
@@ -178,7 +160,6 @@ jobs:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
-
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -188,7 +169,6 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-libgfortran
-
       - name: Install OpenCV (MSYS2)
         run: |
           set -euo pipefail
@@ -199,7 +179,6 @@ jobs:
             pacman -S --noconfirm --needed mingw-w64-x86_64-libgfortran mingw-w64-x86_64-opencv
           fi
           pacman -Q mingw-w64-x86_64-opencv
-
       - name: OpenCV pkg-config (MSYS2 = opencv5)
         run: |
           set -euo pipefail
@@ -210,14 +189,12 @@ jobs:
           test -f /mingw64/include/opencv5/opencv2/tracking.hpp
           ls /mingw64/bin/libopencv_tracking*.dll
           ls /mingw64/bin/libopencv_core*.dll
-
       - name: Build frontend dist (embed)
         shell: bash
         run: |
           cd cmd/gui-wails/frontend
           npm install
           npm run build
-
       - name: go test -tags opencv (CSRT focus)
         run: |
           set -euo pipefail
@@ -235,7 +212,6 @@ jobs:
           ls -la SamNPlayer-cli-windows-amd64.exe
           bash scripts/collect-mingw-opencv-dlls.sh SamNPlayer-cli-windows-amd64.exe /tmp/opencv-dlls
           ls /tmp/opencv-dlls/libopencv_tracking*.dll
-
       - name: Wails GUI build smoke (OpenCV tags)
         run: |
           set -euo pipefail
@@ -252,8 +228,8 @@ jobs:
           bash ../../scripts/collect-mingw-opencv-dlls.sh build/bin/SamNPlayer.exe /tmp/gui-dlls
           ls /tmp/gui-dlls/libopencv_tracking*.dll
 
-  native-linux:
-    name: Native C++ (Linux)
+  native:
+    name: Native (C++ beatbar Linux)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -261,66 +237,56 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Install build deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential python3-dev
-
+        run: scripts/ci/apt-install.sh build-essential cmake python3-dev
       - name: Install pybind11
         run: pip install pybind11
-
-      - name: Build native
+      - name: Build native module
         working-directory: native
         run: |
-          mkdir -p build && cd build
+          mkdir -p build
+          cd build
           cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
           make -j$(nproc)
-
-      - name: Parity tests
-        run: |
-          PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
-          PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
-          PYTHONPATH=native/build python3 native/tests/test_funscript_parity.py
+      - name: Beat-bar parity tests
+        run: PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
+      - name: Stroke filter parity tests
+        run: PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
+      - name: Beat strokes parity tests
+        run: PYTHONPATH=native/build python3 native/tests/test_beat_strokes_parity.py
 
   native-windows:
-    name: Native C++ (Windows)
+    name: Native (C++ / pybind11, Windows)
     runs-on: windows-latest
-    timeout-minutes: 25
-    defaults:
-      run:
-        shell: msys2 {0}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
-      - uses: msys2/setup-msys2@v2
+      - uses: actions/setup-python@v5
         with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-make
-            mingw-w64-x86_64-python
-            mingw-w64-x86_64-python-pip
-
+          python-version: "3.12"
       - name: Install pybind11
-        run: |
-          set -euo pipefail
-          python -m pip install pybind11
-
-      - name: Build native
+        run: pip install pybind11
+      - name: Build native module
         working-directory: native
+        shell: pwsh
         run: |
-          set -euo pipefail
-          mkdir -p build && cd build
-          cmake .. -G "MinGW Makefiles" -Dpybind11_DIR=$(python -m pybind11 --cmakedir)
-          mingw32-make -j$(nproc)
-
-      - name: Parity tests
+          mkdir build
+          cd build
+          $pybindDir = python -m pybind11 --cmakedir
+          cmake .. -Dpybind11_DIR="$pybindDir" -G "Visual Studio 17 2022" -A x64
+          cmake --build . --config Release
+      - name: Beat-bar parity tests
+        shell: pwsh
         run: |
-          set -euo pipefail
-          export PYTHONPATH=native/build
+          $env:PYTHONPATH = "native/build/Release"
           python native/tests/test_beatbar_parity.py
+      - name: Stroke filter parity tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "native/build/Release"
           python native/tests/test_stroke_filter_parity.py
-          python native/tests/test_funscript_parity.py
+      - name: Beat strokes parity tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "native/build/Release"
+          python native/tests/test_beat_strokes_parity.py
