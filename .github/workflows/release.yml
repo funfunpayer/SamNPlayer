@@ -295,7 +295,7 @@ jobs:
           cat checksums.txt
           ls -la
 
-      - name: Guard: no Suite files in publish set
+      - name: "Guard: no Suite files in publish set"
         working-directory: dist
         run: |
           set -euo pipefail
