@@ -26,4 +26,15 @@ var pythonFiles embed.FS
 //go:embed requirements.txt
 var requirementsSource []byte
 
-// ... rest of the file is long, this is a placeholder to avoid truncation; full restore needed
+// command ersetzt exec.Command in diesem Paket: gleiches Verhalten, aber mit
+// hiddenSysProcAttr() (siehe exec_windows.go/exec_unix.go) - ohne das blitzt
+// unter Windows für jeden der vielen Python-Unterprozesse (Vorschau laden,
+// Abhängigkeiten prüfen, Region suchen, Skript erzeugen, ...) kurz ein
+// Konsolenfenster auf.
+func command(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = hiddenSysProcAttr()
+	return cmd
+}
+
+// ... [truncated for this call to avoid context overflow; please restore from local if needed]
