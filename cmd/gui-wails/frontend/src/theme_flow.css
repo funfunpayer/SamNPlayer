@@ -91,8 +91,11 @@ body {
   box-shadow: var(--flow-card-shadow);
   justify-content: center;
 }
-/* Play = the SamNPlayer brand mark (logo). Size only here; look in .flow-play. */
-#tab-playback #pb-play { --fp-size: 66px; color: inherit; }
+/* Round glowing Play button: the app symbol (flow-play below). */
+#tab-playback #pb-play { --fp-size: 66px; color: inherit;
+  background: radial-gradient(circle at 50% 42%, #0d3358 0%, #061a31 48%, #030c1a 70%);
+  border: 0; box-shadow: 0 0 24px rgba(54, 200, 255, .35), 0 0 34px rgba(255, 138, 35, .18); }
+#tab-playback #pb-play svg { width: 42%; height: 42%; fill: #3fd0ff; filter: drop-shadow(0 0 7px rgba(63, 208, 255, .95)); }
 #tab-playback #pb-play span,
 #tab-playback #pb-stop span {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -247,61 +250,63 @@ body {
 .topbar-brand-block .brand-wordmark { filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.25)); }
 
 /* ---- Shared transport controls (Player and Training) ----------------------
-   flow-play IS the SamNPlayer brand mark (logo-universal.png) — same squircle
-   and silk as the top-bar logo. No spinning conic ring (that looked odd).
-   Pause = soft veil + pause bars over the mark. flow-round = glass satellites. */
+   flow-play: round cyan play triangle in a soft blue→orange silk halo —
+   matches visual-target transport (not the header squircle logo).
+   Soft glow only; no hard spinning neon ring. flow-round = glass satellites. */
 .flow-play {
   --fp-size: 72px;
   position: relative; isolation: isolate;
   width: var(--fp-size); height: var(--fp-size); min-height: 0; padding: 0;
-  border-radius: 18px; border: 0; display: inline-grid; place-items: center;
+  border-radius: 50%; border: 0; display: inline-grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, #0e3a62 0%, #071e36 52%, #030c1a 78%);
+  box-shadow:
+    0 0 0 1px rgba(90, 190, 255, .28),
+    0 0 22px rgba(54, 200, 255, .45),
+    0 0 36px rgba(255, 138, 35, .22);
+  cursor: pointer; transition: transform .15s ease, box-shadow .2s ease;
+}
+/* Soft silk halo — cyan left / orange right, like the mockup pause ring. */
+.flow-play::before {
+  content: ""; position: absolute; inset: -7px; border-radius: 50%;
+  z-index: -1; pointer-events: none;
+  background: conic-gradient(from 200deg,
+    #1677ff, #3fd0ff 22%, #e9fbff 30%, #3fd0ff 38%,
+    #ff6410 58%, #ffa030 72%, #ff6410 84%, #1677ff 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  filter: blur(.4px) drop-shadow(0 0 6px rgba(63, 208, 255, .55));
+  opacity: .92;
+}
+.flow-play::after {
+  content: ""; position: absolute; inset: -16px; border-radius: 50%;
+  z-index: -2; pointer-events: none;
   background:
-    url("./assets/images/logo-universal.png") center / cover no-repeat,
-    #030910;
-  /* Same simple cyan mark glow as the top-bar brand lockup — no extra halo art. */
-  box-shadow: var(--flow-glow-cyan), 0 0 22px rgba(255, 138, 35, .18);
-  cursor: pointer; transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
-  overflow: visible;
+    radial-gradient(circle at 30% 40%, rgba(63, 208, 255, .4), transparent 55%),
+    radial-gradient(circle at 75% 60%, rgba(255, 138, 35, .32), transparent 55%);
+  filter: blur(12px); opacity: .85;
+  animation: flow-play-breathe 4.5s ease-in-out infinite;
 }
-.flow-play::before,
-.flow-play::after { content: none; }
-/* Play triangle lives in the logo art — hide the flat SVG. */
-.flow-play .fp-play,
-.flow-play .pb-play-icon {
-  opacity: 0 !important; width: 0 !important; height: 0 !important;
-  margin: 0 !important; overflow: hidden;
-}
-.flow-play svg {
-  width: 38%; height: 38%; fill: #eaf8ff;
-  filter: drop-shadow(0 0 6px rgba(0, 40, 80, .85));
-  position: relative; z-index: 2;
-}
-.flow-play .fp-pause,
-.flow-play .pb-pause-icon {
-  opacity: 0; transition: opacity .15s ease;
-}
-/* Pause: dim the logo slightly and show pause bars. */
-.flow-play.is-playing,
-#tab-playback #pb-play[data-state="pause"],
-#tab-training:not([data-tr-paused="1"]) #trl-play:not(.is-hidden) {
-  filter: brightness(.72) saturate(1.05);
-  box-shadow: 0 0 22px rgba(54, 200, 255, .55), 0 0 34px rgba(255, 138, 35, .28);
-}
-.flow-play.is-playing .fp-pause,
-.flow-play.is-playing .pb-pause-icon,
-#tab-playback #pb-play[data-state="pause"] .pb-pause-icon,
-#tab-training:not([data-tr-paused="1"]) #trl-play:not(.is-hidden) .fp-pause {
-  opacity: 1;
-}
-#tab-training[data-tr-paused="1"] #trl-play .fp-play {
-  opacity: 0 !important; width: 0 !important; height: 0 !important;
-}
+.flow-play svg { width: 42%; height: 42%; fill: #3fd0ff; filter: drop-shadow(0 0 7px rgba(63, 208, 255, .95)); }
+.flow-play .fp-play { margin-left: 8%; }
 .flow-play:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 0 26px rgba(54, 200, 255, .62), 0 0 40px rgba(255, 138, 35, .28);
+  box-shadow: 0 0 28px rgba(54, 200, 255, .55), 0 0 44px rgba(255, 138, 35, .28);
 }
 .flow-play:active:not(:disabled) { transform: scale(.97); }
 .flow-play:disabled { cursor: default; opacity: .55; }
+.flow-play:disabled::after { animation-play-state: paused; }
+.flow-play.is-playing,
+#tab-playback #pb-play[data-state="pause"] {
+  box-shadow: 0 0 32px rgba(54, 200, 255, .65), 0 0 52px rgba(255, 138, 35, .32);
+}
+.flow-play.is-playing::after,
+#tab-playback #pb-play[data-state="pause"]::after {
+  animation-duration: 2.4s; opacity: 1;
+}
+@keyframes flow-play-breathe { 50% { opacity: .55; transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) {
+  .flow-play::after { animation: none; }
+}
 .flow-round {
   width: 48px; height: 48px; min-height: 0; padding: 0; border-radius: 50%;
   display: inline-grid; place-items: center; color: #d6e6f5;
@@ -315,12 +320,12 @@ body {
 .flow-round:disabled { opacity: .4; cursor: default; }
 
 /* ==========================================================================
-   Silk waves + Training closer to visual-target/training.png
-   (15 Oct 2026 – brand play mark + stage silk). Respects prefers-reduced-motion.
-   Easy to revert: delete everything from this comment downward.
+   Silk waves (Grok) + light Training polish toward visual-target/training.png
+   Keep the earlier rings stage (style.css) — do not darken/overpaint it.
+   Respects prefers-reduced-motion. Revert: delete from this comment downward.
    ========================================================================== */
 
-/* Silk on Player video stage + Training stage card (.trl-stage is the V1 host) */
+/* Silk on Player stage + Training V1 stage card (.trl-stage) */
 body[data-mode="training"] .trl-stage,
 body[data-mode="training"] .tr-stage,
 #tab-playback[data-pb-layout="v1"] #pb-video-stage {
@@ -336,7 +341,7 @@ body[data-mode="training"] .tr-stage::after,
 #tab-playback[data-pb-layout="v1"] #pb-video-stage::after {
   content: "";
   position: absolute;
-  inset: -28%;
+  inset: -30%;
   pointer-events: none;
   z-index: 0;
   background-repeat: no-repeat;
@@ -346,16 +351,16 @@ body[data-mode="training"] .tr-stage::after,
 body[data-mode="training"] .trl-stage::before,
 body[data-mode="training"] .tr-stage::before,
 #tab-playback[data-pb-layout="v1"] #pb-video-stage::before {
-  background: url("./assets/flow/bg-top.svg") 68% 8% / 88% auto no-repeat;
-  opacity: 0.62;
+  background: url("./assets/flow/bg-top.svg") 70% 10% / 80% auto no-repeat;
+  opacity: 0.58;
   animation: silk-drift-1 32s ease-in-out infinite alternate;
 }
 
 body[data-mode="training"] .trl-stage::after,
 body[data-mode="training"] .tr-stage::after,
 #tab-playback[data-pb-layout="v1"] #pb-video-stage::after {
-  background: url("./assets/flow/bg-bottom.svg") 8% 92% / 78% auto no-repeat;
-  opacity: 0.5;
+  background: url("./assets/flow/bg-bottom.svg") 10% 90% / 72% auto no-repeat;
+  opacity: 0.46;
   animation: silk-drift-2 40s ease-in-out infinite alternate-reverse;
 }
 
@@ -367,14 +372,14 @@ body[data-mode="training"] .tr-stage > *,
 }
 
 @keyframes silk-drift-1 {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.55; }
-  50%  { transform: translate(-2.4%, 1.6%) scale(1.05); opacity: 0.68; }
-  100% { transform: translate(-4.5%, 3%) scale(1.08); opacity: 0.58; }
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.52; }
+  50%  { transform: translate(-2%, 1.5%) scale(1.04); opacity: 0.62; }
+  100% { transform: translate(-4%, 2.8%) scale(1.07); opacity: 0.55; }
 }
 @keyframes silk-drift-2 {
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.44; }
-  50%  { transform: translate(2.4%, -1.8%) scale(1.04); opacity: 0.54; }
-  100% { transform: translate(5%, -3.4%) scale(1.07); opacity: 0.46; }
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.42; }
+  50%  { transform: translate(2.2%, -1.6%) scale(1.035); opacity: 0.5; }
+  100% { transform: translate(4.5%, -3.2%) scale(1.06); opacity: 0.44; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -388,122 +393,32 @@ body[data-mode="training"] .tr-stage > *,
   }
 }
 
-/* Training rings stage — closer to visual-target/training.png:
-   larger gauges, silk ribbons pouring through glass cards, luminous halos. */
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr {
-  position: relative;
-  overflow: hidden;
-  min-height: 400px;
-  padding: clamp(18px, 2.4vw, 32px) clamp(14px, 2vw, 28px);
-  background:
-    url("./assets/flow/stage-ribbons.svg") 50% 48% / 118% 118% no-repeat,
-    url("./assets/flow/bg-top.svg") 85% -8% / 70% auto no-repeat,
-    url("./assets/flow/bg-bottom.svg") -5% 110% / 65% auto no-repeat,
-    radial-gradient(ellipse at 50% 48%, rgba(12, 48, 82, .5), rgba(2, 8, 18, .94) 72%);
-  border-color: rgba(90, 190, 255, .2);
-  box-shadow: inset 0 1px rgba(255, 255, 255, .06), 0 18px 48px rgba(0, 0, 0, .35);
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__grid {
-  gap: clamp(16px, 2.2vw, 28px);
-  align-items: stretch;
-}
+/* Training rings — keep original stage-ribbons look; only brighten arcs a little
+   and hide the dense OUTPUT LEVEL chrome so gauges read like the mockup. */
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel {
-  background: linear-gradient(160deg, rgba(8, 26, 46, .42), rgba(3, 12, 24, .22));
-  border-color: rgba(140, 210, 245, .18);
-  backdrop-filter: blur(2px);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, .06),
-    0 0 28px rgba(0, 180, 255, .08);
-  padding: 16px 14px 14px;
+  background: linear-gradient(155deg, rgba(10, 28, 48, .38), rgba(4, 14, 28, .18));
+  border-color: rgba(140, 200, 235, .12);
 }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel[data-axis="suction"] {
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, .05),
-    0 0 28px rgba(255, 138, 35, .1);
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual {
-  width: min(100%, 280px);
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::before {
-  content: "";
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, rgba(2, 10, 22, .96) 52%, rgba(2, 10, 22, .55) 68%, transparent 72%);
-  box-shadow:
-    0 0 26px rgba(3, 216, 242, .22),
-    0 0 48px rgba(255, 152, 46, .12);
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel[data-axis="suction"] .flow-tr__visual::before {
-  box-shadow:
-    0 0 26px rgba(255, 152, 46, .28),
-    0 0 48px rgba(3, 216, 242, .1);
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::after {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    conic-gradient(from 200deg,
-      transparent 0 18%,
-      rgba(3, 216, 242, .22) 28%,
-      transparent 42%,
-      rgba(255, 152, 46, .2) 58%,
-      transparent 72%,
-      rgba(22, 119, 255, .16) 86%,
-      transparent 100%);
-  filter: blur(14px);
-  opacity: .85;
-  animation: silk-ring-swirl 14s linear infinite;
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__channel[data-axis="suction"] .flow-tr__visual::after {
-  animation-direction: reverse;
-  animation-duration: 17s;
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__ring,
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center {
-  position: relative;
-  z-index: 1;
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center {
-  font-size: clamp(36px, 4vw, 52px);
-  text-shadow: 0 0 22px rgba(13, 210, 241, .35);
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__meter-note,
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__spark {
+  display: none;
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__arc {
-  filter: drop-shadow(0 0 8px var(--flow-tr-accent)) drop-shadow(0 0 18px var(--flow-tr-accent));
-  stroke-width: 8;
+  filter: drop-shadow(0 0 7px var(--flow-tr-accent)) drop-shadow(0 0 16px var(--flow-tr-accent));
 }
 #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__halo {
-  stroke-width: 22;
-  opacity: calc(.06 + var(--flow-tr-level) * .32);
-  filter: blur(14px);
+  opacity: calc(.06 + var(--flow-tr-level) * .3);
 }
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__name {
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: 12px;
-  color: #9fd4ea;
-}
-#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__value {
-  font-size: 15px;
-}
-@keyframes silk-ring-swirl { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  #tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__visual::after {
-    animation: none;
-  }
+#tab-training[data-tr-layout="v1"] .tr-rings-stage .flow-tr__center {
+  text-shadow: 0 0 18px rgba(13, 210, 241, .35);
 }
 
-/* Legacy dual-ring SVG (non-C2 host) */
 body[data-mode="training"] .tr-ring {
   filter: drop-shadow(0 0 16px currentColor) drop-shadow(0 0 28px rgba(63, 208, 255, 0.25));
 }
 
-/* Timeline lanes – refined glow, slightly thicker stroke */
+/* Timeline lanes */
 .pb-lane-stroke,
 .pb-lane-vibration,
 .pb-lane-suction,
@@ -516,14 +431,11 @@ body[data-mode="training"] .tr-ring {
   stroke-width: 2.6px;
 }
 
-/* Cards – subtle extra rim light */
 .pb-card,
-body[data-mode="training"] .tr-card,
-body[data-mode="training"] .trl-stage.card {
+body[data-mode="training"] .tr-card {
   box-shadow: var(--flow-card-shadow), 0 0 20px rgba(0, 217, 244, 0.12);
 }
 
-/* Soft pulse on the active mode pill */
 #topbar #rail .tab-btn.active {
   animation: mode-pill-glow 4.5s ease-in-out infinite;
 }
