@@ -9,7 +9,8 @@ One plan instead of several. It merges three sources:
 - **The comparison with other players** on 14 Oct: ScriptPlayer, ScriptPlayer+, BetterPlayer and MultiFunPlayer. FredTungsten's collection of 758 scripts served as a test corpus.
 - **The Owner's wishes** of 14 and 15 Oct:
   - the editor becomes a full editor;
-  - Go for the core, Rust where AI and video need speed.
+  - Go for the core, Rust where AI and video need speed;
+  - **changed on 15 Oct:** more Python for AI, and **C++ instead of Rust** for the fast video paths. There is no full rewrite: the Go core stays.
 
 Since 14 Oct Claude works on this alone. Earlier ChatGPT roles in these plans now belong to Claude. Nothing here is built yet unless it says ✅.
 
@@ -21,10 +22,12 @@ Since 14 Oct Claude works on this alone. Earlier ChatGPT roles in these plans no
 |---|---|---|
 | App, devices, player, editor operations, formats, generator orchestration | **Go**, as now | One codebase, tested (about 60 000 Go lines incl. tests), fast enough, Wails. |
 | Interface | JavaScript in Wails, as now | Already built. No toolkit change without proof. |
-| **Hot paths in video and AI:** tracking, optical flow, frame decode loop, ONNX inference wrapper | **Rust**, as a separate library or helper binary called from Go | Speed and memory safety. A Rust part is built only when a profile shows Go/OpenCV is the bottleneck, and it must beat the measured baseline on the golden clips (ChatGPT's L6 gate: 3 warm + 5 measured runs, median and p95, no quality loss). |
-| AI training, teacher models, experiments | Python, as now | The ecosystem lives there. It moves to Rust/Go only piece by piece, behind the same benchmark gate. |
+| **Hot paths in video and AI:** tracking, optical flow, frame decode loop, ONNX inference wrapper | **C++**, as a separate helper binary or library called from Go (Owner, 15 Oct: C++ instead of Rust) | OpenCV and ONNX Runtime are C++ themselves, and OFS and most of the vision code around funscripts are C++ too. A C++ part is built only when a profile shows Go is the bottleneck, and it must beat the measured baseline on the golden clips (L6 gate: 3 warm + 5 measured runs, median and p95, no quality loss). |
+| AI: detection, training, teacher models, experiments | **Python, more than before** (Owner, 15 Oct) | PyTorch, YOLO, FunGen and the training tools all live there. New AI work starts in Python as a helper the app calls. It moves to C++ only when a measurement shows the gain, behind the same benchmark gate. |
 
-**First Rust candidate:** the CSRT/flow tracking loop in `generator/trackcv` and the frame pipeline. Long clips are where the time goes, and drift fixes need many re-runs. Before that comes a profile on the Owner's clips (see "Motion recognition — next steps", `docs/owner/motion-recognition-next.md`, priority 1).
+Why not everything in C++ (Owner question, 15 Oct): C/C++ is faster than Go in tight pixel loops, roughly 1.5–3×. But the heavy work already runs in C/C++: ffmpeg decodes, OpenCV tracks, ONNX runs the models. Go only starts these and passes on the results. The player and devices mostly wait on a timer. A rewrite of about 86 000 lines of code and 38 000 lines of tests would stop features for months and risk what works. So C++ goes only where a measurement proves it faster.
+
+**First C++ candidate:** the CSRT/flow tracking loop in `generator/trackcv` and the frame pipeline. Long clips are where the time goes, and drift fixes need many re-runs. Before that comes a profile on the Owner's clips (see "Motion recognition — next steps", `docs/owner/motion-recognition-next.md`, priority 1).
 
 ---
 
@@ -36,7 +39,7 @@ This keeps ChatGPT's decision.
 - **SamNPlayer Next Level** (separate private repo `SamNPlayer-Next-Level`) gets:
   - adaptive automatic generation per scene;
   - local AI as draft or repair, always checked by the classical verifier;
-  - Rust prototypes;
+  - C++ prototypes;
   - batch processing;
   - Studio.
 
@@ -121,5 +124,5 @@ E1–E5 belong in Free, because they are basic editor work. E6–E10 can follow 
 1. **v0.7.0:** the Owner tags and checks; Claude fixes what comes up.
 2. **v0.8:** Section 3, items 1–3 and 5, plus editor steps E1–E2.
 3. **v0.9:** editor steps E3–E5, items 4 and 6.
-4. **Profile, then the first Rust step** for tracking, under the L6 gate.
+4. **Profile, then the first C++ step** for tracking, under the L6 gate.
 5. **Next Level:** gates N0–N6 from ChatGPT's bootstrap plan, in its own repo.

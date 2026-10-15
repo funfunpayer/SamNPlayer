@@ -252,7 +252,7 @@ the Python test lines.
 | [`docs/EVERYDAY_GENERATE.md`](docs/EVERYDAY_GENERATE.md) | The everyday Generator path |
 | [`docs/EDITIONS.md`](docs/EDITIONS.md) | Free and Suite editions |
 | [`docs/PLATFORMS.md`](docs/PLATFORMS.md) | Platforms |
-| [`docs/ROADMAP_2026-10.md`](docs/ROADMAP_2026-10.md) | What comes next: v0.8, the full editor, Go and Rust |
+| [`docs/ROADMAP_2026-10.md`](docs/ROADMAP_2026-10.md) | What comes next: v0.8, the full editor; Go, Python and C++ |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed |
 | [`HANDOFF.md`](HANDOFF.md) | Architecture, and what was tested and rejected |
 

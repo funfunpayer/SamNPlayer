@@ -111,7 +111,7 @@ fixes are fine if they do not dilute Generate/Play.
 | **v0.5.46** | Shipped | Sammel post-0.5.45: audio-only vibration switch (#462), stroke-preview rate fix (#462), contact points 2nd clip (#463), Owner UX asks Epochs cap / BPM from audio / write offset into script (#464); RF-DETR licence confirmed; Everyday Go CSRT unchanged — tag `v0.5.46` |
 | **v0.6.0** | Prepared, not tagged | V1 workspace Player · Training · Tools (#494–#498), Play/Pause, undo/redo, knobs, Reduce peaks, Auto sync, Sound Curve, Invert Curve, skip ±10 s, sleep timer (#487–#504), device capabilities D1 (#499); **first release with the Suite edition** (`SamNPlayer-suite-…`); updater matches its own edition — never tagged; shipped in v0.7.0 |
 | **v0.7.0** | Release prep | First release since v0.5.45 (carries 0.5.46 + 0.6.0): five modes with the Mode pill (#533–#539), video first Open (#541), Generator with editor, device-aware Generator / Training, Sam Neo 2 feel per scene and per chapter, vibration from sound (#540), soft seek + corrupt-time fix from the 758-script corpus sweep (#542) — tag `v0.7.0` (Owner pushes) |
-| next | After v0.7.0 | **See [`ROADMAP_2026-10.md`](ROADMAP_2026-10.md)**: v0.8 (find scripts, smooth stroker output, audio files, skip pauses, shortcuts), full editor E1–E10, Go core + Rust only for measured AI/video hot paths, Next Level in its own repo |
+| next | After v0.7.0 | **See [`ROADMAP_2026-10.md`](ROADMAP_2026-10.md)**: v0.8 (find scripts, smooth stroker output, audio files, skip pauses, shortcuts), full editor E1–E10, Go core, Python for AI, C++ only for measured video hot paths, Next Level in its own repo |
 | later | After G1 gate | G2 raw-value Neo-2 layer → then G3 AI → G4 license/platforms |
 
 ### Owner after each tag
