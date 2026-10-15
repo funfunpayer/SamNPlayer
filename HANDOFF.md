@@ -4,7 +4,9 @@ This document deliberately lives **inside the repository**, rather than
 in a separate PDF. It travels with the code and should be updated alongside
 code changes so the two do not drift apart.
 
-**Multi-agent work:** Cursor, Claude, and ChatGPT coordinate via
+**Current state for agents:** [`docs/AGENT_STATE.md`](docs/AGENT_STATE.md). **Go is being replaced by Python + C++:** [`docs/MIGRATION_CPP_PYTHON.md`](docs/MIGRATION_CPP_PYTHON.md).
+
+**Multi-agent work (history):** Cursor, Claude, and ChatGPT coordinate via
 [`docs/AGENT_COORD.md`](docs/AGENT_COORD.md) (claim a lane before coding).
 
 Status: September 2026.
