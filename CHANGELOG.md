@@ -16,6 +16,11 @@ measurement history behind each entry; this file is the short version for
 
 ### Added
 
+- **Cock Hero / Fap Hero beat bar:** **From the beat bar** on the "no script yet" card. It reads the strip of dots that scroll to a target in such videos and writes one stroke per beat. The result goes to *Clip (Beat bar).funscript* and never overwrites a script.
+  - **Detection:** fully automatic, with no region to draw. Horizontal strips (bottom or top) and vertical ones (side edge) are found from the steady sideways motion, after removing what stands still. Each beat is timed to a fraction of a frame.
+  - **Speed:** two passes. The first finds the strip in 90 s windows; the second reads only those rows over the whole video, at 30 fps.
+  - **Strokes:** down on the beat, up halfway to the next one. Strokes are capped at 500 units per second, and a pause over 2 s rises once and holds.
+  - **API:** `generator.FindBeatBar`, `BeatTimes`, `DetectBeatBarBeats`, `funscript.BeatStrokes`, and the App method `CreateBeatBarScript`.
 - **Stroker motion filter (v0.8, seen in MultiFunPlayer, ScriptPlayer and UwU Player):** Inspector → Devices → stroke row. It works live while playing and never changes the script file.
   - **Motion:** *Smooth* (PCHIP, no overshoot) or *Rounder* (MAKIMA). It adds points every 100 ms along a curve through the script's own points; the stroker gets them instead of straight lines.
   - **Speed limit:** 600 / 400 / 250 units per second. A too fast stroke stops short instead of slamming.

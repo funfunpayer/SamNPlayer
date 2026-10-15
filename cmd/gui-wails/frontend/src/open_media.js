@@ -8,7 +8,11 @@
 // v0.8: the search also covers the script folders (Settings → Play) and
 // tolerant names; when one video has several scripts (Soft / Hard / another
 // author) a "Script" choice in the video bar switches between them.
-import { PickMediaFile, PickFunscriptFile, FindScriptForVideo, LoadFrameAt, AddScriptFolder } from '../wailsjs/go/main/App';
+//
+// Cock Hero / Fap Hero (Owner 15 Oct): "From the beat bar" reads the strip of
+// scrolling dots such videos show and writes one stroke per beat, as
+// "<video> (Beat bar).funscript" beside the video.
+import { PickMediaFile, PickFunscriptFile, FindScriptForVideo, LoadFrameAt, AddScriptFolder, CreateBeatBarScript } from '../wailsjs/go/main/App';
 
 const SCRIPT_RE = /\.(samn|funscript)$/i;
 const AUTO_KEY = 'open.autoCreate';
@@ -40,6 +44,7 @@ export function initOpenMedia(pbRoot, api) {
     <p class="hint">No script for this video yet. SamNPlayer can create one — in the Generator, with this video.</p>
     <div class="pb-noscript-actions">
       <button type="button" class="primary pb-open-big" id="pb-noscript-create">Create script</button>
+      <button type="button" id="pb-noscript-beatbar" title="Cock Hero / Fap Hero: read the strip of dots scrolling to a target and make one stroke per beat">From the beat bar</button>
       <button type="button" id="pb-noscript-choose">Choose script…</button>
       <button type="button" id="pb-noscript-other">Open other…</button>
       <button type="button" id="pb-noscript-folder" title="Add a folder where your scripts live; SamNPlayer looks there too">Add a script folder…</button>
@@ -167,6 +172,29 @@ export function initOpenMedia(pbRoot, api) {
     if (!p) return;
     clearNoScript();
     createFor(p);
+  });
+  const beatBtn = card.querySelector('#pb-noscript-beatbar');
+  beatBtn.addEventListener('click', async () => {
+    const video = pending;
+    if (!video) return;
+    beatBtn.disabled = true;
+    status.textContent = 'Reading the beat bar… a long video takes a minute or two.';
+    let res = null;
+    try {
+      res = await CreateBeatBarScript(video);
+    } catch (err) {
+      status.textContent = 'Beat bar: ' + err;
+      return;
+    } finally {
+      beatBtn.disabled = false;
+    }
+    if (pending !== video) return;
+    if (res && res.found && res.scriptPath) {
+      // Opens like any variant; the video bar's Script choice shows it.
+      await openPair(video, res.scriptPath);
+    } else {
+      status.textContent = (res && res.message) || 'No beat bar found in this video.';
+    }
   });
   card.querySelector('#pb-noscript-choose').addEventListener('click', async () => {
     const video = pending;

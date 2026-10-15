@@ -37,6 +37,7 @@ You can also drop either onto the window.
   `.funscript`): that script opens with this video.
 - **A video without a script:** the Player shows the video and asks:
   - **Create script** opens the Generator with this video;
+  - **From the beat bar** is for Cock Hero / Fap Hero videos (see below);
   - **Choose script…** opens a script you pick, with this video;
   - **Open other…** picks again.
 
@@ -58,6 +59,17 @@ away.
 in the video bar, e.g. *Clip (Soft)* or *Clip - by Someone*. Choosing one
 loads it with the same video. *Clip 2* counts as another clip, not as a
 variant. Axis files such as *Clip.twist.funscript* are not variants either.
+
+**Cock Hero / Fap Hero beat bar:** these videos show a strip of dots or
+icons that scroll toward a fixed target, along the bottom, the top or a
+side edge. **From the beat bar** finds that strip by itself, reads every
+time a dot reaches the target, and writes one stroke per beat: down on the
+beat, up halfway to the next. Fast beats get shorter strokes (at most 500
+units per second); a pause longer than 2 s rises once and holds. The
+result is saved beside the video as *Clip (Beat bar).funscript* and opens
+at once. It never overwrites a script; a second run makes *Clip (Beat bar
+2)*. When the video has no such strip, it says so and nothing is written.
+A long video takes a minute or two (ffmpeg is needed).
 
 ## 1c. Strokers: smoother motion
 
