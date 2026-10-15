@@ -1,1 +1,112 @@
-PLACEHOLDER_YML
+name: Tests
+
+# Läuft bei JEDEM Push und jedem Pull Request - nicht erst beim Release.
+#
+# Das ist der Unterschied, der Teamarbeit erst möglich macht: bisher liefen
+# die Tests nur in release.yml, also erst wenn schon gemerged war. Jetzt sieht
+# man Rot, bevor es auf main landet.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go test
+        run: go test ./...
+
+  frontend:
+    name: Frontend (lint + unit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+  native:
+    name: Native (C++ / pybind11, Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build deps
+        run: scripts/ci/apt-install.sh build-essential cmake python3-dev
+      - name: Install pybind11
+        run: pip install pybind11
+      - name: Build native module
+        working-directory: native
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
+          make -j$(nproc)
+      - name: Parity tests
+        run: |
+          PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
+          PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
+          PYTHONPATH=native/build python3 native/tests/test_beat_strokes_parity.py
+          PYTHONPATH=native/build python3 native/tests/test_funscript_parity.py
+
+  native-windows:
+    name: Native (C++ / pybind11, Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pybind11
+        run: pip install pybind11
+      - name: Build native module
+        working-directory: native
+        shell: pwsh
+        run: |
+          mkdir build
+          cd build
+          $pybindDir = python -m pybind11 --cmakedir
+          cmake .. -Dpybind11_DIR="$pybindDir" -G "Visual Studio 17 2022" -A x64
+          cmake --build . --config Release
+      - name: Parity tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "native/build/Release"
+          python native/tests/test_beatbar_parity.py
+          python native/tests/test_stroke_filter_parity.py
+          python native/tests/test_beat_strokes_parity.py
+          python native/tests/test_funscript_parity.py
