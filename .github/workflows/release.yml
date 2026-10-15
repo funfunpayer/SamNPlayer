@@ -5,9 +5,11 @@ name: Release
 # Windows: windows-latest + MSYS2 MinGW OpenCV 5 (Go CSRT, no Python).
 # Portable zips ship ffmpeg (+ OpenCV DLLs on Windows) beside the GUI.
 # macOS: not in this workflow yet (docs/PLATFORMS.md).
-# Free edition only is published (docs/EDITIONS.md, docs/next/specs/N1_RELEASES.md).
-# Suite builds run as a compile check (-tags suite) but are never uploaded.
-# The updater matches exact asset names; Suite finds no suite-gui asset.
+# Two editions (docs/EDITIONS.md): Free files "SamNPlayer-gui-…" and
+# suite files "SamNPlayer-suite-gui-…" (-tags suite). The updater matches
+# the exact name, so each edition only updates to itself.
+# Suite builds are kept as a compile check; they are never published
+# (Owner decision D14, before v0.7.0).
 on:
   push:
     tags:
@@ -73,8 +75,6 @@ jobs:
           go build -trimpath -tags "opencv suite" \
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}" \
             -o SamNPlayer-suite-cli-linux-amd64 ./cmd/cli
-          # Compile check only — do not publish Suite (N1 / D14).
-          rm -f SamNPlayer-suite-gui-linux-amd64 SamNPlayer-suite-cli-linux-amd64
 
       - name: Bundle portable Linux (GUI + ffmpeg)
         run: |
@@ -89,6 +89,10 @@ jobs:
           cp legal/THIRD_PARTY_NOTICES.md portable-linux/THIRD_PARTY_NOTICES.txt
           cp /usr/share/doc/ffmpeg/copyright portable-linux/FFMPEG_LICENSE.txt
           tar -C portable-linux -czf SamNPlayer-portable-linux-amd64.tar.gz .
+          # Suite: same bundle, suite GUI. Built for compile check only; not published.
+          cp -r portable-linux portable-linux-suite
+          cp SamNPlayer-suite-gui-linux-amd64 portable-linux-suite/SamNPlayer
+          tar -C portable-linux-suite -czf SamNPlayer-suite-portable-linux-amd64.tar.gz .
 
       - name: Run tests (non-GUI packages)
         run: go test ./funscript/... ./device/... ./player/... ./update/... ./generator/... ./videox/...
@@ -205,8 +209,6 @@ jobs:
             -ldflags "-X github.com/funfunpayer/SamNPlayer/update.Version=${{ steps.version.outputs.version }}"
           mv build/bin/SamNPlayer.exe ../../SamNPlayer-suite-gui-windows-amd64.exe
           ls -la ../../SamNPlayer-suite-gui-windows-amd64.exe ../../SamNPlayer-suite-cli-windows-amd64.exe
-          # Compile check only — do not publish Suite (N1 / D14).
-          rm -f ../../SamNPlayer-suite-gui-windows-amd64.exe ../../SamNPlayer-suite-cli-windows-amd64.exe
 
       # Must use msys2 (job default): Git Bash cannot see /mingw64 OpenCV DLLs.
       - name: Bundle portable Windows (GUI + ffmpeg + OpenCV DLLs)
@@ -243,6 +245,10 @@ jobs:
           test "$n" -ge 20
           # -r required: Info-ZIP treats bare "." as nothing without recurse.
           (cd portable-windows && zip -q -r ../SamNPlayer-portable-windows-amd64.zip .)
+          # Suite: same DLLs + ffmpeg, suite GUI. Built for compile check only; not published.
+          cp -r portable-windows portable-windows-suite
+          cp SamNPlayer-suite-gui-windows-amd64.exe portable-windows-suite/SamNPlayer.exe
+          (cd portable-windows-suite && zip -q -r ../SamNPlayer-suite-portable-windows-amd64.zip .)
           # Keep CLI next to the zip for the release asset list.
           ls -la SamNPlayer-cli-windows-amd64.exe SamNPlayer-gui-windows-amd64.exe \
             SamNPlayer-portable-windows-amd64.zip
@@ -275,17 +281,6 @@ jobs:
           name: windows-amd64
           path: dist
 
-      - name: Guard: no suite files in publish set
-        working-directory: dist
-        run: |
-          set -euo pipefail
-          if find . -name '*suite*' | grep -q .; then
-            echo "ERROR: Suite files must not be published (N1 / D14)"
-            find . -name '*suite*'
-            exit 1
-          fi
-          echo "OK: no suite files in publish set"
-
       - name: Checksums
         working-directory: dist
         run: |
@@ -299,6 +294,17 @@ jobs:
             > checksums.txt
           cat checksums.txt
           ls -la
+
+      - name: Guard: no Suite files in publish set
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          if find . -iname '*suite*' | grep -q .; then
+            echo "ERROR: Suite files found in publish directory (must stay private, D14)"
+            find . -iname '*suite*'
+            exit 1
+          fi
+          echo "OK: no Suite files in publish set"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
