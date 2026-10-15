@@ -3,6 +3,7 @@
 Mirrors key cases from funscript_test.go and parse_compat_test.go (core path).
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,8 @@ try:
 except ImportError as e:
     print("SKIP: funscript_native not built", file=sys.stderr)
     print(e, file=sys.stderr)
-    sys.exit(0)
+    # CI sets SAMN_NATIVE_REQUIRED=1: a missing module must fail there, not pass.
+    sys.exit(1 if os.environ.get("SAMN_NATIVE_REQUIRED") else 0)
 
 
 def pairs(s):
@@ -66,12 +68,25 @@ def test_clamp_pos():
     assert pairs(s) == [(0, 0), (100, 100)]
 
 
+def test_full_metadata():
+    js = '{"actions":[{"at":0,"pos":0},{"at":1000,"pos":100}],"metadata":{"duration":1.5,"creator":"test","quality_score":0.9}}'
+    s = fs.parse(js)
+    assert s.duration_meta == 1500
+    assert "creator" in s.metadata_json
+    assert "test" in s.metadata_json
+    out = fs.write(s)
+    assert "creator" in out
+    assert "test" in out
+    assert '"duration": 1500' in out or '"duration":1500' in out
+
+
 def main():
     test_float_actions()
     test_corrupt_times()
     test_duration_ofs()
     test_inverted()
     test_clamp_pos()
+    test_full_metadata()
     print("All funscript parity checks passed.")
 
 

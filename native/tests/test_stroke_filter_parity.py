@@ -3,6 +3,7 @@
 Mirrors key cases from stroke_filter_test.go.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,8 @@ try:
 except ImportError as e:
     print("SKIP: stroke_filter_native not built", file=sys.stderr)
     print(e, file=sys.stderr)
-    sys.exit(0)
+    # CI sets SAMN_NATIVE_REQUIRED=1: a missing module must fail there, not pass.
+    sys.exit(1 if os.environ.get("SAMN_NATIVE_REQUIRED") else 0)
 
 
 def actions_from_pairs(pairs):

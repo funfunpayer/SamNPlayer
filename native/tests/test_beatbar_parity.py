@@ -10,6 +10,7 @@ Run from repo root after building:
 
 import math
 import random
+import os
 import sys
 from pathlib import Path
 
@@ -21,7 +22,8 @@ try:
 except ImportError as e:
     print("SKIP: beatbar_native not built or not on PYTHONPATH", file=sys.stderr)
     print(e, file=sys.stderr)
-    sys.exit(0)
+    # CI sets SAMN_NATIVE_REQUIRED=1: a missing module must fail there, not pass.
+    sys.exit(1 if os.environ.get("SAMN_NATIVE_REQUIRED") else 0)
 
 
 def synth_beat_video(n, w, h, y0, y1, target_x, speed, period, seed):

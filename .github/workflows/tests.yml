@@ -306,3 +306,60 @@ jobs:
           ls -la build/bin/SamNPlayer.exe
           bash ../../scripts/collect-mingw-opencv-dlls.sh build/bin/SamNPlayer.exe /tmp/gui-dlls
           ls /tmp/gui-dlls/libopencv_tracking*.dll
+
+  native:
+    name: Native (C++ / pybind11, Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build deps
+        run: scripts/ci/apt-install.sh build-essential cmake python3-dev
+      - name: Install pybind11
+        run: pip install pybind11
+      - name: Build native module
+        working-directory: native
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
+          make -j$(nproc)
+      - name: Parity tests
+        run: |
+          SAMN_NATIVE_REQUIRED=1 PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
+          SAMN_NATIVE_REQUIRED=1 PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
+          SAMN_NATIVE_REQUIRED=1 PYTHONPATH=native/build python3 native/tests/test_beat_strokes_parity.py
+          SAMN_NATIVE_REQUIRED=1 PYTHONPATH=native/build python3 native/tests/test_funscript_parity.py
+
+  native-windows:
+    name: Native (C++ / pybind11, Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pybind11
+        run: pip install pybind11
+      - name: Build native module
+        working-directory: native
+        shell: pwsh
+        run: |
+          mkdir build
+          cd build
+          $pybindDir = python -m pybind11 --cmakedir
+          cmake .. -Dpybind11_DIR="$pybindDir" -G "Visual Studio 17 2022" -A x64
+          cmake --build . --config Release
+      - name: Parity tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "native/build/Release"
+          $env:SAMN_NATIVE_REQUIRED = "1"
+          python native/tests/test_beatbar_parity.py
+          python native/tests/test_stroke_filter_parity.py
+          python native/tests/test_beat_strokes_parity.py
+          python native/tests/test_funscript_parity.py
