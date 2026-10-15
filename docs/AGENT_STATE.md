@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026, Grok (MEDIA-01 completed: unknown-codec parity test), branch `claude/keen-davinci-t2ysrs`.
+**Last update:** 15 Oct 2026, Grok (training scripts Suite-only), branch `claude/keen-davinci-t2ysrs`.
 
 ## Who works how
 
@@ -48,12 +48,15 @@ is the short, current state.
 
 ## In progress
 
+- **ENG-01 / HANDOFF task 3:** Training scripts (`train_yolo_model.py`, `bootstrap_yolo_dataset.py`, `export_yolo_onnx.py`, `requirements-ai-train.txt`) are in `generator/suite_scripts/` and embedded only under `//go:build suite`. Free builds have stubs returning "Suite only". `go test ./generator/` succeeds with and without `-tags suite`.
+
 - **M1:** `native/` C++ library with CMake + pybind11.
-  - Beat-bar pure functions fully ported.
-  - Stroke filter fully ported (PCHIP/Makima, max speed, idle fill).
-  - Funscript core parse/write ported (actions with float rounding/clamp/corrupt drop, inverted, duration OFS rules). Parity tests `native/tests/test_funscript_parity.py`.
-  - Linux and Windows CI build the modules and run all parity tests.
-  - Profile (M0) still needed before claiming speed.
+  - Beat-bar pure functions fully ported (FindBeatBar, BeatTimes, peaks, target, tracker). Parity tests (`native/tests/test_beatbar_parity.py`) mirror the Go synthetic cases.
+  - Stroke filter fully ported (PCHIP/Makima smooth, max speed, idle fill). Parity tests (`native/tests/test_stroke_filter_parity.py`) mirror key Go cases.
+  - BeatStrokes fully ported (one stroke per beat, speed limit, hold on long gaps). Parity tests (`native/tests/test_beat_strokes_parity.py`) mirror the Go cases.
+  - Funscript core parse/write ported (actions with float rounding/clamp/corrupt drop, inverted, duration OFS rules). Parity tests (`native/tests/test_funscript_parity.py`). nlohmann/json fetched via CMake.
+  - Linux and Windows CI jobs build all modules and run all parity tests.
+  - Next: more pure functions if needed; Profile (M0) still required before claiming speed.
 - **M0, generator profile:** measure where Generate spends its time
   (CSRT tracking, frame decode, post-processing), with OpenCV built locally
   (`-tags opencv`, `libopencv-dev`). Result goes to
@@ -61,18 +64,18 @@ is the short, current state.
 
 ## Open, in order
 
-1. **Before tagging v0.7.0:** Suite files must not go public (D14) — **done in this branch** (`release.yml` builds Suite as compile check only, excludes from artifacts/checksums/release, guard step fails on any `suite` name). Then the **Owner** pushes the tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
-2. **MEDIA-01 (done):** lean MP4 probe leaves unknown/empty codec empty (no h264 default); empty or unknown is not playable so the proxy is offered. Covered by `TestProbeISOBMFFUnknownCodec`.
-3. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
-4. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
+1. **Before tagging v0.7.0:** Suite files must not go public (D14), per
+   `docs/next/HANDOFF_2026-10-15.md` task 1. Then the **Owner** pushes the
+   tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
+2. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
+3. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
    plus a shortcut sheet, device wizard. New code for these goes in Python
    where the migration has reached that part.
-5. Beat bar: an audio onset fallback for Hero rounds without a visible bar;
+4. Beat bar: an audio onset fallback for Hero rounds without a visible bar;
    a beat-bar overlay in the Editor.
-6. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
-7. Sentry for **development builds only**: needs a project and DSN from the
-   Owner (org `funfun-0q`, region de.sentry.io). It must never be in the
-   shipped app.
+5. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
+6. Sentry for **development builds only**: needs a project and DSN from the
+   Owner (org `funfun-0q`, region de.sentry.io). It must never be in the shipped app.
 
 ## Waiting on the Owner
 
