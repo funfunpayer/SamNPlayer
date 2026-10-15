@@ -23,6 +23,32 @@ func sampleCustomScript(name string) player.TrainingScript {
 	}
 }
 
+func TestListTrainingScriptsExposeCategoryAndLevel(t *testing.T) {
+	a := NewApp()
+	list := a.ListTrainingScripts()
+	var sawLadder bool
+	for _, s := range list {
+		if s.Custom {
+			continue
+		}
+		if s.Category == "" || s.Level < 1 {
+			t.Fatalf("builtin %q missing category/level: %+v", s.Name, s)
+		}
+		if s.Name == "endurance-ladder" {
+			sawLadder = true
+			if s.Category != player.TrainingCategoryEndurance || s.Level != 2 {
+				t.Fatalf("endurance-ladder meta: %+v", s)
+			}
+			if len(s.PhaseNames) < 4 || s.PhaseNames[0] != "Warm Up" {
+				t.Fatalf("endurance-ladder phases: %v", s.PhaseNames)
+			}
+		}
+	}
+	if !sawLadder {
+		t.Fatal("endurance-ladder missing from ListTrainingScripts")
+	}
+}
+
 func TestSaveTrainingScriptRoundTrips(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	a := NewApp()

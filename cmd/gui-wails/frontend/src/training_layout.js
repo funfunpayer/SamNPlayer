@@ -7,7 +7,7 @@
 // stay). New parts only show real data: the planned phases and total come
 // from TrainingScriptPreview (tr:plan) or the Custom timings, the clock runs
 // while the training runs, recent sessions are the training history.
-import { ListTrainingScripts, PauseTraining, ResumeTraining } from '../wailsjs/go/main/App';
+import { ListTrainingScripts, TrainingHistory, PauseTraining, ResumeTraining } from '../wailsjs/go/main/App';
 
 function make(tag, cls, text) {
   const e = document.createElement(tag);
@@ -123,6 +123,14 @@ export function applyTrainingLayoutV1(root) {
   nav.setAttribute('aria-label', 'Training');
   nav.innerHTML = `
     <p class="trl-nav-title">Training</p>
+    <p class="trl-nav-sub">Category</p>
+    <div class="trl-cat-row" id="trl-cats" role="toolbar" aria-label="Program category">
+      <button type="button" class="trl-cat is-active" data-cat="">All</button>
+      <button type="button" class="trl-cat" data-cat="control">Control</button>
+      <button type="button" class="trl-cat" data-cat="endurance">Endurance</button>
+      <button type="button" class="trl-cat" data-cat="edge">Edge Play</button>
+      <button type="button" class="trl-cat" data-cat="body">Body</button>
+    </div>
     <p class="trl-nav-sub">Programs</p>
     <ul class="trl-nav-list" id="trl-programs"></ul>
     <p class="trl-nav-sub">My programs</p>
@@ -132,43 +140,77 @@ export function applyTrainingLayoutV1(root) {
     <button type="button" class="trl-nav-item" id="trl-nav-history">History</button>`;
 
   const scriptSel = q('#tr-script');
+  let programList = [];
+  let categoryFilter = '';
+  const CAT_LABEL = { control: 'Control', endurance: 'Endurance', edge: 'Edge', body: 'Body' };
   const pick = value => {
     if (!scriptSel) return;
     scriptSel.value = value;
     scriptSel.dispatchEvent(new Event('change'));
   };
+  function programLabel(s) {
+    const opt = scriptSel?.querySelector(`option[value="${CSS.escape(s.name)}"]`);
+    if (opt) return opt.textContent;
+    const bits = [s.name.replace(/-/g, ' ')];
+    if (s.level > 0) bits.push('L' + s.level);
+    return bits.join(' · ');
+  }
   function renderPrograms(list) {
+    programList = Array.isArray(list) ? list : [];
     const builtin = q('#trl-programs');
     const mine = q('#trl-my-programs');
     builtin.replaceChildren();
     mine.replaceChildren();
-    const add = (ul, value, label) => {
+    const add = (ul, value, label, meta) => {
       const li = make('li');
       const b = make('button', 'trl-nav-link', label);
       b.type = 'button';
       b.dataset.value = value;
+      if (meta?.category) b.dataset.category = meta.category;
       b.addEventListener('click', () => pick(value));
       li.append(b);
+      if (meta?.level > 0 || meta?.category) {
+        const tag = make('span', 'trl-nav-tags');
+        if (meta.category && CAT_LABEL[meta.category]) {
+          tag.append(make('span', 'trl-tag', CAT_LABEL[meta.category]));
+        }
+        if (meta.level > 0) tag.append(make('span', 'trl-tag is-level', 'L' + meta.level));
+        li.append(tag);
+      }
       ul.append(li);
     };
     add(builtin, '', 'Custom (Stop-Start / Plateau)');
-    for (const s of list.filter(x => !x.custom)) {
-      const opt = scriptSel?.querySelector(`option[value="${CSS.escape(s.name)}"]`);
-      add(builtin, s.name, opt ? opt.textContent : s.name);
+    const builtins = programList.filter(x => !x.custom)
+      .filter(x => !categoryFilter || x.category === categoryFilter);
+    for (const s of builtins) add(builtin, s.name, programLabel(s), s);
+    if (!builtins.length && categoryFilter) {
+      builtin.append(make('li', 'trl-nav-empty', 'No programs in this category'));
     }
-    const custom = list.filter(x => x.custom);
+    const custom = programList.filter(x => x.custom);
     if (!custom.length) mine.append(make('li', 'trl-nav-empty', 'None saved yet'));
-    for (const s of custom) add(mine, s.name, s.name);
+    for (const s of custom) add(mine, s.name, s.name, s);
     syncNav();
   }
   function syncNav() {
     const v = scriptSel ? scriptSel.value : '';
     nav.querySelectorAll('.trl-nav-link').forEach(b => b.classList.toggle('is-active', b.dataset.value === v));
   }
+  q('#trl-cats')?.addEventListener('click', e => {
+    const btn = e.target.closest('.trl-cat');
+    if (!btn) return;
+    categoryFilter = btn.dataset.cat || '';
+    q('#trl-cats').querySelectorAll('.trl-cat').forEach(c => c.classList.toggle('is-active', c === btn));
+    renderPrograms(programList);
+  });
   async function loadPrograms() {
-    try { renderPrograms(Array.isArray(await ListTrainingScripts()) ? await ListTrainingScripts() : []); }
-    catch (_) { renderPrograms([]); }
+    try {
+      const list = await ListTrainingScripts();
+      renderPrograms(Array.isArray(list) ? list : []);
+    } catch (_) { renderPrograms([]); }
   }
+  window.addEventListener('tr:scripts', e => {
+    if (Array.isArray(e.detail?.scripts)) renderPrograms(e.detail.scripts);
+  });
 
   // ---- Centre --------------------------------------------------------------
   const main = make('div', 'trl-main');
@@ -312,6 +354,13 @@ export function applyTrainingLayoutV1(root) {
     const n = q(sel);
     if (n) feedback.append(n);
   }
+  const recap = card('trl-recap', 'Last session');
+  recap.id = 'trl-recap';
+  const recapBody = make('div', 'trl-recap-body');
+  recapBody.id = 'trl-recap-body';
+  recapBody.textContent = 'Finish a session to see a short recap here.';
+  recap.append(recapBody);
+
   const recent = card('trl-recent', 'Recent sessions');
   const histHead = q('#tr-history-export')?.parentElement;
   if (histHead) { histHead.querySelector('h3')?.remove(); recent.append(histHead); }
@@ -323,7 +372,30 @@ export function applyTrainingLayoutV1(root) {
   logBox.append(make('summary', '', 'Session log'));
   const log = q('#tr-log');
   if (log) logBox.append(log);
-  side.append(settings, mode, safety, feedback, recent, logBox);
+  side.append(settings, mode, safety, feedback, recap, recent, logBox);
+
+  function showRecap(s) {
+    const box = q('#trl-recap-body');
+    if (!box) return;
+    if (!s || typeof s !== 'object') {
+      box.textContent = 'Finish a session to see a short recap here.';
+      return;
+    }
+    const tech = String(s.technique || 'session').replace(/-/g, ' ');
+    const peak = Math.round((Number(s.meanPeakIntensity) || 0) * 100);
+    const stopped = Number(s.cyclesStoppedEarly) || 0;
+    const cycles = Number(s.cyclesCompleted) || 0;
+    const arousal = Number(s.arousalReportsCount) > 0
+      ? ` · avg feedback ${Number(s.meanArousalReported).toFixed(1)}` : '';
+    box.replaceChildren();
+    box.append(
+      make('p', 'trl-recap-title', tech),
+      make('p', 'trl-recap-line', `${cycles} cycles · avg peak ${peak}%${stopped ? ` · ${stopped}× interrupted` : ''}${arousal}`),
+      make('p', 'trl-recap-hint', 'Logged under Recent sessions. Export CSV from History when you want a file.'),
+    );
+  }
+  window.addEventListener('tr:session-recap', e => showRecap(e.detail?.session));
+  TrainingHistory().then(h => { if (Array.isArray(h) && h[0]) showRecap(h[0]); }).catch(() => {});
 
   // Swap in the three columns; the old two-column wrapper goes.
   const layout = q('.tr-layout');

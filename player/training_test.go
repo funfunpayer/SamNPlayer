@@ -614,7 +614,34 @@ func TestBuiltinTrainingScriptsAreValid(t *testing.T) {
 			if script.Description == "" {
 				t.Errorf("Script %q hat keine Beschreibung fürs GUI-Dropdown", script.Name)
 			}
+			switch script.Category {
+			case TrainingCategoryControl, TrainingCategoryEndurance, TrainingCategoryEdge, TrainingCategoryBody:
+			default:
+				t.Errorf("Script %q: category %q missing or unknown", script.Name, script.Category)
+			}
+			if script.Level < 1 || script.Level > 3 {
+				t.Errorf("Script %q: level %d want 1–3", script.Name, script.Level)
+			}
 		})
+	}
+}
+
+func TestBuiltinTrainingScriptsHaveCategoryCoverage(t *testing.T) {
+	seen := map[string]bool{}
+	for _, script := range BuiltinTrainingScripts() {
+		seen[script.Category] = true
+	}
+	for _, cat := range []string{
+		TrainingCategoryControl, TrainingCategoryEndurance, TrainingCategoryEdge, TrainingCategoryBody,
+	} {
+		if !seen[cat] {
+			t.Errorf("missing built-in in category %s", cat)
+		}
+	}
+	for _, name := range []string{"endurance-ladder", "edge-ladder", "breathing-pace", "pelvic-floor"} {
+		if _, ok := BuiltinTrainingScript(name); !ok {
+			t.Errorf("missing level/body program %q", name)
+		}
 	}
 }
 
