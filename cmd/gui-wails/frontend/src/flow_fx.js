@@ -15,6 +15,8 @@
 const STATES = new Set(['idle', 'playing', 'paused']);
 const LOGO_URL = new URL('./assets/images/logo-universal.png', import.meta.url).href;
 const SILK_URL = new URL('./assets/flow/stage-ribbons.svg', import.meta.url).href;
+const SILK_TOP_URL = new URL('./assets/flow/bg-top.svg', import.meta.url).href;
+const SILK_BOT_URL = new URL('./assets/flow/bg-bottom.svg', import.meta.url).href;
 let nextInstanceId = 0;
 
 function visibilityEnabled(root, inViewport, reducedMotion) {
@@ -36,6 +38,13 @@ export function mountFlowStage(el, opts = {}) {
   // Unique filter/id scope if any SVG is added later; keep instance stamp.
   root.dataset.fxId = String(++nextInstanceId);
 
+  // Corner silk (same lush assets as app chrome) + stage ribbons bridge.
+  const silkAura = document.createElement('div');
+  silkAura.className = 'flow-fx__silk-aura';
+  silkAura.setAttribute('aria-hidden', 'true');
+  silkAura.style.setProperty('--flow-fx-silk-top', `url("${SILK_TOP_URL}")`);
+  silkAura.style.setProperty('--flow-fx-silk-bot', `url("${SILK_BOT_URL}")`);
+
   const silk = document.createElement('div');
   silk.className = 'flow-fx__silk';
   silk.setAttribute('aria-hidden', 'true');
@@ -52,7 +61,7 @@ export function mountFlowStage(el, opts = {}) {
   mark.alt = '';
   mark.draggable = false;
 
-  root.append(silk, glow, mark);
+  root.append(silkAura, silk, glow, mark);
   el.appendChild(root);
 
   let destroyed = false;

@@ -11,7 +11,19 @@
   isolation: isolate;
   background: radial-gradient(ellipse at 50% 48%, rgba(8, 44, 68, .42), transparent 68%);
 }
-/* Dual-layer silk: soft bloom under sharper filaments so small hosts still read “lush”. */
+/* App-chrome silk aura (bg-top / bg-bottom) — volume behind the stage ribbons. */
+.flow-fx__silk-aura {
+  position: absolute;
+  inset: -8% -18%;
+  z-index: 0;
+  background:
+    var(--flow-fx-silk-top) 78% 18% / 78% auto no-repeat,
+    var(--flow-fx-silk-bot) 12% 88% / 72% auto no-repeat;
+  opacity: .88;
+  filter: saturate(1.2) brightness(1.08);
+  transform-origin: center;
+}
+/* Dual-layer stage ribbons: soft bloom under sharper filaments. */
 .flow-fx__silk {
   position: absolute;
   inset: -28% -36%;
@@ -53,7 +65,8 @@
   display: block;
   filter: drop-shadow(0 0 18px rgba(6, 208, 242, .5)) drop-shadow(0 0 32px rgba(255, 138, 35, .28));
 }
-.flow-fx[data-state="paused"] .flow-fx__silk { opacity: .52; }
+.flow-fx[data-state="paused"] .flow-fx__silk,
+.flow-fx[data-state="paused"] .flow-fx__silk-aura { opacity: .48; }
 .flow-fx[data-state="paused"] .flow-fx__glow { opacity: .45; }
 .flow-fx[data-state="playing"] .flow-fx__mark {
   filter: drop-shadow(0 0 22px rgba(4, 219, 249, .55)) drop-shadow(0 0 36px rgba(255, 138, 35, .3));
@@ -62,15 +75,21 @@
 .flow-fx--animate[data-state="idle"] .flow-fx__glow { animation: flow-fx-breathe 7s ease-in-out infinite; }
 .flow-fx--animate[data-state="idle"] .flow-fx__mark { animation: flow-fx-float 6s ease-in-out infinite; }
 .flow-fx--animate[data-state="idle"] .flow-fx__silk { animation: flow-fx-silk-drift 18s ease-in-out infinite alternate; }
+.flow-fx--animate[data-state="idle"] .flow-fx__silk-aura { animation: flow-fx-aura-drift 26s ease-in-out infinite alternate; }
 .flow-fx--animate[data-state="playing"] .flow-fx__glow { animation: flow-fx-breathe 4s ease-in-out infinite; }
 .flow-fx--animate[data-state="playing"] .flow-fx__mark { animation: flow-fx-float 4s ease-in-out infinite; }
 .flow-fx--animate[data-state="playing"] .flow-fx__silk { animation: flow-fx-silk-drift 9s ease-in-out infinite alternate; }
+.flow-fx--animate[data-state="playing"] .flow-fx__silk-aura { animation: flow-fx-aura-drift 14s ease-in-out infinite alternate; }
 
 @keyframes flow-fx-breathe { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
 @keyframes flow-fx-float { 0%, 100% { transform: translateY(2px); } 50% { transform: translateY(-5px); } }
 @keyframes flow-fx-silk-drift {
   0%   { transform: translate(-1.5%, 0.5%) scale(1); opacity: .85; }
   100% { transform: translate(1.8%, -0.8%) scale(1.05); opacity: .98; }
+}
+@keyframes flow-fx-aura-drift {
+  0%   { transform: translate(1%, -0.6%) scale(1); opacity: .72; }
+  100% { transform: translate(-1.2%, 0.8%) scale(1.06); opacity: .92; }
 }
 
 @media (prefers-reduced-motion: reduce) {
