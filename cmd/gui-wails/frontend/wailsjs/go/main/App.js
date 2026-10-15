@@ -14,6 +14,7 @@ export function SetChannelLevels(arg1, arg2) { return window['go']['main']['App'
 export function SetPeakReduce(arg1) { return window['go']['main']['App']['SetPeakReduce'](arg1); }
 export function SetStrokeOutput(arg1, arg2, arg3) { return window['go']['main']['App']['SetStrokeOutput'](arg1, arg2, arg3); }
 export function SetMotorLevels(arg1) { return window['go']['main']['App']['SetMotorLevels'](arg1); }
+export function CreateBeatBarScript(arg1) { return window['go']['main']['App']['CreateBeatBarScript'](arg1); }
 export function CreateScriptAxis(arg1) { return window['go']['main']['App']['CreateScriptAxis'](arg1); }
 export function ListSerialPorts() { return window['go']['main']['App']['ListSerialPorts'](); }
 export function SetPlaybackSpeed(arg1) { return window['go']['main']['App']['SetPlaybackSpeed'](arg1); }

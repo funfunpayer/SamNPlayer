@@ -52,8 +52,8 @@ Each item here was seen in at least one other player. We build our own version a
 
 | # | Feature | Seen in | Size |
 |---|---|---|---|
-| 1 | **Find scripts:** script folders besides the video's own folder; variants of one video (Soft/Hard), switchable; tolerant names, e.g. "Film (2019)". | all four | S–M |
-| 2 | **Smooth stroker output, as a live playback filter** (the file stays untouched): PCHIP/MAKIMA interpolation instead of point to point; speed limit per axis; home position on pause; idle fill. Soft start ✅ v0.7.0. | MultiFunPlayer, ScriptPlayer, UwU Player | M |
+| 1 ✅ | **Find scripts:** script folders besides the video's own folder; variants of one video (Soft/Hard), switchable; tolerant names, e.g. "Film (2019)". | all four | S–M |
+| 2 ✅ | **Smooth stroker output, as a live playback filter** (the file stays untouched): PCHIP/MAKIMA interpolation instead of point to point; speed limit per axis; home position on pause; idle fill. Soft start ✅ v0.7.0. | MultiFunPlayer, ScriptPlayer, UwU Player | M |
 | 3 | **Audio files with a script** (MP3, FLAC, …). | ScriptPlayer+ | S |
 | 4 | **Library as tiles:** thumbnails, hover preview, sort and rating. | BetterPlayer, ScriptPlayer+ | M |
 | 5 | **Skip long pauses** (with a delay); **keyboard shortcut sheet**, shortcuts customisable. | ScriptPlayer, ScriptPlayer+, MultiFunPlayer | S |
@@ -71,6 +71,7 @@ Each item here was seen in at least one other player. We build our own version a
 | **Funscript Heatmap Generator** | Folder in → a heatmap per script, one **combined multi-axis heatmap**, speed statistics, chapter timeline. | We export a heatmap PNG for one script. Small add: multi-axis and a folder at once, with statistics. |
 | **StrokeGPT** (chat-driven Handy) | Users found v2 broken, rolled back to v1.5; antivirus warnings. | Confirms: not now. |
 | **Lovense software bridge** (question thread) | Games that only speak Lovense (Game Mode REST API) — users want them to drive an OSR2 / Handy. Idea: a local server that speaks the Lovense Game Mode API and forwards to Intiface. | Interesting, but it imitates a vendor's API; legal check first. Not now. |
+| **Cock Hero / Fap Hero beat bars** (Owner 15 Oct; Condor PMV maker; Rantark's beat-bar video creator, MIT) | PMV makers derive beats from the music. Rantark's tool draws a bar into a video and needs a region chosen by hand. | ✅ **From the beat bar:** we find the strip ourselves (horizontal or at a side edge) and turn every dot hitting the target into a stroke. Next: an **audio onset fallback** for Hero rounds without a visible bar, and a beat-bar overlay in the Editor for checking. |
 | **BuzzyBody**, **Fap Hero Journey** | Android player for cheap LoveSpouse toys; a game-style sync player. | Far from our core. Not now. |
 
 ---
