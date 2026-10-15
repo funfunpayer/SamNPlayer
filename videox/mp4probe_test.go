@@ -1,8 +1,8 @@
 package videox
 
 import (
+	"bytes"
 	"context"
-	"encoding/binary"
 	"os"
 	"path/filepath"
 	"testing"
@@ -97,86 +97,40 @@ func TestProbePrefersFFprobeWhenPresent(t *testing.T) {
 }
 
 func TestProbeISOBMFFUnknownCodec(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "unknown.mp4")
-	if err := writeStubUnknownCodecMP4(path); err != nil {
+	path := makeTestVideo(t)
+	// Patch the last avc1/avc3 (sample-entry type inside stsd, not the ftyp brand)
+	// so the lean probe cannot map it to a known codec (MEDIA-01: must not default to h264).
+	b, err := os.ReadFile(path)
+	if err != nil {
 		t.Fatal(err)
 	}
+	patched := false
+	for _, old := range [][]byte{[]byte("avc1"), []byte("avc3")} {
+		i := bytes.LastIndex(b, old)
+		if i >= 0 {
+			copy(b[i:], []byte("unkn"))
+			patched = true
+			break
+		}
+	}
+	if !patched {
+		t.Fatal("could not find avc1/avc3 sample entry to patch")
+	}
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	info, err := probeISOBMFF(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Codec == "h264" || info.PixFmt == "yuv420p" {
-		t.Fatalf("unknown codec defaulted to h264/yuv420p: %+v", info)
+	if info.Codec == "h264" || info.Codec == "avc1" {
+		t.Fatalf("unknown sample entry defaulted to known codec: %q", info.Codec)
 	}
 	if info.LikelyPlayable() {
-		t.Fatalf("unknown codec treated as playable: %+v", info)
+		t.Fatalf("unknown codec %q treated as playable", info.Codec)
 	}
 	if info.Width != 320 || info.Height != 240 {
-		t.Fatalf("geometry %dx%d, want 320x240", info.Width, info.Height)
+		t.Fatalf("geometry lost after patch: %dx%d", info.Width, info.Height)
 	}
-	if info.Codec == "" {
-		t.Log("codec empty (acceptable for unknown)")
-	} else {
-		t.Logf("codec reported as %q (not h264, good)", info.Codec)
-	}
-}
-
-func writeStubUnknownCodecMP4(path string) error {
-	var file []byte
-
-	writeBox := func(dst *[]byte, typ string, payload []byte) {
-		size := uint32(8 + len(payload))
-		hdr := make([]byte, 4)
-		binary.BigEndian.PutUint32(hdr, size)
-		*dst = append(*dst, hdr...)
-		*dst = append(*dst, typ...)
-		*dst = append(*dst, payload...)
-	}
-
-	// ftyp
-	writeBox(&file, "ftyp", []byte("isom\x00\x00\x02\x00isomiso2mp41"))
-
-	// moov payload
-	var moov []byte
-	mvhd := make([]byte, 100)
-	binary.BigEndian.PutUint32(mvhd[12:16], 1000)
-	binary.BigEndian.PutUint32(mvhd[16:20], 2000)
-	writeBox(&moov, "mvhd", mvhd)
-
-	// trak
-	var trak []byte
-	tkhd := make([]byte, 84)
-	binary.BigEndian.PutUint32(tkhd[76:80], 320<<16)
-	binary.BigEndian.PutUint32(tkhd[80:84], 240<<16)
-	writeBox(&trak, "tkhd", tkhd)
-
-	// mdia
-	var mdia []byte
-	mdhd := make([]byte, 24)
-	binary.BigEndian.PutUint32(mdhd[12:16], 1000)
-	binary.BigEndian.PutUint32(mdhd[16:20], 2000)
-	writeBox(&mdia, "mdhd", mdhd)
-
-	// stsd with unknown "xxxx"
-	var stsd []byte
-	stsd = append(stsd, 0, 0, 0, 0) // version + flags
-	stsd = append(stsd, 0, 0, 0, 1) // entry_count = 1
-	entry := make([]byte, 40)
-	binary.BigEndian.PutUint32(entry[0:4], uint32(len(entry)))
-	copy(entry[4:8], "xxxx")
-	binary.BigEndian.PutUint16(entry[32:34], 320)
-	binary.BigEndian.PutUint16(entry[34:36], 240)
-	stsd = append(stsd, entry...)
-
-	var stbl []byte
-	writeBox(&stbl, "stsd", stsd)
-
-	var minf []byte
-	writeBox(&minf, "stbl", stbl)
-	writeBox(&mdia, "minf", minf)
-	writeBox(&trak, "mdia", mdia)
-	writeBox(&moov, "trak", trak)
-	writeBox(&file, "moov", moov)
-
-	return os.WriteFile(path, file, 0644)
 }

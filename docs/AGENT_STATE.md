@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026, Grok (MEDIA-01 unknown-codec stub test), branch `claude/keen-davinci-t2ysrs`.
+**Last update:** 15 Oct 2026, Grok (MEDIA-01 completed: unknown-codec parity test), branch `claude/keen-davinci-t2ysrs`.
 
 ## Who works how
 
@@ -48,23 +48,38 @@ is the short, current state.
 
 ## In progress
 
-- **M1:** `native/` C++ library with CMake + pybind11. Beat-bar, stroke filter, funscript core (parse/write + full metadata) ported. Linux + Windows CI green on parity tests. Next: more ports only if profile shows need.
-- **M0, generator profile:** harness added (`scripts/profile-generator.sh` + `docs/owner/generator-profile-2026-10.md`). Needs a real OpenCV run on a clip to fill the top sinks.
-- **M2 start:** `app/generator_orch.py` — Python orchestration skeleton that calls the already-ported native modules (funscript, stroke filter). Tracking loop still pending the C++ OpenCV port.
-- **MEDIA-01:** lean MP4 probe leaves unknown codec empty / raw fourcc (not defaulted to h264). Stub test `TestProbeISOBMFFUnknownCodec` locks it: unknown sample entry → not LikelyPlayable, proxy offered.
+- **M1:** `native/` C++ library with CMake + pybind11.
+  - Beat-bar pure functions fully ported.
+  - Stroke filter fully ported (PCHIP/Makima, max speed, idle fill).
+  - Funscript core parse/write ported (actions with float rounding/clamp/corrupt drop, inverted, duration OFS rules). Parity tests `native/tests/test_funscript_parity.py`.
+  - Linux and Windows CI build the modules and run all parity tests.
+  - Profile (M0) still needed before claiming speed.
+- **M0, generator profile:** measure where Generate spends its time
+  (CSRT tracking, frame decode, post-processing), with OpenCV built locally
+  (`-tags opencv`, `libopencv-dev`). Result goes to
+  `docs/owner/generator-profile-2026-10.md`.
 
 ## Open, in order
 
-1. **Before tagging v0.7.0:** Suite files must not go public (D14) — already guarded in `release.yml`. Then the **Owner** pushes the tag `v0.7.0`.
-2. Migration M0 → M1 → M2. Finish M0 measurement, then M2 generator orchestration in Python + C++.
-3. v0.8 items 3–6: audio files with a script, library tiles, skip pauses plus a shortcut sheet, device wizard. New code for these goes in Python where the migration has reached that part.
-4. Beat bar: an audio onset fallback for Hero rounds without a visible bar; a beat-bar overlay in the Editor.
-5. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
-6. Sentry for **development builds only**: needs a project and DSN from the Owner.
+1. **Before tagging v0.7.0:** Suite files must not go public (D14) — **done in this branch** (`release.yml` builds Suite as compile check only, excludes from artifacts/checksums/release, guard step fails on any `suite` name). Then the **Owner** pushes the tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
+2. **MEDIA-01 (done):** lean MP4 probe leaves unknown/empty codec empty (no h264 default); empty or unknown is not playable so the proxy is offered. Covered by `TestProbeISOBMFFUnknownCodec`.
+3. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
+4. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
+   plus a shortcut sheet, device wizard. New code for these goes in Python
+   where the migration has reached that part.
+5. Beat bar: an audio onset fallback for Hero rounds without a visible bar;
+   a beat-bar overlay in the Editor.
+6. Editor E1–E5 (`ROADMAP_2026-10.md` §4).
+7. Sentry for **development builds only**: needs a project and DSN from the
+   Owner (org `funfun-0q`, region de.sentry.io). It must never be in the
+   shipped app.
 
 ## Waiting on the Owner
 
-- Tag `v0.7.0` (after item 1).
-- Hardware tests with the Sam Neo 2.
-- Migration host: Python + pywebview (recommended).
-- Delete old branches; public download link in the forum post.
+- Tag `v0.7.0` (after item 1 above).
+- Hardware tests with the Sam Neo 2 (stroker filter, home on pause, beat-bar
+  scripts on real Cock Hero clips).
+- Migration host: Python + pywebview (recommended) or a C++ window
+  (needed before M6).
+- Delete old branches (`docs/owner/old-branches.txt`); put a public
+  download link into the forum post.
