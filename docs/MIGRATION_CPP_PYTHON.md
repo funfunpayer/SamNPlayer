@@ -1,5 +1,7 @@
 # Migration: from Go to C++ and Python
 
+> **Superseded on 15 Oct 2026** by [`REWRITE_PLAN_FAST.md`](REWRITE_PLAN_FAST.md): new repo, Qt / PySide6 interface. The rules below still apply.
+
 **Owner decision, 15 Oct 2026:** "Go soll voll abgelöst werden." The app
 moves to **Python** (app logic, AI, devices) and **C++** (fast video and
 detection paths). Go is replaced step by step, not in one big rewrite.

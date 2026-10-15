@@ -34,8 +34,7 @@ is the short, current state.
 
 ## Direction (Owner, 15 Oct)
 
-- **Go is replaced completely by Python and C++**, step by step: see
-  [`MIGRATION_CPP_PYTHON.md`](MIGRATION_CPP_PYTHON.md).
+- **Go is replaced completely by Python and C++** in a **new repo** (`SamNPlayer-2`) with a **new Qt / PySide6 interface**: see [`REWRITE_PLAN_FAST.md`](REWRITE_PLAN_FAST.md). This repo gets fixes only until the new app ships.
 - **Measure first, then C++.**
 - Product plan: [`ROADMAP_2026-10.md`](ROADMAP_2026-10.md), which covers
   v0.8, the full editor and the language split.

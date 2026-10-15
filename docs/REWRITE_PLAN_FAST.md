@@ -8,7 +8,7 @@ code, file formats unchanged).
 
 ## Decision 1: a new repository
 
-**Recommended:** a new repo (working name `SamNPlayer-2`). This repo (Go)
+**Owner, 15 Oct: a new repo** (working name `SamNPlayer-2`). This repo (Go)
 gets only fixes until the new app ships.
 
 | | New repo | Inside this repo |
@@ -18,31 +18,34 @@ gets only fixes until the new app ships.
 | Two agents | Each gets its own area; no fights over one branch | Collisions (seen on 15 Oct) |
 | Reuse | Copy the frontend, `cv.cpp` and the Python generator code; Go tests become the specification | the same |
 
-## Decision 2: the GUI
+## Decision 2: the GUI — Qt / PySide6 (Owner, 15 Oct)
 
-The interface is 26 000 lines of JavaScript/CSS with 148 browser tests. It
-talks to Go through 224 functions and 42 events.
+The Owner chose a **new native interface in Qt (PySide6, LGPL)** instead of
+keeping the 26 000-line JS interface in a web view.
 
-| Option | Effort | Verdict |
-|---|---|---|
-| **Keep the JS interface in a web view** (pywebview: WebView2 on Windows, WebKitGTK on Linux) | Small: only the 224 function calls get a new transport (a shim keeps `window.go.main.App.X` working) | **Recommended:** fastest; the 148 tests keep working |
-| Qt / PySide6 (LGPL), new native interface | Very large: everything rewritten, about 3–6 months | Only if the web view causes problems (for example video codecs) |
-| Dear ImGui (C++) | Large; looks like a tool, not a consumer app | No |
-
-Video playback stays in the web view (HTML5 video), as now; the
-"Make playable" proxy via ffmpeg stays.
+- **Video:** QtMultimedia (FFmpeg backend since Qt 6.5), so no browser
+  codec limits. The "Make playable" proxy stays as a fallback.
+- **Curve, heatmap, editor timeline:** custom `QWidget`/`QPainter` drawing
+  (fast enough for 100 000 points with level-of-detail).
+- **Tests:** pytest-qt (MIT) with `QT_QPA_PLATFORM=offscreen` in CI.
+- **The 148 JS test suites** become the feature checklist: each one names
+  behaviour that the Qt interface must show again, with its own test.
+- **Licences:** PySide6 is LGPL; ship it as shared libraries (PyInstaller
+  does), name it in the third-party notices, and do not change Qt itself.
+- **Effort:** the largest phase (about 3–6 months for everything). The
+  phases below bring the Player first, so a usable app comes early.
 
 ## Target layout (new repo)
 
 ```text
-frontend/        JS/CSS from SamNPlayer, plus the bridge shim (Wails → pywebview)
-app/             Python: window, API (224 functions), events, settings, library,
+ui/              Qt / PySide6: windows, Player, Editor, Generator, settings
+app/             Python: app logic (the 224 Go functions as a Python API), settings, library,
                  player and sync, devices (bleak, Sam Neo 2), updater, logging
 generator/       Python orchestration + the existing Python generator code
 native/          C++ (CMake, pybind11): tracking and frame pipeline (from
                  trackcv/cv.cpp, which is C++ already), beat bar, stroke filter,
                  funscript hot paths
-tests/           pytest (ported Go tests), native parity, frontend suites
+tests/           pytest (ported Go tests), pytest-qt (interface), native parity
 ```
 
 ## Phases, fastest order
@@ -54,16 +57,16 @@ parallel:
 
 | Phase | Content | Done when |
 |---|---|---|
-| P0 | New repo, CI (Linux + Windows), frontend copied, bridge shim, empty window shows the interface | The window opens; frontend suites run against stub responses |
-| P1 | **Player:** load a script, play a video, curve, heatmap, markers, offset, loop; funscript/samn in Python (using `native/` where it already exists) | Play a script with its video like v0.7; ported funscript tests pass |
+| P0 | New repo, CI (Linux + Windows), `native/` moved over, Qt main window with the mode switch (Play / Edit / Generate) | The window opens in CI (offscreen); native parity and pytest-qt are green |
+| P1 | **Player in Qt:** open a video or script (video first), QtMultimedia video, curve, heatmap, markers, offset, loop, script variants; funscript/samn in Python plus `native/` | Play a script with its video like v0.7; ported funscript tests and pytest-qt pass |
 | P2 | **Devices:** Sam Neo 2 over BLE (bleak), mock device, sync, stroker filter | Mock tests pass; **Owner hardware test** |
 | P3 | **Generator:** CSRT tracking and camera estimate in C++ (moved from `cv.cpp`; camera estimate on a second thread), post-processing in Python, beat bar | Synthetic and Owner clips: r equal or better than Go, time equal or better |
-| P4 | **Editor, library, settings, AI helpers** (the rest of the 224 functions) | All 148 frontend suites pass against the Python API |
+| P4 | **Editor, library, settings, AI helpers** in Qt (the rest of the 224 functions) | Every behaviour on the checklist (from the 148 JS suites) has a pytest-qt test that passes |
 | P5 | **Packaging:** PyInstaller/Nuitka for Windows and Linux with ffmpeg + OpenCV, updater, release workflow | First release of the new app; Go app archived |
 
 ## What makes it fast
 
-- Do not rewrite the interface: it is the largest part, and it already works.
+- The Player comes first in Qt, so there is a usable app early; the Editor follows.
 - `cv.cpp` and the Python generator code already exist, so the generator
   moves instead of being rewritten.
 - The Go tests are the specification: port them and they say when a part
