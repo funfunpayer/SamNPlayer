@@ -42,16 +42,10 @@ export function initPlayback(root) {
 
     <div class="pb-empty" id="pb-empty" data-pb-region="empty">
       <div class="pb-empty-inner">
-        <div class="pb-brand-moment" aria-hidden="true">
-          <div class="pb-flow-host pb-flow-host--empty" id="pb-flow-empty"></div>
-          <p class="pb-brand-word">
-            <span class="wm-sam">Sam</span><span class="wm-n">N</span><span class="wm-rest">Player</span>
-          </p>
-        </div>
-        <p class="pb-empty-kicker">Play</p>
-        <p class="pb-empty-title">Ready when you are</p>
-        <p class="hint">Open a video or a script — or drop one here. A video finds its script by itself; without one, SamNPlayer creates it. Other apps’ files are welcome too.</p>
-        <button type="button" id="pb-choose-empty" class="primary pb-open-big">Open…</button>
+        <button type="button" id="pb-choose-empty" class="flow-play pb-empty-play"
+          title="Open a video or a script (Ctrl+O)" aria-label="Play — open a video or script">
+          <svg class="fp-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 5.4c-.9-.55-2.1.1-2.1 1.15v10.9c0 1.05 1.2 1.7 2.1 1.15l8.9-5.45c.85-.52.85-1.78 0-2.3z"/></svg>
+        </button>
       </div>
     </div>
 
@@ -613,9 +607,8 @@ export function initPlayback(root) {
   // (gen_editor.js), they are found there too.
   const el = id => root.querySelector(id) || (id[0] === '#' ? document.querySelector(id) : null);
   const videoEl = el('#pb-video');
-  // C1 (ChatGPT #503): Flow stage when nothing is loaded and for "Feel
-  // without film"; the latter follows Play / Pause (syncPlayButton).
-  mountFlowStage(el('#pb-flow-empty'), { label: 'SamNPlayer' });
+  // C1: decorative Flow stage only for "Feel without film" (empty Player is
+  // the real .flow-play open button — no silk/brand chrome around it).
   const flowNoVideo = mountFlowStage(el('#pb-flow-novideo'), { label: 'Playing without video' });
   const heatmapCanvas = el('#pb-heatmap');
   const trajectoryCanvas = el('#pb-trajectory');
