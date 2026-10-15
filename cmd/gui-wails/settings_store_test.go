@@ -72,6 +72,35 @@ func TestSettingsStoreNullFile(t *testing.T) {
 	}
 }
 
+func TestSettingsStoreSetManyOneWrite(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	s, err := newSettingsStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetMany(map[string]any{
+		"playback.stroke_smooth":     "pchip",
+		"playback.stroke_max_speed":  400.0,
+		"playback.stroke_idle_fill":  true,
+		"playback.stroke_home_on_pause": true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if s.GetString("playback.stroke_smooth", "") != "pchip" ||
+		s.GetFloat("playback.stroke_max_speed", 0) != 400 ||
+		!s.GetBool("playback.stroke_idle_fill", false) ||
+		!s.GetBool("playback.stroke_home_on_pause", false) {
+		t.Fatal("SetMany did not store all keys")
+	}
+	s2, err := newSettingsStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s2.GetString("playback.stroke_smooth", "") != "pchip" {
+		t.Fatal("SetMany not durable")
+	}
+}
+
 // Gespeichert wird über eine Zwischendatei; es bleibt keine liegen.
 func TestSettingsStoreSaveLeavesNoTempFiles(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
