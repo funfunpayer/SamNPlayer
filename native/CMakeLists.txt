@@ -15,5 +15,9 @@ target_include_directories(beatbar_native PRIVATE include)
 pybind11_add_module(stroke_filter_native src/stroke_filter.cpp bindings/stroke_filter_py.cpp)
 target_include_directories(stroke_filter_native PRIVATE include)
 
+# Funscript clean/write module
+pybind11_add_module(funscript_native src/funscript.cpp bindings/funscript_py.cpp)
+target_include_directories(funscript_native PRIVATE include)
+
 # Install
-install(TARGETS beatbar_native stroke_filter_native DESTINATION .)
+install(TARGETS beatbar_native stroke_filter_native funscript_native DESTINATION .)
