@@ -20,7 +20,7 @@ Then import `beatbar_native`, `stroke_filter_native`, `beat_strokes_native` and 
 - **beatbar_native**: beat-bar detection (parity with `generator/beatbar.go`)
 - **stroke_filter_native**: stroke filter (parity with `funscript/stroke_filter.go`) — PCHIP/Makima smooth, max speed, idle fill
 - **beat_strokes_native**: BeatStrokes (parity with `funscript/beat_strokes.go`) — one stroke per beat, speed-limited, hold on long gaps
-- **funscript_native**: core parse/write (parity with `funscript/funscript.go` actions, inverted, duration OFS rules, corrupt-time drop, float rounding). Full metadata is not yet preserved.
+- **funscript_native**: core parse/write + ShiftActions (parity with `funscript/funscript.go` and `shift.go`)
 
 ## Tests
 

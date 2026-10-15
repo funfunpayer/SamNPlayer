@@ -18,6 +18,12 @@ negative test).
 `test_beat_strokes_parity.py` mirrors the cases from
 `funscript/beat_strokes_test.go` (down on every beat, speed limit, hold).
 
+## funscript
+
+`test_funscript_parity.py` mirrors core parse/write cases from
+`funscript/funscript_test.go` / `parse_compat_test.go` plus ShiftActions
+from `shift_test.go`.
+
 Build first (from `native/`):
 
 ```bash
@@ -32,6 +38,7 @@ Then from the repo root:
 PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
 PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
 PYTHONPATH=native/build python3 native/tests/test_beat_strokes_parity.py
+PYTHONPATH=native/build python3 native/tests/test_funscript_parity.py
 ```
 
 The tests exit 0 (with a SKIP message) if the module is not built, so they can
