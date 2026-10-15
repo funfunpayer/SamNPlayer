@@ -74,13 +74,11 @@ func (a *App) SetStrokeFilter(in StrokeFilterSettings) (StrokeFilterSettings, er
 		f.IdleFillMs = strokeIdleFillMs
 	}
 	if a.settings != nil {
-		for k, v := range map[string]any{
+		if err := a.settings.SetMany(map[string]any{
 			prefStrokeSmooth: f.Smooth, prefStrokeMaxSpeed: f.MaxSpeed,
 			prefStrokeIdleFill: in.IdleFill, prefStrokeHome: in.HomeOnPause,
-		} {
-			if err := a.settings.Set(k, v); err != nil {
-				return a.GetStrokeFilter(), err
-			}
+		}); err != nil {
+			return a.GetStrokeFilter(), err
 		}
 	}
 	a.stateMu.Lock()

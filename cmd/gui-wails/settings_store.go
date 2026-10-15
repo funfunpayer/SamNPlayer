@@ -105,3 +105,17 @@ func (s *settingsStore) Set(key string, value any) error {
 	s.mu.Unlock()
 	return s.save()
 }
+
+// SetMany updates several keys then writes the file once, so a crash or
+// save error cannot leave a half-updated settings.json.
+func (s *settingsStore) SetMany(vals map[string]any) error {
+	if len(vals) == 0 {
+		return nil
+	}
+	s.mu.Lock()
+	for k, v := range vals {
+		s.data[k] = v
+	}
+	s.mu.Unlock()
+	return s.save()
+}

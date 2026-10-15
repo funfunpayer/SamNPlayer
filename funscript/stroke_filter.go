@@ -1,6 +1,9 @@
 package funscript
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 // Stroke filter (v0.8, docs/ROADMAP_2026-10.md §3 item 2; seen in
 // MultiFunPlayer, ScriptPlayer and UwU Player): applied to the stroke
@@ -45,12 +48,17 @@ func NormalizeSmooth(s string) string {
 	return SmoothOff
 }
 
-// ApplyStrokeFilter returns the filtered actions (sorted by time, as given).
-// The input slice is not modified.
+// ApplyStrokeFilter returns the filtered actions sorted by time.
+// The input slice is not modified. Duplicate timestamps keep the last Pos.
 func ApplyStrokeFilter(actions []Action, f StrokeFilter) []Action {
 	out := make([]Action, len(actions))
 	copy(out, actions)
 	if !f.Active() || len(out) < 2 {
+		return out
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].At < out[j].At })
+	out = dedupeActionTimes(out)
+	if len(out) < 2 {
 		return out
 	}
 	if f.IdleFillMs > 0 {
@@ -65,6 +73,23 @@ func ApplyStrokeFilter(actions []Action, f StrokeFilter) []Action {
 	}
 	if f.MaxSpeed > 0 {
 		out = limitSpeed(out, f.MaxSpeed)
+	}
+	return out
+}
+
+// dedupeActionTimes keeps the last action for each identical At (caller sorted).
+func dedupeActionTimes(a []Action) []Action {
+	if len(a) < 2 {
+		return a
+	}
+	out := make([]Action, 0, len(a))
+	out = append(out, a[0])
+	for i := 1; i < len(a); i++ {
+		if a[i].At == out[len(out)-1].At {
+			out[len(out)-1] = a[i]
+			continue
+		}
+		out = append(out, a[i])
 	}
 	return out
 }

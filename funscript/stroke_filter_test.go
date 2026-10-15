@@ -103,3 +103,19 @@ func TestNormalizeSmooth(t *testing.T) {
 		t.Fatal("normalize")
 	}
 }
+
+func TestStrokeFilterSortsAndDedupes(t *testing.T) {
+	messy := []Action{{1000, 10}, {0, 0}, {500, 50}, {500, 80}, {1000, 100}}
+	out := ApplyStrokeFilter(messy, StrokeFilter{MaxSpeed: 1000})
+	if len(out) != 3 {
+		t.Fatalf("want 3 after dedupe, got %+v", out)
+	}
+	if out[0].At != 0 || out[1].At != 500 || out[1].Pos != 80 || out[2].At != 1000 || out[2].Pos != 100 {
+		t.Fatalf("sorted, last duplicate kept: %+v", out)
+	}
+	for i := 1; i < len(out); i++ {
+		if out[i].At <= out[i-1].At {
+			t.Fatalf("time not increasing: %+v", out)
+		}
+	}
+}
