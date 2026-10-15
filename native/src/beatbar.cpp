@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <numeric>
+#include <vector>
 
 namespace samn {
 
@@ -58,7 +59,7 @@ class BgRemover {
 public:
     std::vector<double> clean(const std::vector<double>& raw) {
         window_.push_back(raw);
-        if (window_.size() > kBgFrames) {
+        if (window_.size() > static_cast<size_t>(kBgFrames)) {
             window_.erase(window_.begin());
         }
         std::vector<double> out(raw.size(), 0.0);
@@ -92,6 +93,36 @@ double weightedShift(const std::map<int, int>& shifts, int mode) {
         }
     }
     return n == 0 ? mode : sum / n;
+}
+
+std::vector<double> peaksOf(const std::vector<double>& p) {
+    std::vector<double> out;
+    for (size_t x = 1; x + 1 < p.size(); ++x) {
+        double v = p[x];
+        if (v < 20 || v < p[x - 1] || v < p[x + 1]) continue;
+        // Plateau: report its centre once.
+        size_t end = x;
+        while (end + 1 < p.size() && p[end + 1] == v) ++end;
+        out.push_back(static_cast<double>(x + end) / 2.0);
+        x = end;
+    }
+    return out;
+}
+
+double findTarget(const std::vector<GrayFrame>& frames, const BeatBar& bar) {
+    BgRemover bg;
+    std::vector<double> xs;
+    for (const auto& f : frames) {
+        auto p = bg.clean(bandProfile(f, bar.y0, bar.y1));
+        auto peaks = peaksOf(p);
+        xs.insert(xs.end(), peaks.begin(), peaks.end());
+    }
+    if (xs.empty()) return 0;
+    std::sort(xs.begin(), xs.end());
+    double q = 0.02;
+    if (bar.velocity > 0) q = 0.98;
+    size_t idx = static_cast<size_t>(q * (xs.size() - 1));
+    return xs[idx];
 }
 
 std::optional<BeatBar> FindBeatBar(const std::vector<GrayFrame>& frames) {
@@ -135,14 +166,49 @@ std::optional<BeatBar> FindBeatBar(const std::vector<GrayFrame>& frames) {
         }
     }
     if (best.score < kMinScore) return std::nullopt;
-    // findTarget omitted for brevity in this skeleton; full port follows
-    best.target_x = 0;  // placeholder, complete in next commit
+    best.target_x = findTarget(frames, best);
     return best;
 }
 
+class BeatTracker {
+public:
+    BeatTracker(const BeatBar& bar, double fps)
+        : bar_(bar), frameMs_(1000.0 / fps), minGapMs_(std::max(2 * frameMs_, 80.0)) {}
+
+    void add(const std::vector<double>& raw) {
+        auto p = bg_.clean(raw);
+        double v = bar_.velocity;
+        double speed = std::abs(v);
+        for (double x : peaksOf(p)) {
+            // Distance still to go toward the target along the motion.
+            double d = x - bar_.target_x;
+            if (v > 0) d = bar_.target_x - x;
+            if (d < 0 || d >= speed) continue;
+            double at = (static_cast<double>(frame_) + d / speed) * frameMs_;
+            if (!beats_.empty() && at - beats_.back() < minGapMs_) continue;
+            beats_.push_back(at);
+        }
+        ++frame_;
+    }
+
+    const std::vector<double>& beats() const { return beats_; }
+
+private:
+    BeatBar bar_;
+    double frameMs_;
+    double minGapMs_;
+    BgRemover bg_;
+    int frame_ = 0;
+    std::vector<double> beats_;
+};
+
 std::vector<double> BeatTimes(const std::vector<GrayFrame>& frames, const BeatBar& bar, double fps) {
-    // Skeleton: full port of the tracker follows
-    return {};
+    if (fps <= 0 || bar.velocity == 0) return {};
+    BeatTracker tr(bar, fps);
+    for (const auto& f : frames) {
+        tr.add(bandProfile(f, bar.y0, bar.y1));
+    }
+    return tr.beats();
 }
 
 }  // namespace samn

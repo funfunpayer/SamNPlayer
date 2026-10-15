@@ -48,7 +48,7 @@ is the short, current state.
 
 ## In progress
 
-- **M1 start:** `native/` C++ library with CMake + pybind11 skeleton; beat-bar pure functions ported (partial). Profile (M0) still needed before claiming speed. Parity tests next.
+- **M1:** `native/` C++ library with CMake + pybind11; beat-bar pure functions fully ported (FindBeatBar, BeatTimes, peaks, target, tracker). Next: parity tests against Go on synthetic frames, then CI for Linux/Windows. Profile (M0) still needed before claiming speed.
 - **M0, generator profile:** measure where Generate spends its time
   (CSRT tracking, frame decode, post-processing), with OpenCV built locally
   (`-tags opencv`, `libopencv-dev`). Result goes to
