@@ -1,23 +1,32 @@
 #pragma once
 #include <vector>
-#include <cstdint>
 #include <string>
+#include <cstdint>
+#include <optional>
 
 namespace samn {
 
 struct Action {
-    int64_t at;
-    int pos;
+    int64_t at = 0;
+    int pos = 0;
+};
+
+struct Script {
+    std::vector<Action> actions;
+    bool inverted = false;
+    int dropped = 0;
+    int64_t duration_meta = 0;  // ms, after OFS scaling rules
 };
 
 // MaxActionMs: action times above this (48 h) are treated as corrupt.
-constexpr int64_t kMaxActionMs = 48LL * 3600 * 1000;
+constexpr int64_t MaxActionMs = 48LL * 3600 * 1000;
 
-// CleanActions drops invalid times, clamps pos to 0-100, and sorts by at.
-// Mirrors the non-JSON part of funscript.Parse.
-std::vector<Action> CleanActions(std::vector<Action> actions);
+// Parse a funscript JSON string. Throws std::runtime_error on hard failures
+// (invalid JSON, no actions, all times corrupt). Soft drops corrupt times.
+Script Parse(const std::string& json_str);
 
-// WriteActions serializes actions to a minimal .funscript JSON (actions only).
-std::string WriteActions(const std::vector<Action>& actions);
+// Write a minimal funscript JSON (actions + inverted + duration if set).
+// Full metadata is not preserved; this is the hot-path subset for M1.
+std::string Write(const Script& s);
 
 }  // namespace samn

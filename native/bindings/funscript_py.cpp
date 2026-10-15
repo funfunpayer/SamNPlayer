@@ -11,7 +11,13 @@ PYBIND11_MODULE(funscript_native, m) {
         .def_readwrite("at", &samn::Action::at)
         .def_readwrite("pos", &samn::Action::pos);
 
-    m.def("clean_actions", &samn::CleanActions);
-    m.def("write_actions", &samn::WriteActions);
-    m.def("max_action_ms", []() { return samn::kMaxActionMs; });
+    py::class_<samn::Script>(m, "Script")
+        .def(py::init<>())
+        .def_readwrite("actions", &samn::Script::actions)
+        .def_readwrite("inverted", &samn::Script::inverted)
+        .def_readwrite("dropped", &samn::Script::dropped)
+        .def_readwrite("duration_meta", &samn::Script::duration_meta);
+
+    m.def("parse", &samn::Parse);
+    m.def("write", &samn::Write);
 }
