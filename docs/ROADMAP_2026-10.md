@@ -42,6 +42,8 @@ This keeps ChatGPT's decision.
 
 Bug fixes are ported between the two lines deliberately and with tests. There is no automatic merging.
 
+**Update 15 Oct (Owner):** the 2.0 Next plan, specs and inventories now live in this repo under [`docs/next/`](next/MASTER_PLAN.md). Next is free like today's app (`docs/EDITIONS.md`); whether its code also moves here is open decision D12 there.
+
 ---
 
 ## 3. v0.8 (Free): what the other players do better
