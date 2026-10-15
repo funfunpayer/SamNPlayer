@@ -8,6 +8,16 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+### Added
+
+- **Script folders and variants (v0.8, seen in ScriptPlayer, ScriptPlayer+, BetterPlayer and MultiFunPlayer):**
+  - **Settings → Play → Script folders:** a video's script is also searched for in these folders, with their subfolders. The search goes at most 6 levels deep and looks at no more than 50 000 files.
+  - **Tolerant names:** brackets, years, release tags such as 1080p or x265, separators and case do not matter.
+  - **Variants:** when one video has several scripts (*Soft*, *Hard*, *by someone*), a **Script** choice in the video bar switches between them and keeps the video.
+  - **Order:** a script beside the video comes first, then the video's own name, then `.samn` before `.funscript`.
+  - **Question card:** the no-script card gets *Add a script folder…*, which searches the new folder at once.
+  - **API:** `FindScriptForVideo` returns `variants`; new `GetScriptFolders`, `AddScriptFolder` and `RemoveScriptFolder`.
+
 ## [0.7.0] - 2026-10-14
 
 The first published release since v0.5.45. It also carries everything

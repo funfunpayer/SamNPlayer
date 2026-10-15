@@ -4404,3 +4404,12 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
   font-weight: 600;
 }
 .pb-videobar .pb-vb-select:hover { border-color: rgba(var(--accent-rgb), 0.35); }
+
+/* Settings → Play → Script folders (script_folders.js) */
+.st-folder-list { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 6px; }
+.st-folder-list li { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.st-folder-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono, monospace); font-size: 0.86rem; }
+.st-folder-empty { margin: 0; }
+/* Script variant choice in the video bar (open_media.js) */
+.pb-videobar .pb-variant { max-width: 220px; padding: 6px 8px; font-size: 0.86rem; }
+.pb-variant[hidden] { display: none; }

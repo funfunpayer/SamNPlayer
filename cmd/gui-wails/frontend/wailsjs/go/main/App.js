@@ -95,6 +95,9 @@ export function SaveLoadedAsSamn() { return window['go']['main']['App']['SaveLoa
 export function OptimizeLoadedFor(arg1) { return window['go']['main']['App']['OptimizeLoadedFor'](arg1); }
 export function PickMediaFile() { return window['go']['main']['App']['PickMediaFile'](); }
 export function FindScriptForVideo(arg1) { return window['go']['main']['App']['FindScriptForVideo'](arg1); }
+export function GetScriptFolders() { return window['go']['main']['App']['GetScriptFolders'](); }
+export function AddScriptFolder() { return window['go']['main']['App']['AddScriptFolder'](); }
+export function RemoveScriptFolder(arg1) { return window['go']['main']['App']['RemoveScriptFolder'](arg1); }
 export function SuggestChapterScenes() { return window['go']['main']['App']['SuggestChapterScenes'](); }
 export function SaveChapterScenes(arg1) { return window['go']['main']['App']['SaveChapterScenes'](arg1); }
 export function BakeSoundVibration(arg1) { return window['go']['main']['App']['BakeSoundVibration'](arg1); }

@@ -4,7 +4,11 @@
 // empty Player shows the video with "Create script" — the Generator takes the
 // same video — or "Choose script…". "Always create right away" skips the
 // question.
-import { PickMediaFile, PickFunscriptFile, FindScriptForVideo, LoadFrameAt } from '../wailsjs/go/main/App';
+//
+// v0.8: the search also covers the script folders (Settings → Play) and
+// tolerant names; when one video has several scripts (Soft / Hard / another
+// author) a "Script" choice in the video bar switches between them.
+import { PickMediaFile, PickFunscriptFile, FindScriptForVideo, LoadFrameAt, AddScriptFolder } from '../wailsjs/go/main/App';
 
 const SCRIPT_RE = /\.(samn|funscript)$/i;
 const AUTO_KEY = 'open.autoCreate';
@@ -38,6 +42,7 @@ export function initOpenMedia(pbRoot, api) {
       <button type="button" class="primary pb-open-big" id="pb-noscript-create">Create script</button>
       <button type="button" id="pb-noscript-choose">Choose script…</button>
       <button type="button" id="pb-noscript-other">Open other…</button>
+      <button type="button" id="pb-noscript-folder" title="Add a folder where your scripts live; SamNPlayer looks there too">Add a script folder…</button>
       <button type="button" id="pb-noscript-back" hidden>Back to the script</button>
     </div>
     <div class="checkbox-row pb-noscript-auto">
@@ -171,11 +176,74 @@ export function initOpenMedia(pbRoot, api) {
   });
   card.querySelector('#pb-noscript-other').addEventListener('click', pickAndOpen);
   card.querySelector('#pb-noscript-back').addEventListener('click', clearNoScript);
+  // A folder added here is searched right away for this video.
+  card.querySelector('#pb-noscript-folder').addEventListener('click', async () => {
+    const video = pending;
+    let dirs = null;
+    try { dirs = await AddScriptFolder(); } catch (err) { status.textContent = 'Could not add the folder: ' + err; return; }
+    if (!video || !Array.isArray(dirs)) return;
+    let match = null;
+    try { match = await FindScriptForVideo(video); } catch (_) { match = null; }
+    if (match && match.found && match.scriptPath) await openPair(video, match.scriptPath);
+    else status.textContent = 'No script for this video in that folder either.';
+  });
+
+  // ---- Script variants (one video, several scripts) ------------------------
+  const vbar = pbRoot.querySelector('.pb-videobar');
+  const variantSel = document.createElement('select');
+  variantSel.id = 'pb-variant';
+  variantSel.className = 'pb-variant';
+  variantSel.hidden = true;
+  variantSel.title = 'This video has several scripts — choose one';
+  variantSel.setAttribute('aria-label', 'Script variant');
+  const recentBtn = vbar && vbar.querySelector('#pb-vb-recent');
+  if (recentBtn) recentBtn.after(variantSel);
+  else if (vbar) vbar.prepend(variantSel);
+  const samePath = (a, b) => String(a || '').toLowerCase() === String(b || '').toLowerCase();
+  let variantTimer = 0;
+  let variantSeq = 0;
+  async function refreshVariants() {
+    const seq = ++variantSeq;
+    const video = pbRoot.dataset.pbVideoPath || '';
+    const script = pbRoot.dataset.pbScript || '';
+    if (!video || pbRoot.dataset.pbState !== 'loaded') { variantSel.hidden = true; return; }
+    let match = null;
+    try { match = await FindScriptForVideo(video); } catch (_) { match = null; }
+    if (seq !== variantSeq) return; // a newer load is under way
+    const list = (match && Array.isArray(match.variants)) ? match.variants : [];
+    if (list.length < 2) { variantSel.hidden = true; return; }
+    variantSel.innerHTML = list.map((v, i) => {
+      const name = v.label ? v.label.replace(/^./, c => c.toUpperCase()) : 'Main script';
+      const where = v.beside ? '' : ' · script folder';
+      return `<option value="${i}">${name.replace(/[<&]/g, '')}${where}</option>`;
+    }).join('');
+    variantSel._list = list;
+    variantSel._video = video;
+    const cur = list.findIndex(v => samePath(v.path, script));
+    if (cur < 0) {
+      const other = document.createElement('option');
+      other.value = '';
+      other.textContent = baseName(script) || 'Other script';
+      variantSel.prepend(other);
+      variantSel.value = '';
+    } else {
+      variantSel.value = String(cur);
+    }
+    variantSel.hidden = false;
+  }
+  variantSel.addEventListener('change', async () => {
+    const v = (variantSel._list || [])[Number(variantSel.value)];
+    if (v && variantSel.value !== '') await openPair(variantSel._video, v.path);
+  });
+  new MutationObserver(() => {
+    clearTimeout(variantTimer);
+    variantTimer = setTimeout(refreshVariants, 150);
+  }).observe(pbRoot, { attributes: true, attributeFilter: ['data-pb-video-path', 'data-pb-script', 'data-pb-state'] });
   for (const id of ['#pb-choose', '#pb-choose-empty']) {
     pbRoot.querySelector(id)?.addEventListener('click', pickAndOpen);
   }
   // A script that loads ends the question.
   window.addEventListener('pb:loaded', () => { if (pending) clearNoScript(); });
 
-  return { openPath, openPair, pickAndOpen, showNoScript, clearNoScript };
+  return { openPath, openPair, pickAndOpen, showNoScript, clearNoScript, refreshVariants };
 }
