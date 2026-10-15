@@ -59,8 +59,14 @@ def main():
         "PickMediaFile": "async () => window.__pick",
         "PickFunscriptFile": "async () => window.__pickScript",
         "FindScriptForVideo": "async v => (window.__calls.push(['find', v]), v === '/v/has.mp4'"
-                              " ? { videoPath: v, scriptPath: '/v/has.samn', found: true }"
-                              " : { videoPath: v, scriptPath: '', found: false })",
+                              " ? { videoPath: v, scriptPath: '/v/has.samn', found: true, variants: ["
+                              "{ path: '/v/has.samn', label: '', beside: true },"
+                              "{ path: '/lib/has (Soft).funscript', label: 'soft', beside: false }] }"
+                              " : v === '/v/folder.mp4' && window.__folderAdded"
+                              " ? { videoPath: v, scriptPath: '/lib/folder.funscript', found: true,"
+                              " variants: [{ path: '/lib/folder.funscript', label: '', beside: false }] }"
+                              " : { videoPath: v, scriptPath: '', found: false, variants: [] })",
+        "AddScriptFolder": "async () => (window.__folderAdded = true, ['/lib'])",
         "LoadFrameAt": "async () => ({ width: 2, height: 2, pngBase64: 'iVBORw0KGgo=' })",
         "LoadFunscript": "async p => (window.__calls.push(['load', p]), { path: p, actionCount: 4, durationMs: 1500, "
                          "videoPath: '', hasVideo: false })",
@@ -111,6 +117,27 @@ def main():
             page.wait_for_function("window.__calls.some(c => c[0] === 'load' && c[1] === '/v/has.samn')")
             check("Ctrl+O: video finds its script", True)
             check("Ctrl+O: no question", page.evaluate("document.querySelector('#pb-noscript').hidden"))
+
+            # Several scripts for this video: the variant choice appears and switches.
+            page.wait_for_function("!document.querySelector('#pb-variant').hidden", timeout=4000)
+            check("variants: two choices", page.evaluate("document.querySelectorAll('#pb-variant option').length") == 2)
+            check("variants: the loaded one is selected",
+                  page.evaluate("document.querySelector('#pb-variant').selectedOptions[0].textContent").startswith("Main script"))
+            check("variants: folder ones say so",
+                  "script folder" in page.evaluate("document.querySelectorAll('#pb-variant option')[1].textContent"))
+            page.select_option("#pb-variant", "1")
+            page.wait_for_function("window.__calls.some(c => c[0] === 'load' && c[1] === '/lib/has (Soft).funscript')")
+            check("variants: choosing one loads it", True)
+            page.wait_for_timeout(300)
+            check("variants: the video stays", calls("video")[-1] == "/v/has.mp4", str(calls("video")[-3:]))
+
+            # No script anywhere yet: "Add a script folder…" searches it right away.
+            page.evaluate("window.__pick = '/v/folder.mp4'")
+            page.click("#pb-choose")
+            page.wait_for_function("!document.querySelector('#pb-noscript').hidden")
+            page.click("#pb-noscript-folder")
+            page.wait_for_function("window.__calls.some(c => c[0] === 'load' && c[1] === '/lib/folder.funscript')")
+            check("folder button: the script found there opens", page.evaluate("document.querySelector('#pb-noscript').hidden"))
 
             # Over a loaded script: question with Back, the script stays.
             page.evaluate("window.__pick = '/v/other.mp4'")

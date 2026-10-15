@@ -350,6 +350,9 @@ export function SaveScriptChapterMarks(arg1:Array<funscript.ChapterMark>):Promis
 export function OptimizeLoadedFor(arg1:string):Promise<any>;
 export function PickMediaFile():Promise<string>;
 export function FindScriptForVideo(arg1:string):Promise<any>;
+export function GetScriptFolders():Promise<Array<string>>;
+export function AddScriptFolder():Promise<Array<string>>;
+export function RemoveScriptFolder(arg1:string):Promise<Array<string>>;
 export function SuggestChapterScenes():Promise<Array<any>>;
 export function SaveChapterScenes(arg1:Array<any>):Promise<void>;
 export function BakeSoundVibration(arg1:string):Promise<any>;

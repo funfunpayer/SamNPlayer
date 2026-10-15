@@ -47,6 +47,18 @@ You can also drop either onto the window.
   several videos dropped at once, as a Create queue.
 - **A video and a script dropped together:** that script, with that video.
 
+**Script folders** (Settings → Play → *Script folders*): SamNPlayer also
+looks for a video's script in these folders, including their subfolders.
+Names may differ a little: *Clip (2019) [1080p].mp4* finds
+*clip.funscript*. A script next to the video comes first. The *Add a script
+folder…* button on the question card adds a folder and searches it right
+away.
+
+**Script variants:** when one video has several scripts, a choice appears
+in the video bar, e.g. *Clip (Soft)* or *Clip - by Someone*. Choosing one
+loads it with the same video. *Clip 2* counts as another clip, not as a
+variant. Axis files such as *Clip.twist.funscript* are not variants either.
+
 ## 2. Everyday Create (recommended path)
 
 Layout: **Project** on the left (source clips, recent videos, generated

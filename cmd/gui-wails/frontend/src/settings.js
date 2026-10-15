@@ -4,6 +4,7 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { uiError, uiInfo } from './notify.js';
 import { openHandbook } from './handbook.js';
 import { wireDataHelp } from './help.js';
+import { mountScriptFolders } from './script_folders.js';
 import { releaseTag, releaseNotesPreview, formatUpdateError } from './update_ui.js';
 
 // new URL(…, import.meta.url): Vite copies the file into the build. A plain
@@ -324,6 +325,9 @@ export function initSettings(root) {
 
   const el = id => root.querySelector(id);
 
+  // Script folders sit in the Play section, before "What you need".
+  const needDetails = el('#st-need-details');
+  mountScriptFolders(needDetails ? needDetails.parentNode : root, { before: needDetails });
   wireDataHelp(root);
   el('#st-open-handbook')?.addEventListener('click', () => openHandbook());
 
