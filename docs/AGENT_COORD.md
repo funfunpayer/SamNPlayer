@@ -166,6 +166,7 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | Rel44 | Cursor | [#454](https://github.com/funfunpayer/SamNPlayer/pull/454) + tag `v0.5.44` | Sammel **v0.5.44** + Release (video swap #444; Contact-vibe #445; Claude OFS #446; scene roles #448–#450; AI train free tags #451; OFS clock/inverted #452–#453; #264 cancelled; never #447) | **DONE** |
 | Rel45 | Grok | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) + tag `v0.5.45` | Sammel **v0.5.45** + Release (PlayHeatUX / G4.C #460; snack hides when Contact vib off) | **DONE** — https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45 |
 | PlayHeatUX | Cursor | [#460](https://github.com/funfunpayer/SamNPlayer/pull/460) merged (`75fb1ca`) | **Play taller curve/heatmap** + Tip→Partner snack + **G4.C** + recognition honesty + C7 Find tip / Play load retry | **DONE** (`v0.5.45`) |
+| SessionPark | Cursor | `cursor/session-summary-recognition-aeed` | Docs only: session summary + board park after recognition/PlayHeatUX; **wait on Owner** | **WAITING on Owner** |
 | SceneRolesTax | Claude | [#448](https://github.com/funfunpayer/SamNPlayer/pull/448) merged (`97bb07a`) | **scene_roles** PARTNERS/TIP_CLASSES parity (`nipples`/`hand_*`/`glans`) | **DONE** |
 | SceneApplyNorm | Claude | [#449](https://github.com/funfunpayer/SamNPlayer/pull/449) merged (`ecb888e`) | **ApplySceneProposal** `bodyparts.Normalize` + hand_* aliases | **DONE** |
 | AtomicMeta | Claude | [#450](https://github.com/funfunpayer/SamNPlayer/pull/450) merged (`8e5c17d`) | **Atomic metadata patchers** (`writeFileAtomic`) | **DONE** |
@@ -265,13 +266,15 @@ next big theme. Prefer cleanup + focus over parallel feature sprawl.
 | C | Claude | #190 merged | **MT-Infra** ffmpeg ctx-kill + proxy single-owner | **DONE** (`7802a14`) |
 | — | Claude / Cloud | #179 merged | Playback HiDPI / seek / editor clamp / video-autostart | **DONE** (`453901c`) |
 
-**Status board (3 Oct — Rel45 shipped, no code lane in flight):**
-- **In flight:** none. Do not start a feature lane without an Owner ask. No Everyday / Rhythm / AI default flip.
-- **Shipped tip @ `75fb1ca`:** PlayHeatUX #460 merged; tag [`v0.5.45`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45). Snack hides when Contact vib is off; C7 Find tip retry + Play load retry included.
+**Status board (15 Oct — Cursor parked, waiting on Owner):**
+- **In flight:** none. Cursor lane **WAITING on Owner** after cleanup + session summary. Do not start a feature lane without an Owner ask. No Everyday / Rhythm / AI default flip.
+- **Session write-up:** [`docs/SESSION_SUMMARY_2026-10-15_recognition-playheat.md`](SESSION_SUMMARY_2026-10-15_recognition-playheat.md) — PlayHeatUX / recognition honesty / cancel+soft-start / partner highlight (shipped in #460 / `v0.5.45`).
+- **Shipped tip @ `75fb1ca`:** PlayHeatUX #460 merged; tag [`v0.5.45`](https://github.com/funfunpayer/SamNPlayer/releases/tag/v0.5.45). Snack hides when Contact vib is off; C7 Find tip retry + Play load retry included. Partner snack = `highlightPartnerMark` (not `setRoi2Mode`).
+- **Main has moved on** (modes / v0.7.0 / v0.8 script folders + stroker filter, …). This Cursor park does **not** claim those lanes.
 - **#264 CANCELLED:** Virtual Person out-of-scope (not in product); [#369](https://github.com/funfunpayer/SamNPlayer/pull/369) scrubbed dead mosaic + VP language.
 - **Never merge:** [#447](https://github.com/funfunpayer/SamNPlayer/pull/447) Grok WIP (closed; superseded by #453).
-- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. No Everyday / Rhythm / AI default change.
-- **Still Owner-gated:** portable smoke `v0.5.45`; V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+; (Epochs max / BPM-auto / offset rewrite done 10 Oct.) Owner smoke waived for this core/bugfix pass.
+- **Preserve:** ChatGPT **BugE NEXT** + **E-steward STANDING**. ClaudePath **OK CONTINUE** untouched. Docs521 IN REVIEW if still open. No Everyday / Rhythm / AI default change.
+- **Still Owner-gated:** portable smoke `v0.5.45` (waived for the core/bugfix pass); V0 GPU / one `vlm_probe --clip 6`; Create speed-cap default; rhythm default; Enforcement; contact-vib S3+.
 
 Superseded status boards from 23–28 Sep were removed here. Who-owns-what is the Active table. Decisions stay in the Decision log.
 
@@ -1074,6 +1077,7 @@ ring revision before committing.
 | 10 Oct | **Owner: freeware + donations, key system out.** "Frei anbieten mit Lizenz, aber nicht quelloffen" → EULA only (no key), private non-commercial; "Lizenzschlüssel-System raus … auf Spenden übergehen". Claude removed `license/`, `cmd/license-tool`, Generate trial cap, `.samn` play gate, pluginhost feature gate, Settings licence UI; added `legal/` (EULA, third-party notices, Patreon/PayPal links), first-start EULA gate, Settings Support + Licence, header ♥ Donate, release zips ship EULA/notices/FFmpeg licence; website + docs rewritten. **Owner: send the Patreon / PayPal URLs** (`legal.PatreonURL` / `PayPalURL`) | Owner → Claude |
 | 11 Oct | **Owner: EULA reviewed → international standard.** `legal/EULA.md` v2026-10-11 restructured (definitions, ownership, termination, as-is disclaimer, liability EU/DE clause kept + rest-of-world + savings clause, export/sanctions, CISG excluded + consumer residence protection, severability, entire agreement, language). `EULAVersion` bumped → users accept once more | Owner → Claude |
 | 11 Oct | **Owner: editions.** Donations stay without perks (appeal: keeps the project alive, makes new features possible). AI training/learning only in our internal system → build switch: package `edition`, `-tags studio`; customer (release) build gates training/learning bindings (`errStudioOnly`) and hides `[data-studio]` UI. `docs/EDITIONS.md`. Next (Owner): bigger FunGen2-style video in Play, cleaner layout, better multi-axis curves, final GUI/AI audit | Owner → Claude |
+| 15 Oct | **Owner → Cursor: aufräumen · dokumentieren · zusammenfassen · ins Repo · warten.** Session summary for PlayHeatUX / recognition honesty / cancel+soft-start / partner highlight (`docs/SESSION_SUMMARY_2026-10-15_recognition-playheat.md`); tip board flipped to **WAITING on Owner**. No code / defaults. | Owner → Cursor |
 
 ---
 
