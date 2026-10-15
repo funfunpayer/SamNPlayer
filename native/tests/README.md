@@ -13,6 +13,11 @@ negative test).
 `test_stroke_filter_parity.py` mirrors key cases from
 `funscript/stroke_filter_test.go` (smooth PCHIP/Makima, speed limit, etc.).
 
+## beat strokes
+
+`test_beat_strokes_parity.py` mirrors the cases from
+`funscript/beat_strokes_test.go` (down on every beat, speed limit, hold).
+
 Build first (from `native/`):
 
 ```bash
@@ -26,6 +31,7 @@ Then from the repo root:
 ```bash
 PYTHONPATH=native/build python3 native/tests/test_beatbar_parity.py
 PYTHONPATH=native/build python3 native/tests/test_stroke_filter_parity.py
+PYTHONPATH=native/build python3 native/tests/test_beat_strokes_parity.py
 ```
 
 The tests exit 0 (with a SKIP message) if the module is not built, so they can
