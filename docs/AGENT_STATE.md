@@ -5,7 +5,7 @@ new agent, or after a context loss). Update it in **every PR**, finished or
 not. Detailed history lives in `CHANGELOG.md` and `docs/NEXT.md`; this file
 is the short, current state.
 
-**Last update:** 15 Oct 2026, Grok, branch `claude/keen-davinci-t2ysrs`.
+**Last update:** 15 Oct 2026 (late), Grok — M1 Windows CI for `native/` added; CMake comments fixed; stroke-filter parity now runs in both Linux and Windows CI.
 
 ## Who works how
 
@@ -48,22 +48,14 @@ is the short, current state.
 
 ## In progress
 
-- **M1:** `native/` C++ library with CMake + pybind11.
-  - Beat-bar pure functions fully ported (FindBeatBar, BeatTimes, peaks, target, tracker). Parity tests (`native/tests/test_beatbar_parity.py`) mirror the Go synthetic cases.
-  - Stroke filter fully ported (PCHIP/Makima smooth, max speed, idle fill). Parity tests (`native/tests/test_stroke_filter_parity.py`) mirror key Go cases.
-  - Linux and Windows CI jobs build the modules and run both parity tests.
-  - Next: funscript parse & write hot paths, then more pure functions. Profile (M0) still needed before claiming speed.
-- **M0, generator profile:** measure where Generate spends its time
-  (CSRT tracking, frame decode, post-processing), with OpenCV built locally
-  (`-tags opencv`, `libopencv-dev`). Result goes to
-  `docs/owner/generator-profile-2026-10.md`.
+- **M1:** `native/` C++ library with CMake + pybind11; beat-bar and stroke-filter pure functions fully ported. Parity tests mirror the Go cases. **Linux and Windows CI jobs** build the library and run the parity tests. Next: funscript parse/write hot paths. Profile (M0) still needed before claiming speed.
 
 ## Open, in order
 
-1. **Before tagging v0.7.0:** Suite files must not go public (D14), per
-   `docs/next/HANDOFF_2026-10-15.md` task 1. Then the **Owner** pushes the
-   tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
-2. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`).
+1. **Before tagging v0.7.0:** Suite files must not go public (D14) — **done in this branch**
+   (release.yml: Suite builds kept as compile check only; never uploaded; guard step added).
+   Then the **Owner** pushes the tag `v0.7.0` and runs `docs/RELEASE_0_7_0.md`.
+2. Migration M0 → M1 → M2 (`MIGRATION_CPP_PYTHON.md`). Next for M1: funscript parse/write hot paths (after CI green).
 3. v0.8 items 3–6: audio files with a script, library tiles, skip pauses
    plus a shortcut sheet, device wizard. New code for these goes in Python
    where the migration has reached that part.
