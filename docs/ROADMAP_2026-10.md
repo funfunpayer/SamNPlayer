@@ -51,13 +51,25 @@ Each item here was seen in at least one other player. We build our own version a
 | # | Feature | Seen in | Size |
 |---|---|---|---|
 | 1 | **Find scripts:** script folders besides the video's own folder; variants of one video (Soft/Hard), switchable; tolerant names, e.g. "Film (2019)". | all four | S–M |
-| 2 | **Smooth stroker output:** PCHIP/MAKIMA interpolation instead of point to point; speed limit per axis; home position on pause. Soft start ✅ v0.7.0. | MultiFunPlayer, ScriptPlayer | M |
+| 2 | **Smooth stroker output, as a live playback filter** (the file stays untouched): PCHIP/MAKIMA interpolation instead of point to point; speed limit per axis; home position on pause; idle fill. Soft start ✅ v0.7.0. | MultiFunPlayer, ScriptPlayer, UwU Player | M |
 | 3 | **Audio files with a script** (MP3, FLAC, …). | ScriptPlayer+ | S |
 | 4 | **Library as tiles:** thumbnails, hover preview, sort and rating. | BetterPlayer, ScriptPlayer+ | M |
 | 5 | **Skip long pauses** (with a delay); **keyboard shortcut sheet**, shortcuts customisable. | ScriptPlayer, ScriptPlayer+, MultiFunPlayer | S |
 | 6 | **Device wizard:** connect step by step. | BetterPlayer | S |
 | Large | **Native Handy connection:** upload the script, then server-time sync (HSSP). | ScriptPlayer, ScriptPlayer+ | L |
 | Large | **Follow an external player:** VLC, MPV, VR players such as DeoVR and HereSphere. | MultiFunPlayer | L |
+
+### 3b. From the EroScripts posts (read on 15 Oct)
+
+| Project | What stands out | For us |
+|---|---|---|
+| **PeakSync** (browser, cloud AI) | Its own AI model makes scripts; videos are **uploaded**. Editor with smooth, clamp / normalize and **Speed Guard**; a player with a projected-output preview. Users praise the accuracy on hard clips. Complaint: uploading takes 30 min for 110 MB and is impractical for VR files. | Our generator runs **locally**: no upload, no credits. Say so clearly (forum post). Speed Guard = editor E7; projected output = E8. |
+| **UwU Player** (Windows / Android, free + Patreon) | **Post-processing live during playback** without touching the file (invert, smoothing, speed limit, idle fill); library with watched / NEW badges and tags; **session recap** (time, max / average speed, distance, activity heatmap); native Handy with drift compensation; native Vorze. | Post-processing live = item 2 (do it as a playback filter, file untouched). Library badges / tags → item 4. Session recap: new idea, small (we log sessions already in Training). Vorze CSV import: small. |
+| **ScriptPlayer-CN** (GPL fork of ScriptPlayer) | libmpv playback, library with NFO and tags, AB loop, hover preview, switch between scripts of **different authors** for one video. | Author switch = script variants (item 1). AB loop: we have loop selection ✅. |
+| **Funscript Heatmap Generator** | Folder in → a heatmap per script, one **combined multi-axis heatmap**, speed statistics, chapter timeline. | We export a heatmap PNG for one script. Small add: multi-axis and a folder at once, with statistics. |
+| **StrokeGPT** (chat-driven Handy) | Users found v2 broken, rolled back to v1.5; antivirus warnings. | Confirms: not now. |
+| **Lovense software bridge** (question thread) | Games that only speak Lovense (Game Mode REST API) — users want them to drive an OSR2 / Handy. Idea: a local server that speaks the Lovense Game Mode API and forwards to Intiface. | Interesting, but it imitates a vendor's API; legal check first. Not now. |
+| **BuzzyBody**, **Fap Hero Journey** | Android player for cheap LoveSpouse toys; a game-style sync player. | Far from our core. Not now. |
 
 ---
 
@@ -98,7 +110,6 @@ E1–E5 belong in Free, because they are basic editor work. E6–E10 can follow 
 
 - Chat control in the style of StrokeGPT, "Together" sessions, or a game mode. They are far from the core, and some need a server.
 - An in-app browser with an EroScripts download. It raises legal and technical questions.
-- Projects reported in EroScripts posts that we could not open from the work environment: PeakSync, UwU Player, ScriptPlayer AI, the Heatmap Generator, Fap Hero Journey and BuzzyBody. They are compared once the Owner sends their text.
 
 ---
 
