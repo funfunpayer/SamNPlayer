@@ -1,4 +1,4 @@
-/* C1 — reusable Player/Create idle-stage artwork. Imported separately by Claude. */
+/* C1 — Player/Create idle stage: brand mark + lush silk ribbons (mockup). */
 .flow-fx {
   width: 100%;
   height: 100%;
@@ -9,37 +9,89 @@
   overflow: hidden;
   pointer-events: none;
   isolation: isolate;
-  background: radial-gradient(ellipse at 50% 50%, rgba(8, 44, 68, .32), transparent 70%);
+  background: radial-gradient(ellipse at 50% 48%, rgba(8, 44, 68, .42), transparent 68%);
 }
-.flow-fx__art {
-  display: block;
-  width: min(100%, 980px);
-  height: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  overflow: visible;
-}
-.flow-fx__mark, .flow-fx__ribbons, .flow-fx__halo {
-  transform-box: fill-box;
+/* App-chrome silk aura (bg-top / bg-bottom) — volume behind the stage ribbons. */
+.flow-fx__silk-aura {
+  position: absolute;
+  inset: -8% -18%;
+  z-index: 0;
+  background:
+    var(--flow-fx-silk-top) 78% 18% / 78% auto no-repeat,
+    var(--flow-fx-silk-bot) 12% 88% / 72% auto no-repeat;
+  opacity: .88;
+  filter: saturate(1.2) brightness(1.08);
   transform-origin: center;
 }
-.flow-fx__mark { filter: drop-shadow(0 0 14px rgba(6, 208, 242, .3)); }
-.flow-fx__ribbons { opacity: .84; }
-.flow-fx[data-state="paused"] .flow-fx__ribbons { opacity: .48; }
-.flow-fx[data-state="playing"] .flow-fx__mark {
-  filter: drop-shadow(0 0 22px rgba(4, 219, 249, .48));
+/* Dual-layer stage ribbons: soft bloom under sharper filaments. */
+.flow-fx__silk {
+  position: absolute;
+  inset: -28% -36%;
+  z-index: 0;
+  background: var(--flow-fx-silk) 50% 46% / 175% 175% no-repeat;
+  opacity: .98;
+  filter: saturate(1.28) brightness(1.12) contrast(1.05);
+  transform-origin: center;
 }
-.flow-fx--animate[data-state="idle"] .flow-fx__halo { animation: flow-fx-breathe 7s ease-in-out infinite; }
+.flow-fx__silk::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  background: var(--flow-fx-silk) 50% 48% / 195% 195% no-repeat;
+  filter: blur(10px) saturate(1.35) brightness(1.15);
+  opacity: .72;
+  transform: scale(1.04);
+}
+.flow-fx__glow {
+  position: absolute;
+  width: min(78%, 360px);
+  aspect-ratio: 1;
+  z-index: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 40%, rgba(63, 208, 255, .42), transparent 55%),
+    radial-gradient(circle at 72% 58%, rgba(255, 138, 35, .34), transparent 55%);
+  filter: blur(20px);
+  opacity: .9;
+}
+.flow-fx__mark {
+  position: relative;
+  z-index: 1;
+  width: min(48%, 176px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 22%;
+  display: block;
+  filter: drop-shadow(0 0 18px rgba(6, 208, 242, .5)) drop-shadow(0 0 32px rgba(255, 138, 35, .28));
+}
+.flow-fx[data-state="paused"] .flow-fx__silk,
+.flow-fx[data-state="paused"] .flow-fx__silk-aura { opacity: .48; }
+.flow-fx[data-state="paused"] .flow-fx__glow { opacity: .45; }
+.flow-fx[data-state="playing"] .flow-fx__mark {
+  filter: drop-shadow(0 0 22px rgba(4, 219, 249, .55)) drop-shadow(0 0 36px rgba(255, 138, 35, .3));
+}
+
+.flow-fx--animate[data-state="idle"] .flow-fx__glow { animation: flow-fx-breathe 7s ease-in-out infinite; }
 .flow-fx--animate[data-state="idle"] .flow-fx__mark { animation: flow-fx-float 6s ease-in-out infinite; }
-.flow-fx--animate[data-state="idle"] .flow-fx__trail--cyan { animation: flow-fx-travel 11s ease-in-out infinite alternate; }
-.flow-fx--animate[data-state="idle"] .flow-fx__trail--amber { animation: flow-fx-travel 13s ease-in-out infinite alternate-reverse; }
-.flow-fx--animate[data-state="playing"] .flow-fx__halo { animation: flow-fx-breathe 4s ease-in-out infinite; }
+.flow-fx--animate[data-state="idle"] .flow-fx__silk { animation: flow-fx-silk-drift 18s ease-in-out infinite alternate; }
+.flow-fx--animate[data-state="idle"] .flow-fx__silk-aura { animation: flow-fx-aura-drift 26s ease-in-out infinite alternate; }
+.flow-fx--animate[data-state="playing"] .flow-fx__glow { animation: flow-fx-breathe 4s ease-in-out infinite; }
 .flow-fx--animate[data-state="playing"] .flow-fx__mark { animation: flow-fx-float 4s ease-in-out infinite; }
-.flow-fx--animate[data-state="playing"] .flow-fx__trail--cyan { animation: flow-fx-travel 5.5s ease-in-out infinite alternate; }
-.flow-fx--animate[data-state="playing"] .flow-fx__trail--amber { animation: flow-fx-travel 6.5s ease-in-out infinite alternate-reverse; }
-@keyframes flow-fx-breathe { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.035); } }
+.flow-fx--animate[data-state="playing"] .flow-fx__silk { animation: flow-fx-silk-drift 9s ease-in-out infinite alternate; }
+.flow-fx--animate[data-state="playing"] .flow-fx__silk-aura { animation: flow-fx-aura-drift 14s ease-in-out infinite alternate; }
+
+@keyframes flow-fx-breathe { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
 @keyframes flow-fx-float { 0%, 100% { transform: translateY(2px); } 50% { transform: translateY(-5px); } }
-@keyframes flow-fx-travel { 0% { stroke-dasharray: 2 0; opacity: .55; } 50% { stroke-dasharray: 13 4; opacity: .9; } 100% { stroke-dasharray: 2 0; opacity: .65; } }
+@keyframes flow-fx-silk-drift {
+  0%   { transform: translate(-1.5%, 0.5%) scale(1); opacity: .85; }
+  100% { transform: translate(1.8%, -0.8%) scale(1.05); opacity: .98; }
+}
+@keyframes flow-fx-aura-drift {
+  0%   { transform: translate(1%, -0.6%) scale(1); opacity: .72; }
+  100% { transform: translate(-1.2%, 0.8%) scale(1.06); opacity: .92; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flow-fx, .flow-fx * { animation: none !important; transition: none !important; }
 }

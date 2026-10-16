@@ -97,7 +97,9 @@ def main():
             check("chip switches the axis select", page.input_value("#pb-axis") == "suction")
             check("main curve now in the suction colour", page.evaluate(PIXELS_OF, ["#pb-curve", SUC]) > 200)
 
-            box = page.locator("#pb-axis-lanes").bounding_box()
+            lanes = page.locator("#pb-axis-lanes")
+            lanes.scroll_into_view_if_needed()
+            box = lanes.bounding_box()
             page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.25)
             page.wait_for_function("document.querySelector('#pb-axis').value === 'vibration'", timeout=5000)
             page.wait_for_function(

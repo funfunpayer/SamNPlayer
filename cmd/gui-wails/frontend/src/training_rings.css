@@ -59,8 +59,15 @@
   aspect-ratio: 1;
 }
 .flow-tr__ring { display: block; width: 100%; height: 100%; overflow: visible; }
-.flow-tr__track, .flow-tr__halo, .flow-tr__arc, .flow-tr__inner { fill: none; }
+.flow-tr__track, .flow-tr__shell, .flow-tr__halo, .flow-tr__arc, .flow-tr__inner { fill: none; }
 .flow-tr__track { stroke: rgba(130, 191, 214, .12); stroke-width: 9; }
+/* Soft full shell — decorative gauge rim, not a reading. */
+.flow-tr__shell {
+  stroke: var(--flow-tr-accent);
+  stroke-width: 8;
+  opacity: .28;
+  filter: drop-shadow(0 0 8px var(--flow-tr-accent));
+}
 .flow-tr__halo { stroke: var(--flow-tr-accent); stroke-width: 17; opacity: calc(.04 + var(--flow-tr-level) * .22); filter: blur(11px); }
 .flow-tr__arc {
   stroke: var(--flow-tr-accent);
@@ -72,12 +79,47 @@
 .flow-tr__inner { stroke: rgba(180, 226, 243, .12); stroke-width: 1; stroke-dasharray: 3 8; }
 .flow-tr__center {
   position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+.flow-tr__center-name {
+  display: none;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--flow-tr-accent) 75%, #e8f7ff);
+}
+.flow-tr__center-pct {
   font-size: clamp(23px, 3vw, 36px);
   line-height: 1;
   font-weight: 750;
   color: #effcff;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 18px rgba(13, 210, 241, .2);
+}
+.flow-tr__wave {
+  display: none;
+  width: 36px;
+  height: 12px;
+  overflow: visible;
+}
+.flow-tr__wave path {
+  stroke: var(--flow-tr-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: .85;
+  filter: drop-shadow(0 0 4px var(--flow-tr-accent));
+}
+.flow-tr__silk {
+  display: none;
+  pointer-events: none;
 }
 .flow-tr__meter {
   height: 29px;
@@ -118,7 +160,7 @@
   .flow-tr__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .flow-tr__channel { padding: 10px 7px; }
   .flow-tr__meter { gap: 3px; }
-  .flow-tr__center { font-size: 23px; }
+  .flow-tr__center-pct { font-size: 23px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .flow-tr *, .flow-tr *::before, .flow-tr *::after {

@@ -929,29 +929,34 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
 .pb-empty[hidden], .pb-loaded[hidden] { display: none !important; }
 .pb-empty-inner {
   text-align: center;
-  max-width: 420px;
-  padding: 36px 24px;
+  display: grid;
+  place-items: center;
+  justify-items: center;
+  width: 100%;
+  padding: 24px;
 }
-.pb-brand-moment {
-  display: flex;
+.pb-empty-cta {
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 18px;
-}
-.pb-brand-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  object-fit: cover;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-}
-.pb-brand-word {
+  gap: 18px;
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  min-height: 0;
+}
+.pb-empty-cta:hover .pb-empty-play { transform: scale(1.05); }
+.pb-empty-cta:active .pb-empty-play { transform: scale(.97); }
+.pb-empty-open {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--text, #e8f4ff);
+  text-shadow: 0 0 18px rgba(63, 208, 255, .35);
 }
 .pb-empty-kicker {
   margin: 0 0 6px;
@@ -967,13 +972,6 @@ video { width: 100%; max-height: 360px; background: #000; border-radius: var(--r
   margin: 0 0 10px;
   color: var(--text);
   letter-spacing: -0.03em;
-}
-.pb-empty-inner .hint {
-  font-family: var(--font-soft);
-  font-size: 0.98rem;
-  line-height: 1.6;
-  color: var(--text-dim);
-  margin: 0 0 22px;
 }
 .pb-loaded {
   display: grid;
@@ -3316,15 +3314,35 @@ button.primary:hover:not(:disabled) {
   transition: opacity .2s ease;
 }
 #tab-playback[data-pb-tools="folded"] .pb-tools { border-left: 0; padding-left: 0; }
-/* Empty state (video first, Owner 14 Oct): the one big action is Open… in
-   the middle; the header Open… stays, quiet, for the keyboard and later. */
+/* Empty state: Play + Open… centered in the Player stage. Header Open… stays quiet. */
 #tab-playback[data-pb-state="empty"] #pb-choose {
   background: transparent; color: var(--text-dim); box-shadow: none;
   border: 1px solid var(--border-soft);
 }
+#tab-playback[data-pb-layout="v1"][data-pb-state="empty"] .pb-main-col {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 130px);
+}
 #tab-playback #pb-empty {
   background: transparent; border: 0; box-shadow: none;
-  min-height: 40vh; display: grid; place-items: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: min(56vh, 520px);
+  display: grid;
+  place-items: center;
+  justify-items: center;
+}
+#tab-playback .pb-empty-play {
+  --fp-size: 128px;
+  display: inline-grid;
+  place-items: center;
+  transition: transform .15s ease;
+}
+#tab-playback .pb-empty-cta:focus-visible {
+  outline: 2px solid rgba(63, 208, 255, .85);
+  outline-offset: 8px;
+  border-radius: 16px;
 }
 @media (max-height: 860px) {
   #tab-playback .pb-keys-hint { display: none; }
@@ -3694,8 +3712,8 @@ body[data-tab="training"] #sidebar, body[data-tab-group="tools"] #sidebar { disp
 /* C1 Flow stage hosts (ChatGPT #503) in the empty Player and "Feel without
    film". The stage is decorative; the text and buttons stay as before. */
 .pb-flow-host { width: 100%; pointer-events: none; }
-.pb-flow-host--empty { width: min(420px, 80%); aspect-ratio: 16 / 9; }
-.pb-flow-host--novideo { width: min(360px, 70%); aspect-ratio: 16 / 9; margin: 0 auto 8px; }
+.pb-flow-host--empty { width: min(520px, 92%); aspect-ratio: 16 / 9; margin: 0 auto 4px; }
+.pb-flow-host--novideo { width: min(400px, 78%); aspect-ratio: 16 / 9; margin: 0 auto 8px; }
 .pb-flow-host .flow-fx { min-height: 0; }
 /* C4 placeholder for a scene frame ffmpeg could not read. */
 .pb-scene-thumb.is-placeholder { object-fit: cover; opacity: .7; }
@@ -4362,9 +4380,14 @@ body:not([data-mode="editor"]) #pb-optimize-card { display: none; }
 .pb-scene-card-feel { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #ffb15b; background: rgba(255, 138, 35, .14); }
 .pb-scenes-apply[hidden] { display: none; }
 
-/* Video first (open_media.js): the empty Player is the place to open or
-   drop a video / script; a video without a script asks to create one. */
-.pb-empty .pb-empty-inner, .pb-noscript {
+/* Video first (open_media.js): empty Player = Play button; noscript asks to create. */
+.pb-empty .pb-empty-inner {
+  border: 0;
+  background: transparent;
+  margin: 0;
+  max-width: none;
+}
+.pb-noscript {
   border: 1.5px dashed rgba(var(--accent-rgb), 0.28);
   border-radius: 22px;
   margin: 18px;

@@ -8,11 +8,18 @@ measurement history behind each entry; this file is the short version for
 
 ## Unreleased
 
+<<<<<<< HEAD
+- **Player empty home (Flow):** one real circular Play control with **Open…**
+  underneath, centered in the Player stage — opens a video or script. Decorative
+  silk/brand empty card removed. Training rings kept closer to the mockup gauges
+  with a silk bridge; transport Play stays the soft circular symbol.
+=======
 ### Fixed
 
 - **Stroke filter settings:** `SetStrokeFilter` writes all four prefs in one save (`SetMany`), so a failed mid-loop save cannot leave a half-updated settings file.
 - **Move home on pause during soft-start:** pausing in the soft-start ramp now Stop + homes the stroker (the normal quiet path no-ops while `firstFrame` is still set).
 - **Stroke filter input:** unsorted / duplicate action times are sorted and deduped before smooth/speed/idle fill.
+>>>>>>> origin/main
 
 ### Added
 
