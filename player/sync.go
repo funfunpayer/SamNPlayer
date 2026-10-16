@@ -68,6 +68,7 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 			if err := p.Device.Stop(); err != nil {
 				return err
 			}
+			p.homeStroke()
 			p.resetStroke()
 			p.resetAxes()
 		}
@@ -119,10 +120,19 @@ func (p *Player) Sync(ctx context.Context, frames []funscript.Frame, positions <
 				}
 				if idle {
 					// Soft-start may already have written mid-ramp intensity.
-					// goQuiet no-ops while firstFrame/quiet — always zero here.
+					// goQuiet no-ops while firstFrame/quiet — always zero here,
+					// and still run the stroker Stop + home path (v0.8).
 					logging.Info("player: Videoposition idle during soft-start - Gerät auf 0", "pos_ms", p.lastSyncPosMs)
 					if err := p.setOutput(funscript.Frame{At: p.lastSyncPosMs}); err != nil {
 						return err
+					}
+					if p.linearDevice() != nil {
+						if err := p.Device.Stop(); err != nil {
+							return err
+						}
+						p.homeStroke()
+						p.resetStroke()
+						p.resetAxes()
 					}
 					quiet = true
 					continue

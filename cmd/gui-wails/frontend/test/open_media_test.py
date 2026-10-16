@@ -66,6 +66,10 @@ def main():
                               " ? { videoPath: v, scriptPath: '/lib/folder.funscript', found: true,"
                               " variants: [{ path: '/lib/folder.funscript', label: '', beside: false }] }"
                               " : { videoPath: v, scriptPath: '', found: false, variants: [] })",
+        "CreateBeatBarScript": "async v => (window.__calls.push(['beatbar', v]), v === '/v/hero.mp4'"
+                               " ? { found: true, scriptPath: '/v/hero (Beat bar).funscript', beats: 120, bpm: 110,"
+                               " message: 'Beat bar read: 120 beats, about 110 BPM.' }"
+                               " : { found: false, scriptPath: '', message: 'No beat bar found in this video.' })",
         "AddScriptFolder": "async () => (window.__folderAdded = true, ['/lib'])",
         "LoadFrameAt": "async () => ({ width: 2, height: 2, pngBase64: 'iVBORw0KGgo=' })",
         "LoadFunscript": "async p => (window.__calls.push(['load', p]), { path: p, actionCount: 4, durationMs: 1500, "
@@ -138,6 +142,23 @@ def main():
             page.click("#pb-noscript-folder")
             page.wait_for_function("window.__calls.some(c => c[0] === 'load' && c[1] === '/lib/folder.funscript')")
             check("folder button: the script found there opens", page.evaluate("document.querySelector('#pb-noscript').hidden"))
+
+            # Cock Hero / Fap Hero: "From the beat bar" writes a script and opens it.
+            page.evaluate("window.__pick = '/v/plain.mp4'")
+            page.click("#pb-choose")
+            page.wait_for_function("!document.querySelector('#pb-noscript').hidden")
+            page.click("#pb-noscript-beatbar")
+            page.wait_for_function("document.querySelector('#pb-noscript-status').textContent.includes('No beat bar')")
+            check("beat bar: none found is said, the question stays",
+                  page.evaluate("!document.querySelector('#pb-noscript').hidden"))
+            check("beat bar: button usable again", page.evaluate("!document.querySelector('#pb-noscript-beatbar').disabled"))
+            page.evaluate("window.__pick = '/v/hero.mp4'")
+            page.click("#pb-noscript-other")
+            page.wait_for_function("document.querySelector('#pb-noscript-name').textContent === 'hero.mp4'")
+            page.click("#pb-noscript-beatbar")
+            page.wait_for_function("window.__calls.some(c => c[0] === 'load' && c[1] === '/v/hero (Beat bar).funscript')")
+            check("beat bar: asked for this video", calls("beatbar")[-1] == "/v/hero.mp4", str(calls("beatbar")))
+            check("beat bar: the new script opens", page.evaluate("document.querySelector('#pb-noscript').hidden"))
 
             # Over a loaded script: question with Back, the script stays.
             page.evaluate("window.__pick = '/v/other.mp4'")

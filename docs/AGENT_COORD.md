@@ -1,5 +1,7 @@
 # Agent coordination (Cursor ↔ Claude ↔ ChatGPT)
 
+> **Current state (15 Oct 2026): read [`AGENT_STATE.md`](AGENT_STATE.md) first.** Claude works alone now; Go is being replaced by Python and C++ ([`MIGRATION_CPP_PYTHON.md`](MIGRATION_CPP_PYTHON.md)). The lanes below are history.
+
 Shared board **inside the repo** so agents split work without colliding.
 Update this file when you claim or finish work. Product docs English;
 talk to the owner in German.

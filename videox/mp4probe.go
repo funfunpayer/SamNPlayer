@@ -67,12 +67,8 @@ func probeISOBMFF(path string) (Info, error) {
 	if !haveGeom || info.Width <= 0 || info.Height <= 0 {
 		return Info{}, fmt.Errorf("lean probe: no video geometry in %s", filepath.Base(path))
 	}
-	if info.Codec == "" {
-		info.Codec = "h264"
-	}
-	if info.PixFmt == "" {
-		info.PixFmt = "yuv420p"
-	}
+	// Leave codec / pix fmt empty when the probe cannot read them (MEDIA-01).
+	// Empty codec makes LikelyPlayable() false, so the "Make playable" proxy is offered.
 	return info, nil
 }
 

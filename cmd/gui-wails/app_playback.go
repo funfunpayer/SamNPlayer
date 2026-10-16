@@ -205,8 +205,11 @@ func (a *App) StartPlayback(opts PlaybackOptions) error {
 		p.StartAtMs = opts.StartAtMs
 	}
 	p.SetSpeed(opts.Speed)
-	// Strokers (The Handy …) get the script's real positions (D2).
-	p.SetStroke(script.PlaybackActions())
+	// Strokers (The Handy …) get the script's real positions (D2), through
+	// the stroke filter (smooth / speed limit / filled pauses, v0.8).
+	stroke, strokeHome := a.filteredStroke(script)
+	p.SetStroke(stroke)
+	p.SetStrokeHome(strokeHome)
 	// Multi-axis devices (SR6 over TCode) also get the companion files (D4).
 	p.SetAxes(companionAxesFor(a.loadedScriptPath()))
 	a.stateMu.RLock()

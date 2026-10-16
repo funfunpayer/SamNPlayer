@@ -1,6 +1,7 @@
 package videox
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -92,5 +93,44 @@ func TestProbePrefersFFprobeWhenPresent(t *testing.T) {
 	}
 	if info.PixFmt == "" || info.FPS < 24 {
 		t.Fatalf("expected ffprobe-quality fields, got %+v", info)
+	}
+}
+
+func TestProbeISOBMFFUnknownCodec(t *testing.T) {
+	path := makeTestVideo(t)
+	// Patch the last avc1/avc3 (sample-entry type inside stsd, not the ftyp brand)
+	// so the lean probe cannot map it to a known codec (MEDIA-01: must not default to h264).
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	patched := false
+	for _, old := range [][]byte{[]byte("avc1"), []byte("avc3")} {
+		i := bytes.LastIndex(b, old)
+		if i >= 0 {
+			copy(b[i:], []byte("unkn"))
+			patched = true
+			break
+		}
+	}
+	if !patched {
+		t.Fatal("could not find avc1/avc3 sample entry to patch")
+	}
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := probeISOBMFF(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Codec == "h264" || info.Codec == "avc1" {
+		t.Fatalf("unknown sample entry defaulted to known codec: %q", info.Codec)
+	}
+	if info.LikelyPlayable() {
+		t.Fatalf("unknown codec %q treated as playable", info.Codec)
+	}
+	if info.Width != 320 || info.Height != 240 {
+		t.Fatalf("geometry lost after patch: %dx%d", info.Width, info.Height)
 	}
 }
