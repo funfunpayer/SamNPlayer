@@ -114,29 +114,28 @@ Next already has stroke filter + beat bar in `core/` per `AGENT_STATE.md` — tr
 
 ## 5. Recommended next steps in SamNPlayer-Next-Level
 
-1. **Read this file** + update `docs/AGENT_STATE.md` “Last update” and “Next” with EmptyHomePlay.
-2. **Align empty Player** with §1.1 (block or amend #18 empty welcome).
-3. **Training:** when porting Training UI, use soft circular Play + silk between rings (§1.3), not the old logo-as-Play experiment.
-4. **Parity checklist:** tick empty-home against current Go `#pb-empty`, not against pre-#550 screenshots.
-5. Do **not** force-push; PR-only to `main` (Next house rules in `AGENT_STATE.md`).
+1. ~~Align empty Player with §1.1~~ — **done** (D-138 on Next `main`).
+2. **Read** Next `docs/LOOK_FROM_08_ASSESSMENT.md` (22 Oct look review): Next is already on the 0.8 Flow face; only small static Open… glow polish left on the look branch.
+3. Optional later (not look-blocking): `prefers-reduced-motion` for silk / Play breathe.
+4. Do **not** force-push; PR-only to `main` (Next house rules in `AGENT_STATE.md`).
 
 ---
 
 ## 6. Smoke checklist (Next QML)
 
-- [ ] Empty Player: only Play circle + “Open…”; click opens picker / video-first flow
-- [ ] Cluster optically centered in Player main column (not top-hugging)
-- [ ] No silk stage / SamN wordmark / “Ready when you are” on empty
-- [ ] Loaded + no video: optional Flow stage still OK if product wants “Feel without film”
-- [ ] Transport Play remains round Flow ring (not header squircle logo)
+- [x] Empty Player: only Play circle + “Open…”; click opens picker / video-first flow
+- [x] Cluster optically centered in Player main column (not top-hugging)
+- [x] No silk stage / SamN wordmark / “Ready when you are” on empty — **done in Next** (`PlayerPage` D-138; look review 22 Oct: `docs/LOOK_FROM_08_ASSESSMENT.md` in Next-Level)
+- [x] Loaded + no video: “Feel without film” path kept (script-only + stage silk)
+- [x] Transport Play remains round Flow ring (`PlayButton.qml`)
 - [ ] `ctest` + app smoke green; no adult media in screenshots
 
 ---
 
 ## 7. Status of this Cursor lane
 
-- Go PR #550: **IN REVIEW** (Owner smoke; Frontend CI watched after mark-size fix).
-- This handoff: written 16 Oct 2026 for Next; no further Go GUI work claimed until Owner asks.
+- Go PR #550 / FlowSilk branch: look handoff complete for Next.
+- Next look review (22 Oct): already at stand; optional Open… text glow only — see Next `LOOK_FROM_08_ASSESSMENT.md`.
 - Preview stubs (`vite.preview.config.mjs`, `preview-stubs/`) are **local-only** in the Go worktree — do not port them.
 
 ---
